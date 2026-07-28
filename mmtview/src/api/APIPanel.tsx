@@ -8,12 +8,24 @@ import UnsavedChangesWarning from "./UnsavedChangesWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
+import { requestFormat } from "mmt-core/CommonData";
+import { packBodyForYamlCompare } from "mmt-core/markupConvertor";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { showYamlUiConflictDialog } from "../vsAPI";
+import TabBar from "../components/TabBar";
+import PrimaryButton from "../components/PrimaryButton";
+import PanelEditHeader from "../components/PanelEditHeader";
+import { HeaderAction } from "../components/PanelRunHeader";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 const LAST_API_PAGE_KEY = "mmtview:api:lastPage";
+
+const API_EDIT_TABS = [
+  { id: "overview" as const, label: "Overview", icon: "search" },
+  { id: "interface" as const, label: "Interface", icon: "symbol-interface" },
+  { id: "examples" as const, label: "Examples", icon: "lightbulb" },
+];
 
 const REQUEST_FIELD_LABELS: Partial<Record<keyof Request, string>> = {
   url: "URL",
@@ -53,8 +65,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   const [tab, setTab] = useState<"overview" | "interface" | "examples">(
     () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples") || "overview"
   );
-  const [showIconsOnly, setShowIconsOnly] = useState(false);
-  const tabContainerRef = useRef<HTMLDivElement>(null);
 
   // Test-mode override tracking. We don't snapshot the API on entry; instead
   // we ask the tester which fields the user has touched and compare those
@@ -89,16 +99,24 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
 
   // Build the API as it would look with the user's tester overrides applied.
   // Only fields explicitly touched by the user become overrides.
+  const uiFieldValue = useCallback((field: string): unknown => {
+    const raw = (testRequestData as Record<string, unknown> | undefined)?.[field];
+    if (field !== "body") {
+      return raw;
+    }
+    return packBodyForYamlCompare(api.body, raw, requestFormat(api.format));
+  }, [api.body, api.format, testRequestData]);
+
   const modifiedApi = useMemo<APIData>(() => {
     if (!testRequestData || testTouchedFields.size === 0) {
       return api;
     }
     const overrides: Record<string, unknown> = {};
     testTouchedFields.forEach((field) => {
-      overrides[field as string] = (testRequestData as Record<string, unknown>)[field as string];
+      overrides[field as string] = uiFieldValue(field as string);
     });
     return { ...api, ...overrides } as APIData;
-  }, [api, testRequestData, testTouchedFields]);
+  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
 
   const savedModifiedApi = useMemo<APIData>(() => {
     const effectiveProtocol = protocolResolver.getEffectiveProtocol(modifiedApi.protocol, modifiedApi.url);
@@ -116,14 +134,14 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     testTouchedFields.forEach((field) => {
       if (modified) { return; }
       const fieldKey = field as string;
-      const reqVal = (testRequestData as Record<string, unknown>)[fieldKey];
+      const reqVal = uiFieldValue(fieldKey);
       const apiVal = (api as unknown as Record<string, unknown>)[fieldKey];
       if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
         modified = true;
       }
     });
     return modified;
-  }, [api, testRequestData, testTouchedFields]);
+  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
 
   const isTestModified = page === "test" && hasUiOverrides;
 
@@ -139,14 +157,14 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     const labels: string[] = [];
     testTouchedFields.forEach((field) => {
       const fieldKey = field as string;
-      const reqVal = (testRequestData as Record<string, unknown>)[fieldKey];
+      const reqVal = uiFieldValue(fieldKey);
       const apiVal = (api as unknown as Record<string, unknown>)[fieldKey];
       if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
         labels.push(REQUEST_FIELD_LABELS[field] || fieldKey);
       }
     });
     return labels.join(", ");
-  }, [api, testRequestData, testTouchedFields]);
+  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
 
   const modifiedFieldsLabelRef = useRef(modifiedFieldsLabel);
   const modifiedYamlRef = useRef(modifiedYaml);
@@ -266,28 +284,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     localStorage.setItem(LAST_API_TAB_KEY, tab);
   }, [tab]);
 
-  useEffect(() => {
-    const checkTabWidth = () => {
-      if (!tabContainerRef.current) return;
-
-      const container = tabContainerRef.current;
-      const containerWidth = container.clientWidth;
-
-      const fullTextWidth = 4 * 100;
-
-      setShowIconsOnly(containerWidth < fullTextWidth);
-    };
-
-    checkTabWidth();
-
-    const resizeObserver = new ResizeObserver(checkTabWidth);
-    if (tabContainerRef.current) {
-      resizeObserver.observe(tabContainerRef.current);
-    }
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => {
     setAPI({ ...api, ...patch });
@@ -334,17 +330,14 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                   onRequestReset={handleRequestReset}
                   rightOfUrlButton={
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <button
-                        className="action-button"
+                      <HeaderAction
+                        icon="edit"
+                        label="Edit API"
                         onClick={() => setPage('edit')}
-                        title="Edit API"
-                        type="button"
-                      >
-                        <span className="codicon codicon-edit" aria-hidden />
-                        <span className="api-edit-launcher-text">Edit API</span>
-                      </button>
+                      />
                       {isTestModified && (
                         <UnsavedChangesWarning
+                          originalYaml={appliedContent}
                           modifiedYaml={modifiedYaml}
                           onSave={() => setAPI(savedModifiedApi)}
                           onReset={handleWarningReset}
@@ -357,48 +350,13 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('test')}
-                    title="Back to Test"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit API</div>
-                </div>
-                <div ref={tabContainerRef} className="tab-bar">
-                  <button
-                    onClick={() => setTab('overview')}
-                    className={`tab-button ${tab === 'overview' ? 'active' : ''}`}
-                    title={showIconsOnly ? 'Overview' : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-search tab-button-icon"></span>
-                    {!showIconsOnly && 'Overview'}
-                  </button>
-                  <button
-                    onClick={() => setTab('interface')}
-                    className={`tab-button ${tab === 'interface' ? 'active' : ''}`}
-                    title={showIconsOnly ? 'Interface' : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-symbol-interface tab-button-icon"></span>
-                    {!showIconsOnly && 'Interface'}
-                  </button>
-                  <button
-                    onClick={() => setTab('examples')}
-                    className={`tab-button ${tab === 'examples' ? 'active' : ''}`}
-                    title={showIconsOnly ? 'Examples' : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-lightbulb tab-button-icon"></span>
-                    {!showIconsOnly && 'Examples'}
-                  </button>
-                </div>
-              </div>
+              <PanelEditHeader
+                title="Edit API"
+                onBack={() => setPage('test')}
+                backTitle="Back to Test"
+              >
+                <TabBar tabs={API_EDIT_TABS} value={tab} onChange={setTab} />
+              </PanelEditHeader>
 
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                 {tab === 'overview' && <APIOverview api={api} update={update} />}
@@ -431,10 +389,9 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                                 />
                               </div>
                             ))}
-                          <button onClick={addExample} className="button-icon" type="button">
-                            <span className="codicon codicon-add" aria-hidden />
+                          <PrimaryButton icon="add" onClick={addExample}>
                             Add Example
-                          </button>
+                          </PrimaryButton>
                         </td>
                       </tr>
                     </tbody>

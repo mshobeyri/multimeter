@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MonacoEditor from "@monaco-editor/react";
-import { FIXED_BG_THEME, defineTheme } from "./Theme";
+import { defineTheme, getMonacoThemeName } from "./Theme";
 
 interface TextEditorProps {
   content: string;
@@ -58,6 +58,87 @@ function registerGraphQLLanguage(monaco: any) {
   });
 }
 
+let urlencodedRegistered = false;
+function registerUrlEncodedLanguage(monaco: any) {
+  if (urlencodedRegistered) {
+    return;
+  }
+  urlencodedRegistered = true;
+  monaco.languages.register({ id: "urlencoded" });
+  // Use YAML/JSON theme tokens: `key` (green) and `string` (orange).
+  monaco.languages.setMonarchTokensProvider("urlencoded", {
+    tokenizer: {
+      root: [
+        [/\s+/, "white"],
+        // key=value (value may be empty)
+        [/([^&\s=]+)(=)([^&]*)/, ["key", "delimiter", "string"]],
+        // bare key (no = yet)
+        [/[^&\s=]+/, "key"],
+        [/[=&]/, "delimiter"],
+      ],
+    },
+  });
+}
+
+let xmlHighlightPatched = false;
+/** Color XML element/CDATA text as string (orange), matching JSON/YAML values. */
+function patchXmlValueHighlighting(monaco: any) {
+  if (xmlHighlightPatched) {
+    return;
+  }
+  xmlHighlightPatched = true;
+  // Built-in XML leaves text as "" (default/white). Retokenize as string.xml.
+  monaco.languages.setMonarchTokensProvider("xml", {
+    defaultToken: "",
+    tokenPostfix: ".xml",
+    ignoreCase: true,
+    qualifiedName: /(?:[\w.-]+:)?[\w.-]+/,
+    tokenizer: {
+      root: [
+        [/[^<&]+/, "string"],
+        { include: "@whitespace" },
+        [/(<)(@qualifiedName)/, [{ token: "delimiter" }, { token: "tag", next: "@tag" }]],
+        [
+          /(<\/)(@qualifiedName)(\s*)(>)/,
+          [{ token: "delimiter" }, { token: "tag" }, "", { token: "delimiter" }],
+        ],
+        [/(<\?)(@qualifiedName)/, [{ token: "delimiter" }, { token: "metatag", next: "@tag" }]],
+        [/(<!)(@qualifiedName)/, [{ token: "delimiter" }, { token: "metatag", next: "@tag" }]],
+        [/<!\[CDATA\[/, { token: "delimiter.cdata", next: "@cdata" }],
+        [/&\w+;/, "string.escape"],
+      ],
+      cdata: [
+        [/[^\]]+/, "string"],
+        [/\]\]>/, { token: "delimiter.cdata", next: "@pop" }],
+        [/\]/, "string"],
+      ],
+      tag: [
+        [/[ \t\r\n]+/, ""],
+        [/(@qualifiedName)(\s*=\s*)("[^"]*"|'[^']*')/, ["attribute.name", "", "attribute.value"]],
+        [
+          /(@qualifiedName)(\s*=\s*)("[^">?/]*|'[^'>?/]*)(?=[?/]>)/,
+          ["attribute.name", "", "attribute.value"],
+        ],
+        [/(@qualifiedName)(\s*=\s*)("[^">]*|'[^'>]*)/, ["attribute.name", "", "attribute.value"]],
+        [/@qualifiedName/, "attribute.name"],
+        [/\?>/, { token: "delimiter", next: "@pop" }],
+        [/(\/)(>)/, [{ token: "tag" }, { token: "delimiter", next: "@pop" }]],
+        [/>/, { token: "delimiter", next: "@pop" }],
+      ],
+      whitespace: [
+        [/[ \t\r\n]+/, ""],
+        [/<!--/, { token: "comment", next: "@comment" }],
+      ],
+      comment: [
+        [/[^<-]+/, "comment.content"],
+        [/-->/, { token: "comment", next: "@pop" }],
+        [/<!--/, "comment.content.invalid"],
+        [/[<-]/, "comment.content"],
+      ],
+    },
+  });
+}
+
 const TextEditor: React.FC<TextEditorProps> = ({
   content,
   setContent,
@@ -97,16 +178,18 @@ const TextEditor: React.FC<TextEditorProps> = ({
     pasteTextTransformRef.current = onPasteTextTransform;
   }, [onPasteTextTransform]);
 
-  // Listen for VS Code theme changes and update Monaco theme
+  // Keep Monaco React theme prop in sync with flip-flop theme names from Theme.tsx.
+  const [monacoTheme, setMonacoTheme] = useState(getMonacoThemeName);
   useEffect(() => {
-    const handler = () => {
+    const handler = (event: Event) => {
+      const name = (event as CustomEvent).detail?.monacoTheme || getMonacoThemeName();
+      setMonacoTheme(name);
       if (monacoRefToUse.current) {
-        defineTheme(monacoRefToUse.current);
-        monacoRefToUse.current.editor.setTheme(FIXED_BG_THEME);
+        monacoRefToUse.current.editor.setTheme(name);
       }
     };
-    window.addEventListener("vscode:changeColorTheme", handler);
-    return () => window.removeEventListener("vscode:changeColorTheme", handler);
+    window.addEventListener("vscode:changeColorTheme", handler as EventListener);
+    return () => window.removeEventListener("vscode:changeColorTheme", handler as EventListener);
   }, [monacoRefToUse]);
 
   // Add CSS for the decoration
@@ -116,8 +199,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
     style.id = "i-prefix-highlight-style";
     style.innerHTML = `
       .${I_PREFIX_CLASS} {
-        background:rgba(150, 246, 255, 0.27);
-        color:rgb(203, 203, 203) !important;
+        background: color-mix(in srgb, var(--vscode-editorInfo-foreground, #75beff) 28%, transparent);
         border-radius: 2px;
       }
     `;
@@ -217,15 +299,6 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
-  // Add this in your main React entry file (e.g. index.tsx or App.tsx)
-  useEffect(() => {
-    window.addEventListener("message", event => {
-      if (event.data && event.data.type === "vscode:changeColorTheme") {
-        window.dispatchEvent(new Event("vscode:changeColorTheme"));
-      }
-    });
-  }, []);
-
   const editorDidMount = (editor: any) => {
     editorRefToUse.current = editor;
     editor.onDidFocusEditorWidget?.(() => {
@@ -312,11 +385,13 @@ const TextEditor: React.FC<TextEditorProps> = ({
       width="100%"
       language={language}
       value={content}
-      theme={FIXED_BG_THEME}
+      theme={monacoTheme}
       beforeMount={monaco => {
         monacoRefToUse.current = monaco;
         defineTheme(monaco);
         registerGraphQLLanguage(monaco);
+        registerUrlEncodedLanguage(monaco);
+        patchXmlValueHighlighting(monaco);
         beforeMount?.(monaco);
       }}
       onMount={editorDidMount}

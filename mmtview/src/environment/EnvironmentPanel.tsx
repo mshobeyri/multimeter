@@ -10,8 +10,20 @@ import { EnvCertificates, EnvVariable } from "./EnvironmentData";
 import { saveEnvPresets } from "../workspaceStorage";
 import { selectFromVariables } from "mmt-core/runConfig";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
+import TabBar from "../components/TabBar";
+import PrimaryButton from "../components/PrimaryButton";
+import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
+import PanelEditHeader from "../components/PanelEditHeader";
 
 const LAST_ENV_PAGE_KEY = "mmtview:env:lastPage";
+
+const ENV_EDIT_TABS = [
+  { id: "overview" as const, label: "Overview", icon: "note" },
+  { id: "variables" as const, label: "Variables", icon: "symbol-variable" },
+  { id: "presets" as const, label: "Presets", icon: "tasklist" },
+  { id: "settings" as const, label: "Settings", icon: "settings-gear" },
+  { id: "certificates" as const, label: "Certificates", icon: "shield" },
+];
 
 interface EnvironmentPanelProps {
   content: string;
@@ -336,32 +348,24 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div className="api-edit-header">
-                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="codicon codicon-server-environment" aria-hidden />
-                      Environment
-                    </div>
-                    <button
-                      className="action-button api-edit-launcher"
+                <PanelRunHeader
+                  icon="server-environment"
+                  title="Environment"
+                  actions={
+                    <HeaderAction
+                      icon="edit"
+                      label="Edit Environment"
                       onClick={() => setPage('edit')}
-                      title="Edit Environment"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Environment</span>
-                    </button>
-                  </div>
-                </div>
+                    />
+                  }
+                />
                 <div className="run-action-bar">
-                  <button onClick={handleSaveToCache} className="button-icon" type="button">
-                    <span className="codicon codicon-refresh" aria-hidden />
+                  <PrimaryButton icon="refresh" onClick={handleSaveToCache}>
                     Reload
-                  </button>
-                  <button onClick={handleClearCache} className="button-icon" type="button">
-                    <span className="codicon codicon-clear-all" aria-hidden />
+                  </PrimaryButton>
+                  <PrimaryButton icon="clear-all" onClick={handleClearCache}>
                     Clear
-                  </button>
+                  </PrimaryButton>
                 </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                   <EnvironmentEnv
@@ -377,66 +381,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('environment')}
-                    title="Back to Environment"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Environment</div>
-                </div>
-                <div className="tab-bar">
-                  <button
-                    onClick={() => setEditTab('overview')}
-                    className={`tab-button ${editTab === 'overview' ? 'active' : ''}`}
-                    title="Overview"
-                    type="button"
-                  >
-                    <span className="codicon codicon-note tab-button-icon"></span>
-                    Overview
-                  </button>
-                  <button
-                    onClick={() => setEditTab('variables')}
-                    className={`tab-button ${editTab === 'variables' ? 'active' : ''}`}
-                    title="Variables"
-                    type="button"
-                  >
-                    <span className="codicon codicon-symbol-variable tab-button-icon"></span>
-                    Variables
-                  </button>
-                  <button
-                    onClick={() => setEditTab('presets')}
-                    className={`tab-button ${editTab === 'presets' ? 'active' : ''}`}
-                    title="Presets"
-                    type="button"
-                  >
-                    <span className="codicon codicon-tasklist tab-button-icon"></span>
-                    Presets
-                  </button>
-                  <button
-                    onClick={() => setEditTab('settings')}
-                    className={`tab-button ${editTab === 'settings' ? 'active' : ''}`}
-                    title="Settings"
-                    type="button"
-                  >
-                    <span className="codicon codicon-settings-gear tab-button-icon"></span>
-                    Settings
-                  </button>
-                  <button
-                    onClick={() => setEditTab('certificates')}
-                    className={`tab-button ${editTab === 'certificates' ? 'active' : ''}`}
-                    title="Certificates"
-                    type="button"
-                  >
-                    <span className="codicon codicon-shield tab-button-icon"></span>
-                    Certificates
-                  </button>
-                </div>
-              </div>
+              <PanelEditHeader
+                title="Edit Environment"
+                onBack={() => setPage('environment')}
+                backTitle="Back to Environment"
+              >
+                <TabBar tabs={ENV_EDIT_TABS} value={editTab} onChange={setEditTab} />
+              </PanelEditHeader>
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                 <EnvironmentEdit content={content} setContent={setContent} tab={editTab} />
               </div>

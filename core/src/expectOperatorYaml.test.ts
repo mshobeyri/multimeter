@@ -7,9 +7,70 @@ describe('expectOperatorYaml', () => {
     expect(quoteExpectOperators(yaml)).toContain('path: "!^ /start"');
   });
 
-  it('quotes !% and fuzzy-percent operators in expect block', () => {
-    expect(quoteExpectOperators('expect:\n  name: !% Jon')).toContain('name: "!% Jon"');
-    expect(quoteExpectOperators('expect:\n  name: !75% Jon')).toContain('name: "!75% Jon"');
+  it('quotes >% and fuzzy-percent operators in expect block', () => {
+    expect(quoteExpectOperators('expect:\n  name: >% Jon')).toContain('name: ">% Jon"');
+    expect(quoteExpectOperators('expect:\n  name: >75% Jon')).toContain('name: ">75% Jon"');
+  });
+
+  it('quotes != on Windows CRLF line endings (`.` does not match \\r)', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - http: https://test.mmt.dev/echo',
+      '    expect:',
+      '      status: != 200',
+      '      body.body.message: hello',
+    ].join('\r\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('status: "!= 200"');
+    expect(quoted.includes('\r\n')).toBe(true);
+    const doc = YAML.parse(quoted);
+    expect(doc.steps[0].expect.status).toBe('!= 200');
+    expect(doc.steps[0].expect['body.body.message']).toBe('hello');
+  });
+
+  it('preserves CRLF when no expect operators need quoting', () => {
+    const yaml = [
+      'type: api',
+      'method: post',
+      'examples:',
+      '  - name: example1',
+    ].join('\r\n');
+    expect(quoteExpectOperators(yaml)).toBe(yaml);
+  });
+
+  it('quotes != on legacy CR-only line endings', () => {
+    const yaml = 'expect:\r  status: != 200\r';
+    expect(quoteExpectOperators(yaml)).toContain('status: "!= 200"');
+  });
+
+  it('quotes operator fields and emits bang ops with CRLF input', () => {
+    const yaml = [
+      'steps:',
+      '  - check:',
+      '      actual: 1',
+      '      operator: !=',
+      '      expected: 2',
+      '  - call: api',
+      '    expect:',
+      '      status: "!= 201"',
+    ].join('\r\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('operator: "!="');
+    const emitted = emitUnquotedOperators(quoted);
+    expect(emitted).toContain('operator: !=');
+    expect(emitted).toContain('status: != 201');
+  });
+
+  it('filters operator tag errors when the source uses CRLF', () => {
+    const yaml = [
+      'type: test',
+      'expect:',
+      '  path: !^ /start',
+    ].join('\r\n');
+    const doc = YAML.parseDocument(yaml);
+    expect(doc.errors.length).toBeGreaterThan(0);
+    expect(filterOperatorYamlErrors(yaml, doc.errors)).toEqual([]);
   });
 
   it('quotes != and !* for dotted, hyphenated, and bracket keys', () => {

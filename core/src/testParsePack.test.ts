@@ -199,8 +199,8 @@ describe('quoteExpectOperators', () => {
     expect(result).toContain('path: "!^ /start"');
   });
 
-  it('does not quote safe operators (==, <, <=, =@, =C, =*, =#, =N%, =^, =$)', () => {
-    const yaml = 'expect:\n  a: == 200\n  b: < 100\n  c: <= 50\n  d: =@ ok\n  e: =* /x/\n  f: =^ start\n  g: =$ end\n  h: =C ok\n  i: =# 3\n  j: =80% Jon';
+  it('does not quote safe operators (==, <, <=, =@, =C, =*, =#, <N%, =^, =$)', () => {
+    const yaml = 'expect:\n  a: == 200\n  b: < 100\n  c: <= 50\n  d: =@ ok\n  e: =* /x/\n  f: =^ start\n  g: =$ end\n  h: =C ok\n  i: =# 3\n  j: <80% Jon';
     const result = quoteExpectOperators(yaml);
     expect(result).toBe(yaml);
   });
@@ -390,6 +390,25 @@ steps:
     expect(doc.steps[0].expect.msg).toBe('!* /fail/');
     expect(doc.steps[0].debug.code).toBe('!= 500');
   });
+
+  it('keeps != through yamlToTest when the file uses CRLF (Windows)', () => {
+    const yaml = [
+      'type: test',
+      'title: POST and verify body',
+      'steps:',
+      '  - http: https://test.mmt.dev/echo',
+      '    title: Post echo',
+      '    method: post',
+      '    body:',
+      '      message: hello',
+      '    expect:',
+      '      status: != 200',
+      '      body.body.message: hello',
+    ].join('\r\n');
+    const t = yamlToTest(yaml);
+    expect((t as any).steps[0].expect.status).toBe('!= 200');
+    expect((t as any).steps[0].expect['body.body.message']).toBe('hello');
+  });
 });
 
 describe('yamlToTestStrict', () => {
@@ -488,6 +507,45 @@ steps:
     steps:
       - call: missing_api`;
     expect(() => yamlToTestStrict(yaml)).toThrow(/missing_api.*not imported/i);
+  });
+
+  it('validates nested steps in if else branch', () => {
+    const yaml = `type: test
+import:
+  echo: echo.mmt
+steps:
+  - if: true
+    steps:
+      - print: ok
+    else:
+      - call: missing_api`;
+    expect(() => yamlToTestStrict(yaml)).toThrow(/missing_api.*not imported/i);
+  });
+
+  it('round-trips if/else steps', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - if: status == 200',
+      '    steps:',
+      '      - print: ok',
+      '    else:',
+      '      - print: fail',
+    ].join('\n');
+    const test = yamlToTest(yaml);
+    expect(test.steps?.[0]).toMatchObject({
+      if: 'status == 200',
+      steps: [{print: 'ok'}],
+      else: [{print: 'fail'}],
+    });
+    const packed = testToYaml(test);
+    expect(packed).toContain('else:');
+    expect(packed).toContain('print: fail');
+    expect(yamlToTest(packed).steps?.[0]).toMatchObject({
+      if: 'status == 200',
+      steps: [{print: 'ok'}],
+      else: [{print: 'fail'}],
+    });
   });
 });
 

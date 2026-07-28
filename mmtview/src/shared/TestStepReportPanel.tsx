@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StepStatus } from './types';
 import { statusIconFor } from './Common';
+import HighlightedBody from './HighlightedBody';
 
 /** Parsed call result details extracted from the `_` field of an API call output. */
 interface CallResultDetails {
@@ -36,119 +37,36 @@ function formatStructuredValue(value: any, pretty?: boolean): string {
   }
 }
 
-/** Format a body string (try JSON pretty-print, then XML indent). */
-function tryFormatBody(body: any): string {
-  if (!body) { return ''; }
-  if (typeof body !== 'string') {
-    return formatStructuredValue(body, true);
-  }
-  try {
-    return JSON.stringify(JSON.parse(body), null, 2);
-  } catch {
-    // pass
-  }
-  if (isXml(body)) {
-    return formatXml(body);
-  }
-  return body;
-}
-
-/** Check whether a string looks like XML. */
-function isXml(s: string): boolean {
-  const trimmed = s.trim();
-  return trimmed.startsWith('<') && trimmed.endsWith('>');
-}
-
-/** Simple XML indenter for display purposes. */
-function formatXml(xml: string): string {
-  let formatted = '';
-  let indent = 0;
-  const parts = xml.replace(/(>)(<)/g, '$1\n$2').split('\n');
-  for (const raw of parts) {
-    const node = raw.trim();
-    if (!node) { continue; }
-    if (node.startsWith('</')) {
-      indent = Math.max(indent - 1, 0);
-    }
-    formatted += '  '.repeat(indent) + node + '\n';
-    if (node.startsWith('<') && !node.startsWith('</') && !node.startsWith('<?') && !node.endsWith('/>') && !node.includes('</')) {
-      indent++;
-    }
-  }
-  return formatted.trimEnd();
-}
-
-/** Unescape common escape sequences for display. */
-function unescapeForDisplay(s: string): string {
-  if (!s) { return s; }
-  return s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-}
-
-/** Render headers as a compact key: value list. */
+/** Render headers as a borderless key/value table (matches history panel). */
 const HeadersBlock: React.FC<{ label: string; headers?: Record<string, any> }> = ({ label, headers }) => {
   if (!headers || Object.keys(headers).length === 0) { return null; }
   return (
-    <div style={{ marginTop: 6 }}>
+    <div className="report-headers-block" style={{ marginTop: 6 }}>
       <span style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', opacity: 0.7 }}>{label}</span>
-      <div style={{
-        marginTop: 2, padding: '4px 6px', borderRadius: 4,
-        background: 'var(--vscode-editor-background, #1e1e1e)',
-        fontFamily: 'var(--vscode-editor-font-family, monospace)',
-        fontSize: 'var(--vscode-editor-font-size, 12px)',
-        maxHeight: 200, overflow: 'auto',
-      }}>
-        {Object.entries(headers).map(([k, v]) => (
-          <div key={k} style={{ display: 'flex', gap: 4 }}>
-            <span style={{ opacity: 0.7 }}>{k}:</span>
-            <span style={{ wordBreak: 'break-all' }}>{formatStructuredValue(v)}</span>
-          </div>
-        ))}
+      <div className="report-headers-content">
+        <table className="report-headers-table">
+          <tbody>
+            {Object.entries(headers).map(([k, v]) => (
+              <tr key={k}>
+                <th>{k}</th>
+                <td>{formatStructuredValue(v)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 };
 
-/** A pre block with optional "Format" button for body content. */
-const BodyBlock: React.FC<{ label: string; body?: any }> = ({ label, body }) => {
-  const [formatted, setFormatted] = useState(false);
+/** Colored body preview with Format/Raw and copy. */
+const BodyBlock: React.FC<{ label: string; body?: any; headers?: Record<string, any> }> = ({
+  label,
+  body,
+  headers,
+}) => {
   if (!body) { return null; }
-  const rawBody = typeof body === 'string' ? body : formatStructuredValue(body, true);
-  const displayBody = formatted ? tryFormatBody(body) : rawBody;
-  const canFormat = (() => {
-    if (typeof body !== 'string') { return true; }
-    try { JSON.parse(body); return true; } catch { /* not JSON */ }
-    if (isXml(body)) { return true; }
-    return false;
-  })();
-  return (
-    <div style={{ marginTop: 6 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-        <span style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', opacity: 0.7 }}>{label}</span>
-        {canFormat && (
-          <button
-            type="button"
-            className="action-button"
-            onClick={() => setFormatted(f => !f)}
-            title={formatted ? 'Show raw' : 'Format JSON'}
-            style={{ padding: '1px 5px', fontSize: 10, border: '1px solid var(--vscode-editorWidget-border, #555)', borderRadius: 3, background: 'transparent', cursor: 'pointer' }}
-          >
-            {formatted ? 'Raw' : 'Format'}
-          </button>
-        )}
-      </div>
-      <pre style={{
-        margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-        fontFamily: 'var(--vscode-editor-font-family, monospace)',
-        fontSize: 'var(--vscode-editor-font-size, 12px)',
-        maxHeight: 300, overflow: 'auto',
-        padding: '4px 6px',
-        borderRadius: 4,
-        background: 'var(--vscode-editor-background, #1e1e1e)',
-      }}>
-        {unescapeForDisplay(displayBody)}
-      </pre>
-    </div>
-  );
+  return <HighlightedBody label={label} body={body} headers={headers} />;
 };
 
 /** Try to parse a details string as a structured call result.
@@ -310,7 +228,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
                 )}
               </div>
               <HeadersBlock label="Headers" headers={callDetails.request.headers} />
-              <BodyBlock label="Body" body={callDetails.request.body} />
+              <BodyBlock label="Body" body={callDetails.request.body} headers={callDetails.request.headers} />
             </div>
           </div>
         );
@@ -324,7 +242,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
             <SectionTitle label="Response" first={first} />
             <div style={{ paddingLeft: 12 }}>
               <HeadersBlock label="Headers" headers={callDetails.response.headers} />
-              <BodyBlock label="Body" body={callDetails.response.body} />
+              <BodyBlock label="Body" body={callDetails.response.body} headers={callDetails.response.headers} />
             </div>
           </div>
         );

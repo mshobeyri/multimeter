@@ -34,6 +34,26 @@ describe('apiParsePack', () => {
     expect(yaml).not.toContain('import:');
   });
 
+  it('yamlToAPI recovers incomplete url/method scalars while typing schemes', () => {
+    const httpPartial = yamlToAPI([
+      'type: api',
+      'url: http:',
+      'method: get',
+    ].join('\n'));
+    expect(httpPartial.url).toBe('http:');
+    expect(typeof httpPartial.url).toBe('string');
+
+    const httpsPartial = yamlToAPI('type: api\nurl: https:');
+    expect(httpsPartial.url).toBe('https:');
+
+    const wsPartial = yamlToAPI('type: api\nurl: ws:');
+    expect(wsPartial.url).toBe('ws:');
+
+    const methodPartial = yamlToAPI('type: api\nurl: https://x\nmethod: http:');
+    expect(methodPartial.method).toBe('http:');
+    expect(typeof methodPartial.method).toBe('string');
+  });
+
   it('apiToYaml does not add title when missing', () => {
     const yaml = apiToYaml({
       type: 'api',

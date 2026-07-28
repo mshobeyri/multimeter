@@ -7,7 +7,7 @@ import type {NetworkConfig, EnvCertificateSettings, EnvSetting} from 'mmt-core/N
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
 
-export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
+export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
 const {mergeEnv, resolvePresetEnv} =
     ((mmtcore as any).runConfig || {}) as any;
@@ -417,6 +417,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
 
   const runFileOptions: RunFileOptions&{
     fileLoader: (path: string) => Promise<string>;
+    binaryFileLoader?: (path: string) => Promise<Buffer>;
     jsRunner: (
         code: string, title: string,
         logger: (level: any, msg: string) => void) => Promise<void>;
@@ -438,6 +439,10 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
         return '';
       }
       return fs.readFileSync(rel, 'utf8');
+    },
+    binaryFileLoader: async (p: string) => {
+      const rel = path.isAbsolute(p) ? p : path.join(dir, p);
+      return fs.promises.readFile(rel);
     },
     jsRunner: async () => {},
     logger: (level: any, msg: string) => {
@@ -468,6 +473,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     mmt: 'test-results.mmt',
     html: 'test-results.html',
     md: 'test-results.md',
+    'md-detailed': 'test-results-detailed.md',
   };
 
   return {

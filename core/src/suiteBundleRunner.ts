@@ -132,6 +132,12 @@ async function runSuiteBundleNode(params: {
       const resolved = resolveRelativeTo(requestedPath, childFilePath);
       return await baseFileLoader(resolved);
     };
+    const childBinaryFileLoader = options.binaryFileLoader
+      ? async (requestedPath: string) => {
+          const resolved = resolveRelativeTo(requestedPath, childFilePath);
+          return await options.binaryFileLoader!(resolved);
+        }
+      : undefined;
 
     options.reporter && options.reporter({
       scope: 'suite-item',
@@ -150,6 +156,7 @@ async function runSuiteBundleNode(params: {
       fileType: 'raw',
       filePath: childFilePath,
       fileLoader: childFileLoader,
+      binaryFileLoader: childBinaryFileLoader,
       logger: childLogger,
       runId,
       id,

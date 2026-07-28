@@ -54,7 +54,7 @@ export const notypeSamples: NotypeSample[] = [
     type: "api",
     title: "Simple GET request",
     description: "Call an endpoint and inspect the response.",
-    codicon: "globe",
+    codicon: "symbol-method",
     content: `type: api
 title: Simple GET request
 url: https://test.mmt.dev  # change to your API URL
@@ -155,11 +155,11 @@ sources:
   },
   {
     type: "server",
-    title: "Mock server",
+    title: "Server",
     description: "Serve canned responses for local development.",
     codicon: "server",
     content: `type: server
-title: Mock server
+title: Server
 port: 9099
 cors: true
 endpoints:
@@ -197,12 +197,24 @@ checks:
 ];
 
 export const notypeTypeIcons: Record<NotypeSampleType, string> = {
-  api: "globe",
+  api: "symbol-method",
   env: "server-environment",
   test: "beaker",
-  suite: "list-tree",
-  loadtest: "pulse",
+  suite: "layers",
+  loadtest: "dashboard",
   doc: "book",
   server: "server",
-  report: "output",
+  report: "file-text",
+};
+
+/** Distinct accent color per document type (icons + gallery). */
+export const notypeTypeColors: Record<NotypeSampleType, string> = {
+  api: "#1f6feb",
+  env: "#8957e5",
+  test: "#3fb950",
+  suite: "#58a6ff",
+  loadtest: "#db6d28",
+  doc: "#d4a72c",
+  server: "#39c5cf",
+  report: "#a371f7",
 };

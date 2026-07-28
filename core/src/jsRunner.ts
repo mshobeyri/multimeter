@@ -21,6 +21,8 @@ export interface RunJSCodeContext {
   title: string;
   logger: (level: LogLevel, message: string) => void;
   fileLoader?: (path: string) => Promise<string>;
+  /** Load a relative path as raw bytes (for format: binary request bodies). */
+  binaryFileLoader?: (path: string) => Promise<Buffer>;
   reporter?: (message: any) => void;
   id?: string;
   abortSignal?: AbortSignal;
@@ -201,13 +203,20 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `  if (__fileLoader && mmtHelper.setFileLoader_) { mmtHelper.setFileLoader_(__fileLoader); }` +
       `  return mmtHelper.importJsModule_(path, opts);` +
       `};\n` +
+      `const readBinaryFile_ = async (path) => {` +
+      `  if (typeof __binaryFileLoader !== 'function') {` +
+      `    throw new Error('Binary file loader not available');` +
+      `  }` +
+      `  return __binaryFileLoader(path);` +
+      `};\n` +
       `${code}`;
     let fn = compiledFunctionCache.get(functionBody);
     if (!fn) {
       fn = new Function(
         'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
         '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
-        '__mmt_access', '__abortSignal', '__fileLoader', '__checkLogMode',
+        '__mmt_access', '__abortSignal', '__fileLoader', '__binaryFileLoader',
+        '__checkLogMode',
         functionBody);
       if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
         const firstKey = compiledFunctionCache.keys().next().value;
@@ -262,7 +271,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
-        context.abortSignal, context.fileLoader, context.checkLogMode || 'default');
+        context.abortSignal, context.fileLoader, context.binaryFileLoader,
+        context.checkLogMode || 'default');
     restoreReporterGlobals();
     // For API runs, prefer the network send/receive duration so the finish
     // log matches the toolbar. Fall back to wall-clock for tests/suites.

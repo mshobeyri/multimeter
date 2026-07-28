@@ -21,8 +21,8 @@ function keySuggestionLabelsFor(
     "!*",
     "=#",
     "!#",
-    "=%",
-    "!%",
+    ">%",
+    "<%",
     "=^",
     "!^",
     "=$",
@@ -47,7 +47,7 @@ describe("check/assert object-form autocomplete", () => {
     expect(labels.has("==")).toBe(true);
     expect(labels.has("=*")).toBe(true);
     expect(labels.has("=#")).toBe(true);
-    expect(labels.has("=%")).toBe(true);
+    expect(labels.has(">%")).toBe(true);
     expect(labels.has("=@")).toBe(true);
   });
 

@@ -10,6 +10,7 @@ Multimeter can generate structured reports after running `.mmt` test, suite, and
 | `.mmt` | MMT Report YAML | Native Multimeter review and re-export |
 | `.html` | HTML | Sharing visual reports with stakeholders |
 | `.md` | Markdown | PRs, issues, wikis, and docs |
+| `.md` (detailed) | Markdown detailed | Same as Markdown, plus request/response IO like the report panel |
 
 ## JUnit XML
 
@@ -246,6 +247,45 @@ Functional Markdown reports use a compact `## Tests` section:
 
 Load Markdown reports include overview, load metric tables, four single-series Mermaid `xychart` blocks, and a snapshots table with numeric `at` values.
 
+### Detailed Markdown
+
+Choose **Markdown (detailed)** in the Export menu, or pass `--report md-detailed` on the CLI.
+
+**Default filename:** `test-results-detailed.md`
+
+Detailed Markdown starts with the same overview and `## Tests` content as regular Markdown, then appends a `## Step Details` section for every check that has call data. Each step has **Request** and **Response** only:
+
+- Request: method, URL, headers, body
+- Response: status (with text and duration), headers, body
+
+```md
+## Step Details
+
+### ✓ Login
+
+#### Request
+
+`POST https://example.com/login`
+
+**Headers**
+
+| Key | Value |
+|-----|-------|
+| content-type | application/json |
+
+**Body**
+
+    { "user": "ada" }
+
+#### Response
+
+**Status:** `200 OK (42ms)`
+
+**Body**
+
+    { "token": "abc" }
+```
+
 ## CLI usage
 
 Use the `--report` flag with `testlight run`:
@@ -262,6 +302,9 @@ npx testlight run loadtest.mmt --report html
 
 # Generate Markdown report
 npx testlight run test.mmt --report md
+
+# Generate detailed Markdown (summary + request/response IO)
+npx testlight run test.mmt --report md-detailed
 ```
 
 ### Custom output path
@@ -281,6 +324,7 @@ npx testlight run loadtest.mmt --report html --report-file reports/load.html
 | `mmt` | `test-results.mmt` |
 | `html` | `test-results.html` |
 | `md` | `test-results.md` |
+| `md-detailed` | `test-results-detailed.md` |
 
 ## Auto-export from `.mmt` files
 

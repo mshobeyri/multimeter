@@ -72,6 +72,40 @@ describe('networkCore request timeout', () => {
     );
   });
 
+  it('sends Buffer bodies with octet-stream and byte Content-Length', async () => {
+    const body = Buffer.from([0x00, 0xff, 0x80, 0x7f]);
+    await sendHttpRequest(
+        {url: 'http://example.com/upload', method: 'post', body},
+        DEFAULT_NETWORK_CONFIG,
+    );
+
+    expect(mockedAxios.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: body,
+          headers: expect.objectContaining({
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': '4',
+          }),
+        }),
+    );
+  });
+
+  it('does not sniff Buffer bodies as JSON even if bytes look like text', async () => {
+    const body = Buffer.from('{"a":1}');
+    await sendHttpRequest(
+        {url: 'http://example.com/upload', method: 'post', body},
+        DEFAULT_NETWORK_CONFIG,
+    );
+
+    expect(mockedAxios.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Content-Type': 'application/octet-stream',
+          }),
+        }),
+    );
+  });
+
   it('uses the basic HTTP/2 transport when configured', async () => {
     const response = await sendHttpRequest(
         {url: 'https://example.com/users', method: 'get'},

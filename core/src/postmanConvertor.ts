@@ -211,15 +211,21 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       body = transformRecordValues(extractKeyValue(request.body.formdata));
     }
 
-    // Determine format from content-type header
-    let format: 'json' | 'xml' | 'text' = 'json';
-  const contentType = (headers?.['content-type'] ?? headers?.['Content-Type']) as string | undefined;
-    if (typeof contentType === 'string') {
-      const lc = contentType.toLowerCase();
-      if (lc.includes('xml')) {
-        format = 'xml';
-      } else if (lc.includes('text')) {
-        format = 'text';
+    // Determine format from body mode / content-type header
+    let format: 'json' | 'xml' | 'text' | 'urlencoded' = 'json';
+    if (request.body?.mode === 'urlencoded') {
+      format = 'urlencoded';
+    } else {
+      const contentType = (headers?.['content-type'] ?? headers?.['Content-Type']) as string | undefined;
+      if (typeof contentType === 'string') {
+        const lc = contentType.toLowerCase();
+        if (lc.includes('xml')) {
+          format = 'xml';
+        } else if (lc.includes('urlencoded') || lc.includes('x-www-form-urlencoded')) {
+          format = 'urlencoded';
+        } else if (lc.includes('text')) {
+          format = 'text';
+        }
       }
     }
 

@@ -14,6 +14,9 @@ import { showYamlUiConflictDialog } from "../vsAPI";
 import {
   modifiedInputKeysLabel,
 } from "./testUiRefresh";
+import TabBar from "../components/TabBar";
+import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
+import PanelEditHeader from "../components/PanelEditHeader";
 
 interface TestPanelProps {
   content: string;
@@ -25,6 +28,12 @@ interface TestPanelProps {
 const LAST_TAB_KEY = "mmtview:lastTab";
 const LAST_TEST_PAGE_KEY = "mmtview:test:lastPage";
 type TestPage = "test" | "edit" | "flow";
+
+const TEST_EDIT_TABS = [
+  { id: "overview" as const, label: "Overview", icon: "search" },
+  { id: "flow" as const, label: "Flow", icon: "list-tree" },
+  { id: "code" as const, label: "Code", icon: "code" },
+];
 
 function pageTranslate(page: TestPage): string {
   if (page === "edit") {
@@ -98,8 +107,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
   const [tab, setTab] = useState<"overview" | "flow" | "code">(
     () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code") || "overview"
   );
-  const [showIconsOnly, setShowIconsOnly] = useState(false);
-  const tabContainerRef = useRef<HTMLDivElement>(null);
   const { mmtFilePath } = React.useContext(FileContext);
 
   const isTestModified = page === "test" && hasUiOverrides;
@@ -271,28 +278,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
     return () => window.removeEventListener('message', handler);
   }, [isReadOnly]);
 
-  useEffect(() => {
-    const checkTabWidth = () => {
-      if (!tabContainerRef.current) return;
-
-      const container = tabContainerRef.current;
-      const containerWidth = container.clientWidth;
-
-      const fullTextWidth = 4 * 100;
-
-      setShowIconsOnly(containerWidth < fullTextWidth);
-    };
-
-    checkTabWidth();
-
-    const resizeObserver = new ResizeObserver(checkTabWidth);
-    if (tabContainerRef.current) {
-      resizeObserver.observe(tabContainerRef.current);
-    }
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
   return (
     <div className="panel">
       <div className="panel-box" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
@@ -303,54 +288,41 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: 'column' }}>
-                <div className="api-edit-header">
-                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="codicon codicon-beaker" aria-hidden />
-                      {test.title || 'Test'}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button
-                        className="action-button api-edit-launcher"
+                <PanelRunHeader
+                  icon="beaker"
+                  title={test.title || 'Test'}
+                  actions={
+                    <>
+                      <HeaderAction
+                        icon="type-hierarchy-sub"
+                        label="Flow chart"
                         onClick={() => setPage('flow')}
-                        title="Flow chart"
-                        type="button"
-                      >
-                        <span className="codicon codicon-type-hierarchy-sub" aria-hidden />
-                        <span className="api-edit-launcher-text">Flow chart</span>
-                      </button>
+                      />
+                      {onSaveAsMmt ? (
+                        <HeaderAction
+                          icon="save-as"
+                          label="Save as MMT"
+                          onClick={() => onSaveAsMmt(test)}
+                        />
+                      ) : (
+                        <HeaderAction
+                          icon="edit"
+                          label="Edit Test"
+                          onClick={() => setPage('edit')}
+                        />
+                      )}
                       {isTestModified && (
                         <UnsavedChangesWarning
+                          originalYaml={appliedContent}
                           modifiedYaml={modifiedYaml}
-                          yamlHeaderLabel="Modified Test"
+                          yamlHeaderLabel="YAML ↔ temporary inputs"
                           onSave={() => setTest(savedModifiedTest)}
                           onReset={handleWarningReset}
                         />
                       )}
-                      {onSaveAsMmt ? (
-                        <button
-                          className="action-button api-edit-launcher"
-                          onClick={() => onSaveAsMmt(test)}
-                          title="Save as MMT"
-                          type="button"
-                        >
-                          <span className="codicon codicon-save-as" aria-hidden />
-                          <span className="api-edit-launcher-text">Save as MMT</span>
-                        </button>
-                      ) : (
-                        <button
-                          className="action-button api-edit-launcher"
-                          onClick={() => setPage('edit')}
-                          title="Edit Test"
-                          type="button"
-                        >
-                          <span className="codicon codicon-edit" aria-hidden />
-                          <span className="api-edit-launcher-text">Edit Test</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                    </>
+                  }
+                />
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <TestTest
                     testData={test}
@@ -362,49 +334,13 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('test')}
-                    title="Back to Test"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Test</div>
-                </div>
-
-                <div className="tab-bar">
-                  <button
-                    onClick={() => setTab("overview")}
-                    className={`tab-button ${tab === "overview" ? "active" : ""}`}
-                    title={showIconsOnly ? "Overview" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-search tab-button-icon"></span>
-                    {!showIconsOnly && "Overview"}
-                  </button>
-                  <button
-                    onClick={() => setTab("flow")}
-                    className={`tab-button ${tab === "flow" ? "active" : ""}`}
-                    title={showIconsOnly ? "Flow" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-list-tree tab-button-icon"></span>
-                    {!showIconsOnly && "Flow"}
-                  </button>
-                  <button
-                    onClick={() => setTab("code")}
-                    className={`tab-button ${tab === "code" ? "active" : ""}`}
-                    title={showIconsOnly ? "Code" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-code tab-button-icon"></span>
-                    {!showIconsOnly && "Code"}
-                  </button>
-                </div>
-              </div>
+              <PanelEditHeader
+                title="Edit Test"
+                onBack={() => setPage('test')}
+                backTitle="Back to Test"
+              >
+                <TabBar tabs={TEST_EDIT_TABS} value={tab} onChange={setTab} />
+              </PanelEditHeader>
 
               <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                 {!isReadOnly && tab === "overview" && (

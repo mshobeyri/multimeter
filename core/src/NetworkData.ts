@@ -1,9 +1,10 @@
 import { GraphQLConfig, GrpcConfig } from './APIData';
+import { FormatSpec } from './CommonData';
 
 export interface Request {
   url?: string;
   protocol?: "http" | "ws" | "graphql" | "grpc" | undefined;
-  format?: "json" | "xml" | "xmle" | "text" | undefined;
+  format?: FormatSpec | undefined;
   method?: string;
   timeout?: number;
   headers?: Record<string, string> | undefined;
@@ -33,7 +34,7 @@ export interface GrpcResponse {
 }
 
 export interface Response {
-  format?: "json" | "xml" | "xmle" | "text" | undefined;
+  format?: "json" | "xml" | "xmle" | "text" | "urlencoded" | undefined;
   headers?: Record<string, string> | undefined;
   cookies?: Record<string, string> | undefined;
   query?: Record<string, string> | undefined;
@@ -126,7 +127,7 @@ export interface HttpRequest {
   method?: string;
   timeout?: number;
   headers?: Record<string, string>;
-  body?: string;
+  body?: string | Buffer;
   query?: Record<string, string>;
   cookies?: Record<string, string>;
 }

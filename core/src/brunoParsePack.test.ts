@@ -153,6 +153,39 @@ get {
     });
   });
 
+  it('converts Bruno form-urlencoded bodies', () => {
+    const api = brunoToAPI(`meta {
+  name: Update Profile Form
+}
+
+put {
+  url: {{baseUrl}}/echo
+  body: form-urlencoded
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+body:form-urlencoded {
+  displayName: Grace Hopper
+  timezone: UTC
+  newsletter: true
+}
+`, 'update_profile_form.bru');
+
+    expect(api).toMatchObject({
+      type: 'api',
+      method: 'put',
+      format: 'urlencoded',
+      body: {
+        displayName: 'Grace Hopper',
+        timezone: 'UTC',
+        newsletter: 'true',
+      },
+    });
+  });
+
   it('reports missing method and url validation errors', () => {
     const errors = validateBrunoDocument('meta {\n  name: Broken\n}\n');
     expect(errors.some(error => error.message.includes('No Bruno HTTP method block'))).toBe(true);

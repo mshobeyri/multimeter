@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { MockEndpoint } from "mmt-core/MockData";
 import KSVEditor from "../components/KSVEditor";
+import { METHOD_PROTOCOL_COLORS, methodTextColor as sharedMethodTextColor } from '../shared/themeAccent';
 
 interface MockEndpointBoxProps {
   endpoint: MockEndpoint;
@@ -15,7 +16,7 @@ interface MockEndpointBoxProps {
 }
 
 const METHODS = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'] as const;
-const FORMATS = ['json', 'xml', 'xmle', 'text'] as const;
+const FORMATS = ['json', 'xml', 'xmle', 'text', 'urlencoded'] as const;
 
 function getFormatLabel(format: string): string {
   if (format === 'xml') {
@@ -24,13 +25,26 @@ function getFormatLabel(format: string): string {
   if (format === 'xmle') {
     return 'xmle — expanded';
   }
+  if (format === 'urlencoded') {
+    return 'urlencoded — form body';
+  }
   return format;
 }
 
 export const METHOD_COLORS: Record<string, string> = {
-  get: "#61affe", post: "#49cc90", put: "#fca130", patch: "#e5c07b",
-  delete: "#f93e3e", head: "#9012fe", options: "#0d5aa7",
+  get: METHOD_PROTOCOL_COLORS.get,
+  post: METHOD_PROTOCOL_COLORS.post,
+  put: METHOD_PROTOCOL_COLORS.put,
+  patch: METHOD_PROTOCOL_COLORS.patch,
+  delete: METHOD_PROTOCOL_COLORS.delete,
+  head: METHOD_PROTOCOL_COLORS.head,
+  options: METHOD_PROTOCOL_COLORS.options,
 };
+
+/** Theme-harmonized text color for method labels/icons. */
+export function methodTextColor(method: string): string {
+  return sharedMethodTextColor(method);
+}
 
 const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   endpoint, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand, variant = 'endpoint',
@@ -103,10 +117,10 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
     },
   }), [commit]);
 
-  const method = (local.method || 'get').toLowerCase();
+  const method = String(typeof local.method === 'string' ? local.method : 'get').toLowerCase();
   const isFallback = variant === 'fallback';
   const summaryLabel = isFallback ? 'FALLBACK' : method.toUpperCase();
-  const summaryPath = isFallback ? '/?' : local.path;
+  const summaryPath = isFallback ? '/?' : (typeof local.path === 'string' ? local.path : String(local.path ?? ''));
 
   /* ─── Context menu (kebab) ─── */
   const Actions = () => {
@@ -198,7 +212,7 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   /* ─── Collapsed summary row ─── */
   const summary = (
     <div className="test-flow-box-items" style={{ alignItems: 'center' }}>
-      <span style={{ flex: `0 1 ${isFallback ? 76 : 60}px`, maxWidth: isFallback ? 76 : 60, minWidth: 0, fontWeight: 700, fontSize: 12, color: isFallback ? 'var(--vscode-descriptionForeground)' : METHOD_COLORS[method] || 'inherit' }}>
+      <span style={{ flex: `0 1 ${isFallback ? 76 : 60}px`, maxWidth: isFallback ? 76 : 60, minWidth: 0, fontWeight: 700, fontSize: 12, color: isFallback ? 'var(--vscode-descriptionForeground)' : methodTextColor(method) }}>
         {summaryLabel}
       </span>
       <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>

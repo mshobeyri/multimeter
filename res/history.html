@@ -59,7 +59,12 @@
             padding: 0 2px;
             margin-right: 6px;
             border-radius: 2px;
-            color: #fff;
+            /* Colors applied via MmtThemeAccent (same fill as API method select / Send). */
+            color: var(--vscode-button-foreground, #fff);
+            background: var(--vscode-button-background, #0e639c);
+            border-width: 1px;
+            border-style: solid;
+            border-color: transparent;
             font-size: 8px;
             font-weight: 600;
             line-height: 14px;
@@ -157,6 +162,63 @@
             margin-bottom: 4px;
         }
 
+        .drawer-section-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .drawer-section-header .drawer-section-title {
+            margin-bottom: 0;
+        }
+
+        .drawer-format-btn {
+            padding: 1px 5px;
+            font-size: 10px;
+            line-height: 1.3;
+            border: 1px solid var(--vscode-button-border, var(--vscode-editorWidget-border, #555));
+            border-radius: 3px;
+            background: var(--vscode-button-secondaryBackground, var(--vscode-input-background, transparent));
+            color: var(--vscode-button-secondaryForeground, var(--vscode-foreground, #ccc));
+            cursor: pointer;
+        }
+
+        .drawer-format-btn:hover {
+            background: var(--vscode-button-secondaryHoverBackground, var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.08)));
+            border-color: var(--vscode-focusBorder, var(--vscode-button-border, #555));
+        }
+
+        .drawer-body-format {
+            font-size: 10px;
+            opacity: 0.55;
+            text-transform: lowercase;
+            padding: 0 4px;
+            border: 1px solid var(--vscode-editorWidget-border, #555);
+            border-radius: 3px;
+            line-height: 1.4;
+        }
+
+        .drawer-body-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .drawer-copy-btn {
+            width: 22px;
+            height: 20px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drawer-copy-btn .codicon {
+            font-size: 14px;
+        }
+
         .drawer-sub {
             padding-left: 12px;
         }
@@ -202,19 +264,35 @@
             word-break: break-all;
         }
 
-        .drawer-content pre {
-            color: var(--vscode-foreground, #ccc);
-            background: rgba(127, 127, 127, 0.14);
+        .drawer-content pre,
+        .drawer-body-pre {
+            color: var(--vscode-editor-foreground, #d4d4d4);
+            background: var(
+                --vscode-textCodeBlock-background,
+                color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 88%, var(--vscode-foreground, #ccc) 12%)
+            );
             padding: 8px 10px;
             border-radius: 4px;
+            border: 1px solid var(--vscode-editorWidget-border, var(--vscode-widget-border, #555));
             font-size: var(--history-detail-size);
             font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
             margin: 0;
             overflow-x: auto;
             line-height: 1.5;
             white-space: pre-wrap;
-            word-break: break-all;
+            word-break: break-word;
+            max-height: 360px;
         }
+
+        .bh-key { color: var(--mmt-token-key, var(--vscode-symbolIcon-keyForeground, #9cdcfe)); }
+        .bh-string { color: var(--mmt-token-string, var(--vscode-symbolIcon-stringForeground, #ce9178)); }
+        .bh-number { color: var(--mmt-token-number, var(--vscode-symbolIcon-numberForeground, #b5cea8)); }
+        .bh-keyword { color: var(--mmt-token-keyword, var(--vscode-symbolIcon-keywordForeground, #569cd6)); }
+        .bh-punct { color: var(--mmt-token-punctuation, var(--vscode-editor-foreground, #d4d4d4)); }
+        .bh-tag { color: var(--mmt-token-tag, var(--mmt-token-key, #569cd6)); }
+        .bh-attr { color: var(--mmt-token-attribute, var(--mmt-token-key, #9cdcfe)); }
+        .bh-comment { color: var(--mmt-token-comment, #6a9955); }
+        .bh-text { color: var(--mmt-token-foreground, var(--vscode-editor-foreground, #d4d4d4)); }
 
         @keyframes drawerOpen {
             from {
@@ -251,22 +329,366 @@
         }
     </style>
     <script>
+__THEME_ACCENT_JS__
+    </script>
+    <script>
         const vscode = acquireVsCodeApi();
-        const history = __HISTORY_DATA__;
-        let openIdx = null;
+        let history = __HISTORY_DATA__;
+        const initialTokenColors = __TOKEN_COLORS__;
+        let openIdx = __OPEN_IDX__;
+        var TA = window.MmtThemeAccent;
+        var METHOD_PROTOCOL_COLORS = TA.METHOD_PROTOCOL_COLORS;
+        var PROTOCOL_LABELS = {
+            ws: 'WS',
+            graphql: 'GraphQL',
+            grpc: 'gRPC'
+        };
+
+        function applyTokenColors(tokenColors) {
+            if (!tokenColors) {
+                return;
+            }
+            function hex(value) {
+                if (value == null || value === '') {
+                    return '';
+                }
+                var v = String(value);
+                return v.charAt(0) === '#' ? v : ('#' + v);
+            }
+            var root = document.documentElement.style;
+            var body = document.body && document.body.style;
+            function setVar(name, value) {
+                var h = hex(value);
+                if (!h) {
+                    return;
+                }
+                root.setProperty(name, h);
+                if (body) {
+                    body.setProperty(name, h);
+                }
+            }
+            setVar('--mmt-token-key', tokenColors.key);
+            setVar('--mmt-token-string', tokenColors.string);
+            setVar('--mmt-token-number', tokenColors.number);
+            setVar('--mmt-token-keyword', tokenColors.keyword);
+            setVar('--mmt-token-comment', tokenColors.comment);
+            setVar('--mmt-token-tag', tokenColors.tag);
+            setVar('--mmt-token-attribute', tokenColors.attribute);
+            setVar('--mmt-token-punctuation', tokenColors.punctuation);
+            setVar('--mmt-token-foreground', tokenColors.foreground);
+
+            // Also stamp a style tag so colors win even if var() cascade is flaky.
+            var style = document.getElementById('mmt-token-colors');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'mmt-token-colors';
+                document.head.appendChild(style);
+            }
+            style.textContent =
+                '.bh-key { color: ' + hex(tokenColors.key) + ' !important; }' +
+                '.bh-string { color: ' + hex(tokenColors.string) + ' !important; }' +
+                '.bh-number { color: ' + hex(tokenColors.number) + ' !important; }' +
+                '.bh-keyword { color: ' + hex(tokenColors.keyword) + ' !important; }' +
+                '.bh-punct { color: ' + hex(tokenColors.punctuation) + ' !important; }' +
+                '.bh-tag { color: ' + hex(tokenColors.tag) + ' !important; }' +
+                '.bh-attr { color: ' + hex(tokenColors.attribute) + ' !important; }' +
+                '.bh-comment { color: ' + hex(tokenColors.comment) + ' !important; }' +
+                '.bh-text { color: ' + hex(tokenColors.foreground) + ' !important; }';
+        }
+        applyTokenColors(initialTokenColors);
+
+        function requestThemeTokens() {
+            var themeId = document.body.getAttribute('data-vscode-theme-id') ||
+                (document.body.dataset && document.body.dataset.vscodeThemeId) ||
+                undefined;
+            var themeName = document.body.getAttribute('data-vscode-theme-name') ||
+                (document.body.dataset && document.body.dataset.vscodeThemeName) ||
+                undefined;
+            vscode.postMessage({
+                command: 'requestThemeTokens',
+                themeId: themeId,
+                themeName: themeName
+            });
+        }
+        // Ask host after load, and whenever VS Code updates the webview theme attrs.
+        requestThemeTokens();
+        try {
+            var themeRequestTimer = null;
+            var themeObserver = new MutationObserver(function () {
+                if (themeRequestTimer) {
+                    clearTimeout(themeRequestTimer);
+                }
+                themeRequestTimer = setTimeout(function () {
+                    themeRequestTimer = null;
+                    requestThemeTokens();
+                    // Recompute badge/status chrome against freshly injected CSS vars.
+                    renderHistory();
+                }, 40);
+            });
+            themeObserver.observe(document.body, {
+                attributes: true,
+                attributeFilter: [
+                    'data-vscode-theme-id',
+                    'data-vscode-theme-name',
+                    'data-vscode-theme-kind',
+                    'class'
+                ]
+            });
+        } catch (e) { /* ignore */ }
+        /** Per-item body format toggle: idx -> true when showing beautified body. */
+        var formattedBodyByIdx = {};
+        /** Brief "Copied" feedback per body idx. */
+        var copiedBodyByIdx = {};
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function headerValue(headers, name) {
+            if (!headers) {
+                return '';
+            }
+            var target = String(name).toLowerCase();
+            var keys = Object.keys(headers);
+            for (var i = 0; i < keys.length; i++) {
+                if (String(keys[i]).toLowerCase() === target) {
+                    return headers[keys[i]] == null ? '' : String(headers[keys[i]]);
+                }
+            }
+            return '';
+        }
+
+        function detectBodyFormat(content, headers) {
+            var ct = headerValue(headers, 'content-type').toLowerCase();
+            if (ct.indexOf('json') >= 0) {
+                return 'json';
+            }
+            if (ct.indexOf('xml') >= 0 || ct.indexOf('html') >= 0) {
+                return 'xml';
+            }
+            if (ct.indexOf('urlencoded') >= 0 || ct.indexOf('x-www-form-urlencoded') >= 0) {
+                return 'urlencoded';
+            }
+            var text = content == null ? '' : String(content);
+            var trimmed = text.replace(/^\s+/, '');
+            if (!trimmed) {
+                return 'text';
+            }
+            if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
+                try {
+                    JSON.parse(text);
+                    return 'json';
+                } catch (e) { /* fall through */ }
+            }
+            if (trimmed.charAt(0) === '<') {
+                return 'xml';
+            }
+            if (/^[^=&\s]+=/.test(trimmed) && trimmed.indexOf('=') >= 0 && trimmed.indexOf('\n') < 0) {
+                return 'urlencoded';
+            }
+            return 'text';
+        }
+
+        function indentXml(xml) {
+            var padded = xml.replace(/(>)(<)(\/*)/g, '$1\n$2$3');
+            var lines = padded.split('\n');
+            var indent = 0;
+            var out = [];
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) {
+                    continue;
+                }
+                if (/^<\/\w/.test(line)) {
+                    indent = Math.max(indent - 1, 0);
+                }
+                out.push(new Array(indent + 1).join('  ') + line);
+                if (/^<\w[^>]*[^\/]>.*$/.test(line) && !/^<.*>.*<\/\w/.test(line)) {
+                    indent += 1;
+                }
+            }
+            return out.join('\n');
+        }
+
+        function formatUrlEncoded(body) {
+            return String(body).split('&').filter(function (part) {
+                return part.length > 0;
+            }).map(function (part) {
+                var eq = part.indexOf('=');
+                if (eq < 0) {
+                    try { return decodeURIComponent(part.replace(/\+/g, ' ')); } catch (e) { return part; }
+                }
+                var key = part.slice(0, eq);
+                var value = part.slice(eq + 1);
+                try { key = decodeURIComponent(key.replace(/\+/g, ' ')); } catch (e) { /* keep */ }
+                try { value = decodeURIComponent(value.replace(/\+/g, ' ')); } catch (e) { /* keep */ }
+                return key + '=' + value;
+            }).join('&\n');
+        }
+
+        function tryFormatBody(content, headers) {
+            if (content == null) {
+                return '';
+            }
+            var text = String(content);
+            var format = detectBodyFormat(text, headers);
+            try {
+                if (format === 'json') {
+                    return JSON.stringify(JSON.parse(text), null, 2);
+                }
+                if (format === 'xml') {
+                    return indentXml(text);
+                }
+                if (format === 'urlencoded') {
+                    return formatUrlEncoded(text);
+                }
+            } catch (e) { /* leave raw */ }
+            return text;
+        }
+
+        function canFormatBody(content, headers) {
+            if (content == null || content === '') {
+                return false;
+            }
+            var format = detectBodyFormat(String(content), headers);
+            if (format === 'json') {
+                try {
+                    JSON.parse(String(content));
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+            return format === 'xml' || format === 'urlencoded';
+        }
+
+        function spanCls(cls, text) {
+            return '<span class="' + cls + '">' + escapeHtml(text) + '</span>';
+        }
+
+        function highlightJson(text) {
+            // Keep whitespace after strings in its own group so newlines before `}` are preserved.
+            var re = /("(?:\\.|[^"\\])*")(\s*)(:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b|([{}\[\],])/g;
+            var out = '';
+            var last = 0;
+            var match;
+            while ((match = re.exec(text)) !== null) {
+                if (match.index > last) {
+                    out += escapeHtml(text.slice(last, match.index));
+                }
+                if (match[1] !== undefined) {
+                    out += spanCls(match[3] ? 'bh-key' : 'bh-string', match[1]);
+                    if (match[2]) {
+                        out += escapeHtml(match[2]);
+                    }
+                    if (match[3]) {
+                        out += spanCls('bh-punct', match[3]);
+                    }
+                } else if (match[4] !== undefined) {
+                    out += spanCls('bh-number', match[4]);
+                } else if (match[5] !== undefined) {
+                    out += spanCls('bh-keyword', match[5]);
+                } else if (match[6] !== undefined) {
+                    out += spanCls('bh-punct', match[6]);
+                }
+                last = match.index + match[0].length;
+            }
+            if (last < text.length) {
+                out += escapeHtml(text.slice(last));
+            }
+            return out;
+        }
+
+        function highlightXml(text) {
+            var re = /(<!--[\s\S]*?-->)|(<\?[\s\S]*?\?>)|(<\/?[A-Za-z_][\w:.-]*)|(\/?>)|(=)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|([^<\s="'\/]+)/g;
+            var out = '';
+            var last = 0;
+            var inTag = false;
+            var match;
+            while ((match = re.exec(text)) !== null) {
+                if (match.index > last) {
+                    out += escapeHtml(text.slice(last, match.index));
+                }
+                if (match[1]) {
+                    out += spanCls('bh-comment', match[1]);
+                } else if (match[2]) {
+                    out += spanCls('bh-tag', match[2]);
+                } else if (match[3]) {
+                    inTag = true;
+                    out += spanCls('bh-tag', match[3]);
+                } else if (match[4]) {
+                    inTag = false;
+                    out += spanCls('bh-punct', match[4]);
+                } else if (match[5]) {
+                    out += spanCls('bh-punct', match[5]);
+                } else if (match[6]) {
+                    out += spanCls('bh-string', match[6]);
+                } else if (match[7]) {
+                    out += spanCls(inTag ? 'bh-attr' : 'bh-text', match[7]);
+                }
+                last = match.index + match[0].length;
+            }
+            if (last < text.length) {
+                out += escapeHtml(text.slice(last));
+            }
+            return out;
+        }
+
+        function highlightUrlEncoded(text) {
+            return String(text).split(/(\n|&)/).map(function (part) {
+                if (part === '\n' || part === '&') {
+                    return spanCls('bh-punct', part);
+                }
+                if (!part) {
+                    return '';
+                }
+                var eq = part.indexOf('=');
+                if (eq < 0) {
+                    return spanCls('bh-key', part);
+                }
+                return spanCls('bh-key', part.slice(0, eq)) +
+                    spanCls('bh-punct', '=') +
+                    spanCls('bh-string', part.slice(eq + 1));
+            }).join('');
+        }
+
+        function highlightBodyHtml(content, headers) {
+            var text = content == null ? '' : String(content);
+            var format = detectBodyFormat(text, headers);
+            if (format === 'json') {
+                return highlightJson(text);
+            }
+            if (format === 'xml') {
+                return highlightXml(text);
+            }
+            if (format === 'urlencoded') {
+                return highlightUrlEncoded(text);
+            }
+            return escapeHtml(text);
+        }
 
         function getTypeIcon(type, status, protocol) {
             var isMock = String(protocol || '').toLowerCase() === 'mock';
-            var color;
+            var semanticKey;
+            if (type === 'send') {
+                semanticKey = 'blue';
+            } else if (type === 'recv' && !(status >= 400)) {
+                semanticKey = 'green';
+            } else {
+                semanticKey = 'red';
+            }
+            var color = TA.accentChromeFor(semanticKey).text;
             var fg;
             if (type === 'send') {
-                color = '#3399ff';
                 fg = '<span class="codicon codicon-arrow-up history-type-icon-fg" style="color:' + color + '"></span>';
             } else if (type === 'recv' && !(status >= 400)) {
-                color = '#66bb6a';
                 fg = '<span class="codicon codicon-arrow-down history-type-icon-fg" style="color:' + color + '"></span>';
             } else {
-                color = '#ff5555';
                 fg = '<span class="codicon codicon-arrow-down history-type-icon-fg" style="color:' + color + '"></span>';
             }
             var bg = isMock
@@ -275,31 +697,19 @@
             return '<span class="history-type-icon">' + bg + fg + '</span>';
         }
 
-        // Same colors/labels as the API tester method/protocol selector.
-        var METHOD_PROTOCOL_COLORS = {
-            get: '#61affe',
-            post: '#49cc90',
-            put: '#fca130',
-            delete: '#f93e3e',
-            patch: '#50e3c2',
-            head: '#9012fe',
-            options: '#0d5aa7',
-            trace: '#888',
-            ws: '#9b59b6',
-            graphql: '#e535ab',
-            grpc: '#244c5a',
-            http: '#61affe'
-        };
-        var PROTOCOL_LABELS = {
-            ws: 'WS',
-            graphql: 'GraphQL',
-            grpc: 'gRPC'
-        };
+        function statusAccentColor(isError) {
+            return TA.accentChromeFor(isError ? 'red' : 'green').text;
+        }
 
         function getMethodOrProtocolBadge(item) {
-            var protocol = String(item.protocol || 'http').toLowerCase();
-            var method = String(item.method || 'get').toLowerCase();
-            var serverType = String(item.serverType || '').toLowerCase();
+            var protocol = String(item.protocol || 'http').trim().toLowerCase();
+            var method = String(item.method || 'get').trim().toLowerCase();
+            // Normalize "POST ", "post/echo", etc. to a known method key.
+            var methodMatch = method.match(/^(get|post|put|delete|patch|head|options|trace)\b/);
+            if (methodMatch) {
+                method = methodMatch[1];
+            }
+            var serverType = String(item.serverType || '').trim().toLowerCase();
             var isMock = protocol === 'mock';
             var label;
             var colorKey;
@@ -326,13 +736,24 @@
                 colorKey = METHOD_PROTOCOL_COLORS[method] ? method : 'get';
             }
 
-            var color = METHOD_PROTOCOL_COLORS[colorKey] || '#888';
+            var display = String(label).trim().toUpperCase();
+            // Accent must follow the visible label (POST → green), never fall back to GET blue.
+            var labelKey = display.toLowerCase();
+            if (!METHOD_PROTOCOL_COLORS[labelKey] && METHOD_PROTOCOL_COLORS[colorKey]) {
+                labelKey = colorKey;
+            }
+            var chrome = TA.accentChromeFor(labelKey);
             var mockClass = isMock ? ' history-badge-mock' : '';
-            var display = String(label).toUpperCase();
             var len = display.length;
             var fontSize = len <= 4 ? '8px' : len <= 5 ? '7px' : len <= 6 ? '6.5px' : '5.5px';
-            return '<span class="history-badge' + mockClass + '" style="background:' + color +
-                ';font-size:' + fontSize + '" title="' +
+            // Same fill / onFill / border as API method select + Send.
+            return '<span class="history-badge' + mockClass +
+                '" data-method="' + labelKey +
+                '" style="font-size:' + fontSize +
+                ';background:' + chrome.fill +
+                ';color:' + chrome.onFill +
+                ';border-color:' + chrome.border +
+                '" title="' +
                 (isMock ? 'mock ' : '') + display + '">' + display + '</span>';
         }
 
@@ -360,15 +781,6 @@
         function renderHistory() {
             const list = document.getElementById('history-list');
 
-            function escapeHtml(s) {
-                return String(s)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/\"/g, "&quot;")
-                    .replace(/'/g, "&#39;");
-            }
-
             function renderCodicons(text) {
                 // Supports VS Code codicon string syntax: $(icon-name)
                 // Example: $(server) $(arrow-up)
@@ -381,22 +793,25 @@
                 '<ul class="history-list">' +
                 history.map(function (item, idx) {
                     const isError = item.type === 'error';
+                    const errTone = isError || item.status >= 400;
+                    const statusColor = statusAccentColor(errTone);
+                    const bodyText = item.content == null ? '' : String(item.content);
+                    const displayBody = formattedBodyByIdx[idx]
+                        ? tryFormatBody(bodyText, item.headers)
+                        : bodyText;
+                    const bodyFormat = bodyText ? detectBodyFormat(displayBody, item.headers) : '';
                     return '<li>' +
                         '<div class="history-row" onclick="toggleDrawer(' + idx + ')">' +
                         '<span class="drawer-arrow' + (openIdx === idx ? ' open' : '') + '">&#9654;</span>' +
                         getTypeIcon(item.type, item.status, item.protocol) +
                         getMethodOrProtocolBadge(item) +
-                        '<span class="history-title"' + (isError || item.status >= 400 ? ' style="color:#ff5555;"' : '') + '>' + escapeHtml(displayTitle(item)) + '</span>' +
+                        '<span class="history-title"' + (errTone ? ' style="color:' + statusColor + ';"' : '') + '>' + escapeHtml(displayTitle(item)) + '</span>' +
                         '<span class="history-time">' +
                         (item.duration >= 0
-                            ? '<span style="color:' + (isError || item.status >= 400 ? '#ff5555' : '#66bb6a') + ';">(' + item.duration + 'ms)</span> '
+                            ? '<span style="color:' + statusColor + ';">(' + item.duration + 'ms)</span> '
                             : '') +
                         (item.status !== undefined
-                            ? (
-                                isError || item.status >= 400
-                                    ? '<span style="color:#ff5555;font-weight: bold;">[' + item.status + ']</span> '
-                                    : '<span style="color:#66bb6a;font-weight: bold;">[' + item.status + ']</span> '
-                            )
+                            ? '<span style="color:' + statusColor + ';font-weight: bold;">[' + item.status + ']</span> '
                             : ''
                         ) +
                         item.time +
@@ -407,11 +822,7 @@
                             '<div class="drawer-section"><span class="drawer-section-title">Method</span><div class="drawer-sub"><span class="drawer-value">' + item.method + '</span></div></div>' +
                             '<div class="drawer-section"><span class="drawer-section-title">Protocol</span><div class="drawer-sub"><span class="drawer-value">' + item.protocol + '</span></div></div>' +
                             (item.status !== undefined
-                                ? (
-                                    isError || item.status >= 400
-                                        ? '<div class="drawer-section"><span class="drawer-section-title">Status</span><div class="drawer-sub"><span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div></div>'
-                                        : '<div class="drawer-section"><span class="drawer-section-title">Status</span><div class="drawer-sub"><span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div></div>'
-                                )
+                                ? '<div class="drawer-section"><span class="drawer-section-title">Status</span><div class="drawer-sub"><span class="drawer-value" style="color:' + statusColor + ';">' + item.status + '</span></div></div>'
                                 : ''
                             ) +
                             (item.cookies && Object.keys(item.cookies).length
@@ -420,8 +831,21 @@
                                 ? '<div class="drawer-section"><span class="drawer-section-title">Headers</span><div class="drawer-sub">' + renderVerticalTable(item.headers) + '</div></div>' : '') +
                             (item.query && Object.keys(item.query).length
                                 ? '<div class="drawer-section"><span class="drawer-section-title">Query</span><div class="drawer-sub">' + renderVerticalTable(item.query) + '</div></div>' : '') +
-                            (item.content
-                                ? '<div class="drawer-section"><span class="drawer-section-title">Body</span><div class="drawer-sub"><pre>' + escapeHtml(item.content) + '</pre></div></div>' : '') +
+                            (bodyText
+                                ? '<div class="drawer-section"><div class="drawer-section-header"><span class="drawer-section-title">Body</span>' +
+                                '<span class="drawer-body-format" title="Detected body type">' + escapeHtml(bodyFormat) + '</span>' +
+                                '<div class="drawer-body-actions">' +
+                                (canFormatBody(bodyText, item.headers)
+                                    ? '<button type="button" class="drawer-format-btn" onclick="event.stopPropagation(); toggleBodyFormat(' + idx + ')" title="' +
+                                      (formattedBodyByIdx[idx] ? 'Show raw body' : 'Format body') + '">' +
+                                      (formattedBodyByIdx[idx] ? 'Raw' : 'Format') + '</button>'
+                                    : '') +
+                                '<button type="button" class="drawer-format-btn drawer-copy-btn" onclick="event.stopPropagation(); copyHistoryBody(' + idx + ')" title="' +
+                                  (copiedBodyByIdx[idx] ? 'Copied' : 'Copy body') + '">' +
+                                  '<span class="codicon ' + (copiedBodyByIdx[idx] ? 'codicon-check' : 'codicon-copy') + '"></span></button>' +
+                                '</div></div><div class="drawer-sub"><pre class="drawer-body-pre bh-' + escapeHtml(bodyFormat) + '">' +
+                                highlightBodyHtml(displayBody, item.headers) +
+                                '</pre></div></div>' : '') +
                             '</div>'
                             : '') +
                         '</li>';
@@ -430,21 +854,64 @@
         }
 
         window.toggleDrawer = function (idx) {
-            openIdx = openIdx === idx ? null : idx;
+            var opening = openIdx !== idx;
+            openIdx = opening ? idx : null;
+            try {
+                vscode.postMessage({ command: 'historyOpenIdx', idx: openIdx });
+            } catch (e) { /* ignore */ }
+            // Pretty-print only when this row is opened (not for the whole list).
+            if (opening) {
+                var item = history[idx];
+                if (item && canFormatBody(item.content, item.headers)) {
+                    formattedBodyByIdx[idx] = true;
+                }
+            }
             renderHistory();
+        };
+
+        window.toggleBodyFormat = function (idx) {
+            formattedBodyByIdx[idx] = !formattedBodyByIdx[idx];
+            renderHistory();
+        };
+
+        window.copyHistoryBody = function (idx) {
+            var item = history[idx];
+            if (!item || item.content == null) {
+                return;
+            }
+            var text = formattedBodyByIdx[idx]
+                ? tryFormatBody(String(item.content), item.headers)
+                : String(item.content);
+            function markCopied() {
+                copiedBodyByIdx[idx] = true;
+                renderHistory();
+                window.setTimeout(function () {
+                    copiedBodyByIdx[idx] = false;
+                    renderHistory();
+                }, 1200);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(markCopied).catch(function () {
+                    // ignore
+                });
+            }
         };
 
         window.addEventListener('message', function (event) {
             const msg = event.data;
+            if (!msg) {
+                return;
+            }
+            if (msg.type === 'vscode:changeColorTheme') {
+                applyTokenColors(msg.tokenColors);
+                // Badge / status colors are inline; recompute against new theme surfaces.
+                renderHistory();
+            }
             if (msg.command === 'refreshHistory') {
                 vscode.postMessage({ type: 'refreshHistory' });
             }
-        });
-
-        window.addEventListener('message', function (event) {
-            const msg = event.data;
             if (msg.command === 'setHistory') {
-                window.history = msg.history;
+                history = msg.history || [];
                 renderHistory();
             }
         });

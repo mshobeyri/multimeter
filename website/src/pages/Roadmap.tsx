@@ -105,7 +105,48 @@ const roadmap: RoadmapMonth[] = [
       { title: 'Load reports in MMT, HTML, Markdown, and JUnit XML', status: 'done' },
       { title: 'Load report viewer with metrics and charts', status: 'done' },
       { title: 'Test flow as flowchart view', status: 'done' },
+      { title: 'Bruno & .http file import', status: 'done' },
+      { title: 'Fuzzy string comparison operators', status: 'done' },
+    ],
+  },
+  {
+    month: 'June',
+    year: 2026,
+    items: [
+      { title: 'Data imports from JSON, YAML, and CSV', status: 'done' },
+      { title: 'Default API outputs (body, headers, cookies, status, duration)', status: 'done' },
+      { title: 'HTTP version, timeout, and curl handling improvements', status: 'done' },
+      { title: 'mTLS & certificate refinements with examples', status: 'done' },
+      { title: 'Workspace environment file (multimeter.mmt)', status: 'done' },
+      { title: 'Mock server status bar & UI polish', status: 'done' },
+      { title: 'Marketplace readme via EXTENSION.md', status: 'done' },
+    ],
+  },
+  {
+    month: 'July',
+    year: 2026,
+    items: [
+      { title: 'Bundled MCP server for Copilot & AI agents', status: 'done' },
+      { title: 'urlencoded & binary request body formats', status: 'done' },
+      { title: 'omit keyword for request fields and missing outputs', status: 'done' },
+      { title: 'Suite items field, else branches, and richer if / compare ops', status: 'done' },
+      { title: 'Detailed Markdown report export (md-detailed)', status: 'done' },
+      { title: 'Theme-aligned UI chrome (tabs, buttons, accents, checkboxes)', status: 'done' },
+      { title: 'Env tokens in mock servers; Monaco & history theme sync', status: 'done' }
+    ],
+  },
+  {
+    month: 'August',
+    year: 2026,
+    items: [
+      { title: 'Multipart form-data & file upload bodies', status: 'planned' },
+      { title: 'Response schema / contract validation (JSON Schema)', status: 'planned' },
+      { title: 'CLI tag filtering (testlight --tags)', status: 'planned' },
+      { title: 'Outbound HTTP(S) proxy support', status: 'planned' },
+      { title: 'Cookie jar / session persistence across requests', status: 'planned' },
+      { title: 'OpenAPI export from .mmt API files', status: 'planned' },
       { title: 'Advanced load thresholds and distributed execution', status: 'planned' },
+      { title: 'Source-available / open-source launch', status: 'planned' },
     ],
   },
 ]

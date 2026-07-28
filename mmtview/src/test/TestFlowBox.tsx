@@ -1,14 +1,68 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { FlowType, CheckOps } from "mmt-core/TestData";
+import { formatLogicalCondition, parseComparisonParts, parseLogicalCondition, type LogicalJoin } from "mmt-core/JSerTestFlow";
 import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
 import TestHttp from "./TestHttp";
 import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
 import { type MissingImportEntry } from "../text/validator";
-import TestIf from "./TestIf";
+import TestIf, { type IfClause } from "./TestIf";
 import KSVEditor from "../components/KSVEditor";
+
+function clauseFromRaw(raw: string): IfClause {
+  const parsed = parseComparisonParts(raw);
+  if (parsed) {
+    return {
+      actual: parsed.actual,
+      op: (parsed.operator as CheckOps) || "==",
+      expected: parsed.expected,
+    };
+  }
+  const match = raw.trim().length ? raw.trim().split(/\s+/) : [] as string[];
+  return {
+    actual: match[0] ?? "",
+    op: (match[1] as CheckOps) ?? "==",
+    expected: match.slice(2).join(" ") || "",
+  };
+}
+
+function parseIfForUi(raw: string): { first: IfClause; join?: LogicalJoin; second?: IfClause } {
+  const { clauses, joins } = parseLogicalCondition(raw);
+  if (clauses.length === 0) {
+    return { first: { actual: "", op: "==", expected: "" } };
+  }
+  const first = clauseFromRaw(clauses[0]);
+  if (clauses.length === 1) {
+    return { first };
+  }
+  // UI supports one join (second condition). Extra clauses stay on the second expected side.
+  const join = joins[0] || "&&";
+  const rest = clauses.slice(1).map((c, i) => {
+    if (i === 0) {
+      return c;
+    }
+    return `${joins[i] || "&&"} ${c}`;
+  }).join(" ");
+  return { first, join, second: clauseFromRaw(rest) };
+}
+
+function formatIfForUi(val: { first: IfClause; join?: LogicalJoin; second?: IfClause }): string {
+  const clauses = [
+    { actual: val.first.actual, operator: val.first.op, expected: val.first.expected },
+  ];
+  const joins: LogicalJoin[] = [];
+  if (val.second) {
+    clauses.push({
+      actual: val.second.actual,
+      operator: val.second.op,
+      expected: val.second.expected,
+    });
+    joins.push(val.join || "&&");
+  }
+  return formatLogicalCondition(clauses, joins);
+}
 
 interface TestFlowBoxProps {
   data: any,
@@ -134,7 +188,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       </div>
     );
   };
-  type FlowTypeWithCsv = FlowType | 'data';
+  type FlowTypeWithCsv = FlowType | 'data' | 'else';
   const renderInner = () => {
     switch (type as FlowTypeWithCsv) {
       case 'call':
@@ -172,21 +226,26 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           />
         );
       case 'if': {
-        let actual = '', op: CheckOps = '==' as CheckOps, expected = '';
         const raw = (stepData && typeof stepData[type] === 'string') ? (stepData[type] as string) : '';
-        const match = raw.trim().length ? raw.trim().split(/\s+/) : [] as string[];
-        actual = match[0] ?? '';
-        op = (match[1] as CheckOps) ?? '==';
-        expected = match[2] ?? '';
+        const parsed = parseIfForUi(raw);
         return (
           <TestIf
-            actual={actual}
-            op={op}
-            expected={expected}
-            onChange={({ actual, op, expected }) => onChange({ [type]: `${actual} ${op} ${expected}` })}
+            first={parsed.first}
+            join={parsed.join}
+            second={parsed.second}
+            onChange={(val) => onChange({
+              ...stepData,
+              [type]: formatIfForUi(val),
+            })}
           />
         );
       }
+      case 'else':
+        return (
+          <div style={{ opacity: 0.85, fontWeight: 600, padding: '2px 0' }}>
+            else
+          </div>
+        );
       case 'check':
       case 'assert': {
         let actual = '', op: CheckOps = '==' as CheckOps, expected = '', title = '', details = '';
@@ -232,7 +291,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           <input
             placeholder={type === 'for' ? '(i = 0; i < 5; i++ | key in obj | item of list)' : (type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2ms | 3m | 4h)')}
             value={stepData[type] || ''}
-            onChange={e => onChange({ [type]: e.target.value })}
+            onChange={e => onChange({ ...stepData, [type]: e.target.value })}
             style={{ width: '100%' }}
           />
         );
@@ -365,19 +424,19 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       ? { gap: 8, width: '100%' }
       : undefined;
 
+  // Fixed label column sized to the longest common step title ("assert")
+  // so the type stays visible when the expanded editor (e.g. http) takes width.
+  const typeLabelStyle: React.CSSProperties = {
+    paddingTop: '6px',
+    flex: '0 0 4em',
+    width: '4em',
+    minWidth: '4em',
+    whiteSpace: 'nowrap',
+  };
+
   return (
     <div className="test-flow-box-items" style={containerStyle}>
-      <span
-        style={{
-          paddingTop: '6px',
-          flex: '0 1 80px',
-          maxWidth: 80,
-          minWidth: 0,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
-        }}
-      >
+      <span style={typeLabelStyle}>
         {type}
       </span>
       <div
@@ -392,7 +451,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       <div
         style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
       >
-        <Actions />
+        {type !== 'else' ? <Actions /> : null}
       </div>
     </div>
   );

@@ -12,11 +12,32 @@ import LoadTestPanel from "./loadtest/LoadTestPanel";
 import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
 import ReportPanel from "./report/ReportPanel";
-import parseYaml from "mmt-core/markupConvertor";
+import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { isBrunoFilePath, parseBrunoDocument } from "mmt-core/brunoParsePack";
 import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
+import { normalizeNewlines } from "mmt-core/textLines";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
+import PanelErrorBoundary from "./shared/PanelErrorBoundary";
+import { ensureThemeSync } from "./text/Theme";
+
+/** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
+function toEditorText(text: string): string {
+  return normalizeNewlines(text ?? "");
+}
+
+/** True when YAML parses without document errors (keeps UI off mid-typing junk like `url: http:`). */
+function isUsableMmtYaml(content: string): boolean {
+  try {
+    const doc = parseYamlDoc(content);
+    if (!doc || (doc.errors && doc.errors.length > 0)) {
+      return false;
+    }
+    return Boolean(parseYaml(content));
+  } catch {
+    return false;
+  }
+}
 
 declare global {
   interface Window {
@@ -130,6 +151,10 @@ const App: React.FC = () => {
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
   const lastWindowWidthRef = useRef(window.innerWidth);
 
+  useEffect(() => {
+    ensureThemeSync();
+  }, []);
+
   function getLayoutWidth() {
     if (splitHostRef.current) {
       return Math.round(splitHostRef.current.getBoundingClientRect().width);
@@ -179,9 +204,7 @@ const App: React.FC = () => {
       return;
     }
     try {
-      const parsed = parseYaml(content);
-      // Only update validContent when YAML parses and has no validation errors
-      if (parsed) {
+      if (isUsableMmtYaml(content)) {
         setValidContent(content);
       }
     } catch {
@@ -211,25 +234,25 @@ const App: React.FC = () => {
         const nextSourceFormat = message.sourceFormat === "http" || isHttpFilePath(message.uri || "") ? "http" :
           message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") ? "bruno" : "mmt";
         setSourceFormat(nextSourceFormat);
-        setContent(message.content);
+        setContent(toEditorText(message.content));
 
         // Only seed validContent if the initial document is valid;
         // otherwise leave it as-is (so UI doesn't see "{}" or "")
         if (nextSourceFormat === "http") {
           const parsed = parseHttpDocument(message.content);
           if (parsed.requests.length > 0) {
-            setValidContent(message.content);
+            setValidContent(toEditorText(message.content));
           }
         } else if (nextSourceFormat === "bruno") {
           const parsed = parseBrunoDocument(message.content);
           if (parsed.blocks.length > 0) {
-            setValidContent(message.content);
+            setValidContent(toEditorText(message.content));
           }
         } else {
           try {
-            const parsed = parseYaml(message.content);
-            if (parsed) {
-              setValidContent(message.content);
+            const editorText = toEditorText(message.content);
+            if (isUsableMmtYaml(editorText)) {
+              setValidContent(editorText);
             }
             // else: do nothing, keep previous validContent
           } catch {
@@ -247,28 +270,28 @@ const App: React.FC = () => {
         const nextSourceFormat = message.sourceFormat === "http" || isHttpFilePath(message.uri || mmtFilePath || "") ? "http" :
           message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || mmtFilePath || "") ? "bruno" : sourceFormat;
         setSourceFormat(nextSourceFormat);
+        const editorText = toEditorText(message.content);
         setContent(prev => {
-          if (prev === message.content) {
+          if (prev === editorText) {
             return prev;
           }
           isInitLoad.current = true;
-          return message.content;
+          return editorText;
         });
         if (nextSourceFormat === "http") {
-          const parsed = parseHttpDocument(message.content);
+          const parsed = parseHttpDocument(editorText);
           if (parsed.requests.length > 0) {
-            setValidContent(message.content);
+            setValidContent(editorText);
           }
         } else if (nextSourceFormat === "bruno") {
-          const parsed = parseBrunoDocument(message.content);
+          const parsed = parseBrunoDocument(editorText);
           if (parsed.blocks.length > 0) {
-            setValidContent(message.content);
+            setValidContent(editorText);
           }
         } else {
           try {
-            const parsed = parseYaml(message.content);
-            if (parsed) {
-              setValidContent(message.content);
+            if (isUsableMmtYaml(editorText)) {
+              setValidContent(editorText);
             }
           } catch {
             // keep previous validContent
@@ -447,37 +470,39 @@ const App: React.FC = () => {
         </div>
         <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
           <div style={{ width: "100%", height: "100%", maxWidth: 1200, minWidth: 450, margin: "0 auto", overflow: "auto" }}>
-            {docType === "env" && (
-              <EnvironmentPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "api" && (
-              <APIPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "doc" && (
-              <DocPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "test" && (
-              sourceFormat === "http" ?
-                <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
-                sourceFormat === "bruno" ?
-                <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
-                <TestPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "suite" && (
-              <SuitePanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "loadtest" && (
-              <LoadTestPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "server" && (
-              <MockPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "report" && (
-              <ReportPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {documentContentLoaded && docType === null && (
-              <NotypePanel content={validContent} setContent={uiSetContent} />
-            )}
+            <PanelErrorBoundary resetKey={`${docType || "none"}::${validContent}`}>
+              {docType === "env" && (
+                <EnvironmentPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "api" && (
+                <APIPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "doc" && (
+                <DocPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "test" && (
+                sourceFormat === "http" ?
+                  <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
+                  sourceFormat === "bruno" ?
+                  <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
+                  <TestPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "suite" && (
+                <SuitePanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "loadtest" && (
+                <LoadTestPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "server" && (
+                <MockPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "report" && (
+                <ReportPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {documentContentLoaded && docType === null && (
+                <NotypePanel content={validContent} setContent={uiSetContent} />
+              )}
+            </PanelErrorBoundary>
           </div>
         </div>
       </SplitPane>

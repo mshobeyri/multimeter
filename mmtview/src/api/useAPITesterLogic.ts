@@ -6,6 +6,7 @@ import { safeList } from "mmt-core/safer";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
 import { stripOmitFromRequest } from "mmt-core/omitKeyword";
 import { formatBody } from "mmt-core/markupConvertor";
+import { requestFormat, responseFormat } from "mmt-core/CommonData";
 import { applyAuthToRequest, apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
@@ -13,8 +14,8 @@ import { resolveSetenvValues } from "mmt-core/setenvResolve";
 import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { pushHistory } from "../vsAPI";
-import { beautifyWithContentType } from "mmt-core/markupConvertor";
 import { protocolResolver } from "mmt-core";
+import { responseBodyToRawString } from "./responseBodyDisplay";
 import {
   ApiUiRefreshScope,
   applyScopedRequestData,
@@ -175,7 +176,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       }
 
       if (rface.body && typeof rface.body !== "string") {
-        rface.body = formatBody(rface.format || "json", rface.body ?? "");
+        rface.body = formatBody(requestFormat(rface.format), rface.body ?? "");
       }
 
       setRequestData((prev) =>
@@ -282,7 +283,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
 
-    const fmt = (requestData?.format || "json").toLowerCase();
+    const fmt = responseFormat(requestData?.format);
     const contentType: "json" | "xml" =
       fmt.includes("xml") || bodyText.trim().startsWith("<")
         ? "xml"
@@ -323,7 +324,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       sendPendingRef.current = true;
       const protocol = protocolResolver.getEffectiveProtocol(
         requestData?.protocol as any, requestData?.url) || "http";
-      const method = (requestData?.method || "get").toLowerCase();
+      const methodRaw = requestData?.method || apiRef.current?.method || "get";
+      const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
       const url = requestData?.url ?? "";
       pushHistory({
         type: "send",
@@ -450,14 +452,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       }
       if (typeof message.response !== "undefined" && message.response !== null) {
         let response = message.response as Response;
-        if (autoFormatBody && response.body != null && response.headers) {
-          const contentType =
-            response.headers["Content-Type"] || response.headers["content-type"] || "";
-          response = {
-            ...response,
-            body: beautifyWithContentType(contentType, response.body),
-          };
-        }
+        // Keep the body raw here; Response BodyView beautifies on display when
+        // auto-format is on so the user can toggle format after the send.
         if (typeof response.duration === "number" && Number.isFinite(response.duration)) {
           response = { ...response, duration: Math.round(response.duration) };
         }
@@ -466,7 +462,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
 
         if (fromSend) {
           const req = requestDataRef.current;
-          const method = (req?.method || "get").toLowerCase();
+          const methodRaw = req?.method || apiRef.current?.method || "get";
+          const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
           const url = req?.url ?? "";
           const protocol = protocolResolver.getEffectiveProtocol(
             req?.protocol as any, req?.url) || "http";
@@ -486,7 +483,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     };
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [filePath, autoFormatBody]);
+  }, [filePath]);
 
   return {
     requestData,
@@ -532,16 +529,7 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
 }
 
 function toContentString(data: any): string {
-  if (data === null || data === undefined) {
-    return "";
-  }
-  if (typeof data === "string") {
-    return data;
-  }
-  if (typeof data === "object") {
-    return JSON.stringify(data, null, 2);
-  }
-  return String(data);
+  return responseBodyToRawString(data);
 }
 
 async function handleSetEnvVariables(

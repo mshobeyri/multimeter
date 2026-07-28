@@ -7,6 +7,7 @@ import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
 import {loadWorkspaceEnvFile, refreshWorkspaceCertificatesFromEnvFile} from '../workspaceEnvLoader';
+import {buildThemeTokenMessage} from '../themeTokenColors';
 import {
   suiteHierarchy,
   JSer,
@@ -14,6 +15,7 @@ import {
   apiParsePack,
   variableReplacer,
   markupConvertor,
+  CommonData,
 } from 'mmt-core';
 import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/NetworkData';
 
@@ -264,7 +266,7 @@ function getCurlRequest(
     }
     if (request.body && typeof request.body !== 'string') {
       request.body = markupConvertor.formatBody(
-          request.format || 'json', request.body ?? '');
+          CommonData.requestFormat(request.format), request.body ?? '');
     }
     return request;
   } catch {
@@ -459,6 +461,14 @@ export const messageReceived = async (
       await file.handleLoadDocumentContent(webviewPanel, document, mmtProvider);
       break;
 
+    case 'requestThemeTokens':
+      webviewPanel.webview.postMessage(
+          buildThemeTokenMessage(
+              typeof message.themeId === 'string' ? message.themeId : undefined,
+              typeof message.themeName === 'string' ? message.themeName :
+                                                     undefined));
+      break;
+
     case 'updateDocumentContent':
       file.handleUpdateDocumentContent(message, document, mmtProvider);
       break;
@@ -579,6 +589,9 @@ export const messageReceived = async (
 
     case 'openRelativeFile':
       await file.handleOpenRelativeFile(message, document);
+      break;
+    case 'openUntitledMmt':
+      await file.handleOpenUntitledMmt(message);
       break;
     case 'openExternalUrl':
       await file.handleOpenExternalUrl(message);

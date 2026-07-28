@@ -65,4 +65,32 @@ describe('getFileLinkTargetAtPosition', () => {
       range: expect.any(monaco.Range),
     });
   });
+
+  it('resolves inline http URL to a temporary API preview link', () => {
+    const content = [
+      'type: test',
+      'steps:',
+      '  - http: https://test.mmt.dev/echo',
+      '    method: post',
+    ].join('\n');
+    const model = createMockModel(content.split('\n'));
+    const target = getFileLinkTargetAtPosition(
+        monaco, model, content, {lineNumber: 3, column: 18});
+    expect(target?.httpStepPreview).toEqual({lineNumber: 3, column: 18});
+    expect(target?.path).toBeUndefined();
+    expect(target?.range).toEqual(expect.any(monaco.Range));
+  });
+
+  it('does not treat method lines as http preview links', () => {
+    const content = [
+      'type: test',
+      'steps:',
+      '  - http: https://test.mmt.dev/echo',
+      '    method: post',
+    ].join('\n');
+    const model = createMockModel(content.split('\n'));
+    const target = getFileLinkTargetAtPosition(
+        monaco, model, content, {lineNumber: 4, column: 10});
+    expect(target).toBeNull();
+  });
 });

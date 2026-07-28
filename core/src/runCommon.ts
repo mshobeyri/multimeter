@@ -99,7 +99,8 @@ export async function runGeneratedJs(
   skipSyntaxValidation?: boolean,
   workerEligible?: boolean,
   checkLogMode?: 'default'|'failures-only'|'none',
-  runKind: RunKind = 'Test'): Promise<RunResult> {
+  runKind: RunKind = 'Test',
+  binaryFileLoader?: (path: string) => Promise<Buffer>): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -155,6 +156,7 @@ export async function runGeneratedJs(
       title: name,
       logger: forward,
       fileLoader,
+      binaryFileLoader,
       reporter: wrappedReporter,
       id,
       abortSignal,

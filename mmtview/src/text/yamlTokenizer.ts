@@ -19,8 +19,9 @@ export function buildMmtTagHandleRules(): TagHandleRule[] {
     rules.push([new RegExp(escaped + '(?=[ \\t"\']|$)'), 'mmt.operator']);
   }
 
-  // Fuzzy-percent operators such as !75%
-  rules.push([/!(?:0|[1-9][0-9]?|100)%(?=[ \t"']|$)/, 'mmt.operator']);
+  // Fuzzy-percent operators such as >75% / <75%
+  rules.push([/[<>](?:0|[1-9][0-9]?|100)%(?=[ \t"']|$)/, 'mmt.operator']);
+  rules.push([/[<>]%(?=[ \t"']|$)/, 'mmt.operator']);
 
   rules.push([/![^ ]*/, 'tag']);
   return rules;

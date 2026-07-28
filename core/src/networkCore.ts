@@ -555,27 +555,36 @@ export async function sendHttpRequest(
 
   // Content-Type and Content-Length: only when a body exists and not
   // blocked/overridden
-  const bodyStr = req.body ?? '';
-  const hasBody = typeof bodyStr === 'string' && bodyStr.length > 0;
+  const bodyVal = req.body;
+  const isBinaryBody = typeof Buffer !== 'undefined' && Buffer.isBuffer(bodyVal);
+  const bodyStr = typeof bodyVal === 'string' ? bodyVal : '';
+  const hasBody = isBinaryBody ?
+      (bodyVal as Buffer).length > 0 :
+      (typeof bodyStr === 'string' && bodyStr.length > 0);
   if (hasBody) {
-    // Detect JSON body naïvely
     let detectedType = 'text/plain; charset=utf-8';
-    try {
-      const trimmed = bodyStr.trim();
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        JSON.parse(trimmed);
-        detectedType = 'application/json; charset=utf-8';
-      } else if (trimmed.startsWith('<')) {
-        detectedType = 'application/xml; charset=utf-8';
+    if (isBinaryBody) {
+      detectedType = 'application/octet-stream';
+    } else {
+      try {
+        const trimmed = bodyStr.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          JSON.parse(trimmed);
+          detectedType = 'application/json; charset=utf-8';
+        } else if (trimmed.startsWith('<')) {
+          detectedType = 'application/xml; charset=utf-8';
+        }
+      } catch {
+        // keep detectedType as text/plain
       }
-    } catch {
-      // keep detectedType as text/plain
     }
     if (!blocked.has('content-type') && !hasHeader('Content-Type')) {
       reqHeaders['Content-Type'] = detectedType;
     }
     if (!blocked.has('content-length') && !hasHeader('Content-Length')) {
-      const len = Buffer.byteLength(bodyStr, 'utf8');
+      const len = isBinaryBody ?
+          (bodyVal as Buffer).length :
+          Buffer.byteLength(bodyStr, 'utf8');
       reqHeaders['Content-Length'] = String(len);
     }
   }
@@ -1157,7 +1166,10 @@ export async function send(req: Request): Promise<Response> {
       method: req.method,
       timeout: req.timeout,
       headers: req.headers,
-      body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
+      body: typeof req.body === 'string' ||
+              (typeof Buffer !== 'undefined' && Buffer.isBuffer(req.body)) ?
+          req.body :
+          (req.body == null ? undefined : JSON.stringify(req.body)),
       query: req.query,
       cookies: req.cookies,
     };

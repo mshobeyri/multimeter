@@ -2,6 +2,75 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.31.0]
+
+- Unify panel UI chrome: shared `TabBar`, `PrimaryButton`, `RunStopToggle`, `PanelRunHeader`, `PanelEditHeader`, and suite `TreeRunButton`
+- Harmonize method/semantic accent colors, theme checkboxes, and related button chrome across webviews
+- Add string/length compare operators (`=i`/`!i`, `=X`/`!X`, `=iX`/`!iX`, `<#`/`<=#`/`>#`/`>=#`) and fix expect quoting (`"…"` / `'…'`) including bare `omit`
+- Support `&&` and `||` in `if` conditions (second clause in the Flow UI)
+- Add detailed Markdown report export (`md-detailed`) with Request/Response step details (UI Export + CLI `--report md-detailed`)
+- Add YAML-encoded toggle for API edit bodies and pack structured bodies for YAML ↔ UI diffs
+- Update flow and no-type step icons (including setenv, HTTP/call, and run→server labels)
+- Support JS helper imports without a module binding; open a temporary API file from Ctrl/Cmd+click on HTTP test steps
+- Align nested Doc view tabs with the header border; polish env remove icons and mock HTTPS cert file pickers
+- Fix Windows CRLF glyph drift and cursor jumps; polish no-type picker labels and keep reports out of the type select list
+- Update website roadmap through August 2026
+
+## [1.30.4]
+
+- Stable release of the 1.30.2/1.30.3 fixes (urlencoded token accessors, Windows CRLF body apply, example run glyph alignment, and theme polish)
+
+## [1.30.3]
+
+- Pre-release republish of the 1.30.2 fixes (urlencoded token accessors, Windows CRLF body apply, example run glyph alignment, theme polish)
+
+## [1.30.2]
+
+- Fix urlencoded bodies so `i:` slice accessors and `e:` / `r:` / `c:` tokens survive percent-encoding (including through multilevel imports)
+- Fix Windows CRLF leaking into YAML when applying XML/text bodies from the right panel
+- Align example run glyphs with the `name:` field (including description-before-name and CRLF layouts)
+- Improve theme colors; harmonize accent chrome with theme button tokens
+- Style method badges like VS Code buttons
+
+## [1.30.1]
+
+- Fix Windows CRLF breaking YAML `expect` operators (`!=`, etc.) and markdown heading navigation
+- Fix urlencoded request bodies so `i:` / `${input}` tokens substitute in tests; keep `&` visible when pretty-printing history
+- Fix history panel theme sync so JSON/body highlight colors update with the VS Code theme
+- Align body highlight punctuation with theme delimiters (stop using regexp-red `=` / `&`)
+- Theme the method selector and body boxes; indent report header/body content without shifting their titles
+- Soften `<<i:…>>` token highlight and disable Monaco active-line chrome that showed as intermittent red bars
+
+## [1.30.0]
+
+- Add `urlencoded` and `binary` request body formats (including file picker for binary)
+- Support split request/response body formats when they differ
+- Highlight urlencoded and XML body values in Monaco
+- Support `else` branches for `if` steps in tests
+- Preserve `#` comments when formatting `.mmt` YAML (Format Document)
+- Colorize history and report/test step bodies by type, with Format/Raw and copy
+- Sync Monaco and history syntax colors with the active VS Code color theme
+- Fix webview crash while typing incomplete URL schemes (e.g. `url: http:`)
+- Isolate UI panel crashes so the YAML editor stays alive
+- Stabilize Run/Stop button labels in test, suite, and mock UI
+
+## [1.29.1]
+
+- Stable release of the 1.29.0 features (no-type welcome icons, mock `e:` tokens, fuzzy `>%`/`<%` operators, suite pending/running icons, delay abort, YAML diff for temp UI changes)
+- Fix oversized Git icon asset in the marketplace readme
+
+## [1.29.0]
+
+- Redesign the no-type welcome panel: colored type icon row (matching panel title icons), outline badges, and cleaner sample gallery
+- Improve response body auto-format handling in the API tester and history panel
+- Show a Monaco YAML diff for temporary UI changes (save/reset warning)
+- Rename fuzzy percent check operators from `=%` / `!%` to `>%` / `<%` (and `>N%` / `<N%`)
+- Support `e:` env tokens in mock servers (responses, match rules, paths, headers, and listen port)
+- Fix crash on incomplete `e:` tokens and allow resolving `protocol` from env vars
+- Restore suite pending icons for full and partial runs; use tiffany for the running state
+- Interrupt long delay steps every 2s so Stop can abort without waiting out the full delay
+- Fix Extension marketplace readme issues
+
 ## [1.28.4]
 
 - Stable release of the 1.28.3 fixes (API/test temporary UI data for Send/Run, test input conflict dialog and env refresh)

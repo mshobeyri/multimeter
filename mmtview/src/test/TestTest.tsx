@@ -12,7 +12,8 @@ import { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../shared/OverviewBoxes';
 import VEditor from '../components/VEditor';
-import ContextMenuHost, { runInCoreMenuItem } from '../components/ContextMenuHost';
+import { runInCoreMenuItem } from '../components/ContextMenuHost';
+import RunStopToggle from '../components/RunStopToggle';
 import { loadEnvVariables } from '../workspaceStorage';
 import {
     applyEnvRefreshToInputs,
@@ -29,7 +30,7 @@ interface TestTestProps {
     onInputsReset?: (reset: () => void) => void;
 }
 
-const TestTest: React.FC<TestTestProps> = (props) => {
+const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsModificationChange }) => {
     const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
     const [runState, setRunState] = useState<StepStatus>('default');
@@ -42,14 +43,14 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     const currentInputsRef = useRef<JSONRecord>({});
     const dirtyKeysRef = useRef<Set<string>>(new Set());
     const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set());
-    const yamlInputsRef = useRef<JSONRecord | undefined>(props.testData.inputs);
+    const yamlInputsRef = useRef<JSONRecord | undefined>(testData.inputs);
     const resolvedBaselineRef = useRef<JSONRecord>({});
     const [outputs, setOutputs] = useState<JSONRecord>({});
     const runStartTimeRef = useRef<number | null>(null);
     const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
     const [runDurationMs, setRunDurationMs] = useState<number | null>(null);
-    const testDataRef = useRef(props.testData);
-    testDataRef.current = props.testData;
+    const testDataRef = useRef(testData);
+    testDataRef.current = testData;
 
     /** Right-panel runs always prefer UI test data; glyphs omit rawFile. */
     const postRunCurrentDocument = useCallback((opts?: { reportLifecycle?: boolean }) => {
@@ -64,27 +65,27 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     }, []);
 
     const inputKeys = useMemo(() => {
-        const raw = props.testData.inputs;
+        const raw = testData.inputs;
         if (!raw || typeof raw !== 'object') {
             return [];
         }
         return Object.keys(raw);
-    }, [props.testData.inputs]);
+    }, [testData.inputs]);
 
     const outputKeys = useMemo(() => {
-        const raw = props.testData.outputs;
+        const raw = testData.outputs;
         if (!raw || typeof raw !== 'object') {
             return [];
         }
         return Object.keys(raw);
-    }, [props.testData.outputs]);
+    }, [testData.outputs]);
 
     const hasInputs = inputKeys.length > 0;
     const hasOutputs = outputKeys.length > 0;
 
     const inputConstraints = useMemo(
-        () => extractInputConstraintsFromDescription(props.testData.description || ''),
-        [props.testData.description]
+        () => extractInputConstraintsFromDescription(testData.description || ''),
+        [testData.description]
     );
 
     const clearDirtyKeys = useCallback(() => {
@@ -123,16 +124,16 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     }, [applyInputs, clearDirtyKeys]);
 
     useEffect(() => {
-        props.onInputsReset?.(resetInputsFromYaml);
-    }, [props.onInputsReset, resetInputsFromYaml]);
+        onInputsReset?.(resetInputsFromYaml);
+    }, [onInputsReset, resetInputsFromYaml]);
 
     useEffect(() => {
-        props.onInputsModificationChange?.(currentInputs, dirtyKeys);
-    }, [currentInputs, dirtyKeys, props.onInputsModificationChange]);
+        onInputsModificationChange?.(currentInputs, dirtyKeys);
+    }, [currentInputs, dirtyKeys, onInputsModificationChange]);
 
     // YAML inputs changed (from applied panel content): rebuild, preserving dirty keys.
     useEffect(() => {
-        const nextYamlInputs = props.testData.inputs;
+        const nextYamlInputs = testData.inputs;
         const prevYamlInputs = yamlInputsRef.current;
         yamlInputsRef.current = nextYamlInputs;
 
@@ -161,7 +162,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
             applyInputs(next);
         });
         return cleanup;
-    }, [props.testData.inputs, applyInputs, clearDirtyKeys, setDirtyKeysState]);
+    }, [testData.inputs, applyInputs, clearDirtyKeys, setDirtyKeysState]);
 
     // Env values changed: re-resolve e: tokens for non-dirty keys only (like API scopes:["env"]).
     useEffect(() => {
@@ -366,10 +367,10 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 filePath: mmtFilePath,
                 durationMs: runDurationMs,
                 startedAt: runStartedAt,
-                testTitle: props.testData.title,
+                testTitle: testData.title,
             },
         });
-    }, [stepReports, runState, outputs, mmtFilePath, runStartedAt, runDurationMs, props.testData.title]);
+    }, [stepReports, runState, outputs, mmtFilePath, runStartedAt, runDurationMs, testData.title]);
 
     const exportDisabled = runState === 'running' || stepReports.length === 0;
 
@@ -397,29 +398,16 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     return (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
             <div className="run-action-bar">
-                {isRunning ? (
-                    <button
-                        onClick={handleStop}
-                        className="button-icon"
-                        type="button"
-                    >
-                        <span className="codicon codicon-debug-stop" aria-hidden />
-                        Stop
-                    </button>
-                ) : (
-                    <ContextMenuHost items={[runInCoreMenuItem(() => {
+                <RunStopToggle
+                    running={isRunning}
+                    onRun={handleRun}
+                    onStop={handleStop}
+                    runLabel="Run test"
+                    stopLabel="Stop test"
+                    runContextMenuItems={[runInCoreMenuItem(() => {
                         postRunCurrentDocument({ reportLifecycle: true });
-                    })]}>
-                        <button
-                            onClick={handleRun}
-                            className="button-icon"
-                            type="button"
-                        >
-                            <span className="codicon codicon-run" aria-hidden />
-                            Run test
-                        </button>
-                    </ContextMenuHost>
-                )}
+                    })]}
+                />
                 <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
             </div>
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>

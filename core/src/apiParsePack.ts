@@ -1,8 +1,9 @@
 
 import {APIData, AuthConfig, GraphQLConfig, GrpcConfig} from './APIData';
-import {GrpcStream} from './CommonData';
+import {Format, FormatSpec, GrpcStream, packFormatSpec} from './CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
+import {coerceYamlString} from './yamlIncompleteScalar';
 
 /** Valid root-level keys for type: api files. */
 const VALID_API_ROOT_KEYS = new Set([
@@ -12,6 +13,27 @@ const VALID_API_ROOT_KEYS = new Set([
 ]);
 
 const VALID_GRPC_STREAM_VALUES = new Set<string>(['server', 'client', 'bidi']);
+
+const VALID_FORMAT_VALUES = new Set<string>(['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary']);
+
+function parseFormatSpec(raw: any): FormatSpec {
+  if (raw == null) {
+    return 'json';
+  }
+  if (typeof raw === 'string') {
+    return VALID_FORMAT_VALUES.has(raw) ? raw as Format : 'json';
+  }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const request = VALID_FORMAT_VALUES.has(raw.request) ? raw.request as Format : undefined;
+    const responseRaw = raw.response ?? raw.respond;
+    const response = VALID_FORMAT_VALUES.has(responseRaw) ? responseRaw as Format : undefined;
+    if (!request && !response) {
+      return 'json';
+    }
+    return packFormatSpec({ request, response }) || 'json';
+  }
+  return 'json';
+}
 
 function parseGraphQLConfig(raw: any): GraphQLConfig | undefined {
   if (!raw || typeof raw !== 'object') {
@@ -181,10 +203,10 @@ export function yamlToAPI(yamlContent: string): APIData {
       inputs: doc.inputs,
       outputs: doc.outputs,
       setenv: doc.setenv,
-      protocol: doc.protocol || undefined,
-      format: doc.format || 'json',
-      url: doc.url || '',
-      method: doc.method || '',
+      protocol: (coerceYamlString(doc.protocol) || undefined) as APIData['protocol'],
+      format: parseFormatSpec(doc.format),
+      url: coerceYamlString(doc.url),
+      method: coerceYamlString(doc.method) as APIData['method'],
       timeout: typeof doc.timeout === 'number' ? doc.timeout : undefined,
       headers: doc.headers || {},
       body: doc.body || '',
@@ -268,7 +290,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     outputs: doc.outputs,
     setenv: doc.setenv,
     protocol: doc.protocol || undefined,
-    format: doc.format || 'json',
+    format: parseFormatSpec(doc.format),
     url: doc.url || '',
     method: doc.method || '',
     timeout: doc.timeout,
@@ -325,7 +347,7 @@ export function apiToYaml(api: APIData): string {
     yamlObj.timeout = api.timeout;
   };
   if (api.format) {
-    yamlObj.format = api.format;
+    yamlObj.format = packFormatSpec(api.format);
   };
   if (api.auth) {
     yamlObj.auth = api.auth;

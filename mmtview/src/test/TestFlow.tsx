@@ -1,10 +1,11 @@
 import React from "react";
-import { TestFlowSteps, FlowType, TestData, addableFlowTypes } from "mmt-core/TestData";
+import { TestFlowSteps, FlowType, TestData } from "mmt-core/TestData";
 import TestFlowBox from "./TestFlowBox";
 import { getTestFlowStepType } from "mmt-core/testParsePack";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { type MissingImportEntry } from "../text/validator";
 import { codiconForStepType } from "./stepPresentation";
+import TestFlowFlow from "./TestFlowFlow";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -209,21 +210,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
         }
     };
 
-    const [addMenuOpen, setAddMenuOpen] = React.useState(false);
-    const addBtnRef = React.useRef<HTMLButtonElement | null>(null);
-
-    React.useEffect(() => {
-        if (!addMenuOpen) return;
-        const onDocDown = (e: MouseEvent) => {
-            const t = e.target as Node | null;
-            if (addBtnRef.current && addBtnRef.current.contains(t as Node)) return;
-            setAddMenuOpen(false);
-        };
-        document.addEventListener('click', onDocDown, true);
-        window.addEventListener('resize', () => setAddMenuOpen(false), { once: true });
-        return () => document.removeEventListener('click', onDocDown, true);
-    }, [addMenuOpen]);
-
     const createDefaultStep = (type: FlowType | 'data'): any => {
         switch (type) {
             case 'print': return { print: '' };
@@ -294,46 +280,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
 
     return (
         <div className="test-flow-tree">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, position: 'relative', alignItems: 'center' }}>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }} title="Treat root flow as stages">
-                    <input
-                        type="checkbox"
-                        checked={multiStage}
-                        onChange={(e) => toggleMultiStage(e.currentTarget.checked)}
-                    />
-                    <span>Multistage</span>
-                </label>
-                <button
-                    ref={addBtnRef}
-                    className="button-icon"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onPointerUp={(e) => { e.stopPropagation(); setAddMenuOpen(v => !v); }}
-                    title="Add flow item"
-                >
-                    <span className="codicon codicon-add" aria-hidden />
-                    Add item
-                </button>
-                {addMenuOpen && (
-                    <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => e.stopPropagation()}>
-                        {addableFlowTypes.map(t => (
-                            <button
-                                key={t}
-                                className="action-button"
-                                style={{ width: '100%', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, opacity: (t === 'stage' && !multiStage) ? 0.5 : 1 }}
-                                onPointerUp={() => { if (t === 'stage' && !multiStage) return; setAddMenuOpen(false); addItemOfType(t); }}
-                                disabled={t === 'stage' && !multiStage}
-                                title={(t === 'stage' && !multiStage) ? 'Enable Multistage to add a stage' : `Add ${t}`}
-                            >
-                                <span className={`codicon codicon-${codiconForStepType(t)}`} style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-                                <span>{t}</span>
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
             <ControlledTreeEnvironment
                 items={shortTree.items}
                 getItemTitle={item => item.data}
@@ -455,6 +401,16 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     };
 
                     const doDuplicate = (targetKey: string) => {
+                        try {
+                            const node = shortTree.items[targetKey];
+                            if (node) {
+                                const parsed = JSON.parse(node.data);
+                                if (parsed?.type === 'else') {
+                                    return;
+                                }
+                            }
+                        } catch {
+                        }
                         setShortTree(prev => {
                             const itemsCopy = { ...prev.items } as Record<string, any>;
                             const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
@@ -478,6 +434,16 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
 
                     const doRemove = (targetKey: string) => {
                         if (targetKey === 'root' || targetKey === 'flow') return;
+                        try {
+                            const node = shortTree.items[targetKey];
+                            if (node) {
+                                const parsed = JSON.parse(node.data);
+                                if (parsed?.type === 'else') {
+                                    return;
+                                }
+                            }
+                        } catch {
+                        }
                         setShortTree(prev => {
                             const itemsCopy = { ...prev.items } as Record<string, any>;
                             const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
@@ -498,6 +464,22 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
 
                     const expandable = isExpandable(itemParsed.type);
                     const isOpen = !!openEditors[String(item.index)];
+                    const isFlowRoot = itemParsed.type === 'flow' || itemParsed.type === 'root';
+
+                    if (isFlowRoot) {
+                        return (
+                            <div {...context.itemContainerWithChildrenProps}>
+                                <TestFlowFlow
+                                    arrow={arrow}
+                                    multiStage={multiStage}
+                                    onToggleMultiStage={toggleMultiStage}
+                                    onAddItem={addItemOfType}
+                                    itemContainerWithoutChildrenProps={context.itemContainerWithoutChildrenProps}
+                                />
+                                {children}
+                            </div>
+                        );
+                    }
 
                     return (
                         <div
@@ -612,13 +594,42 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
         const type = forceStageType ? 'stage' : computed;
         const children: string[] = [];
 
-        const childSteps = (step && Array.isArray(step.steps)) ? step.steps : [];
-        childSteps.forEach((childStep: any, idx: number) => {
-            if (!childStep) { return; }
-            const childPath = `${path}_${idx}`;
-            children.push(childPath);
-            toItem(childStep, childPath);
-        });
+        if (type === 'if') {
+            const thenSteps = Array.isArray(step.steps) ? step.steps : [];
+            thenSteps.forEach((childStep: any, idx: number) => {
+                if (!childStep) { return; }
+                const childPath = `${path}_${idx}`;
+                children.push(childPath);
+                toItem(childStep, childPath);
+            });
+
+            const elseKey = `${path}__else`;
+            children.push(elseKey);
+            const elseSteps = Array.isArray(step.else) ? step.else : [];
+            const elseChildren: string[] = [];
+            elseSteps.forEach((childStep: any, idx: number) => {
+                if (!childStep) { return; }
+                const childPath = `${elseKey}_${idx}`;
+                elseChildren.push(childPath);
+                toItem(childStep, childPath);
+            });
+            items[elseKey] = {
+                index: elseKey,
+                isFolder: true,
+                canMove: false,
+                children: elseChildren,
+                data: JSON.stringify({ type: 'else', data: { stepData: { else: true } } }),
+                canRename: false,
+            };
+        } else {
+            const childSteps = (step && Array.isArray(step.steps)) ? step.steps : [];
+            childSteps.forEach((childStep: any, idx: number) => {
+                if (!childStep) { return; }
+                const childPath = `${path}_${idx}`;
+                children.push(childPath);
+                toItem(childStep, childPath);
+            });
+        }
 
         items[path] = {
             index: path,
@@ -649,6 +660,7 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
     items.flow = {
         index: 'flow',
         isFolder: true,
+        canMove: false,
         children: topChildren,
         data: JSON.stringify({ type: "flow", data: { stepData: "Flow" } }),
     };
@@ -657,7 +669,7 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
 }
 
 const isTypeFolder = (type: FlowType | unknown): boolean => {
-    return type === "stage" || type === "stages" || type === "steps" || type === "if" || type === "for" || type === "repeat";
+    return type === "stage" || type === "stages" || type === "steps" || type === "if" || type === "else" || type === "for" || type === "repeat";
 }
 
 const isExpandable = (type: FlowType | unknown): boolean => {
@@ -683,7 +695,40 @@ function buildStepFromTree(items: Record<string, any>, key: string): any {
         parsed = { type: 'unknown', data: { stepData: {} } } as any;
     }
     const base = parsed.data.stepData || {};
+    const type = parsed.type;
     const kids: string[] = Array.isArray(node.children) ? node.children : [];
+
+    if (type === 'else') {
+        // Structural folder only; never emitted as a flow step.
+        return {};
+    }
+
+    if (type === 'if') {
+        const elseKey = kids.find((k) => {
+            try {
+                return JSON.parse(items[k]?.data || '{}').type === 'else';
+            } catch {
+                return false;
+            }
+        });
+        const thenKeys = kids.filter((k) => k !== elseKey);
+        const result: any = {
+            ...base,
+            if: base.if,
+            steps: thenKeys.map((k) => buildStepFromTree(items, k)),
+        };
+        delete result.else;
+        if (elseKey) {
+            const elseKids: string[] = Array.isArray(items[elseKey]?.children)
+                ? items[elseKey].children
+                : [];
+            if (elseKids.length > 0) {
+                result.else = elseKids.map((k: string) => buildStepFromTree(items, k));
+            }
+        }
+        return result;
+    }
+
     if (kids.length > 0) {
         const newSteps = kids.map((k) => buildStepFromTree(items, k));
         return { ...base, steps: newSteps };

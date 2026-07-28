@@ -38,7 +38,7 @@ The command parses the source file and creates one or more `.mmt` API, test, sui
 
 ### Postman-specific features
 - **Dynamic variable mapping**: Postman variables like `{{$guid}}`, `{{$randomEmail}}`, `{{$randomInt}}` are automatically converted to Multimeter `r:` tokens (e.g., `r:uuid`, `r:email`, `r:int`).
-- **Form data and URL-encoded bodies**: `formdata` and `urlencoded` body modes from Postman collections are converted to the appropriate body format.
+- **Form data and URL-encoded bodies**: `formdata` and `urlencoded` body modes from Postman collections are converted to Multimeter bodies with `format: urlencoded` where applicable.
 - **Example extraction**: When Postman items include saved response examples with `originalRequest`, the convertor auto-generates inputs, header input placeholders, and example overrides in the generated API files.
 - **Suite generation**: Postman folders generate suites that run folder tests and child-folder suites in sequence.
 - **Large project imports**: Postman collections with 5 or more APIs generate `multimeter.mmt` and use `+/` imports.

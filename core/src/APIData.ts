@@ -1,4 +1,4 @@
-import {Format, GrpcStream, JSONRecord, JSONValue, Method, MMTFile, Protocol} from './CommonData';
+import {Format, FormatSpec, GrpcStream, JSONRecord, JSONValue, Method, MMTFile, Protocol} from './CommonData';
 
 export interface AuthBearer {
   type: 'bearer';
@@ -62,7 +62,7 @@ export interface APIData extends MMTFile {
   url: string;
   query?: Record<string, string>;
   protocol?: Protocol;
-  format?: Format;
+  format?: FormatSpec;
   method?: Method;
   timeout?: number;
   headers?: Record<string, string>;

@@ -1,18 +1,21 @@
 import {dataImportProcessor, markupConvertor, outputExtractor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync, isProjectRootImport} from 'mmt-core/fileHelper';
+import {splitNormalizedLines} from 'mmt-core/textLines';
 import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
 import {httpToTest, isHttpFilePath} from 'mmt-core/httpParsePack';
 import {generateJunitXml} from 'mmt-core/junitXml';
 import {generateMmtReport} from 'mmt-core/mmtReport';
 import {generateReportHtml} from 'mmt-core/reportHtml';
-import {generateReportMarkdown} from 'mmt-core/reportMarkdown';
+import {generateReportMarkdown, generateReportMarkdownDetailed} from 'mmt-core/reportMarkdown';
 import type {CollectedResults, TestStepResult, TestRunResult} from 'mmt-core/reportCollector';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 
+import {openUntitledMmtWithContent} from '../untitledGalleryMmt';
 import {resolveWorkspaceEnvFilePath} from './network';
+import {buildThemeTokenMessage} from '../themeTokenColors';
 
 const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
   outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
@@ -171,6 +174,16 @@ export async function readRelativeFileContent(
   return await readFileContent(absolutePath);
 }
 
+/** Read a relative path as raw bytes (for format: binary request bodies). */
+export async function readRelativeFileBinary(
+    openFilePath: string, relativePath: string): Promise<Buffer> {
+  const safeRelativePath =
+      typeof relativePath === 'string' ? relativePath : openFilePath;
+  const normalized = normalizeWebviewPath(safeRelativePath);
+  const absolutePath = resolveImportPath(openFilePath, normalized);
+  return await fs.promises.readFile(absolutePath);
+}
+
 
 export async function handleLoadDocumentContent(
     webviewPanel: vscode.WebviewPanel, document: vscode.TextDocument,
@@ -189,6 +202,12 @@ export async function handleLoadDocumentContent(
     projectRoot,
     sourceFormat
   });
+
+  // Send theme token colors with document load (avoids race with early theme post).
+  try {
+    webviewPanel.webview.postMessage(buildThemeTokenMessage());
+  } catch {
+  }
 
   // Send initial configuration values (e.g., body auto format)
   try {
@@ -483,6 +502,17 @@ export async function handleOpenRelativeFile(
   }
 }
 
+export async function handleOpenUntitledMmt(message: any): Promise<void> {
+  const content = typeof message?.content === 'string' ? message.content : '';
+  const suggestedName =
+      typeof message?.suggestedName === 'string' ? message.suggestedName : undefined;
+  const newTab = !!message?.newTab;
+  await openUntitledMmtWithContent(content, {
+    suggestedName,
+    viewColumn: newTab ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active,
+  });
+}
+
 export async function handleOpenExternalUrl(message: any): Promise<void> {
   const raw = typeof message?.url === 'string' ? message.url.trim() : '';
   if (!raw) {
@@ -512,7 +542,7 @@ async function scrollToHeading(filePath: string, fragment: string) {
     const uri = vscode.Uri.file(filePath);
     const doc = await vscode.workspace.openTextDocument(uri);
     const text = doc.getText();
-    const lines = text.split('\n');
+    const lines = splitNormalizedLines(text);
     const slug = fragment.toLowerCase().replace(/^-/, '');
 
     for (let i = 0; i < lines.length; i++) {
@@ -650,13 +680,14 @@ export async function handleExportMarkdown(message: any) {
   }
 }
 
-type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
+type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
 const reportSerializers: Record<ReportFormat, (r: CollectedResults) => string> = {
   junit: generateJunitXml,
   mmt: generateMmtReport,
   html: generateReportHtml,
   md: generateReportMarkdown,
+  'md-detailed': generateReportMarkdownDetailed,
 };
 
 const reportDefaults: Record<ReportFormat, {name: string; filters: Record<string, string[]>}> = {
@@ -664,6 +695,7 @@ const reportDefaults: Record<ReportFormat, {name: string; filters: Record<string
   mmt: {name: 'test-results.mmt', filters: {'MMT Report': ['mmt']}},
   html: {name: 'test-results.html', filters: {'HTML': ['html']}},
   md: {name: 'test-results.md', filters: {'Markdown': ['md', 'markdown']}},
+  'md-detailed': {name: 'test-results-detailed.md', filters: {'Markdown': ['md', 'markdown']}},
 };
 
 function webviewDataToCollectedResults(data: any): CollectedResults {

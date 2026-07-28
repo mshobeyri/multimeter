@@ -4,12 +4,33 @@ import {formatReportDateTime, formatReportNumber, formatReportPercent} from './r
 
 export interface ReportMarkdownOptions {
   suiteName?: string;
+  /** Include failure / similarity / count <details> under the Tests table (default true). */
   includeDetails?: boolean;
+  /**
+   * Append a full Step Details section for every step that has call IO
+   * (request/response), attached after the normal Markdown report.
+   */
+  includeFullDetails?: boolean;
 }
 
 interface ParsedCallDetails {
-  request?: { method?: string; url?: string; body?: any; headers?: Record<string, any> };
-  response?: { status?: number; statusText?: string; body?: any; headers?: Record<string, any> };
+  stepKind?: string;
+  statusCode?: number;
+  request?: {
+    method?: string;
+    url?: string;
+    body?: any;
+    headers?: Record<string, any>;
+    query?: Record<string, any>;
+  };
+  response?: {
+    status?: number;
+    statusText?: string;
+    body?: any;
+    headers?: Record<string, any>;
+    duration?: number;
+  };
+  outputs?: Record<string, any>;
 }
 
 function tryFormatJson(value: any): string {
@@ -36,18 +57,62 @@ function hasEntries(value: Record<string, any> | undefined): boolean {
 }
 
 function parseStepCallDetails(details?: string): ParsedCallDetails | null {
-  if (!details || typeof details !== 'string') { return null; }
+  if (!details || typeof details !== 'string') {
+    return null;
+  }
   try {
     const parsed = JSON.parse(details);
-    if (!parsed || typeof parsed !== 'object') { return null; }
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
     const underscore = parsed['_'];
-    if (!underscore || typeof underscore !== 'object' || typeof underscore.details !== 'string') { return null; }
-    const inner = JSON.parse(underscore.details);
-    if (!inner || typeof inner !== 'object') { return null; }
-    return {
-      request: inner.request,
-      response: inner.response,
-    };
+    if (!underscore || typeof underscore !== 'object') {
+      return null;
+    }
+    if (typeof underscore.details !== 'string' && underscore.status === undefined) {
+      return null;
+    }
+    const result: ParsedCallDetails = {};
+    if (typeof underscore.stepKind === 'string') {
+      result.stepKind = underscore.stepKind;
+    }
+    if (underscore.status !== undefined) {
+      result.statusCode = underscore.status;
+    }
+    if (typeof underscore.details === 'string') {
+      try {
+        const inner = JSON.parse(underscore.details);
+        if (inner && typeof inner === 'object') {
+          if (typeof (inner as any).stepKind === 'string') {
+            result.stepKind = (inner as any).stepKind;
+          }
+          if (inner.request) {
+            result.request = inner.request;
+          }
+          if (inner.response) {
+            result.response = inner.response;
+          }
+        }
+      } catch {
+        /* ignore nested parse failure */
+      }
+    }
+    const reportOutputKeys = Array.isArray((underscore as any).reportOutputKeys)
+      ? new Set((underscore as any).reportOutputKeys.filter((key: any) => typeof key === 'string'))
+      : null;
+    const outputs: Record<string, any> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (k !== '_' && (!reportOutputKeys || reportOutputKeys.has(k))) {
+        outputs[k] = v;
+      }
+    }
+    if (Object.keys(outputs).length > 0) {
+      result.outputs = outputs;
+    }
+    if (!result.request && !result.response && result.statusCode === undefined && !result.outputs) {
+      return null;
+    }
+    return result;
   } catch {
     return null;
   }
@@ -84,6 +149,18 @@ function stepHasSimilarity(step: TestStepResult): boolean {
 
 function stepHasCount(step: TestStepResult): boolean {
   return (step.expects || []).some(e => typeof e.count === 'number');
+}
+
+function buildKvTable(entries: Record<string, any>): string {
+  let md = `| Key | Value |\n|-----|-------|\n`;
+  for (const [k, v] of Object.entries(entries)) {
+    md += `| ${escapeMdTable(k)} | ${escapeMdTable(displayValue(v))} |\n`;
+  }
+  return md;
+}
+
+function buildJsonBlock(value: any): string {
+  return `\n\`\`\`json\n${tryFormatJson(value)}\n\`\`\`\n`;
 }
 
 function buildStepDetails(step: TestStepResult): string {
@@ -136,6 +213,95 @@ function buildStepDetails(step: TestStepResult): string {
     }
   }
   md += `\n</details>\n`;
+  return md;
+}
+
+function mdHeading(level: number, text: string): string {
+  const hashes = '#'.repeat(Math.max(1, Math.min(level, 6)));
+  return `${hashes} ${text}`;
+}
+
+/** Full step IO matching the report panel (request + response). */
+function buildFullStepCallDetails(
+  step: TestStepResult,
+  call: ParsedCallDetails,
+  stepHeadingLevel: number,
+): string {
+  const name = step.title || `step-${step.stepIndex}`;
+  const stepIcon = step.status === 'passed' ? '✓' : '✗';
+  const sectionLevel = stepHeadingLevel + 1;
+  let md = `\n${mdHeading(stepHeadingLevel, `${stepIcon} ${name}`)}\n\n`;
+
+  if (call.request) {
+    const req = call.request;
+    md += `${mdHeading(sectionLevel, 'Request')}\n\n`;
+    if (req.method || req.url) {
+      const method = (req.method || '').toUpperCase();
+      const url = req.url || '';
+      md += `\`${method}${method && url ? ' ' : ''}${url}\`\n\n`;
+    }
+    if (hasEntries(req.headers)) {
+      md += `**Headers**\n\n`;
+      md += buildKvTable(req.headers!);
+      md += `\n`;
+    }
+    if (req.body !== undefined && req.body !== null && req.body !== '') {
+      md += `**Body**\n`;
+      md += buildJsonBlock(req.body);
+      md += `\n`;
+    }
+  }
+
+  if (call.response || call.statusCode !== undefined) {
+    const resp = call.response || {};
+    md += `${mdHeading(sectionLevel, 'Response')}\n\n`;
+    const status = call.statusCode ?? resp.status;
+    if (status !== undefined) {
+      const statusText = resp.statusText ? ` ${resp.statusText}` : '';
+      const duration = resp.duration !== undefined ? ` (${resp.duration}ms)` : '';
+      md += `**Status:** \`${status}${statusText}${duration}\`\n\n`;
+    }
+    if (hasEntries(resp.headers)) {
+      md += `**Headers**\n\n`;
+      md += buildKvTable(resp.headers!);
+      md += `\n`;
+    }
+    if (resp.body !== undefined && resp.body !== null && resp.body !== '') {
+      md += `**Body**\n`;
+      md += buildJsonBlock(resp.body);
+      md += `\n`;
+    }
+  }
+
+  return md;
+}
+
+function buildFullDetailsSection(runs: TestRunResult[]): string {
+  let md = `\n## Step Details\n`;
+  let wroteAny = false;
+  const multiRun = runs.length > 1;
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[i];
+    const steps = run.steps.filter(s => s.stepType !== 'debug');
+    const withDetails = steps
+      .map(step => ({ step, call: parseStepCallDetails(step.details) }))
+      .filter((item): item is { step: TestStepResult; call: ParsedCallDetails } => !!item.call);
+    if (withDetails.length === 0) {
+      continue;
+    }
+    wroteAny = true;
+    if (multiRun) {
+      const name = run.displayName || run.filePath || `test-${i}`;
+      md += `\n### ${name}\n`;
+    }
+    const stepHeadingLevel = multiRun ? 4 : 3;
+    for (const { step, call } of withDetails) {
+      md += buildFullStepCallDetails(step, call, stepHeadingLevel);
+    }
+  }
+  if (!wroteAny) {
+    return md + `\n*No call details available in this report.*\n`;
+  }
   return md;
 }
 
@@ -278,6 +444,7 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
   const runs = results.testRuns;
   const suiteName = options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report';
   const includeDetails = options?.includeDetails !== false;
+  const includeFullDetails = options?.includeFullDetails === true;
   const isLoad = results.type === 'loadtest' || !!results.load;
   const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
@@ -314,8 +481,19 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
 
   if (!isLoad) {
     md += buildFunctionalTestsSection(runs, includeDetails);
+    if (includeFullDetails) {
+      md += buildFullDetailsSection(runs);
+    }
   }
 
   md += `\n---\n*Generated by **Multimeter***\n`;
   return md;
+}
+
+/** Convenience wrapper for the detailed Markdown export format. */
+export function generateReportMarkdownDetailed(
+  results: CollectedResults,
+  options?: Omit<ReportMarkdownOptions, 'includeFullDetails'>,
+): string {
+  return generateReportMarkdown(results, { ...options, includeFullDetails: true });
 }

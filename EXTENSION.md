@@ -28,6 +28,8 @@ All in the same tool. No migration required.
 | ✔️ Powerful ecosystem<br>✔️ Rich API tooling<br>✔️ Collaboration features<br>|  ✔️ Git-native<br>✔️ Lightweight<br>✔️ Simple<br>|
 |✖️ Huge collections<br> ✖️ JavaScript everywhere<br>✖️ CI/local mismatch<br>✖️ Environment sprawl<br>✖️ Tests tied to a platform<br>✖️ Hidden states scattered |✖️ Repeated request definitions<br>✖️ Multi-step API workflows<br>✖️ Large test suites<br>✖️ Keeping mocks in sync<br>✖️ CI reports<br>✖️ Generated documentation |
 
+[See full comparision](https://mmt.dev/#comparison)
+
 ## 🎯 Why Multimeter?
 ---
 
@@ -46,7 +48,7 @@ All in the same tool. No migration required.
 - ✔️ Documentation
 - ✔️ Reports
 - ✔️ CI workflows
-- ➕ [And more...](https://mmt.dev/#features)
+- ➕ [& More...](https://mmt.dev/#features)
 
 ## 🪜 Start simple, grow easily...
 ---
@@ -87,7 +89,7 @@ As your project grows, Multimeter grows with it.
 - Workflow execution
 - Structured reporting
 - CI artifacts
-- [And more...](https://github.com/mshobeyri/multimeter/tree/dev/examples)
+- [& More...](https://github.com/mshobeyri/multimeter/tree/dev/examples)
 
 Add only when you need them. **Everything stays in the same ecosystem.** 
 
@@ -104,7 +106,7 @@ That means:
 - Easier debugging
 - Reproducible results
 
-## <img src="res/git.png" alt="Git" width="36" height="36" style="vertical-align: text-bottom;"/> Why Git?
+## <img src="res/git.png" alt="Git" width="24" height="24" style="vertical-align: text-bottom;"/> Why Git?
 ---
 
 Your code, tests, mocks, documentation, reports, and environment settings live in the **same repository.**

@@ -3,7 +3,9 @@ import { createPortal } from "react-dom";
 import { xml2js } from "xml-js";
 import { beautify } from "mmt-core/markupConvertor";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
+import { normalizeNewlines } from "mmt-core/textLines";
 import TextEditor from "../text/TextEditor";
+import { useAccentChrome } from "../shared/useAccentChrome";
 
 export type mode = "appliable" | "live";
 
@@ -26,6 +28,8 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     const editorRef = useRef<any>(null);
     const [cursorPath, setCursorPath] = useState<{ path: PathSegment[]; expr: string; key: string } | null>(null);
     const cursorListenerRef = useRef<any>(null);
+    const applyChrome = useAccentChrome("green");
+    const errorChrome = useAccentChrome("red");
 
     const detectContentType = useCallback((text: string): "json" | "xml" => {
         const fmt = (format || "json").toLowerCase();
@@ -89,7 +93,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     useEffect(() => {
         if (mode === "live" && onChange && isUserEditingRef.current) {
             isUserEditingRef.current = false;
-            onChange(localValue);
+            onChange(normalizeNewlines(localValue));
         }
     }, [localValue, mode, onChange]);
 
@@ -120,7 +124,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         setIsValid(valid);
         setErrorMsg(valid ? null : err);
 
-        if (isValid && valid && beautify(format as "json" | "xml" | "xmle" | "text", localValue) !== value) {
+        if (isValid && valid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue) !== value) {
             setCanApply(true);
         } else {
             setCanApply(false);
@@ -173,12 +177,12 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 editorRef={editorRef}
             />
             <div className="bodyview-toolbar">
-                {((format === "json" || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text", localValue) !== localValue) && (
+                {((format === "json" || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue) !== localValue) && (
                     <button
                         className="bodyview-btn-icon"
                         title="Beautify"
                         onClick={() => {
-                            const beautified = beautify(format as "json" | "xml" | "xmle" | "text", localValue);
+                            const beautified = beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue);
                             setLocalValue(beautified);
                         }}
                     >
@@ -188,9 +192,14 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 {mode === "appliable" && canApply && isValid && (
                     <button
                         className="bodyview-btn bodyview-btn-apply"
+                        style={{
+                            background: applyChrome.fill,
+                            color: applyChrome.onFill,
+                            border: `1px solid ${applyChrome.border}`,
+                        }}
                         onClick={() => {
                             if (onChange) {
-                                onChange(localValue);
+                                onChange(normalizeNewlines(localValue));
                             }
                             setCanApply(false);
                         }}
@@ -201,6 +210,12 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 {!isValid && (
                     <span
                         className="bodyview-error-indicator"
+                        style={{
+                            background: errorChrome.fill,
+                            color: errorChrome.onFill,
+                            border: `1px solid ${errorChrome.border}`,
+                            boxShadow: errorChrome.outline ? "none" : "0 2px 6px #0001",
+                        }}
                         title={errorMsg || (format === "json" ? "Invalid JSON" : (format || "").includes("xml") ? "Invalid XML" : "Invalid")}
                     >
                         <span className="codicon codicon-error" />

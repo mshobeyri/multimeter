@@ -1,5 +1,6 @@
 import {normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL, restoreOmitKeyword} from './omitKeyword';
 import {opsList} from './TestData';
+import {wrapJsHelperModuleSource} from './jsModuleExport';
 
 /**
  * Abort signal for cooperative test cancellation.
@@ -98,11 +99,59 @@ function deepEquals_(a: any, b: any): boolean {
 }
 
 export function equals_(a: any, b: any) {
+  // If either side is the omit sentinel, treat as an omit/presence check so
+  // callers that still pass `__MMT_OMIT_KEYWORD__` as a value work correctly.
+  if (b === OMIT_SENTINEL) {
+    return isOmitted_(a);
+  }
+  if (a === OMIT_SENTINEL) {
+    return isOmitted_(b);
+  }
   return deepEquals_(normalizeOmitToNull(a), normalizeOmitToNull(b));
 }
 
 export function notEquals_(a: any, b: any) {
   return !equals_(a, b);
+}
+
+/** True when a value is missing / null / the omit sentinel. */
+export function isOmitted_(value: any): boolean {
+  return value === undefined || value === null || value === OMIT_SENTINEL;
+}
+
+export function isNotOmitted_(value: any): boolean {
+  return !isOmitted_(value);
+}
+
+function asComparableString_(value: any): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return String(value);
+}
+
+export function equalsIgnoreCase_(a: any, b: any) {
+  return asComparableString_(a).toLowerCase() === asComparableString_(b).toLowerCase();
+}
+
+export function notEqualsIgnoreCase_(a: any, b: any) {
+  return !equalsIgnoreCase_(a, b);
+}
+
+export function trimEquals_(a: any, b: any) {
+  return asComparableString_(a).trim() === asComparableString_(b).trim();
+}
+
+export function notTrimEquals_(a: any, b: any) {
+  return !trimEquals_(a, b);
+}
+
+export function trimEqualsIgnoreCase_(a: any, b: any) {
+  return asComparableString_(a).trim().toLowerCase() === asComparableString_(b).trim().toLowerCase();
+}
+
+export function notTrimEqualsIgnoreCase_(a: any, b: any) {
+  return !trimEqualsIgnoreCase_(a, b);
 }
 
 export function isAt_(a: any, b: any) {
@@ -182,6 +231,22 @@ export function notLengthEquals_(actual: any, expected: any) {
   return !lengthEquals_(actual, expected);
 }
 
+export function lengthLess_(actual: any, expected: any) {
+  return lengthOf_(actual) < Number(expected);
+}
+
+export function lengthLessOrEqual_(actual: any, expected: any) {
+  return lengthOf_(actual) <= Number(expected);
+}
+
+export function lengthGreater_(actual: any, expected: any) {
+  return lengthOf_(actual) > Number(expected);
+}
+
+export function lengthGreaterOrEqual_(actual: any, expected: any) {
+  return lengthOf_(actual) >= Number(expected);
+}
+
 function similarityRatio_(actual: any, expected: any): number {
   const actualText = String(actual ?? '');
   const expectedText = String(expected ?? '');
@@ -229,20 +294,20 @@ export function notFuzzyMatch_(actual: any, expected: any, percent: any) {
 
 function extractComparisonOperator_(comparison: string): string | undefined {
   const trimmed = String(comparison ?? '').trim();
-  const match = /(?:^|\s)([=!](?:%|0|[1-9][0-9]?|100)%)(?=\s|$)/.exec(trimmed);
+  const match = /(?:^|\s)([<>](?:%|0|[1-9][0-9]?|100)%)(?=\s|$)/.exec(trimmed);
   return match?.[1];
 }
 
 function similarityForComparison_(comparison: string, actual: any, expected: any): number | undefined {
   const operator = extractComparisonOperator_(comparison);
-  if (!operator || !/^[=!](?:%|0|[1-9][0-9]?|100)%$/.test(operator)) {
+  if (!operator || !/^[<>](?:%|0|[1-9][0-9]?|100)%$/.test(operator)) {
     return undefined;
   }
   return similarityPercent_(actual, expected);
 }
 
 function countForComparison_(comparison: string, actual: any): number | undefined {
-  if (!/[=!]#/.test(String(comparison ?? ''))) {
+  if (!/(?:<=#|>=#|<#|>#|[=!]#)/.test(String(comparison ?? ''))) {
     return undefined;
   }
   return lengthOf_(actual);
@@ -311,20 +376,15 @@ export const importJsModule_ = async(
   const moduleObj: {exports: any} = {exports: {}};
   const moduleId = options?.moduleId || path;
 
-  // Evaluate as CommonJS-like module.
-  // Note: This intentionally does not expose Node's require/process.
-    // Evaluate as CommonJS-like module.
-    // We keep exports in sync with module.exports even if reassigned.
-    const wrapped =
-      `"use strict";\n` +
-      `let exports = module.exports;\n` +
-      `${sourceText}\n` +
-      `return module.exports;\n`;
-    const fn = new Function('module', '__filename', '__dirname', wrapped);
-    const exported = fn(moduleObj, moduleId, '');
+  // Evaluate as CommonJS-like module. Top-level `function foo()` /
+  // `const foo = () => {}` bindings are auto-attached onto module.exports
+  // when not already exported (so helpers need not use module.exports).
+  const wrapped = wrapJsHelperModuleSource(sourceText);
+  const fn = new Function('module', '__filename', '__dirname', wrapped);
+  const exported = fn(moduleObj, moduleId, '');
 
-    // If the module reassigned module.exports, ensure our stored reference matches.
-    moduleObj.exports = exported;
+  // If the module reassigned module.exports, ensure our stored reference matches.
+  moduleObj.exports = exported;
 
   __mmtJsModuleCache.set(path, exported);
   return exported;
@@ -641,7 +701,7 @@ function operatorFromComparison_(comparison: string): string {
     return '==';
   }
   const pattern = [
-    '[=!](?:0|[1-9][0-9]?|100)%',
+    '[<>](?:0|[1-9][0-9]?|100)%',
     ...opsList.slice().sort((a, b) => b.length - a.length).map(escapeRegExp_),
   ].join('|');
   const operatorRe = new RegExp(`(?:^|\\s)(${pattern})(?=\\s|$)`, 'g');

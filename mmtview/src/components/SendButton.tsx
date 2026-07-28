@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ReactDOM from "react-dom";
+import { accentChromeFor, harmonizeAccent, resolveAccent, SEMANTIC_COLORS } from "../shared/themeAccent";
 
 export type SendButtonMenuItem = {
   label: string;
@@ -8,20 +9,32 @@ export type SendButtonMenuItem = {
   disabled?: boolean;
 };
 
+const DEFAULT_SEND_ACCENT = SEMANTIC_COLORS.green;
+const DISABLED_ACCENT = "#7a7979";
+
 const SendButton: React.FC<{
   onClick: () => void;
   onCancel?: () => void;
   disabled?: boolean;
   loading?: boolean;
+  /** Brand/method accent; harmonized with the active VS Code theme. */
+  accent?: string;
   contextMenuItems?: SendButtonMenuItem[];
-}> = ({ onClick, onCancel, disabled, loading, contextMenuItems }) => {
+}> = ({ onClick, onCancel, disabled, loading, accent = DEFAULT_SEND_ACCENT, contextMenuItems }) => {
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [hover, setHover] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const [menuPos, setMenuPos] = useState<{ left: number; top: number } | null>(null);
+  const [themeTick, setThemeTick] = useState(0);
   const openMenu = Boolean(menuPos && contextMenuItems?.length);
+
+  useEffect(() => {
+    const onTheme = () => setThemeTick((n) => n + 1);
+    window.addEventListener("vscode:changeColorTheme", onTheme as EventListener);
+    return () => window.removeEventListener("vscode:changeColorTheme", onTheme as EventListener);
+  }, []);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -38,6 +51,27 @@ const SendButton: React.FC<{
       if (timer) clearTimeout(timer);
     };
   }, [loading]);
+
+  const sendChrome = useMemo(
+    () => harmonizeAccent(resolveAccent(accent), { fillAmount: hover ? 62 : 52 }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [accent, hover, themeTick],
+  );
+  const cancelChrome = useMemo(
+    () => accentChromeFor("red", { fillAmount: hover ? 62 : 52 }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hover, themeTick],
+  );
+  const disabledChrome = useMemo(
+    () => harmonizeAccent(DISABLED_ACCENT, { fillAmount: 40 }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [themeTick],
+  );
+  const activeChrome = disabled
+    ? disabledChrome
+    : showCancel
+      ? cancelChrome
+      : sendChrome;
 
   const handleClick = () => {
     if (showCancel && onCancel) {
@@ -205,13 +239,9 @@ const SendButton: React.FC<{
         <button
           ref={btnRef}
           style={{
-            background: disabled
-              ? "#7a7979"
-              : showCancel
-                ? (hover ? "#c62828" : "#d32f2f")
-                : (hover ? "#2e7d32" : "#43a047"),
-            color: "#fff",
-            border: "none",
+            background: activeChrome.fill,
+            color: activeChrome.onFill,
+            border: `1px solid ${activeChrome.border}`,
             borderRadius: "50%",
             width: 30,
             height: 30,
@@ -219,10 +249,10 @@ const SendButton: React.FC<{
             alignItems: "center",
             justifyContent: "center",
             cursor: disabled ? "not-allowed" : "pointer",
-            boxShadow: "0 2px 6px #0001",
+            boxShadow: activeChrome.outline ? "none" : "0 2px 6px #0001",
             padding: 0,
             outline: "none",
-            transition: "background-color 0.5s ease"
+            transition: "background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease"
           }}
           title={showCancel ? "Cancel" : "Send"}
           onClick={handleClick}
@@ -254,7 +284,7 @@ const SendButton: React.FC<{
                   cy="16"
                   r="14"
                   fill="none"
-                  stroke="#fff"
+                  stroke={activeChrome.onFill}
                   strokeWidth="3"
                   strokeDasharray="40"
                   strokeDashoffset="10"
@@ -272,7 +302,7 @@ const SendButton: React.FC<{
             style={{
               fontSize: "16px",
               zIndex: 2,
-              color: "#fff",
+              color: activeChrome.onFill,
               marginLeft: showCancel ? "0" : "4px"
             }}
           ></span>

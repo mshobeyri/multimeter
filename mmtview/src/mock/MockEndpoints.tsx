@@ -1,9 +1,10 @@
 import React from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
-import MockEndpointBox, { METHOD_COLORS } from "./MockEndpointBox";
+import MockEndpointBox, { methodTextColor } from "./MockEndpointBox";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { canonicalizeMockYaml } from "./mockYaml";
+import PrimaryButton from "../components/PrimaryButton";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -297,16 +298,15 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
       {/* Endpoints header */}
       <div className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', overflow: 'visible' }}>
         <span>Endpoints</span>
-        <button
+        <PrimaryButton
           ref={addBtnRef}
-          className="button-icon"
+          icon="add"
           onPointerDown={e => e.stopPropagation()}
           onPointerUp={e => { e.stopPropagation(); setAddMenuOpen(v => !v); }}
           title="Add endpoint"
         >
-          <span className="codicon codicon-add" aria-hidden />
           Add endpoint
-        </button>
+        </PrimaryButton>
         {addMenuOpen && (
           <div
             style={{
@@ -326,7 +326,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                 style={{ width: '100%', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
                 onPointerUp={() => { setAddMenuOpen(false); addEndpoint(m); }}
               >
-                <span className={`codicon ${methodIconFor(m)}`} style={{ fontSize: 14, opacity: 0.85, color: METHOD_COLORS[m] || 'inherit' }} aria-hidden />
+                <span className={`codicon ${methodIconFor(m)}`} style={{ fontSize: 14, opacity: 0.85, color: methodTextColor(m) }} aria-hidden />
                 <span style={{ fontWeight: 600 }}>{m.toUpperCase()}</span>
               </button>
             ))}
@@ -357,14 +357,14 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
         renderItemArrow={({ item }) => {
           let ep: MockEndpoint | undefined;
           try { ep = JSON.parse(item.data as string); } catch { }
-          const method = (ep?.method || 'get').toLowerCase();
+          const method = String(typeof ep?.method === 'string' ? ep.method : 'get').toLowerCase();
           const ico = methodIconFor(method);
           return (
             <span
               style={{ display: 'inline-flex', alignSelf: 'center', width: 16, justifyContent: 'center' }}
               aria-hidden
             >
-              <span className={`codicon ${ico}`} style={{ fontSize: 14, opacity: 0.8, color: METHOD_COLORS[method] || 'inherit' }} />
+              <span className={`codicon ${ico}`} style={{ fontSize: 14, opacity: 0.8, color: methodTextColor(method) }} />
             </span>
           );
         }}

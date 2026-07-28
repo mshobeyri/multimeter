@@ -1,4 +1,5 @@
 import * as YAML from 'yaml';
+import { splitNormalizedLines } from './textLines';
 
 function isDescriptionKey(node: any): boolean {
   return node?.type === 'PLAIN' && node.value === 'description';
@@ -9,7 +10,7 @@ function literalValueFromMultilinePlainSource(
     range: readonly [number, number, number],
 ): string {
   const slice = yamlString.slice(range[0], range[1]);
-  const lines = slice.split('\n');
+  const lines = splitNormalizedLines(slice);
   if (lines.length <= 1) {
     return lines[0] ?? '';
   }

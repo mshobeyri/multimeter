@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 
 import {HistoryManager} from './historyManager';
 import {messageReceived} from './mmtAPI/mmtAPI';
+import {buildThemeTokenMessage} from './themeTokenColors';
 
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
@@ -124,6 +125,15 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       messageReceived(message, webviewPanel, document, this);
     });
 
+    // Push current theme token colors as soon as the webview is ready.
+    setTimeout(() => {
+      try {
+        webviewPanel.webview.postMessage(buildThemeTokenMessage());
+      } catch {
+        // ignore disposed webview
+      }
+    }, 0);
+
     // Sync external document changes (undo, revert/discard) back to the
     // webview so it never holds stale content.
     const changeDocumentSubscription =
@@ -147,7 +157,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         });
 
     const themeListener = vscode.window.onDidChangeActiveColorTheme(() => {
-      webviewPanel.webview.postMessage({type: 'vscode:changeColorTheme'});
+      webviewPanel.webview.postMessage(buildThemeTokenMessage());
     });
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();
@@ -156,7 +166,16 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   updateTextDocument(document: vscode.TextDocument, text: string) {
-    if (document.getText() === text) {
+    // Monaco / webview always speak LF; VS Code documents on Windows are often
+    // CRLF. Convert to the document EOL before compare/replace so we do not
+    // full-rewrite on every keystroke (that races echo and jumps the cursor).
+    const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
+    const normalized = String(text ?? '')
+                           .replace(/\r\n/g, '\n')
+                           .replace(/\r/g, '\n')
+                           .split('\n')
+                           .join(eol);
+    if (document.getText() === normalized) {
       return Promise.resolve(true);
     }
     const key = document.uri.toString();
@@ -165,7 +184,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     const edit = new vscode.WorkspaceEdit();
     const fullRange = new vscode.Range(
         document.positionAt(0), document.positionAt(document.getText().length));
-    edit.replace(document.uri, fullRange, text);
+    edit.replace(document.uri, fullRange, normalized);
     return vscode.workspace.applyEdit(edit).then(applied => {
       if (!applied) {
         const current = this._webviewEditCount.get(key) || 0;

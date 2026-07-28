@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
 import { parseYaml, parseYamlDoc } from "mmt-core/markupConvertor";
@@ -7,6 +7,12 @@ import MockOverview from "./MockOverview";
 import MockEndpoints from "./MockEndpoints";
 import MockServerSettings from "./MockServerSettings";
 import { canonicalizeMockYaml } from "./mockYaml";
+import { methodTextColor } from "../shared/themeAccent";
+import { useAccentChrome } from "../shared/useAccentChrome";
+import TabBar from "../components/TabBar";
+import RunStopToggle from "../components/RunStopToggle";
+import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
+import PanelEditHeader from "../components/PanelEditHeader";
 
 interface MockPanelProps {
   content: string;
@@ -15,6 +21,12 @@ interface MockPanelProps {
 
 const LAST_MOCK_PAGE_KEY = "mmtview:mock:lastPage";
 const LAST_MOCK_TAB_KEY = "mmtview:mock:lastTab";
+
+const MOCK_EDIT_TABS = [
+  { id: "overview" as const, label: "Overview", icon: "search" },
+  { id: "server" as const, label: "Server", icon: "server-environment" },
+  { id: "endpoints" as const, label: "Endpoints", icon: "list-tree" },
+];
 
 const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   const [mockData, setMockData] = useState<MockData | null>(null);
@@ -28,23 +40,10 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
       return savedTab === 'server' || savedTab === 'endpoints' || savedTab === 'overview' ? savedTab : 'overview';
     }
   );
-  const [showIconsOnly, setShowIconsOnly] = useState(false);
   const [envParams, setEnvParams] = useState<Record<string, any>>({});
-  const tabContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { localStorage.setItem(LAST_MOCK_PAGE_KEY, page); }, [page]);
   useEffect(() => { localStorage.setItem(LAST_MOCK_TAB_KEY, tab); }, [tab]);
-
-  useEffect(() => {
-    const checkWidth = () => {
-      if (!tabContainerRef.current) { return; }
-      setShowIconsOnly(tabContainerRef.current.clientWidth < 350);
-    };
-    checkWidth();
-    const ro = new ResizeObserver(checkWidth);
-    if (tabContainerRef.current) { ro.observe(tabContainerRef.current); }
-    return () => ro.disconnect();
-  }, []);
 
   useEffect(() => {
     const cleanup = loadEnvVariables((envVars) => {
@@ -103,6 +102,8 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
     } catch { /* ignore */ }
   }, [content, setContent]);
 
+  const greenChrome = useAccentChrome("green");
+
   if (!mockData) {
     return (
       <div style={{ padding: 16, color: "var(--vscode-descriptionForeground)" }}>
@@ -111,11 +112,18 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
     );
   }
 
-  const protocol = mockData.protocol || "http";
+  const protocolRaw = typeof mockData.protocol === "string" ? mockData.protocol : "http";
+  const protocol = resolveEnvTokenValues(protocolRaw, envParams) || "http";
   const urlScheme = protocol === "ws" ? "ws" : protocol === "https" ? "https" : "http";
-  const baseUrl = `${urlScheme}://localhost:${mockData.port}`;
-  const endpointCount = mockData.endpoints?.length || 0;
-  const connection = mockData.connection;
+  const displayPort = typeof mockData.port === "string"
+    ? resolveEnvTokenValues(String(mockData.port), envParams)
+    : mockData.port;
+  const baseUrl = `${urlScheme}://localhost:${displayPort}`;
+  const endpointCount = Array.isArray(mockData.endpoints) ? mockData.endpoints.length : 0;
+  const connection = mockData.connection && typeof mockData.connection === "object"
+    ? mockData.connection
+    : undefined;
+  const connectionMode = typeof connection?.mode === "string" ? connection.mode : undefined;
 
   return (
     <div className="panel">
@@ -128,63 +136,50 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
             {/* ── Run page ── */}
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: "column" }}>
-                <div className="api-edit-header">
-                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, borderBottom: 'none' }}>
-                      <span
-                        className="codicon codicon-server"
-                        aria-hidden
-                        style={{ color: running ? '#3fb950' : undefined, transition: 'color 0.2s' }}
-                      />
-                      {mockData.title || 'Server'}
-                    </div>
-                    <button
-                      className="action-button api-edit-launcher"
+                <PanelRunHeader
+                  icon="server"
+                  title={mockData.title || 'Server'}
+                  iconStyle={{ color: running ? greenChrome.text : undefined, transition: 'color 0.2s' }}
+                  actions={
+                    <HeaderAction
+                      icon="edit"
+                      label="Edit Mock"
                       onClick={() => setPage('edit')}
-                      title="Edit Mock"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Mock</span>
-                    </button>
-                  </div>
-                </div>
+                    />
+                  }
+                />
                 <div className="run-action-bar">
-                  {running ? (
-                    <button onClick={handleStop} className="button-icon" type="button">
-                      <span className="codicon codicon-debug-stop" aria-hidden />
-                      Stop
-                    </button>
-                  ) : (
-                    <button onClick={handleStart} className="button-icon" type="button">
-                      <span className="codicon codicon-run" aria-hidden />
-                      Run
-                    </button>
-                  )}
+                  <RunStopToggle
+                    running={running}
+                    onRun={handleStart}
+                    onStop={handleStop}
+                    runLabel="Run mock"
+                    stopLabel="Stop mock"
+                  />
                 </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                   {/* Info chips */}
                   <div className="label" style={{ marginBottom: 8 }}>Configuration</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
                     <span className="mock-info-chip mock-info-chip--url">{baseUrl}</span>
-                    <span className="mock-info-chip">{protocol.toUpperCase()}</span>
+                    <span className="mock-info-chip">{String(protocol).toUpperCase()}</span>
                     {mockData.cors && <span className="mock-info-chip">CORS</span>}
-                    {connection?.mode && connection.mode !== 'plain' && <span className="mock-info-chip">{connection.mode.toUpperCase()}</span>}
+                    {connectionMode && connectionMode !== 'plain' && <span className="mock-info-chip">{connectionMode.toUpperCase()}</span>}
                     {mockData.delay && <span className="mock-info-chip">delay: {mockData.delay}ms</span>}
                   </div>
 
                   {/* Endpoints */}
                   <div className="label">Endpoints ({endpointCount})</div>
-                  {(mockData.endpoints || []).filter((ep): ep is MockEndpoint => ep != null).map((endpoint, idx) => {
-                    const method = (endpoint.method || "ANY").toUpperCase();
-                    const color = METHOD_COLORS[method.toLowerCase()] || "var(--vscode-descriptionForeground)";
+                  {(Array.isArray(mockData.endpoints) ? mockData.endpoints : []).filter((ep): ep is MockEndpoint => ep != null && typeof ep === "object").map((endpoint, idx) => {
+                    const method = String(typeof endpoint.method === "string" ? endpoint.method : "ANY").toUpperCase();
+                    const color = methodTextColor(method);
                     return (
                       <div key={idx} className="mock-ep-row">
                         <span className="mock-ep-icon" aria-hidden>
                           <span className={`codicon ${methodIconFor(method)}`} style={{ color }} />
                         </span>
                         <span className="mock-ep-method" style={{ color }}>{method}</span>
-                        <span className="mock-ep-path">{endpoint.path}</span>
+                        <span className="mock-ep-path">{typeof endpoint.path === "string" ? endpoint.path : String(endpoint.path ?? "")}</span>
                         <span className="mock-ep-tags">
                           {endpoint.name && <span className="mock-tag mock-tag--name">{endpoint.name}</span>}
                           {endpoint.match && <span className="mock-tag">match</span>}
@@ -238,49 +233,13 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
             {/* ── Edit page (tabs: Overview / Server / Endpoints) ── */}
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header" ref={tabContainerRef}>
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('test')}
-                    title="Back to Mock"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Mock</div>
-                </div>
-
-                <div className="tab-bar">
-                  <button
-                    onClick={() => setTab('overview')}
-                    className={`tab-button ${tab === 'overview' ? 'active' : ''}`}
-                    title={showIconsOnly ? "Overview" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-search tab-button-icon" />
-                    {!showIconsOnly && "Overview"}
-                  </button>
-                  <button
-                    onClick={() => setTab('server')}
-                    className={`tab-button ${tab === 'server' ? 'active' : ''}`}
-                    title={showIconsOnly ? "Server" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-server-environment tab-button-icon" />
-                    {!showIconsOnly && "Server"}
-                  </button>
-                  <button
-                    onClick={() => setTab('endpoints')}
-                    className={`tab-button ${tab === 'endpoints' ? 'active' : ''}`}
-                    title={showIconsOnly ? "Endpoints" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-list-tree tab-button-icon" />
-                    {!showIconsOnly && "Endpoints"}
-                  </button>
-                </div>
-              </div>
+              <PanelEditHeader
+                title="Edit Mock"
+                onBack={() => setPage('test')}
+                backTitle="Back to Mock"
+              >
+                <TabBar tabs={MOCK_EDIT_TABS} value={tab} onChange={setTab} />
+              </PanelEditHeader>
 
               <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                 {tab === 'overview' && (
@@ -302,11 +261,6 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 };
 
 /* ─── Helpers ─── */
-
-const METHOD_COLORS: Record<string, string> = {
-  get: "#61affe", post: "#49cc90", put: "#fca130", patch: "#e5c07b",
-  delete: "#f93e3e", head: "#9012fe", options: "#0d5aa7",
-};
 
 function methodIconFor(method: string): string {
   switch (method.toLowerCase()) {

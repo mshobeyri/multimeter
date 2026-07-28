@@ -1,5 +1,5 @@
 import {Format, JSONValue} from './CommonData';
-import {formatBody, formattedBodyToYamlObject} from './markupConvertor';
+import {contentTypeForFormat, formatBody, formattedBodyToYamlObject} from './markupConvertor';
 import {MockData, MockEndpoint, MockFallback, MockMatch} from './MockData';
 import {applyValueAccessor} from './variableReplacer';
 
@@ -66,16 +66,7 @@ export function autoDetectFormat(body: any): Format {
 }
 
 /** Get Content-Type header for a format. */
-export function contentTypeForFormat(format: Format): string {
-  switch (format) {
-    case 'json': return 'application/json';
-    case 'xml':
-    case 'xmle':
-      return 'application/xml';
-    case 'text': return 'text/plain';
-    default: return 'text/plain';
-  }
-}
+export {contentTypeForFormat};
 
 /** Deep partial match: does `actual` contain all key-value pairs from `expected`? */
 export function partialMatch(expected: Record<string, any>, actual: Record<string, any>): boolean {
@@ -109,21 +100,37 @@ function matchHeaders(expected: Record<string, string>, actual: Record<string, s
   return true;
 }
 
+/** Resolve r:/c:/e: tokens in a string map (headers, query expectations, etc.). */
+function resolveStringMap(
+    map: Record<string, string> | undefined,
+    tokenResolver?: TokenResolver): Record<string, string> | undefined {
+  if (!map || !tokenResolver) {
+    return map;
+  }
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(map)) {
+    out[k] = typeof v === 'string' ? String(tokenResolver(v) ?? v) : v;
+  }
+  return out;
+}
+
 /** Check if a request matches the endpoint's match conditions. */
-function matchCondition(match: MockMatch, req: MockRequest): boolean {
-  if (match.body) {
+function matchCondition(
+    match: MockMatch, req: MockRequest, tokenResolver?: TokenResolver): boolean {
+  const resolved: MockMatch = tokenResolver ? tokenResolver(match) : match;
+  if (resolved.body) {
     const reqBody = typeof req.body === 'object' ? req.body : {};
-    if (!partialMatch(match.body as Record<string, any>, reqBody)) {
+    if (!partialMatch(resolved.body as Record<string, any>, reqBody)) {
       return false;
     }
   }
-  if (match.headers) {
-    if (!matchHeaders(match.headers, req.headers)) {
+  if (resolved.headers) {
+    if (!matchHeaders(resolved.headers, req.headers)) {
       return false;
     }
   }
-  if (match.query) {
-    if (!partialMatch(match.query, req.query)) {
+  if (resolved.query) {
+    if (!partialMatch(resolved.query, req.query)) {
       return false;
     }
   }
@@ -141,7 +148,7 @@ const MOCK_REF_RE = /\$\{(url|body|header|query)\.([^}]+)\}/g;
 
 /** Infer request body format from Content-Type and body shape. */
 export function inferRequestBodyFormat(
-    headers: Record<string, string>, rawBody: string): 'json'|'xml'|'text' {
+    headers: Record<string, string>, rawBody: string): Format {
   const contentTypeKey = Object.keys(headers).find(k => k.toLowerCase() === 'content-type');
   const contentType = contentTypeKey ? headers[contentTypeKey].toLowerCase() : '';
   if (contentType.includes('json')) {
@@ -149,6 +156,9 @@ export function inferRequestBodyFormat(
   }
   if (contentType.includes('xml')) {
     return 'xml';
+  }
+  if (contentType.includes('urlencoded') || contentType.includes('x-www-form-urlencoded')) {
+    return 'urlencoded';
   }
   const trimmed = rawBody.trim();
   if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
@@ -167,7 +177,7 @@ export function parseRequestBody(rawBody: string, headers: Record<string, string
     return undefined;
   }
   const format = inferRequestBodyFormat(headers, rawBody);
-  if (format === 'json' || format === 'xml') {
+  if (format === 'json' || format === 'xml' || format === 'urlencoded') {
     const parsed = formattedBodyToYamlObject(format, rawBody);
     return parsed ?? rawBody;
   }
@@ -265,12 +275,23 @@ export interface MatchResult {
   pathParams: Record<string, string>;
 }
 
+/** Resolve e:/r:/c: tokens in an endpoint path pattern before matching. */
+function resolveEndpointPath(path: string, tokenResolver?: TokenResolver): string {
+  if (!tokenResolver) {
+    return path;
+  }
+  const resolved = tokenResolver(path);
+  return resolved === undefined || resolved === null ? path : String(resolved);
+}
+
 /**
  * Find the first matching endpoint for a request.
  * Named endpoints are checked first if x-mock-example header is present.
+ * tokenResolver is used for e:/r:/c: tokens in path patterns and match rules.
  */
 export function findEndpoint(
-    endpoints: MockEndpoint[], req: MockRequest): MatchResult | null {
+    endpoints: MockEndpoint[], req: MockRequest,
+    tokenResolver?: TokenResolver): MatchResult | null {
   const method = req.method.toLowerCase();
 
   // Check x-mock-example header for named endpoint selection
@@ -283,7 +304,7 @@ export function findEndpoint(
       if (ep.method && ep.method !== method) {
         continue;
       }
-      const params = matchPath(ep.path, req.path);
+      const params = matchPath(resolveEndpointPath(ep.path, tokenResolver), req.path);
       if (params !== null) {
         return {endpoint: ep, pathParams: params};
       }
@@ -297,13 +318,13 @@ export function findEndpoint(
       continue;
     }
 
-    const params = matchPath(ep.path, req.path);
+    const params = matchPath(resolveEndpointPath(ep.path, tokenResolver), req.path);
     if (params === null) {
       continue;
     }
 
-    // Match conditions
-    if (ep.match && !matchCondition(ep.match, req)) {
+    // Match conditions (resolve e:/r:/c: in expected values)
+    if (ep.match && !matchCondition(ep.match, req, tokenResolver)) {
       continue;
     }
 
@@ -355,11 +376,11 @@ export function buildResponse(
   // Serialize
   const serialized = serializeBody(body, format);
 
-  // Merge headers: global < endpoint
+  // Merge headers: global < endpoint (resolve e:/r:/c: in endpoint headers)
   const headers: Record<string, string> = {
     ...(globalHeaders || {}),
     'content-type': contentTypeForFormat(format),
-    ...(endpoint.headers || {})
+    ...(resolveStringMap(endpoint.headers, tokenResolver) || {})
   };
 
   return {
@@ -401,7 +422,7 @@ export function buildFallbackResponse(
   const headers: Record<string, string> = {
     ...(globalHeaders || {}),
     'content-type': contentTypeForFormat(format),
-    ...(fallback.headers || {})
+    ...(resolveStringMap(fallback.headers, tokenResolver) || {})
   };
 
   return {
@@ -420,7 +441,7 @@ export function createMockRouter(
     data: MockData,
     tokenResolver?: TokenResolver): (req: MockRequest) => MockResponse {
   return (req: MockRequest): MockResponse => {
-    const result = findEndpoint(data.endpoints as MockEndpoint[], req);
+    const result = findEndpoint(data.endpoints as MockEndpoint[], req, tokenResolver);
     if (result) {
       return buildResponse(
           result.endpoint, result.pathParams, req,

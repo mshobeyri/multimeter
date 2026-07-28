@@ -332,16 +332,18 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
     const match = /^group-(\d+)$/.exec(groupItemId);
-    if (!match) {
-      return [];
+    if (match) {
+      const groupIndex = Number(match[1]) - 1;
+      const group = groups[groupIndex];
+      if (!group || group.entries.length === 0) {
+        return [];
+      }
+      return [createSuiteNodeId([groupIndex])];
     }
-    const groupIndex = Number(match[1]) - 1;
-    const group = groups[groupIndex];
-    if (!group || group.entries.length === 0) {
-      return [];
-    }
-    return [createSuiteNodeId([groupIndex])];
-  }, [groups]);
+    // Nested/imported group: run by its bundle id from tree data.
+    const bundleId = (treeData.items[groupItemId]?.data as any)?.id;
+    return typeof bundleId === 'string' && bundleId ? [bundleId] : [];
+  }, [groups, treeData.items]);
 
   const renderItem = ({ item, context, arrow, children }: any) => {
     const data = item.data as SuiteTestTreeItemData;

@@ -1,22 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { NetworkAPI, Request, Response } from "mmt-core/NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
-import { beautifyWithContentType } from "mmt-core/markupConvertor";
 import { getEffectiveProtocol } from "mmt-core/protocolResolver";
+import { responseBodyToRawString } from "../../api/responseBodyDisplay";
 
-export function useNetwork(autoFormatBody = false): NetworkAPI {
+export function useNetwork(_autoFormatBody = false): NetworkAPI {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [wsId, setWsId] = useState<string | null>(null);
-  const autoFormatBodyRef = useRef(autoFormatBody);
 
   let lastRequestID = useRef<string | null>(null);
-
-  useEffect(() => {
-    autoFormatBodyRef.current = autoFormatBody;
-  }, [autoFormatBody]);
 
   const parseSetCookie = (setCookie: string[] | string | undefined): Record<string, string> => {
     if (!setCookie) return {};
@@ -30,13 +25,8 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
     return cookies;
   };
 
-  // Helper function to handle body content
-  const toContentString = (data: any): string => {
-    if (data === null || data === undefined) return "";
-    if (typeof data === 'string') return data;
-    if (typeof data === 'object') return JSON.stringify(data, null, 2);
-    return String(data);
-  };
+  // Store bodies raw; Response panel / history Format toggle beautify on display.
+  const toContentString = (data: any): string => responseBodyToRawString(data);
 
   const send = async (requestData: Request | undefined): Promise<Response | undefined> => {
     if (loading) {
@@ -101,9 +91,6 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
           cookies: cookies || {},
           query: query || {},
           onResponse: (res: any) => {
-            if (res.autoformat) {
-              res.body = beautifyWithContentType(res.headers["Content-Type"], res.body);
-            }
             setLoading(false);
             pushHistory({
               type: "recv",
@@ -267,7 +254,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
           wsId: wsId || "",
           data: toContentString(body),
           onResponse: (res: any) => {
-            const body = autoFormatBodyRef.current ? beautifyWithContentType("", res) : res;
+            const body = typeof res === "string" ? res : toContentString(res);
             setLoading(false);
             resolve({
               body,
@@ -330,7 +317,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
         },
 
         onMessage: (data: string) => {
-          const body = autoFormatBodyRef.current ? beautifyWithContentType("", data) : data;
+          const body = typeof data === "string" ? data : toContentString(data);
           setLoading(false);
           pushHistory({
             type: "recv",

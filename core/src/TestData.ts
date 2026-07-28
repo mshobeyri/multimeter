@@ -1,6 +1,6 @@
 
 
-import {Format, Method, MMTFile, Protocol} from './CommonData';
+import {FormatSpec, Method, MMTFile, Protocol} from './CommonData';
 
 export type Timestr = `${number}s`|`${number}m`|`${number}h`|'inf';
 export type Repeat = `${number}`|'inf';
@@ -104,7 +104,7 @@ export interface TestFlowHttp extends TestFlowBase {
   query?: Record<string, string>;
   method?: Method;
   timeout?: number;
-  format?: Format;
+  format?: FormatSpec;
   headers?: Record<string, string>;
   body?: string|object|null;
   outputs?: Record<string, string>;
@@ -230,18 +230,22 @@ export const addableFlowTypes = [
 ] as FlowType[];
 export type CheckOps =
     '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=C'|'!C'|'=^'|'!^'|'=$'|'!$'|
-    '=*'|'!*'|'=~'|'!~'|'=#'|'!#'|'=%'|'!%'|`=${number}%`|`!${number}%`;
+    '=*'|'!*'|'=~'|'!~'|'=#'|'!#'|'<#'|'<=#'|'>#'|'>=#'|
+    '=i'|'!i'|'=X'|'!X'|'=iX'|'!iX'|
+    '>%'|'<%'|`>${number}%`|`<${number}%`;
 
 export const DEFAULT_FUZZY_PERCENT = 80;
 
 export const opsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%'
+  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '<#', '<=#', '>#', '>=#',
+  '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%'
 ];
 
 export const selectableOpsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=#', '!#', '=%', '!%'
+  '!$', '=*', '!*', '=#', '!#', '<#', '<=#', '>#', '>=#',
+  '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%'
 ];
 
 export const opsNames = [
@@ -250,27 +254,32 @@ export const opsNames = [
   'starts with', 'does not start with', 'ends with', 'does not end with',
   'matches regex', 'does not match regex', 'matches regex (legacy)',
   'does not match regex (legacy)', 'length/count equals', 'length/count not equals',
+  'length/count less than', 'length/count less or equal',
+  'length/count greater than', 'length/count greater or equal',
+  'equal (ignore case)', 'not equal (ignore case)',
+  'equal (trim)', 'not equal (trim)',
+  'equal (trim, ignore case)', 'not equal (trim, ignore case)',
   'fuzzy match at least percent', 'fuzzy match less than percent'
 ];
 
-export function isFuzzyPercentOperator(op: string): op is `=${number}%`|`!${number}%` {
-  return /^[=!](0|[1-9][0-9]?|100)%$/.test(op);
+export function isFuzzyPercentOperator(op: string): op is `>${number}%`|`<${number}%` {
+  return /^[<>](0|[1-9][0-9]?|100)%$/.test(op);
 }
 
-export function isFuzzyPercentSelectOperator(op: string): op is '=%'|'!%' {
-  return op === '=%' || op === '!%';
+export function isFuzzyPercentSelectOperator(op: string): op is '>%'|'<%' {
+  return op === '>%' || op === '<%';
 }
 
 export function isFuzzyPercentAnyOperator(op: string): boolean {
   return isFuzzyPercentSelectOperator(op) || isFuzzyPercentOperator(op);
 }
 
-export function getFuzzyPercentOperatorBase(op: string): '=%'|'!%'|undefined {
-  if (op === '=%' || (isFuzzyPercentOperator(op) && op.startsWith('='))) {
-    return '=%';
+export function getFuzzyPercentOperatorBase(op: string): '>%'|'<%'|undefined {
+  if (op === '>%' || (isFuzzyPercentOperator(op) && op.startsWith('>'))) {
+    return '>%';
   }
-  if (op === '!%' || (isFuzzyPercentOperator(op) && op.startsWith('!'))) {
-    return '!%';
+  if (op === '<%' || (isFuzzyPercentOperator(op) && op.startsWith('<'))) {
+    return '<%';
   }
   return undefined;
 }
@@ -282,9 +291,9 @@ export function getFuzzyPercentOperatorValue(op: string): number {
   return DEFAULT_FUZZY_PERCENT;
 }
 
-export function makeFuzzyPercentOperator(base: '=%'|'!%', percent: number): `=${number}%`|`!${number}%` {
+export function makeFuzzyPercentOperator(base: '>%'|'<%', percent: number): `>${number}%`|`<${number}%` {
   const normalized = Math.max(0, Math.min(100, Math.round(Number(percent))));
-  return `${base[0]}${normalized}%` as `=${number}%`|`!${number}%`;
+  return `${base[0]}${normalized}%` as `>${number}%`|`<${number}%`;
 }
 
 /** Longest-first so `<=` / `>=` / `!=` win over single-char prefixes. */
@@ -292,7 +301,7 @@ const OPS_BY_LENGTH = [...opsList].sort((a, b) => b.length - a.length);
 
 export function splitCheckOperatorPrefix(value: string): { operator: string; expected: string } | undefined {
   const trimmed = String(value).trim();
-  const fuzzyMatch = trimmed.match(/^([=!](?:0|[1-9][0-9]?|100)%)(?:\s+(.*)|$)/);
+  const fuzzyMatch = trimmed.match(/^([<>](?:0|[1-9][0-9]?|100)%)(?:\s+(.*)|$)/);
   if (fuzzyMatch) {
     return { operator: fuzzyMatch[1], expected: (fuzzyMatch[2] || '').trim() };
   }
@@ -304,10 +313,41 @@ export function splitCheckOperatorPrefix(value: string): { operator: string; exp
   return undefined;
 }
 
+/**
+ * Strip a single layer of matching quotes from an expect literal.
+ * `''` / `""` → empty string; `"fail test"` → `fail test`.
+ * Leaves unquoted text unchanged. Does not treat bare `omit` specially.
+ */
+export function unquoteExpectLiteral(value: string): string {
+  const trimmed = String(value ?? '').trim();
+  if (trimmed.length < 2) {
+    return trimmed;
+  }
+  const quote = trimmed[0];
+  if ((quote !== '"' && quote !== "'") || trimmed[trimmed.length - 1] !== quote) {
+    return trimmed;
+  }
+  const inner = trimmed.slice(1, -1);
+  if (quote === '"') {
+    return inner.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  }
+  return inner.replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+}
+
+/** True when the raw (pre-unquote) expected token is a quoted string literal. */
+export function isQuotedExpectLiteral(value: string): boolean {
+  const trimmed = String(value ?? '').trim();
+  if (trimmed.length < 2) {
+    return false;
+  }
+  const quote = trimmed[0];
+  return (quote === '"' || quote === "'") && trimmed[trimmed.length - 1] === quote;
+}
+
 export function getOpOptionLabel(op: CheckOps): string {
   const idx = opsList.indexOf(op);
   if (idx < 0 && isFuzzyPercentOperator(op)) {
-    const prefix = op.startsWith('!') ? 'fuzzy match less than' : 'fuzzy match at least';
+    const prefix = op.startsWith('<') ? 'fuzzy match less than' : 'fuzzy match at least';
     return `${op} — ${prefix} ${op.slice(1)}`;
   }
   return idx >= 0 ? `${op} — ${opsNames[idx]}` : op;

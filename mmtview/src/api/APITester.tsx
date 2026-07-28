@@ -1,13 +1,15 @@
 import React, { useState, useContext, useEffect, useMemo } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
-import { JSONRecord, Method, Protocol } from "mmt-core/CommonData";
+import { JSONRecord, Method, Protocol, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
+import FilePickerInput from "../components/FilePickerInput";
 import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
+import ToggleButton from "../components/ToggleButton";
 import UrlInput from "../components/UrlInput";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
@@ -15,8 +17,13 @@ import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
 import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
+import { displayResponseBody } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
 import MdViewer from "../components/MdViewer";
+import {
+  accentChromeCssVars,
+  accentChromeFor,
+} from "../shared/themeAccent";
 
 interface APITestProps {
   api: APIData;
@@ -70,21 +77,6 @@ function outputValuesMatch(actual: unknown, expected: unknown): boolean {
   }
   return String(actual) === String(expected);
 }
-
-const methodColor: Record<string, string> = {
-  get: "#61affe",
-  post: "#49cc90",
-  put: "#fca130",
-  delete: "#f93e3e",
-  patch: "#50e3c2",
-  head: "#9012fe",
-  options: "#0d5aa7",
-  trace: "#888",
-  ws: "#9b59b6",
-  graphql: "#e535ab",
-  grpc: "#244c5a",
-  http: "#61affe",
-};
 
 const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const OTHER_PROTOCOLS: Protocol[] = ["ws", "graphql", "grpc"];
@@ -156,11 +148,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const methodOrProtocolValue = (effectiveProtocol === "ws" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc")
     ? `protocol:${effectiveProtocol}`
     : `method:${(requestData?.method || api.method || "get").toLowerCase()}`;
-  const methodOrProtocolColor = methodColor[
-    methodOrProtocolValue.startsWith("protocol:")
-      ? methodOrProtocolValue.slice("protocol:".length)
-      : methodOrProtocolValue.slice("method:".length)
-  ] || "#888";
+  const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
+    ? methodOrProtocolValue.slice("protocol:".length)
+    : methodOrProtocolValue.slice("method:".length);
+  const [themeTick, setThemeTick] = useState(0);
+  useEffect(() => {
+    const onTheme = () => setThemeTick((n) => n + 1);
+    window.addEventListener("vscode:changeColorTheme", onTheme as EventListener);
+    return () => window.removeEventListener("vscode:changeColorTheme", onTheme as EventListener);
+  }, []);
+  const methodChrome = useMemo(
+    () => accentChromeFor(methodOrProtocolKey),
+    // themeTick forces recompute when VS Code theme CSS vars change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [methodOrProtocolKey, themeTick],
+  );
+  const methodChromeVars = accentChromeCssVars(methodChrome);
+  const methodOrProtocolAccent = methodChrome.accent;
 
   const canRunCurl = requestProtocol !== "graphql" && requestProtocol !== "grpc" &&
     !isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
@@ -335,7 +339,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           value={methodOrProtocolValue}
           onChange={e => handleMethodOrProtocolChange(e.target.value)}
           title="HTTP method or protocol (temporary override)"
-          style={{ background: methodOrProtocolColor }}
+          style={methodChromeVars as React.CSSProperties}
         >
           {HTTP_METHODS.map(m => (
             <option key={m} value={`method:${m}`}>{m.toUpperCase()}</option>
@@ -423,17 +427,28 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           <>
             <div className="label">Request Body</div>
             <div className="apitest-body-wrapper">
-              <BodyView
-                value={typeof requestData?.body === "string"
-                  ? requestData?.body
-                  : formatBody(requestData?.format || "json", requestData?.body || {})
-                }
-                format={requestData?.format || "json"}
-                mode="live"
-                onChange={val => {
-                  updateField("body", val);
-                }}
-              />
+              {requestFormat(requestData?.format) === "binary" ? (
+                <FilePickerInput
+                  value={typeof requestData?.body === "string" ? requestData.body : ""}
+                  basePath={mmtFilePath}
+                  showFilePicker
+                  placeholder="Relative path to binary file"
+                  onChange={val => updateField("body", val)}
+                  onEnterPressed={val => updateField("body", val)}
+                />
+              ) : (
+                <BodyView
+                  value={typeof requestData?.body === "string"
+                    ? requestData?.body
+                    : formatBody(requestFormat(requestData?.format), requestData?.body || {})
+                  }
+                  format={requestFormat(requestData?.format)}
+                  mode="live"
+                  onChange={val => {
+                    updateField("body", val);
+                  }}
+                />
+              )}
             </div>
           </>
         )}
@@ -560,6 +575,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             />
           )}
           <SendButton
+            accent={methodOrProtocolAccent}
             onClick={handleSend}
             onCancel={handleCancel}
             disabled={isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && !network.connected}
@@ -599,14 +615,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             <div className="label">Response Body</div>
             <div className="apitest-body-wrapper">
               <BodyView
-                value={
-                  responseData?.body === null || responseData?.body === undefined
-                    ? ""
-                    : typeof responseData?.body === "string"
-                      ? responseData?.body
-                      : JSON.stringify(responseData?.body, null, 2)
-                }
-                format={requestData?.format || "json"}
+                value={displayResponseBody(responseData, autoFormatBody)}
+                format={responseFormat(requestData?.format)}
                 mode="live"
                 onInspectPosition={handleAddOutputVariable}
                 refreshKey={responseRevision}
@@ -646,6 +656,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           )}
 
           <button
+            type="button"
             onClick={() => {
               showHistoryPanel();
             }}
@@ -654,7 +665,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           >
             <span className="codicon codicon-history toolbar-button-icon"></span>
           </button>
-          <button
+          <ToggleButton
+            active={autoFormatBody}
+            icon="sparkle-filled"
+            title={`Auto-format (beautify) body ${autoFormatBody ? "on" : "off"}`}
             onClick={() => {
               const next = !autoFormatBody;
               setAutoFormatBody(next);
@@ -665,11 +679,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 value: next,
               });
             }}
-            className={`toolbar-button ${autoFormatBody ? "toolbar-button--toggle-active" : ""}`}
-            title={`Auto-format (beautify) body ${autoFormatBody ? "on" : "off"}`}
-          >
-            <span className="codicon codicon-sparkle-filled toolbar-button-icon"></span>
-          </button>
+          />
         </div>
       </div>
     </div>

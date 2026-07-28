@@ -64,6 +64,11 @@
       "require": "./dist/JSer.js",
       "default": "./dist/JSer.js"
     },
+    "./JSerTestFlow": {
+      "types": "./dist/JSerTestFlow.d.ts",
+      "require": "./dist/JSerTestFlow.js",
+      "default": "./dist/JSerTestFlow.js"
+    },
     "./testParsePack": {
       "types": "./dist/testParsePack.d.ts",
       "require": "./dist/testParsePack.js",
@@ -174,6 +179,11 @@
       "require": "./dist/omitKeyword.js",
       "default": "./dist/omitKeyword.js"
     },
+    "./textLines": {
+      "types": "./dist/textLines.d.ts",
+      "require": "./dist/textLines.js",
+      "default": "./dist/textLines.js"
+    },
     "./setenvResolve": {
       "types": "./dist/setenvResolve.d.ts",
       "require": "./dist/setenvResolve.js",
@@ -188,6 +198,11 @@
       "types": "./dist/mmtFormat.d.ts",
       "require": "./dist/mmtFormat.js",
       "default": "./dist/mmtFormat.js"
+    },
+    "./httpStepApiPreview": {
+      "types": "./dist/httpStepApiPreview.d.ts",
+      "require": "./dist/httpStepApiPreview.js",
+      "default": "./dist/httpStepApiPreview.js"
     },
     "./EnvData": {
       "types": "./dist/EnvData.d.ts",

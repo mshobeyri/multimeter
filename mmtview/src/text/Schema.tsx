@@ -1,3 +1,5 @@
+import { opsList } from 'mmt-core/TestData';
+
 export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
@@ -5,6 +7,15 @@ export const GeneralSchema = {
         type: { type: 'string', enum: ['api', 'env', 'test', 'suite', 'loadtest', 'doc', 'server', 'report'] },
     }
 }
+
+/** Keep in sync with CheckOps via opsList (plus fuzzy percent pattern). */
+const CheckOperatorSchema = {
+    type: 'string',
+    anyOf: [
+        { enum: [...opsList] },
+        { pattern: '^[<>]([0-9]|[1-9][0-9]|100)%$' }
+    ]
+};
 
 const DataImportSchema = {
     type: 'object',
@@ -24,6 +35,24 @@ const dataRefOr = (...schemas: any[]) => ({
         ...schemas
     ]
 });
+
+const FormatEnumSchema = { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary'] };
+
+/** Scalar format or `{ request, response }` when they differ. */
+const FormatSpecSchema = {
+    anyOf: [
+        FormatEnumSchema,
+        {
+            type: 'object',
+            properties: {
+                request: FormatEnumSchema,
+                response: FormatEnumSchema,
+                respond: FormatEnumSchema, // alias for response
+            },
+            additionalProperties: false,
+        },
+    ],
+};
 
 export const SuiteSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
@@ -166,7 +195,7 @@ export const APISchema = {
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
         }),
         timeout: dataRefOr({ type: 'number', minimum: 0 }),
-        format: dataRefOr({ type: 'string', enum: ['json', 'xml', 'xmle', 'text'] }),
+        format: dataRefOr(FormatSpecSchema),
         url: { type: 'string' },
         headers: { type: 'object', additionalProperties: { type: 'string' } },
         query: { type: 'object', additionalProperties: { type: 'string' } },
@@ -593,7 +622,7 @@ export const TestSchema = {
                                 enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
                             },
                             timeout: { type: 'number', minimum: 0 },
-                            format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+                            format: FormatSpecSchema,
                             headers: { type: 'object', additionalProperties: { type: 'string' } },
                             query: { type: 'object', additionalProperties: { type: 'string' } },
                             body: {
@@ -678,13 +707,7 @@ export const TestSchema = {
                                         properties: {
                                             actual: {},
                                             expected: {},
-                                            operator: {
-                                                type: 'string',
-                                                anyOf: [
-                                                    { enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$'] },
-                                                    { pattern: '^[=!]([0-9]|[1-9][0-9]|100)%$' }
-                                                ]
-                                            },
+                                            operator: CheckOperatorSchema,
                                             title: { type: 'string' },
                                             details: { type: 'string' },
                                             report: {
@@ -722,13 +745,7 @@ export const TestSchema = {
                                         properties: {
                                             actual: {},
                                             expected: {},
-                                            operator: {
-                                                type: 'string',
-                                                anyOf: [
-                                                    { enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$'] },
-                                                    { pattern: '^[=!]([0-9]|[1-9][0-9]|100)%$' }
-                                                ]
-                                            },
+                                            operator: CheckOperatorSchema,
                                             title: { type: 'string' },
                                             details: { type: 'string' },
                                             report: {
@@ -759,6 +776,7 @@ export const TestSchema = {
                         properties: {
                             if: { type: 'string' },
                             steps: { $ref: '#/properties/steps' },
+                            else: { $ref: '#/properties/steps' },
                         },
                         additionalProperties: false
                     },
@@ -968,8 +986,18 @@ export const MockSchema = {
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
         import: DataImportSchema,
-        protocol: { type: 'string', enum: ['http', 'https', 'ws'] },
-        port: { type: 'number', minimum: 1, maximum: 65535 },
+        protocol: {
+            oneOf: [
+                { type: 'string', enum: ['http', 'https', 'ws'] },
+                { type: 'string', description: 'Env token, e.g. e:MOCK_PROTOCOL or <<e:MOCK_PROTOCOL>>' },
+            ],
+        },
+        port: {
+            oneOf: [
+                { type: 'number', minimum: 1, maximum: 65535 },
+                { type: 'string', description: 'Port number or env token, e.g. e:MOCK_PORT or <<e:MOCK_PORT>>' },
+            ],
+        },
         connection: {
             type: 'object',
             properties: {
@@ -1002,7 +1030,7 @@ export const MockSchema = {
                         additionalProperties: false
                     },
                     status: { type: 'number', minimum: 100, maximum: 599 },
-                    format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+                    format: FormatEnumSchema,
                     headers: { type: 'object', additionalProperties: { type: 'string' } },
                     body: {},
                     delay: { type: 'number', minimum: 0 },
@@ -1016,7 +1044,7 @@ export const MockSchema = {
             type: 'object',
             properties: {
                 status: { type: 'number' },
-                format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+                format: FormatEnumSchema,
                 headers: { type: 'object', additionalProperties: { type: 'string' } },
                 body: {}
             },

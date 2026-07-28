@@ -88,10 +88,15 @@ async function startJsRunnerWorkerThread(): Promise<void> {
       }
       return fs.readFileSync(resolved, 'utf8');
     };
+    const binaryFileLoader = async (requestedPath: string) => {
+      const resolved = path.isAbsolute(requestedPath) ? requestedPath : path.resolve(basePath, requestedPath);
+      return fs.promises.readFile(resolved);
+    };
     try {
       const result = await runJSCode({
         ...context,
         fileLoader,
+        binaryFileLoader,
         logger: (level: LogLevel, message: string) => {
           parentPort?.postMessage({type: 'log', id, level, message});
         },
@@ -257,7 +262,7 @@ program.command('run')
     .option('-p, --print-js', 'Print generated JS before executing', false)
     .option(
       '--report <format>',
-      'Generate test report: junit, mmt, html, or md')
+      'Generate test report: junit, mmt, html, md, or md-detailed')
     .option(
       '--report-file <path>',
       'Output path for the report file (default depends on format)')
@@ -349,6 +354,7 @@ program.command('run')
             mmt: (mmtcore as any).mmtReport?.generateMmtReport,
             html: (mmtcore as any).reportHtml?.generateReportHtml,
             md: (mmtcore as any).reportMarkdown?.generateReportMarkdown,
+            'md-detailed': (mmtcore as any).reportMarkdown?.generateReportMarkdownDetailed,
           };
           const serializer = serializers[reportFormat];
           if (typeof serializer === 'function') {

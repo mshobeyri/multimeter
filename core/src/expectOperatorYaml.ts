@@ -1,4 +1,5 @@
 import { opsList } from './TestData';
+import { detectNewline, joinLines, splitNormalizedLines } from './textLines';
 
 /**
  * Operators that need quoting in YAML because they start with a character that
@@ -13,7 +14,7 @@ const YAML_UNSAFE_OPS = opsList
   .filter(op => op.startsWith('!') || op.startsWith('>'))
   .sort((a, b) => b.length - a.length);
 
-const FUZZY_PERCENT_OP_RE = /^[!](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
+const FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
 
 /**
  * Map key + value. Keys may include dots, underscores, hyphens, brackets
@@ -26,9 +27,13 @@ const MAP_ENTRY_RE = /^([^:]+?:\s+)(.+)$/;
  * be mangled by the YAML parser:
  * - `expect:` / `debug:` map values and list items (e.g. `status: != 200`)
  * - `operator:` fields on check/assert object forms (e.g. `operator: !=`)
+ *
+ * Preserves the input newline style so CST byte ranges from `parseDocument`
+ * still align with the original editor buffer (critical on Windows CRLF).
  */
 export function quoteExpectOperators(yaml: string): string {
-  const lines = yaml.split('\n');
+  const eol = detectNewline(yaml);
+  const lines = splitNormalizedLines(yaml);
   let inExpect = false;
   let expectIndent = -1;
 
@@ -58,7 +63,7 @@ export function quoteExpectOperators(yaml: string): string {
     lines[i] = quoteOperatorFieldLine(line);
   }
 
-  return lines.join('\n');
+  return joinLines(lines, eol);
 }
 
 const YAML_BANG_UNSAFE_OPS = YAML_UNSAFE_OPS.filter(op => op.startsWith('!'));
@@ -70,7 +75,8 @@ const QUOTED_SCALAR_RE = /^"((?:\\.|[^"\\])*)"$/;
  * quoted because unquoted block-scalar syntax breaks parsing.
  */
 export function emitUnquotedOperators(yaml: string): string {
-  const lines = yaml.split('\n');
+  const eol = detectNewline(yaml);
+  const lines = splitNormalizedLines(yaml);
   let inExpect = false;
   let expectIndent = -1;
 
@@ -99,7 +105,7 @@ export function emitUnquotedOperators(yaml: string): string {
     lines[i] = unquoteOperatorFieldLine(line);
   }
 
-  return lines.join('\n');
+  return joinLines(lines, eol);
 }
 
 function unescapeQuotedScalar(value: string): string | undefined {
@@ -186,8 +192,8 @@ export function filterOperatorYamlErrors(content: string, errors: any[]): any[] 
   }
 
   const modifiedLines = new Set<number>();
-  const origLines = content.split('\n');
-  const quotedLines = quoted.split('\n');
+  const origLines = splitNormalizedLines(content);
+  const quotedLines = splitNormalizedLines(quoted);
   for (let i = 0; i < origLines.length; i++) {
     if (origLines[i] !== quotedLines[i]) {
       modifiedLines.add(i + 1);
@@ -219,7 +225,7 @@ function needsOperatorQuoting(value: string): boolean {
   return false;
 }
 
-const EXACT_FUZZY_PERCENT_OP_RE = /^[!](?:0|[1-9][0-9]?|100)%$/;
+const EXACT_FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%$/;
 
 function needsExactOperatorQuoting(value: string): boolean {
   if (/^["']/.test(value)) {

@@ -5,6 +5,7 @@ import parseYaml from 'mmt-core/markupConvertor';
 import { docHtml } from 'mmt-core';
 import { parseRefDescription, extractMarkdownSection, resolveRefPath } from 'mmt-core/docHtml';
 import { readFile, readFileAsDataUrl } from '../vsAPI';
+import PrimaryButton from '../components/PrimaryButton';
 
 interface DocViewProps { doc: DocData; }
 
@@ -145,10 +146,9 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
   return (
     <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div className="run-action-bar">
-        <button onClick={handleExport} className="button-icon" type="button">
-          <span className="codicon codicon-export" aria-hidden />
+        <PrimaryButton icon="export" onClick={handleExport}>
           Export
-        </button>
+        </PrimaryButton>
       </div>
       <iframe ref={iframeRef} style={{ flex: 1, width: '100%', minHeight: 0, border: '1px solid var(--panel-border)' }} title="Documentation Preview" />
     </div>

@@ -75,11 +75,11 @@ Supported step forms:
 # 4) assert: hard assertion (stops on failure)
 - assert: <comparison>
 
-# 5) if: conditional block
+# 5) if: conditional block (optional else)
 - if: <comparison>
   steps:
     - <step>
-  else?:
+  else:
     - <step>
 
 # 6) repeat: repeat a block N times or by string
@@ -153,7 +153,7 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
 - `=$` (ends with), `!$` (not ends with)
 - `=*` (regex match), `!*` (regex not match). Legacy `=~` and `!~` still work.
 - `=#` (string/number character length equals), `!#` (not equal)
-- `=N%`(fuzzy match at least N% similar), `!N%` (not fuzzy match at N%). Any whole percent from 0 to 100 can be used, for example `=80%`. In the visual UI these appear as `=%` and `!%` with a separate percentage selector.
+- `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
 
 Example comparisons:
 
@@ -323,5 +323,5 @@ steps:
 - Prefer small, readable tests focused on a single behavior.
 - Prefer `steps` for simple linear flows; only use `stages` when explicit parallelism is needed.
 - Always include `title` and `tags` (even if tags is a small list like `[smoke]`).
-- Avoid adding `js` steps unless the user needs custom logic that can’t be expressed with other constructs.- Do **not** add YAML comments (`#`). Multimeter's formatter removes them on reformat, so they will always be lost. Use `title` on steps or the top-level `description` field instead.
+- Avoid adding `js` steps unless the user needs custom logic that can’t be expressed with other constructs. YAML comments (`#`) are fine — Format Document preserves them. Prefer `title` / `description` for structured documentation.
 When unsure, generate a **minimal valid test** that clearly calls the described APIs and asserts the most important property (typically HTTP status or a key field in the response).

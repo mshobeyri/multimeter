@@ -14,3 +14,6 @@ steps:
     steps:
       - print: "Success — echoed: ${result.echoed}"
       - check: ${result.echoed} == <<i:message>>
+    else:
+      - print: "Echo failed with status ${result.status_code}"
+      - assert: ${result.status_code} == 200

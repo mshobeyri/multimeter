@@ -163,8 +163,11 @@ const collectVariables = (document: BrunoDocument): Record<string, string> => {
 
 const inferFormat = (formatHint: string | undefined, headers: Record<string, string>, body?: string): TestFlowHttp['format'] => {
   const hint = String(formatHint || '').toLowerCase();
-  if (hint === 'json' || hint === 'xml' || hint === 'text') {
+  if (hint === 'json' || hint === 'xml' || hint === 'xmle' || hint === 'text' || hint === 'urlencoded') {
     return hint;
+  }
+  if (hint === 'form-urlencoded' || hint === 'form_urlencoded' || hint === 'form') {
+    return 'urlencoded';
   }
   const contentTypeKey = Object.keys(headers).find(key => key.toLowerCase() === 'content-type');
   const contentType = contentTypeKey ? headers[contentTypeKey].toLowerCase() : '';
@@ -173,6 +176,9 @@ const inferFormat = (formatHint: string | undefined, headers: Record<string, str
   }
   if (contentType.includes('xml')) {
     return 'xml';
+  }
+  if (contentType.includes('urlencoded') || contentType.includes('x-www-form-urlencoded')) {
+    return 'urlencoded';
   }
   const trimmed = String(body || '').trim();
   if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
@@ -198,6 +204,34 @@ const parseBody = (format: TestFlowHttp['format'], body?: string): string | obje
     } catch {
       return body;
     }
+  }
+  if (format === 'urlencoded') {
+    const result: Record<string, string> = {};
+    for (const line of trimmed.split('\n')) {
+      const pair = line.trim();
+      if (!pair || pair.startsWith('#')) {
+        continue;
+      }
+      const colon = pair.indexOf(':');
+      if (colon >= 0) {
+        // Bruno key: value style inside body:form-urlencoded
+        const key = pair.slice(0, colon).trim();
+        const value = pair.slice(colon + 1).trim();
+        if (key) {
+          result[key] = value;
+        }
+      } else {
+        const eq = pair.indexOf('=');
+        if (eq >= 0) {
+          const key = pair.slice(0, eq).trim();
+          const value = pair.slice(eq + 1).trim();
+          if (key) {
+            result[key] = value;
+          }
+        }
+      }
+    }
+    return Object.keys(result).length > 0 ? result : body;
   }
   return body;
 };

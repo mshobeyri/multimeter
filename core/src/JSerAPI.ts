@@ -1,10 +1,14 @@
 import {APIData, AuthConfig} from './APIData';
-import {JSONRecord} from './CommonData';
+import {JSONRecord, requestFormat} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
-import {formatBody} from './markupConvertor';
+import {contentTypeForFormat, formatBody} from './markupConvertor';
 import {stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
-import {replaceAllRefs, toTemplateWithEnvVars} from './variableReplacer';
+import {
+  embedDynamicTokensAsJsInterpolations,
+  replaceAllRefs,
+  toTemplateWithEnvVars,
+} from './variableReplacer';
 
 export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord,
@@ -30,11 +34,29 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
   replaced = stripOmitFromRequest(replaced);
 
+  const reqFormatForBody = requestFormat(replaced.format);
+  // URLSearchParams percent-encodes the whole value, which would turn leftover
+  // `e:VAR` / `r:` / `c:` tokens into `e%3AVAR` and hide them from later
+  // template rewriting. Convert them to `${...}` first (JSON/XML keep tokens
+  // readable without this).
+  if (reqFormatForBody === 'urlencoded' && replaced.body != null) {
+    replaced = {
+      ...replaced,
+      body: embedDynamicTokensAsJsInterpolations(replaced.body),
+    };
+  }
+
   let formattedBody =
-      formatBody(replaced.format || 'json', replaced.body || '', false);
+      formatBody(reqFormatForBody, replaced.body || '', false);
   // Replace placeholders with JSON.stringify(var) so non-strings are not quoted
   try {
     if (typeof formattedBody === 'string') {
+      const reqFormat = reqFormatForBody;
+      if (reqFormat === 'urlencoded') {
+        // URLSearchParams encodes `${name}` → %24%7Bname%7D, which would be
+        // sent literally. Restore JS interpolations that re-encode at runtime.
+        formattedBody = restoreUrlEncodedJsPlaceholders(formattedBody);
+      }
       const entries = Object.entries(ctx.api.inputs ?? {});
       for (const [name, value] of entries) {
         // Replace "${name}" -> ${JSON.stringify(name)}
@@ -106,6 +128,8 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   // GraphQL: override method, headers, and body
   const effectiveMethod = isGraphQL ? 'post' : (replaced.method || '');
+  const reqFormat = requestFormat(replaced.format);
+  const isBinaryRequest = !isGraphQL && reqFormat === 'binary';
   if (isGraphQL) {
     // Ensure Content-Type is set to application/json
     const hasContentType = Object.keys(replaced.headers || {}).some(
@@ -113,6 +137,17 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     if (!hasContentType) {
       replaced.headers = replaced.headers || {};
       replaced.headers['Content-Type'] = 'application/json';
+      headers = Object.entries(replaced.headers)
+                    .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
+                    .join(', ');
+    }
+  } else if (reqFormat === 'urlencoded' || reqFormat === 'binary') {
+    // Form and binary bodies are not detectable from shape alone (unlike JSON/XML)
+    const hasContentType = Object.keys(replaced.headers || {}).some(
+        k => k.toLowerCase() === 'content-type');
+    if (!hasContentType) {
+      replaced.headers = replaced.headers || {};
+      replaced.headers['Content-Type'] = contentTypeForFormat(reqFormat);
       headers = Object.entries(replaced.headers)
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
@@ -136,13 +171,28 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     graphqlBodyExpr = `JSON.stringify({ query: ${operationStr}, variables: ${variablesExpr}${opNamePart} })`;
   }
 
+  const binaryPathSource = typeof replaced.body === 'string'
+      ? replaced.body.trim()
+      : (replaced.body == null ? '' : String(replaced.body));
+  const binaryPathExpr = toTemplateWithEnvs(binaryPathSource);
   const bodyExpr = isGraphQL && graphqlBodyExpr
       ? graphqlBodyExpr
-      : toTemplateWithEnvs(formattedBody);
+      : isBinaryRequest
+        ? '__binaryBody_'
+        : toTemplateWithEnvs(formattedBody);
+
+  const binaryLoadLines = isBinaryRequest
+      ? `  const __binaryPath_ = ${binaryPathExpr};
+  const __binaryBody_ = await readBinaryFile_(__binaryPath_);
+`
+      : '';
+  const detailsRequestExpr = isBinaryRequest
+      ? `{ ...req_, body: '<binary ' + __binaryBody_.length + ' bytes path=' + __binaryPath_ + '>' }`
+      : 'req_';
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const __resolvedUrl = ${toTemplateWithEnvs(String(replaced.url || ''))};
-  const req_ = {
+${binaryLoadLines}  const req_ = {
     url: __resolvedUrl,
     protocol: ${protocolExpr},
     method: '${effectiveMethod}',
@@ -161,7 +211,7 @@ ${authCode}
       cookies: res_?.cookies || {},
       status: res_?.status || 0,
       duration: res_?.duration || 0,
-      details: JSON.stringify({ request: req_, response: res_ }, null, 2)
+      details: JSON.stringify({ request: ${detailsRequestExpr}, response: res_ }, null, 2)
     };
   const __defaultOutput_ = extractOutputs_(
     __extractSource_,
@@ -174,7 +224,7 @@ ${authCode}
 
   output_['_'] = {
     ...__defaultOutput_,
-    details: JSON.stringify({ request: req_, response: res_ }, null, 2),
+    details: JSON.stringify({ request: ${detailsRequestExpr}, response: res_ }, null, 2),
     status: res_?.status || 0,
     duration: res_?.duration || 0,
     reportOutputKeys: ${JSON.stringify(reportOutputKeys)}
@@ -198,6 +248,31 @@ ${isGraphQL ? `
   return output_;
 };`;
 };
+
+/**
+ * After urlencoded formatting, `${expr}` becomes `%24%7Bexpr%7D` and would be
+ * sent as a literal. Turn those back into runtime interpolations that encode
+ * the resolved value (same idea as the JSON `"${name}"` rewrite above).
+ *
+ * URLSearchParams encodes spaces as `+` (not `%20`). decodeURIComponent does
+ * not treat `+` as space, so expressions like `__mmt_access(x, '[1:2]')`
+ * would become `__mmt_access(x,+'[1:2]')` (unary-plus → NaN) and silently
+ * drop the slice accessor. Normalize `+` → `%20` before decoding.
+ */
+export function restoreUrlEncodedJsPlaceholders(encodedBody: string): string {
+  return String(encodedBody ?? '').replace(/%24%7B([\s\S]*?)%7D/gi, (_match, innerEnc: string) => {
+    let inner: string;
+    try {
+      inner = decodeURIComponent(String(innerEnc || '').replace(/\+/g, '%20'));
+    } catch {
+      return _match;
+    }
+    if (!inner.trim()) {
+      return _match;
+    }
+    return `\${encodeURIComponent(String(${inner} ?? ''))}`;
+  });
+}
 
 function generateGrpcFunction(
     ctx: APIContext,

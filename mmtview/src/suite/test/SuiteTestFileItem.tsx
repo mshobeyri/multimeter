@@ -3,7 +3,7 @@ import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
 import { openRelativeFile } from '../../vsAPI';
-import ContextMenuHost, { runInCoreMenuItem } from '../../components/ContextMenuHost';
+import TreeRunButton from '../../components/TreeRunButton';
 
 export type SuiteTestFileItemData = { type: 'test'; path: string; id: string }
 
@@ -117,27 +117,12 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                         {labelPath}
                     </div>
                     {onRun && !isMissing && (
-                        <ContextMenuHost
-                            items={
-                              runDisabled
-                                ? undefined
-                                : [runInCoreMenuItem(onRunInCore || onRun)]
-                            }
-                        >
-                            <button
-                                className="tab-button"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    onRun();
-                                }}
-                                title={runButtonTitle}
-                                disabled={runDisabled}
-                                style={{ padding: 6 }}
-                            >
-                                <span className="codicon codicon-run tab-button-icon" aria-hidden />
-                            </button>
-                        </ContextMenuHost>
+                        <TreeRunButton
+                            onRun={onRun}
+                            onRunInCore={onRunInCore}
+                            title={runButtonTitle}
+                            disabled={runDisabled}
+                        />
                     )}
                 </div>
             </div>

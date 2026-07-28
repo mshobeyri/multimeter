@@ -1,13 +1,15 @@
-import React, { useCallback, useRef, useEffect, useState } from "react";
+import React, { useCallback, useRef, useEffect, useState, useContext } from "react";
 import KSVEditor from "../components/KSVEditor";
 import UrlInput from "../components/UrlInput";
-import { Protocol, Method, Format } from "mmt-core/CommonData"
+import { Protocol, Method, Format, FormatSpec, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
+import FilePickerInput from "../components/FilePickerInput";
 import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
 import { APIData } from "mmt-core/APIData";
 import { protocolResolver } from "mmt-core";
+import { FileContext } from "../fileContext";
 
 interface InterfaceEditorProps {
   data: APIData;
@@ -15,7 +17,7 @@ interface InterfaceEditorProps {
 }
 
 const protocolOptions: Protocol[] = ["http", "ws", "graphql", "grpc"];
-const formatOptions: Format[] = ["json", "xml", "xmle", "text"];
+const formatOptions: Format[] = ["json", "xml", "xmle", "text", "urlencoded", "binary"];
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;
@@ -35,29 +37,78 @@ function getFormatLabel(format: Format): string {
   if (format === "xmle") {
     return "xmle — expanded";
   }
+  if (format === "urlencoded") {
+    return "urlencoded — form body";
+  }
+  if (format === "binary") {
+    return "binary — file upload";
+  }
   return format;
 }
 
-const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
-  // Split url and query string safely
-  const url = (data.url || "").split("?")[0];
+function setFormats(nextRequest: Format, nextResponse: Format): FormatSpec {
+  return packFormatSpec({ request: nextRequest, response: nextResponse }) || nextRequest;
+}
 
-  // State for formatted body
-  const format = data.format || 'json';
+const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
+  const { mmtFilePath } = useContext(FileContext);
+  // Split url and query string safely
+  const url = (typeof data.url === "string" ? data.url : "").split("?")[0];
+
+  const reqFormat = requestFormat(data.format);
+  const resFormat = responseFormat(data.format);
 
   // State for formatted body
   const [formattedBody, setFormattedBody] = useState<string>(
-    formatBody(format, data.body || "")
+    formatBody(reqFormat, data.body || "")
   );
 
   // Update formattedBody when body or format changes
   useEffect(() => {
     if (data.body) {
-      setFormattedBody(formatBody(format, data.body || ""));
+      setFormattedBody(formatBody(reqFormat, data.body || ""));
     } else {
       setFormattedBody("");
     }
-  }, [data.body, format]);
+  }, [data.body, reqFormat]);
+
+  /** Structured YAML body (object) vs plain text string in the file. */
+  const bodyYamlEncoded =
+    data.body != null &&
+    data.body !== "" &&
+    typeof data.body !== "string";
+
+  const setBodyYamlEncoded = useCallback((enabled: boolean) => {
+    if (enabled === bodyYamlEncoded) {
+      return;
+    }
+    const asText =
+      typeof data.body === "string"
+        ? data.body
+        : formatBody(reqFormat, data.body ?? "");
+    if (enabled) {
+      const packed = formattedBodyToYamlObject(reqFormat, asText);
+      if (packed === null || packed === undefined) {
+        return;
+      }
+      onChange({ ...data, body: packed });
+      return;
+    }
+    onChange({ ...data, body: asText });
+  }, [bodyYamlEncoded, data, onChange, reqFormat]);
+
+  const applyBodyEdit = useCallback((val: string) => {
+    setFormattedBody(val);
+    if (bodyYamlEncoded) {
+      const packed = formattedBodyToYamlObject(reqFormat, val);
+      if (packed === null || packed === undefined) {
+        return;
+      }
+      onChange({ ...data, body: packed });
+      return;
+    }
+    onChange({ ...data, body: val });
+  }, [bodyYamlEncoded, data, onChange, reqFormat]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
@@ -124,11 +175,30 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
 
       {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (
         <>
-          <div className="label">Format</div>
+          <div className="label">Request format</div>
           <div style={{ padding: "5px" }}>
             <select
-              value={format}
-              onChange={e => onChange({ ...data, format: e.target.value as Format })}
+              value={reqFormat}
+              onChange={e => onChange({
+                ...data,
+                format: setFormats(e.target.value as Format, resFormat),
+              })}
+              style={{ width: "100%" }}
+            >
+              <option key="" value="" disabled>Select format...</option>
+              {safeList(formatOptions).map(opt => (
+                <option key={opt} value={opt}>{getFormatLabel(opt)}</option>
+              ))}
+            </select>
+          </div>
+          <div className="label">Response format</div>
+          <div style={{ padding: "5px" }}>
+            <select
+              value={resFormat}
+              onChange={e => onChange({
+                ...data,
+                format: setFormats(reqFormat, e.target.value as Format),
+              })}
               style={{ width: "100%" }}
             >
               <option key="" value="" disabled>Select format...</option>
@@ -488,22 +558,42 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       ) : null}
 
       {/* Only show body editor if method is not get and protocol is not graphql/grpc */}
-      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || (typeof data.method === "string" && data.method.toLowerCase() !== "get")) && (
         <>
-          <div className="label">Body</div>
+          <div className="label api-body-label">
+            <span>Body</span>
+            {reqFormat !== "binary" && (
+              <label
+                className="api-body-yaml-encoded"
+                title="Store body as structured YAML instead of a text block"
+              >
+                <input
+                  type="checkbox"
+                  checked={bodyYamlEncoded}
+                  onChange={(e) => setBodyYamlEncoded(e.target.checked)}
+                />
+                YAML-encoded
+              </label>
+            )}
+          </div>
           <div style={{ padding: "5px", position: "relative" }}>
-            <BodyView
-              value={formattedBody === null ? "" : formattedBody}
-              format={format}
-              mode="appliable"
-              onChange={val => {
-                setFormattedBody(val);
-                const yamlObj = formattedBodyToYamlObject(format, val);
-                if (yamlObj !== null) {
-                  onChange({ ...data, body: yamlObj });
-                }
-              }}
-            />
+            {reqFormat === "binary" ? (
+              <FilePickerInput
+                value={typeof data.body === "string" ? data.body : ""}
+                basePath={mmtFilePath}
+                showFilePicker
+                placeholder="Relative path to binary file"
+                onChange={path => onChange({ ...data, body: path })}
+                onEnterPressed={path => onChange({ ...data, body: path })}
+              />
+            ) : (
+              <BodyView
+                value={formattedBody === null ? "" : formattedBody}
+                format={reqFormat}
+                mode="appliable"
+                onChange={applyBodyEdit}
+              />
+            )}
           </div>
         </>
       )}

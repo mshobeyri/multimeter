@@ -1,7 +1,7 @@
 import {yamlToAPI} from './apiParsePack';
 import {validateAuth} from './apiParsePack';
 import {apiToJSfunc, rootTestToJsfunc, testToJsfunc,} from './JSer';
-import {APIContext} from './JSerAPI';
+import {APIContext, restoreUrlEncodedJsPlaceholders} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
 import {runJSCode} from './jsRunner';
@@ -1150,6 +1150,26 @@ describe('empty test items are valid', () => {
        const js = await testToJsfunc(ctx, true);
        expect(js).toContain('if (true)');
      });
+
+  it('emits else branch for if steps', async () => {
+    const ctx: TestContext = {
+      name: 'ifElse',
+      test: {
+        steps: [{
+          if: 'status == 200',
+          steps: [{print: 'ok'} as any],
+          else: [{print: 'fail'} as any],
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('if (');
+    expect(js).toContain('} else {');
+    expect(js).toContain('ok');
+    expect(js).toContain('fail');
+  });
 });
 
 describe('call steps without expect', () => {
@@ -1254,11 +1274,11 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('!* /fail/')).toEqual({ operator: '!*', expected: '/fail/' });
     expect(parseExpectValue('=# 3')).toEqual({ operator: '=#', expected: '3' });
     expect(parseExpectValue('!# 0')).toEqual({ operator: '!#', expected: '0' });
-    expect(parseExpectValue('=% John')).toEqual({ operator: '=%', expected: 'John' });
-    expect(parseExpectValue('=0% John')).toEqual({ operator: '=0%', expected: 'John' });
-    expect(parseExpectValue('=10% John')).toEqual({ operator: '=10%', expected: 'John' });
-    expect(parseExpectValue('!75% admin')).toEqual({ operator: '!75%', expected: 'admin' });
-    expect(parseExpectValue('!100% admin')).toEqual({ operator: '!100%', expected: 'admin' });
+    expect(parseExpectValue('>% John')).toEqual({ operator: '>%', expected: 'John' });
+    expect(parseExpectValue('>0% John')).toEqual({ operator: '>0%', expected: 'John' });
+    expect(parseExpectValue('>10% John')).toEqual({ operator: '>10%', expected: 'John' });
+    expect(parseExpectValue('<75% admin')).toEqual({ operator: '<75%', expected: 'admin' });
+    expect(parseExpectValue('<100% admin')).toEqual({ operator: '<100%', expected: 'admin' });
   });
 
   it('handles expected value with spaces', () => {
@@ -1273,19 +1293,109 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue("== ''")).toEqual({ operator: '==', expected: '' });
     expect(parseExpectValue('== ""')).toEqual({ operator: '==', expected: '' });
   });
+
+  it('unquotes quoted expected values for all operator prefixes', () => {
+    const cases: Array<[string, string, string]> = [
+      ['==', '== "fail test"', 'fail test'],
+      ['!=', '!= "fail test"', 'fail test'],
+      ['=i', '=i "Fail Test"', 'Fail Test'],
+      ['!i', '!i "Fail Test"', 'Fail Test'],
+      ['=X', '=X "  hi  "', '  hi  '],
+      ['!X', '!X "  hi  "', '  hi  '],
+      ['=iX', '=iX "  Hi  "', '  Hi  '],
+      ['!iX', '!iX "  Hi  "', '  Hi  '],
+      ['=@', '=@ "needle"', 'needle'],
+      ['!@', '!@ "needle"', 'needle'],
+      ['=C', '=C "fail test"', 'fail test'],
+      ['!C', '!C "fail test"', 'fail test'],
+      ['=^', '=^ "pre"', 'pre'],
+      ['!^', '!^ "pre"', 'pre'],
+      ['=$', '=$ "suf"', 'suf'],
+      ['!$', '!$ "suf"', 'suf'],
+      ['=*', '=* "/ok/i"', '/ok/i'],
+      ['!*', '!* "/fail/"', '/fail/'],
+      ['=~', '=~ "/ok/i"', '/ok/i'],
+      ['!~', '!~ "/fail/"', '/fail/'],
+      ['=#', '=# "3"', '3'],
+      ['!#', '!# "0"', '0'],
+      ['<#', '<# "3"', '3'],
+      ['<=#', '<=# "3"', '3'],
+      ['>#', '># "3"', '3'],
+      ['>=#', '>=# "3"', '3'],
+      ['>%', '>% "John"', 'John'],
+      ['<%', '<% "admin"', 'admin'],
+      ['>80%', '>80% "John"', 'John'],
+      ['<', '< "100"', '100'],
+      ['>', '> "0"', '0'],
+      ['<=', '<= "300"', '300'],
+      ['>=', '>= "100"', '100'],
+    ];
+    for (const [op, raw, expected] of cases) {
+      expect(parseExpectValue(raw)).toEqual({ operator: op, expected });
+    }
+    expect(parseExpectValue("== 'fail test'")).toEqual({ operator: '==', expected: 'fail test' });
+    // Quoted "omit" stays a literal string; bare omit stays the keyword path.
+    expect(parseExpectValue('== "omit"')).toEqual({ operator: '==', expected: 'omit' });
+    expect(parseExpectValue('== omit')).toEqual({ operator: '==', expected: null });
+  });
 });
 
 describe('conditionalStatementToJSfunc', () => {
   it('parses fuzzy operators after multi-word actual values', () => {
-    expect(conditionalStatementToJSfunc('mehrdad zahra =100% mehrdad sahar'))
+    expect(conditionalStatementToJSfunc('mehrdad zahra >100% mehrdad sahar'))
         .toBe('fuzzyMatch_(`mehrdad zahra`, `mehrdad sahar`, 100)');
   });
 
-  it('uses 80 percent as the default fuzzy threshold for =%', () => {
-    expect(conditionalStatementToJSfunc('name =% Jon'))
+  it('uses 80 percent as the default fuzzy threshold for >%', () => {
+    expect(conditionalStatementToJSfunc('name >% Jon'))
         .toBe('fuzzyMatch_(`name`, `Jon`, 80)');
-    expect(conditionalStatementToJSfunc('name !% admin'))
+    expect(conditionalStatementToJSfunc('name <% admin'))
         .toBe('notFuzzyMatch_(`name`, `admin`, 80)');
+  });
+
+  it('combines comparisons with && and ||', () => {
+    expect(conditionalStatementToJSfunc('${a} == 1 && ${b} == 2'))
+        .toBe('equals_(`${a}`, `1`) && equals_(`${b}`, `2`)');
+    expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2'))
+        .toBe('equals_(`${a}`, `1`) || equals_(`${b}`, `2`)');
+    expect(conditionalStatementToJSfunc('${a} == 1 && ${b} == 2 || ${c} != 3'))
+        .toBe('(equals_(`${a}`, `1`) && equals_(`${b}`, `2`)) || notEquals_(`${c}`, `3`)');
+    expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2 && ${c} == 3'))
+        .toBe('equals_(`${a}`, `1`) || (equals_(`${b}`, `2`) && equals_(`${c}`, `3`))');
+  });
+
+  it('supports ignore-case, trim, and length comparison operators', () => {
+    expect(conditionalStatementToJSfunc('name =i John'))
+        .toBe('equalsIgnoreCase_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name !i John'))
+        .toBe('notEqualsIgnoreCase_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name =X John'))
+        .toBe('trimEquals_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name !X John'))
+        .toBe('notTrimEquals_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name =iX John'))
+        .toBe('trimEqualsIgnoreCase_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name !iX John'))
+        .toBe('notTrimEqualsIgnoreCase_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('items <# 3'))
+        .toBe('lengthLess_(`items`, `3`)');
+    expect(conditionalStatementToJSfunc('items <=# 3'))
+        .toBe('lengthLessOrEqual_(`items`, `3`)');
+    expect(conditionalStatementToJSfunc('items ># 3'))
+        .toBe('lengthGreater_(`items`, `3`)');
+    expect(conditionalStatementToJSfunc('items >=# 3'))
+        .toBe('lengthGreaterOrEqual_(`items`, `3`)');
+    expect(conditionalStatementToJSfunc('${items} <# 3'))
+        .toBe('lengthLess_(items, `3`)');
+  });
+
+  it('treats == omit and != omit as presence checks', () => {
+    expect(conditionalStatementToJSfunc('${x} == omit'))
+        .toBe('isOmitted_(x)');
+    expect(conditionalStatementToJSfunc('${x} != omit'))
+        .toBe('isNotOmitted_(x)');
+    expect(checkToJSfunc('${x} == omit', false)).toContain('isOmitted_(x)');
+    expect(checkToJSfunc('${x} != omit', false)).toContain('isNotOmitted_(x)');
   });
 });
 
@@ -1746,6 +1856,478 @@ describe('body inputs numeric/boolean templating', () => {
   });
 });
 
+describe('restoreUrlEncodedJsPlaceholders', () => {
+  it('restores simple ${name} placeholders', () => {
+    const encoded = new URLSearchParams({a: '${iii}', b: 'plain'}).toString();
+    const out = restoreUrlEncodedJsPlaceholders(encoded);
+    expect(out).toContain("encodeURIComponent(String(iii ?? ''))");
+    expect(out).toContain('b=plain');
+    expect(out).not.toMatch(/%24%7Biii%7D/i);
+  });
+
+  it('restores spaces encoded as + inside accessor expressions', () => {
+    const encoded = new URLSearchParams({
+      part: "${__mmt_access(xxx, '[1:2]')}",
+    }).toString();
+    expect(encoded).toContain('+'); // URLSearchParams uses + for spaces
+    const out = restoreUrlEncodedJsPlaceholders(encoded);
+    expect(out).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(out).not.toContain("__mmt_access(xxx,+'[1:2]')");
+  });
+
+  it('restores env accessor expressions that use double-quoted accessors', () => {
+    const encoded = new URLSearchParams({
+      short: '${__mmt_access(envVariables.USERNAME, "[0:3]")}',
+    }).toString();
+    const out = restoreUrlEncodedJsPlaceholders(encoded);
+    expect(out).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(out).not.toContain(',+"[');
+  });
+
+  it('restores multiple placeholders in one field and across fields', () => {
+    const encoded = new URLSearchParams({
+      path: '/u/${userId}/p/${postId}',
+      flag: '${on}',
+    }).toString();
+    const out = restoreUrlEncodedJsPlaceholders(encoded);
+    expect(out).toContain("encodeURIComponent(String(userId ?? ''))");
+    expect(out).toContain("encodeURIComponent(String(postId ?? ''))");
+    expect(out).toContain("encodeURIComponent(String(on ?? ''))");
+  });
+
+  it('leaves already-encoded non-placeholder content alone', () => {
+    const encoded = 'note=hello%20world&at=a%40b.com';
+    expect(restoreUrlEncodedJsPlaceholders(encoded)).toBe(encoded);
+  });
+});
+
+describe('urlencoded body inputs (apiToJSfunc)', () => {
+  const toJs = async (yamlLines: string[], envVars: Record<string, any> = {}) =>
+      apiToJSfunc({
+        api: yamlToAPI(yamlLines.join('\n')),
+        name: 'form_api',
+        inputs: {},
+        envVars,
+      } as any);
+
+  it('interpolates i: placeholders instead of sending encoded ${name}', async () => {
+    const js = await toJs([
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  iii: hello',
+      'body:',
+      '  xxx: i:iii',
+      '  yyy: plain',
+    ]);
+    expect(js).not.toContain('%24%7Biii%7D');
+    expect(js).toContain("encodeURIComponent(String(iii ?? ''))");
+    expect(js).toContain('yyy=plain');
+  });
+
+  it('interpolates placeholders embedded in larger urlencoded values', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  userId: u1',
+      'body:',
+      '  path: /users/<<i:userId>>/profile',
+    ]);
+    expect(js).toContain("encodeURIComponent(String(userId ?? ''))");
+    expect(js).not.toMatch(/%24%7BuserId%7D/i);
+  });
+
+  it('preserves slice accessors on inputs after urlencoded encoding', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  xxx: hello',
+      'body:',
+      '  part: i:xxx[1:2]',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).not.toContain("__mmt_access(xxx,+'[1:2]')");
+    expect(js).toContain("encodeURIComponent(String(__mmt_access(xxx, '[1:2]') ?? ''))");
+  });
+
+  it('preserves index and property accessors on inputs', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  xxx: hello',
+      '  user:',
+      '    name: ada',
+      'body:',
+      '  first: i:xxx[0]',
+      '  name: <<i:user.name>>',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[0]')");
+    expect(js).toContain("__mmt_access(user, '.name')");
+    expect(js).not.toMatch(/,\+'/);
+  });
+
+  it('preserves open-ended and chained accessors', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  xxx: hello-world',
+      'body:',
+      '  tail: i:xxx[1:]',
+      '  head: i:xxx[:4]',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[1:]')");
+    expect(js).toContain("__mmt_access(xxx, '[:4]')");
+    expect(js).not.toMatch(/,\+'/);
+  });
+
+  it('keeps e: tokens as runtime interpolations in urlencoded bodies', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'body:',
+      '  user: e:USERNAME',
+      '  short: <<e:USERNAME[0:3]>>',
+    ]);
+    expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
+    expect(js).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(js).not.toMatch(/e%3AUSERNAME/i);
+  });
+
+  it('supports alternate env token forms in urlencoded bodies', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'body:',
+      '  a: <e:HOST>',
+      '  b: e:{HOST}',
+      '  c: <<e:HOST>>',
+    ]);
+    expect(js.match(/envVariables\.HOST/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(js).not.toMatch(/e%3AHOST|%3Ce%3AHOST|e%3A%7BHOST/i);
+  });
+
+  it('resolves env-backed input defaults through slice accessors', async () => {
+    // inputs.xxx defaults to e:TOKEN; body uses only a slice of that input.
+    // Both the env link and the accessor must survive urlencoded encoding.
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  xxx: e:TOKEN',
+      'body:',
+      '  part: i:xxx[1:2]',
+    ]);
+    expect(js).toMatch(/xxx\s*=\s*envVariables\.TOKEN/);
+    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).not.toContain("__mmt_access(xxx,+'[1:2]')");
+  });
+
+  it('interpolates multiple tokens mixed with static text in one field', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  id: u1',
+      'body:',
+      '  path: /tenants/<<e:TENANT>>/users/<<i:id>>/<<e:TENANT[0]>>',
+    ]);
+    expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
+    expect(js).toContain("encodeURIComponent(String(id ?? ''))");
+    expect(js).toContain('__mmt_access(envVariables.TENANT, "[0]")');
+    expect(js).not.toMatch(/%24%7B|e%3ATENANT/i);
+  });
+
+  it('keeps unresolved r: / c: tokens as runtime calls (not percent-encoded)', async () => {
+    // Known r:/c: names are baked by replaceAllRefs; unknown names must still
+    // become runtime interpolations instead of r%3A… / c%3A… literals.
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'body:',
+      '  rnd: r:customToken',
+      '  now: c:customNow',
+      '  slice: <<r:customToken[0:2]>>',
+    ]);
+    expect(js).toContain("__mmt_random('customToken')");
+    expect(js).toContain("__mmt_current('customNow')");
+    expect(js).toContain('__mmt_access(__mmt_random(\'customToken\'), "[0:2]")');
+    expect(js).not.toMatch(/r%3AcustomToken|c%3AcustomNow/i);
+  });
+
+  it('still encodes static reserved characters in neighboring fields', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  name: ada',
+      'body:',
+      '  email: a@b.com',
+      '  note: hello world',
+      '  who: i:name',
+    ]);
+    expect(js).toMatch(/email=a%40b\.com/);
+    expect(js).toMatch(/note=hello(\+|%20)world/);
+    expect(js).toContain("encodeURIComponent(String(name ?? ''))");
+  });
+
+  it('does not break json bodies that use the same accessors and env tokens', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: json',
+      'url: https://example.com/json',
+      'inputs:',
+      '  xxx: hello',
+      'body:',
+      '  part: i:xxx[1:2]',
+      '  user: e:USERNAME',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).toContain('${envVariables.USERNAME}');
+    expect(js).not.toContain('encodeURIComponent(String(__mmt_access');
+  });
+
+  it('does not break xml bodies that use input slices and env tokens', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: xml',
+      'url: https://example.com/xml',
+      'inputs:',
+      '  xxx: hello',
+      'body:',
+      '  root:',
+      '    part: i:xxx[1:2]',
+      '    user: <<e:USERNAME>>',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).toContain('${envVariables.USERNAME}');
+    expect(js).not.toContain('encodeURIComponent(String(__mmt_access');
+  });
+});
+
+describe('urlencoded tokens through multilevel imports', () => {
+  // importsToJsfunc → apiToJSfunc always passes envVars: {}. That is the path
+  // where leftover e:/r:/c: tokens used to be percent-encoded away.
+
+  const urlencodedApiYaml = [
+    'type: api',
+    'title: Form Login',
+    'method: post',
+    'format: urlencoded',
+    'url: https://example.com/form',
+    'inputs:',
+    '  token: e:AUTH_TOKEN',
+    'body:',
+    '  part: i:token[1:2]',
+    '  user: e:USERNAME',
+    '  short: <<e:USERNAME[0:3]>>',
+    '  path: /tenants/<<e:TENANT>>/<<i:token[0]>>',
+  ].join('\n');
+
+  function expectUrlencodedTokenJs(js: string) {
+    expect(js).toMatch(/token\s*=\s*envVariables\.AUTH_TOKEN/);
+    expect(js).toContain("__mmt_access(token, '[1:2]')");
+    expect(js).not.toContain("__mmt_access(token,+'[1:2]')");
+    expect(js).toContain("encodeURIComponent(String(__mmt_access(token, '[1:2]') ?? ''))");
+    expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
+    expect(js).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
+    expect(js).toContain("__mmt_access(token, '[0]')");
+    expect(js).not.toMatch(/%24%7B|e%3AUSERNAME|e%3ATENANT|e%3AAUTH_TOKEN/i);
+  }
+
+  it('preserves accessors and env tokens when API is imported one level deep', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': [
+        'type: test',
+        'import:',
+        '  form: /root/apis/form.mmt',
+        'steps:',
+        '  - call: form',
+      ].join('\n'),
+      '/root/apis/form.mmt': urlencodedApiYaml,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const bundle = await importsToJsfunc({main: '/root/main.mmt'});
+    // Public names are basename-based (title is display-only).
+    expect(bundle).toContain('const form_ = async');
+    expect(bundle).toContain('const form = form_');
+    expectUrlencodedTokenJs(bundle);
+  });
+
+  it('preserves accessors and env tokens through a two-level import chain', async () => {
+    // root → suite/helper test → urlencoded API
+    const mock = createTestFileLoaderMock({
+      '/project/runner.mmt': [
+        'type: test',
+        'import:',
+        '  flow: /project/tests/flow.mmt',
+        'steps:',
+        '  - call: flow',
+      ].join('\n'),
+      '/project/tests/flow.mmt': [
+        'type: test',
+        'title: Login Flow',
+        'import:',
+        '  form: /project/apis/form.mmt',
+        'steps:',
+        '  - call: form',
+      ].join('\n'),
+      '/project/apis/form.mmt': urlencodedApiYaml,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const bundle = await importsToJsfunc({runner: '/project/runner.mmt'});
+    expect(bundle).toContain('const flow_ = async');
+    expect(bundle).toContain('const form_ = async');
+    expect(bundle).toContain('const form = form_');
+    expectUrlencodedTokenJs(bundle);
+  });
+
+  it('preserves tokens when generating the root test that imports nested form API', async () => {
+    const mock = createTestFileLoaderMock({
+      '/project/tests/flow.mmt': [
+        'type: test',
+        'import:',
+        '  form: +/apis/form.mmt',
+        'steps:',
+        '  - call: form',
+      ].join('\n'),
+      '/project/apis/form.mmt': urlencodedApiYaml,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'runner',
+      test: {
+        import: {flow: '+/tests/flow.mmt'},
+        steps: [{call: 'flow'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/project/runner.mmt',
+      projectRoot: '/project',
+    });
+
+    expect(js).toContain('const flow =');
+    expect(js).toContain('const form =');
+    expectUrlencodedTokenJs(js);
+  });
+
+  it('preserves tokens across three levels (root → mid → leaf test → api)', async () => {
+    const mock = createTestFileLoaderMock({
+      '/project/runner.mmt': [
+        'type: test',
+        'import:',
+        '  suite: /project/tests/suite.mmt',
+        'steps:',
+        '  - call: suite',
+      ].join('\n'),
+      '/project/tests/suite.mmt': [
+        'type: test',
+        'title: Suite',
+        'import:',
+        '  leaf: /project/tests/leaf.mmt',
+        'steps:',
+        '  - call: leaf',
+      ].join('\n'),
+      '/project/tests/leaf.mmt': [
+        'type: test',
+        'title: Leaf',
+        'import:',
+        '  form: /project/apis/form.mmt',
+        'steps:',
+        '  - call: form',
+        '    inputs:',
+        '      token: e:OVERRIDE_TOKEN',
+      ].join('\n'),
+      '/project/apis/form.mmt': urlencodedApiYaml,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const bundle = await importsToJsfunc({runner: '/project/runner.mmt'});
+    expect(bundle).toContain('const suite_ = async');
+    expect(bundle).toContain('const leaf_ = async');
+    expect(bundle).toContain('const form_ = async');
+    expect(bundle).toContain('const form = form_');
+    expectUrlencodedTokenJs(bundle);
+    // Call-site override still references env at the leaf test layer
+    expect(bundle).toContain('envVariables.OVERRIDE_TOKEN');
+  });
+});
+
+describe('binary request body (apiToJSfunc)', () => {
+  it('loads bytes via readBinaryFile_ and sets octet-stream Content-Type', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: binary',
+      'url: https://example.com/upload',
+      'body: ./payload.bin',
+    ].join('\n');
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'upload_api', inputs: {}, envVars: {}} as
+        any;
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('readBinaryFile_');
+    expect(js).toContain('__binaryBody_ = await readBinaryFile_(__binaryPath_)');
+    expect(js).toContain('body: __binaryBody_');
+    expect(js).toContain('"Content-Type": `application/octet-stream`');
+    expect(js).toContain('<binary \' + __binaryBody_.length + \' bytes path=');
+    expect(js).not.toMatch(/body:\s*`\.\/payload\.bin`/);
+  });
+
+  it('respects an explicit Content-Type header for binary', async () => {
+    const apiYaml = [
+      'type: api',
+      'method: post',
+      'format: binary',
+      'url: https://example.com/upload',
+      'headers:',
+      '  Content-Type: application/pdf',
+      'body: ./doc.pdf',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'upload_pdf',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('"Content-Type": `application/pdf`');
+    expect(js).not.toContain('application/octet-stream');
+  });
+});
+
 describe('API query handling', () => {
   it('injects query parameters into generated request objects', async () => {
     const apiYaml = [
@@ -1785,7 +2367,7 @@ describe('API query handling', () => {
 });
 
 describe('delay step generation', () => {
-  it('generates setTimeout-based await for ms and unit strings', async () => {
+  it('generates chunked delay with abort checks for ms and unit strings', async () => {
     const ctx1: TestContext = {
       name: 'delayTest1',
       test: {steps: [{delay: 500} as any]} as any,
@@ -1793,7 +2375,10 @@ describe('delay step generation', () => {
       envVars: {}
     };
     const js1 = await testToJsfunc(ctx1, true);
-    expect(js1).toContain('setTimeout(r, 500)');
+    expect(js1).toContain('let __delayLeft = 500');
+    expect(js1).toContain('Math.min(__delayLeft, 2000)');
+    expect(js1).toContain('checkAbort_()');
+    expect(js1).toContain('setTimeout(r, __wait)');
 
     const ctx2: TestContext = {
       name: 'delayTest2',
@@ -1802,7 +2387,8 @@ describe('delay step generation', () => {
       envVars: {}
     };
     const js2 = await testToJsfunc(ctx2, true);
-    expect(js2).toContain('setTimeout(r, 2000)');
+    expect(js2).toContain('let __delayLeft = 2000');
+    expect(js2).toContain('Math.min(__delayLeft, 2000)');
 
     const ctx3: TestContext = {
       name: 'delayTest3',
@@ -1811,7 +2397,9 @@ describe('delay step generation', () => {
       envVars: {}
     };
     const js3 = await testToJsfunc(ctx3, true);
-    expect(js3).toContain('setTimeout(r, 3900000)');
+    expect(js3).toContain('let __delayLeft = 3900000');
+    expect(js3).toContain('Math.min(__delayLeft, 2000)');
+    expect(js3).not.toContain('setTimeout(r, 3900000)');
   });
 });
 

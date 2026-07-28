@@ -39,7 +39,7 @@ query:                         # Optional. Query parameters appended to url; mer
 	<name>: string               # Value is always a string expression (can contain tokens).
 protocol: http | ws            # Optional. "http" for HTTP(S); "ws" for WebSocket.
                                # Inferred from URL if omitted: ws:// or wss:// → ws, otherwise http.
-format: json | text | xml | xmle      # REQUIRED. Controls how body is encoded/decoded (JSON object vs raw text/XML).
+format: json | text | xml | xmle | urlencoded | { request, response }
 method:                        # HTTP method (REQUIRED when protocol is http).
 	get | post | put | delete | patch | head | options | trace
 headers:                       # Optional. HTTP/WS headers to send with the request.
@@ -167,7 +167,7 @@ examples:
 
 ### 3. Raw text or XML body
 
-Use `format: text`, `format: xml`, or `format: xmle` when the user explicitly mentions plain text, HTML, or XML bodies. Use `xmle` when expanded empty tags are required.
+Use `format: text`, `format: xml`, `format: xmle`, or `format: urlencoded` when the user explicitly mentions plain text, HTML, XML, or form URL-encoded bodies. Use `xmle` when expanded empty tags are required. Use `urlencoded` for `application/x-www-form-urlencoded` key/value bodies.
 
 ```yaml
 type: api
@@ -216,6 +216,6 @@ url: wss://example.com/notifications
 - Avoid trailing spaces.
 - Prefer lower‑case, hyphen‑separated tags (e.g. `smoke`, `auth`, `user-profile`).
 - Keep titles short (3–6 words) and descriptions 1–3 sentences.
-- Do **not** add YAML comments (`#`). Multimeter's formatter removes them on reformat, so they will always be lost. Use the `description` field instead.
+- Do **not** rely on YAML comments (`#`) for important docs — prefer `description`. Format Document preserves comments, but UI form sync may still rebuild YAML without them.
 
 When unsure, **favor simpler files** with fewer fields rather than guessing complex outputs or headers.

@@ -1,4 +1,4 @@
-import {check_, checkExpects_, equals_, fuzzyMatch_, lengthEquals_, lengthOf_, matches_, notEquals_, notFuzzyMatch_, notLengthEquals_, notMatches_, reportWithContext_, similarityPercent_} from './testHelper';
+import {check_, checkExpects_, equals_, equalsIgnoreCase_, fuzzyMatch_, isOmitted_, isNotOmitted_, lengthEquals_, lengthGreater_, lengthGreaterOrEqual_, lengthLess_, lengthLessOrEqual_, lengthOf_, matches_, notEquals_, notEqualsIgnoreCase_, notFuzzyMatch_, notLengthEquals_, notMatches_, notTrimEquals_, notTrimEqualsIgnoreCase_, reportWithContext_, similarityPercent_, trimEquals_, trimEqualsIgnoreCase_} from './testHelper';
 
 describe('testHelper checkLogMode', () => {
   function makeConsole() {
@@ -122,6 +122,33 @@ describe('testHelper comparison helpers', () => {
     expect(lengthOf_({a: 1, b: 2})).toBe(2);
   });
 
+  it('checks length inequalities', () => {
+    expect(lengthLess_([1, 2], 3)).toBe(true);
+    expect(lengthLessOrEqual_([1, 2], 2)).toBe(true);
+    expect(lengthGreater_('abcd', 3)).toBe(true);
+    expect(lengthGreaterOrEqual_({a: 1}, 1)).toBe(true);
+  });
+
+  it('checks ignore-case and trim equality', () => {
+    expect(equalsIgnoreCase_('John', 'john')).toBe(true);
+    expect(notEqualsIgnoreCase_('John', 'jane')).toBe(true);
+    expect(trimEquals_('  hi  ', 'hi')).toBe(true);
+    expect(notTrimEquals_('  hi  ', 'hey')).toBe(true);
+    expect(trimEqualsIgnoreCase_('  John ', 'john')).toBe(true);
+    expect(notTrimEqualsIgnoreCase_('  John ', 'jane')).toBe(true);
+  });
+
+  it('treats omit sentinel as omitted in equals_', () => {
+    expect(isOmitted_(undefined)).toBe(true);
+    expect(isOmitted_(null)).toBe(true);
+    expect(isOmitted_('__MMT_OMIT_KEYWORD__')).toBe(true);
+    expect(isNotOmitted_('value')).toBe(true);
+    expect(equals_(undefined, '__MMT_OMIT_KEYWORD__')).toBe(true);
+    expect(equals_('__MMT_OMIT_KEYWORD__', null)).toBe(true);
+    expect(equals_('present', '__MMT_OMIT_KEYWORD__')).toBe(false);
+    expect(notEquals_('present', '__MMT_OMIT_KEYWORD__')).toBe(true);
+  });
+
   it('reports count for passed length/count comparisons', () => {
     const reporter = jest.fn();
 
@@ -191,7 +218,7 @@ describe('testHelper comparison helpers', () => {
       'run-1',
       'node-1',
       'check',
-      'mehrdad zahra =80% mehrdad sahar',
+      'mehrdad zahra >80% mehrdad sahar',
       'fuzzy name',
       undefined,
       true,

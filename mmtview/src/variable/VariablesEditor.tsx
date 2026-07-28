@@ -2,6 +2,7 @@ import React from "react";
 import VariableEditor from "./VariableEditor";
 import { VariablesData, Variable } from "./VariablesData";
 import { safeList } from "mmt-core/safer";
+import PrimaryButton from "../components/PrimaryButton";
 
 interface VariablesEditorProps {
   variablesData: VariablesData;
@@ -56,10 +57,9 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
           />
         </div>
       ))}
-      <button onClick={addVariable} className="button-icon" >
-        <span className="codicon codicon-add" aria-hidden />
+      <PrimaryButton icon="add" onClick={addVariable}>
         Add Variable
-      </button>
+      </PrimaryButton>
     </div>
   );
 };

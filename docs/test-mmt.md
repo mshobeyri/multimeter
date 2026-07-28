@@ -69,18 +69,16 @@ steps:
 **JS helper modules**
 - Files ending in `.js`, `.cjs`, or `.mjs` are treated as JavaScript helper modules.
 - They are loaded via the runner's `fileLoader` and evaluated once per run, then cached.
-- Use CommonJS exports (recommended):
+- Write plain top-level functions (or `const`/`let`/`var` function bindings). Multimeter auto-exports them onto the import alias:
 
 ```js
 // xxx.js
-module.exports = {
-  add(a, b) {
-    return a + b;
-  }
-};
-```
+function add(a, b) {
+  return a + b;
+}
 
-Then in your test steps:
+const double = (x) => x * 2;
+```
 
 ```yaml
 type: test
@@ -89,8 +87,20 @@ import:
 steps:
   - js: |
       const sum = helpers.add(1, 2)
-      console.log('sum', sum)
+      console.log('sum', sum, helpers.double(sum))
 ```
+
+- You can still use CommonJS explicitly when you need a custom export shape:
+
+```js
+module.exports = {
+  add(a, b) {
+    return a + b;
+  }
+};
+```
+
+See `examples/intermediate/14_javascript_helpers` and `examples/professional/09_javascript_helpers`.
 
 **Path resolution:**
 - **Relative paths** (e.g., `./login.mmt`, `../apis/users.mmt`) resolve relative to the current file's directory.
@@ -186,6 +196,7 @@ Notes:
 - `id` is optional, but recommended when you want to reference the response in later steps.
 - Inline `expect`, `debug`, and `report` work the same way as on `call` steps.
 - The response exposed through `id` includes `body`, `headers`, `cookies`, `status`, and `duration`.
+- In the Multimeter editor, **Ctrl+click** (⌘+click on macOS) the `http:` URL to open a temporary `type: api` file with the same request data. `expect` entries become `outputs` plus an example (operator values like `!= null` are kept as the expected side). `e:` tokens stay as-is; `i:` refs are copied into `inputs` with the test’s default values.
 
 Example using the response later in the flow:
 
@@ -286,7 +297,7 @@ With title and report:
     external: fails
 ```
 
-All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `=N%`, `!N%`. Legacy regex operators `=~` and `!~` are still accepted.
+All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `>N%`, `<N%`. Legacy regex operators `=~` and `!~` are still accepted.
 
 `omit` behavior in `expect`:
 - Use unquoted `omit` when you expect a field to be missing.
@@ -333,6 +344,9 @@ Use check to log a failure and continue; use assert to stop the flow on failure.
 
 Supported operators
 - `<`, `>`, `<=`, `>=`, `==`, `!=`
+- `=i` (equal, ignore case), `!i` (not equal, ignore case)
+- `=X` (equal after trim), `!X` (not equal after trim)
+- `=iX` (trim + ignore case), `!iX` (trim + ignore case, not equal)
 - `=@` (left is in right, i.e., `right.includes(left)`)
 - `!@` (left is not in right)
 - `=C` (left contains right, i.e., `left.includes(right)`)
@@ -340,8 +354,16 @@ Supported operators
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
 - `=*` (regex match), `!*` (not regex match). Legacy `=~` and `!~` still work.
-- `=#` (string/number character length equals), `!#` (not equal)
-- `=N%`(fuzzy match at least N% similar), `!N%` (not fuzzy match at N%). Any whole percent from 0 to 100 can be used, for example `=80%`. In the visual UI these appear as `=%` and `!%` with a separate percentage selector.
+- `=#` (string/number/list/object length equals), `!#` (not equal)
+- `<#`, `<=#`, `>#`, `>=#` (length/count comparisons)
+- `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
+
+Use unquoted `omit` with `==` / `!=` to assert that a value is missing, `null`, or the omit sentinel (for example after a missing output path):
+
+```yaml
+- check: ${result.missingField} == omit
+- check: ${result.token} != omit
+```
 
 You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `title` or `details`.
 
@@ -349,7 +371,7 @@ Inline examples
 ```yaml
 - assert: ${doLogin.status} == 200
 - check: ${profile.name} =* /John/i
-- check: ${profile.name} =80% Jon
+- check: ${profile.name} >80% Jon
 - check: ${profile.roles} =# 2
 ```
 
@@ -443,7 +465,10 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 ![Log panel](../screenshots/test_panel_log.png)
 
 ### if, else
-Conditionally run nested steps based on an expression.
+Conditionally run nested steps based on an expression. The true branch is `steps:`; an optional `else:` runs when the condition is false. There is no `elseif` — nest another `if` inside `else` when you need more branches.
+
+Combine two (or more) comparisons with `&&` (and) or `||` (or). `&&` binds tighter than `||`. Surround `&&` / `||` with spaces.
+
 ```yaml
 - if: ${doLogin.status} == 200
   steps:
@@ -451,6 +476,19 @@ Conditionally run nested steps based on an expression.
       id: me
   else:
     - print: "Login failed"
+    - if: ${doLogin.status} == 401
+      steps:
+        - print: "Unauthorized"
+      else:
+        - print: "Other error"
+
+# AND / OR
+- if: ${doLogin.status} == 200 && ${doLogin.body.ok} == true
+  steps:
+    - print: "Login succeeded"
+- if: ${doLogin.status} == 401 || ${doLogin.status} == 403
+  steps:
+    - print: "Not allowed"
 ```
 
 ### for, repeat
@@ -594,7 +632,7 @@ Bind an imported CSV alias (from the test's import section) into scope for use i
 ```
 
 ## Stage condition
-Stages support a `condition` field that skips the stage if the condition evaluates to false. The condition uses the same syntax as `assert`/`check` inline expressions.
+Stages support a `condition` field that skips the stage if the condition evaluates to false. The condition uses the same syntax as `if` / `assert` / `check` inline expressions (including `&&` and `||`).
 
 ```yaml
 stages:
@@ -650,7 +688,7 @@ steps:
 Notes:
 - `flow` is accepted as a backward-compatible alias for `steps`.
 - The YAML editor provides autocomplete for `call` step names, check/assert operators, and input references.
-- YAML comments (`#`) are not preserved — the formatter strips them when it reformats the file. Use `title` on steps or the top-level `description` field to document your test instead.
+- YAML comments (`#`) are preserved when you format the file (Format Document). Prefer `description` / step `title` for structured docs that survive UI edits.
 
 ---
 

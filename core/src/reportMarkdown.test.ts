@@ -1,4 +1,4 @@
-import { generateReportMarkdown } from './reportMarkdown';
+import { generateReportMarkdown, generateReportMarkdownDetailed } from './reportMarkdown';
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 
 function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
@@ -93,7 +93,7 @@ describe('generateReportMarkdown', () => {
             makeStep({
               title: 'name == John',
               status: 'failed',
-              expects: [{ comparison: 'name =80% John', actual: 'Jane', expected: 'John', similarity: 25, status: 'failed' }],
+              expects: [{ comparison: 'name >80% John', actual: 'Jane', expected: 'John', similarity: 25, status: 'failed' }],
             }),
           ],
         }),
@@ -103,7 +103,7 @@ describe('generateReportMarkdown', () => {
     const md = generateReportMarkdown(results);
     expect(md).toContain('<details>');
     expect(md).toContain('<summary>✗ name == John</summary>');
-    expect(md).toContain('✗ name =80% John');
+    expect(md).toContain('✗ name >80% John');
     expect(md).toContain('got: Jane');
     expect(md).toContain('similarity: 25%');
     expect(md).toContain('</details>');
@@ -118,9 +118,9 @@ describe('generateReportMarkdown', () => {
           displayName: 'test.mmt',
           steps: [
             makeStep({
-              title: 'name =80% John',
+              title: 'name >80% John',
               status: 'passed',
-              expects: [{ comparison: 'name =80% Jon', actual: 'John', expected: 'Jon', similarity: 75, status: 'passed' }],
+              expects: [{ comparison: 'name >80% Jon', actual: 'John', expected: 'Jon', similarity: 75, status: 'passed' }],
             }),
           ],
         }),
@@ -128,8 +128,8 @@ describe('generateReportMarkdown', () => {
     };
 
     const md = generateReportMarkdown(results);
-    expect(md).toContain('<summary>✓ name =80% John</summary>');
-    expect(md).toContain('✓ name =80% Jon');
+    expect(md).toContain('<summary>✓ name >80% John</summary>');
+    expect(md).toContain('✓ name >80% Jon');
     expect(md).toContain('got: John');
     expect(md).toContain('similarity: 75%');
   });
@@ -345,5 +345,65 @@ describe('generateReportMarkdown', () => {
     expect(md).toContain(`**Started at:** ${new Date(startedAt).toISOString()}`);
     expect(md).toContain(`**Ended at:** ${new Date(finishedAt).toISOString()}`);
     expect(md).not.toContain('**Started:**');
+  });
+
+  it('appends full step details when includeFullDetails is true', () => {
+    const details = JSON.stringify({
+      token: 'abc',
+      _: {
+        status: 200,
+        reportOutputKeys: ['token'],
+        details: JSON.stringify({
+          request: {
+            method: 'post',
+            url: 'https://example.com/login',
+            headers: { 'content-type': 'application/json' },
+            query: { mode: 'test' },
+            body: { user: 'ada' },
+          },
+          response: {
+            status: 200,
+            statusText: 'OK',
+            duration: 42,
+            headers: { 'content-type': 'application/json' },
+            body: { token: 'abc' },
+          },
+        }),
+      },
+    });
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'login.mmt',
+          steps: [
+            makeStep({
+              title: 'Login',
+              status: 'passed',
+              details,
+              expects: [{ comparison: 'status == 200', status: 'passed' }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const summaryOnly = generateReportMarkdown(results);
+    expect(summaryOnly).not.toContain('## Step Details');
+
+    const detailed = generateReportMarkdownDetailed(results);
+    expect(detailed).toContain('## Tests');
+    expect(detailed).toContain('| 1 | Login | ✓ passed |');
+    expect(detailed).toContain('## Step Details');
+    expect(detailed).toContain('### ✓ Login');
+    expect(detailed).not.toContain('#### Status Code');
+    expect(detailed).not.toContain('#### Inputs');
+    expect(detailed).not.toContain('#### Outputs');
+    expect(detailed).toContain('#### Request');
+    expect(detailed).toContain('`POST https://example.com/login`');
+    expect(detailed).toContain('| content-type | application/json |');
+    expect(detailed).toContain('#### Response');
+    expect(detailed).toContain('**Status:** `200 OK (42ms)`');
+    expect(detailed).toContain('"token": "abc"');
   });
 });

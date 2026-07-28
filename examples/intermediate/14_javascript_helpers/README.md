@@ -1,16 +1,16 @@
 # JavaScript Helpers
 
-Demonstrates **`js` steps**, **imported JS modules**, and **runner globals** like `Random.*`, `setenv_()`, and `report_()`.
+Demonstrates **`js` steps**, **imported JS helpers**, and **runner globals** like `Random.*`, `setenv_()`, and `report_()`.
 
 ## Structure
 
 ```
 14_javascript_helpers/
 ├── helpers/
-│   └── helpers.js               # CommonJS module with utility functions
+│   └── helpers.js               # Plain JS functions (auto-exported)
 ├── api/
 │   └── echo.mmt                 # Simple echo API
-├── js_test.mmt                  # Test using js steps and imported module
+├── js_test.mmt                  # Test using js steps and imported helpers
 └── README.md
 ```
 
@@ -18,17 +18,18 @@ Demonstrates **`js` steps**, **imported JS modules**, and **runner globals** lik
 
 | File | Description |
 |---|---|
-| `helpers/helpers.js` | CommonJS module exporting `greet()`, `sum()`, and `formatDate()` |
+| `helpers/helpers.js` | Top-level functions `greet()`, `sum()`, and `formatDate()` |
 | `api/echo.mmt` | Echo API used for validation |
-| `js_test.mmt` | Test that imports the JS module and uses runner globals in `js` steps |
+| `js_test.mmt` | Test that imports the JS file and uses runner globals in `js` steps |
 
 ## Key concepts
 
-- **JS module import** — import `.js`/`.cjs`/`.mjs` files in the `import` section. They are loaded once per run.
+- **JS helper import** — import `.js`/`.cjs`/`.mjs` files in the `import` section. They are loaded once per run.
   ```yaml
   import:
     helpers: ./helpers/helpers.js
   ```
+- **Plain functions** — write normal top-level functions (or `const fn = () => {}`). Multimeter exposes them on the import alias automatically. `module.exports = { ... }` still works if you prefer it.
 - **`js` step** — inline JavaScript block. Has access to all imports and runner globals.
   ```yaml
   - js: |
@@ -43,8 +44,6 @@ Demonstrates **`js` steps**, **imported JS modules**, and **runner globals** lik
   | `report_(type, comparison, title, details, passed)` | Emit a check/assert result |
   | `console.log/warn/error` | Log to the output panel |
   | `send_(request)` | Send an HTTP request directly |
-
-- **CommonJS format** — use `module.exports = { ... }` in helper files.
 
 ## How to use
 

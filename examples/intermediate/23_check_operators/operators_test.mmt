@@ -1,0 +1,54 @@
+type: test
+title: Check operators
+description: |-
+  Exercises every comparison operator against a live server response using
+  expect on the call, plus check and assert steps.
+import:
+  sample: ./api/sample.mmt
+steps:
+  - call: sample
+    id: res
+    expect:
+      status_code: == 200
+      method: == POST
+      name: =C athan
+      nickname: =^ Jo
+      role: =$ min
+      score:
+        - ">= 80"
+        - <= 90
+      path: =* /users/
+      message: >60% Hello world from MMT
+      tags: =# 3
+  - assert: ${res.status_code} == 200
+  - assert: ${res.score} != 0
+  - assert: ${res.role} !@ guest,user
+  - check: ${res.score} > 50
+  - check: ${res.score} < 100
+  - check: ${res.name} !C xyz
+  - check: ${res.nickname} !^ Ad
+  - check: ${res.path} !$ /admin
+  - check: ${res.message} !* /error/i
+  - check: ${res.tags} !# 0
+  - check: ${res.role} =@ admin
+  - check: ${res.name} <40% completely-different
+  - check:
+      title: Fuzzy match with default percent
+      actual: ${res.message}
+      operator: >60%
+      expected: Hello world from MMT
+  - check:
+      title: Fuzzy match with default percent
+      actual: ${res.message}
+      operator: <50%
+      expected: Hi Universe
+  - check:
+      title: Path starts with /api/
+      actual: ${res.path}
+      operator: =^
+      expected: /api/
+  - assert:
+      title: Fuzzy match with default percent
+      actual: ${res.message}
+      operator: ==
+      expected: Hello world from Multimeter

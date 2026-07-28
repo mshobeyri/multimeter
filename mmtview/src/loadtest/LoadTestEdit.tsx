@@ -5,8 +5,19 @@ import FileOverview from '../shared/FileOverview';
 import FilePickerInput from '../components/FilePickerInput';
 import KSVEditor from '../components/KSVEditor';
 import { FileContext } from '../fileContext';
+import TabBar from '../components/TabBar';
+import PrimaryButton from '../components/PrimaryButton';
 
 type LoadTestEditTab = 'overview' | 'imports' | 'test' | 'load' | 'environment' | 'exports';
+
+const LOADTEST_EDIT_TABS = [
+  { id: 'overview' as const, label: 'Overview', icon: 'note' },
+  { id: 'imports' as const, label: 'Imports', icon: 'references' },
+  { id: 'test' as const, label: 'Test', icon: 'beaker' },
+  { id: 'load' as const, label: 'Load', icon: 'dashboard' },
+  { id: 'environment' as const, label: 'Environment', icon: 'symbol-namespace' },
+  { id: 'exports' as const, label: 'Exports', icon: 'export' },
+];
 
 interface LoadTestEnvironmentConfig {
   preset?: string;
@@ -449,10 +460,9 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const exportsTabContent = (
     <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <button className="button-icon" onClick={handleAddExport} title="Add export path">
-          <span className="codicon codicon-add" aria-hidden />
+        <PrimaryButton icon="add" onClick={handleAddExport} title="Add export path">
           Add export
-        </button>
+        </PrimaryButton>
       </div>
       {exports.length === 0 ? (
         <div style={{ opacity: 0.8 }}>No exports configured. Add paths to generate reports after load test completion.</div>
@@ -480,32 +490,12 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
 
   return (
     <div style={{ overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      <div className="tab-bar" style={{ flexShrink: 0 }}>
-        <button className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')} title="Overview" type="button">
-          <span className="codicon codicon-note tab-button-icon" aria-hidden />
-          Overview
-        </button>
-        <button className={`tab-button ${activeTab === 'imports' ? 'active' : ''}`} onClick={() => setActiveTab('imports')} title="Imports" type="button">
-          <span className="codicon codicon-references tab-button-icon" aria-hidden />
-          Imports
-        </button>
-        <button className={`tab-button ${activeTab === 'test' ? 'active' : ''}`} onClick={() => setActiveTab('test')} title="Test" type="button">
-          <span className="codicon codicon-beaker tab-button-icon" aria-hidden />
-          Test
-        </button>
-        <button className={`tab-button ${activeTab === 'load' ? 'active' : ''}`} onClick={() => setActiveTab('load')} title="Load" type="button">
-          <span className="codicon codicon-dashboard tab-button-icon" aria-hidden />
-          Load
-        </button>
-        <button className={`tab-button ${activeTab === 'environment' ? 'active' : ''}`} onClick={() => setActiveTab('environment')} title="Environment" type="button">
-          <span className="codicon codicon-symbol-namespace tab-button-icon" aria-hidden />
-          Environment
-        </button>
-        <button className={`tab-button ${activeTab === 'exports' ? 'active' : ''}`} onClick={() => setActiveTab('exports')} title="Exports" type="button">
-          <span className="codicon codicon-export tab-button-icon" aria-hidden />
-          Exports
-        </button>
-      </div>
+      <TabBar
+        tabs={LOADTEST_EDIT_TABS}
+        value={activeTab}
+        onChange={setActiveTab}
+        style={{ flexShrink: 0 }}
+      />
       <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {activeTab === 'overview' && overviewTabContent}
         {activeTab === 'imports' && importsTabContent}

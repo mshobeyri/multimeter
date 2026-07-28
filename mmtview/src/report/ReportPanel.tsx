@@ -10,6 +10,7 @@ import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes from '../shared/OverviewBoxes';
 import { statusIconFor } from '../shared/Common';
 import LoadTestReport, { LoadMetricsOverview } from '../loadtest/LoadTestReport';
+import PanelRunHeader from '../components/PanelRunHeader';
 
 interface ReportPanelProps {
   content: string;
@@ -155,21 +156,21 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
     ['Total checks', String(totalTests)],
     ['Tests', String(totalSuites)],
   ] as Array<[string, string | undefined]>).filter(([, value]) => value !== undefined && value !== '');
-  const headerIcon = 'codicon-file-text';
   const headerSubtitle = isLoadReport ? 'Load report' : 'Functional report';
 
   return (
     <div className="panel">
       <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
-        <div className="api-edit-header">
-          <div className="tab-bar tab-bar-single">
-            <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={suiteName}>
-              <span className={`codicon ${headerIcon}`} aria-hidden />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suiteName}</span>
-              <span style={{ opacity: 0.7, fontSize: '0.85em', marginLeft: 4 }}>({headerSubtitle})</span>
-            </div>
-          </div>
-        </div>
+        <PanelRunHeader
+          icon="file-text"
+          iconTitle={suiteName}
+          title={
+            <>
+              <span className="panel-run-header-title-text">{suiteName}</span>
+              <span className="panel-run-header-subtitle">({headerSubtitle})</span>
+            </>
+          }
+        />
 
         <div className="run-action-bar">
           <ExportReportButton disabled={false} onExport={handleExportReport} />
