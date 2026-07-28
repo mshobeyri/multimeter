@@ -715,8 +715,8 @@ button:focus {
   border-bottom: 1px solid var(--vscode-foreground);
 }
 
-/* Hide underline when tab-bar has only one tab-button */
-.tab-bar-single .tab-button.active {
+/* Hide underline only on the direct single title chip, not nested TabBars */
+.tab-bar-single > .tab-button.active {
   border-bottom: none;
 }
 
@@ -1048,10 +1048,24 @@ button:focus {
 
 .panel-run-header {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 8px;
   min-width: 0;
+}
+
+/* Nested TabBar (e.g. Doc HTML/Markdown) shares the header border — no second line */
+.panel-run-header > .tab-bar {
+  border-bottom: none;
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.panel-run-header > .tab-bar .tab-button {
+  /* Sit active underline on the parent .tab-bar border */
+  margin-bottom: -1px;
 }
 
 .panel-run-header-title {
@@ -1079,6 +1093,7 @@ button:focus {
 .panel-run-header-actions {
   display: flex;
   align-items: center;
+  align-self: center;
   gap: 8px;
   flex-shrink: 0;
 }
