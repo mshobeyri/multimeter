@@ -5,6 +5,7 @@ import { beautify } from "mmt-core/markupConvertor";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
 import { normalizeNewlines } from "mmt-core/textLines";
 import TextEditor from "../text/TextEditor";
+import { useAccentChrome } from "../shared/useAccentChrome";
 
 export type mode = "appliable" | "live";
 
@@ -27,6 +28,8 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     const editorRef = useRef<any>(null);
     const [cursorPath, setCursorPath] = useState<{ path: PathSegment[]; expr: string; key: string } | null>(null);
     const cursorListenerRef = useRef<any>(null);
+    const applyChrome = useAccentChrome("green");
+    const errorChrome = useAccentChrome("red");
 
     const detectContentType = useCallback((text: string): "json" | "xml" => {
         const fmt = (format || "json").toLowerCase();
@@ -189,6 +192,11 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 {mode === "appliable" && canApply && isValid && (
                     <button
                         className="bodyview-btn bodyview-btn-apply"
+                        style={{
+                            background: applyChrome.fill,
+                            color: applyChrome.onFill,
+                            border: `1px solid ${applyChrome.border}`,
+                        }}
                         onClick={() => {
                             if (onChange) {
                                 onChange(normalizeNewlines(localValue));
@@ -202,6 +210,12 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 {!isValid && (
                     <span
                         className="bodyview-error-indicator"
+                        style={{
+                            background: errorChrome.fill,
+                            color: errorChrome.onFill,
+                            border: `1px solid ${errorChrome.border}`,
+                            boxShadow: errorChrome.outline ? "none" : "0 2px 6px #0001",
+                        }}
                         title={errorMsg || (format === "json" ? "Invalid JSON" : (format || "").includes("xml") ? "Invalid XML" : "Invalid")}
                     >
                         <span className="codicon codicon-error" />

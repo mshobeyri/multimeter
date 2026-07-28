@@ -8,6 +8,7 @@ import MockEndpoints from "./MockEndpoints";
 import MockServerSettings from "./MockServerSettings";
 import { canonicalizeMockYaml } from "./mockYaml";
 import { methodTextColor } from "../shared/themeAccent";
+import { useAccentChrome } from "../shared/useAccentChrome";
 import TabBar from "../components/TabBar";
 import RunStopToggle from "../components/RunStopToggle";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
@@ -101,6 +102,8 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
     } catch { /* ignore */ }
   }, [content, setContent]);
 
+  const greenChrome = useAccentChrome("green");
+
   if (!mockData) {
     return (
       <div style={{ padding: 16, color: "var(--vscode-descriptionForeground)" }}>
@@ -136,7 +139,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                 <PanelRunHeader
                   icon="server"
                   title={mockData.title || 'Server'}
-                  iconStyle={{ color: running ? '#3fb950' : undefined, transition: 'color 0.2s' }}
+                  iconStyle={{ color: running ? greenChrome.text : undefined, transition: 'color 0.2s' }}
                   actions={
                     <HeaderAction
                       icon="edit"

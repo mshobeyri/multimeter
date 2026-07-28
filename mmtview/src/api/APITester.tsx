@@ -9,6 +9,7 @@ import FilePickerInput from "../components/FilePickerInput";
 import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
+import ToggleButton from "../components/ToggleButton";
 import UrlInput from "../components/UrlInput";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
@@ -655,6 +656,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           )}
 
           <button
+            type="button"
             onClick={() => {
               showHistoryPanel();
             }}
@@ -663,7 +665,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           >
             <span className="codicon codicon-history toolbar-button-icon"></span>
           </button>
-          <button
+          <ToggleButton
+            active={autoFormatBody}
+            icon="sparkle-filled"
+            title={`Auto-format (beautify) body ${autoFormatBody ? "on" : "off"}`}
             onClick={() => {
               const next = !autoFormatBody;
               setAutoFormatBody(next);
@@ -674,11 +679,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 value: next,
               });
             }}
-            className={`toolbar-button ${autoFormatBody ? "toolbar-button--toggle-active" : ""}`}
-            title={`Auto-format (beautify) body ${autoFormatBody ? "on" : "off"}`}
-          >
-            <span className="codicon codicon-sparkle-filled toolbar-button-icon"></span>
-          </button>
+          />
         </div>
       </div>
     </div>

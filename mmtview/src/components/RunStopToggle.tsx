@@ -36,6 +36,7 @@ export default function RunStopToggle({
       <PrimaryButton
         className="run-toggle-button"
         icon="debug-stop"
+        accent="red"
         onClick={onStop}
         title={stopTitle || stopLabel}
       >

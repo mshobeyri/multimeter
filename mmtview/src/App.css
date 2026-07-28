@@ -165,7 +165,9 @@ button,
   box-sizing: border-box;
   background: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #ffffff);
-  border: 1px solid var(--vscode-button-border, transparent);
+  /* Default: no ring. Visible border only when --mmt-button-border is set
+     (PrimaryButton resolves theme button.border vs button.background). */
+  border: 1px solid var(--mmt-button-border, transparent);
   border-radius: 2px;
   font-size: var(--vscode-font-size, 13px);
   font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
@@ -233,10 +235,6 @@ button,
   background-color: transparent;
 }
 
-.bodyview-btn-apply {
-  background-color: #43a047;
-}
-
 .bodyview-btn-icon {
   border: none;
   border-radius: 4px;
@@ -258,13 +256,10 @@ button,
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #ff4b4b;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
   font-size: 11px;
-  box-shadow: 0 0 3px #900;
 }
 
 /* Read-only highlighted body (history / report / step details) */
@@ -788,7 +783,7 @@ button:focus {
   gap: 6px;
   font-weight: normal;
   font-size: calc(var(--vscode-font-size, 13px) * 0.95);
-  color: var(--vscode-descriptionForeground, #9d9d9d);
+  color: var(--vscode-foreground, var(--vscode-descriptionForeground, #9d9d9d));
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -797,6 +792,7 @@ button:focus {
 .api-body-yaml-encoded input {
   margin: 0;
   cursor: pointer;
+  accent-color: var(--vscode-checkbox-background, var(--vscode-focusBorder, #0e639c));
 }
 
 .label-disabled {
@@ -1544,36 +1540,63 @@ select.method-select:focus-visible {
   min-width: 25px;
 }
 
-/* Toolbar buttons used in API tester response header */
+/* Toolbar buttons used in API tester response header / edit toggles */
 .toolbar-button {
   background: transparent;
   color: var(--vscode-foreground, #ccc);
-  border: 1px solid #2a2a2a;
+  border: 1px solid transparent;
+  border-color: var(--vscode-button-border, var(--vscode-input-border, transparent));
   border-radius: 4px;
   width: 20px;
   height: 20px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  box-sizing: border-box;
+  gap: 4px;
 }
 
 .toolbar-button:focus {
   outline: none;
 }
 
+.toolbar-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .toolbar-button-icon {
   font-size: 8px;
 }
 
-.toolbar-button--toggle-active {
-  background: #0e639c;
-  color: #fff;
+.toolbar-button--text {
+  width: auto;
+  height: auto;
+  min-height: 20px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family, inherit);
+  line-height: 1.2;
 }
 
-.toolbar-button--toggle-active:hover {
-  background: #1177bb;
+.toolbar-button--text .toolbar-button-icon {
+  font-size: 12px;
+}
+
+.toolbar-button-label {
+  white-space: nowrap;
+}
+
+.toolbar-button--toggle-active {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  border-color: var(--vscode-button-border, var(--vscode-button-background, #0e639c));
+}
+
+.toolbar-button--toggle-active:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground, #1177bb);
 }
 
 .monaco-editor .suggest-widget .details,

@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+
+import { useAccentChrome } from '../shared/useAccentChrome';
+import { AccentChrome, harmonizeAccent } from '../shared/themeAccent';
 
 interface ResponseStatusProps {
   status?: number;
@@ -12,9 +15,12 @@ interface ResponseStatusProps {
 type BadgeStyle = {
   backgroundColor: string;
   color?: string;
+  border?: string;
 };
 
 const MAX_BADGE_TEXT_LENGTH = 20;
+const WARNING_ACCENT = '#f8b449';
+const REDIRECT_ACCENT = '#f2f82c';
 
 function compactBadgeLabel(label: string | number): string | number {
   if (typeof label === 'string' && label.length > MAX_BADGE_TEXT_LENGTH) {
@@ -23,28 +29,47 @@ function compactBadgeLabel(label: string | number): string | number {
   return label;
 }
 
-function getResponseStatusStyle(status: number | undefined, warning?: string): BadgeStyle {
+function chromeToBadge(chrome: AccentChrome, colorOverride?: string): BadgeStyle {
+  return {
+    backgroundColor: chrome.fill,
+    color: colorOverride || chrome.onFill,
+    border: `1px solid ${chrome.border}`,
+  };
+}
+
+function getResponseStatusStyle(
+    status: number | undefined,
+    warning: string | undefined,
+    success: AccentChrome,
+    error: AccentChrome,
+    warningChrome: AccentChrome,
+    redirectChrome: AccentChrome,
+): BadgeStyle {
   if (typeof status === 'number' && status < 0) {
-    return {backgroundColor: '#d32f2f'};
+    return chromeToBadge(error);
   }
 
   if (warning && typeof status === 'number' && status < 400) {
-    return {backgroundColor: '#f8b449', color: 'black'};
+    return chromeToBadge(warningChrome, 'black');
   }
 
   if (status === 200) {
-    return {backgroundColor: '#23d18b', color: 'white'};
+    return chromeToBadge(success);
   }
 
   if (typeof status === 'number' && status > 200 && status < 300) {
-    return {backgroundColor: '#abf384', color: 'black'};
+    return {
+      backgroundColor: success.softFill,
+      color: success.text,
+      border: `1px solid ${success.border}`,
+    };
   }
 
   if (typeof status === 'number' && ((status > 300 && status < 400) || (status > 100 && status < 199))) {
-    return {backgroundColor: '#f2f82c', color: 'black'};
+    return chromeToBadge(redirectChrome, 'black');
   }
 
-  return {backgroundColor: '#d32f2f'};
+  return chromeToBadge(error);
 }
 
 function getHTTPResponseStatusTitle(
@@ -100,7 +125,21 @@ function getWSResponseStatusTitle(
 }
 
 const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, errorCode, warning, protocol, className }) => {
-  const style = getResponseStatusStyle(status, warning);
+  const successChrome = useAccentChrome('green');
+  const errorChrome = useAccentChrome('red');
+  const warningChrome = useMemo(
+      () => harmonizeAccent(WARNING_ACCENT),
+      // successChrome.accent changes when theme surfaces refresh via sibling hooks
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [successChrome.accent, successChrome.fill],
+  );
+  const redirectChrome = useMemo(
+      () => harmonizeAccent(REDIRECT_ACCENT),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [successChrome.accent, successChrome.fill],
+  );
+  const style = getResponseStatusStyle(
+      status, warning, successChrome, errorChrome, warningChrome, redirectChrome);
   const {title, label} =
       protocol === 'ws'
           ? getWSResponseStatusTitle(status, errorMessage, errorCode)

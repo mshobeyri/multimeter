@@ -56,6 +56,21 @@
 
     #runBtn {
       margin-top: var(--mmt-gap-16);
+      width: 100%;
+    }
+
+    .status-error-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 600;
+      box-sizing: border-box;
+      border: 1px solid transparent;
     }
 
     .file-picker-container {
@@ -196,7 +211,53 @@
   </div>
 
   <script>
+__THEME_ACCENT_JS__
+  </script>
+  <script>
     const vscode = acquireVsCodeApi();
+
+    function applyThemeChrome() {
+      if (!window.MmtThemeAccent) {
+        return;
+      }
+      var TA = window.MmtThemeAccent;
+      var surfaces = TA.readThemeSurfaces();
+      var hasVisibleBorder = Boolean(
+        surfaces.buttonBorder &&
+        !TA.colorsNearlyEqual(surfaces.buttonBorder, surfaces.buttonBackground)
+      );
+      var primaryBorder = hasVisibleBorder ? surfaces.buttonBorder : 'transparent';
+      document.documentElement.style.setProperty('--mmt-button-border', primaryBorder);
+      document.documentElement.style.setProperty('--button-border', primaryBorder);
+
+      var runBtn = document.getElementById('runBtn');
+      if (runBtn) {
+        var running = runBtn.getAttribute('data-running') === 'true';
+        var chrome = TA.accentChromeFor(running ? 'red' : 'blue');
+        // Idle run uses theme primary button; stop uses red accent.
+        if (running) {
+          runBtn.style.background = chrome.fill;
+          runBtn.style.color = chrome.onFill;
+          runBtn.style.borderColor = chrome.border;
+        } else {
+          runBtn.style.background = '';
+          runBtn.style.color = '';
+          runBtn.style.borderColor = primaryBorder;
+        }
+      }
+
+      var errorChrome = TA.accentChromeFor('red');
+      var greenChrome = TA.accentChromeFor('green');
+      document.documentElement.style.setProperty('--status-error', errorChrome.fill);
+      document.documentElement.style.setProperty('--status-enabled', greenChrome.fill);
+      document.querySelectorAll('.status-error-badge').forEach(function (el) {
+        el.style.background = errorChrome.fill;
+        el.style.color = errorChrome.onFill;
+        el.style.borderColor = errorChrome.border;
+      });
+    }
+
+    applyThemeChrome();
 
     document.querySelector('#serverType').onchange = e => {
       vscode.postMessage({ type: 'setType', value: e.target.value });

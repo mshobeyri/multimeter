@@ -6,7 +6,7 @@
   --background: var(--vscode-editor-background);
   --input-background: var(--vscode-input-background);
   --input-foreground: var(--vscode-input-foreground);
-  --input-border: var(--vscode-input-border);
+  --input-border: var(--vscode-input-border, transparent);
   --panel-border: var(--vscode-panel-border);
   --description-foreground: var(--vscode-descriptionForeground);
 
@@ -14,15 +14,16 @@
   --button-background: var(--vscode-button-background);
   --button-foreground: var(--vscode-button-foreground);
   --button-hover-background: var(--vscode-button-hoverBackground);
+  --button-border: var(--vscode-button-border, transparent);
   --button-secondary-background: var(--vscode-button-secondaryBackground);
   --button-secondary-foreground: var(--vscode-button-secondaryForeground);
   --button-secondary-hover-background: var(--vscode-button-secondaryHoverBackground);
 
-  /* Status Colors */
-  --status-enabled: #28a745;
-  --status-disabled: #6c757d;
-  --status-warning: #ffc107;
-  --status-error: #dc3545;
+  /* Status Colors (overridden by themeAccent.js when available) */
+  --status-enabled: var(--vscode-testing-iconPassed, #28a745);
+  --status-disabled: var(--vscode-disabledForeground, #6c757d);
+  --status-warning: var(--vscode-editorWarning-foreground, #ffc107);
+  --status-error: var(--vscode-testing-iconFailed, #dc3545);
 
   /* Common sizing */
   --input-height: 28px;
@@ -174,7 +175,7 @@ textarea:focus {
   font-family: var(--font-family);
   background-color: var(--button-background);
   color: var(--button-foreground);
-  border: none;
+  border: 1px solid var(--mmt-button-border, var(--button-border));
   border-radius: 2px;
   cursor: pointer;
   outline: none;
@@ -272,6 +273,7 @@ textarea:focus {
 
 .status-error {
   background-color: var(--status-error);
+  border: 1px solid var(--status-error);
 }
 
 /* Labels and Text */
