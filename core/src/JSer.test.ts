@@ -1307,6 +1307,17 @@ describe('conditionalStatementToJSfunc', () => {
     expect(conditionalStatementToJSfunc('name <% admin'))
         .toBe('notFuzzyMatch_(`name`, `admin`, 80)');
   });
+
+  it('combines comparisons with && and ||', () => {
+    expect(conditionalStatementToJSfunc('${a} == 1 && ${b} == 2'))
+        .toBe('equals_(`${a}`, `1`) && equals_(`${b}`, `2`)');
+    expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2'))
+        .toBe('equals_(`${a}`, `1`) || equals_(`${b}`, `2`)');
+    expect(conditionalStatementToJSfunc('${a} == 1 && ${b} == 2 || ${c} != 3'))
+        .toBe('(equals_(`${a}`, `1`) && equals_(`${b}`, `2`)) || notEquals_(`${c}`, `3`)');
+    expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2 && ${c} == 3'))
+        .toBe('equals_(`${a}`, `1`) || (equals_(`${b}`, `2`) && equals_(`${c}`, `3`))');
+  });
 });
 
 describe('expect on call steps', () => {

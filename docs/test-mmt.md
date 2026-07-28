@@ -456,6 +456,8 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 ### if, else
 Conditionally run nested steps based on an expression. The true branch is `steps:`; an optional `else:` runs when the condition is false. There is no `elseif` — nest another `if` inside `else` when you need more branches.
 
+Combine two (or more) comparisons with `&&` (and) or `||` (or). `&&` binds tighter than `||`. Surround `&&` / `||` with spaces.
+
 ```yaml
 - if: ${doLogin.status} == 200
   steps:
@@ -468,6 +470,14 @@ Conditionally run nested steps based on an expression. The true branch is `steps
         - print: "Unauthorized"
       else:
         - print: "Other error"
+
+# AND / OR
+- if: ${doLogin.status} == 200 && ${doLogin.body.ok} == true
+  steps:
+    - print: "Login succeeded"
+- if: ${doLogin.status} == 401 || ${doLogin.status} == 403
+  steps:
+    - print: "Not allowed"
 ```
 
 ### for, repeat
@@ -611,7 +621,7 @@ Bind an imported CSV alias (from the test's import section) into scope for use i
 ```
 
 ## Stage condition
-Stages support a `condition` field that skips the stage if the condition evaluates to false. The condition uses the same syntax as `assert`/`check` inline expressions.
+Stages support a `condition` field that skips the stage if the condition evaluates to false. The condition uses the same syntax as `if` / `assert` / `check` inline expressions (including `&&` and `||`).
 
 ```yaml
 stages:

@@ -33,7 +33,7 @@ const comparisonOperatorPattern = [
 ].join('|');
 
 /** Parse a comparison string "actual operator expected" where either side may contain spaces. */
-const parseComparisonParts = (comp: string): { actual: string; operator: string; expected: string } | null => {
+export const parseComparisonParts = (comp: string): { actual: string; operator: string; expected: string } | null => {
   const trimmed = comp.trim();
   const operatorRe = new RegExp(`(?:^|\\s)(${comparisonOperatorPattern})(?=\\s|$)`, 'g');
   let match: RegExpExecArray | null;
@@ -60,10 +60,9 @@ const toRuntimeArg = (value: string): string => {
   return toTemplateArg(value);
 };
 
-export const conditionalStatementToJSfunc = (check: string): string => {
-  // Replace env tokens like e:FOO -> envVariables.FOO
-  const normalized = replaceEnvTokens(check);
-  const parsed = parseComparisonParts(normalized);
+/** Convert a single comparison (no && / ||) into a JS boolean expression. */
+const singleComparisonToJSfunc = (check: string): string => {
+  const parsed = parseComparisonParts(check);
   if (!parsed) {
     return 'true';
   }
@@ -118,6 +117,82 @@ export const conditionalStatementToJSfunc = (check: string): string => {
     default:
       return 'true';
   }
+};
+
+export type LogicalJoin = '&&' | '||';
+
+/**
+ * Split a condition on top-level `&&` / `||` (whitespace-required).
+ * `&&` binds tighter than `||` (standard precedence).
+ */
+export const parseLogicalCondition = (
+  expr: string,
+): { clauses: string[]; joins: LogicalJoin[] } => {
+  const trimmed = expr.trim();
+  if (!trimmed) {
+    return { clauses: [], joins: [] };
+  }
+  // Split OR first (lower precedence), then AND within each OR branch.
+  const orParts = trimmed.split(/\s+\|\|\s+/);
+  const clauses: string[] = [];
+  const joins: LogicalJoin[] = [];
+  for (let i = 0; i < orParts.length; i++) {
+    const andParts = orParts[i].split(/\s+&&\s+/).map(p => p.trim()).filter(Boolean);
+    for (let j = 0; j < andParts.length; j++) {
+      if (clauses.length > 0) {
+        joins.push(j === 0 ? '||' : '&&');
+      }
+      clauses.push(andParts[j]);
+    }
+  }
+  return { clauses, joins };
+};
+
+export const formatLogicalCondition = (
+  clauses: Array<{ actual: string; operator: string; expected: string }>,
+  joins: LogicalJoin[],
+): string => {
+  if (clauses.length === 0) {
+    return '';
+  }
+  let out = `${clauses[0].actual} ${clauses[0].operator} ${clauses[0].expected}`.trim();
+  for (let i = 1; i < clauses.length; i++) {
+    const join = joins[i - 1] || '&&';
+    const c = clauses[i];
+    out += ` ${join} ${`${c.actual} ${c.operator} ${c.expected}`.trim()}`;
+  }
+  return out.trim();
+};
+
+export const conditionalStatementToJSfunc = (check: string): string => {
+  // Replace env tokens like e:FOO -> envVariables.FOO
+  const normalized = replaceEnvTokens(check);
+  const { clauses, joins } = parseLogicalCondition(normalized);
+  if (clauses.length === 0) {
+    return 'true';
+  }
+  if (clauses.length === 1) {
+    return singleComparisonToJSfunc(clauses[0]);
+  }
+  // Rebuild with standard precedence: group AND chains, join groups with OR.
+  const orGroups: string[] = [];
+  let currentAnd: string[] = [singleComparisonToJSfunc(clauses[0])];
+  for (let i = 0; i < joins.length; i++) {
+    const next = singleComparisonToJSfunc(clauses[i + 1]);
+    if (joins[i] === '&&') {
+      currentAnd.push(next);
+    } else {
+      orGroups.push(currentAnd.join(' && '));
+      currentAnd = [next];
+    }
+  }
+  orGroups.push(currentAnd.join(' && '));
+  if (orGroups.length === 1) {
+    return orGroups[0];
+  }
+  return orGroups
+    .map(group => (group.includes(' && ') ? `(${group})` : group))
+    .join(' || ');
 };
 
 interface NormalizedComparison {

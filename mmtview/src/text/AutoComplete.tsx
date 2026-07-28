@@ -450,8 +450,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Conditional block',
             documentation: [
                 'Runs nested steps only when the condition is true. Optional else with its own steps.',
+                'Combine comparisons with && or || (spaces required).',
                 'Example:',
-                '- if: user.role == `admin`',
+                '- if: ${user.role} == admin && ${user.active} == true',
                 '  steps:',
                 '    - print: "Admin access granted"',
                 '  else:',

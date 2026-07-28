@@ -1,14 +1,68 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { FlowType, CheckOps } from "mmt-core/TestData";
+import { formatLogicalCondition, parseComparisonParts, parseLogicalCondition, type LogicalJoin } from "mmt-core/JSerTestFlow";
 import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
 import TestHttp from "./TestHttp";
 import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
 import { type MissingImportEntry } from "../text/validator";
-import TestIf from "./TestIf";
+import TestIf, { type IfClause } from "./TestIf";
 import KSVEditor from "../components/KSVEditor";
+
+function clauseFromRaw(raw: string): IfClause {
+  const parsed = parseComparisonParts(raw);
+  if (parsed) {
+    return {
+      actual: parsed.actual,
+      op: (parsed.operator as CheckOps) || "==",
+      expected: parsed.expected,
+    };
+  }
+  const match = raw.trim().length ? raw.trim().split(/\s+/) : [] as string[];
+  return {
+    actual: match[0] ?? "",
+    op: (match[1] as CheckOps) ?? "==",
+    expected: match.slice(2).join(" ") || "",
+  };
+}
+
+function parseIfForUi(raw: string): { first: IfClause; join?: LogicalJoin; second?: IfClause } {
+  const { clauses, joins } = parseLogicalCondition(raw);
+  if (clauses.length === 0) {
+    return { first: { actual: "", op: "==", expected: "" } };
+  }
+  const first = clauseFromRaw(clauses[0]);
+  if (clauses.length === 1) {
+    return { first };
+  }
+  // UI supports one join (second condition). Extra clauses stay on the second expected side.
+  const join = joins[0] || "&&";
+  const rest = clauses.slice(1).map((c, i) => {
+    if (i === 0) {
+      return c;
+    }
+    return `${joins[i] || "&&"} ${c}`;
+  }).join(" ");
+  return { first, join, second: clauseFromRaw(rest) };
+}
+
+function formatIfForUi(val: { first: IfClause; join?: LogicalJoin; second?: IfClause }): string {
+  const clauses = [
+    { actual: val.first.actual, operator: val.first.op, expected: val.first.expected },
+  ];
+  const joins: LogicalJoin[] = [];
+  if (val.second) {
+    clauses.push({
+      actual: val.second.actual,
+      operator: val.second.op,
+      expected: val.second.expected,
+    });
+    joins.push(val.join || "&&");
+  }
+  return formatLogicalCondition(clauses, joins);
+}
 
 interface TestFlowBoxProps {
   data: any,
@@ -172,20 +226,16 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           />
         );
       case 'if': {
-        let actual = '', op: CheckOps = '==' as CheckOps, expected = '';
         const raw = (stepData && typeof stepData[type] === 'string') ? (stepData[type] as string) : '';
-        const match = raw.trim().length ? raw.trim().split(/\s+/) : [] as string[];
-        actual = match[0] ?? '';
-        op = (match[1] as CheckOps) ?? '==';
-        expected = match[2] ?? '';
+        const parsed = parseIfForUi(raw);
         return (
           <TestIf
-            actual={actual}
-            op={op}
-            expected={expected}
-            onChange={({ actual, op, expected }) => onChange({
+            first={parsed.first}
+            join={parsed.join}
+            second={parsed.second}
+            onChange={(val) => onChange({
               ...stepData,
-              [type]: `${actual} ${op} ${expected}`,
+              [type]: formatIfForUi(val),
             })}
           />
         );
