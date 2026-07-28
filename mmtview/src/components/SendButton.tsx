@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ReactDOM from "react-dom";
-import { harmonizeAccent } from "../shared/themeAccent";
+import { accentChromeFor, harmonizeAccent, resolveAccent, SEMANTIC_COLORS } from "../shared/themeAccent";
 
 export type SendButtonMenuItem = {
   label: string;
@@ -9,8 +9,7 @@ export type SendButtonMenuItem = {
   disabled?: boolean;
 };
 
-const DEFAULT_SEND_ACCENT = "#43a047";
-const CANCEL_ACCENT = "#d32f2f";
+const DEFAULT_SEND_ACCENT = SEMANTIC_COLORS.green;
 const DISABLED_ACCENT = "#7a7979";
 
 const SendButton: React.FC<{
@@ -54,12 +53,12 @@ const SendButton: React.FC<{
   }, [loading]);
 
   const sendChrome = useMemo(
-    () => harmonizeAccent(accent, { fillAmount: hover ? 62 : 52 }),
+    () => harmonizeAccent(resolveAccent(accent), { fillAmount: hover ? 62 : 52 }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [accent, hover, themeTick],
   );
   const cancelChrome = useMemo(
-    () => harmonizeAccent(CANCEL_ACCENT, { fillAmount: hover ? 62 : 52 }),
+    () => accentChromeFor("red", { fillAmount: hover ? 62 : 52 }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [hover, themeTick],
   );
@@ -242,9 +241,7 @@ const SendButton: React.FC<{
           style={{
             background: activeChrome.fill,
             color: activeChrome.onFill,
-            border: activeChrome.buttonBorder
-              ? `1px solid ${activeChrome.buttonBorder}`
-              : "none",
+            border: `1px solid ${activeChrome.border}`,
             borderRadius: "50%",
             width: 30,
             height: 30,

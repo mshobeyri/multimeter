@@ -21,8 +21,7 @@ import { protocolResolver } from "mmt-core";
 import MdViewer from "../components/MdViewer";
 import {
   accentChromeCssVars,
-  harmonizeAccent,
-  methodProtocolAccent,
+  accentChromeFor,
 } from "../shared/themeAccent";
 
 interface APITestProps {
@@ -151,7 +150,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
     ? methodOrProtocolValue.slice("protocol:".length)
     : methodOrProtocolValue.slice("method:".length);
-  const methodOrProtocolAccent = methodProtocolAccent(methodOrProtocolKey);
   const [themeTick, setThemeTick] = useState(0);
   useEffect(() => {
     const onTheme = () => setThemeTick((n) => n + 1);
@@ -159,12 +157,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     return () => window.removeEventListener("vscode:changeColorTheme", onTheme as EventListener);
   }, []);
   const methodChrome = useMemo(
-    () => harmonizeAccent(methodOrProtocolAccent),
+    () => accentChromeFor(methodOrProtocolKey),
     // themeTick forces recompute when VS Code theme CSS vars change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [methodOrProtocolAccent, themeTick],
+    [methodOrProtocolKey, themeTick],
   );
   const methodChromeVars = accentChromeCssVars(methodChrome);
+  const methodOrProtocolAccent = methodChrome.accent;
 
   const canRunCurl = requestProtocol !== "graphql" && requestProtocol !== "grpc" &&
     !isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);

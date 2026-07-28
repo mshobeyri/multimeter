@@ -1,10 +1,13 @@
 import {
+  accentChromeFor,
   contrastingForeground,
   harmonizeAccent,
   isOutlineButtonTheme,
   methodProtocolAccent,
   mixOpaque,
   relativeLuminance,
+  resolveAccent,
+  SEMANTIC_COLORS,
 } from './themeAccent';
 
 const normalSurfaces = {
@@ -30,6 +33,14 @@ describe('themeAccent', () => {
     expect(methodProtocolAccent('unknown')).toBe('#888888');
   });
 
+  it('resolves semantic green/red/blue accents', () => {
+    expect(resolveAccent('green')).toBe(SEMANTIC_COLORS.green);
+    expect(resolveAccent('red')).toBe(SEMANTIC_COLORS.red);
+    expect(resolveAccent('blue')).toBe(SEMANTIC_COLORS.blue);
+    expect(resolveAccent('POST')).toBe(SEMANTIC_COLORS.green);
+    expect(resolveAccent('#abcdef')).toBe('#abcdef');
+  });
+
   it('mixes accent into theme base without alpha', () => {
     const mixed = mixOpaque('#49cc90', '#2b2118', 50);
     expect(mixed.startsWith('#')).toBe(true);
@@ -42,10 +53,17 @@ describe('themeAccent', () => {
     const chrome = harmonizeAccent('#49cc90', { surfaces: normalSurfaces });
     expect(chrome.outline).toBe(false);
     expect(chrome.softFill.toLowerCase()).not.toBe(normalSurfaces.buttonBackground.toLowerCase());
-    // No distinct button.border → border matches softFill (invisible ring).
-    expect(chrome.border.toLowerCase()).toBe(chrome.softFill.toLowerCase());
+    // No distinct button.border → border matches fill (invisible ring on buttons).
+    expect(chrome.border.toLowerCase()).toBe(chrome.fill.toLowerCase());
+    expect(chrome.buttonBorder).toBeNull();
     expect(chrome.onFill.toLowerCase()).toBe('#ffffff');
     expect(chrome.buttonForeground.toLowerCase()).toBe('#ffffff');
+  });
+
+  it('uses the same fill for method select and send (accentChromeFor)', () => {
+    const chrome = accentChromeFor('post', { surfaces: normalSurfaces });
+    expect(chrome.fill.toLowerCase()).not.toBe(chrome.softFill.toLowerCase());
+    expect(chrome.fill.toLowerCase()).not.toBe(normalSurfaces.background.toLowerCase());
   });
 
   it('merges a distinct theme button.border when present', () => {
@@ -55,8 +73,20 @@ describe('themeAccent', () => {
         buttonBorder: '#1a1a1a',
       },
     });
-    expect(chrome.border.toLowerCase()).not.toBe(chrome.softFill.toLowerCase());
+    expect(chrome.border.toLowerCase()).not.toBe(chrome.fill.toLowerCase());
     expect(chrome.border.toLowerCase()).not.toBe('#1a1a1a');
+    expect(chrome.buttonBorder).toBe(chrome.border);
+  });
+
+  it('treats theme button.border matching button.background as no border', () => {
+    const chrome = harmonizeAccent('#49cc90', {
+      surfaces: {
+        ...normalSurfaces,
+        buttonBorder: normalSurfaces.buttonBackground,
+      },
+    });
+    expect(chrome.border.toLowerCase()).toBe(chrome.fill.toLowerCase());
+    expect(chrome.buttonBorder).toBeNull();
   });
 
   it('uses outline chrome when button bg matches palette bg', () => {
@@ -72,8 +102,10 @@ describe('themeAccent', () => {
     expect(isOutlineButtonTheme(surfaces)).toBe(true);
     const chrome = harmonizeAccent('#49cc90', { surfaces });
     expect(chrome.outline).toBe(true);
-    // No button border: soft tint for identity, border matches fill.
-    expect(chrome.border.toLowerCase()).toBe(chrome.softFill.toLowerCase());
+    // Outline: fill matches softFill so method select and Send stay identical.
+    expect(chrome.fill.toLowerCase()).toBe(chrome.softFill.toLowerCase());
+    expect(chrome.border.toLowerCase()).toBe(chrome.fill.toLowerCase());
+    expect(chrome.buttonBorder).toBeNull();
     expect(chrome.softFill.toLowerCase()).not.toBe('#000000');
   });
 });

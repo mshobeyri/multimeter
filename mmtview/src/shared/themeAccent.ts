@@ -16,6 +16,19 @@ export const METHOD_PROTOCOL_COLORS: Record<string, string> = {
   http: '#61affe',
 };
 
+/**
+ * Semantic accents (aligned with method brand hues where possible).
+ * Pass these keys (or raw hex) into `resolveAccent` / `harmonizeAccent`.
+ * - green: success / connected / receive-ok
+ * - red: error / disconnected / receive-error / cancel
+ * - blue: outbound send / info
+ */
+export const SEMANTIC_COLORS: Record<'green' | 'red' | 'blue', string> = {
+  green: '#49cc90',
+  red: '#f93e3e',
+  blue: '#61affe',
+};
+
 export type ThemeSurfaces = {
   /** Panel / editor background */
   background: string;
@@ -41,9 +54,9 @@ export type ThemeSurfaces = {
  * Inspired by Material You / OKLab tinting: keep accent hue, pull lightness
  * toward the active theme so badges/buttons don't clash with brown/sepia/etc.
  *
- * - `text` / `border` + `surface`: outline chrome (bg stays surface; only ink/edge tint)
- * - `softFill`: light tinted chip / method-select / history badge (opaque)
- * - `fill` / `onFill`: solid primary actions (send); when `outline`, fill === surface
+ * - `text`: accent-tinted ink for icons / labels
+ * - `softFill` / `border`: lighter chip chrome (docs badges, etc.)
+ * - `fill` / `onFill`: method select + Send / Connect primary surfaces (same color)
  */
 export type AccentChrome = {
   accent: string;
@@ -62,7 +75,11 @@ export type AccentChrome = {
   foreground: string;
   /** Theme primary-button label color. */
   buttonForeground: string;
-  /** Theme button border, or null when the theme defines none. */
+  /**
+   * Resolved button border for custom actions, or `null` when the theme has no
+   * distinct button.border (border color matches button background) — callers
+   * should use `border` (equals `fill`) for an invisible ring.
+   */
   buttonBorder: string|null;
 };
 
@@ -298,14 +315,12 @@ export type HarmonizeAccentOptions = {
 /**
  * Build theme-harmonized chrome for one accent color.
  *
- * Method select follows **button** tokens (not input/select):
- * - `softFill` = accent merged into `button.background`
+ * Method select and Send share `fill` / `onFill` so they match across themes:
+ * - Normal: `fill` = accent mixed into editor background
+ * - Outline / flat: `fill` === `softFill` (accent tint or flat button bg + accent edge)
  * - `border` = accent merged into `button.border` when the theme defines a
- *   distinct button border; otherwise `border === softFill` (no visible ring,
- *   matching themes whose buttons have no/matching border)
- * - label uses `buttonForeground`
- *
- * Solid primary actions (Send): `fill` + `onFill` (`buttonForeground`).
+ *   distinct button border; otherwise `border === fill` (invisible ring on the
+ *   button surface — same as themes where button.border ≈ button.background)
  */
 export function harmonizeAccent(
     accent: string,
@@ -323,6 +338,7 @@ export function harmonizeAccent(
   const text = mixOpaque(raw, surfaces.foreground, textAmount, raw);
 
   const themeButtonBorder = surfaces.buttonBorder;
+  // Theme border that matches button bg is treated as "no border".
   const hasVisibleButtonBorder = Boolean(
       themeButtonBorder &&
       !colorsNearlyEqual(themeButtonBorder, buttonBase));
@@ -330,33 +346,37 @@ export function harmonizeAccent(
   if (outline) {
     // Flat / HC: button bg matches palette.
     // With a real button border → flat bg + accent edge; otherwise soft tint, no ring.
+    // Keep fill === softFill so method select and Send stay the same color.
     const softFill = hasVisibleButtonBorder ?
         buttonBase :
         mixOpaque(raw, buttonBase, softAmount, buttonBase);
+    const fill = softFill;
     const border = hasVisibleButtonBorder ?
         mixOpaque(raw, themeButtonBorder!, Math.min(80, textAmount + 8), raw) :
-        softFill;
+        fill;
     return {
       accent: raw,
       text,
       border,
       softFill,
-      fill: buttonBase,
+      fill,
       onFill: surfaces.buttonForeground,
       surface: surfaces.surface,
       outline: true,
       foreground: surfaces.foreground,
       buttonForeground: surfaces.buttonForeground,
-      buttonBorder: surfaces.buttonBorder,
+      // Only expose a button border when the theme's is actually distinct.
+      buttonBorder: hasVisibleButtonBorder ? border : null,
     };
   }
 
-  // Normal themes: tint button.background; border matches button border rules.
+  // Normal themes: softFill tints button.background; fill tints editor bg (shared
+  // by method select + Send). Border matches button border rules.
   const softFill = mixOpaque(raw, buttonBase, softAmount, buttonBase);
+  const fill = mixOpaque(raw, surfaces.background, fillAmount, raw);
   const border = hasVisibleButtonBorder ?
       mixOpaque(raw, themeButtonBorder!, Math.min(80, textAmount + 8), raw) :
-      softFill;
-  const fill = mixOpaque(raw, surfaces.background, fillAmount, raw);
+      fill;
 
   return {
     accent: raw,
@@ -369,7 +389,7 @@ export function harmonizeAccent(
     outline: false,
     foreground: surfaces.foreground,
     buttonForeground: surfaces.buttonForeground,
-    buttonBorder: surfaces.buttonBorder,
+    buttonBorder: hasVisibleButtonBorder ? border : null,
   };
 }
 
@@ -392,7 +412,34 @@ export function methodProtocolAccent(key: string): string {
   return METHOD_PROTOCOL_COLORS[k] || '#888888';
 }
 
-/** Theme-harmonized text/icon color for a method or protocol key. */
+/**
+ * Resolve a method/protocol key or semantic name (`green` | `red` | `blue`)
+ * to a brand accent hex. Raw `#RRGGBB` values pass through.
+ */
+export function resolveAccent(key: string): string {
+  const k = String(key || '').trim();
+  if (!k) {
+    return '#888888';
+  }
+  if (k.startsWith('#')) {
+    return toMonacoHex(k, '#888888');
+  }
+  const lower = k.toLowerCase();
+  if (lower === 'green' || lower === 'red' || lower === 'blue') {
+    return SEMANTIC_COLORS[lower];
+  }
+  return methodProtocolAccent(lower);
+}
+
+/** Theme-harmonized chrome for a method, protocol, or semantic color key. */
+export function accentChromeFor(
+    key: string,
+    options?: HarmonizeAccentOptions,
+): AccentChrome {
+  return harmonizeAccent(resolveAccent(key), options);
+}
+
+/** Theme-harmonized text/icon color for a method, protocol, or semantic key. */
 export function methodTextColor(method: string): string {
-  return harmonizeAccent(methodProtocolAccent(method)).text;
+  return accentChromeFor(method).text;
 }

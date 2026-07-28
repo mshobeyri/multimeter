@@ -59,19 +59,12 @@
             padding: 0 2px;
             margin-right: 6px;
             border-radius: 2px;
-            /* Same recipe as API method-select: button-themed fill; border matches
-               button.border or equals the fill when the theme has no button border. */
-            --history-brand: #888888;
-            --history-badge-fill: color-mix(
-                in oklab,
-                var(--history-brand) 36%,
-                var(--vscode-button-background, #0e639c)
-            );
+            /* Colors applied via MmtThemeAccent (same fill as API method select / Send). */
             color: var(--vscode-button-foreground, #fff);
-            background: var(--history-badge-fill);
+            background: var(--vscode-button-background, #0e639c);
             border-width: 1px;
             border-style: solid;
-            border-color: var(--vscode-button-border, var(--history-badge-fill));
+            border-color: transparent;
             font-size: 8px;
             font-weight: 600;
             line-height: 14px;
@@ -80,24 +73,6 @@
             box-sizing: border-box;
             overflow: hidden;
             white-space: nowrap;
-        }
-
-        .history-badge[data-method="get"],
-        .history-badge[data-method="http"] { --history-brand: #61affe; }
-        .history-badge[data-method="post"] { --history-brand: #49cc90; }
-        .history-badge[data-method="put"] { --history-brand: #fca130; }
-        .history-badge[data-method="delete"] { --history-brand: #f93e3e; }
-        .history-badge[data-method="patch"] { --history-brand: #50e3c2; }
-        .history-badge[data-method="head"] { --history-brand: #9012fe; }
-        .history-badge[data-method="options"] { --history-brand: #0d5aa7; }
-        .history-badge[data-method="trace"] { --history-brand: #888888; }
-        .history-badge[data-method="ws"] { --history-brand: #9b59b6; }
-        .history-badge[data-method="graphql"] { --history-brand: #e535ab; }
-        .history-badge[data-method="grpc"] { --history-brand: #244c5a; }
-
-        /* Flat / high-contrast themes: same surface bg, accent only on text/border. */
-        body.mmt-outline-chrome .history-badge {
-            background: var(--vscode-input-background, var(--vscode-sideBar-background, #3c3c3c));
         }
 
         .history-badge-mock {
@@ -354,10 +329,20 @@
         }
     </style>
     <script>
+__THEME_ACCENT_JS__
+    </script>
+    <script>
         const vscode = acquireVsCodeApi();
         let history = __HISTORY_DATA__;
         const initialTokenColors = __TOKEN_COLORS__;
         let openIdx = __OPEN_IDX__;
+        var TA = window.MmtThemeAccent;
+        var METHOD_PROTOCOL_COLORS = TA.METHOD_PROTOCOL_COLORS;
+        var PROTOCOL_LABELS = {
+            ws: 'WS',
+            graphql: 'GraphQL',
+            grpc: 'gRPC'
+        };
 
         function applyTokenColors(tokenColors) {
             if (!tokenColors) {
@@ -689,15 +674,15 @@
 
         function getTypeIcon(type, status, protocol) {
             var isMock = String(protocol || '').toLowerCase() === 'mock';
-            var raw;
+            var semanticKey;
             if (type === 'send') {
-                raw = '#3399ff';
+                semanticKey = 'blue';
             } else if (type === 'recv' && !(status >= 400)) {
-                raw = '#66bb6a';
+                semanticKey = 'green';
             } else {
-                raw = '#ff5555';
+                semanticKey = 'red';
             }
-            var color = harmonizeBadgeAccent(raw).text;
+            var color = TA.accentChromeFor(semanticKey).text;
             var fg;
             if (type === 'send') {
                 fg = '<span class="codicon codicon-arrow-up history-type-icon-fg" style="color:' + color + '"></span>';
@@ -712,213 +697,8 @@
             return '<span class="history-type-icon">' + bg + fg + '</span>';
         }
 
-        // Same brand hues as the API tester; mixed into the active theme below.
-        var METHOD_PROTOCOL_COLORS = {
-            get: '#61affe',
-            post: '#49cc90',
-            put: '#fca130',
-            delete: '#f93e3e',
-            patch: '#50e3c2',
-            head: '#9012fe',
-            options: '#0d5aa7',
-            trace: '#888',
-            ws: '#9b59b6',
-            graphql: '#e535ab',
-            grpc: '#244c5a',
-            http: '#61affe'
-        };
-        var PROTOCOL_LABELS = {
-            ws: 'WS',
-            graphql: 'GraphQL',
-            grpc: 'gRPC'
-        };
-
-        function readCssColor(name, fallback) {
-            try {
-                var v = getComputedStyle(document.documentElement).getPropertyValue(name);
-                return (v && v.trim()) || fallback;
-            } catch (e) {
-                return fallback;
-            }
-        }
-
-        function parseHexRgb(cssColor) {
-            var s = String(cssColor || '').trim();
-            var m = s.match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})/);
-            if (m) {
-                var h = m[1];
-                if (h.length === 3) {
-                    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-                }
-                return {
-                    r: parseInt(h.slice(0, 2), 16),
-                    g: parseInt(h.slice(2, 4), 16),
-                    b: parseInt(h.slice(4, 6), 16)
-                };
-            }
-            try {
-                var el = document.createElement('span');
-                el.style.color = s;
-                el.style.position = 'fixed';
-                el.style.left = '-9999px';
-                document.body.appendChild(el);
-                var resolved = getComputedStyle(el).color;
-                document.body.removeChild(el);
-                var rm = String(resolved).match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i);
-                if (rm) {
-                    return { r: Number(rm[1]), g: Number(rm[2]), b: Number(rm[3]) };
-                }
-            } catch (e) { /* ignore */ }
-            return null;
-        }
-
-        function srgbToLinear(c) {
-            var s = c / 255;
-            return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-        }
-
-        function linearToSrgb(c) {
-            var s = c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
-            return Math.round(Math.max(0, Math.min(1, s)) * 255);
-        }
-
-        function rgbToOklab(r, g, b) {
-            var lr = srgbToLinear(r), lg = srgbToLinear(g), lb = srgbToLinear(b);
-            var l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
-            var m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
-            var s = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
-            var l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
-            return {
-                L: 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-                a: 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-                b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
-            };
-        }
-
-        function oklabToRgb(L, a, b) {
-            var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-            var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-            var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-            var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
-            return {
-                r: linearToSrgb(+4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
-                g: linearToSrgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
-                b: linearToSrgb(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s)
-            };
-        }
-
-        function rgbToHex(r, g, b) {
-            function hx(n) {
-                return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
-            }
-            return '#' + hx(r) + hx(g) + hx(b);
-        }
-
-        /** Opaque OKLab mix (no transparency): accentPercent% accent + remainder base. */
-        function mixOpaque(accent, base, accentPercent) {
-            var pct = Math.max(0, Math.min(100, accentPercent)) / 100;
-            var a = parseHexRgb(accent);
-            var b = parseHexRgb(base);
-            if (!a || !b) {
-                return accent;
-            }
-            var oa = rgbToOklab(a.r, a.g, a.b);
-            var ob = rgbToOklab(b.r, b.g, b.b);
-            var rgb = oklabToRgb(
-                oa.L * pct + ob.L * (1 - pct),
-                oa.a * pct + ob.a * (1 - pct),
-                oa.b * pct + ob.b * (1 - pct)
-            );
-            return rgbToHex(rgb.r, rgb.g, rgb.b);
-        }
-
-        function relativeLuminance(cssColor) {
-            var rgb = parseHexRgb(cssColor);
-            if (!rgb) {
-                return 0.5;
-            }
-            function lin(c) {
-                var s = c / 255;
-                return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-            }
-            return 0.2126 * lin(rgb.r) + 0.7152 * lin(rgb.g) + 0.0722 * lin(rgb.b);
-        }
-
-        function contrastingForeground(fill) {
-            return relativeLuminance(fill) > 0.45 ? '#1e1e1e' : '#ffffff';
-        }
-
-        function colorsNearlyEqual(a, b, maxDelta) {
-            var ar = parseHexRgb(a);
-            var br = parseHexRgb(b);
-            if (!ar || !br) {
-                return false;
-            }
-            var d = maxDelta == null ? 10 : maxDelta;
-            return Math.abs(ar.r - br.r) <= d &&
-                Math.abs(ar.g - br.g) <= d &&
-                Math.abs(ar.b - br.b) <= d;
-        }
-
-        function readThemeSurfaces() {
-            var background = readCssColor('--vscode-editor-background', '#1e1e1e');
-            var surface = readCssColor('--vscode-input-background',
-                readCssColor('--vscode-sideBar-background', '#3c3c3c'));
-            return {
-                background: background,
-                foreground: readCssColor('--vscode-editor-foreground', '#cccccc'),
-                surface: surface,
-                buttonBackground: readCssColor('--vscode-button-background', '#0e639c')
-            };
-        }
-
-        function isOutlineButtonTheme(surfaces) {
-            return colorsNearlyEqual(surfaces.buttonBackground, surfaces.background) ||
-                colorsNearlyEqual(surfaces.buttonBackground, surfaces.surface);
-        }
-
-        /**
-         * Same roles as mmtview/src/shared/themeAccent.ts harmonizeAccent.
-         * History badges + API method select both use softFill + text + border.
-         */
-        function harmonizeBadgeAccent(accent) {
-            var surfaces = readThemeSurfaces();
-            var outline = isOutlineButtonTheme(surfaces);
-            var text = mixOpaque(accent, surfaces.foreground, 62);
-            var border = mixOpaque(accent, surfaces.foreground, 70);
-            if (outline) {
-                return {
-                    text: text,
-                    border: border,
-                    softFill: surfaces.surface,
-                    fill: surfaces.surface,
-                    onFill: text,
-                    surface: surfaces.surface,
-                    outline: true
-                };
-            }
-            var softFill = mixOpaque(accent, surfaces.surface, 32);
-            var fill = mixOpaque(accent, surfaces.background, 52);
-            return {
-                text: text,
-                border: border,
-                softFill: softFill,
-                fill: fill,
-                onFill: contrastingForeground(fill),
-                surface: surfaces.surface,
-                outline: false
-            };
-        }
-
         function statusAccentColor(isError) {
-            return harmonizeBadgeAccent(isError ? '#ff5555' : '#66bb6a').text;
-        }
-
-        function syncOutlineChromeClass() {
-            try {
-                var outline = isOutlineButtonTheme(readThemeSurfaces());
-                document.body.classList.toggle('mmt-outline-chrome', outline);
-            } catch (e) { /* ignore */ }
+            return TA.accentChromeFor(isError ? 'red' : 'green').text;
         }
 
         function getMethodOrProtocolBadge(item) {
@@ -962,13 +742,18 @@
             if (!METHOD_PROTOCOL_COLORS[labelKey] && METHOD_PROTOCOL_COLORS[colorKey]) {
                 labelKey = colorKey;
             }
+            var chrome = TA.accentChromeFor(labelKey);
             var mockClass = isMock ? ' history-badge-mock' : '';
             var len = display.length;
             var fontSize = len <= 4 ? '8px' : len <= 5 ? '7px' : len <= 6 ? '6.5px' : '5.5px';
-            // Brand hue comes from data-method + CSS color-mix (same recipe as API method-select).
+            // Same fill / onFill / border as API method select + Send.
             return '<span class="history-badge' + mockClass +
                 '" data-method="' + labelKey +
-                '" style="font-size:' + fontSize + '" title="' +
+                '" style="font-size:' + fontSize +
+                ';background:' + chrome.fill +
+                ';color:' + chrome.onFill +
+                ';border-color:' + chrome.border +
+                '" title="' +
                 (isMock ? 'mock ' : '') + display + '">' + display + '</span>';
         }
 
@@ -994,7 +779,6 @@
         }
 
         function renderHistory() {
-            syncOutlineChromeClass();
             const list = document.getElementById('history-list');
 
             function renderCodicons(text) {

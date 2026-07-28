@@ -1219,7 +1219,7 @@ button:focus {
 
 
 /* Must beat global `select` / `select:focus` rules (padding, height, font).
-   Method select follows **button** theme tokens (not input/select borders). */
+   Method select uses the same fill chrome as Send (see themeAccent fill/onFill). */
 select.method-select,
 select.method-select:focus,
 select.method-select:focus-visible {
@@ -1246,30 +1246,30 @@ select.method-select:focus-visible {
   background-image: none;
   transition: background-color 80ms ease, border-color 80ms ease, color 80ms ease;
   vertical-align: middle;
-  color: var(--vscode-button-foreground, #fff);
+  color: var(--mmt-accent-on-fill, var(--vscode-button-foreground, #fff));
   background-color: var(
-    --mmt-accent-soft-fill,
+    --mmt-accent-fill,
     color-mix(
       in oklab,
-      var(--mmt-accent, #888) 36%,
-      var(--vscode-button-background, #0e639c)
+      var(--mmt-accent, #888) 52%,
+      var(--vscode-editor-background, #1e1e1e)
     )
   );
   /* 1px like VS Code buttons; --mmt-accent-border equals softFill when the
      theme has no distinct button.border (invisible ring). */
   border-width: 1px;
   border-style: solid;
-  border-color: var(--mmt-accent-border, var(--mmt-accent-soft-fill, transparent));
+  border-color: var(--mmt-accent-border, var(--mmt-accent-fill, transparent));
 }
 
 select.method-select:hover {
-  background-color: var(--mmt-accent-soft-fill);
-  border-color: var(--mmt-accent-border, var(--mmt-accent-soft-fill));
+  background-color: var(--mmt-accent-fill);
+  border-color: var(--mmt-accent-border, var(--mmt-accent-fill));
 }
 
 select.method-select:focus,
 select.method-select:focus-visible {
-  border-color: var(--mmt-accent-border, var(--mmt-accent-soft-fill));
+  border-color: var(--mmt-accent-border, var(--mmt-accent-fill));
   outline: none;
 }
 

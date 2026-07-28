@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { harmonizeAccent, methodProtocolAccent } from "../shared/themeAccent";
+import { accentChromeFor } from "../shared/themeAccent";
 
 // APIData type should match what yamlToAPI returns
 interface APIData {
@@ -63,10 +63,8 @@ const DocElementsDrawer: React.FC<DocElementsDrawerProps> = ({ apis, docTitle, d
                     <span
                       className="doc-elements-method-badge"
                       style={(() => {
-                        const chrome = harmonizeAccent(
-                          methodProtocolAccent(
-                            typeof api.method === 'string' ? api.method : 'get',
-                          ),
+                        const chrome = accentChromeFor(
+                          typeof api.method === 'string' ? api.method : 'get',
                         );
                         return {
                           background: chrome.softFill,
