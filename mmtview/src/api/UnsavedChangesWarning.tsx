@@ -85,7 +85,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
                 type="button"
                 title="Reset UI to the current YAML file"
               >
-                <span className="codicon codicon-forward" aria-hidden /> Reset to YAML
+                <span className="codicon codicon-refresh" aria-hidden /> Reset to YAML
               </button>
             </div>
           </div>
