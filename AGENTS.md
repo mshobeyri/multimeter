@@ -70,13 +70,14 @@
 ## Workflow / agent rules
 
 - Do **NOT** create, stage, or push git commits unless the user explicitly asks you to do so. Always ask for confirmation before running any `git add`, `git commit`, or `git push` operations. You may edit files in the workspace to make suggested changes, but do not record those changes in version control until the user gives explicit permission. When edits are made without committing, clearly list the modified files and the intended commit message so the user can approve.
+- Do **NOT** touch `CHANGELOG.md` for regular fixes or features. It is written only as part of the release workflow, from the commits included in that release.
 
 ### Release workflow
 
 When the user says **"release version X.Y.Z"** (or "release version X.Y.Z pre-release"):
 
 1. Update the `version` field in the root `package.json` to `X.Y.Z`.
-2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed)
+2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited.
 3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
 4. Run `npm run pack` at the repo root to produce the `.vsix`.
    - If the user said **pre-release**, run `npm run pack-pre-release` instead.
