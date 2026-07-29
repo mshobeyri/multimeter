@@ -1,8 +1,8 @@
 import {xml2js} from 'xml-js';
 
 import {JSONRecord} from './CommonData';
-import {flattenXmlObj} from './markupConvertor';
 import {OMIT_SENTINEL, isOmitSentinel} from './omitKeyword';
+import {findXmlPathAtOffset, xmlBodyToExtractable} from './xmlPath';
 
 export interface ResponseData {
   type: 'xml'|'json'|'text'|'auto';
@@ -201,107 +201,6 @@ function findJSONPathAtOffset(s: string, offset: number): PathSegment[]|null {
   return res.found ?? null;
 }
 
-// --- XML path at position ---
-function findXMLPathAtOffset(s: string, offset: number): PathSegment[]|null {
-  const stack: {name: string; index: number}[] = [];
-  const counts: Map<string, number>[] = [new Map()];
-  let i = 0;
-  while (i < s.length) {
-    if (s[i] === '<') {
-      if (s.startsWith('<!--', i)) {
-        // skip comment
-        const endC = s.indexOf('-->', i + 4);
-        i = endC >= 0 ? endC + 3 : s.length;
-        continue;
-      }
-      if (s[i + 1] === '/') {
-        // closing tag – check if offset is on the closing tag name
-        const closeNameStart = i + 2;
-        let cn = closeNameStart;
-        while (cn < s.length && /[A-Za-z0-9_:.-]/.test(s[cn])) {
-          cn++;
-        }
-        const closeNameEnd = cn - 1;
-        if (offset >= closeNameStart && offset <= closeNameEnd && stack.length > 0) {
-          const path: PathSegment[] = [];
-          for (const seg of stack) {
-            path.push(seg.name);
-            if (seg.index > 0) {
-              path.push(seg.index);
-            }
-          }
-          return path;
-        }
-        const end = s.indexOf('>', i + 2);
-        if (end < 0) break;
-        stack.pop();
-        counts.pop();
-        i = end + 1;
-        continue;
-      }
-      // open or self-closing
-      let j = i + 1;
-      // read name
-      let name = '';
-      const nameStart = j;
-      while (j < s.length && /[A-Za-z0-9_:.-]/.test(s[j])) {
-        name += s[j++];
-      }
-      const nameEnd = j - 1;
-      // advance to end of tag
-      const endTag = s.indexOf('>', j);
-      if (endTag < 0) break;
-      const selfClosing = s[endTag - 1] === '/';
-      // push stack
-      const top = counts[counts.length - 1];
-      const cur = (top.get(name) ?? 0);
-      top.set(name, cur + 1);
-      stack.push({name, index: cur});
-      counts.push(new Map());
-
-      // If offset is on the opening tag name, return the path to this element
-      if (offset >= nameStart && offset <= nameEnd) {
-        const path: PathSegment[] = [];
-        for (const seg of stack) {
-          path.push(seg.name);
-          if (seg.index > 0) {
-            path.push(seg.index);
-          }
-        }
-        return path;
-      }
-
-      const textStart = endTag + 1;
-      i = endTag + 1;
-      if (selfClosing) {
-        // no text, immediately close
-        stack.pop();
-        counts.pop();
-        continue;
-      }
-      // find next '<'
-      const nextLt = s.indexOf('<', i);
-      const textEnd = nextLt >= 0 ? nextLt - 1 : s.length - 1;
-      if (offset >= textStart && offset <= textEnd) {
-        // Build path
-        const path: PathSegment[] = [];
-        for (const seg of stack) {
-          path.push(seg.name);
-          // include index only for repeated elements (index > 0)
-          if (seg.index > 0) {
-            path.push(seg.index);
-          }
-        }
-        return path;
-      }
-      // continue; next loop will handle children or closing
-      continue;
-    }
-    i++;
-  }
-  return null;
-}
-
 export function extractPathAtPosition(
     content: string, contentType: 'json'|'xml', line: number,
     column: number): PathSegment[]|null {
@@ -310,7 +209,7 @@ export function extractPathAtPosition(
     return findJSONPathAtOffset(content, offset);
   }
   if (contentType === 'xml') {
-    return findXMLPathAtOffset(content, offset);
+    return findXmlPathAtOffset(content, offset);
   }
   return null;
 }
@@ -351,11 +250,21 @@ function navigatePathParts(current: any, parts: string[]): any {
 
     if (/^\d+$/.test(part)) {
       const index = parseInt(part, 10);
-      if (!Array.isArray(current)) {
+      if (Array.isArray(current)) {
+        current = current[index];
+      } else if (typeof current === 'object' && part in current) {
+        // Object with numeric-like keys (e.g. {"0": …}).
+        current = current[part];
+      } else if (index === 0) {
+        // XML: a single occurrence is not an array, but `.0` should still work.
+        continue;
+      } else {
         return OMIT_SENTINEL;
       }
-      current = current[index];
     } else {
+      if (typeof current !== 'object') {
+        return OMIT_SENTINEL;
+      }
       current = current[part];
     }
   }
@@ -438,7 +347,8 @@ function resolvePath(response: ResponseData, expr: string): any {
 }
 
 function resolveDotPath(response: ResponseData, expr: string): any {
-  const parts = expr.split('.');
+  // Tolerate accidental empty segments (e.g. `body..root.id`).
+  const parts = expr.split('.').filter((part, idx) => idx === 0 || part !== '');
   if (parts.length < 2) {
     return null;
   }
@@ -540,7 +450,7 @@ export function extractOutputs(
   if (response.type === 'xml' && typeof response.body === 'string') {
     try {
       const jsObj = xml2js(response.body, {compact: true});
-      bodyObject = flattenXmlObj(jsObj);
+      bodyObject = xmlBodyToExtractable(jsObj);
     } catch (e) {
       console.warn('Failed to parse XML:', e);
       bodyObject = {};

@@ -581,6 +581,21 @@ Additional extraction styles:
 
 > **Regex tip:** If the regex contains a capture group `(...)`, the first group is returned. If there is no capture group, the entire match is returned.
 
+XML responses (detected from `Content-Type` or a leading `<`) are navigated with the same paths:
+- The XML declaration (`<?xml …?>`), doctypes and comments are ignored, so paths start at the root element: `body.root.id`.
+- Repeated elements are arrays: `body.root.tags.tag` returns all of them, `body.root.tags.tag.2` the third. Index `.0` also works when only one element is present.
+- Attributes are plain keys on their element: `body.root.nested.enabled`, `body.root.nested.item.1.key`.
+- Element text is a string (`"true"`, `"42"`); empty elements return `""`. Compare with the type-unsafe operators `=~` / `!~` when the expected value is a YAML boolean or number.
+
+```yaml
+outputs:
+  id: body.root.id             # <id>1</id>            => "1"
+  tags: body.root.tags.tag     # repeated <tag>        => ["api", "testing"]
+  firstTag: body.root.tags.tag.0
+  enabled: body.root.nested.enabled   # attribute      => "true"
+  betaKey: body.root.nested.item.1.key
+```
+
 Example
 ```yaml
 outputs:

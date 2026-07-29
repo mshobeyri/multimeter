@@ -109,3 +109,55 @@ describe('extractPathAtPosition - XML', () => {
     expect(path).toEqual(['root', 'data']);
   });
 });
+
+describe('extractPathAtPosition - XML prolog, indices and attributes', () => {
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<!-- sample -->',
+    '<root>',
+    '  <id>1</id>',
+    '  <tags>',
+    '    <tag>api</tag>',
+    '    <tag>testing</tag>',
+    '    <tag>automation</tag>',
+    '  </tags>',
+    '  <nested enabled="true" count="42">',
+    '    <item key="alpha" value="1"/>',
+    '    <item key="beta" value="2"/>',
+    '  </nested>',
+    '</root>',
+  ].join('\n');
+
+  it('ignores the XML declaration and comments (no empty leading segment)', () => {
+    const pos = posOf(xml, '<id>1');
+    const path = extractPathAtPosition(
+        xml, 'xml', pos.line, pos.col + '<id>'.length);
+    expect(path).toEqual(['root', 'id']);
+  });
+
+  it('indexes every repeated element, including the first', () => {
+    const first = posOf(xml, 'api<');
+    expect(extractPathAtPosition(xml, 'xml', first.line, first.col))
+        .toEqual(['root', 'tags', 'tag', 0]);
+
+    const last = posOf(xml, 'automation');
+    expect(extractPathAtPosition(xml, 'xml', last.line, last.col))
+        .toEqual(['root', 'tags', 'tag', 2]);
+  });
+
+  it('returns attribute paths for attribute names and values', () => {
+    const attrName = posOf(xml, 'count="42"');
+    expect(extractPathAtPosition(xml, 'xml', attrName.line, attrName.col))
+        .toEqual(['root', 'nested', 'count']);
+
+    const attrValue = posOf(xml, 'beta"');
+    expect(extractPathAtPosition(xml, 'xml', attrValue.line, attrValue.col))
+        .toEqual(['root', 'nested', 'item', 1, 'key']);
+  });
+
+  it('keeps self-closing elements out of the parent path', () => {
+    const pos = posOf(xml, 'value="2"');
+    expect(extractPathAtPosition(xml, 'xml', pos.line, pos.col))
+        .toEqual(['root', 'nested', 'item', 1, 'value']);
+  });
+});
