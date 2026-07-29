@@ -151,7 +151,8 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
 - `=C` (contains: left contains right), `!C` (does not contain)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
-- `=*` (regex match), `!*` (regex not match). Legacy `=~` and `!~` still work.
+- `=*` (regex match), `!*` (regex not match)
+- `=~` (equal as string / type-unsafe), `!~` (not equal as string) — for XML/text string outputs vs bare YAML booleans/numbers
 - `=#` (string/number character length equals), `!#` (not equal)
 - `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
 

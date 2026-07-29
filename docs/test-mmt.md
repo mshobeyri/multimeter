@@ -297,7 +297,7 @@ With title and report:
     external: fails
 ```
 
-All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `>N%`, `<N%`. Legacy regex operators `=~` and `!~` are still accepted.
+All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=~`, `!~`, `=#`, `!#`, `>N%`, `<N%`.
 
 `omit` behavior in `expect`:
 - Use unquoted `omit` when you expect a field to be missing.
@@ -353,7 +353,8 @@ Supported operators
 - `!C` (left does not contain right)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
-- `=*` (regex match), `!*` (not regex match). Legacy `=~` and `!~` still work.
+- `=*` (regex match), `!*` (not regex match)
+- `=~` (equal, type-unsafe / as string), `!~` (not equal, type-unsafe) — use for XML/text outputs that are always strings vs YAML `true` / `42`
 - `=#` (string/number/list/object length equals), `!#` (not equal)
 - `<#`, `<=#`, `>#`, `>=#` (length/count comparisons)
 - `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
@@ -371,6 +372,7 @@ Inline examples
 ```yaml
 - assert: ${doLogin.status} == 200
 - check: ${profile.name} =* /John/i
+- check: ${xml.active} =~ true
 - check: ${profile.name} >80% Jon
 - check: ${profile.roles} =# 2
 ```

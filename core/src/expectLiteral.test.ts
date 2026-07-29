@@ -10,10 +10,12 @@ import {
 } from './JSerTestFlow';
 import {
   equals_,
+  equalsAsString_,
   equalsIgnoreCase_,
   isNotOmitted_,
   isOmitted_,
   notEquals_,
+  notEqualsAsString_,
   trimEquals_,
   trimEqualsIgnoreCase_,
 } from './testHelper';
@@ -218,8 +220,8 @@ describe('comparison codegen for quotes and omit', () => {
       '!$': 'notEndsWith_',
       '=*': 'matches_',
       '!*': 'notMatches_',
-      '=~': 'matches_',
-      '!~': 'notMatches_',
+      '=~': 'equalsAsString_',
+      '!~': 'notEqualsAsString_',
       '=#': 'lengthEquals_',
       '!#': 'notLengthEquals_',
       '<#': 'lengthLess_',
@@ -261,6 +263,18 @@ describe('runtime omit and quote-sensitive helpers', () => {
     expect(notEquals_('present', OMIT_SENTINEL)).toBe(true);
     expect(equals_('omit', 'omit')).toBe(true);
     expect(equals_('', '')).toBe(true);
+  });
+
+  it('=~ / equalsAsString_ compares XML strings to YAML bools/numbers without changing JSON ==', () => {
+    expect(equalsAsString_('true', true)).toBe(true);
+    expect(equalsAsString_('false', false)).toBe(true);
+    expect(equalsAsString_('42', 42)).toBe(true);
+    expect(equalsAsString_('01', 1)).toBe(false);
+    expect(equalsAsString_('a1', 1)).toBe(false);
+    expect(notEqualsAsString_('true', false)).toBe(true);
+    // Strict == stays type-safe for JSON
+    expect(equals_('true', true)).toBe(false);
+    expect(equals_(true, true)).toBe(true);
   });
 
   it('trim and ignore-case helpers compare unquoted text', () => {

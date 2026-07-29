@@ -115,11 +115,13 @@ const singleComparisonToJSfunc = (check: string): string => {
     case '!C':
       return `notContains_(${actualTemplate}, ${expectedTemplate})`;
     case '=*':
-    case '=~':
       return `matches_(${actualTemplate}, ${expectedTemplate})`;
     case '!*':
-    case '!~':
       return `notMatches_(${actualTemplate}, ${expectedTemplate})`;
+    case '=~':
+      return `equalsAsString_(${actualTemplate}, ${expectedTemplate})`;
+    case '!~':
+      return `notEqualsAsString_(${actualTemplate}, ${expectedTemplate})`;
     case '=^':
       return `startsWith_(${actualTemplate}, ${expectedTemplate})`;
     case '!^':
@@ -527,11 +529,13 @@ const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expec
     case '!C':
       return `notContains_(${actualExpr}, ${expectedExpr})`;
     case '=*':
-    case '=~':
       return `matches_(${actualExpr}, ${expectedExpr})`;
     case '!*':
-    case '!~':
       return `notMatches_(${actualExpr}, ${expectedExpr})`;
+    case '=~':
+      return `equalsAsString_(${actualExpr}, ${expectedExpr})`;
+    case '!~':
+      return `notEqualsAsString_(${actualExpr}, ${expectedExpr})`;
     case '=^':
       return `startsWith_(${actualExpr}, ${expectedExpr})`;
     case '!^':

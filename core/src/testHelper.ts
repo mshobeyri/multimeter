@@ -130,6 +130,22 @@ function asComparableString_(value: any): string {
   return String(value);
 }
 
+/** Type-unsafe equality: compare `String(a)` to `String(b)` (XML string vs YAML bool/number). */
+export function equalsAsString_(a: any, b: any) {
+  if (b === OMIT_SENTINEL) {
+    return isOmitted_(a);
+  }
+  if (a === OMIT_SENTINEL) {
+    return isOmitted_(b);
+  }
+  return asComparableString_(normalizeOmitToNull(a)) ===
+      asComparableString_(normalizeOmitToNull(b));
+}
+
+export function notEqualsAsString_(a: any, b: any) {
+  return !equalsAsString_(a, b);
+}
+
 export function equalsIgnoreCase_(a: any, b: any) {
   return asComparableString_(a).toLowerCase() === asComparableString_(b).toLowerCase();
 }

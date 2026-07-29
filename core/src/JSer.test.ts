@@ -1205,7 +1205,7 @@ describe('call steps without expect', () => {
     expect(js).toContain('Object.prototype.hasOwnProperty.call(_login_0, "status")');
     // Second call at index 1 — different variable name
     expect(js).toContain('const _login_1 = await login(');
-    expect(js).toContain('equals_(`${_login_1.name}`, `ok`)');
+    expect(js).toContain('equals_(_login_1.name, `ok`)');
   });
 });
 
@@ -1265,8 +1265,8 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('!C error')).toEqual({ operator: '!C', expected: 'error' });
   });
 
-  it('parses =~ (regex) operator prefix', () => {
-    expect(parseExpectValue('=~ /ok/i')).toEqual({ operator: '=~', expected: '/ok/i' });
+  it('parses =~ (type-unsafe equal) operator prefix', () => {
+    expect(parseExpectValue('=~ true')).toEqual({ operator: '=~', expected: 'true' });
   });
 
   it('parses new regex, count, and fuzzy operators', () => {
@@ -1314,8 +1314,8 @@ describe('parseExpectValue', () => {
       ['!$', '!$ "suf"', 'suf'],
       ['=*', '=* "/ok/i"', '/ok/i'],
       ['!*', '!* "/fail/"', '/fail/'],
-      ['=~', '=~ "/ok/i"', '/ok/i'],
-      ['!~', '!~ "/fail/"', '/fail/'],
+      ['=~', '=~ "true"', 'true'],
+      ['!~', '!~ "false"', 'false'],
       ['=#', '=# "3"', '3'],
       ['!#', '!# "0"', '0'],
       ['<#', '<# "3"', '3'],
@@ -1414,7 +1414,7 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('const _login_0 = await login(');
-    expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
+    expect(js).toContain('equals_(_login_0.status_code, 200)');
     expect(js).toContain("checkExpects_(");
   });
 
@@ -1431,7 +1431,7 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
+    expect(js).toContain('equals_(_login_0.status_code, `200`)');
   });
 
   it('generates check from != operator', async () => {
@@ -1447,7 +1447,7 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('notEquals_(`${_login_0.status_code}`, `500`)');
+    expect(js).toContain('notEquals_(_login_0.status_code, `500`)');
   });
 
   it('generates multiple checks from array expect value', async () => {
@@ -1463,8 +1463,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
-    expect(js).toContain('notEquals_(`${_login_0.status_code}`, `500`)');
+    expect(js).toContain('equals_(_login_0.status_code, `200`)');
+    expect(js).toContain('notEquals_(_login_0.status_code, `500`)');
   });
 
   it('generates deep object equality for call expect values', async () => {
@@ -1552,8 +1552,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
-    expect(js).toContain('notEquals_(`${_login_0.token}`, `null`)');
+    expect(js).toContain('equals_(_login_0.status_code, 200)');
+    expect(js).toContain('notEquals_(_login_0.token, `null`)');
   });
 
   it('supports dot-notation for nested field access', async () => {
@@ -1571,7 +1571,7 @@ describe('expect on call steps', () => {
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
     expect(js).toContain('__mmt_access((Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
-    expect(js).toContain('equals_(`${__mmt_access(');
+    expect(js).toContain('equals_(__mmt_access(');
   });
 
   it('falls back to hidden default outputs for body and status at execution time', async () => {
@@ -1628,7 +1628,7 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(`${result.echoed_message}`, `${message}`)') ;
+    expect(js).toContain('equals_(result.echoed_message, `${message}`)');
   });
 
   it('uses id as result variable when call has id', async () => {
@@ -1646,7 +1646,7 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('const res = await login(');
-    expect(js).toContain('equals_(`${res.status_code}`, `200`)');
+    expect(js).toContain('equals_(res.status_code, 200)');
   });
 
   it('expect generates multiple checks in field order', async () => {
@@ -1662,8 +1662,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    const statusIdx = js.indexOf('equals_(`${_login_0.status_code}`, `200`)');
-    const tokenIdx = js.indexOf('notEquals_(`${_login_0.token}`, `null`)');
+    const statusIdx = js.indexOf('equals_(_login_0.status_code, 200)');
+    const tokenIdx = js.indexOf('notEquals_(_login_0.token, `null`)');
     expect(statusIdx).toBeGreaterThan(-1);
     expect(tokenIdx).toBeGreaterThan(-1);
     expect(statusIdx).toBeLessThan(tokenIdx);
@@ -1701,7 +1701,7 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(`${_login_0.name}`, `alice`)');
+    expect(js).toContain('equals_(_login_0.name, `alice`)');
   });
 
   it('handles boolean expect value', async () => {
@@ -1717,7 +1717,24 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(`${_login_0.active}`, `true`)');
+    expect(js).toContain('equals_(_login_0.active, true)');
+  });
+
+  it('generates type-unsafe equals for =~ / !~ expect operators', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectAsString',
+      test: {
+        steps: [{
+          call: 'getXml',
+          expect: { active: '=~ true', code: '!~ 0' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equalsAsString_(_getXml_0.active, `true`)');
+    expect(js).toContain('notEqualsAsString_(_getXml_0.code, `0`)');
   });
 
   it('uses step title in generated checks when provided', async () => {
