@@ -4,6 +4,7 @@ import { xml2js } from "xml-js";
 import { beautify } from "mmt-core/markupConvertor";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
 import { normalizeNewlines } from "mmt-core/textLines";
+import { shouldReplaceLocalEditorValue } from "../text/editorContentSync";
 import TextEditor from "../text/TextEditor";
 import { useAccentChrome } from "../shared/useAccentChrome";
 
@@ -84,10 +85,16 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editorRef.current, onInspectPosition, computePathAtCursor]);
 
-    // Keep localValue in sync with parent value (when parent changes)
+    // Keep localValue in sync with parent value (when parent changes).
+    // Ignore EOL-only differences: live mode normalizes CRLF→LF for YAML, and
+    // bouncing that back into Monaco resets the cursor to EOF.
     useEffect(() => {
-        setLocalValue(value);
-        setCursorPath(null);
+        setLocalValue(prev => {
+            if (!shouldReplaceLocalEditorValue(prev, value)) {
+                return prev;
+            }
+            return value;
+        });
     }, [value, refreshKey]);
 
     useEffect(() => {

@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import {withNewline} from 'mmt-core/textLines';
 
 import {HistoryManager} from './historyManager';
 import {messageReceived} from './mmtAPI/mmtAPI';
@@ -170,11 +171,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     // CRLF. Convert to the document EOL before compare/replace so we do not
     // full-rewrite on every keystroke (that races echo and jumps the cursor).
     const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-    const normalized = String(text ?? '')
-                           .replace(/\r\n/g, '\n')
-                           .replace(/\r/g, '\n')
-                           .split('\n')
-                           .join(eol);
+    const normalized = withNewline(String(text ?? ''), eol);
     if (document.getText() === normalized) {
       return Promise.resolve(true);
     }
