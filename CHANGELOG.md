@@ -2,16 +2,21 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.31.1]
+
+- Redefine `=~` / `!~` as type-unsafe (as-string) equality for XML/text values vs YAML bools/numbers; regex stays on `=*` / `!*`
+- Fix XML output extraction: ignore the XML declaration and comments (no more `body..root`), keep repeated elements as arrays with working indices, and read attributes as plain keys
+- Format `md-detailed` report body blocks from Content-Type (json/xml/urlencoded/text) instead of always `json`
+- Fix Windows Monaco cursor jumps and undo emptying the editor
+- Use the refresh icon for Reset to YAML
+
 ## [1.31.0]
 
 - Unify panel UI chrome: shared `TabBar`, `PrimaryButton`, `RunStopToggle`, `PanelRunHeader`, `PanelEditHeader`, and suite `TreeRunButton`
 - Harmonize method/semantic accent colors, theme checkboxes, and related button chrome across webviews
 - Add string/length compare operators (`=i`/`!i`, `=X`/`!X`, `=iX`/`!iX`, `<#`/`<=#`/`>#`/`>=#`) and fix expect quoting (`"…"` / `'…'`) including bare `omit`
-- Redefine `=~` / `!~` as type-unsafe (as-string) equality for XML/text vs YAML bools/numbers; regex stays on `=*` / `!*`
-- Fix XML output extraction: ignore the XML declaration and comments (no more `body..root`), keep repeated elements as arrays with working indices, and read attributes as plain keys
 - Support `&&` and `||` in `if` conditions (second clause in the Flow UI)
 - Add detailed Markdown report export (`md-detailed`) with Request/Response step details (UI Export + CLI `--report md-detailed`)
-- Format `md-detailed` body fences from Content-Type (json/xml/urlencoded/text) instead of always `json`
 - Add YAML-encoded toggle for API edit bodies and pack structured bodies for YAML ↔ UI diffs
 - Update flow and no-type step icons (including setenv, HTTP/call, and run→server labels)
 - Support JS helper imports without a module binding; open a temporary API file from Ctrl/Cmd+click on HTTP test steps
