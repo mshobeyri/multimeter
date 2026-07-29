@@ -20,6 +20,7 @@ import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
 import PanelErrorBoundary from "./shared/PanelErrorBoundary";
 import { ensureThemeSync } from "./text/Theme";
+import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
 
 /** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
 function toEditorText(text: string): string {
@@ -317,7 +318,7 @@ const App: React.FC = () => {
 
       if (message.command === "config") {
         if (typeof message.bodyAutoFormat === "boolean") {
-          (window as any).__mmtBodyAutoFormat = message.bodyAutoFormat;
+          cacheBodyAutoFormat(message.bodyAutoFormat);
           window.dispatchEvent(new CustomEvent("multimeter.config", { detail: message }));
         }
         const size = Number(message.editorFontSize);

@@ -662,6 +662,15 @@ export const messageReceived = async (
       await handleUpdateConfig(message, mmtProvider);
       break;
 
+    // Panels ask for the config when they mount, so a `config` message that was
+    // posted before their listeners were attached is not lost.
+    case 'requestConfig':
+      try {
+        webviewPanel.webview.postMessage(mmtProvider.getEditorConfigMessage());
+      } catch {
+      }
+      break;
+
     case 'exportHtml':
       await file.handleExportHtml(message);
       break;

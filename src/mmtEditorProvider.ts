@@ -40,7 +40,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     });
   }
 
-  private getEditorConfigMessage() {
+  public getEditorConfigMessage() {
     try {
       const config = vscode.workspace.getConfiguration('multimeter');
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');

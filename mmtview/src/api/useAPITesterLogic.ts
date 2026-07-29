@@ -17,6 +17,11 @@ import { pushHistory } from "../vsAPI";
 import { protocolResolver } from "mmt-core";
 import { responseBodyToRawString } from "./responseBodyDisplay";
 import {
+  cacheBodyAutoFormat,
+  readCachedBodyAutoFormat,
+  requestEditorConfig,
+} from "./bodyAutoFormatConfig";
+import {
   ApiUiRefreshScope,
   applyScopedRequestData,
   diffApiRefreshScopes,
@@ -55,7 +60,9 @@ interface UseAPITesterLogicParams {
 }
 
 export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLogicParams) {
-  const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(() => getInitialBodyAutoFormat());
+  const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(() => readCachedBodyAutoFormat());
+  const autoFormatBodyRef = useRef(autoFormatBody);
+  autoFormatBodyRef.current = autoFormatBody;
   const network = useNetwork(autoFormatBody);
   const apiRef = useRef<APIData>(api);
   const [requestData, setRequestData] = useState<Request>();
@@ -397,14 +404,22 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
 
   const setAutoFormatBody = useCallback((next: boolean) => {
     setAutoFormatBodyState(next);
+    cacheBodyAutoFormat(next);
   }, []);
 
   useEffect(() => {
     const handleConfig = (message: any) => {
-      if (typeof message.bodyAutoFormat === "boolean") {
-        setAutoFormatBodyState(message.bodyAutoFormat);
-        prepareRequestData(undefined, { forceReset: true, scopes: ["all"] });
+      if (typeof message.bodyAutoFormat !== "boolean") {
+        return;
       }
+      cacheBodyAutoFormat(message.bodyAutoFormat);
+      // Config is also re-sent on request and after our own toggle, so only a
+      // real change should force the request back to the file values.
+      if (message.bodyAutoFormat === autoFormatBodyRef.current) {
+        return;
+      }
+      setAutoFormatBodyState(message.bodyAutoFormat);
+      prepareRequestData(undefined, { forceReset: true, scopes: ["all"] });
     };
 
     const handleMessage = (event: MessageEvent) => {
@@ -433,6 +448,16 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       window.removeEventListener("multimeter.config", handleConfigEvent);
     };
   }, [prepareRequestData]);
+
+  // The initial `config` message can be delivered before this hook mounts (its
+  // listeners attach one commit after the document content arrives, which loses
+  // the race on slower webview startups). Adopt the cached value and ask the
+  // extension to resend the config now that the listeners above exist.
+  useEffect(() => {
+    const cached = readCachedBodyAutoFormat();
+    setAutoFormatBodyState(prev => (prev === cached ? prev : cached));
+    requestEditorConfig();
+  }, []);
 
   // Response panel is filled only via multimeter.api.run.result from the extension.
   useEffect(() => {
@@ -511,10 +536,6 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     examples,
     resetTouchedFields
   };
-}
-
-function getInitialBodyAutoFormat(): boolean {
-  return (window as any).__mmtBodyAutoFormat === true;
 }
 
 function cloneInputs(source?: JSONRecord): JSONRecord {
