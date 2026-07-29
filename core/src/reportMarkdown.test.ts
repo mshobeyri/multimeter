@@ -405,5 +405,44 @@ describe('generateReportMarkdown', () => {
     expect(detailed).toContain('#### Response');
     expect(detailed).toContain('**Status:** `200 OK (42ms)`');
     expect(detailed).toContain('"token": "abc"');
+    expect(detailed).toContain('```json');
+  });
+
+  it('fences and beautifies step bodies by Content-Type (xml / urlencoded)', () => {
+    const details = JSON.stringify({
+      _: {
+        status: 200,
+        details: JSON.stringify({
+          request: {
+            method: 'post',
+            url: 'https://example.com/form',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'name=Ada+Lovelace&role=engineer',
+          },
+          response: {
+            status: 200,
+            statusText: 'OK',
+            headers: { 'content-type': 'application/xml' },
+            body: '<user><name>Ada</name><active>true</active></user>',
+          },
+        }),
+      },
+    });
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'xml.mmt',
+          steps: [makeStep({ title: 'Form', status: 'passed', details })],
+        }),
+      ],
+    };
+
+    const detailed = generateReportMarkdownDetailed(results);
+    expect(detailed).toContain('```\nname=Ada Lovelace&\nrole=engineer\n```');
+    expect(detailed).toContain('```xml');
+    expect(detailed).toContain('<name>Ada</name>');
+    expect(detailed).not.toContain('```json\n<user>');
+    expect(detailed).not.toContain('```json\nname=');
   });
 });

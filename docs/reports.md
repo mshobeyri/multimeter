@@ -258,6 +258,8 @@ Detailed Markdown starts with the same overview and `## Tests` content as regula
 - Request: method, URL, headers, body
 - Response: status (with text and duration), headers, body
 
+Body blocks use a fence language and pretty-printing based on `Content-Type` (and body sniffing when the header is missing): `json`, `xml`, urlencoded (one field per line), or plain text.
+
 ```md
 ## Step Details
 

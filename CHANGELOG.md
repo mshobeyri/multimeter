@@ -9,6 +9,7 @@ All notable changes to the **Multimeter** extension will be documented in this f
 - Add string/length compare operators (`=i`/`!i`, `=X`/`!X`, `=iX`/`!iX`, `<#`/`<=#`/`>#`/`>=#`) and fix expect quoting (`"…"` / `'…'`) including bare `omit`
 - Support `&&` and `||` in `if` conditions (second clause in the Flow UI)
 - Add detailed Markdown report export (`md-detailed`) with Request/Response step details (UI Export + CLI `--report md-detailed`)
+- Format `md-detailed` body fences from Content-Type (json/xml/urlencoded/text) instead of always `json`
 - Add YAML-encoded toggle for API edit bodies and pack structured bodies for YAML ↔ UI diffs
 - Update flow and no-type step icons (including setenv, HTTP/call, and run→server labels)
 - Support JS helper imports without a module binding; open a temporary API file from Ctrl/Cmd+click on HTTP test steps
