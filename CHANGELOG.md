@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.31.2]
+
+- Keep the editor undo history when the UI rewrites YAML, so Ctrl+Z still works after Add example or any UI-driven update
+- Fix the API tester auto-format toggle showing off on newly opened files
+- Suggest every compare operator (including `=~` / `!~`) in check/assert autocomplete
+
 ## [1.31.1]
 
 - Redefine `=~` / `!~` as type-unsafe (as-string) equality for XML/text values vs YAML bools/numbers; regex stays on `=*` / `!*`
