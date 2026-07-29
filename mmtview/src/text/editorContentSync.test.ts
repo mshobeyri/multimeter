@@ -1,5 +1,6 @@
 import { normalizeNewlines } from 'mmt-core/textLines';
 import {
+  computeMinimalEditSpan,
   documentTextMatchesWebview,
   editorContentsEquivalent,
   planExternalMonacoApply,
@@ -34,6 +35,13 @@ class FakeMonacoModel {
   executeEditsFullReplace(next: string): void {
     this.undoStack.push(this.value);
     this.value = next;
+  }
+
+  /** Monaco pushEditOperations over one range: undoable, keeps earlier history. */
+  applySpan(span: { start: number; end: number; text: string }): void {
+    this.undoStack.push(this.value);
+    this.value =
+      this.value.slice(0, span.start) + span.text + this.value.slice(span.end);
   }
 
   /** User keystroke (simplified). */
@@ -111,9 +119,46 @@ describe('editorContentSync (Windows CRLF simulation)', () => {
       expect(planExternalMonacoApply('type: api\n', 'type: api\n')).toBe('noop');
     });
 
-    it('uses setValue for external replace (not executeEdits)', () => {
+    it('uses setValue only to hydrate the empty mount buffer', () => {
       expect(planExternalMonacoApply('', 'type: api\n')).toBe('setValue');
-      expect(planExternalMonacoApply('old\n', 'new\n')).toBe('setValue');
+    });
+
+    it('uses an undoable edit for later rewrites so Ctrl+Z keeps working', () => {
+      expect(planExternalMonacoApply('old\n', 'new\n')).toBe('edit');
+    });
+  });
+
+  describe('computeMinimalEditSpan', () => {
+    it('returns null when nothing changed', () => {
+      expect(computeMinimalEditSpan('type: api\n', 'type: api\n')).toBeNull();
+    });
+
+    it('narrows a UI→YAML rewrite to the appended block', () => {
+      const before = 'type: api\nurl: x\n';
+      const after = 'type: api\nurl: x\nexamples:\n  - name: one\n';
+      const span = computeMinimalEditSpan(before, after);
+      expect(span).toEqual({
+        start: before.length,
+        end: before.length,
+        text: 'examples:\n  - name: one\n',
+      });
+    });
+
+    it('narrows an in-place value change to that value', () => {
+      const before = 'method: get\n';
+      const span = computeMinimalEditSpan(before, 'method: post\n')!;
+      // Shared prefix "method: " and suffix "t\n" stay outside the edit.
+      expect(before.slice(0, span.start)).toBe('method: ');
+      expect(before.slice(span.end)).toBe('t\n');
+      expect(span.text).toBe('pos');
+    });
+
+    it('applying the span reproduces the next value', () => {
+      const before = 'a\nb\nc\n';
+      const after = 'a\nB\nc\n';
+      const span = computeMinimalEditSpan(before, after)!;
+      const applied = before.slice(0, span.start) + span.text + before.slice(span.end);
+      expect(applied).toBe(after);
     });
   });
 
@@ -147,11 +192,34 @@ describe('editorContentSync (Windows CRLF simulation)', () => {
       expect(model.getValue()).toBe(opened);
     });
 
-    it('Windows save echo: setValue keeps cursor policy via plan (replace, not noop)', () => {
+    it('Windows save echo applies as an edit, not a noop', () => {
       // insertFinalNewline-style echo: webview lacked trailing newline, document has it
       const beforeSave = 'type: api\nurl: x';
       const afterSaveEcho = 'type: api\nurl: x\n';
-      expect(planExternalMonacoApply(beforeSave, afterSaveEcho)).toBe('setValue');
+      expect(planExternalMonacoApply(beforeSave, afterSaveEcho)).toBe('edit');
+    });
+  });
+
+  describe('UI-driven YAML rewrite keeps undo history', () => {
+    it('undoes the UI rewrite and then the typing that came before it', () => {
+      const model = new FakeMonacoModel('');
+      const opened = 'type: api\nurl: x\n';
+      model.setValue(opened);
+      model.type('# note\n');
+      const typed = model.getValue();
+
+      // "Add example" packs new YAML into the same editor.
+      const packed = typed + 'examples:\n  - name: one\n';
+      expect(planExternalMonacoApply(typed, packed)).toBe('edit');
+      model.applySpan(computeMinimalEditSpan(typed, packed)!);
+      expect(model.getValue()).toBe(packed);
+
+      expect(model.undo()).toBe(true);
+      expect(model.getValue()).toBe(typed);
+      expect(model.undo()).toBe(true);
+      expect(model.getValue()).toBe(opened);
+      // The opened document stays the floor.
+      expect(model.undo()).toBe(false);
     });
   });
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import MonacoEditor from "@monaco-editor/react";
-import { planExternalMonacoApply } from "./editorContentSync";
+import { computeMinimalEditSpan, planExternalMonacoApply } from "./editorContentSync";
 import { defineTheme, getMonacoThemeName } from "./Theme";
 
 interface TextEditorProps {
@@ -319,53 +319,77 @@ const TextEditor: React.FC<TextEditorProps> = ({
    * which jumps the cursor to EOF on every external rewrite (save echo, CRLF→LF
    * body normalize, UI→YAML pack).
    *
-   * Use setValue (not executeEdits) so the undo stack is reset: the editor often
-   * mounts empty before the document arrives, and executeEdits would let Ctrl+Z
-   * rewind to that empty buffer and then persist it via onChange.
+   * The first hydration uses setValue so Ctrl+Z cannot rewind to the empty
+   * buffer the editor mounts with. Later rewrites are pushed as undoable edits
+   * over the changed range only, which keeps the file's undo history alive.
    */
   const applyExternalContent = (editor: any, next: string) => {
     const model = editor.getModel?.();
     if (!model) {
       return;
     }
-    if (planExternalMonacoApply(editor.getValue(), next) === "noop") {
+    const current = editor.getValue();
+    const plan = planExternalMonacoApply(current, next);
+    if (plan === "noop") {
       return;
     }
-    const selection = editor.getSelection?.();
-    const position = editor.getPosition?.();
     const scrollTop = editor.getScrollTop?.() ?? 0;
     const scrollLeft = editor.getScrollLeft?.() ?? 0;
     applyingExternalContentRef.current = true;
     applyingPasteTransformRef.current = true;
     try {
-      editor.setValue(next);
-      if (selection) {
-        const start = clampMonacoPosition(model, {
-          lineNumber: selection.startLineNumber,
-          column: selection.startColumn,
-        });
-        const end = clampMonacoPosition(model, {
-          lineNumber: selection.endLineNumber,
-          column: selection.endColumn,
-        });
-        editor.setSelection?.({
-          startLineNumber: start.lineNumber,
-          startColumn: start.column,
-          endLineNumber: end.lineNumber,
-          endColumn: end.column,
-        });
-      } else if (position) {
-        editor.setPosition?.(clampMonacoPosition(model, position));
+      if (plan === "setValue") {
+        editor.setValue(next);
+      } else {
+        pushExternalEdit(editor, model, current, next);
       }
       editor.setScrollTop?.(scrollTop);
       editor.setScrollLeft?.(scrollLeft);
     } finally {
-      // setValue may notify listeners asynchronously; keep suppress flags until
+      // Monaco may notify listeners asynchronously; keep suppress flags until
       // after the current turn so onChange cannot echo the sync as a user edit.
       queueMicrotask(() => {
         applyingExternalContentRef.current = false;
         applyingPasteTransformRef.current = false;
       });
+    }
+  };
+
+  /**
+   * Replace only the changed range and keep it on the undo stack, so the user
+   * can undo a UI-driven YAML rewrite and everything typed before it.
+   */
+  const pushExternalEdit = (editor: any, model: any, current: string, next: string) => {
+    const span = computeMinimalEditSpan(current, next);
+    if (!span) {
+      return;
+    }
+    const start = model.getPositionAt(span.start);
+    const end = model.getPositionAt(span.end);
+    const selections = editor.getSelections?.() ?? null;
+    model.pushStackElement?.();
+    model.pushEditOperations?.(
+      selections,
+      [
+        {
+          range: {
+            startLineNumber: start.lineNumber,
+            startColumn: start.column,
+            endLineNumber: end.lineNumber,
+            endColumn: end.column,
+          },
+          text: span.text,
+          forceMoveMarkers: false,
+        },
+      ],
+      // Keep the cursor where Monaco moved it for this edit instead of forcing
+      // it to the end of the replaced range.
+      () => null,
+    );
+    model.pushStackElement?.();
+    const position = editor.getPosition?.();
+    if (position) {
+      editor.setPosition?.(clampMonacoPosition(model, position));
     }
   };
 
