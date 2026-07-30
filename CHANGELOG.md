@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.31.3]
+
+- Fix `omit` input removal across request formats (JSON, XML, urlencoded, headers, cookies, query) and test `call` inputs
+- Improve omit handling so unquoted `omit` drops fields instead of sending a literal value; quoted `"omit"` stays a string
+- Add report integration tests for omit behavior and report levels
+
 ## [1.31.2]
 
 - Keep the editor undo history when the UI rewrites YAML, so Ctrl+Z still works after Add example or any UI-driven update
