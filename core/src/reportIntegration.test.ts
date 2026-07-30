@@ -41,7 +41,6 @@ const sentRequests =
 function assertNoOmitSentinel(...texts: string[]) {
   for (const text of texts) {
     expect(text).not.toContain(OMIT_SENTINEL);
-    expect(text).not.toContain('__MMT_OMIT_KEYWORD__');
   }
 }
 
