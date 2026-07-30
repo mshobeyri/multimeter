@@ -1,10 +1,13 @@
 import {yamlToAPIStrict} from './apiParsePack';
 import {parseExpectValue} from './JSerTestFlow';
 import {
+  applyOmitToOutgoingRequest,
   isOmitSentinel,
   normalizeOmitToNull,
   OMIT_SENTINEL,
   restoreOmitKeyword,
+  restoreOmitKeywordInText,
+  stripOmitFromBody,
   stripOmitFromRequest,
 } from './omitKeyword';
 import {yamlToTestStrict} from './testParsePack';
@@ -116,6 +119,11 @@ describe('omit keyword transformations', () => {
     expect(parsed.inputs?.nullAsString).toBe('null');
   });
 
+  it('renames cleanly: the sentinel is the only marker used', () => {
+    expect(OMIT_SENTINEL).toBe('__MMT_OMIT__');
+    expect(restoreOmitKeywordInText(`{"a":"${OMIT_SENTINEL}"}`)).toBe('{"a":"omit"}');
+  });
+
   it('removes all fields derived from omitted input values', () => {
     const replaced = replaceAllRefs(
         {
@@ -135,5 +143,79 @@ describe('omit keyword transformations', () => {
       role: 'admin',
       role_short: 'adm',
     });
+  });
+});
+
+describe('omit in a request built at runtime', () => {
+  it('drops JSON body fields whose value came from an omitted input', () => {
+    const body = JSON.stringify({message: OMIT_SENTINEL, keep: 'yes'}, null, 2);
+    expect(JSON.parse(stripOmitFromBody(body, 'json'))).toEqual({keep: 'yes'});
+  });
+
+  it('keeps array index shape in JSON bodies', () => {
+    const body = JSON.stringify({tags: [OMIT_SENTINEL, 'stable']});
+    expect(JSON.parse(stripOmitFromBody(body, 'json'))).toEqual({
+      tags: [null, 'stable'],
+    });
+  });
+
+  it('drops urlencoded pairs', () => {
+    expect(stripOmitFromBody(`a=1&message=${OMIT_SENTINEL}&b=2`, 'urlencoded'))
+        .toBe('a=1&b=2');
+  });
+
+  it('drops XML elements and attributes', () => {
+    const xml = `<root>\n  <keep>1</keep>\n  <message>${
+        OMIT_SENTINEL}</message>\n  <item flag="${OMIT_SENTINEL}" other="2"/>\n</root>`;
+    const stripped = stripOmitFromBody(xml, 'xml');
+    expect(stripped).not.toContain(OMIT_SENTINEL);
+    expect(stripped).not.toContain('<message>');
+    expect(stripped).not.toContain('flag=');
+    expect(stripped).toContain('<keep>1</keep>');
+    expect(stripped).toContain('other="2"');
+  });
+
+  it('empties a text body that is only the marker', () => {
+    expect(stripOmitFromBody(OMIT_SENTINEL, 'text')).toBe('');
+  });
+
+  it('leaves binary bodies untouched', () => {
+    const buffer = Buffer.from([1, 2, 3]);
+    expect(stripOmitFromBody(buffer, 'binary')).toBe(buffer);
+  });
+
+  it('leaves bodies without the marker untouched', () => {
+    const body = '{"a": 1}';
+    expect(stripOmitFromBody(body, 'json')).toBe(body);
+  });
+
+  it('drops omitted headers, query, and url query pairs', () => {
+    const req = applyOmitToOutgoingRequest(
+        {
+          url: `https://example.com/items?limit=10&cursor=${OMIT_SENTINEL}`,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${OMIT_SENTINEL}`,
+          },
+          query: {page: '2', filter: OMIT_SENTINEL},
+          body: JSON.stringify({message: OMIT_SENTINEL}),
+        },
+        'json');
+
+    expect(req.url).toBe('https://example.com/items?limit=10');
+    expect(req.headers).toEqual({'Content-Type': 'application/json'});
+    expect(req.query).toEqual({page: '2'});
+    expect(JSON.parse(req.body)).toEqual({});
+  });
+
+  it('drops omitted gRPC message fields and metadata', () => {
+    const req = applyOmitToOutgoingRequest({
+      url: 'grpc://example.com',
+      metadata: {'x-trace': OMIT_SENTINEL, keep: '1'},
+      message: {name: OMIT_SENTINEL, id: 7},
+    });
+
+    expect(req.metadata).toEqual({keep: '1'});
+    expect(req.message).toEqual({id: 7});
   });
 });

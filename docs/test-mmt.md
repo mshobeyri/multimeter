@@ -171,6 +171,16 @@ Invoke an imported API or another test; give it an id to reference its outputs l
     token: ${doLogin.token}
 ```
 
+Pass unquoted `omit` to drop a field from the request the called API builds — the
+field is removed instead of being sent with a value. Use `"omit"` (quoted) to
+send the literal string:
+```yaml
+- call: echo
+  id: result
+  inputs:
+    message: omit
+```
+
 ### http
 Send an HTTP request directly from the test without importing a separate `type: api` file. This is useful for setup, teardown, health checks, or small one-off requests that you do not want to reuse elsewhere.
 

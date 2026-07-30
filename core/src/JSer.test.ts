@@ -1820,7 +1820,7 @@ describe('expect on call steps', () => {
 
     await runJSCode({
       js: `
-        const echo = async () => ({ x: '__MMT_OMIT_KEYWORD__' });
+        const echo = async () => ({ x: '__MMT_OMIT__' });
         ${js}
       `,
       title: 'omit-report-runtime',

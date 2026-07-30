@@ -545,6 +545,7 @@ Input keyword values:
 - `null` (unquoted) sends a JSON/YAML null value.
 - `"omit"` and `"null"` are literal strings (quoted on purpose) and stay strings after formatting.
 - This applies to top-level `inputs`, call-time `inputs`, CLI `-e key=value`, and API Tester input overrides.
+- Removal happens for every request format: JSON keys, XML elements and attributes, `urlencoded` pairs, headers, cookies, and query values (including query pairs written inline in `url`).
 
 Example:
 ```yaml
@@ -556,6 +557,15 @@ body:
   user_initial: <<i:username[0]>>
   role_short: <<i:role[0:3]>>
 ```
+
+Example — omitting an input from a test `call`:
+```yaml
+steps:
+  - call: echo
+    inputs:
+      message: omit
+```
+The request is sent without `message` at all; nothing named `omit` is sent as a value.
 
 ### outputs
 Map response data to named output variables. Keys are the exported names (used in tests via `expect` or `id`), values are extraction expressions using these keywords:

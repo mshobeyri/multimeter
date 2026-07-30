@@ -141,12 +141,12 @@ describe('testHelper comparison helpers', () => {
   it('treats omit sentinel as omitted in equals_', () => {
     expect(isOmitted_(undefined)).toBe(true);
     expect(isOmitted_(null)).toBe(true);
-    expect(isOmitted_('__MMT_OMIT_KEYWORD__')).toBe(true);
+    expect(isOmitted_('__MMT_OMIT__')).toBe(true);
     expect(isNotOmitted_('value')).toBe(true);
-    expect(equals_(undefined, '__MMT_OMIT_KEYWORD__')).toBe(true);
-    expect(equals_('__MMT_OMIT_KEYWORD__', null)).toBe(true);
-    expect(equals_('present', '__MMT_OMIT_KEYWORD__')).toBe(false);
-    expect(notEquals_('present', '__MMT_OMIT_KEYWORD__')).toBe(true);
+    expect(equals_(undefined, '__MMT_OMIT__')).toBe(true);
+    expect(equals_('__MMT_OMIT__', null)).toBe(true);
+    expect(equals_('present', '__MMT_OMIT__')).toBe(false);
+    expect(notEquals_('present', '__MMT_OMIT__')).toBe(true);
   });
 
   it('reports count for passed length/count comparisons', () => {

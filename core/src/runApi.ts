@@ -398,6 +398,10 @@ export interface ApiLogHelpers {
 }
 
 export function createApiLogHelpers(): ApiLogHelpers {
+  // This factory is serialized with toString() into the generated run code, so
+  // it must stay self-contained: no imports are in scope there. `runner.test.ts`
+  // guards this copy of the marker against drifting from OMIT_SENTINEL.
+  const omitSentinel = '__MMT_OMIT__';
   function raw(value: unknown): ApiLogRawValue {
     return {__mmt_raw: String(value)};
   }
@@ -421,6 +425,11 @@ export function createApiLogHelpers(): ApiLogHelpers {
     }
     if (value === null) {
       return 'null';
+    }
+    // Unquoted like the YAML keyword, so a missing value reads as `omit` while
+    // a literal string value still shows as `"omit"`.
+    if (value === omitSentinel) {
+      return 'omit';
     }
     if (typeof value === 'string') {
       return '"' + escapeString(value) + '"';
@@ -550,7 +559,7 @@ export function createApiLogHelpers(): ApiLogHelpers {
   }
   function displayExpectValue(value: unknown): string {
     const restoreOmit = (v: unknown): unknown => {
-      if (v === '__MMT_OMIT_KEYWORD__') {
+      if (v === omitSentinel) {
         return 'omit';
       }
       if (Array.isArray(v)) {

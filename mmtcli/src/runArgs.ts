@@ -12,7 +12,7 @@ export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 const {mergeEnv, resolvePresetEnv} =
     ((mmtcore as any).runConfig || {}) as any;
 const OMIT_SENTINEL =
-    ((mmtcore as any).omitKeyword || {}).OMIT_SENTINEL || '__MMT_OMIT_KEYWORD__';
+    ((mmtcore as any).omitKeyword || {}).OMIT_SENTINEL || '__MMT_OMIT__';
 
 const LOG_LEVEL_PRIORITY: Record<string, number> = {
   error: 0,

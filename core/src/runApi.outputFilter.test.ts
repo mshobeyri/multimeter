@@ -1,5 +1,6 @@
 import {generateApiJs} from './runApi';
 import {extractOutputs} from './outputExtractor';
+import {applyOmitToRequest_} from './testHelper';
 
 describe('runApi output printing', () => {
   it('logs Outputs section in generated API JS', async () => {
@@ -63,10 +64,12 @@ describe('runApi output printing', () => {
       'send_',
       'extractOutputs_',
       'console',
+      'applyOmitToRequest_',
       `const protocolFromUrl_ = () => 'http';\n${js}`,
     );
 
-    const result = await execute(send, extractOutputs, consoleMock);
+    const result =
+        await execute(send, extractOutputs, consoleMock, applyOmitToRequest_);
     const outputLog = logs.find(log => log.includes('Outputs:')) || '';
 
     expect(result.body).toBe('hello world');

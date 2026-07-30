@@ -1,6 +1,7 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
 import { beautifyWithContentType } from './markupConvertor';
+import { isOmitSentinel, OMIT_KEYWORD, restoreOmitKeywordInText } from './omitKeyword';
 import {formatReportDateTime, formatReportNumber, formatReportPercent} from './reportFormat';
 
 export interface ReportMarkdownOptions {
@@ -241,14 +242,17 @@ function displayValue(v: any): string {
   if (v === null || v === undefined) {
     return String(v);
   }
+  if (isOmitSentinel(v)) {
+    return OMIT_KEYWORD;
+  }
   if (typeof v === 'object') {
     try {
-      return JSON.stringify(v);
+      return restoreOmitKeywordInText(JSON.stringify(v));
     } catch {
       return String(v);
     }
   }
-  return String(v);
+  return restoreOmitKeywordInText(String(v));
 }
 
 function stepHasSimilarity(step: TestStepResult): boolean {

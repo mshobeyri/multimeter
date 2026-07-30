@@ -1,4 +1,4 @@
-import {normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL, restoreOmitKeyword} from './omitKeyword';
+import {applyOmitToOutgoingRequest, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
 import {opsList} from './TestData';
 import {wrapJsHelperModuleSource} from './jsModuleExport';
 
@@ -100,7 +100,7 @@ function deepEquals_(a: any, b: any): boolean {
 
 export function equals_(a: any, b: any) {
   // If either side is the omit sentinel, treat as an omit/presence check so
-  // callers that still pass `__MMT_OMIT_KEYWORD__` as a value work correctly.
+  // callers that still pass `__MMT_OMIT__` as a value work correctly.
   if (b === OMIT_SENTINEL) {
     return isOmitted_(a);
   }
@@ -121,6 +121,14 @@ export function isOmitted_(value: any): boolean {
 
 export function isNotOmitted_(value: any): boolean {
   return !isOmitted_(value);
+}
+
+/**
+ * Drop omit-marked fields from a request before it is sent. Generated API code
+ * calls this because call-time inputs are only resolved at runtime.
+ */
+export function applyOmitToRequest_(req: any, format?: string): any {
+  return applyOmitToOutgoingRequest(req, format);
 }
 
 function asComparableString_(value: any): string {
@@ -458,7 +466,7 @@ const nextStepIndexFor = (runId: string): number => {
 const normalizeComparison = (value: unknown): string => {
   const normalizedValue = restoreOmitKeyword(value);
   if (typeof value === 'string') {
-    return value.split(OMIT_SENTINEL).join(OMIT_KEYWORD);
+    return restoreOmitKeywordInText(value);
   }
   if (normalizedValue === null || normalizedValue === undefined) {
     return '';
@@ -485,7 +493,9 @@ const normalizeTitleDetails = (title: unknown, details: unknown): {
   const d = normalizeMessage(details);
   return {
     title: t,
-    details: d,
+    // Details carry the serialized call result, where a missing output is the
+    // sentinel. Reports and panels must show `omit` instead of the marker.
+    details: typeof d === 'string' ? restoreOmitKeywordInText(d) : d,
   };
 };
 
@@ -745,7 +755,7 @@ function formatCheckLogLine_(
 }
 
 function formatCheckDetails(raw: string): string {
-  const sanitizedRaw = String(raw || '').split(OMIT_SENTINEL).join(OMIT_KEYWORD);
+  const sanitizedRaw = restoreOmitKeywordInText(raw);
   try {
     const expandJsonStrings = (obj: any): any => {
       if (typeof obj === 'string') {

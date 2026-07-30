@@ -407,7 +407,9 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
     ? JSON.stringify('omit')
     : expectValueToJs(expected);
   // Strip ${...} from comparison display string so UI shows clean field names
-  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1').replace(/__MMT_OMIT_KEYWORD__/g, 'omit');
+  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1')
+                         .split(OMIT_SENTINEL)
+                         .join(OMIT_KEYWORD);
   return `check_(${conditionStatement}, '${type}', ${JSON.stringify(displayRaw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
 };
 
