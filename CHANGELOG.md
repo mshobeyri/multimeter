@@ -2,6 +2,13 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.32.0]
+
+- Add optional test call cache: declare `cache` on a test (duration, epoch, or date/time) so imported calls with the same title + inputs reuse outputs within one root run
+- Show dedicated database pass/fail icons when a step is served from cache; add Cache field on the test Edit overview and docs/example
+- Stringify objects and arrays for `=C` / `=@` / `=^` / `=$` / `=*` (and related) checks so JSON bodies work as text (e.g. `body =C POST`)
+- Support interdependent input defaults across tests and APIs (`i:` / `${inputs…}` among defaults)
+
 ## [1.31.3]
 
 - Fix `omit` input removal across request formats (JSON, XML, urlencoded, headers, cookies, query) and test `call` inputs
