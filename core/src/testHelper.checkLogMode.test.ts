@@ -1,4 +1,4 @@
-import {check_, checkExpects_, equals_, equalsIgnoreCase_, fuzzyMatch_, isOmitted_, isNotOmitted_, lengthEquals_, lengthGreater_, lengthGreaterOrEqual_, lengthLess_, lengthLessOrEqual_, lengthOf_, matches_, notEquals_, notEqualsIgnoreCase_, notFuzzyMatch_, notLengthEquals_, notMatches_, notTrimEquals_, notTrimEqualsIgnoreCase_, reportWithContext_, similarityPercent_, trimEquals_, trimEqualsIgnoreCase_} from './testHelper';
+import {check_, checkExpects_, contains_, equals_, equalsIgnoreCase_, fuzzyMatch_, isAt_, isNotAt_, isOmitted_, isNotOmitted_, lengthEquals_, lengthGreater_, lengthGreaterOrEqual_, lengthLess_, lengthLessOrEqual_, lengthOf_, matches_, notContains_, notEquals_, notEqualsIgnoreCase_, notFuzzyMatch_, notLengthEquals_, notMatches_, notTrimEquals_, notTrimEqualsIgnoreCase_, reportWithContext_, similarityPercent_, trimEquals_, trimEqualsIgnoreCase_} from './testHelper';
 
 describe('testHelper checkLogMode', () => {
   function makeConsole() {
@@ -239,6 +239,47 @@ describe('testHelper comparison helpers', () => {
     expect(matches_('John', '/john/i')).toBe(true);
     expect(matches_('john@example.com', '@example\\.com$')).toBe(true);
     expect(notMatches_('admin', '/^user/')).toBe(true);
+  });
+
+  it('checks is-at and contains on multi-line outputs', () => {
+    const body = 'status: ok\nmessage: hello\nid: 42\n';
+
+    expect(isAt_('message: hello', body)).toBe(true);
+    expect(isAt_('missing', body)).toBe(false);
+    expect(isNotAt_('missing', body)).toBe(true);
+
+    expect(contains_(body, 'message: hello')).toBe(true);
+    expect(contains_(body, 'status: ok\nmessage: hello')).toBe(true);
+    expect(contains_(body, 'goodbye')).toBe(false);
+    expect(notContains_(body, 'goodbye')).toBe(true);
+  });
+
+  it('stringifies objects for contains, is-at, and regex match', () => {
+    const body = {
+      method: 'POST',
+      url: 'https://test.mmt.dev/echo',
+      path: '/echo',
+      body: { message: 'hello world' },
+    };
+
+    expect(contains_(body, 'POST')).toBe(true);
+    expect(contains_(body, 'hello world')).toBe(true);
+    expect(contains_(body, 'PUT')).toBe(false);
+    expect(isAt_('POST', body)).toBe(true);
+    expect(isAt_('GET', body)).toBe(false);
+    expect(matches_(body, '/"method":"POST"/')).toBe(true);
+    expect(matches_(body, '/"method":"GET"/')).toBe(false);
+    expect(notContains_(body, 'PUT')).toBe(true);
+  });
+
+  it('checks regex match on multi-line outputs', () => {
+    const body = 'status: ok\nmessage: hello\nid: 42\n';
+
+    expect(matches_(body, '/message: hello/')).toBe(true);
+    expect(matches_(body, '/^message: hello$/m')).toBe(true);
+    expect(matches_(body, '/status: ok.*id: 42/s')).toBe(true);
+    expect(matches_(body, '/^id: 99$/m')).toBe(false);
+    expect(notMatches_(body, '/^id: 99$/m')).toBe(true);
   });
 
   it('deeply compares objects and arrays for equality', () => {

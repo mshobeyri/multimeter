@@ -132,11 +132,26 @@ export function applyOmitToRequest_(req: any, format?: string): any {
   return applyOmitToOutgoingRequest(req, format);
 }
 
+/**
+ * Coerce any value to a string for substring / regex / prefix checks.
+ * Objects and arrays become JSON so `body =C POST` works on parsed JSON bodies
+ * (and XML/text already stored as strings stays unchanged).
+ */
 function asComparableString_(value: any): string {
   if (value === null || value === undefined) {
     return '';
   }
-  return String(value);
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 /** Type-unsafe equality: compare `String(a)` to `String(b)` (XML string vs YAML bool/number). */
@@ -180,33 +195,21 @@ export function notTrimEqualsIgnoreCase_(a: any, b: any) {
 }
 
 export function isAt_(a: any, b: any) {
-  // Checks if a is in b (for strings or arrays): b.includes(a)
-  if (typeof b === 'string' || Array.isArray(b)) {
-    return b.includes(a);
-  }
-  return false;
+  // Checks if a is in b (string compare; objects/arrays JSON-stringified)
+  return asComparableString_(b).includes(asComparableString_(a));
 }
 
 export function isNotAt_(a: any, b: any) {
-  if (typeof b === 'string' || Array.isArray(b)) {
-    return !b.includes(a);
-  }
-  return true;
+  return !isAt_(a, b);
 }
 
 export function contains_(a: any, b: any) {
-  // Checks if a contains b (for strings or arrays): a.includes(b)
-  if (typeof a === 'string' || Array.isArray(a)) {
-    return a.includes(b);
-  }
-  return false;
+  // Checks if a contains b (string compare; objects/arrays JSON-stringified)
+  return asComparableString_(a).includes(asComparableString_(b));
 }
 
 export function notContains_(a: any, b: any) {
-  if (typeof a === 'string' || Array.isArray(a)) {
-    return !a.includes(b);
-  }
-  return true;
+  return !contains_(a, b);
 }
 
 function regexFrom_(pattern: any): RegExp {
@@ -222,7 +225,7 @@ export function matches_(a: any, b: any) {
   // b is a regex string, e.g. "^foo.*" or "/foo/i"
   try {
     const re = regexFrom_(b);
-    return re.test(a);
+    return re.test(asComparableString_(a));
   } catch {
     return false;
   }
@@ -231,7 +234,7 @@ export function matches_(a: any, b: any) {
 export function notMatches_(a: any, b: any) {
   try {
     const re = regexFrom_(b);
-    return !re.test(a);
+    return !re.test(asComparableString_(a));
   } catch {
     return true;
   }
@@ -273,8 +276,8 @@ export function lengthGreaterOrEqual_(actual: any, expected: any) {
 }
 
 function similarityRatio_(actual: any, expected: any): number {
-  const actualText = String(actual ?? '');
-  const expectedText = String(expected ?? '');
+  const actualText = asComparableString_(actual);
+  const expectedText = asComparableString_(expected);
   const actualLength = actualText.length;
   const expectedLength = expectedText.length;
   const maxLength = Math.max(actualLength, expectedLength);
@@ -339,31 +342,19 @@ function countForComparison_(comparison: string, actual: any): number | undefine
 }
 
 export function startsWith_(a: any, b: any) {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return a.startsWith(b);
-  }
-  return false;
+  return asComparableString_(a).startsWith(asComparableString_(b));
 }
 
 export function notStartsWith_(a: any, b: any) {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return !a.startsWith(b);
-  }
-  return true;
+  return !startsWith_(a, b);
 }
 
 export function endsWith_(a: any, b: any) {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return a.endsWith(b);
-  }
-  return false;
+  return asComparableString_(a).endsWith(asComparableString_(b));
 }
 
 export function notEndsWith_(a: any, b: any) {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return !a.endsWith(b);
-  }
-  return true;
+  return !endsWith_(a, b);
 }
 
 type FileLoader = (path: string) => Promise<string>;
