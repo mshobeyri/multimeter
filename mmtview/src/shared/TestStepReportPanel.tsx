@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StepStatus } from './types';
-import { statusIconFor } from './Common';
+import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
 
 /** Parsed call result details extracted from the `_` field of an API call output. */
@@ -268,6 +268,8 @@ export interface StepReportItem {
   details?: string;
   expects: ExpectReportItem[];
   timestamp: number;
+  /** True when the related call returned outputs from the in-run test call cache. */
+  cached?: boolean;
 }
 
 interface TestStepReportPanelProps {
@@ -343,7 +345,6 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {stepReports.map((report) => {
               const isDebug = report.stepType === 'debug';
-              const meta = isDebug ? statusIconFor('debug') : statusIconFor(report.status);
               const reportKey = `${report.stepType}-${report.stepIndex}-${report.timestamp}`;
               const callDetails = parseCallDetails(report.details);
               const hasExpects = report.expects.length > 0;
@@ -366,11 +367,11 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     gap: 12,
                   }}
                 >
-                  <span
-                    className={`codicon ${meta.icon}`}
-                    style={{ color: meta.color, marginTop: 2 }}
-                    aria-label={meta.title}
-                  ></span>
+                  <StatusIconWithCache
+                    status={isDebug ? 'debug' : report.status}
+                    cached={report.cached === true}
+                    style={{ marginTop: 2 }}
+                  />
                   <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}</span>

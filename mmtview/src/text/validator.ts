@@ -217,6 +217,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "import",
         "inputs",
         "outputs",
+        "cache",
         "steps",
         "stages",
       ];

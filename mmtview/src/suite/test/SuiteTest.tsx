@@ -580,6 +580,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     details: typeof message.details === 'string' ? message.details : undefined,
                     expects: Array.isArray(message.expects) ? message.expects : [],
                     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
+                    cached: message.cached === true ? true : undefined,
                 };
                 next[targetId] = [...(next[targetId] || []), normalized];
                 changed = true;

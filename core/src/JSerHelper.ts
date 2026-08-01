@@ -138,6 +138,62 @@ export function isDurationExpression(value: string): boolean {
 }
 
 /**
+ * Parse a test `cache` scalar into an absolute expiry timestamp (ms since epoch).
+ *
+ * Detection order (see AI/sdd/sdd-test-call-cache.md):
+ * 1. Duration grammar (`1s`, `5m`, `1h5m`) → `nowMs + duration`
+ * 2. String containing `:` → Date.parse (ISO / standard time text)
+ * 3. Bare number (or numeric string) → Unix epoch (seconds if &lt; 1e12, else ms)
+ */
+export function parseCacheExpiryAtMs(
+    value: unknown, nowMs: number = Date.now()): number|undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || value < 0) {
+      return undefined;
+    }
+    return value < 1e12 ? Math.round(value * 1000) : Math.round(value);
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (isDurationExpression(trimmed)) {
+    const durationMs = parseDurationString(trimmed);
+    if (durationMs === undefined) {
+      return undefined;
+    }
+    return nowMs + durationMs;
+  }
+
+  if (trimmed.includes(':')) {
+    const parsed = Date.parse(trimmed);
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+    return parsed;
+  }
+
+  if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
+    const n = Number(trimmed);
+    if (!Number.isFinite(n) || n < 0) {
+      return undefined;
+    }
+    return n < 1e12 ? Math.round(n * 1000) : Math.round(n);
+  }
+
+  return undefined;
+}
+
+/**
  * Parse a duration string into milliseconds.
  * Supports single and combined unit suffixes: 2s, 1h5m, 5m3s, 1h30m15s.
  * Bare numbers and "inf" return undefined — callers decide how to interpret them.

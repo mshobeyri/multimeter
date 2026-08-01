@@ -27,6 +27,7 @@ export interface TestStepResult {
   expects: ExpectItemResult[];
   timestamp: number;
   durationMs?: number;
+  cached?: boolean;
 }
 
 export interface TestRunResult {
@@ -233,6 +234,7 @@ export function createReportCollector() {
         details: event.details,
         expects: event.expects,
         timestamp: event.timestamp,
+        cached: event.cached === true ? true : undefined,
       });
       return;
     }

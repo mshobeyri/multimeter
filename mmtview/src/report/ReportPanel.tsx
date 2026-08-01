@@ -26,6 +26,7 @@ function mapToStepReports(run: TestRunResult): StepReportItem[] {
     details: step.details,
     expects: (step.expects || []).map(e => ({ ...e, status: e.status as StepStatus })),
     timestamp: step.timestamp,
+    cached: step.cached === true ? true : undefined,
   }));
 }
 

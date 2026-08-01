@@ -1,3 +1,5 @@
+import React from 'react';
+import { statusIcons } from 'mmt-core';
 import { StepStatus } from './types';
 
 export const statusIconFor = (status: StepStatus) => {
@@ -23,6 +25,48 @@ export const statusIconFor = (status: StepStatus) => {
         return { icon: 'codicon-debug', color: '#8973ea', title: 'Debug' };
     }
     return { icon: 'codicon-circle-large', color: '#c5c5c5', title: 'Default' };
+};
+
+/** Status icon; when `cached`, uses db_pass / db_error instead of the normal pass/fail glyphs. */
+export const StatusIconWithCache: React.FC<{
+  status: StepStatus;
+  cached?: boolean;
+  fontSize?: number | string;
+  style?: React.CSSProperties;
+}> = ({ status, cached, fontSize, style }) => {
+  const meta = statusIconFor(status);
+  const useDbIcon = cached === true && (status === 'passed' || status === 'failed');
+  const label = useDbIcon ? `${meta.title} (served from cache)` : meta.title;
+  const size = fontSize ?? '1em';
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        lineHeight: 1,
+        color: meta.color,
+        fontSize: size,
+        width: '1em',
+        height: '1em',
+        ...style,
+      }}
+      title={label}
+      aria-label={label}
+    >
+      {useDbIcon ? (
+        <span
+          style={{ display: 'inline-flex', width: '1em', height: '1em' }}
+          dangerouslySetInnerHTML={{
+            __html: status === 'passed' ? statusIcons.DB_PASS_SVG : statusIcons.DB_ERROR_SVG,
+          }}
+        />
+      ) : (
+        <span className={`codicon ${meta.icon}`} style={{ color: meta.color, fontSize: size }} />
+      )}
+    </span>
+  );
 };
 
 export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>): StepStatus => {

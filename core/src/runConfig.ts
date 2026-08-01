@@ -30,6 +30,8 @@ export interface TestStepReporterEvent {
   timestamp: number;
   expects: ExpectItemEvent[];
   id?: string;
+  /** True when the related call returned outputs from the in-run test call cache. */
+  cached?: boolean;
 }
 
 export interface TestRunSummaryEvent {

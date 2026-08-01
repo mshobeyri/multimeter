@@ -1,0 +1,41 @@
+type: test
+title: Use cached session
+description: |-
+  Advanced cache example:
+  1) First call runs Create session (HTTP).
+  2) Second call — same inputs — returns cached outputs (DB icon in reports).
+  3) Third call — different user — cache miss, HTTP again.
+import:
+  session: ./create_session.mmt
+steps:
+  - call: session
+    id: first
+    title: Session for alice (miss → HTTP)
+    inputs:
+      user: alice
+      pass: secret
+    expect:
+      token: != null
+      user: == alice
+
+  - call: session
+    id: second
+    title: Session for alice again (hit → cache)
+    inputs:
+      user: alice
+      pass: secret
+    expect:
+      token: == ${first.token}
+      user: == alice
+
+  - call: session
+    id: third
+    title: Session for bob (miss → HTTP)
+    inputs:
+      user: bob
+      pass: other
+    expect:
+      token:
+        - != null
+        - != ${first.token}
+      user: == bob

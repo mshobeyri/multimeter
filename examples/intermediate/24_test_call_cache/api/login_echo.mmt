@@ -1,0 +1,19 @@
+type: api
+title: Login echo
+description: |-
+  Stand-in login endpoint for the call-cache example.
+  Echoes username back as a fake token payload.
+inputs:
+  username: alice
+  password: secret
+outputs:
+  token: body.body.token
+  user: body.body.user
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  user: i:username
+  token: <<i:username>>-session-token
+  password: i:password

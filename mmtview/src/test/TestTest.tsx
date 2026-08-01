@@ -302,6 +302,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                     details: typeof (message as any).details === 'string' ? (message as any).details : undefined,
                     expects: Array.isArray((message as any).expects) ? (message as any).expects : [],
                     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
+                    cached: (message as any).cached === true ? true : undefined,
                 };
                 appendReport(normalized);
                 if (normalized.status === 'failed') {

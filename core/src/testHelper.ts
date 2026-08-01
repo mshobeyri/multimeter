@@ -1,3 +1,4 @@
+import {parseCacheExpiryAtMs} from './JSerHelper';
 import {applyOmitToOutgoingRequest, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
 import {opsList} from './TestData';
 import {wrapJsHelperModuleSource} from './jsModuleExport';
@@ -370,6 +371,9 @@ type FileLoader = (path: string) => Promise<string>;
 let __mmtFileLoader: FileLoader|undefined;
 const __mmtJsModuleCache = new Map<string, any>();
 
+/** Runtime re-export so generated test JS can compute cache expiry at store time. */
+export const parseCacheExpiryAtMs_ = parseCacheExpiryAtMs;
+
 export const setFileLoader_ = (loader: FileLoader|undefined) => {
   __mmtFileLoader = loader;
 };
@@ -413,6 +417,97 @@ export const importJsModule_ = async(
   __mmtJsModuleCache.set(path, exported);
   return exported;
 };
+
+// ---------------------------------------------------------------------------
+// In-run test call cache (see AI/sdd/sdd-test-call-cache.md)
+// ---------------------------------------------------------------------------
+
+type TestCallCacheEntry = {outputs: any; expiresAt: number};
+
+const __mmtTestCallCache = new Map<string, TestCallCacheEntry>();
+
+function stableJsonForCache_(value: any): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map(v => stableJsonForCache_(v)).join(',') + ']';
+  }
+  const keys = Object.keys(value).sort();
+  return '{' +
+      keys.map(k => JSON.stringify(k) + ':' + stableJsonForCache_(value[k]))
+          .join(',') +
+      '}';
+}
+
+function testCallCacheKey_(title: string, inputs: Record<string, any>): string {
+  return String(title ?? '') + '\0' + stableJsonForCache_(inputs ?? {});
+}
+
+function deepCloneCacheValue_(value: any): any {
+  if (value === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+}
+
+/** Clear the in-run test call cache (called at the start of each jsRunner run). */
+export const clearTestCallCache_ = (): void => {
+  __mmtTestCallCache.clear();
+};
+
+/**
+ * Lookup a cached test return value. On hit, returns a clone marked with
+ * `_.cached = true` for report UIs. Returns undefined on miss/expiry.
+ */
+export const getTestCallCache_ =
+    (title: string, inputs: Record<string, any>): any|undefined => {
+      const key = testCallCacheKey_(title, inputs);
+      const entry = __mmtTestCallCache.get(key);
+      if (!entry) {
+        return undefined;
+      }
+      if (Date.now() >= entry.expiresAt) {
+        __mmtTestCallCache.delete(key);
+        return undefined;
+      }
+      const clone = deepCloneCacheValue_(entry.outputs);
+      if (!clone || typeof clone !== 'object' || Array.isArray(clone)) {
+        return {_ : {cached: true}, value: clone};
+      }
+      if (!clone._ || typeof clone._ !== 'object' || Array.isArray(clone._)) {
+        clone._ = {cached: true};
+      } else {
+        clone._ = {...clone._, cached: true};
+      }
+      return clone;
+    };
+
+/** Store outputs for a title+inputs key until absolute expiry (ms epoch). */
+export const setTestCallCache_ = (
+    title: string, inputs: Record<string, any>, outputs: any,
+    expiresAt: number): void => {
+  if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt)) {
+    return;
+  }
+  const clone = deepCloneCacheValue_(outputs);
+  if (clone && typeof clone === 'object' && !Array.isArray(clone) && clone._ &&
+      typeof clone._ === 'object' && !Array.isArray(clone._) &&
+      Object.prototype.hasOwnProperty.call(clone._, 'cached')) {
+    const rest = {...clone._};
+    delete rest.cached;
+    clone._ = rest;
+  }
+  __mmtTestCallCache.set(testCallCacheKey_(title, inputs), {
+    outputs: clone,
+    expiresAt,
+  });
+};
+
 declare const __mmtReportStep:|((event: Record<string, any>) => void)|undefined;
 declare const __mmtRunId: string|undefined;
 declare const __mmtId: string|undefined;
@@ -499,6 +594,20 @@ const normalizeTitleDetails = (title: unknown, details: unknown): {
   };
 };
 
+/** True when call-result JSON details include `_.cached` from a test call cache hit. */
+function detailsIndicateCached_(details: unknown): boolean {
+  if (typeof details !== 'string' || !details.trim()) {
+    return false;
+  }
+  try {
+    const parsed = JSON.parse(details);
+    return !!(parsed && typeof parsed === 'object' && parsed._ &&
+              typeof parsed._ === 'object' && parsed._.cached === true);
+  } catch {
+    return false;
+  }
+}
+
 const emitStep = (event: Record<string, any>) => {
   const reporter = resolveReporter();
   if (!reporter) {
@@ -565,6 +674,9 @@ export const reportWithContext_ = (
   }
   if (typeof normalized.details === 'string') {
     payload.details = normalized.details;
+  }
+  if (detailsIndicateCached_(details)) {
+    payload.cached = true;
   }
 
   const resolvedId = (typeof id === 'string' && id) ? id :

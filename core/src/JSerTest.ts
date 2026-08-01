@@ -1,7 +1,7 @@
 import {JSONRecord} from './CommonData';
 import {resolveRequestedAgainst} from './fileHelper';
 import {ImportTracker} from './importTracker';
-import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
+import {indentLines, parseCacheExpiryAtMs, toInputsParams, toLowerUnderscore} from './JSerHelper';
 import {importsToJsfuncDetailed} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
@@ -228,7 +228,39 @@ export const testToJsfunc = async(
   const emitSetenv = root || (Array.isArray(ctx.test.tags) && ctx.test.tags.includes('http'));
   flow += await flowToJsFunc(replaced, root, useExternalReport, importTitleMap, emitSetenv);
 
-  return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
+  const fnName = `${toLowerUnderscore(ctx.name)}${root ? '_' : ''}`;
+  const cacheSpec = !root ? ctx.test.cache : undefined;
+  const cacheProbe = cacheSpec !== undefined && cacheSpec !== null && cacheSpec !== '' ?
+      parseCacheExpiryAtMs(cacheSpec) :
+      undefined;
+  const useCallCache = typeof cacheProbe === 'number' && Number.isFinite(cacheProbe);
+  const cacheTitle = JSON.stringify(ctx.test.title || ctx.name || fnName);
+  const cacheSpecLiteral = JSON.stringify(cacheSpec);
+  const inputKeys = Object.keys(replaced.inputs || {});
+  const resolvedInputsLiteral = inputKeys.length ?
+      '{ ' + inputKeys.map(k => `${k}`).join(', ') + ' }' :
+      '{}';
+
+  if (useCallCache) {
+    // Imported test with cache: key on resolved inputs (after defaults),
+    // skip body on hit, store outputs on miss. Expiry is computed at store
+    // time so duration values are relative to the miss, not codegen time.
+    return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${fnName} = async (__mmtArgs = {}) => {
+  const { ${inputParams} } = __mmtArgs;
+  const __mmtResolvedInputs = ${resolvedInputsLiteral};
+  const __mmtCacheHit = getTestCallCache_(${cacheTitle}, __mmtResolvedInputs);
+  if (__mmtCacheHit !== undefined) {
+    return __mmtCacheHit;
+  }
+  ${indentLines(importsAssignments)}\n
+  let outputs = {${outputParams}};
+  ${indentLines(flow)}
+  setTestCallCache_(${cacheTitle}, __mmtResolvedInputs, outputs, parseCacheExpiryAtMs_(${cacheSpecLiteral}));
+  return outputs;
+};\n`;
+  }
+
+  return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${fnName} = async ({ ${
       inputParams}} = {}) => {
   ${indentLines(importsAssignments)}\n
   let outputs = {${outputParams}};

@@ -1,6 +1,7 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
 import {formatReportDateTime, formatReportNumber, formatReportPercent, formatReportRelativeTime} from './reportFormat';
+import { DB_ERROR_SVG, DB_PASS_SVG } from './statusIcons';
 
 export interface ReportHtmlOptions {
   suiteName?: string;
@@ -80,9 +81,17 @@ function displayValue(v: any): string {
 function buildStepHtml(step: TestStepResult): string {
   const name = escapeHtml(step.title || `step-${step.stepIndex}`);
   const duration = hasValue(step.durationMs) ? ` <span class="duration">(${formatDuration(step.durationMs)})</span>` : '';
-  const iconChar = step.status === 'passed' ? '✓' : '✗';
-  const iconColor = step.status === 'passed' ? 'var(--passed)' : 'var(--failed)';
-  const iconSpan = `<span style="color: ${iconColor}">${iconChar}</span>`;
+  const passed = step.status === 'passed';
+  const iconColor = passed ? 'var(--passed)' : 'var(--failed)';
+  const iconTitle = step.cached
+    ? `${step.status} (served from cache)`
+    : step.status;
+  const iconInner = step.cached
+    ? (passed ? DB_PASS_SVG : DB_ERROR_SVG)
+    : (passed ? '✓' : '✗');
+  const iconSpan =
+      `<span class="status-icon" style="color: ${iconColor}" title="${escapeHtml(iconTitle)}">` +
+      `${iconInner}</span>`;
   const expects = step.expects || [];
   const hasSimilarity = expects.some(e => typeof e.similarity === 'number');
   const hasCount = expects.some(e => typeof e.count === 'number');
@@ -684,6 +693,22 @@ const CSS = `
     overflow-wrap: break-word;
     word-break: break-word;
     overflow: hidden;
+  }
+  .status-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    vertical-align: -0.15em;
+    width: 1em;
+    height: 1em;
+    margin-right: 0.25em;
+  }
+  .status-icon svg {
+    width: 1em;
+    height: 1em;
+    display: block;
   }
   .testcase.passed { color: var(--passed); }
   .testcase.passed:hover { background: var(--passed-bg); border-color: var(--glass-border); }

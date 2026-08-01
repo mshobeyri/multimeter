@@ -15,7 +15,7 @@ export const ROOT_KEY_ORDER: Record<string, string[]> = {
     'cookies', 'body', 'graphql', 'grpc', 'examples',
   ],
   test: [
-    'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs',
+    'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'cache',
     'steps', 'stages', 'flow',
   ],
   env: [

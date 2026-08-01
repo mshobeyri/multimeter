@@ -177,6 +177,24 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Values produced by the test to be reused.'
         },
         {
+            label: "cache",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "cache: ${1:5m}",
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Call cache TTL [number | string]',
+            documentation: [
+                'When this test is imported and called again in the same root run with the same title + inputs,',
+                'reuse previous outputs and skip the callee body (no nested HTTP).',
+                'Caller expect/check/assert still run. Reports show a database icon on cache hits.',
+                '',
+                'Examples:',
+                'cache: 5m',
+                'cache: 1h5m',
+                'cache: 1735689600',
+                'cache: 2026-12-31T23:59:59Z',
+            ].join('\n')
+        },
+        {
             label: "steps",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "steps:\n\t",

@@ -31,6 +31,11 @@ inputs:                         # input variables with default values
 outputs:                        # top-level outputs for this test
   <name>: string                # expression or literal
 
+cache: 5m                       # optional; when this test is imported+called again
+                                # in the same root run with same title+inputs,
+                                # reuse outputs (skip callee body). Duration like
+                                # repeat/delay, epoch number, or datetime with ":"
+
 steps:                          # linear flow of steps (no stages)
   - <step>
 

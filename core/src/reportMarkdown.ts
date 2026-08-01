@@ -233,8 +233,8 @@ function escapeMdTable(s: string): string {
 
 function buildStepRow(step: TestStepResult, index: number): string {
   const name = escapeMdTable(step.title || `step-${step.stepIndex}`);
-  const icon = step.status === 'passed' ? '✓' : '✗';
-  const result = `${icon} ${step.status}`;
+  const icon = stepStatusMark(step);
+  const result = `${icon} ${step.status}${step.cached ? ' (cache)' : ''}`;
   return `| ${index + 1} | ${name} | ${result} |`;
 }
 
@@ -277,9 +277,16 @@ function buildBodyBlock(value: any, headers?: Record<string, any>): string {
   return `\n\`\`\`${lang}\n${text}\n\`\`\`\n`;
 }
 
+function stepStatusMark(step: TestStepResult): string {
+  if (step.cached) {
+    return step.status === 'passed' ? '🗄️✓' : '🗄️✗';
+  }
+  return step.status === 'passed' ? '✓' : '✗';
+}
+
 function buildStepDetails(step: TestStepResult): string {
   const name = step.title || `step-${step.stepIndex}`;
-  const stepIcon = step.status === 'passed' ? '✓' : '✗';
+  const stepIcon = stepStatusMark(step);
   let md = `\n<details>\n<summary>${stepIcon} ${name}</summary>\n\n`;
   const expects = step.expects || [];
   if (expects.length > 0) {
@@ -342,7 +349,7 @@ function buildFullStepCallDetails(
   stepHeadingLevel: number,
 ): string {
   const name = step.title || `step-${step.stepIndex}`;
-  const stepIcon = step.status === 'passed' ? '✓' : '✗';
+  const stepIcon = stepStatusMark(step);
   const sectionLevel = stepHeadingLevel + 1;
   let md = `\n${mdHeading(stepHeadingLevel, `${stepIcon} ${name}`)}\n\n`;
 

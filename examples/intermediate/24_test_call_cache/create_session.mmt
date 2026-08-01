@@ -1,0 +1,28 @@
+type: test
+title: Create session
+description: |-
+  Expensive setup test: calls login once per distinct inputs.
+  `cache: 5m` means further calls in the same root run with the same
+  title + inputs reuse outputs and skip nested HTTP.
+import:
+  login: ./api/login_echo.mmt
+inputs:
+  user: alice
+  pass: secret
+outputs:
+  token: ''
+  user: ''
+cache: 5m
+steps:
+  - call: login
+    id: auth
+    title: Login (network)
+    inputs:
+      username: i:user
+      password: i:pass
+    expect:
+      status: =~ "200"
+      token: != null
+  - js: |
+      outputs.token = auth.token
+      outputs.user = auth.user

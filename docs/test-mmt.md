@@ -102,6 +102,68 @@ module.exports = {
 
 See `examples/intermediate/14_javascript_helpers` and `examples/professional/09_javascript_helpers`.
 
+### cache
+Optional. Declared on a `type: test` file immediately before `steps` (or `stages`). When this test is **imported and called** again in the **same root run** with the same `title` + inputs, Multimeter returns the previous outputs instead of re-running the callee body (no nested server/HTTP work for that invocation). Caller `expect` / `check` / `assert` still run as usual. Report UIs replace the pass/fail icon with a dedicated cached icon (`db_pass` / `db_error`) when a step was served from cache.
+
+`cache` is a single scalar. Detection:
+
+| Value | How it is detected | Expiry |
+|-------|--------------------|--------|
+| `1s`, `5m`, `1h`, `1h5m`, … | Same duration grammar as `repeat` / `delay` | `now + duration` |
+| Text containing `:` (e.g. `2026-12-31T23:59:59Z`) | Standard date/time | Absolute wall-clock |
+| Bare number (e.g. `1735689600`) | No unit and no `:` | Unix epoch (seconds if `< 1e12`, else milliseconds) |
+
+```yaml
+type: test
+title: Create session
+cache: 5m
+inputs:
+  user: e:USER
+  pass: e:PASS
+outputs:
+  token: ''
+import:
+  login_api: ./login_api.mmt
+steps:
+  - call: login_api
+    id: auth
+    inputs:
+      username: i:user
+      password: i:pass
+  - js: |
+      outputs.token = auth.token
+```
+
+Parent test (calls twice with the same inputs — second call is a cache hit):
+
+```yaml
+type: test
+title: Use cached session
+import:
+  session: ./create_session.mmt
+steps:
+  - call: session
+    id: a
+    inputs:
+      user: alice
+      pass: secret
+    expect:
+      token: != null
+  - call: session
+    id: b
+    inputs:
+      user: alice
+      pass: secret
+    expect:
+      token: == ${a.token}
+```
+
+Notes:
+- Phase 1 applies only to **`type: test`** callees (not `type: api`).
+- Cache lives for one root run only (one editor Run / one CLI invocation).
+- Direct Run of the cached file always executes the body (so you can debug it).
+- See `examples/intermediate/24_test_call_cache` and design notes in `AI/sdd/sdd-test-call-cache.md`.
+
 **Path resolution:**
 - **Relative paths** (e.g., `./login.mmt`, `../apis/users.mmt`) resolve relative to the current file's directory.
 - **Project root paths** start with `+/` and resolve relative to the directory containing `multimeter.mmt`. This is useful for importing shared APIs or data from a central location without worrying about relative path depth.
@@ -693,6 +755,7 @@ steps:
 - import: record&lt;string, string&gt; (`.mmt`, `.csv`, `.js`/`.cjs`/`.mjs`)
 - inputs: record&lt;string, string | number | boolean | null&gt;
 - outputs: record&lt;string, string | number | boolean | null&gt;
+- cache: number \| string (optional; duration like `5m`, epoch number, or date/time text containing `:`)
 - steps: array of step (alias: `flow`)
 - stages: array of { id, title?, steps, condition?, after? }
 - step types: `call`, `http`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`, `run`

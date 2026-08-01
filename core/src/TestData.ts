@@ -205,6 +205,11 @@ export interface TestDataBase extends MMTFile {
 import?: Record<string, string>;
   inputs?: Record<string, string>;
   outputs?: Record<string, string>;
+  /**
+   * Optional call-cache TTL/expiry for imported tests (phase 1).
+   * Duration (`5m`), epoch number, or date/time text containing `:`.
+   */
+  cache?: number|string;
   steps?: TestFlowSteps;
   stages?: TestFlowStages;
 }
