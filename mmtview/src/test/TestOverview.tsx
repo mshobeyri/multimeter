@@ -78,6 +78,28 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       keyPlaceholder="name"
       valuePlaceholder="value"
     />
+    <div className="label">Cache</div>
+    <div style={{ padding: "5px", boxSizing: "border-box" }}>
+      <input
+        value={test.cache != null ? String(test.cache) : ""}
+        onChange={e => {
+          const raw = e.target.value.trim();
+          if (!raw) {
+            update({ cache: undefined });
+            return;
+          }
+          // Bare integer → epoch number; otherwise keep as duration / date-time string.
+          if (/^\d+$/.test(raw)) {
+            update({ cache: Number(raw) });
+            return;
+          }
+          update({ cache: raw });
+        }}
+        placeholder="5m (optional; duration, epoch, or date/time)"
+        title="When this test is imported and called again with the same title and inputs in one run, reuse outputs until expiry"
+        style={{ width: "100%", boxSizing: "border-box" }}
+      />
+    </div>
   </div>
 );
 
