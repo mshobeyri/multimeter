@@ -69,6 +69,7 @@
 
 ## Workflow / agent rules
 
+- After completing a coding request that changes source, run `npm run compile` at the repo root and fix any compile errors before finishing (or before committing when a commit was requested).
 - Do **NOT** create, stage, or push git commits unless the user explicitly asks you to do so. Always ask for confirmation before running any `git add`, `git commit`, or `git push` operations. You may edit files in the workspace to make suggested changes, but do not record those changes in version control until the user gives explicit permission. When edits are made without committing, clearly list the modified files and the intended commit message so the user can approve.
 - Do **NOT** touch `CHANGELOG.md` for regular fixes or features. It is written only as part of the release workflow, from the commits included in that release.
 
