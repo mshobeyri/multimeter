@@ -179,6 +179,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "cache",
             kind: monaco.languages.CompletionItemKind.Property,
+            // Monaco snippet placeholders intentionally use ${n:default} in a normal string.
+            // eslint-disable-next-line no-template-curly-in-string
             insertText: "cache: ${1:5m}",
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Call cache TTL [number | string]',
@@ -471,6 +473,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Runs nested steps only when the condition is true. Optional else with its own steps.',
                 'Combine comparisons with && or || (spaces required).',
                 'Example:',
+                // Literal example text for docs; not a JS template literal.
+                // eslint-disable-next-line no-template-curly-in-string
                 '- if: ${user.role} == admin && ${user.active} == true',
                 '  steps:',
                 '    - print: "Admin access granted"',

@@ -399,6 +399,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
       return;
     }
     applyExternalContent(editor, content);
+    // Re-run only when content changes; helpers are recreated each render but
+    // are always current when this effect runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, editorRefToUse]);
 
   const editorDidMount = (editor: any) => {
