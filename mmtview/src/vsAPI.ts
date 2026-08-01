@@ -344,3 +344,8 @@ function normalizeOpenFilePath(filename: string): string {
   export function showHistoryPanel() {
     window.vscode?.postMessage({command: 'openHistoryPanel'});
   }
+
+  /** Pin the current preview tab so the next single-click open won't replace it. */
+  export function keepEditor() {
+    window.vscode?.postMessage({command: 'keepEditor'});
+  }

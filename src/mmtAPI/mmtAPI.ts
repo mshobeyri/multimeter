@@ -6,6 +6,7 @@ import * as file from './file';
 import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
+import {keepMmtEditorSoon} from '../keepEditor';
 import {loadWorkspaceEnvFile, refreshWorkspaceCertificatesFromEnvFile} from '../workspaceEnvLoader';
 import {buildThemeTokenMessage} from '../themeTokenColors';
 import {
@@ -708,6 +709,11 @@ export const messageReceived = async (
         command: 'mockServerStatus',
         running: mockRunner.isRunning(document.uri.toString()),
       });
+      break;
+
+    case 'keepEditor':
+      // Webview asks to pin a preview tab (e.g. unsaved UI input edits).
+      keepMmtEditorSoon(document.uri);
       break;
   }
 };

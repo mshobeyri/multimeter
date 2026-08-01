@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import {withNewline} from 'mmt-core/textLines';
 
 import {HistoryManager} from './historyManager';
+import {keepMmtEditorSoon} from './keepEditor';
 import {messageReceived} from './mmtAPI/mmtAPI';
 import {buildThemeTokenMessage} from './themeTokenColors';
 
@@ -175,6 +176,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     if (document.getText() === normalized) {
       return Promise.resolve(true);
     }
+    // UI/YAML edits should keep a preview tab open (same idea as a dirty file).
+    keepMmtEditorSoon(document.uri);
     const key = document.uri.toString();
     this._webviewEditCount.set(
         key, (this._webviewEditCount.get(key) || 0) + 1);
