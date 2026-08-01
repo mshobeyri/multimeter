@@ -96,23 +96,16 @@
             line-height: 1;
         }
 
-        .history-type-icon-bg {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.28;
-            pointer-events: none;
+        .history-type-icon-server {
+            display: block;
+            width: 14px;
+            height: 14px;
         }
 
-        .history-type-icon-bg .codicon {
-            font-size: 16px;
-        }
-
-        .history-type-icon-fg {
-            position: relative;
-            z-index: 1;
+        .history-type-icon-server svg {
+            display: block;
+            width: 14px;
+            height: 14px;
         }
 
         .history-title {
@@ -672,6 +665,9 @@ __THEME_ACCENT_JS__
             return escapeHtml(text);
         }
 
+        var SERVER_UP_SVG = __SERVER_UP_SVG__;
+        var SERVER_DOWN_SVG = __SERVER_DOWN_SVG__;
+
         function getTypeIcon(type, status, protocol) {
             var isMock = String(protocol || '').toLowerCase() === 'mock';
             var semanticKey;
@@ -683,18 +679,23 @@ __THEME_ACCENT_JS__
                 semanticKey = 'red';
             }
             var color = TA.accentChromeFor(semanticKey).text;
+            if (isMock) {
+                // Single server+arrow glyph: up = out (send/error response), down = in (recv).
+                var out = type === 'send' || type === 'error';
+                var svg = out ? SERVER_UP_SVG : SERVER_DOWN_SVG;
+                var title = out ? 'Mock server out' : 'Mock server in';
+                return '<span class="history-type-icon" title="' + title +
+                    '" style="color:' + color + '">' +
+                    '<span class="history-type-icon-server" aria-hidden="true">' + svg +
+                    '</span></span>';
+            }
             var fg;
             if (type === 'send') {
-                fg = '<span class="codicon codicon-arrow-up history-type-icon-fg" style="color:' + color + '"></span>';
-            } else if (type === 'recv' && !(status >= 400)) {
-                fg = '<span class="codicon codicon-arrow-down history-type-icon-fg" style="color:' + color + '"></span>';
+                fg = '<span class="codicon codicon-arrow-up" style="color:' + color + '"></span>';
             } else {
-                fg = '<span class="codicon codicon-arrow-down history-type-icon-fg" style="color:' + color + '"></span>';
+                fg = '<span class="codicon codicon-arrow-down" style="color:' + color + '"></span>';
             }
-            var bg = isMock
-                ? '<span class="history-type-icon-bg" title="Mock server" style="color:' + color + '"><span class="codicon codicon-vm-compact"></span></span>'
-                : '';
-            return '<span class="history-type-icon">' + bg + fg + '</span>';
+            return '<span class="history-type-icon">' + fg + '</span>';
         }
 
         function statusAccentColor(isError) {
