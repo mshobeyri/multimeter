@@ -429,84 +429,123 @@ const App: React.FC = () => {
     };
   }, [panelMode]);
 
+  // panelMode owns visibility; panelSize is only the split ratio in "full".
+  // Keep SplitPane + Monaco mounted. Hide inactive pane + resizer completely —
+  // size 0/100% alone left a sash/gap (resizer margins; UI minWidth).
+  const isSplitMode = panelMode === "full";
+  const layoutWidth = getLayoutWidth();
+
+  const pane1Style: React.CSSProperties =
+    panelMode === "ui"
+      ? { display: "none" }
+      : panelMode === "yaml"
+        ? { flex: "1 1 auto", width: "100%", minWidth: 0, overflow: "hidden" }
+        : { minWidth: 0, overflow: "hidden" };
+
+  const pane2Style: React.CSSProperties =
+    panelMode === "yaml"
+      ? { display: "none" }
+      : panelMode === "ui"
+        ? { flex: "1 1 auto", width: "100%", minWidth: 0, overflow: "hidden" }
+        : { minWidth: 0, overflow: "hidden" };
+
+  const resizerStyle: React.CSSProperties | undefined = isSplitMode
+    ? undefined
+    : { display: "none", width: 0, minWidth: 0, margin: 0, padding: 0, pointerEvents: "none" };
+
   return (
     <FileContext.Provider value={{ mmtFilePath, projectRoot }}>
       <div ref={splitHostRef} style={{ height: "100%", width: "100%", overflow: "hidden" }}>
-      <SplitPane
-        split="vertical"
-        size={panelSize}
-        onChange={(size) => {
-          const width = getLayoutWidth();
-          if (!isLayoutVisible(width)) {
-            debugPanelState(`ignore split change while hidden/narrow width=${width} mode=${panelMode} size=${size}`);
-            return;
-          }
-          if (panelMode === "full") {
+        <SplitPane
+          split="vertical"
+          size={panelSize}
+          allowResize={isSplitMode}
+          resizerClassName="Resizer"
+          resizerStyle={resizerStyle}
+          onChange={(size) => {
+            if (!isSplitMode) {
+              return;
+            }
+            const width = getLayoutWidth();
+            if (!isLayoutVisible(width)) {
+              debugPanelState(`ignore split change while hidden/narrow width=${width} mode=${panelMode} size=${size}`);
+              return;
+            }
             lastFullPanelRatioRef.current = clampPanelRatio(size / width, width);
-          }
-          setPanelSize(size);
-        }}
-        minSize={minPanelSize}
-        maxSize={Math.max(getLayoutWidth() - minPanelSize, minPanelSize)}
-        style={{
-          height: "100%",
-          width: "100%",
-          overflow: "hidden",
-          backgroundColor: "var(--vscode-editor-background)",
-          color: "var(--vscode-editor-foreground)",
-          fontFamily: "var(--vscode-editor-font-family, sans-serif)",
-          fontSize: "var(--vscode-editor-font-size, 14px)",
-        }}
-      >
-        <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
-          <YamlEditorPanel
-            content={content}
-            setContent={yamlSetContent}
-            onFocusChange={setYamlEditorFocused}
-            fontSize={yamlFontSize}
-            collapseDescription={collapseDescription}
-            language={sourceFormat === "http" || sourceFormat === "bruno" ? "http" : "yaml"}
-            sourceFormat={sourceFormat}
-          />
-        </div>
-        <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
-          <div style={{ width: "100%", height: "100%", maxWidth: 1200, minWidth: 450, margin: "0 auto", overflow: "auto" }}>
-            <PanelErrorBoundary resetKey={`${docType || "none"}::${validContent}`}>
-              {docType === "env" && (
-                <EnvironmentPanel content={validContent} setContent={uiSetContent} />
-              )}
-              {docType === "api" && (
-                <APIPanel content={validContent} setContent={uiSetContent} />
-              )}
-              {docType === "doc" && (
-                <DocPanel content={validContent} setContent={uiSetContent} />
-              )}
-              {docType === "test" && (
-                sourceFormat === "http" ?
-                  <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
-                  sourceFormat === "bruno" ?
-                  <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
-                  <TestPanel content={validContent} setContent={uiSetContent} />
-              )}
-              {docType === "suite" && (
-                <SuitePanel content={validContent} setContent={uiSetContent} />
-              )}
-              {docType === "loadtest" && (
-                <LoadTestPanel content={validContent} setContent={uiSetContent} />
-              )}
-              {docType === "server" && (
-                <MockPanel content={validContent} setContent={uiSetContent} />
-              )}
-              {docType === "report" && (
-                <ReportPanel content={validContent} setContent={uiSetContent} />
-              )}
-              {documentContentLoaded && docType === null && (
-                <NotypePanel content={validContent} setContent={uiSetContent} />
-              )}
-            </PanelErrorBoundary>
+            setPanelSize(size);
+          }}
+          minSize={isSplitMode ? minPanelSize : 0}
+          maxSize={isSplitMode ? Math.max(layoutWidth - minPanelSize, minPanelSize) : layoutWidth}
+          pane1Style={pane1Style}
+          pane2Style={pane2Style}
+          style={{
+            height: "100%",
+            width: "100%",
+            overflow: "hidden",
+            backgroundColor: "var(--vscode-editor-background)",
+            color: "var(--vscode-editor-foreground)",
+            fontFamily: "var(--vscode-editor-font-family, sans-serif)",
+            fontSize: "var(--vscode-editor-font-size, 14px)",
+          }}
+        >
+          <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
+            <YamlEditorPanel
+              content={content}
+              setContent={yamlSetContent}
+              onFocusChange={setYamlEditorFocused}
+              fontSize={yamlFontSize}
+              collapseDescription={collapseDescription}
+              language={sourceFormat === "http" || sourceFormat === "bruno" ? "http" : "yaml"}
+              sourceFormat={sourceFormat}
+            />
           </div>
-        </div>
-      </SplitPane>
+          <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                maxWidth: 1200,
+                minWidth: isSplitMode ? 450 : 0,
+                margin: "0 auto",
+                overflow: "auto",
+              }}
+            >
+              <PanelErrorBoundary resetKey={`${docType || "none"}::${validContent}`}>
+                {docType === "env" && (
+                  <EnvironmentPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "api" && (
+                  <APIPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "doc" && (
+                  <DocPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "test" && (
+                  sourceFormat === "http" ?
+                    <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
+                    sourceFormat === "bruno" ?
+                    <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
+                    <TestPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "suite" && (
+                  <SuitePanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "loadtest" && (
+                  <LoadTestPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "server" && (
+                  <MockPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "report" && (
+                  <ReportPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {documentContentLoaded && docType === null && (
+                  <NotypePanel content={validContent} setContent={uiSetContent} />
+                )}
+              </PanelErrorBoundary>
+            </div>
+          </div>
+        </SplitPane>
       </div>
     </FileContext.Provider>
   );
