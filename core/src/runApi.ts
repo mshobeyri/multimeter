@@ -4,7 +4,7 @@ import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
 import {FileLoader, mergeInputs, RunFileOptions} from './runConfig';
-import {replaceAllRefs} from './variableReplacer';
+import {replaceAllRefs, resolveInputsMap} from './variableReplacer';
 
 export interface ResolveExampleResult {
   exampleInputs: Record<string, any>;
@@ -164,7 +164,9 @@ interface ApiRunnerWrapperOptions {
 }
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
-  opts = replaceAllRefs(opts, {}, opts.inputs, opts.envVars);
+  const resolvedInputs = resolveInputsMap(opts.inputs, opts.envVars ?? {});
+  opts = replaceAllRefs(
+      {...opts, inputs: resolvedInputs}, {}, resolvedInputs, opts.envVars ?? {});
   const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
   const exampleOutputs = isPlainObject(opts.exampleOutputs) ? opts.exampleOutputs : {};
@@ -674,11 +676,12 @@ export async function executeApi(
       exampleLabel ? `${fileDisplayName} (${exampleLabel})` : fileDisplayName;
   const identifier = sanitizeIdentifier(
       exampleLabel ? `${baseName}_${exampleLabel}` : baseName);
+  const resolvedInputs = resolveInputsMap(inputsUsed, envVars);
   const js = await generateApiJs({
     api: apiDoc,
     name: identifier,
     envVars,
-    inputs: inputsUsed,
+    inputs: resolvedInputs,
     fileLoader,
     exampleName,
     exampleIndex,
@@ -699,7 +702,7 @@ export async function executeApi(
     identifier,
     displayName,
     docType,
-    inputsUsed,
+    inputsUsed: resolvedInputs,
     envVarsUsed: envVars,
     exampleName,
     exampleIndex,

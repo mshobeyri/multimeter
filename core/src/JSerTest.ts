@@ -10,6 +10,7 @@ import {
   collectInputRefsFromObject,
   normalizeEnvTokens,
   replaceAllRefs,
+  resolveInputsMap,
   toTemplateWithEnvVars,
 } from './variableReplacer';
 
@@ -128,7 +129,11 @@ export const testToJsfunc = async(
     );
   }
 
-  let replaced = replaceAllRefs(ctx.test, paramsAsObj, ctx.inputs, {});
+  // Keep `${input}` placeholders in the generated function. Concrete values
+  // (including interdependent input defaults) are supplied at the call site
+  // via resolveInputsMap — overlaying raw YAML defaults here breaks
+  // <<i:other>> composition when those defaults are still e:/i: tokens.
+  let replaced = replaceAllRefs(ctx.test, paramsAsObj, {}, ctx.envVars ?? {});
 
   let inputParams = toInputsParams(replaced.inputs || {}, ' = ');
   if (inputParams.length > 0) {
@@ -288,8 +293,13 @@ export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const test =
       await testToJsfunc({...ctx, name: rootNameStem, importTracker: tracker}, true, tracker);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
+  const resolvedInputs = resolveInputsMap(
+      {...(ctx.test.inputs || {}), ...(ctx.inputs || {})},
+      ctx.envVars || {},
+  );
+  const inputsPretty = JSON.stringify(resolvedInputs, null, 2);
 
   const full = `const envVariables = ${envPretty};\n\n${importedFuncs}\n${
-      test}\nreturn ${rootFuncName}({});`;
+      test}\nreturn ${rootFuncName}(${inputsPretty});`;
   return variableReplacer(full);
 };

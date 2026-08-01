@@ -1,4 +1,4 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations } from './variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
   it('normalizes <<e:VAR>> to envVariables.VAR', () => {
@@ -128,6 +128,24 @@ describe('toTemplateValueJs', () => {
   it('mixed e: and r: tokens', () => {
     const result = toTemplateValueJs('<<e:host>>-<<r:email>>');
     expect(result).toBe("`${envVariables.host}-${__mmt_random('email')}`");
+  });
+
+  it('full <<i:name>> returns bare input identifier', () => {
+    expect(toTemplateValueJs('<<i:message>>')).toBe('message');
+    expect(toTemplateValueJs('i:message')).toBe('message');
+  });
+
+  it('embeds sibling i: refs in default templates', () => {
+    expect(toTemplateValueJs('asd_<<i:message>>')).toBe('`asd_${message}`');
+    expect(toTemplateValueJs('<<i:name>>_<<e:base_url>>'))
+        .toBe('`${name}_${envVariables.base_url}`');
+  });
+
+  it('supports slice accessors on sibling i: refs', () => {
+    expect(toTemplateValueJs('asd_<<i:message[0:4]>>'))
+        .toBe('`asd_${__mmt_access(message, "[0:4]")}`');
+    expect(toTemplateValueJs('<<i:message[1:2]>>'))
+        .toBe('__mmt_access(message, "[1:2]")');
   });
 });
 
@@ -455,5 +473,136 @@ describe('embedDynamicTokensAsJsInterpolations', () => {
   it('leaves existing ${...} interpolations and plain text alone', () => {
     expect(replaceDynamicTokensToJsInterpolations('${already} and plain'))
         .toBe('${already} and plain');
+  });
+});
+
+describe('resolveInputsMap – interdependent input defaults', () => {
+  it('composes id from sibling inputs that point at env vars', () => {
+    const out = resolveInputsMap(
+        {
+          card: 'e:card',
+          seq: 'e:seq',
+          id: '<<i:card>>_<<i:seq>>',
+        },
+        {card: '4111111111111111', seq: '42'},
+    );
+    expect(out).toEqual({
+      card: '4111111111111111',
+      seq: '42',
+      id: '4111111111111111_42',
+    });
+  });
+
+  it('resolves multi-level i: chains across passes', () => {
+    const out = resolveInputsMap(
+        {
+          card: 'e:card',
+          short: '<<i:card[0:4]>>',
+          mid: '<<i:short>>-<<i:card[4:6]>>',
+          id: '<<i:mid>>_<<i:seq>>',
+          seq: 'e:seq',
+        },
+        {card: '4111111111111111', seq: '99'},
+    );
+    expect(out).toEqual({
+      card: '4111111111111111',
+      short: '4111',
+      mid: '4111-11',
+      id: '4111-11_99',
+      seq: '99',
+    });
+  });
+
+  it('applies slice accessors on env-backed and sibling inputs', () => {
+    const out = resolveInputsMap(
+        {
+          token: 'e:token',
+          head: '<<i:token[0:3]>>',
+          mid: '<<e:token[1:4]>>',
+          tail: 'i:token[2:]',
+          fromHead: '<<i:head[1:2]>>',
+        },
+        {token: 'abcdef'},
+    );
+    expect(out).toEqual({
+      token: 'abcdef',
+      head: 'abc',
+      mid: 'bcd',
+      tail: 'cdef',
+      fromHead: 'b',
+    });
+  });
+
+  it('honors manual overrides over yaml defaults before composition', () => {
+    const defaults = {
+      card: 'e:card',
+      seq: 'e:seq',
+      id: '<<i:card>>_<<i:seq>>',
+    };
+    const merged = {
+      ...defaults,
+      card: '9999000011112222',
+      seq: '7',
+    };
+    const out = resolveInputsMap(merged, {card: '4111111111111111', seq: '42'});
+    expect(out).toEqual({
+      card: '9999000011112222',
+      seq: '7',
+      id: '9999000011112222_7',
+    });
+  });
+
+  it('allows overriding only the composed field', () => {
+    const out = resolveInputsMap(
+        {
+          card: 'e:card',
+          seq: 'e:seq',
+          id: 'forced-id',
+        },
+        {card: '4111111111111111', seq: '42'},
+    );
+    expect(out).toEqual({
+      card: '4111111111111111',
+      seq: '42',
+      id: 'forced-id',
+    });
+  });
+
+  it('allows overriding an intermediate level in a multi-level chain', () => {
+    const out = resolveInputsMap(
+        {
+          card: 'e:card',
+          short: 'OVERRIDE',
+          id: '<<i:short>>_<<i:card[0:2]>>',
+        },
+        {card: '4111111111111111'},
+    );
+    expect(out).toEqual({
+      card: '4111111111111111',
+      short: 'OVERRIDE',
+      id: 'OVERRIDE_41',
+    });
+  });
+
+  it('resolves plain and angle env forms inside composed inputs', () => {
+    const out = resolveInputsMap(
+        {
+          host: '<<e:HOST>>',
+          path: 'e:PATH',
+          url: 'https://<<i:host>>/<<i:path>>',
+        },
+        {HOST: 'api.local', PATH: 'v1'},
+    );
+    expect(out).toEqual({
+      host: 'api.local',
+      path: 'v1',
+      url: 'https://api.local/v1',
+    });
+  });
+
+  it('returns a shallow copy for empty or non-object inputs', () => {
+    expect(resolveInputsMap(undefined, {a: 1})).toEqual({});
+    expect(resolveInputsMap(null as any, {a: 1})).toEqual({});
+    expect(resolveInputsMap([] as any, {a: 1})).toEqual({});
   });
 });

@@ -1,5 +1,5 @@
 import { JSONRecord } from "mmt-core/CommonData";
-import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
+import { resolveInputsMap } from "mmt-core/variableReplacer";
 
 export function stableEqual(a: unknown, b: unknown): boolean {
   if (a === b) {
@@ -24,21 +24,15 @@ export function envVarsToParameters(envVars: any[]): JSONRecord {
   }, {} as JSONRecord);
 }
 
-/** Resolve `e:` tokens in YAML input defaults. */
+/** Resolve `e:` / sibling `i:` tokens in YAML input defaults. */
 export function resolveInputDefaults(
   defaults: JSONRecord | undefined,
   envParameters: JSONRecord,
 ): JSONRecord {
-  const source = defaults && typeof defaults === "object" ? defaults : {};
-  const resolved: JSONRecord = {};
-  for (const [key, val] of Object.entries(source)) {
-    if (typeof val === "string") {
-      resolved[key] = resolveEnvTokenValues(val, envParameters);
-    } else {
-      resolved[key] = val;
-    }
-  }
-  return resolved;
+  return resolveInputsMap(
+    defaults && typeof defaults === "object" ? defaults as Record<string, any> : {},
+    envParameters as Record<string, any>,
+  );
 }
 
 /**

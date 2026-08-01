@@ -1,4 +1,4 @@
-import {durationToJsMsExpr, isDurationExpression, normalizeTokenName, parseDurationString, timeUnitToMs, toInputsParams, toLowerUnderscore} from './JSerHelper';
+import {durationToJsMsExpr, isDurationExpression, normalizeTokenName, orderInputKeysForDefaults, parseDurationString, timeUnitToMs, toInputsParams, toLowerUnderscore} from './JSerHelper';
 
 describe('toLowerUnderscore', () => {
   test('replaces spaces with underscores and lowercases', () => {
@@ -146,5 +146,23 @@ describe('toInputsParams – env token handling', () => {
   test('e:VAR mixed with static text', () => {
     const result = toInputsParams({url: 'https://<<e:host>>/api'}, ': ');
     expect(result).toBe('url: `https://${envVariables.host}/api`');
+  });
+
+  test('sibling i: refs become ${name} interpolations', () => {
+    const result = toInputsParams({
+      message: 'hello',
+      xx: 'asd_<<i:message>>',
+    }, ' = ');
+    expect(result).toContain('xx = `asd_${message}`');
+    expect(result).not.toContain('<<i:message>>');
+  });
+});
+
+describe('orderInputKeysForDefaults', () => {
+  test('puts dependency keys before dependents', () => {
+    expect(orderInputKeysForDefaults({
+      xx: 'asd_<<i:message>>',
+      message: 'hello',
+    })).toEqual(['message', 'xx']);
   });
 });

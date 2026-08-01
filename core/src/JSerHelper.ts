@@ -1,16 +1,59 @@
 import {JSONValue} from './CommonData';
 import {Type} from './CommonData';
-import {toTemplateValueJs} from './variableReplacer';
+import {collectInputRefsFromObject, toTemplateValueJs} from './variableReplacer';
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '  ' + line).join('\n').slice(2);
 }
 
+/**
+ * Order input keys so destructuring defaults can reference earlier siblings
+ * (`xx = \`asd_${message}\`` needs `message` declared first).
+ */
+export function orderInputKeysForDefaults(
+    inputs: Record<string, JSONValue>): string[] {
+  const keys = Object.keys(inputs ?? {});
+  const keySet = new Set(keys);
+  const deps = new Map<string, string[]>();
+  for (const key of keys) {
+    const refs = collectInputRefsFromObject(inputs[key])
+                     .filter(ref => ref !== key && keySet.has(ref));
+    deps.set(key, refs);
+  }
+
+  const ordered: string[] = [];
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  const visit = (key: string) => {
+    if (visited.has(key)) {
+      return;
+    }
+    if (visiting.has(key)) {
+      return;
+    }
+    visiting.add(key);
+    for (const dep of deps.get(key) || []) {
+      visit(dep);
+    }
+    visiting.delete(key);
+    visited.add(key);
+    ordered.push(key);
+  };
+
+  for (const key of keys) {
+    visit(key);
+  }
+  return ordered;
+}
+
 export const toInputsParams =
     (inputs: Record<string, JSONValue>, operator: string) => {
+      const source = inputs ?? {};
       const formattedInputs =
-          Object.entries(inputs ?? {})
-              .map(([key, value]) => {
+          orderInputKeysForDefaults(source)
+              .map(key => {
+                const value = source[key];
                 let formatted: string;
                 if (typeof value === 'string') {
                   formatted = toTemplateValueJs(value);

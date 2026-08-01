@@ -613,6 +613,83 @@ describe('toInputsParams env token handling', () => {
   });
 });
 
+describe('interdependent input defaults', () => {
+  it('rootTestToJsfunc calls root with resolveInputsMap values (env + sibling + slice)', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'composeInputs',
+      test: {
+        title: 'compose',
+        tags: [],
+        description: '',
+        inputs: {
+          card: 'e:card',
+          seq: 'e:seq',
+          short: '<<i:card[0:4]>>',
+          id: '<<i:short>>_<<i:seq>>',
+        },
+        steps: [{print: '<<i:id>>'} as any],
+      } as any,
+      inputs: {},
+      envVars: {card: '4111111111111111', seq: '42'},
+    });
+    expect(js).toContain('"card": "4111111111111111"');
+    expect(js).toContain('"seq": "42"');
+    expect(js).toContain('"short": "4111"');
+    expect(js).toContain('"id": "4111_42"');
+    expect(js).not.toMatch(/return compose_inputs_\(\{\}\);/);
+  });
+
+  it('manual overrides win before sibling composition', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'overrideInputs',
+      test: {
+        title: 'override',
+        tags: [],
+        description: '',
+        inputs: {
+          card: 'e:card',
+          seq: 'e:seq',
+          id: '<<i:card>>_<<i:seq>>',
+        },
+        steps: [],
+      } as any,
+      inputs: {card: '9999000011112222', seq: '7'},
+      envVars: {card: '4111111111111111', seq: '42'},
+    });
+    expect(js).toContain('"card": "9999000011112222"');
+    expect(js).toContain('"seq": "7"');
+    expect(js).toContain('"id": "9999000011112222_7"');
+  });
+
+  it('API codegen turns asd_<<i:message>> into asd_${message} default', async () => {
+    const apiJs = await apiToJSfunc({
+      name: 'echo',
+      api: {
+        type: 'api',
+        title: 'Echo API',
+        inputs: {
+          // xx before message — ordering must still emit message first
+          xx: 'asd_<<i:message>>',
+          message: 'hello world',
+        },
+        url: 'https://test.mmt.dev/echo',
+        method: 'post',
+        format: 'json',
+        body: {xxx: 'i:xx'},
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(apiJs).toMatch(/xx\s*=\s*`asd_\$\{message\}`/);
+    expect(apiJs).not.toContain('asd_<<i:message>>');
+    // Destructuring order: message before xx so the default can see it
+    const paramsMatch = apiJs.match(/const echo = async \(\{([^}]*)\}/);
+    expect(paramsMatch?.[1]).toBeDefined();
+    const params = paramsMatch![1];
+    expect(params.indexOf('message')).toBeLessThan(params.indexOf('xx'));
+  });
+});
+
 describe('step reporter instrumentation', () => {
   it('relies on shared check_ helper instead of inlining reporter code', async () => {
     const ctx: TestContext = {

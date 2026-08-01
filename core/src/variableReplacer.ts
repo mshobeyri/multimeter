@@ -195,12 +195,25 @@ export const replaceRandCurrentTokensToJs = (s: string): string => {
 };
 
 /**
- * Convert remaining `e:` / `r:` / `c:` tokens in a string to `${...}`
+ * Replace `i:` token syntaxes with `${inputName}` / `__mmt_access(...)`
+ * interpolations so API/test default params can reference sibling inputs
+ * (e.g. `xx: asd_<<i:message>>` → `` `asd_${message}` ``).
+ */
+export const replaceInputTokensToJs = (s: string): string =>
+    replaceTokenForms(
+        s, 'i',
+        (name, accessor) =>
+            '${' + toJsAccessorExpression(name, accessor) + '}',
+        {includeSingleAngles: false, includeBraceForm: false});
+
+/**
+ * Convert remaining `e:` / `r:` / `c:` / `i:` tokens in a string to `${...}`
  * interpolations (without wrapping in backticks).
  */
 export const replaceDynamicTokensToJsInterpolations = (s: string): string => {
   let out = replaceEnvTokensToJs(String(s ?? ''));
   out = replaceRandCurrentTokensToJs(out);
+  out = replaceInputTokensToJs(out);
   return out;
 };
 
@@ -224,11 +237,11 @@ export function embedDynamicTokensAsJsInterpolations(value: any): any {
 }
 
 /**
- * Convert a string value to a JS expression, resolving e:, r:, and c: tokens.
+ * Convert a string value to a JS expression, resolving e:, r:, c:, and i: tokens.
  *
- * If the **entire** string is a single token (e.g. `<<e:HOST>>`, `r:email`),
- * returns a bare JS expression. Otherwise returns a backtick template literal
- * with `${…}` interpolations.
+ * If the **entire** string is a single token (e.g. `<<e:HOST>>`, `r:email`,
+ * `<<i:message>>`), returns a bare JS expression. Otherwise returns a backtick
+ * template literal with `${…}` interpolations.
  */
 export function toTemplateValueJs(value: string): string {
   const s = String(value ?? '');
@@ -239,6 +252,8 @@ export function toTemplateValueJs(value: string): string {
   const fullRandPlain = new RegExp(`^r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullCurrAngle = new RegExp(`^<<\\s*c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullCurrPlain = new RegExp(`^c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
+  const fullInputAngle = new RegExp(`^<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullInputPlain = new RegExp(`^i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
 
   let m = fullEnvAngle.exec(s) || fullEnvPlain.exec(s);
   if (m && m[1]) {
@@ -252,9 +267,14 @@ export function toTemplateValueJs(value: string): string {
   if (m && m[1]) {
     return toJsAccessorExpression(`__mmt_current('${m[1]}')`, m[2] || '');
   }
+  m = fullInputAngle.exec(s) || fullInputPlain.exec(s);
+  if (m && m[1]) {
+    return toJsAccessorExpression(m[1], m[2] || '');
+  }
 
   let result = replaceEnvTokensToJs(s);
   result = replaceRandCurrentTokensToJs(result);
+  result = replaceInputTokensToJs(result);
   return '`' + escapeBackticks(result) + '`';
 }
 
@@ -331,11 +351,36 @@ function generateCurrentByName(name: string): any {
   return val;
 }
 
+const INPUT_TOKEN_IN_STRING_RE = new RegExp(
+    `<<\\s*i:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\s*>>|(?<![a-zA-Z0-9])i:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}(?![A-Za-z0-9_])`);
+
+/**
+ * Expand nested `i:` tokens inside a resolved sibling value before accessors
+ * like `[1:2]` are applied. Without this, multi-level chains can slice the
+ * literal `<<i:…>>` text on an early pass and never recover.
+ */
+function resolveNestedInputTokens(
+    val: any, mergedInputs: Record<string, any>, envs: Record<string, any>,
+    visiting: Set<string>, depth = 0): any {
+  if (depth > 8 || typeof val !== 'string' || !INPUT_TOKEN_IN_STRING_RE.test(val)) {
+    return val;
+  }
+  const out = replaceAllRefs({v: val}, {}, mergedInputs, envs, visiting).v;
+  if (out === val) {
+    return out;
+  }
+  return resolveNestedInputTokens(out, mergedInputs, envs, visiting, depth + 1);
+}
+
 function resolveDynamicTokenValue(
     prefix: string, name: string, accessor: string,
-    mergedInputs: Record<string, any>, envs: Record<string, any>): any {
+    mergedInputs: Record<string, any>, envs: Record<string, any>,
+    visiting: Set<string> = new Set()): any {
   switch (prefix) {
     case 'i': {
+      if (visiting.has(name)) {
+        return undefined;
+      }
       const rawInputValue = mergedInputs[name];
       const placeholderMatch = typeof rawInputValue === 'string' ?
         /^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(rawInputValue) :
@@ -349,10 +394,14 @@ function resolveDynamicTokenValue(
         }
         return `\${__mmt_access(${placeholderMatch[1]}, ${toSingleQuotedJsString(accessor)})}`;
       }
-      const resolved = resolveEmbeddedTokens(rawInputValue, envs);
+      visiting.add(name);
+      let resolved = resolveEmbeddedTokens(rawInputValue, envs);
       if (isOmitSentinel(resolved)) {
+        visiting.delete(name);
         return resolved;
       }
+      resolved = resolveNestedInputTokens(resolved, mergedInputs, envs, visiting);
+      visiting.delete(name);
       return applyValueAccessor(resolved, accessor);
     }
     case 'e':
@@ -560,7 +609,7 @@ export function replaceInputRefsWithNone(obj: any, inputs: any, resolver?: Dynam
 // Replaces all references (inputs first, then environment vars)
 export function replaceAllRefs(
     iface: any, defaults: JSONRecord, inputs: JSONRecord,
-    envs: JSONRecord): any {
+    envs: JSONRecord, visiting: Set<string> = new Set()): any {
   const mergedInputs = Object.assign({}, defaults, inputs);
 
   // Dynamic resolver for i:, e:, r:, c:
@@ -574,7 +623,8 @@ export function replaceAllRefs(
     if (!parsed) {
       return undefined;
     }
-    return resolveDynamicTokenValue(prefix, parsed.name, parsed.accessor, mergedInputs, envs);
+    return resolveDynamicTokenValue(
+        prefix, parsed.name, parsed.accessor, mergedInputs, envs, visiting);
   };
 
   // Use resolver; no need to pre-prefix i:/e:/r:/c:
@@ -582,4 +632,63 @@ export function replaceAllRefs(
   replacedIface = replaceInputRefsWithNone(replacedIface, {}, dynamicResolver);
 
   return replacedIface;
+}
+
+function inputsMapsEqual(a: Record<string, any>, b: Record<string, any>): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) {
+    return false;
+  }
+  for (const key of aKeys) {
+    if (!Object.prototype.hasOwnProperty.call(b, key)) {
+      return false;
+    }
+    if (a[key] !== b[key]) {
+      try {
+        if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * Resolve an inputs map against env/random/current tokens and sibling `i:` refs.
+ *
+ * Supports interdependent defaults such as:
+ *   card: e:card
+ *   seq: e:seq
+ *   id: <<i:card>>_<<i:seq>>
+ *   short: <<i:card[0:4]>>
+ *   nested: <<i:short>>_x
+ *
+ * Multiple passes let `i:` values that reference other inputs settle after
+ * those siblings have been expanded (including accessors like `[1:2]`).
+ */
+export function resolveInputsMap(
+    inputs: Record<string, any>|null|undefined,
+    envs: Record<string, any> = {},
+    maxPasses = 8): Record<string, any> {
+  if (!inputs || typeof inputs !== 'object' || Array.isArray(inputs)) {
+    return {};
+  }
+  let current: Record<string, any> = {...inputs};
+  const passes = Math.max(1, maxPasses);
+  for (let i = 0; i < passes; i++) {
+    const nextWrapper = replaceAllRefs({inputs: current}, {}, current, envs);
+    const next = (nextWrapper && typeof nextWrapper.inputs === 'object' &&
+                  !Array.isArray(nextWrapper.inputs)) ?
+        {...nextWrapper.inputs} :
+        {};
+    if (inputsMapsEqual(current, next)) {
+      return next;
+    }
+    current = next;
+  }
+  return current;
 }

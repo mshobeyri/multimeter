@@ -6,6 +6,7 @@ import * as testParsePack from './testParsePack';
 import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, httpToTestStrict, isHttpFilePath} from './httpParsePack';
 import {restoreOmitKeyword} from './omitKeyword';
+import {resolveInputsMap} from './variableReplacer';
 
 const createRunId = (): string => {
   return `${Date.now().toString(36)}-${
@@ -100,10 +101,11 @@ export async function executeTest(
     }
     forwardReporter(event as any);
   } : undefined;
+  const resolvedInputs = resolveInputsMap(inputsUsed, envVars);
   const js = await generateTestJs({
     rawText,
     name: identifier,
-    inputs: inputsUsed,
+    inputs: resolvedInputs,
     envVars,
     fileLoader: options.fileLoader,
     filePath: prepared.filePath,
@@ -144,7 +146,7 @@ export async function executeTest(
     identifier,
     displayName,
     docType,
-    inputsUsed,
+    inputsUsed: resolvedInputs,
     envVarsUsed: envVars,
     exampleName: prepared.exampleName,
     exampleIndex: prepared.exampleIndex,
