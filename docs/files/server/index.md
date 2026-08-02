@@ -3,7 +3,7 @@
 Multimeter provides two ways to mock APIs:
 
 1. **Mock Server Panel** (VS Code sidebar) — a lightweight server for quick prototyping with reflect mode and custom status codes.
-2. **MMT Mock Server Files** (`type: server`) — fully-featured mock definitions in YAML with routing, matching, dynamic responses, and proxy forwarding.
+2. **MMT Mock Server Files** (`type: server`) — fully-featured mock definitions in YAML with routing, matching, dynamic responses, and proxy forwarding. Open a server file in VS Code and click {{btn:edit:Edit Mock}} to edit endpoints and settings — see [Edit](./edit.md).
 
 Both approaches support HTTP, HTTPS, mTLS, and WebSocket.
 
@@ -42,4 +42,4 @@ Tip: Reflect is a great way to validate what your client actually sends -- no ba
 
 Pointing clients at the panel, request history, and limits are covered in [Using the panel](./using.md).
 
-Next: [Using](./using.md) · [TLS](./tls.md) · [Server files](./files.md) · [In tests](./in-tests.md) · [In suites](./in-suites.md)
+Next: [Edit](./edit.md) · [Using](./using.md) · [TLS](./tls.md) · [Server files](./files.md) · [In tests](./in-tests.md) · [In suites](./in-suites.md)

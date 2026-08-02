@@ -23,7 +23,7 @@ Example run glyphs appear only when the example has a non-empty `name`.
 |---|---|
 | **Method / protocol** | Colored dropdown left of the URL (e.g. {{btn:symbol-method:POST}}). Pick an HTTP method, or switch protocol to WebSocket / GraphQL / gRPC |
 | **URL** | Editable request URL. Edits in the Params tab stay synced with the query string |
-| {{btn:edit:Edit API}} | Switches to **edit mode**: Overview, Interface, and Examples. Use the back control on the edit header to return to the tester |
+| {{btn:edit:Edit API}} | Switches to **edit mode** — see [Edit](./edit.md) |
 
 ### Tabs
 
@@ -102,7 +102,7 @@ cookies:
 
 ## API elements
 
-- [Quick start](./quick-start.md)
+- [Edit](./edit.md) · [Quick start](./quick-start.md)
 - [Protocols](./protocols/index.md) — HTTP, WebSocket, GraphQL, gRPC
 - [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP examples](./protocols/http-bodies.md)
 - [Headers](./headers.md) · [Auth](./auth.md)

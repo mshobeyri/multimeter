@@ -8,6 +8,7 @@
 ### MMT Files
 - [Overview](./files.md)
 - [API](./files/api/index.md)
+  - [Edit](./files/api/edit.md)
   - [Protocols](./files/api/protocols/index.md)
     - [HTTP](./files/api/protocols/http.md)
     - [WebSocket](./files/api/protocols/websocket.md)
@@ -18,6 +19,7 @@
     - [Request body](./files/api/body/body.md)
     - [HTTP bodies](./files/api/protocols/http-bodies.md)
 - [Test](./files/test/index.md)
+  - [Edit](./files/test/edit.md)
   - [Quick start](./files/test/quick-start.md)
   - [Steps](./files/test/steps/index.md)
     - [call](./files/test/steps/call.md)
@@ -32,10 +34,15 @@
   - [Stages](./files/test/stages/index.md)
     - [Stage condition](./files/test/stages/stage-condition.md)
 - [Environment](./files/env/index.md)
+  - [Edit](./files/env/edit.md)
 - [Suite](./files/suite/index.md)
+  - [Edit](./files/suite/edit.md)
 - [Doc](./files/doc/index.md)
+  - [Edit](./files/doc/edit.md)
 - [Mock Server](./files/server/index.md)
+  - [Edit](./files/server/edit.md)
 - [Load Test](./files/loadtest/index.md)
+  - [Edit](./files/loadtest/edit.md)
 - [Report](./files/report/index.md)
 
 ### Start with a task

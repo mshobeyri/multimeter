@@ -33,6 +33,10 @@
             "path": "files/api/index.md"
           },
           {
+            "title": "Edit",
+            "path": "files/api/edit.md"
+          },
+          {
             "title": "Quick start",
             "path": "files/api/quick-start.md"
           },
@@ -136,6 +140,10 @@
             "path": "files/test/index.md"
           },
           {
+            "title": "Edit",
+            "path": "files/test/edit.md"
+          },
+          {
             "title": "Quick start",
             "path": "files/test/quick-start.md"
           },
@@ -227,6 +235,10 @@
             "path": "files/env/index.md"
           },
           {
+            "title": "Edit",
+            "path": "files/env/edit.md"
+          },
+          {
             "title": "CLI",
             "path": "files/env/cli.md"
           },
@@ -256,6 +268,10 @@
           {
             "title": "Overview",
             "path": "files/suite/index.md"
+          },
+          {
+            "title": "Edit",
+            "path": "files/suite/edit.md"
           },
           {
             "title": "Execution",
@@ -289,6 +305,10 @@
             "path": "files/doc/index.md"
           },
           {
+            "title": "Edit",
+            "path": "files/doc/edit.md"
+          },
+          {
             "title": "Try It",
             "path": "files/doc/try-it.md"
           },
@@ -318,6 +338,10 @@
           {
             "title": "Overview",
             "path": "files/server/index.md"
+          },
+          {
+            "title": "Edit",
+            "path": "files/server/edit.md"
           },
           {
             "title": "Using",
@@ -357,6 +381,10 @@
           {
             "title": "Overview",
             "path": "files/loadtest/index.md"
+          },
+          {
+            "title": "Edit",
+            "path": "files/loadtest/edit.md"
           },
           {
             "title": "Elements",

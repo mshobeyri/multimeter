@@ -2,6 +2,8 @@
 
 Use `type: suite` to define a suite MMT file. A suite runs multiple items together — tests, APIs, HTTP/Bruno files, or other suites. Under the hood, Multimeter executes each file listed in the suite.
 
+Open a suite file in VS Code to get the **suite panel** on the right (YAML stays on the left). Click {{btn:edit:Edit Suite}} to edit title, items, servers, environment, and exports — see [Edit](./edit.md). Run the suite or individual items from the panel; see [UI and execution](./ui.md).
+
 Example:
 
 ```yaml
@@ -62,4 +64,4 @@ See [Environment — Project Root Marker](./env.md#project-root-marker) for deta
 When converting larger Postman collections, Multimeter generates `multimeter.mmt` and uses `+/` paths in generated tests and suites so files can move within the generated project without breaking imports.
 
 
-Next: [Execution](./execution.md) · [UI](./ui.md) · [CLI](./cli.md) · [Reference](./reference.md)
+Next: [Edit](./edit.md) · [Execution](./execution.md) · [UI](./ui.md) · [CLI](./cli.md) · [Reference](./reference.md)

@@ -20,7 +20,7 @@ Run glyphs appear in the left margin of the YAML pane:
 |---|---|
 | **Title** | Test title from `title:` (shown with the beaker icon) |
 | {{btn:type-hierarchy-sub:Flow chart}} | Opens the flowchart view for the test steps |
-| {{btn:edit:Edit Test}} | Switches to **edit mode**: {{btn:search:Overview}}, {{btn:list-tree:Flow}}, and {{btn:code:Code}} tabs. Use the back control to return to the runner |
+| {{btn:edit:Edit Test}} | Switches to **edit mode** — see [Edit](./edit.md) |
 
 ### Run bar
 
@@ -38,14 +38,6 @@ Run glyphs appear in the left margin of the YAML pane:
 | **Outputs** | Extracted output values when the test defines `outputs:` |
 | **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards |
 | **Report** | Step-by-step results with pass/fail status and timestamps |
-
-### Edit Test mode
-
-| Tab | What you see |
-|---|---|
-| {{btn:search:Overview}} | Title, description, tags, imports |
-| {{btn:list-tree:Flow}} | Visual step editor for `steps:` or `stages:` |
-| {{btn:code:Code}} | JavaScript compiled from the YAML test — generated output, not the source file |
 
 ## Supported
 
@@ -75,7 +67,7 @@ steps:
 
 ## Test elements
 
-- [Quick start](./quick-start.md) · [Write a test flow](../../tasks/write-test-flow.md)
+- [Edit](./edit.md) · [Quick start](./quick-start.md) · [Write a test flow](../../tasks/write-test-flow.md)
 - [import](./import.md) · [cache](./cache.md)
 - [Steps](./steps/index.md) · [Stages](./stages/index.md)
 - [Stage condition](./stages/stage-condition.md) · [Complete example](./complete-example.md) · [Reference](./reference.md)

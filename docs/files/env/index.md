@@ -2,6 +2,7 @@
 
 Acts as a global store for variables to read and write across tests. Like any global scope, use it sparingly. Prefer it for shared configuration (for example: base URLs, modes, timeouts) rather than per-step data.
 
+Open an environment file in VS Code to get the **environment panel** on the right. Click {{btn:edit:Edit Environment}} to edit variables, presets, settings, and certificates — see [Edit](./edit.md).
 
 ## Define an environment file
 ```yaml
@@ -72,4 +73,4 @@ body:
 ```
 
 
-Next: [CLI](./cli.md) · [UI](./ui.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
+Next: [Edit](./edit.md) · [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
