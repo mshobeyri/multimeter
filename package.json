@@ -58,11 +58,11 @@
     "chatPromptFiles": [
       {
         "name": "EditMmtFile",
-        "path": "./rules/edit-mmt-file.prompt.md"
+        "path": "./commands/edit-mmt-file.md"
       },
       {
         "name": "RunMmtFile",
-        "path": "./rules/run-mmt-file.prompt.md"
+        "path": "./commands/run-mmt-file.md"
       }
     ],
     "chatParticipants": [

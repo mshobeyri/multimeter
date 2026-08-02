@@ -1,4 +1,5 @@
 ---
+name: run-mmt-file
 description: Run a Multimeter .mmt file with the MCP run tool
 argument-hint: path/to/file.mmt
 ---

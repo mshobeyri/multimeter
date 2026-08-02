@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "multimeter": {
+      "command": "npx",
+      "args": ["-y", "@mmt/mcp"]
+    }
+  }
+}

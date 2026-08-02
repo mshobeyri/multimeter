@@ -10,7 +10,7 @@
   - `docs/`: user-facing documentation (API, test, env, suite, CLI, convertor, etc.).
   - `AI/`: internal AI-assisted development artifacts. Not shipped to users.
     - `sdd/`: Software Design Documents (SDDs) — architectural decisions, competitive strategy, feature designs.
-    - `skill/`: reusable skill/procedure documents (e.g. release & deploy workflows).
+    - `skills/`: local/dev agent skills and procedures (flat `.md` files, e.g. LinkedIn/YouTube posts, release & deploy). Not part of the published Cursor plugin.
     - `doc/`: handover and context documents for AI agent sessions.
 - **Single source of truth** for running `.mmt` files is `core/src/runner.ts`:
   - Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, jsRunner, logger })`.
@@ -78,11 +78,13 @@
 When the user says **"release version X.Y.Z"** (or "release version X.Y.Z pre-release"):
 
 1. Update the `version` field in the root `package.json` to `X.Y.Z`.
-2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited.
-3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
-4. Run `npm run pack` at the repo root to produce the `.vsix`.
+2. Update the `version` field in `.cursor-plugin/plugin.json` to the same `X.Y.Z` (keep the Cursor plugin manifest in sync with the extension).
+3. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited.
+4. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
+5. Run `npm run pack` at the repo root to produce the `.vsix`.
    - If the user said **pre-release**, run `npm run pack-pre-release` instead.
    - Do **not** use bare `vsce package`; it packages the wrong readme. Always use `npm run pack` so `EXTENSION.md` is included.
+6. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing.
 
 ## Build, test, and packaging
 - From repo root:

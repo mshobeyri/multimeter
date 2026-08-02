@@ -21,15 +21,16 @@ Comprehensive reference for building, packaging, and publishing Multimeter acros
 
 ## Version Tracking
 
-Versions live in **three** places that must stay in sync:
+Versions live in these places that must stay in sync for an extension release:
 
 | File | Field | Scope |
 |---|---|---|
 | `package.json` (root) | `"version"` | VS Code extension |
+| `.cursor-plugin/plugin.json` | `"version"` | Cursor plugin marketplace manifest |
 | `mmtcli/package.json` | `"version"` | CLI (`mmt-testlight` on npm, Docker, binaries) |
 | `packaging/homebrew/mmt-testlight.rb` | `version` + `sha256` hashes | Homebrew formula |
 
-The extension and CLI versions are independent. The CLI version is derived from `mmtcli/package.json` by all release scripts.
+The extension and CLI versions are independent. The CLI version is derived from `mmtcli/package.json` by all release scripts. On **"release version X.Y.Z"**, bump root `package.json` and `.cursor-plugin/plugin.json` together.
 
 ---
 
@@ -403,8 +404,10 @@ VERSION=0.4.0-beta.1 ./scripts/release-testlight.sh --publish --pre-release
 ### For VS Code extension release (vX.Y.Z):
 
 - [ ] Update root `package.json` version to `X.Y.Z`
+- [ ] Update `.cursor-plugin/plugin.json` version to `X.Y.Z`
 - [ ] Update `CHANGELOG.md`
 - [ ] Run: `npm run compile`
+- [ ] Run: `npm run cursor:validate-plugin`
 - [ ] Package: `npm run pack` (or `npm run pack-pre-release`)
 - [ ] Publish: `vsce publish --readme-path EXTENSION.md --allow-package-all-secrets` (or add `--pre-release`)
 - [ ] Verify on Marketplace
@@ -418,11 +421,17 @@ VERSION=0.4.0-beta.1 ./scripts/release-testlight.sh --publish --pre-release
 | `Dockerfile` | Docker image build definition |
 | `.dockerignore` | Excludes host artifacts from Docker build context |
 | `.vscodeignore` | Excludes dev files from `.vsix` package |
+| `.cursor-plugin/plugin.json` | Cursor plugin manifest (version must match extension) |
+| `mcp.json` | Cursor plugin MCP server entry (`@mmt/mcp`) |
+| `commands/` | Cursor/VS Code agent prompt commands |
+| `rules/` | Cursor rules + Copilot chat instructions |
+| `AI/skills/` | Local/dev agent skills and procedures as flat `.md` files (LinkedIn/YouTube posts, release & deploy); not part of the published Cursor plugin |
 | `.github/workflows/release-testlight.yml` | CI pipeline for full CLI release |
 | `scripts/release-testlight.sh` | Local full release script |
 | `scripts/build-binaries.sh` | Build platform binaries via `pkg` |
 | `scripts/install-testlight.sh` | One-line installer for end users |
 | `scripts/update-dockerhub-readme.sh` | Push README to Docker Hub via API |
+| `scripts/validate-cursor-plugin.mjs` | Cursor plugin layout/manifest validator |
 | `packaging/homebrew/mmt-testlight.rb` | Homebrew formula |
 | `packaging/docker/README.md` | Docker Hub repository overview |
 | `bin/github-action/action.yml` | GitHub Action definition |

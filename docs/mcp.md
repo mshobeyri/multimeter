@@ -60,7 +60,7 @@ The extension registers the server via `mcpServerDefinitionProviders` in `src/mc
 7. run({ file, workspaceRoot })                             ← when user asks to run
 ```
 
-The extension also contributes `chatInstructions` and prompt files (`EditMmtFile`, `RunMmtFile`) that auto-apply when working with `.mmt` files (VS Code 1.105+).
+The extension also contributes `chatInstructions` and prompt files (`EditMmtFile`, `RunMmtFile` under `commands/`) that auto-apply when working with `.mmt` files (VS Code 1.105+).
 
 ## Running a `.mmt` file (important)
 

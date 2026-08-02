@@ -1,4 +1,5 @@
 ---
+name: edit-mmt-file
 description: Modify a Multimeter .mmt file using MCP tools
 argument-hint: path/to/file.mmt
 ---
