@@ -2,6 +2,8 @@
 
 Open the **Multimeter** activity bar and choose **Mock Server** ({{btn:server:Mock Server}}). This sidebar panel is a lightweight local server for quick prototyping — reflect mode, custom status codes, and optional loading of a `type: server` file.
 
+![Mock Server sidebar panel — server type, port, status, response, and Run Mock Server](../../screenshots/mock-server-sidebar-panel.png)
+
 For full mock definitions in YAML (routing, matching, dynamic responses), use [Mock Server files](./index.md) instead.
 
 ## What you can use it for
