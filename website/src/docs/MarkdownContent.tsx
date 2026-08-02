@@ -259,6 +259,10 @@ function resolveDocsHref(href: string | undefined, basePath: string, contentPath
     return `/docs/examples${hash}`
   }
 
+  if (joined === '/docs/getting-started') {
+    joined = '/docs/quick-start'
+  }
+
   return `${joined}${hash}`
 }
 

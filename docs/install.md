@@ -43,6 +43,6 @@ Linux (apt / snap), Windows, and Docker installs are listed on the [Downloads](/
 
 ## Next steps
 
-- [Quick Start](./quick-start.md) — run your first request
+- [Getting Started](./quick-start.md) — run your first request
 - [Start with a task](./tasks/index.md) — pick a goal
 - [Downloads](/downloads) — full install options and versions

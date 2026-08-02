@@ -1,4 +1,4 @@
-# Quick Start
+# Getting Started
 
 Run a request against the public [test.mmt.dev](https://test.mmt.dev) server in under a minute.
 
@@ -33,16 +33,6 @@ When a file has no `type:` yet, Multimeter shows the empty page instead of the f
 1. **Select type** — click a type icon such as {{btn:symbol-method:API}} or {{btn:beaker:Test}} to write `type: …` and open that editor
 2. **Gallery** — or click a sample card; it fills the file with a working snippet you can run immediately
 
-Each gallery card also links to docs and demos for that file type.
-
-Related workflows:
-
-- {{btn:replace:Convertor}} — import OpenAPI or Postman into `.mmt` ([Convertor](./integration/convertor/index.md))
-- {{btn:key:Certificates}} — TLS/mTLS settings live with your env file ([Certificates](./features/certificates/index.md))
-
-Inside an open typed `.mmt` file you also use {{btn:send:Send}} / {{btn:play:Run}}, Response, Log, and (for suites) the suite tree.
-
-
 ## 3. Create an API file
 
 Create `get_json.mmt`:
@@ -57,7 +47,7 @@ format: json
 
 ## 4. Send it
 
-In VS Code, open the file and click {{btn:send:Send}} (or {{btn:play:Run}}). The Response panel shows status, headers, and body.
+In VS Code, open the file and click {{btn:send:Send}}. The Response panel shows status, headers, and body.
 
 With the CLI:
 

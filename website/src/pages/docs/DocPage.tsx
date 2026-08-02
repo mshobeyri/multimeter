@@ -41,7 +41,7 @@ export default function DocPage() {
       <div className="py-12">
         <h1 className="text-2xl font-bold text-white mb-2">Page not found</h1>
         <p className="text-slate-400 mb-4">No docs page for {basePath}</p>
-        <Link to="/docs/getting-started" className="text-primary-light hover:underline">
+        <Link to="/docs/quick-start" className="text-primary-light hover:underline">
           Back to Getting Started
         </Link>
       </div>
@@ -56,7 +56,7 @@ export default function DocPage() {
       <div className="py-12">
         <h1 className="text-2xl font-bold text-white mb-2">Page not found</h1>
         <p className="text-slate-400 mb-4">Missing content: {contentPath}</p>
-        <Link to="/docs/getting-started" className="text-primary-light hover:underline">
+        <Link to="/docs/quick-start" className="text-primary-light hover:underline">
           Back to Getting Started
         </Link>
       </div>

@@ -1,9 +1,8 @@
 ## Table of contents
 
 ### Get started
-- [Getting Started](./getting-started.md)
+- [Getting Started](./quick-start.md)
 - [Install](./install.md)
-- [Quick Start](./quick-start.md)
 
 ### MMT Files
 - [Overview](./files.md)

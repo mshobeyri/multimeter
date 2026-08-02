@@ -22,7 +22,8 @@ function App() {
         <Route path="/test-server" element={<TestServer />} />
 
         <Route path="/docs" element={<DocsLayout />}>
-          <Route index element={<Navigate to="getting-started" replace />} />
+          <Route index element={<Navigate to="quick-start" replace />} />
+          <Route path="getting-started" element={<Navigate to="/docs/quick-start" replace />} />
           <Route path="examples" element={<ExamplesIndexPage />} />
           <Route path="examples/:tier/:slug" element={<ExampleDetailPage />} />
           <Route path="*" element={<DocPage />} />

@@ -46,6 +46,6 @@ Use the back control on the edit header to return to the run / preview view. You
 
 ## Next steps
 
-- [Quick Start](./quick-start.md)
+- [Getting Started](./quick-start.md)
 - [Start with a task](./tasks/index.md)
 - [Browse examples](/docs/examples)
