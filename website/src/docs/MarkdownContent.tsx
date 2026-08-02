@@ -60,6 +60,47 @@ function expandCodiconTokens(markdown: string): string {
     .join('')
 }
 
+/**
+ * UI control chip: `{{btn:icon}}` or `{{btn:icon:Label}}`.
+ * Optional `~spin` on the icon name (e.g. `sync~spin`) adds a spin animation.
+ * Renders a bordered icon (+ optional label) for “click this control” docs.
+ */
+function expandUiButtonTokens(markdown: string): string {
+  const parts = markdown.split(/(```[\s\S]*?```)/g)
+  return parts
+    .map((part) => {
+      if (part.startsWith('```')) {
+        return part
+      }
+      return part.replace(
+        /\{\{btn:([a-z0-9-]+(?:~[a-z0-9-]+)*)(?::([^}]+))?\}\}/gi,
+        (_m, iconRaw: string, labelRaw?: string) => {
+          const bits = iconRaw.toLowerCase().split('~')
+          const icon = bits[0]
+          const spin = bits.includes('spin')
+          const label = labelRaw?.trim()
+          const labelHtml = label
+            ? `<span class="docs-ui-btn-label">${escapeHtml(label)}</span>`
+            : ''
+          const aria = label
+            ? ` role="img" aria-label="${escapeHtml(label)}"`
+            : ' aria-hidden="true"'
+          const iconClass = `codicon codicon-${icon}${spin ? ' docs-ui-btn-spin' : ''}`
+          return `<span class="docs-ui-btn"${aria}><span class="${iconClass}" aria-hidden="true"></span>${labelHtml}</span>`
+        },
+      )
+    })
+    .join('')
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 function looksLikeYaml(body: string): boolean {
   const lines = body
     .split('\n')
@@ -364,7 +405,7 @@ export default function MarkdownContent({
   )
 
   const source = useMemo(
-    () => expandCodiconTokens(normalizeCodeFences(markdown)),
+    () => expandCodiconTokens(expandUiButtonTokens(normalizeCodeFences(markdown))),
     [markdown],
   )
 

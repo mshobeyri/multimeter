@@ -8,39 +8,39 @@ Install the [VS Code extension](./install.md) (or use the CLI only).
 
 ## 2. VS Code extension intro
 
-After install, open the Multimeter activity icon in the VS Code sidebar. You get a custom `.mmt` editor plus panels, status-bar actions, and a starter gallery for new files.
+After install, click the Multimeter activity icon in the VS Code sidebar. You get a custom `.mmt` editor plus panels, status-bar actions, and a gallery for new files.
 
 [![VS Code extension intro](https://img.youtube.com/vi/dEbbsbPxqDc/hqdefault.jpg)](https://youtu.be/dEbbsbPxqDc)
 
 ### Panels
 
-| Panel | Where | What it does |
+| Control | Where | What it does |
 |---|---|---|
-| **Mock Server** | Activity bar | Start HTTP/HTTPS/WebSocket mocks, or load a `type: server` file |
-| **Connections** | Activity bar | Watch active HTTP keep-alive and WebSocket sessions; close them when needed |
-| **Environment Variables** | Bottom Multimeter panel | Switch presets, edit variables, and load a workspace env file (`multimeter.mmt`) |
-| **History** | Bottom Multimeter panel | Inspect recent requests and responses (method, URL, status, timing, bodies) |
+| {{btn:server:Mock Server}} | Activity bar | Start HTTP/HTTPS/WebSocket mocks, or load a `type: server` file |
+| {{btn:plug:Connections}} | Activity bar | Watch active HTTP keep-alive and WebSocket sessions; close them when needed |
+| {{btn:server-environment:Environment Variables}} | Bottom Multimeter panel | Switch presets, edit variables, and load a workspace env file (`multimeter.mmt`) |
+| {{btn:history:History}} | Bottom Multimeter panel | Inspect recent requests and responses (method, URL, status, timing, bodies) |
 
-### Status bar icons
+### Status bar
 
-- **Multimeter logo** (right) — opens a new untitled `.mmt` file on the empty page
-- **Active run** (left, spinning) — appears while a test, suite, API run, or mock server is active; click it to stop
+- Click {{btn:file:Multimeter}} (status bar, right) — opens a new untitled `.mmt` file on the empty page
+- While something is running, click {{btn:sync~spin:Stop}} (status bar, left) — stops the active test, suite, API run, or mock server
 
 ### Empty page (new `.mmt`)
 
 When a file has no `type:` yet, Multimeter shows the empty page instead of the full editor:
 
-1. **Select type** — pick API, Test, Environment, Suite, Doc, Server, Load Test, or Report to write `type: …` and open that editor
-2. **Gallery** — or choose a ready sample card; it fills the file with a working snippet you can Send/Run immediately
+1. **Select type** — click a type icon such as {{btn:symbol-method:API}} or {{btn:beaker:Test}} to write `type: …` and open that editor
+2. **Gallery** — or click a sample card; it fills the file with a working snippet you can run immediately
 
 Each gallery card also links to docs and demos for that file type.
 
-Related workflows (commands / docs):
+Related workflows:
 
-- **Convertor** — import OpenAPI or Postman into `.mmt` ([Convertor](./integration/convertor/index.md))
-- **Certificates** — TLS/mTLS settings live with your env file ([Certificates](./features/certificates/index.md))
+- {{btn:replace:Convertor}} — import OpenAPI or Postman into `.mmt` ([Convertor](./integration/convertor/index.md))
+- {{btn:key:Certificates}} — TLS/mTLS settings live with your env file ([Certificates](./features/certificates/index.md))
 
-Inside an open typed `.mmt` file you also use the editor chrome: **Send** / **Run**, Response, Log, and (for suites) the suite tree.
+Inside an open typed `.mmt` file you also use {{btn:send:Send}} / {{btn:play:Run}}, Response, Log, and (for suites) the suite tree.
 
 
 ## 3. Create an API file
@@ -57,7 +57,7 @@ format: json
 
 ## 4. Send it
 
-In VS Code, open the file and click **Send** (or **Run**). The Response panel shows status, headers, and body.
+In VS Code, open the file and click {{btn:send:Send}} (or {{btn:play:Run}}). The Response panel shows status, headers, and body.
 
 With the CLI:
 
@@ -84,11 +84,10 @@ steps:
       body.json.hello: world
 ```
 
-Click **Run** — the Log panel shows whether checks passed.
+Click {{btn:play:Run}} — the Log panel shows whether checks passed.
 
 ## Next steps
 
 - [Send an API request](./tasks/send-api-request.md) — inputs, outputs, and headers
 - [Browse examples](/docs/examples) — copy a working folder
-- [Files overview](./files.md) — all `.mmt` types
 - [MMT Files](./files.md) — types, shared metadata, and layout

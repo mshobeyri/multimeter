@@ -14,6 +14,8 @@ setenv:
 
 These become available to subsequent steps/tests as environment variables (`e:TOKEN`, `<<e:TOKEN>>`).
 
+See [Environment](../env/index.md) for defining variables, presets, and how `e:` / `<<e:…>>` resolve at runtime.
+
 Deprecated: referencing an `outputs` key by name still works for compatibility:
 ```yaml
 setenv:

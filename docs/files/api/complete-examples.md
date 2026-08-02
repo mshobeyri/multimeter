@@ -4,28 +4,19 @@ HTTP and protocol samples. GraphQL/WS live under [Protocols](./protocols/index.m
 
 ## HTTP
 ```yaml
- type: api
- title: Search users
- tags:
-   - user
-   - search
- description: Full-text search on users
- outputs:
-  total: body[total]
- setenv:
-  last_total: body[total]
- protocol: http
- url: <<e:api_url>>/users/search
- method: get
- format: json
- headers:
-   Authorization: Bearer <<e:token>>
-   X-Client: test
- query:
-   q: john
-   limit: "10"
- cookies:
-   locale: en-US
+type: api
+title: Get sample JSON
+tags:
+  - smoke
+description: Fetch sample JSON from the public test server
+outputs:
+  slideshow: body.slideshow
+protocol: http
+url: https://test.mmt.dev/json
+method: get
+format: json
+query:
+  limit: "10"
 ```
 
 ## WS

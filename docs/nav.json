@@ -61,10 +61,6 @@
             "path": "files/api/protocols/grpc.md"
           },
           {
-            "title": "Documentation",
-            "path": "files/api/documentation.md"
-          },
-          {
             "title": "Request",
             "path": "files/api/request.md"
           },
@@ -87,6 +83,10 @@
           {
             "title": "Outputs advanced",
             "path": "files/api/outputs-advanced.md"
+          },
+          {
+            "title": "Documentation",
+            "path": "files/api/documentation.md"
           },
           {
             "title": "setenv",
