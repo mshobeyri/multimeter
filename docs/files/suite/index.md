@@ -14,6 +14,8 @@ Use `type: suite` to define a suite MMT file. A suite runs multiple items togeth
 | {{btn:type-hierarchy-sub:Flow chart}} | Opens a read-only hierarchy view of suite items |
 | {{btn:edit:Edit Suite}} | Switches to **edit mode** — see [Edit Suite](./edit.md) |
 
+See also: [Flow chart](../../features/flow-chart.md)
+
 ### Run bar
 
 | Control | What it does |

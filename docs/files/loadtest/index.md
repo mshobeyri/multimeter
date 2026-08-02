@@ -18,6 +18,8 @@ Open a load test file in VS Code to get the **load test panel** on the right (YA
 | {{btn:type-hierarchy-sub:Flow chart}} | Opens a read-only view of the underlying test hierarchy |
 | {{btn:edit:Edit Load Test}} | Switches to **edit mode** — see [Edit Load Test](./edit.md) |
 
+See also: [Flow chart](../../features/flow-chart.md)
+
 ### Run bar
 
 | Control | What it does |

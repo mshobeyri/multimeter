@@ -95,6 +95,7 @@
 
 ### Features
 - [History](./features/history.md)
+- [Flow chart](./features/flow-chart.md)
 - [Dynamic values](./features/dynamic-values.md)
 - [Data-driven tests](./features/data-driven-tests.md)
 - [Certificates](./features/certificates/index.md)

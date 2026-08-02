@@ -22,6 +22,8 @@ Run glyphs appear in the left margin of the YAML pane:
 | {{btn:type-hierarchy-sub:Flow chart}} | Opens the flowchart view for the test steps |
 | {{btn:edit:Edit Test}} | Switches to **edit mode** — see [Edit Test](./edit.md) |
 
+See also: [Flow chart](../../features/flow-chart.md)
+
 ### Run bar
 
 | Control | What it does |

@@ -531,6 +531,10 @@
         "path": "features/history.md"
       },
       {
+        "title": "Flow chart",
+        "path": "features/flow-chart.md"
+      },
+      {
         "title": "Dynamic values",
         "path": "features/dynamic-values.md"
       },
