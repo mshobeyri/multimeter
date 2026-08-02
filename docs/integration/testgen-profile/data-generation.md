@@ -1,8 +1,10 @@
 # Data generation
 
-Prefer built-in tokens:
+Prefer built-in tokens — full list with examples: [Dynamic values](../../features/dynamic-values.md).
+
 - Random (`r:`): uuid, bool, int, etc.
 - Current (`c:`): date, epoch, etc.
+
 Honor schema constraints (e.g., min/max, regex) when available.
 
 Examples:

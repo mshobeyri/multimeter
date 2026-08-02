@@ -34,8 +34,8 @@ Mock responses use the same dynamic tokens as APIs and tests. Values are resolve
 | Token | Example | Description |
 |-------|---------|-------------|
 | `e:var` / `<<e:var>>` | `email: e:admin_email` | Environment variable |
-| `r:name` | `id: r:uuid` | Random value (new per request) |
-| `c:name` | `created: c:date` | Current date/time |
+| `r:name` / `<<r:name>>` | `id: r:uuid` | Random value (new per request) — [full list](../../features/dynamic-values.md#random-tokens-r) |
+| `c:name` / `<<c:name>>` | `created: c:date` | Current date/time — [full list](../../features/dynamic-values.md#current-tokens-c) |
 
 `e:` tokens also work in response headers, `match` rules, path patterns, `port`, and `protocol`:
 
