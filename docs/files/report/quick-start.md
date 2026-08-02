@@ -2,13 +2,19 @@
 
 Reports are generated after running tests, suites, or load tests — not authored directly.
 
-Generate an HTML report from the CLI:
+## CLI
+
+Generate an HTML report:
 
 ```sh
 npx testlight run path/to/test.mmt --report html
 ```
 
-Or add `export:` to a suite so reports are written automatically after a run:
+Other formats: `junit`, `mmt`, `md`, `md-detailed`. See [CLI](./cli.md).
+
+## Auto-export from a suite
+
+Add `export:` so reports are written automatically after a run:
 
 ```yaml
 type: suite
@@ -19,6 +25,10 @@ items:
   - tests/login.mmt
 ```
 
-Open a generated `.mmt` file with `type: report` in VS Code to view the read-only report panel and re-export to other formats.
+See [Suite exports](../suite/exports.md) for path rules and format mapping.
 
-More: [CLI](./cli.md) · [VS Code](./vscode.md) · [HTML](./html.md) · [JUnit](./junit.md)
+## View and re-export
+
+Open a generated `.mmt` file with `type: report` in VS Code to view the read-only report panel and re-export to any format.
+
+See also: [Overview](./index.md) · [CLI](./cli.md) · [Reference](./reference.md)

@@ -466,10 +466,6 @@
             "path": "files/report/junit.md"
           },
           {
-            "title": "YAML",
-            "path": "files/report/yaml.md"
-          },
-          {
             "title": "HTML",
             "path": "files/report/html.md"
           },
@@ -478,16 +474,16 @@
             "path": "files/report/markdown.md"
           },
           {
+            "title": "CI/CD",
+            "path": "files/report/ci.md"
+          },
+          {
             "title": "CLI",
             "path": "files/report/cli.md"
           },
           {
-            "title": "VS Code",
-            "path": "files/report/vscode.md"
-          },
-          {
-            "title": "CI/CD",
-            "path": "files/report/ci.md"
+            "title": "Reference",
+            "path": "files/report/reference.md"
           }
         ],
         "icon": "file-text"

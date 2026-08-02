@@ -19,3 +19,5 @@ operator: ==</failure>
 ```
 
 For load tests, JUnit XML keeps normal `<testsuites>` compatibility and adds load metrics as `<property>` values, for example `load.threads`, `load.throughput`, `load.latency.p95`, `load.error_rate`, and `load.snapshots.0.at`.
+
+See also: [CI/CD](./ci.md) · [Reference — Exported formats](./reference.md#exported-formats)

@@ -573,55 +573,7 @@ ${sliceLines(server, 107, 221).replace(/^## MMT Mock Server Files\n/, '')}
 // Hand-maintained under docs/files/loadtest/ (see load-config, exports, etc.)
 
 // ---------- REPORT ----------
-{
-  const report = read('files/report.md')
-  write(
-    'files/report/index.md',
-    `# Report
-
-${sliceLines(report, 1, 15).replace(/^# Report[^\n]*\n*/, '')}
-
-Formats: [JUnit](./junit.md) · [YAML](./yaml.md) · [HTML](./html.md) · [Markdown](./markdown.md)
-
-Also: [CLI](./cli.md) · [VS Code](./vscode.md) · [CI/CD](./ci.md)
-`,
-  )
-  write('files/report/junit.md', demoteH1(sliceLines(report, 15, 37), 'JUnit XML'))
-  write(
-    'files/report/yaml.md',
-    demoteH1(sliceLines(report, 37, 148), 'MMT Report YAML'),
-  )
-  // Merge duplicate HTML sections (148-218 and 208-218)
-  write(
-    'files/report/html.md',
-    `# HTML reports
-
-${sliceLines(report, 148, 218)}
-`,
-  )
-  write(
-    'files/report/markdown.md',
-    `# Markdown reports
-
-${sliceLines(report, 218, 291)}
-`,
-  )
-  write(
-    'files/report/cli.md',
-    `# CLI and auto-export
-
-${sliceLines(report, 291, 364)}
-`,
-  )
-  write(
-    'files/report/vscode.md',
-    demoteH1(sliceLines(report, 364, 388), 'VS Code extension'),
-  )
-  write(
-    'files/report/ci.md',
-    demoteH1(sliceLines(report, 388, 452), 'CI/CD integration'),
-  )
-}
+// Hand-maintained under docs/files/report/ (see reference.md, index UI-first overview, etc.)
 
 // ---------- Integration moves ----------
 {

@@ -13,7 +13,7 @@ Load reports are compact and load-oriented. They do **not** keep every individua
 
 Use {{btn:export:Export}} on the run bar or the `export:` field to save reports. See [Exports](./exports.md).
 
-See [Reports — Load Test Report Schema](../report/yaml.md#load-test-report-schema) for the generated report shape.
+See [Report — Load report schema](../report/reference.md#load-report-kind-load) for the generated report shape.
 
 ## Differences from suites
 

@@ -1,38 +1,24 @@
-# CLI and auto-export
+# CLI
 
 `type: report` files are output artifacts. Generate them with the `--report` flag when running tests, suites, or load tests.
 
-## CLI usage
-
-Use the `--report` flag with `testlight run`:
+## Usage
 
 ```bash
-# Generate JUnit XML report
 npx testlight run test.mmt --report junit
-
-# Generate MMT YAML report
 npx testlight run suite.mmt --report mmt
-
-# Generate HTML report
 npx testlight run loadtest.mmt --report html
-
-# Generate Markdown report
 npx testlight run test.mmt --report md
-
-# Generate detailed Markdown (summary + request/response IO)
 npx testlight run test.mmt --report md-detailed
 ```
 
 ### Custom output path
 
-Use `--report-file` to specify a custom output path:
-
 ```bash
 npx testlight run suite.mmt --report junit --report-file results/output.xml
-npx testlight run loadtest.mmt --report html --report-file reports/load.html
 ```
 
-### Default output paths
+### Default filenames
 
 | Format | Default filename |
 |--------|-----------------|
@@ -44,33 +30,9 @@ npx testlight run loadtest.mmt --report html --report-file reports/load.html
 
 ## Auto-export from `.mmt` files
 
-Suites can automatically generate reports after completion using the `export` field:
+Suites and load tests can auto-generate reports after completion using the `export:` field. Format is inferred from the file extension (`.xml`, `.html`, `.md`, `.mmt`).
 
-```yaml
-type: suite
-title: CI Suite
-export:
-  - ./reports/results.xml
-  - ./reports/results.html
-items:
-  - tests/login.mmt
-  - tests/profile.mmt
-```
+- [Suite exports](../suite/exports.md) — `export:` on `type: suite`
+- [Load test exports](../loadtest/exports.md) — `export:` on `type: loadtest`
 
-Load tests can also automatically generate reports after completion:
-
-```yaml
-type: loadtest
-title: Login Load Test
-threads: 100
-repeat: 1m
-rampup: 10s
-export:
-  - ./reports/load-results.mmt
-  - ./reports/load-results.html
-  - ./reports/load-results.md
-  - ./reports/load-results.xml
-test: ./tests/login.mmt
-```
-
-See [Suite — Exports](../suite/exports.md) and [Load Test — Exports](../loadtest/exports.md) for details.
+See also: [CI/CD](./ci.md) · [Reference](./reference.md) · [Running](../../running/testlight/index.md)

@@ -1,4 +1,12 @@
-# CI/CD Integration
+# CI/CD
+
+Generate JUnit XML from the CLI and publish it with your CI system's test-results task.
+
+```bash
+npx testlight run suite.mmt --report junit
+```
+
+See [CLI](./cli.md) for `--report-file` and other formats.
 
 ### Azure Pipelines
 
@@ -60,4 +68,4 @@ pipeline {
 }
 ```
 
----
+See also: [JUnit](./junit.md) · [Suite exports](../suite/exports.md)

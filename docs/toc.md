@@ -77,7 +77,12 @@
   - [Reference](./files/loadtest/reference.md)
 - [Report](./files/report/index.md)
   - [Quick start](./files/report/quick-start.md)
+  - [JUnit](./files/report/junit.md)
+  - [HTML](./files/report/html.md)
+  - [Markdown](./files/report/markdown.md)
+  - [CI/CD](./files/report/ci.md)
   - [CLI](./files/report/cli.md)
+  - [Reference](./files/report/reference.md)
 
 ### Start with a task
 - [Overview](./tasks/index.md)

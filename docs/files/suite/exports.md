@@ -36,4 +36,4 @@ These fields only take effect when the suite is the **root entry point** (run di
 
 This design prevents conflicts when suites are composed hierarchically.
 
-See also: [CLI & environment](./cli.md) · [Execution](./execution.md) · [Running](../../running/testlight/index.md)
+See also: [Report formats](../report/index.md) · [CLI & environment](./cli.md) · [Execution](./execution.md) · [Running](../../running/testlight/index.md)

@@ -25,7 +25,7 @@ Each item row also shows:
 - A type icon (test, API, nested suite, mock server)
 - {{btn:play}} **Run** for partial subtree execution
 
-Use {{btn:export:Export}} on the run bar to export the combined suite report. See [Exports](./exports.md) and [Report files](../report/index.md).
+Use {{btn:export:Export}} on the run bar to export the combined suite report. See [Exports](./exports.md) and [Report overview](../report/index.md).
 
 ---
 
