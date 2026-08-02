@@ -1,10 +1,58 @@
 # Suite
 
-Use `type: suite` to define a suite MMT file. A suite runs multiple items together — tests, APIs, HTTP/Bruno files, or other suites. Under the hood, Multimeter executes each file listed in the suite.
+Use `type: suite` to define a suite MMT file. A suite runs multiple items together — tests, APIs, HTTP/Bruno files, or other suites. Open a suite file in VS Code to get the **suite panel** on the right (YAML stays on the left).
 
-Open a suite file in VS Code to get the **suite panel** on the right (YAML stays on the left). Click {{btn:edit:Edit Suite}} to edit title, items, servers, environment, and exports — see [Edit Suite](./edit.md). Run the suite or individual items from the panel; see [UI and execution](./ui.md).
+## Suite panel UI
 
-Example:
+### Top bar
+
+| Control | What it does |
+|---|---|
+| **Title** | Suite title from `title:` (shown with the layers icon) |
+| {{btn:type-hierarchy-sub:Flow chart}} | Opens a read-only hierarchy view of suite items |
+| {{btn:edit:Edit Suite}} | Switches to **edit mode** — see [Edit Suite](./edit.md) |
+
+### Run bar
+
+| Control | What it does |
+|---|---|
+| {{btn:play:Run suite}} | Runs all suite items. While running, turns into **Stop suite** |
+| Right-click Run suite | Context menu: **Run in Core** |
+| {{btn:export:Export}} | Export the run report (HTML, JSON, or Markdown). Disabled until a run completes |
+
+### Before and after a run
+
+| Section | What you see |
+|---|---|
+| **Environment** | Preset, env file, and inline variables when `environment:` is configured |
+| **Servers** | Mock server files listed in `servers:` |
+| **Exports** | Report export paths from `export:` |
+| **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards (after a run) |
+| **Tests** | Item tree grouped by execution stage — expand a test to see step reports |
+
+### Item tree
+
+Each item shows an icon for its type:
+
+| Type | Icon meaning |
+|---|---|
+| **API** | HTTP or WebSocket API file |
+| **Test** | Test file with steps/stages |
+| **Suite** | Nested suite |
+| **Server** | Mock server file — started before items in the same stage |
+| **Missing** | Referenced file not found |
+| **Cycle** | Circular reference detected (not executed) |
+
+Each item and stage group has a **Run** button for partial runs (subtree execution). Right-click for **Run in Core**. See [Execution — partial runs](./execution.md#partial-runs).
+
+## Supported
+
+- [items](./items.md) — tests, APIs, HTTP/Bruno files, nested suites
+- [import](./import.md) — data file imports
+- [Execution](./execution.md) — parallel stages with `then`, mock servers
+- [Exports](./exports.md) · [CLI](./cli.md)
+
+Sample:
 
 ```yaml
 type: suite
@@ -17,51 +65,7 @@ items:
   - test/get_user_info.mmt
 ```
 
+## Suite elements
 
-## Elements
-
-### title, description, tags
-You can use these fields for documentation and to help with searching and filtering suites.
-
-- `title`: The title of the suite.
-- `description`: A short explanation of what the suite does.
-- `tags`: An array of strings to categorize the suite.
-
-### import
-Suites support top-level data imports from `.json`, `.yaml`, `.yml`, and `.csv` files. Imported values can be referenced with `${alias.path}` in suite fields before the suite is run.
-
-```yaml
-type: suite
-import:
-  config: ./suite-config.yaml
-title: ${config.title}
-items:
-  - ./tests/login.mmt
-```
-
-See [Data Imports](../integration/data-imports.md).
-
-### items
-The `items` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs, tests, HTTP files, Bruno files, or other suites.
-
-> **Legacy alias:** `tests` is still accepted as an alias for `items` in existing suite files.
-
-Paths can be:
-- **Relative** to the suite file's location (e.g., `../tests/login.mmt`)
-- **Project root** paths using `+/` prefix (e.g., `+/tests/login.mmt`) — resolves relative to the directory containing `multimeter.mmt`
-
-```yaml
-items:
-  - ../apis/login.mmt
-  - ../tests/login_and_get_user_info.mmt
-  - ../requests/profile.http
-  - +/tests/shared/setup.mmt           # project root import
-  - ../suites/smoke_tests.mmt
-```
-
-See [Environment — Project Root Marker](./env.md#project-root-marker) for details on setting up `multimeter.mmt`.
-
-When converting larger Postman collections, Multimeter generates `multimeter.mmt` and uses `+/` paths in generated tests and suites so files can move within the generated project without breaking imports.
-
-
-Next: [Edit Suite](./edit.md) · [Execution](./execution.md) · [UI](./ui.md) · [CLI](./cli.md) · [Reference](./reference.md)
+- [Edit Suite](./edit.md) · [import](./import.md) · [items](./items.md)
+- [Execution](./execution.md) · [CLI](./cli.md) · [Exports](./exports.md) · [Reference](./reference.md)

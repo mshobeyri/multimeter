@@ -60,3 +60,14 @@ items:
 ```
 
 This lets you set up complex integration environments declaratively, without manual server management. The suite runner ensures servers are running before dependent tests execute.
+
+## Partial runs
+
+The suite panel supports running a single item (or a subtree) from within the item tree.
+
+- Suite runs are executed via a **suite bundle**.
+- Each runnable node in the bundle has an `id`.
+- Clicking **Run** on a node sends that node `id` as `target` to the extension host.
+- Core executes the subtree rooted at `target` and emits reports tagged with the same `id` so the UI routes output to the correct item.
+
+If you see output appear under the wrong item, it usually means report events are being routed without using `id` (or a per-run `runId`).

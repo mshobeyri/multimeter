@@ -274,12 +274,16 @@
             "path": "files/suite/edit.md"
           },
           {
-            "title": "Execution",
-            "path": "files/suite/execution.md"
+            "title": "import",
+            "path": "files/suite/import.md"
           },
           {
-            "title": "UI",
-            "path": "files/suite/ui.md"
+            "title": "items",
+            "path": "files/suite/items.md"
+          },
+          {
+            "title": "Execution",
+            "path": "files/suite/execution.md"
           },
           {
             "title": "CLI",

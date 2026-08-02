@@ -29,7 +29,7 @@ The Items tab shows the suite as an editable tree:
 - Insert **then** to start a new parallel stage (items before and after `then` run sequentially; items within a stage run in parallel)
 - Missing files and circular references are flagged in the runner view
 
-Paths can be relative to the suite file or use the `+/` project-root prefix. See [Overview — items](./index.md#items).
+Paths can be relative to the suite file or use the `+/` project-root prefix. See [items](./items.md).
 
 ### Servers
 
@@ -45,4 +45,4 @@ Add output paths for generated reports after a suite run.
 
 ---
 
-See also: [Suite overview](./index.md) · [UI and execution](./ui.md) · [Reference](./reference.md)
+See also: [Suite overview](./index.md) · [items](./items.md) · [import](./import.md) · [Execution](./execution.md) · [Reference](./reference.md)
