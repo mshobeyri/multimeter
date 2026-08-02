@@ -49,4 +49,4 @@ steps:
 
 Path resolution for imports (`./…`, `+/…`) and CSV/JSON/YAML data imports are documented under [import](./import.md) and [Data Imports](../../integration/data-imports.md).
 
-See also: [cache](./cache.md) · [call](./call.md) · [Inline expect](./run-expect.md)
+See also: [cache](./cache.md) · [call](./steps/call.md) · [Inline expect](./steps/run-expect.md)

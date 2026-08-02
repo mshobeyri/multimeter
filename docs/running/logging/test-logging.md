@@ -2,7 +2,7 @@
 
 ### Checks and asserts
 
-The log level for each check/assert result follows the [report configuration](../files/test/index.md#report-configuration):
+The log level for each check/assert result follows the [report configuration](../files/test/steps/assert.md#report-configuration):
 
 | Report level | On fail | On pass |
 |-------------|---------|---------|

@@ -54,4 +54,4 @@ Object-form:
 
 Runtime references like `${stepId.body.body.username}` and `${stepId.status}` use the same output fallback behavior as `expect`. Checks/asserts can read default output roots (`body`, `status`, `headers`, `cookies`, `duration`, `details`) from call results consistently.
 
-See also: [check / assert](./assert.md) · [Inline expect](./run-expect.md) · [Outputs](../api/outputs.md)
+See also: [check / assert](./assert.md) · [Inline expect](./run-expect.md) · [Outputs](../../api/outputs.md)

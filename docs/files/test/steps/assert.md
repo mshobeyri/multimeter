@@ -71,8 +71,8 @@ Values:
 
 Default if omitted: `internal: all`, `external: fails`.
 
-Checks, assertions, prints, and errors appear in the Log panel while the flow runs. The report level also determines the [log level](../running/logging/index.md#checks-and-asserts) for each result.
+Checks, assertions, prints, and errors appear in the Log panel while the flow runs. The report level also determines the [log level](../../running/logging/index.md#checks-and-asserts) for each result.
 
-![Log panel](../screenshots/test_panel_log.png)
+![Log panel](../../../screenshots/test_panel_log.png)
 
 Next: [Assert operators](./assert-operators.md) · [call](./call.md) · [run](./run.md)

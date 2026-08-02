@@ -45,4 +45,4 @@ outputs:
   from: body[from][0]
 ```
 
-See also: [Outputs](./outputs.md) · [Assert operators](../test/assert-operators.md) · [Inputs](./inputs.md)
+See also: [Outputs](./outputs.md) · [Assert operators](../test/steps/assert-operators.md) · [Inputs](./inputs.md)

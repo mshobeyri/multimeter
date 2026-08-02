@@ -2,7 +2,7 @@
 
 Advanced example: a session-style test declares `cache: 5m` so repeated `call:`s with the same title + inputs reuse outputs within one root run (second call skips nested HTTP).
 
-Design: `AI/sdd/sdd-test-call-cache.md`. User docs: [Test `.mmt` — cache](../../../docs/files/test/index.md#cache).
+Design: `AI/sdd/sdd-test-call-cache.md`. User docs: [Test `.mmt` — cache](../../../docs/files/test/cache.md).
 
 ## Files
 

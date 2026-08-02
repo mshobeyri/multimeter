@@ -118,7 +118,7 @@ ${wsQuick.replace(/^### WebSocket\n/, '')}
 
 ${wsComplete.replace(/^### WS\n/, '')}
 
-Tip: drive frames from [test \`call\` steps](../files/test/call.md). Live sessions also appear in the Connections panel.
+Tip: drive frames from [test \`call\` steps](../files/test/steps/call.md). Live sessions also appear in the Connections panel.
 `,
   )
 
@@ -335,10 +335,10 @@ Run glyphs appear in the left margin of the YAML pane:
 
 ## Supported
 
-- Step types: [call](./call.md), [http](./http.md), [run](./run.md), [assert](./assert.md), [check](./assert.md), [expect](./run-expect.md)
-- [Control flow](./control-flow.md): \`if\`, \`for\`, \`repeat\`, \`delay\`
-- [Stages](./stages.md) with parallel \`group\` execution
-- [import](./import.md) · [cache](./cache.md) · [js](./js.md) · [Variables](./variables.md)
+- Step types: [call](./steps/call.md), [http](./steps/http.md), [run](./steps/run.md), [assert](./steps/assert.md), [check](./steps/assert.md), [expect](./steps/run-expect.md)
+- [Control flow](./steps/control-flow.md): \`if\`, \`for\`, \`repeat\`, \`delay\`
+- [Stages](./stages/index.md) with parallel execution
+- [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md)
 
 Multimeter can also run \`.http\`, \`.https\`, and \`.bru\` files as test flows through the optional VS Code **Open With...** editors. See [HTTP Files](../../integration/http-files/index.md) and [Bruno Files](../../integration/bruno-files/index.md).
 
@@ -361,45 +361,73 @@ steps:
 
 ## Test elements
 
-- [Quick start](../../quick-start.md#5-try-a-test) · [Write a test flow](../../tasks/write-test-flow.md)
+- [Quick start](./quick-start.md) · [Write a test flow](../../tasks/write-test-flow.md)
 - [import](./import.md) · [cache](./cache.md) · [cache examples](./cache-examples.md)
-- [Stages & steps](./stages.md)
-- Steps: [call](./call.md) · [http](./http.md) · [run](./run.md) · [expect](./run-expect.md) · [assert](./assert.md) · [operators](./assert-operators.md)
-- [Control flow](./control-flow.md) · [js](./js.md) · [Variables](./variables.md)
-- [Stage condition](./stage-condition.md) · [Complete example](./complete-example.md) · [Reference](./reference.md)
+- [Steps](./steps/index.md) · [Stages](./stages/index.md)
+- [Stage condition](./stages/stage-condition.md) · [Complete example](./complete-example.md) · [Reference](./reference.md)
 `,
   )
 
   write('files/test/import.md', demoteH1(sliceLines(test, 48, 105), 'import'))
   write('files/test/cache.md', demoteH1(sliceLines(test, 105, 192), 'cache'))
+  const stagesAndSteps = sliceLines(test, 192, 219).replace(/^### /gm, '## ')
+  const stagesSection = stagesAndSteps.match(/## Stages[\s\S]*?(?=## Steps|$)/)?.[0]?.trim() ?? ''
+  const stepsSection = stagesAndSteps.match(/## Steps[\s\S]*/)?.[0]?.trim() ?? ''
   write(
-    'files/test/stages.md',
-    `# Stages and steps
+    'files/test/stages/index.md',
+    `# Stages
 
-${sliceLines(test, 192, 219).replace(/^### /gm, '## ')}
+${stagesSection.replace(/^## Stages\n?/, '')}
+
+| Topic | What it covers |
+|---|---|
+| [Stage condition](./stage-condition.md) | Skip a stage when a condition is false |
+
+Step types (\`call\`, \`http\`, \`assert\`, …): [Steps overview](../steps/index.md).
 `,
   )
-  write('files/test/call.md', demoteH1(sliceLines(test, 219, 246), 'call'))
-  write('files/test/http.md', demoteH1(sliceLines(test, 246, 287), 'http'))
-  write('files/test/run.md', demoteH1(sliceLines(test, 287, 414), 'run'))
-  write('files/test/assert.md', demoteH1(sliceLines(test, 414, 541), 'check / assert'))
   write(
-    'files/test/control-flow.md',
+    'files/test/steps/index.md',
+    `# Steps
+
+${stepsSection.replace(/^## Steps\n?/, '')}
+
+| Step type | What it does |
+|---|---|
+| [call](./call.md) | Invoke an imported API or test |
+| [http](./http.md) | Send a one-off HTTP request |
+| [run](./run.md) | Start an imported mock server |
+| [Inline expect](./run-expect.md) | Validate call outputs on the same step |
+| [check / assert](./assert.md) | Validate values; assert stops the flow |
+| [Assert operators](./assert-operators.md) | Comparison operators for checks |
+| [Control flow](./control-flow.md) | \`if\`, \`for\`, \`repeat\`, \`delay\` |
+| [js](./js.md) | Inline JavaScript |
+| [Variables](./variables.md) | \`print\`, \`set\`, \`var\`, \`const\`, \`let\`, \`setenv\`, \`data\` |
+
+For multi-stage flows with parallel execution, see [Stages](../stages/index.md).
+`,
+  )
+  write('files/test/steps/call.md', demoteH1(sliceLines(test, 219, 246), 'call'))
+  write('files/test/steps/http.md', demoteH1(sliceLines(test, 246, 287), 'http'))
+  write('files/test/steps/run.md', demoteH1(sliceLines(test, 287, 414), 'run'))
+  write('files/test/steps/assert.md', demoteH1(sliceLines(test, 414, 541), 'check / assert'))
+  write(
+    'files/test/steps/control-flow.md',
     `# Control flow
 
 ${sliceLines(test, 541, 636).replace(/^### /gm, '## ')}
 `,
   )
-  write('files/test/js.md', demoteH1(sliceLines(test, 636, 659), 'js'))
+  write('files/test/steps/js.md', demoteH1(sliceLines(test, 636, 659), 'js'))
   write(
-    'files/test/variables.md',
+    'files/test/steps/variables.md',
     `# Variables and data
 
 ${sliceLines(test, 659, 708).replace(/^### /gm, '## ')}
 `,
   )
   write(
-    'files/test/stage-condition.md',
+    'files/test/stages/stage-condition.md',
     demoteH1(sliceLines(test, 708, 724), 'Stage condition'),
   )
   write(

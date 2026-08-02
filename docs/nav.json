@@ -136,6 +136,10 @@
             "path": "files/test/index.md"
           },
           {
+            "title": "Quick start",
+            "path": "files/test/quick-start.md"
+          },
+          {
             "title": "import",
             "path": "files/test/import.md"
           },
@@ -148,48 +152,64 @@
             "path": "files/test/cache-examples.md"
           },
           {
+            "title": "Steps",
+            "path": "files/test/steps/index.md",
+            "children": [
+              {
+                "title": "Overview",
+                "path": "files/test/steps/index.md"
+              },
+              {
+                "title": "call",
+                "path": "files/test/steps/call.md"
+              },
+              {
+                "title": "http",
+                "path": "files/test/steps/http.md"
+              },
+              {
+                "title": "run",
+                "path": "files/test/steps/run.md"
+              },
+              {
+                "title": "run expect",
+                "path": "files/test/steps/run-expect.md"
+              },
+              {
+                "title": "assert",
+                "path": "files/test/steps/assert.md"
+              },
+              {
+                "title": "assert operators",
+                "path": "files/test/steps/assert-operators.md"
+              },
+              {
+                "title": "Control flow",
+                "path": "files/test/steps/control-flow.md"
+              },
+              {
+                "title": "js",
+                "path": "files/test/steps/js.md"
+              },
+              {
+                "title": "Variables",
+                "path": "files/test/steps/variables.md"
+              }
+            ]
+          },
+          {
             "title": "Stages",
-            "path": "files/test/stages.md"
-          },
-          {
-            "title": "call",
-            "path": "files/test/call.md"
-          },
-          {
-            "title": "http",
-            "path": "files/test/http.md"
-          },
-          {
-            "title": "run",
-            "path": "files/test/run.md"
-          },
-          {
-            "title": "run expect",
-            "path": "files/test/run-expect.md"
-          },
-          {
-            "title": "assert",
-            "path": "files/test/assert.md"
-          },
-          {
-            "title": "assert operators",
-            "path": "files/test/assert-operators.md"
-          },
-          {
-            "title": "Control flow",
-            "path": "files/test/control-flow.md"
-          },
-          {
-            "title": "js",
-            "path": "files/test/js.md"
-          },
-          {
-            "title": "Variables",
-            "path": "files/test/variables.md"
-          },
-          {
-            "title": "Stage condition",
-            "path": "files/test/stage-condition.md"
+            "path": "files/test/stages/index.md",
+            "children": [
+              {
+                "title": "Overview",
+                "path": "files/test/stages/index.md"
+              },
+              {
+                "title": "Stage condition",
+                "path": "files/test/stages/stage-condition.md"
+              }
+            ]
           },
           {
             "title": "Complete example",
