@@ -9,4 +9,4 @@ Multimeter APIs support HTTP, WebSocket, GraphQL, and gRPC.
 | [GraphQL](./graphql.md) | GraphQL over HTTP | `graphql` block |
 | [gRPC](./grpc.md) | Protobuf RPC | `grpc` block |
 
-Shared request fields (`url`, `headers`, `auth`, `inputs`/`outputs`) are documented under [API files](../files/api/index.md).
+Shared request fields (`url`, `headers`, `auth`, `inputs`/`outputs`) are documented under [API files](../index.md).

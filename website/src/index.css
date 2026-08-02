@@ -36,6 +36,23 @@ body {
   max-width: 100%;
 }
 
+/* VS Code Codicons — available site-wide (docs + marketing TSX) */
+.codicon {
+  font-size: 1em;
+  vertical-align: -0.125em;
+  line-height: 1;
+}
+
+.docs-prose .codicon {
+  margin-right: 0.2em;
+}
+
+.docs-nav-icon {
+  font-size: 14px;
+  opacity: 0.85;
+  margin-right: 0;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }

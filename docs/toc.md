@@ -4,7 +4,22 @@
 - [Getting Started](./getting-started.md)
 - [Install](./install.md)
 - [Quick Start](./quick-start.md)
-- [Overview](./overview.md)
+
+### MMT Files
+- [Overview](./files.md)
+- [API](./files/api/index.md)
+  - [Protocols](./files/api/protocols/index.md)
+  - [HTTP](./files/api/protocols/http.md)
+  - [WebSocket](./files/api/protocols/websocket.md)
+  - [GraphQL](./files/api/protocols/graphql.md)
+  - [gRPC](./files/api/protocols/grpc.md)
+- [Test](./files/test/index.md)
+- [Environment](./files/env/index.md)
+- [Suite](./files/suite/index.md)
+- [Doc](./files/doc/index.md)
+- [Mock Server](./files/server/index.md)
+- [Load Test](./files/loadtest/index.md)
+- [Report](./files/report/index.md)
 
 ### Start with a task
 - [Overview](./tasks/index.md)
@@ -14,24 +29,6 @@
 - [Run a suite](./tasks/run-suite.md)
 - [Generate docs](./tasks/generate-docs.md)
 - [Run in CI](./tasks/run-in-ci.md)
-
-### MMT Files
-- [Overview](./files.md)
-- [API](./files/api/index.md)
-- [Test](./files/test/index.md)
-- [Environment](./files/env/index.md)
-- [Suite](./files/suite/index.md)
-- [Doc](./files/doc/index.md)
-- [Mock Server](./files/server/index.md)
-- [Load Test](./files/loadtest/index.md)
-- [Report](./files/report/index.md)
-
-### Protocols
-- [Overview](./protocols/index.md)
-- [HTTP](./protocols/http.md)
-- [WebSocket](./protocols/websocket.md)
-- [GraphQL](./protocols/graphql.md)
-- [gRPC](./protocols/grpc.md)
 
 ### Features
 - [History](./features/history.md)

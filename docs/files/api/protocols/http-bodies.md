@@ -82,4 +82,4 @@ Example body `{ q: hello world, email: a+b@example.com }` produces `q=hello+worl
   </root>
 ```
 
-See also: [HTTP](./http.md) · [Outputs](../files/api/outputs.md) · [Request](../files/api/request.md)
+See also: [HTTP](./http.md) · [Outputs](../outputs.md) · [Request](../request.md)

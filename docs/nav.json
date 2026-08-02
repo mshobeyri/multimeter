@@ -13,43 +13,6 @@
       {
         "title": "Quick Start",
         "path": "quick-start.md"
-      },
-      {
-        "title": "Overview",
-        "path": "overview.md"
-      }
-    ]
-  },
-  {
-    "title": "Start with a task",
-    "items": [
-      {
-        "title": "Overview",
-        "path": "tasks/index.md"
-      },
-      {
-        "title": "Send an API request",
-        "path": "tasks/send-api-request.md"
-      },
-      {
-        "title": "Write a test flow",
-        "path": "tasks/write-test-flow.md"
-      },
-      {
-        "title": "Use environments",
-        "path": "tasks/use-environments.md"
-      },
-      {
-        "title": "Run a suite",
-        "path": "tasks/run-suite.md"
-      },
-      {
-        "title": "Generate docs",
-        "path": "tasks/generate-docs.md"
-      },
-      {
-        "title": "Run in CI",
-        "path": "tasks/run-in-ci.md"
       }
     ]
   },
@@ -58,7 +21,8 @@
     "items": [
       {
         "title": "Overview",
-        "path": "files.md"
+        "path": "files.md",
+        "icon": "files"
       },
       {
         "title": "API",
@@ -71,6 +35,30 @@
           {
             "title": "Quick start",
             "path": "files/api/quick-start.md"
+          },
+          {
+            "title": "Protocols",
+            "path": "files/api/protocols/index.md"
+          },
+          {
+            "title": "HTTP",
+            "path": "files/api/protocols/http.md"
+          },
+          {
+            "title": "HTTP bodies",
+            "path": "files/api/protocols/http-bodies.md"
+          },
+          {
+            "title": "WebSocket",
+            "path": "files/api/protocols/websocket.md"
+          },
+          {
+            "title": "GraphQL",
+            "path": "files/api/protocols/graphql.md"
+          },
+          {
+            "title": "gRPC",
+            "path": "files/api/protocols/grpc.md"
           },
           {
             "title": "Documentation",
@@ -120,7 +108,8 @@
             "title": "Reference",
             "path": "files/api/reference.md"
           }
-        ]
+        ],
+        "icon": "symbol-method"
       },
       {
         "title": "Test",
@@ -194,7 +183,8 @@
             "title": "Reference",
             "path": "files/test/reference.md"
           }
-        ]
+        ],
+        "icon": "beaker"
       },
       {
         "title": "Environment",
@@ -224,7 +214,8 @@
             "title": "Reference",
             "path": "files/env/reference.md"
           }
-        ]
+        ],
+        "icon": "server-environment"
       },
       {
         "title": "Suite",
@@ -254,7 +245,8 @@
             "title": "Reference",
             "path": "files/suite/reference.md"
           }
-        ]
+        ],
+        "icon": "layers"
       },
       {
         "title": "Doc",
@@ -284,7 +276,8 @@
             "title": "Reference",
             "path": "files/doc/reference.md"
           }
-        ]
+        ],
+        "icon": "book"
       },
       {
         "title": "Mock Server",
@@ -322,7 +315,8 @@
             "title": "In suites",
             "path": "files/server/in-suites.md"
           }
-        ]
+        ],
+        "icon": "server"
       },
       {
         "title": "Load Test",
@@ -352,7 +346,8 @@
             "title": "Reference",
             "path": "files/loadtest/reference.md"
           }
-        ]
+        ],
+        "icon": "dashboard"
       },
       {
         "title": "Report",
@@ -390,36 +385,41 @@
             "title": "CI/CD",
             "path": "files/report/ci.md"
           }
-        ]
+        ],
+        "icon": "file-text"
       }
     ]
   },
   {
-    "title": "Protocols",
+    "title": "Start with a task",
     "items": [
       {
         "title": "Overview",
-        "path": "protocols/index.md"
+        "path": "tasks/index.md"
       },
       {
-        "title": "HTTP",
-        "path": "protocols/http.md"
+        "title": "Send an API request",
+        "path": "tasks/send-api-request.md"
       },
       {
-        "title": "HTTP bodies",
-        "path": "protocols/http-bodies.md"
+        "title": "Write a test flow",
+        "path": "tasks/write-test-flow.md"
       },
       {
-        "title": "WebSocket",
-        "path": "protocols/websocket.md"
+        "title": "Use environments",
+        "path": "tasks/use-environments.md"
       },
       {
-        "title": "GraphQL",
-        "path": "protocols/graphql.md"
+        "title": "Run a suite",
+        "path": "tasks/run-suite.md"
       },
       {
-        "title": "gRPC",
-        "path": "protocols/grpc.md"
+        "title": "Generate docs",
+        "path": "tasks/generate-docs.md"
+      },
+      {
+        "title": "Run in CI",
+        "path": "tasks/run-in-ci.md"
       }
     ]
   },

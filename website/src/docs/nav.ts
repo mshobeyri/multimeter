@@ -14,35 +14,43 @@ type JsonItem = {
   title: string
   path?: string
   href?: string
+  icon?: string
   children?: JsonItem[]
+}
+
+function mapLeaf(item: JsonItem): DocsNavLeaf {
+  if (item.href) {
+    return { title: item.title, href: item.href, icon: item.icon }
+  }
+  const content = item.path as string
+  return { title: item.title, href: pathToHref(content), content, icon: item.icon }
 }
 
 function mapItem(item: JsonItem): DocsNavEntry {
   if (item.children && item.children.length > 0) {
-    const children = item.children.map((child) => {
-      if (child.href) {
-        return { title: child.title, href: child.href }
-      }
-      const content = child.path as string
-      return { title: child.title, href: pathToHref(content), content }
-    })
-    const group: DocsNavEntry = {
+    const children = item.children.map(mapLeaf)
+    const group: DocsNavGroupWithOptional = {
       title: item.title,
       children,
+      icon: item.icon,
     }
     if (item.href) {
-      ;(group as { href?: string }).href = item.href
+      group.href = item.href
     } else if (item.path) {
-      ;(group as { href?: string; content?: string }).href = pathToHref(item.path)
-      ;(group as { content?: string }).content = item.path
+      group.href = pathToHref(item.path)
+      group.content = item.path
     }
     return group
   }
-  if (item.href) {
-    return { title: item.title, href: item.href }
-  }
-  const content = item.path as string
-  return { title: item.title, href: pathToHref(content), content }
+  return mapLeaf(item)
+}
+
+type DocsNavGroupWithOptional = {
+  title: string
+  href?: string
+  content?: string
+  icon?: string
+  children: DocsNavLeaf[]
 }
 
 export const docsNav: DocsNavSection[] = (

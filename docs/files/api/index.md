@@ -3,7 +3,7 @@
 Write request definitions in `.mmt` files with `type: api`.
 
 **Supported**
-- Protocols: [HTTP](../../protocols/http.md), [WebSocket](../../protocols/websocket.md), [GraphQL](../../protocols/graphql.md), [gRPC](../../protocols/grpc.md)
+- Protocols: [HTTP](./protocols/http.md), [WebSocket](./protocols/websocket.md), [GraphQL](./protocols/graphql.md), [gRPC](./protocols/grpc.md)
 - Formats: `json`, `xml`, `xmle`, `text`, `urlencoded`, `binary`
 - Methods: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 
@@ -16,4 +16,4 @@ Write request definitions in `.mmt` files with `type: api`.
 - [Dynamic values](./dynamic-values.md) · [Examples](./examples.md)
 - [Reference](./reference.md)
 
-See also: [Quick start](./quick-start.md) · [Complete examples](./complete-examples.md) · [Protocols](../../protocols/index.md)
+See also: [Quick start](./quick-start.md) · [Complete examples](./complete-examples.md) · [Protocols](./protocols/index.md)

@@ -23,4 +23,4 @@ Import JSON/YAML/CSV with top-level `import:` — [Data imports](../../integrati
 
 Paste a `curl` into the API editor to convert it; the toolbar can also run HTTP via `curl`.
 
-More protocols: [HTTP bodies](../../protocols/http.md) · [WebSocket](../../protocols/websocket.md) · [GraphQL](../../protocols/graphql.md) · [gRPC](../../protocols/grpc.md)
+More protocols: [HTTP](./protocols/http.md) · [HTTP bodies](./protocols/http-bodies.md) · [WebSocket](./protocols/websocket.md) · [GraphQL](./protocols/graphql.md) · [gRPC](./protocols/grpc.md)

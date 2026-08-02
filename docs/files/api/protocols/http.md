@@ -31,7 +31,7 @@ format:
 - `query` merges with any query string in `url`
 - `protocol` is optional — inferred from URL (`ws://` or `wss://` → ws, otherwise http)
 
-Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies (`r:uuid`, `c:date`, `e:token`). See [Dynamic values](../files/api/dynamic-values.md).
+Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies (`r:uuid`, `c:date`, `e:token`). See [Dynamic values](../dynamic-values.md).
 
 You can also import JSON/YAML/CSV data files with a top-level `import:` map and reference values with `${alias.path}`. See [Data Imports](../integration/data-imports.md).
 

@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeSlug from 'rehype-slug'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypeHighlight from 'rehype-highlight'
+import rehypeRaw from 'rehype-raw'
 import { Link } from 'react-router-dom'
 import type { Components } from 'react-markdown'
 import CodeBlock from './CodeBlock'
@@ -38,6 +39,25 @@ function normalizeCodeFences(markdown: string): string {
     }
     return full
   })
+}
+
+/**
+ * VS Code-style `$(icon-name)` → codicon span. Skips fenced code blocks.
+ * Docs are first-party content; spans are injected before rehype-raw.
+ */
+function expandCodiconTokens(markdown: string): string {
+  const parts = markdown.split(/(```[\s\S]*?```)/g)
+  return parts
+    .map((part) => {
+      if (part.startsWith('```')) {
+        return part
+      }
+      return part.replace(/\$\(([a-z0-9-]+)\)/gi, (_m, name: string) => {
+        const icon = name.toLowerCase()
+        return `<span class="codicon codicon-${icon}" aria-hidden="true"></span>`
+      })
+    })
+    .join('')
 }
 
 function looksLikeYaml(body: string): boolean {
@@ -343,13 +363,17 @@ export default function MarkdownContent({
     [basePath, contentPath, showTitle],
   )
 
-  const source = useMemo(() => normalizeCodeFences(markdown), [markdown])
+  const source = useMemo(
+    () => expandCodiconTokens(normalizeCodeFences(markdown)),
+    [markdown],
+  )
 
   return (
     <div className="docs-prose">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[
+          rehypeRaw,
           rehypeSlug,
           [rehypeAutolinkHeadings, { behavior: 'wrap', properties: { className: ['docs-heading-link'] } }],
           [rehypeHighlight, { detect: false, aliases: HIGHLIGHT_ALIASES }],

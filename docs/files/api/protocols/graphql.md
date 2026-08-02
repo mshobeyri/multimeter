@@ -58,4 +58,4 @@ Use `inputs` with `<<i:name>>` inside `graphql.variables`:
 - `method` — always POST; `format` — always JSON
 - `headers`, `auth`, `inputs`, `outputs`, `examples`, `setenv` — work like HTTP
 
-See also: [HTTP](./http.md) · [Outputs](../files/api/outputs.md) · [Auth](../files/api/auth.md)
+See also: [HTTP](./http.md) · [Outputs](../outputs.md) · [Auth](../auth.md)

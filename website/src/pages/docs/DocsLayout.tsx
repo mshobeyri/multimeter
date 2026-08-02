@@ -3,15 +3,27 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { ChevronDown, Menu, X } from 'lucide-react'
 import { docsNav, isNavGroup } from '../../docs/nav'
 import type { DocsNavEntry } from '../../docs/nav'
+import Codicon from '../../components/Codicon'
+
+function NavLabel({ title, icon }: { title: string; icon?: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 min-w-0">
+      {icon ? <Codicon name={icon} className="docs-nav-icon shrink-0" /> : null}
+      <span className="truncate">{title}</span>
+    </span>
+  )
+}
 
 function NavItemLink({
   href,
   title,
+  icon,
   onNavigate,
   nested,
 }: {
   href: string
   title: string
+  icon?: string
   onNavigate: () => void
   nested?: boolean
 }) {
@@ -30,7 +42,7 @@ function NavItemLink({
         }`
       }
     >
-      {title}
+      <NavLabel title={title} icon={icon} />
     </NavLink>
   )
 }
@@ -48,7 +60,12 @@ function NavEntry({
   if (!isNavGroup(item)) {
     return (
       <li>
-        <NavItemLink href={item.href} title={item.title} onNavigate={onNavigate} />
+        <NavItemLink
+          href={item.href}
+          title={item.title}
+          icon={item.icon}
+          onNavigate={onNavigate}
+        />
       </li>
     )
   }
@@ -66,22 +83,22 @@ function NavEntry({
             end
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex-1 block rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+              `flex-1 min-w-0 block rounded-md px-2.5 py-1.5 text-sm transition-colors ${
                 isActive
                   ? 'bg-primary/15 text-primary-light font-medium'
                   : 'text-slate-400 hover:text-white hover:bg-surface-light'
               }`
             }
           >
-            {item.title}
+            <NavLabel title={item.title} icon={item.icon} />
           </NavLink>
         ) : (
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="flex-1 text-left rounded-md px-2.5 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-surface-light"
+            className="flex-1 min-w-0 text-left rounded-md px-2.5 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-surface-light"
           >
-            {item.title}
+            <NavLabel title={item.title} icon={item.icon} />
           </button>
         )}
         <button
@@ -100,6 +117,7 @@ function NavEntry({
               <NavItemLink
                 href={child.href}
                 title={child.title}
+                icon={child.icon}
                 onNavigate={onNavigate}
                 nested
               />

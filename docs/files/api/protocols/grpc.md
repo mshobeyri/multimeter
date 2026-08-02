@@ -59,4 +59,4 @@ URL: `grpc://host:port` (plaintext) or `grpcs://host:port` (TLS).
 
 For server streaming, `message` contains all collected messages as an array. Client and bidi streaming send the message object as a single frame.
 
-See also: [HTTP](./http.md) · [Outputs](../files/api/outputs.md) · [Auth](../files/api/auth.md)
+See also: [HTTP](./http.md) · [Outputs](../outputs.md) · [Auth](../auth.md)

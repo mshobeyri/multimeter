@@ -1,6 +1,6 @@
 # Complete examples
 
-HTTP and protocol samples. GraphQL/WS live under [Protocols](../../protocols/index.md) as well.
+HTTP and protocol samples. GraphQL/WS live under [Protocols](./protocols/index.md) as well.
 
 ## HTTP
 ```yaml

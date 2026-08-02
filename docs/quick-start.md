@@ -91,4 +91,4 @@ Click **Run** — the Log panel shows whether checks passed.
 - [Send an API request](./tasks/send-api-request.md) — inputs, outputs, and headers
 - [Browse examples](/docs/examples) — copy a working folder
 - [Files overview](./files.md) — all `.mmt` types
-- [MMT Overview](./overview.md) — deeper tour of types and panels
+- [MMT Files](./files.md) — types, shared metadata, and layout

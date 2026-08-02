@@ -5,12 +5,15 @@ export type DocsNavLeaf = {
   title: string
   href: string
   content?: string
+  /** Codicon name without `codicon-` prefix */
+  icon?: string
 }
 
 export type DocsNavGroup = {
   title: string
   href?: string
   content?: string
+  icon?: string
   children: DocsNavLeaf[]
 }
 
@@ -41,7 +44,12 @@ export function flattenNavItems(items: DocsNavEntry[]): DocsNavLeaf[] {
   for (const item of items) {
     if (isNavGroup(item)) {
       if (item.href) {
-        out.push({ title: item.title, href: item.href, content: item.content })
+        out.push({
+          title: item.title,
+          href: item.href,
+          content: item.content,
+          icon: item.icon,
+        })
       }
       out.push(...item.children)
     } else {
