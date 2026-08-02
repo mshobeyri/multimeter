@@ -8,6 +8,7 @@
 ### MMT Files
 - [Overview](./files.md)
 - [API](./files/api/index.md)
+  - [Quick start](./files/api/quick-start.md)
   - [Edit API](./files/api/edit.md)
   - [Protocols](./files/api/protocols/index.md)
     - [HTTP](./files/api/protocols/http.md)
@@ -19,8 +20,8 @@
     - [Request body](./files/api/body/body.md)
     - [HTTP bodies](./files/api/protocols/http-bodies.md)
 - [Test](./files/test/index.md)
-  - [Edit Test](./files/test/edit.md)
   - [Quick start](./files/test/quick-start.md)
+  - [Edit Test](./files/test/edit.md)
   - [Steps](./files/test/steps/index.md)
     - [call](./files/test/steps/call.md)
     - [http](./files/test/steps/http.md)

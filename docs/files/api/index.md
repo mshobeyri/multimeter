@@ -102,7 +102,7 @@ cookies:
 
 ## API elements
 
-- [Edit API](./edit.md) · [Quick start](./quick-start.md)
+- [Quick start](./quick-start.md) · [Edit API](./edit.md)
 - [Protocols](./protocols/index.md) — HTTP, WebSocket, GraphQL, gRPC
 - [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP examples](./protocols/http-bodies.md)
 - [Headers](./headers.md) · [Auth](./auth.md)

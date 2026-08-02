@@ -33,12 +33,12 @@
             "path": "files/api/index.md"
           },
           {
-            "title": "Edit API",
-            "path": "files/api/edit.md"
-          },
-          {
             "title": "Quick start",
             "path": "files/api/quick-start.md"
+          },
+          {
+            "title": "Edit API",
+            "path": "files/api/edit.md"
           },
           {
             "title": "Protocols",
@@ -140,12 +140,12 @@
             "path": "files/test/index.md"
           },
           {
-            "title": "Edit Test",
-            "path": "files/test/edit.md"
-          },
-          {
             "title": "Quick start",
             "path": "files/test/quick-start.md"
+          },
+          {
+            "title": "Edit Test",
+            "path": "files/test/edit.md"
           },
           {
             "title": "import",
