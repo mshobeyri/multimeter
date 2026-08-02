@@ -89,4 +89,4 @@ Open this file in VS Code; the Doc view renders an interactive, searchable page 
 ---
 
 
-Next: [Edit Doc](./edit.md) · [Try It](./try-it.md) · [Environment](./environment.md) · [Annotations](./annotations.md) · [Markdown](./markdown.md) · [Reference](./reference.md)
+Next: [Edit Doc](./edit.md) · [Try It](./try-it.md) · [Environment](./environment.md) · [Annotations](./annotations.md) · [Markdown](./markdown.md) · [CLI](./cli.md) · [Reference](./reference.md)

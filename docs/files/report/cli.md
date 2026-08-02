@@ -1,5 +1,7 @@
 # CLI and auto-export
 
+`type: report` files are output artifacts. Generate them with the `--report` flag when running tests, suites, or load tests.
+
 ## CLI usage
 
 Use the `--report` flag with `testlight run`:

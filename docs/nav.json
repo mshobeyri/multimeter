@@ -117,6 +117,10 @@
             "path": "files/api/complete-examples.md"
           },
           {
+            "title": "CLI",
+            "path": "files/api/cli.md"
+          },
+          {
             "title": "Reference",
             "path": "files/api/reference.md"
           }
@@ -214,6 +218,10 @@
           {
             "title": "Complete example",
             "path": "files/test/complete-example.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/test/cli.md"
           },
           {
             "title": "Reference",
@@ -329,6 +337,10 @@
             "path": "files/doc/markdown.md"
           },
           {
+            "title": "CLI",
+            "path": "files/doc/cli.md"
+          },
+          {
             "title": "Reference",
             "path": "files/doc/reference.md"
           }
@@ -374,6 +386,10 @@
           {
             "title": "In suites",
             "path": "files/server/in-suites.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/server/cli.md"
           }
         ],
         "icon": "server"
@@ -405,6 +421,10 @@
           {
             "title": "Reports",
             "path": "files/loadtest/reports.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/loadtest/cli.md"
           },
           {
             "title": "Reference",

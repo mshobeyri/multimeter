@@ -109,4 +109,4 @@ cookies:
 - [Inputs](./inputs.md) · [Outputs](./outputs.md)
 - [Documentation](./documentation.md) — `title`, `tags`, `description`, `<<i:>>` / `<<o:>>` annotations
 - [setenv](./setenv.md) · [Examples](./examples.md) · [Dynamic values](../../features/dynamic-values.md)
-- [Complete examples](./complete-examples.md) · [Reference](./reference.md)
+- [Complete examples](./complete-examples.md) · [CLI](./cli.md) · [Reference](./reference.md)
