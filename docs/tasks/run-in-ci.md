@@ -21,7 +21,7 @@ npx mmt-testlight run suite.mmt --preset ci
 |---|---|
 | `--env-file` | Load environment variables from a file |
 | `--preset` | Select a named preset from your env file |
-| `-e KEY=VALUE` | Override a single variable |
+| `-e key=VALUE` | Override a single variable |
 | `--junit` / report flags | Emit CI-friendly reports |
 
 See [Install](../install.md) and [Downloads](/downloads) for platform packages (Homebrew, apt, Docker, …).

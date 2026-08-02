@@ -19,7 +19,7 @@ When an environment file defines preset groups, they appear under **Presets**. E
 
 | Column | What it shows |
 |---|---|
-| **Name** | Variable name — referenced as `e:NAME` or `<<e:NAME>>` in tests and APIs |
+| **Name** | Variable name — referenced as `e:name` or `<<e:name>>` in tests and APIs |
 | **Label** | Selected choice from the env file definition (dropdown when the variable has choices) |
 | **Value** | Resolved runtime value — edit inline when the variable allows it |
 

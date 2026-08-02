@@ -7,7 +7,7 @@ Always follow these rules:
 - The first non-comment line must be `type: env`.
 - Favor clear, descriptive variable names (snake_case or SCREAMING_SNAKE_CASE), for example:
   - `api_url`, `auth_token`, `mode`, or
-  - `API_URL`, `AUTH_TOKEN`, `MODE`.
+  - `api_url`, `auth_token`, `mode`.
 
 ---
 
@@ -21,7 +21,7 @@ Top-level keys and types:
 type: env                       # REQUIRED, must be exactly "env"
 
 variables:                      # REQUIRED
-  <NAME>:
+  <name>:
     # One of:
     # 1) mapping of labels -> string values (key-value choices)
     # 2) array of strings (allowed values)
@@ -29,7 +29,7 @@ variables:                      # REQUIRED
 presets?:                       # OPTIONAL
   <presetGroup>:
     <presetName>:
-      <ENV_NAME>: string        # value *must* match one of the variable options
+      <env_name>: string        # value *must* match one of the variable options
 ```
 
 Interpretation:
@@ -113,7 +113,7 @@ presets:
 ## How the AI should answer env-related questions
 
 - If the user wants to **switch between environments** (local/staging/prod), generate:
-  - Variables with **key-value choice mappings**, e.g. `API_URL: { local: ..., prod: ... }`.
+  - Variables with **key-value choice mappings**, e.g. `api_url: { local: ..., prod: ... }`.
   - A `runner` preset group with `local`, `staging`, `prod` entries.
 - If the user wants **valid options** for a flag or numeric setting, use **arrays** of strings.
 - If a variable has only a single known value, wrap it in a single-element array (e.g. `token: ["your-token"]`).

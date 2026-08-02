@@ -48,20 +48,20 @@ Supported token forms in tests and APIs:
 
 | Syntax | Where to use | Type behavior |
 |--------|-------------|---------------|
-| `<<e:VAR>>` | Anywhere in a string (URLs, `headers`, `body` text) | Always substituted as string |
-| `e:VAR` | As the entire value after `: ` (colon + space) | Preserves type (number, boolean, string) |
+| `<<e:var>>` | Anywhere in a string (URLs, `headers`, `body` text) | Always substituted as string |
+| `e:var` | As the entire value after `: ` (colon + space) | Preserves type (number, boolean, string) |
 
 What to use when
-- Use `<<e:VAR>>` when you want substitution anywhere in a string (inside URLs, headers, or other text).
-- Use `e:VAR` only when it appears as the entire value after `: `; types are preserved (numbers, booleans, strings).
+- Use `<<e:var>>` when you want substitution anywhere in a string (inside URLs, headers, or other text).
+- Use `e:var` only when it appears as the entire value after `: `; types are preserved (numbers, booleans, strings).
 - You can append **accessors** to either form when you need only part of the `value:`
   - `<<e:token[0]>>` — first character / item
   - `<<e:token[0:6]>>` — string or array slice (end-exclusive)
   - `<<e:user.name>>` — property access
 
 Notes
-- `e:VAR` is not replaced inside plain text like `hi:e:VAR there`; it must follow `: `.
-- `{{VAR}}` is not supported — use `<<e:VAR>>` or `e:VAR` instead.
+- `e:var` is not replaced inside plain text like `hi:e:var there`; it must follow `: `.
+- `{{var}}` is not supported — use `<<e:var>>` or `e:var` instead.
 - Slice form `[start:end]` uses normal JS `slice(start, end)` semantics.
 
 Examples:

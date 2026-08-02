@@ -34,8 +34,8 @@ Set environment variables during a run. This is mainly useful when you run a tes
 
 ```yaml
 - setenv:
-    TOKEN: "${doLogin.token}"
-    USER_ID: "${me.id}"
+    token: "${doLogin.token}"
+    user_id: "${me.id}"
 ```
 
 Notes:

@@ -26,7 +26,7 @@ presets:
 ```
 
 Usage
-- Use `e:VAR` as a standalone token (type-preserving) or `<<e:VAR>>` inline in strings.
+- Use `e:var` as a standalone token (type-preserving) or `<<e:var>>` inline in strings.
 - Omit empty `presets`/`variables` entries when there is nothing to declare; blank sections are optional
 
 See also: docs/files/env/index.md

@@ -3,7 +3,7 @@
 ```yaml
 type: env
 variables:
-  API_URL: "https://test.mmt.dev"
+  api_url: "https://test.mmt.dev"
 
 setting:
   http:

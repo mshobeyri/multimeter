@@ -48,11 +48,11 @@ body: i:greeting
 ```
 
 Notes
-- Dynamic tokens: `r:<name>`, `c:<name>`, `e:<VAR>` supported in url/headers/query/cookies/body/inputs
+- Dynamic tokens: `r:<name>`, `c:<name>`, `e:<var>` supported in url/headers/query/cookies/body/inputs
 - Default headers are auto-added; set a header value to `_` to block (User-Agent, Content-Type, Content-Length, etc.)
 - For WebSocket (`protocol: ws`): Treat as synchronous req-res; `body` is the sent message, response is the reply.
 - Place inputs immediately after title/description for readability
 - Skip empty maps/arrays unless the generator has a reason to include placeholders (empty blocks are optional per schema)
-- Inputs SHOULD NOT list data types as literal strings (e.g., `name: string`). Instead they hold default/sample primitive values or dynamic tokens. Example: `name: r:firstName`, `email: r:email`. Use examples section to override input values per example.
+- Inputs SHOULD NOT list data types as literal strings (e.g., `name: string`). Instead they hold default/sample primitive values or dynamic tokens. Example: `name: r:first_name`, `email: r:email`. Use examples section to override input values per example.
 
 See also: docs/files/api/index.md

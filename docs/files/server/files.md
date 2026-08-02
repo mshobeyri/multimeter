@@ -6,7 +6,7 @@ In addition to the basic mock server modes (HTTP, HTTPS, mTLS, WebSocket), you c
 - Request matching (body, headers, query parameters)
 - Path parameters (e.g., `/users/:id`) — echo with `${url.id}` in response values
 - Request body, header, and query echo via `${body.field}`, `${header.name}`, `${query.param}`
-- Dynamic response values (`r:uuid`, `c:date`, `e:VAR`)
+- Dynamic response values (`r:uuid`, `c:date`, `e:var`)
 - Response delays and global headers
 - Proxy forwarding for unmatched routes
 - Fallback responses

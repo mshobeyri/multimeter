@@ -9,26 +9,26 @@ description: |-
   - `"omit"` and `"null"` are literal strings
 
   Outputs:
-  - missing path (for example `echoed_middleName`) => omit
+  - missing path (for example `echoed_middle_name`) => omit
   - existing null value (for example `echoed_bio`) => null
 inputs:
-  displayName: Alex
-  middleName: omit
+  display_name: Alex
+  middle_name: omit
   nickname: "omit"
   bio: null
-  bioText: "null"
+  bio_text: "null"
 outputs:
-  echoed_displayName: body.body.displayName
-  echoed_middleName: body.body.middleName
+  echoed_display_name: body.body.displayName
+  echoed_middle_name: body.body.middleName
   echoed_nickname: body.body.nickname
   echoed_bio: body.body.bio
-  echoed_bioText: body.body.bioText
+  echoed_bio_text: body.body.bioText
 url: https://test.mmt.dev/echo
 method: post
 format: json
 body:
-  displayName: i:displayName
-  middleName: i:middleName
+  displayName: i:display_name
+  middleName: i:middle_name
   nickname: i:nickname
   bio: i:bio
-  bioText: i:bioText
+  bioText: i:bio_text

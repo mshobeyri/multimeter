@@ -30,7 +30,7 @@ Generation knobs (see YAML profile):
 ### Environments
 - Expect at least api_url; token/api_key optional depending on auth
 - Presets (dev/prod) are supported via env files; users can choose at runtime
-- Use `e:VAR` tokens directly in APIs/tests for type-preserving substitution; use `<<e:VAR>>` inside strings
+- Use `e:var` tokens directly in APIs/tests for type-preserving substitution; use `<<e:var>>` inside strings
 
 Generation knobs (see YAML profile):
 - env.`file:` default environment file path

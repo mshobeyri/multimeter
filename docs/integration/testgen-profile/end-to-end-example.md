@@ -27,7 +27,7 @@ protocol: http
 method: post
 url: https://test.mmt.dev/echo
 inputs:
-  name: r:firstName
+  name: r:first_name
   email: r:email
 body:
   name: i:name

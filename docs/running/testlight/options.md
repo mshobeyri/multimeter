@@ -10,7 +10,7 @@
 - -e, --env <pairs>
   - Environment variables as key/value pairs, repeatable
   - Values are type-coerced (true/false/number) unless quoted
-  - Example: -e API_URL=http://localhost:8080 DEBUG=true retries=3 "token=abc xyz"
+  - Example: -e api_url=http://localhost:8080 debug=true retries=3 "token=abc xyz"
 - --env-file <path>
   - Load variables and presets from an environment file (.mmt/.yaml)
   - Path resolves from cwd, then relative to the test file

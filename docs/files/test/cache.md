@@ -25,8 +25,8 @@ type: test
 title: Create session
 cache: 5m
 inputs:
-  user: e:USER
-  pass: e:PASS
+  user: e:user
+  pass: e:pass
 outputs:
   token: ''
 import:

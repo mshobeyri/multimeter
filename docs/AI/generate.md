@@ -49,7 +49,7 @@ When the user asks you to **create or change** a `.mmt` file, follow this order:
 	- Current/time: `c:date`, `c:epoch_ms`, etc.
 
 	Rules:
-	- Prefer **snake_case** for names inside tokens: `e:api_url`, `i:user_id`, not `e:API_URL`.
+	- Prefer **snake_case** for names inside tokens: `e:api_url`, `i:user_id`, not `e:api_url`.
 	- Use bare tokens as the **entire YAML value** when possible.
 	- Use `<< >>` only when embedding tokens inside a larger string.
 

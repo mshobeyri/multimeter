@@ -4,7 +4,7 @@ Use built-in dynamic tokens anywhere in url, headers, body, query, cookies, or e
 Syntax
 - Random: `r:<name>` or `<<r:<name>>>`
 - Current: `c:<name>` or `<<c:<name>>>`
-- Environment: `e:<NAME>` or `<<e:NAME>>`
+- Environment: `e:<name>` or `<<e:name>>`
 
 Resolution rules
 - If a field’s value is exactly a single token (e.g. `body: r:int`), the value keeps its native type (number/boolean/string), not a string.
@@ -31,7 +31,7 @@ Common current tokens (`c:`)
 - epoch, epoch_ms
 - city, country (best effort based on your locale/time zone)
 
-Token name normalization: `r:firstName`, `r:first-name`, and `r:first_name` all resolve to the same token. Underscores, hyphens, and casing are ignored when matching token names.
+Token name normalization: `r:first_name`, `r:first-name`, and `r:first_name` all resolve to the same token. Underscores, hyphens, and casing are ignored when matching token names.
 
 Examples
 ```yaml

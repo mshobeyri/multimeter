@@ -21,8 +21,8 @@ environment:
   preset: staging                       # preset from multimeter.mmt
   file: ./envs/custom.mmt               # optional: use another env file
   variables:                            # inline variables
-    API_URL: http://localhost:8080
-    TIMEOUT: 30000
+    api_url: http://localhost:8080
+    timeout: 30000
 items:
   - tests/login.mmt
   - tests/profile.mmt

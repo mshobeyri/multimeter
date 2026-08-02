@@ -14,4 +14,4 @@ Starter templates are included for quick scaffolding:
 - doc
   - Minimal doc pointing to `./examples`
 
-Tools can substitute placeholders like `${TITLE}`, `${DESCRIPTION}`, and `${API_NAME}` before writing files.
+Tools can substitute placeholders like `${title}`, `${description}`, and `${api_name}` before writing files.

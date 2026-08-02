@@ -39,18 +39,18 @@ Use `inputs` with `<<i:name>>` inside `graphql.variables`:
 
 ```yaml
  inputs:
-   userId:
+   user_id:
      type: number
      default: 1
  graphql:
    operation: |
      query GetUser($id: ID!) { user(id: $id) { name } }
    variables:
-     id: <<i:userId>>
+     id: <<i:user_id>>
  outputs:
-   userName: body.data.user.name
-   hasErrors: body.errors
-   statusCode: status
+   user_name: body.data.user.name
+   has_errors: body.errors
+   status_code: status
 ```
 
 ### What the graphql block replaces

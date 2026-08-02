@@ -53,7 +53,7 @@ outputs:
   method: body.method
   message: body.body.message
   weird_key: body[some.dotted.key]
-  userId: $[body][user][id]
+  user_id: $[body][user][id]
   from: body[from][0]
 ```
 

@@ -7,9 +7,9 @@ You can also write `i:name` if it doesn’t conflict with surrounding text. When
  type: api
  title: Get user by ID
  inputs:
-   userId: string
+   user_id: string
  protocol: http
- url: <<e:api_url>>/users/<<i:userId>>
+ url: <<e:api_url>>/users/<<i:user_id>>
  method: get
  format: json
 ```

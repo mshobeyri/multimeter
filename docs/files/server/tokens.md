@@ -33,7 +33,7 @@ Mock responses use the same dynamic tokens as APIs and tests. Values are resolve
 
 | Token | Example | Description |
 |-------|---------|-------------|
-| `e:VAR` / `<<e:VAR>>` | `email: e:ADMIN_EMAIL` | Environment variable |
+| `e:var` / `<<e:var>>` | `email: e:admin_email` | Environment variable |
 | `r:name` | `id: r:uuid` | Random value (new per request) |
 | `c:name` | `created: c:date` | Current date/time |
 
@@ -41,23 +41,23 @@ Mock responses use the same dynamic tokens as APIs and tests. Values are resolve
 
 ```yaml
 type: server
-protocol: e:MOCK_PROTOCOL
-port: e:MOCK_PORT
+protocol: e:mock_protocol
+port: e:mock_port
 endpoints:
   - method: get
-    path: <<e:BASE_PATH>>/users
+    path: <<e:base_path>>/users
     match:
       headers:
-        x-api-key: e:API_KEY
+        x-api-key: e:api_key
     status: 200
     headers:
-      X-Mock-Env: e:ENV_NAME
+      X-Mock-Env: e:env_name
     body:
-      email: e:ADMIN_EMAIL
-      greeting: "Hello from <<e:ENV_NAME>>"
+      email: e:admin_email
+      greeting: "Hello from <<e:env_name>>"
 ```
 
-Set `MOCK_PORT` / `MOCK_PROTOCOL` (and other vars) in the Environment panel, a suite `environment`, or via CLI `--env-file` / `-e`.
+Set `mock_port` / `mock_protocol` (and other vars) in the Environment panel, a suite `environment`, or via CLI `--env-file` / `-e`.
 
 While typing an incomplete token such as `protocol: e:`, YAML may temporarily parse it as a nested map — Multimeter treats that as a validation error instead of crashing the editor.
 

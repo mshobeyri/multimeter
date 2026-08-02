@@ -10,7 +10,7 @@ environment:
   preset: staging
   file: ./envs/custom.mmt
   variables:
-    API_URL: https://staging.example.com
+    api_url: https://staging.example.com
 threads: 20
 repeat: 30s
 test: ./tests/login.mmt
