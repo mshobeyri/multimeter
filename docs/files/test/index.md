@@ -41,7 +41,7 @@ Run glyphs appear in the left margin of the YAML pane:
 
 ## Supported
 
-- Step types: [call](./steps/call.md), [http](./steps/http.md), [run](./steps/run.md), [assert](./steps/assert.md), [check](./steps/assert.md), [expect](./steps/run-expect.md)
+- Step types: [call](./steps/call.md), [http](./steps/http.md), [run](./steps/run.md), [check](./steps/check.md), [assert](./steps/assert.md), [expect](./steps/run-expect.md)
 - [Control flow](./steps/control-flow.md): `if`, `for`, `repeat`, `delay`
 - [Stages](./stages/index.md) with parallel execution
 - [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md)

@@ -1,18 +1,8 @@
 # Inline expect and debug
 
-Use `expect` on a [`call`](./call.md) step to validate its output parameters inline, without a separate `check`/`assert` step. Each key is an output field name; each value is the expected result. All expect entries in a single call are grouped into **one report item**, with each comparison as a sub-item. Expect is non-throwing — it logs failures but continues execution.
+Use `expect` on a [`call`](./call.md) or [`http`](./http.md) step to validate outputs inline, without a separate `check`/`assert` step. Each key is an output field name; each value is the expected result. All expect entries in a single call are grouped into **one report item**, with each comparison as a sub-item. Expect is non-throwing — it logs failures but continues execution (same behavior as [check](./check.md)).
 
-**Call fields related to expect:**
-
-| Field     | Description |
-|-----------|-------------|
-| `call`    | (required) The import alias of the API or test to invoke |
-| `id`      | Assign the call result to a variable for later reference |
-| `title`   | Short summary shown inline in reports and UI |
-| `inputs`  | Key-value pairs passed as input parameters |
-| `expect`  | Map of output fields to expected values (non-throwing) |
-| `debug`   | Like `expect`, but for debugging — logs/report only, excluded from exports |
-| `report`  | Report level: `all`, `fails`, `none`, or object with `internal`/`external` |
+Full `call` field reference: [call](./call.md).
 
 **Formats:**
 
@@ -52,7 +42,7 @@ Use `expect` on a [`call`](./call.md) step to validate its output parameters inl
     external: fails
 ```
 
-All comparison operators from [`check`/`assert`](./assert-operators.md) are available in `expect` values.
+All comparison operators from [check — Operators](./check.md#operators) are available in `expect` values.
 
 `omit` behavior:
 - Use unquoted `omit` when you expect a field to be missing.
@@ -78,4 +68,4 @@ All comparison operators from [`check`/`assert`](./assert-operators.md) are avai
     body.expires_in: > 0
 ```
 
-See also: [run](./run.md) · [assert](./assert.md) · [Assert operators](./assert-operators.md)
+See also: [call](./call.md) · [check](./check.md) · [run](./run.md)

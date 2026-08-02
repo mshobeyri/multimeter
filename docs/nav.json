@@ -180,12 +180,12 @@
                 "path": "files/test/steps/run-expect.md"
               },
               {
-                "title": "assert",
-                "path": "files/test/steps/assert.md"
+                "title": "check",
+                "path": "files/test/steps/check.md"
               },
               {
-                "title": "assert operators",
-                "path": "files/test/steps/assert-operators.md"
+                "title": "assert",
+                "path": "files/test/steps/assert.md"
               },
               {
                 "title": "Control flow",

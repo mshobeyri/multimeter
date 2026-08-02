@@ -64,8 +64,8 @@ The following globals are available inside `js` steps:
 | `Random.*` | Random token helpers — e.g. `Random.randomUUID()`, `Random.randomInt()`, `Random.randomEmail()` |
 | `__mmt_random(name)` | Resolve a random token by name (e.g. `__mmt_random('uuid')`) |
 | `__mmt_current(name)` | Resolve a current token by name (e.g. `__mmt_current('date')`) |
-| `equals_()`, `less_()`, `greater_()`, `contains_()`, `matches_()`, … | Comparison helpers matching [check/assert operators](./assert-operators.md) |
+| `equals_()`, `less_()`, `greater_()`, `contains_()`, `matches_()`, … | Comparison helpers matching [check operators](./check.md#operators) |
 
 Use `report_()` when you need a custom pass/fail line in the log; use the comparison helpers when you want the same semantics as YAML `check` / `assert` inside JavaScript.
 
-See also: [Variables](./variables.md) · [import](../import.md) · [Assert operators](./assert-operators.md)
+See also: [Variables](./variables.md) · [import](../import.md) · [check](./check.md)
