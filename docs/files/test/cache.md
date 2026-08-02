@@ -16,6 +16,53 @@ Notes:
 - Direct Run of the cached file always executes the body (so you can debug it).
 - See `examples/intermediate/24_test_call_cache` and design notes in `AI/sdd/sdd-test-call-cache.md`.
 
-Worked examples: [Cache examples](./cache-examples.md).
+## Examples
 
-Next: [Cache examples](./cache-examples.md) · [import](./import.md) · [call](./steps/call.md)
+Cached callee (returns a token; second call in the same root run can reuse it):
+
+```yaml
+type: test
+title: Create session
+cache: 5m
+inputs:
+  user: e:USER
+  pass: e:PASS
+outputs:
+  token: ''
+import:
+  login_api: ./login_api.mmt
+steps:
+  - call: login_api
+    id: auth
+    inputs:
+      username: i:user
+      password: i:pass
+  - js: |
+      outputs.token = auth.token
+```
+
+Parent test (calls twice with the same inputs — second call is a cache hit):
+
+```yaml
+type: test
+title: Use cached session
+import:
+  session: ./create_session.mmt
+steps:
+  - call: session
+    id: a
+    inputs:
+      user: alice
+      pass: secret
+    expect:
+      token: != null
+  - call: session
+    id: b
+    inputs:
+      user: alice
+      pass: secret
+    expect:
+      token: == ${a.token}
+```
+
+See also: [import](./import.md) · [call](./steps/call.md) · [Inline expect](./steps/run-expect.md)

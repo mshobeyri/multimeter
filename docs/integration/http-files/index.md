@@ -10,3 +10,5 @@ You can also import `.http` and `.https` files from `type: test` `.mmt` files. M
 - [Mapping to Test Flow](./mapping-to-test-flow.md)
 - [Saving](./saving.md)
 - [Current Limitations](./current-limitations.md)
+
+Example: [Import HTTP in test](../../../examples/intermediate/15_http_files/README.md)

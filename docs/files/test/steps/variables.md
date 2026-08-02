@@ -48,3 +48,5 @@ Bind an imported CSV alias (from the test's import section) into scope for use i
 - data: users   # where import:
                 #   users: ./users.csv
 ```
+
+See [Data-driven tests](../../../features/data-driven-tests.md) for a full CSV loop example.

@@ -73,6 +73,7 @@ The `for` expression is standard JavaScript — `const row of messages` iterates
 
 ## Next steps
 
+- See [Data-driven tests](../../../docs/features/data-driven-tests.md) for the full CSV data-driven guide.
 - See [Simple Test](../../basic/02_simple_test/) for a basic test without CSV.
 - See [API Inputs & Outputs](../01_api_inputs_outputs/) for more input/output patterns.
 - See [Test docs — for/repeat](../../../docs/files/test/steps/control-flow.md#for-repeat) for the full `for`/`repeat` reference.

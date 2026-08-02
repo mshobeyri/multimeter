@@ -3,7 +3,7 @@
 - title: string
 - tags: string[]
 - description: string (supports Markdown; use `|-` for multiline)
-- import: record&lt;string, string&gt; — see [import](./import.md) (`.mmt`, `.http`/`.https`, `.bru`, `.csv`, `.json`/`.yaml`/`.yml`, `.js`/`.cjs`/`.mjs`)
+- import: record&lt;string, string&gt; — see [import](./import.md) (`.mmt`, `.http`/`.https`, `.bru`, CSV / JSON / YAML data files; `.js`/`.cjs`/`.mjs`: [js helper modules](./steps/js.md#js-helper-modules))
 - inputs: record&lt;string, string | number | boolean | null&gt;
 - outputs: record&lt;string, string | number | boolean | null&gt;
 - cache: number \| string (optional; duration like `5m`, epoch number, or date/time text containing `:`)

@@ -2,6 +2,8 @@
 
 All YAML-based Multimeter files can import data from `.json`, `.yaml`, `.yml`, and `.csv` files with a top-level `import` map.
 
+For **data-driven test loops** (CSV rows, `${alias.field}` in `for` steps), see [Data-driven tests](../features/data-driven-tests.md) — that is the primary guide for test files.
+
 ```yaml
 type: api
 import:
@@ -50,3 +52,10 @@ body: ${data.payload}
 ```
 
 Supported file types include `api`, `test`, `suite`, `loadtest`, `env`, `doc`, and `server`.
+
+---
+
+## See also
+- [Data-driven tests](../features/data-driven-tests.md) — CSV loops and test-focused patterns
+- [CSV data-driven test example](../../examples/intermediate/09_csv_data_driven_test/README.md) — full CSV loop example
+- [import](../files/test/import.md) — importable file types in tests

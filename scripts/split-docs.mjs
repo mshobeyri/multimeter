@@ -362,7 +362,7 @@ steps:
 ## Test elements
 
 - [Quick start](./quick-start.md) · [Write a test flow](../../tasks/write-test-flow.md)
-- [import](./import.md) · [cache](./cache.md) · [cache examples](./cache-examples.md)
+- [import](./import.md) · [cache](./cache.md)
 - [Steps](./steps/index.md) · [Stages](./stages/index.md)
 - [Stage condition](./stages/stage-condition.md) · [Complete example](./complete-example.md) · [Reference](./reference.md)
 `,

@@ -18,3 +18,5 @@ steps:
 - [Supported Bruno Syntax](./supported-bruno-syntax.md)
 - [Editing And Saving](./editing-and-saving.md)
 - [Current Limitations](./current-limitations.md)
+
+Example: [Import Bruno in test](../../../examples/intermediate/16_bruno_files/README.md)

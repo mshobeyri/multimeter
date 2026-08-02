@@ -50,6 +50,7 @@
 ### Features
 - [History](./features/history.md)
 - [Dynamic values](./features/dynamic-values.md)
+- [Data-driven tests](./features/data-driven-tests.md)
 - [Certificates](./features/certificates/index.md)
 - [MCP](./features/mcp/index.md)
 

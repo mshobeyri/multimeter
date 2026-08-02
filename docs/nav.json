@@ -148,10 +148,6 @@
             "path": "files/test/cache.md"
           },
           {
-            "title": "cache examples",
-            "path": "files/test/cache-examples.md"
-          },
-          {
             "title": "Steps",
             "path": "files/test/steps/index.md",
             "children": [
@@ -469,6 +465,10 @@
       {
         "title": "Dynamic values",
         "path": "features/dynamic-values.md"
+      },
+      {
+        "title": "Data-driven tests",
+        "path": "features/data-driven-tests.md"
       },
       {
         "title": "Certificates",

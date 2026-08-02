@@ -53,6 +53,8 @@ The `for` expression is passed directly to JavaScript, so any valid JS for-of/fo
     - print: "${key} = ${value}"
 ```
 
+See [Data-driven tests](../../../features/data-driven-tests.md) for CSV data-driven testing.
+
 `repeat` supports count-based, time-based, and infinite modes:
 ```yaml
 # repeat N times

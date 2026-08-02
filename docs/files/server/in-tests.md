@@ -27,4 +27,6 @@ steps:
 
 In the Flow panel, click **Add item** and select **Server**. A box appears where you can choose from your imported server files.
 
+Example: [Simple mock server](../../../examples/intermediate/18_simple_mock_server/README.md)
+
 ---

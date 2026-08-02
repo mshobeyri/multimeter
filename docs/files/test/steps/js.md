@@ -9,9 +9,43 @@ Run inline JavaScript for custom logic, logging, or checks that are easier to ex
     console.log('ts', t);
 ```
 
-`js` steps run in the same scope as the rest of the test. **Import aliases** from `import:` (APIs, tests, CSV/JSON/YAML data, JS helper modules) and **variables** from earlier `set` / `var` / `const` / `let` steps are available. To import a reusable `.js` module, declare it under `import:` — see [import](../import.md#js-helper-modules).
+`js` steps run in the same scope as the rest of the test. **Import aliases** from `import:` (APIs, tests, CSV/JSON/YAML data, [JS helper modules](#js-helper-modules)) and **variables** from earlier `set` / `var` / `const` / `let` steps are available.
 
 Example: [JavaScript helpers example](../../../../examples/intermediate/14_javascript_helpers/README.md).
+
+## JS helper modules
+
+Declare reusable `.js`, `.cjs`, or `.mjs` files under `import:` (paths are relative to the current `.mmt` file, or start with `+/` for the project root — same rules as [import](../import.md)):
+
+```yaml
+import:
+  helpers: ./helpers/xxx.js
+```
+
+Files are loaded once per run via the runner's `fileLoader`, then cached. Write plain top-level functions (or `const` / `let` / `var` function bindings); Multimeter auto-exports them on the import alias:
+
+```js
+// xxx.js
+function add(a, b) {
+  return a + b;
+}
+
+const double = (x) => x * 2;
+```
+
+```yaml
+type: test
+import:
+  helpers: ./helpers/xxx.js
+steps:
+  - js: |
+      const sum = helpers.add(1, 2)
+      console.log('sum', sum, helpers.double(sum))
+```
+
+`module.exports = { ... }` still works when you need a custom export shape.
+
+Example: [JavaScript helpers](../../../../examples/intermediate/14_javascript_helpers/js_test.mmt).
 
 ## Runner globals
 
