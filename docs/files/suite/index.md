@@ -2,6 +2,8 @@
 
 Use `type: suite` to define a suite MMT file. A suite runs multiple items together — tests, APIs, HTTP/Bruno files, or other suites. Open a suite file in VS Code to get the **suite panel** on the right (YAML stays on the left).
 
+![Suite panel — overview cards, exports, and tests](../../screenshots/suite-panel.png)
+
 ## Suite panel UI
 
 ### Top bar
