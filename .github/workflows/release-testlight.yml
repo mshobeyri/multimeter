@@ -1,0 +1,259 @@
+# ──────────────────────────────────────────────────────────────────────
+# CI workflow: Build testlight binaries and create a GitHub release
+# ──────────────────────────────────────────────────────────────────────
+# Triggered when a version tag (v*.*.*) is pushed.
+# Supports stable and pre-release tags:
+#   v1.2.3         → stable release (npm @latest, Docker :latest)
+#   v1.2.3-beta.1  → pre-release   (npm @beta,   Docker :beta)
+#   v1.2.3-rc.1    → pre-release   (npm @rc,     Docker :rc)
+# ──────────────────────────────────────────────────────────────────────
+
+name: Release testlight
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: macos-x64
+            os: macos-13       # Intel runner
+            pkg-target: node18-macos-x64
+            ext: ''
+          - platform: macos-arm64
+            os: macos-14       # Apple Silicon runner
+            pkg-target: node18-macos-arm64
+            ext: ''
+          - platform: linux-x64
+            os: ubuntu-latest
+            pkg-target: node18-linux-x64
+            ext: ''
+          - platform: linux-arm64
+            os: ubuntu-latest  # cross-compile via pkg
+            pkg-target: node18-linux-arm64
+            ext: ''
+          - platform: win-x64
+            os: windows-latest
+            pkg-target: node18-win-x64
+            ext: '.exe'
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build core
+        run: cd core && npm run build
+
+      - name: Build CLI (CJS)
+        run: cd mmtcli && npm run build:cjs
+
+      - name: Build binary
+        run: |
+          cd mmtcli
+          npx pkg src/pkg-entry.cjs --targets ${{ matrix.pkg-target }} --output ../out/testlight${{ matrix.ext }}
+
+      - name: Create mmt alias (Unix)
+        if: matrix.ext == ''
+        run: |
+          cd out
+          ln -sf testlight mmt
+
+      - name: Create mmt alias (Windows)
+        if: matrix.ext == '.exe'
+        run: |
+          cd out
+          copy testlight.exe mmt.exe
+        shell: cmd
+
+      - name: Create archive (Unix)
+        if: matrix.ext == ''
+        run: |
+          cd out
+          tar -czf ../testlight-${{ matrix.platform }}.tar.gz testlight mmt
+
+      - name: Create archive (Windows)
+        if: matrix.ext == '.exe'
+        run: |
+          cd out
+          7z a ../testlight-${{ matrix.platform }}.zip testlight.exe mmt.exe
+        shell: cmd
+
+      - name: Generate checksum
+        shell: bash
+        run: |
+          if [[ "${{ matrix.ext }}" == ".exe" ]]; then
+            sha256sum testlight-${{ matrix.platform }}.zip > checksum-${{ matrix.platform }}.txt
+          else
+            sha256sum testlight-${{ matrix.platform }}.tar.gz > checksum-${{ matrix.platform }}.txt
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: testlight-${{ matrix.platform }}
+          path: |
+            testlight-${{ matrix.platform }}.*
+            checksum-${{ matrix.platform }}.txt
+
+  # ── Docker build ──────────────────────────────────────────────────
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract version and pre-release info
+        id: version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if echo "$VERSION" | grep -qE '[-](alpha|beta|rc|dev|canary)'; then
+            CHANNEL=$(echo "$VERSION" | sed -n 's/.*-\([a-z]*\).*/\1/p')
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+            echo "float_tag=$CHANNEL" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            echo "channel=latest" >> $GITHUB_OUTPUT
+            echo "float_tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/mmt-testlight:${{ steps.version.outputs.version }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/mmt-testlight:${{ steps.version.outputs.float_tag }}
+
+  # ── npm publish ───────────────────────────────────────────────────
+  npm:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install & build
+        run: |
+          npm ci
+          cd core && npm run build
+          cd ../mmtcli && npm run build
+
+      - name: Detect pre-release
+        id: pre
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if echo "$VERSION" | grep -qE '[-](alpha|beta|rc|dev|canary)'; then
+            CHANNEL=$(echo "$VERSION" | sed -n 's/.*-\([a-z]*\).*/\1/p')
+            echo "npm_tag=$CHANNEL" >> $GITHUB_OUTPUT
+          else
+            echo "npm_tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        run: cd mmtcli && npm publish --access public --tag ${{ steps.pre.outputs.npm_tag }}
+        # Published as mmt-testlight (registers testlight + mmt CLI commands)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ── GitHub Release ────────────────────────────────────────────────
+  release:
+    runs-on: ubuntu-latest
+    needs: [build, docker, npm]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Gather release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name 'checksum-*.txt' \) \
+            -exec cp {} release-assets/ \;
+          # Combine checksums
+          cat release-assets/checksum-*.txt > release-assets/checksums-sha256.txt
+          rm -f release-assets/checksum-*.txt
+
+      - name: Extract version
+        id: version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if echo "$VERSION" | grep -qE '[-](alpha|beta|rc|dev|canary)'; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "testlight v${{ steps.version.outputs.version }}"
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          body: |
+            ## testlight v${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            **npm (recommended):**
+            ```sh
+            npm install -g mmt-testlight
+            # or
+            npx testlight --help
+            ```
+
+            **Binary (one-line installer):**
+            ```sh
+            curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash
+            ```
+
+            **Homebrew (macOS/Linux):**
+            ```sh
+            brew install mshobeyri/testlight/testlight
+            ```
+
+            **Docker:**
+            ```sh
+            docker run --rm -v "$PWD:/workspace" -w /workspace ${{ secrets.DOCKERHUB_USERNAME }}/mmt-testlight run tests/suite.mmt
+            ```
+
+            Both `testlight` and `mmt` commands are available in all installation methods.
+
+            See [CHANGELOG.md](CHANGELOG.md) for details.
+          files: release-assets/*
+          fail_on_unmatched_files: false
