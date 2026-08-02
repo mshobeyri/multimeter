@@ -1,8 +1,6 @@
-# Using Mock Servers in Suites
+# In suites
 
-Use the top-level `servers:` field to list mock server files that should start **before** any tests and remain running for the entire suite duration. They are stopped automatically when the suite finishes.
-
-### Example
+Use the top-level `servers:` field to list mock server files that start **before** any tests and remain running for the entire suite. They stop automatically when the suite finishes.
 
 ```yaml
 type: suite
@@ -15,14 +13,10 @@ items:
   - tests/profile.mmt
 ```
 
-### Execution flow
+You can also include `type: server` files directly in `items` for inline control over when they start relative to other stages.
 
-1. All files listed under `servers:` start before any tests
-2. Tests begin once servers are ready
-3. When the suite finishes, all servers are stopped automatically
-
-You can also include `type: server` files directly in the `items` array for inline control over when they start relative to other stages.
-
-This lets you set up complex integration environments declaratively, without manual server management.
+For execution flow, partial runs, and the `servers` root-only rule, see [Suite execution](../suite/execution.md#mock-servers-in-suites).
 
 ---
+
+See also: [Mock Server overview](./index.md) · [In tests](./in-tests.md) · [CLI](./cli.md)

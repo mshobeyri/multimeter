@@ -7,7 +7,7 @@ For `type: server` mock server files opened in VS Code, the right panel has two 
 
 Click {{btn:edit:Edit Mock}} in the top bar to switch to edit mode. Use the back control to return to the run view.
 
-> This documents the editor panel for `type: server` files. The separate **Mock Server Panel** in the VS Code sidebar is a lightweight prototyping tool — see [Using the panel](./using.md).
+> This documents the editor panel for `type: server` files. The separate **Mock server panel** in the VS Code sidebar is a lightweight prototyping tool — see [Mock server panel](./panel.md).
 
 ## Run view
 
@@ -33,19 +33,11 @@ Edit metadata and top-level `import` entries for JSON/YAML/CSV data used in endp
 
 ### Server
 
-Configure server-wide settings:
-
-- `protocol` — HTTP, HTTPS, or WebSocket
-- **Port** and **base path**
-- **CORS**, **delay**, **connection mode** (plain, TLS, mTLS)
-- **Proxy** — forward unmatched requests to a real backend
-- **Fallback** — default response when no endpoint matches
-
-See [Server files](./files.md) and [TLS](./tls.md).
+Configure server-wide settings — see [Endpoints — Server settings](./endpoints.md#server-settings) and [TLS](./tls.md).
 
 ### Endpoints
 
-Add, edit, and remove endpoint blocks. Each endpoint supports method, path, name, match rules, status code, response body/format, and **reflect** mode (echo the request back). See [Server files](./files.md).
+Add, edit, and remove endpoint blocks — see [Endpoints](./endpoints.md).
 
 ---
 

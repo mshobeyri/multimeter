@@ -1,6 +1,6 @@
 # Server tokens
 
-Echo request data and inject dynamic values in `type: server` responses. See [Mock server files](./files.md) for the overall file shape.
+Echo request data and inject dynamic values in `type: server` responses. See [Endpoints](./endpoints.md) for the overall file shape.
 
 ### Echoing request data
 
@@ -61,4 +61,4 @@ Set `mock_port` / `mock_protocol` (and other vars) in the Environment panel, a s
 
 While typing an incomplete token such as `protocol: e:`, YAML may temporarily parse it as a nested map — Multimeter treats that as a validation error instead of crashing the editor.
 
-See also: [Server files](./files.md) · [Dynamic values](../../features/dynamic-values.md) · [Environment](../env/index.md)
+See also: [Endpoints](./endpoints.md) · [Dynamic values](../../features/dynamic-values.md) · [Environment](../env/index.md)

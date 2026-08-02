@@ -535,32 +535,28 @@ Next: [Try It](./try-it.md) · [Environment](./environment.md) · [Annotations](
 
 ${sliceLines(server, 1, 66).replace(/^# Mock Server[^\n]*\n*/, '')}
 
-Next: [Using](./using.md) · [TLS](./tls.md) · [Server files](./files.md) · [In tests](./in-tests.md) · [In suites](./in-suites.md)
+Next: [Mock server panel](./panel.md) · [TLS](./tls.md) · [Endpoints](./endpoints.md) · [In tests](./in-tests.md) · [In suites](./in-suites.md)
 `,
   )
   write(
-    'files/server/using.md',
-    `# Using the panel
+    'files/server/panel.md',
+    `# Mock server panel
 
 ${sliceLines(server, 43, 66)}
 `,
   )
   write(
     'files/server/tls.md',
-    demoteH1(sliceLines(server, 66, 107), 'HTTPS and mTLS'),
-  )
-  write(
-    'files/server/files.md',
-    `# Mock server files
+    `# TLS
 
-${sliceLines(server, 107, 221).replace(/^## MMT Mock Server Files\n/, '')}
+${demoteH1(sliceLines(server, 221, 271), 'HTTPS and mTLS in server files').replace(/^### /gm, '## ')}
 `,
   )
   write(
-    'files/server/tls-files.md',
-    `# TLS in server files
+    'files/server/endpoints.md',
+    `# Endpoints
 
-${sliceLines(server, 221, 271).replace(/^### /gm, '## ')}
+${sliceLines(server, 107, 221).replace(/^## MMT Mock Server Files\n/, '')}
 `,
   )
   write(

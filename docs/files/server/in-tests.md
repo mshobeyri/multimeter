@@ -1,8 +1,6 @@
-# Using Mock Servers in Tests
+# In tests
 
-You can start mock servers directly from your tests using the `run` step. This makes tests self-contained — no need to manually start servers before running.
-
-### Import and run
+Start mock servers directly from tests using the `run` step — tests stay self-contained with no manual server startup.
 
 ```yaml
 type: test
@@ -23,10 +21,10 @@ steps:
 - All servers started by `run` stop automatically when the test finishes
 - If the port is already in use by another process, the test fails with an error
 
-### Adding a server step in the UI
-
-In the Flow panel, click **Add item** and select **Server**. A box appears where you can choose from your imported server files.
+In the Flow panel, click **Add item** → **Server** to pick from imported server files. See [run step](../test/steps/run.md) for full details.
 
 Example: [Simple mock server](../../../examples/intermediate/18_simple_mock_server/README.md)
 
 ---
+
+See also: [Mock Server overview](./index.md) · [In suites](./in-suites.md) · [CLI](./cli.md)

@@ -372,24 +372,20 @@
             "path": "files/server/edit.md"
           },
           {
-            "title": "Using",
-            "path": "files/server/using.md"
+            "title": "Mock server panel",
+            "path": "files/server/panel.md"
           },
           {
-            "title": "TLS",
-            "path": "files/server/tls.md"
-          },
-          {
-            "title": "Server files",
-            "path": "files/server/files.md"
+            "title": "Endpoints",
+            "path": "files/server/endpoints.md"
           },
           {
             "title": "Tokens",
             "path": "files/server/tokens.md"
           },
           {
-            "title": "TLS files",
-            "path": "files/server/tls-files.md"
+            "title": "TLS",
+            "path": "files/server/tls.md"
           },
           {
             "title": "In tests",
@@ -402,6 +398,10 @@
           {
             "title": "CLI",
             "path": "files/server/cli.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/server/reference.md"
           }
         ],
         "icon": "server"

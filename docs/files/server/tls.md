@@ -1,40 +1,48 @@
-# HTTPS and mTLS
+# TLS
 
-The Mock Server panel can run an HTTPS server on localhost.
+## HTTPS and mTLS in server files
 
-- Set **Server Type** to **HTTPS**.
-- Optionally select a **server certificate** file (PEM/CRT) and matching **server key** file (PEM/KEY). If no cert/key is provided for TLS mode in a `.mmt` mock server file, Multimeter uses built-in self-signed certs.
+Mock server file protocols are `http`, `https`, or `ws`. The `connection` block controls whether the HTTP connection is plain, TLS, or mTLS.
 
-### mTLS (client certificate verification)
+Certificate paths in `connection.cert`, `connection.key`, and `connection.client_ca` are resolved relative to the `.mmt` server file. The visual mock editor exposes these in the **Server** tab, including file pickers for certificate/key paths.
 
-To require clients to present a valid certificate (mutual TLS):
+If no cert/key is provided for TLS mode, Multimeter uses built-in self-signed certs.
 
-- Set **Server Type** to **HTTPS** and enable **Require client certificate (mTLS)**.
-- Select a **Client CA** file (PEM) that signed the client certificates you want to accept.
-
-When mTLS is enabled:
-- The server will request a client certificate from connecting clients.
-- Clients without a valid certificate signed by the configured CA will be rejected.
-
-### Testing TLS and mTLS with curl
-
-**TLS only (server cert, no client cert):**
-```sh
-curl --cacert certs-test/ca.crt https://127.0.0.1:8080/
+```yaml
+type: server
+protocol: https
+port: 8443
+connection:
+  mode: tls
+  cert: ./certs/server.crt
+  key: ./certs/server.key
+endpoints:
+  - method: get
+    path: /health
+    status: 200
+    body: OK
 ```
 
-**mTLS (client cert required):**
-```sh
-curl --cacert certs-test/ca.crt \
-     --cert certs-test/client.crt \
-     --key certs-test/client.key \
-     https://127.0.0.1:8080/
+For mTLS, `connection.client_ca` is required:
+
+```yaml
+type: server
+protocol: https
+port: 8444
+connection:
+  mode: mtls
+  cert: ./certs/server.crt
+  key: ./certs/server.key
+  client_ca: ./certs/ca.crt
+endpoints:
+  - method: get
+    path: /secure
+    status: 200
+    body: OK
 ```
 
-### Notes
-- The server binds to `127.0.0.1`.
-- Certificate file paths are stored in VS Code workspace state and persist across restarts.
-- Only PEM format is supported (`.pem`, `.crt`, `.cer`, `.key`).
-- Most HTTP clients will need to trust the server certificate (add the CA to `certificates.server_ca` or disable validation where appropriate).
+For TLS in the sidebar **Mock server panel** (workspace-stored cert paths), see [Mock server panel — HTTPS and mTLS](./panel.md#https-and-mtls).
 
 ---
+
+See also: [Endpoints](./endpoints.md) · [Certificates](../../features/certificates/index.md)

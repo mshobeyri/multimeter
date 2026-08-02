@@ -39,6 +39,7 @@ Use the History panel to review what was sent, what came back, and how long it t
 ## See also
 - [API](../files/api/index.md) — requests made from the API editor appear in history
 - [Test](../files/test/index.md) — test runs generate requests visible in history
-- [Mock Server](../files/server/index.md) — mock server requests are also recorded
+- [Mock Server](../files/server/index.md) — mock server file and panel requests are also recorded
+- [Mock server panel](../files/server/panel.md) — sidebar panel request history
 - [Environment](../files/env/index.md) — confirm you’re hitting the right base URL
 - [Browse examples](/docs/examples) — sample Multimeter projects

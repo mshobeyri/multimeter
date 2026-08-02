@@ -25,6 +25,8 @@ In the example above, the execution flow is as follows:
 
 ## Mock Servers in Suites
 
+See [Mock servers in suites](../server/in-suites.md) for a quick overview. Details below.
+
 #### Suite-level servers (`servers:` field)
 
 Use the top-level `servers:` field to list mock server files that should start **before** any tests and remain running for the **entire** suite duration. They are stopped automatically when the suite finishes.

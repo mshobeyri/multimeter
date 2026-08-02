@@ -18,4 +18,4 @@ endpoints:
 
 Open the file in VS Code and click {{btn:play:Run mock}} in the run view. Point your client or test at `http://localhost:9099/health`.
 
-More: [Edit Mock](./edit.md) · [Using the panel](./using.md) · [In tests](./in-tests.md) · [CLI](./cli.md)
+More: [Edit Mock](./edit.md) · [Mock server panel](./panel.md) · [In tests](./in-tests.md) · [CLI](./cli.md)
