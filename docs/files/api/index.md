@@ -106,7 +106,7 @@ cookies:
 - [Protocols](./protocols/index.md) — HTTP, WebSocket, GraphQL, gRPC
 - [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP examples](./protocols/http-bodies.md)
 - [Headers](./headers.md) · [Auth](./auth.md)
-- [Inputs](./inputs.md) · [Outputs](./outputs.md) · [Advanced outputs](./outputs-advanced.md)
+- [Inputs](./inputs.md) · [Outputs](./outputs.md)
 - [Documentation](./documentation.md) — title, tags, description, `<<i:>>` / `<<o:>>` annotations
 - [setenv](./setenv.md) · [Examples](./examples.md) · [Dynamic values](../../features/dynamic-values.md)
 - [Complete examples](./complete-examples.md) · [Reference](./reference.md)
