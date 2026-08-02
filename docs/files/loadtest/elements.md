@@ -8,7 +8,7 @@ Fields for `type: loadtest` files. See [Load Test](./index.md) for an overview e
 - `description`: Short explanation of what the load test measures.
 - `tags`: Array such as `load`, `perf`, `smoke`, or `api`.
 
-### import
+### `import`
 
 Top-level data imports from `.json`, `.yaml`, `.yml`, and `.csv`. Use `${alias.path}` to feed load settings from a shared fixture.
 
@@ -23,7 +23,7 @@ test: ./tests/login.mmt
 
 See [Data Imports](../../integration/data-imports.md).
 
-### test
+### `test`
 
 Required path to a single `type: test` file — the scenario each virtual user/iteration runs.
 
@@ -40,7 +40,7 @@ Optional target concurrency; defaults to `1`.
 threads: 25
 ```
 
-### repeat
+### `repeat`
 
 Required. Controls when the load test stops.
 

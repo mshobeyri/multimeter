@@ -1,6 +1,6 @@
 # API quick start
 
-Minimal HTTP GET against the public test server:
+Minimal HTTP GET against the public test `server:`
 
 ```yaml
 type: api

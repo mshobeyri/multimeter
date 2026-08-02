@@ -1,6 +1,6 @@
 # items
 
-### title, description, tags
+### `title`, `description`, `tags`
 
 You can use these fields for documentation and to help with searching and filtering suites.
 
@@ -8,7 +8,7 @@ You can use these fields for documentation and to help with searching and filter
 - `description`: A short explanation of what the suite does.
 - `tags`: An array of strings to categorize the suite.
 
-### items
+### `items`
 
 The `items` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs, tests, HTTP files, Bruno files, or other suites.
 

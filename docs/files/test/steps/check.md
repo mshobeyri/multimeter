@@ -70,7 +70,7 @@ Operators used by `check`, [assert](./assert.md), and call-level [`expect`](./ca
 | `<#`, `<=#`, `>#`, `>=#` | Length/count comparisons |
 | `>N%`, `<N%` | Fuzzy match at least / less than N% similar (0–100, e.g. `>80%`). In the visual UI these appear as `>%` and `<%` with a separate percentage selector. |
 
-### omit
+### `omit`
 
 Use unquoted `omit` with `==` / `!=` to test that a value is missing, `null`, or the omit sentinel (for example after a missing output path):
 

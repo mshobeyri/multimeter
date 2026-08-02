@@ -23,7 +23,7 @@ Notes:
 - The response exposed through `id` includes `body`, `headers`, `cookies`, `status`, and `duration`.
 - In the Multimeter editor, **Ctrl+click** (⌘+click on macOS) the `http:` URL to open a temporary `type: api` file with the same request data.
 
-Example using the response later in the flow:
+Example using the response later in the `flow:`
 
 ```yaml
 steps:

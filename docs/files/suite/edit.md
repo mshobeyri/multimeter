@@ -10,7 +10,7 @@ Edit mode shows a tab bar with five tabs:
 
 | Tab | Icon | What you edit |
 |---|---|---|
-| **Overview** | {{btn:note}} | Title, description, tags, and data `import` map |
+| **Overview** | {{btn:note}} | `title`, `description`, `tags`, and data `import` map |
 | **Items** | {{btn:beaker}} | Suite item tree — add, reorder, and group entries; `then` separators create parallel stages |
 | **Servers** | {{btn:server-environment}} | Mock server files (`type: server`) started before items in the same stage |
 | **Environment** | {{btn:symbol-namespace}} | Preset, env file, and inline variable overrides for the suite run |
@@ -18,7 +18,7 @@ Edit mode shows a tab bar with five tabs:
 
 ### Overview
 
-Edit title, description, tags, and top-level `import` entries (JSON/YAML/CSV data files referenced with `${alias.path}`). See [Data Imports](../../integration/data-imports.md).
+Edit `title`, `description`, `tags`, and top-level `import` entries (JSON/YAML/CSV data files referenced with `${alias.path}`). See [Data Imports](../../integration/data-imports.md).
 
 ### Items
 

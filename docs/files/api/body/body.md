@@ -28,6 +28,6 @@ body: ./payload.bin
 
 Use `xml` for self-closing empty tags and `xmle` for expanded XML. Use `urlencoded` for form bodies (`key=value&...`). With `binary`, Multimeter reads the file at send time; the path stays a string in YAML.
 
-POST examples for each format: [HTTP bodies](../protocols/http-bodies.md).
+POST examples for each `format:` [HTTP bodies](../protocols/http-bodies.md).
 
 See also: [Format](./format.md) · [Body overview](./index.md) · [Request fields](../index.md#request)

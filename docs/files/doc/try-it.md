@@ -1,6 +1,6 @@
 # Try It (interactive API testing)
 
-Add `html.triable: true` to enable Swagger-like "Try" buttons on every endpoint in the HTML doc:
+Add `html.triable: true` to enable Swagger-like "Try" buttons on every endpoint in the HTML `doc:`
 
 ```yaml
 type: doc

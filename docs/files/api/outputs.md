@@ -9,7 +9,7 @@ Map response data to named output variables. Keys are the exported names (used i
 | `status` | HTTP status code (number, e.g. 200, 404) |
 | `details` | Full request/response details as JSON string |
 | `duration` | Response time in milliseconds (number) |
-| `cookies` | Response cookies: `cookies[name]`, `cookies.name` |
+| `cookies` | Response `cookies:` `cookies[name]`, `cookies.name` |
 
 Example:
 
@@ -77,9 +77,9 @@ outputs:
 
 ## Regex
 
-- **Body**: `body[/pattern/]` or `body./pattern/`
-- **Headers**: `headers[/pattern/]` or `headers./pattern/`
-- **Cookies**: `cookies[/pattern/]` or `cookies./pattern/`
+- `body`: `body[/pattern/]` or `body./pattern/`
+- `headers`: `headers[/pattern/]` or `headers./pattern/`
+- `cookies`: `cookies[/pattern/]` or `cookies./pattern/`
 
 > **Regex tip:** If the regex contains a capture group `(...)`, the first group is returned. If there is no capture group, the entire match is returned.
 

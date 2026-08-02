@@ -10,7 +10,7 @@ Use `type: suite` to define a suite MMT file. A suite runs multiple items togeth
 
 | Control | What it does |
 |---|---|
-| **Title** | Suite title from `title:` (shown with the layers icon) |
+| `title` | Suite title from `title:` (shown with the layers icon) |
 | {{btn:type-hierarchy-sub:Flow chart}} | Opens a read-only hierarchy view of suite items |
 | {{btn:edit:Edit Suite}} | Switches to **edit mode** — see [Edit Suite](./edit.md) |
 
@@ -26,15 +26,15 @@ Use `type: suite` to define a suite MMT file. A suite runs multiple items togeth
 
 | Section | What you see |
 |---|---|
-| **Environment** | Preset, env file, and inline variables when `environment:` is configured |
-| **Servers** | Mock server files listed in `servers:` |
+| `environment` | Preset, env file, and inline variables when `environment:` is configured |
+| `servers` | Mock server files listed in `servers:` |
 | **Exports** | Report export paths from `export:` |
 | **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards (after a run) — see [Reports](./reports.md) |
 | **Tests** | Item tree grouped by execution stage — expand a test to see step reports — see [Reports](./reports.md#tests-tree) |
 
 ### Item tree
 
-Each item shows an icon for its type:
+Each item shows an icon for its `type:`
 
 | Type | Icon meaning |
 |---|---|

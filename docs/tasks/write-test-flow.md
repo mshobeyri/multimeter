@@ -1,6 +1,6 @@
 # Write a test flow
 
-Use `type: test` to orchestrate steps: call HTTP (or an API file), then `expect` / `check` / `assert` the result.
+Use `type: test` to orchestrate `steps:` call HTTP (or an API file), then `expect` / `check` / `assert` the result.
 
 ## Minimal example
 

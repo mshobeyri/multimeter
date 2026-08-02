@@ -1,6 +1,6 @@
 # Environment and export
 
-## environment
+## `environment`
 Use the `environment` field to configure environment variables for load test runs. It uses the same shape as suite environment configuration.
 
 ```yaml
@@ -42,7 +42,7 @@ Environment variables are resolved with different priority depending on the entr
 4. Environment panel settings
 5. Project defaults (lowest)
 
-## export
+## `export`
 Use the `export` field to automatically generate reports after load test completion.
 
 ```yaml

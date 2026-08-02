@@ -35,9 +35,9 @@ See [import](../import.md) for supported import types and path rules.
 | `debug` | no | Same syntax as `expect`, but rows show a debug icon and are excluded from exported reports. Set `debug: true` to dump all top-level output keys. |
 | `report` | no | Controls when `expect` results are emitted: `all`, `fails`, `none`, or `{ internal, external }`. Default: `internal: all`, `external: fails`. See [check — Report configuration](./check.md#report-configuration). |
 
-## inputs
+## `inputs`
 
-Pass runtime values into the called file's declared inputs:
+Pass runtime values into the called file's declared `inputs:`
 
 ```yaml
 - call: login
@@ -70,7 +70,7 @@ Without `${...}`, the text is treated as a literal string (for example `name: ro
 
 ## Referencing outputs
 
-After a call with `id: doLogin`, later steps can read outputs:
+After a call with `id: doLogin`, later steps can read `outputs:`
 
 ```yaml
 - check: ${doLogin.status} == 200
@@ -79,7 +79,7 @@ After a call with `id: doLogin`, later steps can read outputs:
 
 Output paths follow the same rules as API outputs (`status`, `body`, `headers`, `cookies`, `duration`, nested paths like `body.user.name`). See [Outputs](../../api/outputs.md).
 
-## expect
+## `expect`
 
 `expect` validates callee outputs on the same step without a separate `check`. Each key is an output field name; each value is an expected result. All entries in one `expect` block are grouped into **one report row**, with each comparison as a sub-item.
 
@@ -122,7 +122,7 @@ Output paths follow the same rules as API outputs (`status`, `body`, `headers`, 
 
 Operator reference: [check — Operators](./check.md#operators).
 
-`omit` in expect:
+`omit` in `expect:`
 - Unquoted `omit` — field/path is missing.
 - `null` — field exists with a null value.
 - `!= omit` — field is present.
@@ -136,7 +136,7 @@ Operator reference: [check — Operators](./check.md#operators).
 
 For more expect/debug examples, see [Inline expect and debug](./run-expect.md).
 
-## debug
+## `debug`
 
 `debug` uses the same syntax and operators as `expect`:
 

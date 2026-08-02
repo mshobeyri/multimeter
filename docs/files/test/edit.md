@@ -8,7 +8,7 @@ The separate {{btn:type-hierarchy-sub:Flow chart}} control opens a read-only flo
 
 | Tab | What you edit |
 |---|---|
-| {{btn:search:Overview}} | Title, description, tags, imports, inputs, outputs, cache |
+| {{btn:search:Overview}} | `title`, `description`, `tags`, `import`, `inputs`, `outputs`, `cache` |
 | {{btn:list-tree:Flow}} | Visual step editor for `steps:` or `stages:` |
 | {{btn:code:Code}} | JavaScript compiled from the YAML test — generated output, not the source file |
 
@@ -16,13 +16,13 @@ The separate {{btn:type-hierarchy-sub:Flow chart}} control opens a read-only flo
 
 | Field | Notes |
 |---|---|
-| **Title** | Maps to `title:` |
-| **Tags** | Searchable tag chips; maps to `tags:` |
-| **Description** | Markdown editor; maps to `description:` |
-| **Import** | Alias → path pairs with file picker (`.mmt`, CSV/JSON/YAML data, JS helper modules). Missing paths are highlighted |
-| **Inputs** | Default input values for `i:` tokens |
-| **Outputs** | Output variable declarations |
-| **Cache** | Optional cache duration (`5m`), epoch number, or date/time string — see [cache](./cache.md) |
+| `title` | Maps to `title:` |
+| `tags` | Searchable tag chips; maps to `tags:` |
+| `description` | Markdown editor; maps to `description:` |
+| `import` | Alias → path pairs with file picker (`.mmt`, CSV/JSON/YAML data, JS helper modules). Missing paths are highlighted |
+| `inputs` | Default input values for `i:` tokens |
+| `outputs` | Output variable declarations |
+| `cache` | Optional cache duration (`5m`), epoch number, or date/time string — see [cache](./cache.md) |
 
 ### Flow
 

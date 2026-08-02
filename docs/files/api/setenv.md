@@ -1,6 +1,6 @@
 # setenv
 
-### setenv
+### `setenv`
 Promote values from the response into the runtime environment after an API run.
 
 Values use the **same extraction expressions as `outputs`** (paths, regex, keywords):

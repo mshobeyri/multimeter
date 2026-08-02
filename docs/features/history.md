@@ -15,7 +15,7 @@ Use the History panel to review what was sent, what came back, and how long it t
 ## How it works
 - Every request you send from the API editor (and supported actions) is recorded
 - Entries show method, URL, status code, duration, and timestamp
-- Select an entry to see details:
+- Select an entry to see `details:`
   - Request: method, URL, headers, cookies, and body
   - Response: status, headers, cookies, and body
 

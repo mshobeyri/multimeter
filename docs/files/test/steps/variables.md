@@ -1,6 +1,6 @@
 # Variables and data
 
-## print
+## `print`
 Write a message to the log output.
 ```yaml
 - print: "Starting flow"
@@ -24,12 +24,12 @@ Create or change variables for later steps. `set` mutates existing (or creates n
 ```
 
 When to use which:
-- **set**: creates or updates a variable in the current scope (mutable). Use for values that change across steps.
-- **var**: function-scoped variable (hoisted). Rarely needed; prefer `let`.
-- **const**: block-scoped, cannot be reassigned. Use for values that shouldn't change.
-- **let**: block-scoped, can be reassigned. Use for loop counters or temporary values.
+- `set`: creates or updates a variable in the current scope (mutable). Use for values that change across steps.
+- `var`: function-scoped variable (hoisted). Rarely needed; prefer `let`.
+- `const`: block-scoped, cannot be reassigned. Use for values that shouldn't change.
+- `let`: block-scoped, can be reassigned. Use for loop counters or temporary values.
 
-## setenv
+## `setenv`
 Set environment variables during a run. This is mainly useful when you run a test directly (not as an imported sub-test), because it updates the runtime environment for subsequent calls.
 
 ```yaml
@@ -42,7 +42,7 @@ Notes:
 - Values can be strings (template strings supported) or non-string literals.
 - When running a suite, setenv events are still emitted but may be scoped to the top-level run behavior.
 
-## data
+## `data`
 Bind an imported CSV alias (from the test's import section) into scope for use in loops and steps.
 ```yaml
 - data: users   # where import:

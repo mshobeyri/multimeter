@@ -4,7 +4,7 @@ Certificates: see [Certificates](../../features/certificates/index.md).
 
 ## Settings
 
-Project-level runner settings can be configured in the `setting` section of the env file:
+Project-level runner settings can be configured in the `setting` section of the env `file:`
 
 ```yaml
 setting:
@@ -20,11 +20,11 @@ setting:
 - If no env file timeout is set, Multimeter uses the built-in default of `30000` milliseconds.
 
 ## Reference (types)
-- type: `env`
-- variables: record<string, object (key-value choices) | array (allowed values)>
-- presets: record<string, record<string, record<string, string|number|boolean|null>>>
-- setting: { http?: { version?: "auto"|"1"|"1.1"|"2", timeout?: number } }
-- certificates: { server_ca?, clients? }
+- `type:` `env`
+- `variables:` record<string, object (key-value choices) | array (allowed values)>
+- `presets:` record<string, record<string, record<string, string|number|boolean|null>>>
+- `setting:` { http?: { version?: "auto"|"1"|"1.1"|"2", timeout?: number } }
+- `certificates:` { server_ca?, clients? }
 
 
 ## VS Code Settings

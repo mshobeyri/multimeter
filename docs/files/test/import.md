@@ -1,6 +1,6 @@
 # import
 
-### import
+### `import`
 The `import` section brings external files into a test. Each entry is an **alias** (key) and a **path** (value). Paths are relative to the current `.mmt` file, or start with `+/` to resolve from the project root (the folder containing `multimeter.mmt`).
 
 ## Importable file types

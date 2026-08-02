@@ -2,7 +2,7 @@
 
 ## Point your client or tests to it
 - In your API `.mmt`, set the base URL to the mock server, for example:
-  - url: http://localhost:8081
+  - `url:` http://localhost:8081
 - Or use an environment variable and swap presets between real and mock:
   - variables.api_url: http://localhost:8081
   - tests and APIs reference it via `<<e:api_url>>`

@@ -1,5 +1,5 @@
 # Using presets and overrides in CLI
-Use preset from env file:
+Use preset from env `file:`
 ```sh
  testlight run tests/login.mmt --env-file env.mmt --preset runner.dev
 ```

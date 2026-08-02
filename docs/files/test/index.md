@@ -18,7 +18,7 @@ Run glyphs appear in the left margin of the YAML pane:
 
 | Control | What it does |
 |---|---|
-| **Title** | Test title from `title:` (shown with the beaker icon) |
+| `title` | Test title from `title:` (shown with the beaker icon) |
 | {{btn:type-hierarchy-sub:Flow chart}} | Opens the flowchart view for the test steps |
 | {{btn:edit:Edit Test}} | Switches to **edit mode** — see [Edit Test](./edit.md) |
 
@@ -34,8 +34,8 @@ Run glyphs appear in the left margin of the YAML pane:
 
 | Section | What you see |
 |---|---|
-| **Inputs** | Runtime input values when the test defines `inputs:` |
-| **Outputs** | Extracted output values when the test defines `outputs:` |
+| `inputs` | Runtime input values when the test defines `inputs:` |
+| `outputs` | Extracted output values when the test defines `outputs:` |
 | **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards — see [Reports](./reports.md) |
 | **Report** | Step-by-step results with pass/fail status and timestamps — see [Reports](./reports.md#report-list) |
 

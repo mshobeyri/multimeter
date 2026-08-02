@@ -22,19 +22,19 @@ stages?: Array<{            # optional staged/parallel model
 ```
 
 Where a Step is one of:
-- call: { call: string, id?: string, title?: string, inputs?: record<string, any>, expect?: record<string, any>, report?: 'all'|'fails'|'none' }
-- check: string | ComparisonObject
-- assert: string | ComparisonObject
-- if: { if: string, steps: Step[], else?: Step[] }
-- for: { for: string, steps: Step[] }
-- repeat: { repeat: number|string, steps: Step[] }
-- delay: number|string
-- js: string
-- print: string
-- set | var | const | let: record<string, any>
-- data: string
-- setenv: record<string, any>
-- run: string
+- `call:` { `call:` string, id?: string, title?: string, inputs?: record<string, any>, expect?: record<string, any>, report?: 'all'|'fails'|'none' }
+- `check:` string | ComparisonObject
+- `assert:` string | ComparisonObject
+- `if:` { `if:` string, `steps:` Step[], else?: Step[] }
+- `for:` { `for:` string, `steps:` Step[] }
+- `repeat:` { `repeat:` number|string, `steps:` Step[] }
+- `delay:` number|string
+- `js:` string
+- `print:` string
+- set | var | const | `let:` record<string, any>
+- `data:` string
+- `setenv:` record<string, any>
+- `run:` string
 
 Example:
 ```yaml

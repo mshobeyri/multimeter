@@ -19,7 +19,7 @@ latency:                 # milliseconds
   p90: 92
   p95: 120
   p99: 310
-http:
+`http:`
   status_codes:
     "200": 2995
     "500": 5
@@ -29,11 +29,11 @@ http:
   waiting_avg: 42.8
   receive_avg: 1.4
 thresholds:
-  - name: p95 latency
+  - `name:` p95 latency
     expression: p95 < 200
     actual: 120
     result: passed
-  - name: error rate
+  - `name:` error rate
     expression: error_rate < 0.01
     actual: 0.005
     result: passed

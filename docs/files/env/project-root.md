@@ -28,7 +28,7 @@ import:
 
 See [Test documentation](../test/import.md#import) for more details on import paths.
 
-Environment files also support JSON/YAML/CSV data imports for defining variables and presets:
+Environment files also support JSON/YAML/CSV data imports for defining variables and `presets:`
 
 ```yaml
 type: env

@@ -31,12 +31,12 @@ The HTML view shows a sticky header (logo, title, search) and expandable API box
 
 | Field | Notes |
 |---|---|
-| **Title** | Page title in the rendered header |
-| **Description** | Introductory Markdown shown below the title |
+| `title` | Page title in the rendered header |
+| `description` | Introductory Markdown shown below the title |
 | **Logo** | Image path or URL for the HTML header |
-| **Import** | Data file imports referenced with `${alias.path}` |
+| `import` | Data file imports referenced with `${alias.path}` |
 | **HTML Options** | **Triable** toggle — enable Try It controls in the HTML output |
-| **Sources** | Folders and/or `.mmt` files to scan for `type: api` definitions |
+| `sources` | Folders and/or `.mmt` files to scan for `type: api` definitions |
 | **Services** | Optional named groups, each with its own sources |
 
 ### Source

@@ -2,7 +2,7 @@
 
 ### Export Report button
 
-After running a test, suite, or load test in the VS Code extension, an **Export** button appears when a run result is available. Click it to choose a format:
+After running a test, suite, or load test in the VS Code extension, an **Export** button appears when a run result is available. Click it to choose a `format:`
 
 - **JUnit XML** — for CI/CD integration
 - **MMT Report** — for the `.mmt` ecosystem

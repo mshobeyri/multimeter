@@ -199,8 +199,8 @@ Example comparisons:
 
 You can use the same token syntaxes as for APIs:
 
-- Environment variables: `e:api_url`, `e:auth_token`, etc., or `<<e:api_url>>`
-- Test inputs: `i:user_id` or `<<i:user_id>>`
+- Environment `variables:` `e:api_url`, `e:auth_token`, etc., or `<<e:api_url>>`
+- Test `inputs:` `i:user_id` or `<<i:user_id>>`
 - Random values: `r:name` or `<<r:name>>`
 - Current/time values: `c:name` or `<<c:name>>`
 

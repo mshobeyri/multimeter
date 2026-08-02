@@ -6,7 +6,7 @@
 - Optional — defaults to `json`
 - Affects default `Content-Type` and body handling
 
-Use a single value when request and response share a format:
+Use a single value when request and response share a `format:`
 
 ```yaml
 format: json

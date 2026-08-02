@@ -13,7 +13,7 @@ variables:
     - https://test.mmt.dev
 ```
 
-API file:
+API `file:`
 
 ```yaml
 type: api

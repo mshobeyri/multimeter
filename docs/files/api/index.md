@@ -70,17 +70,17 @@ Tester edits (method, URL, body, …) are temporary until you write them back to
 
 ## Request
 
-- protocol: `http` or `ws` (optional — inferred from URL if not specified)
+- `protocol:` `http` or `ws` (optional — inferred from URL if not specified)
   - URLs starting with `ws://` or `wss://` default to `ws`
   - All other URLs default to `http`
-- url: server URL
-- method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
-- timeout: per-request timeout in milliseconds (optional; overrides the default network timeout)
-- headers: HTTP headers
-- query: query parameters for HTTP requests
-- cookies: HTTP cookies
+- `url:` server URL
+- `method:` HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
+- `timeout:` per-request timeout in milliseconds (optional; overrides the default network timeout)
+- `headers:` HTTP headers
+- `query:` query parameters for HTTP requests
+- `cookies:` HTTP cookies
 
-Body and format: [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP body examples](./protocols/http-bodies.md).
+`body` and `format`: [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP body examples](./protocols/http-bodies.md).
 
 Sample:
 
@@ -107,6 +107,6 @@ cookies:
 - [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP examples](./protocols/http-bodies.md)
 - [Headers](./headers.md) · [Auth](./auth.md)
 - [Inputs](./inputs.md) · [Outputs](./outputs.md)
-- [Documentation](./documentation.md) — title, tags, description, `<<i:>>` / `<<o:>>` annotations
+- [Documentation](./documentation.md) — `title`, `tags`, `description`, `<<i:>>` / `<<o:>>` annotations
 - [setenv](./setenv.md) · [Examples](./examples.md) · [Dynamic values](../../features/dynamic-values.md)
 - [Complete examples](./complete-examples.md) · [Reference](./reference.md)

@@ -33,6 +33,6 @@ Generation knobs (see YAML profile):
 - Use `e:VAR` tokens directly in APIs/tests for type-preserving substitution; use `<<e:VAR>>` inside strings
 
 Generation knobs (see YAML profile):
-- env.file: default environment file path
+- env.`file:` default environment file path
 - env.required/optional: variables to expect
 - env.generateSkeleton: whether to emit a starter env file

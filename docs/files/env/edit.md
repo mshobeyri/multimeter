@@ -35,7 +35,7 @@ Attach client certificates for mutual TLS. See [Certificates](../../features/cer
 
 ## Promote values during API runs
 
-In API definitions, use `setenv` to capture response values for later steps:
+In API definitions, use `setenv` to capture response values for later `steps:`
 
 ```yaml
 setenv:

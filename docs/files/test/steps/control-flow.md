@@ -88,7 +88,7 @@ See [Data-driven tests](../../../features/data-driven-tests.md) for CSV data-dri
     - delay: 1s
 ```
 
-## delay
+## `delay`
 Pause the flow for a duration.
 ```yaml
 - delay: 500    # ms

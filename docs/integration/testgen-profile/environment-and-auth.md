@@ -1,7 +1,7 @@
 # Environment and auth
 
 Expect `api_url`; optionally `token`/`api_key` depending on the API.
-Default headers:
+Default `headers:`
 - User-Agent: Multimeter
 - Accept: */*
 - Connection: keep-alive

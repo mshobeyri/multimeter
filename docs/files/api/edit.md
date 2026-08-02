@@ -8,21 +8,21 @@ Edits in edit mode write directly to the YAML file (unlike temporary tester chan
 
 | Tab | What you edit |
 |---|---|
-| {{btn:search:Overview}} | Title, tags, description (with optional Markdown preview), `import`, `inputs`, `outputs`, `setenv` |
-| {{btn:symbol-interface:Interface}} | Protocol, URL, method, timeout, headers, query, cookies, body, auth, request/response format |
+| {{btn:search:Overview}} | `title`, `tags`, `description` (with optional Markdown preview), `import`, `inputs`, `outputs`, `setenv` |
+| {{btn:symbol-interface:Interface}} | `protocol`, `url`, `method`, `timeout`, `headers`, `query`, `cookies`, `body`, `auth`, request/response `format` |
 | {{btn:lightbulb:Examples}} | Named examples — add, edit, or remove example blocks |
 
 ### Overview
 
 | Field | Notes |
 |---|---|
-| **Title** | Maps to `title:` |
-| **Tags** | Searchable tag chips; maps to `tags:` |
-| **Description** | Markdown editor with optional preview; maps to `description:` |
-| **Import** | Key/value alias → path pairs with file picker (JSON, YAML, CSV data files) |
-| **Inputs** | Parameter definitions used by `<<i:>>` tokens and the In / Out tab |
-| **Outputs** | Extraction expressions for response values |
-| **Setenv** | Capture response values into environment variables |
+| `title` | Maps to `title:` |
+| `tags` | Searchable tag chips; maps to `tags:` |
+| `description` | Markdown editor with optional preview; maps to `description:` |
+| `import` | Key/value alias → path pairs with file picker (JSON, YAML, CSV data files) |
+| `inputs` | Parameter definitions used by `<<i:>>` tokens and the In / Out tab |
+| `outputs` | Extraction expressions for response values |
+| `setenv` | Capture response values into environment variables |
 
 See [Documentation](./documentation.md) for description annotations and [Inputs](./inputs.md) / [Outputs](./outputs.md) for token syntax.
 
@@ -30,14 +30,14 @@ See [Documentation](./documentation.md) for description annotations and [Inputs]
 
 The Interface tab is the structured editor for the request definition:
 
-- **Protocol** — HTTP, WebSocket, GraphQL, or gRPC
-- **URL** — base URL (query string is edited separately)
-- **Method** — HTTP verb when applicable
-- **Timeout** — per-request timeout in milliseconds
-- **Headers**, **Query**, **Cookies** — key/value editors
-- **Body** — request body with format selector (`json`, `xml`, `text`, `urlencoded`, `binary`, …)
-- **Auth** — none, bearer, basic, API key, or OAuth2
-- **Format** — separate request and response format pickers
+- `protocol` — HTTP, WebSocket, GraphQL, or gRPC
+- `url` — base URL (query string is edited separately)
+- `method` — HTTP verb when applicable
+- `timeout` — per-request timeout in milliseconds
+- `headers`, `query`, `cookies` — key/value editors
+- `body` — request body with format selector (`json`, `xml`, `text`, `urlencoded`, `binary`, …)
+- `auth` — none, bearer, basic, API key, or OAuth2
+- `format` — separate request and response format pickers
 
 Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear when that protocol is selected. See [Protocols](./protocols/index.md).
 

@@ -1,6 +1,6 @@
 # js
 
-### js
+### `js`
 Run inline JavaScript for custom logic, logging, or checks that are easier to express in code.
 
 ```yaml
@@ -22,7 +22,7 @@ import:
   helpers: ./helpers/xxx.js
 ```
 
-Files are loaded once per run via the runner's `fileLoader`, then cached. Write plain top-level functions (or `const` / `let` / `var` function bindings); Multimeter auto-exports them on the import alias:
+Files are loaded once per run via the runner's `fileLoader`, then cached. Write plain top-level functions (or `const` / `let` / `var` function bindings); Multimeter auto-exports them on the import `alias:`
 
 ```js
 // xxx.js
@@ -49,7 +49,7 @@ Example: [JavaScript helpers](../../../../examples/intermediate/14_javascript_he
 
 ## Runner globals
 
-The following globals are available inside `js` steps:
+The following globals are available inside `js` `steps:`
 
 | Global | Description |
 |--------|-------------|

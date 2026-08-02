@@ -12,7 +12,7 @@ The suite runner executes stages sequentially. Within each stage (items between 
 
 ### Environment configuration
 
-Use the `environment` field to configure environment variables for suite runs. This is a **root-only** field — it only takes effect when the suite is run directly, not when imported by another suite.
+Use the `environment` field to configure environment variables for suite runs. This is a **root-only** field — it only takes effect when the suite is run directly, not when imported by another `suite`.
 
 ```yaml
 type: suite

@@ -1,6 +1,6 @@
 # Inputs
 
-### inputs
+### `inputs`
 Declare inputs and reference them with `<<i:key>>` in URL, headers, or body. This lets you reuse the API with different values across tests. Tests have the same structure to chain calls.
 You can also write `i:name` if it doesn’t conflict with surrounding text. When embedded in other text (like inside a URL), use `<<i:name>>`.
 ```yaml
@@ -27,7 +27,7 @@ Input keyword values:
 - `null` (unquoted) sends a JSON/YAML null value.
 - `"omit"` and `"null"` are literal strings (quoted on purpose) and stay strings after formatting.
 - This applies to top-level `inputs`, call-time `inputs`, CLI `-e key=value`, and API Tester input overrides.
-- Removal happens for every request format: JSON keys, XML elements and attributes, `urlencoded` pairs, headers, cookies, and query values (including query pairs written inline in `url`).
+- Removal happens for every request `format:` JSON keys, XML elements and attributes, `urlencoded` pairs, headers, cookies, and query values (including query pairs written inline in `url`).
 
 Example:
 ```yaml

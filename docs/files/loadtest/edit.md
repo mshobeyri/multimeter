@@ -27,7 +27,7 @@ Pick the test file path (relative to the load test file, or `+/` for project roo
 
 ### Load
 
-Configure concurrency and duration:
+Configure concurrency and `duration:`
 
 - **Threads** — number of virtual users
 - **Repeat** — iteration count or duration (e.g. `1m`, `100`)

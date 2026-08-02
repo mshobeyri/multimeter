@@ -42,9 +42,9 @@ When the user asks you to **create or change** a `.mmt` file, follow this order:
 	- For `type: loadtest`, use **`AI/generate-loadtest.md`**.
 
 3. **Token syntax (always snake_case)**
-	- Environment variables: `e:api_url`, `e:auth_token`, etc.
+	- Environment `variables:` `e:api_url`, `e:auth_token`, etc.
 	- Embedded in strings/URLs: `<<e:api_url>>/users`, `Bearer <<e:auth_token>>`.
-	- Test/API inputs: `i:user_id`, `<<i:user_id>>`.
+	- Test/API `inputs:` `i:user_id`, `<<i:user_id>>`.
 	- Random: `r:uuid`, `r:first_name`, etc.
 	- Current/time: `c:date`, `c:epoch_ms`, etc.
 
@@ -54,7 +54,7 @@ When the user asks you to **create or change** a `.mmt` file, follow this order:
 	- Use `<< >>` only when embedding tokens inside a larger string.
 
 4. **Editing vs. creating**
-	- When creating a new file: start from the minimal valid skeleton in the corresponding `generate-*.md`.
+	- When creating a new `file:` start from the minimal valid skeleton in the corresponding `generate-*.md`.
 	- When editing: keep the existing structure, only add/change what the user asked, and do not remove unrelated fields.
 
 If you only need to **reason** about a user file (and not generate new YAML), prefer reading **only the relevant `AI/generate-*.md`** file to save tokens.

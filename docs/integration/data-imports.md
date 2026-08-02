@@ -20,7 +20,7 @@ Imported values are referenced with `${alias.path}`. A whole scalar value like `
 
 CSV imports are parsed into JSON rows, using the same behavior as test CSV imports: quoted fields are preserved as strings, unquoted numbers and booleans are coerced, and BOMs/quoted commas are handled.
 
-Example JSON file:
+Example JSON `file:`
 
 ```json
 {
@@ -32,7 +32,7 @@ Example JSON file:
 }
 ```
 
-Example YAML file:
+Example YAML `file:`
 
 ```yaml
 endpoint: users

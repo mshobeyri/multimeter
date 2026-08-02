@@ -35,7 +35,7 @@ Edit metadata and top-level `import` entries for JSON/YAML/CSV data used in endp
 
 Configure server-wide settings:
 
-- **Protocol** — HTTP, HTTPS, or WebSocket
+- `protocol` — HTTP, HTTPS, or WebSocket
 - **Port** and **base path**
 - **CORS**, **delay**, **connection mode** (plain, TLS, mTLS)
 - **Proxy** — forward unmatched requests to a real backend

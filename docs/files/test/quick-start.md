@@ -1,6 +1,6 @@
 # Test quick start
 
-Minimal HTTP test against the public test server:
+Minimal HTTP test against the public test `server:`
 
 ```yaml
 type: test

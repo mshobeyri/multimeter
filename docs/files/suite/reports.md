@@ -6,7 +6,7 @@ After you run a suite, the **suite panel** shows the same **Overview** summary c
 
 ## How suite counts differ
 
-The four cards — **Passed**, **Failed**, **Total**, and **Duration** — use the same icons and colors described in [Reports (Test)](../test/reports.md#summary-cards). The sub-labels reflect suite scope:
+The four cards — **Passed**, **Failed**, **Total**, and **Duration** — use the same icons and colors described in [Reports (Test)](../test/reports.md#summary-cards). The sub-labels reflect suite `scope:`
 
 | Card | Suite sub-label |
 |---|---|
