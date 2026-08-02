@@ -8,13 +8,13 @@ The separate {{btn:type-hierarchy-sub:Flow chart}} control opens a read-only hie
 
 Edit mode shows a tab bar with five tabs:
 
-| Tab | Icon | What you edit |
-|---|---|---|
-| **Overview** | {{btn:note}} | `title`, `description`, `tags`, and data `import` map |
-| **Items** | {{btn:beaker}} | Suite item tree — add, reorder, and group entries; `then` separators create parallel stages |
-| **Servers** | {{btn:server-environment}} | Mock server files (`type: server`) started before items in the same stage |
-| **Environment** | {{btn:symbol-namespace}} | Preset, env file, and inline variable overrides for the suite run |
-| **Exports** | {{btn:export}} | Report export paths (HTML, JSON, Markdown, MMT, JUnit) |
+| Tab | What you edit |
+|---|---|
+| {{btn:note:Overview}} | `title`, `description`, `tags`, and data `import` map |
+| {{btn:beaker:Items}} | Suite item tree — add, reorder, and group entries; `then` separators create parallel stages |
+| {{btn:server-environment:Servers}} | Mock server files (`type: server`) started before items in the same stage |
+| {{btn:symbol-namespace:Environment}} | Preset, env file, and inline variable overrides for the suite run |
+| {{btn:export:Exports}} | Report export paths (HTML, JSON, Markdown, MMT, JUnit) |
 
 ### Overview
 

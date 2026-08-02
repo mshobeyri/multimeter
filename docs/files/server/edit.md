@@ -19,13 +19,13 @@ Click {{btn:edit:Edit Mock}} in the top bar to switch to edit mode. Use the back
 
 The server icon turns green while the mock is running.
 
-## Edit tabs
+## Tabs
 
-| Tab | Icon | What you edit |
-|---|---|---|
-| **Overview** | {{btn:search}} | Title, description, tags, and data `import` map |
-| **Server** | {{btn:server-environment}} | Protocol, port, base path, CORS, delay, TLS/mTLS, proxy, fallback |
-| **Endpoints** | {{btn:list-tree}} | Endpoint list — method, path, match rules, status, body, reflect mode |
+| Tab | What you edit |
+|---|---|
+| {{btn:search:Overview}} | Title, description, tags, and data `import` map |
+| {{btn:server-environment:Server}} | Protocol, port, base path, CORS, delay, TLS/mTLS, proxy, fallback |
+| {{btn:list-tree:Endpoints}} | Endpoint list — method, path, match rules, status, body, reflect mode |
 
 ### Overview
 

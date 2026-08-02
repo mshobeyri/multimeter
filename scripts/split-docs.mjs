@@ -570,43 +570,7 @@ ${sliceLines(server, 107, 221).replace(/^## MMT Mock Server Files\n/, '')}
 }
 
 // ---------- LOADTEST ----------
-{
-  const lt = read('files/loadtest.md')
-  write(
-    'files/loadtest/index.md',
-    `# Load Test
-
-${sliceLines(lt, 1, 95).replace(/^# Load Test[^\n]*\n*/, '')}
-
-Next: [Environment & export](./environment.md) · [Running](./running.md) · [Reports](./reports.md) · [Reference](./reference.md)
-`,
-  )
-  write(
-    'files/loadtest/environment.md',
-    `# Environment and export
-
-${sliceLines(lt, 95, 165).replace(/^### /gm, '## ')}
-`,
-  )
-  write(
-    'files/loadtest/running.md',
-    `# Running
-
-${sliceLines(lt, 165, 192)}
-`,
-  )
-  write(
-    'files/loadtest/reports.md',
-    `# Reports
-
-${sliceLines(lt, 192, 215)}
-`,
-  )
-  write(
-    'files/loadtest/reference.md',
-    demoteH1(sliceLines(lt, 215, 233), 'Reference'),
-  )
-}
+// Hand-maintained under docs/files/loadtest/ (see load-config, exports, etc.)
 
 // ---------- REPORT ----------
 {

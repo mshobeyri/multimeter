@@ -9,10 +9,10 @@ Open a `type: doc` file in VS Code. The right panel has two pages:
 
 The view header includes preview tabs and an edit launcher:
 
-| Tab | Icon | What you see |
-|---|---|---|
-| **HTML** | {{btn:code}} | Interactive, searchable HTML documentation |
-| **Markdown** | {{btn:markdown}} | Markdown rendering of the doc output |
+| Tab | What you see |
+|---|---|
+| {{btn:code:HTML}} | Interactive, searchable HTML documentation |
+| {{btn:markdown:Markdown}} | Markdown rendering of the doc output |
 
 | Control | What it does |
 |---|---|
@@ -20,12 +20,12 @@ The view header includes preview tabs and an edit launcher:
 
 The HTML view shows a sticky header (logo, title, search) and expandable API boxes. See [Overview — Elements](./index.md#elements).
 
-## Edit tabs
+## Tabs
 
-| Tab | Icon | What you edit |
-|---|---|---|
-| **Overview** | {{btn:search}} | Title, description, logo, `import`, HTML options, sources, and services |
-| **Source** | {{btn:folder-opened}} | Raw `sources` and `services` lists with folder/file pickers |
+| Tab | What you edit |
+|---|---|
+| {{btn:search:Overview}} | Title, description, logo, `import`, HTML options, sources, and services |
+| {{btn:folder-opened:Source}} | Raw `sources` and `services` lists with folder/file pickers |
 
 ### Overview
 

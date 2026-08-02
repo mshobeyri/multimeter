@@ -1,7 +1,6 @@
-# Environment and export
+# Environment
 
-## `environment`
-Use the `environment` field to configure environment variables for load test runs. It uses the same shape as suite environment configuration.
+Use the `environment` field to configure environment variables for load test runs. It uses the same shape as [suite environment](../suite/reference.md).
 
 ```yaml
 type: loadtest
@@ -16,15 +15,13 @@ repeat: 30s
 test: ./tests/login.mmt
 ```
 
-#### Fields
-
 | Field | Type | Description |
 |-------|------|-------------|
 | `preset` | `string` | Preset name to select from `multimeter.mmt` (or from `file` if specified) |
-| `file` | `string` | Path to an env file to load (relative to the loadtest file or `+/` for project root) |
+| `file` | `string` | Path to an env file to load (relative to the load test file or `+/` for project root) |
 | `variables` | `Record<string, any>` | Inline key-value environment variables |
 
-#### Priority Order
+### Priority order
 
 Environment variables are resolved with different priority depending on the entry point:
 
@@ -42,30 +39,4 @@ Environment variables are resolved with different priority depending on the entr
 4. Environment panel settings
 5. Project defaults (lowest)
 
-## `export`
-Use the `export` field to automatically generate reports after load test completion.
-
-```yaml
-type: loadtest
-title: CI Load Test
-threads: 50
-repeat: 1m
-rampup: 10s
-export:
-  - ./reports/load-results.mmt
-  - ./reports/load-results.html
-  - ./reports/load-results.md
-  - ./reports/load-results.xml
-test: ./tests/login.mmt
-```
-
-#### Supported Export Formats
-
-| Extension | Format | Description |
-|-----------|--------|-------------|
-| `.mmt` | MMT | Structured load result data in YAML |
-| `.html` | HTML | Human-readable report with load metrics, SVG charts, and snapshots |
-| `.md` | Markdown | Plain text load summary with Mermaid charts and snapshot table |
-| `.xml` | JUnit XML | CI-compatible XML with load metrics as properties |
-
-Exports are generated after the load test finishes. Paths can be relative to the load test file or use `+/` for project root paths. Parent directories are created automatically if they don't exist.
+See also: [Environment CLI](../env/cli.md) · [CLI](./cli.md) · [Reference](./reference.md)

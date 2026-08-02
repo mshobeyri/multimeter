@@ -423,16 +423,16 @@
             "path": "files/loadtest/edit.md"
           },
           {
-            "title": "Elements",
-            "path": "files/loadtest/elements.md"
+            "title": "Load config",
+            "path": "files/loadtest/load-config.md"
           },
           {
             "title": "Environment",
             "path": "files/loadtest/environment.md"
           },
           {
-            "title": "Running",
-            "path": "files/loadtest/running.md"
+            "title": "Exports",
+            "path": "files/loadtest/exports.md"
           },
           {
             "title": "Reports",

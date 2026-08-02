@@ -1,29 +1,8 @@
-# Load test elements
+# Load config
 
-Fields for `type: loadtest` files. See [Load Test](./index.md) for an overview example.
+Core fields for `type: loadtest` files: the test scenario and load execution settings.
 
-### title, description, tags
-
-- `title`: Shown in the UI and reports.
-- `description`: Short explanation of what the load test measures.
-- `tags`: Array such as `load`, `perf`, `smoke`, or `api`.
-
-### `import`
-
-Top-level data imports from `.json`, `.yaml`, `.yml`, and `.csv`. Use `${alias.path}` to feed load settings from a shared fixture.
-
-```yaml
-type: loadtest
-import:
-  perf: ./perf.json
-threads: ${perf.threads}
-repeat: ${perf.repeat}
-test: ./tests/login.mmt
-```
-
-See [Data Imports](../../integration/data-imports.md).
-
-### `test`
+## `test`
 
 Required path to a single `type: test` file — the scenario each virtual user/iteration runs.
 
@@ -32,7 +11,7 @@ Required path to a single `type: test` file — the scenario each virtual user/i
 
 Keep the referenced file a normal functional test; put load settings only in the `type: loadtest` wrapper.
 
-### threads
+## `threads`
 
 Optional target concurrency; defaults to `1`.
 
@@ -40,7 +19,7 @@ Optional target concurrency; defaults to `1`.
 threads: 25
 ```
 
-### `repeat`
+## `repeat`
 
 Required. Controls when the load test stops.
 
@@ -55,7 +34,7 @@ repeat: 1000    # total iterations across all threads
 
 With `threads` > 1, numeric repeat is still a **total** count, not per-thread.
 
-### rampup
+## `rampup`
 
 Optional; defaults to `0s`. How long Multimeter takes to reach the target thread count.
 
@@ -65,4 +44,21 @@ rampup: 30s
 
 With `threads: 100` and `rampup: 10s`, workers start gradually over 10 seconds.
 
-See also: [Load Test](./index.md) · [Environment & export](./environment.md) · [Reference](./reference.md)
+## `import`
+
+Top-level data imports from `.json`, `.yaml`, `.yml`, and `.csv`. Use `${alias.path}` to feed load settings from a shared fixture.
+
+```yaml
+type: loadtest
+import:
+  perf: ./perf.json
+threads: ${perf.threads}
+repeat: ${perf.repeat}
+test: ./tests/login.mmt
+```
+
+See [Data Imports](../../integration/data-imports.md).
+
+---
+
+See also: [Load Test overview](./index.md) · [Environment](./environment.md) · [Reference](./reference.md)

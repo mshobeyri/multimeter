@@ -1,13 +1,17 @@
 # Reports
 
-## Reports
+After you run a load test, the **load test panel** shows live and final load metrics — requests, failures, success rate, throughput, and latency percentiles.
 
-Load tests produce compact load-oriented reports. They do **not** keep every individual test iteration in the report.
+Load reports are compact and load-oriented. They do **not** keep every individual test iteration.
 
-- MMT (`.mmt`) reports use `type: report`, `kind: load`, root-level load fields, and `snapshots`.
-- HTML reports include overview cards, load metrics, SVG time-series charts, snapshots, thresholds, and errors when available.
-- Markdown reports include overview, metric tables, Mermaid `xychart` blocks, and snapshot tables.
-- JUnit XML reports keep normal `<testsuites>` compatibility and write load metrics as `<property>` values such as `load.threads`, `load.throughput`, and `load.snapshots.0.at`.
+| Format | What you get |
+|--------|--------------|
+| MMT (`.mmt`) | `type: report`, `kind: load`, root-level load fields, and `snapshots` |
+| HTML (`.html`) | Overview cards, load metrics, SVG time-series charts, snapshots, thresholds, and errors when available |
+| Markdown (`.md`) | Overview, metric tables, Mermaid `xychart` blocks, and snapshot tables |
+| JUnit XML (`.xml`) | Normal `<testsuites>` compatibility with load metrics as `<property>` values such as `load.threads`, `load.throughput`, and `load.snapshots.0.at` |
+
+Use {{btn:export:Export}} on the run bar or the `export:` field to save reports. See [Exports](./exports.md).
 
 See [Reports — Load Test Report Schema](../report/yaml.md#load-test-report-schema) for the generated report shape.
 
@@ -22,3 +26,7 @@ See [Reports — Load Test Report Schema](../report/yaml.md#load-test-report-sch
 | Functional reports include `checks` | Load reports use root metrics and `snapshots` |
 
 Use a suite when you want to orchestrate many files. Use a load test when you want to measure one scenario under repeated or concurrent execution.
+
+---
+
+See also: [Load Test overview](./index.md) · [CLI](./cli.md)

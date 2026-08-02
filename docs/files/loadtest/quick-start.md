@@ -11,6 +11,6 @@ rampup: 2s
 test: ./echo_test.mmt
 ```
 
-Open the file in VS Code to get the **load test panel** on the right. Click {{btn:play:Run load test}} to start the run and watch live metrics.
+Open the file in VS Code and click {{btn:play:Run load test}} in the load test panel. Watch live load metrics while the run is active.
 
-More: [Edit Load Test](./edit.md) · [Elements](./elements.md) · [Running](./running.md) · [CLI](./cli.md)
+More: [Edit Load Test](./edit.md) · [Load config](./load-config.md) · [CLI](./cli.md)
