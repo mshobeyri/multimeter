@@ -4,7 +4,7 @@ See and inspect recent requests and responses made from the Multimeter UI and CL
 
 Use the History panel to review what was sent, what came back, and how long it took—handy for debugging, demos, and sharing context with teammates.
 
-![History](../screenshots/history.png)
+![History panel listing recent requests with method, URL, status, duration, and timestamp](../screenshots/history.png)
 
 ## What you can use it for
 - Troubleshoot failing or flaky calls (status, duration, headers, body)

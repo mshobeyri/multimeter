@@ -21,6 +21,8 @@ After install, click the Multimeter activity icon in the VS Code sidebar. You ge
 | {{btn:server-environment:Environment Variables}} | Bottom Multimeter panel | Switch presets, edit variables, and load a workspace env file (`multimeter.mmt`) |
 | {{btn:history:History}} | Bottom Multimeter panel | Inspect recent requests and responses (method, URL, status, timing, bodies) |
 
+See also: [History](./features/history.md)
+
 ### Status bar
 
 - Click {{btn:file:Multimeter}} (status bar, right) — opens a new untitled `.mmt` file on the empty page

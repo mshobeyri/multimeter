@@ -16,6 +16,8 @@ The mock server records each incoming request. Use the history view to inspect:
 
 This is useful for verifying that your client sends the correct payloads without needing an external tool.
 
+See also: [History](../../features/history.md)
+
 ## Notes and limits
 - Designed for local development -- do not expose publicly
 - State is not persisted between runs

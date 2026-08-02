@@ -60,6 +60,8 @@ Fixed bar at the bottom of the tester:
 | {{btn:history}} | Opens the **History** panel |
 | {{btn:sparkle-filled}} | Toggle auto-format (beautify) for bodies |
 
+See also: [History](../../features/history.md)
+
 Tester edits (method, URL, body, …) are temporary until you write them back to YAML. A sync warning can offer **Update YAML** / **Reset** when the editor and tester diverge.
 
 ## Supported
