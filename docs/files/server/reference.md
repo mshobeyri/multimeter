@@ -3,7 +3,7 @@
 - `title:` string
 - `description:` string (supports Markdown)
 - `tags:` string[]
-- `import:` record&lt;string, string&gt; — see [Data Imports](../../integration/data-imports.md)
+- `import:` record&lt;string, string&gt; — see [Data imports](../../features/data-imports.md)
 - `protocol:` `http` | `https` | `ws` | env token (`e:MOCK_PROTOCOL` / `<<e:MOCK_PROTOCOL>>`; default `http`)
 - `port:` number (1–65535) | env token (`e:MOCK_PORT` / `<<e:MOCK_PORT>>`) — required
 - `connection:` object — see [TLS](./tls.md)

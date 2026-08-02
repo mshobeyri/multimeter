@@ -36,7 +36,7 @@ For the lightweight **Mock Server** sidebar panel (reflect mode, quick prototypi
 - HTTPS and mTLS — see [TLS](./tls.md)
 - Start from tests (`run` step) — see [In tests](./in-tests.md)
 - Start from suites (`servers:` or inline items) — see [In suites](./in-suites.md)
-- Top-level `import:` for JSON/YAML/CSV data — see [Data Imports](../../integration/data-imports.md)
+- Top-level `import:` for JSON/YAML/CSV data — see [Data imports](../../features/data-imports.md)
 
 Sample:
 

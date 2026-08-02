@@ -57,7 +57,7 @@ repeat: ${perf.repeat}
 test: ./tests/login.mmt
 ```
 
-See [Data Imports](../../integration/data-imports.md).
+See [Data imports](../../features/data-imports.md).
 
 ---
 

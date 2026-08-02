@@ -18,7 +18,7 @@ Edit mode shows a tab bar with five tabs:
 
 ### Overview
 
-Edit `title`, `description`, `tags`, and top-level `import` entries (JSON/YAML/CSV data files referenced with `${alias.path}`). See [Data Imports](../../integration/data-imports.md).
+Edit `title`, `description`, `tags`, and top-level `import` entries (JSON/YAML/CSV data files referenced with `${alias.path}`). See [Data imports](../../features/data-imports.md).
 
 ### Items
 

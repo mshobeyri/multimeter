@@ -12,4 +12,6 @@ For HTTP APIs in the tester, right-click {{btn:send:Send}} and choose **Run in C
 
 Available for HTTP only — not GraphQL, gRPC, or WebSocket.
 
-See also: [Convertor](./convertor/index.md) · [HTTP](../files/api/protocols/http.md)
+## See also
+
+- [HTTP protocol](../files/api/protocols/http.md) · [API tester](../files/api/index.md)

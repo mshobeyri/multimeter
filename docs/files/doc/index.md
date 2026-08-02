@@ -23,7 +23,7 @@ The `doc` type is intentionally small:
 - `sources:` array of folders and/or `.mmt` files to include
 - services: optional array of groups with `name`, `description?`, and `sources`
 
-Data imports can be used to share doc metadata or source lists. See [Data Imports](../../integration/data-imports.md).
+Data imports can be used to share doc metadata or source lists. See [Data imports](../../features/data-imports.md).
 
 The editor’s Doc view:
 - Renders a sticky header with logo (if configured), title, and a search box

@@ -551,6 +551,10 @@
         "path": "features/data-driven-tests.md"
       },
       {
+        "title": "Data imports",
+        "path": "features/data-imports.md"
+      },
+      {
         "title": "Certificates",
         "path": "features/certificates/index.md",
         "children": [
@@ -640,52 +644,12 @@
     "title": "Integration",
     "items": [
       {
-        "title": "HTTP files",
-        "path": "integration/http-files/index.md",
-        "children": [
-          {
-            "title": "Overview",
-            "path": "integration/http-files/index.md"
-          },
-          {
-            "title": "Current Limitations",
-            "path": "integration/http-files/current-limitations.md"
-          },
-          {
-            "title": "Mapping to Test Flow",
-            "path": "integration/http-files/mapping-to-test-flow.md"
-          },
-          {
-            "title": "Saving",
-            "path": "integration/http-files/saving.md"
-          },
-          {
-            "title": "Supported Syntax",
-            "path": "integration/http-files/supported-syntax.md"
-          }
-        ]
+        "title": "HTTP file",
+        "path": "integration/http-file.md"
       },
       {
-        "title": "Bruno files",
-        "path": "integration/bruno-files/index.md",
-        "children": [
-          {
-            "title": "Overview",
-            "path": "integration/bruno-files/index.md"
-          },
-          {
-            "title": "Current Limitations",
-            "path": "integration/bruno-files/current-limitations.md"
-          },
-          {
-            "title": "Editing And Saving",
-            "path": "integration/bruno-files/editing-and-saving.md"
-          },
-          {
-            "title": "Supported Bruno Syntax",
-            "path": "integration/bruno-files/supported-bruno-syntax.md"
-          }
-        ]
+        "title": "Bruno",
+        "path": "integration/bruno.md"
       },
       {
         "title": "Postman",
@@ -696,162 +660,12 @@
         "path": "integration/curl.md"
       },
       {
-        "title": "Convertor",
-        "path": "integration/convertor/index.md",
-        "children": [
-          {
-            "title": "Overview",
-            "path": "integration/convertor/index.md"
-          },
-          {
-            "title": "Generated output",
-            "path": "integration/convertor/generated-output.md"
-          },
-          {
-            "title": "Generated sources",
-            "path": "integration/convertor/generated-sources.md"
-          },
-          {
-            "title": "Generated Postman",
-            "path": "integration/convertor/generated-postman.md"
-          }
-        ]
+        "title": "WSDL",
+        "path": "integration/wsdl.md"
       },
       {
-        "title": "Data imports",
-        "path": "integration/data-imports.md"
-      },
-      {
-        "title": "Testgen profile",
-        "path": "integration/testgen-profile/index.md",
-        "children": [
-          {
-            "title": "Overview",
-            "path": "integration/testgen-profile/index.md"
-          },
-          {
-            "title": "Data generation",
-            "path": "integration/testgen-profile/data-generation.md"
-          },
-          {
-            "title": "End-to-End Example",
-            "path": "integration/testgen-profile/end-to-end-example.md"
-          },
-          {
-            "title": "Environment and auth",
-            "path": "integration/testgen-profile/environment-and-auth.md"
-          },
-          {
-            "title": "Generation Workflow (For AI/Tools)",
-            "path": "integration/testgen-profile/generation-workflow-for-ai-tools.md"
-          },
-          {
-            "title": "Goals",
-            "path": "integration/testgen-profile/goals.md"
-          },
-          {
-            "title": "Machine-readable profile",
-            "path": "integration/testgen-profile/machine-readable-profile.md"
-          },
-          {
-            "title": "Mapping rules",
-            "path": "integration/testgen-profile/mapping-rules.md"
-          },
-          {
-            "title": "Naming & structure",
-            "path": "integration/testgen-profile/naming-structure.md"
-          },
-          {
-            "title": "Outputs for chaining",
-            "path": "integration/testgen-profile/outputs-for-chaining.md"
-          },
-          {
-            "title": "Sources and precedence",
-            "path": "integration/testgen-profile/sources-and-precedence.md"
-          },
-          {
-            "title": "API structure",
-            "path": "integration/testgen-profile/structures-api-structure.md"
-          },
-          {
-            "title": "Structures (API, Test, Env, Doc)",
-            "path": "integration/testgen-profile/structures-api-test-env-doc.md"
-          },
-          {
-            "title": "Doc structure",
-            "path": "integration/testgen-profile/structures-doc-structure.md"
-          },
-          {
-            "title": "Env structure",
-            "path": "integration/testgen-profile/structures-env-structure.md"
-          },
-          {
-            "title": "Test structure",
-            "path": "integration/testgen-profile/structures-test-structure.md"
-          },
-          {
-            "title": "Test strategy",
-            "path": "integration/testgen-profile/test-strategy.md"
-          },
-          {
-            "title": "What gets generated: APIs, Tests, Environments",
-            "path": "integration/testgen-profile/what-gets-generated-apis-tests-environments.md"
-          }
-        ]
-      },
-      {
-        "title": "Testgen profile (AI)",
-        "path": "integration/testgen-profile-ai/index.md",
-        "children": [
-          {
-            "title": "Overview",
-            "path": "integration/testgen-profile-ai/index.md"
-          },
-          {
-            "title": "Data Generation",
-            "path": "integration/testgen-profile-ai/data-generation.md"
-          },
-          {
-            "title": "Environment and Auth",
-            "path": "integration/testgen-profile-ai/environment-and-auth.md"
-          },
-          {
-            "title": "Examples",
-            "path": "integration/testgen-profile-ai/examples.md"
-          },
-          {
-            "title": "Generated Artifacts",
-            "path": "integration/testgen-profile-ai/generated-artifacts.md"
-          },
-          {
-            "title": "Generation Workflow",
-            "path": "integration/testgen-profile-ai/generation-workflow.md"
-          },
-          {
-            "title": "Naming and Structure",
-            "path": "integration/testgen-profile-ai/naming-and-structure.md"
-          },
-          {
-            "title": "Response Guidelines",
-            "path": "integration/testgen-profile-ai/response-guidelines.md"
-          },
-          {
-            "title": "Skeletons (for Scaffolding)",
-            "path": "integration/testgen-profile-ai/skeletons-for-scaffolding.md"
-          },
-          {
-            "title": "Sources and Precedence",
-            "path": "integration/testgen-profile-ai/sources-and-precedence.md"
-          },
-          {
-            "title": "Structures Reference",
-            "path": "integration/testgen-profile-ai/structures-reference.md"
-          },
-          {
-            "title": "Test Strategy",
-            "path": "integration/testgen-profile-ai/test-strategy.md"
-          }
-        ]
+        "title": "OpenAPI spec",
+        "path": "integration/openapi.md"
       }
     ]
   },

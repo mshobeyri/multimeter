@@ -100,17 +100,17 @@
 - [Flow chart](./features/flow-chart.md)
 - [Dynamic values](./features/dynamic-values.md)
 - [Data-driven tests](./features/data-driven-tests.md)
+- [Data imports](./features/data-imports.md)
 - [Certificates](./features/certificates/index.md)
 - [MCP](./features/mcp/index.md)
 
 ### Integration
-- [HTTP files](./integration/http-files/index.md)
-- [Bruno files](./integration/bruno-files/index.md)
+- [HTTP file](./integration/http-file.md)
+- [Bruno](./integration/bruno.md)
 - [Postman](./integration/postman.md)
 - [Curl](./integration/curl.md)
-- [Convertor](./integration/convertor/index.md)
-- [Data imports](./integration/data-imports.md)
-- [Testgen profile](./integration/testgen-profile/index.md)
+- [WSDL](./integration/wsdl.md)
+- [OpenAPI spec](./integration/openapi.md)
 
 ### Running & CI/CD
 - [Testlight CLI](./running/testlight/index.md)

@@ -38,6 +38,6 @@ variables:
   api_url: ${shared.api_url}
 ```
 
-See [Data Imports](../../integration/data-imports.md).
+See [Data imports](../../features/data-imports.md).
 
 ---

@@ -29,7 +29,7 @@ The server icon turns green while the mock is running.
 
 ### Overview
 
-Edit metadata and top-level `import` entries for JSON/YAML/CSV data used in endpoint bodies and match rules. See [Data Imports](../../integration/data-imports.md).
+Edit metadata and top-level `import` entries for JSON/YAML/CSV data used in endpoint bodies and match rules. See [Data imports](../../features/data-imports.md).
 
 ### Server
 

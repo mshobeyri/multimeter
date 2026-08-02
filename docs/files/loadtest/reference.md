@@ -4,7 +4,7 @@
 - `title:` string
 - `description:` string (supports Markdown)
 - `tags:` string[]
-- `import:` record&lt;string, string&gt; — see [Data Imports](../../integration/data-imports.md)
+- `import:` record&lt;string, string&gt; — see [Data imports](../../features/data-imports.md)
 - `test:` string — required; path to a `type: test` `.mmt` file
 - `threads:` number (default `1`)
 - `repeat:` string | number — required; duration (e.g. `1m`, `10s`) or total iteration count

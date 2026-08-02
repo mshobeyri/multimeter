@@ -2,7 +2,7 @@
 
 Run the same test flow against many rows of external data. Import a CSV, JSON, or YAML file, then loop over rows or substitute values with `${alias.path}`.
 
-This is the primary guide for **data-driven testing in `type: test` files**. For data imports in other file types (API, env, suite, server, doc, loadtest), see [Data imports](../integration/data-imports.md).
+This is the primary guide for **data-driven testing in `type: test` files**. For data imports in other file types (API, env, suite, server, doc, loadtest), see [Data imports](./data-imports.md).
 
 ## Import data files
 
@@ -87,7 +87,7 @@ Full references: [Control flow — for/repeat](../files/test/steps/control-flow.
 | Format | Example |
 |--------|---------|
 | CSV data-driven loop | [CSV data-driven test](../../examples/intermediate/09_csv_data_driven_test/README.md) |
-| JSON / YAML substitution | Inline fixtures in [Data imports](../integration/data-imports.md) (no dedicated test example yet) |
+| JSON / YAML substitution | Inline fixtures in [Data imports](./data-imports.md) (no dedicated test example yet) |
 
 Run the CSV example:
 
@@ -99,7 +99,7 @@ npx testlight run examples/intermediate/09_csv_data_driven_test/echo_csv_test.mm
 
 ## See also
 - [import](../files/test/import.md) — all importable file types
-- [Data imports](../integration/data-imports.md) — JSON/YAML/CSV in API, env, suite, and other file types
+- [Data imports](./data-imports.md) — JSON/YAML/CSV in API, env, suite, and other file types
 - [Control flow](../files/test/steps/control-flow.md) — `for`, `repeat`, `if`
 - [Variables](../files/test/steps/variables.md) — `data`, `set`, `setenv`
 - [Browse examples](/docs/examples) — sample Multimeter projects

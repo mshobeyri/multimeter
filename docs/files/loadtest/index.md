@@ -43,7 +43,7 @@ During a run, the panel updates load metrics in real time. After completion, use
 
 - One `type: test` scenario under load — see [Load config — test](./load-config.md#test)
 - Concurrency, duration, and ramp-up — see [Load config](./load-config.md)
-- Top-level `import:` for JSON/YAML/CSV data — see [Data Imports](../../integration/data-imports.md)
+- Top-level `import:` for JSON/YAML/CSV data — see [Data imports](../../features/data-imports.md)
 - Environment presets and overrides — see [Environment](./environment.md)
 - Auto-export after completion — see [Exports](./exports.md)
 - CLI runs with `testlight run` — see [CLI](./cli.md)

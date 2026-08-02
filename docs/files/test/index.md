@@ -48,7 +48,7 @@ See also: [Flow chart](../../features/flow-chart.md)
 - [Stages](./stages/index.md) with parallel execution
 - [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md)
 
-Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP Files](../../integration/http-files/index.md) and [Bruno Files](../../integration/bruno-files/index.md).
+Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP file](../../integration/http-file.md) and [Bruno](../../integration/bruno.md).
 
 Sample:
 

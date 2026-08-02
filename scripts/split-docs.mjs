@@ -59,8 +59,7 @@ function demoteH1(section, title) {
 function fixLinks(text, fromDir) {
   // fromDir e.g. 'files/api' — rewrite common old relative links
   return text
-    .replace(/\]\(\.\.\/features\/data-imports\.md\)/g, '](../../integration/data-imports.md)')
-    .replace(/\]\(\.\.\/features\/convertor\.md\)/g, '](../../integration/convertor/index.md)')
+    .replace(/\]\(\.\.\/features\/convertor\.md\)/g, '](../../integration/openapi.md)')
     .replace(/\]\(\.\.\/features\/certificates\.md\)/g, '](../../features/certificates.md)')
     .replace(/\]\(\.\.\/features\/history\.md\)/g, '](../../features/history.md)')
     .replace(/\]\(\.\/api\.md/g, '](../api/index.md')
@@ -203,7 +202,7 @@ query:
 
 Dynamic tokens work in url/headers/body/query/cookies: \`r:uuid\`, \`c:epoch\`, \`e:token\`. See [Dynamic values](../../features/dynamic-values.md).
 
-Import JSON/YAML/CSV with top-level \`import:\` — [Data imports](../../integration/data-imports.md).
+Import JSON/YAML/CSV with top-level \`import:\` — [Data imports](../../features/data-imports.md).
 
 Paste a \`curl\` into the API editor to convert it; the toolbar can also run HTTP via \`curl\`.
 
@@ -321,7 +320,7 @@ Run glyphs appear in the left margin of the YAML pane:
 - [Stages](./stages/index.md) with parallel execution
 - [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md)
 
-Multimeter can also run \`.http\`, \`.https\`, and \`.bru\` files as test flows through the optional VS Code **Open With...** editors. See [HTTP Files](../../integration/http-files/index.md) and [Bruno Files](../../integration/bruno-files/index.md).
+Multimeter can also run \`.http\`, \`.https\`, and \`.bru\` files as test flows through the optional VS Code **Open With...** editors. See [HTTP file](../../integration/http-file.md) and [Bruno](../../integration/bruno.md).
 
 Sample:
 
@@ -578,56 +577,29 @@ ${sliceLines(server, 107, 221).replace(/^## MMT Mock Server Files\n/, '')}
 // ---------- Integration moves ----------
 {
   fs.mkdirSync(path.join(docs, 'integration'), { recursive: true })
-  fs.mkdirSync(path.join(docs, 'integration/convertor'), { recursive: true })
 
   if (fs.existsSync(path.join(docs, 'features/http-files.md'))) {
-    move('features/http-files.md', 'integration/http-files.md')
+    move('features/http-files.md', 'integration/http-file.md')
   }
   if (fs.existsSync(path.join(docs, 'features/bruno-files.md'))) {
-    move('features/bruno-files.md', 'integration/bruno-files.md')
-  }
-  if (fs.existsSync(path.join(docs, 'features/data-imports.md'))) {
-    move('features/data-imports.md', 'integration/data-imports.md')
+    move('features/bruno-files.md', 'integration/bruno.md')
   }
 
   if (fs.existsSync(path.join(docs, 'features/convertor.md'))) {
-    const conv = read('features/convertor.md')
-    // Split roughly at "What gets generated" if present
-    const genIdx = conv.search(/^## What gets generated/m)
-    if (genIdx > 0) {
-      write(
-        'integration/convertor/index.md',
-        conv.slice(0, genIdx).trim() +
-          '\n\nNext: [Generated output](./generated-output.md)\n',
-      )
-      write(
-        'integration/convertor/generated-output.md',
-        demoteH1(conv.slice(genIdx), 'Generated output'),
-      )
-    } else {
-      write('integration/convertor/index.md', conv)
-    }
     rm('features/convertor.md')
   }
 
-  // Postman note page (convertor covers it)
-  write(
-    'integration/postman.md',
-    `# Postman
+  // Postman note page (convertor content lives in integration/*.md)
+  if (!fs.existsSync(path.join(docs, 'integration/postman.md'))) {
+    write(
+      'integration/postman.md',
+      `# Postman
 
-Import Postman collections with the [Convertor](./convertor/index.md).
+Import Postman collections — see [Postman](./postman.md).
 
-Multimeter turns collection requests into \`type: api\` files and optional tests. Open the Convertor from the command palette or Multimeter activity bar.
-
-See also: [Bruno files](./bruno-files.md) · [HTTP files](./http-files.md)
+See also: [Bruno](./bruno.md) · [HTTP file](./http-file.md) · [OpenAPI spec](./openapi.md)
 `,
-  )
-
-  if (fs.existsSync(path.join(docs, 'guides/testgen-profile.md'))) {
-    move('guides/testgen-profile.md', 'integration/testgen-profile.md')
-  }
-  if (fs.existsSync(path.join(docs, 'guides/testgen-profile-ai.md'))) {
-    move('guides/testgen-profile-ai.md', 'integration/testgen-profile-ai.md')
+    )
   }
 }
 
@@ -725,10 +697,13 @@ Continue in [Files reference](./files.md), [Quick Start](./quick-start.md), and 
     .replace(/\.\/files\/server\.md/g, './files/server/index.md')
     .replace(/\.\/files\/loadtest\.md/g, './files/loadtest/index.md')
     .replace(/\.\/files\/report\.md/g, './files/report/index.md')
-    .replace(/features\/http-files/g, 'integration/http-files')
-    .replace(/features\/bruno-files/g, 'integration/bruno-files')
-    .replace(/features\/convertor/g, 'integration/convertor/index')
-    .replace(/features\/data-imports/g, 'integration/data-imports')
+    .replace(/features\/http-files/g, 'integration/http-file')
+    .replace(/features\/bruno-files/g, 'integration/bruno')
+    .replace(/features\/convertor/g, 'integration/openapi')
+    .replace(/integration\/http-files/g, 'integration/http-file')
+    .replace(/integration\/bruno-files/g, 'integration/bruno')
+    .replace(/integration\/convertor(?:\/index)?/g, 'integration/openapi')
+    .replace(/integration\/data-imports/g, 'features/data-imports')
   if (!filesHub.includes('protocols/')) {
     filesHub = filesHub.replace(
       /## Other formats[\s\S]*?(?=## |$)/,
@@ -738,7 +713,7 @@ See [Protocols](./protocols/index.md) for HTTP, WebSocket, GraphQL, and gRPC.
 
 ## Other formats
 
-HTTP \`.http\` / Bruno / Postman live under [Integration](./integration/http-files.md).
+HTTP \`.http\` / Bruno / Postman live under [Integration](./integration/http-file.md).
 
 `,
     )
