@@ -41,4 +41,4 @@ npx testlight run examples/intermediate/02_websocket/ws_echo.mmt -e greeting="Hi
 - **`format: json`** — parse the reply as JSON so bracket-path outputs work.
 - No `method` field is needed for WebSocket APIs.
 
-See [API docs](../../../docs/files/api.md#websocket) for full details.
+See [API docs](../../../docs/files/api/index.md#websocket) for full details.

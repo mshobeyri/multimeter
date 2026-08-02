@@ -1,12 +1,122 @@
-import { useMemo } from 'react'
+import { Children, isValidElement, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSlug from 'rehype-slug'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
+import rehypeHighlight from 'rehype-highlight'
 import { Link } from 'react-router-dom'
 import type { Components } from 'react-markdown'
+import CodeBlock from './CodeBlock'
 
-function resolveDocsHref(href: string | undefined, basePath: string): string | undefined {
+/** Map Multimeter / common aliases onto highlight.js languages. */
+const HIGHLIGHT_ALIASES: Record<string, string> = {
+  mmt: 'yaml',
+  yml: 'yaml',
+  sh: 'bash',
+  shell: 'bash',
+  zsh: 'bash',
+  console: 'bash',
+  js: 'javascript',
+  ts: 'typescript',
+  plaintext: 'plaintext',
+  text: 'plaintext',
+}
+
+/** Tag unlabeled fences that look like Multimeter YAML as yaml. */
+function normalizeCodeFences(markdown: string): string {
+  return markdown.replace(/```([^\n`]*)\n([\s\S]*?)```/g, (full, info: string, body: string) => {
+    const lang = info.trim().split(/\s+/)[0]?.toLowerCase() ?? ''
+    if (lang) {
+      const mapped = HIGHLIGHT_ALIASES[lang]
+      if (mapped && mapped !== lang) {
+        return `\`\`\`${mapped}\n${body}\`\`\``
+      }
+      return full
+    }
+    if (looksLikeYaml(body)) {
+      return `\`\`\`yaml\n${body}\`\`\``
+    }
+    return full
+  })
+}
+
+function looksLikeYaml(body: string): boolean {
+  const lines = body
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('#'))
+  if (lines.length === 0) {
+    return false
+  }
+  const keyed = lines.filter((l) => /^[\w.-]+\s*:/.test(l) || l.startsWith('- '))
+  return keyed.length >= Math.ceil(lines.length * 0.5)
+}
+
+const MEDIA_EXT = /\.(mp4|webm|png|jpe?g|gif|webp|svg)$/i
+const VIDEO_EXT = /\.(mp4|webm)$/i
+
+function parseYouTubeId(url: string): string | null {
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/))([A-Za-z0-9_-]{6,})/,
+  )
+  return match?.[1] ?? null
+}
+
+function YouTubeEmbed({ id, title }: { id: string; title: string }) {
+  return (
+    <div className="docs-youtube">
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${id}`}
+        title={title}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  )
+}
+
+/** Directory of a docs content path (`quick-start.md` → ``, `files/api.md` → `files`). */
+function contentDir(contentPath: string | undefined): string {
+  if (!contentPath) {
+    return ''
+  }
+  const normalized = contentPath.replace(/\\/g, '/')
+  const idx = normalized.lastIndexOf('/')
+  return idx >= 0 ? normalized.slice(0, idx) : ''
+}
+
+/** Resolve a relative docs asset (media) to the /docs-assets URL. */
+export function resolveDocsAsset(src: string | undefined, contentPath: string | undefined): string | undefined {
+  if (!src) {
+    return src
+  }
+  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:') || src.startsWith('/')) {
+    return src
+  }
+
+  const baseDir = contentDir(contentPath)
+  let joined = src
+  if (src.startsWith('./')) {
+    joined = baseDir ? `${baseDir}/${src.slice(2)}` : src.slice(2)
+  } else if (src.startsWith('../')) {
+    const parts = baseDir.split('/').filter(Boolean)
+    let rest = src
+    while (rest.startsWith('../')) {
+      parts.pop()
+      rest = rest.slice(3)
+    }
+    joined = [...parts, rest].join('/')
+  } else if (baseDir) {
+    joined = `${baseDir}/${src}`
+  }
+
+  joined = joined.replace(/\/+/g, '/')
+  return `/docs-assets/${joined}`
+}
+
+function resolveDocsHref(href: string | undefined, basePath: string, contentPath?: string): string | undefined {
   if (!href) {
     return href
   }
@@ -16,6 +126,7 @@ function resolveDocsHref(href: string | undefined, basePath: string): string | u
     href.startsWith('mailto:') ||
     href.startsWith('#') ||
     href.startsWith('/docs/') ||
+    href.startsWith('/docs-assets/') ||
     href.startsWith('/downloads') ||
     href.startsWith('/demos') ||
     href.startsWith('/tutorials')
@@ -24,6 +135,12 @@ function resolveDocsHref(href: string | undefined, basePath: string): string | u
   }
   if (href.startsWith('/')) {
     return href
+  }
+
+  // Media files → static asset URL
+  const pathOnly = href.split('#')[0]
+  if (MEDIA_EXT.test(pathOnly)) {
+    return resolveDocsAsset(href, contentPath)
   }
 
   // Relative .md → /docs/...
@@ -51,7 +168,6 @@ function resolveDocsHref(href: string | undefined, basePath: string): string | u
     .replace(/\/+/g, '/')
 
   if (!joined.startsWith('/docs')) {
-    // Map content-relative paths onto /docs
     if (
       joined.startsWith('/tasks') ||
       joined.startsWith('/files') ||
@@ -72,7 +188,6 @@ function resolveDocsHref(href: string | undefined, basePath: string): string | u
     }
   }
 
-  // Special: ./examples without /docs prefix from getting-started
   if (joined === '/docs/examples' || joined.endsWith('/examples')) {
     return `/docs/examples${hash}`
   }
@@ -116,6 +231,8 @@ type MarkdownContentProps = {
   markdown: string
   /** Current docs URL path, e.g. /docs/tasks/send-api-request */
   basePath: string
+  /** Markdown file path under docs/, e.g. quick-start.md */
+  contentPath?: string
   showTitle?: boolean
 }
 
@@ -127,14 +244,50 @@ export function getDocTitle(markdown: string): string {
   return extractTitle(markdown)
 }
 
-export default function MarkdownContent({ markdown, basePath, showTitle = true }: MarkdownContentProps) {
+export default function MarkdownContent({
+  markdown,
+  basePath,
+  contentPath,
+  showTitle = true,
+}: MarkdownContentProps) {
   const components = useMemo<Components>(
     () => ({
       a: ({ href, children, ...rest }) => {
-        const resolved = resolveDocsHref(href, basePath)
+        const resolved = resolveDocsHref(href, basePath, contentPath)
         if (!resolved) {
           return <a {...rest}>{children}</a>
         }
+
+        const youtubeId = parseYouTubeId(resolved)
+        if (youtubeId) {
+          const childList = Children.toArray(children)
+          const hasMediaChild = childList.some((child) => {
+            if (!isValidElement(child)) {
+              return false
+            }
+            const props = child.props as { src?: string; alt?: string }
+            if (typeof props.src === 'string') {
+              return true
+            }
+            return child.type === 'img'
+          })
+          const text = childList
+            .map((child) => (typeof child === 'string' ? child : ''))
+            .join('')
+            .trim()
+          const isAutolink = !text || text === resolved || text === href || text === `https://youtu.be/${youtubeId}`
+          if (hasMediaChild || isAutolink) {
+            const imgChild = childList.find((child) => isValidElement(child))
+            const title =
+              (isValidElement(imgChild) && typeof (imgChild.props as { alt?: string }).alt === 'string'
+                ? (imgChild.props as { alt?: string }).alt
+                : undefined) ||
+              text ||
+              'YouTube video'
+            return <YouTubeEmbed id={youtubeId} title={title || 'YouTube video'} />
+          }
+        }
+
         if (resolved.startsWith('http://') || resolved.startsWith('https://') || resolved.startsWith('mailto:')) {
           return (
             <a href={resolved} target="_blank" rel="noopener noreferrer" {...rest}>
@@ -149,20 +302,48 @@ export default function MarkdownContent({ markdown, basePath, showTitle = true }
             </a>
           )
         }
+        if (resolved.startsWith('/docs-assets/')) {
+          return (
+            <a href={resolved} {...rest}>
+              {children}
+            </a>
+          )
+        }
         return (
           <Link to={resolved} {...rest}>
             {children}
           </Link>
         )
       },
+      img: ({ src, alt, ...rest }) => {
+        const resolved = resolveDocsAsset(src, contentPath)
+        if (resolved && VIDEO_EXT.test(resolved)) {
+          return (
+            <video
+              className="docs-video"
+              controls
+              playsInline
+              preload="metadata"
+              src={resolved}
+              title={alt || 'Video'}
+            >
+              <a href={resolved}>{alt || 'Download video'}</a>
+            </video>
+          )
+        }
+        return <img src={resolved} alt={alt ?? ''} {...rest} />
+      },
       h1: showTitle
         ? ({ children, ...rest }) => (
             <h1 {...rest}>{children}</h1>
           )
         : () => null,
+      pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
     }),
-    [basePath, showTitle],
+    [basePath, contentPath, showTitle],
   )
+
+  const source = useMemo(() => normalizeCodeFences(markdown), [markdown])
 
   return (
     <div className="docs-prose">
@@ -171,10 +352,11 @@ export default function MarkdownContent({ markdown, basePath, showTitle = true }
         rehypePlugins={[
           rehypeSlug,
           [rehypeAutolinkHeadings, { behavior: 'wrap', properties: { className: ['docs-heading-link'] } }],
+          [rehypeHighlight, { detect: false, aliases: HIGHLIGHT_ALIASES }],
         ]}
         components={components}
       >
-        {markdown}
+        {source}
       </ReactMarkdown>
     </div>
   )

@@ -50,8 +50,8 @@ If `+/` is used but `multimeter.mmt` is not found in any parent directory:
 | `core/src/runner.ts` | Add `projectRoot` to options, auto-detect if not provided |
 | `mmtcli/src/cli.ts` | Detect project root before running |
 | `src/mmtAPI/run.ts` | Detect project root from document path |
-| `docs/files/test.md` | Document `+/` import syntax |
-| `docs/files/env.md` | Note that `multimeter.mmt` serves as project root marker |
+| `docs/files/test/index.md` | Document `+/` import syntax |
+| `docs/files/env/index.md` | Note that `multimeter.mmt` serves as project root marker |
 
 ### Flow
 
@@ -129,7 +129,7 @@ interface RunFileOptions {
 
 ## Documentation Updates
 
-### docs/files/test.md
+### docs/files/test/index.md
 
 Add section:
 ```markdown
@@ -148,7 +148,7 @@ This is useful for avoiding long relative paths like `../../../apis/userApi.mmt`
 **Note**: Requires a `multimeter.mmt` file (with `type: env`) in your project root.
 ```
 
-### docs/files/env.md
+### docs/files/env/index.md
 
 Add note:
 ```markdown

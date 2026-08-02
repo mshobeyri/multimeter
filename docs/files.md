@@ -1,4 +1,4 @@
-# Files
+# MMT Files
 
 Multimeter projects are folders of YAML `.mmt` files. The top-level `type` field decides how a file behaves.
 
@@ -6,14 +6,14 @@ Multimeter projects are folders of YAML `.mmt` files. The top-level `type` field
 
 | Type | Purpose | Guide |
 |---|---|---|
-| `api` | Single HTTP / WebSocket / GraphQL / gRPC request | [API](./files/api.md) |
-| `test` | Executable flow with steps and assertions | [Test](./files/test.md) |
-| `env` | Variables, presets, certificates | [Environment](./files/env.md) |
-| `suite` | Group and run tests or other suites | [Suite](./files/suite.md) |
-| `doc` | Generate API documentation | [Doc](./files/doc.md) |
-| `server` | Mock server endpoints | [Mock Server](./files/server.md) |
-| `loadtest` | Concurrency / ramp-up load scenario (beta) | [Load Test](./files/loadtest.md) |
-| `report` | Structured results (usually generated) | [Report](./files/report.md) |
+| `api` | Single HTTP / WebSocket / GraphQL / gRPC request | [API](./files/api/index.md) |
+| `test` | Executable flow with steps and assertions | [Test](./files/test/index.md) |
+| `env` | Variables, presets, certificates | [Environment](./files/env/index.md) |
+| `suite` | Group and run tests or other suites | [Suite](./files/suite/index.md) |
+| `doc` | Generate API documentation | [Doc](./files/doc/index.md) |
+| `server` | Mock server endpoints | [Mock Server](./files/server/index.md) |
+| `loadtest` | Concurrency / ramp-up load scenario (beta) | [Load Test](./files/loadtest/index.md) |
+| `report` | Structured results (usually generated) | [Report](./files/report/index.md) |
 
 ## Typical project layout
 
@@ -31,12 +31,15 @@ petstore/
     └── catalog.mmt         # type: doc
 ```
 
+## Protocols
+
+See [Protocols](./protocols/index.md) for HTTP, WebSocket, GraphQL, and gRPC.
+
 ## Other formats
 
-Multimeter can also open `.http` / `.https` (REST Client style) and Bruno `.bru` files via **Open With**. See [HTTP files](./features/http-files.md) and [Bruno files](./features/bruno-files.md).
+HTTP `.http` / Bruno / Postman live under [Integration](./integration/http-files/index.md).
 
 ## Next steps
 
 - [Start with a task](./tasks/index.md)
 - [Browse examples](/docs/examples)
-- [Sample Project](./guides/sample-project.md)

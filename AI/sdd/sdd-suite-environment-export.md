@@ -217,8 +217,8 @@ This matches the existing behavior of `servers`:
 
 ### Phase 4: Documentation
 
-1. Update `docs/files/suite.md` with `environment` and `export` sections
-2. Update `docs/running/testlight.md` with priority documentation
+1. Update `docs/files/suite/index.md` with `environment` and `export` sections
+2. Update `docs/running/testlight/index.md` with priority documentation
 3. Add root-only note to `servers` documentation
 
 ---
@@ -295,7 +295,7 @@ testlight run suites/e2e.mmt --preset production
 
 ## Related Documents
 
-- [Suite](../docs/files/suite.md) — Suite file reference
-- [Environment](../docs/files/env.md) — Environment files and presets
-- [Reports](../docs/files/report.md) — Report formats
+- [Suite](../docs/files/suite/index.md) — Suite file reference
+- [Environment](../docs/files/env/index.md) — Environment files and presets
+- [Reports](../docs/files/report/index.md) — Report formats
 - [SDD: Mock Server Integration](./sdd-mock-server-integration.md) — `servers` field behavior

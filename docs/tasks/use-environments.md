@@ -32,5 +32,5 @@ Select the environment / preset in the Environment panel (or pass `--preset` / `
 
 ## Learn more
 
-- [Environment files](../files/env.md)
+- [Environment files](../files/env/index.md)
 - Example: [Environment Variables](/docs/examples/basic/03_environment_variables)

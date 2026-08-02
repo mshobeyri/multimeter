@@ -689,12 +689,12 @@ User-facing documentation:
 - Integration with tests (point test APIs at mock server)
 - Migration from existing mock server panel
 
-#### 7.2 `docs/files/server.md` (update)
+#### 7.2 `docs/files/server/index.md` (update)
 
 Add a note pointing to `mock-mmt.md` for file-driven mocking:
 > For multi-endpoint, route-aware mocking, see [Mock MMT files](./mock-mmt.md). The panel below is for quick single-response testing.
 
-#### 7.3 `docs/guides/mmt-overview.md` (update)
+#### 7.3 `docs/overview.md` (update)
 
 Add `type: mock` to the overview list of file types.
 

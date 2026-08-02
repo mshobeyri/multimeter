@@ -8,8 +8,8 @@ Use `type: suite` to group tests (and other suites) into a runnable tree. Run th
 type: suite
 title: Smoke
 items:
-  - test: ./tests/echo_test.mmt
-  - test: ./tests/get_json_test.mmt
+  - ./tests/echo_test.mmt
+  - ./tests/get_json_test.mmt
 ```
 
 Open the suite file and click **Run Suite**, or run with the CLI:
@@ -26,5 +26,5 @@ npx mmt-testlight run suite.mmt
 
 ## Learn more
 
-- [Suite files](../files/suite.md)
+- [Suite files](../files/suite/index.md)
 - Example: [Basic Suite](/docs/examples/basic/04_basic_suite)

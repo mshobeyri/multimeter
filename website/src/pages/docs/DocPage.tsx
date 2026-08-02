@@ -68,7 +68,7 @@ export default function DocPage() {
   return (
     <div className="flex gap-10">
       <article className="min-w-0 flex-1 max-w-3xl">
-        <MarkdownContent markdown={markdown} basePath={basePath} />
+        <MarkdownContent markdown={markdown} basePath={basePath} contentPath={contentPath} />
         <span className="sr-only">{title}</span>
       </article>
       <OnThisPage headings={headings} />

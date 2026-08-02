@@ -136,8 +136,8 @@ The logger's effective filter level:
 
 ## Related docs
 
-- [API `.mmt` reference](../docs/files/api.md) — API file format and examples
-- [Test `.mmt` reference](../docs/files/test.md) — Test file format, check/assert/print steps
-- [Suite `.mmt` reference](../docs/files/suite.md) — Suite file format
-- [Environment reference](../docs/files/env.md) — Environment variables
-- [CLI (`testlight`) reference](../docs/running/testlight.md) — CLI usage and flags
+- [API `.mmt` reference](../docs/files/api/index.md) — API file format and examples
+- [Test `.mmt` reference](../docs/files/test/index.md) — Test file format, check/assert/print steps
+- [Suite `.mmt` reference](../docs/files/suite/index.md) — Suite file format
+- [Environment reference](../docs/files/env/index.md) — Environment variables
+- [CLI (`testlight`) reference](../docs/running/testlight/index.md) — CLI usage and flags

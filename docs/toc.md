@@ -4,6 +4,7 @@
 - [Getting Started](./getting-started.md)
 - [Install](./install.md)
 - [Quick Start](./quick-start.md)
+- [Overview](./overview.md)
 
 ### Start with a task
 - [Overview](./tasks/index.md)
@@ -14,31 +15,37 @@
 - [Generate docs](./tasks/generate-docs.md)
 - [Run in CI](./tasks/run-in-ci.md)
 
-### Files
+### MMT Files
 - [Overview](./files.md)
-- [API (`type: api`)](./files/api.md)
-- [Test (`type: test`)](./files/test.md)
-- [Environment (`type: env`)](./files/env.md)
-- [Suite (`type: suite`)](./files/suite.md)
-- [Doc (`type: doc`)](./files/doc.md)
-- [Mock Server (`type: server`)](./files/server.md)
-- [Load Test (`type: loadtest`)](./files/loadtest.md)
-- [Report (`type: report`)](./files/report.md)
+- [API](./files/api/index.md)
+- [Test](./files/test/index.md)
+- [Environment](./files/env/index.md)
+- [Suite](./files/suite/index.md)
+- [Doc](./files/doc/index.md)
+- [Mock Server](./files/server/index.md)
+- [Load Test](./files/loadtest/index.md)
+- [Report](./files/report/index.md)
+
+### Protocols
+- [Overview](./protocols/index.md)
+- [HTTP](./protocols/http.md)
+- [WebSocket](./protocols/websocket.md)
+- [GraphQL](./protocols/graphql.md)
+- [gRPC](./protocols/grpc.md)
 
 ### Features
-- [HTTP files](./features/http-files.md)
-- [Bruno files](./features/bruno-files.md)
-- [Convertor](./features/convertor.md)
 - [History](./features/history.md)
-- [Certificates](./features/certificates.md)
-- [Data imports](./features/data-imports.md)
+- [Certificates](./features/certificates/index.md)
+- [MCP](./features/mcp/index.md)
+
+### Integration
+- [HTTP files](./integration/http-files/index.md)
+- [Bruno files](./integration/bruno-files/index.md)
+- [Postman](./integration/postman.md)
+- [Convertor](./integration/convertor/index.md)
+- [Data imports](./integration/data-imports.md)
+- [Testgen profile](./integration/testgen-profile/index.md)
 
 ### Running & CI/CD
-- [Testlight CLI](./running/testlight.md)
-- [Logging](./running/logging.md)
-
-### Guides
-- [MMT Overview](./guides/mmt-overview.md)
-- [Sample Project](./guides/sample-project.md)
-- [Test Generation Profile](./guides/testgen-profile.md)
-- [MCP](./guides/mcp.md)
+- [Testlight CLI](./running/testlight/index.md)
+- [Logging](./running/logging/index.md)

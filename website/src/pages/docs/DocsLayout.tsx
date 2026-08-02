@@ -1,7 +1,115 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
-import { docsNav } from '../../docs/nav'
+import { ChevronDown, Menu, X } from 'lucide-react'
+import { docsNav, isNavGroup } from '../../docs/nav'
+import type { DocsNavEntry } from '../../docs/nav'
+
+function NavItemLink({
+  href,
+  title,
+  onNavigate,
+  nested,
+}: {
+  href: string
+  title: string
+  onNavigate: () => void
+  nested?: boolean
+}) {
+  return (
+    <NavLink
+      to={href}
+      end
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        `block rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+          nested ? 'pl-4' : ''
+        } ${
+          isActive
+            ? 'bg-primary/15 text-primary-light font-medium'
+            : 'text-slate-400 hover:text-white hover:bg-surface-light'
+        }`
+      }
+    >
+      {title}
+    </NavLink>
+  )
+}
+
+function NavEntry({
+  item,
+  onNavigate,
+}: {
+  item: DocsNavEntry
+  onNavigate: () => void
+}) {
+  const location = useLocation()
+  const path = location.pathname.replace(/\/$/, '')
+
+  if (!isNavGroup(item)) {
+    return (
+      <li>
+        <NavItemLink href={item.href} title={item.title} onNavigate={onNavigate} />
+      </li>
+    )
+  }
+
+  const childActive = item.children.some((c) => c.href === path)
+  const selfActive = item.href === path
+  const [open, setOpen] = useState(childActive || selfActive)
+
+  return (
+    <li>
+      <div className="flex items-center gap-0.5">
+        {item.href ? (
+          <NavLink
+            to={item.href}
+            end
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              `flex-1 block rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                isActive
+                  ? 'bg-primary/15 text-primary-light font-medium'
+                  : 'text-slate-400 hover:text-white hover:bg-surface-light'
+              }`
+            }
+          >
+            {item.title}
+          </NavLink>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex-1 text-left rounded-md px-2.5 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-surface-light"
+          >
+            {item.title}
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label={open ? 'Collapse' : 'Expand'}
+          onClick={() => setOpen((v) => !v)}
+          className="p-1.5 rounded text-slate-500 hover:text-white"
+        >
+          <ChevronDown size={14} className={`transition-transform ${open ? '' : '-rotate-90'}`} />
+        </button>
+      </div>
+      {open ? (
+        <ul className="mt-0.5 space-y-0.5 border-l border-border ml-3">
+          {item.children.map((child) => (
+            <li key={child.href}>
+              <NavItemLink
+                href={child.href}
+                title={child.title}
+                onNavigate={onNavigate}
+                nested
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  )
+}
 
 export default function DocsLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -35,21 +143,11 @@ export default function DocsLayout() {
                   </h2>
                   <ul className="space-y-0.5">
                     {section.items.map((item) => (
-                      <li key={item.href}>
-                        <NavLink
-                          to={item.href}
-                          onClick={() => setMobileOpen(false)}
-                          className={({ isActive }) =>
-                            `block rounded-md px-2.5 py-1.5 text-sm transition-colors ${
-                              isActive
-                                ? 'bg-primary/15 text-primary-light font-medium'
-                                : 'text-slate-400 hover:text-white hover:bg-surface-light'
-                            }`
-                          }
-                        >
-                          {item.title}
-                        </NavLink>
-                      </li>
+                      <NavEntry
+                        key={isNavGroup(item) ? item.title : item.href}
+                        item={item}
+                        onNavigate={() => setMobileOpen(false)}
+                      />
                     ))}
                   </ul>
                 </div>

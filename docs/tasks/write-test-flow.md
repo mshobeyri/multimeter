@@ -29,5 +29,5 @@ Run the file — failed checks appear in the Log / report view.
 
 ## Learn more
 
-- [Test files](../files/test.md)
+- [Test files](../files/test/index.md)
 - Example: [Simple Test](/docs/examples/basic/02_simple_test)

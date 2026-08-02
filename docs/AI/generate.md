@@ -31,7 +31,7 @@ When the user asks you to **create or change** a `.mmt` file, follow this order:
 	- If the user talks about running multiple tests, orchestration, collections of tests → use `type: suite`.
 	- If the user talks about concurrency, ramp-up, repeated execution, or load against one test flow → use `type: loadtest`.
 	- If the user talks about mocking, fake servers, stubbing responses, or "mock server" → use `type: server`.
-	- If the user talks about test reports, CI results, or exporting run results → `type: report` files are generated automatically. Explain the `--report` flag (see `docs/files/report.md`) rather than generating a report file.
+	- If the user talks about test reports, CI results, or exporting run results → `type: report` files are generated automatically. Explain the `--report` flag (see `docs/files/report/index.md`) rather than generating a report file.
 
 2. **Jump to the detailed generator**
 	- For `type: api`, use **`AI/generate-api.md`** to shape fields and examples.

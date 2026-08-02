@@ -35,5 +35,5 @@ npx testlight run examples/professional/03_load_test/loadtest.mmt --report html 
 
 ## Learn more
 
-- [Load Test docs](../../../docs/files/loadtest.md)
-- [Reports docs](../../../docs/files/report.md#load-test-report-schema)
+- [Load Test docs](../../../docs/files/loadtest/index.md)
+- [Reports docs](../../../docs/files/report/index.md#load-test-report-schema)

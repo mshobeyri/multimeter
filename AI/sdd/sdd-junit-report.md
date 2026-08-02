@@ -604,7 +604,7 @@ User-facing documentation in `docs/` covering:
 - **VS Code export** — how to use the Export Report button in the test, suite, and report views
 - **Report viewer** — how to open `.mmt` report files and view results visually
 
-This can be either a new `docs/files/report.md` or a new section in the existing `docs/running/testlight.md` (for CLI) and `docs/files/test.md` / `docs/files/suite.md` (for VS Code export).
+This can be either a new `docs/files/report/index.md` or a new section in the existing `docs/running/testlight/index.md` (for CLI) and `docs/files/test/index.md` / `docs/files/suite/index.md` (for VS Code export).
 
 ### Edge cases
 
@@ -783,20 +783,20 @@ These are out of scope for the initial implementation but inform the design:
 - Add `webviewDataToCollectedResults()` helper to map webview state shapes to the core `CollectedResults` type.
 - Use a `reportSerializers` map for clean format → serializer dispatch.
 
-### 24. `docs/running/testlight.md`
+### 24. `docs/running/testlight/index.md`
 
 - Document `--report junit`, `--report mmt`, `--report html`, `--report md`, and `--report-file` flags.
 - Add CI/CD integration examples (Azure Pipelines, GitHub Actions, GitLab CI).
 
-### 25. `docs/files/test.md`
+### 25. `docs/files/test/index.md`
 
 - Add "Exporting Results" section documenting the Export Report button and supported formats.
 
-### 26. `docs/files/suite.md`
+### 26. `docs/files/suite/index.md`
 
 - Add "Exporting Results" section documenting the Export Report button for suite runs.
 
-### 27. `docs/files/report.md` (new)
+### 27. `docs/files/report/index.md` (new)
 
 - Dedicated report format reference:
   - JUnit XML format description with full sample output.
@@ -819,4 +819,4 @@ These are out of scope for the initial implementation but inform the design:
 8. `mmtview/` export button component + wiring in `TestTest.tsx` and `SuiteTest.tsx`
 9. `mmtview/` report viewer (`ReportPanel.tsx` + `App.tsx` routing + `JSer.ts` type recognition)
 10. `src/mmtAPI/` extension host handler (`mmtAPI.ts` + `file.ts`)
-11. Documentation (`docs/files/report.md`, `docs/running/testlight.md`, `docs/files/test.md`, `docs/files/suite.md`)
+11. Documentation (`docs/files/report/index.md`, `docs/running/testlight/index.md`, `docs/files/test/index.md`, `docs/files/suite/index.md`)

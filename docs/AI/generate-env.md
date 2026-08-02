@@ -13,7 +13,7 @@ Always follow these rules:
 
 ## Schema (mental model for the AI)
 
-This matches `EnvironmentData` in `mmtview/src/environment/EnvironmentData.tsx` and `docs/files/env.md`.
+This matches `EnvironmentData` in `mmtview/src/environment/EnvironmentData.tsx` and `docs/files/env/index.md`.
 
 Top-level keys and types:
 
@@ -134,7 +134,7 @@ When unsure, generate a **small env file** with the most clearly requested varia
 
 ## Certificates (optional)
 
-Env files can also contain a `certificates` section for SSL/TLS settings. The AI generally does not need to generate this unless the user specifically asks about TLS, mTLS, or client certificates. See `docs/features/certificates.md` for full details.
+Env files can also contain a `certificates` section for SSL/TLS settings. The AI generally does not need to generate this unless the user specifically asks about TLS, mTLS, or client certificates. See `docs/features/certificates/index.md` for full details.
 
 ```yaml
 certificates:

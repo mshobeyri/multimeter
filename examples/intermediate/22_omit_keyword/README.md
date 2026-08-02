@@ -42,4 +42,4 @@ npx testlight run examples/intermediate/22_omit_keyword/omit_keyword.mmt \
 - **`omit` in outputs** — shown when an extraction path is missing (for example `echoed_middleName` when `middleName` was omitted).
 - **`null` in outputs** — shown when the echoed field exists and its value is literally `null`.
 
-See [API docs — inputs](../../../docs/files/api.md#inputs) and [API docs — outputs](../../../docs/files/api.md#outputs).
+See [API docs — inputs](../../../docs/files/api/index.md#inputs) and [API docs — outputs](../../../docs/files/api/index.md#outputs).

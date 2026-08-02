@@ -27,5 +27,5 @@ npx mmt-testlight doc document.mmt --html out.html
 
 ## Learn more
 
-- [Doc files](../files/doc.md)
+- [Doc files](../files/doc/index.md)
 - Example: [Basic Documentation](/docs/examples/basic/05_basic_documentation)

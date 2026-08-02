@@ -22,7 +22,7 @@ const footerLinks: Record<string, FooterLink[]> = {
     { name: 'FAQ', href: '/#faq' },
     { name: 'Documentation', href: '/docs' },
     { name: 'Install', href: '/docs/install' },
-    { name: 'Files', href: '/docs/files' },
+    { name: 'MMT Files', href: '/docs/files' },
     { name: 'Examples', href: '/docs/examples' },
     { name: 'API reference', href: '/docs/files/api' },
     { name: 'Test reference', href: '/docs/files/test' },

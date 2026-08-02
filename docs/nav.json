@@ -2,68 +2,823 @@
   {
     "title": "Get started",
     "items": [
-      { "title": "Getting Started", "path": "getting-started.md" },
-      { "title": "Install", "path": "install.md" },
-      { "title": "Quick Start", "path": "quick-start.md" }
+      {
+        "title": "Getting Started",
+        "path": "getting-started.md"
+      },
+      {
+        "title": "Install",
+        "path": "install.md"
+      },
+      {
+        "title": "Quick Start",
+        "path": "quick-start.md"
+      },
+      {
+        "title": "Overview",
+        "path": "overview.md"
+      }
     ]
   },
   {
     "title": "Start with a task",
     "items": [
-      { "title": "Overview", "path": "tasks/index.md" },
-      { "title": "Send an API request", "path": "tasks/send-api-request.md" },
-      { "title": "Write a test flow", "path": "tasks/write-test-flow.md" },
-      { "title": "Use environments", "path": "tasks/use-environments.md" },
-      { "title": "Run a suite", "path": "tasks/run-suite.md" },
-      { "title": "Generate docs", "path": "tasks/generate-docs.md" },
-      { "title": "Run in CI", "path": "tasks/run-in-ci.md" }
+      {
+        "title": "Overview",
+        "path": "tasks/index.md"
+      },
+      {
+        "title": "Send an API request",
+        "path": "tasks/send-api-request.md"
+      },
+      {
+        "title": "Write a test flow",
+        "path": "tasks/write-test-flow.md"
+      },
+      {
+        "title": "Use environments",
+        "path": "tasks/use-environments.md"
+      },
+      {
+        "title": "Run a suite",
+        "path": "tasks/run-suite.md"
+      },
+      {
+        "title": "Generate docs",
+        "path": "tasks/generate-docs.md"
+      },
+      {
+        "title": "Run in CI",
+        "path": "tasks/run-in-ci.md"
+      }
     ]
   },
   {
-    "title": "Files",
+    "title": "MMT Files",
     "items": [
-      { "title": "Overview", "path": "files.md" },
-      { "title": "API", "path": "files/api.md" },
-      { "title": "Test", "path": "files/test.md" },
-      { "title": "Environment", "path": "files/env.md" },
-      { "title": "Suite", "path": "files/suite.md" },
-      { "title": "Doc", "path": "files/doc.md" },
-      { "title": "Mock Server", "path": "files/server.md" },
-      { "title": "Load Test", "path": "files/loadtest.md" },
-      { "title": "Report", "path": "files/report.md" }
+      {
+        "title": "Overview",
+        "path": "files.md"
+      },
+      {
+        "title": "API",
+        "path": "files/api/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/api/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/api/quick-start.md"
+          },
+          {
+            "title": "Documentation",
+            "path": "files/api/documentation.md"
+          },
+          {
+            "title": "Request",
+            "path": "files/api/request.md"
+          },
+          {
+            "title": "Headers",
+            "path": "files/api/headers.md"
+          },
+          {
+            "title": "Auth",
+            "path": "files/api/auth.md"
+          },
+          {
+            "title": "Inputs",
+            "path": "files/api/inputs.md"
+          },
+          {
+            "title": "Outputs",
+            "path": "files/api/outputs.md"
+          },
+          {
+            "title": "Outputs advanced",
+            "path": "files/api/outputs-advanced.md"
+          },
+          {
+            "title": "setenv",
+            "path": "files/api/setenv.md"
+          },
+          {
+            "title": "Dynamic values",
+            "path": "files/api/dynamic-values.md"
+          },
+          {
+            "title": "Examples",
+            "path": "files/api/examples.md"
+          },
+          {
+            "title": "Complete examples",
+            "path": "files/api/complete-examples.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/api/reference.md"
+          }
+        ]
+      },
+      {
+        "title": "Test",
+        "path": "files/test/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/test/index.md"
+          },
+          {
+            "title": "import",
+            "path": "files/test/import.md"
+          },
+          {
+            "title": "cache",
+            "path": "files/test/cache.md"
+          },
+          {
+            "title": "cache examples",
+            "path": "files/test/cache-examples.md"
+          },
+          {
+            "title": "Stages",
+            "path": "files/test/stages.md"
+          },
+          {
+            "title": "call",
+            "path": "files/test/call.md"
+          },
+          {
+            "title": "http",
+            "path": "files/test/http.md"
+          },
+          {
+            "title": "run",
+            "path": "files/test/run.md"
+          },
+          {
+            "title": "run expect",
+            "path": "files/test/run-expect.md"
+          },
+          {
+            "title": "assert",
+            "path": "files/test/assert.md"
+          },
+          {
+            "title": "assert operators",
+            "path": "files/test/assert-operators.md"
+          },
+          {
+            "title": "Control flow",
+            "path": "files/test/control-flow.md"
+          },
+          {
+            "title": "js",
+            "path": "files/test/js.md"
+          },
+          {
+            "title": "Variables",
+            "path": "files/test/variables.md"
+          },
+          {
+            "title": "Stage condition",
+            "path": "files/test/stage-condition.md"
+          },
+          {
+            "title": "Complete example",
+            "path": "files/test/complete-example.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/test/reference.md"
+          }
+        ]
+      },
+      {
+        "title": "Environment",
+        "path": "files/env/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/env/index.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/env/cli.md"
+          },
+          {
+            "title": "UI",
+            "path": "files/env/ui.md"
+          },
+          {
+            "title": "Settings",
+            "path": "files/env/settings.md"
+          },
+          {
+            "title": "Project root",
+            "path": "files/env/project-root.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/env/reference.md"
+          }
+        ]
+      },
+      {
+        "title": "Suite",
+        "path": "files/suite/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/suite/index.md"
+          },
+          {
+            "title": "Execution",
+            "path": "files/suite/execution.md"
+          },
+          {
+            "title": "UI",
+            "path": "files/suite/ui.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/suite/cli.md"
+          },
+          {
+            "title": "Exports",
+            "path": "files/suite/exports.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/suite/reference.md"
+          }
+        ]
+      },
+      {
+        "title": "Doc",
+        "path": "files/doc/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/doc/index.md"
+          },
+          {
+            "title": "Try It",
+            "path": "files/doc/try-it.md"
+          },
+          {
+            "title": "Environment",
+            "path": "files/doc/environment.md"
+          },
+          {
+            "title": "Annotations",
+            "path": "files/doc/annotations.md"
+          },
+          {
+            "title": "Markdown",
+            "path": "files/doc/markdown.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/doc/reference.md"
+          }
+        ]
+      },
+      {
+        "title": "Mock Server",
+        "path": "files/server/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/server/index.md"
+          },
+          {
+            "title": "Using",
+            "path": "files/server/using.md"
+          },
+          {
+            "title": "TLS",
+            "path": "files/server/tls.md"
+          },
+          {
+            "title": "Server files",
+            "path": "files/server/files.md"
+          },
+          {
+            "title": "Tokens",
+            "path": "files/server/tokens.md"
+          },
+          {
+            "title": "TLS files",
+            "path": "files/server/tls-files.md"
+          },
+          {
+            "title": "In tests",
+            "path": "files/server/in-tests.md"
+          },
+          {
+            "title": "In suites",
+            "path": "files/server/in-suites.md"
+          }
+        ]
+      },
+      {
+        "title": "Load Test",
+        "path": "files/loadtest/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/loadtest/index.md"
+          },
+          {
+            "title": "Elements",
+            "path": "files/loadtest/elements.md"
+          },
+          {
+            "title": "Environment",
+            "path": "files/loadtest/environment.md"
+          },
+          {
+            "title": "Running",
+            "path": "files/loadtest/running.md"
+          },
+          {
+            "title": "Reports",
+            "path": "files/loadtest/reports.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/loadtest/reference.md"
+          }
+        ]
+      },
+      {
+        "title": "Report",
+        "path": "files/report/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/report/index.md"
+          },
+          {
+            "title": "JUnit",
+            "path": "files/report/junit.md"
+          },
+          {
+            "title": "YAML",
+            "path": "files/report/yaml.md"
+          },
+          {
+            "title": "HTML",
+            "path": "files/report/html.md"
+          },
+          {
+            "title": "Markdown",
+            "path": "files/report/markdown.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/report/cli.md"
+          },
+          {
+            "title": "VS Code",
+            "path": "files/report/vscode.md"
+          },
+          {
+            "title": "CI/CD",
+            "path": "files/report/ci.md"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Protocols",
+    "items": [
+      {
+        "title": "Overview",
+        "path": "protocols/index.md"
+      },
+      {
+        "title": "HTTP",
+        "path": "protocols/http.md"
+      },
+      {
+        "title": "HTTP bodies",
+        "path": "protocols/http-bodies.md"
+      },
+      {
+        "title": "WebSocket",
+        "path": "protocols/websocket.md"
+      },
+      {
+        "title": "GraphQL",
+        "path": "protocols/graphql.md"
+      },
+      {
+        "title": "gRPC",
+        "path": "protocols/grpc.md"
+      }
     ]
   },
   {
     "title": "Features",
     "items": [
-      { "title": "HTTP files", "path": "features/http-files.md" },
-      { "title": "Bruno files", "path": "features/bruno-files.md" },
-      { "title": "Convertor", "path": "features/convertor.md" },
-      { "title": "History", "path": "features/history.md" },
-      { "title": "Certificates", "path": "features/certificates.md" },
-      { "title": "Data imports", "path": "features/data-imports.md" }
+      {
+        "title": "History",
+        "path": "features/history.md"
+      },
+      {
+        "title": "Certificates",
+        "path": "features/certificates/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/certificates/index.md"
+          },
+          {
+            "title": "Certificate fields (YAML)",
+            "path": "features/certificates/certificate-fields-yaml.md"
+          },
+          {
+            "title": "Edit certificates in the UI",
+            "path": "features/certificates/edit-certificates-in-the-ui.md"
+          },
+          {
+            "title": "Enable/disable settings (local storage)",
+            "path": "features/certificates/enable-disable-settings-local-storage.md"
+          },
+          {
+            "title": "Example certificate configuration",
+            "path": "features/certificates/example-certificate-configuration.md"
+          },
+          {
+            "title": "Host matching rules",
+            "path": "features/certificates/host-matching-rules.md"
+          },
+          {
+            "title": "Migration from VS Code settings",
+            "path": "features/certificates/migration-from-vs-code-settings.md"
+          },
+          {
+            "title": "Passphrase handling",
+            "path": "features/certificates/passphrase-handling.md"
+          },
+          {
+            "title": "Supported certificate formats",
+            "path": "features/certificates/supported-certificate-formats.md"
+          }
+        ]
+      },
+      {
+        "title": "MCP",
+        "path": "features/mcp/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/mcp/index.md"
+          },
+          {
+            "title": "Architecture",
+            "path": "features/mcp/architecture.md"
+          },
+          {
+            "title": "Copilot workflow",
+            "path": "features/mcp/copilot-workflow.md"
+          },
+          {
+            "title": "Development",
+            "path": "features/mcp/development.md"
+          },
+          {
+            "title": "Environment variables",
+            "path": "features/mcp/environment-variables.md"
+          },
+          {
+            "title": "Install (VS Code + Copilot)",
+            "path": "features/mcp/install-vs-code-copilot.md"
+          },
+          {
+            "title": "MCP tools",
+            "path": "features/mcp/mcp-tools.md"
+          },
+          {
+            "title": "Other MCP clients",
+            "path": "features/mcp/other-mcp-clients.md"
+          },
+          {
+            "title": "Running a `.mmt` file (important)",
+            "path": "features/mcp/running-a-mmt-file-important.md"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Integration",
+    "items": [
+      {
+        "title": "HTTP files",
+        "path": "integration/http-files/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "integration/http-files/index.md"
+          },
+          {
+            "title": "Current Limitations",
+            "path": "integration/http-files/current-limitations.md"
+          },
+          {
+            "title": "Mapping to Test Flow",
+            "path": "integration/http-files/mapping-to-test-flow.md"
+          },
+          {
+            "title": "Saving",
+            "path": "integration/http-files/saving.md"
+          },
+          {
+            "title": "Supported Syntax",
+            "path": "integration/http-files/supported-syntax.md"
+          }
+        ]
+      },
+      {
+        "title": "Bruno files",
+        "path": "integration/bruno-files/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "integration/bruno-files/index.md"
+          },
+          {
+            "title": "Current Limitations",
+            "path": "integration/bruno-files/current-limitations.md"
+          },
+          {
+            "title": "Editing And Saving",
+            "path": "integration/bruno-files/editing-and-saving.md"
+          },
+          {
+            "title": "Supported Bruno Syntax",
+            "path": "integration/bruno-files/supported-bruno-syntax.md"
+          }
+        ]
+      },
+      {
+        "title": "Postman",
+        "path": "integration/postman.md"
+      },
+      {
+        "title": "Convertor",
+        "path": "integration/convertor/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "integration/convertor/index.md"
+          },
+          {
+            "title": "Generated output",
+            "path": "integration/convertor/generated-output.md"
+          },
+          {
+            "title": "Generated sources",
+            "path": "integration/convertor/generated-sources.md"
+          },
+          {
+            "title": "Generated Postman",
+            "path": "integration/convertor/generated-postman.md"
+          }
+        ]
+      },
+      {
+        "title": "Data imports",
+        "path": "integration/data-imports.md"
+      },
+      {
+        "title": "Testgen profile",
+        "path": "integration/testgen-profile/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "integration/testgen-profile/index.md"
+          },
+          {
+            "title": "Data generation",
+            "path": "integration/testgen-profile/data-generation.md"
+          },
+          {
+            "title": "End-to-End Example",
+            "path": "integration/testgen-profile/end-to-end-example.md"
+          },
+          {
+            "title": "Environment and auth",
+            "path": "integration/testgen-profile/environment-and-auth.md"
+          },
+          {
+            "title": "Generation Workflow (For AI/Tools)",
+            "path": "integration/testgen-profile/generation-workflow-for-ai-tools.md"
+          },
+          {
+            "title": "Goals",
+            "path": "integration/testgen-profile/goals.md"
+          },
+          {
+            "title": "Machine-readable profile",
+            "path": "integration/testgen-profile/machine-readable-profile.md"
+          },
+          {
+            "title": "Mapping rules",
+            "path": "integration/testgen-profile/mapping-rules.md"
+          },
+          {
+            "title": "Naming & structure",
+            "path": "integration/testgen-profile/naming-structure.md"
+          },
+          {
+            "title": "Outputs for chaining",
+            "path": "integration/testgen-profile/outputs-for-chaining.md"
+          },
+          {
+            "title": "Sources and precedence",
+            "path": "integration/testgen-profile/sources-and-precedence.md"
+          },
+          {
+            "title": "API structure",
+            "path": "integration/testgen-profile/structures-api-structure.md"
+          },
+          {
+            "title": "Structures (API, Test, Env, Doc)",
+            "path": "integration/testgen-profile/structures-api-test-env-doc.md"
+          },
+          {
+            "title": "Doc structure",
+            "path": "integration/testgen-profile/structures-doc-structure.md"
+          },
+          {
+            "title": "Env structure",
+            "path": "integration/testgen-profile/structures-env-structure.md"
+          },
+          {
+            "title": "Test structure",
+            "path": "integration/testgen-profile/structures-test-structure.md"
+          },
+          {
+            "title": "Test strategy",
+            "path": "integration/testgen-profile/test-strategy.md"
+          },
+          {
+            "title": "What gets generated: APIs, Tests, Environments",
+            "path": "integration/testgen-profile/what-gets-generated-apis-tests-environments.md"
+          }
+        ]
+      },
+      {
+        "title": "Testgen profile (AI)",
+        "path": "integration/testgen-profile-ai/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "integration/testgen-profile-ai/index.md"
+          },
+          {
+            "title": "Data Generation",
+            "path": "integration/testgen-profile-ai/data-generation.md"
+          },
+          {
+            "title": "Environment and Auth",
+            "path": "integration/testgen-profile-ai/environment-and-auth.md"
+          },
+          {
+            "title": "Examples",
+            "path": "integration/testgen-profile-ai/examples.md"
+          },
+          {
+            "title": "Generated Artifacts",
+            "path": "integration/testgen-profile-ai/generated-artifacts.md"
+          },
+          {
+            "title": "Generation Workflow",
+            "path": "integration/testgen-profile-ai/generation-workflow.md"
+          },
+          {
+            "title": "Naming and Structure",
+            "path": "integration/testgen-profile-ai/naming-and-structure.md"
+          },
+          {
+            "title": "Response Guidelines",
+            "path": "integration/testgen-profile-ai/response-guidelines.md"
+          },
+          {
+            "title": "Skeletons (for Scaffolding)",
+            "path": "integration/testgen-profile-ai/skeletons-for-scaffolding.md"
+          },
+          {
+            "title": "Sources and Precedence",
+            "path": "integration/testgen-profile-ai/sources-and-precedence.md"
+          },
+          {
+            "title": "Structures Reference",
+            "path": "integration/testgen-profile-ai/structures-reference.md"
+          },
+          {
+            "title": "Test Strategy",
+            "path": "integration/testgen-profile-ai/test-strategy.md"
+          }
+        ]
+      }
     ]
   },
   {
     "title": "Running & CI/CD",
     "items": [
-      { "title": "Testlight CLI", "path": "running/testlight.md" },
-      { "title": "Logging", "path": "running/logging.md" }
-    ]
-  },
-  {
-    "title": "Guides",
-    "items": [
-      { "title": "MMT Overview", "path": "guides/mmt-overview.md" },
-      { "title": "Sample Project", "path": "guides/sample-project.md" },
-      { "title": "Testgen Profile", "path": "guides/testgen-profile.md" },
-      { "title": "MCP", "path": "guides/mcp.md" }
+      {
+        "title": "Testlight CLI",
+        "path": "running/testlight/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "running/testlight/index.md"
+          },
+          {
+            "title": "Commands",
+            "path": "running/testlight/commands.md"
+          },
+          {
+            "title": "Environment Priority",
+            "path": "running/testlight/environment-priority.md"
+          },
+          {
+            "title": "Examples",
+            "path": "running/testlight/examples.md"
+          },
+          {
+            "title": "Install",
+            "path": "running/testlight/install.md"
+          },
+          {
+            "title": "Options",
+            "path": "running/testlight/options.md"
+          },
+          {
+            "title": "See also",
+            "path": "running/testlight/see-also.md"
+          },
+          {
+            "title": "Tips",
+            "path": "running/testlight/tips.md"
+          }
+        ]
+      },
+      {
+        "title": "Logging",
+        "path": "running/logging/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "running/logging/index.md"
+          },
+          {
+            "title": "API logging",
+            "path": "running/logging/api-logging.md"
+          },
+          {
+            "title": "Log levels",
+            "path": "running/logging/log-levels.md"
+          },
+          {
+            "title": "See also",
+            "path": "running/logging/see-also.md"
+          },
+          {
+            "title": "Suite logging",
+            "path": "running/logging/suite-logging.md"
+          },
+          {
+            "title": "Test logging",
+            "path": "running/logging/test-logging.md"
+          },
+          {
+            "title": "Tips",
+            "path": "running/logging/tips.md"
+          },
+          {
+            "title": "Where logs appear",
+            "path": "running/logging/where-logs-appear.md"
+          }
+        ]
+      }
     ]
   },
   {
     "title": "Examples",
     "items": [
-      { "title": "Browse examples", "href": "/docs/examples" }
+      {
+        "title": "Browse examples",
+        "href": "/docs/examples"
+      }
     ]
   }
 ]

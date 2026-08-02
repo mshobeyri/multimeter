@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { demoPlaylist } from './demoPlaylist'
@@ -207,12 +208,100 @@ function youtubePlaylistPlugin(): Plugin {
   }
 }
 
+function docsAssetsPlugin(): Plugin {
+  const docsRoot = path.resolve(repoRoot, 'docs')
+  const mount = '/docs-assets'
+
+  return {
+    name: 'docs-assets',
+    configureServer(server) {
+      // Docs live outside website/; watch them and refresh the eager markdown glob.
+      server.watcher.add(docsRoot)
+      server.watcher.on('change', (file) => {
+        if (!file.startsWith(docsRoot) || !file.endsWith('.md')) {
+          return
+        }
+        const normalized = file.split(path.sep).join('/')
+        for (const [id, mod] of server.moduleGraph.idToModuleMap) {
+          const nid = id.split(path.sep).join('/')
+          if (
+            nid.includes(normalized) ||
+            nid.includes('/docs/loadContent') ||
+            nid.includes('docs/**/*.md')
+          ) {
+            server.moduleGraph.invalidateModule(mod)
+          }
+        }
+        server.ws.send({ type: 'full-reload' })
+      })
+      server.middlewares.use((req, res, next) => {
+        const url = req.url || ''
+        if (!url.startsWith(`${mount}/`)) {
+          next()
+          return
+        }
+        const rel = decodeURIComponent(url.slice(mount.length + 1).split('?')[0])
+        const filePath = path.resolve(docsRoot, rel)
+        if (!filePath.startsWith(docsRoot) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+          res.statusCode = 404
+          res.end('Not found')
+          return
+        }
+        const ext = path.extname(filePath).toLowerCase()
+        const types: Record<string, string> = {
+          '.mp4': 'video/mp4',
+          '.webm': 'video/webm',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.webp': 'image/webp',
+          '.svg': 'image/svg+xml',
+          '.md': 'text/markdown; charset=utf-8',
+        }
+        res.setHeader('Content-Type', types[ext] || 'application/octet-stream')
+        fs.createReadStream(filePath).pipe(res)
+      })
+    },
+    closeBundle() {
+      const outDir = path.resolve(websiteRoot, 'dist', 'docs-assets')
+      const copyRecursive = (from: string, to: string) => {
+        if (!fs.existsSync(from)) {
+          return
+        }
+        fs.mkdirSync(to, { recursive: true })
+        for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+          if (entry.name.startsWith('.')) {
+            continue
+          }
+          const src = path.join(from, entry.name)
+          const dest = path.join(to, entry.name)
+          if (entry.isDirectory()) {
+            // Skip AI and large non-media trees; copy media folders only
+            if (['AI', 'tasks', 'files', 'features', 'guides', 'running'].includes(entry.name)) {
+              continue
+            }
+            copyRecursive(src, dest)
+          } else if (/\.(mp4|webm|png|jpe?g|gif|webp|svg)$/i.test(entry.name)) {
+            fs.copyFileSync(src, dest)
+          }
+        }
+      }
+      copyRecursive(docsRoot, outDir)
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), youtubePlaylistPlugin(), examplesPlugin()],
+  plugins: [react(), tailwindcss(), youtubePlaylistPlugin(), examplesPlugin(), docsAssetsPlugin()],
   server: {
     fs: {
       allow: [websiteRoot, repoRoot],
+    },
+    watch: {
+      // Docs markdown lives outside website/; ensure HMR picks up edits.
+      ignored: ['**/node_modules/**', '**/dist/**'],
     },
   },
 })

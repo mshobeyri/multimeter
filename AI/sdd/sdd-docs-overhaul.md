@@ -21,16 +21,16 @@ An audit of the `docs/` folder against the codebase and recent commit history (v
 | Phase 4 | P3 — Polish | #57, #59, #70 | ✅ Done |
 
 ### Files modified
-- `docs/files/api.md` — removed r:image, added 9 missing tokens, token normalization, JSONPath $, headers/cookies extraction, import section, Markdown in description, UI features (method override, copyable outputs, extract variable), cross-links
-- `docs/files/test.md` — fixed broken set/var/const/let + setenv section, fixed call YAML indentation, added setenv to reference, expanded for/repeat (time-based, inf), added metrics section, stage condition, JS globals table, CSV import behavior, =@ clarification, autocomplete note, flow alias, cross-links
-- `docs/files/env.md` — fixed false e:{VAR} claim, added env syntax table, type:var docs, VS Code settings table, cross-links
-- `docs/guides/mmt-overview.md` — fixed headers list→map, set indentation, triple backticks, typos, added connections panel, project root section, expanded suite section, full cross-links
-- `docs/files/doc.md` — fixed services YAML indentation, added `<<i:param>>`/`<<o:param>>` annotations, Markdown in descriptions, logo field, description field in Elements and Reference
-- `docs/files/server.md` — restructured (overview first, TLS last), fixed `<e:API_URL>` → `<<e:API_URL>>`, added request history section
-- `docs/files/suite.md` — added +/ project root imports, missing/cycle node types, nested suite cycle detection, CLI execution, reference types, cross-links
-- `docs/running/testlight.md` — added --example, --log-level, --md flags with examples
+- `docs/files/api/index.md` — removed r:image, added 9 missing tokens, token normalization, JSONPath $, headers/cookies extraction, import section, Markdown in description, UI features (method override, copyable outputs, extract variable), cross-links
+- `docs/files/test/index.md` — fixed broken set/var/const/let + setenv section, fixed call YAML indentation, added setenv to reference, expanded for/repeat (time-based, inf), added metrics section, stage condition, JS globals table, CSV import behavior, =@ clarification, autocomplete note, flow alias, cross-links
+- `docs/files/env/index.md` — fixed false e:{VAR} claim, added env syntax table, type:var docs, VS Code settings table, cross-links
+- `docs/overview.md` — fixed headers list→map, set indentation, triple backticks, typos, added connections panel, project root section, expanded suite section, full cross-links
+- `docs/files/doc/index.md` — fixed services YAML indentation, added `<<i:param>>`/`<<o:param>>` annotations, Markdown in descriptions, logo field, description field in Elements and Reference
+- `docs/files/server/index.md` — restructured (overview first, TLS last), fixed `<e:API_URL>` → `<<e:API_URL>>`, added request history section
+- `docs/files/suite/index.md` — added +/ project root imports, missing/cycle node types, nested suite cycle detection, CLI execution, reference types, cross-links
+- `docs/running/testlight/index.md` — added --example, --log-level, --md flags with examples
 - `convertor.md` — added Postman variable mapping, formdata/urlencoded, example extraction, OpenAPI XML
-- `docs/features/certificates.md` — added self-signed auto-retry behavior
+- `docs/features/certificates/index.md` — added self-signed auto-retry behavior
 - `demos.md` — replaced broken GIF links with available screenshots or TODO placeholders, added missing See also links
 
 Priority levels:
@@ -41,7 +41,7 @@ Priority levels:
 
 ---
 
-## 1. `docs/files/api.md` — API Documentation
+## 1. `docs/files/api/index.md` — API Documentation
 
 ### P1 — Missing features
 
@@ -65,12 +65,12 @@ Priority levels:
 | # | Item | Details |
 |---|------|---------|
 | 8 | **Token name normalization** | Users don't know that `r:firstName`, `r:first-name`, and `r:first_name` all resolve to the same token via `normalizeTokenName`. Add a note. |
-| 9 | **Cross-link to environment and test docs** | No links to `docs/files/env.md` or `docs/files/test.md` despite heavy use of `e:VAR` and test references. Add "See also" links. |
+| 9 | **Cross-link to environment and test docs** | No links to `docs/files/env/index.md` or `docs/files/test/index.md` despite heavy use of `e:VAR` and test references. Add "See also" links. |
 | 10 | **Document Markdown support in `description` field** | Since v1.9.3 (commit `44ec66d`), the `description` field in API files supports Markdown formatting (bold, italic, code, lists, headings, tables) which renders in both the editor UI and doc generation. This is a new feature and should be highlighted. |
 
 ---
 
-## 2. `docs/files/test.md` — Test Documentation
+## 2. `docs/files/test/index.md` — Test Documentation
 
 ### P0 — Broken formatting
 
@@ -106,7 +106,7 @@ Priority levels:
 
 ---
 
-## 3. `docs/files/env.md` — Environment Documentation
+## 3. `docs/files/env/index.md` — Environment Documentation
 
 ### P0 — Incorrect content
 
@@ -128,7 +128,7 @@ Priority levels:
 
 ---
 
-## 4. `docs/files/suite.md` — Suite Documentation
+## 4. `docs/files/suite/index.md` — Suite Documentation
 
 ### P1 — Missing features
 
@@ -147,7 +147,7 @@ Priority levels:
 
 ---
 
-## 5. `docs/running/testlight.md` — CLI Documentation
+## 5. `docs/running/testlight/index.md` — CLI Documentation
 
 ### P1 — Missing features
 
@@ -159,7 +159,7 @@ Priority levels:
 
 ---
 
-## 6. `docs/files/doc.md` — Doc Generation Documentation
+## 6. `docs/files/doc/index.md` — Doc Generation Documentation
 
 ### P0 — Broken formatting
 
@@ -197,7 +197,7 @@ Priority levels:
 
 ---
 
-## 8. `docs/files/server.md` — Mock Server Documentation
+## 8. `docs/files/server/index.md` — Mock Server Documentation
 
 ### P0 — Structural issue
 
@@ -220,7 +220,7 @@ Priority levels:
 
 ---
 
-## 9. `docs/guides/mmt-overview.md` — Overview Documentation
+## 9. `docs/overview.md` — Overview Documentation
 
 ### P0 — Broken formatting / incorrect content
 
@@ -256,11 +256,11 @@ Priority levels:
 
 | # | Item | Details |
 |---|------|---------|
-| 59 | **Add missing "See also" links** | Several demos have no link: Postman Import → link to `convertor.md`; WebSocket Testing → link to `docs/files/api.md`; XML Handling → link to `docs/files/api.md`; UI Overview → link to `docs/guides/mmt-overview.md`. |
+| 59 | **Add missing "See also" links** | Several demos have no link: Postman Import → link to `convertor.md`; WebSocket Testing → link to `docs/files/api/index.md`; XML Handling → link to `docs/files/api/index.md`; UI Overview → link to `docs/overview.md`. |
 
 ---
 
-## 11. `docs/features/certificates.md` — Certificates Documentation
+## 11. `docs/features/certificates/index.md` — Certificates Documentation
 
 ### P1 — Missing features
 
@@ -289,7 +289,7 @@ Priority levels:
 
 | # | Item | Details |
 |---|------|---------|
-| 69 | **Improve description of Markdown support in API descriptions** | The description Markdown feature (rendering bold, italic, code, lists, headings, tables inside `description` fields) is now supported in both the editor UI and doc generation. This should be documented in both `docs/files/api.md` and `docs/files/doc.md`, since it affects how users write descriptions in API files. |
+| 69 | **Improve description of Markdown support in API descriptions** | The description Markdown feature (rendering bold, italic, code, lists, headings, tables inside `description` fields) is now supported in both the editor UI and doc generation. This should be documented in both `docs/files/api/index.md` and `docs/files/doc/index.md`, since it affects how users write descriptions in API files. |
 
 ### P3 — Quality
 

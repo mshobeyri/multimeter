@@ -153,13 +153,54 @@ body {
   border-radius: 0.25rem;
 }
 
-.docs-prose pre {
+.docs-prose .docs-codeblock {
+  position: relative;
   margin: 1rem 0;
-  padding: 1rem 1.1rem;
+}
+
+.docs-prose .docs-codeblock pre {
+  margin: 0;
+  padding: 1rem 2.75rem 1rem 1.1rem;
   overflow-x: auto;
   border-radius: 0.75rem;
   border: 1px solid #334155;
   background: #0b1220;
+}
+
+.docs-prose .docs-codeblock-copy {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border-radius: 0.4rem;
+  border: 1px solid #334155;
+  background: rgba(15, 23, 42, 0.92);
+  color: #94a3b8;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.docs-prose .docs-codeblock:hover .docs-codeblock-copy,
+.docs-prose .docs-codeblock-copy:focus-visible {
+  opacity: 1;
+}
+
+.docs-prose .docs-codeblock-copy:hover {
+  color: #e2e8f0;
+  border-color: #475569;
+  background: #1e293b;
+}
+
+.docs-prose .docs-codeblock-copy:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
 }
 
 .docs-prose pre code {
@@ -168,6 +209,71 @@ body {
   color: #e2e8f0;
   font-size: 0.85rem;
   line-height: 1.6;
+}
+
+/* highlight.js tokens — tuned for docs dark code panels */
+.docs-prose .hljs {
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.docs-prose .hljs-comment,
+.docs-prose .hljs-quote {
+  color: #64748b;
+  font-style: italic;
+}
+
+.docs-prose .hljs-keyword,
+.docs-prose .hljs-selector-tag,
+.docs-prose .hljs-literal,
+.docs-prose .hljs-section,
+.docs-prose .hljs-link {
+  color: #c4b5fd;
+}
+
+.docs-prose .hljs-string,
+.docs-prose .hljs-doctag,
+.docs-prose .hljs-template-variable {
+  color: #86efac;
+}
+
+.docs-prose .hljs-number,
+.docs-prose .hljs-bullet,
+.docs-prose .hljs-meta {
+  color: #fbbf24;
+}
+
+.docs-prose .hljs-attr,
+.docs-prose .hljs-attribute,
+.docs-prose .hljs-variable,
+.docs-prose .hljs-template-tag,
+.docs-prose .hljs-type,
+.docs-prose .hljs-symbol {
+  color: #67e8f9;
+}
+
+.docs-prose .hljs-title,
+.docs-prose .hljs-name,
+.docs-prose .hljs-built_in,
+.docs-prose .hljs-selector-id,
+.docs-prose .hljs-selector-class {
+  color: #93c5fd;
+}
+
+.docs-prose .hljs-addition {
+  color: #86efac;
+}
+
+.docs-prose .hljs-deletion {
+  color: #fca5a5;
+}
+
+.docs-prose .hljs-emphasis {
+  font-style: italic;
+}
+
+.docs-prose .hljs-strong {
+  font-weight: 700;
 }
 
 .docs-prose table {
@@ -205,4 +311,29 @@ body {
   border: none;
   border-top: 1px solid #334155;
   margin: 2rem 0;
+}
+
+.docs-prose img,
+.docs-prose .docs-video,
+.docs-prose .docs-youtube {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.25rem 0;
+  border-radius: 0.75rem;
+  border: 1px solid #334155;
+  background: #0b1220;
+}
+
+.docs-prose .docs-video,
+.docs-prose .docs-youtube {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.docs-prose .docs-youtube iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
 }

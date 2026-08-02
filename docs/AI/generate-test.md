@@ -9,7 +9,7 @@ Always follow these rules:
 
 ## Schema (mental model for the AI)
 
-These fields match `TestData` in `core/src/TestData.ts` and the public docs in `docs/files/test.md`.
+These fields match `TestData` in `core/src/TestData.ts` and the public docs in `docs/files/test/index.md`.
 
 Top-level keys and types:
 

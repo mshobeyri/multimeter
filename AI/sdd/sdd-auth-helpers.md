@@ -356,7 +356,7 @@ Render auth requirements in generated documentation:
 - List required auth parameters
 - Do not render actual values
 
-### 14. `docs/files/api.md`
+### 14. `docs/files/api/index.md`
 
 Add `auth` section with examples for each type. Place after `headers` section.
 

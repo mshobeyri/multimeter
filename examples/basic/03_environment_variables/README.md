@@ -37,4 +37,4 @@ npx testlight run examples/basic/03_environment_variables/get_json.mmt \
 - POST requests with env headers are covered later in [Environment POST Echo](../../intermediate/19_environment_post_echo/).
 - Presets are covered later in [Environment Presets](../../intermediate/10_environment_presets/).
 
-See [Environment docs](../../../docs/files/env.md) for full details.
+See [Environment docs](../../../docs/files/env/index.md) for full details.

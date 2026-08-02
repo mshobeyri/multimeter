@@ -9,7 +9,7 @@ Always follow these rules:
 
 ## Schema (mental model for the AI)
 
-These fields match `SuiteData` in `core/src/SuiteData.ts` and the public docs in `docs/files/suite.md`.
+These fields match `SuiteData` in `core/src/SuiteData.ts` and the public docs in `docs/files/suite/index.md`.
 
 Top-level keys and types:
 

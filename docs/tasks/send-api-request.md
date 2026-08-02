@@ -22,5 +22,5 @@ Open the file in VS Code and click **Send**. The Response panel shows the result
 
 ## Learn more
 
-- [API files](../files/api.md)
+- [API files](../files/api/index.md)
 - Example: [Simple API](/docs/examples/basic/01_simple_api)
