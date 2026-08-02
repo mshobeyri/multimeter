@@ -23,12 +23,12 @@ After install, open the Multimeter activity icon in the VS Code sidebar. You get
 
 ### Status bar icons
 
-- **Multimeter logo** (right) — opens a new untitled `.mmt` file on the no-type starter page
+- **Multimeter logo** (right) — opens a new untitled `.mmt` file on the empty page
 - **Active run** (left, spinning) — appears while a test, suite, API run, or mock server is active; click it to stop
 
-### No-type page (new `.mmt`)
+### Empty page (new `.mmt`)
 
-When a file has no `type:` yet, Multimeter shows the starter page instead of the full editor:
+When a file has no `type:` yet, Multimeter shows the empty page instead of the full editor:
 
 1. **Select type** — pick API, Test, Environment, Suite, Doc, Server, Load Test, or Report to write `type: …` and open that editor
 2. **Gallery** — or choose a ready sample card; it fills the file with a working snippet you can Send/Run immediately
