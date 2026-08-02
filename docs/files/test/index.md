@@ -36,8 +36,8 @@ Run glyphs appear in the left margin of the YAML pane:
 |---|---|
 | **Inputs** | Runtime input values when the test defines `inputs:` |
 | **Outputs** | Extracted output values when the test defines `outputs:` |
-| **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards |
-| **Report** | Step-by-step results with pass/fail status and timestamps |
+| **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards — see [Overview cards](./overview-cards.md) |
+| **Report** | Step-by-step results with pass/fail status and timestamps — see [Overview cards](./overview-cards.md#report-list) |
 
 ## Supported
 
@@ -67,7 +67,7 @@ steps:
 
 ## Test elements
 
-- [Edit Test](./edit.md) · [Quick start](./quick-start.md) · [Write a test flow](../../tasks/write-test-flow.md)
+- [Edit Test](./edit.md) · [Overview cards](./overview-cards.md) · [Quick start](./quick-start.md) · [Write a test flow](../../tasks/write-test-flow.md)
 - [import](./import.md) · [cache](./cache.md)
 - [Steps](./steps/index.md) · [Stages](./stages/index.md)
 - [Stage condition](./stages/stage-condition.md) · [Complete example](./complete-example.md) · [Reference](./reference.md)

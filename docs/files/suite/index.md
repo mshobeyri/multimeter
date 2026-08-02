@@ -29,8 +29,8 @@ Use `type: suite` to define a suite MMT file. A suite runs multiple items togeth
 | **Environment** | Preset, env file, and inline variables when `environment:` is configured |
 | **Servers** | Mock server files listed in `servers:` |
 | **Exports** | Report export paths from `export:` |
-| **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards (after a run) |
-| **Tests** | Item tree grouped by execution stage — expand a test to see step reports |
+| **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards (after a run) — see [Overview cards](./overview-cards.md) |
+| **Tests** | Item tree grouped by execution stage — expand a test to see step reports — see [Overview cards](./overview-cards.md#tests-tree) |
 
 ### Item tree
 
@@ -69,5 +69,5 @@ items:
 
 ## Suite elements
 
-- [Edit Suite](./edit.md) · [import](./import.md) · [items](./items.md)
+- [Edit Suite](./edit.md) · [Overview cards](./overview-cards.md) · [import](./import.md) · [items](./items.md)
 - [Execution](./execution.md) · [CLI](./cli.md) · [Exports](./exports.md) · [Reference](./reference.md)

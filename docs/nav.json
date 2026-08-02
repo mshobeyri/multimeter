@@ -144,6 +144,10 @@
             "path": "files/test/edit.md"
           },
           {
+            "title": "Overview cards",
+            "path": "files/test/overview-cards.md"
+          },
+          {
             "title": "Quick start",
             "path": "files/test/quick-start.md"
           },
@@ -272,6 +276,10 @@
           {
             "title": "Edit Suite",
             "path": "files/suite/edit.md"
+          },
+          {
+            "title": "Overview cards",
+            "path": "files/suite/overview-cards.md"
           },
           {
             "title": "import",
