@@ -1,8 +1,8 @@
-# Overview cards
+# Reports
 
 After you run a test, the **test runner** shows an **Overview** row of summary cards above the step **Report**. The cards update as checks and asserts complete and stay visible until the next run.
 
-![Test runner overview cards and report](../../screenshots/test-runner.png)
+![Test reports](../../screenshots/test-reports.png)
 
 ## Summary cards
 

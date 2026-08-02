@@ -144,10 +144,6 @@
             "path": "files/test/edit.md"
           },
           {
-            "title": "Overview cards",
-            "path": "files/test/overview-cards.md"
-          },
-          {
             "title": "Quick start",
             "path": "files/test/quick-start.md"
           },
@@ -220,6 +216,10 @@
             ]
           },
           {
+            "title": "Reports",
+            "path": "files/test/reports.md"
+          },
+          {
             "title": "Complete example",
             "path": "files/test/complete-example.md"
           },
@@ -278,16 +278,16 @@
             "path": "files/suite/edit.md"
           },
           {
-            "title": "Overview cards",
-            "path": "files/suite/overview-cards.md"
-          },
-          {
             "title": "import",
             "path": "files/suite/import.md"
           },
           {
             "title": "items",
             "path": "files/suite/items.md"
+          },
+          {
+            "title": "Reports",
+            "path": "files/suite/reports.md"
           },
           {
             "title": "Execution",
