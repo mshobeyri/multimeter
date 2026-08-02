@@ -129,7 +129,7 @@ Values:
 
 Default if omitted: `internal: all`, `external: fails`.
 
-Checks and assertions appear in the Log panel while the flow runs. The report level also determines the [log level](../../../running/logging/index.md#checks-and-asserts) for each result.
+Checks and assertions appear in the Log panel while the flow runs. The report level also determines the [log level](../../../features/logging/test-logging.md#checks-and-asserts) for each result.
 
 ![Log panel](../../../screenshots/test_panel_log.png)
 

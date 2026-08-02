@@ -532,7 +532,79 @@
       },
       {
         "title": "Logging",
-        "path": "features/logging.md"
+        "path": "features/logging.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/logging.md"
+          },
+          {
+            "title": "Log levels",
+            "path": "features/logging/log-levels.md"
+          },
+          {
+            "title": "Where logs appear",
+            "path": "features/logging/where-logs-appear.md"
+          },
+          {
+            "title": "API logging",
+            "path": "features/logging/api-logging.md"
+          },
+          {
+            "title": "Test logging",
+            "path": "features/logging/test-logging.md"
+          },
+          {
+            "title": "Suite logging",
+            "path": "features/logging/suite-logging.md"
+          },
+          {
+            "title": "Tips",
+            "path": "features/logging/tips.md"
+          },
+          {
+            "title": "See also",
+            "path": "features/logging/see-also.md"
+          }
+        ]
+      },
+      {
+        "title": "Testlight",
+        "path": "features/testlight/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/testlight/index.md"
+          },
+          {
+            "title": "Install",
+            "path": "features/testlight/install.md"
+          },
+          {
+            "title": "Commands",
+            "path": "features/testlight/commands.md"
+          },
+          {
+            "title": "Options",
+            "path": "features/testlight/options.md"
+          },
+          {
+            "title": "Environment priority",
+            "path": "features/testlight/environment-priority.md"
+          },
+          {
+            "title": "Examples",
+            "path": "features/testlight/examples.md"
+          },
+          {
+            "title": "Tips",
+            "path": "features/testlight/tips.md"
+          },
+          {
+            "title": "See also",
+            "path": "features/testlight/see-also.md"
+          }
+        ]
       },
       {
         "title": "Connections",
@@ -666,87 +738,6 @@
       {
         "title": "OpenAPI spec",
         "path": "integration/openapi.md"
-      }
-    ]
-  },
-  {
-    "title": "Running & CI/CD",
-    "items": [
-      {
-        "title": "Testlight CLI",
-        "path": "running/testlight/index.md",
-        "children": [
-          {
-            "title": "Overview",
-            "path": "running/testlight/index.md"
-          },
-          {
-            "title": "Commands",
-            "path": "running/testlight/commands.md"
-          },
-          {
-            "title": "Environment Priority",
-            "path": "running/testlight/environment-priority.md"
-          },
-          {
-            "title": "Examples",
-            "path": "running/testlight/examples.md"
-          },
-          {
-            "title": "Install",
-            "path": "running/testlight/install.md"
-          },
-          {
-            "title": "Options",
-            "path": "running/testlight/options.md"
-          },
-          {
-            "title": "See also",
-            "path": "running/testlight/see-also.md"
-          },
-          {
-            "title": "Tips",
-            "path": "running/testlight/tips.md"
-          }
-        ]
-      },
-      {
-        "title": "Logging",
-        "path": "running/logging/index.md",
-        "children": [
-          {
-            "title": "Overview",
-            "path": "running/logging/index.md"
-          },
-          {
-            "title": "API logging",
-            "path": "running/logging/api-logging.md"
-          },
-          {
-            "title": "Log levels",
-            "path": "running/logging/log-levels.md"
-          },
-          {
-            "title": "See also",
-            "path": "running/logging/see-also.md"
-          },
-          {
-            "title": "Suite logging",
-            "path": "running/logging/suite-logging.md"
-          },
-          {
-            "title": "Test logging",
-            "path": "running/logging/test-logging.md"
-          },
-          {
-            "title": "Tips",
-            "path": "running/logging/tips.md"
-          },
-          {
-            "title": "Where logs appear",
-            "path": "running/logging/where-logs-appear.md"
-          }
-        ]
       }
     ]
   },

@@ -14,4 +14,4 @@ From a suite (via `servers:` or a server item):
 testlight run path/to/suite.mmt --env-file env.mmt --preset dev
 ```
 
-See [Mock servers in tests](./in-tests.md) · [Mock servers in suites](./in-suites.md)
+See [Mock servers in tests](./in-tests.md) · [Mock servers in suites](./in-suites.md) · [Testlight](../../features/testlight/index.md)

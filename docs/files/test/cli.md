@@ -18,4 +18,4 @@ Generate a report after the run:
 testlight run path/to/test.mmt --report junit --report-file results.xml
 ```
 
-See [Testlight CLI — Options](../../running/testlight/options.md) · [Reports — CLI](../report/cli.md) · [Environment CLI](../env/cli.md)
+See [Testlight — Options](../../features/testlight/options.md) · [Testlight](../../features/testlight/index.md) · [Reports — CLI](../report/cli.md) · [Environment CLI](../env/cli.md)

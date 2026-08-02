@@ -14,35 +14,13 @@ After install:
 
 The extension includes the custom editor, environment panel, mock server, history, convertor, and AI assistant.
 
-## CLI — testlight
+## CLI (Testlight)
 
-Use the CLI to run `.mmt` files from a terminal or pipeline. Both `testlight` and `mmt` commands are available depending on how you install.
-
-### npm
-
-```sh
-npm install -g mmt-testlight
-```
-
-Or run without a global install:
-
-```sh
-npx mmt-testlight run path/to/test.mmt
-```
-
-### macOS (Homebrew)
-
-```sh
-brew tap mshobeyri/multimeter
-brew install mmt-testlight
-```
-
-### Other platforms
-
-Linux (apt / snap), Windows, and Docker installs are listed on the [Downloads](/downloads) page.
+Install Testlight for terminal and CI runs — see [Testlight — Install](./features/testlight/install.md).
 
 ## Next steps
 
 - [Getting Started](./quick-start.md) — run your first request
+- [Testlight](./features/testlight/index.md) — CLI commands and options
 - [Start with a task](./tasks/index.md) — pick a goal
 - [Downloads](/downloads) — full install options and versions

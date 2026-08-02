@@ -34,5 +34,6 @@ See [Install](../install.md) and [Downloads](/downloads) for platform packages (
 
 ## Learn more
 
+- [Testlight](../features/testlight/index.md) — install, commands, options, and CI examples
 - [Install](../install.md)
 - [Examples](/docs/examples)

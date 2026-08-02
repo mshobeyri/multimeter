@@ -1,24 +1,20 @@
-# CLI
+# Report CLI
 
-`type: report` files are output artifacts. Generate them with the `--report` flag when running tests, suites, or load tests.
-
-## Usage
+`type: report` files are output artifacts. Generate them with the `--report` flag when running tests, suites, or load tests:
 
 ```bash
-npx testlight run test.mmt --report junit
-npx testlight run suite.mmt --report mmt
-npx testlight run loadtest.mmt --report html
-npx testlight run test.mmt --report md
-npx testlight run test.mmt --report md-detailed
+testlight run test.mmt --report junit
+testlight run suite.mmt --report mmt
+testlight run loadtest.mmt --report html
+testlight run test.mmt --report md
+testlight run test.mmt --report md-detailed
 ```
 
-### Custom output path
+Custom output path:
 
 ```bash
-npx testlight run suite.mmt --report junit --report-file results/output.xml
+testlight run suite.mmt --report junit --report-file results/output.xml
 ```
-
-### Default filenames
 
 | Format | Default filename |
 |--------|-----------------|
@@ -35,4 +31,4 @@ Suites and load tests can auto-generate reports after completion using the `expo
 - [Suite exports](../suite/exports.md) — `export:` on `type: suite`
 - [Load test exports](../loadtest/exports.md) — `export:` on `type: loadtest`
 
-See also: [CI/CD](./ci.md) · [Reference](./reference.md) · [Running](../../running/testlight/index.md)
+See [Testlight — Options](../../features/testlight/options.md) · [Testlight](../../features/testlight/index.md) · [CI/CD](./ci.md) · [Reference](./reference.md)

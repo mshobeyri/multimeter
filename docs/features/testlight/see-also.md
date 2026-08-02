@@ -9,5 +9,5 @@
 - [Reports](../../files/report/index.md) — generate JUnit XML, HTML, Markdown, or MMT reports (`--report`)
 - [Mock Server](../../files/server/index.md) — `type: server` files started by tests/suites during CLI runs
 - [Certificates](../../features/certificates/index.md) — SSL/TLS configuration for CLI runs
-- [Logging](../logging/index.md) — log levels and where logs appear for each entry point
+- [Logging](../logging.md) — log levels and where logs appear for each entry point
 - [Browse examples](/docs/examples) — sample projects you can run from the CLI

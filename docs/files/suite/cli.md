@@ -10,4 +10,4 @@ Stages run sequentially; items within each stage run in parallel.
 
 Configure env for suite runs with the root-only `environment:` field or CLI flags. See [Environment CLI](../env/cli.md) · [Suite exports](./exports.md).
 
-See [Testlight CLI — Options](../../running/testlight/options.md) · [Execution](./execution.md)
+See [Testlight — Options](../../features/testlight/options.md) · [Testlight](../../features/testlight/index.md) · [Execution](./execution.md)

@@ -44,7 +44,7 @@
 
 ## CLI (`mmtcli/`) workflow
 - Entrypoint: `mmtcli/src/cli.ts` wraps `core` and exposes the `testlight` binary.
-- Typical usage (see `mmtcli/README.md` and `docs/running/testlight/index.md`):
+- Typical usage (see `mmtcli/README.md` and `docs/features/testlight/index.md`):
   - `npx testlight run path/to/test.mmt`
   - Pass env via `--env-file`, `--preset`, and `-e KEY=VALUE` flags; types are coerced by `coerceCliValue`/`parsePairs` in `cli.ts` (unquoted numbers/bools → numbers/bools, quoted → strings).
 - If you add new CLI flags, wire them through to `runner.runFile` rather than duplicating parsing/execution.

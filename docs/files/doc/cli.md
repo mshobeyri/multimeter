@@ -18,4 +18,4 @@ Generate Markdown instead of HTML:
 testlight doc path/to/catalog.mmt --md --out ./public/catalog.md
 ```
 
-See [Testlight CLI — Commands](../../running/testlight/commands.md)
+See [Testlight — Commands](../../features/testlight/commands.md) · [Testlight](../../features/testlight/index.md)

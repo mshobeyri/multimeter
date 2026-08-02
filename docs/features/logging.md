@@ -14,7 +14,7 @@ Open **View → Output**, choose **Multimeter** from the channel dropdown, and s
 | AI assistant (`@multimeter /run`) | Output panel → **Multimeter** channel |
 | CLI (`testlight`) | Terminal stdout |
 
-See [Where logs appear](../running/logging/where-logs-appear.md) for CLI options such as `--quiet` and `--log-level`.
+See [Where logs appear](./logging/where-logs-appear.md) for CLI options such as `--quiet` and `--log-level`.
 
 ## Log levels
 
@@ -31,7 +31,7 @@ The Output panel includes a built-in level filter (gear icon in the panel header
 
 Multimeter maps its internal levels (`trace`, `debug`, `info`, `warn`, `error`) to these Output panel levels. A run is marked **failed** if any `error`-level message is logged.
 
-For a full breakdown of what each level includes, see [Log levels](../running/logging/log-levels.md).
+For a full breakdown of what each level includes, see [Log levels](./logging/log-levels.md).
 
 ## What gets logged
 
@@ -48,13 +48,12 @@ Timestamps and level tags prefix each line (`[info]`, `[debug]`, etc.).
 
 - Start at **Info** for everyday runs; switch to **Debug** or **Trace** when you need request/response bodies or network details
 - Use **Error** to focus on failures during large suite runs
-- The webview **Log** tab inside the test Report panel shows step-level check output during a run; the Output panel keeps the full, persistent log — see [Test logging](../running/logging/test-logging.md)
+- The webview **Log** tab inside the test Report panel shows step-level check output during a run; the Output panel keeps the full, persistent log — see [Test logging](./logging/test-logging.md)
 
 ---
 
 ## See also
 
-- [Logging (Running & CI/CD)](../running/logging/index.md) — deep dive: API, test, and suite logging policies
-- [API logging](../running/logging/api-logging.md) · [Test logging](../running/logging/test-logging.md) · [Suite logging](../running/logging/suite-logging.md)
-- [Testlight CLI](../running/testlight/index.md) — `--log-level` and `--quiet` for terminal runs
+- [API logging](./logging/api-logging.md) · [Test logging](./logging/test-logging.md) · [Suite logging](./logging/suite-logging.md)
+- [Testlight](./testlight/index.md) — `--log-level` and `--quiet` for terminal runs
 - [History](./history.md) — recent requests and responses in the bottom panel (separate from run logs)

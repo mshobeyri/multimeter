@@ -14,4 +14,4 @@ testlight run path/to/loadtest.mmt --report html --report-file reports/load.html
 
 If the load test file has an `export` field, reports are generated automatically after the run.
 
-See [Testlight CLI — Options](../../running/testlight/options.md) · [Environment](./environment.md) · [Exports](./exports.md)
+See [Testlight — Options](../../features/testlight/options.md) · [Testlight](../../features/testlight/index.md) · [Environment](./environment.md) · [Exports](./exports.md)

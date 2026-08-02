@@ -19,4 +19,4 @@ Pass runtime inputs and env overrides:
 testlight run path/to/api.mmt -i user_id=42 --env-file env.mmt -e api_url=http://localhost:8080
 ```
 
-See [Testlight CLI — Options](../../running/testlight/options.md) · [Environment CLI](../env/cli.md)
+See [Testlight — Options](../../features/testlight/options.md) · [Testlight](../../features/testlight/index.md) · [Environment CLI](../env/cli.md)

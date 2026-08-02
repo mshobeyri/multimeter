@@ -96,6 +96,17 @@
 ### Features
 - [History](./features/history.md)
 - [Logging](./features/logging.md)
+  - [Log levels](./features/logging/log-levels.md)
+  - [Where logs appear](./features/logging/where-logs-appear.md)
+  - [API logging](./features/logging/api-logging.md)
+  - [Test logging](./features/logging/test-logging.md)
+  - [Suite logging](./features/logging/suite-logging.md)
+- [Testlight](./features/testlight/index.md)
+  - [Install](./features/testlight/install.md)
+  - [Commands](./features/testlight/commands.md)
+  - [Options](./features/testlight/options.md)
+  - [Environment priority](./features/testlight/environment-priority.md)
+  - [Examples](./features/testlight/examples.md)
 - [Connections](./features/connections.md)
 - [Flow chart](./features/flow-chart.md)
 - [Dynamic values](./features/dynamic-values.md)
@@ -111,7 +122,3 @@
 - [Curl](./integration/curl.md)
 - [WSDL](./integration/wsdl.md)
 - [OpenAPI spec](./integration/openapi.md)
-
-### Running & CI/CD
-- [Testlight CLI](./running/testlight/index.md)
-- [Logging](./running/logging/index.md)

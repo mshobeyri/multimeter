@@ -4,7 +4,9 @@ Run a request against the public [test.mmt.dev](https://test.mmt.dev) server in 
 
 ## 1. Install
 
-Install the [VS Code extension](./install.md) (or use the CLI only).
+Install the [VS Code extension](./install.md).
+
+For CLI and CI, install [Testlight](./features/testlight/index.md) — see [Install](./features/testlight/install.md).
 
 ## 2. VS Code extension intro
 
