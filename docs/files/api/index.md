@@ -32,7 +32,7 @@ Under the URL bar:
 | Tab | What you see |
 |---|---|
 | **In / Out** | **Example** dropdown (**Defaults** or a named example), runtime **inputs** (range pickers from description annotations), and extracted **outputs** after a send |
-| **Body** | Request body; after send, **Response Body** appears below Send |
+| **Body** | Request body; after send, **Response Body** appears below Send. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
 | **Params** | Query parameters |
 | **Headers** | Request headers; response headers appear below Send after a reply |
 | **Cookies** | Request cookies; response cookies appear below Send after a reply |

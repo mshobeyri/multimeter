@@ -1,6 +1,19 @@
 # Outputs
 
-Map response data to named output variables. Keys are the exported names (used in tests via `expect` or `id`), values are extraction expressions using these keywords:
+Map response data to named output variables. Keys are the exported names (used in tests via `expect` or `id`), values are extraction expressions using these keywords.
+
+## From the Response Body
+
+In the API tester **Body** tab, after {{btn:send:Send}}, place the cursor on a field in **Response Body** and add it to `outputs:`:
+
+| Control | What it does |
+|---|---|
+| **Add As Output Variable** (right-click) | Adds a named `outputs:` entry with the extraction path for the field under the cursor |
+| {{btn:sign-out}} | Same — toolbar button on the response body; tooltip shows `Add output: key = body…` |
+
+The suggested key comes from the field name; duplicate keys get a numeric suffix.
+
+## Extraction keywords
 
 | Keyword | Description |
 |---------|-------------|
