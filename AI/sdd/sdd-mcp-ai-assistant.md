@@ -268,7 +268,7 @@ Expose existing `docs/AI/*` as MCP resources (content read at startup or lazily 
 | `mmt://guide/generate-suite` | `docs/AI/generate-suite.md` |
 | `mmt://guide/generate-doc` | `docs/AI/generate-doc.md` |
 | `mmt://guide/generate-loadtest` | `docs/AI/generate-loadtest.md` |
-| `mmt://profile/testgen` | `docs/integration/testgen-profile-ai/index.md` |
+| `mmt://profile/testgen` | `docs/AI/` (MCP bundled guides) |
 
 Resource templates (optional v1.1):
 
@@ -584,7 +584,7 @@ Optional: detect if MCP server is running and tailor message (“Multimeter MCP 
 ## See Also
 
 - [docs/AI/generate-test.md](../../docs/AI/generate-test.md) — test generation rules (MCP resource)
-- [docs/integration/testgen-profile-ai/index.md](../../docs/integration/testgen-profile-ai/index.md) — TestGen profile (MCP resource)
+- MCP bundled guides under `docs/AI/` — TestGen profile resource (`mmt://profile/testgen`)
 - [src/assistant/assistant.ts](../../src/assistant/assistant.ts) — current chat participant
 - [mmtcli/src/cli.ts](../../mmtcli/src/cli.ts) — CLI patterns for `run_mmt`
 - [VS Code MCP extension guide](https://code.visualstudio.com/api/extension-guides/ai/mcp)
