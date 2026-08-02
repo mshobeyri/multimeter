@@ -26,7 +26,7 @@ import:
   auth: +/apis/auth.mmt     # Resolves to project/apis/auth.mmt
 ```
 
-See [Test documentation](./test.md#import) for more details on import paths.
+See [Test documentation](../test/import.md#import) for more details on import paths.
 
 Environment files also support JSON/YAML/CSV data imports for defining variables and presets:
 
@@ -38,6 +38,6 @@ variables:
   api_url: ${shared.api_url}
 ```
 
-See [Data Imports](../integration/data-imports.md).
+See [Data Imports](../../integration/data-imports.md).
 
 ---

@@ -71,4 +71,4 @@ export:
 test: ./tests/login.mmt
 ```
 
-See [Suite — Exports](./suite.md#exports) and [Load Test — Exports](./loadtest.md#export) for details.
+See [Suite — Exports](../suite/exports.md) and [Load Test — Exports](../loadtest/environment.md#export) for details.

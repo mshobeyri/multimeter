@@ -263,17 +263,6 @@ ${sliceLines(api, 761, 851).replace(/^### /gm, '## ')}
     'files/api/reference.md',
     demoteH1(sliceLines(api, 851, 873), 'Reference'),
   )
-
-  // stub redirect note at old path
-  write(
-    'files/api.md',
-    `# API
-
-This page moved into short sections under [API](./api/index.md).
-
-Start with the [overview](./api/index.md) or [quick start](./api/quick-start.md). Protocols: [HTTP](../protocols/http.md), [WebSocket](../protocols/websocket.md), [GraphQL](../protocols/graphql.md), [gRPC](../protocols/grpc.md).
-`,
-  )
 }
 
 // ---------- TEST ----------
@@ -391,7 +380,7 @@ ${stepsSection.replace(/^## Steps\n?/, '')}
 | [run](./run.md) | Start an imported mock server |
 | [Inline expect](./run-expect.md) | Validate call outputs on the same step |
 | [check / assert](./assert.md) | Validate values; assert stops the flow |
-| [Assert operators](./assert-operators.md) | Comparison operators for checks |
+| [check — Operators](./check.md#operators) | Comparison operators for checks |
 | [Control flow](./control-flow.md) | \`if\`, \`for\`, \`repeat\`, \`delay\` |
 | [js](./js.md) | Inline JavaScript |
 | [Variables](./variables.md) | \`print\`, \`set\`, \`var\`, \`const\`, \`let\`, \`setenv\`, \`data\` |
@@ -430,13 +419,6 @@ ${sliceLines(test, 659, 708).replace(/^### /gm, '## ')}
     'files/test/reference.md',
     demoteH1(sliceLines(test, 750, 770), 'Reference'),
   )
-  write(
-    'files/test.md',
-    `# Test
-
-Moved to short pages under [Test](./test/index.md).
-`,
-  )
 }
 
 // ---------- ENV ----------
@@ -450,7 +432,7 @@ ${sliceLines(env, 1, 5).replace(/^# Environment[^\n]*\n*/, '')}
 
 ${sliceLines(env, 5, 73)}
 
-Next: [CLI](./cli.md) · [UI](./ui.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
+Next: [Environment variables panel](./ui.md) · [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
 `,
   )
   write('files/env/cli.md', demoteH1(sliceLines(env, 73, 93), 'CLI presets'))
@@ -480,10 +462,6 @@ ${sliceLines(env, 141, 153)}
     'files/env/reference.md',
     demoteH1(sliceLines(env, 134, 141), 'Reference'),
   )
-  write(
-    'files/env.md',
-    `# Environment\n\nMoved to [Environment](./env/index.md).\n`,
-  )
 }
 
 // ---------- SUITE ----------
@@ -497,19 +475,15 @@ ${sliceLines(suite, 1, 18).replace(/^# Suite[^\n]*\n*/, '')}
 
 ${sliceLines(suite, 18, 63).replace(/^## Elements\n/, '## Elements\n')}
 
-Next: [Execution](./execution.md) · [UI](./ui.md) · [CLI](./cli.md) · [Reference](./reference.md)
+Next: [Execution](./execution.md) · [CLI](./cli.md) · [Reference](./reference.md)
 `,
   )
   write(
     'files/suite/execution.md',
     `# Execution
 
-${sliceLines(suite, 63, 124).replace(/^### /gm, '## ')}
+${sliceLines(suite, 63, 158).replace(/^### /gm, '## ')}
 `,
-  )
-  write(
-    'files/suite/ui.md',
-    demoteH1(sliceLines(suite, 124, 158), 'UI and execution'),
   )
   write(
     'files/suite/cli.md',
@@ -519,7 +493,6 @@ ${sliceLines(suite, 63, 124).replace(/^### /gm, '## ')}
     'files/suite/reference.md',
     demoteH1(sliceLines(suite, 260, 275), 'Reference'),
   )
-  write('files/suite.md', `# Suite\n\nMoved to [Suite](./suite/index.md).\n`)
 }
 
 // ---------- DOC ----------
@@ -551,7 +524,6 @@ Next: [Try It](./try-it.md) · [Environment](./environment.md) · [Annotations](
     'files/doc/reference.md',
     demoteH1(sliceLines(doc, 199, 213), 'Reference'),
   )
-  write('files/doc.md', `# Doc\n\nMoved to [Doc](./doc/index.md).\n`)
 }
 
 // ---------- SERVER ----------
@@ -599,10 +571,6 @@ ${sliceLines(server, 221, 271).replace(/^### /gm, '## ')}
     'files/server/in-suites.md',
     demoteH1(sliceLines(server, 302, 331), 'Using in suites'),
   )
-  write(
-    'files/server.md',
-    `# Mock Server\n\nMoved to [Mock Server](./server/index.md).\n`,
-  )
 }
 
 // ---------- LOADTEST ----------
@@ -641,10 +609,6 @@ ${sliceLines(lt, 192, 215)}
   write(
     'files/loadtest/reference.md',
     demoteH1(sliceLines(lt, 215, 233), 'Reference'),
-  )
-  write(
-    'files/loadtest.md',
-    `# Load Test\n\nMoved to [Load Test](./loadtest/index.md).\n`,
   )
 }
 
@@ -696,10 +660,6 @@ ${sliceLines(report, 291, 364)}
   write(
     'files/report/ci.md',
     demoteH1(sliceLines(report, 388, 452), 'CI/CD integration'),
-  )
-  write(
-    'files/report.md',
-    `# Report\n\nMoved to [Report](./report/index.md).\n`,
   )
 }
 

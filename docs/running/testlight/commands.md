@@ -15,6 +15,6 @@
   - Options:
     - `-o, --out <file>` — write output to file (default: `<docname>.html` in the current directory)
     - `--md` — generate Markdown instead of HTML
-  - See [Doc](../files/doc/index.md) for authoring `type: doc` files
+  - See [Doc](../../files/doc/index.md) for authoring `type: doc` files
 - version-info
   - Print the CLI and Node.js version

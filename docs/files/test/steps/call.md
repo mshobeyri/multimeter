@@ -156,7 +156,7 @@ Set `debug: true` to log every top-level output key without writing individual c
 
 Caching is configured on the **imported test file** (`cache:` at test root), not on the call step. When a cached test is called again in the same root run with the same title and inputs, Multimeter reuses the previous outputs. Caller `expect` / `check` / `assert` still run. See [cache](../cache.md).
 
-Example: [Imports — API and nested test calls](../../../examples/intermediate/06_imports/README.md)
+Example: [Imports — API and nested test calls](../../../../examples/intermediate/06_imports/README.md)
 
 ---
 

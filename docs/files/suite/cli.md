@@ -40,4 +40,4 @@ items:
 
 Report exports and other root-only fields: [Suite exports](./exports.md).
 
-Next: [Exports](./exports.md) · [Execution](./execution.md) · [UI](./ui.md)
+Next: [Exports](./exports.md) · [Execution](./execution.md) · [Suite panel UI](./index.md#suite-panel-ui)

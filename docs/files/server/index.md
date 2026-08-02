@@ -17,7 +17,7 @@ A lightweight mock server built into Multimeter to prototype and test clients wi
 
 Use it during development to inspect requests, echo (reflect) them back, and simulate simple responses for HTTP and WebSocket.
 
-![Mock server](../screenshots/mock_server.png)
+![Mock server](../../screenshots/mock_server.png)
 
 ## What you can use it for
 - Frontend/mobile prototyping before the real API is ready

@@ -25,6 +25,6 @@
   - Write result JSON to a file
 - --report <format>
   - Generate a test report after the run: `junit`, `mmt`, `html`, `md`, or `md-detailed`
-  - See [reports.md](../files/report/index.md) for format details and CI/CD integration
+  - See [reports.md](../../files/report/index.md) for format details and CI/CD integration
 - --report-file <path>
   - Custom output path for the report file (default depends on format)

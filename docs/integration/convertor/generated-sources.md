@@ -17,4 +17,4 @@ Source-specific conversion details. See [What gets generated](./generated-output
 - **Response debug**: Converted request steps include `debug: true` so responses are visible in the run output on first run.
 - **HTTP runtime mapping**: When you open a `.http` file in the Multimeter HTTP editor, each request is converted to an internal test step with `debug: true` so responses appear in the run panel without saving to `.mmt` first.
 
-See also: [What gets generated](./generated-output.md) · [Postman features](./generated-postman.md) · [HTTP Files](../http-files.md) · [Bruno Files](../bruno-files.md)
+See also: [What gets generated](./generated-output.md) · [Postman features](./generated-postman.md) · [HTTP Files](../http-files/index.md) · [Bruno Files](../bruno-files/index.md)

@@ -9,7 +9,7 @@ Load tests produce compact load-oriented reports. They do **not** keep every ind
 - Markdown reports include overview, metric tables, Mermaid `xychart` blocks, and snapshot tables.
 - JUnit XML reports keep normal `<testsuites>` compatibility and write load metrics as `<property>` values such as `load.threads`, `load.throughput`, and `load.snapshots.0.at`.
 
-See [Reports — Load Test Report Schema](./report.md#load-test-report-schema) for the generated report shape.
+See [Reports — Load Test Report Schema](../report/yaml.md#load-test-report-schema) for the generated report shape.
 
 ## Differences from suites
 
