@@ -139,6 +139,7 @@ const roadmap: RoadmapMonth[] = [
     month: 'August',
     year: 2026,
     items: [
+      { title: 'Test call caching (cache on imported tests within a run)', status: 'done' },
       { title: 'Multipart form-data & file upload bodies', status: 'planned' },
       { title: 'Response schema / contract validation (JSON Schema)', status: 'planned' },
       { title: 'CLI tag filtering (testlight --tags)', status: 'planned' },
