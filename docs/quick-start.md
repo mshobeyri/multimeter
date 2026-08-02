@@ -71,20 +71,20 @@ Create `echo_test.mmt`:
 
 ```yaml
 type: test
-title: Echo POST
+title: Simple HTTP test
+description: Calls an HTTP endpoint directly and checks the response
 steps:
-  - http:
-      url: https://test.mmt.dev/post
-      method: post
-      format: json
-      body:
-        hello: world
-  - expect:
+  - http: https://test.mmt.dev/echo
+    title: Send an echo request
+    method: post
+    body:
+      message: hello world
+    expect:
       status: 200
-      body.json.hello: world
+      body.body.message: hello world
 ```
 
-Click {{btn:play:Run}} — the Log panel shows whether checks passed.
+Click {{btn:play:Run test}} — the Report panel shows whether checks passed.
 
 ## Next steps
 

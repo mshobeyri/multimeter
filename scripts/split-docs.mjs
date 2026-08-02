@@ -279,19 +279,92 @@ Start with the [overview](./api/index.md) or [quick start](./api/quick-start.md)
 // ---------- TEST ----------
 {
   const test = read('files/test.md')
-  const intro = sliceLines(test, 1, 45)
 
+  // Test overview is hand-maintained (UI-first, screenshot, correct http step syntax).
+  // Do not regenerate from files/test.md — that stub no longer holds intro content.
   write(
     'files/test/index.md',
     `# Test
 
-${intro.replace(/^# Test\n*/, '')}
+Use \`type: test\` to define a test MMT file. Open a test file in VS Code to get the **test runner** on the right (YAML stays on the left).
 
-## Structure
+![Test runner — Simple HTTP test, Overview stats, and Report steps](../../screenshots/test-runner.png)
 
-- [import](./import.md) · [cache](./cache.md)
+## YAML editor
+
+Run glyphs appear in the left margin of the YAML pane:
+
+| Control | What it does |
+|---|---|
+| {{btn:run}} on \`type:\` | Run the test through core (opens log output) |
+
+## Test runner UI
+
+### Top bar
+
+| Control | What it does |
+|---|---|
+| **Title** | Test title from \`title:\` (shown with the beaker icon) |
+| {{btn:type-hierarchy-sub:Flow chart}} | Opens the flowchart view for the test steps |
+| {{btn:edit:Edit Test}} | Switches to **edit mode**: Overview, Flow, and Code tabs. Use the back control to return to the runner |
+
+### Run bar
+
+| Control | What it does |
+|---|---|
+| {{btn:play:Run test}} | Runs the test flow. While running, turns into **Stop test** |
+| Right-click Run test | Context menu: **Run in Core** |
+| {{btn:export:Export}} | Export the run report (HTML, JSON, or Markdown). Disabled until a run completes |
+
+### After a run
+
+| Section | What you see |
+|---|---|
+| **Inputs** | Runtime input values when the test defines \`inputs:\` |
+| **Outputs** | Extracted output values when the test defines \`outputs:\` |
+| **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards |
+| **Report** | Step-by-step results with pass/fail status and timestamps |
+
+### Edit Test mode
+
+| Tab | What you see |
+|---|---|
+| **Overview** | Title, description, tags, imports |
+| **Flow** | Visual step editor for \`steps:\` or \`stages:\` |
+| **Code** | Raw YAML view |
+
+## Supported
+
+- Step types: [call](./call.md), [http](./http.md), [run](./run.md), [assert](./assert.md), [check](./assert.md), [expect](./run-expect.md)
+- [Control flow](./control-flow.md): \`if\`, \`for\`, \`repeat\`, \`delay\`
+- [Stages](./stages.md) with parallel \`group\` execution
+- [import](./import.md) · [cache](./cache.md) · [js](./js.md) · [Variables](./variables.md)
+
+Multimeter can also run \`.http\`, \`.https\`, and \`.bru\` files as test flows through the optional VS Code **Open With...** editors. See [HTTP Files](../../integration/http-files/index.md) and [Bruno Files](../../integration/bruno-files/index.md).
+
+Sample:
+
+\`\`\`yaml
+type: test
+title: Simple HTTP test
+description: Calls an HTTP endpoint directly and checks the response
+steps:
+  - http: https://test.mmt.dev/echo
+    title: Send an echo request
+    method: post
+    body:
+      message: hello world
+    expect:
+      status: 200
+      body.body.message: hello world
+\`\`\`
+
+## Test elements
+
+- [Quick start](../../quick-start.md#5-try-a-test) · [Write a test flow](../../tasks/write-test-flow.md)
+- [import](./import.md) · [cache](./cache.md) · [cache examples](./cache-examples.md)
 - [Stages & steps](./stages.md)
-- Steps: [call](./call.md) · [http](./http.md) · [run](./run.md) · [assert](./assert.md)
+- Steps: [call](./call.md) · [http](./http.md) · [run](./run.md) · [expect](./run-expect.md) · [assert](./assert.md) · [operators](./assert-operators.md)
 - [Control flow](./control-flow.md) · [js](./js.md) · [Variables](./variables.md)
 - [Stage condition](./stage-condition.md) · [Complete example](./complete-example.md) · [Reference](./reference.md)
 `,
