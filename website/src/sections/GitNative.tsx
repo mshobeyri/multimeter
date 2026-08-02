@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import FadeIn from '../components/FadeIn'
 import { GitBranch } from 'lucide-react'
 
-const COMMIT_TEXT = 'git commit -m "Add title and an example to reproduce bug 1234"'
+const COMMIT_TEXT = 'git commit -m "Add reflected message as output"'
 const CHAR_SPEED = 45     // ms per character
 
 function TypingBox() {
