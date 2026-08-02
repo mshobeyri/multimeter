@@ -10,18 +10,23 @@ method: get
 format: json
 ```
 
+Open the file in VS Code and click {{btn:send:Send}}. The Response panel shows status, headers, and body.
+
 - `format` encodes/decodes the body (default `json`) — see [Format](./body/format.md)
 - Protocol is inferred from the URL (`ws://` → WebSocket, otherwise HTTP)
 
-Add `query` when you need query parameters (merged with any query string in `url`):
+For POST with a JSON body, add `body`:
 
 ```yaml
 type: api
-url: https://test.mmt.dev/json
-method: get
+title: Echo JSON
+url: https://test.mmt.dev/echo
+method: post
 format: json
-query:
-  limit: "10"
+body:
+  message: hello world
 ```
+
+The echo server returns your payload in the response — useful for checking what was sent.
 
 More: [Body](./body/index.md) · [HTTP](./protocols/http.md) · [HTTP bodies](./protocols/http-bodies.md) · [WebSocket](./protocols/websocket.md) · [GraphQL](./protocols/graphql.md) · [gRPC](./protocols/grpc.md)
