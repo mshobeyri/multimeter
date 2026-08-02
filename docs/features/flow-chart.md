@@ -4,6 +4,8 @@ Visualize a test or suite as a read-only flow diagram — steps, branches, loops
 
 Use **Flow chart** when you want to understand execution order without stepping through YAML or the edit-mode Flow tab. The diagram is pan/zoom-able and stays inside the same panel as the runner (swipe in, **Back** to return).
 
+![Flow chart — test steps from start trigger through call to end point](../screenshots/flow-chart.png)
+
 ## Where it is available
 
 | File type | Top-bar control | What the diagram shows |
