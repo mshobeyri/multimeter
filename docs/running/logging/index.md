@@ -2,6 +2,8 @@
 
 Multimeter logs detailed information when running `.mmt` files. Logs are organized by **level** so you can control how much detail you see.
 
+For a short overview of the VS Code Output panel and level filter, see [Logging (Features)](../../features/logging.md).
+
 ## In this section
 
 - [Log levels](./log-levels.md)

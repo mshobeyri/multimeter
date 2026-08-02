@@ -28,4 +28,6 @@ Tip: For WS, use tests to send/receive frames with `call` steps that invoke this
 ```
 
 
-Tip: drive frames from [test `call` steps](../../test/steps/call.md). Live sessions also appear in the Connections panel.
+Tip: drive frames from [test `call` steps](../../test/steps/call.md).
+
+See also: [Connections panel](../../../features/connections.md) · [API tester](../../index.md)

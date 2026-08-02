@@ -34,3 +34,5 @@ Client certificates, mTLS, and custom CA trust are configured in your environmen
 POST bodies (JSON, XML, urlencoded, binary, text): [HTTP bodies](./http-bodies.md).
 
 Next: [HTTP bodies](./http-bodies.md) · [GraphQL](./graphql.md) · [WebSocket](./websocket.md) · [gRPC](./grpc.md)
+
+See also: [Connections panel](../../../features/connections.md) — live HTTP keep-alive sockets

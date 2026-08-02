@@ -531,6 +531,14 @@
         "path": "features/history.md"
       },
       {
+        "title": "Logging",
+        "path": "features/logging.md"
+      },
+      {
+        "title": "Connections",
+        "path": "features/connections.md"
+      },
+      {
         "title": "Flow chart",
         "path": "features/flow-chart.md"
       },

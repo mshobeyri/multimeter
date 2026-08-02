@@ -137,4 +137,4 @@ For run-summary cards and step reports, see [Reports](../reports.md).
 
 ---
 
-See also: [assert](./assert.md) · [call — expect](./call.md#expect) · [Inline expect](./run-expect.md) · [Outputs](../../api/outputs.md)
+See also: [assert](./assert.md) · [call — expect](./call.md#expect) · [Inline expect](./run-expect.md) · [Outputs](../../api/outputs.md) · [Logging (Output panel)](../../../features/logging.md)
