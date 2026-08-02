@@ -230,32 +230,39 @@ describe("inline call check/assert autocomplete context", () => {
   });
 });
 
+function suggestionsByParent(): Record<string, any[]> {
+  jest.resetModules();
+  jest.doMock("../workspaceStorage", () => ({
+    loadEnvVariables: jest.fn(),
+  }));
+  (global as any).window = {
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    vscode: { postMessage: jest.fn() },
+  };
+  const { KeySuggestionsByParent } = require("./AutoComplete");
+  const monaco = {
+    languages: {
+      CompletionItemKind: {
+        Keyword: 1,
+        Function: 2,
+        EnumMember: 3,
+        Property: 4,
+        Variable: 5,
+        Operator: 6,
+      },
+      CompletionItemInsertTextRule: {
+        InsertAsSnippet: 4,
+      },
+    },
+  };
+  return KeySuggestionsByParent(monaco);
+}
+
 describe("API output expression autocomplete", () => {
   it("offers default response output expressions", () => {
-    jest.resetModules();
-    jest.doMock("../workspaceStorage", () => ({
-      loadEnvVariables: jest.fn(),
-    }));
-    (global as any).window = {
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      vscode: { postMessage: jest.fn() },
-    };
-    const { KeySuggestionsByParent } = require("./AutoComplete");
-    const monaco = {
-      languages: {
-        CompletionItemKind: {
-          Keyword: 1,
-          Function: 2,
-          EnumMember: 3,
-          Property: 4,
-          Variable: 5,
-        },
-      },
-    };
-
     const labels = new Set(
-      KeySuggestionsByParent(monaco).outputs.map((item: any) => item.label),
+      suggestionsByParent().outputs.map((item: any) => item.label),
     );
 
     expect(labels.has("status")).toBe(true);
@@ -266,5 +273,27 @@ describe("API output expression autocomplete", () => {
     expect(labels.has("cookies")).toBe(true);
     expect(labels.has("cookies.*")).toBe(true);
     expect(labels.has("duration")).toBe(true);
+  });
+});
+
+describe("operator autocomplete wiring", () => {
+  it("offers =~ / !~ for operator: values and inline expect values", () => {
+    const byParent = suggestionsByParent();
+    const operatorInserts = byParent.operator.map((item: any) => item.insertText);
+    expect(operatorInserts).toContain(' "=~"');
+    expect(operatorInserts).toContain(' "!~"');
+
+    const expectInserts = byParent["expect-value"].map((item: any) => item.insertText);
+    expect(expectInserts).toContain(" =~ ");
+    expect(expectInserts).toContain(" !~ ");
+  });
+
+  it("offers the string and length compare operators too", () => {
+    const expectFilters = suggestionsByParent()["expect-value"].map(
+      (item: any) => item.filterText,
+    );
+    for (const op of ["=i", "!i", "=X", "!X", "=iX", "!iX", "<#", "<=#", ">#", ">=#"]) {
+      expect(expectFilters).toContain(op);
+    }
   });
 });

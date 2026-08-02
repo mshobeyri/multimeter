@@ -13,6 +13,23 @@ describe("testUiRefresh", () => {
     )).toEqual({ host: "localhost", n: 1 });
   });
 
+  test("resolveInputDefaults composes sibling i: refs and accessors", () => {
+    expect(resolveInputDefaults(
+      {
+        card: "e:card",
+        seq: "e:seq",
+        short: "<<i:card[0:4]>>",
+        id: "<<i:short>>_<<i:seq>>",
+      },
+      { card: "4111111111111111", seq: "42" },
+    )).toEqual({
+      card: "4111111111111111",
+      seq: "42",
+      short: "4111",
+      id: "4111_42",
+    });
+  });
+
   test("applyEnvRefreshToInputs skips dirty keys", () => {
     const prev = { host: "stale", user: "edited" };
     const next = applyEnvRefreshToInputs(

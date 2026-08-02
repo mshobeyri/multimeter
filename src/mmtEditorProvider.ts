@@ -1,8 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import {withNewline} from 'mmt-core/textLines';
 
 import {HistoryManager} from './historyManager';
+import {keepMmtEditorSoon} from './keepEditor';
 import {messageReceived} from './mmtAPI/mmtAPI';
 import {buildThemeTokenMessage} from './themeTokenColors';
 
@@ -39,7 +41,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     });
   }
 
-  private getEditorConfigMessage() {
+  public getEditorConfigMessage() {
     try {
       const config = vscode.workspace.getConfiguration('multimeter');
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
@@ -170,14 +172,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     // CRLF. Convert to the document EOL before compare/replace so we do not
     // full-rewrite on every keystroke (that races echo and jumps the cursor).
     const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-    const normalized = String(text ?? '')
-                           .replace(/\r\n/g, '\n')
-                           .replace(/\r/g, '\n')
-                           .split('\n')
-                           .join(eol);
+    const normalized = withNewline(String(text ?? ''), eol);
     if (document.getText() === normalized) {
       return Promise.resolve(true);
     }
+    // UI/YAML edits should keep a preview tab open (same idea as a dirty file).
+    keepMmtEditorSoon(document.uri);
     const key = document.uri.toString();
     this._webviewEditCount.set(
         key, (this._webviewEditCount.get(key) || 0) + 1);

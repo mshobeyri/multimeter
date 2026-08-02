@@ -255,18 +255,25 @@ function formatBody(
   }
 }
 
+/**
+ * Collapse `xml-js` compact nodes for YAML round-trips:
+ * text-only elements become their text, repeated elements stay arrays, and
+ * attributes are preserved so converting back to XML keeps them.
+ */
 function flattenXmlObj(obj: any): any {
-  // This is a naive flatten for simple XML structures
+  if (Array.isArray(obj)) {
+    return obj.map(flattenXmlObj);
+  }
   if (typeof obj !== 'object' || obj === null) {
     return obj;
   }
+  const keys = Object.keys(obj);
+  if (keys.length === 1 && keys[0] === '_text') {
+    return obj._text;
+  }
   const result: any = {};
-  for (const key in obj) {
-    if (typeof obj[key] === 'object' && '_text' in obj[key]) {
-      result[key] = obj[key]._text;
-    } else {
-      result[key] = flattenXmlObj(obj[key]);
-    }
+  for (const key of keys) {
+    result[key] = flattenXmlObj(obj[key]);
   }
   return result;
 }

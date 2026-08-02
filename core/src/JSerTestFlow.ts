@@ -115,11 +115,13 @@ const singleComparisonToJSfunc = (check: string): string => {
     case '!C':
       return `notContains_(${actualTemplate}, ${expectedTemplate})`;
     case '=*':
-    case '=~':
       return `matches_(${actualTemplate}, ${expectedTemplate})`;
     case '!*':
-    case '!~':
       return `notMatches_(${actualTemplate}, ${expectedTemplate})`;
+    case '=~':
+      return `equalsAsString_(${actualTemplate}, ${expectedTemplate})`;
+    case '!~':
+      return `notEqualsAsString_(${actualTemplate}, ${expectedTemplate})`;
     case '=^':
       return `startsWith_(${actualTemplate}, ${expectedTemplate})`;
     case '!^':
@@ -405,7 +407,9 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
     ? JSON.stringify('omit')
     : expectValueToJs(expected);
   // Strip ${...} from comparison display string so UI shows clean field names
-  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1').replace(/__MMT_OMIT_KEYWORD__/g, 'omit');
+  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1')
+                         .split(OMIT_SENTINEL)
+                         .join(OMIT_KEYWORD);
   return `check_(${conditionStatement}, '${type}', ${JSON.stringify(displayRaw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
 };
 
@@ -527,11 +531,13 @@ const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expec
     case '!C':
       return `notContains_(${actualExpr}, ${expectedExpr})`;
     case '=*':
-    case '=~':
       return `matches_(${actualExpr}, ${expectedExpr})`;
     case '!*':
-    case '!~':
       return `notMatches_(${actualExpr}, ${expectedExpr})`;
+    case '=~':
+      return `equalsAsString_(${actualExpr}, ${expectedExpr})`;
+    case '!~':
+      return `notEqualsAsString_(${actualExpr}, ${expectedExpr})`;
     case '=^':
       return `startsWith_(${actualExpr}, ${expectedExpr})`;
     case '!^':

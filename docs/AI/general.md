@@ -25,7 +25,7 @@ When you are the AI, follow these rules:
 	  - Explain concepts in plain language.
 	  - Use small inline examples.
 	  - Do **not** open generator files unless you need exact shapes.
-	- If the user explicitly asks to create/edit a `.mmt` file:
+	- If the user explicitly asks to create/edit a `.mmt` `file:`
 	  - Open **`AI/generate.md`**.
 	  - Follow its instructions to choose the type and generator.
 

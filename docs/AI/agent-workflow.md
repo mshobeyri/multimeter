@@ -25,7 +25,7 @@ Do **not** first try:
 
 ## Modify workflow (required)
 
-When the user asks to **modify**, **update**, **fix**, or **add steps** to a `.mmt` file:
+When the user asks to **modify**, **update**, **fix**, or **add steps** to a `.mmt` `file:`
 
 1. `read_documentation(topic: "<type>")` — pick `test`, `api`, `suite`, etc.
 2. If the file imports APIs, call `discover_api({ workspaceRoot, apiPath })` when helpful.
@@ -37,7 +37,7 @@ When the user asks to **modify**, **update**, **fix**, or **add steps** to a `.m
 
 ## Run workflow (required)
 
-When the user asks to **run**, **execute**, or **test** a file:
+When the user asks to **run**, **execute**, or **test** a `file:`
 
 ```
 run({ file: "<path/to/file.mmt>", workspaceRoot: "<workspace root>" })

@@ -1,16 +1,59 @@
 import {JSONValue} from './CommonData';
 import {Type} from './CommonData';
-import {toTemplateValueJs} from './variableReplacer';
+import {collectInputRefsFromObject, toTemplateValueJs} from './variableReplacer';
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '  ' + line).join('\n').slice(2);
 }
 
+/**
+ * Order input keys so destructuring defaults can reference earlier siblings
+ * (`xx = \`asd_${message}\`` needs `message` declared first).
+ */
+export function orderInputKeysForDefaults(
+    inputs: Record<string, JSONValue>): string[] {
+  const keys = Object.keys(inputs ?? {});
+  const keySet = new Set(keys);
+  const deps = new Map<string, string[]>();
+  for (const key of keys) {
+    const refs = collectInputRefsFromObject(inputs[key])
+                     .filter(ref => ref !== key && keySet.has(ref));
+    deps.set(key, refs);
+  }
+
+  const ordered: string[] = [];
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  const visit = (key: string) => {
+    if (visited.has(key)) {
+      return;
+    }
+    if (visiting.has(key)) {
+      return;
+    }
+    visiting.add(key);
+    for (const dep of deps.get(key) || []) {
+      visit(dep);
+    }
+    visiting.delete(key);
+    visited.add(key);
+    ordered.push(key);
+  };
+
+  for (const key of keys) {
+    visit(key);
+  }
+  return ordered;
+}
+
 export const toInputsParams =
     (inputs: Record<string, JSONValue>, operator: string) => {
+      const source = inputs ?? {};
       const formattedInputs =
-          Object.entries(inputs ?? {})
-              .map(([key, value]) => {
+          orderInputKeysForDefaults(source)
+              .map(key => {
+                const value = source[key];
                 let formatted: string;
                 if (typeof value === 'string') {
                   formatted = toTemplateValueJs(value);
@@ -92,6 +135,62 @@ export function isDurationExpression(value: string): boolean {
     return false;
   }
   return DURATION_EXPRESSION_RE.test(trimmed);
+}
+
+/**
+ * Parse a test `cache` scalar into an absolute expiry timestamp (ms since epoch).
+ *
+ * Detection order (see AI/sdd/sdd-test-call-cache.md):
+ * 1. Duration grammar (`1s`, `5m`, `1h5m`) → `nowMs + duration`
+ * 2. String containing `:` → Date.parse (ISO / standard time text)
+ * 3. Bare number (or numeric string) → Unix epoch (seconds if &lt; 1e12, else ms)
+ */
+export function parseCacheExpiryAtMs(
+    value: unknown, nowMs: number = Date.now()): number|undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || value < 0) {
+      return undefined;
+    }
+    return value < 1e12 ? Math.round(value * 1000) : Math.round(value);
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (isDurationExpression(trimmed)) {
+    const durationMs = parseDurationString(trimmed);
+    if (durationMs === undefined) {
+      return undefined;
+    }
+    return nowMs + durationMs;
+  }
+
+  if (trimmed.includes(':')) {
+    const parsed = Date.parse(trimmed);
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+    return parsed;
+  }
+
+  if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
+    const n = Number(trimmed);
+    if (!Number.isFinite(n) || n < 0) {
+      return undefined;
+    }
+    return n < 1e12 ? Math.round(n * 1000) : Math.round(n);
+  }
+
+  return undefined;
 }
 
 /**

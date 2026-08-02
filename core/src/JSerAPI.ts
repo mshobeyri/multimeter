@@ -202,6 +202,7 @@ ${binaryLoadLines}  const req_ = {
     body: ${bodyExpr}
   };
 ${authCode}
+  applyOmitToRequest_(req_, '${reqFormat}');
   const res_ = await send_(req_);
 
   const __extractSource_ = {
@@ -322,6 +323,7 @@ ${authCode}
     message: ${messageExpr},
     stream: ${streamExpr}
   };
+  applyOmitToRequest_(__grpcReq);
   const __grpcRes = await sendGrpc_(__grpcReq);
 
   // Parse gRPC response message

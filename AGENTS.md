@@ -10,7 +10,7 @@
   - `docs/`: user-facing documentation (API, test, env, suite, CLI, convertor, etc.).
   - `AI/`: internal AI-assisted development artifacts. Not shipped to users.
     - `sdd/`: Software Design Documents (SDDs) — architectural decisions, competitive strategy, feature designs.
-    - `skill/`: reusable skill/procedure documents (e.g. release & deploy workflows).
+    - `skills/`: local/dev agent skills and procedures (flat `.md` files, e.g. LinkedIn/YouTube posts, release & deploy). Not part of the published Cursor plugin.
     - `doc/`: handover and context documents for AI agent sessions.
 - **Single source of truth** for running `.mmt` files is `core/src/runner.ts`:
   - Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, jsRunner, logger })`.
@@ -44,16 +44,16 @@
 
 ## CLI (`mmtcli/`) workflow
 - Entrypoint: `mmtcli/src/cli.ts` wraps `core` and exposes the `testlight` binary.
-- Typical usage (see `mmtcli/README.md` and `docs/testlight.md`):
+- Typical usage (see `mmtcli/README.md` and `docs/features/testlight/index.md`):
   - `npx testlight run path/to/test.mmt`
   - Pass env via `--env-file`, `--preset`, and `-e KEY=VALUE` flags; types are coerced by `coerceCliValue`/`parsePairs` in `cli.ts` (unquoted numbers/bools → numbers/bools, quoted → strings).
 - If you add new CLI flags, wire them through to `runner.runFile` rather than duplicating parsing/execution.
 
 ## `.mmt` data model and docs
 - `.mmt` is YAML with `type` driving behavior, parsed by `JSer.fileType`:
-  - `type: api` → HTTP/WebSocket API definitions (see `docs/api-mmt.md`).
-  - `type: test` → executable test flows (`call`, `assert`, `check`, etc.; see `docs/test-mmt.md`).
-  - `type: env` → environment and variable files (see `docs/environment-mmt.md`).
+  - `type: api` → HTTP/WebSocket API definitions (see `docs/files/api/index.md`).
+  - `type: test` → executable test flows (`call`, `assert`, `check`, etc.; see `docs/files/test/index.md`).
+  - `type: env` → environment and variable files (see `docs/files/env/index.md`).
 - Converters and docs:
   - `core/src/openapiConvertor.ts`, `postmanConvertor.ts`: turn OpenAPI/Postman into `.mmt` API/test files.
   - `core/src/docHtml.ts`, `docMarkdown.ts`, `docParsePack.ts` and `res/doc-template.html`: generate HTML/Markdown API docs from `.mmt`.
@@ -69,18 +69,22 @@
 
 ## Workflow / agent rules
 
+- After completing a coding request that changes source, run `npm run compile` at the repo root and fix any compile errors before finishing (or before committing when a commit was requested).
 - Do **NOT** create, stage, or push git commits unless the user explicitly asks you to do so. Always ask for confirmation before running any `git add`, `git commit`, or `git push` operations. You may edit files in the workspace to make suggested changes, but do not record those changes in version control until the user gives explicit permission. When edits are made without committing, clearly list the modified files and the intended commit message so the user can approve.
+- Do **NOT** touch `CHANGELOG.md` for regular fixes or features. It is written only as part of the release workflow, from the commits included in that release.
 
 ### Release workflow
 
 When the user says **"release version X.Y.Z"** (or "release version X.Y.Z pre-release"):
 
 1. Update the `version` field in the root `package.json` to `X.Y.Z`.
-2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed)
-3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
-4. Run `npm run pack` at the repo root to produce the `.vsix`.
+2. Update the `version` field in `.cursor-plugin/plugin.json` to the same `X.Y.Z` (keep the Cursor plugin manifest in sync with the extension).
+3. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited.
+4. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
+5. Run `npm run pack` at the repo root to produce the `.vsix`.
    - If the user said **pre-release**, run `npm run pack-pre-release` instead.
    - Do **not** use bare `vsce package`; it packages the wrong readme. Always use `npm run pack` so `EXTENSION.md` is included.
+6. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing.
 
 ## Build, test, and packaging
 - From repo root:

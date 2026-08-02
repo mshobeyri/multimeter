@@ -31,7 +31,7 @@ When the user asks you to **create or change** a `.mmt` file, follow this order:
 	- If the user talks about running multiple tests, orchestration, collections of tests → use `type: suite`.
 	- If the user talks about concurrency, ramp-up, repeated execution, or load against one test flow → use `type: loadtest`.
 	- If the user talks about mocking, fake servers, stubbing responses, or "mock server" → use `type: server`.
-	- If the user talks about test reports, CI results, or exporting run results → `type: report` files are generated automatically. Explain the `--report` flag (see `docs/reports.md`) rather than generating a report file.
+	- If the user talks about test reports, CI results, or exporting run results → `type: report` files are generated automatically. Explain the `--report` flag (see `docs/files/report/index.md`) rather than generating a report file.
 
 2. **Jump to the detailed generator**
 	- For `type: api`, use **`AI/generate-api.md`** to shape fields and examples.
@@ -42,19 +42,19 @@ When the user asks you to **create or change** a `.mmt` file, follow this order:
 	- For `type: loadtest`, use **`AI/generate-loadtest.md`**.
 
 3. **Token syntax (always snake_case)**
-	- Environment variables: `e:api_url`, `e:auth_token`, etc.
+	- Environment `variables:` `e:api_url`, `e:auth_token`, etc.
 	- Embedded in strings/URLs: `<<e:api_url>>/users`, `Bearer <<e:auth_token>>`.
-	- Test/API inputs: `i:user_id`, `<<i:user_id>>`.
+	- Test/API `inputs:` `i:user_id`, `<<i:user_id>>`.
 	- Random: `r:uuid`, `r:first_name`, etc.
 	- Current/time: `c:date`, `c:epoch_ms`, etc.
 
 	Rules:
-	- Prefer **snake_case** for names inside tokens: `e:api_url`, `i:user_id`, not `e:API_URL`.
+	- Prefer **snake_case** for names inside tokens: `e:api_url`, `i:user_id`, not `e:api_url`.
 	- Use bare tokens as the **entire YAML value** when possible.
 	- Use `<< >>` only when embedding tokens inside a larger string.
 
 4. **Editing vs. creating**
-	- When creating a new file: start from the minimal valid skeleton in the corresponding `generate-*.md`.
+	- When creating a new `file:` start from the minimal valid skeleton in the corresponding `generate-*.md`.
 	- When editing: keep the existing structure, only add/change what the user asked, and do not remove unrelated fields.
 
 If you only need to **reason** about a user file (and not generate new YAML), prefer reading **only the relevant `AI/generate-*.md`** file to save tokens.

@@ -17,6 +17,7 @@ playwright-demo/
 AI/
 .github/
 .cursor-plugin/**
+mcp.json
 
 # Webview sources (runtime uses mmtview/build only)
 mmtview/**

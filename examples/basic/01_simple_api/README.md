@@ -35,4 +35,4 @@ All requests go to `https://test.mmt.dev`, a public HTTP test server with endpoi
 - See [Simple Test](../02_simple_test/) for a direct HTTP test.
 - See [Environment Variables](../03_environment_variables/) for using variables without editing API files.
 - See [API Authentication](../../intermediate/17_api_authentication/) for Basic, Bearer, and API key auth examples.
-- See [API docs](../../../docs/api-mmt.md) for the full `.mmt` API reference.
+- See [API docs](../../../docs/files/api/index.md) for the full `.mmt` API reference.

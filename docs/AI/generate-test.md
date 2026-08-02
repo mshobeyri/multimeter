@@ -9,7 +9,7 @@ Always follow these rules:
 
 ## Schema (mental model for the AI)
 
-These fields match `TestData` in `core/src/TestData.ts` and the public docs in `docs/test-mmt.md`.
+These fields match `TestData` in `core/src/TestData.ts` and the public docs in `docs/files/test/index.md`.
 
 Top-level keys and types:
 
@@ -30,6 +30,11 @@ inputs:                         # input variables with default values
 
 outputs:                        # top-level outputs for this test
   <name>: string                # expression or literal
+
+cache: 5m                       # optional; when this test is imported+called again
+                                # in the same root run with same title+inputs,
+                                # reuse outputs (skip callee body). Duration like
+                                # repeat/delay, epoch number, or datetime with ":"
 
 steps:                          # linear flow of steps (no stages)
   - <step>
@@ -151,7 +156,8 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
 - `=C` (contains: left contains right), `!C` (does not contain)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
-- `=*` (regex match), `!*` (regex not match). Legacy `=~` and `!~` still work.
+- `=*` (regex match), `!*` (regex not match)
+- `=~` (equal as string / type-unsafe), `!~` (not equal as string) — for XML/text string outputs vs bare YAML booleans/numbers
 - `=#` (string/number character length equals), `!#` (not equal)
 - `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
 
@@ -193,8 +199,8 @@ Example comparisons:
 
 You can use the same token syntaxes as for APIs:
 
-- Environment variables: `e:api_url`, `e:auth_token`, etc., or `<<e:api_url>>`
-- Test inputs: `i:user_id` or `<<i:user_id>>`
+- Environment `variables:` `e:api_url`, `e:auth_token`, etc., or `<<e:api_url>>`
+- Test `inputs:` `i:user_id` or `<<i:user_id>>`
 - Random values: `r:name` or `<<r:name>>`
 - Current/time values: `c:name` or `<<c:name>>`
 

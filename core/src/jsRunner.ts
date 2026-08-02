@@ -169,6 +169,12 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     (mmtHelper as any).setServerRunner_(context.serverRunner);
   }
 
+  // Fresh call-cache for each root JS execution (one editor Run / CLI run).
+  if ('clearTestCallCache_' in mmtHelper &&
+      typeof (mmtHelper as any).clearTestCallCache_ === 'function') {
+    (mmtHelper as any).clearTestCallCache_();
+  }
+
   try {
     const helperDecls =
           Object.keys(mmtHelper)

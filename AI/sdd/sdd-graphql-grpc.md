@@ -772,8 +772,8 @@ export interface NetworkAPI {
 
 | File | Change |
 |------|--------|
-| `docs/api-mmt.md` | Add GraphQL and gRPC sections with syntax and examples |
-| `docs/mmt-overview.md` | Update protocol support matrix |
+| `docs/files/api/index.md` | Add GraphQL and gRPC sections with syntax and examples |
+| `docs/overview.md` | Update protocol support matrix |
 
 ### Converters (Phase 3)
 
@@ -1038,7 +1038,7 @@ Fallback behavior when schema data is unavailable:
 7. Extend `mmtview/src/text/Schema.tsx`, `validator.ts`, and `AutoComplete.tsx` for GraphQL YAML validation and completion
 8. Update `APIInterface.tsx` and `APITester.tsx` to expose the GraphQL-specific editing tab and hide HTTP-only controls
 9. Update formatting/order logic for `graphql` block
-10. Add docs section to `api-mmt.md`
+10. Add docs section to `docs/files/api/index.md`
 11. Add unit/UI tests for parse, codegen, YAML validation, formatting, and error detection
 
 ### Phase 2 — gRPC Unary + Reflection (Medium effort, high impact)
@@ -1121,5 +1121,5 @@ Fallback behavior when schema data is unavailable:
 - `sdd-feature-gaps.md` — Gap #3 (GraphQL) and #10 (gRPC)
 - `sdd-competitive-strategy.md` — Priority 3a (GraphQL) and 3b (gRPC)
 - `sdd-auth-helpers.md` — Auth system reused by both protocols
-- `docs/api-mmt.md` — Current API syntax documentation
+- `docs/files/api/index.md` — Current API syntax documentation
 - [gRPC Server Reflection Protocol](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md) — upstream spec for `grpc.reflection.v1`

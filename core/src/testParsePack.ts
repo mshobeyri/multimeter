@@ -37,7 +37,7 @@ export const CHECK_ASSERT_VALUE_ORDER = ['title', 'actual', 'operator', 'expecte
 
 /** Valid root-level keys for type: test files. */
 const VALID_TEST_ROOT_KEYS = new Set([
-  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs',
+  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'cache',
   'steps', 'stages', 'flow',
 ]);
 
@@ -220,6 +220,7 @@ export function yamlToTest(yamlContent: string): TestData {
       import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
+      cache: doc.cache,
       steps: normalizeTestFlowSteps(doc.steps),
       stages: normalizeTestFlowStages(doc.stages),
     };
@@ -249,6 +250,9 @@ export function testToYaml(test: TestData): string {
   }
   if (isNonEmptyObject(test.outputs)) {
     yamlObj.outputs = test.outputs;
+  }
+  if (test.cache !== undefined && test.cache !== null && test.cache !== '') {
+    yamlObj.cache = test.cache;
   }
   if (Array.isArray(test.steps)) {
     yamlObj.steps = reorderSteps(test.steps);
@@ -360,6 +364,7 @@ export function yamlToTestStrict(yamlContent: string): TestData {
     import: doc.import,
     inputs: doc.inputs,
     outputs: doc.outputs,
+    cache: doc.cache,
     steps: doc.steps,
     stages: doc.stages,
   };

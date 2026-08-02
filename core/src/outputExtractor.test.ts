@@ -1,5 +1,5 @@
 import { extractOutputs, buildBodyExprFromPath, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from './outputExtractor';
-import {OMIT_SENTINEL} from './omitKeyword';
+import {OMIT_SENTINEL, isOmitSentinel} from './omitKeyword';
 
 describe('outputExtractor', () => {
   it('extracts with explicit regex prefix (legacy)', () => {
@@ -166,6 +166,93 @@ describe('outputExtractor', () => {
     };
   const res = extractOutputs(response, { name: '$body[root][name]' });
     expect(res.name).toBe('John');
+  });
+
+  describe('XML bodies with prolog, repeated elements and attributes', () => {
+    const xmlBody = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<root>',
+      '  <id>1</id>',
+      '  <name>Multimeter</name>',
+      '  <tags>',
+      '    <tag>api</tag>',
+      '    <tag>testing</tag>',
+      '    <tag>automation</tag>',
+      '  </tags>',
+      '  <nested enabled="true" count="42">',
+      '    <item key="alpha" value="1"/>',
+      '    <item key="beta" value="2"/>',
+      '  </nested>',
+      '  <empty/>',
+      '</root>',
+    ].join('\n');
+    const response = (): ResponseData => ({
+      type: 'auto',
+      body: xmlBody,
+      headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+      cookies: {},
+    });
+
+    it('extracts element text despite the XML declaration', () => {
+      const res = extractOutputs(response(), {
+        id: 'body.root.id',
+        name: 'body.root.name',
+      });
+      expect(res.id).toBe('1');
+      expect(res.name).toBe('Multimeter');
+    });
+
+    it('keeps repeated elements as arrays and indexes them', () => {
+      const res = extractOutputs(response(), {
+        tags: 'body.root.tags.tag',
+        tag_1: 'body.root.tags.tag.0',
+        tag_3: 'body.root.tags.tag.2',
+      });
+      expect(res.tags).toEqual(['api', 'testing', 'automation']);
+      expect(res.tag_1).toBe('api');
+      expect(res.tag_3).toBe('automation');
+    });
+
+    it('exposes attributes as plain keys (and via _attributes)', () => {
+      const res = extractOutputs(response(), {
+        enabled: 'body.root.nested.enabled',
+        count: 'body.root.nested.count',
+        betaKey: 'body.root.nested.item.1.key',
+        alphaValue: '$body[root][nested][item][0][value]',
+        legacy: 'body.root.nested._attributes.enabled',
+      });
+      expect(res.enabled).toBe('true');
+      expect(res.count).toBe('42');
+      expect(res.betaKey).toBe('beta');
+      expect(res.alphaValue).toBe('1');
+      expect(res.legacy).toBe('true');
+    });
+
+    it('treats empty elements as empty text and missing paths as omit', () => {
+      const res = extractOutputs(response(), {
+        empty: 'body.root.empty',
+        missing: 'body.root.nope',
+      });
+      expect(res.empty).toBe('');
+      expect(isOmitSentinel(res.missing)).toBe(true);
+    });
+
+    it('allows .0 on a single (non-repeated) element', () => {
+      const res = extractOutputs(
+          {
+            type: 'xml',
+            body: '<root><tags><tag>api</tag></tags></root>',
+            headers: {},
+            cookies: {},
+          },
+          { only: 'body.root.tags.tag.0' });
+      expect(res.only).toBe('api');
+    });
+
+    it('tolerates duplicate dots in a dot path', () => {
+      const res = extractOutputs(response(), { id: 'body..root.id' });
+      expect(res.id).toBe('1');
+    });
   });
 
   it('supports array indexing in bracket paths', () => {

@@ -22,4 +22,4 @@ An intermediate `type: doc` example that documents input parameters with options
 - **Output annotations** use `<<o:name>> Description`.
 - **`html.triable: true`** enables interactive Try buttons in rendered docs.
 
-See [Doc docs](../../../docs/doc-mmt.md#parameter-annotations-in-api-descriptions) for details.
+See [Doc docs](../../../docs/files/doc/index.md#parameter-annotations-in-api-descriptions) for details.

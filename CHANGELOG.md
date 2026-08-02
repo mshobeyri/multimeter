@@ -2,6 +2,33 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.32.0]
+
+- Add optional test call cache: declare `cache` on a test (duration, epoch, or date/time) so imported calls with the same title + inputs reuse outputs within one root run
+- Show dedicated database pass/fail icons when a step is served from cache; add Cache field on the test Edit overview and docs/example
+- Stringify objects and arrays for `=C` / `=@` / `=^` / `=$` / `=*` (and related) checks so JSON bodies work as text (e.g. `body =C POST`)
+- Support interdependent input defaults across tests and APIs (`i:` / `${inputs…}` among defaults)
+
+## [1.31.3]
+
+- Fix `omit` input removal across request formats (JSON, XML, urlencoded, headers, cookies, query) and test `call` inputs
+- Improve omit handling so unquoted `omit` drops fields instead of sending a literal value; quoted `"omit"` stays a string
+- Add report integration tests for omit behavior and report levels
+
+## [1.31.2]
+
+- Keep the editor undo history when the UI rewrites YAML, so Ctrl+Z still works after Add example or any UI-driven update
+- Fix the API tester auto-format toggle showing off on newly opened files
+- Suggest every compare operator (including `=~` / `!~`) in check/assert autocomplete
+
+## [1.31.1]
+
+- Redefine `=~` / `!~` as type-unsafe (as-string) equality for XML/text values vs YAML bools/numbers; regex stays on `=*` / `!*`
+- Fix XML output extraction: ignore the XML declaration and comments (no more `body..root`), keep repeated elements as arrays with working indices, and read attributes as plain keys
+- Format `md-detailed` report body blocks from Content-Type (json/xml/urlencoded/text) instead of always `json`
+- Fix Windows Monaco cursor jumps and undo emptying the editor
+- Use the refresh icon for Reset to YAML
+
 ## [1.31.0]
 
 - Unify panel UI chrome: shared `TabBar`, `PrimaryButton`, `RunStopToggle`, `PanelRunHeader`, `PanelEditHeader`, and suite `TreeRunButton`

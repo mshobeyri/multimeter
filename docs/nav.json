@@ -1,0 +1,753 @@
+[
+  {
+    "title": "Get started",
+    "items": [
+      {
+        "title": "Getting Started",
+        "path": "quick-start.md"
+      },
+      {
+        "title": "Install",
+        "path": "install.md"
+      }
+    ]
+  },
+  {
+    "title": "MMT Files",
+    "items": [
+      {
+        "title": "Overview",
+        "path": "files.md",
+        "icon": "files"
+      },
+      {
+        "title": "API",
+        "path": "files/api/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/api/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/api/quick-start.md"
+          },
+          {
+            "title": "Edit API",
+            "path": "files/api/edit.md"
+          },
+          {
+            "title": "Protocols",
+            "path": "files/api/protocols/index.md",
+            "children": [
+              {
+                "title": "Overview",
+                "path": "files/api/protocols/index.md"
+              },
+              {
+                "title": "HTTP",
+                "path": "files/api/protocols/http.md"
+              },
+              {
+                "title": "WebSocket",
+                "path": "files/api/protocols/websocket.md"
+              },
+              {
+                "title": "GraphQL",
+                "path": "files/api/protocols/graphql.md"
+              },
+              {
+                "title": "gRPC",
+                "path": "files/api/protocols/grpc.md"
+              }
+            ]
+          },
+          {
+            "title": "Body",
+            "path": "files/api/body/index.md",
+            "children": [
+              {
+                "title": "Overview",
+                "path": "files/api/body/index.md"
+              },
+              {
+                "title": "Format",
+                "path": "files/api/body/format.md"
+              },
+              {
+                "title": "Request body",
+                "path": "files/api/body/body.md"
+              },
+              {
+                "title": "HTTP bodies",
+                "path": "files/api/protocols/http-bodies.md"
+              }
+            ]
+          },
+          {
+            "title": "Headers",
+            "path": "files/api/headers.md"
+          },
+          {
+            "title": "Auth",
+            "path": "files/api/auth.md"
+          },
+          {
+            "title": "Inputs",
+            "path": "files/api/inputs.md"
+          },
+          {
+            "title": "Outputs",
+            "path": "files/api/outputs.md"
+          },
+          {
+            "title": "Documentation",
+            "path": "files/api/documentation.md"
+          },
+          {
+            "title": "setenv",
+            "path": "files/api/setenv.md"
+          },
+          {
+            "title": "Examples",
+            "path": "files/api/examples.md"
+          },
+          {
+            "title": "Complete examples",
+            "path": "files/api/complete-examples.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/api/cli.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/api/reference.md"
+          }
+        ],
+        "icon": "symbol-method"
+      },
+      {
+        "title": "Test",
+        "path": "files/test/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/test/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/test/quick-start.md"
+          },
+          {
+            "title": "Edit Test",
+            "path": "files/test/edit.md"
+          },
+          {
+            "title": "import",
+            "path": "files/test/import.md"
+          },
+          {
+            "title": "cache",
+            "path": "files/test/cache.md"
+          },
+          {
+            "title": "Steps",
+            "path": "files/test/steps/index.md",
+            "children": [
+              {
+                "title": "Overview",
+                "path": "files/test/steps/index.md"
+              },
+              {
+                "title": "call",
+                "path": "files/test/steps/call.md"
+              },
+              {
+                "title": "http",
+                "path": "files/test/steps/http.md"
+              },
+              {
+                "title": "run",
+                "path": "files/test/steps/run.md"
+              },
+              {
+                "title": "run expect",
+                "path": "files/test/steps/run-expect.md"
+              },
+              {
+                "title": "check",
+                "path": "files/test/steps/check.md"
+              },
+              {
+                "title": "assert",
+                "path": "files/test/steps/assert.md"
+              },
+              {
+                "title": "Control flow",
+                "path": "files/test/steps/control-flow.md"
+              },
+              {
+                "title": "js",
+                "path": "files/test/steps/js.md"
+              },
+              {
+                "title": "Variables",
+                "path": "files/test/steps/variables.md"
+              }
+            ]
+          },
+          {
+            "title": "Stages",
+            "path": "files/test/stages/index.md",
+            "children": [
+              {
+                "title": "Overview",
+                "path": "files/test/stages/index.md"
+              },
+              {
+                "title": "Stage condition",
+                "path": "files/test/stages/stage-condition.md"
+              }
+            ]
+          },
+          {
+            "title": "Reports",
+            "path": "files/test/reports.md"
+          },
+          {
+            "title": "Complete example",
+            "path": "files/test/complete-example.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/test/cli.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/test/reference.md"
+          }
+        ],
+        "icon": "beaker"
+      },
+      {
+        "title": "Environment",
+        "path": "files/env/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/env/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/env/quick-start.md"
+          },
+          {
+            "title": "Environment variables panel",
+            "path": "files/env/ui.md"
+          },
+          {
+            "title": "Edit Environment",
+            "path": "files/env/edit.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/env/cli.md"
+          },
+          {
+            "title": "Settings",
+            "path": "files/env/settings.md"
+          },
+          {
+            "title": "Project root",
+            "path": "files/env/project-root.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/env/reference.md"
+          }
+        ],
+        "icon": "server-environment"
+      },
+      {
+        "title": "Suite",
+        "path": "files/suite/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/suite/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/suite/quick-start.md"
+          },
+          {
+            "title": "Edit Suite",
+            "path": "files/suite/edit.md"
+          },
+          {
+            "title": "import",
+            "path": "files/suite/import.md"
+          },
+          {
+            "title": "items",
+            "path": "files/suite/items.md"
+          },
+          {
+            "title": "Reports",
+            "path": "files/suite/reports.md"
+          },
+          {
+            "title": "Execution",
+            "path": "files/suite/execution.md"
+          },
+          {
+            "title": "Exports",
+            "path": "files/suite/exports.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/suite/cli.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/suite/reference.md"
+          }
+        ],
+        "icon": "layers"
+      },
+      {
+        "title": "Doc",
+        "path": "files/doc/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/doc/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/doc/quick-start.md"
+          },
+          {
+            "title": "Edit Doc",
+            "path": "files/doc/edit.md"
+          },
+          {
+            "title": "Environment",
+            "path": "files/doc/environment.md"
+          },
+          {
+            "title": "Annotations",
+            "path": "files/doc/annotations.md"
+          },
+          {
+            "title": "Markdown",
+            "path": "files/doc/markdown.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/doc/cli.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/doc/reference.md"
+          }
+        ],
+        "icon": "book"
+      },
+      {
+        "title": "Mock Server",
+        "path": "files/server/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/server/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/server/quick-start.md"
+          },
+          {
+            "title": "Edit Mock",
+            "path": "files/server/edit.md"
+          },
+          {
+            "title": "Mock server panel",
+            "path": "files/server/panel.md"
+          },
+          {
+            "title": "Endpoints",
+            "path": "files/server/endpoints.md"
+          },
+          {
+            "title": "Tokens",
+            "path": "files/server/tokens.md"
+          },
+          {
+            "title": "TLS",
+            "path": "files/server/tls.md"
+          },
+          {
+            "title": "In tests",
+            "path": "files/server/in-tests.md"
+          },
+          {
+            "title": "In suites",
+            "path": "files/server/in-suites.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/server/cli.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/server/reference.md"
+          }
+        ],
+        "icon": "server"
+      },
+      {
+        "title": "Load Test",
+        "path": "files/loadtest/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/loadtest/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/loadtest/quick-start.md"
+          },
+          {
+            "title": "Edit Load Test",
+            "path": "files/loadtest/edit.md"
+          },
+          {
+            "title": "Load config",
+            "path": "files/loadtest/load-config.md"
+          },
+          {
+            "title": "Environment",
+            "path": "files/loadtest/environment.md"
+          },
+          {
+            "title": "Reports",
+            "path": "files/loadtest/reports.md"
+          },
+          {
+            "title": "Exports",
+            "path": "files/loadtest/exports.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/loadtest/cli.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/loadtest/reference.md"
+          }
+        ],
+        "icon": "dashboard"
+      },
+      {
+        "title": "Report",
+        "path": "files/report/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/report/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/report/quick-start.md"
+          },
+          {
+            "title": "JUnit",
+            "path": "files/report/junit.md"
+          },
+          {
+            "title": "HTML",
+            "path": "files/report/html.md"
+          },
+          {
+            "title": "Markdown",
+            "path": "files/report/markdown.md"
+          },
+          {
+            "title": "CI/CD",
+            "path": "files/report/ci.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/report/cli.md"
+          },
+          {
+            "title": "Reference",
+            "path": "files/report/reference.md"
+          }
+        ],
+        "icon": "file-text"
+      }
+    ]
+  },
+  {
+    "title": "Start with a task",
+    "items": [
+      {
+        "title": "Overview",
+        "path": "tasks/index.md"
+      },
+      {
+        "title": "Send an API request",
+        "path": "tasks/send-api-request.md"
+      },
+      {
+        "title": "Write a test flow",
+        "path": "tasks/write-test-flow.md"
+      },
+      {
+        "title": "Use environments",
+        "path": "tasks/use-environments.md"
+      },
+      {
+        "title": "Run a suite",
+        "path": "tasks/run-suite.md"
+      },
+      {
+        "title": "Generate docs",
+        "path": "tasks/generate-docs.md"
+      },
+      {
+        "title": "Run in CI",
+        "path": "tasks/run-in-ci.md"
+      }
+    ]
+  },
+  {
+    "title": "Features",
+    "items": [
+      {
+        "title": "History",
+        "path": "features/history.md"
+      },
+      {
+        "title": "Logging",
+        "path": "features/logging.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/logging.md"
+          },
+          {
+            "title": "Log levels",
+            "path": "features/logging/log-levels.md"
+          },
+          {
+            "title": "Where logs appear",
+            "path": "features/logging/where-logs-appear.md"
+          },
+          {
+            "title": "API logging",
+            "path": "features/logging/api-logging.md"
+          },
+          {
+            "title": "Test logging",
+            "path": "features/logging/test-logging.md"
+          },
+          {
+            "title": "Suite logging",
+            "path": "features/logging/suite-logging.md"
+          },
+          {
+            "title": "Tips",
+            "path": "features/logging/tips.md"
+          },
+          {
+            "title": "See also",
+            "path": "features/logging/see-also.md"
+          }
+        ]
+      },
+      {
+        "title": "Testlight",
+        "path": "features/testlight/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/testlight/index.md"
+          },
+          {
+            "title": "Install",
+            "path": "features/testlight/install.md"
+          },
+          {
+            "title": "Commands",
+            "path": "features/testlight/commands.md"
+          },
+          {
+            "title": "Options",
+            "path": "features/testlight/options.md"
+          },
+          {
+            "title": "Environment priority",
+            "path": "features/testlight/environment-priority.md"
+          },
+          {
+            "title": "Examples",
+            "path": "features/testlight/examples.md"
+          },
+          {
+            "title": "Tips",
+            "path": "features/testlight/tips.md"
+          },
+          {
+            "title": "See also",
+            "path": "features/testlight/see-also.md"
+          }
+        ]
+      },
+      {
+        "title": "Connections",
+        "path": "features/connections.md"
+      },
+      {
+        "title": "Flow chart",
+        "path": "features/flow-chart.md"
+      },
+      {
+        "title": "Dynamic values",
+        "path": "features/dynamic-values.md"
+      },
+      {
+        "title": "Data-driven tests",
+        "path": "features/data-driven-tests.md"
+      },
+      {
+        "title": "Data imports",
+        "path": "features/data-imports.md"
+      },
+      {
+        "title": "Certificates",
+        "path": "features/certificates/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/certificates/index.md"
+          },
+          {
+            "title": "Certificate fields (YAML)",
+            "path": "features/certificates/certificate-fields-yaml.md"
+          },
+          {
+            "title": "Edit certificates in the UI",
+            "path": "features/certificates/edit-certificates-in-the-ui.md"
+          },
+          {
+            "title": "Enable/disable settings (local storage)",
+            "path": "features/certificates/enable-disable-settings-local-storage.md"
+          },
+          {
+            "title": "Example certificate configuration",
+            "path": "features/certificates/example-certificate-configuration.md"
+          },
+          {
+            "title": "Host matching rules",
+            "path": "features/certificates/host-matching-rules.md"
+          },
+          {
+            "title": "Migration from VS Code settings",
+            "path": "features/certificates/migration-from-vs-code-settings.md"
+          },
+          {
+            "title": "Passphrase handling",
+            "path": "features/certificates/passphrase-handling.md"
+          },
+          {
+            "title": "Supported certificate formats",
+            "path": "features/certificates/supported-certificate-formats.md"
+          }
+        ]
+      },
+      {
+        "title": "MCP",
+        "path": "features/mcp/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/mcp/index.md"
+          },
+          {
+            "title": "Architecture",
+            "path": "features/mcp/architecture.md"
+          },
+          {
+            "title": "Copilot workflow",
+            "path": "features/mcp/copilot-workflow.md"
+          },
+          {
+            "title": "Development",
+            "path": "features/mcp/development.md"
+          },
+          {
+            "title": "Environment variables",
+            "path": "features/mcp/environment-variables.md"
+          },
+          {
+            "title": "Install (VS Code + Copilot)",
+            "path": "features/mcp/install-vs-code-copilot.md"
+          },
+          {
+            "title": "MCP tools",
+            "path": "features/mcp/mcp-tools.md"
+          },
+          {
+            "title": "Other MCP clients",
+            "path": "features/mcp/other-mcp-clients.md"
+          },
+          {
+            "title": "Running a `.mmt` file (important)",
+            "path": "features/mcp/running-a-mmt-file-important.md"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Integration",
+    "items": [
+      {
+        "title": "HTTP file",
+        "path": "integration/http-file.md"
+      },
+      {
+        "title": "Bruno",
+        "path": "integration/bruno.md"
+      },
+      {
+        "title": "Postman",
+        "path": "integration/postman.md"
+      },
+      {
+        "title": "Curl",
+        "path": "integration/curl.md"
+      },
+      {
+        "title": "WSDL",
+        "path": "integration/wsdl.md"
+      },
+      {
+        "title": "OpenAPI spec",
+        "path": "integration/openapi.md"
+      }
+    ]
+  },
+  {
+    "title": "Examples",
+    "items": [
+      {
+        "title": "Browse examples",
+        "href": "/docs/examples"
+      }
+    ]
+  }
+]

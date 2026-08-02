@@ -15,6 +15,7 @@ import {readRelativeFileContent, readRelativeFileBinary} from './file';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 import {onRunStarted, onRunFinished} from '../runStatusBar';
+import {keepMmtEditorSoon} from '../keepEditor';
 import {
   createWebviewRunReporter,
   resolveWebviewReportType,
@@ -274,6 +275,9 @@ export async function handleRunCurrentDocument(
     logToOutput(level, message);
   };
 
+  // Keep preview tab open while a run is in progress (file may not be dirty).
+  keepMmtEditorSoon(document.uri);
+
   const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);
   applyNetworkConfig(document.uri.fsPath, envVars, mmtProvider.context);
@@ -423,6 +427,9 @@ export async function handleRunSuite(
   const forwardLog = (level: LogLevel, message: string) => {
     logToOutput(level, message);
   };
+
+  // Keep preview tab open while a suite run is in progress.
+  keepMmtEditorSoon(document.uri);
 
   const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);

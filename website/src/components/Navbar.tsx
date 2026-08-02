@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, Github, ExternalLink } from 'lucide-react'
+import { Menu, X, Github } from 'lucide-react'
 
 const navLinks = [
   { name: 'Features', href: '/#features' },
@@ -8,11 +8,7 @@ const navLinks = [
   { name: 'Tutorials', href: '/tutorials' },
   { name: 'Roadmap', href: '/roadmap' },
   { name: 'Downloads', href: '/downloads' },
-  {
-    name: 'Docs',
-    href: 'https://github.com/mshobeyri/multimeter/tree/master/docs',
-    external: true,
-  },
+  { name: 'Docs', href: '/docs' },
 ]
 
 export default function Navbar() {
@@ -52,28 +48,15 @@ export default function Navbar() {
 
           {/* Desktop links */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) =>
-              link.external ? (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-1 whitespace-nowrap"
-                >
-                  {link.name}
-                  <ExternalLink size={12} />
-                </a>
-              ) : (
-                <Link
-                  key={link.name}
-                  to={link.href}
-                  className="text-sm text-slate-300 hover:text-white transition-colors whitespace-nowrap"
-                >
-                  {link.name}
-                </Link>
-              )
-            )}
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                to={link.href}
+                className="text-sm text-slate-300 hover:text-white transition-colors whitespace-nowrap"
+              >
+                {link.name}
+              </Link>
+            ))}
           </div>
 
           {/* Desktop CTAs */}
@@ -111,27 +94,15 @@ export default function Navbar() {
       {isOpen && (
         <div className="md:hidden bg-surface-light border-b border-border">
           <div className="px-4 py-4 space-y-3">
-            {navLinks.map((link) =>
-              link.external ? (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-slate-300 hover:text-white transition-colors"
-                >
-                  {link.name}
-                </a>
-              ) : (
-                <Link
-                  key={link.name}
-                  to={link.href}
-                  className="block text-slate-300 hover:text-white transition-colors"
-                >
-                  {link.name}
-                </Link>
-              )
-            )}
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                to={link.href}
+                className="block text-slate-300 hover:text-white transition-colors"
+              >
+                {link.name}
+              </Link>
+            ))}
             <hr className="border-border" />
             <a
               href="https://github.com/mshobeyri/multimeter"

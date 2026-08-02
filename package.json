@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – API Testing platform",
   "description": "Store tests in Git, run them in VS Code, and track changes with pull requests.",
-  "version": "1.31.0",
+  "version": "1.32.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -13,7 +13,9 @@
     "vscode": "^1.95.0"
   },
   "categories": [
-    "Testing", "Programming Languages", "AI"
+    "Testing",
+    "Programming Languages",
+    "AI"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -58,11 +60,11 @@
     "chatPromptFiles": [
       {
         "name": "EditMmtFile",
-        "path": "./rules/edit-mmt-file.prompt.md"
+        "path": "./commands/edit-mmt-file.md"
       },
       {
         "name": "RunMmtFile",
-        "path": "./rules/run-mmt-file.prompt.md"
+        "path": "./commands/run-mmt-file.md"
       }
     ],
     "chatParticipants": [
@@ -151,7 +153,11 @@
         "multimeter.editor.defaultPanel": {
           "type": "string",
           "default": "yaml-ui",
-          "enum": ["yaml-ui", "yaml", "ui"],
+          "enum": [
+            "yaml-ui",
+            "yaml",
+            "ui"
+          ],
           "enumDescriptions": [
             "Show both YAML editor and UI panel (split view)",
             "Show only the YAML editor",
@@ -476,9 +482,9 @@
     "buildview": "npm run build --prefix mmtview",
     "bootstrap": "sh -c 'if [ -f package-lock.json ]; then npm ci; else npm install; fi; npm audit || true'",
     "buildcli": "npm run buildcore && npm run pkg --prefix mmtcli",
-    "pack": "vsce package --readme-path EXTENSION.md --allow-package-all-secrets",
-    "pack-pre-release": "vsce package --pre-release --readme-path EXTENSION.md --allow-package-all-secrets",
-    "publish": "vsce publish --readme-path EXTENSION.md --allow-package-all-secrets",
+    "pack": "vsce package --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file",
+    "pack-pre-release": "vsce package --pre-release --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file",
+    "publish": "vsce publish --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file",
     "vscode:prepublish": "npm run build:vendor && npm run package",
     "compile": "npm run buildcore && npm run buildmcp && npm run buildview && npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
@@ -497,6 +503,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/mdast": "^4.0.4",
     "@types/node": "20.x",
     "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.95.0",
@@ -517,6 +524,10 @@
     "axios": "^1.10.0",
     "buffer": "^6.0.3",
     "mmt-core": "file:./core/dist",
+    "react-markdown": "^10.1.0",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "uuid": "^11.1.0",
     "ws": "^8.18.3",
     "xml-js": "^1.6.11",

@@ -16,8 +16,8 @@ Intermediate example for the `omit` keyword in API inputs and outputs.
 1. Open `omit_keyword.mmt`.
 2. Click **Run** and inspect the request body and output values.
 3. Change values in the **Inputs** panel:
-   - set `middleName` to `omit` to remove it (output shows `omit`)
-   - set `middleName` to `Lee` to send a normal string
+   - set `middle_name` to `omit` to remove it (output shows `omit`)
+   - set `middle_name` to `Lee` to send a normal string
    - use `"omit"` when you want the literal string
 
 ### With the CLI
@@ -31,7 +31,7 @@ Override inputs from the command line:
 
 ```sh
 npx testlight run examples/intermediate/22_omit_keyword/omit_keyword.mmt \
-  -e middleName=Lee -e nickname='"omit"'
+  -e middle_name=Lee -e nickname='"omit"'
 ```
 
 ## Key concepts
@@ -39,7 +39,7 @@ npx testlight run examples/intermediate/22_omit_keyword/omit_keyword.mmt \
 - **`omit` in inputs** — unquoted `omit` removes the target field from request objects (body/headers/query/cookies).
 - **`null` in inputs** — unquoted `null` sends a real null value.
 - **Quoted literals** — `"omit"` and `"null"` stay strings (like quoted numbers).
-- **`omit` in outputs** — shown when an extraction path is missing (for example `echoed_middleName` when `middleName` was omitted).
+- **`omit` in outputs** — shown when an extraction path is missing (for example `echoed_middle_name` when `middle_name` was omitted).
 - **`null` in outputs** — shown when the echoed field exists and its value is literally `null`.
 
-See [API docs — inputs](../../../docs/api-mmt.md#inputs) and [API docs — outputs](../../../docs/api-mmt.md#outputs).
+See [API docs — inputs](../../../docs/files/api/index.md#inputs) and [API docs — outputs](../../../docs/files/api/index.md#outputs).

@@ -12,7 +12,7 @@ const JS_RESERVED = new Set([
 const TEST_FLOW_KEYWORDS = new Set<string>(flowTypeOptions);
 
 const MMT_STRUCTURE_KEYS = new Set([
-  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'setenv',
+  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'cache', 'setenv',
   'steps', 'stages', 'examples', 'protocol', 'format', 'method', 'url', 'query',
   'headers', 'cookies', 'body', 'auth', 'graphql', 'grpc', 'timeout', 'expect',
   'debug', 'report', 'then', 'else', 'items', 'variables', 'presets',

@@ -1,36 +1,124 @@
+## Table of contents
 
-## 📚 TABLE OF CONTENT
+### Get started
+- [Getting Started](./quick-start.md)
+- [Install](./install.md)
 
+### MMT Files
+- [Overview](./files.md)
+- [API](./files/api/index.md)
+  - [Quick start](./files/api/quick-start.md)
+  - [Edit API](./files/api/edit.md)
+  - [Protocols](./files/api/protocols/index.md)
+    - [HTTP](./files/api/protocols/http.md)
+    - [WebSocket](./files/api/protocols/websocket.md)
+    - [GraphQL](./files/api/protocols/graphql.md)
+    - [gRPC](./files/api/protocols/grpc.md)
+  - [Body](./files/api/body/index.md)
+    - [Format](./files/api/body/format.md)
+    - [Request body](./files/api/body/body.md)
+    - [HTTP bodies](./files/api/protocols/http-bodies.md)
+  - [CLI](./files/api/cli.md)
+- [Test](./files/test/index.md)
+  - [Quick start](./files/test/quick-start.md)
+  - [Edit Test](./files/test/edit.md)
+  - [Steps](./files/test/steps/index.md)
+    - [call](./files/test/steps/call.md)
+    - [http](./files/test/steps/http.md)
+    - [run](./files/test/steps/run.md)
+    - [run expect](./files/test/steps/run-expect.md)
+    - [check](./files/test/steps/check.md)
+    - [assert](./files/test/steps/assert.md)
+    - [Control flow](./files/test/steps/control-flow.md)
+    - [js](./files/test/steps/js.md)
+    - [Variables](./files/test/steps/variables.md)
+  - [Stages](./files/test/stages/index.md)
+    - [Stage condition](./files/test/stages/stage-condition.md)
+  - [Reports](./files/test/reports.md)
+  - [CLI](./files/test/cli.md)
+- [Environment](./files/env/index.md)
+  - [Quick start](./files/env/quick-start.md)
+  - [Environment variables panel](./files/env/ui.md)
+  - [Edit Environment](./files/env/edit.md)
+  - [CLI](./files/env/cli.md)
+- [Suite](./files/suite/index.md)
+  - [Quick start](./files/suite/quick-start.md)
+  - [Edit Suite](./files/suite/edit.md)
+  - [import](./files/suite/import.md)
+  - [items](./files/suite/items.md)
+  - [Reports](./files/suite/reports.md)
+  - [Execution](./files/suite/execution.md)
+  - [Exports](./files/suite/exports.md)
+  - [CLI](./files/suite/cli.md)
+  - [Reference](./files/suite/reference.md)
+- [Doc](./files/doc/index.md)
+  - [Quick start](./files/doc/quick-start.md)
+  - [Edit Doc](./files/doc/edit.md)
+  - [CLI](./files/doc/cli.md)
+- [Mock Server](./files/server/index.md)
+  - [Quick start](./files/server/quick-start.md)
+  - [Edit Mock](./files/server/edit.md)
+  - [Mock server panel](./files/server/panel.md)
+  - [Endpoints](./files/server/endpoints.md)
+  - [Tokens](./files/server/tokens.md)
+  - [TLS](./files/server/tls.md)
+  - [In tests](./files/server/in-tests.md)
+  - [In suites](./files/server/in-suites.md)
+  - [CLI](./files/server/cli.md)
+  - [Reference](./files/server/reference.md)
+- [Load Test](./files/loadtest/index.md)
+  - [Quick start](./files/loadtest/quick-start.md)
+  - [Edit Load Test](./files/loadtest/edit.md)
+  - [Load config](./files/loadtest/load-config.md)
+  - [Environment](./files/loadtest/environment.md)
+  - [Reports](./files/loadtest/reports.md)
+  - [Exports](./files/loadtest/exports.md)
+  - [CLI](./files/loadtest/cli.md)
+  - [Reference](./files/loadtest/reference.md)
+- [Report](./files/report/index.md)
+  - [Quick start](./files/report/quick-start.md)
+  - [JUnit](./files/report/junit.md)
+  - [HTML](./files/report/html.md)
+  - [Markdown](./files/report/markdown.md)
+  - [CI/CD](./files/report/ci.md)
+  - [CLI](./files/report/cli.md)
+  - [Reference](./files/report/reference.md)
 
-#### [MMT Overview](docs/mmt-overview.md)
+### Start with a task
+- [Overview](./tasks/index.md)
+- [Send an API request](./tasks/send-api-request.md)
+- [Write a test flow](./tasks/write-test-flow.md)
+- [Use environments](./tasks/use-environments.md)
+- [Run a suite](./tasks/run-suite.md)
+- [Generate docs](./tasks/generate-docs.md)
+- [Run in CI](./tasks/run-in-ci.md)
 
-**MMT File Types** — YAML files you create and version-control:
-- [API (`type: api`)](docs/api-mmt.md) — define HTTP/WebSocket requests
-- [Test (`type: test`)](docs/test-mmt.md) — orchestrate flows with steps, assertions, and loops
-- [Environment (`type: env`)](docs/environment-mmt.md) — variables, presets, and certificates
-- [Doc (`type: doc`)](docs/doc-mmt.md) — generate API documentation from your `.mmt` files
-- [Suite (`type: suite`)](docs/suite-mmt.md) — group and run tests, APIs, or other suites
-- [Load Test (`type: loadtest`)](docs/loadtest-mmt.md) — run one test scenario with concurrency, ramp-up, and load reports (beta)
-- [Mock Server (`type: server`)](docs/mock-server.md#mmt-mock-server-files) — define mock endpoints with routing, matching, and dynamic responses
-- [Report (`type: report`)](docs/reports.md#mmt-report-yaml) — structured test results viewable in the editor
+### Features
+- [History](./features/history.md)
+- [Logging](./features/logging.md)
+  - [Log levels](./features/logging/log-levels.md)
+  - [Where logs appear](./features/logging/where-logs-appear.md)
+  - [API logging](./features/logging/api-logging.md)
+  - [Test logging](./features/logging/test-logging.md)
+  - [Suite logging](./features/logging/suite-logging.md)
+- [Testlight](./features/testlight/index.md)
+  - [Install](./features/testlight/install.md)
+  - [Commands](./features/testlight/commands.md)
+  - [Options](./features/testlight/options.md)
+  - [Environment priority](./features/testlight/environment-priority.md)
+  - [Examples](./features/testlight/examples.md)
+- [Connections](./features/connections.md)
+- [Flow chart](./features/flow-chart.md)
+- [Dynamic values](./features/dynamic-values.md)
+- [Data-driven tests](./features/data-driven-tests.md)
+- [Data imports](./features/data-imports.md)
+- [Certificates](./features/certificates/index.md)
+- [MCP](./features/mcp/index.md)
 
-**Other supports**
-- [HTTP files (`.http`, `.https`)](docs/http-files.md) — run REST Client / JetBrains-style HTTP files as test flows via Open With
-- [Bruno files (`.bru`)](docs/bruno-files.md) — run Bruno request files as test flows via Open With
-
-**VS Code Panels & Features:**
-- [Mock Server Panel](docs/mock-server.md) — start HTTP/TLS/mTLS/WS mock servers from the UI
-- [Convertor](docs/convertor.md) — import OpenAPI and Postman collections into `.mmt`
-- [History](docs/history.md) — inspect recent requests and responses
-- [Certificates](docs/certificates-mmt.md) — SSL/TLS, mTLS, and CA certificate configuration
-
-**Running & CI/CD:**
-- [Testlight CLI](docs/testlight.md) — run tests, suites, and generate docs from the command line
-- [Reports](docs/reports.md) — JUnit XML, HTML, Markdown, and MMT YAML test reports
-- [Load Test](docs/loadtest-mmt.md) — beta load tests and load-oriented report exports
-- [Logging](docs/logging.md) — log levels and where logs appear
-
-**Guides & Reference:**
-- [Sample Project](docs/sample-project.md) — full walkthrough with APIs, tests, suites, docs, and CLI
-- [Test Generation Profile (cheat sheet)](docs/testgen-profile.md) — AI/tool guidance for generating `.mmt` files
-- [Demos](docs/demos.md) — animated feature demos
+### Integration
+- [HTTP file](./integration/http-file.md)
+- [Bruno](./integration/bruno.md)
+- [Postman](./integration/postman.md)
+- [Curl](./integration/curl.md)
+- [WSDL](./integration/wsdl.md)
+- [OpenAPI spec](./integration/openapi.md)

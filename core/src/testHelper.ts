@@ -1,4 +1,5 @@
-import {normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL, restoreOmitKeyword} from './omitKeyword';
+import {parseCacheExpiryAtMs} from './JSerHelper';
+import {applyOmitToOutgoingRequest, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
 import {opsList} from './TestData';
 import {wrapJsHelperModuleSource} from './jsModuleExport';
 
@@ -100,7 +101,7 @@ function deepEquals_(a: any, b: any): boolean {
 
 export function equals_(a: any, b: any) {
   // If either side is the omit sentinel, treat as an omit/presence check so
-  // callers that still pass `__MMT_OMIT_KEYWORD__` as a value work correctly.
+  // callers that still pass `__MMT_OMIT__` as a value work correctly.
   if (b === OMIT_SENTINEL) {
     return isOmitted_(a);
   }
@@ -123,11 +124,50 @@ export function isNotOmitted_(value: any): boolean {
   return !isOmitted_(value);
 }
 
+/**
+ * Drop omit-marked fields from a request before it is sent. Generated API code
+ * calls this because call-time inputs are only resolved at runtime.
+ */
+export function applyOmitToRequest_(req: any, format?: string): any {
+  return applyOmitToOutgoingRequest(req, format);
+}
+
+/**
+ * Coerce any value to a string for substring / regex / prefix checks.
+ * Objects and arrays become JSON so `body =C POST` works on parsed JSON bodies
+ * (and XML/text already stored as strings stays unchanged).
+ */
 function asComparableString_(value: any): string {
   if (value === null || value === undefined) {
     return '';
   }
-  return String(value);
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/** Type-unsafe equality: compare `String(a)` to `String(b)` (XML string vs YAML bool/number). */
+export function equalsAsString_(a: any, b: any) {
+  if (b === OMIT_SENTINEL) {
+    return isOmitted_(a);
+  }
+  if (a === OMIT_SENTINEL) {
+    return isOmitted_(b);
+  }
+  return asComparableString_(normalizeOmitToNull(a)) ===
+      asComparableString_(normalizeOmitToNull(b));
+}
+
+export function notEqualsAsString_(a: any, b: any) {
+  return !equalsAsString_(a, b);
 }
 
 export function equalsIgnoreCase_(a: any, b: any) {
@@ -155,33 +195,21 @@ export function notTrimEqualsIgnoreCase_(a: any, b: any) {
 }
 
 export function isAt_(a: any, b: any) {
-  // Checks if a is in b (for strings or arrays): b.includes(a)
-  if (typeof b === 'string' || Array.isArray(b)) {
-    return b.includes(a);
-  }
-  return false;
+  // Checks if a is in b (string compare; objects/arrays JSON-stringified)
+  return asComparableString_(b).includes(asComparableString_(a));
 }
 
 export function isNotAt_(a: any, b: any) {
-  if (typeof b === 'string' || Array.isArray(b)) {
-    return !b.includes(a);
-  }
-  return true;
+  return !isAt_(a, b);
 }
 
 export function contains_(a: any, b: any) {
-  // Checks if a contains b (for strings or arrays): a.includes(b)
-  if (typeof a === 'string' || Array.isArray(a)) {
-    return a.includes(b);
-  }
-  return false;
+  // Checks if a contains b (string compare; objects/arrays JSON-stringified)
+  return asComparableString_(a).includes(asComparableString_(b));
 }
 
 export function notContains_(a: any, b: any) {
-  if (typeof a === 'string' || Array.isArray(a)) {
-    return !a.includes(b);
-  }
-  return true;
+  return !contains_(a, b);
 }
 
 function regexFrom_(pattern: any): RegExp {
@@ -197,7 +225,7 @@ export function matches_(a: any, b: any) {
   // b is a regex string, e.g. "^foo.*" or "/foo/i"
   try {
     const re = regexFrom_(b);
-    return re.test(a);
+    return re.test(asComparableString_(a));
   } catch {
     return false;
   }
@@ -206,7 +234,7 @@ export function matches_(a: any, b: any) {
 export function notMatches_(a: any, b: any) {
   try {
     const re = regexFrom_(b);
-    return !re.test(a);
+    return !re.test(asComparableString_(a));
   } catch {
     return true;
   }
@@ -248,8 +276,8 @@ export function lengthGreaterOrEqual_(actual: any, expected: any) {
 }
 
 function similarityRatio_(actual: any, expected: any): number {
-  const actualText = String(actual ?? '');
-  const expectedText = String(expected ?? '');
+  const actualText = asComparableString_(actual);
+  const expectedText = asComparableString_(expected);
   const actualLength = actualText.length;
   const expectedLength = expectedText.length;
   const maxLength = Math.max(actualLength, expectedLength);
@@ -314,37 +342,28 @@ function countForComparison_(comparison: string, actual: any): number | undefine
 }
 
 export function startsWith_(a: any, b: any) {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return a.startsWith(b);
-  }
-  return false;
+  return asComparableString_(a).startsWith(asComparableString_(b));
 }
 
 export function notStartsWith_(a: any, b: any) {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return !a.startsWith(b);
-  }
-  return true;
+  return !startsWith_(a, b);
 }
 
 export function endsWith_(a: any, b: any) {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return a.endsWith(b);
-  }
-  return false;
+  return asComparableString_(a).endsWith(asComparableString_(b));
 }
 
 export function notEndsWith_(a: any, b: any) {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return !a.endsWith(b);
-  }
-  return true;
+  return !endsWith_(a, b);
 }
 
 type FileLoader = (path: string) => Promise<string>;
 
 let __mmtFileLoader: FileLoader|undefined;
 const __mmtJsModuleCache = new Map<string, any>();
+
+/** Runtime re-export so generated test JS can compute cache expiry at store time. */
+export const parseCacheExpiryAtMs_ = parseCacheExpiryAtMs;
 
 export const setFileLoader_ = (loader: FileLoader|undefined) => {
   __mmtFileLoader = loader;
@@ -389,6 +408,97 @@ export const importJsModule_ = async(
   __mmtJsModuleCache.set(path, exported);
   return exported;
 };
+
+// ---------------------------------------------------------------------------
+// In-run test call cache (see AI/sdd/sdd-test-call-cache.md)
+// ---------------------------------------------------------------------------
+
+type TestCallCacheEntry = {outputs: any; expiresAt: number};
+
+const __mmtTestCallCache = new Map<string, TestCallCacheEntry>();
+
+function stableJsonForCache_(value: any): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map(v => stableJsonForCache_(v)).join(',') + ']';
+  }
+  const keys = Object.keys(value).sort();
+  return '{' +
+      keys.map(k => JSON.stringify(k) + ':' + stableJsonForCache_(value[k]))
+          .join(',') +
+      '}';
+}
+
+function testCallCacheKey_(title: string, inputs: Record<string, any>): string {
+  return String(title ?? '') + '\0' + stableJsonForCache_(inputs ?? {});
+}
+
+function deepCloneCacheValue_(value: any): any {
+  if (value === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+}
+
+/** Clear the in-run test call cache (called at the start of each jsRunner run). */
+export const clearTestCallCache_ = (): void => {
+  __mmtTestCallCache.clear();
+};
+
+/**
+ * Lookup a cached test return value. On hit, returns a clone marked with
+ * `_.cached = true` for report UIs. Returns undefined on miss/expiry.
+ */
+export const getTestCallCache_ =
+    (title: string, inputs: Record<string, any>): any|undefined => {
+      const key = testCallCacheKey_(title, inputs);
+      const entry = __mmtTestCallCache.get(key);
+      if (!entry) {
+        return undefined;
+      }
+      if (Date.now() >= entry.expiresAt) {
+        __mmtTestCallCache.delete(key);
+        return undefined;
+      }
+      const clone = deepCloneCacheValue_(entry.outputs);
+      if (!clone || typeof clone !== 'object' || Array.isArray(clone)) {
+        return {_ : {cached: true}, value: clone};
+      }
+      if (!clone._ || typeof clone._ !== 'object' || Array.isArray(clone._)) {
+        clone._ = {cached: true};
+      } else {
+        clone._ = {...clone._, cached: true};
+      }
+      return clone;
+    };
+
+/** Store outputs for a title+inputs key until absolute expiry (ms epoch). */
+export const setTestCallCache_ = (
+    title: string, inputs: Record<string, any>, outputs: any,
+    expiresAt: number): void => {
+  if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt)) {
+    return;
+  }
+  const clone = deepCloneCacheValue_(outputs);
+  if (clone && typeof clone === 'object' && !Array.isArray(clone) && clone._ &&
+      typeof clone._ === 'object' && !Array.isArray(clone._) &&
+      Object.prototype.hasOwnProperty.call(clone._, 'cached')) {
+    const rest = {...clone._};
+    delete rest.cached;
+    clone._ = rest;
+  }
+  __mmtTestCallCache.set(testCallCacheKey_(title, inputs), {
+    outputs: clone,
+    expiresAt,
+  });
+};
+
 declare const __mmtReportStep:|((event: Record<string, any>) => void)|undefined;
 declare const __mmtRunId: string|undefined;
 declare const __mmtId: string|undefined;
@@ -442,7 +552,7 @@ const nextStepIndexFor = (runId: string): number => {
 const normalizeComparison = (value: unknown): string => {
   const normalizedValue = restoreOmitKeyword(value);
   if (typeof value === 'string') {
-    return value.split(OMIT_SENTINEL).join(OMIT_KEYWORD);
+    return restoreOmitKeywordInText(value);
   }
   if (normalizedValue === null || normalizedValue === undefined) {
     return '';
@@ -469,9 +579,25 @@ const normalizeTitleDetails = (title: unknown, details: unknown): {
   const d = normalizeMessage(details);
   return {
     title: t,
-    details: d,
+    // Details carry the serialized call result, where a missing output is the
+    // sentinel. Reports and panels must show `omit` instead of the marker.
+    details: typeof d === 'string' ? restoreOmitKeywordInText(d) : d,
   };
 };
+
+/** True when call-result JSON details include `_.cached` from a test call cache hit. */
+function detailsIndicateCached_(details: unknown): boolean {
+  if (typeof details !== 'string' || !details.trim()) {
+    return false;
+  }
+  try {
+    const parsed = JSON.parse(details);
+    return !!(parsed && typeof parsed === 'object' && parsed._ &&
+              typeof parsed._ === 'object' && parsed._.cached === true);
+  } catch {
+    return false;
+  }
+}
 
 const emitStep = (event: Record<string, any>) => {
   const reporter = resolveReporter();
@@ -539,6 +665,9 @@ export const reportWithContext_ = (
   }
   if (typeof normalized.details === 'string') {
     payload.details = normalized.details;
+  }
+  if (detailsIndicateCached_(details)) {
+    payload.cached = true;
   }
 
   const resolvedId = (typeof id === 'string' && id) ? id :
@@ -729,7 +858,7 @@ function formatCheckLogLine_(
 }
 
 function formatCheckDetails(raw: string): string {
-  const sanitizedRaw = String(raw || '').split(OMIT_SENTINEL).join(OMIT_KEYWORD);
+  const sanitizedRaw = restoreOmitKeywordInText(raw);
   try {
     const expandJsonStrings = (obj: any): any => {
       if (typeof obj === 'string') {

@@ -4,7 +4,7 @@ import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
 import {FileLoader, mergeInputs, RunFileOptions} from './runConfig';
-import {replaceAllRefs} from './variableReplacer';
+import {replaceAllRefs, resolveInputsMap} from './variableReplacer';
 
 export interface ResolveExampleResult {
   exampleInputs: Record<string, any>;
@@ -164,7 +164,9 @@ interface ApiRunnerWrapperOptions {
 }
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
-  opts = replaceAllRefs(opts, {}, opts.inputs, opts.envVars);
+  const resolvedInputs = resolveInputsMap(opts.inputs, opts.envVars ?? {});
+  opts = replaceAllRefs(
+      {...opts, inputs: resolvedInputs}, {}, resolvedInputs, opts.envVars ?? {});
   const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
   const exampleOutputs = isPlainObject(opts.exampleOutputs) ? opts.exampleOutputs : {};
@@ -398,6 +400,10 @@ export interface ApiLogHelpers {
 }
 
 export function createApiLogHelpers(): ApiLogHelpers {
+  // This factory is serialized with toString() into the generated run code, so
+  // it must stay self-contained: no imports are in scope there. `runner.test.ts`
+  // guards this copy of the marker against drifting from OMIT_SENTINEL.
+  const omitSentinel = '__MMT_OMIT__';
   function raw(value: unknown): ApiLogRawValue {
     return {__mmt_raw: String(value)};
   }
@@ -421,6 +427,11 @@ export function createApiLogHelpers(): ApiLogHelpers {
     }
     if (value === null) {
       return 'null';
+    }
+    // Unquoted like the YAML keyword, so a missing value reads as `omit` while
+    // a literal string value still shows as `"omit"`.
+    if (value === omitSentinel) {
+      return 'omit';
     }
     if (typeof value === 'string') {
       return '"' + escapeString(value) + '"';
@@ -550,7 +561,7 @@ export function createApiLogHelpers(): ApiLogHelpers {
   }
   function displayExpectValue(value: unknown): string {
     const restoreOmit = (v: unknown): unknown => {
-      if (v === '__MMT_OMIT_KEYWORD__') {
+      if (v === omitSentinel) {
         return 'omit';
       }
       if (Array.isArray(v)) {
@@ -665,11 +676,12 @@ export async function executeApi(
       exampleLabel ? `${fileDisplayName} (${exampleLabel})` : fileDisplayName;
   const identifier = sanitizeIdentifier(
       exampleLabel ? `${baseName}_${exampleLabel}` : baseName);
+  const resolvedInputs = resolveInputsMap(inputsUsed, envVars);
   const js = await generateApiJs({
     api: apiDoc,
     name: identifier,
     envVars,
-    inputs: inputsUsed,
+    inputs: resolvedInputs,
     fileLoader,
     exampleName,
     exampleIndex,
@@ -690,7 +702,7 @@ export async function executeApi(
     identifier,
     displayName,
     docType,
-    inputsUsed,
+    inputsUsed: resolvedInputs,
     envVarsUsed: envVars,
     exampleName,
     exampleIndex,

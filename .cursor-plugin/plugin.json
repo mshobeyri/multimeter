@@ -1,20 +1,25 @@
 {
   "name": "multimeter",
   "displayName": "Multimeter",
-  "version": "1.24.2",
-  "description": "Cursor plugin guidance for building, testing, documenting, and promoting Multimeter and Testlight.",
+  "version": "1.32.0",
+  "description": "Git-native API testing for Cursor: Multimeter MCP tools, .mmt authoring rules, and edit/run commands.",
   "author": {
     "name": "mshobeyri"
   },
+  "homepage": "https://mmt.dev",
+  "repository": "https://github.com/mshobeyri/multimeter",
   "license": "BUSL-1.1",
   "keywords": [
-    "cursor",
-    "plugin",
     "multimeter",
     "testlight",
     "api-testing",
-    "rules",
-    "skills"
+    "mmt",
+    "mcp",
+    "cursor",
+    "rules"
   ],
-  "logo": "res/logo_file.svg"
+  "logo": "res/logo_file.svg",
+  "commands": "commands",
+  "rules": "rules",
+  "mcpServers": "mcp.json"
 }

@@ -1,6 +1,19 @@
+import {OMIT_SENTINEL} from './omitKeyword';
 import {ApiLogRawValue, createApiLogHelpers} from './runApi';
 
 describe('createApiLogHelpers', () => {
+  it('prints a missing output as the omit keyword', () => {
+    const helpers = createApiLogHelpers();
+
+    // The helpers are serialized into generated code and cannot import the
+    // constant, so this also guards their inlined copy of the marker.
+    expect(helpers.formatSection('Outputs:', {
+      found: 'yes',
+      missing: OMIT_SENTINEL,
+      literal: 'omit',
+    })).toBe('Outputs:\n  found:    "yes"\n  missing:  omit\n  literal:  "omit"');
+  });
+
   it('wraps raw values and detects them correctly', () => {
     const helpers = createApiLogHelpers();
     const rawValue = helpers.raw(123);
@@ -68,8 +81,8 @@ describe('createApiLogHelpers', () => {
     expect(allPass.failLines).toEqual([]);
 
     const mixed = helpers.formatExpects(
-        {s: 'ok', ss: 12, d: '__MMT_OMIT_KEYWORD__'},
-        {s: 'ok', ss: 13, d: '__MMT_OMIT_KEYWORD__'}, 'Echo API');
+        {s: 'ok', ss: 12, d: '__MMT_OMIT__'},
+        {s: 'ok', ss: 13, d: '__MMT_OMIT__'}, 'Echo API');
     expect(mixed.successLines).toEqual([
       '\u2713 Check "Echo API" - "s == ok"',
       '\u2713 Check "Echo API" - "d == omit"',

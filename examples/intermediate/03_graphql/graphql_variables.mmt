@@ -2,7 +2,7 @@ type: api
 title: GraphQL query with variables
 description: Fetch a single country by code using GraphQL variables
 inputs:
-  countryCode: BR
+  country_code: BR
 outputs:
   country_name: body.data.country.name
   capital: body.data.country.capital
@@ -21,5 +21,5 @@ graphql:
       }
     }
   variables:
-    code: i:countryCode
+    code: i:country_code
   operationName: GetCountry

@@ -205,6 +205,11 @@ export interface TestDataBase extends MMTFile {
 import?: Record<string, string>;
   inputs?: Record<string, string>;
   outputs?: Record<string, string>;
+  /**
+   * Optional call-cache TTL/expiry for imported tests (phase 1).
+   * Duration (`5m`), epoch number, or date/time text containing `:`.
+   */
+  cache?: number|string;
   steps?: TestFlowSteps;
   stages?: TestFlowStages;
 }
@@ -244,7 +249,7 @@ export const opsList: CheckOps[] = [
 
 export const selectableOpsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=#', '!#', '<#', '<=#', '>#', '>=#',
+  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '<#', '<=#', '>#', '>=#',
   '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%'
 ];
 
@@ -252,8 +257,9 @@ export const opsNames = [
   'less than', 'greater than', 'less than or equal', 'greater than or equal',
   'equal', 'not equal', 'is in', 'is not in', 'contains', 'does not contain',
   'starts with', 'does not start with', 'ends with', 'does not end with',
-  'matches regex', 'does not match regex', 'matches regex (legacy)',
-  'does not match regex (legacy)', 'length/count equals', 'length/count not equals',
+  'matches regex', 'does not match regex',
+  'equal (type-unsafe)', 'not equal (type-unsafe)',
+  'length/count equals', 'length/count not equals',
   'length/count less than', 'length/count less or equal',
   'length/count greater than', 'length/count greater or equal',
   'equal (ignore case)', 'not equal (ignore case)',

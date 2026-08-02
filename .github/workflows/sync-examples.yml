@@ -1,0 +1,105 @@
+# ──────────────────────────────────────────────────────────────────────
+# Sync examples + README + branding assets to mshobeyri/multimeter-examples
+# ──────────────────────────────────────────────────────────────────────
+# Source of truth: this repo (multimeter) on branch `main`.
+# Target: https://github.com/mshobeyri/multimeter-examples (default: master)
+#
+# Required secret on multimeter:
+#   EXAMPLES_REPO_TOKEN — PAT (classic: repo scope, or fine-grained:
+#   Contents: Read and write on mshobeyri/multimeter-examples)
+# ──────────────────────────────────────────────────────────────────────
+
+name: Sync examples repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/**'
+      - 'README.md'
+      - 'res/logo.png'
+      - 'res/logo.svg'
+      - 'res/logo_file.svg'
+      - 'res/demo.png'
+      - 'res/demo.gif'
+      - 'res/website.png'
+      - 'res/request_feature.png'
+      - '.github/workflows/sync-examples.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-examples
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout multimeter
+        uses: actions/checkout@v4
+
+      - name: Check token
+        env:
+          TOKEN: ${{ secrets.EXAMPLES_REPO_TOKEN }}
+        run: |
+          if [ -z "${TOKEN}" ]; then
+            echo "::error::Missing secret EXAMPLES_REPO_TOKEN (PAT with write access to mshobeyri/multimeter-examples)."
+            exit 1
+          fi
+
+      - name: Clone examples repo
+        env:
+          TOKEN: ${{ secrets.EXAMPLES_REPO_TOKEN }}
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${TOKEN}@github.com/mshobeyri/multimeter-examples.git" \
+            /tmp/multimeter-examples
+
+      - name: Sync content
+        run: |
+          set -euo pipefail
+          DEST=/tmp/multimeter-examples
+
+          # examples/ (full replace of that tree)
+          rsync -a --delete \
+            --exclude '.DS_Store' \
+            --exclude '**/.DS_Store' \
+            examples/ "${DEST}/examples/"
+
+          # Root README
+          cp README.md "${DEST}/README.md"
+
+          # Branding / README assets
+          mkdir -p "${DEST}/res"
+          for f in \
+            logo.png \
+            logo.svg \
+            logo_file.svg \
+            demo.png \
+            demo.gif \
+            website.png \
+            request_feature.png
+          do
+            if [ -f "res/${f}" ]; then
+              cp "res/${f}" "${DEST}/res/${f}"
+            else
+              echo "::warning::Missing source asset res/${f}"
+            fi
+          done
+
+      - name: Commit and push
+        working-directory: /tmp/multimeter-examples
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to sync."
+            exit 0
+          fi
+
+          SHORT_SHA="${GITHUB_SHA::7}"
+          git commit -m "Sync from multimeter@${SHORT_SHA}"
+          git push origin HEAD:master

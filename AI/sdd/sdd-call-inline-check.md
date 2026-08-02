@@ -155,7 +155,7 @@ The generated check/assert details defaults to `${JSON.stringify(<resultVar>)}`,
 - Add `check`, `assert`, `title`, and `report` to `callSiblings`.
 - Update call step documentation to mention inline checks.
 
-### 9. `docs/test-mmt.md`
+### 9. `docs/files/test/index.md`
 
 - Document inline `check`/`assert` on call steps with examples.
 - Document the `title` field and title priority chain.

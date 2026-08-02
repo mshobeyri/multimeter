@@ -1,5 +1,7 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
+import { beautifyWithContentType } from './markupConvertor';
+import { isOmitSentinel, OMIT_KEYWORD, restoreOmitKeywordInText } from './omitKeyword';
 import {formatReportDateTime, formatReportNumber, formatReportPercent} from './reportFormat';
 
 export interface ReportMarkdownOptions {
@@ -31,6 +33,113 @@ interface ParsedCallDetails {
     duration?: number;
   };
   outputs?: Record<string, any>;
+}
+
+type ReportBodyFormat = 'json' | 'xml' | 'urlencoded' | 'text';
+
+function headerValue(
+  headers: Record<string, any> | undefined,
+  name: string,
+): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+  const target = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === target) {
+      return value == null ? undefined : String(value);
+    }
+  }
+  return undefined;
+}
+
+/** Infer body format from Content-Type and/or body text (same rules as the report panel). */
+function detectBodyFormat(
+  body: string,
+  headers?: Record<string, any>,
+): ReportBodyFormat {
+  const contentType = (headerValue(headers, 'content-type') || '').toLowerCase();
+  if (contentType.includes('json')) {
+    return 'json';
+  }
+  if (contentType.includes('xml') || contentType.includes('html')) {
+    return 'xml';
+  }
+  if (contentType.includes('urlencoded') || contentType.includes('x-www-form-urlencoded')) {
+    return 'urlencoded';
+  }
+
+  const trimmed = (body || '').trimStart();
+  if (!trimmed) {
+    return 'text';
+  }
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      JSON.parse(body);
+      return 'json';
+    } catch {
+      // fall through
+    }
+  }
+  if (trimmed.startsWith('<')) {
+    return 'xml';
+  }
+  if (/^[^=&\s]+=/.test(trimmed) && trimmed.includes('=') && !trimmed.includes('\n')) {
+    return 'urlencoded';
+  }
+  return 'text';
+}
+
+function prettyUrlEncoded(body: string): string {
+  return body
+    .split('&')
+    .filter((part) => part.length > 0)
+    .map((part) => {
+      const eq = part.indexOf('=');
+      if (eq < 0) {
+        return decodeURIComponent(part.replace(/\+/g, ' '));
+      }
+      const key = decodeURIComponent(part.slice(0, eq).replace(/\+/g, ' '));
+      const value = decodeURIComponent(part.slice(eq + 1).replace(/\+/g, ' '));
+      return `${key}=${value}`;
+    })
+    .join('&\n');
+}
+
+function formatBodyValue(value: any, headers?: Record<string, any>): {
+  text: string;
+  format: ReportBodyFormat;
+} {
+  if (value === null || value === undefined) {
+    return { text: '', format: 'text' };
+  }
+  if (typeof value !== 'string') {
+    try {
+      return { text: JSON.stringify(value, null, 2), format: 'json' };
+    } catch {
+      return { text: String(value), format: 'text' };
+    }
+  }
+  const format = detectBodyFormat(value, headers);
+  const contentType = headerValue(headers, 'content-type') || '';
+  if (format === 'urlencoded') {
+    try {
+      return { text: prettyUrlEncoded(value), format };
+    } catch {
+      return { text: value, format };
+    }
+  }
+  return { text: beautifyWithContentType(contentType, value), format };
+}
+
+function fenceLangFor(format: ReportBodyFormat): string {
+  if (format === 'json') {
+    return 'json';
+  }
+  if (format === 'xml') {
+    return 'xml';
+  }
+  return '';
 }
 
 function tryFormatJson(value: any): string {
@@ -124,8 +233,8 @@ function escapeMdTable(s: string): string {
 
 function buildStepRow(step: TestStepResult, index: number): string {
   const name = escapeMdTable(step.title || `step-${step.stepIndex}`);
-  const icon = step.status === 'passed' ? '✓' : '✗';
-  const result = `${icon} ${step.status}`;
+  const icon = stepStatusMark(step);
+  const result = `${icon} ${step.status}${step.cached ? ' (cache)' : ''}`;
   return `| ${index + 1} | ${name} | ${result} |`;
 }
 
@@ -133,14 +242,17 @@ function displayValue(v: any): string {
   if (v === null || v === undefined) {
     return String(v);
   }
+  if (isOmitSentinel(v)) {
+    return OMIT_KEYWORD;
+  }
   if (typeof v === 'object') {
     try {
-      return JSON.stringify(v);
+      return restoreOmitKeywordInText(JSON.stringify(v));
     } catch {
       return String(v);
     }
   }
-  return String(v);
+  return restoreOmitKeywordInText(String(v));
 }
 
 function stepHasSimilarity(step: TestStepResult): boolean {
@@ -159,13 +271,22 @@ function buildKvTable(entries: Record<string, any>): string {
   return md;
 }
 
-function buildJsonBlock(value: any): string {
-  return `\n\`\`\`json\n${tryFormatJson(value)}\n\`\`\`\n`;
+function buildBodyBlock(value: any, headers?: Record<string, any>): string {
+  const { text, format } = formatBodyValue(value, headers);
+  const lang = fenceLangFor(format);
+  return `\n\`\`\`${lang}\n${text}\n\`\`\`\n`;
+}
+
+function stepStatusMark(step: TestStepResult): string {
+  if (step.cached) {
+    return step.status === 'passed' ? '🗄️✓' : '🗄️✗';
+  }
+  return step.status === 'passed' ? '✓' : '✗';
 }
 
 function buildStepDetails(step: TestStepResult): string {
   const name = step.title || `step-${step.stepIndex}`;
-  const stepIcon = step.status === 'passed' ? '✓' : '✗';
+  const stepIcon = stepStatusMark(step);
   let md = `\n<details>\n<summary>${stepIcon} ${name}</summary>\n\n`;
   const expects = step.expects || [];
   if (expects.length > 0) {
@@ -196,7 +317,7 @@ function buildStepDetails(step: TestStepResult): string {
       md += `\nHeaders:\n\n\`\`\`json\n${tryFormatJson(req.headers)}\n\`\`\`\n`;
     }
     if (req.body) {
-      md += `\n\`\`\`json\n${tryFormatJson(req.body)}\n\`\`\`\n`;
+      md += buildBodyBlock(req.body, req.headers);
     }
   }
   if (reqResp?.response) {
@@ -209,7 +330,7 @@ function buildStepDetails(step: TestStepResult): string {
       md += `\nHeaders:\n\n\`\`\`json\n${tryFormatJson(resp.headers)}\n\`\`\`\n`;
     }
     if (resp.body) {
-      md += `\n\`\`\`json\n${tryFormatJson(resp.body)}\n\`\`\`\n`;
+      md += buildBodyBlock(resp.body, resp.headers);
     }
   }
   md += `\n</details>\n`;
@@ -228,7 +349,7 @@ function buildFullStepCallDetails(
   stepHeadingLevel: number,
 ): string {
   const name = step.title || `step-${step.stepIndex}`;
-  const stepIcon = step.status === 'passed' ? '✓' : '✗';
+  const stepIcon = stepStatusMark(step);
   const sectionLevel = stepHeadingLevel + 1;
   let md = `\n${mdHeading(stepHeadingLevel, `${stepIcon} ${name}`)}\n\n`;
 
@@ -247,7 +368,7 @@ function buildFullStepCallDetails(
     }
     if (req.body !== undefined && req.body !== null && req.body !== '') {
       md += `**Body**\n`;
-      md += buildJsonBlock(req.body);
+      md += buildBodyBlock(req.body, req.headers);
       md += `\n`;
     }
   }
@@ -268,7 +389,7 @@ function buildFullStepCallDetails(
     }
     if (resp.body !== undefined && resp.body !== null && resp.body !== '') {
       md += `**Body**\n`;
-      md += buildJsonBlock(resp.body);
+      md += buildBodyBlock(resp.body, resp.headers);
       md += `\n`;
     }
   }

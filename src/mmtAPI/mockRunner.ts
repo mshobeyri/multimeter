@@ -9,6 +9,7 @@ import * as mmtcore from 'mmt-core';
 import { mockParsePack, mockServer, variableReplacer, MockData as MockDataNS } from 'mmt-core';
 
 import {onRunFinished, onRunStarted} from '../runStatusBar';
+import {keepMmtEditorSoon} from '../keepEditor';
 
 type MockData = MockDataNS.MockData;
 
@@ -372,6 +373,9 @@ export async function startMockServer(
       handle.statusBarRunId = onRunStarted(label, () => stopMockServer(documentUri), 'server');
       activeServers.set(documentUri, handle);
 
+      // Keep preview tab open while the mock server is bound to this file.
+      keepMmtEditorSoon(document.uri);
+
       webviewPanel.webview.postMessage({
         command: 'mockServerStatus',
         running: true,
@@ -597,6 +601,7 @@ export async function startMockServerFromPath(
       const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${listenPort}`;
       handle.statusBarRunId = onRunStarted(label, () => stopMockServer(documentUri), 'server');
       activeServers.set(documentUri, handle);
+      keepMmtEditorSoon(vscode.Uri.file(filePath));
       resolve(dispose);
     });
 

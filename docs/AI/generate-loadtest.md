@@ -1,9 +1,9 @@
-This file tells the AI how to generate type: loadtest .mmt files.
+This file tells the AI how to generate `type:` loadtest .mmt files.
 
 Always follow these rules:
 - Output must be valid YAML.
-- The first non-comment line must be type: loadtest.
-- Load tests should reference exactly one existing type: test file via the top-level test field.
+- The first non-comment line must be `type:` loadtest.
+- Load tests should reference exactly one existing `type:` test file via the top-level test field.
 
 ---
 
@@ -40,7 +40,7 @@ test: path/to/test.mmt
 Guidelines:
 - Use test, not tests.
 - Do not add servers; load tests do not support suite-level servers.
-- Keep the referenced file a type: test document.
+- Keep the referenced file a `type:` test document.
 
 Example:
 

@@ -6,6 +6,7 @@ import * as file from './file';
 import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
+import {keepMmtEditorSoon} from '../keepEditor';
 import {loadWorkspaceEnvFile, refreshWorkspaceCertificatesFromEnvFile} from '../workspaceEnvLoader';
 import {buildThemeTokenMessage} from '../themeTokenColors';
 import {
@@ -662,6 +663,15 @@ export const messageReceived = async (
       await handleUpdateConfig(message, mmtProvider);
       break;
 
+    // Panels ask for the config when they mount, so a `config` message that was
+    // posted before their listeners were attached is not lost.
+    case 'requestConfig':
+      try {
+        webviewPanel.webview.postMessage(mmtProvider.getEditorConfigMessage());
+      } catch {
+      }
+      break;
+
     case 'exportHtml':
       await file.handleExportHtml(message);
       break;
@@ -699,6 +709,11 @@ export const messageReceived = async (
         command: 'mockServerStatus',
         running: mockRunner.isRunning(document.uri.toString()),
       });
+      break;
+
+    case 'keepEditor':
+      // Webview asks to pin a preview tab (e.g. unsaved UI input edits).
+      keepMmtEditorSoon(document.uri);
       break;
   }
 };

@@ -99,12 +99,24 @@ class HistoryPanel implements vscode.WebviewViewProvider {
         path.join(this.context.extensionPath, 'res', 'themeAccent.js');
     let html = fs.readFileSync(htmlPath, 'utf8');
     const accentJs = fs.readFileSync(accentJsPath, 'utf8');
+    const serverUpSvg = fs.readFileSync(
+        path.join(
+            this.context.extensionPath, 'res',
+            'vscode-codicons_server_up.svg'),
+        'utf8');
+    const serverDownSvg = fs.readFileSync(
+        path.join(
+            this.context.extensionPath, 'res',
+            'vscode-codicons_server_down.svg'),
+        'utf8');
     html = html.replace('__THEME_ACCENT_JS__', accentJs);
     html = html.replace('__HISTORY_DATA__', JSON.stringify(history));
     html = html.replace(
         '__TOKEN_COLORS__', JSON.stringify(tokenColors).replace(/</g, '\\u003c'));
     html = html.replace(
         '__OPEN_IDX__', openIdx === null ? 'null' : String(openIdx));
+    html = html.replace('__SERVER_UP_SVG__', JSON.stringify(serverUpSvg));
+    html = html.replace('__SERVER_DOWN_SVG__', JSON.stringify(serverDownSvg));
     return html;
   }
 }

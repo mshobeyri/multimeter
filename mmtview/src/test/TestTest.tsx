@@ -15,6 +15,7 @@ import VEditor from '../components/VEditor';
 import { runInCoreMenuItem } from '../components/ContextMenuHost';
 import RunStopToggle from '../components/RunStopToggle';
 import { loadEnvVariables } from '../workspaceStorage';
+import { keepEditor } from '../vsAPI';
 import {
     applyEnvRefreshToInputs,
     applyYamlInputsRefresh,
@@ -97,8 +98,13 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
     }, []);
 
     const setDirtyKeysState = useCallback((nextDirty: Set<string>) => {
+        const wasClean = dirtyKeysRef.current.size === 0;
         dirtyKeysRef.current = nextDirty;
         setDirtyKeys(new Set(nextDirty));
+        // Runtime input edits don't dirty the file; pin the preview tab instead.
+        if (wasClean && nextDirty.size > 0) {
+            keepEditor();
+        }
     }, []);
 
     const markDirtyKeysFromEdit = useCallback((next: JSONRecord) => {
@@ -302,6 +308,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                     details: typeof (message as any).details === 'string' ? (message as any).details : undefined,
                     expects: Array.isArray((message as any).expects) ? (message as any).expects : [],
                     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
+                    cached: (message as any).cached === true ? true : undefined,
                 };
                 appendReport(normalized);
                 if (normalized.status === 'failed') {

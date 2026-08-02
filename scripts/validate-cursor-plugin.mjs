@@ -147,7 +147,7 @@ async function validateFrontmatterFile(filePath, componentName, requiredKeys, pl
   }
 }
 
-async function validateComponentFrontmatter(pluginDir, pluginName) {
+async function validateComponentFrontmatter(pluginDir, pluginName, manifest = {}) {
   const componentChecks = [
     { dir: "rules", component: "rule", keys: ["description"], names: [".md", ".mdc", ".markdown"] },
     { dir: "agents", component: "agent", keys: ["name", "description"], names: [".md", ".mdc", ".markdown"] },
@@ -155,19 +155,57 @@ async function validateComponentFrontmatter(pluginDir, pluginName) {
   ];
 
   for (const check of componentChecks) {
-    const dirPath = path.join(pluginDir, check.dir);
-    if (!(await pathExists(dirPath))) {
-      continue;
+    const override = manifest[check.dir];
+    const dirs = [];
+    if (typeof override === "string") {
+      dirs.push(path.join(pluginDir, override));
+    } else if (Array.isArray(override)) {
+      for (const entry of override) {
+        if (typeof entry === "string") {
+          dirs.push(path.join(pluginDir, entry));
+        }
+      }
+    } else {
+      dirs.push(path.join(pluginDir, check.dir));
     }
-    for (const file of await walkFiles(dirPath)) {
-      if (check.names.includes(path.extname(file).toLowerCase())) {
-        await validateFrontmatterFile(file, check.component, check.keys, pluginName);
+
+    for (const dirPath of dirs) {
+      if (!(await pathExists(dirPath))) {
+        continue;
+      }
+      const stat = await fs.stat(dirPath);
+      if (stat.isFile()) {
+        if (check.names.includes(path.extname(dirPath).toLowerCase())) {
+          await validateFrontmatterFile(dirPath, check.component, check.keys, pluginName);
+        }
+        continue;
+      }
+      for (const file of await walkFiles(dirPath)) {
+        if (check.names.includes(path.extname(file).toLowerCase())) {
+          await validateFrontmatterFile(file, check.component, check.keys, pluginName);
+        }
       }
     }
   }
 
-  const skillsDir = path.join(pluginDir, "skills");
-  if (await pathExists(skillsDir)) {
+  const skillsOverride = manifest.skills;
+  const skillsDirs = [];
+  if (typeof skillsOverride === "string") {
+    skillsDirs.push(path.join(pluginDir, skillsOverride));
+  } else if (Array.isArray(skillsOverride)) {
+    for (const entry of skillsOverride) {
+      if (typeof entry === "string") {
+        skillsDirs.push(path.join(pluginDir, entry));
+      }
+    }
+  } else {
+    skillsDirs.push(path.join(pluginDir, "skills"));
+  }
+
+  for (const skillsDir of skillsDirs) {
+    if (!(await pathExists(skillsDir))) {
+      continue;
+    }
     for (const file of await walkFiles(skillsDir)) {
       if (path.basename(file) === "SKILL.md") {
         await validateFrontmatterFile(file, "skill", ["name", "description"], pluginName);
@@ -196,15 +234,32 @@ async function validateSinglePlugin(pluginDir) {
     addError('"author.name" is required in .cursor-plugin/plugin.json.');
   }
 
+  const packageJson = await readJsonFile(path.join(pluginDir, "package.json"), "Root package.json");
+  if (
+    packageJson &&
+    typeof packageJson.version === "string" &&
+    typeof manifest.version === "string" &&
+    packageJson.version !== manifest.version
+  ) {
+    addError(
+      `.cursor-plugin/plugin.json version "${manifest.version}" must match package.json version "${packageJson.version}".`
+    );
+  }
+
   for (const field of ["logo", "rules", "skills", "agents", "commands", "hooks", "mcpServers"]) {
     for (const value of extractPathValues(manifest[field])) {
       await validateReferencedPath(pluginDir, field, value, pluginName);
     }
   }
 
-  await validateComponentFrontmatter(pluginDir, pluginName);
+  await validateComponentFrontmatter(pluginDir, pluginName, manifest);
 
-  if (!(await pathExists(path.join(pluginDir, "rules"))) && !(await pathExists(path.join(pluginDir, "skills")))) {
+  const hasRules = await pathExists(path.join(pluginDir, "rules"));
+  const skillsPath = typeof manifest.skills === "string"
+    ? path.join(pluginDir, manifest.skills)
+    : path.join(pluginDir, "skills");
+  const hasSkills = await pathExists(skillsPath);
+  if (!hasRules && !hasSkills) {
     addWarning(`${pluginName}: no rules/ or skills/ directory found.`);
   }
 }

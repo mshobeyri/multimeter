@@ -181,10 +181,10 @@ describe('quoteExpectOperators', () => {
     expect(result).toContain('msg: "!* /fail/"');
   });
 
-  it('quotes legacy !~ operator in expect block', () => {
-    const yaml = 'expect:\n  msg: !~ /fail/';
+  it('quotes !~ (type-unsafe not-equal) operator in expect block', () => {
+    const yaml = 'expect:\n  msg: !~ false';
     const result = quoteExpectOperators(yaml);
-    expect(result).toContain('msg: "!~ /fail/"');
+    expect(result).toContain('msg: "!~ false"');
   });
 
   it('quotes !$ operator in expect block', () => {

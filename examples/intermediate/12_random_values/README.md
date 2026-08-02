@@ -56,4 +56,4 @@ npx testlight run examples/intermediate/12_random_values/random_values_test.mmt
 
 - See [Simple Mock Server](../18_simple_mock_server/) for random tokens in mock server responses.
 - See [JavaScript Helpers](../14_javascript_helpers/) for the JavaScript `Random.*` helpers.
-- See [API docs](../../../docs/api-mmt.md) for the full list of supported random tokens.
+- See [API docs](../../../docs/files/api/index.md) for the full list of supported random tokens.

@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Github, Linkedin, Mail, Youtube } from 'lucide-react'
 
-const footerLinks = {
+type FooterLink = { name: string; href: string; external?: boolean }
+
+const footerLinks: Record<string, FooterLink[]> = {
   Product: [
     { name: 'Features', href: '/#features' },
     { name: 'Test Flows', href: '/#test-flows' },
@@ -18,11 +20,12 @@ const footerLinks = {
     { name: 'CI/CD', href: '/#ci-cd' },
     { name: 'Website Documentation', href: '/#documentation' },
     { name: 'FAQ', href: '/#faq' },
-    { name: 'Documentation', href: 'https://github.com/mshobeyri/multimeter/tree/master/docs', external: true },
-    { name: 'API Testing Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/api-mmt.md', external: true },
-    { name: 'Test Flow Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/test-mmt.md', external: true },
-    { name: 'Load Testing Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/loadtest-mmt.md', external: true },
-    { name: 'MMT Overview', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/mmt-overview.md', external: true },
+    { name: 'Documentation', href: '/docs' },
+    { name: 'Install', href: '/docs/install' },
+    { name: 'MMT Files', href: '/docs/files' },
+    { name: 'Examples', href: '/docs/examples' },
+    { name: 'API reference', href: '/docs/files/api' },
+    { name: 'Test reference', href: '/docs/files/test' },
     { name: 'Test Server', href: '/test-server' },
   ],
   Community: [
@@ -33,8 +36,8 @@ const footerLinks = {
     { name: 'Request Feature', href: 'https://github.com/mshobeyri/multimeter/issues/new', external: true },
   ],
   Legal: [
-    { name: 'Terms of Service', href: '/terms', external: false },
-    { name: 'Privacy Policy', href: '/privacy', external: false },
+    { name: 'Terms of Service', href: '/terms' },
+    { name: 'Privacy Policy', href: '/privacy' },
   ],
 }
 

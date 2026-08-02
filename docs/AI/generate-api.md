@@ -73,7 +73,7 @@ Notes for the AI:
 
 
 If the user gives:
-- **Only URL + method** → make a minimal file: `type`, `title`, `format`, `method`, `url` (protocol is inferred).
+- **Only URL + method** → make a minimal `file:` `type`, `title`, `format`, `method`, `url` (protocol is inferred).
 - **Request + response contract** → also add `inputs`, `outputs`, maybe `setenv`.
 - **Multiple usage scenarios** → use `examples` to capture them.
 
@@ -83,8 +83,8 @@ If the user gives:
 
 The API body, headers, query, cookies, and url can contain tokens:
 
-- Environment variables: `e:api_url`, `e:auth_token`, etc., or `<<e:api_url>>`
-- Test/API inputs: `i:var` or `<<i:var>>`
+- Environment `variables:` `e:api_url`, `e:auth_token`, etc., or `<<e:api_url>>`
+- Test/API `inputs:` `i:var` or `<<i:var>>`
 - Random values: `r:name` or `<<r:name>>`
 - Current/time values: `c:name` or `<<c:name>>`
 

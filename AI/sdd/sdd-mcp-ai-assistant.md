@@ -268,7 +268,7 @@ Expose existing `docs/AI/*` as MCP resources (content read at startup or lazily 
 | `mmt://guide/generate-suite` | `docs/AI/generate-suite.md` |
 | `mmt://guide/generate-doc` | `docs/AI/generate-doc.md` |
 | `mmt://guide/generate-loadtest` | `docs/AI/generate-loadtest.md` |
-| `mmt://profile/testgen` | `docs/testgen-profile-ai.md` |
+| `mmt://profile/testgen` | `docs/AI/` (MCP bundled guides) |
 
 Resource templates (optional v1.1):
 
@@ -505,7 +505,7 @@ Optional: detect if MCP server is running and tailor message (“Multimeter MCP 
 | `core/src/testScaffold.test.ts` | **New** scaffold unit tests |
 | `mmtcli/src/runArgs.ts` | Extract shared run-arg builder for MCP (optional refactor) |
 | `.cursor-plugin/plugin.json` | **New** (optional) Cursor marketplace entry |
-| `docs/testlight.md` or new `docs/mcp.md` | User-facing MCP setup docs |
+| `docs/running/testlight/index.md` or new `docs/features/mcp/index.md` | User-facing MCP setup docs |
 | `src/assistant/assistant.ts` | Phase 2: remove LLM, add deprecation |
 | `EXTENSION.md` | Document MCP + deprecated chat generation |
 | `website/src/sections/AITestGen.tsx` | Update marketing copy (Phase 2) |
@@ -584,7 +584,7 @@ Optional: detect if MCP server is running and tailor message (“Multimeter MCP 
 ## See Also
 
 - [docs/AI/generate-test.md](../../docs/AI/generate-test.md) — test generation rules (MCP resource)
-- [docs/testgen-profile-ai.md](../../docs/testgen-profile-ai.md) — TestGen profile (MCP resource)
+- MCP bundled guides under `docs/AI/` — TestGen profile resource (`mmt://profile/testgen`)
 - [src/assistant/assistant.ts](../../src/assistant/assistant.ts) — current chat participant
 - [mmtcli/src/cli.ts](../../mmtcli/src/cli.ts) — CLI patterns for `run_mmt`
 - [VS Code MCP extension guide](https://code.visualstudio.com/api/extension-guides/ai/mcp)

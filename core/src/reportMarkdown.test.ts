@@ -1,5 +1,6 @@
 import { generateReportMarkdown, generateReportMarkdownDetailed } from './reportMarkdown';
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import { OMIT_SENTINEL } from './omitKeyword';
 
 function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
   return {
@@ -405,5 +406,71 @@ describe('generateReportMarkdown', () => {
     expect(detailed).toContain('#### Response');
     expect(detailed).toContain('**Status:** `200 OK (42ms)`');
     expect(detailed).toContain('"token": "abc"');
+    expect(detailed).toContain('```json');
+  });
+
+  it('renders omit keyword instead of the internal sentinel in failure details', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'omit.mmt',
+          steps: [
+            makeStep({
+              title: 'missing field',
+              status: 'failed',
+              expects: [{
+                comparison: 'nickname == present',
+                actual: OMIT_SENTINEL,
+                expected: 'present',
+                status: 'failed',
+              }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('got: omit');
+    expect(md).not.toContain(OMIT_SENTINEL);
+  });
+
+  it('fences and beautifies step bodies by Content-Type (xml / urlencoded)', () => {
+    const details = JSON.stringify({
+      _: {
+        status: 200,
+        details: JSON.stringify({
+          request: {
+            method: 'post',
+            url: 'https://example.com/form',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'name=Ada+Lovelace&role=engineer',
+          },
+          response: {
+            status: 200,
+            statusText: 'OK',
+            headers: { 'content-type': 'application/xml' },
+            body: '<user><name>Ada</name><active>true</active></user>',
+          },
+        }),
+      },
+    });
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'xml.mmt',
+          steps: [makeStep({ title: 'Form', status: 'passed', details })],
+        }),
+      ],
+    };
+
+    const detailed = generateReportMarkdownDetailed(results);
+    expect(detailed).toContain('```\nname=Ada Lovelace&\nrole=engineer\n```');
+    expect(detailed).toContain('```xml');
+    expect(detailed).toContain('<name>Ada</name>');
+    expect(detailed).not.toContain('```json\n<user>');
+    expect(detailed).not.toContain('```json\nname=');
   });
 });

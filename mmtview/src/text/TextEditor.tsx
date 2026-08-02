@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import MonacoEditor from "@monaco-editor/react";
+import { computeMinimalEditSpan, planExternalMonacoApply } from "./editorContentSync";
 import { defineTheme, getMonacoThemeName } from "./Theme";
 
 interface TextEditorProps {
@@ -139,6 +140,16 @@ function patchXmlValueHighlighting(monaco: any) {
   });
 }
 
+function clampMonacoPosition(model: any, pos: { lineNumber: number; column: number }) {
+  if (!model || !pos) {
+    return pos;
+  }
+  const lineCount = model.getLineCount();
+  const lineNumber = Math.min(Math.max(1, pos.lineNumber), lineCount);
+  const column = Math.min(Math.max(1, pos.column), model.getLineMaxColumn(lineNumber));
+  return { lineNumber, column };
+}
+
 const TextEditor: React.FC<TextEditorProps> = ({
   content,
   setContent,
@@ -158,6 +169,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
   const applyingPasteTransformRef = useRef(false);
+  const applyingExternalContentRef = useRef(false);
+  const contentRef = useRef(content);
+  contentRef.current = content;
 
   // Use passed refs if provided, else fallback to local refs
   const monacoRefToUse = monacoRef || localMonacoRef;
@@ -299,8 +313,113 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  /**
+   * Apply parent `content` without Monaco React's controlled `value` sync.
+   * That path uses executeEdits(..., forceMoveMarkers: true) on the full range,
+   * which jumps the cursor to EOF on every external rewrite (save echo, CRLF→LF
+   * body normalize, UI→YAML pack).
+   *
+   * The first hydration uses setValue so Ctrl+Z cannot rewind to the empty
+   * buffer the editor mounts with. Later rewrites are pushed as undoable edits
+   * over the changed range only, which keeps the file's undo history alive.
+   */
+  const applyExternalContent = (editor: any, next: string) => {
+    const model = editor.getModel?.();
+    if (!model) {
+      return;
+    }
+    const current = editor.getValue();
+    const plan = planExternalMonacoApply(current, next);
+    if (plan === "noop") {
+      return;
+    }
+    const scrollTop = editor.getScrollTop?.() ?? 0;
+    const scrollLeft = editor.getScrollLeft?.() ?? 0;
+    applyingExternalContentRef.current = true;
+    applyingPasteTransformRef.current = true;
+    try {
+      if (plan === "setValue") {
+        editor.setValue(next);
+      } else {
+        pushExternalEdit(editor, model, current, next);
+      }
+      editor.setScrollTop?.(scrollTop);
+      editor.setScrollLeft?.(scrollLeft);
+    } finally {
+      // Monaco may notify listeners asynchronously; keep suppress flags until
+      // after the current turn so onChange cannot echo the sync as a user edit.
+      queueMicrotask(() => {
+        applyingExternalContentRef.current = false;
+        applyingPasteTransformRef.current = false;
+      });
+    }
+  };
+
+  /**
+   * Replace only the changed range and keep it on the undo stack, so the user
+   * can undo a UI-driven YAML rewrite and everything typed before it.
+   */
+  const pushExternalEdit = (editor: any, model: any, current: string, next: string) => {
+    const span = computeMinimalEditSpan(current, next);
+    if (!span) {
+      return;
+    }
+    const start = model.getPositionAt(span.start);
+    const end = model.getPositionAt(span.end);
+    const selections = editor.getSelections?.() ?? null;
+    model.pushStackElement?.();
+    model.pushEditOperations?.(
+      selections,
+      [
+        {
+          range: {
+            startLineNumber: start.lineNumber,
+            startColumn: start.column,
+            endLineNumber: end.lineNumber,
+            endColumn: end.column,
+          },
+          text: span.text,
+          forceMoveMarkers: false,
+        },
+      ],
+      // Keep the cursor where Monaco moved it for this edit instead of forcing
+      // it to the end of the replaced range.
+      () => null,
+    );
+    model.pushStackElement?.();
+    const position = editor.getPosition?.();
+    if (position) {
+      editor.setPosition?.(clampMonacoPosition(model, position));
+    }
+  };
+
+  useEffect(() => {
+    const editor = editorRefToUse.current;
+    if (!editor) {
+      return;
+    }
+    applyExternalContent(editor, content);
+    // Re-run only when content changes; helpers are recreated each render but
+    // are always current when this effect runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, editorRefToUse]);
+
   const editorDidMount = (editor: any) => {
     editorRefToUse.current = editor;
+    // defaultValue may be stale if content arrived before mount finished.
+    // setValue (not executeEdits) so undo cannot rewind to the empty default.
+    if (contentRef.current !== editor.getValue()) {
+      applyingExternalContentRef.current = true;
+      applyingPasteTransformRef.current = true;
+      try {
+        editor.setValue(contentRef.current);
+      } finally {
+        queueMicrotask(() => {
+          applyingExternalContentRef.current = false;
+          applyingPasteTransformRef.current = false;
+        });
+      }
+    }
     editor.onDidFocusEditorWidget?.(() => {
       if (typeof onFocusChange === "function") onFocusChange(true);
     });
@@ -340,7 +459,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
       });
     }
     editor.onDidChangeModelContent?.((event: any) => {
-      if (applyingPasteTransformRef.current) {
+      if (applyingPasteTransformRef.current || applyingExternalContentRef.current) {
         return;
       }
       const transformer = pasteTextTransformRef.current;
@@ -384,7 +503,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
       height="100%"
       width="100%"
       language={language}
-      value={content}
+      defaultValue={content}
       theme={monacoTheme}
       beforeMount={monaco => {
         monacoRefToUse.current = monaco;
@@ -395,7 +514,12 @@ const TextEditor: React.FC<TextEditorProps> = ({
         beforeMount?.(monaco);
       }}
       onMount={editorDidMount}
-      onChange={value => setContent(value ?? "")}
+      onChange={value => {
+        if (applyingExternalContentRef.current) {
+          return;
+        }
+        setContent(value ?? "");
+      }}
       options={{
         fontSize,
         minimap: { enabled: false },

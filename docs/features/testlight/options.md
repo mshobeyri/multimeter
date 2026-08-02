@@ -1,0 +1,30 @@
+# Options
+
+- --log-level <level>
+  - Set log verbosity: `error`, `warn`, `info`, `debug`, `trace`
+  - Example: `--log-level debug`
+- -i, --input <pairs>
+  - Input variables as key/value pairs, repeatable
+  - Forms: key=value or key value
+  - Example: -i user_id=42 env prod
+- -e, --env <pairs>
+  - Environment variables as key/value pairs, repeatable
+  - Values are type-coerced (true/false/number) unless quoted
+  - Example: -e api_url=http://localhost:8080 debug=true retries=3 "token=abc xyz"
+- --env-file <path>
+  - Load variables and presets from an environment file (.mmt/.yaml)
+  - Path resolves from cwd, then relative to the test file
+- --preset <name>
+  - Select a preset defined in the env file
+  - Accepts `dev` (under `presets.runner.dev`) or dotted `group.name`
+- --print-js (in run)
+  - Print generated JS before executing
+- -q, --quiet
+  - Minimal output
+- -o, --out <file>
+  - Write result JSON to a file
+- --report <format>
+  - Generate a test report after the `run:` `junit`, `mmt`, `html`, `md`, or `md-detailed`
+  - See [reports.md](../../files/report/index.md) for format details and CI/CD integration
+- --report-file <path>
+  - Custom output path for the report file (default depends on format)

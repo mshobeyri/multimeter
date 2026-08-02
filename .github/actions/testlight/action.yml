@@ -1,0 +1,147 @@
+name: 'Run Testlight'
+description: 'Run Multimeter (.mmt) API tests, test suites, and generate docs with testlight'
+author: 'mshobeyri'
+
+branding:
+  icon: 'zap'
+  color: 'blue'
+
+inputs:
+  file:
+    description: 'Path to the .mmt file to run'
+    required: true
+  command:
+    description: 'Command to run: run, doc, print-js (default: run)'
+    required: false
+    default: 'run'
+  env-file:
+    description: 'Path to environment file (.mmt/.yaml)'
+    required: false
+  preset:
+    description: 'Preset name from the env file'
+    required: false
+  env:
+    description: 'Environment variables as key=value pairs (space-separated)'
+    required: false
+  input:
+    description: 'Input variables as key=value pairs (space-separated)'
+    required: false
+  example:
+    description: 'Run a specific example by name or index (e.g., happy-path or #1)'
+    required: false
+  report:
+    description: 'Report format: junit, html, md, mmt'
+    required: false
+  report-file:
+    description: 'Custom path for the report output file'
+    required: false
+  out:
+    description: 'Write result JSON to this file path'
+    required: false
+  quiet:
+    description: 'Minimal output (true/false)'
+    required: false
+    default: 'false'
+  log-level:
+    description: 'Log verbosity: error, warn, info, debug, trace'
+    required: false
+  version:
+    description: 'testlight version to install (default: latest). Use "beta" or "rc" for pre-release channels.'
+    required: false
+    default: 'latest'
+  working-directory:
+    description: 'Working directory for running the command'
+    required: false
+    default: '.'
+
+outputs:
+  result:
+    description: 'Path to the result JSON file (when --out is used)'
+  report:
+    description: 'Path to the generated report file (when --report is used)'
+  exit-code:
+    description: 'Exit code of the testlight command'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install testlight
+      shell: bash
+      run: |
+        INPUT_VERSION="${{ inputs.version }}"
+        case "$INPUT_VERSION" in
+          latest)
+            npm install -g mmt-testlight
+            ;;
+          beta|rc|alpha|canary|dev)
+            # Install from a pre-release npm dist-tag
+            npm install -g mmt-testlight@"$INPUT_VERSION"
+            ;;
+          *)
+            # Specific version number
+            npm install -g mmt-testlight@"$INPUT_VERSION"
+            ;;
+        esac
+        # Verify installation
+        testlight --version
+
+    - name: Run testlight
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set +e
+        ARGS="${{ inputs.command }} ${{ inputs.file }}"
+
+        # Optional flags
+        if [[ -n "${{ inputs.env-file }}" ]]; then
+          ARGS="$ARGS --env-file ${{ inputs.env-file }}"
+        fi
+        if [[ -n "${{ inputs.preset }}" ]]; then
+          ARGS="$ARGS --preset ${{ inputs.preset }}"
+        fi
+        if [[ -n "${{ inputs.env }}" ]]; then
+          ARGS="$ARGS -e ${{ inputs.env }}"
+        fi
+        if [[ -n "${{ inputs.input }}" ]]; then
+          ARGS="$ARGS -i ${{ inputs.input }}"
+        fi
+        if [[ -n "${{ inputs.example }}" ]]; then
+          ARGS="$ARGS --example '${{ inputs.example }}'"
+        fi
+        if [[ -n "${{ inputs.report }}" ]]; then
+          ARGS="$ARGS --report ${{ inputs.report }}"
+        fi
+        if [[ -n "${{ inputs.report-file }}" ]]; then
+          ARGS="$ARGS --report-file ${{ inputs.report-file }}"
+        fi
+        if [[ -n "${{ inputs.out }}" ]]; then
+          ARGS="$ARGS --out ${{ inputs.out }}"
+        fi
+        if [[ "${{ inputs.quiet }}" == "true" ]]; then
+          ARGS="$ARGS --quiet"
+        fi
+        if [[ -n "${{ inputs.log-level }}" ]]; then
+          ARGS="$ARGS --log-level ${{ inputs.log-level }}"
+        fi
+
+        echo "Running: testlight $ARGS"
+        eval testlight $ARGS
+        EXIT_CODE=$?
+
+        echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+        # Set output paths if applicable
+        if [[ -n "${{ inputs.out }}" ]]; then
+          echo "result=${{ inputs.out }}" >> $GITHUB_OUTPUT
+        fi
+        if [[ -n "${{ inputs.report-file }}" ]]; then
+          echo "report=${{ inputs.report-file }}" >> $GITHUB_OUTPUT
+        fi
+
+        exit $EXIT_CODE

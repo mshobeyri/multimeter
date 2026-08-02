@@ -79,15 +79,41 @@ input[type="checkbox"]:focus-visible {
   max-height: 4px;
 }
 
-.Resizer.disabled {
-  cursor: not-allowed;
-  opacity: 0.3;
+/* Hidden when a panel is fully closed (yaml-only / ui-only); do not leave a drag handle.
+   SplitPane puts `disabled` on the resizer; also match without requiring .Resizer in case
+   class wiring differs across package versions. */
+.Resizer.disabled,
+.SplitPane.disabled > .Resizer,
+.SplitPane.disabled > span[role="separator"],
+span.Resizer.disabled,
+span.vertical.disabled {
+  display: none !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  cursor: default;
+  opacity: 0;
 }
 
-.Resizer.disabled:hover {
-  background: var(--vscode-widget-border, #454545);
-  width: 1px;
-  height: 1px;
+.Resizer.disabled:hover,
+.Resizer.disabled:active,
+.SplitPane.disabled > .Resizer:hover,
+.SplitPane.disabled > .Resizer:active,
+span.vertical.disabled:hover,
+span.vertical.disabled:active {
+  display: none !important;
+  background: transparent !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
 }
 
 /* App styles */

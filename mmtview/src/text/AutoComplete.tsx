@@ -1,6 +1,7 @@
 import { loadEnvVariables } from '../workspaceStorage';
 import { JSONValue } from 'mmt-core/CommonData';
 import { Random, Current } from 'mmt-core';
+import { buildOperatorSuggestions, operatorListText } from './operatorSuggestions';
 
 export const KeySuggestionsByParent = (monaco: any) => {
     const variablesSuggestions: any[] = [];
@@ -174,6 +175,26 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "outputs:\n\t",
             detail: 'Output variables [object]',
             documentation: 'Values produced by the test to be reused.'
+        },
+        {
+            label: "cache",
+            kind: monaco.languages.CompletionItemKind.Property,
+            // Monaco snippet placeholders intentionally use ${n:default} in a normal string.
+            // eslint-disable-next-line no-template-curly-in-string
+            insertText: "cache: ${1:5m}",
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Call cache TTL [number | string]',
+            documentation: [
+                'When this test is imported and called again in the same root run with the same title + inputs,',
+                'reuse previous outputs and skip the callee body (no nested HTTP).',
+                'Caller expect/check/assert still run. Reports show a database icon on cache hits.',
+                '',
+                'Examples:',
+                'cache: 5m',
+                'cache: 1h5m',
+                'cache: 1735689600',
+                'cache: 2026-12-31T23:59:59Z',
+            ].join('\n')
         },
         {
             label: "steps",
@@ -404,7 +425,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Check expression',
             documentation: [
                 'Evaluates a boolean condition and logs an error if false.',
-                'Supported operators: <, >, <=, >=, ==, !=, =@, !@, =C, !C, =*, !*, =#, !#, >%, <%, =^, !^, =$ , !$',
+                'Supported operators: ' + operatorListText(),
                 'Env tokens: use e:NAME or <<e:NAME>> which resolve to envVariables.NAME',
                 'Examples:',
                 '- check: response.status_code == 200',
@@ -452,6 +473,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Runs nested steps only when the condition is true. Optional else with its own steps.',
                 'Combine comparisons with && or || (spaces required).',
                 'Example:',
+                // Literal example text for docs; not a JS template literal.
+                // eslint-disable-next-line no-template-curly-in-string
                 '- if: ${user.role} == admin && ${user.active} == true',
                 '  steps:',
                 '    - print: "Admin access granted"',
@@ -1375,53 +1398,17 @@ export const KeySuggestionsByParent = (monaco: any) => {
         },
     ];
 
-    const operatorValueSuggestions = [
-        { label: '== — equal', filterText: '==', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "=="', detail: 'Equal', documentation: 'Checks equality.' },
-        { label: '!= — not equal', filterText: '!=', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "!="', detail: 'Not equal', documentation: 'Checks inequality.' },
-        { label: '>  — greater than', filterText: '>', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' ">"', detail: 'Greater than', documentation: 'Checks actual > expected.' },
-        { label: '>= — greater than or equal', filterText: '>=', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' ">="', detail: 'Greater than or equal', documentation: 'Checks actual >= expected.' },
-        { label: '<  — less than', filterText: '<', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "<"', detail: 'Less than', documentation: 'Checks actual < expected.' },
-        { label: '<= — less than or equal', filterText: '<=', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "<="', detail: 'Less than or equal', documentation: 'Checks actual <= expected.' },
-        { label: '=@ — is in', filterText: '=@', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "=@"', detail: 'Is in', documentation: 'Checks actual is contained in expected (expected.includes(actual)).' },
-        { label: '!@ — is not in', filterText: '!@', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "!@"', detail: 'Is not in', documentation: 'Checks actual is not contained in expected.' },
-        { label: '=C — contains', filterText: '=C', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "=C"', detail: 'Contains', documentation: 'Checks actual contains expected (actual.includes(expected)).' },
-        { label: '!C — does not contain', filterText: '!C', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "!C"', detail: 'Not contains', documentation: 'Checks actual does not contain expected.' },
-        { label: '=* — matches regex', filterText: '=*', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "=*"', detail: 'Regex match', documentation: 'Checks actual matches regex expected.' },
-        { label: '!* — does not match regex', filterText: '!*', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "!*"', detail: 'Regex not match', documentation: 'Checks actual does not match regex expected.' },
-        { label: '=# — length/count equals', filterText: '=#', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "=#"', detail: 'Length/count equals', documentation: 'Checks array/object item count, or string/number character length.' },
-        { label: '!# — length/count not equals', filterText: '!#', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "!#"', detail: 'Length/count not equals', documentation: 'Checks array/object item count, or string/number character length is not expected.' },
-        { label: '>% — fuzzy match', filterText: '>%', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' ">%"', detail: 'Fuzzy match', documentation: 'Checks actual is at least the selected percent similar to expected.' },
-        { label: '<% — not fuzzy match', filterText: '<%', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "<%"', detail: 'Not fuzzy match', documentation: 'Checks actual is less than the selected percent similar to expected.' },
-        { label: '=^ — starts with', filterText: '=^', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "=^"', detail: 'Starts with', documentation: 'Checks actual starts with expected.' },
-        { label: '!^ — does not start with', filterText: '!^', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "!^"', detail: 'Not starts with', documentation: 'Checks actual does not start with expected.' },
-        { label: '=$ — ends with', filterText: '=$', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "=$"', detail: 'Ends with', documentation: 'Checks actual ends with expected.' },
-        { label: '!$ — does not end with', filterText: '!$', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' "!$"', detail: 'Not ends with', documentation: 'Checks actual does not end with expected.' },
-    ];
+    const operatorValueSuggestions = buildOperatorSuggestions('quoted').map(item => ({
+        ...item,
+        kind: monaco.languages.CompletionItemKind.Operator,
+    }));
 
     // Operator suggestions for inline expect/debug values (no quotes, e.g. status_code: == 200)
     // Leading space in insertText preserves the space after the colon (range starts at that space).
-    const expectValueOperatorSuggestions = [
-        { label: '== — equal', filterText: '==', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' == ', detail: 'Equal', documentation: 'Checks equality.\nExample: status_code: == 200' },
-        { label: '!= — not equal', filterText: '!=', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' != ', detail: 'Not equal', documentation: 'Checks inequality.\nExample: token: != null' },
-        { label: '>  — greater than', filterText: '>', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' > ', detail: 'Greater than', documentation: 'Checks actual > expected.\nExample: count: > 0' },
-        { label: '>= — greater than or equal', filterText: '>=', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' >= ', detail: 'Greater than or equal', documentation: 'Checks actual >= expected.\nExample: count: >= 1' },
-        { label: '<  — less than', filterText: '<', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' < ', detail: 'Less than', documentation: 'Checks actual < expected.\nExample: latency: < 1000' },
-        { label: '<= — less than or equal', filterText: '<=', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' <= ', detail: 'Less than or equal', documentation: 'Checks actual <= expected.\nExample: retries: <= 3' },
-        { label: '=@ — is in', filterText: '=@', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' =@ ', detail: 'Is in', documentation: 'Checks actual is contained in expected (expected.includes(actual)).\nExample: word: =@ sentence' },
-        { label: '!@ — is not in', filterText: '!@', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' !@ ', detail: 'Is not in', documentation: 'Checks actual is not contained in expected.\nExample: word: !@ sentence' },
-        { label: '=C — contains', filterText: '=C', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' =C ', detail: 'Contains', documentation: 'Checks actual contains expected (actual.includes(expected)).\nExample: body: =C success' },
-        { label: '!C — does not contain', filterText: '!C', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' !C ', detail: 'Not contains', documentation: 'Checks actual does not contain expected.\nExample: body: !C error' },
-        { label: '=* — matches regex', filterText: '=*', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' =* ', detail: 'Regex match', documentation: 'Checks actual matches regex.\nExample: email: =* ^[\\w]+@[\\w]+' },
-        { label: '!* — does not match regex', filterText: '!*', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' !* ', detail: 'Regex not match', documentation: 'Checks actual does not match regex.\nExample: name: !* ^admin' },
-        { label: '=# — length/count equals', filterText: '=#', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' =# ', detail: 'Length/count equals', documentation: 'Checks array/object item count, or string/number character length.\nExample: users: =# 3' },
-        { label: '!# — length/count not equals', filterText: '!#', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' !# ', detail: 'Length/count not equals', documentation: 'Checks array/object item count, or string/number character length is not expected.\nExample: users: !# 0' },
-        { label: '>N% — fuzzy match', filterText: '>%', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' ">80%" ', detail: 'Fuzzy match', documentation: 'Checks actual is at least N% similar to expected.\nExample: name: ">80% Jon"' },
-        { label: '<N% — not fuzzy match', filterText: '<%', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' <80% ', detail: 'Not fuzzy match', documentation: 'Checks actual is less than N% similar to expected.\nExample: name: <80% admin' },
-        { label: '=^ — starts with', filterText: '=^', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' =^ ', detail: 'Starts with', documentation: 'Checks actual starts with expected.\nExample: url: =^ https://' },
-        { label: '!^ — does not start with', filterText: '!^', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' !^ ', detail: 'Not starts with', documentation: 'Checks actual does not start with expected.\nExample: url: !^ http://' },
-        { label: '=$ — ends with', filterText: '=$', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' =$ ', detail: 'Ends with', documentation: 'Checks actual ends with expected.\nExample: file: =$ .json' },
-        { label: '!$ — does not end with', filterText: '!$', kind: monaco.languages.CompletionItemKind.Operator, insertText: ' !$ ', detail: 'Not ends with', documentation: 'Checks actual does not end with expected.\nExample: file: !$ .tmp' },
-    ];
+    const expectValueOperatorSuggestions = buildOperatorSuggestions('inline').map(item => ({
+        ...item,
+        kind: monaco.languages.CompletionItemKind.Operator,
+    }));
 
     const exampleSuggestions = [
         {

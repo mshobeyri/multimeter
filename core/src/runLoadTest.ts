@@ -1,5 +1,6 @@
 import {LogLevel} from './CommonData';
 import {yamlToLoadTest} from './loadtestParsePack';
+import {restoreOmitKeyword} from './omitKeyword';
 import {createReportCollector, LoadReportData} from './reportCollector';
 import {basename, PreparedRun, resolveRelativeTo, RunFileResult, runGeneratedJs, sanitizeIdentifier, SuiteExportSpec} from './runCommon';
 import {generateTestJs, prepareTestRun} from './runTest';
@@ -385,7 +386,7 @@ export async function executeLoadTest(
           const outputsEvent: TestOutputsReporterEvent = {
             scope: 'test-outputs',
             runId,
-            outputs: childResult.outputs,
+            outputs: restoreOmitKeyword(childResult.outputs),
             id: LOADTEST_ITEM_ID,
           };
           childReporter(outputsEvent);
