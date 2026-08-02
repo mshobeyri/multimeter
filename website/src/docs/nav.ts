@@ -28,7 +28,7 @@ function mapLeaf(item: JsonItem): DocsNavLeaf {
 
 function mapItem(item: JsonItem): DocsNavEntry {
   if (item.children && item.children.length > 0) {
-    const children = item.children.map(mapLeaf)
+    const children = item.children.map(mapItem)
     const group: DocsNavGroupWithOptional = {
       title: item.title,
       children,
@@ -50,7 +50,7 @@ type DocsNavGroupWithOptional = {
   href?: string
   content?: string
   icon?: string
-  children: DocsNavLeaf[]
+  children: DocsNavEntry[]
 }
 
 export const docsNav: DocsNavSection[] = (

@@ -14,7 +14,7 @@ export type DocsNavGroup = {
   href?: string
   content?: string
   icon?: string
-  children: DocsNavLeaf[]
+  children: DocsNavEntry[]
 }
 
 export type DocsNavEntry = DocsNavLeaf | DocsNavGroup
@@ -51,7 +51,7 @@ export function flattenNavItems(items: DocsNavEntry[]): DocsNavLeaf[] {
           icon: item.icon,
         })
       }
-      out.push(...item.children)
+      out.push(...flattenNavItems(item.children))
     } else {
       out.push(item)
     }

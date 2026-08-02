@@ -82,4 +82,4 @@ body: |
   </root>
 ```
 
-See also: [HTTP](./http.md) · [Outputs](../outputs.md) · [Request](../request.md)
+See also: [HTTP](./http.md) · [Body](../body/index.md) · [Format](../body/format.md) · [Outputs](../outputs.md)

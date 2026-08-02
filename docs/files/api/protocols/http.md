@@ -9,31 +9,27 @@ type: api
 url: https://test.mmt.dev/json   # protocol inferred as http from URL
 method: get
 timeout: 5000  # optional per-request timeout in milliseconds
-format: json   # affects default Content-Type and body handling
+format: json
 query:
   limit: "10"
   sort: desc
 ```
 
 Notes:
-- `format` sets how the body is encoded/decoded (defaults to `json` if omitted)
-- Use a single value when request and response share a format, or split them:
-
-```yaml
-format:
-  request: json
-  response: xml
-```
-
+- `format` and `body`: [Format](../body/format.md) · [Request body](../body/body.md)
 - `timeout` overrides the default request timeout for this API call, in milliseconds
 - `query` merges with any query string in `url`
 - `protocol` is optional — inferred from URL (`ws://` or `wss://` → ws, otherwise http)
 
-Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies (`r:uuid`, `c:date`, `e:token`). See [Dynamic values](../dynamic-values.md).
+Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies (`r:uuid`, `c:date`, `e:token`). See [Dynamic values](../../../features/dynamic-values.md).
 
 You can also import JSON/YAML/CSV data files with a top-level `import:` map and reference values with `${alias.path}`. See [Data Imports](../../../integration/data-imports.md).
 
-Side note: if you paste a `curl ...` command into an API editor, Multimeter can convert it into `type: api` YAML. For HTTP APIs, the toolbar can also run the current request in a terminal using `curl`.
+### HTTPS (TLS / mTLS)
+
+Use `https://` in `url` as usual — no extra fields on the API file.
+
+Client certificates, mTLS, and custom CA trust are configured in your environment file's **certificates** section, not in the API YAML. See [Certificates](../../../features/certificates/index.md).
 
 POST bodies (JSON, XML, urlencoded, binary, text): [HTTP bodies](./http-bodies.md).
 

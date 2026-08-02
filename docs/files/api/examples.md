@@ -1,6 +1,12 @@
 # Examples, validation, and UI
 
-Define example inputs and (optional) expected outputs so you can run them as smoke tests. When examples exist, the Tests panel shows a dropdown; picking one pre‑fills the inputs, and you can document expected outputs per example.
+Define example inputs and (optional) expected outputs so you can run them as smoke tests.
+
+## Running examples
+
+**YAML editor** — Each named example shows a {{btn:run}} glyph in the left margin on its `name:` line. Click it to run that example through core; Multimeter opens the log output.
+
+**API tester** — On the **In / Out** tab, use the **Example** dropdown to pick **Defaults** or a named example. That selection pre-fills **Inputs** for the next {{btn:send:Send}}.
 
 ```yaml
 examples:
@@ -31,6 +37,7 @@ examples:
 
 ## UI features
 
+- **Example dropdown** (In / Out tab): Switch between **Defaults** and named examples; inputs update immediately.
 - **Method override button**: Temporarily change the HTTP method from the UI without editing the YAML. Useful for quick testing of the same endpoint with different methods.
 - **Copyable outputs**: Output values in the response panel can be copied with a click.
 - **Extract variable from output**: Click on a value in the response body to automatically create an output extraction path for that value.

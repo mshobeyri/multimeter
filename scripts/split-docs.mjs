@@ -163,13 +163,17 @@ Write request definitions in \`.mmt\` files with \`type: api\`.
 - Formats: \`json\`, \`xml\`, \`xmle\`, \`text\`, \`urlencoded\`, \`binary\`
 - Methods: \`get\`, \`post\`, \`put\`, \`delete\`, \`patch\`, \`head\`, \`options\`, \`trace\`
 
+## Request
+
+\`url\`, \`method\`, \`headers\`, \`query\`, and \`cookies\` are documented in this overview. Body and format: [Body](./body/index.md).
+
 ## API elements
 
 - [Documentation](./documentation.md) — title, tags, description
-- [Request](./request.md) — url, method, body, query, cookies
+- [Protocols](./protocols/index.md) · [Body](./body/index.md)
 - [Headers](./headers.md) · [Auth](./auth.md)
 - [Inputs](./inputs.md) · [Outputs](./outputs.md) · [setenv](./setenv.md)
-- [Dynamic values](./dynamic-values.md) · [Examples](./examples.md)
+- [Examples](./examples.md) · [Dynamic values](../../features/dynamic-values.md)
 - [Reference](./reference.md)
 
 See also: [Quick start](./quick-start.md) · [Complete examples](./complete-examples.md) · [Protocols](../../protocols/index.md)
@@ -197,7 +201,7 @@ query:
 - \`query\` merges with any query string in \`url\`
 - Protocol is inferred from the URL (\`ws://\` → WebSocket, otherwise HTTP)
 
-Dynamic tokens work in url/headers/body/query/cookies: \`r:uuid\`, \`c:epoch\`, \`e:token\`. See [Dynamic values](./dynamic-values.md).
+Dynamic tokens work in url/headers/body/query/cookies: \`r:uuid\`, \`c:epoch\`, \`e:token\`. See [Dynamic values](../../features/dynamic-values.md).
 
 Import JSON/YAML/CSV with top-level \`import:\` — [Data imports](../../integration/data-imports.md).
 
@@ -211,14 +215,14 @@ More protocols: [HTTP bodies](../../protocols/http.md) · [WebSocket](../../prot
     'files/api/documentation.md',
     demoteH1(sliceLines(api, 241, 275), 'Documentation'),
   )
-  write('files/api/request.md', demoteH1(sliceLines(api, 275, 308), 'Request'))
+  // Request content stays in files/api/index.md (no separate request.md)
   write('files/api/headers.md', demoteH1(sliceLines(api, 308, 330), 'Headers'))
   write('files/api/auth.md', demoteH1(sliceLines(api, 330, 384), 'Auth'))
   write('files/api/inputs.md', demoteH1(sliceLines(api, 521, 570), 'Inputs'))
   write('files/api/outputs.md', demoteH1(sliceLines(api, 570, 656), 'Outputs'))
   write('files/api/setenv.md', demoteH1(sliceLines(api, 656, 677), 'setenv'))
   write(
-    'files/api/dynamic-values.md',
+    'features/dynamic-values.md',
     demoteH1(sliceLines(api, 677, 725), 'Dynamic values'),
   )
   write(

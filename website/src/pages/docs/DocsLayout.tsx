@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { ChevronDown, Menu, X } from 'lucide-react'
-import { docsNav, isNavGroup } from '../../docs/nav'
+import { docsNav, flattenNavItems, isNavGroup } from '../../docs/nav'
 import type { DocsNavEntry } from '../../docs/nav'
 import Codicon from '../../components/Codicon'
 
@@ -50,9 +50,11 @@ function NavItemLink({
 function NavEntry({
   item,
   onNavigate,
+  nested = false,
 }: {
   item: DocsNavEntry
   onNavigate: () => void
+  nested?: boolean
 }) {
   const location = useLocation()
   const path = location.pathname.replace(/\/$/, '')
@@ -65,12 +67,13 @@ function NavEntry({
           title={item.title}
           icon={item.icon}
           onNavigate={onNavigate}
+          nested={nested}
         />
       </li>
     )
   }
 
-  const childActive = item.children.some((c) => c.href === path)
+  const childActive = flattenNavItems(item.children).some((c) => c.href === path)
   const selfActive = item.href === path
   const [open, setOpen] = useState(childActive || selfActive)
 
@@ -84,6 +87,8 @@ function NavEntry({
             onClick={onNavigate}
             className={({ isActive }) =>
               `flex-1 min-w-0 block rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                nested ? 'pl-4' : ''
+              } ${
                 isActive
                   ? 'bg-primary/15 text-primary-light font-medium'
                   : 'text-slate-400 hover:text-white hover:bg-surface-light'
@@ -96,7 +101,9 @@ function NavEntry({
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="flex-1 min-w-0 text-left rounded-md px-2.5 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-surface-light"
+            className={`flex-1 min-w-0 text-left rounded-md px-2.5 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-surface-light ${
+              nested ? 'pl-4' : ''
+            }`}
           >
             <NavLabel title={item.title} icon={item.icon} />
           </button>
@@ -111,17 +118,14 @@ function NavEntry({
         </button>
       </div>
       {open ? (
-        <ul className="mt-0.5 space-y-0.5 border-l border-border ml-3">
+        <ul className={`mt-0.5 space-y-0.5 border-l border-border ${nested ? 'ml-6' : 'ml-3'}`}>
           {item.children.map((child) => (
-            <li key={child.href}>
-              <NavItemLink
-                href={child.href}
-                title={child.title}
-                icon={child.icon}
-                onNavigate={onNavigate}
-                nested
-              />
-            </li>
+            <NavEntry
+              key={isNavGroup(child) ? child.title : child.href}
+              item={child}
+              onNavigate={onNavigate}
+              nested
+            />
           ))}
         </ul>
       ) : null}

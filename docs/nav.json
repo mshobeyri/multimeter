@@ -38,31 +38,51 @@
           },
           {
             "title": "Protocols",
-            "path": "files/api/protocols/index.md"
+            "path": "files/api/protocols/index.md",
+            "children": [
+              {
+                "title": "Overview",
+                "path": "files/api/protocols/index.md"
+              },
+              {
+                "title": "HTTP",
+                "path": "files/api/protocols/http.md"
+              },
+              {
+                "title": "WebSocket",
+                "path": "files/api/protocols/websocket.md"
+              },
+              {
+                "title": "GraphQL",
+                "path": "files/api/protocols/graphql.md"
+              },
+              {
+                "title": "gRPC",
+                "path": "files/api/protocols/grpc.md"
+              }
+            ]
           },
           {
-            "title": "HTTP",
-            "path": "files/api/protocols/http.md"
-          },
-          {
-            "title": "HTTP bodies",
-            "path": "files/api/protocols/http-bodies.md"
-          },
-          {
-            "title": "WebSocket",
-            "path": "files/api/protocols/websocket.md"
-          },
-          {
-            "title": "GraphQL",
-            "path": "files/api/protocols/graphql.md"
-          },
-          {
-            "title": "gRPC",
-            "path": "files/api/protocols/grpc.md"
-          },
-          {
-            "title": "Request",
-            "path": "files/api/request.md"
+            "title": "Body",
+            "path": "files/api/body/index.md",
+            "children": [
+              {
+                "title": "Overview",
+                "path": "files/api/body/index.md"
+              },
+              {
+                "title": "Format",
+                "path": "files/api/body/format.md"
+              },
+              {
+                "title": "Request body",
+                "path": "files/api/body/body.md"
+              },
+              {
+                "title": "HTTP bodies",
+                "path": "files/api/protocols/http-bodies.md"
+              }
+            ]
           },
           {
             "title": "Headers",
@@ -91,10 +111,6 @@
           {
             "title": "setenv",
             "path": "files/api/setenv.md"
-          },
-          {
-            "title": "Dynamic values",
-            "path": "files/api/dynamic-values.md"
           },
           {
             "title": "Examples",
@@ -431,6 +447,10 @@
         "path": "features/history.md"
       },
       {
+        "title": "Dynamic values",
+        "path": "features/dynamic-values.md"
+      },
+      {
         "title": "Certificates",
         "path": "features/certificates/index.md",
         "children": [
@@ -570,6 +590,10 @@
       {
         "title": "Postman",
         "path": "integration/postman.md"
+      },
+      {
+        "title": "Curl",
+        "path": "integration/curl.md"
       },
       {
         "title": "Convertor",
