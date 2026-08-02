@@ -2,6 +2,8 @@
 
 Use `type: server` to define mock server endpoints in YAML. Open a server file in VS Code to get the **mock runner** on the right (YAML stays on the left). Click {{btn:edit:Edit Mock}} to edit endpoints and settings — see [Edit Mock](./edit.md).
 
+![Mock runner — TLS server, configuration, and endpoints](../../screenshots/mock-server-panel.png)
+
 For the lightweight **Mock Server** sidebar panel (reflect mode, quick prototyping), see [Mock server panel](./panel.md).
 
 ## Mock runner UI
