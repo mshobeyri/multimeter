@@ -13,4 +13,4 @@ items:
 
 Open the file in VS Code to get the **suite panel** on the right. Click {{btn:play:Run suite}} to run all items. Items between `then` separators run in parallel; stages run sequentially.
 
-More: [Edit Suite](./edit.md) · [items](./items.md) · [Execution](./execution.md) · [CLI](./cli.md)
+More: [Edit Suite](./edit.md) · [items](./items.md) · [Reports](./reports.md) · [Exports](./exports.md) · [Execution](./execution.md) · [CLI](./cli.md)

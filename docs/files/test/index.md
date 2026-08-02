@@ -28,7 +28,7 @@ Run glyphs appear in the left margin of the YAML pane:
 |---|---|
 | {{btn:play:Run test}} | Runs the test flow. While running, turns into **Stop test** |
 | Right-click Run test | Context menu: **Run in Core** |
-| {{btn:export:Export}} | Export the run report (HTML, JSON, or Markdown). Disabled until a run completes |
+| {{btn:export:Export}} | Export the run report (HTML, MMT, Markdown, or JUnit XML). Disabled until a run completes |
 
 ### After a run
 
@@ -67,7 +67,7 @@ steps:
 
 ## Test elements
 
-- [Quick start](./quick-start.md) · [Edit Test](./edit.md) · [Reports](./reports.md) · [Write a test flow](../../tasks/write-test-flow.md)
+- [Quick start](./quick-start.md) · [Edit Test](./edit.md) · [Reports](./reports.md) · [Report overview](../report/index.md) · [Write a test flow](../../tasks/write-test-flow.md)
 - [import](./import.md) · [cache](./cache.md)
 - [Steps](./steps/index.md) · [Stages](./stages/index.md)
 - [Stage condition](./stages/stage-condition.md) · [Complete example](./complete-example.md) · [CLI](./cli.md) · [Reference](./reference.md)

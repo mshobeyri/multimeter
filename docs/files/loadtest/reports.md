@@ -29,4 +29,4 @@ Use a suite when you want to orchestrate many files. Use a load test when you wa
 
 ---
 
-See also: [Load Test overview](./index.md) · [CLI](./cli.md)
+See also: [Load Test overview](./index.md) · [Report overview](../report/index.md) · [Exports](./exports.md) · [CLI](./cli.md)

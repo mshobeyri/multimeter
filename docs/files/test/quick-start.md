@@ -21,4 +21,4 @@ steps:
 - `expect` validates output inline on the same step — see [Inline expect](./steps/run-expect.md)
 - Use `call` instead when reusing a `type: api` file — see [call step](./steps/call.md)
 
-More: [Steps](./steps/index.md) · [Stages](./stages/index.md) · [import](./import.md) · [Complete example](./complete-example.md)
+More: [Steps](./steps/index.md) · [Reports](./reports.md) · [Stages](./stages/index.md) · [import](./import.md) · [Complete example](./complete-example.md)

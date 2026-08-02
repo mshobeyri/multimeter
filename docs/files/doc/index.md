@@ -54,4 +54,7 @@ Open this file in VS Code; the Doc view renders an interactive, searchable page 
 ---
 
 
-Next: [Quick start](./quick-start.md) · [Edit Doc](./edit.md) · [Environment](./environment.md) · [Annotations](./annotations.md) · [Markdown](./markdown.md) · [CLI](./cli.md) · [Reference](./reference.md)
+## Doc elements
+
+- [Quick start](./quick-start.md) · [Edit Doc](./edit.md) · [Generate docs](../../tasks/generate-docs.md)
+- [Environment](./environment.md) · [Annotations](./annotations.md) · [Markdown](./markdown.md) · [CLI](./cli.md) · [Reference](./reference.md)

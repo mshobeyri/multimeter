@@ -16,4 +16,4 @@ Reference the variable in API or test files:
 url: <<e:base_url>>/echo
 ```
 
-More: [Edit Environment](./edit.md) · [Environment variables panel](./ui.md) · [CLI](./cli.md)
+More: [Edit Environment](./edit.md) · [Environment variables panel](./ui.md) · [Use environments](../../tasks/use-environments.md) · [CLI](./cli.md)

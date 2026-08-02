@@ -20,7 +20,7 @@ Use `type: suite` to define a suite MMT file. A suite runs multiple items togeth
 |---|---|
 | {{btn:play:Run suite}} | Runs all suite items. While running, turns into **Stop suite** |
 | Right-click Run suite | Context menu: **Run in Core** |
-| {{btn:export:Export}} | Export the run report (HTML, JSON, or Markdown). Disabled until a run completes |
+| {{btn:export:Export}} | Export the run report (HTML, MMT, Markdown, or JUnit XML). Disabled until a run completes |
 
 ### Before and after a run
 
@@ -69,5 +69,5 @@ items:
 
 ## Suite elements
 
-- [Quick start](./quick-start.md) · [Edit Suite](./edit.md) · [Reports](./reports.md) · [import](./import.md) · [items](./items.md)
-- [Execution](./execution.md) · [CLI](./cli.md) · [Exports](./exports.md) · [Reference](./reference.md)
+- [Quick start](./quick-start.md) · [Edit Suite](./edit.md) · [Reports](./reports.md) · [Report overview](../report/index.md) · [Run a suite](../../tasks/run-suite.md)
+- [import](./import.md) · [items](./items.md) · [Execution](./execution.md) · [Exports](./exports.md) · [CLI](./cli.md) · [Reference](./reference.md)

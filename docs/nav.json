@@ -302,12 +302,12 @@
             "path": "files/suite/execution.md"
           },
           {
-            "title": "CLI",
-            "path": "files/suite/cli.md"
-          },
-          {
             "title": "Exports",
             "path": "files/suite/exports.md"
+          },
+          {
+            "title": "CLI",
+            "path": "files/suite/cli.md"
           },
           {
             "title": "Reference",
@@ -431,12 +431,12 @@
             "path": "files/loadtest/environment.md"
           },
           {
-            "title": "Exports",
-            "path": "files/loadtest/exports.md"
-          },
-          {
             "title": "Reports",
             "path": "files/loadtest/reports.md"
+          },
+          {
+            "title": "Exports",
+            "path": "files/loadtest/exports.md"
           },
           {
             "title": "CLI",

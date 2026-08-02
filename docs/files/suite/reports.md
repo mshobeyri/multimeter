@@ -29,4 +29,4 @@ Use {{btn:export:Export}} on the run bar to export the combined suite report. Se
 
 ---
 
-See also: [Suite overview](./index.md) · [Execution](./execution.md) · [Reports (Test)](../test/reports.md)
+See also: [Suite overview](./index.md) · [Report overview](../report/index.md) · [Execution](./execution.md) · [Reports (Test)](../test/reports.md)

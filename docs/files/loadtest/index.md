@@ -68,5 +68,5 @@ test: ./tests/login.mmt
 
 ## Load test elements
 
-- [Quick start](./quick-start.md) · [Edit Load Test](./edit.md) · [Reports](./reports.md) · [CLI](./cli.md) · [Reference](./reference.md)
+- [Quick start](./quick-start.md) · [Edit Load Test](./edit.md) · [Reports](./reports.md) · [Report overview](../report/index.md) · [CLI](./cli.md) · [Reference](./reference.md)
 - [Load config](./load-config.md) · [Environment](./environment.md) · [Exports](./exports.md)

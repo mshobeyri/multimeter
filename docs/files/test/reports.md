@@ -53,8 +53,8 @@ For **call** steps, expanded details can include status code, request, response 
 
 ## Export
 
-Use {{btn:export:Export}} on the run bar to save the full report (HTML, JSON, or Markdown) after a run completes. See [Report files](../report/index.md) for export formats and CI usage.
+Use {{btn:export:Export}} on the run bar to save the full report (HTML, MMT, Markdown, or JUnit XML) after a run completes. See [Report overview](../report/index.md) for export formats and CI usage.
 
 ---
 
-See also: [Test overview](./index.md) · [Edit Test](./edit.md)
+See also: [Test overview](./index.md) · [Report overview](../report/index.md) · [Edit Test](./edit.md)

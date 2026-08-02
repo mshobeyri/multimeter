@@ -1,6 +1,6 @@
 # MMT Files
 
-Multimeter projects are folders of YAML `.mmt` files. The top-level `type` field decides how a file behaves.
+Multimeter projects are folders of YAML `.mmt` files. The top-level `type` field decides how a file behaves. Most runs share [Environment](./files/env/index.md) variables (`<<e:>>` tokens) and can produce [Report](./files/report/index.md) output after completion.
 
 ## File types
 
