@@ -1,4 +1,19 @@
-# Try It (interactive API testing)
+# Doc quick start
+
+Minimal doc that scans a folder of API files:
+
+```yaml
+type: doc
+title: Basic Parameter Docs
+sources:
+  - api
+```
+
+Open the file in VS Code. The Doc view renders a searchable HTML page of APIs found in the sources.
+
+More: [Edit Doc](./edit.md) · [Environment](./environment.md) · [Annotations](./annotations.md)
+
+## Try It (interactive API testing)
 
 Add `html.triable: true` to enable Swagger-like "Try" buttons on every endpoint in the HTML `doc:`
 

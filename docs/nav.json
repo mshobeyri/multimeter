@@ -239,6 +239,10 @@
             "path": "files/env/index.md"
           },
           {
+            "title": "Quick start",
+            "path": "files/env/quick-start.md"
+          },
+          {
             "title": "Environment variables panel",
             "path": "files/env/ui.md"
           },
@@ -272,6 +276,10 @@
           {
             "title": "Overview",
             "path": "files/suite/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/suite/quick-start.md"
           },
           {
             "title": "Edit Suite",
@@ -317,12 +325,12 @@
             "path": "files/doc/index.md"
           },
           {
-            "title": "Edit Doc",
-            "path": "files/doc/edit.md"
+            "title": "Quick start",
+            "path": "files/doc/quick-start.md"
           },
           {
-            "title": "Try It",
-            "path": "files/doc/try-it.md"
+            "title": "Edit Doc",
+            "path": "files/doc/edit.md"
           },
           {
             "title": "Environment",
@@ -354,6 +362,10 @@
           {
             "title": "Overview",
             "path": "files/server/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/server/quick-start.md"
           },
           {
             "title": "Edit Mock",
@@ -403,6 +415,10 @@
             "path": "files/loadtest/index.md"
           },
           {
+            "title": "Quick start",
+            "path": "files/loadtest/quick-start.md"
+          },
+          {
             "title": "Edit Load Test",
             "path": "files/loadtest/edit.md"
           },
@@ -440,6 +456,10 @@
           {
             "title": "Overview",
             "path": "files/report/index.md"
+          },
+          {
+            "title": "Quick start",
+            "path": "files/report/quick-start.md"
           },
           {
             "title": "JUnit",

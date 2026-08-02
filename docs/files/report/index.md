@@ -17,4 +17,4 @@ Multimeter can generate structured reports after running `.mmt` test, suite, and
 
 Formats: [JUnit](./junit.md) · [YAML](./yaml.md) · [HTML](./html.md) · [Markdown](./markdown.md)
 
-Also: [CLI](./cli.md) · [VS Code](./vscode.md) · [CI/CD](./ci.md)
+Also: [Quick start](./quick-start.md) · [CLI](./cli.md) · [VS Code](./vscode.md) · [CI/CD](./ci.md)

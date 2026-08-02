@@ -45,4 +45,4 @@ Alternative editor focused on `sources` and `services` arrays — useful when ma
 
 ---
 
-See also: [Doc overview](./index.md) · [Try It](./try-it.md) · [Markdown output](./markdown.md) · [Reference](./reference.md)
+See also: [Doc overview](./index.md) · [Quick start](./quick-start.md) · [Markdown output](./markdown.md) · [Reference](./reference.md)

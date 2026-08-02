@@ -42,4 +42,4 @@ Tip: Reflect is a great way to validate what your client actually sends -- no ba
 
 Pointing clients at the panel, request history, and limits are covered in [Using the panel](./using.md).
 
-Next: [Edit Mock](./edit.md) · [Using](./using.md) · [TLS](./tls.md) · [Server files](./files.md) · [In tests](./in-tests.md) · [In suites](./in-suites.md) · [CLI](./cli.md)
+Next: [Quick start](./quick-start.md) · [Edit Mock](./edit.md) · [Using](./using.md) · [TLS](./tls.md) · [Server files](./files.md) · [In tests](./in-tests.md) · [In suites](./in-suites.md) · [CLI](./cli.md)

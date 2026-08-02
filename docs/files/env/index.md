@@ -77,4 +77,4 @@ body:
 ```
 
 
-Next: [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
+Next: [Quick start](./quick-start.md) · [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)

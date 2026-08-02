@@ -28,4 +28,4 @@ test: ./tests/login.mmt
 
 Field-by-field details (`title`, `import`, `test`, `threads`, `repeat`, `rampup`): [Load test elements](./elements.md).
 
-Next: [Edit Load Test](./edit.md) · [Elements](./elements.md) · [Environment & export](./environment.md) · [Running](./running.md) · [CLI](./cli.md) · [Reports](./reports.md) · [Reference](./reference.md)
+Next: [Quick start](./quick-start.md) · [Edit Load Test](./edit.md) · [Elements](./elements.md) · [Environment & export](./environment.md) · [Running](./running.md) · [CLI](./cli.md) · [Reports](./reports.md) · [Reference](./reference.md)

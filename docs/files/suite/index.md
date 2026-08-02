@@ -69,5 +69,5 @@ items:
 
 ## Suite elements
 
-- [Edit Suite](./edit.md) · [Reports](./reports.md) · [import](./import.md) · [items](./items.md)
+- [Quick start](./quick-start.md) · [Edit Suite](./edit.md) · [Reports](./reports.md) · [import](./import.md) · [items](./items.md)
 - [Execution](./execution.md) · [CLI](./cli.md) · [Exports](./exports.md) · [Reference](./reference.md)

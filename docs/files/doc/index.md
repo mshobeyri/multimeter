@@ -11,41 +11,6 @@ Supported:
 
 ---
 
-## Quick start
-
-```yaml
-type: doc
-title: My APIs
-sources:
-  - ./examples
-  - ./api1.mmt
-```
-
-This scans the `examples` folder plus a single file and renders all `type: api` files it finds.
-
-### Group by services (optional)
-```yaml
-type: doc
-title: Service Catalog
-sources:
-  - ./shared
-services:
-  - name: Accounts
-    description: Endpoints for authentication and account management
-    sources:
-      - ./services/accounts
-  - name: Billing
-    description: Invoicing and payment endpoints
-    sources:
-      - ./services/billing
-```
-
-Notes
-- Each service’s `sources` accepts folders or `.mmt` files.
-- The UI lists all APIs found; grouping may be reflected in future UI refinements.
-
----
-
 ## Elements
 The `doc` type is intentionally small:
 
@@ -89,4 +54,4 @@ Open this file in VS Code; the Doc view renders an interactive, searchable page 
 ---
 
 
-Next: [Edit Doc](./edit.md) · [Try It](./try-it.md) · [Environment](./environment.md) · [Annotations](./annotations.md) · [Markdown](./markdown.md) · [CLI](./cli.md) · [Reference](./reference.md)
+Next: [Quick start](./quick-start.md) · [Edit Doc](./edit.md) · [Environment](./environment.md) · [Annotations](./annotations.md) · [Markdown](./markdown.md) · [CLI](./cli.md) · [Reference](./reference.md)
