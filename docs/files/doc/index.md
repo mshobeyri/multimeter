@@ -4,6 +4,8 @@ Create aggregated, Swagger-like documentation from your `.mmt` files. A `doc` fi
 
 Open a doc file in VS Code to preview HTML or Markdown on the right. Click {{btn:edit:Edit Doc}} to edit sources, services, and metadata — see [Edit Doc](./edit.md).
 
+![Doc view — generated API documentation preview](../../screenshots/doc-panel.png)
+
 Supported:
 - Sources: folders and/or individual `.mmt` files
 - Services: optional groupings (each with its own sources)
