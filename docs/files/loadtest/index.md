@@ -2,7 +2,7 @@
 
 Use `type: loadtest` to define a load test MMT file. A load test runs one `type: test` file repeatedly with concurrency, ramp-up, duration or iteration limits, and load-oriented reporting.
 
-Open a load test file in VS Code to get the **load test panel** on the right. Click {{btn:edit:Edit Load Test}} to configure the test path, load settings, environment, and exports — see [Edit](./edit.md).
+Open a load test file in VS Code to get the **load test panel** on the right. Click {{btn:edit:Edit Load Test}} to configure the test path, load settings, environment, and exports — see [Edit Load Test](./edit.md).
 
 > **Beta:** Load testing is currently supported in beta mode. The file shape and report schema are stable enough for local and CI use, but advanced distributed load execution and deeper threshold controls may still evolve.
 
@@ -28,4 +28,4 @@ test: ./tests/login.mmt
 
 Field-by-field details (`title`, `import`, `test`, `threads`, `repeat`, `rampup`): [Load test elements](./elements.md).
 
-Next: [Edit](./edit.md) · [Elements](./elements.md) · [Environment & export](./environment.md) · [Running](./running.md) · [Reports](./reports.md) · [Reference](./reference.md)
+Next: [Edit Load Test](./edit.md) · [Elements](./elements.md) · [Environment & export](./environment.md) · [Running](./running.md) · [Reports](./reports.md) · [Reference](./reference.md)

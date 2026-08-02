@@ -33,7 +33,7 @@
             "path": "files/api/index.md"
           },
           {
-            "title": "Edit",
+            "title": "Edit API",
             "path": "files/api/edit.md"
           },
           {
@@ -140,7 +140,7 @@
             "path": "files/test/index.md"
           },
           {
-            "title": "Edit",
+            "title": "Edit Test",
             "path": "files/test/edit.md"
           },
           {
@@ -235,16 +235,16 @@
             "path": "files/env/index.md"
           },
           {
-            "title": "Edit",
+            "title": "Environment variables panel",
+            "path": "files/env/ui.md"
+          },
+          {
+            "title": "Edit Environment",
             "path": "files/env/edit.md"
           },
           {
             "title": "CLI",
             "path": "files/env/cli.md"
-          },
-          {
-            "title": "UI",
-            "path": "files/env/ui.md"
           },
           {
             "title": "Settings",
@@ -270,7 +270,7 @@
             "path": "files/suite/index.md"
           },
           {
-            "title": "Edit",
+            "title": "Edit Suite",
             "path": "files/suite/edit.md"
           },
           {
@@ -305,7 +305,7 @@
             "path": "files/doc/index.md"
           },
           {
-            "title": "Edit",
+            "title": "Edit Doc",
             "path": "files/doc/edit.md"
           },
           {
@@ -340,7 +340,7 @@
             "path": "files/server/index.md"
           },
           {
-            "title": "Edit",
+            "title": "Edit Mock",
             "path": "files/server/edit.md"
           },
           {
@@ -383,7 +383,7 @@
             "path": "files/loadtest/index.md"
           },
           {
-            "title": "Edit",
+            "title": "Edit Load Test",
             "path": "files/loadtest/edit.md"
           },
           {

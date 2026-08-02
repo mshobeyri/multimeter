@@ -2,7 +2,7 @@
 
 Create aggregated, Swagger-like documentation from your `.mmt` files. A `doc` file lists folders and files to scan, then renders a searchable HTML page in the editor UI.
 
-Open a doc file in VS Code to preview HTML or Markdown on the right. Click {{btn:edit:Edit Doc}} to edit sources, services, and metadata — see [Edit](./edit.md).
+Open a doc file in VS Code to preview HTML or Markdown on the right. Click {{btn:edit:Edit Doc}} to edit sources, services, and metadata — see [Edit Doc](./edit.md).
 
 Supported:
 - Sources: folders and/or individual `.mmt` files
@@ -89,4 +89,4 @@ Open this file in VS Code; the Doc view renders an interactive, searchable page 
 ---
 
 
-Next: [Edit](./edit.md) · [Try It](./try-it.md) · [Environment](./environment.md) · [Annotations](./annotations.md) · [Markdown](./markdown.md) · [Reference](./reference.md)
+Next: [Edit Doc](./edit.md) · [Try It](./try-it.md) · [Environment](./environment.md) · [Annotations](./annotations.md) · [Markdown](./markdown.md) · [Reference](./reference.md)

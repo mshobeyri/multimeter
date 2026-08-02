@@ -63,6 +63,7 @@ function expandCodiconTokens(markdown: string): string {
 /**
  * UI control chip: `{{btn:icon}}` or `{{btn:icon:Label}}`.
  * Optional `~spin` on the icon name (e.g. `sync~spin`) adds a spin animation.
+ * `{{btn:method:POST}}` renders a label-only HTTP method badge (no codicon).
  * Renders a bordered icon (+ optional label) for “click this control” docs.
  */
 function expandUiButtonTokens(markdown: string): string {
@@ -77,6 +78,11 @@ function expandUiButtonTokens(markdown: string): string {
         (_m, iconRaw: string, labelRaw?: string) => {
           const bits = iconRaw.toLowerCase().split('~')
           const icon = bits[0]
+          if (icon === 'method') {
+            const method = (labelRaw?.trim() || 'GET').toUpperCase()
+            const methodClass = method.toLowerCase().startsWith('ws') ? 'ws' : method.toLowerCase()
+            return `<span class="docs-method-badge docs-method-${methodClass}" role="img" aria-label="${escapeHtml(method)}">${escapeHtml(method)}</span>`
+          }
           const spin = bits.includes('spin')
           const label = labelRaw?.trim()
           const labelHtml = label

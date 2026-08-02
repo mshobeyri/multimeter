@@ -1,4 +1,4 @@
-# Edit Server
+# Edit Mock
 
 For `type: server` mock server files opened in VS Code, the right panel has two pages:
 

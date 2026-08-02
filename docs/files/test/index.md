@@ -20,7 +20,7 @@ Run glyphs appear in the left margin of the YAML pane:
 |---|---|
 | **Title** | Test title from `title:` (shown with the beaker icon) |
 | {{btn:type-hierarchy-sub:Flow chart}} | Opens the flowchart view for the test steps |
-| {{btn:edit:Edit Test}} | Switches to **edit mode** — see [Edit](./edit.md) |
+| {{btn:edit:Edit Test}} | Switches to **edit mode** — see [Edit Test](./edit.md) |
 
 ### Run bar
 
@@ -67,7 +67,7 @@ steps:
 
 ## Test elements
 
-- [Edit](./edit.md) · [Quick start](./quick-start.md) · [Write a test flow](../../tasks/write-test-flow.md)
+- [Edit Test](./edit.md) · [Quick start](./quick-start.md) · [Write a test flow](../../tasks/write-test-flow.md)
 - [import](./import.md) · [cache](./cache.md)
 - [Steps](./steps/index.md) · [Stages](./stages/index.md)
 - [Stage condition](./stages/stage-condition.md) · [Complete example](./complete-example.md) · [Reference](./reference.md)

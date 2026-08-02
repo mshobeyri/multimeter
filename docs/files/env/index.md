@@ -2,7 +2,11 @@
 
 Acts as a global store for variables to read and write across tests. Like any global scope, use it sparingly. Prefer it for shared configuration (for example: base URLs, modes, timeouts) rather than per-step data.
 
-Open an environment file in VS Code to get the **environment panel** on the right. Click {{btn:edit:Edit Environment}} to edit variables, presets, settings, and certificates — see [Edit](./edit.md).
+Open a `type: env` file in VS Code to get the **environment panel** on the right (YAML stays on the left). Click {{btn:edit:Edit Environment}} to edit variables, presets, settings, and certificates — see [Edit Environment](./edit.md).
+
+Use {{btn:refresh:Reload}} to rebuild workspace variables from the open env file (applies current preset selections). Use {{btn:clear-all:Clear}} to remove all workspace environment variables and preset selections. The same runtime values are also available in the [Environment variables panel](./ui.md) in the Multimeter bottom panel.
+
+![Environment panel — Edit Environment, Variables, Presets, and Certificates](../../screenshots/environment-panel.png)
 
 ## Define an environment file
 ```yaml
@@ -73,4 +77,4 @@ body:
 ```
 
 
-Next: [Edit](./edit.md) · [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
+Next: [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
