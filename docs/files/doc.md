@@ -54,7 +54,7 @@ The `doc` type is intentionally small:
 - sources: array of folders and/or `.mmt` files to include
 - services: optional array of groups with `name`, `description?`, and `sources`
 
-Data imports can be used to share doc metadata or source lists. See [Data Imports](./data-imports.md).
+Data imports can be used to share doc metadata or source lists. See [Data Imports](../features/data-imports.md).
 
 The editor’s Doc view:
 - Renders a sticky header with logo (if configured), title, and a search box
@@ -211,11 +211,11 @@ This applies to descriptions in both `type: api` files and the doc-level `descri
 ---
 
 ## See also
-- [API](./api-mmt.md) — define the APIs that doc files scan and render
-- [Test](./test-mmt.md) — orchestrate flows calling APIs
-- [Environment](./environment-mmt.md) — variables and presets used by `e:VAR` tokens in docs
-- [Suite](./suite-mmt.md) — group and run multiple tests together
-- [Mock Server](./mock-server.md) — mock server files that can appear alongside APIs
-- [Testlight CLI](./testlight.md) — generate docs from the command line (`testlight doc`)
-- [Convertor](./convertor.md) — import OpenAPI/Postman specs, then document them with `type: doc`
-- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [API](./api.md) — define the APIs that doc files scan and render
+- [Test](./test.md) — orchestrate flows calling APIs
+- [Environment](./env.md) — variables and presets used by `e:VAR` tokens in docs
+- [Suite](./suite.md) — group and run multiple tests together
+- [Mock Server](./server.md) — mock server files that can appear alongside APIs
+- [Testlight CLI](../running/testlight.md) — generate docs from the command line (`testlight doc`)
+- [Convertor](../features/convertor.md) — import OpenAPI/Postman specs, then document them with `type: doc`
+- [Sample Project](../guides/sample-project.md) — full walkthrough with APIs, tests, suites, and docs

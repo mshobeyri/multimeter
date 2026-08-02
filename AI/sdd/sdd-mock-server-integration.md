@@ -216,9 +216,9 @@ case 'run':
 | `res/mockServer.html` | Add MMT section UI |
 | `mmtview/src/test/TestFlow.tsx` | Add `'run'` to addable types |
 | `mmtview/src/test/TestFlowBox.tsx` | Render `run` step |
-| `docs/mock-server.md` | Document new features |
-| `docs/test-mmt.md` | Document `run` step |
-| `docs/suite-mmt.md` | Document servers in suites |
+| `docs/files/server.md` | Document new features |
+| `docs/files/test.md` | Document `run` step |
+| `docs/files/suite.md` | Document servers in suites |
 | `docs/AI/generate-test.md` | Add `run` step to schema |
 
 ---
@@ -261,5 +261,5 @@ case 'run':
 ## See Also
 
 - [sdd-mock-file-type.md](./sdd-mock-file-type.md) — original mock file type design
-- [mock-server.md](../docs/mock-server.md) — user documentation
-- [test-mmt.md](../docs/test-mmt.md) — test file documentation
+- [mock-server.md](../docs/files/server.md) — user documentation
+- [test-mmt.md](../docs/files/test.md) — test file documentation

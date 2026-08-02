@@ -13,7 +13,9 @@
     "vscode": "^1.95.0"
   },
   "categories": [
-    "Testing", "Programming Languages", "AI"
+    "Testing",
+    "Programming Languages",
+    "AI"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -151,7 +153,11 @@
         "multimeter.editor.defaultPanel": {
           "type": "string",
           "default": "yaml-ui",
-          "enum": ["yaml-ui", "yaml", "ui"],
+          "enum": [
+            "yaml-ui",
+            "yaml",
+            "ui"
+          ],
           "enumDescriptions": [
             "Show both YAML editor and UI panel (split view)",
             "Show only the YAML editor",
@@ -497,6 +503,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/mdast": "^4.0.4",
     "@types/node": "20.x",
     "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.95.0",
@@ -517,6 +524,10 @@
     "axios": "^1.10.0",
     "buffer": "^6.0.3",
     "mmt-core": "file:./core/dist",
+    "react-markdown": "^10.1.0",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "uuid": "^11.1.0",
     "ws": "^8.18.3",
     "xml-js": "^1.6.11",

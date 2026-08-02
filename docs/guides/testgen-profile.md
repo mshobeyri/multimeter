@@ -68,7 +68,7 @@ Provide three suites:
 
 Timeouts: connect 5s, read 10s. Retries: off by default.
 
-Performance testing: Not yet supported; working on it. For now, use `check` steps in tests for response validation (see docs/test-mmt.md).
+Performance testing: Not yet supported; working on it. For now, use `check` steps in tests for response validation (see docs/files/test.md).
 
 ## Data generation
 
@@ -116,9 +116,9 @@ Block any with `_` if needed; Content-Type/Length are inferred when a body exist
 ## What gets generated: APIs, Tests, Environments
 
 This profile guides three artifact types. For full syntax and capabilities, see:
-- API files: see docs/api-mmt.md
-- Test files: see docs/test-mmt.md
-- Environment files: see docs/environment-mmt.md
+- API files: see docs/files/api.md
+- Test files: see docs/files/test.md
+- Environment files: see docs/files/env.md
 
 ### APIs
 - Inputs are placed right after title/description for readability
@@ -135,7 +135,7 @@ Generation knobs (see YAML profile):
 - Suites: smoke (required), negative/boundary (optional) as configured
 - Flow style: sequential by default; stages/parallel when explicitly enabled
 - Assertions: assert by default; checks can be used for non-fatal validations (e.g., response content checks)
-- Chaining: Supported via outputs/inputs in test steps (see docs/test-mmt.md)
+- Chaining: Supported via outputs/inputs in test steps (see docs/files/test.md)
 
 Generation knobs (see YAML profile):
 - strategy.suites: controls which suites to generate and selection rules
@@ -162,7 +162,7 @@ Versioning: Not yet supported.
 
 ## Outputs for chaining
 
-Guess common keys: id, name, status. Add explicit ones if known. Chaining happens in `type: test` files via step outputs/inputs (see docs/test-mmt.md).
+Guess common keys: id, name, status. Add explicit ones if known. Chaining happens in `type: test` files via step outputs/inputs (see docs/files/test.md).
 
 ## Machine-readable profile
 
@@ -307,7 +307,7 @@ Notes
 - Skip empty maps/arrays unless the generator has a reason to include placeholders (empty blocks are optional per schema)
 - Inputs SHOULD NOT list data types as literal strings (e.g., `name: string`). Instead they hold default/sample primitive values or dynamic tokens. Example: `name: r:firstName`, `email: r:email`. Use examples section to override input values per example.
 
-See also: docs/api-mmt.md
+See also: docs/files/api.md
 
 ### Test structure
 
@@ -361,7 +361,7 @@ steps:
   - assert: ${create.name} == "John"
 ```
 
-See also: docs/test-mmt.md
+See also: docs/files/test.md
 
 ### Env structure
 
@@ -394,7 +394,7 @@ Usage
 - Use `e:VAR` as a standalone token (type-preserving) or `<<e:VAR>>` inline in strings.
 - Omit empty `presets`/`variables` entries when there is nothing to declare; blank sections are optional
 
-See also: docs/environment-mmt.md
+See also: docs/files/env.md
 
 ### Doc structure
 

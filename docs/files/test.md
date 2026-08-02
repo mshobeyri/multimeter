@@ -2,7 +2,7 @@
 
 Use `type: test` to define a test MMT file. You can build complex flows with the elements below. Under the hood, Multimeter compiles your MMT to JavaScript and runs it inside VS Code or in CI with `testlight`.
 
-Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP Files](./http-files.md) and [Bruno Files](./bruno-files.md) for the supported syntax and save behavior.
+Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP Files](../features/http-files.md) and [Bruno Files](../features/bruno-files.md) for the supported syntax and save behavior.
 
 Example:
 
@@ -175,7 +175,7 @@ Notes:
 - Quoted values remain strings (e.g., `"00123"` stays `"00123"`).
 - BOM characters at the start of the file are handled automatically.
 
-JSON/YAML/CSV data imports can be referenced with `${alias.path}` in this file before the test is executed. See [Data Imports](./data-imports.md).
+JSON/YAML/CSV data imports can be referenced with `${alias.path}` in this file before the test is executed. See [Data Imports](../features/data-imports.md).
 
 Example with project root imports:
 ```yaml
@@ -534,7 +534,7 @@ Default behavior (if `report` is omitted):
 - `internal: all` — report all results when running directly
 - `external: fails` — report only failures when imported or in a suite
 
-Checks, assertions, prints, and errors appear in the Log panel while the flow runs. The report level also determines the [log level](./logging.md#checks-and-asserts) for each result.
+Checks, assertions, prints, and errors appear in the Log panel while the flow runs. The report level also determines the [log level](../running/logging.md#checks-and-asserts) for each result.
 
 ![Log panel](../screenshots/test_panel_log.png)
 
@@ -768,12 +768,12 @@ Notes:
 ---
 
 ## See also
-- [API](./api-mmt.md) — define HTTP/WS requests that tests call
-- [Environment](./environment-mmt.md) — variables and presets consumed by tests
-- [Suite](./suite-mmt.md) — group and run multiple tests together
-- [Mock Server](./mock-server.md) — use `run` step to start servers in tests; define `type: server` files
-- [Testlight CLI](./testlight.md) — run tests from the command line
-- [Reports](./reports.md) — generate test reports (JUnit XML, HTML, Markdown, MMT YAML)
-- [Certificates](./certificates-mmt.md) — SSL/TLS and mTLS configuration
-- [Logging](./logging.md) — log levels for checks, prints, and network calls
-- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [API](./api.md) — define HTTP/WS requests that tests call
+- [Environment](./env.md) — variables and presets consumed by tests
+- [Suite](./suite.md) — group and run multiple tests together
+- [Mock Server](./server.md) — use `run` step to start servers in tests; define `type: server` files
+- [Testlight CLI](../running/testlight.md) — run tests from the command line
+- [Reports](./report.md) — generate test reports (JUnit XML, HTML, Markdown, MMT YAML)
+- [Certificates](../features/certificates.md) — SSL/TLS and mTLS configuration
+- [Logging](../running/logging.md) — log levels for checks, prints, and network calls
+- [Sample Project](../guides/sample-project.md) — full walkthrough with APIs, tests, suites, and docs

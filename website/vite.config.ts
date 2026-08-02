@@ -1,8 +1,14 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { demoPlaylist } from './demoPlaylist'
 import { tutorialPlaylist } from './tutorialPlaylist'
+import { examplesPlugin } from './examplesPlugin'
+
+const websiteRoot = path.dirname(fileURLToPath(import.meta.url))
+const repoRoot = path.resolve(websiteRoot, '..')
 
 const VIRTUAL_MODULE_ID = 'virtual:youtube-playlist'
 const RESOLVED_ID = '\0' + VIRTUAL_MODULE_ID
@@ -203,5 +209,10 @@ function youtubePlaylistPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), youtubePlaylistPlugin()],
+  plugins: [react(), tailwindcss(), youtubePlaylistPlugin(), examplesPlugin()],
+  server: {
+    fs: {
+      allow: [websiteRoot, repoRoot],
+    },
+  },
 })

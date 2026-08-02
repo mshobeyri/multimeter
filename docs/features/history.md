@@ -37,8 +37,8 @@ Use the History panel to review what was sent, what came back, and how long it t
 ---
 
 ## See also
-- [API](./api-mmt.md) — requests made from the API editor appear in history
-- [Test](./test-mmt.md) — test runs generate requests visible in history
-- [Mock Server](./mock-server.md) — mock server requests are also recorded
-- [Environment](./environment-mmt.md) — confirm you’re hitting the right base URL
-- [Sample Project](./sample-project.md) — full walkthrough of a Multimeter project
+- [API](../files/api.md) — requests made from the API editor appear in history
+- [Test](../files/test.md) — test runs generate requests visible in history
+- [Mock Server](../files/server.md) — mock server requests are also recorded
+- [Environment](../files/env.md) — confirm you’re hitting the right base URL
+- [Sample Project](../guides/sample-project.md) — full walkthrough of a Multimeter project

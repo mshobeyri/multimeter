@@ -30,7 +30,7 @@ The CLI prints all levels to stdout. Use `--quiet` to suppress non-error output.
 
 ### Checks and asserts
 
-The log level for each check/assert result follows the [report configuration](./test-mmt.md#report-configuration):
+The log level for each check/assert result follows the [report configuration](../files/test.md#report-configuration):
 
 | Report level | On fail | On pass |
 |-------------|---------|---------|
@@ -102,9 +102,9 @@ Since child tests run with the `external` report config by default, check passes
 ---
 
 ## See also
-- [Test](./test-mmt.md) — test file format, check/assert steps and report configuration
-- [API](./api-mmt.md) — API file format, inputs, outputs, and examples
-- [Suite](./suite-mmt.md) — suite file format and execution
-- [Environment](./environment-mmt.md) — variables and presets
-- [Reports](./reports.md) — structured test reports generated after runs
+- [Test](../files/test.md) — test file format, check/assert steps and report configuration
+- [API](../files/api.md) — API file format, inputs, outputs, and examples
+- [Suite](../files/suite.md) — suite file format and execution
+- [Environment](../files/env.md) — variables and presets
+- [Reports](../files/report.md) — structured test reports generated after runs
 - [Testlight CLI](./testlight.md) — running from the command line (`--log-level`, `--quiet`)

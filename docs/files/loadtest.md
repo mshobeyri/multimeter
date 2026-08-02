@@ -45,7 +45,7 @@ repeat: ${perf.repeat}
 test: ./tests/login.mmt
 ```
 
-See [Data Imports](./data-imports.md).
+See [Data Imports](../features/data-imports.md).
 
 ### test
 The `test` property is a required path to a single `type: test` file. The referenced test is the scenario that each virtual user/iteration runs.
@@ -198,7 +198,7 @@ Load tests produce compact load-oriented reports. They do **not** keep every ind
 - Markdown reports include overview, metric tables, Mermaid `xychart` blocks, and snapshot tables.
 - JUnit XML reports keep normal `<testsuites>` compatibility and write load metrics as `<property>` values such as `load.threads`, `load.throughput`, and `load.snapshots.0.at`.
 
-See [Reports — Load Test Report Schema](./reports.md#load-test-report-schema) for the generated report shape.
+See [Reports — Load Test Report Schema](./report.md#load-test-report-schema) for the generated report shape.
 
 ## Differences from suites
 
@@ -232,8 +232,8 @@ Use a suite when you want to orchestrate many files. Use a load test when you wa
 
 ## See also
 
-- [Test](./test-mmt.md) — define the scenario that a load test runs
-- [Suite](./suite-mmt.md) — group and run multiple tests, APIs, or suites
-- [Reports](./reports.md#load-test-report-schema) — load report schema and export formats
-- [Testlight CLI](./testlight.md) — run load tests and export reports from CI
-- [Environment](./environment-mmt.md) — variables and presets, including `+/` project root imports
+- [Test](./test.md) — define the scenario that a load test runs
+- [Suite](./suite.md) — group and run multiple tests, APIs, or suites
+- [Reports](./report.md#load-test-report-schema) — load report schema and export formats
+- [Testlight CLI](../running/testlight.md) — run load tests and export reports from CI
+- [Environment](./env.md) — variables and presets, including `+/` project root imports

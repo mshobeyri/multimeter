@@ -6,20 +6,20 @@ Multimeter uses YAML-based `.mmt` files with a `type` field at the top. The `typ
 
 | Type | Purpose | Documentation |
 |------|---------|---------------|
-| `api` | Define a single HTTP/WebSocket request | [API](./api-mmt.md) |
-| `test` | Orchestrate flows with steps, assertions, loops | [Test](./test-mmt.md) |
-| `env` | Variables, presets, and certificate config | [Environment](./environment-mmt.md) |
-| `doc` | Generate API documentation from `.mmt` files | [Doc](./doc-mmt.md) |
-| `suite` | Group and run multiple tests/APIs/suites | [Suite](./suite-mmt.md) |
-| `loadtest` | Run one test scenario with concurrency, ramp-up, and load reports (beta) | [Load Test](./loadtest-mmt.md) |
-| `server` | Define mock server endpoints with routing | [Mock Server Files](./mock-server.md#mmt-mock-server-files) |
-| `report` | Structured test results (generated, viewable) | [Reports](./reports.md) |
+| `api` | Define a single HTTP/WebSocket request | [API](../files/api.md) |
+| `test` | Orchestrate flows with steps, assertions, loops | [Test](../files/test.md) |
+| `env` | Variables, presets, and certificate config | [Environment](../files/env.md) |
+| `doc` | Generate API documentation from `.mmt` files | [Doc](../files/doc.md) |
+| `suite` | Group and run multiple tests/APIs/suites | [Suite](../files/suite.md) |
+| `loadtest` | Run one test scenario with concurrency, ramp-up, and load reports (beta) | [Load Test](../files/loadtest.md) |
+| `server` | Define mock server endpoints with routing | [Mock Server Files](../files/server.md#mmt-mock-server-files) |
+| `report` | Structured test results (generated, viewable) | [Reports](../files/report.md) |
 
 For full details, see the references:
-- **MMT File Types:** [API](./api-mmt.md) · [Test](./test-mmt.md) · [Environment](./environment-mmt.md) · [Doc](./doc-mmt.md) · [Suite](./suite-mmt.md) · [Load Test](./loadtest-mmt.md) · [Mock Server Files](./mock-server.md#mmt-mock-server-files) · [Reports](./reports.md)
-- **VS Code Panels:** [Mock Server Panel](./mock-server.md) · [Convertor](./convertor.md) · [History](./history.md) · [Certificates](./certificates-mmt.md)
-- **Running & CI/CD:** [Testlight CLI](./testlight.md) · [Reports](./reports.md) · [Logging](./logging.md)
-- [Sample Project](./sample-project.md) · [Changelog](../CHANGELOG.md)
+- **MMT File Types:** [API](../files/api.md) · [Test](../files/test.md) · [Environment](../files/env.md) · [Doc](../files/doc.md) · [Suite](../files/suite.md) · [Load Test](../files/loadtest.md) · [Mock Server Files](../files/server.md#mmt-mock-server-files) · [Reports](../files/report.md)
+- **VS Code Panels:** [Mock Server Panel](../files/server.md) · [Convertor](../features/convertor.md) · [History](../features/history.md) · [Certificates](../features/certificates.md)
+- **Running & CI/CD:** [Testlight CLI](../running/testlight.md) · [Reports](../files/report.md) · [Logging](../running/logging.md)
+- [Sample Project](./sample-project.md) · [Changelog](../../CHANGELOG.md)
 
 ## API (type: api)
 Purpose: Define a single HTTP/WS request with inputs, headers, body, and extraction rules.
@@ -47,7 +47,7 @@ outputs:
 ```
 Use from Tests: tests import APIs and call them with inputs.
 
-Deep dive: see [API](./api-mmt.md).
+Deep dive: see [API](../files/api.md).
 
 ## Test (type: test)
 Purpose: Orchestrate flows using steps/stages; call APIs/tests, send one-off inline HTTP requests, assert, loop, and set outputs.
@@ -83,7 +83,7 @@ steps:
   - assert: ${health.status} == 200
 ```
 
-Deep dive: see [Test](./test-mmt.md).
+Deep dive: see [Test](../files/test.md).
 
 ## Environment (type: env)
 Purpose: Centralize variables and presets.
@@ -111,7 +111,7 @@ Here we defined two URLs "dev" and "prod" to switch target machines easily. Also
 
 Variables are accessible in all YAML files by `<<e:NAME>>` and, when used as a value after `: ` (colon + space), by `e:NAME`.
 
-Deep dive: see [Environment](./environment-mmt.md).
+Deep dive: see [Environment](../files/env.md).
 
 ## Doc (type: doc)
 Purpose: Create aggregated, browsable documentation from your `.mmt` API files.
@@ -125,7 +125,7 @@ sources:
 ```
 UI: Renders a searchable HTML page of all referenced APIs in the editor.
 
-Deep dive: see [Doc](./doc-mmt.md).
+Deep dive: see [Doc](../files/doc.md).
 
 ## Suite (type: suite)
 Purpose: Group and run multiple tests, APIs, or other suites, with control over sequential and parallel execution.
@@ -142,7 +142,7 @@ items:
 ```
 Run: Executes the items in stages. All items before a `then` run in parallel. The stages are run sequentially.
 
-Deep dive: see [Suite](./suite-mmt.md).
+Deep dive: see [Suite](../files/suite.md).
 
 ## Load Test (type: loadtest)
 Purpose: Run a single `type: test` file with load configuration such as concurrency, repeat limits, and ramp-up.
@@ -158,7 +158,7 @@ test: ./tests/login.mmt
 ```
 Run: Executes the referenced test file using the loadtest configuration.
 
-Deep dive: see [Load Test](./loadtest-mmt.md).
+Deep dive: see [Load Test](../files/loadtest.md).
 
 ## How they fit together
 - Tests import APIs and data; Environments supply variables consumed by both.
@@ -195,7 +195,7 @@ endpoints:
 ```
 Run: Start from the Mock Server panel, from a test using the `run` step, or include in a suite.
 
-Deep dive: see [Mock Server](./mock-server.md#mmt-mock-server-files).
+Deep dive: see [Mock Server](../files/server.md#mmt-mock-server-files).
 
 ## Report (type: report)
 Purpose: Structured test results generated after running tests or suites. Opening a `type: report` file in VS Code renders a visual summary with pass/fail counts, durations, and failure details.
@@ -220,7 +220,7 @@ checks:
 
 Functional and load reports can also be exported as JUnit XML, HTML, or Markdown for CI/CD integration.
 
-Deep dive: see [Reports](./reports.md).
+Deep dive: see [Reports](../files/report.md).
 
 ---
 
@@ -231,22 +231,22 @@ Beyond `.mmt` file types, Multimeter provides VS Code panels for common workflow
 ### Mock Server Panel
 Start HTTP, HTTPS, or WebSocket mock servers directly from the sidebar. The panel offers quick modes (reflect, custom status) and supports loading `type: server` files for full routing.
 
-See [Mock Server](./mock-server.md).
+See [Mock Server](../files/server.md).
 
 ### Convertor Panel
 Import OpenAPI 3.x specs or Postman v2 collections and generate `.mmt` API files. Useful for bootstrapping a project from an existing API definition.
 
-See [Convertor](./convertor.md).
+See [Convertor](../features/convertor.md).
 
 ### History Panel
 Browse recent HTTP requests and responses made from the editor. Inspect method, URL, status, headers, body, and timing for each entry.
 
-See [History](./history.md).
+See [History](../features/history.md).
 
 ### Certificates Panel
 Configure SSL/TLS settings, CA certificates, and client certificates (mTLS) for your workspace. Certificate file paths are stored in your env file for version control.
 
-See [Certificates](./certificates-mmt.md).
+See [Certificates](../features/certificates.md).
 
 ### Connections Panel
 The Connections panel shows active HTTP keep-alive and WebSocket connections with lifecycle states (`connecting`, `open`, `idle`, `closing`). You can close connections manually from this panel.
@@ -256,6 +256,6 @@ Place a `multimeter.mmt` file (with `type: env`) at the root of your project to 
 - Workspace environment auto-loading
 - `+/` project root imports in tests, APIs, and suites
 
-See [Environment — Project Root Marker](./environment-mmt.md#project-root-marker) for details.
+See [Environment — Project Root Marker](../files/env.md#project-root-marker) for details.
 
 For a hands-on walkthrough covering all features end-to-end, see [Sample Project](./sample-project.md).

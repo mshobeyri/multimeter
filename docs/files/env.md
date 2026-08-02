@@ -112,7 +112,7 @@ setenv:
 
 ## Certificates
 
-SSL/TLS certificate settings can be configured in the `certificates` section of the env file. See [Certificates documentation](./certificates-mmt.md) for details on configuring the server CA certificate, client certificates (mTLS), and certificate warnings.
+SSL/TLS certificate settings can be configured in the `certificates` section of the env file. See [Certificates documentation](../features/certificates.md) for details on configuring the server CA certificate, client certificates (mTLS), and certificate warnings.
 
 ## Settings
 
@@ -178,7 +178,7 @@ import:
   auth: +/apis/auth.mmt     # Resolves to project/apis/auth.mmt
 ```
 
-See [Test documentation](./test-mmt.md#import) for more details on import paths.
+See [Test documentation](./test.md#import) for more details on import paths.
 
 Environment files also support JSON/YAML/CSV data imports for defining variables and presets:
 
@@ -190,18 +190,18 @@ variables:
   api_url: ${shared.api_url}
 ```
 
-See [Data Imports](./data-imports.md).
+See [Data Imports](../features/data-imports.md).
 
 ---
 
 ## See also
-- [API](./api-mmt.md) — use `e:VAR` and `<<e:VAR>>` tokens in API definitions
-- [Test](./test-mmt.md) — consume environment variables in test flows
-- [Doc](./doc-mmt.md) — use `env` key in doc files to resolve placeholders
-- [Suite](./suite-mmt.md) — pass `--preset` when running suites
-- [Testlight CLI](./testlight.md) — `--env-file`, `--preset`, and `-e` flags
-- [Certificates](./certificates-mmt.md) — SSL/TLS settings in env files
-- [Reports](./reports.md) — generate test reports from your runs
-- [Mock Server](./mock-server.md) — swap between real and mock URLs with presets
-- [Sample Project](./sample-project.md) — full walkthrough showing environment setup
+- [API](./api.md) — use `e:VAR` and `<<e:VAR>>` tokens in API definitions
+- [Test](./test.md) — consume environment variables in test flows
+- [Doc](./doc.md) — use `env` key in doc files to resolve placeholders
+- [Suite](./suite.md) — pass `--preset` when running suites
+- [Testlight CLI](../running/testlight.md) — `--env-file`, `--preset`, and `-e` flags
+- [Certificates](../features/certificates.md) — SSL/TLS settings in env files
+- [Reports](./report.md) — generate test reports from your runs
+- [Mock Server](./server.md) — swap between real and mock URLs with presets
+- [Sample Project](../guides/sample-project.md) — full walkthrough showing environment setup
 

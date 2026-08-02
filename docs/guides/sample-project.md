@@ -630,9 +630,9 @@ testlight print-js tests/order_flow_test.mmt \
 ---
 
 ## See also
-- [API](./api-mmt.md) — full API reference
-- [Test](./test-mmt.md) — all test step types
-- [Environment](./environment-mmt.md) — variables, presets, certificates
-- [Suite](./suite-mmt.md) — grouping and running tests
-- [Doc](./doc-mmt.md) — generating API documentation
-- [Testlight CLI](./testlight.md) — command line usage
+- [API](../files/api.md) — full API reference
+- [Test](../files/test.md) — all test step types
+- [Environment](../files/env.md) — variables, presets, certificates
+- [Suite](../files/suite.md) — grouping and running tests
+- [Doc](../files/doc.md) — generating API documentation
+- [Testlight CLI](../running/testlight.md) — command line usage

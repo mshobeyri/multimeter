@@ -21,4 +21,4 @@ A minimal `type: doc` example that shows how parameter annotations are rendered.
 - **`<<i:param>>`** documents an input parameter.
 - **`<<o:param>>`** documents an output parameter.
 
-See [Doc docs](../../../docs/doc-mmt.md) for the full reference.
+See [Doc docs](../../../docs/files/doc.md) for the full reference.

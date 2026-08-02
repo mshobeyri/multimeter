@@ -1,0 +1,69 @@
+[
+  {
+    "title": "Get started",
+    "items": [
+      { "title": "Getting Started", "path": "getting-started.md" },
+      { "title": "Install", "path": "install.md" },
+      { "title": "Quick Start", "path": "quick-start.md" }
+    ]
+  },
+  {
+    "title": "Start with a task",
+    "items": [
+      { "title": "Overview", "path": "tasks/index.md" },
+      { "title": "Send an API request", "path": "tasks/send-api-request.md" },
+      { "title": "Write a test flow", "path": "tasks/write-test-flow.md" },
+      { "title": "Use environments", "path": "tasks/use-environments.md" },
+      { "title": "Run a suite", "path": "tasks/run-suite.md" },
+      { "title": "Generate docs", "path": "tasks/generate-docs.md" },
+      { "title": "Run in CI", "path": "tasks/run-in-ci.md" }
+    ]
+  },
+  {
+    "title": "Files",
+    "items": [
+      { "title": "Overview", "path": "files.md" },
+      { "title": "API", "path": "files/api.md" },
+      { "title": "Test", "path": "files/test.md" },
+      { "title": "Environment", "path": "files/env.md" },
+      { "title": "Suite", "path": "files/suite.md" },
+      { "title": "Doc", "path": "files/doc.md" },
+      { "title": "Mock Server", "path": "files/server.md" },
+      { "title": "Load Test", "path": "files/loadtest.md" },
+      { "title": "Report", "path": "files/report.md" }
+    ]
+  },
+  {
+    "title": "Features",
+    "items": [
+      { "title": "HTTP files", "path": "features/http-files.md" },
+      { "title": "Bruno files", "path": "features/bruno-files.md" },
+      { "title": "Convertor", "path": "features/convertor.md" },
+      { "title": "History", "path": "features/history.md" },
+      { "title": "Certificates", "path": "features/certificates.md" },
+      { "title": "Data imports", "path": "features/data-imports.md" }
+    ]
+  },
+  {
+    "title": "Running & CI/CD",
+    "items": [
+      { "title": "Testlight CLI", "path": "running/testlight.md" },
+      { "title": "Logging", "path": "running/logging.md" }
+    ]
+  },
+  {
+    "title": "Guides",
+    "items": [
+      { "title": "MMT Overview", "path": "guides/mmt-overview.md" },
+      { "title": "Sample Project", "path": "guides/sample-project.md" },
+      { "title": "Testgen Profile", "path": "guides/testgen-profile.md" },
+      { "title": "MCP", "path": "guides/mcp.md" }
+    ]
+  },
+  {
+    "title": "Examples",
+    "items": [
+      { "title": "Browse examples", "href": "/docs/examples" }
+    ]
+  }
+]

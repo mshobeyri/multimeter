@@ -1,36 +1,44 @@
+## Table of contents
 
-## 📚 TABLE OF CONTENT
+### Get started
+- [Getting Started](./getting-started.md)
+- [Install](./install.md)
+- [Quick Start](./quick-start.md)
 
+### Start with a task
+- [Overview](./tasks/index.md)
+- [Send an API request](./tasks/send-api-request.md)
+- [Write a test flow](./tasks/write-test-flow.md)
+- [Use environments](./tasks/use-environments.md)
+- [Run a suite](./tasks/run-suite.md)
+- [Generate docs](./tasks/generate-docs.md)
+- [Run in CI](./tasks/run-in-ci.md)
 
-#### [MMT Overview](docs/mmt-overview.md)
+### Files
+- [Overview](./files.md)
+- [API (`type: api`)](./files/api.md)
+- [Test (`type: test`)](./files/test.md)
+- [Environment (`type: env`)](./files/env.md)
+- [Suite (`type: suite`)](./files/suite.md)
+- [Doc (`type: doc`)](./files/doc.md)
+- [Mock Server (`type: server`)](./files/server.md)
+- [Load Test (`type: loadtest`)](./files/loadtest.md)
+- [Report (`type: report`)](./files/report.md)
 
-**MMT File Types** — YAML files you create and version-control:
-- [API (`type: api`)](docs/api-mmt.md) — define HTTP/WebSocket requests
-- [Test (`type: test`)](docs/test-mmt.md) — orchestrate flows with steps, assertions, and loops
-- [Environment (`type: env`)](docs/environment-mmt.md) — variables, presets, and certificates
-- [Doc (`type: doc`)](docs/doc-mmt.md) — generate API documentation from your `.mmt` files
-- [Suite (`type: suite`)](docs/suite-mmt.md) — group and run tests, APIs, or other suites
-- [Load Test (`type: loadtest`)](docs/loadtest-mmt.md) — run one test scenario with concurrency, ramp-up, and load reports (beta)
-- [Mock Server (`type: server`)](docs/mock-server.md#mmt-mock-server-files) — define mock endpoints with routing, matching, and dynamic responses
-- [Report (`type: report`)](docs/reports.md#mmt-report-yaml) — structured test results viewable in the editor
+### Features
+- [HTTP files](./features/http-files.md)
+- [Bruno files](./features/bruno-files.md)
+- [Convertor](./features/convertor.md)
+- [History](./features/history.md)
+- [Certificates](./features/certificates.md)
+- [Data imports](./features/data-imports.md)
 
-**Other supports**
-- [HTTP files (`.http`, `.https`)](docs/http-files.md) — run REST Client / JetBrains-style HTTP files as test flows via Open With
-- [Bruno files (`.bru`)](docs/bruno-files.md) — run Bruno request files as test flows via Open With
+### Running & CI/CD
+- [Testlight CLI](./running/testlight.md)
+- [Logging](./running/logging.md)
 
-**VS Code Panels & Features:**
-- [Mock Server Panel](docs/mock-server.md) — start HTTP/TLS/mTLS/WS mock servers from the UI
-- [Convertor](docs/convertor.md) — import OpenAPI and Postman collections into `.mmt`
-- [History](docs/history.md) — inspect recent requests and responses
-- [Certificates](docs/certificates-mmt.md) — SSL/TLS, mTLS, and CA certificate configuration
-
-**Running & CI/CD:**
-- [Testlight CLI](docs/testlight.md) — run tests, suites, and generate docs from the command line
-- [Reports](docs/reports.md) — JUnit XML, HTML, Markdown, and MMT YAML test reports
-- [Load Test](docs/loadtest-mmt.md) — beta load tests and load-oriented report exports
-- [Logging](docs/logging.md) — log levels and where logs appear
-
-**Guides & Reference:**
-- [Sample Project](docs/sample-project.md) — full walkthrough with APIs, tests, suites, docs, and CLI
-- [Test Generation Profile (cheat sheet)](docs/testgen-profile.md) — AI/tool guidance for generating `.mmt` files
-- [Demos](docs/demos.md) — animated feature demos
+### Guides
+- [MMT Overview](./guides/mmt-overview.md)
+- [Sample Project](./guides/sample-project.md)
+- [Test Generation Profile](./guides/testgen-profile.md)
+- [MCP](./guides/mcp.md)

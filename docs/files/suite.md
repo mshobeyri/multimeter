@@ -36,7 +36,7 @@ items:
   - ./tests/login.mmt
 ```
 
-See [Data Imports](./data-imports.md).
+See [Data Imports](../features/data-imports.md).
 
 ### items
 The `items` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs, tests, HTTP files, Bruno files, or other suites.
@@ -56,7 +56,7 @@ items:
   - ../suites/smoke_tests.mmt
 ```
 
-See [Environment — Project Root Marker](./environment-mmt.md#project-root-marker) for details on setting up `multimeter.mmt`.
+See [Environment — Project Root Marker](./env.md#project-root-marker) for details on setting up `multimeter.mmt`.
 
 When converting larger Postman collections, Multimeter generates `multimeter.mmt` and uses `+/` paths in generated tests and suites so files can move within the generated project without breaking imports.
 
@@ -273,12 +273,12 @@ This design prevents conflicts when suites are composed hierarchically.
 ---
 
 ## See also
-- [Test](./test-mmt.md) — define test flows that suites can run
-- [API](./api-mmt.md) — define APIs that suites can run directly
-- [Load Test](./loadtest-mmt.md) — run one test scenario repeatedly under load (beta)
-- [Mock Server](./mock-server.md) — define mock servers to include in suites
-- [Environment](./environment-mmt.md) — variables and presets, including `+/` project root imports
-- [Reports](./reports.md) — generate test reports from suite runs
-- [Testlight CLI](./testlight.md) — run suites from the command line
-- [Logging](./logging.md) — log levels for suite items and child test runs
-- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Test](./test.md) — define test flows that suites can run
+- [API](./api.md) — define APIs that suites can run directly
+- [Load Test](./loadtest.md) — run one test scenario repeatedly under load (beta)
+- [Mock Server](./server.md) — define mock servers to include in suites
+- [Environment](./env.md) — variables and presets, including `+/` project root imports
+- [Reports](./report.md) — generate test reports from suite runs
+- [Testlight CLI](../running/testlight.md) — run suites from the command line
+- [Logging](../running/logging.md) — log levels for suite items and child test runs
+- [Sample Project](../guides/sample-project.md) — full walkthrough with APIs, tests, suites, and docs

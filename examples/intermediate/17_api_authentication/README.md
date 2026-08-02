@@ -32,4 +32,4 @@ npx testlight run examples/intermediate/17_api_authentication/get_with_apikey_au
 - **Bearer auth** sends a token as an Authorization header.
 - **API key auth** sends a configured key in a configured header.
 
-See [API docs](../../../docs/api-mmt.md) for the full `.mmt` API reference.
+See [API docs](../../../docs/files/api.md) for the full `.mmt` API reference.

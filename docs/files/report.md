@@ -359,7 +359,7 @@ export:
 test: ./tests/login.mmt
 ```
 
-See [Suite — Exports](./suite-mmt.md#exports) and [Load Test — Exports](./loadtest-mmt.md#export) for details.
+See [Suite — Exports](./suite.md#exports) and [Load Test — Exports](./loadtest.md#export) for details.
 
 ## VS Code extension
 
@@ -450,9 +450,9 @@ pipeline {
 ---
 
 ## See also
-- [Testlight CLI](./testlight.md) — `--report` and `--report-file` flags
-- [Test](./test-mmt.md) — test files that produce reports
-- [Suite](./suite-mmt.md) — suite files that produce reports
-- [Load Test](./loadtest-mmt.md) — beta load tests and load-oriented reports
-- [Logging](./logging.md) — log levels during test runs
-- [Sample Project](./sample-project.md) — full walkthrough with CI examples
+- [Testlight CLI](../running/testlight.md) — `--report` and `--report-file` flags
+- [Test](./test.md) — test files that produce reports
+- [Suite](./suite.md) — suite files that produce reports
+- [Load Test](./loadtest.md) — beta load tests and load-oriented reports
+- [Logging](../running/logging.md) — log levels during test runs
+- [Sample Project](../guides/sample-project.md) — full walkthrough with CI examples

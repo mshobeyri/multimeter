@@ -106,7 +106,7 @@ On a **cache miss:** full callee execution, then store outputs + expiry if the i
 | Codegen | [`JSerTest.ts`](../../core/src/JSerTest.ts): for imported tests (`root === false`) with `cache`, wrap function entry: lookup → return clone of outputs; on return path store with computed `expiresAt` |
 | Reporter | Emit cache metadata on the call step (e.g. `cached: true` on test-step / expect events or a dedicated field on the call result) so UI/CLI reports can show the icon without guessing |
 | UI | Cached steps use dedicated `db_pass` / `db_error` icons (inlined in [`statusIcons.ts`](../../core/src/statusIcons.ts)) instead of normal pass/fail glyphs |
-| Docs / examples | [`docs/test-mmt.md`](../../docs/test-mmt.md); [`examples/intermediate/24_test_call_cache`](../../examples/intermediate/24_test_call_cache) |
+| Docs / examples | [`docs/files/test.md`](../../docs/files/test.md); [`examples/intermediate/24_test_call_cache`](../../examples/intermediate/24_test_call_cache) |
 
 ### Key canonicalization
 
@@ -128,7 +128,7 @@ Wherever a step shows passed/failed (or equivalent) status icons:
 
 ## Docs and examples
 
-- User docs: `cache` section in `docs/test-mmt.md` + reference list entry.
+- User docs: `cache` section in `docs/files/test.md` + reference list entry.
 - Advanced example: `examples/intermediate/24_test_call_cache` — session-style test with `cache: 5m`, parent test calling it twice with the same inputs (second call cache hit) and once with different inputs (miss).
 
 ## Competitors (brief)

@@ -30,4 +30,4 @@ npx testlight run examples/intermediate/19_environment_post_echo/post_echo.mmt \
 - **`<<e:var>>`** embeds an environment variable inside a string.
 - **Accessors** like `<<e:custom_header[0:5]>>` reuse part of an env value.
 
-See [Environment docs](../../../docs/environment-mmt.md) for full details.
+See [Environment docs](../../../docs/files/env.md) for full details.

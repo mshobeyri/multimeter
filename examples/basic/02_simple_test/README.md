@@ -32,4 +32,4 @@ npx testlight run examples/basic/02_simple_test/echo_test.mmt
 
 - See [Simple API](../01_simple_api/) for standalone API files.
 - See [API Inputs & Outputs](../../intermediate/01_api_inputs_outputs/) when you are ready for inputs, outputs, and reusable API definitions.
-- See [Test docs](../../../docs/test-mmt.md) for the full test reference.
+- See [Test docs](../../../docs/files/test.md) for the full test reference.

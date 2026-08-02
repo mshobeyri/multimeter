@@ -44,16 +44,16 @@
 
 ## CLI (`mmtcli/`) workflow
 - Entrypoint: `mmtcli/src/cli.ts` wraps `core` and exposes the `testlight` binary.
-- Typical usage (see `mmtcli/README.md` and `docs/testlight.md`):
+- Typical usage (see `mmtcli/README.md` and `docs/running/testlight.md`):
   - `npx testlight run path/to/test.mmt`
   - Pass env via `--env-file`, `--preset`, and `-e KEY=VALUE` flags; types are coerced by `coerceCliValue`/`parsePairs` in `cli.ts` (unquoted numbers/bools → numbers/bools, quoted → strings).
 - If you add new CLI flags, wire them through to `runner.runFile` rather than duplicating parsing/execution.
 
 ## `.mmt` data model and docs
 - `.mmt` is YAML with `type` driving behavior, parsed by `JSer.fileType`:
-  - `type: api` → HTTP/WebSocket API definitions (see `docs/api-mmt.md`).
-  - `type: test` → executable test flows (`call`, `assert`, `check`, etc.; see `docs/test-mmt.md`).
-  - `type: env` → environment and variable files (see `docs/environment-mmt.md`).
+  - `type: api` → HTTP/WebSocket API definitions (see `docs/files/api.md`).
+  - `type: test` → executable test flows (`call`, `assert`, `check`, etc.; see `docs/files/test.md`).
+  - `type: env` → environment and variable files (see `docs/files/env.md`).
 - Converters and docs:
   - `core/src/openapiConvertor.ts`, `postmanConvertor.ts`: turn OpenAPI/Postman into `.mmt` API/test files.
   - `core/src/docHtml.ts`, `docMarkdown.ts`, `docParsePack.ts` and `res/doc-template.html`: generate HTML/Markdown API docs from `.mmt`.

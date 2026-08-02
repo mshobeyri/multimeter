@@ -7,7 +7,7 @@ Multimeter provides two ways to mock APIs:
 
 Both approaches support HTTP, HTTPS, mTLS, and WebSocket.
 
-`type: server` files also support JSON/YAML/CSV data imports. Use a top-level `import:` map and reference values in endpoint bodies, headers, or match rules with `${alias.path}`. See [Data Imports](./data-imports.md).
+`type: server` files also support JSON/YAML/CSV data imports. Use a top-level `import:` map and reference values in endpoint bodies, headers, or match rules with `${alias.path}`. See [Data Imports](../features/data-imports.md).
 
 ---
 
@@ -329,11 +329,11 @@ This lets you set up complex integration environments declaratively, without man
 ---
 
 ## See also
-- [API](./api-mmt.md) — point API URLs at the mock server
-- [Test](./test-mmt.md) — use `run` step to start mock servers in tests
-- [Suite](./suite-mmt.md) — include `type: server` files in suite execution
-- [Environment](./environment-mmt.md) — swap between real and mock URLs with presets
-- [Certificates](./certificates-mmt.md) — configure TLS certificates for secure mock clients
-- [Reports](./reports.md) — generate test reports from runs that use mocks
-- [Testlight CLI](./testlight.md) — run tests and suites (including mock servers) from the command line
-- [Sample Project](./sample-project.md) — full walkthrough of a Multimeter project
+- [API](./api.md) — point API URLs at the mock server
+- [Test](./test.md) — use `run` step to start mock servers in tests
+- [Suite](./suite.md) — include `type: server` files in suite execution
+- [Environment](./env.md) — swap between real and mock URLs with presets
+- [Certificates](../features/certificates.md) — configure TLS certificates for secure mock clients
+- [Reports](./report.md) — generate test reports from runs that use mocks
+- [Testlight CLI](../running/testlight.md) — run tests and suites (including mock servers) from the command line
+- [Sample Project](../guides/sample-project.md) — full walkthrough of a Multimeter project

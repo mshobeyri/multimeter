@@ -45,7 +45,7 @@ Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies.
 - Current: `c:<name>` (e.g., `c:date`, `c:epoch`)
 See “Dynamic values: random and current” below for details and examples.
 
-You can also import JSON/YAML/CSV data files with a top-level `import:` map and reference values with `${alias.path}`. See [Data Imports](./data-imports.md).
+You can also import JSON/YAML/CSV data files with a top-level `import:` map and reference values with `${alias.path}`. See [Data Imports](../features/data-imports.md).
 
 Side note: if you paste a `curl ...` command into an API editor, Multimeter can convert it into `type: api` YAML for you. For HTTP APIs, the toolbar can also run the current request in a terminal using `curl`.
 
@@ -871,13 +871,13 @@ examples:
 ---
 
 ## See also
-- [Test](./test-mmt.md) — orchestrate flows calling APIs with steps, assertions, and loops
-- [Environment](./environment-mmt.md) — define variables and presets used by `e:VAR` tokens
-- [Doc](./doc-mmt.md) — generate browsable HTML documentation from API files
-- [Suite](./suite-mmt.md) — group and run multiple tests and APIs together
-- [Mock Server](./mock-server.md) — point API URLs at a mock server for local development
-- [Testlight CLI](./testlight.md) — run APIs and tests from the command line
-- [Reports](./reports.md) — generate JUnit XML, HTML, Markdown, or MMT reports from test runs
-- [Certificates](./certificates-mmt.md) — SSL/TLS and mTLS configuration
-- [Logging](./logging.md) — log levels for inputs, outputs, requests, and responses
-- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Test](./test.md) — orchestrate flows calling APIs with steps, assertions, and loops
+- [Environment](./env.md) — define variables and presets used by `e:VAR` tokens
+- [Doc](./doc.md) — generate browsable HTML documentation from API files
+- [Suite](./suite.md) — group and run multiple tests and APIs together
+- [Mock Server](./server.md) — point API URLs at a mock server for local development
+- [Testlight CLI](../running/testlight.md) — run APIs and tests from the command line
+- [Reports](./report.md) — generate JUnit XML, HTML, Markdown, or MMT reports from test runs
+- [Certificates](../features/certificates.md) — SSL/TLS and mTLS configuration
+- [Logging](../running/logging.md) — log levels for inputs, outputs, requests, and responses
+- [Sample Project](../guides/sample-project.md) — full walkthrough with APIs, tests, suites, and docs

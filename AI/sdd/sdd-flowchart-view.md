@@ -398,8 +398,8 @@ This keeps `FlowchartView` ignorant of how its inputs were obtained.
 - No data-model changes — purely additive UI.
 - No CLI changes.
 - Documentation: add `docs/flowchart-view.md` describing the button and
-  what each node kind means. Link from `docs/test-mmt.md` and
-  `docs/suite-mmt.md`.
+  what each node kind means. Link from `docs/files/test.md` and
+  `docs/files/suite.md`.
 
 ---
 

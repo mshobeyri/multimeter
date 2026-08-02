@@ -11,7 +11,7 @@ Always follow these rules:
 
 ## Schema (mental model for the AI)
 
-This matches `DocData` in `core/src/DocData.ts` and `docs/doc-mmt.md`.
+This matches `DocData` in `core/src/DocData.ts` and `docs/files/doc.md`.
 
 Top-level keys and types:
 

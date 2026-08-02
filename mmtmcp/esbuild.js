@@ -10,7 +10,7 @@ const guidesSrc = path.join(repoRoot, 'docs', 'AI');
 const examplesSrc = path.join(repoRoot, 'examples');
 const guidesOut = path.join(__dirname, 'dist', 'guides');
 const examplesOut = path.join(__dirname, 'dist', 'examples');
-const profileSrc = path.join(repoRoot, 'docs', 'testgen-profile-ai.md');
+const profileSrc = path.join(repoRoot, 'docs', 'guides', 'testgen-profile-ai.md');
 
 const mmtCorePlugin = {
   name: 'mmt-core-resolver',

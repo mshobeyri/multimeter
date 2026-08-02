@@ -43,4 +43,4 @@ npx testlight run examples/intermediate/01_api_inputs_outputs/post_with_inputs_o
   - **Regex** — `regex "field":"(.*?)"` to capture from raw response text (first capture group wins)
 - Outputs can be chained into subsequent steps in a test flow using `${step_id.output_name}`.
 
-See [API docs](../../../docs/api-mmt.md#inputs) and [API docs — outputs](../../../docs/api-mmt.md#outputs) for full details.
+See [API docs](../../../docs/files/api.md#inputs) and [API docs — outputs](../../../docs/files/api.md#outputs) for full details.

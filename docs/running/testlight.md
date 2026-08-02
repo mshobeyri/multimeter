@@ -28,7 +28,7 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
   - Options:
     - `-o, --out <file>` — write output to file (default: `<docname>.html` in the current directory)
     - `--md` — generate Markdown instead of HTML
-  - See [Doc](./doc-mmt.md) for authoring `type: doc` files
+  - See [Doc](../files/doc.md) for authoring `type: doc` files
 - version-info
   - Print the CLI and Node.js version
 
@@ -59,7 +59,7 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
   - Write result JSON to a file
 - --report <format>
   - Generate a test report after the run: `junit`, `mmt`, `html`, `md`, or `md-detailed`
-  - See [reports.md](reports.md) for format details and CI/CD integration
+  - See [reports.md](../files/report.md) for format details and CI/CD integration
 - --report-file <path>
   - Custom output path for the report file (default depends on format)
 
@@ -126,14 +126,14 @@ Suite-level environment configuration (from `environment:` field) only applies w
 ---
 
 ## See also
-- [API](./api-mmt.md) — define HTTP/WS requests to run from the CLI
-- [Test](./test-mmt.md) — define test flows to run from the CLI
-- [Environment](./environment-mmt.md) — variables and presets (`--env-file`, `--preset`)
-- [Doc](./doc-mmt.md) — author doc files for `testlight doc`
-- [Suite](./suite-mmt.md) — run suites from the CLI
-- [Load Test](./loadtest-mmt.md) — run beta load tests from the CLI
-- [Reports](./reports.md) — generate JUnit XML, HTML, Markdown, or MMT reports (`--report`)
-- [Mock Server](./mock-server.md) — `type: server` files started by tests/suites during CLI runs
-- [Certificates](./certificates-mmt.md) — SSL/TLS configuration for CLI runs
+- [API](../files/api.md) — define HTTP/WS requests to run from the CLI
+- [Test](../files/test.md) — define test flows to run from the CLI
+- [Environment](../files/env.md) — variables and presets (`--env-file`, `--preset`)
+- [Doc](../files/doc.md) — author doc files for `testlight doc`
+- [Suite](../files/suite.md) — run suites from the CLI
+- [Load Test](../files/loadtest.md) — run beta load tests from the CLI
+- [Reports](../files/report.md) — generate JUnit XML, HTML, Markdown, or MMT reports (`--report`)
+- [Mock Server](../files/server.md) — `type: server` files started by tests/suites during CLI runs
+- [Certificates](../features/certificates.md) — SSL/TLS configuration for CLI runs
 - [Logging](./logging.md) — log levels and where logs appear for each entry point
-- [Sample Project](./sample-project.md) — full walkthrough with CLI examples
+- [Sample Project](../guides/sample-project.md) — full walkthrough with CLI examples

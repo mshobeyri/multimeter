@@ -10,41 +10,41 @@ export interface NotypeSample {
   content: string;
 }
 
-const DOCS_BASE = "https://github.com/mshobeyri/multimeter/blob/dev/docs";
+const DOCS_BASE = "https://mmt.dev/docs";
 const DEMOS_BASE = "https://mmt.dev/demos";
 
-/** GitHub docs + demo-page section for each gallery file type. */
+/** Site docs + demo-page section for each gallery file type. */
 export const notypeHelpLinks: Record<NotypeSampleType, { docsUrl: string; demoUrl: string }> = {
   api: {
-    docsUrl: `${DOCS_BASE}/api-mmt.md`,
+    docsUrl: `${DOCS_BASE}/files/api`,
     demoUrl: `${DEMOS_BASE}#api`,
   },
   env: {
-    docsUrl: `${DOCS_BASE}/environment-mmt.md`,
+    docsUrl: `${DOCS_BASE}/files/env`,
     demoUrl: `${DEMOS_BASE}#environment`,
   },
   test: {
-    docsUrl: `${DOCS_BASE}/test-mmt.md`,
+    docsUrl: `${DOCS_BASE}/files/test`,
     demoUrl: `${DEMOS_BASE}#test`,
   },
   suite: {
-    docsUrl: `${DOCS_BASE}/suite-mmt.md`,
+    docsUrl: `${DOCS_BASE}/files/suite`,
     demoUrl: `${DEMOS_BASE}#suite`,
   },
   loadtest: {
-    docsUrl: `${DOCS_BASE}/loadtest-mmt.md`,
+    docsUrl: `${DOCS_BASE}/files/loadtest`,
     demoUrl: `${DEMOS_BASE}#load-test`,
   },
   doc: {
-    docsUrl: `${DOCS_BASE}/doc-mmt.md`,
+    docsUrl: `${DOCS_BASE}/files/doc`,
     demoUrl: `${DEMOS_BASE}#documentation`,
   },
   server: {
-    docsUrl: `${DOCS_BASE}/mock-server.md`,
+    docsUrl: `${DOCS_BASE}/files/server`,
     demoUrl: `${DEMOS_BASE}#mock-server`,
   },
   report: {
-    docsUrl: `${DOCS_BASE}/reports.md`,
+    docsUrl: `${DOCS_BASE}/files/report`,
     demoUrl: `${DEMOS_BASE}#report`,
   },
 };
