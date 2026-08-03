@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.32.1]
+
+- Share test call cache across an entire top-level run: suite siblings and nested suites reuse the same title + inputs until TTL expires or the run finishes
+- Seed the in-run cache when a cached test runs as a suite item so later callers in the hierarchy can hit it
+
 ## [1.32.0]
 
 - Add optional test call cache: declare `cache` on a test (duration, epoch, or date/time) so imported calls with the same title + inputs reuse outputs within one root run

@@ -446,7 +446,7 @@ function deepCloneCacheValue_(value: any): any {
   }
 }
 
-/** Clear the in-run test call cache (called at the start of each jsRunner run). */
+/** Clear the in-run test call cache (outermost run start/end). */
 export const clearTestCallCache_ = (): void => {
   __mmtTestCallCache.clear();
 };

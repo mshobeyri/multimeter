@@ -5,7 +5,7 @@ import {logRunFinished} from './runLog';
 import {classifySuiteItemStatus} from './suiteItemStatus';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
-import {stopAllServers_, registerServer_} from './testHelper';
+import {clearTestCallCache_, stopAllServers_, registerServer_} from './testHelper';
 
 const stableIdForSuiteItem = (params: {
   suitePath: string;
@@ -77,6 +77,12 @@ export async function executeSuite(
 
   let overallSuccess = true;
   const serverCleanups: Array<() => void> = [];
+  // Nested suite children inherit skipServerCleanup and share the parent
+  // call-cache; only the outermost suite owns cache lifetime.
+  const isOutermostSuite = !options.skipServerCleanup;
+  if (isOutermostSuite) {
+    clearTestCallCache_();
+  }
 
   try {
   // Start suite-level servers (from the `servers:` field) before running tests.
@@ -318,6 +324,9 @@ export async function executeSuite(
       stopAllServers_();
     } catch (e: any) {
       suiteLogger('warn', `Error stopping servers: ${e?.message || String(e)}`);
+    }
+    if (isOutermostSuite) {
+      clearTestCallCache_();
     }
   }
 

@@ -1,6 +1,6 @@
 # Test Call Cache
 
-Advanced example: a session-style test declares `cache: 5m` so repeated `call:`s with the same title + inputs reuse outputs within one root run (second call skips nested HTTP).
+Advanced example: a session-style test declares `cache: 5m` so repeated `call:`s with the same title + inputs reuse outputs within one top-level run — a single test, suite, or nested suite hierarchy (second call skips nested HTTP).
 
 Design: `AI/sdd/sdd-test-call-cache.md`. User docs: [Test `.mmt` — cache](../../../docs/files/test/cache.md).
 
@@ -31,4 +31,4 @@ npx testlight run examples/intermediate/24_test_call_cache/use_session_cache.mmt
 - **`cache` on the callee test** — scalar duration / epoch / date-time; not on `type: api` in phase 1.
 - **Key = title + inputs** — same session title and same inputs → same outputs.
 - **Bypass body only** — nested server/HTTP in the callee is skipped on hit; caller expects still run.
-- **Same root run only** — no disk; cleared when the run ends.
+- **Same top-level run** — shared across suite hierarchy until TTL expires or the run finishes; no disk.

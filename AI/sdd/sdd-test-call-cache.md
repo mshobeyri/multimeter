@@ -2,7 +2,7 @@
 
 ## Summary
 
-Add an optional top-level `cache` field on `type: test` files (placed with other header fields, immediately before `steps` / `stages`). When a cached test is **called** again within the same root test run with the same title + inputs, Multimeter returns the previous outputs instead of re-executing the callee’s network/server work. Call-site expects, checks, asserts, and reporting still run as usual. Report UIs use dedicated `db_pass` / `db_error` icons when a step was served from cache.
+Add an optional top-level `cache` field on `type: test` files (placed with other header fields, immediately before `steps` / `stages`). When a cached test is **called** again within the same top-level run (test or suite hierarchy) with the same title + inputs, Multimeter returns the previous outputs instead of re-executing the callee’s network/server work. Call-site expects, checks, asserts, and reporting still run as usual. Report UIs use dedicated `db_pass` / `db_error` icons when a step was served from cache.
 
 **Status:** Phase 1 — implemented (core runtime, reporter `cached` flag, report UI/HTML/MD markers).
 
@@ -12,7 +12,7 @@ Login/session and other expensive setup tests are often imported and called from
 
 - Declares TTL/expiry on the **callee** test (not a special call-site API)
 - Keys reuse by **title + inputs** so different credentials do not share results
-- Stays scoped to **one root test run** (simple, no disk, no cross-Run persistence in phase 1)
+- Stays scoped to **one top-level run** (test, suite, or suite-of-suites hierarchy — simple, no disk, no cross-Run persistence)
 - Makes cache hits visible in every report surface that already shows pass/fail icons
 
 ## Syntax (phase 1)
@@ -55,7 +55,7 @@ Placement: after `inputs` / `outputs` / `import` as needed, **immediately before
 - Hit-count limits (`for: 100`)
 - `cache` on `type: api`
 - Disk / cross-process / cross-Run persistence
-- Cache on suite `runFile` children that are not inlined `call:` targets (suite items still get icons only when their nested calls report cache hits)
+- Cache on suite `runFile` children that are not inlined `call:` targets — **done**: outermost suite owns cache lifetime; children share until TTL or suite end; root suite-item runs of a cached test seed the store for later callers
 
 ## Semantics
 
@@ -78,7 +78,7 @@ flowchart TD
 - Lookup happens when that test function is **called** (not when the file is run as the root document). Direct Run of the cached file always executes (and may refresh the in-run store on success for later callers in the same generated program — see implementation note below).
 - **Key:** `title` (YAML `title:` of the callee) + canonical serialization of the **call inputs** object actually passed into the function (after omit/token resolution at the call site). Same title + same inputs → same cached outputs.
 - **Value:** the outputs object returned by the callee (same shape as a normal return).
-- **Lifetime:** in-memory map for the duration of the **current root `jsRunner` execution** (one VS Code Run / one CLI `testlight run` of a root test). Cleared when the run ends.
+- **Lifetime:** in-memory map for the duration of the **current top-level run** (one VS Code Run / one CLI `testlight run` of a root test or outermost suite). Shared across suite siblings and nested suites. Cleared when that outermost run ends.
 - **Expiry:** entry is invalid when `Date.now() >= expiresAt`.
 
 ### What is bypassed vs unchanged
@@ -116,7 +116,7 @@ On a **cache miss:** full callee execution, then store outputs + expiry if the i
 ### Direct Run vs call
 
 - **Called** (`root === false`): honor cache lookup + store.
-- **Root Run:** always execute body (debuggable). Optionally still **store** on successful return so a later imported call in the same process… *(phase 1: root runs are separate `runFile` invocations — store only within one root JS program. Root Run of the session test alone does not need to populate cache for a different file’s later Run.)*
+- **Root Run / suite item:** always execute body (debuggable). Still **store** on successful return so later imported calls in the same top-level hierarchy can hit.
 
 ## Reporting
 
@@ -148,4 +148,4 @@ Multimeter phase 1 is closer to in-run `callSingle` with TTL/absolute expiry dec
 - Hit counts; disk TTL (Karate-style)
 - `cache` on `type: api`
 - Explicit cache clear helper / UI
-- Suite-bundle sharing across separate `runFile` child processes (would need a host-level store)
+- Cross-Run / disk persistence beyond a single top-level editor/CLI invocation

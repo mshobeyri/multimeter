@@ -519,7 +519,7 @@ export const TestSchema = {
         cache: {
             type: ['number', 'string'],
             description:
-                'Optional call-cache TTL for imported uses of this test. Duration (same as repeat/delay, e.g. 5m), epoch seconds, or a date/time string containing ":". Same title + inputs within one root run reuse outputs and skip the callee body.',
+                'Optional call-cache TTL for imported uses of this test. Duration (same as repeat/delay, e.g. 5m), epoch seconds, or a date/time string containing ":". Same title + inputs within one top-level run (test or suite hierarchy) reuse outputs and skip the callee body until TTL expires or the run finishes.',
         },
         steps: {
             type: 'array',
