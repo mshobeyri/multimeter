@@ -19,20 +19,20 @@ class Testlight < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-macos-arm64.tar.gz"
-      sha256 "eef905b2a9f446fce16627342112bd7194d35fa5c848c5d33e5886ace7e11154"
+      sha256 "ca1c4dd08f1d2a075a4f5909808b5f4f486e91bc9c569759f867895031ab53bf"
     else
       url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-macos-x64.tar.gz"
-      sha256 "c3aa29c62a8544d878403e93c8a1ad7498e09386f7ca6e9d0d1c6b1903cbb448"
+      sha256 "57e19ac029f857f36dd62aaf50b989cc421e86ffbc3ac8ddec64c62499806ecd"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-linux-arm64.tar.gz"
-      sha256 "93d3904e7d92512c45c22e8fe354b8d815fe2522e670d884a4fdc26b32d9929c"
+      sha256 "5a113a6c3c9a38174e0392271d12e48045d4dd33eb19ce75ed5a740e68a9154d"
     else
       url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-linux-x64.tar.gz"
-      sha256 "e883d3e9f33a0af4937ed11e250db4c18a3493a7e7a4222d741cdab88cde5ec2"
+      sha256 "87f7a0cce0ed07dfc04a972b40dfc89673ed30ec66a29ec732d499e69694e85e"
     end
   end
 
