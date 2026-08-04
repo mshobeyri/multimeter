@@ -4,6 +4,7 @@ import { ChevronDown, Menu, X } from 'lucide-react'
 import { docsNav, flattenNavItems, isNavGroup } from '../../docs/nav'
 import type { DocsNavEntry } from '../../docs/nav'
 import Codicon from '../../components/Codicon'
+import DocsSearch from './DocsSearch'
 
 function NavLabel({ title, icon }: { title: string; icon?: string }) {
   return (
@@ -135,6 +136,7 @@ function NavEntry({
 
 export default function DocsLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
   const location = useLocation()
 
   return (
@@ -157,24 +159,30 @@ export default function DocsLayout() {
               mobileOpen ? 'block' : 'hidden'
             } lg:block w-full lg:w-60 shrink-0 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto`}
           >
-            <nav className="space-y-6 pb-8" aria-label="Docs">
-              {docsNav.map((section) => (
-                <div key={section.title}>
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                    {section.title}
-                  </h2>
-                  <ul className="space-y-0.5">
-                    {section.items.map((item) => (
-                      <NavEntry
-                        key={isNavGroup(item) ? item.title : item.href}
-                        item={item}
-                        onNavigate={() => setMobileOpen(false)}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </nav>
+            <DocsSearch
+              onNavigate={() => setMobileOpen(false)}
+              onSearchingChange={setSearching}
+            />
+            {!searching ? (
+              <nav className="space-y-6 pb-8" aria-label="Docs">
+                {docsNav.map((section) => (
+                  <div key={section.title}>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      {section.title}
+                    </h2>
+                    <ul className="space-y-0.5">
+                      {section.items.map((item) => (
+                        <NavEntry
+                          key={isNavGroup(item) ? item.title : item.href}
+                          item={item}
+                          onNavigate={() => setMobileOpen(false)}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </nav>
+            ) : null}
           </aside>
 
           <div className="min-w-0 flex-1" key={location.pathname}>
