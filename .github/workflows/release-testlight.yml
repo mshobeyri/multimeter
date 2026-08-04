@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - platform: macos-x64
-            os: macos-13       # Intel runner
+            os: macos-15-intel # Intel macOS (macos-13 retired Dec 2025)
             pkg-target: node18-macos-x64
             ext: ''
           - platform: macos-arm64
