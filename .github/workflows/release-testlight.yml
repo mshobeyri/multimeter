@@ -53,7 +53,9 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix mmtcli
 
       - name: Build core
         run: cd core && npm run build
@@ -167,7 +169,7 @@ jobs:
         run: |
           npm ci
           cd core && npm run build
-          cd ../mmtcli && npm run build
+          cd ../mmtcli && npm ci && npm run build
 
       - name: Detect pre-release
         id: pre
