@@ -286,7 +286,7 @@ export default function Downloads() {
               <div className="space-y-3 flex-1">
                 <p className="text-xs text-slate-500">Download the .zip from GitHub:</p>
                 <a
-                  href="https://github.com/mshobeyri/multimeter/releases/latest/download/testlight-v0.4.0-win-x64.zip"
+                  href="https://github.com/mshobeyri/multimeter/releases/latest/download/testlight-win-x64.zip"
                   className="flex items-center justify-center gap-2 bg-surface border border-border hover:border-slate-500 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
                 >
                   <Download size={14} />

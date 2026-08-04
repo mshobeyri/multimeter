@@ -142,7 +142,7 @@ main() {
     archive_ext="tar.gz"
   fi
 
-  url="https://github.com/${REPO}/releases/download/v${version}/testlight-v${version}-${platform}.${archive_ext}"
+  url="https://github.com/${REPO}/releases/download/v${version}/testlight-${platform}.${archive_ext}"
 
   tmp_dir=$(mktemp -d)
   trap 'rm -rf "$tmp_dir"' EXIT
