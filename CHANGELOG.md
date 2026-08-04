@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.32.2]
+
+- Stable release of the 1.32.1 suite-wide test call cache fixes
+
 ## [1.32.1]
 
 - Share test call cache across an entire top-level run: suite siblings and nested suites reuse the same title + inputs until TTL expires or the run finishes
