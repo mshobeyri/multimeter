@@ -123,6 +123,8 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: build
+    # Do not block the GitHub Release if Hub credentials are missing.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -165,6 +167,8 @@ jobs:
   npm:
     runs-on: ubuntu-latest
     needs: build
+    # Do not block the GitHub Release if NPM_TOKEN is missing.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -200,7 +204,8 @@ jobs:
   # ── GitHub Release ────────────────────────────────────────────────
   release:
     runs-on: ubuntu-latest
-    needs: [build, docker, npm]
+    # Publish binaries even when npm/Docker secrets are missing.
+    needs: [build]
     steps:
       - uses: actions/checkout@v4
 
