@@ -21,6 +21,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - platform: macos-x64
@@ -98,9 +99,16 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.ext }}" == ".exe" ]]; then
-            sha256sum testlight-${{ matrix.platform }}.zip > checksum-${{ matrix.platform }}.txt
+            FILE="testlight-${{ matrix.platform }}.zip"
           else
-            sha256sum testlight-${{ matrix.platform }}.tar.gz > checksum-${{ matrix.platform }}.txt
+            FILE="testlight-${{ matrix.platform }}.tar.gz"
+          fi
+          OUT="checksum-${{ matrix.platform }}.txt"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "$FILE" > "$OUT"
+          else
+            # macOS runners provide shasum, not sha256sum
+            shasum -a 256 "$FILE" > "$OUT"
           fi
 
       - name: Upload artifact
