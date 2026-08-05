@@ -91,20 +91,6 @@ function WindowsLogo({ size = 28 }: { size?: number }) {
   return <img src="/icons/windows.svg" width={size} height={size} alt="Windows" />
 }
 
-function SnapLogo({ size = 28 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid">
-      <linearGradient id="snap-a" x1="128" y1="0" x2="128" y2="256" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stopColor="#E95420"/>
-        <stop offset="1" stopColor="#C44218"/>
-      </linearGradient>
-      <rect width="256" height="256" rx="40" fill="url(#snap-a)"/>
-      <path d="M60 120 128 52l68 68-68 68-68-68Z" fill="none" stroke="#fff" strokeWidth="12" strokeLinejoin="round"/>
-      <circle cx="128" cy="120" r="16" fill="#fff"/>
-    </svg>
-  )
-}
-
 function DockerLogo({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 256 185" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid">
@@ -257,16 +243,28 @@ export default function Downloads() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Linux</h3>
-                  <p className="text-xs text-slate-500">DEB, RPM &amp; Snap packages</p>
+                  <p className="text-xs text-slate-500">x64 &amp; arm64 standalone binaries</p>
                 </div>
               </div>
               <div className="space-y-3 flex-1">
-                <p className="text-xs text-slate-500">Debian / Ubuntu:</p>
-                <CodeBlock>sudo dpkg -i mmt-testlight_0.4.0_amd64.deb</CodeBlock>
-                <p className="text-xs text-slate-500">Fedora / RHEL:</p>
-                <CodeBlock>sudo rpm -i mmt-testlight-0.4.0.x86_64.rpm</CodeBlock>
-                <p className="text-xs text-slate-500">Snap:</p>
-                <CodeBlock>sudo snap install mmt-testlight</CodeBlock>
+                <p className="text-xs text-slate-500">Download from GitHub:</p>
+                <a
+                  href="https://github.com/mshobeyri/multimeter/releases/latest/download/testlight-linux-x64.tar.gz"
+                  className="flex items-center justify-center gap-2 bg-surface border border-border hover:border-slate-500 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Download size={14} />
+                  testlight-linux-x64.tar.gz
+                </a>
+                <a
+                  href="https://github.com/mshobeyri/multimeter/releases/latest/download/testlight-linux-arm64.tar.gz"
+                  className="flex items-center justify-center gap-2 bg-surface border border-border hover:border-slate-500 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Download size={14} />
+                  testlight-linux-arm64.tar.gz
+                </a>
+                <p className="text-xs text-slate-500">Install from the package:</p>
+                <CodeBlock>tar -xzf testlight-linux-*.tar.gz</CodeBlock>
+                <CodeBlock>sudo cp -a testlight mmt /usr/local/bin/</CodeBlock>
               </div>
             </div>
           </FadeIn>

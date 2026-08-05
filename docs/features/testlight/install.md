@@ -31,7 +31,7 @@ brew install mmt-testlight
 
 ## Other platforms
 
-Linux (apt / snap), Windows, and Docker installs are listed on the [Downloads](/downloads) page.
+Linux, Windows, and Docker installs are listed on the [Downloads](/downloads) page.
 
 ## Standalone binary (CI)
 
