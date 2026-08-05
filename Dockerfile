@@ -21,10 +21,11 @@ WORKDIR /build
 # Copy package files first (layer caching)
 COPY package.json package-lock.json ./
 COPY core/package.json core/
-COPY mmtcli/package.json mmtcli/
+COPY mmtcli/package.json mmtcli/package-lock.json mmtcli/
 
-# Install all workspace dependencies
+# Install root workspace deps + mmtcli deps (mmtcli is not a workspace)
 RUN npm ci 2>/dev/null || npm install
+RUN npm ci --prefix mmtcli
 
 # Copy source
 COPY core/ core/
@@ -49,12 +50,13 @@ COPY --from=builder /build/core/dist/ core/dist/
 COPY --from=builder /build/core/package.json core/
 COPY --from=builder /build/mmtcli/dist/ mmtcli/dist/
 COPY --from=builder /build/mmtcli/package.json mmtcli/
+COPY --from=builder /build/mmtcli/package-lock.json mmtcli/
 
 # Copy root package.json for workspace resolution
 COPY package.json ./
 
-# Install production dependencies only
-RUN cd mmtcli && npm install --omit=dev --ignore-scripts 2>/dev/null || true
+# Install production dependencies only (externals left out of the esbuild bundle)
+RUN cd mmtcli && npm ci --omit=dev --ignore-scripts
 
 # Create symlinks in /usr/local/bin
 RUN ln -s /app/mmtcli/dist/cli.js /usr/local/bin/testlight && \
