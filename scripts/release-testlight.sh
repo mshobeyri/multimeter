@@ -107,11 +107,12 @@ for platform in "${PLATFORMS[@]}"; do
   [[ -d "$src_dir" ]] || continue
 
   if [[ "$platform" == win-* ]]; then
-    archive="$DIST_DIR/testlight-v${VERSION}-${platform}.zip"
+    # Versionless names so /releases/latest/download/ URLs stay stable across releases.
+    archive="$DIST_DIR/testlight-${platform}.zip"
     (cd "$src_dir" && zip -j "$archive" testlight.exe mmt.exe)
     echo "  → $archive"
   else
-    archive="$DIST_DIR/testlight-v${VERSION}-${platform}.tar.gz"
+    archive="$DIST_DIR/testlight-${platform}.tar.gz"
     tar -czf "$archive" -C "$src_dir" testlight mmt
     echo "  → $archive"
   fi
@@ -162,7 +163,7 @@ if $PUBLISH_GITHUB; then
       --notes "See [CHANGELOG.md](CHANGELOG.md) for details." \
       --repo mshobeyri/multimeter \
       $GH_FLAGS \
-      "$DIST_DIR"/testlight-v${VERSION}-*.{tar.gz,zip} \
+      "$DIST_DIR"/testlight-*.{tar.gz,zip} \
       "$DIST_DIR/checksums-sha256.txt" \
       || echo "  ⚠ Release v$VERSION may already exist"
     if $PRE_RELEASE; then

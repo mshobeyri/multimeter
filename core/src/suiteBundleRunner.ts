@@ -8,7 +8,7 @@ import {
   classifySuiteItemStatus,
   worstSuiteItemStatus,
 } from './suiteItemStatus';
-import {stopAllServers_, registerServer_} from './testHelper';
+import {clearTestCallCache_, stopAllServers_, registerServer_} from './testHelper';
 
 /** Cleanup functions for servers started during suite execution. */
 type ServerCleanup = () => void;
@@ -440,6 +440,9 @@ export async function executeSuiteBundle(params: {
   const totalRunnable = collectRunnableCountFromRoot(rootChildren);
 
   if (shouldEmitSuiteRunEvents) {
+    // One call-cache for the whole suite hierarchy (including nested suites)
+    // until TTL expiry or this outermost suite finishes.
+    clearTestCallCache_();
     effectiveOptions.reporter && effectiveOptions.reporter({
       scope: 'suite-run-start',
       runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
@@ -659,6 +662,7 @@ export async function executeSuiteBundle(params: {
       } catch (e: any) {
         suiteLogger('warn', `Error stopping servers: ${e?.message || String(e)}`);
       }
+      clearTestCallCache_();
     }
   }
 

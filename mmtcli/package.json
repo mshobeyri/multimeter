@@ -9,7 +9,7 @@
   },
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "node esbuild.js",
+    "build": "node esbuild.mjs",
     "build:tsc": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "dev": "tsx src/cli.ts --help",

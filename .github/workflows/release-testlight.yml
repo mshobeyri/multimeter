@@ -21,10 +21,11 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - platform: macos-x64
-            os: macos-13       # Intel runner
+            os: macos-15-intel # Intel macOS (macos-13 retired Dec 2025)
             pkg-target: node18-macos-x64
             ext: ''
           - platform: macos-arm64
@@ -53,7 +54,9 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix mmtcli
 
       - name: Build core
         run: cd core && npm run build
@@ -96,9 +99,16 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.ext }}" == ".exe" ]]; then
-            sha256sum testlight-${{ matrix.platform }}.zip > checksum-${{ matrix.platform }}.txt
+            FILE="testlight-${{ matrix.platform }}.zip"
           else
-            sha256sum testlight-${{ matrix.platform }}.tar.gz > checksum-${{ matrix.platform }}.txt
+            FILE="testlight-${{ matrix.platform }}.tar.gz"
+          fi
+          OUT="checksum-${{ matrix.platform }}.txt"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "$FILE" > "$OUT"
+          else
+            # macOS runners provide shasum, not sha256sum
+            shasum -a 256 "$FILE" > "$OUT"
           fi
 
       - name: Upload artifact
@@ -113,6 +123,8 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: build
+    # Do not block the GitHub Release if Hub credentials are missing.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -155,6 +167,8 @@ jobs:
   npm:
     runs-on: ubuntu-latest
     needs: build
+    # Do not block the GitHub Release if NPM_TOKEN is missing.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -167,7 +181,7 @@ jobs:
         run: |
           npm ci
           cd core && npm run build
-          cd ../mmtcli && npm run build
+          cd ../mmtcli && npm ci && npm run build
 
       - name: Detect pre-release
         id: pre
@@ -190,7 +204,8 @@ jobs:
   # ── GitHub Release ────────────────────────────────────────────────
   release:
     runs-on: ubuntu-latest
-    needs: [build, docker, npm]
+    # Publish binaries even when npm/Docker secrets are missing.
+    needs: [build]
     steps:
       - uses: actions/checkout@v4
 

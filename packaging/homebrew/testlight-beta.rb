@@ -17,20 +17,20 @@ class TestlightBeta < Formula
   # ── Platform binaries ──────────────────────────────────────────────
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-v#{version}-macos-arm64.tar.gz"
+      url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-macos-arm64.tar.gz"
       # sha256 "PLACEHOLDER" # updated by release script
     else
-      url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-v#{version}-macos-x64.tar.gz"
+      url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-macos-x64.tar.gz"
       # sha256 "PLACEHOLDER" # updated by release script
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-v#{version}-linux-arm64.tar.gz"
+      url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-linux-arm64.tar.gz"
       # sha256 "PLACEHOLDER" # updated by release script
     else
-      url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-v#{version}-linux-x64.tar.gz"
+      url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-linux-x64.tar.gz"
       # sha256 "PLACEHOLDER" # updated by release script
     end
   end

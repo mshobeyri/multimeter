@@ -15,7 +15,7 @@ Comprehensive reference for building, packaging, and publishing Multimeter acros
 | **GitHub Releases** | Platform binaries + checksums | [GitHub](https://github.com/mshobeyri/multimeter/releases) | Tag: `vX.Y.Z` |
 | **GitHub Action** | Composite action | `mshobeyri/multimeter` repo under `bin/github-action/` | `mshobeyri/multimeter@vX` |
 | **One-line installer** | Shell script | Raw GitHub URL | `scripts/install-testlight.sh` |
-| **Standalone binaries** | macOS x64/arm64, Linux x64/arm64, Windows x64 | GitHub Releases | `testlight-vX.Y.Z-<platform>.<ext>` |
+| **Standalone binaries** | macOS x64/arm64, Linux x64/arm64, Windows x64 | GitHub Releases | `testlight-<platform>.<ext>` (versionless; version is the release tag) |
 
 ---
 
@@ -171,10 +171,10 @@ docker push mshobeyri/mmt-testlight:X.Y.Z
 2. Upload archives to GitHub Release (done by CI or `release-testlight.sh --publish-github`)
 3. Compute SHA-256 checksums of the platform `.tar.gz` files:
    ```bash
-   shasum -a 256 dist-release/testlight-vX.Y.Z-macos-arm64.tar.gz
-   shasum -a 256 dist-release/testlight-vX.Y.Z-macos-x64.tar.gz
-   shasum -a 256 dist-release/testlight-vX.Y.Z-linux-x64.tar.gz
-   shasum -a 256 dist-release/testlight-vX.Y.Z-linux-arm64.tar.gz
+   shasum -a 256 dist-release/testlight-macos-arm64.tar.gz
+   shasum -a 256 dist-release/testlight-macos-x64.tar.gz
+   shasum -a 256 dist-release/testlight-linux-x64.tar.gz
+   shasum -a 256 dist-release/testlight-linux-arm64.tar.gz
    ```
 4. Update `packaging/homebrew/mmt-testlight.rb`:
    - `version "X.Y.Z"`
@@ -208,11 +208,13 @@ testlight --version
 
 | Platform | Archive | Binary |
 |---|---|---|
-| macOS x64 | `testlight-vX.Y.Z-macos-x64.tar.gz` | `testlight` + `mmt` (symlink) |
-| macOS arm64 | `testlight-vX.Y.Z-macos-arm64.tar.gz` | `testlight` + `mmt` (symlink) |
-| Linux x64 | `testlight-vX.Y.Z-linux-x64.tar.gz` | `testlight` + `mmt` (symlink) |
-| Linux arm64 | `testlight-vX.Y.Z-linux-arm64.tar.gz` | `testlight` + `mmt` (symlink) |
-| Windows x64 | `testlight-vX.Y.Z-win-x64.zip` | `testlight.exe` + `mmt.exe` (copy) |
+| macOS x64 | `testlight-macos-x64.tar.gz` | `testlight` + `mmt` (symlink) |
+| macOS arm64 | `testlight-macos-arm64.tar.gz` | `testlight` + `mmt` (symlink) |
+| Linux x64 | `testlight-linux-x64.tar.gz` | `testlight` + `mmt` (symlink) |
+| Linux arm64 | `testlight-linux-arm64.tar.gz` | `testlight` + `mmt` (symlink) |
+| Windows x64 | `testlight-win-x64.zip` | `testlight.exe` + `mmt.exe` (copy) |
+
+Asset filenames are **versionless** so `/releases/latest/download/...` URLs on the website stay stable. The release **tag** (`vX.Y.Z`) carries the version.
 
 ### Build Locally
 
@@ -233,8 +235,8 @@ Output goes to `bin/<platform>/`. Checksums written to `bin/checksums-sha256.txt
 gh release create vX.Y.Z \
   --title "testlight vX.Y.Z" \
   --notes "See CHANGELOG.md" \
-  dist-release/testlight-vX.Y.Z-*.tar.gz \
-  dist-release/testlight-vX.Y.Z-*.zip \
+  dist-release/testlight-*.tar.gz \
+  dist-release/testlight-*.zip \
   dist-release/checksums-sha256.txt
 ```
 

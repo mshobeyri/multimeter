@@ -185,9 +185,11 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Call cache TTL [number | string]',
             documentation: [
-                'When this test is imported and called again in the same root run with the same title + inputs,',
+                'When this test is imported and called again in the same top-level run',
+                '(test, suite, or nested suite hierarchy) with the same title + inputs,',
                 'reuse previous outputs and skip the callee body (no nested HTTP).',
                 'Caller expect/check/assert still run. Reports show a database icon on cache hits.',
+                'Valid until TTL expires or the outermost run finishes.',
                 '',
                 'Examples:',
                 'cache: 5m',

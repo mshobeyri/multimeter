@@ -2,6 +2,21 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [testlight 0.4.2]
+
+- Share test call cache across an entire top-level run (suite siblings and nested suites) until TTL expires or the run finishes
+- Use versionless GitHub release archive names (`testlight-<platform>.tar.gz|zip`) so `/releases/latest/download/` URLs stay stable
+- Improve CLI version handling for packaged binaries
+
+## [1.32.2]
+
+- Stable release of the 1.32.1 suite-wide test call cache fixes
+
+## [1.32.1]
+
+- Share test call cache across an entire top-level run: suite siblings and nested suites reuse the same title + inputs until TTL expires or the run finishes
+- Seed the in-run cache when a cached test runs as a suite item so later callers in the hierarchy can hit it
+
 ## [1.32.0]
 
 - Add optional test call cache: declare `cache` on a test (duration, epoch, or date/time) so imported calls with the same title + inputs reuse outputs within one root run

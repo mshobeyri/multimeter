@@ -94,7 +94,7 @@ async function startJsRunnerWorkerThread(): Promise<void> {
     };
     try {
       const result = await runJSCode({
-        ...context,
+        ...(context as any),
         fileLoader,
         binaryFileLoader,
         logger: (level: LogLevel, message: string) => {

@@ -229,7 +229,7 @@ export const testToJsfunc = async(
   flow += await flowToJsFunc(replaced, root, useExternalReport, importTitleMap, emitSetenv);
 
   const fnName = `${toLowerUnderscore(ctx.name)}${root ? '_' : ''}`;
-  const cacheSpec = !root ? ctx.test.cache : undefined;
+  const cacheSpec = ctx.test.cache;
   const cacheProbe = cacheSpec !== undefined && cacheSpec !== null && cacheSpec !== '' ?
       parseCacheExpiryAtMs(cacheSpec) :
       undefined;
@@ -241,7 +241,7 @@ export const testToJsfunc = async(
       '{ ' + inputKeys.map(k => `${k}`).join(', ') + ' }' :
       '{}';
 
-  if (useCallCache) {
+  if (useCallCache && !root) {
     // Imported test with cache: key on resolved inputs (after defaults),
     // skip body on hit, store outputs on miss. Expiry is computed at store
     // time so duration values are relative to the miss, not codegen time.
@@ -252,6 +252,20 @@ export const testToJsfunc = async(
   if (__mmtCacheHit !== undefined) {
     return __mmtCacheHit;
   }
+  ${indentLines(importsAssignments)}\n
+  let outputs = {${outputParams}};
+  ${indentLines(flow)}
+  setTestCallCache_(${cacheTitle}, __mmtResolvedInputs, outputs, parseCacheExpiryAtMs_(${cacheSpecLiteral}));
+  return outputs;
+};\n`;
+  }
+
+  if (useCallCache && root) {
+    // Root / suite-item run always executes (debuggable) but still seeds the
+    // in-run cache so later callers in the same hierarchy can hit.
+    return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${fnName} = async ({ ${
+        inputParams}} = {}) => {
+  const __mmtResolvedInputs = ${resolvedInputsLiteral};
   ${indentLines(importsAssignments)}\n
   let outputs = {${outputParams}};
   ${indentLines(flow)}

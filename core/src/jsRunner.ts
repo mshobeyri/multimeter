@@ -169,8 +169,10 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     (mmtHelper as any).setServerRunner_(context.serverRunner);
   }
 
-  // Fresh call-cache for each root JS execution (one editor Run / CLI run).
-  if ('clearTestCallCache_' in mmtHelper &&
+  // Fresh call-cache only for outermost JS execution. Suite / load-test
+  // children set skipServerCleanup so cache stays valid across the hierarchy
+  // until TTL expires or the top-level run finishes.
+  if (!context.skipServerCleanup && 'clearTestCallCache_' in mmtHelper &&
       typeof (mmtHelper as any).clearTestCallCache_ === 'function') {
     (mmtHelper as any).clearTestCallCache_();
   }
@@ -310,6 +312,12 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // Clear server runner.
       if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
         (mmtHelper as any).setServerRunner_(undefined);
+      }
+      // Drop in-run call cache when the outermost test finishes so the next
+      // editor/CLI Run starts clean (suite runners clear at suite end).
+      if ('clearTestCallCache_' in mmtHelper &&
+          typeof (mmtHelper as any).clearTestCallCache_ === 'function') {
+        (mmtHelper as any).clearTestCallCache_();
       }
     }
   }
