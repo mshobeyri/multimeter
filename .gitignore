@@ -4,6 +4,18 @@ bin
 out
 mmtcli/dist-cjs
 mmtcli/dist/bin
+# Flat legacy pkg outputs — binaries live only under bin/<platform>/
+/testlight
+/testlight-macos
+/testlight-linux
+/testlight-win.exe
+/mmt
+/bin/testlight
+/bin/testlight-macos
+/bin/testlight-linux
+/bin/testlight-win.exe
+/bin/mmt
+/bin/mmt.exe
 mmtview/node_modules
 mmtview/build
 playwright-demo/video/

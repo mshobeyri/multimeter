@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const {normalizeUserPath, resolveUserPath} = require('./pathNormalize.cjs');
 
 /**
  * Walk up from startPath looking for multimeter.mmt.
@@ -28,6 +29,33 @@ function findProjectRootForPkg(startPath) {
 		currentDir = parentDir;
 	}
 	return undefined;
+}
+
+/**
+ * Resolve a path for pkg's filesystem layer.
+ * Accepts /, \, //, \\, and Windows drive forms (c:\…, c:/…).
+ * Relative paths resolve against baseDir (entry .mmt directory).
+ */
+function resolvePkgLoadPath(p, baseDir) {
+	return resolveUserPath(p, baseDir || process.cwd(), path);
+}
+
+function createPkgFileLoader(baseDir) {
+	return async (p) => {
+		const resolved = resolvePkgLoadPath(p, baseDir);
+		try {
+			if (!fs.existsSync(resolved)) {
+				return '';
+			}
+			return await fs.promises.readFile(resolved, 'utf8');
+		} catch (err) {
+			const code = err && err.code;
+			if (code === 'ENOENT' || code === 'EINVAL' || code === 'ENOTDIR') {
+				return '';
+			}
+			throw err;
+		}
+	};
 }
 
 function createPkgJsRunner() {
@@ -68,7 +96,7 @@ function createPkgJsRunner() {
 	}
 
 	return {
-		runJSCode: async ({ js: code, title, logger, fileLoader, serverRunner, reporter, runId, id, traceSend, abortSignal, checkLogMode }) => {
+		runJSCode: async ({ js: code, title, logger, fileLoader, binaryFileLoader, serverRunner, reporter, runId, id, traceSend, abortSignal, checkLogMode, basePath }) => {
 			const startTime = Date.now();
 			const lg = (level, msg) => logger(level, msg);
 			const customConsole = {
@@ -92,7 +120,8 @@ function createPkgJsRunner() {
 				const helperDecls = Object.keys(testHelper)
 					.filter((name) => name !== 'report_' && name !== 'setenv_' &&
 						name !== 'checkAbort_' && name !== 'importJsModule_' &&
-						name !== 'check_' && name !== 'checkExpects_')
+						name !== 'check_' && name !== 'checkExpects_' &&
+						name !== 'readBinaryFile_')
 					.map((name) => `const ${name} = mmtHelper["${name}"];`)
 					.join('\n');
 				const randomDecls = Object.keys(Random)
@@ -103,6 +132,10 @@ function createPkgJsRunner() {
 				const reporterFn = typeof reporter === 'function' ? reporter : () => {};
 				const mmtRandom = mmtCore.Random || {};
 				const mmtCurrent = mmtCore.Current || {};
+				const applyValueAccessor =
+					(mmtCore.variableReplacer && mmtCore.variableReplacer.applyValueAccessor) ||
+					((value) => value);
+				const mmtAccess = (value, accessor) => applyValueAccessor(value, accessor);
 
 				// Set reporter globals so testHelper's resolveReporter() can find them.
 				if (reporterFn) {
@@ -117,6 +150,7 @@ function createPkgJsRunner() {
 					'mmtHelper',
 					'console',
 					'send_',
+					'sendGrpc_',
 					'extractOutputs_',
 					'Random',
 					'__reporter',
@@ -124,7 +158,10 @@ function createPkgJsRunner() {
 					'__id',
 					'__mmt_random',
 					'__mmt_current',
+					'__mmt_access',
 					'__abortSignal',
+					'__fileLoader',
+					'__binaryFileLoader',
 					'__checkLogMode',
 					`${helperDecls}\n${randomDecls}\n` +
 					`const report_ = (...args) => mmtHelper.reportWithContext_ ? mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args) : undefined;\n` +
@@ -132,6 +169,16 @@ function createPkgJsRunner() {
 					`const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console, __checkLogMode);\n` +
 					`const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_ ? mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode) : undefined;\n` +
 					`const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
+					`const importJsModule_ = async (path, opts) => {` +
+					`  if (__fileLoader && mmtHelper.setFileLoader_) { mmtHelper.setFileLoader_(__fileLoader); }` +
+					`  return mmtHelper.importJsModule_(path, opts);` +
+					`};\n` +
+					`const readBinaryFile_ = async (path) => {` +
+					`  if (typeof __binaryFileLoader !== 'function') {` +
+					`    throw new Error('Binary file loader not available');` +
+					`  }` +
+					`  return __binaryFileLoader(path);` +
+					`};\n` +
 					`${code}`,
 				);
 
@@ -151,10 +198,35 @@ function createPkgJsRunner() {
 					}
 				} : networkCore.send;
 
+				let sendGrpcFn = async () => {
+					throw new Error('gRPC is not available in this packaged binary');
+				};
+				try {
+					// eslint-disable-next-line global-require
+					const grpcCore = require('../../core/dist/grpcCore.js');
+					if (grpcCore && typeof grpcCore.sendGrpcRequest === 'function') {
+						sendGrpcFn = async (req) => {
+							const config = typeof networkCore.getRunnerNetworkConfig === 'function' ?
+								networkCore.getRunnerNetworkConfig() : {};
+							const loader = typeof fileLoader === 'function' ?
+								fileLoader :
+								(async () => { throw new Error('File loader not available'); });
+							return grpcCore.sendGrpcRequest(req, config, loader, basePath);
+						};
+					}
+				} catch { /* optional */ }
+
+				const binaryLoader = typeof binaryFileLoader === 'function' ?
+					binaryFileLoader :
+					(typeof fileLoader === 'function' ?
+						async (p) => Buffer.from(await fileLoader(p), 'utf8') :
+						undefined);
+
 				await fn(
 					testHelper,
 					customConsole,
 					sendFn,
+					sendGrpcFn,
 					outputExtractor.extractOutputs,
 					Random,
 					reporterFn,
@@ -162,7 +234,10 @@ function createPkgJsRunner() {
 					id || '',
 					mmtRandom,
 					mmtCurrent,
+					mmtAccess,
 					abortSignal,
+					fileLoader,
+					binaryLoader,
 					checkLogMode || 'default',
 				);
 			} finally {
@@ -245,10 +320,7 @@ function createPkgServerRunner(envVars) {
 	}
 
 	function resolveFilePath(relative, basePath) {
-		if (pathMod.isAbsolute(relative)) {
-			return relative;
-		}
-		return pathMod.resolve(pathMod.dirname(basePath), relative);
+		return resolveUserPath(relative, pathMod.dirname(basePath), pathMod);
 	}
 
 	const serverRunner = async (alias, filePath) => {
@@ -863,8 +935,9 @@ async function main() {
 	}
 	// Resolve to absolute path so that all subsequent relative path resolution
 	// produces absolute paths readable from disk (pkg can't read relative paths).
+	// Accept /, \, //, \\, and Windows drive forms (c:\… / c:/…).
 	const pathMod = require('path');
-	filePath = pathMod.resolve(process.cwd(), filePath);
+	filePath = resolveUserPath(filePath, process.cwd(), pathMod);
 
 	// Run directly using the shared core runner.
 	// eslint-disable-next-line global-require
@@ -890,19 +963,20 @@ async function main() {
 		if (runConfig && typeof runConfig.mergeEnv === 'function') {
 			if (parsed.opts.envFile) {
 				const envFileRaw = String(parsed.opts.envFile);
-				let p = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.resolve(process.cwd(), envFileRaw);
+				let p = resolveUserPath(envFileRaw, process.cwd(), pathMod);
 				if (!fs.existsSync(p)) {
-					const alt = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.join(baseDir, envFileRaw);
+					const alt = resolveUserPath(envFileRaw, baseDir, pathMod);
 					if (fs.existsSync(alt)) {
 						p = alt;
 					}
 				}
 				const doc = loadEnvDoc(p);
-				let baseEnv = undefined;
-				if (runConfig && typeof runConfig.resolvePresetEnv === 'function') {
-					baseEnv = runConfig.resolvePresetEnv(doc, parsed.opts.preset);
-				} else if (doc && doc.variables) {
-					baseEnv = doc.variables;
+				// Defaults come from env file variables; optional preset overlays them.
+				let baseEnv = (doc && doc.variables) ? {...doc.variables} : {};
+				if (parsed.opts.preset && runConfig &&
+						typeof runConfig.resolvePresetEnv === 'function') {
+					const presetEnv = runConfig.resolvePresetEnv(doc, parsed.opts.preset) || {};
+					baseEnv = {...baseEnv, ...presetEnv};
 				}
 				envvar = runConfig.mergeEnv({ envvar: baseEnv, manualEnvvars });
 				if (command === 'run' && parsed.opts.debugEnv) {
@@ -938,7 +1012,7 @@ async function main() {
 			name: pathMod.basename(filePath).replace(/[^a-zA-Z0-9_]/g, '_'),
 			inputs: manualInputs,
 			envVars: envvar || {},
-			fileLoader: async (p) => fs.promises.readFile(p, 'utf8'),
+			fileLoader: createPkgFileLoader(baseDir),
 		});
 		process.stdout.write(js.trim() + '\n');
 		return;
@@ -959,7 +1033,7 @@ async function main() {
 			const mmtCore = require('mmt-core');
 			const { suiteHierarchy, suiteBundle, runConfig: coreRunConfig } = mmtCore;
 			if (suiteHierarchy && suiteBundle) {
-				const fileLoader = async (p) => fs.promises.readFile(p, 'utf8');
+				const fileLoader = createPkgFileLoader(baseDir);
 				const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
 					suiteFilePath: filePath,
 					suiteRawText: file,
@@ -993,9 +1067,9 @@ async function main() {
 						} else if (parsed.opts.envFile) {
 							// Use CLI --env-file for preset resolution
 							const envFileRaw = String(parsed.opts.envFile);
-							let p = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.resolve(process.cwd(), envFileRaw);
+							let p = resolveUserPath(envFileRaw, process.cwd(), pathMod);
 							if (!fs.existsSync(p)) {
-								const alt = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.join(baseDir, envFileRaw);
+								const alt = resolveUserPath(envFileRaw, baseDir, pathMod);
 								if (fs.existsSync(alt)) {
 									p = alt;
 								}
@@ -1058,8 +1132,12 @@ async function main() {
 			manualEnvvars,
 			exampleIndex,
 			exampleName,
-			fileLoader: async (p) => fs.promises.readFile(p, 'utf8'),
-			jsRunner: (ctx) => jsRunner.runJSCode({ ...ctx, serverRunner: pkgServerRunner }),
+			fileLoader: createPkgFileLoader(baseDir),
+			binaryFileLoader: async (p) => {
+				const resolved = resolvePkgLoadPath(p, baseDir);
+				return fs.promises.readFile(resolved);
+			},
+			jsRunner: (ctx) => jsRunner.runJSCode({ ...ctx, serverRunner: pkgServerRunner, basePath: baseDir }),
 			logger: (lvl, msg) => levelLogger(lvl, msg),
 			serverRunner: pkgServerRunner,
 			suiteBundle: suiteBundleArg,

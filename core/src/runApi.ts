@@ -1,5 +1,6 @@
 import {APIData} from './APIData';
 import {yamlToAPI, yamlToAPIStrict} from './apiParsePack';
+import {CREATE_API_LOG_HELPERS_SOURCE} from './apiLogHelpersFactorySource';
 import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
@@ -181,8 +182,11 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
   }
   const exampleLabel =
       exampleLabelParts.length ? `example: ${exampleLabelParts.join('')}` : '';
+  // Prefer the baked source string: pkg snapshots make Function#toString return
+  // "function createApiLogHelpers() { [native code] }", which would embed
+  // invalid JS into the generated runner.
   const helperFactorySource =
-      indentMultiline(createApiLogHelpers.toString(), '    ');
+      indentMultiline(CREATE_API_LOG_HELPERS_SOURCE, '    ');
   const helperDestructure = `  const {\n` +
       `    raw: __mmt_raw,\n` +
       `    isRaw: __mmt_isRaw,\n` +
@@ -400,9 +404,11 @@ export interface ApiLogHelpers {
 }
 
 export function createApiLogHelpers(): ApiLogHelpers {
-  // This factory is serialized with toString() into the generated run code, so
-  // it must stay self-contained: no imports are in scope there. `runner.test.ts`
-  // guards this copy of the marker against drifting from OMIT_SENTINEL.
+  // This factory's *source* is embedded via CREATE_API_LOG_HELPERS_SOURCE (not
+  // Function#toString) because pkg snapshots replace the body with native-code
+  // stubs. Keep the baked string in sync with this body
+  // (scripts/sync-api-log-helpers-source.mjs). `runner.test.ts` guards the
+  // inlined omit marker against drifting from OMIT_SENTINEL.
   const omitSentinel = '__MMT_OMIT__';
   function raw(value: unknown): ApiLogRawValue {
     return {__mmt_raw: String(value)};

@@ -1,7 +1,52 @@
 import {OMIT_SENTINEL} from './omitKeyword';
-import {ApiLogRawValue, createApiLogHelpers} from './runApi';
+import {yamlToAPI} from './apiParsePack';
+import {CREATE_API_LOG_HELPERS_SOURCE} from './apiLogHelpersFactorySource';
+import {ApiLogRawValue, createApiLogHelpers, generateApiJs} from './runApi';
 
 describe('createApiLogHelpers', () => {
+  it('keeps baked factory source in sync for pkg embedding', () => {
+    const live = Function.prototype.toString.call(createApiLogHelpers);
+    // Under normal Node the live source must match the baked string so pkg
+    // binaries and CLI stay aligned. Collapse whitespace for a stable compare.
+    const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
+    expect(normalize(CREATE_API_LOG_HELPERS_SOURCE)).toBe(normalize(live));
+    expect(CREATE_API_LOG_HELPERS_SOURCE).not.toMatch(/\{\s*\[native code\]\s*\}/);
+    // Must be valid JS for new Function (same path as generated API runners).
+    expect(() => new Function(CREATE_API_LOG_HELPERS_SOURCE)).not.toThrow();
+  });
+
+  it('embeds baked helpers into API JS even if toString is native', async () => {
+    const original = Function.prototype.toString;
+    Function.prototype.toString = function(this: Function) {
+      if (this === createApiLogHelpers) {
+        return 'function createApiLogHelpers() { [native code] }';
+      }
+      return original.call(this);
+    };
+    try {
+      const rawText = [
+        'type: api',
+        'title: Echo',
+        'url: https://example.com',
+        'method: get',
+      ].join('\n');
+      const api = yamlToAPI(rawText);
+      const js = await generateApiJs({
+        api,
+        name: 'echo',
+        inputs: {},
+        envVars: {},
+        fileLoader: async () => '',
+      });
+      expect(js).not.toMatch(/\{\s*\[native code\]\s*\}/);
+      expect(js).toContain('function createApiLogHelpers()');
+      expect(js).toContain('omitSentinel');
+      expect(() => new Function(js)).not.toThrow();
+    } finally {
+      Function.prototype.toString = original;
+    }
+  });
+
   it('prints a missing output as the omit keyword', () => {
     const helpers = createApiLogHelpers();
 

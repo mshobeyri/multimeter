@@ -6,6 +6,12 @@ import type {RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
 import type {NetworkConfig, EnvCertificateSettings, EnvSetting} from 'mmt-core/NetworkData';
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
+import {createRequire} from 'module';
+
+const requireFromRunArgs = createRequire(__filename);
+const {resolveUserPath} = requireFromRunArgs('../src/pathNormalize.cjs') as {
+  resolveUserPath: (input: string, baseDir?: string, pathMod?: typeof path) => string;
+};
 
 export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
@@ -312,7 +318,7 @@ export interface ParsedCliRunArgs {
 }
 
 export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<ParsedCliRunArgs> {
-  const full = path.resolve(process.cwd(), file);
+  const full = resolveUserPath(file, process.cwd(), path);
   const dir = path.dirname(full);
   const rawText = fs.readFileSync(full, 'utf8');
 
@@ -355,13 +361,11 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
   const autoEnvFile = envFileOpt ? undefined : findNearestEnvFileForCli(full);
   if (envFileOpt || autoEnvFile) {
     let p = envFileOpt ? String(envFileOpt) : String(autoEnvFile);
-    if (!path.isAbsolute(p)) {
-      const fromCwd = path.resolve(process.cwd(), p);
-      if (fs.existsSync(fromCwd)) {
-        p = fromCwd;
-      } else {
-        p = path.resolve(dir, p);
-      }
+    const fromCwd = resolveUserPath(p, process.cwd(), path);
+    if (fs.existsSync(fromCwd)) {
+      p = fromCwd;
+    } else {
+      p = resolveUserPath(p, dir, path);
     }
     envFileDir = path.dirname(p);
     const doc = await loadEnvDoc(p, findProjectRootForCli(p) || undefined);
@@ -434,14 +438,14 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     envvar,
     manualEnvvars,
     fileLoader: async (p: string) => {
-      const rel = path.isAbsolute(p) ? p : path.join(dir, p);
+      const rel = resolveUserPath(p, dir, path);
       if (!fs.existsSync(rel)) {
         return '';
       }
       return fs.readFileSync(rel, 'utf8');
     },
     binaryFileLoader: async (p: string) => {
-      const rel = path.isAbsolute(p) ? p : path.join(dir, p);
+      const rel = resolveUserPath(p, dir, path);
       return fs.promises.readFile(rel);
     },
     jsRunner: async () => {},

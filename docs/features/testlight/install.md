@@ -45,14 +45,17 @@ npm install
 npm run pkg
 ```
 
-Binaries land under `mmtcli/dist/bin/` (macOS, Linux, Windows). Upload the platform binary to your artifact store and invoke it in CI:
+Binaries land under `bin/<platform>/` at the repo root (for example
+`bin/macos-arm64/testlight`, `bin/linux-x64/testlight`,
+`bin/win-x64/testlight.exe`). Upload the platform folder or the GitHub Release
+archive to your artifact store and invoke it in CI:
 
 ```sh
-# macOS
-./dist/bin/testlight-macos run path/to/test.mmt --quiet
+# macOS (Apple Silicon)
+./bin/macos-arm64/testlight run path/to/test.mmt --quiet
 
 # Linux
-./dist/bin/testlight-linux run path/to/test.mmt --quiet
+./bin/linux-x64/testlight run path/to/test.mmt --quiet
 ```
 
 See also: [Commands](./commands.md) · [Examples](./examples.md) · [Run in CI](../../tasks/run-in-ci.md)

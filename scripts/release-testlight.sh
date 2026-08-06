@@ -109,7 +109,7 @@ for platform in "${PLATFORMS[@]}"; do
   if [[ "$platform" == win-* ]]; then
     # Versionless names so /releases/latest/download/ URLs stay stable across releases.
     archive="$DIST_DIR/testlight-${platform}.zip"
-    (cd "$src_dir" && zip -j "$archive" testlight.exe mmt.exe)
+    (cd "$src_dir" && zip -j "$archive" testlight.exe mmt.cmd)
     echo "  → $archive"
   else
     archive="$DIST_DIR/testlight-${platform}.tar.gz"

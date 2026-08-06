@@ -66,33 +66,41 @@ jobs:
 
       - name: Build binary
         run: |
+          mkdir -p bin/${{ matrix.platform }}
           cd mmtcli
-          npx pkg src/pkg-entry.cjs --targets ${{ matrix.pkg-target }} --output ../out/testlight${{ matrix.ext }}
+          npx pkg src/pkg-entry.cjs \
+            --targets ${{ matrix.pkg-target }} \
+            --output ../bin/${{ matrix.platform }}/testlight${{ matrix.ext }}
 
       - name: Create mmt alias (Unix)
         if: matrix.ext == ''
         run: |
-          cd out
+          cd bin/${{ matrix.platform }}
           ln -sf testlight mmt
 
       - name: Create mmt alias (Windows)
         if: matrix.ext == '.exe'
         run: |
-          cd out
-          copy testlight.exe mmt.exe
-        shell: cmd
+          cp packaging/windows/mmt.cmd bin/${{ matrix.platform }}/mmt.cmd
+        shell: bash
+
+      - name: Apply Multimeter icon (Windows)
+        if: matrix.ext == '.exe'
+        run: |
+          npm install --no-save --no-package-lock png-to-ico resedit pe-library
+          node scripts/generate-testlight-ico.mjs
+          node scripts/apply-windows-icon.mjs bin/${{ matrix.platform }}/testlight.exe
 
       - name: Create archive (Unix)
         if: matrix.ext == ''
         run: |
-          cd out
-          tar -czf ../testlight-${{ matrix.platform }}.tar.gz testlight mmt
+          tar -C bin/${{ matrix.platform }} -czf testlight-${{ matrix.platform }}.tar.gz testlight mmt
 
       - name: Create archive (Windows)
         if: matrix.ext == '.exe'
         run: |
-          cd out
-          7z a ../testlight-${{ matrix.platform }}.zip testlight.exe mmt.exe
+          cd bin/${{ matrix.platform }}
+          7z a ../../testlight-${{ matrix.platform }}.zip testlight.exe mmt.cmd
         shell: cmd
 
       - name: Generate checksum

@@ -10,6 +10,9 @@ import path from 'path';
 import {createRequire} from 'module';
 
 const requireFromCli = createRequire(__filename);
+const {resolveUserPath} = requireFromCli('../src/pathNormalize.cjs') as {
+  resolveUserPath: (input: string, baseDir?: string, pathMod?: typeof path) => string;
+};
 
 import {summarize} from './loadTest.js';
 import {startMockServerFromPath, stopAllServers} from './mockRunner.js';
@@ -272,13 +275,13 @@ program.command('run')
     .action(async (file: string, opts: {quiet?: boolean; out?: string}) => {
       try {
         const {runJSCode, setRunnerNetworkConfig} = await loadJsRunnerModule();
-        const full = path.resolve(process.cwd(), file);
+        const full = resolveUserPath(file, process.cwd(), path);
         const rawText = fs.readFileSync(full, 'utf8');
         const raw =
             /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
         const summary = summarize(raw);
         if (!opts.quiet) {
-          console.log(`Loaded: ${path.resolve(file)} (${summary})`);
+          console.log(`Loaded: ${full} (${summary})`);
         }
         const {runFileOptions, networkConfig, outFile, printJs, reportFormat, reportFile, getReportResults} =
           await buildCliRunArgs(file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
