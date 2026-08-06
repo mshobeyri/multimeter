@@ -516,4 +516,4 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   );
 };
 
-export default SuiteTestTree;
+export default React.memo(SuiteTestTree);

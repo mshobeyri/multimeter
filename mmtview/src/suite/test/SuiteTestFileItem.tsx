@@ -127,7 +127,14 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                 </div>
             </div>
             {shouldShowReports && (
-                <div style={{ paddingBottom: 8 }}>
+                <div
+                    className="report-selectable"
+                    style={{ paddingBottom: 8 }}
+                    onMouseDownCapture={(e) => e.stopPropagation()}
+                    onClickCapture={(e) => e.stopPropagation()}
+                    onDoubleClickCapture={(e) => e.stopPropagation()}
+                    onPointerDownCapture={(e) => e.stopPropagation()}
+                >
                     <TestStepReportPanel
                         isExpanded={true}
                         stepReports={stepReports}
@@ -145,4 +152,4 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     );
 };
 
-export default SuiteTestFileItem;
+export default React.memo(SuiteTestFileItem);

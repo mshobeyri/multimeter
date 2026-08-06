@@ -368,6 +368,15 @@ span.vertical.disabled:active {
   font-size: 14px;
 }
 
+.highlighted-body,
+.highlighted-body-pre,
+.report-selectable,
+.report-headers-content,
+.report-headers-table {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .highlighted-body-pre {
   margin: 0 0 0 12px;
   white-space: pre-wrap;
@@ -384,6 +393,13 @@ span.vertical.disabled:active {
   );
   color: var(--vscode-editor-foreground, #d4d4d4);
   line-height: 1.5;
+  cursor: text;
+}
+
+/* Token spans must stay selectable as normal text (double-click / drag). */
+.highlighted-body-pre span {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* Borderless key/value table for report/test step headers (history-style).

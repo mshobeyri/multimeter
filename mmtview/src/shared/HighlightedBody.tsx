@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   beautifyBody,
   canBeautifyBody,
@@ -28,9 +28,17 @@ function toBodyString(body: any): string {
   }
 }
 
+/** Keep parent tree/expand handlers from eating selection gestures. */
+function stopSelectGesture(event: React.SyntheticEvent) {
+  event.stopPropagation();
+}
+
 /**
  * Read-only body preview with type-based coloring, Format/Raw, copy, and border.
  * Used in test/suite/report step details (only mounts when details are expanded).
+ *
+ * Inner HTML is applied via a ref so parent re-renders (suite duration ticks, etc.)
+ * do not rewrite the DOM and wipe an in-progress text selection.
  */
 const HighlightedBody: React.FC<HighlightedBodyProps> = ({
   label = 'Body',
@@ -44,14 +52,34 @@ const HighlightedBody: React.FC<HighlightedBodyProps> = ({
   // Auto-pretty when the panel opens; user can still switch to Raw.
   const [formatted, setFormatted] = useState(canFormat);
   const [copied, setCopied] = useState(false);
+  const preRef = useRef<HTMLPreElement | null>(null);
+  const lastHtmlRef = useRef<string>('');
+
+  const displayBody = useMemo(
+    () => (formatted ? beautifyBody(rawBody, headers) : rawBody),
+    [formatted, rawBody, headers],
+  );
+  const format = useMemo(
+    () => detectBodyFormat(displayBody, headers),
+    [displayBody, headers],
+  );
+  const html = useMemo(
+    () => highlightBodyHtml(displayBody, headers),
+    [displayBody, headers],
+  );
+
+  useLayoutEffect(() => {
+    const el = preRef.current;
+    if (!el || html === lastHtmlRef.current) {
+      return;
+    }
+    el.innerHTML = html;
+    lastHtmlRef.current = html;
+  }, [html]);
 
   if (!rawBody) {
     return null;
   }
-
-  const displayBody = formatted ? beautifyBody(rawBody, headers) : rawBody;
-  const format = detectBodyFormat(displayBody, headers);
-  const html = highlightBodyHtml(displayBody, headers);
 
   const copy = () => {
     navigator.clipboard.writeText(displayBody).then(() => {
@@ -61,7 +89,13 @@ const HighlightedBody: React.FC<HighlightedBodyProps> = ({
   };
 
   return (
-    <div className="highlighted-body" style={{ marginTop: 6 }}>
+    <div
+      className="highlighted-body"
+      style={{ marginTop: 6 }}
+      onMouseDown={stopSelectGesture}
+      onClick={stopSelectGesture}
+      onDoubleClick={stopSelectGesture}
+    >
       <div className="highlighted-body-header">
         <span className="highlighted-body-label">{label}</span>
         <span className="highlighted-body-format" title="Detected body type">{format}</span>
@@ -87,12 +121,12 @@ const HighlightedBody: React.FC<HighlightedBodyProps> = ({
         </div>
       </div>
       <pre
+        ref={preRef}
         className={`highlighted-body-pre bh-${format}`}
         style={{ maxHeight }}
-        dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>
   );
 };
 
-export default HighlightedBody;
+export default React.memo(HighlightedBody);
