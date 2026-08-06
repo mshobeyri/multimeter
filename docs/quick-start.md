@@ -18,12 +18,10 @@ After install, click the Multimeter activity icon in the VS Code sidebar. You ge
 
 | Control | Where | What it does |
 |---|---|---|
+| {{btn:server-environment:Environment Variables}} | Bottom Multimeter panel | Switch presets, edit variables, and load a workspace env file (`multimeter.mmt`) — see [Environment variables panel](./files/env/ui.md) |
 | {{btn:server:Mock Server}} | Activity bar | Start HTTP/HTTPS/WebSocket mocks, or load a `type: server` file — see [Mock server panel](./files/server/panel.md) |
 | {{btn:plug:Connections}} | Activity bar | Watch active HTTP keep-alive and WebSocket sessions; close them when needed — see [Connections panel](./features/connections.md) |
-| {{btn:server-environment:Environment Variables}} | Bottom Multimeter panel | Switch presets, edit variables, and load a workspace env file (`multimeter.mmt`) |
-| {{btn:history:History}} | Bottom Multimeter panel | Inspect recent requests and responses (method, URL, status, timing, bodies) |
-
-See also: [History](./features/history.md) · [Logging](./features/logging.md) · [Connections](./features/connections.md)
+| {{btn:history:History}} | Bottom Multimeter panel | Inspect recent requests and responses (method, URL, status, timing, bodies) — see [History](./features/history.md) |
 
 ### Status bar
 
