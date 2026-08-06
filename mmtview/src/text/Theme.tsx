@@ -14,6 +14,7 @@ export type MmtTokenColors = {
   attribute: string;
   punctuation: string;
   foreground: string;
+  anchor: string;
 };
 
 declare global {
@@ -32,6 +33,7 @@ const FALLBACK_DARK: MmtTokenColors = {
   attribute: "#9cdcfe",
   punctuation: "#d4d4d4",
   foreground: "#d4d4d4",
+  anchor: "#4ec9b0",
 };
 
 const FALLBACK_LIGHT: MmtTokenColors = {
@@ -44,6 +46,7 @@ const FALLBACK_LIGHT: MmtTokenColors = {
   attribute: "#0451a5",
   punctuation: "#000000",
   foreground: "#000000",
+  anchor: "#267f99",
 };
 
 const cssVar = (name: string, fallback: string) =>
@@ -99,6 +102,7 @@ function withHash(color: string): string {
 export function getActiveTokenColors(): MmtTokenColors {
   const fromHost = window.__mmtTokenColors;
   if (fromHost && fromHost.string && fromHost.key) {
+    const base = isDarkTheme() ? FALLBACK_DARK : FALLBACK_LIGHT;
     return {
       key: withHash(fromHost.key),
       string: withHash(fromHost.string),
@@ -109,6 +113,7 @@ export function getActiveTokenColors(): MmtTokenColors {
       attribute: withHash(fromHost.attribute),
       punctuation: withHash(fromHost.punctuation),
       foreground: withHash(fromHost.foreground),
+      anchor: withHash(fromHost.anchor || base.anchor),
     };
   }
   return isDarkTheme() ? { ...FALLBACK_DARK } : { ...FALLBACK_LIGHT };
@@ -128,6 +133,9 @@ export function applyTokenColorCssVars(tokens: MmtTokenColors = getActiveTokenCo
   root.setProperty("--mmt-token-foreground", withHash(tokens.foreground));
   root.setProperty("--mmt-expect-op-color", withHash(tokens.keyword));
   root.setProperty("--mmt-yaml-constant-color", withHash(tokens.keyword));
+  // Dynamic tokens (e:/i:/r:/c:, ${...}) share the YAML &anchor / *alias color.
+  root.setProperty("--mmt-token-variable", withHash(tokens.anchor));
+  root.setProperty("--mmt-token-anchor", withHash(tokens.anchor));
 }
 
 export function storeTokenColorsFromHost(tokenColors: MmtTokenColors | undefined) {
@@ -164,6 +172,7 @@ function buildThemeDefinition(monaco: any, themeName: string) {
   const attribute = stripHash(tokens.attribute);
   const punct = stripHash(tokens.punctuation);
   const foreground = stripHash(tokens.foreground);
+  const anchor = stripHash(tokens.anchor);
 
   monaco.editor.defineTheme(themeName, {
     base: isLight ? "vs" : "vs-dark",
@@ -179,6 +188,9 @@ function buildThemeDefinition(monaco: any, themeName: string) {
       { token: "tag", foreground: keyword },
       { token: "mmt.operator", foreground: keyword },
       { token: "comment", foreground: comment },
+      // YAML &anchor / *alias (monarch token from yamlTokenizer)
+      { token: "namespace", foreground: anchor },
+      { token: "namespace.yaml", foreground: anchor },
 
       // JSON tokens (match VS Code / Monaco scope names)
       { token: "string.key.json", foreground: key },
