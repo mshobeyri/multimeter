@@ -2,9 +2,9 @@ import React from 'react';
 import ContextMenuHost, { runInCoreMenuItem } from './ContextMenuHost';
 
 export type TreeRunButtonProps = {
-  onRun?: () => void;
+  onRun?: () => void | Promise<void>;
   /** Logs-only run (opens output channel via menu helper). */
-  onRunInCore?: () => void;
+  onRunInCore?: () => void | Promise<void>;
   title?: string;
   disabled?: boolean;
 };
@@ -34,7 +34,7 @@ export default function TreeRunButton({
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          onRun();
+          void onRun();
         }}
         title={title}
         disabled={disabled}

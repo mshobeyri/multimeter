@@ -63,9 +63,9 @@ interface SuiteTestTreeProps {
   reportsById: Record<string, StepReportItem[]>;
   runStateById: Record<string, StepStatus>;
 
-  onRunTargets: (target: string) => void;
+  onRunTargets: (target: string) => void | Promise<void>;
   /** Logs-only core run (no UI panel updates). */
-  onRunTargetsInCore?: (target: string) => void;
+  onRunTargetsInCore?: (target: string) => void | Promise<void>;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {

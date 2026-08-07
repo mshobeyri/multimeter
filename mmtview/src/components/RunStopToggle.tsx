@@ -4,7 +4,7 @@ import ContextMenuHost, { ContextMenuItem } from './ContextMenuHost';
 
 export type RunStopToggleProps = {
   running: boolean;
-  onRun: () => void;
+  onRun: () => void | Promise<void>;
   onStop: () => void;
   /** Label while idle. Default "Run". */
   runLabel?: string;
