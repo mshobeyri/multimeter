@@ -65,6 +65,8 @@ jobs:
         run: cd mmtcli && npm run build:cjs
 
       - name: Build binary
+        # bash so Windows runners don't parse `\` line continuations as PowerShell
+        shell: bash
         run: |
           mkdir -p bin/${{ matrix.platform }}
           cd mmtcli
