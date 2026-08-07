@@ -55,7 +55,24 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
       >
         <div className="tree-view-box-row-arrow">{arrow}</div>
         <div className="tree-view-box-row-main">
-          <div className="tree-view-box-row-label">
+          <div
+            className="tree-view-box-row-label tree-view-box-row-label-link"
+            title="Click to expand"
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              context?.toggleExpandedState?.();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                context?.toggleExpandedState?.();
+              }
+            }}
+          >
             {statusIcon && (
               <span className={`codicon ${statusIcon.icon}`} aria-hidden title={statusIcon.title} style={{ color: statusIcon.color }} />
             )}

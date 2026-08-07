@@ -3,6 +3,11 @@ import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import { openRelativeFile } from '../../vsAPI';
 import TreeRunButton from '../../components/TreeRunButton';
+import {
+    handleSuiteFileLabelActivate,
+    isOpenFileModifier,
+    suiteFileLabelTitle,
+} from './suiteTreeLabelClick';
 
 export type SuiteSuiteFileItemData = { type: 'suite'; path: string; id: string };
 
@@ -62,6 +67,17 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
 
+    const activateLabel = (event: React.MouseEvent | React.KeyboardEvent, openFile: boolean) => {
+        handleSuiteFileLabelActivate({
+            event,
+            isMissing,
+            path: data.path,
+            openFile,
+            toggleExpanded: context?.toggleExpandedState,
+            openRelativeFile,
+        });
+    };
+
     return (
         <div {...context.itemContainerWithChildrenProps}>
             <div className="tree-view-box tree-view-box-row" {...context.itemContainerWithoutChildrenProps}>
@@ -69,8 +85,8 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                 <div className="tree-view-box-row-main">
                     <div
                         className={`tree-view-box-row-label${isMissing ? '' : ' tree-view-box-row-label-link'}`}
-                        title={data.path}
-                        role={isMissing ? undefined : 'link'}
+                        title={isMissing ? data.path : suiteFileLabelTitle(data.path)}
+                        role={isMissing ? undefined : 'button'}
                         tabIndex={isMissing ? undefined : 0}
                         onMouseEnter={(e) => {
                             if (isMissing) {
@@ -84,22 +100,10 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             }
                             (e.currentTarget as any).style.opacity = '1';
                         }}
-                        onClick={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            e.preventDefault();
-                            e.stopPropagation();
-                            openRelativeFile(data.path);
-                        }}
+                        onClick={(e) => activateLabel(e, isOpenFileModifier(e))}
                         onKeyDown={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                openRelativeFile(data.path);
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                activateLabel(e, isOpenFileModifier(e));
                             }
                         }}
                     >

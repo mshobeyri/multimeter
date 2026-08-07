@@ -4,6 +4,11 @@ import { StepStatus } from '../../shared/types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
 import { openRelativeFile } from '../../vsAPI';
 import TreeRunButton from '../../components/TreeRunButton';
+import {
+    handleSuiteFileLabelActivate,
+    isOpenFileModifier,
+    suiteFileLabelTitle,
+} from './suiteTreeLabelClick';
 
 export type SuiteTestFileItemData = { type: 'test'; path: string; id: string }
 
@@ -59,9 +64,19 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
 
-    // Show reports when the node is expanded or when the test is actively running.
-    // This lets users collapse the report after a run completes.
+    // Show reports when the node is expanded (chevron or label click).
     const shouldShowReports = context?.isExpanded;
+
+    const activateLabel = (event: React.MouseEvent | React.KeyboardEvent, openFile: boolean) => {
+        handleSuiteFileLabelActivate({
+            event,
+            isMissing,
+            path: data.path,
+            openFile,
+            toggleExpanded: context?.toggleExpandedState,
+            openRelativeFile,
+        });
+    };
 
     return (
         <div {...context.itemContainerWithChildrenProps}>
@@ -73,8 +88,8 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                 <div className="tree-view-box-row-main">
                     <div
                         className={`tree-view-box-row-label${isMissing ? '' : ' tree-view-box-row-label-link'}`}
-                        title={data.path}
-                        role={isMissing ? undefined : 'link'}
+                        title={isMissing ? data.path : suiteFileLabelTitle(data.path)}
+                        role={isMissing ? undefined : 'button'}
                         tabIndex={isMissing ? undefined : 0}
                         onMouseEnter={(e) => {
                             if (isMissing) {
@@ -88,22 +103,10 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                             }
                             (e.currentTarget as any).style.opacity = '1';
                         }}
-                        onClick={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            e.preventDefault();
-                            e.stopPropagation();
-                            openRelativeFile(data.path);
-                        }}
+                        onClick={(e) => activateLabel(e, isOpenFileModifier(e))}
                         onKeyDown={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                openRelativeFile(data.path);
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                activateLabel(e, isOpenFileModifier(e));
                             }
                         }}
                     >
@@ -130,10 +133,14 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                 <div
                     className="report-selectable"
                     style={{ paddingBottom: 8 }}
+                    // Capture mousedown/pointer so the suite tree does not steal focus/selection,
+                    // but do NOT stop click in capture — that blocks the details circle button
+                    // (same pitfall as TestFlow's NoTreeInterference).
                     onMouseDownCapture={(e) => e.stopPropagation()}
-                    onClickCapture={(e) => e.stopPropagation()}
-                    onDoubleClickCapture={(e) => e.stopPropagation()}
                     onPointerDownCapture={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
                 >
                     <TestStepReportPanel
                         isExpanded={true}
