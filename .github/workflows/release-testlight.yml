@@ -88,6 +88,9 @@ jobs:
 
       - name: Apply Multimeter icon (Windows)
         if: matrix.ext == '.exe'
+        # Optional: resedit must not grow the pkg payload; skip rather than fail the release
+        continue-on-error: true
+        shell: bash
         run: |
           npm install --no-save --no-package-lock png-to-ico resedit pe-library
           node scripts/generate-testlight-ico.mjs
