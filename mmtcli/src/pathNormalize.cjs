@@ -7,6 +7,7 @@
  *   - / and \ separators
  *   - // and \\ (collapsed, except UNC \\server\share)
  *   - drive letters: c:\foo, c:/foo, C:\\foo, c:foo
+ *   - relative parent segments: ../file.mmt, ..\..\env\multimeter.mmt
  *
  * On non-Windows hosts, drive-letter / UNC strings are still normalized so
  * generated/core paths that look Windows-shaped can be rewritten consistently
@@ -74,6 +75,19 @@ function normalizeUserPath(input) {
 }
 
 /**
+ * Pick path API: prefer an injected module (for tests), else platform default.
+ * @param {import('path')} [pathMod]
+ * @returns {import('path').PlatformPath}
+ */
+function pathApi(pathMod) {
+  if (pathMod) {
+    return pathMod;
+  }
+  const path = require('path');
+  return process.platform === 'win32' ? path.win32 : path;
+}
+
+/**
  * Resolve a path against baseDir (or cwd), after normalizeUserPath.
  *
  * @param {string} input
@@ -82,25 +96,65 @@ function normalizeUserPath(input) {
  * @returns {string}
  */
 function resolveUserPath(input, baseDir, pathMod) {
-  const path = pathMod || require('path');
+  const api = pathApi(pathMod);
   const normalized = normalizeUserPath(input);
   if (!normalized) {
-    return path.normalize(baseDir || process.cwd());
+    return api.normalize(baseDir || process.cwd());
   }
 
-  // path.win32 treats forward slashes as separators too, but we already
-  // normalized Windows-shaped paths to backslashes.
-  const absCheck = process.platform === 'win32' ? path.win32 : path;
-  if (absCheck.isAbsolute(normalized) || /^[a-zA-Z]:\\/.test(normalized) ||
+  if (api.isAbsolute(normalized) || /^[a-zA-Z]:\\/.test(normalized) ||
       normalized.startsWith('\\\\')) {
-    return absCheck.normalize(normalized);
+    return api.normalize(normalized);
   }
 
   const base = baseDir || process.cwd();
-  return absCheck.normalize(absCheck.join(base, normalized));
+  return api.normalize(api.join(base, normalized));
+}
+
+/**
+ * Resolve a CLI path trying each base directory in order.
+ * Returns the first candidate that exists; if none exist, returns the first
+ * resolved path (same behavior as run / --env-file fallback today).
+ *
+ * Typical use: try cwd first, then the .mmt file's directory.
+ *
+ * @param {string} input
+ * @param {string|string[]} baseDirs
+ * @param {import('path')} [pathMod]
+ * @param {(p: string) => boolean} [existsFn]
+ * @returns {string}
+ */
+function resolveUserPathPreferExisting(input, baseDirs, pathMod, existsFn) {
+  const exists = typeof existsFn === 'function' ?
+      existsFn :
+      ((p) => {
+        try {
+          return require('fs').existsSync(p);
+        } catch {
+          return false;
+        }
+      });
+  const bases = (Array.isArray(baseDirs) ? baseDirs : [baseDirs])
+                    .filter((b) => typeof b === 'string' && b.length > 0);
+  if (bases.length === 0) {
+    bases.push(process.cwd());
+  }
+
+  let first = '';
+  for (const base of bases) {
+    const resolved = resolveUserPath(input, base, pathMod);
+    if (!first) {
+      first = resolved;
+    }
+    if (exists(resolved)) {
+      return resolved;
+    }
+  }
+  return first;
 }
 
 module.exports = {
   normalizeUserPath,
   resolveUserPath,
+  resolveUserPathPreferExisting,
 };

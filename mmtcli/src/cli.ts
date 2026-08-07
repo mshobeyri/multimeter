@@ -234,9 +234,33 @@ if (!isMainThread && workerData?.mmtWorker === 'jsRunner') {
   });
 }
 
-program.name('multimeter')
-    .description('Multimeter CLI runner')
-    .version(CLI_VERSION, '-v, --version', 'output the version number');
+program.name('testlight')
+    .description('Multimeter CLI — run .mmt API tests, suites, and docs')
+    .version(CLI_VERSION, '-v, --version', 'Show version')
+    .helpOption('-h, --help', 'Show help')
+    .addHelpText(
+        'after',
+        [
+          '',
+          'Run options:',
+          '  -q, --quiet                Minimal output',
+          '  -o, --out <file>           Write result JSON to file',
+          '  -i, --input <k=v...>       Input variables (repeatable)',
+          '  -e, --env <k=v...>         Environment variables (repeatable)',
+          '  --env-file <path>          Environment file (.mmt/.yaml)',
+          '  --preset <name>            Preset from env file (e.g. runner.dev)',
+          '  --example <name|#n>        Named example or index (#1 is first)',
+          '  -p, --print-js             Print generated JS before executing',
+          '  --report <format>          junit | mmt | html | md | md-detailed',
+          '  --report-file <path>       Report output path',
+          '',
+          'Examples:',
+          '  testlight run path/to/test.mmt',
+          '  testlight run path/to/test.mmt -e api_url=https://test.mmt.dev -q',
+          '  testlight run path/to/suite.mmt --report html',
+          '',
+          'Run `testlight <command> --help` for command-specific options.',
+        ].join('\n'));
 
 program.option(
   '--log-level <level>',
@@ -244,6 +268,7 @@ program.option(
   'info');
 
 program.command('run')
+    .description('Run a .mmt file')
     .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
     .option('-q, --quiet', 'Minimal output', false)
     .option('-o, --out <file>', 'Write result JSON to file')
@@ -462,8 +487,7 @@ program.command('run')
 
 program.command('print-js')
     .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
-    .description(
-        'Convert a test definition file to executable JS using JSer and print to stdout')
+    .description('Print generated JS for a test')
     .option(
         '-s, --stages', 'Include stage headers as comments when stages exist',
         true)

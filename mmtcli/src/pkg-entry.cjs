@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const {normalizeUserPath, resolveUserPath} = require('./pathNormalize.cjs');
+const {normalizeUserPath, resolveUserPath, resolveUserPathPreferExisting} = require('./pathNormalize.cjs');
 
 /**
  * Walk up from startPath looking for multimeter.mmt.
@@ -502,58 +502,113 @@ function createPkgServerRunner(envVars) {
 	return { serverRunner, stopAll };
 }
 
+function formatHelpRows(rows, indent = '  ', gap = 2) {
+	const width = rows.reduce((w, [left]) => Math.max(w, String(left || '').length), 0);
+	return rows.map(([left, right]) => {
+		const key = String(left || '');
+		if (!right) {
+			return `${indent}${key}`;
+		}
+		return `${indent}${key.padEnd(width)}${' '.repeat(gap)}${right}`;
+	});
+}
+
 function printHelp() {
+	const commands = formatHelpRows([
+		['run [options] <file>', 'Run a .mmt file'],
+		['print-js [options] <file>', 'Print generated JS for a test'],
+		['debug-resolve', 'Print pkg module resolution info'],
+	]);
+	const options = formatHelpRows([
+		['-h, --help', 'Show help'],
+		['-v, --version', 'Show version'],
+		['--log-level <level>', 'Set log level (error|warn|info|debug|trace)'],
+	]);
+	const runOptions = formatHelpRows([
+		['-q, --quiet', 'Minimal output'],
+		['-o, --out <file>', 'Write result JSON to file'],
+		['-i, --input <k=v...>', 'Input variables (repeatable)'],
+		['-e, --env <k=v...>', 'Environment variables (repeatable)'],
+		['--env-file <path>', 'Environment file (.mmt/.yaml)'],
+		['--preset <name>', 'Preset from env file (e.g. runner.dev)'],
+		['--example <name|#n>', 'Named example or index (#1 is first)'],
+		['--print-js', 'Print generated JS before executing'],
+		['--debug-env', 'Print resolved env vars'],
+	]);
+	const examples = formatHelpRows([
+		['testlight run path/to/test.mmt'],
+		['testlight run path/to/test.mmt -e api_url=https://test.mmt.dev -q'],
+		['testlight print-js path/to/test.mmt'],
+	], '  ', 0);
 	const out = [
-		'Usage: testlight [options] <command>',
+		'Usage: testlight <command> [options]',
 		'',
 		'Commands:',
-		'  run <file>      Run a .mmt file',
-		'  print-js <file> Print generated JS for a test',
-		'  debug-resolve   Print pkg module resolution info',
+		...commands,
 		'',
 		'Options:',
-		'  -h, --help      Show help',
-		'  -v, --version   Show version',
-		'  --log-level <level>  Set log level (error|warn|info|debug|trace)',
+		...options,
+		'',
+		'Run options:',
+		...runOptions,
+		'',
+		'Examples:',
+		...examples,
+		'',
+		'Run `testlight <command> --help` for command-specific options.',
 	].join('\n');
 	process.stdout.write(out + '\n');
 }
 
 function printRunHelp() {
+	const options = formatHelpRows([
+		['-h, --help', 'Show help'],
+		['-q, --quiet', 'Minimal output'],
+		['-o, --out <file>', 'Write result JSON to file'],
+		['-i, --input <k=v...>', 'Input variables (repeatable)'],
+		['-e, --env <k=v...>', 'Environment variables (repeatable)'],
+		['--env-file <path>', 'Environment file (.mmt/.yaml)'],
+		['--preset <name>', 'Preset from env file (e.g. runner.dev)'],
+		['--example <name|#n>', 'Named example or index (#1 is first)'],
+		['--print-js', 'Print generated JS before executing'],
+		['--debug-env', 'Print resolved env vars'],
+		['--log-level <level>', 'Set log level (error|warn|info|debug|trace)'],
+	]);
+	const examples = formatHelpRows([
+		['testlight run path/to/test.mmt'],
+		['testlight run path/to/test.mmt -e api_url=https://test.mmt.dev -q'],
+		['testlight run path/to/api.mmt --example login'],
+	], '  ', 0);
 	const out = [
 		'Usage: testlight run [options] <file>',
 		'',
 		'Run a .mmt file',
 		'',
 		'Options:',
-		'  -h, --help             Show help for run',
-		'  -q, --quiet            Minimal output',
-		'  -o, --out <file>       Write result JSON to file',
-		'  -i, --input <k=v...>    Input variables (repeatable; key=val or key val)',
-		'  -e, --env <k=v...>      Env variables (repeatable; key=val or key val)',
-		'  --env-file <path>       Env file (.mmt/.yaml) to read variables from',
-		'  --preset <name>         Preset name from env file (e.g. runner.dev)',
-		'  --example <name|#n>     Run a named example or index (#1 is first)',
-		'  --print-js              Print generated JS before executing',
-		'  --debug-env             Print resolved env vars (debug)',
-		'  --log-level <level>    Set log level (error|warn|info|debug|trace)',
+		...options,
+		'',
+		'Examples:',
+		...examples,
 	].join('\n');
 	process.stdout.write(out + '\n');
 }
 
 function printPrintJsHelp() {
+	const options = formatHelpRows([
+		['-h, --help', 'Show help'],
+		['-i, --input <k=v...>', 'Input variables (repeatable)'],
+		['-e, --env <k=v...>', 'Environment variables (repeatable)'],
+		['--env-file <path>', 'Environment file (.mmt/.yaml)'],
+		['--preset <name>', 'Preset from env file (e.g. runner.dev)'],
+		['--example <name|#n>', 'Named example or index (#1 is first)'],
+	]);
 	const out = [
 		'Usage: testlight print-js [options] <file>',
 		'',
-		'Convert a test definition file to executable JS and print to stdout',
+		'Print generated JS for a test',
 		'',
 		'Options:',
-		'  -h, --help             Show help for print-js',
-		'  -i, --input <k=v...>    Input variables (repeatable; key=val or key val)',
-		'  -e, --env <k=v...>      Env variables (repeatable; key=val or key val)',
-		'  --env-file <path>       Env file (.mmt/.yaml) to read variables from',
-		'  --preset <name>         Preset name from env file (e.g. runner.dev)',
-		'  --example <name|#n>     Select example before JS generation',
+		...options,
 	].join('\n');
 	process.stdout.write(out + '\n');
 }
@@ -963,13 +1018,8 @@ async function main() {
 		if (runConfig && typeof runConfig.mergeEnv === 'function') {
 			if (parsed.opts.envFile) {
 				const envFileRaw = String(parsed.opts.envFile);
-				let p = resolveUserPath(envFileRaw, process.cwd(), pathMod);
-				if (!fs.existsSync(p)) {
-					const alt = resolveUserPath(envFileRaw, baseDir, pathMod);
-					if (fs.existsSync(alt)) {
-						p = alt;
-					}
-				}
+				const p = resolveUserPathPreferExisting(
+					envFileRaw, [process.cwd(), baseDir], pathMod);
 				const doc = loadEnvDoc(p);
 				// Defaults come from env file variables; optional preset overlays them.
 				let baseEnv = (doc && doc.variables) ? {...doc.variables} : {};
@@ -1067,13 +1117,8 @@ async function main() {
 						} else if (parsed.opts.envFile) {
 							// Use CLI --env-file for preset resolution
 							const envFileRaw = String(parsed.opts.envFile);
-							let p = resolveUserPath(envFileRaw, process.cwd(), pathMod);
-							if (!fs.existsSync(p)) {
-								const alt = resolveUserPath(envFileRaw, baseDir, pathMod);
-								if (fs.existsSync(alt)) {
-									p = alt;
-								}
-							}
+							const p = resolveUserPathPreferExisting(
+								envFileRaw, [process.cwd(), baseDir], pathMod);
 							if (fs.existsSync(p)) {
 								envFileForPreset = loadEnvDoc(p);
 							}

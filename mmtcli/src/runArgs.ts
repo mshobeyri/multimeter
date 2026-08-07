@@ -9,8 +9,11 @@ import path from 'path';
 import {createRequire} from 'module';
 
 const requireFromRunArgs = createRequire(__filename);
-const {resolveUserPath} = requireFromRunArgs('../src/pathNormalize.cjs') as {
+const {resolveUserPath, resolveUserPathPreferExisting} = requireFromRunArgs('../src/pathNormalize.cjs') as {
   resolveUserPath: (input: string, baseDir?: string, pathMod?: typeof path) => string;
+  resolveUserPathPreferExisting: (
+      input: string, baseDirs: string|string[], pathMod?: typeof path,
+      existsFn?: (p: string) => boolean) => string;
 };
 
 export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
@@ -361,12 +364,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
   const autoEnvFile = envFileOpt ? undefined : findNearestEnvFileForCli(full);
   if (envFileOpt || autoEnvFile) {
     let p = envFileOpt ? String(envFileOpt) : String(autoEnvFile);
-    const fromCwd = resolveUserPath(p, process.cwd(), path);
-    if (fs.existsSync(fromCwd)) {
-      p = fromCwd;
-    } else {
-      p = resolveUserPath(p, dir, path);
-    }
+    p = resolveUserPathPreferExisting(p, [process.cwd(), dir], path);
     envFileDir = path.dirname(p);
     const doc = await loadEnvDoc(p, findProjectRootForCli(p) || undefined);
     const defaultEnv = resolveDefaultEnvVariables(doc.variables);
