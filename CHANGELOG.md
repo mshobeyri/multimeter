@@ -2,6 +2,15 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.33.0]
+
+- Open `.mmt` files in Docker / remote workspaces with the MMT editor (`vscode-remote` / `vscode-vfs`); add **Open as Text** and **Open as MMT** commands
+- Style dynamic `i:` / `e:` / `r:` / `c:` tokens with the theme YAML anchor color so they stay readable when selected
+- Fix report body text selection and copy (selection no longer wiped by re-renders)
+- Replace the marketplace demo GIF with a clickable intro screenshot that opens the YouTube walkthrough
+- Tighten Getting Started and Testlight docs navigation
+- Build pkg binaries into `bin/<platform>/` only; fix Docker CLI deps and use versionless GitHub release archive names for Testlight downloads
+
 ## [testlight 0.4.2]
 
 - Share test call cache across an entire top-level run (suite siblings and nested suites) until TTL expires or the run finishes

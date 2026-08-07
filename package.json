@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – API Testing platform",
   "description": "Store tests in Git, run them in VS Code, and track changes with pull requests.",
-  "version": "1.32.2",
+  "version": "1.33.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
