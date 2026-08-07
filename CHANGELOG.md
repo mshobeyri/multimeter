@@ -2,6 +2,13 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [testlight 0.4.3]
+
+- Improve CLI help: aligned commands/options, run options and examples on the main help screen
+- Harden Windows/relative path resolution for `run` and `--env-file` (`../`, `../../`, mixed `/` and `\`)
+- Prefer resolving `--env-file` from cwd, then fall back to the `.mmt` file directory
+- Add unit tests for nested relative file + env layouts
+
 ## [1.33.0]
 
 - Open `.mmt` files in Docker / remote workspaces with the MMT editor (`vscode-remote` / `vscode-vfs`); add **Open as Text** and **Open as MMT** commands
