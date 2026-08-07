@@ -1185,13 +1185,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Response body format',
             documentation: 'Format used for the response body.\nValues: json, xml, xmle, text, urlencoded, binary\nExample:\nformat:\n  request: json\n  response: xml',
         },
-        {
-            label: "respond",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "respond: ",
-            detail: 'Alias for response',
-            documentation: 'Alias for response. Same values: json, xml, xmle, text, urlencoded, binary.',
-        },
     ];
     const methodSuggestions = [
         {
