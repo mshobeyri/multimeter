@@ -37,6 +37,29 @@ describe('outputExtractor', () => {
     expect(res.id).toBe('123');
   });
 
+  it('extracts when the regex pattern contains a literal [', () => {
+    const response: ResponseData = {
+      type: 'text',
+      body: ' Result: AB12 [ ',
+      headers: { 'Content-Type': 'text/plain' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, {
+      result_code: 'body[/\\sResult:\\s(.*)\\s\\[\\s/]',
+    });
+    expect(res.result_code).toBe('AB12');
+
+    const viaDot = extractOutputs(response, {
+      result_code: 'body./\\sResult:\\s(.*)\\s\\[\\s/',
+    });
+    expect(viaDot.result_code).toBe('AB12');
+
+    const viaPrefix = extractOutputs(response, {
+      result_code: 'regex \\sResult:\\s(.*)\\s\\[\\s',
+    });
+    expect(viaPrefix.result_code).toBe('AB12');
+  });
+
   it('extracts from body with dot regex syntax body./pattern/', () => {
     const response: ResponseData = {
       type: 'json',
