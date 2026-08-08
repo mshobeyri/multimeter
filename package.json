@@ -562,6 +562,7 @@
     "axios": "^1.10.0",
     "buffer": "^6.0.3",
     "mmt-core": "file:./core/dist",
+    "mmt-testlight": "^0.4.3",
     "postcss": "8.4.31",
     "react-markdown": "^10.1.0",
     "rehype-autolink-headings": "^7.1.0",
