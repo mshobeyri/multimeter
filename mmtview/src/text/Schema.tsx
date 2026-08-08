@@ -47,7 +47,6 @@ const FormatSpecSchema = {
             properties: {
                 request: FormatEnumSchema,
                 response: FormatEnumSchema,
-                respond: FormatEnumSchema, // alias for response
             },
             additionalProperties: false,
         },

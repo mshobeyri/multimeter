@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – API Testing platform",
   "description": "Store tests in Git, run them in VS Code, and track changes with pull requests.",
-  "version": "1.32.2",
+  "version": "1.33.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -19,7 +19,6 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onLanguage:mmt",
     "onChatParticipant:multimeter",
     "onChatParticipant:mmt"
   ],
@@ -53,17 +52,14 @@
     ],
     "chatInstructions": [
       {
-        "name": "MultimeterMcpFirst",
         "path": "./rules/mmt-mcp.instructions.md"
       }
     ],
     "chatPromptFiles": [
       {
-        "name": "EditMmtFile",
         "path": "./commands/edit-mmt-file.md"
       },
       {
-        "name": "RunMmtFile",
         "path": "./commands/run-mmt-file.md"
       }
     ],
@@ -192,12 +188,15 @@
           },
           {
             "filenamePattern": "untitled:/**/*.mmt"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.mmt"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.mmt"
           }
         ],
-        "icon": {
-          "light": "res/activity.png",
-          "dark": "res/activity.png"
-        }
+        "priority": "default"
       },
       {
         "viewType": "mmt.httpEditor",
@@ -208,13 +207,21 @@
           },
           {
             "filenamePattern": "file:/**/*.https"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.http"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.https"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.http"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.https"
           }
         ],
-        "priority": "option",
-        "icon": {
-          "light": "res/activity.png",
-          "dark": "res/activity.png"
-        }
+        "priority": "option"
       },
       {
         "viewType": "mmt.brunoEditor",
@@ -225,13 +232,21 @@
           },
           {
             "filenamePattern": "file:/**/*.bruno"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.bru"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.bruno"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.bru"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.bruno"
           }
         ],
-        "priority": "option",
-        "icon": {
-          "light": "res/activity.png",
-          "dark": "res/activity.png"
-        }
+        "priority": "option"
       }
     ],
     "commands": [
@@ -261,9 +276,18 @@
       },
       {
         "command": "multimeter.mmt.show.as.text",
-        "title": "Open as MMT Text Editor",
+        "title": "Open as Text",
         "category": "MMT",
         "icon": "$(code-oss)"
+      },
+      {
+        "command": "multimeter.mmt.show.as.mmt",
+        "title": "Open as MMT",
+        "category": "MMT",
+        "icon": {
+          "light": "res/activity.png",
+          "dark": "res/activity.png"
+        }
       },
       {
         "command": "multimeter.apiTest.new",
@@ -414,7 +438,12 @@
         },
         {
           "command": "multimeter.mmt.show.as.text",
-          "when": "activeCustomEditorId == mmt.editor",
+          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.httpEditor || activeCustomEditorId == mmt.brunoEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.mmt.show.as.mmt",
+          "when": "(resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno) && activeCustomEditorId != mmt.editor && activeCustomEditorId != mmt.httpEditor && activeCustomEditorId != mmt.brunoEditor",
           "group": "navigation"
         }
       ],
@@ -426,8 +455,13 @@
         },
         {
           "command": "multimeter.mmt.show.as.text",
-          "when": "resourceExtname == .mmt",
-          "group": "navigation"
+          "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno",
+          "group": "navigation@51"
+        },
+        {
+          "command": "multimeter.mmt.show.as.mmt",
+          "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno",
+          "group": "navigation@52"
         }
       ],
       "commandPalette": [
@@ -439,7 +473,11 @@
         },
         {
           "command": "multimeter.mmt.show.as.text",
-          "when": "resourceExtname == .mmt"
+          "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno"
+        },
+        {
+          "command": "multimeter.mmt.show.as.mmt",
+          "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno"
         }
       ]
     }
@@ -524,6 +562,7 @@
     "axios": "^1.10.0",
     "buffer": "^6.0.3",
     "mmt-core": "file:./core/dist",
+    "mmt-testlight": "^0.4.3",
     "postcss": "8.4.31",
     "react-markdown": "^10.1.0",
     "rehype-autolink-headings": "^7.1.0",

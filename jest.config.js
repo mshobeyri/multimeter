@@ -19,6 +19,7 @@ module.exports = {
     '<rootDir>/src/**/?(*.)+(test).[tj]s?(x)',
     '<rootDir>/mmtview/src/**/?(*.)+(test).[tj]s?(x)',
     '<rootDir>/mmtmcp/src/**/?(*.)+(test).[tj]s?(x)',
+    '<rootDir>/mmtcli/src/**/?(*.)+(test).[tj]s?(x)',
   ],
   testPathIgnorePatterns: [
     '/node_modules/',

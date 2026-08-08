@@ -14,9 +14,11 @@ outputs:
   extracted_email: body[/"email":\s"([^"]+)"/]
   timestamp_date: body./"timestamp":\s"(\d{4}-\d{2}-\d{2})/
   content_type: headers[/application\/json/]
+  result_code: 'body[/\sResult:\s(.*)\s\[\s/]'
 url: https://test.mmt.dev/echo
 method: post
 format: json
 body:
   username: i:username
   email: i:email
+  note: " Result: AB12 [ "

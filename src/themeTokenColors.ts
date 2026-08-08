@@ -13,6 +13,7 @@ export type MmtTokenColors = {
   attribute: string;
   punctuation: string;
   foreground: string;
+  anchor: string;
 };
 
 export const DEFAULT_DARK: MmtTokenColors = {
@@ -25,6 +26,7 @@ export const DEFAULT_DARK: MmtTokenColors = {
   attribute: '#9cdcfe',
   punctuation: '#d4d4d4',
   foreground: '#d4d4d4',
+  anchor: '#4ec9b0',
 };
 
 export const DEFAULT_LIGHT: MmtTokenColors = {
@@ -38,6 +40,7 @@ export const DEFAULT_LIGHT: MmtTokenColors = {
   attribute: '#0451a5',
   punctuation: '#000000',
   foreground: '#000000',
+  anchor: '#267f99',
 };
 
 type ThemeJson = {
@@ -262,6 +265,18 @@ export function tokenColorsFromThemeFile(
         ],
         editorFg),
     foreground: editorFg,
+    // YAML &anchor / *alias — Dark+ maps these near entity.name.type (teal).
+    anchor: findForeground(
+        rules,
+        [
+          'entity.name.type.anchor.yaml',
+          'variable.other.alias.yaml',
+          'entity.name.type.anchor',
+          'variable.other.alias',
+          'entity.name.type',
+          'support.type',
+        ],
+        fallback.anchor),
   };
 }
 

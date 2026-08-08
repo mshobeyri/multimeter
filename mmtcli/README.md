@@ -20,31 +20,38 @@ npm install
 npm run build
 ```
 
-## Bundle single-file binary (pkg)
+## Bundle standalone binaries (pkg)
 
 ```
 npm run pkg
 ```
 
-Integrate deeper execution by wiring real core runtime logic in `runTestObject`.
+Builds self-contained binaries (no Node.js required on the runner) into
+platform folders under the repo `bin/` directory:
 
-## Standalone binary for CI/CD
-
-The `pkg` step builds self-contained binaries (macOS/Linux/Windows) under `dist/bin`.
-
-- No Node.js is required on the machine running the binary.
-- Core runtime (`mmt-core`) and HTTP client (`axios`) are bundled.
+```
+bin/
+  macos-arm64/testlight   (+ mmt → testlight)
+  macos-x64/testlight
+  linux-x64/testlight
+  linux-arm64/testlight
+  win-x64/testlight.exe   (+ mmt.cmd shim)
+```
 
 Examples:
 
 ```
-# macOS
-./dist/bin/testlight-macos version-info
-./dist/bin/testlight-macos to-js ../examples/basic/02_simple_test/echo_test.mmt
-./dist/bin/testlight-macos run ../examples/basic/02_simple_test/echo_test.mmt --quiet
+# macOS (Apple Silicon)
+./bin/macos-arm64/testlight --version
+./bin/macos-arm64/testlight run ../examples/basic/02_simple_test/echo_test.mmt --quiet
 
 # Linux
-./dist/bin/testlight-linux run path/to/test.mmt --quiet
+./bin/linux-x64/testlight run path/to/test.mmt --quiet
+
+# Windows
+bin\win-x64\testlight.exe run path\to\test.mmt --quiet
+bin\win-x64\mmt.cmd run path\to\test.mmt --quiet
 ```
 
-Tip: Upload the platform binary to your artifact store and invoke it in pipelines.
+Tip: Upload the matching platform folder (or the GitHub Release archive) to your
+artifact store and invoke it in pipelines.

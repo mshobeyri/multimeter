@@ -1,4 +1,5 @@
 ---
+name: MultimeterMcpFirst
 description: Use Multimeter MCP tools first for all .mmt create, modify, validate, format, and run tasks
 globs: "**/*.mmt"
 applyTo: "**/*.mmt"

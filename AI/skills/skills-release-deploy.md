@@ -168,6 +168,9 @@ docker push mshobeyri/mmt-testlight:X.Y.Z
 ### Known Issues
 
 - `mmtcli` is **not** an npm workspace (`workspaces` are only `core` + `mmtview`). The Dockerfile **must** run `npm ci --prefix mmtcli` (and copy `mmtcli/package-lock.json`) or the esbuild step fails resolving deps such as `node-forge`.
+- **pkg binaries** must not embed helpers via `Function#toString()` — pkg replaces the body with `{ [native code] }`. API runs use `CREATE_API_LOG_HELPERS_SOURCE` (`core/src/apiLogHelpersFactorySource.ts`). After editing `createApiLogHelpers`, rebuild core and run `node scripts/sync-api-log-helpers-source.mjs`, then rebuild with `./scripts/build-binaries.sh` into `bin/<platform>/` (never flat `testlight-macos` / `testlight-linux` names).
+- Windows release zip ships `testlight.exe` + `mmt.cmd` (shim), not a second full `mmt.exe` copy. Icon: `res/testlight.ico` applied via `scripts/apply-windows-icon.mjs` (resedit, no-grow).
+- Local binary layout is only `bin/<platform>/testlight` (+ `mmt` symlink or `mmt.cmd`). Release archive filenames stay versionless `testlight-<platform>.tar.gz|zip` for stable `/releases/latest/download/` URLs.
 - `res/doc-template.html` must be copied in Dockerfile (`COPY res/doc-template.html res/doc-template.html`) — the `prebuild` script needs it to generate `docTemplate.ts`.
 - esbuild binary mismatch: the `.dockerignore` must exclude `node_modules` to prevent host platform binaries leaking into the Alpine container. If esbuild version errors occur, run `npm rebuild esbuild` inside the build stage.
 - CI Docker push needs `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN`. Without them the docker job fails (it is `continue-on-error` so the GitHub Release still publishes).
@@ -235,7 +238,7 @@ testlight --version
 | macOS arm64 | `testlight-macos-arm64.tar.gz` | `testlight` + `mmt` (symlink) |
 | Linux x64 | `testlight-linux-x64.tar.gz` | `testlight` + `mmt` (symlink) |
 | Linux arm64 | `testlight-linux-arm64.tar.gz` | `testlight` + `mmt` (symlink) |
-| Windows x64 | `testlight-win-x64.zip` | `testlight.exe` + `mmt.exe` (copy) |
+| Windows x64 | `testlight-win-x64.zip` | `testlight.exe` + `mmt.cmd` (shim) |
 
 Asset filenames are **versionless** so `/releases/latest/download/...` URLs on the website stay stable. The release **tag** (`vX.Y.Z`) carries the version.
 
@@ -328,7 +331,7 @@ CHANNEL=beta curl -fsSL .../install-testlight.sh | bash
 2. Resolves version from GitHub API (latest stable, or pre-release by channel)
 3. Downloads the platform archive from GitHub Releases
 4. Extracts and installs to `/usr/local/bin` (or `~/.local/bin`)
-5. Creates `mmt` symlink if needed (Unix archives already include `mmt` → `testlight`)
+5. Creates `mmt` symlink if needed (Unix archives already include `mmt` → `testlight`; Windows uses `mmt.cmd`)
 
 ---
 

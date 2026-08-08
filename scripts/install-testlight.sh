@@ -162,7 +162,16 @@ main() {
 
   if [[ "$platform" == win-* ]]; then
     cp "$tmp_dir/testlight.exe" "$install_dir/testlight.exe"
-    cp "$tmp_dir/mmt.exe" "$install_dir/mmt.exe"
+    if [[ -f "$tmp_dir/mmt.cmd" ]]; then
+      cp "$tmp_dir/mmt.cmd" "$install_dir/mmt.cmd"
+    elif [[ -f "$tmp_dir/mmt.exe" ]]; then
+      # Older releases shipped a full mmt.exe copy
+      cp "$tmp_dir/mmt.exe" "$install_dir/mmt.exe"
+    else
+      # Fallback shim if archive only has testlight.exe
+      printf '%s\r\n' '@echo off' 'setlocal' '"%~dp0testlight.exe" %*' 'exit /b %ERRORLEVEL%' \
+        > "$install_dir/mmt.cmd"
+    fi
   else
     cp "$tmp_dir/testlight" "$install_dir/testlight"
     chmod +x "$install_dir/testlight"

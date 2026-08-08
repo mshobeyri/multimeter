@@ -42,9 +42,12 @@ export function activate(context: vscode.ExtensionContext) {
 // ---------------------------------------------------------------------------
 
 function registerDocumentLinks(context: vscode.ExtensionContext): void {
-  const selector: vscode.DocumentSelector = {language: 'mmt', scheme: 'file'};
-  context.subscriptions.push(vscode.languages.registerDocumentLinkProvider(
-      selector, new MmtDocumentLinkProvider()));
+  const schemes = ['file', 'untitled', 'vscode-remote', 'vscode-vfs'];
+  const provider = new MmtDocumentLinkProvider();
+  for (const scheme of schemes) {
+    context.subscriptions.push(vscode.languages.registerDocumentLinkProvider(
+        {language: 'mmt', scheme}, provider));
+  }
 }
 
 function registerEditorProvider(
@@ -194,36 +197,101 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.mmt.show.as.text', async (uri?: vscode.Uri) => {
-        const targetUri = uri || vscode.window.activeTextEditor?.document.uri;
-        const lowerPath = targetUri?.path.toLowerCase() || '';
-        if (!targetUri ||
-            (!lowerPath.endsWith('.mmt') && !lowerPath.endsWith('.http') &&
-             !lowerPath.endsWith('.https') && !lowerPath.endsWith('.bru') &&
-             !lowerPath.endsWith('.bruno'))) {
+        const targetUri = resolveMmtTargetUri(uri);
+        if (!targetUri || !isMmtFamilyUri(targetUri)) {
           vscode.window.showErrorMessage(
               'Please select an MMT, HTTP, or Bruno file');
           return;
         }
-        const tabs =
-            vscode.window.tabGroups.all.flatMap(group => group.tabs)
-                .filter(
-                    tab => tab.input instanceof vscode.TabInputCustom &&
-                        (tab.input as vscode.TabInputCustom).uri.toString() ===
-                            targetUri.toString());
-        for (const tab of tabs) {
-          if (tab.group.viewColumn === vscode.ViewColumn.Active) {
-            await vscode.window.tabGroups.close(tab);
-          }
-        }
+        await closeMatchingTabs(targetUri, (tab) =>
+            tab.input instanceof vscode.TabInputCustom &&
+            tab.group.viewColumn === vscode.ViewColumn.Active);
         const document = await vscode.workspace.openTextDocument(targetUri);
         await vscode.window.showTextDocument(document, {
           preview: false,
           preserveFocus: false,
         });
-        if (lowerPath.endsWith('.mmt')) {
+        if (hasMmtExtension(targetUri)) {
           await vscode.languages.setTextDocumentLanguage(document, 'mmt');
         }
       }));
+
+  context.subscriptions.push(vscode.commands.registerCommand(
+      'multimeter.mmt.show.as.mmt', async (uri?: vscode.Uri) => {
+        const targetUri = resolveMmtTargetUri(uri);
+        if (!targetUri || !isMmtFamilyUri(targetUri)) {
+          vscode.window.showErrorMessage(
+              'Please select an MMT, HTTP, or Bruno file');
+          return;
+        }
+        // Prefer openWith over closing/recreating tabs so remote/docker URIs
+        // keep their scheme and VS Code can reuse the existing group cleanly.
+        await vscode.commands.executeCommand(
+            'vscode.openWith',
+            targetUri,
+            mmtViewTypeForUri(targetUri),
+            {preview: false});
+      }));
+}
+
+function resolveMmtTargetUri(uri?: vscode.Uri): vscode.Uri|undefined {
+  if (uri) {
+    return uri;
+  }
+  return vscode.window.activeTextEditor?.document.uri ||
+      resolveActiveCustomEditorUri();
+}
+
+function uriPathForExt(uri: vscode.Uri): string {
+  // Prefer path (posix) so remote/docker URIs still end with ".mmt".
+  return (uri.path || uri.fsPath || '').toLowerCase();
+}
+
+function hasMmtExtension(uri: vscode.Uri): boolean {
+  return uriPathForExt(uri).endsWith('.mmt');
+}
+
+function isMmtFamilyUri(uri: vscode.Uri): boolean {
+  const lowerPath = uriPathForExt(uri);
+  return lowerPath.endsWith('.mmt') || lowerPath.endsWith('.http') ||
+      lowerPath.endsWith('.https') || lowerPath.endsWith('.bru') ||
+      lowerPath.endsWith('.bruno');
+}
+
+function mmtViewTypeForUri(uri: vscode.Uri): string {
+  const lowerPath = uriPathForExt(uri);
+  if (lowerPath.endsWith('.http') || lowerPath.endsWith('.https')) {
+    return 'mmt.httpEditor';
+  }
+  if (lowerPath.endsWith('.bru') || lowerPath.endsWith('.bruno')) {
+    return 'mmt.brunoEditor';
+  }
+  return 'mmt.editor';
+}
+
+function resolveActiveCustomEditorUri(): vscode.Uri|undefined {
+  for (const group of vscode.window.tabGroups.all) {
+    const tab = group.activeTab;
+    if (tab?.input instanceof vscode.TabInputCustom) {
+      return tab.input.uri;
+    }
+  }
+  return undefined;
+}
+
+async function closeMatchingTabs(
+    targetUri: vscode.Uri,
+    matches: (tab: vscode.Tab) => boolean): Promise<void> {
+  const tabs = vscode.window.tabGroups.all.flatMap(group => group.tabs)
+                   .filter(tab => {
+                     const input = tab.input as {uri?: vscode.Uri}|undefined;
+                     return !!input?.uri &&
+                         input.uri.toString() === targetUri.toString() &&
+                         matches(tab);
+                   });
+  for (const tab of tabs) {
+    await vscode.window.tabGroups.close(tab);
+  }
 }
 
 function registerApiTestStatusBar(context: vscode.ExtensionContext): void {

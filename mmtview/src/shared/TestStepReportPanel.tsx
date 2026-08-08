@@ -140,7 +140,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
   const showStepIo = callDetails.stepKind !== 'http';
 
   return (
-    <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="report-selectable" style={{ marginTop: 6, display: 'flex', flexDirection: 'column' }}>
       {/* Status code */}
       {callDetails.statusCode !== undefined && (() => {
         const first = sectionIdx++ === 0;
@@ -342,10 +342,11 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
             {runState === 'running' ? 'Waiting for checks and asserts to report…' : 'No check/assert results yet.'}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {stepReports.map((report) => {
+          <div className="report-selectable" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {stepReports.map((report, reportIdx) => {
               const isDebug = report.stepType === 'debug';
-              const reportKey = `${report.stepType}-${report.stepIndex}-${report.timestamp}`;
+              // Stable key: timestamp remounts wipe selection / collapse details.
+              const reportKey = `${report.stepType}-${report.stepIndex}-${reportIdx}`;
               const callDetails = parseCallDetails(report.details);
               const hasExpects = report.expects.length > 0;
               const hasDetails = Boolean(
@@ -372,9 +373,9 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     cached={report.cached === true}
                     style={{ marginTop: 2 }}
                   />
-                  <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}</span>
+                      <span className="report-selectable" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}</span>
                       {hasDetails && (
                         <button
                           className="action-button"
@@ -439,6 +440,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                         ) : (
                           report.details && report.details.trim().length > 0 && (
                             <pre
+                              className="report-selectable"
                               style={{
                                 margin: '6px 0 0 0',
                                 opacity: 0.85,
@@ -446,6 +448,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                                 wordBreak: 'break-word',
                                 fontFamily: 'var(--vscode-editor-font-family, monospace)',
                                 fontSize: 'var(--vscode-editor-font-size, 12px)',
+                                cursor: 'text',
                               }}
                             >
                               {unescapeCommon(String(report.details))}
@@ -467,4 +470,4 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
   );
 };
 
-export default TestStepReportPanel;
+export default React.memo(TestStepReportPanel);

@@ -11,7 +11,7 @@
 #   ├── macos-arm64/  testlight  mmt  (symlink)
 #   ├── linux-x64/    testlight  mmt  (symlink)
 #   ├── linux-arm64/  testlight  mmt  (symlink)
-#   ├── win-x64/      testlight.exe  mmt.exe  (copy)
+#   ├── win-x64/      testlight.exe  mmt.cmd  (shim; Multimeter .ico applied)
 #   ├── docker/       Dockerfile  README.md
 #   ├── homebrew/     testlight.rb
 #   ├── github-action/ action.yml  README.md
@@ -63,6 +63,19 @@ echo "─── Building testlight binaries ───"
 echo "Platforms: $PLATFORMS"
 echo ""
 
+# Never leave flat legacy names (testlight-macos / testlight-linux / …) in bin/.
+rm -f "$BIN_DIR"/testlight-macos \
+      "$BIN_DIR"/testlight-linux \
+      "$BIN_DIR"/testlight-win.exe \
+      "$BIN_DIR"/testlight \
+      "$BIN_DIR"/mmt \
+      "$BIN_DIR"/mmt.exe \
+      "$REPO_ROOT"/testlight-macos \
+      "$REPO_ROOT"/testlight-linux \
+      "$REPO_ROOT"/testlight-win.exe \
+      "$REPO_ROOT"/testlight \
+      "$REPO_ROOT"/mmt
+
 # ── 1. Build core + CLI TypeScript (CJS for pkg) ────────────────────
 echo "▸ Compiling core..."
 (cd "$REPO_ROOT/core" && npm run build --silent)
@@ -71,19 +84,18 @@ echo "▸ Compiling CLI (CJS)..."
 (cd "$CLI_DIR" && rm -rf dist-cjs 2>/dev/null || true)
 (cd "$CLI_DIR" && npm run build:cjs --silent)
 
-# ── 2. Build each platform binary ───────────────────────────────────
+# ── 2. Build each platform binary into bin/<platform>/ ──────────────
 for platform in $PLATFORMS; do
   pkg_target="$(pkg_target_for "$platform")"
   out_dir="$BIN_DIR/$platform"
+  rm -rf "$out_dir"
   mkdir -p "$out_dir"
 
-  # Determine binary name based on platform
+  # Binary name is always "testlight" (+ .exe on Windows) — never testlight-<platform>.
   if echo "$platform" | grep -q '^win-'; then
     bin_name="testlight.exe"
-    alias_name="mmt.exe"
   else
     bin_name="testlight"
-    alias_name="mmt"
   fi
 
   echo "▸ Building $platform ($pkg_target) → $out_dir/$bin_name"
@@ -94,13 +106,21 @@ for platform in $PLATFORMS; do
 
   # Create mmt alias
   if echo "$platform" | grep -q '^win-'; then
-    # Windows: copy (symlinks are unreliable on Windows)
-    cp "$out_dir/$bin_name" "$out_dir/$alias_name"
-    echo "  → copied $alias_name"
+    # Windows: tiny cmd shim (full exe copy doubles the zip and is not a shortcut)
+    cp "$REPO_ROOT/packaging/windows/mmt.cmd" "$out_dir/mmt.cmd"
+    echo "  → wrote mmt.cmd shim → $bin_name"
+    # Apply Multimeter logo to the Windows executable when tools are available
+    if [ -f "$REPO_ROOT/res/testlight.ico" ] || [ -f "$REPO_ROOT/res/logo.png" ]; then
+      (cd "$REPO_ROOT" && node scripts/generate-testlight-ico.mjs 2>/dev/null || true)
+      if [ -f "$REPO_ROOT/res/testlight.ico" ]; then
+        (cd "$REPO_ROOT" && node scripts/apply-windows-icon.mjs "$out_dir/$bin_name") || \
+          echo "  ⚠ could not apply Windows icon (optional)"
+      fi
+    fi
   else
     # Unix: symlink mmt → testlight
-    (cd "$out_dir" && ln -sf "$bin_name" "$alias_name")
-    echo "  → symlinked $alias_name → $bin_name"
+    (cd "$out_dir" && ln -sf "$bin_name" mmt)
+    echo "  → symlinked mmt → $bin_name"
   fi
 done
 

@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 export type ContextMenuItem = {
   label: string;
   icon?: string;
-  onClick: () => void;
+  onClick: () => void | Promise<void>;
   disabled?: boolean;
 };
 
@@ -183,7 +183,7 @@ const ContextMenuHost: React.FC<{
 
 /** Menu item: open Multimeter output channel, then run. */
 export function runInCoreMenuItem(
-  onRun: () => void,
+  onRun: () => void | Promise<void>,
   options?: { disabled?: boolean; label?: string },
 ): ContextMenuItem {
   return {
@@ -192,7 +192,7 @@ export function runInCoreMenuItem(
     disabled: options?.disabled,
     onClick: () => {
       window.vscode?.postMessage({ command: "showLogOutputChannel" });
-      onRun();
+      void onRun();
     },
   };
 }

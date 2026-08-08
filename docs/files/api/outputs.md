@@ -101,6 +101,7 @@ outputs:
   name: body[/message(.*)/]
   email: body./"email":\s"([^"]+)"/
   auth_token: headers[/Bearer (\S+)/]
+  result_code: 'body[/\sResult:\s(.*)\s\[\s/]'
 ```
 
 Next: [Inputs](./inputs.md) · [setenv](./setenv.md) · [check operators](../test/steps/check.md#operators)

@@ -226,13 +226,8 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
 
         return (
           <div key={run.id || run.runId || i} style={{ marginBottom: 4 }}>
-            {/* Tree item header */}
+            {/* Tree item header — expand only via chevron so text selection is not cleared */}
             <div
-              onClick={() => {
-                if (!isSuiteOnly) {
-                  setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }));
-                }
-              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -257,24 +252,61 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
                   title="Suite"
                 />
               ) : (
-                <span
-                  className={`codicon ${isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
-                  style={{ width: 16, opacity: 0.7 }}
-                />
+                <button
+                  type="button"
+                  className="action-button"
+                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                  title={isExpanded ? 'Collapse' : 'Expand'}
+                  onClick={() => setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }))}
+                  style={{
+                    padding: 0,
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    width: 16,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <span
+                    className={`codicon ${isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+                    style={{ opacity: 0.7 }}
+                  />
+                </button>
               )}
               {/* Status icon */}
               <span
                 className={`codicon ${statusIcon.icon}`}
                 style={{ color: statusIcon.color }}
                 title={statusIcon.title}
+                onClick={() => {
+                  if (!isSuiteOnly) {
+                    setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }));
+                  }
+                }}
               />
               {/* Test name */}
-              <span style={{
-                flex: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }} title={name}>
+              <span
+                className="report-selectable"
+                style={{
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={name}
+                onClick={() => {
+                  if (isSuiteOnly) {
+                    return;
+                  }
+                  const sel = window.getSelection();
+                  if (sel && !sel.isCollapsed && sel.toString().trim()) {
+                    return;
+                  }
+                  setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }));
+                }}
+              >
                 {name}
               </span>
               {/* Summary badge */}
@@ -289,7 +321,13 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
 
             {/* Expanded content - check/assert results */}
             {isExpanded && !isSuiteOnly && (
-              <div style={{ marginLeft: 24, paddingBottom: 8 }}>
+              <div
+                className="report-selectable"
+                style={{ marginLeft: 24, paddingBottom: 8 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+              >
                 <TestStepReportPanel
                   isExpanded={true}
                   stepReports={reports}

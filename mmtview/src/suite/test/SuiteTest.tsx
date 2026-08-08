@@ -17,6 +17,10 @@ import {
     buildTargetPendingState,
     isUnderSuiteTarget,
 } from './suiteRunStatus';
+import {
+    fingerprintHierarchyByEntryId,
+    remapSuiteTargetId,
+} from './suiteHierarchyFingerprint';
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
@@ -593,6 +597,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, []);
 
     const [hierarchyByEntryId, setHierarchyByEntryId] = useState<Record<string, SuiteTreeNode>>({});
+    const hierarchyByEntryIdRef = useRef<Record<string, SuiteTreeNode>>({});
+    hierarchyByEntryIdRef.current = hierarchyByEntryId;
 
     const hierarchyMissingPaths = useMemo(() => {
         const missing = new Set<string>();
@@ -626,34 +632,56 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         onFlowchartStateChange?.({ groups, hierarchyByEntryId, missingFiles: effectiveMissingFiles, noItems });
     }, [groups, hierarchyByEntryId, effectiveMissingFiles, noItems, onFlowchartStateChange]);
 
+    const fetchHierarchyByEntryId = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
+        const result: Record<string, SuiteTreeNode> = {};
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                try {
+                    const res = await getSuiteHierarchy(entry.path, entry.id);
+                    const tree = res?.tree;
+                    if (tree && typeof tree === 'object') {
+                        // Key by entry id (position), not path — duplicate
+                        // items like two `suite1.mmt` rows must keep independent trees.
+                        result[entry.id] = tree;
+                    }
+                } catch {
+                    // Ignore; tree will treat it as non-suite.
+                }
+            }
+        }
+        return result;
+    }, [groups]);
+
+    /** Rebuild hierarchy from current YAML; update UI only when structure changed. */
+    const ensureHierarchyFresh = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
+        const next = await fetchHierarchyByEntryId();
+        const previous = hierarchyByEntryIdRef.current;
+        if (fingerprintHierarchyByEntryId(next) !== fingerprintHierarchyByEntryId(previous)) {
+            hierarchyByEntryIdRef.current = next;
+            setHierarchyByEntryId(next);
+        }
+        return next;
+    }, [fetchHierarchyByEntryId]);
+
     useEffect(() => {
         let cancelled = false;
         const run = async () => {
-            const result: Record<string, SuiteTreeNode> = {};
-            for (const group of groups) {
-                for (const entry of group.entries) {
-                    try {
-                        const res = await getSuiteHierarchy(entry.path, entry.id);
-                        const tree = res?.tree;
-                        if (tree && typeof tree === 'object') {
-                            // Key by entry id (position), not path — duplicate
-                            // items like two `suite1.mmt` rows must keep independent trees.
-                            result[entry.id] = tree;
-                        }
-                    } catch {
-                        // Ignore; tree will treat it as non-suite.
-                    }
-                }
+            const result = await fetchHierarchyByEntryId();
+            if (cancelled) {
+                return;
             }
-            if (!cancelled) {
-                setHierarchyByEntryId(result as any);
+            const previous = hierarchyByEntryIdRef.current;
+            if (fingerprintHierarchyByEntryId(result) === fingerprintHierarchyByEntryId(previous)) {
+                return;
             }
+            hierarchyByEntryIdRef.current = result;
+            setHierarchyByEntryId(result);
         };
         run();
         return () => {
             cancelled = true;
         };
-    }, [groups]);
+    }, [fetchHierarchyByEntryId]);
 
     useEffect(() => {
         setSuiteRunId(null);
@@ -872,7 +900,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }
     }, [allPaths]);
 
-    const onRunSuite = useCallback(() => {
+    const onRunSuite = useCallback(async () => {
+        const hierarchy = await ensureHierarchyFresh();
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         const startedAt = Date.now();
         beginSuiteRun(nextSuiteRunId);
@@ -884,20 +913,24 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         partialRunTargetRef.current = null;
         setLeafReportsById({});
         // Mark every known runnable node pending until its own suite-item arrives.
-        setLeafRunStateById(buildFullSuitePendingState(groups, hierarchyByEntryId));
+        setLeafRunStateById(buildFullSuitePendingState(groups, hierarchy));
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-    }, [groups, hierarchyByEntryId, beginSuiteRun]);
+    }, [groups, ensureHierarchyFresh, beginSuiteRun]);
 
-    const onRunTargets = useCallback((target: string) => {
-        const effectiveTarget = typeof target === 'string' ? target : '';
-        if (!effectiveTarget) {
+    const onRunTargets = useCallback(async (target: string) => {
+        const requestedTarget = typeof target === 'string' ? target : '';
+        if (!requestedTarget) {
             return;
         }
+
+        const previousHierarchy = hierarchyByEntryIdRef.current;
+        const hierarchy = await ensureHierarchyFresh();
+        const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, hierarchy);
 
         pendingLeafResetRef.current = [effectiveTarget];
         // Prefix allowlist: target + descendants (suite-node:1.1 → suite-node:1.1.*).
         partialRunTargetRef.current = effectiveTarget;
-        const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchyByEntryId);
+        const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchy);
         setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
         setLeafRunStateById((prev) => ({
             ...resetLeafStateMap(prev, [effectiveTarget]),
@@ -912,28 +945,32 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         setSuiteRunStartedAt(startedAt);
         setSuiteRunDurationMs(0);
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
-    }, [groups, hierarchyByEntryId, beginSuiteRun]);
+    }, [groups, ensureHierarchyFresh, beginSuiteRun]);
 
-    const onRunSuiteInCore = useCallback(() => {
+    const onRunSuiteInCore = useCallback(async () => {
+        await ensureHierarchyFresh();
         window.vscode?.postMessage({
             command: 'runSuite',
             suiteRunId: `suite-logs:${Date.now()}`,
             report: { type: 'lifecycle' },
         });
-    }, []);
+    }, [ensureHierarchyFresh]);
 
-    const onRunTargetsInCore = useCallback((target: string) => {
-        const effectiveTarget = typeof target === 'string' ? target : '';
-        if (!effectiveTarget) {
+    const onRunTargetsInCore = useCallback(async (target: string) => {
+        const requestedTarget = typeof target === 'string' ? target : '';
+        if (!requestedTarget) {
             return;
         }
+        const previousHierarchy = hierarchyByEntryIdRef.current;
+        const hierarchy = await ensureHierarchyFresh();
+        const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, hierarchy);
         window.vscode?.postMessage({
             command: 'runSuite',
             suiteRunId: `suite-logs:${Date.now()}`,
             target: effectiveTarget,
             report: { type: 'lifecycle' },
         });
-    }, []);
+    }, [ensureHierarchyFresh]);
 
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {

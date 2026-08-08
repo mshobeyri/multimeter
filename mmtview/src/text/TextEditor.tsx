@@ -206,18 +206,22 @@ const TextEditor: React.FC<TextEditorProps> = ({
     return () => window.removeEventListener("vscode:changeColorTheme", handler as EventListener);
   }, [monacoRefToUse]);
 
-  // Add CSS for the decoration
+  // Add CSS for dynamic token highlights (e:/i:/r:/c: and ${...}).
+  // Use a theme foreground color — not a selection-like background fill.
   useEffect(() => {
-    if (document.getElementById("i-prefix-highlight-style")) return;
-    const style = document.createElement("style");
-    style.id = "i-prefix-highlight-style";
+    let style = document.getElementById("i-prefix-highlight-style") as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "i-prefix-highlight-style";
+      document.head.appendChild(style);
+    }
     style.innerHTML = `
       .${I_PREFIX_CLASS} {
-        background: color-mix(in srgb, var(--vscode-editorInfo-foreground, #75beff) 28%, transparent);
-        border-radius: 2px;
+        color: var(--mmt-token-variable, var(--mmt-token-anchor, #4ec9b0)) !important;
+        background: transparent !important;
+        font-weight: 600;
       }
     `;
-    document.head.appendChild(style);
   }, []);
 
   useEffect(() => {

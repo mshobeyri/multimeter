@@ -23,7 +23,11 @@
   </p>
 </div>
 
-<img src="res/demo.gif" alt="Multimeter in action" style="max-width: 100%; height: auto;" />
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=07Q-Xy0SIcs">
+    <img src="res/intro.png" alt="Multimeter intro" width="640" />
+  </a>
+</p>
 
 
 
