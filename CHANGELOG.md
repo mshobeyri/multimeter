@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.33.1]
+
+- Fix suite report clicks: expand/collapse and details no longer blocked by capture-phase handlers
+- Click suite tree labels to expand; Ctrl/Cmd+click opens the file
+- Reload suite hierarchy before Run and remap targets when node ids change
+- Drop `respond` format alias from schema and autocomplete (keep `response`)
+- Add regex output sample that captures text before a bracket
+
 ## [testlight 0.4.3]
 
 - Improve CLI help: aligned commands/options, run options and examples on the main help screen
