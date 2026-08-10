@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.33.2]
+
+- Support multiple CLI presets (`-P` / `--preset`, repeatable or comma-separated) and add short flags (`-F`, `-x`, `-r`, `-R`, `-L`) across CLI, binary, and assistant
+- Generate cross-platform curl commands for Bash, PowerShell, and CMD; copy all variants to clipboard when using **Run in Curl**
+
 ## [1.33.1]
 
 - Fix suite report clicks: expand/collapse and details no longer blocked by capture-phase handlers
