@@ -1,15 +1,21 @@
 # Environment variables on the CLI
 
-Use `--env-file` and `--preset` to load variables from an env file, then override with `-e`:
+Use `-F` / `--env-file` and `-P` / `--preset` to load variables from an env file, then override with `-e`:
 
 ```sh
-testlight run tests/login.mmt --env-file env.mmt --preset runner.dev
+testlight run tests/login.mmt -F env.mmt -P runner.dev
+```
+
+Apply multiple preset groups (same as the environment panel):
+
+```sh
+testlight run tests/login.mmt -F env.mmt -P runner.dev -P custom.prod
 ```
 
 Override values explicitly (wins over preset):
 
 ```sh
-testlight run tests/login.mmt --env-file env.mmt --preset runner.dev \
+testlight run tests/login.mmt -F env.mmt -P runner.dev \
   -e api_url=http://localhost:8080 -e user=bob
 ```
 

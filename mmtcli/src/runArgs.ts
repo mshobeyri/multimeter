@@ -18,7 +18,7 @@ const {resolveUserPath, resolveUserPathPreferExisting} = requireFromRunArgs('../
 
 export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
-const {mergeEnv, resolvePresetEnv} =
+const {mergeEnv, resolvePresetsEnv, normalizePresetNames} =
     ((mmtcore as any).runConfig || {}) as any;
 const OMIT_SENTINEL =
     ((mmtcore as any).omitKeyword || {}).OMIT_SENTINEL || '__MMT_OMIT__';
@@ -347,7 +347,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
   let envvar: Record<string, any>|undefined = undefined;
   let networkConfig: NetworkConfig|undefined = undefined;
   const envFileOpt = opts.envFile as string | undefined;
-  const presetName = opts.preset as string | undefined;
+  const presetNames = normalizePresetNames(opts.preset as string | string[] | undefined);
   let envFileDir = dir;
 
   // Detect if this is a suite file and check for suite environment config
@@ -368,7 +368,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     envFileDir = path.dirname(p);
     const doc = await loadEnvDoc(p, findProjectRootForCli(p) || undefined);
     const defaultEnv = resolveDefaultEnvVariables(doc.variables);
-    const presetEnv = resolvePresetEnv(doc, presetName);
+    const presetEnv = resolvePresetsEnv(doc, presetNames);
     envvar = mergeEnv({baseEnv: defaultEnv, envvar: presetEnv, manualEnvvars});
     // Build network config from file-driven HTTP settings and certificates.
     if (doc.certificates || doc.setting) {
@@ -403,7 +403,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
       if (suiteEnvFilePath && fs.existsSync(suiteEnvFilePath)) {
         const suiteEnvDoc =
             await loadEnvDoc(suiteEnvFilePath, projectRoot || undefined);
-        suitePresetEnv = resolvePresetEnv(suiteEnvDoc, suiteEnvConfig.preset);
+        suitePresetEnv = resolvePresetsEnv(suiteEnvDoc, suiteEnvConfig.preset);
       }
     }
 

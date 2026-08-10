@@ -1,5 +1,6 @@
 import {RunJSCodeContext} from 'mmt-core/jsRunner';
 import * as runConfig from 'mmt-core/runConfig';
+const {normalizePresetNames, resolveEnvFromDoc, mergeEnv} = runConfig;
 import {findProjectRootSync, isProjectRootImport, resolveProjectRootImport} from 'mmt-core/fileHelper';
 
 import type {RunFileOptions} from 'mmt-core/runConfig';
@@ -131,12 +132,30 @@ export async function parseAssistantRunArgs(
     }
     return out;
   };
+  const collectSingleValueList = (name: string, short?: string): string[] => {
+    const out: string[] = [];
+    const pref = `--${name}`;
+    const shortPref = short ? `-${short}` : undefined;
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (t === pref || (shortPref && t === shortPref)) {
+        if (i + 1 < tokens.length) {
+          out.push(unquote(tokens[i + 1]));
+        }
+      } else if (t.startsWith(pref + '=')) {
+        out.push(unquote(t.slice(pref.length + 1)));
+      } else if (shortPref && t.startsWith(shortPref + '=')) {
+        out.push(unquote(t.slice(shortPref.length + 1)));
+      }
+    }
+    return out;
+  };
 
   const argFile = tokens.find((t: string) => !t.startsWith('-')) || '';
   const relPath = unquote(argFile);
   if (!relPath) {
     throw new Error(
-        'Usage: /run <file> [--input key=val ...] [--env key=val ...] [--env-file path] [--preset name] [--example name|#index] [--print-js]');
+        'Usage: /run <file> [-i key=val ...] [-e key=val ...] [-F env-file] [-P preset ...] [-x name|#index] [--print-js]');
   }
   const fileUri = vscode.Uri.file(
       path.isAbsolute(relPath) ? relPath : path.join(projectRoot, relPath));
@@ -147,7 +166,7 @@ export async function parseAssistantRunArgs(
 
   const manualInputs = parsePairs(collectList('input', 'i'));
   const manualEnvvars = parsePairs(collectList('env', 'e'));
-  const exampleOptRaw = findOpt('example');
+  const exampleOptRaw = findOpt('example', 'x');
   let exampleIndexOpt: number|undefined = undefined;
   let exampleNameOpt: string|undefined = undefined;
   if (typeof exampleOptRaw === 'string' && exampleOptRaw.trim()) {
@@ -161,8 +180,8 @@ export async function parseAssistantRunArgs(
     }
   }
 
-  const envFile = findOpt('env-file');
-  const preset = findOpt('preset');
+  const envFile = findOpt('env-file', 'F');
+  const presetNames = normalizePresetNames(collectSingleValueList('preset', 'P'));
   let envvar: Record<string, any>|undefined = undefined;
   if (envFile) {
     let p =
@@ -178,22 +197,15 @@ export async function parseAssistantRunArgs(
       const doc = YAML.parse(Buffer.from(envData).toString('utf8')) as any;
       const variables = doc?.variables || {};
       const presets = doc?.presets || {};
-      if (typeof (runConfig as any).resolveEnvFromDoc === 'function') {
-        envvar = (runConfig as any).resolveEnvFromDoc({
-          doc: {variables, presets},
-          presetName: preset,
-          manualEnvvars
-        });
-      } else {
-        const presetEnv =
-            (runConfig as any).resolvePresetEnv({variables, presets}, preset);
-        envvar =
-            (runConfig as any).mergeEnv({envvar: presetEnv, manualEnvvars});
-      }
+      envvar = resolveEnvFromDoc({
+        doc: {variables, presets},
+        presetName: presetNames.length ? presetNames : undefined,
+        manualEnvvars,
+      });
     } catch {
     }
   } else {
-    envvar = (runConfig as any).mergeEnv({envvar: undefined, manualEnvvars});
+    envvar = mergeEnv({envvar: undefined, manualEnvvars});
   }
 
   const vscodeEnvState =
@@ -211,8 +223,7 @@ export async function parseAssistantRunArgs(
     }
   }
 
-  const mergedBaseEnv =
-      (runConfig as any).mergeEnv({baseEnv: vscodeEnv, envvar});
+  const mergedBaseEnv = mergeEnv({baseEnv: vscodeEnv, envvar});
 
   const runFileOptions: ParsedAssistantRun['runFileOptions'] = {
     file: rawText,

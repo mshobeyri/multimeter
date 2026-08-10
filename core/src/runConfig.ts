@@ -244,8 +244,8 @@ export interface EnvFileDoc {
 export interface ResolveEnvFromDocParams {
   /** Parsed env file document ({ variables, presets }). */
   doc: EnvFileDoc;
-  /** Preset name, e.g. "runner.cd" or "cd". */
-  presetName?: string;
+  /** Preset name(s), e.g. "runner.dev" or ["runner.dev", "custom.prod"]. */
+  presetName?: string|string[];
   /** Manual env vars from CLI/assistant flags (highest priority). */
   manualEnvvars?: Record<string, any>;
 }
@@ -257,7 +257,7 @@ export interface ResolveEnvFromDocParams {
 export function resolveEnvFromDoc(params: ResolveEnvFromDocParams):
     Record<string, any> {
   const {doc, presetName, manualEnvvars} = params;
-  const presetEnv = presetName ? resolvePresetEnv(doc, presetName) : {};
+  const presetEnv = resolvePresetsEnv(doc, presetName);
   return mergeEnv({envvar: presetEnv, manualEnvvars});
 }
 
@@ -308,6 +308,39 @@ export function resolvePresetEnv(
   }
   for (const [k, choice] of Object.entries(mapping)) {
     out[k] = selectFromVariables(variables, k, choice);
+  }
+  return out;
+}
+
+/** Normalize CLI/UI preset args: repeatable flags and comma-separated lists. */
+export function normalizePresetNames(
+    presetNames: string|string[]|undefined): string[] {
+  if (presetNames == null) {
+    return [];
+  }
+  const raw = Array.isArray(presetNames) ? presetNames : [presetNames];
+  const names: string[] = [];
+  for (const entry of raw) {
+    const s = String(entry).trim();
+    if (!s) {
+      continue;
+    }
+    for (const part of s.split(',')) {
+      const name = part.trim();
+      if (name) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
+}
+
+/** Apply one or more presets in order (later presets override same keys). */
+export function resolvePresetsEnv(
+    doc: EnvFileDoc, presetNames: string|string[]|undefined): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const name of normalizePresetNames(presetNames)) {
+    Object.assign(out, resolvePresetEnv(doc, name));
   }
   return out;
 }

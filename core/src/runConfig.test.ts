@@ -48,5 +48,27 @@ describe('runConfig helpers', () => {
     expect(runConfig.resolvePresetEnv(doc, 'custom.prod')).toEqual({region: 'us-prod'});
   });
 
+  it('resolvePresetsEnv merges multiple presets in order', () => {
+    const doc = {
+      variables: {
+        api_url: {local: 'http://local', remote: 'http://remote'},
+        mode: {dev: 'debug', prod: 'release'},
+      },
+      presets: {
+        runner: {dev: {api_url: 'local', mode: 'dev'}},
+        custom: {prod: {mode: 'prod'}},
+      },
+    };
+    expect(runConfig.resolvePresetsEnv(doc, undefined)).toEqual({});
+    expect(runConfig.resolvePresetsEnv(doc, ['runner.dev', 'custom.prod'])).toEqual({
+      api_url: 'http://local',
+      mode: 'release',
+    });
+    expect(runConfig.resolvePresetsEnv(doc, 'runner.dev,custom.prod')).toEqual({
+      api_url: 'http://local',
+      mode: 'release',
+    });
+  });
+
   // Note: resolveEnvFromDoc is covered by CLI/assistant integration tests.
 });
