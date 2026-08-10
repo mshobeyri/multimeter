@@ -89,6 +89,11 @@
       "require": "./dist/curlConvertor.js",
       "default": "./dist/curlConvertor.js"
     },
+    "./curlGenerator": {
+      "types": "./dist/curlGenerator.d.ts",
+      "require": "./dist/curlGenerator.js",
+      "default": "./dist/curlGenerator.js"
+    },
     "./postmanConvertor": {
       "types": "./dist/postmanConvertor.d.ts",
       "require": "./dist/postmanConvertor.js",

@@ -8,7 +8,18 @@ Paste a `curl ...` command into an API editor (YAML side). Multimeter detects it
 
 ## Run in Curl
 
-For HTTP APIs in the tester, right-click {{btn:send:Send}} and choose **Run in Curl**. Multimeter builds a curl command from the current request (method, URL, headers, body, environment) and runs it in a **Multimeter Curl** terminal.
+For HTTP APIs in the tester, right-click {{btn:send:Send}} and choose **Run in Curl**. Multimeter builds curl commands from the current request (method, URL, headers, body, environment) and:
+
+- Runs the variant that matches your default terminal (Bash/Zsh, PowerShell, or CMD)
+- Copies a reference block to the clipboard with **Bash**, **PowerShell**, and **CMD** variants
+
+Shared flags are the same across shells (`-X`, `-H`, `--data-raw`, certificate options). Only quoting differs:
+
+| Shell | Executable | Quoting |
+|-------|------------|---------|
+| Bash / macOS / Linux / Git Bash / WSL | `curl` | Single quotes (`'…'`) |
+| PowerShell (Windows) | `curl.exe --% …` | Native quoting after stop-parsing (avoids the `Invoke-WebRequest` alias) |
+| CMD (Windows) | `curl` | Double quotes with `""` for embedded `"` |
 
 Available for HTTP only — not GraphQL, gRPC, or WebSocket.
 

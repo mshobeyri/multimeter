@@ -18,11 +18,95 @@ import {
   markupConvertor,
   CommonData,
 } from 'mmt-core';
+import {
+  buildCurlCommand as buildCurlCommandForShell,
+  buildCurlCommandSet,
+  buildCurlUrl,
+  formatCurlCommandSet,
+  type CurlCertificateOptions,
+  type CurlShellKind,
+} from 'mmt-core/curlGenerator';
 import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/NetworkData';
 
 let curlTerminal: vscode.Terminal|null = null;
 
-type CurlShellKind = 'posix' | 'powershell' | 'cmd';
+async function handleRunCurlCommand(
+    message: any, document: vscode.TextDocument, mmtProvider: any) {
+  try {
+    const built = buildCurlArtifacts(message, document, mmtProvider);
+    if (!built) {
+      vscode.window.showWarningMessage('No curl command to run.');
+      return;
+    }
+
+    await vscode.env.clipboard.writeText(formatCurlCommandSet(built.set));
+    const cmd = built.runCommand;
+    const exists =
+        !!curlTerminal && vscode.window.terminals.some(t => t === curlTerminal);
+    if (!exists) {
+      curlTerminal = vscode.window.createTerminal({name: 'Multimeter Curl'});
+      const term = curlTerminal;
+      term.show(true);
+      const delay = (ms: number) =>
+          new Promise<void>(resolve => setTimeout(resolve, ms));
+      await delay(1500);
+      term.sendText(cmd, true);
+      term.show(true);
+    } else {
+      const term = curlTerminal!;
+      term.show(true);
+      term.sendText(cmd, true);
+      term.show(true);
+    }
+    vscode.window.showInformationMessage(
+        'Curl command copied (Bash, PowerShell, and CMD variants). Running in terminal.');
+  } catch (err) {
+    vscode.window.showErrorMessage(`Failed to open terminal: ${err}`);
+  }
+}
+
+interface BuiltCurlArtifacts {
+  runCommand: string;
+  set: ReturnType<typeof buildCurlCommandSet>;
+}
+
+function buildCurlArtifacts(
+    message: any, document: vscode.TextDocument, mmtProvider: any): BuiltCurlArtifacts | undefined {
+  if (typeof message.curl === 'string' && message.curl.trim()) {
+    const cmd = message.curl.trim();
+    return {
+      runCommand: cmd,
+      set: {posix: cmd, powershell: cmd, cmd},
+    };
+  }
+  const request = getCurlRequest(message, document, mmtProvider);
+  if (!request) {
+    return undefined;
+  }
+
+  const shellKind = detectCurlShellKind();
+  const envVars = extractEnvVarsForCurl(mmtProvider);
+  const networkConfig = prepareNetworkConfigForFile(
+      document.uri.fsPath, envVars, mmtProvider.context);
+  const url = buildCurlUrl(request.url || '', request.query || {});
+  if (!url) {
+    return undefined;
+  }
+  const certificates = buildCurlCertificateOptions(url, networkConfig);
+  const input = {
+    method: request.method,
+    url: request.url || '',
+    query: request.query,
+    headers: request.headers,
+    cookies: request.cookies,
+    body: request.body,
+  };
+  const set = buildCurlCommandSet(input, certificates);
+  return {
+    runCommand: buildCurlCommandForShell(input, shellKind, certificates),
+    set,
+  };
+}
 
 async function handleUpdateWorkspaceState(message: any, mmtProvider: any) {
   mmtProvider.context.workspaceState.update(message.name, message.value);
@@ -150,90 +234,6 @@ async function handleUpdateConfig(message: any, mmtProvider: any) {
   }
 }
 
-async function handleRunCurlCommand(
-    message: any, document: vscode.TextDocument, mmtProvider: any) {
-  try {
-    const cmd = buildCurlCommand(message, document, mmtProvider);
-    if (!cmd) {
-      vscode.window.showWarningMessage('No curl command to run.');
-      return;
-    }
-
-    const exists =
-        !!curlTerminal && vscode.window.terminals.some(t => t === curlTerminal);
-    if (!exists) {
-      curlTerminal = vscode.window.createTerminal({name: 'Multimeter Curl'});
-      const term = curlTerminal;
-      term.show(true);
-      const delay = (ms: number) =>
-          new Promise<void>(resolve => setTimeout(resolve, ms));
-      await delay(1500);
-      term.sendText(cmd, true);
-      term.show(true);
-    } else {
-      const term = curlTerminal!;
-      term.show(true);
-      term.sendText(cmd, true);
-      term.show(true);
-    }
-  } catch (err) {
-    vscode.window.showErrorMessage(`Failed to open terminal: ${err}`);
-  }
-}
-
-function buildCurlCommand(
-    message: any, document: vscode.TextDocument, mmtProvider: any): string {
-  if (typeof message.curl === 'string' && message.curl.trim()) {
-    return message.curl.trim();
-  }
-  const request = getCurlRequest(message, document, mmtProvider);
-  if (!request) {
-    return '';
-  }
-
-  const shellKind = detectCurlShellKind();
-  const envVars = extractEnvVarsForCurl(mmtProvider);
-  const networkConfig = prepareNetworkConfigForFile(
-      document.uri.fsPath, envVars, mmtProvider.context);
-  const method = String(request.method || 'GET').toUpperCase();
-  const executable = shellKind === 'powershell' && process.platform === 'win32' ? 'curl.exe' : 'curl';
-  const parts: string[] = [executable];
-
-  if (method !== 'GET') {
-    parts.push('-X', method);
-  }
-
-  Object.entries(request.headers || {}).forEach(([key, value]) => {
-    const headerValue = stringifyCurlValue(value);
-    if (headerValue) {
-      parts.push('-H', quoteCurlArgument(shellKind, `${key}: ${headerValue}`));
-    }
-  });
-
-  const cookiePairs = Object.entries(request.cookies || {})
-      .map(([key, value]) => {
-        const cookieValue = stringifyCurlValue(value);
-        return cookieValue ? `${key}=${cookieValue}` : '';
-      })
-      .filter(Boolean);
-  if (cookiePairs.length) {
-    parts.push('-H', quoteCurlArgument(shellKind, `Cookie: ${cookiePairs.join('; ')}`));
-  }
-
-  const body = stringifyCurlBody(request.body);
-  if (method !== 'GET' && body) {
-    parts.push('--data', quoteCurlArgument(shellKind, body));
-  }
-
-  const url = buildCurlUrl(request.url || '', request.query || {});
-  if (!url) {
-    return '';
-  }
-  appendCurlCertificateFlags(parts, shellKind, url, networkConfig);
-  parts.push(quoteCurlArgument(shellKind, url));
-  return parts.join(' ');
-}
-
 function getCurlRequest(
     message: any,
     document: vscode.TextDocument,
@@ -320,23 +320,21 @@ function extractEnvVarsForCurl(mmtProvider: any): Record<string, any> {
   return envVars;
 }
 
-function appendCurlCertificateFlags(
-    parts: string[],
-    shellKind: CurlShellKind,
-    url: string,
-    networkConfig: NetworkConfig) {
+function buildCurlCertificateOptions(
+    url: string, networkConfig: NetworkConfig): CurlCertificateOptions | undefined {
+  const options: CurlCertificateOptions = {};
   if (!networkConfig.sslValidation || networkConfig.allowSelfSigned) {
-    parts.push('--insecure');
+    options.insecure = true;
   }
 
   const caPath = networkConfig.ca.enabled ? networkConfig.ca.certPath : undefined;
   if (caPath) {
-    parts.push('--cacert', quoteCurlArgument(shellKind, caPath));
+    options.caPath = caPath;
   }
 
   const parsed = parseCurlUrl(url);
   if (!parsed) {
-    return;
+    return Object.keys(options).length > 0 ? options : undefined;
   }
   const client = findMatchingClientCertificate(
       networkConfig.clients,
@@ -344,25 +342,25 @@ function appendCurlCertificateFlags(
       parsed.port,
       parsed.protocol) as any;
   if (!client || !client.enabled) {
-    return;
+    return Object.keys(options).length > 0 ? options : undefined;
   }
 
   if (client.pfxPath) {
-    parts.push('--cert-type', 'P12');
-    const certValue = client.passphrase_plain ?
+    options.certType = 'P12';
+    options.cert = client.passphrase_plain ?
       `${client.pfxPath}:${client.passphrase_plain}` :
       client.pfxPath;
-    parts.push('--cert', quoteCurlArgument(shellKind, certValue));
-    return;
+    return options;
   }
 
   if (client.certPath && client.keyPath) {
-    parts.push('--cert', quoteCurlArgument(shellKind, client.certPath));
-    parts.push('--key', quoteCurlArgument(shellKind, client.keyPath));
+    options.cert = client.certPath;
+    options.key = client.keyPath;
     if (client.passphrase_plain) {
-      parts.push('--pass', quoteCurlArgument(shellKind, client.passphrase_plain));
+      options.pass = client.passphrase_plain;
     }
   }
+  return Object.keys(options).length > 0 ? options : undefined;
 }
 
 function detectCurlShellKind(): CurlShellKind {
@@ -392,53 +390,6 @@ function detectCurlShellKind(): CurlShellKind {
     return 'powershell';
   }
   return 'posix';
-}
-
-function quoteCurlArgument(shellKind: CurlShellKind, value: string): string {
-  if (shellKind === 'powershell') {
-    return `'${value.replace(/'/g, "''")}'`;
-  }
-  if (shellKind === 'cmd') {
-    return `"${value.replace(/"/g, '\\"')}"`;
-  }
-  return `'${value.replace(/'/g, "'\\''")}'`;
-}
-
-function stringifyCurlValue(value: unknown): string {
-  if (value === undefined || value === null || value === '') {
-    return '';
-  }
-  return String(value);
-}
-
-function stringifyCurlBody(body: unknown): string {
-  if (body === undefined || body === null || body === '') {
-    return '';
-  }
-  if (typeof body === 'string') {
-    return body;
-  }
-  return JSON.stringify(body);
-}
-
-function buildCurlUrl(url: string, query: Record<string, unknown>): string {
-  const queryPairs = Object.entries(query)
-      .map(([key, value]) => [key, stringifyCurlValue(value)] as const)
-      .filter(([, value]) => value);
-  if (!queryPairs.length) {
-    return url;
-  }
-
-  try {
-    const parsed = new URL(url);
-    queryPairs.forEach(([key, value]) => parsed.searchParams.set(key, value));
-    return parsed.toString();
-  } catch {
-    const params = new URLSearchParams();
-    queryPairs.forEach(([key, value]) => params.set(key, value));
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}${params.toString()}`;
-  }
 }
 
 function parseCurlUrl(url: string): {hostname: string; port: string; protocol: string} | undefined {
