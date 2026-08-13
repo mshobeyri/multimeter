@@ -6,7 +6,7 @@ import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraint
 import { testToYaml } from 'mmt-core/testParsePack';
 
 import { FileContext } from '../fileContext';
-import { setEnvironmentVariable } from '../environment/environmentUtils';
+import { setEnvironmentVariables } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
@@ -281,12 +281,16 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
             }
 
             if (scope === 'setenv') {
-                const name = typeof message.name === 'string' ? message.name : '';
-                const value = message.value;
+                const variables = (message as any).variables;
                 const testTitle = typeof (message as any).testTitle === 'string' ? (message as any).testTitle : undefined;
                 const label = testTitle ? `test - ${testTitle}` : 'test';
-                if (name) {
-                    setEnvironmentVariable(name, value, label);
+                if (variables && typeof variables === 'object') {
+                    const updates = Object.entries(variables)
+                        .filter(([name, value]) => typeof name === 'string' && name && value != null && value !== '')
+                        .map(([name, value]) => ({name, value: value as string | number | boolean, label}));
+                    if (updates.length > 0) {
+                        setEnvironmentVariables(updates);
+                    }
                 }
                 return;
             }

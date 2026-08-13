@@ -6,7 +6,7 @@ import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
 import {runJSCode} from './jsRunner';
 import {TestContext, variableReplacer} from './JSerTest';
-import {assertToJSfunc, checkToJSfunc, conditionalStatementToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
+import {assertToJSfunc, checkToJSfunc, conditionalStatementToJSfunc, flowStagesToJsfunc, parseExpectValue, setenvToJSfunc} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 import {normalizeReportConfig} from './TestData';
 import {OMIT_SENTINEL} from './omitKeyword';
@@ -27,6 +27,17 @@ describe('normalizeReportConfig', () => {
     expect(normalizeReportConfig({ internal: 'none' })).toEqual({ internal: 'none', external: 'fails' });
     expect(normalizeReportConfig({ external: 'all' })).toEqual({ internal: 'all', external: 'all' });
     expect(normalizeReportConfig({ internal: 'fails', external: 'none' })).toEqual({ internal: 'fails', external: 'none' });
+  });
+});
+
+describe('setenvToJSfunc', () => {
+  it('emits one setenv_ call for multiple keys', () => {
+    const js = setenvToJSfunc({ xxx: 111, yyy: 12121 }, true);
+    expect(js).toBe('setenv_({ "xxx": 111, "yyy": 12121 });');
+  });
+
+  it('returns empty string when not root', () => {
+    expect(setenvToJSfunc({ xxx: 111 }, false)).toBe('');
   });
 });
 
@@ -1020,7 +1031,7 @@ Authorization: Bearer {{token}}
     expect(js).toContain('const requests = requests_;');
     expect(js).toContain('https://test.mmt.dev/echo');
     expect(js).toContain('https://test.mmt.dev/headers');
-    expect(js).toContain('setenv_("token"');
+    expect(js).toContain('setenv_({ "token"');
     expect(js).toContain('request_1');
     expect(js).toContain('Bearer');
     expect(js).toContain('envVariables.token');

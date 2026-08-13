@@ -76,8 +76,7 @@ export interface SuiteRunFinishedEvent {
 
 export interface SetEnvReporterEvent {
   scope: 'setenv';
-  name: string;
-  value: any;
+  variables: Record<string, any>;
   runId?: string;
   id?: string;
   timestamp?: number;

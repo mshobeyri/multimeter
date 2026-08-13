@@ -38,6 +38,8 @@ Set environment variables during a run. This is mainly useful when you run a tes
     user_id: "${me.id}"
 ```
 
+All keys in one `setenv` step are applied together (one atomic update to the runtime environment).
+
 Notes:
 - Values can be strings (template strings supported) or non-string literals.
 - When running a suite, setenv events are still emitted but may be scoped to the top-level run behavior.

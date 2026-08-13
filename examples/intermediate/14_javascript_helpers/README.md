@@ -40,7 +40,7 @@ Demonstrates **`js` steps**, **imported JS helpers**, and **runner globals** lik
   | Global | Description |
   |--------|-------------|
   | `Random.*` | `randomUUID()`, `randomEmail()`, `randomInt()`, etc. |
-  | `setenv_(name, value)` | Set an environment variable at runtime |
+  | `setenv_(vars)` | Set environment variables at runtime from an object |
   | `report_(type, comparison, title, details, passed)` | Emit a check/assert result |
   | `console.log/warn/error` | Log to the output panel |
   | `send_(request)` | Send an HTTP request directly |
