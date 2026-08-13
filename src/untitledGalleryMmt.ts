@@ -25,7 +25,7 @@ export async function openUntitledMmtWithContent(
     options?: {
       suggestedName?: string;
       viewColumn?: vscode.ViewColumn;
-    }): Promise<void> {
+    }): Promise<vscode.Uri> {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   const filename = sanitizeUntitledFilename(options?.suggestedName || 'untitled.mmt');
   const uri =
@@ -44,6 +44,7 @@ export async function openUntitledMmtWithContent(
   const viewColumn = options?.viewColumn ?? vscode.ViewColumn.Active;
   await vscode.commands.executeCommand(
       'vscode.openWith', uri, 'mmt.editor', {preview: false, viewColumn});
+  return uri;
 }
 
 function sanitizeUntitledFilename(name: string): string {

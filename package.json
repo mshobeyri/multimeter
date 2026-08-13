@@ -299,6 +299,17 @@
         }
       },
       {
+        "command": "multimeter.start.newRequest",
+        "title": "New POST Request",
+        "category": "Multimeter",
+        "icon": "$(send)"
+      },
+      {
+        "command": "multimeter.getStarted.reset",
+        "title": "Reset Get Started",
+        "category": "Multimeter"
+      },
+      {
         "command": "multimeter.history.clear",
         "title": "Clear History",
         "icon": "$(clear-all)"
@@ -365,16 +376,25 @@
     "views": {
       "multimeter-activitybar": [
         {
+          "id": "multimeter.start",
+          "name": "Get Started",
+          "icon": "$(send)",
+          "type": "webview",
+          "visibility": "collapsed"
+        },
+        {
           "id": "multimeter.mock.server",
           "name": "Mock Server",
           "icon": "res/activity.png",
-          "type": "webview"
+          "type": "webview",
+          "visibility": "collapsed"
         },
         {
           "id": "multimeter.connections",
           "name": "Connections",
           "icon": "res/activity.png",
-          "type": "webview"
+          "type": "webview",
+          "visibility": "collapsed"
         }
       ],
       "multimeter-panel": [
@@ -467,6 +487,12 @@
       "commandPalette": [
         {
           "command": "multimeter.apiTest.new"
+        },
+        {
+          "command": "multimeter.start.newRequest"
+        },
+        {
+          "command": "multimeter.getStarted.reset"
         },
         {
           "command": "multimeter.convert.toMmt"

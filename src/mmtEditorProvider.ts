@@ -6,13 +6,17 @@ import {withNewline} from 'mmt-core/textLines';
 import {HistoryManager} from './historyManager';
 import {keepMmtEditorSoon} from './keepEditor';
 import {messageReceived} from './mmtAPI/mmtAPI';
+import {handleRunCurrentDocument} from './mmtAPI/run';
 import {buildThemeTokenMessage} from './themeTokenColors';
+import {getOnboarding} from './onboarding';
 
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
   private activeWebviewPanels: Set<vscode.WebviewPanel> = new Set();
   private fileReadTimeouts: Map<vscode.WebviewPanel, NodeJS.Timeout> =
       new Map();
+  private lastOpened?:
+      {document: vscode.TextDocument; panel: vscode.WebviewPanel};
   private diagnostics: vscode.DiagnosticCollection;
   public readonly historyManager: HistoryManager;
   // Tracks pending webview-initiated edits per document URI so that the
@@ -78,15 +82,41 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   public showPanel(panelId: 'full'|'ui'|'yaml') {
     const message = {command: 'multimeter.mmt.show.panel', panelId};
 
-    // Prefer sending to the active panel only
     const activePanel =
         Array.from(this.activeWebviewPanels).find(panel => panel.active);
     if (activePanel) {
       this.postMessageToPanel(activePanel, message);
     } else {
-      // Fallback to broadcasting when no active panel is found
       this.sendMessageToAllPanels(message);
     }
+  }
+
+  public getLastOpenedUri(): vscode.Uri|undefined {
+    return this.lastOpened?.document.uri;
+  }
+
+  public async runOpenedDocument(uri: vscode.Uri): Promise<void> {
+    const ready = await this.waitForOpened(uri);
+    if (!ready || !this.lastOpened) {
+      return;
+    }
+    await handleRunCurrentDocument(
+        {command: 'runCurrentDocument'}, this.lastOpened.panel,
+        this.lastOpened.document, this);
+  }
+
+  public async waitForOpened(uri: vscode.Uri, timeoutMs = 2500): Promise<boolean> {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      if (this.lastOpened &&
+          this.lastOpened.document.uri.toString() === uri.toString() &&
+          this.activeWebviewPanels.has(this.lastOpened.panel)) {
+        await new Promise(resolve => setTimeout(resolve, 350));
+        return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    return false;
   }
 
   public async resolveCustomTextEditor(
@@ -94,10 +124,15 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       _token: vscode.CancellationToken): Promise<void> {
     // Add this panel to the active panels set
     this.activeWebviewPanels.add(webviewPanel);
+    this.lastOpened = {document, panel: webviewPanel};
+    getOnboarding()?.onOpenedMmt();
 
     // Remove panel when it's disposed
     webviewPanel.onDidDispose(() => {
       this.activeWebviewPanels.delete(webviewPanel);
+      if (this.lastOpened?.panel === webviewPanel) {
+        this.lastOpened = undefined;
+      }
       const timeout = this.fileReadTimeouts.get(webviewPanel);
       if (timeout) {
         clearTimeout(timeout);
@@ -167,32 +202,54 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     });
   }
 
-  updateTextDocument(document: vscode.TextDocument, text: string) {
+  updateTextDocument(
+      document: vscode.TextDocument, text: string,
+      origin: 'webview'|'host' = 'webview') {
     // Monaco / webview always speak LF; VS Code documents on Windows are often
     // CRLF. Convert to the document EOL before compare/replace so we do not
     // full-rewrite on every keystroke (that races echo and jumps the cursor).
     const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
     const normalized = withNewline(String(text ?? ''), eol);
     if (document.getText() === normalized) {
+      if (origin === 'host') {
+        this.syncWebviewDocument(document);
+      }
       return Promise.resolve(true);
     }
     // UI/YAML edits should keep a preview tab open (same idea as a dirty file).
     keepMmtEditorSoon(document.uri);
     const key = document.uri.toString();
-    this._webviewEditCount.set(
-        key, (this._webviewEditCount.get(key) || 0) + 1);
+    if (origin === 'webview') {
+      this._webviewEditCount.set(
+          key, (this._webviewEditCount.get(key) || 0) + 1);
+    }
     const edit = new vscode.WorkspaceEdit();
     const fullRange = new vscode.Range(
         document.positionAt(0), document.positionAt(document.getText().length));
     edit.replace(document.uri, fullRange, normalized);
     return vscode.workspace.applyEdit(edit).then(applied => {
-      if (!applied) {
+      if (!applied && origin === 'webview') {
         const current = this._webviewEditCount.get(key) || 0;
         if (current > 0) {
           this._webviewEditCount.set(key, current - 1);
         }
       }
+      if (applied && origin === 'host') {
+        this.syncWebviewDocument(document);
+      }
       return applied;
+    });
+  }
+
+  private syncWebviewDocument(document: vscode.TextDocument): void {
+    if (!this.lastOpened ||
+        this.lastOpened.document.uri.toString() !== document.uri.toString()) {
+      return;
+    }
+    this.lastOpened.panel.webview.postMessage({
+      command: 'documentContentChanged',
+      uri: document.uri.toString(),
+      content: document.getText(),
     });
   }
 }

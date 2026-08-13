@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+import {getOnboarding} from '../onboarding';
 import {buildThemeTokenMessage, MmtTokenColors} from '../themeTokenColors';
 
 class HistoryPanel implements vscode.WebviewViewProvider {
@@ -90,6 +91,14 @@ class HistoryPanel implements vscode.WebviewViewProvider {
       }
     });
     this.updateHistoryView(webviewView);
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        getOnboarding()?.onBottomPanelOpened();
+      }
+    });
+    if (webviewView.visible) {
+      getOnboarding()?.onBottomPanelOpened();
+    }
   }
 
   getHtml(history: any[], tokenColors: MmtTokenColors, openIdx: number|null) {

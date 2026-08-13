@@ -16,6 +16,7 @@ import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 import {onRunStarted, onRunFinished} from '../runStatusBar';
 import {keepMmtEditorSoon} from '../keepEditor';
+import {getOnboarding} from '../onboarding';
 import {
   createWebviewRunReporter,
   resolveWebviewReportType,
@@ -350,6 +351,9 @@ export async function handleRunCurrentDocument(
           webviewPanel, document.uri.toString(),
           result.cancelled ? null : buildApiTesterResponse(result.outputs),
           !!result.cancelled);
+      if (!result.cancelled) {
+        getOnboarding()?.onApiRun(rawFile);
+      }
     }
 
     if (uiReporter.notifyHost) {

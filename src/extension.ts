@@ -11,11 +11,14 @@ import ConnectionsPanel from './panels/ConnectionsPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
+import StartPanel, {openSimplePostRequest} from './panels/StartPanel';
+import {initOnboarding, OnboardingController, getOnboarding} from './onboarding';
 import {registerRunStatusBar} from './runStatusBar';
 import {openUntitledGalleryMmt} from './untitledGalleryMmt';
 import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 
 export function activate(context: vscode.ExtensionContext) {
+  const onboarding = initOnboarding(context);
   const historyManager = new HistoryManager(context.globalStorageUri);
   const mmtviewPanel = new MmtEditorProvider(context, historyManager);
 
@@ -23,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerDocumentLinks(context);
 
   const {historyPanel, environmentPanel, connectionsPanel} =
-      registerSidePanels(context, historyManager);
+      registerSidePanels(context, historyManager, onboarding);
 
   registerConnectionsCommands(context, connectionsPanel);
   registerHistoryCommands(context, historyPanel, historyManager);
@@ -90,10 +93,15 @@ function registerEditorProvider(
 }
 
 function registerSidePanels(
-    context: vscode.ExtensionContext, historyManager: HistoryManager): {
+    context: vscode.ExtensionContext, historyManager: HistoryManager,
+    onboarding: OnboardingController): {
   historyPanel: HistoryPanel; environmentPanel: EnvironmentPanel;
   connectionsPanel: ConnectionsPanel;
 } {
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider(
+      StartPanel.viewType, new StartPanel(context, onboarding),
+      {webviewOptions: {retainContextWhenHidden: true}}));
+
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       'multimeter.mock.server', new MockServerPanel(context, historyManager),
       {webviewOptions: {retainContextWhenHidden: true}}));
@@ -176,6 +184,11 @@ function registerEnvironmentCommands(
   });
 
   context.subscriptions.push(vscode.commands.registerCommand(
+      'multimeter.environment.startAdd', () => {
+        environmentPanel.startAddVariable();
+      }));
+
+  context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.environment.loadFromFile', async () => {
         // Force reload when manually triggered (overwrites existing values)
         await loadWorkspaceEnvFile(context, true);
@@ -193,6 +206,17 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.apiTest.new', async () => {
         await openUntitledGalleryMmt();
+      }));
+
+  context.subscriptions.push(
+      vscode.commands.registerCommand(
+          'multimeter.start.newRequest', async () => {
+            await openSimplePostRequest();
+          }));
+
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.getStarted.reset', async () => {
+        await getOnboarding()?.reset();
       }));
 
   context.subscriptions.push(vscode.commands.registerCommand(

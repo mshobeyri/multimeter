@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+import {getOnboarding} from '../onboarding';
+
 export interface EnvironmentVar {
   name: string;
   label: string;
@@ -31,17 +33,19 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.getHtmlForWebview();
 
 
-    // Refresh environment variables when the we open the view
+    this.refreshEnvironmentVars();
+
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
+        getOnboarding()?.onBottomPanelOpened();
         setTimeout(() => {
           this.refreshEnvironmentVars();
         }, 100);
       }
     });
-    
-    // Refresh environment variables when reload window
-    this.refreshEnvironmentVars();
+    if (webviewView.visible) {
+      getOnboarding()?.onBottomPanelOpened();
+    }
 
     webviewView.webview.onDidReceiveMessage(async message => {
       switch (message.type) {
@@ -100,6 +104,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
               'multimeter.environment.storage', environmentVars);
           await vscode.commands.executeCommand('multimeter.environment.refresh');
           this.refreshEnvironmentVars();
+          getOnboarding()?.onEnvVariableCreated();
           break;
         }
         case 'multimeter.environment.delete': {
@@ -134,6 +139,17 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     html = html.replace('</head>', `<style>${css}</style></head>`);
 
     return html;
+  }
+
+  startAddVariable(): void {
+    const send = () => {
+      this.view?.webview.postMessage({
+        command: 'multimeter.environment.startAdd',
+      });
+    };
+    send();
+    setTimeout(send, 200);
+    setTimeout(send, 500);
   }
 
   refreshEnvironmentVars() {
