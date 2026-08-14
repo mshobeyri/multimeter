@@ -1,19 +1,17 @@
 import * as vscode from 'vscode';
 
-const STATE_KEY = 'multimeter.onboarding.levels.v6';
-const ENV_TOKEN = /<<e:base_url>>/;
+const STATE_KEY = 'multimeter.onboarding.levels.v7';
 
-export type OnboardingLevelId = 'welcome'|'firstRequest'|'envVariable';
+export type OnboardingLevelId = 'welcome'|'firstRequest';
 export type OnboardingTaskId =
     'welcome'|'createFile'|'typePost'|'sendFirst'|'changeBody'|'sendAgain'|
-    'saveFile'|'openBottomPanel'|'createEnv'|'useInSample'|'sendWithEnv';
+    'saveFile';
 
 export interface OnboardingTaskInfo {
   id: OnboardingTaskId;
   title: string;
   icon: string;
   how: string[];
-  button: string;
   sample?: string;
 }
 
@@ -43,7 +41,6 @@ export const ONBOARDING_LEVELS: OnboardingLevelInfo[] = [
         id: 'welcome',
         title: 'Welcome to Multimeter',
         icon: 'info',
-        button: 'Your first request',
         how: [
           '`.mmt` files are YAML. Open one like any other file, edit it, and commit it.',
           '`type:` at the top sets what the file is: `api`, `test`, `env`, `suite`, and more.',
@@ -63,7 +60,6 @@ export const ONBOARDING_LEVELS: OnboardingLevelInfo[] = [
         id: 'createFile',
         title: 'Create a .mmt file',
         icon: 'new-file',
-        button: 'create a .mmt file',
         how: [
           'Create a `.mmt` file in your project, or [create one now](how).',
         ],
@@ -72,7 +68,6 @@ export const ONBOARDING_LEVELS: OnboardingLevelInfo[] = [
         id: 'typePost',
         title: 'Write type: api for a POST',
         icon: 'edit',
-        button: 'write a simple POST',
         how: [
           'On the left YAML, type this POST. Do not type in the right panel.',
           'Or [Fill in a sample](how).',
@@ -90,7 +85,6 @@ body:
         id: 'sendFirst',
         title: 'Send the first POST',
         icon: 'send',
-        button: 'Send the POST',
         how: [
           'Click [Send](how) to send the request to the server. The response appears on the right.',
         ],
@@ -99,7 +93,6 @@ body:
         id: 'changeBody',
         title: 'Change the body message',
         icon: 'edit',
-        button: 'change the message',
         how: [
           'On the left YAML, [change the message](how). Do not type in the right panel.',
         ],
@@ -108,7 +101,6 @@ body:
         id: 'sendAgain',
         title: 'Send again',
         icon: 'refresh',
-        button: 'Send again',
         how: [
           'Click [Send](how) again. The response should show the new `message`.',
         ],
@@ -117,63 +109,13 @@ body:
         id: 'saveFile',
         title: 'Save the file',
         icon: 'save',
-        button: 'Save the file',
         how: [
           '[Save](how) the left YAML (`Cmd+S` / `Ctrl+S`). The right side is temporary.',
         ],
       },
     ],
   },
-  {
-    id: 'envVariable',
-    title: 'Environment variables',
-    icon: 'star-empty',
-    iconColor: '#facc15',
-    illustration: 'environment.svg',
-    tasks: [
-      {
-        id: 'openBottomPanel',
-        title: 'Open Multimeter tab from bottom panel (ctrl+~)',
-        icon: 'layout-panel',
-        button: 'open the Multimeter tab',
-        how: [
-          '[Open the Multimeter tab](how) from the bottom panel (`Ctrl+~`).',
-        ],
-      },
-      {
-        id: 'createEnv',
-        title: 'Click + and type a variable',
-        icon: 'add',
-        button: 'show the + fields',
-        how: [
-          '[Click +](how), type `base_url` and `https://test.mmt.dev`, then Add.',
-        ],
-      },
-      {
-        id: 'useInSample',
-        title: 'Use it in the sample',
-        icon: 'replace',
-        button: 'set url to `<<e:base_url>>/echo`',
-        how: [
-          'On the left, [set `url`](how) to `<<e:base_url>>/echo`. Do not type in the right panel.',
-        ],
-      },
-      {
-        id: 'sendWithEnv',
-        title: 'Send the request',
-        icon: 'play',
-        button: 'Send the request',
-        how: [
-          'Click [Send](how). It should still reach the echo server.',
-        ],
-      },
-    ],
-  },
 ];
-
-export function usesEnvToken(raw: string): boolean {
-  return ENV_TOKEN.test(String(raw || ''));
-}
 
 export function looksLikeSimplePost(raw: string): boolean {
   const text = String(raw || '');
@@ -221,6 +163,26 @@ function currentTaskId(tasks: Record<OnboardingTaskId, boolean>):
     OnboardingTaskId|null {
   const task = allTasks().find(item => !tasks[item.id]);
   return task ? task.id : null;
+}
+
+export function coachTargetForTask(task: OnboardingTaskId|null): string {
+  if (task === 'createFile') {
+    return 'gallery';
+  }
+  if (task === 'sendFirst' || task === 'sendAgain') {
+    return 'send';
+  }
+  if (task === 'typePost' || task === 'changeBody') {
+    return 'yaml';
+  }
+  return '';
+}
+
+function nextStepTitle(currentId: OnboardingTaskId|null): string {
+  const tasks = allTasks();
+  const index = tasks.findIndex(task => task.id === currentId);
+  const next = index >= 0 ? tasks[index + 1] : undefined;
+  return next?.title || "You're ready";
 }
 
 export interface OnboardingSnapshot {
@@ -334,7 +296,7 @@ export class OnboardingController {
       currentTaskId: currentId,
       howTitle: currentTask?.title || '',
       howParagraphs: currentTask?.how || [],
-      howButton: currentTask?.button || '',
+      howButton: nextStepTitle(currentId),
       howIcon: currentTask?.icon || 'play',
       howSample: currentTask?.sample || '',
     };
@@ -368,27 +330,37 @@ export class OnboardingController {
       this.mark('changeBody');
       this.mark('sendAgain');
     }
-    if (usesEnvToken(rawFile)) {
-      this.mark('useInSample');
-      this.mark('sendWithEnv');
-    }
-  }
-
-  onBottomPanelOpened(): void {
-    this.mark('openBottomPanel');
-  }
-
-  onEnvVariableCreated(): void {
-    this.mark('createEnv');
-  }
-
-  async revealEnvAndHistory(): Promise<void> {
-    await vscode.commands.executeCommand('multimeter.history.show');
-    await vscode.commands.executeCommand('multimeter.environment.focus');
   }
 
   collapsePanel(): void {
     void collapseGetStartedPanel();
+  }
+
+  completeCurrentLevel(): void {
+    const currentId = currentTaskId(this.state.tasks);
+    if (!currentId) {
+      return;
+    }
+    const currentLevel = ONBOARDING_LEVELS.find(
+        level => level.tasks.some(task => task.id === currentId));
+    if (!currentLevel) {
+      return;
+    }
+    let changed = false;
+    for (const task of currentLevel.tasks) {
+      if (!this.state.tasks[task.id]) {
+        this.state.tasks[task.id] = true;
+        changed = true;
+      }
+    }
+    if (!changed) {
+      return;
+    }
+    if (!currentTaskId(this.state.tasks)) {
+      this.scheduleCollapse();
+    }
+    void this.persist();
+    this.emit();
   }
 
   mark(task: OnboardingTaskId): void {
@@ -426,9 +398,6 @@ export class OnboardingController {
         this.state.firstSendMessage !== undefined &&
         message !== this.state.firstSendMessage) {
       this.mark('changeBody');
-    }
-    if (usesEnvToken(rawFile)) {
-      this.mark('useInSample');
     }
   }
 

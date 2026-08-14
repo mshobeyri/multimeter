@@ -8,7 +8,7 @@ import {keepMmtEditorSoon} from './keepEditor';
 import {messageReceived} from './mmtAPI/mmtAPI';
 import {handleRunCurrentDocument} from './mmtAPI/run';
 import {buildThemeTokenMessage} from './themeTokenColors';
-import {getOnboarding} from './onboarding';
+import {getOnboarding, coachTargetForTask, OnboardingTaskId} from './onboarding';
 
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
@@ -36,6 +36,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     this.diagnostics =
         vscode.languages.createDiagnosticCollection('multimeter');
     this.context.subscriptions.push(this.diagnostics);
+    const onboarding = getOnboarding();
+    if (onboarding) {
+      this.context.subscriptions.push(onboarding.onChange(snapshot => {
+        this.syncCoachArrow(snapshot.currentTaskId);
+      }));
+    }
   }
 
   // Method to send message to all active webview panels
@@ -91,6 +97,13 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     }
   }
 
+  private syncCoachArrow(taskId: OnboardingTaskId|null): void {
+    this.sendMessageToAllPanels({
+      command: 'multimeter.coachArrow',
+      target: coachTargetForTask(taskId),
+    });
+  }
+
   public getLastOpenedUri(): vscode.Uri|undefined {
     return this.lastOpened?.document.uri;
   }
@@ -143,6 +156,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
     webviewPanel.webview.options = {
       enableScripts: true,
+      localResourceRoots: [this.context.extensionUri],
     };
 
     const htmlPath =
@@ -151,16 +165,25 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     const buildPath = path.join(this.context.extensionPath, 'mmtview', 'build');
     const fixUri = (file: string) => webviewPanel.webview.asWebviewUri(
         vscode.Uri.file(path.join(buildPath, file)));
+    const coachUri = webviewPanel.webview.asWebviewUri(
+        vscode.Uri.joinPath(this.context.extensionUri, 'res', 'coachArrow.js'));
     // Replace all src/href with webview-safe URIs
     let html =
         htmlContent
             .replace(/src="(.+?)"/g, (match, p1) => `src="${fixUri(p1)}"`)
-            .replace(/href="(.+?)"/g, (match, p1) => `href="${fixUri(p1)}"`);
+            .replace(/href="(.+?)"/g, (match, p1) => `href="${fixUri(p1)}"`)
+            .replace('</body>', `<script src="${coachUri}"></script></body>`);
 
     webviewPanel.webview.html = html;
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
       messageReceived(message, webviewPanel, document, this);
     });
+
+    const pushCoach = () => {
+      this.syncCoachArrow(getOnboarding()?.snapshot().currentTaskId || null);
+    };
+    setTimeout(pushCoach, 400);
+    setTimeout(pushCoach, 1200);
 
     // Push current theme token colors as soon as the webview is ready.
     setTimeout(() => {

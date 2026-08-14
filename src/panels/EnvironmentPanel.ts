@@ -2,8 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import {getOnboarding} from '../onboarding';
-
 export interface EnvironmentVar {
   name: string;
   label: string;
@@ -37,15 +35,11 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        getOnboarding()?.onBottomPanelOpened();
         setTimeout(() => {
           this.refreshEnvironmentVars();
         }, 100);
       }
     });
-    if (webviewView.visible) {
-      getOnboarding()?.onBottomPanelOpened();
-    }
 
     webviewView.webview.onDidReceiveMessage(async message => {
       switch (message.type) {
@@ -104,7 +98,6 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
               'multimeter.environment.storage', environmentVars);
           await vscode.commands.executeCommand('multimeter.environment.refresh');
           this.refreshEnvironmentVars();
-          getOnboarding()?.onEnvVariableCreated();
           break;
         }
         case 'multimeter.environment.delete': {
@@ -135,7 +128,6 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     let html = fs.readFileSync(htmlPath, 'utf8');
     const css = fs.readFileSync(cssPath, 'utf8');
 
-    // Inject CSS into HTML head
     html = html.replace('</head>', `<style>${css}</style></head>`);
 
     return html;

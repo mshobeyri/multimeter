@@ -24,24 +24,9 @@ body:
   message: hello again
 `;
 
-export const VARIABLE_POST_MMT = `type: api
-title: Request with a variable
-url: <<e:base_url>>/echo
-method: post
-format: json
-body:
-  message: hello again
-`;
-
 export async function openSimplePostRequest(): Promise<vscode.Uri> {
   return openUntitledMmtWithContent(SIMPLE_POST_MMT, {
     suggestedName: 'post.mmt',
-  });
-}
-
-export async function openVariablePostRequest(): Promise<vscode.Uri> {
-  return openUntitledMmtWithContent(VARIABLE_POST_MMT, {
-    suggestedName: 'variable.mmt',
   });
 }
 
@@ -68,6 +53,10 @@ export default class StartPanel implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (message) => {
       if (message?.type === 'ready') {
         this.pushState();
+        return;
+      }
+      if (message?.type === 'completeLevel') {
+        this.onboarding.completeCurrentLevel();
         return;
       }
       if (message?.type === 'showHow') {
@@ -122,36 +111,6 @@ export default class StartPanel implements vscode.WebviewViewProvider {
     }
     if (step === 'saveFile') {
       await vscode.commands.executeCommand('workbench.action.files.save');
-      return;
-    }
-    if (step === 'openBottomPanel') {
-      await this.onboarding.revealEnvAndHistory();
-      this.onboarding.mark('openBottomPanel');
-      return;
-    }
-    if (step === 'createEnv') {
-      await this.onboarding.revealEnvAndHistory();
-      await new Promise(resolve => setTimeout(resolve, 250));
-      await vscode.commands.executeCommand('multimeter.environment.startAdd');
-      return;
-    }
-    if (step === 'useInSample') {
-      const uri = editor?.getLastOpenedUri();
-      if (uri) {
-        const document = await vscode.workspace.openTextDocument(uri);
-        const next = document.getText().replace(
-            /url:\s*(?:https:\/\/test\.mmt\.dev(?:\/echo)?|e:base_url\/echo)/,
-            'url: <<e:base_url>>/echo');
-        await this.replaceDocument(
-            uri, next.includes('<<e:base_url>>') ? next : VARIABLE_POST_MMT);
-        return;
-      }
-      await openVariablePostRequest();
-      return;
-    }
-    if (step === 'sendWithEnv') {
-      const uri = editor?.getLastOpenedUri() || await openVariablePostRequest();
-      await editor?.runOpenedDocument(uri);
     }
   }
 
