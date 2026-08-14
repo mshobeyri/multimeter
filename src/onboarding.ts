@@ -182,7 +182,7 @@ function nextStepTitle(currentId: OnboardingTaskId|null): string {
   const tasks = allTasks();
   const index = tasks.findIndex(task => task.id === currentId);
   const next = index >= 0 ? tasks[index + 1] : undefined;
-  return next?.title || "You're ready";
+  return next?.title || "Congratulations, You're ready";
 }
 
 export interface OnboardingSnapshot {

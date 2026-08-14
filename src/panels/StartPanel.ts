@@ -50,6 +50,12 @@ export default class StartPanel implements vscode.WebviewViewProvider {
       localResourceRoots: [this.context.extensionUri],
     };
     webviewView.webview.html = this.getHtml();
+    webviewView.onDidChangeVisibility(() => {
+      if (!webviewView.visible) {
+        return;
+      }
+      webviewView.webview.html = this.getHtml();
+    });
     webviewView.webview.onDidReceiveMessage(async (message) => {
       if (message?.type === 'ready') {
         this.pushState();
@@ -61,6 +67,10 @@ export default class StartPanel implements vscode.WebviewViewProvider {
       }
       if (message?.type === 'showHow') {
         await this.showHow(message.step);
+        return;
+      }
+      if (message?.type === 'openUrl') {
+        await this.openUrl(message.url);
         return;
       }
     });
@@ -140,8 +150,35 @@ export default class StartPanel implements vscode.WebviewViewProvider {
       state: {
         ...snapshot,
         illustrationUri: this.illustrationUri(snapshot.illustration),
+        readyIllustrationUri: this.illustrationUri('ready.svg'),
+        doneTitle: "Congratulations, You're ready",
+        exploreHeading: 'Explore more',
+        nextStepsHeading: 'Next steps',
       },
     });
+  }
+
+  private async openUrl(raw: unknown): Promise<void> {
+    const url = typeof raw === 'string' ? raw.trim() : '';
+    if (!url) {
+      return;
+    }
+    let uri: vscode.Uri;
+    try {
+      uri = vscode.Uri.parse(url, true);
+    } catch {
+      return;
+    }
+    if (uri.scheme !== 'https') {
+      return;
+    }
+    const host = uri.authority.toLowerCase();
+    const allowed = host === 'mmt.dev' || host === 'github.com' ||
+        host === 'marketplace.visualstudio.com' || host === 'storyset.com';
+    if (!allowed) {
+      return;
+    }
+    await vscode.env.openExternal(uri);
   }
 
   private illustrationUri(fileName: string): string {

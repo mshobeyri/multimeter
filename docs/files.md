@@ -38,11 +38,30 @@ tags:
   - auth
 ```
 
-## Edit mode
+## YAML and UI
 
-Each file type opens with a **run / preview** view on the right. Click {{btn:edit:Edit}} there to switch into **edit mode** for that section — structured fields, tabs, and forms instead of raw YAML.
+Every `.mmt` file opens as a **split editor**:
 
-Use the back control on the edit header to return to the run / preview view. You can still edit the YAML directly in the left editor at any time; the right panel stays in sync.
+- **Left** — YAML. This is the file on disk. Commit it, review it in pull requests, and run it from the CLI.
+- **Right** — a UI for that file type: API tester, test runner, environment editor, and so on.
+
+![YAML on the left and API tester UI on the right](./screenshots/yaml-ui-split.png)
+
+The two panes stay in sync while you edit YAML. Click {{btn:edit:Edit}} on the right to switch that pane into **edit mode** (forms and tabs instead of the run / preview view). Use the back control on the edit header to return.
+
+You can always edit the YAML directly. The right panel follows, except when the **API tester** has temporary UI changes that are not in the file yet — see [API](./files/api/index.md#temporary-ui-changes).
+
+### Show YAML, UI, or both
+
+The editor title bar (top right of the `.mmt` tab) has three layout buttons:
+
+| Control | What it does |
+|---|---|
+| {{btn:layout-sidebar-left:Hide YAML}} | Show only the UI pane |
+| {{btn:layout-sidebar-right:Hide UI}} | Show only the YAML pane |
+| {{btn:layout-centered:Show both}} | Show YAML and UI side by side |
+
+The default is both. Change that with `multimeter.editor.defaultPanel` (`yaml-ui`, `yaml`, or `ui`).
 
 ## Next steps
 

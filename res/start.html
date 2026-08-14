@@ -38,19 +38,6 @@
       display: block;
     }
 
-    .start-credit {
-      display: none;
-      margin: -4px 0 12px;
-      font-size: 10px;
-      color: var(--description-foreground);
-      opacity: 0.7;
-      text-align: center;
-    }
-
-    .start-credit.is-visible {
-      display: block;
-    }
-
     .start-level-icon {
       display: none;
       text-align: center;
@@ -245,22 +232,125 @@
     .start-done {
       display: none;
       text-align: center;
-      padding: 16px 8px;
+      padding: 4px 2px 12px;
     }
 
     .start-done.is-visible {
       display: block;
     }
 
+    .start-done .start-illustration {
+      display: block;
+    }
+
     .start-done-title {
+      font-size: 16px;
       font-weight: 700;
-      margin: 0 0 4px;
+      letter-spacing: -0.03em;
+      margin: 0 0 14px;
+    }
+
+    .start-done-links {
+      text-align: left;
+    }
+
+    .start-done-heading {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0 0 8px;
+    }
+
+    .start-done-heading:not(:first-child) {
+      margin-top: 16px;
+    }
+
+    .start-done-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .start-done-footer {
+      margin: 20px 0 8px;
+      padding: 18px 4px 4px;
+      border-top: 1px solid var(--vscode-editorWidget-border, #444);
+    }
+
+    .start-done-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .start-done-cta {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      margin: 0;
+      padding: 3px 10px;
+      border: none;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--vscode-foreground, var(--foreground));
+      cursor: pointer;
+      text-decoration: none;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .start-done-cta + .start-done-cta::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 1px;
+      height: 11px;
+      transform: translateY(-50%);
+      background: var(--vscode-editorWidget-border, #555);
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .start-done-cta:hover {
+      background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+    }
+
+    .start-done-cta .codicon {
+      font-size: 12px;
     }
 
     .start-done-copy {
-      margin: 0;
+      margin: 8px 0 0;
       color: var(--description-foreground);
-      font-size: 12px;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .start-done-credit {
+      margin: 14px 0 0;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.4;
+      color: var(--vscode-descriptionForeground, var(--description-foreground));
+      opacity: 0.7;
+    }
+
+    .start-done-credit a {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
   </style>
 </head>
@@ -271,7 +361,6 @@
       <div id="progressBar" class="start-progress-bar"></div>
     </div>
     <img id="illustration" class="start-illustration" alt="" />
-    <p id="illustrationCredit" class="start-credit">Illustrations by Storyset</p>
     <div id="levelIcon" class="start-level-icon" aria-hidden="true">
       <span class="codicon codicon-smiley"></span>
     </div>
@@ -290,8 +379,75 @@
   </div>
 
   <div id="startDone" class="start-done">
-    <p class="start-done-title">You're ready</p>
+    <img id="doneIllustration" class="start-illustration" alt="" />
+    <p class="start-done-title">Congratulations, You're ready</p>
+    <div class="start-done-links">
+      <p class="start-done-heading">Explore more</p>
+      <ul class="start-done-list">
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/files">Docs overview</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/files/api">More details about API file</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/files/env/ui">Create env variables</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/files/env/quick-start">Create env variable files</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/files/test/quick-start">Write a test</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/files/suite/quick-start">Group APIs in a suite</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/files/server/quick-start">Mock a server</a>
+        </li>
+      </ul>
+      <p class="start-done-heading">Next steps</p>
+      <ul class="start-done-list">
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/features/dynamic-values">Use dynamic values</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/files/api/auth">Add authentication</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/tasks/generate-docs">Generate API docs</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/tasks/run-in-ci">Run tests in CI</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/integration/openapi">Import OpenAPI</a>
+        </li>
+        <li>
+          <a class="start-action" href="#" data-url="https://mmt.dev/docs/features/mcp">Use MCP</a>
+        </li>
+      </ul>
+    </div>
+    <div class="start-done-footer">
+      <div class="start-done-ctas" role="group" aria-label="Community links">
+        <a class="start-done-cta" href="#" data-url="https://github.com/mshobeyri/multimeter/issues/new">
+          <span class="codicon codicon-comment-discussion" aria-hidden="true"></span>
+          Ask a question
+        </a>
+        <a class="start-done-cta" href="#" data-url="https://github.com/mshobeyri/multimeter">
+          <span class="codicon codicon-github" aria-hidden="true"></span>
+          Star the repo
+        </a>
+        <a class="start-done-cta" href="#" data-url="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter&amp;ssr=false#review-details">
+          <span class="codicon codicon-vscode" aria-hidden="true"></span>
+          Star the extension
+        </a>
+      </div>
+    </div>
     <p class="start-done-copy">Reset Get Started from the command palette if you want this again.</p>
+    <p class="start-done-credit">
+      Illustrations by <a href="#" data-url="https://storyset.com">Storyset</a>
+    </p>
   </div>
 
     <script>
@@ -359,12 +515,27 @@
           : (state && state.currentLevelTitle) || '';
       document.getElementById('startChecklist').style.display = complete ? 'none' : 'block';
       document.getElementById('startDone').classList.toggle('is-visible', complete);
+      const doneTitle = document.querySelector('.start-done-title');
+      if (doneTitle) {
+        doneTitle.textContent = (state && state.doneTitle) || "Congratulations, You're ready";
+      }
+      const headings = document.querySelectorAll('.start-done-heading');
+      if (headings[0]) {
+        headings[0].textContent = (state && state.exploreHeading) || 'Explore more';
+      }
+      if (headings[1]) {
+        headings[1].textContent = (state && state.nextStepsHeading) || 'Next steps';
+      }
       document.getElementById('steps').classList.toggle('is-hidden', !(state && state.showSteps));
 
       const illustration = document.getElementById('illustration');
-      const illustrationCredit = document.getElementById('illustrationCredit');
       const levelIcon = document.getElementById('levelIcon');
+      const doneIllustration = document.getElementById('doneIllustration');
       const illustrationUri = (state && state.illustrationUri) || '';
+      const readyIllustrationUri = (state && state.readyIllustrationUri) || '';
+      if (complete && readyIllustrationUri && doneIllustration.getAttribute('src') !== readyIllustrationUri) {
+        doneIllustration.setAttribute('src', readyIllustrationUri);
+      }
       const iconName = /^[a-z0-9-]+$/i.test((state && state.levelIcon) || '')
           ? state.levelIcon
           : '';
@@ -376,20 +547,17 @@
           illustration.setAttribute('src', illustrationUri);
         }
         illustration.classList.add('is-visible');
-        illustrationCredit.classList.add('is-visible');
         levelIcon.classList.remove('is-visible');
         levelIcon.innerHTML = '';
       } else if (!complete && iconName) {
         illustration.removeAttribute('src');
         illustration.classList.remove('is-visible');
-        illustrationCredit.classList.remove('is-visible');
         levelIcon.style.color = iconColor;
         levelIcon.innerHTML = '<span class="codicon codicon-' + iconName + '"></span>';
         levelIcon.classList.add('is-visible');
       } else {
         illustration.removeAttribute('src');
         illustration.classList.remove('is-visible');
-        illustrationCredit.classList.remove('is-visible');
         levelIcon.style.color = '';
         levelIcon.innerHTML = '';
         levelIcon.classList.remove('is-visible');
@@ -444,6 +612,18 @@
     document.getElementById('howBtn').addEventListener('click', function (event) {
       event.preventDefault();
       vscode.postMessage({ type: 'completeLevel' });
+    });
+
+    document.getElementById('startDone').addEventListener('click', function (event) {
+      const el = event.target.closest ? event.target.closest('a[data-url]') : null;
+      if (!el) {
+        return;
+      }
+      event.preventDefault();
+      const url = el.getAttribute('data-url');
+      if (url) {
+        vscode.postMessage({ type: 'openUrl', url: url });
+      }
     });
 
     vscode.postMessage({ type: 'ready' });

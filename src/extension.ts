@@ -106,14 +106,14 @@ function registerSidePanels(
       'multimeter.mock.server', new MockServerPanel(context, historyManager),
       {webviewOptions: {retainContextWhenHidden: true}}));
 
-  const historyPanel = new HistoryPanel(context);
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.history', historyPanel,
-      {webviewOptions: {retainContextWhenHidden: true}}));
-
   const environmentPanel = new EnvironmentPanel(context);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       'multimeter.environment', environmentPanel,
+      {webviewOptions: {retainContextWhenHidden: true}}));
+
+  const historyPanel = new HistoryPanel(context);
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider(
+      'multimeter.history', historyPanel,
       {webviewOptions: {retainContextWhenHidden: true}}));
 
   const connectionsPanel = new ConnectionsPanel(context);
