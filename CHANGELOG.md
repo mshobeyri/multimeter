@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [testlight 0.4.4]
+
+- Support multiple CLI presets (`-P` / `--preset`, repeatable or comma-separated) and add short flags (`-F`, `-x`, `-r`, `-R`, `-L`)
+- Fix `setenv` so one object update applies all keys atomically
+- Fix Windows pkg binary builds under PowerShell and make Windows icon apply optional in release CI
+
 ## [1.34.0]
 
 - Add a Get Started sidebar that walks through a first POST, with a coach arrow on Send, YAML, and the gallery
