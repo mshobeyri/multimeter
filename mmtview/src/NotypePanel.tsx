@@ -29,7 +29,7 @@ const NOTYPE_CTAS = [
   },
   {
     label: "Add your feedback",
-    url: "https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request.md",
+    url: "https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature_request.yml",
     icon: "feedback" as const,
   },
 ] as const;

@@ -33,7 +33,7 @@ const features = [
     icon: DollarSign,
     title: 'Free & Open Source',
     description:
-      '100% free and open source under BSL license. No subscriptions, no feature gates, no restrictions.',
+      '100% free and open source under the Apache License 2.0. No subscriptions, no feature gates, no restrictions.',
     color: 'text-green-400',
     bg: 'bg-green-400/10',
   },

@@ -47,4 +47,4 @@ Please use [GitHub Issues](https://github.com/mshobeyri/multimeter/issues) to re
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [Business Source License 1.1](LICENSE.md).
+By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](LICENSE.md).

@@ -63,7 +63,7 @@ export default function CICDReady() {
               </p>
               <ul className="space-y-4">
                 {[
-                  'GitHub Actions, Jenkins, GitLab CI, Azure DevOps',
+                  'GitHub Actions (composite action), Jenkins, GitLab CI, Azure DevOps',
                   'JUnit XML, HTML, and Markdown report generation',
                   'Auto-export reports via suite export: field — no extra flags',
                   'Environment variables via --env-file or -e flags',

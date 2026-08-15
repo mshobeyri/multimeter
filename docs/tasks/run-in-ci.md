@@ -15,6 +15,20 @@ Or without a global install:
 npx mmt-testlight run suite.mmt --preset ci
 ```
 
+## GitHub Action
+
+```yaml
+- uses: actions/checkout@v4
+- uses: mshobeyri/multimeter/.github/actions/testlight@main
+  with:
+    file: tests/suite.mmt
+    env-file: tests/env.mmt
+    report: junit
+    report-file: results/junit.xml
+```
+
+See the [action README](https://github.com/mshobeyri/multimeter/blob/main/.github/actions/testlight/README.md).
+
 ## Typical flags
 
 | Flag | Purpose |

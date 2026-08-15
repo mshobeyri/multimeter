@@ -9,6 +9,7 @@ const navLinks = [
   { name: 'Roadmap', href: '/roadmap' },
   { name: 'Downloads', href: '/downloads' },
   { name: 'Docs', href: '/docs' },
+  { name: 'Compare', href: '/compare' },
 ]
 
 export default function Navbar() {

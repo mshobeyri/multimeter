@@ -9,10 +9,10 @@ const footerLinks: Record<string, FooterLink[]> = {
     { name: 'Test Flows', href: '/#test-flows' },
     { name: 'Protocols', href: '/#protocols' },
     { name: 'Mock Server', href: '/#mock-server' },
-    { name: 'Comparison', href: '/#comparison' },
+    { name: 'Comparison', href: '/compare' },
     { name: 'Downloads', href: '/downloads' },
     { name: 'Demos', href: '/demos' },
-    { name: 'CLI (testlight)', href: 'https://www.npmjs.com/package/testlight', external: true },
+    { name: 'CLI (testlight)', href: 'https://www.npmjs.com/package/mmt-testlight', external: true },
   ],
   Resources: [
     { name: 'Git-Native Files', href: '/#git-native' },
@@ -127,7 +127,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} Multimeter. All rights reserved.
+            © {new Date().getFullYear()} Multimeter. Apache License 2.0.
           </p>
           <p className="text-sm text-slate-500">
           

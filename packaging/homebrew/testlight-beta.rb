@@ -11,7 +11,7 @@
 class TestlightBeta < Formula
   desc "CLI runner for Multimeter .mmt API tests (pre-release)"
   homepage "https://github.com/mshobeyri/multimeter"
-  license "MIT"
+  license "Apache-2.0"
   # version is updated by scripts/update-homebrew.sh or CI
 
   # ── Platform binaries ──────────────────────────────────────────────
