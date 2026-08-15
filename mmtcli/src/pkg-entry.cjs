@@ -165,7 +165,7 @@ function createPkgJsRunner() {
 					'__checkLogMode',
 					`${helperDecls}\n${randomDecls}\n` +
 					`const report_ = (...args) => mmtHelper.reportWithContext_ ? mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args) : undefined;\n` +
-					`const setenv_ = (name, value) => { try { envVariables[name] = value; } catch (_e) {} if (mmtHelper.setenvWithContext_) mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value); };\n` +
+					`const setenv_ = (vars) => { if (vars && typeof vars === 'object') { for (const [k, v] of Object.entries(vars)) { try { envVariables[k] = v; } catch (_e) {} } } if (mmtHelper.setenvWithContext_) mmtHelper.setenvWithContext_(__reporter, __runId, __id, vars); };\n` +
 					`const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console, __checkLogMode);\n` +
 					`const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_ ? mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode) : undefined;\n` +
 					`const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
@@ -522,16 +522,16 @@ function printHelp() {
 	const options = formatHelpRows([
 		['-h, --help', 'Show help'],
 		['-v, --version', 'Show version'],
-		['--log-level <level>', 'Set log level (error|warn|info|debug|trace)'],
+		['-L, --log-level <level>', 'Set log level (error|warn|info|debug|trace)'],
 	]);
 	const runOptions = formatHelpRows([
 		['-q, --quiet', 'Minimal output'],
 		['-o, --out <file>', 'Write result JSON to file'],
 		['-i, --input <k=v...>', 'Input variables (repeatable)'],
 		['-e, --env <k=v...>', 'Environment variables (repeatable)'],
-		['--env-file <path>', 'Environment file (.mmt/.yaml)'],
-		['--preset <name>', 'Preset from env file (e.g. runner.dev)'],
-		['--example <name|#n>', 'Named example or index (#1 is first)'],
+		['-F, --env-file <path>', 'Environment file (.mmt/.yaml)'],
+		['-P, --preset <name>', 'Preset from env file (repeatable)'],
+		['-x, --example <name|#n>', 'Named example or index (#1 is first)'],
 		['--print-js', 'Print generated JS before executing'],
 		['--debug-env', 'Print resolved env vars'],
 	]);
@@ -567,12 +567,12 @@ function printRunHelp() {
 		['-o, --out <file>', 'Write result JSON to file'],
 		['-i, --input <k=v...>', 'Input variables (repeatable)'],
 		['-e, --env <k=v...>', 'Environment variables (repeatable)'],
-		['--env-file <path>', 'Environment file (.mmt/.yaml)'],
-		['--preset <name>', 'Preset from env file (e.g. runner.dev)'],
-		['--example <name|#n>', 'Named example or index (#1 is first)'],
+		['-F, --env-file <path>', 'Environment file (.mmt/.yaml)'],
+		['-P, --preset <name>', 'Preset from env file (repeatable)'],
+		['-x, --example <name|#n>', 'Named example or index (#1 is first)'],
 		['--print-js', 'Print generated JS before executing'],
 		['--debug-env', 'Print resolved env vars'],
-		['--log-level <level>', 'Set log level (error|warn|info|debug|trace)'],
+		['-L, --log-level <level>', 'Set log level (error|warn|info|debug|trace)'],
 	]);
 	const examples = formatHelpRows([
 		['testlight run path/to/test.mmt'],
@@ -598,9 +598,9 @@ function printPrintJsHelp() {
 		['-h, --help', 'Show help'],
 		['-i, --input <k=v...>', 'Input variables (repeatable)'],
 		['-e, --env <k=v...>', 'Environment variables (repeatable)'],
-		['--env-file <path>', 'Environment file (.mmt/.yaml)'],
-		['--preset <name>', 'Preset from env file (e.g. runner.dev)'],
-		['--example <name|#n>', 'Named example or index (#1 is first)'],
+		['-F, --env-file <path>', 'Environment file (.mmt/.yaml)'],
+		['-P, --preset <name>', 'Preset from env file (repeatable)'],
+		['-x, --example <name|#n>', 'Named example or index (#1 is first)'],
 	]);
 	const out = [
 		'Usage: testlight print-js [options] <file>',
@@ -653,6 +653,39 @@ function parsePairs(tokens) {
 	return out;
 }
 
+function pushPresetOpt(opts, value) {
+	if (!Array.isArray(opts.preset)) {
+		opts.preset = opts.preset ? [opts.preset] : [];
+	}
+	if (value == null) {
+		return;
+	}
+	for (const part of String(value).split(',')) {
+		const name = part.trim();
+		if (name) {
+			opts.preset.push(name);
+		}
+	}
+}
+
+function resolvePresetsFromDoc(runConfig, doc, presetNames) {
+	if (!runConfig || !doc) {
+		return {};
+	}
+	if (typeof runConfig.resolvePresetsEnv === 'function') {
+		return runConfig.resolvePresetsEnv(doc, presetNames) || {};
+	}
+	const list = Array.isArray(presetNames) ? presetNames :
+		(presetNames ? [presetNames] : []);
+	let out = {};
+	if (typeof runConfig.resolvePresetEnv === 'function') {
+		for (const name of list) {
+			Object.assign(out, runConfig.resolvePresetEnv(doc, name) || {});
+		}
+	}
+	return out;
+}
+
 function loadEnvDoc(envPath) {
 	try {
 		// eslint-disable-next-line global-require
@@ -690,7 +723,7 @@ function parseRunArgv(argv) {
 		input: [],
 		env: [],
 		envFile: undefined,
-		preset: undefined,
+		preset: [],
 		example: undefined,
 		printJs: false,
 		debugEnv: false,
@@ -711,7 +744,7 @@ function parseRunArgv(argv) {
 		if (a === '-h' || a === '--help') {
 			continue;
 		}
-		if (a === '--log-level') {
+		if (a === '--log-level' || a === '-L') {
 			consume(i + 1);
 			i += 1;
 			continue;
@@ -758,17 +791,17 @@ function parseRunArgv(argv) {
 			}
 			continue;
 		}
-		if (a === '--env-file') {
+		if (a === '--env-file' || a === '-F') {
 			consume(i + 1);
 			opts.envFile = argv[++i];
 			continue;
 		}
-		if (a === '--preset') {
+		if (a === '--preset' || a === '-P') {
 			consume(i + 1);
-			opts.preset = argv[++i];
+			pushPresetOpt(opts, argv[++i]);
 			continue;
 		}
-		if (a === '--example') {
+		if (a === '--example' || a === '-x') {
 			consume(i + 1);
 			opts.example = argv[++i];
 			continue;
@@ -802,7 +835,7 @@ function parsePrintJsArgv(argv) {
 		input: [],
 		env: [],
 		envFile: undefined,
-		preset: undefined,
+		preset: [],
 		example: undefined,
 	};
 	let filePath;
@@ -834,15 +867,15 @@ function parsePrintJsArgv(argv) {
 			}
 			continue;
 		}
-		if (a === '--env-file') {
+		if (a === '--env-file' || a === '-F') {
 			opts.envFile = argv[++i];
 			continue;
 		}
-		if (a === '--preset') {
-			opts.preset = argv[++i];
+		if (a === '--preset' || a === '-P') {
+			pushPresetOpt(opts, argv[++i]);
 			continue;
 		}
-		if (a === '--example') {
+		if (a === '--example' || a === '-x') {
 			opts.example = argv[++i];
 			continue;
 		}
@@ -857,17 +890,19 @@ function parsePrintJsArgv(argv) {
 }
 
 function parseLogLevel(argv) {
-	const idx = argv.indexOf('--log-level');
-	if (idx < 0) {
-		return 'info';
-	}
-	const v = argv[idx + 1];
-	if (!v) {
-		return 'info';
-	}
-	const level = String(v).toLowerCase();
-	if (['error', 'warn', 'info', 'debug', 'trace'].includes(level)) {
-		return level;
+	for (let i = 1; i < argv.length; i++) {
+		const a = argv[i];
+		if (a === '--log-level' || a === '-L') {
+			const v = argv[i + 1];
+			if (!v) {
+				return 'info';
+			}
+			const level = String(v).toLowerCase();
+			if (['error', 'warn', 'info', 'debug', 'trace'].includes(level)) {
+				return level;
+			}
+			return 'info';
+		}
 	}
 	return 'info';
 }
@@ -1023,9 +1058,8 @@ async function main() {
 				const doc = loadEnvDoc(p);
 				// Defaults come from env file variables; optional preset overlays them.
 				let baseEnv = (doc && doc.variables) ? {...doc.variables} : {};
-				if (parsed.opts.preset && runConfig &&
-						typeof runConfig.resolvePresetEnv === 'function') {
-					const presetEnv = runConfig.resolvePresetEnv(doc, parsed.opts.preset) || {};
+				if (parsed.opts.preset.length && runConfig) {
+					const presetEnv = resolvePresetsFromDoc(runConfig, doc, parsed.opts.preset);
 					baseEnv = {...baseEnv, ...presetEnv};
 				}
 				envvar = runConfig.mergeEnv({ envvar: baseEnv, manualEnvvars });
@@ -1033,7 +1067,7 @@ async function main() {
 					try {
 						process.stdout.write(`debug envFile raw: ${envFileRaw}\n`);
 						process.stdout.write(`debug envFile resolved: ${p}\n`);
-						process.stdout.write(`debug preset: ${parsed.opts.preset || '(none)'}\n`);
+						process.stdout.write(`debug preset: ${parsed.opts.preset.length ? parsed.opts.preset.join(',') : '(none)'}\n`);
 						process.stdout.write(`debug envDoc variables keys: ${doc && doc.variables ? Object.keys(doc.variables).join(',') : '(none)'}\n`);
 						process.stdout.write(`debug envDoc presets keys: ${doc && doc.presets ? Object.keys(doc.presets).join(',') : '(none)'}\n`);
 						process.stdout.write(`debug baseEnv keys: ${baseEnv ? Object.keys(baseEnv).join(',') : '(none)'}\n`);
@@ -1123,8 +1157,9 @@ async function main() {
 								envFileForPreset = loadEnvDoc(p);
 							}
 						}
-						if (envFileForPreset && coreRunConfig.resolvePresetEnv) {
-							suitePresetEnv = coreRunConfig.resolvePresetEnv(envFileForPreset, suiteEnv.preset) || {};
+						if (envFileForPreset && coreRunConfig) {
+							suitePresetEnv = resolvePresetsFromDoc(
+								coreRunConfig, envFileForPreset, suiteEnv.preset) || {};
 						}
 					}
 

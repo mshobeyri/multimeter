@@ -35,6 +35,17 @@ function resolveCliVersion(): string {
 }
 const CLI_VERSION = resolveCliVersion();
 
+function collectPreset(value: string, previous: string[]): string[] {
+  const names: string[] = [];
+  for (const part of String(value).split(',')) {
+    const name = part.trim();
+    if (name) {
+      names.push(name);
+    }
+  }
+  return previous.concat(names.length ? names : [value]);
+}
+
 type JsRunnerModule = typeof import('mmt-core/jsRunner');
 let jsRunnerModulePromise: Promise<JsRunnerModule>|undefined;
 
@@ -247,23 +258,23 @@ program.name('testlight')
           '  -o, --out <file>           Write result JSON to file',
           '  -i, --input <k=v...>       Input variables (repeatable)',
           '  -e, --env <k=v...>         Environment variables (repeatable)',
-          '  --env-file <path>          Environment file (.mmt/.yaml)',
-          '  --preset <name>            Preset from env file (e.g. runner.dev)',
-          '  --example <name|#n>        Named example or index (#1 is first)',
+          '  -F, --env-file <path>      Environment file (.mmt/.yaml)',
+          '  -P, --preset <name>        Preset from env file (repeatable)',
+          '  -x, --example <name|#n>    Named example or index (#1 is first)',
           '  -p, --print-js             Print generated JS before executing',
-          '  --report <format>          junit | mmt | html | md | md-detailed',
-          '  --report-file <path>       Report output path',
+          '  -r, --report <format>      junit | mmt | html | md | md-detailed',
+          '  -R, --report-file <path>   Report output path',
           '',
           'Examples:',
           '  testlight run path/to/test.mmt',
-          '  testlight run path/to/test.mmt -e api_url=https://test.mmt.dev -q',
+          '  testlight run path/to/test.mmt -F env.mmt -P runner.dev -P custom.prod',
           '  testlight run path/to/suite.mmt --report html',
           '',
           'Run `testlight <command> --help` for command-specific options.',
         ].join('\n'));
 
 program.option(
-  '--log-level <level>',
+  '-L, --log-level <level>',
   'Set log level (error|warn|info|debug|trace)',
   'info');
 
@@ -279,20 +290,22 @@ program.command('run')
         '-e, --env <values...>',
         'Environment variables as key value pairs or key=val (repeatable)')
     .option(
-        '--env-file <path>',
+        '-F, --env-file <path>',
         'Environment file (.mmt/.yaml) to read variables from')
     .option(
-        '--preset <name>',
-        'Preset name from env file (e.g., runner.dev) or just name under runner')
+        '-P, --preset <name>',
+        'Preset from env file (repeatable; e.g. runner.dev or group.name)',
+        collectPreset,
+        [])
     .option(
-      '--example <name|#n>',
+      '-x, --example <name|#n>',
       'Run a named example (matches name) or numeric index (#1 = first)')
     .option('-p, --print-js', 'Print generated JS before executing', false)
     .option(
-      '--report <format>',
+      '-r, --report <format>',
       'Generate test report: junit, mmt, html, md, or md-detailed')
     .option(
-      '--report-file <path>',
+      '-R, --report-file <path>',
       'Output path for the report file (default depends on format)')
     .option(
       '--no-real-threads',
@@ -498,13 +511,15 @@ program.command('print-js')
         '-e, --env <values...>',
         'Environment variables as key value pairs or key=val (repeatable)')
     .option(
-        '--env-file <path>',
+        '-F, --env-file <path>',
         'Environment file (.mmt/.yaml) to read variables from')
     .option(
-        '--preset <name>',
-        'Preset name from env file (e.g., runner.dev) or just name under runner')
+        '-P, --preset <name>',
+        'Preset from env file (repeatable; e.g. runner.dev or group.name)',
+        collectPreset,
+        [])
     .option(
-      '--example <name|#n>',
+      '-x, --example <name|#n>',
       'Select a named example (matches name) or numeric index (#1 = first)')
     .action(async (file: string, opts: {stages?: boolean}) => {
       try {

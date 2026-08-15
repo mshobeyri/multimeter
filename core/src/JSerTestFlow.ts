@@ -793,14 +793,13 @@ export const setenvToJSfunc = (setenv: Record<string, any>, root: boolean): stri
   if (entries.length === 0) {
     return '';
   }
-  return entries
-      .map(([envKey, outputKeyOrValue]) => {
-        const valueExpr = typeof outputKeyOrValue === 'string' ?
-            toTemplateWithVars(outputKeyOrValue) :
-            JSON.stringify(outputKeyOrValue);
-        return `setenv_(${JSON.stringify(envKey)}, ${valueExpr});`;
-      })
-      .join('\n');
+  const objEntries = entries.map(([envKey, outputKeyOrValue]) => {
+    const valueExpr = typeof outputKeyOrValue === 'string' ?
+        toTemplateWithVars(outputKeyOrValue) :
+        JSON.stringify(outputKeyOrValue);
+    return `${JSON.stringify(envKey)}: ${valueExpr}`;
+  });
+  return `setenv_({ ${objEntries.join(', ')} });`;
 };
 
 export const runToJSfunc = (step: TestFlowRun): string => {

@@ -11,6 +11,7 @@ export * as loadtestParsePack from "./loadtestParsePack";
 export * as envParsePack from "./envParsePack";
 export * as apiParsePack from "./apiParsePack";
 export * as curlConvertor from "./curlConvertor";
+export * as curlGenerator from "./curlGenerator";
 export * as testParsePack from "./testParsePack";
 export * as httpParsePack from "./httpParsePack";
 export * as brunoParsePack from "./brunoParsePack";

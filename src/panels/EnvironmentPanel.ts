@@ -31,7 +31,8 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.getHtmlForWebview();
 
 
-    // Refresh environment variables when the we open the view
+    this.refreshEnvironmentVars();
+
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
         setTimeout(() => {
@@ -39,9 +40,6 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
         }, 100);
       }
     });
-    
-    // Refresh environment variables when reload window
-    this.refreshEnvironmentVars();
 
     webviewView.webview.onDidReceiveMessage(async message => {
       switch (message.type) {
@@ -130,10 +128,20 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     let html = fs.readFileSync(htmlPath, 'utf8');
     const css = fs.readFileSync(cssPath, 'utf8');
 
-    // Inject CSS into HTML head
     html = html.replace('</head>', `<style>${css}</style></head>`);
 
     return html;
+  }
+
+  startAddVariable(): void {
+    const send = () => {
+      this.view?.webview.postMessage({
+        command: 'multimeter.environment.startAdd',
+      });
+    };
+    send();
+    setTimeout(send, 200);
+    setTimeout(send, 500);
   }
 
   refreshEnvironmentVars() {

@@ -688,20 +688,22 @@ export const reportWithContext_ = (
   emitStep(payload);
 };
 
-export const setenv_ = (name: string, value: any) => {
-  setenvWithContext_(undefined, undefined, undefined, name, value);
+export const setenv_ = (variables: Record<string, any>) => {
+  setenvWithContext_(undefined, undefined, undefined, variables);
 };
 
 export const setenvWithContext_ = (
     reporter: ((event: Record<string, any>) => void)|undefined,
     runId: string|undefined,
     id: string|undefined,
-    name: string, value: any) => {
+    variables: Record<string, any>) => {
+  if (!variables || typeof variables !== 'object') {
+    return;
+  }
   const resolvedRunId = typeof runId === 'string' ? runId : '';
   const payload: Record<string, any> = {
     scope: 'setenv',
-    name,
-    value,
+    variables: {...variables},
   };
   if (resolvedRunId) {
     payload.runId = resolvedRunId;

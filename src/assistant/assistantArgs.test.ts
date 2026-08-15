@@ -118,6 +118,44 @@ describe('parseAssistantRunArgs', () => {
     expect(result.runFileOptions.manualEnvvars).toEqual({certificate: 'sss', stage: 'beta'});
   });
 
+  it('supports short -F, -P, and multiple presets', async () => {
+    const dir = createTempDir();
+    const filePath = path.join(dir, 'api.mmt');
+    fs.writeFileSync(filePath, 'type: api\nname: preset-flags', 'utf8');
+
+    const envPath = path.join(dir, 'envs.mmt');
+    fs.writeFileSync(envPath, `type: env
+variables:
+  API_URL:
+    dev: http://dev.example.com
+    prod: http://prod.example.com
+  MODE:
+    debug: debug
+    release: release
+presets:
+  runner:
+    dev:
+      API_URL: dev
+      MODE: debug
+  custom:
+    prod:
+      MODE: release
+`, 'utf8');
+
+    const context: TempContext = {
+      workspaceState: {get: jest.fn().mockReturnValue([])},
+    };
+
+    const prompt =
+        `${filePath} -F ${path.basename(envPath)} -P runner.dev -P custom.prod`;
+    const result = await parseAssistantRunArgs(dir, prompt, context as any);
+
+    expect(result.runFileOptions.envvar).toEqual({
+      API_URL: 'http://dev.example.com',
+      MODE: 'release',
+    });
+  });
+
   it('throws when no file argument is provided', async () => {
     const context: TempContext = {
       workspaceState: {get: jest.fn().mockReturnValue([])},

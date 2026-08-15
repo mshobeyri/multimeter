@@ -2,6 +2,26 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.34.0]
+
+- Add a Get Started sidebar that walks through a first POST, with a coach arrow on Send, YAML, and the gallery
+- Finish onboarding with docs links, **Try again**, community links on every screen, and Storyset credit on Welcome
+- Document the YAML/UI split editor and API tester temporary changes (Update YAML / Reset to YAML)
+- Fix multi-key `setenv` so one object update applies all keys atomically
+
+## [1.33.2]
+
+- Support multiple CLI presets (`-P` / `--preset`, repeatable or comma-separated) and add short flags (`-F`, `-x`, `-r`, `-R`, `-L`) across CLI, binary, and assistant
+- Generate cross-platform curl commands for Bash, PowerShell, and CMD; copy all variants to clipboard when using **Run in Curl**
+
+## [1.33.1]
+
+- Fix suite report clicks: expand/collapse and details no longer blocked by capture-phase handlers
+- Click suite tree labels to expand; Ctrl/Cmd+click opens the file
+- Reload suite hierarchy before Run and remap targets when node ids change
+- Drop `respond` format alias from schema and autocomplete (keep `response`)
+- Add regex output sample that captures text before a bracket
+
 ## [testlight 0.4.3]
 
 - Improve CLI help: aligned commands/options, run options and examples on the main help screen

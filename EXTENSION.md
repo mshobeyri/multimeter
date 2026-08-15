@@ -13,9 +13,7 @@
 </div>
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=07Q-Xy0SIcs">
-    <img src="res/intro.png" alt="Multimeter intro" width="640" />
-  </a>
+  <img src="res/intro.png" alt="Multimeter — Get Started, YAML, and API tester" width="640" />
 </p>
 
 ## 🚀 Simplicity along with Power.
@@ -59,13 +57,18 @@ All in the same tool. No migration required.
 
 Multimeter is a VS Code-native extension. All you need is:
 1. Click Install button in [Multimeter VS Code Extension](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter)
-2. Create a `.mmt` file
-3. Type:
+2. Open **Get Started** from the activity bar and follow the instructions
+
+There you run a POST request as follows:
 
 ```yaml
 type: api
+title: Simple POST
 url: https://test.mmt.dev/echo
-method: get
+method: post
+format: json
+body:
+  message: hello
 ```
 
 That's enough for manual API testing. **Need automated tests?**

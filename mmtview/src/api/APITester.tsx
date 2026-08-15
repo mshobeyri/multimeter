@@ -193,16 +193,34 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
-    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc") {
+    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc" || saved === "inout") {
       return saved;
     }
-    return "inout";
+    if (api.protocol === "graphql") {
+      return "graphql";
+    }
+    if (api.protocol === "grpc") {
+      return "grpc";
+    }
+    return "body";
   });
 
   const setEditorTab = (tab: EditorTab) => {
     setEditorTabInternal(tab);
     localStorage.setItem("apitest-editor-tab", tab);
   };
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data;
+      if ((data?.command === "multimeter.coachArrow" || data?.type === "coachArrow") &&
+          data.target === "body") {
+        setEditorTab("body");
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   const handleMethodOrProtocolChange = (raw: string) => {
     if (raw.startsWith("protocol:")) {
@@ -426,7 +444,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         {shouldShowBody() && (
           <>
             <div className="label">Request Body</div>
-            <div className="apitest-body-wrapper">
+            <div className="apitest-body-wrapper" data-mmt-coach="body">
               {requestFormat(requestData?.format) === "binary" ? (
                 <FilePickerInput
                   value={typeof requestData?.body === "string" ? requestData.body : ""}

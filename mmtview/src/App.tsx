@@ -488,7 +488,7 @@ const App: React.FC = () => {
             fontSize: "var(--vscode-editor-font-size, 14px)",
           }}
         >
-          <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
+          <div data-mmt-coach="yaml" style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
             <YamlEditorPanel
               content={content}
               setContent={yamlSetContent}

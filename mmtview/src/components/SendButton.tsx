@@ -228,6 +228,7 @@ const SendButton: React.FC<{
     <>
       <span
         ref={wrapperRef}
+        data-mmt-coach="send"
         style={{ display: "inline-flex" }}
         onMouseDown={handleMouseDown}
         onContextMenu={openContextMenu}

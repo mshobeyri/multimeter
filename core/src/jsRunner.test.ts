@@ -73,12 +73,10 @@ describe('jsRunner setenv updates envVariables in scope', () => {
 
   it('setenv_ updates envVariables so subsequent e: reads see the new value', async () => {
     const events: Record<string, any>[] = [];
-    // The generated code declares envVariables (like rootTestToJsfunc does),
-    // then calls setenv_ to update a key, and returns the live value.
     const result = await runJSCode({
       js: `
         const envVariables = { name: "old_value" };
-        setenv_("name", "new_value");
+        setenv_({ name: "new_value" });
         return envVariables.name;
       `,
       title: 'setenv-updates-env',
@@ -89,16 +87,13 @@ describe('jsRunner setenv updates envVariables in scope', () => {
       },
     });
 
-    // The envVariables object should have been mutated in place.
     expect(result).toBe('new_value');
 
-    // A setenv reporter event should also have been emitted.
     const setenvEvent = events.find(e => e.scope === 'setenv');
     expect(setenvEvent).toBeDefined();
     expect(setenvEvent).toMatchObject({
       scope: 'setenv',
-      name: 'name',
-      value: 'new_value',
+      variables: { name: 'new_value' },
     });
   });
 
@@ -106,7 +101,7 @@ describe('jsRunner setenv updates envVariables in scope', () => {
     const result = await runJSCode({
       js: `
         const envVariables = {};
-        setenv_("api_key", "secret123");
+        setenv_({ api_key: "secret123" });
         return envVariables.api_key;
       `,
       title: 'setenv-new-key',
@@ -116,5 +111,32 @@ describe('jsRunner setenv updates envVariables in scope', () => {
     });
 
     expect(result).toBe('secret123');
+  });
+
+  it('setenv_ updates multiple envVariables in one call', async () => {
+    const events: Record<string, any>[] = [];
+    const result = await runJSCode({
+      js: `
+        const envVariables = {};
+        setenv_({ xxx: 111, yyy: 12121 });
+        return [envVariables.xxx, envVariables.yyy];
+      `,
+      title: 'setenv-multi-updates-env',
+      logger,
+      runId: 'run-setenv-multi',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    expect(result).toEqual([111, 12121]);
+
+    const setenvEvent = events.find(e => e.scope === 'setenv');
+    expect(setenvEvent).toBeDefined();
+    expect(setenvEvent).toMatchObject({
+      scope: 'setenv',
+      variables: { xxx: 111, yyy: 12121 },
+    });
+    expect(events.filter(e => e.scope === 'setenv')).toHaveLength(1);
   });
 });

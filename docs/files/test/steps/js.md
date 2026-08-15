@@ -58,7 +58,7 @@ The following globals are available inside `js` `steps:`
 | `sendGrpc_(request)` | Send a gRPC request directly |
 | `extractOutputs_(response, outputMap)` | Extract values from an HTTP/gRPC response using an outputs map |
 | `report_(stepType, comparison, title, details, passed)` | Emit a check or assert result to the log (`stepType`: `'check'` or `'assert'`) |
-| `setenv_(name, value)` | Set an environment variable at runtime (visible to later `e:` tokens and steps) |
+| `setenv_(vars)` | Set environment variables at runtime from an object (visible to later `e:` tokens and steps) |
 | `importJsModule_(path)` | Load a `.js` / `.cjs` / `.mjs` file at runtime (prefer `import:` for helpers loaded once per run) |
 | `readBinaryFile_(path)` | Read a binary file relative to the test file (when a binary file loader is available) |
 | `Random.*` | Random token helpers — e.g. `Random.randomUUID()`, `Random.randomInt()`, `Random.randomEmail()` |

@@ -266,8 +266,7 @@ describe('reportCollector', () => {
     const {reporter, getResults} = createReportCollector();
     reporter({
       scope: 'setenv',
-      name: 'TOKEN',
-      value: 'abc',
+      variables: { TOKEN: 'abc' },
       runId: 'run1',
     } as any);
     const results = getResults();

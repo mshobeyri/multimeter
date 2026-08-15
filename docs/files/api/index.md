@@ -24,6 +24,18 @@ Example run glyphs appear only when the example has a non-empty `name`.
 | **Method / protocol** | Colored dropdown left of the URL (e.g. {{btn:method:POST}}). Pick an HTTP method, or switch protocol to WebSocket / GraphQL / gRPC |
 | **URL** | Editable request URL. Edits in the Params tab stay synced with the query string |
 | {{btn:edit:Edit API}} | Switches to **edit mode** — see [Edit API](./edit.md) |
+| {{btn:sync-ignored}} | Appears when the tester has temporary changes that are not in YAML yet — see [Temporary UI changes](#temporary-ui-changes) |
+
+### Temporary UI changes
+
+Edits in the API tester (method, URL, body, headers, and so on) are **temporary**. They live only in the right pane. Closing the file discards them. The `.mmt` file on disk does not change until you write them back.
+
+When the tester diverges from YAML, auto-sync from the file into the UI pauses. A {{btn:sync-ignored}} control appears at the **top right** of the tester, next to {{btn:edit:Edit API}}. Open it to compare the two versions:
+
+- {{btn:reply:Update YAML}} — write the tester values into the file
+- {{btn:refresh:Reset to YAML}} — discard the tester changes and resume syncing from the file
+
+![YAML auto-sync paused — Update YAML writes tester edits into the file; Reset to YAML discards them](../../screenshots/api-yaml-autosync-paused.png)
 
 ### Tabs
 
@@ -61,8 +73,6 @@ Fixed bar at the bottom of the tester:
 | {{btn:sparkle-filled}} | Toggle auto-format (beautify) for bodies |
 
 See also: [History](../../features/history.md) · [Connections](../../features/connections.md)
-
-Tester edits (method, URL, body, …) are temporary until you write them back to YAML. A sync warning can offer **Update YAML** / **Reset** when the editor and tester diverge.
 
 ## Supported
 

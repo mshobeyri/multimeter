@@ -78,16 +78,17 @@ async function handleChatRequest(
         `    **-o**, **--out <file>**         Write result JSON to file\n` +
         `    **-i**, **--input <values...>**  Input variables as key value pairs (repeatable)\n` +
         `    **-e**, **--env <values...>**    Environment variables as key value pairs or key=val (repeatable)\n` +
-        `    **--env-file <path>**            Environment file (.mmt/.yaml) to read variables from\n` +
-        `    **--preset <name>**              Preset name from env file (e.g., runner.dev) or just name under runner\n` +
-        `    **--example <name|#n>**          Run a named example (matches \`name\`) or numeric index (#1 = first)\n` +
+        `    **-F**, **--env-file <path>**    Environment file (.mmt/.yaml) to read variables from\n` +
+        `    **-P**, **--preset <name>**      Preset from env file (repeatable; e.g. runner.dev or group.name)\n` +
+        `    **-x**, **--example <name|#n>**  Run a named example (matches \`name\`) or numeric index (#1 = first)\n` +
         `    **--print-js**                   Print generated JS before executing\n\n` +
         `  \`/print-js <file>\`               Convert a test definition file to executable JS and print\n` +
         `    **-s**, **--stages**             Include stage headers as comments when stages exist\n` +
         `    **-i**, **--input <values...>**\n` +
         `    **-e**, **--env <values...>**\n` +
-        `    **--env-file <path>**\n` +
-        `    **--preset <name>**\n\n` +
+        `    **-F**, **--env-file <path>**\n` +
+        `    **-P**, **--preset <name>** (repeatable)\n` +
+        `    **-x**, **--example <name|#n>**\n\n` +
         `  \`/doc <file>\`              Generate documentation from a doc .mmt\n` +
         `    **-o**, **--out <file>**   Write output to file (default: <docname>.<ext>)\n` +
         `    **--html**                 Generate HTML (default)\n` +
@@ -434,7 +435,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
     const args = await vscode.window.showInputBox({
       title: 'Extra args (optional)',
       prompt:
-          'e.g., --input user=alice --env-file examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev --print-js'
+          'e.g., -i user=alice -F examples/intermediate/10_environment_presets/multimeter.mmt -P runner.dev --print-js'
     });
     const fakeReq = {
       command: 'run',
@@ -463,7 +464,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
         const args = await vscode.window.showInputBox({
           title: 'Extra args (optional)',
           prompt:
-              'e.g., --input user=alice --env-file examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev'
+              'e.g., -i user=alice -F examples/intermediate/10_environment_presets/multimeter.mmt -P runner.dev'
         });
         const fakeReq = {
           command: 'print-js',

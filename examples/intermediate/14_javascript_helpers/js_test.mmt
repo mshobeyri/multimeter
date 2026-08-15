@@ -20,7 +20,7 @@ steps:
   # Use setenv_ to promote a value to an env variable
   - js: |
       const token = Random.randomUUID();
-      setenv_('DYNAMIC_TOKEN', token);
+      setenv_({ DYNAMIC_TOKEN: token });
       console.log('Set DYNAMIC_TOKEN to:', token);
 
   # Use the helpers module for computation

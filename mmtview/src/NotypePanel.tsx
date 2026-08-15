@@ -81,6 +81,7 @@ const NotypePanel: React.FC<NotypePanelProps> = ({ content, setContent }) => {
                   className="notype-type-icon-btn"
                   title={opt.label}
                   aria-label={opt.label}
+                  data-mmt-coach={opt.value === "api" ? "gallery" : undefined}
                   style={{ "--notype-type-color": color } as React.CSSProperties}
                   onClick={() => handleTypeChange(opt.value)}
                 >

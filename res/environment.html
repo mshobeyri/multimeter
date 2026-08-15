@@ -299,7 +299,7 @@
     </div>
 
     <div class="section-card">
-        <div id="env-header" class="section-header" style="display: none;">
+        <div id="env-header" class="section-header">
             <div>
                 <div class="section-title">Environment Variables</div>
             </div>
@@ -347,6 +347,9 @@
                 updateUI();
                 renderPresets();
             }
+            if (message.command === 'multimeter.environment.startAdd') {
+                openAddRow();
+            }
         });
 
         function updateUI() {
@@ -355,17 +358,14 @@
             const envHeader = document.getElementById('env-header');
             const tableBody = document.getElementById('env-table-body');
 
+            if (envHeader) {
+                envHeader.style.display = 'flex';
+            }
+
             if (!environmentVars || environmentVars.length === 0) {
-                if (envHeader) {
-                    envHeader.style.display = 'none';
-                }
                 tableContainer.style.display = 'none';
                 emptyState.style.display = 'block';
                 return;
-            }
-
-            if (envHeader) {
-                envHeader.style.display = 'flex';
             }
             tableContainer.style.display = 'block';
             emptyState.style.display = 'none';
@@ -572,12 +572,16 @@
             vscode.postMessage({ type: 'multimeter.environment.clear' });
         });
 
-        document.getElementById('add-env-btn')?.addEventListener('click', () => {
+        function openAddRow() {
             const addRow = document.getElementById('add-env-row');
             addRow.style.display = 'flex';
             document.getElementById('add-env-name').value = '';
             document.getElementById('add-env-value').value = '';
             document.getElementById('add-env-name').focus();
+        }
+
+        document.getElementById('add-env-btn')?.addEventListener('click', () => {
+            openAddRow();
         });
 
         document.getElementById('cancel-add-env')?.addEventListener('click', () => {
