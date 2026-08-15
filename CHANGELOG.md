@@ -2,6 +2,13 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.34.0]
+
+- Add a Get Started sidebar that walks through a first POST, with a coach arrow on Send, YAML, and the gallery
+- Finish onboarding with docs links, **Try again**, community links on every screen, and Storyset credit on Welcome
+- Document the YAML/UI split editor and API tester temporary changes (Update YAML / Reset to YAML)
+- Fix multi-key `setenv` so one object update applies all keys atomically
+
 ## [1.33.2]
 
 - Support multiple CLI presets (`-P` / `--preset`, repeatable or comma-separated) and add short flags (`-F`, `-x`, `-r`, `-R`, `-L`) across CLI, binary, and assistant
