@@ -247,7 +247,20 @@
       font-size: 16px;
       font-weight: 700;
       letter-spacing: -0.03em;
+      margin: 0 0 4px;
+    }
+
+    .start-try-again {
+      display: inline-block;
       margin: 0 0 14px;
+      font-size: 12px;
+      color: var(--vscode-textLink-foreground, #3794ff);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .start-try-again:hover {
+      text-decoration: underline;
     }
 
     .start-done-links {
@@ -331,20 +344,18 @@
       font-size: 12px;
     }
 
-    .start-done-copy {
-      margin: 8px 0 0;
-      color: var(--description-foreground);
-      font-size: 11px;
-      text-align: center;
-    }
-
     .start-done-credit {
+      display: none;
       margin: 14px 0 0;
       text-align: center;
       font-size: 10px;
       line-height: 1.4;
       color: var(--vscode-descriptionForeground, var(--description-foreground));
       opacity: 0.7;
+    }
+
+    .start-done-credit.is-visible {
+      display: block;
     }
 
     .start-done-credit a {
@@ -381,6 +392,7 @@
   <div id="startDone" class="start-done">
     <img id="doneIllustration" class="start-illustration" alt="" />
     <p class="start-done-title">Congratulations, You're ready</p>
+    <a id="tryAgain" class="start-try-again" href="#">Try again</a>
     <div class="start-done-links">
       <p class="start-done-heading">Explore more</p>
       <ul class="start-done-list">
@@ -428,24 +440,24 @@
         </li>
       </ul>
     </div>
-    <div class="start-done-footer">
-      <div class="start-done-ctas" role="group" aria-label="Community links">
-        <a class="start-done-cta" href="#" data-url="https://github.com/mshobeyri/multimeter/issues/new">
-          <span class="codicon codicon-comment-discussion" aria-hidden="true"></span>
-          Ask a question
-        </a>
-        <a class="start-done-cta" href="#" data-url="https://github.com/mshobeyri/multimeter">
-          <span class="codicon codicon-github" aria-hidden="true"></span>
-          Star the repo
-        </a>
-        <a class="start-done-cta" href="#" data-url="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter&amp;ssr=false#review-details">
-          <span class="codicon codicon-vscode" aria-hidden="true"></span>
-          Star the extension
-        </a>
-      </div>
+  </div>
+
+  <div id="startFooter" class="start-done-footer">
+    <div class="start-done-ctas" role="group" aria-label="Community links">
+      <a class="start-done-cta" href="#" data-url="https://github.com/mshobeyri/multimeter/issues/new">
+        <span class="codicon codicon-comment-discussion" aria-hidden="true"></span>
+        Ask a question
+      </a>
+      <a class="start-done-cta" href="#" data-url="https://github.com/mshobeyri/multimeter">
+        <span class="codicon codicon-github" aria-hidden="true"></span>
+        Star the repo
+      </a>
+      <a class="start-done-cta" href="#" data-url="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter&amp;ssr=false#review-details">
+        <span class="codicon codicon-vscode" aria-hidden="true"></span>
+        Star the extension
+      </a>
     </div>
-    <p class="start-done-copy">Reset Get Started from the command palette if you want this again.</p>
-    <p class="start-done-credit">
+    <p id="startCredit" class="start-done-credit">
       Illustrations by <a href="#" data-url="https://storyset.com">Storyset</a>
     </p>
   </div>
@@ -527,6 +539,8 @@
         headings[1].textContent = (state && state.nextStepsHeading) || 'Next steps';
       }
       document.getElementById('steps').classList.toggle('is-hidden', !(state && state.showSteps));
+      document.getElementById('startCredit').classList.toggle(
+          'is-visible', !complete && !!(state && state.intro));
 
       const illustration = document.getElementById('illustration');
       const levelIcon = document.getElementById('levelIcon');
@@ -611,10 +625,15 @@
 
     document.getElementById('howBtn').addEventListener('click', function (event) {
       event.preventDefault();
-      vscode.postMessage({ type: 'completeLevel' });
+      vscode.postMessage({ type: 'completeStep' });
     });
 
-    document.getElementById('startDone').addEventListener('click', function (event) {
+    document.getElementById('tryAgain').addEventListener('click', function (event) {
+      event.preventDefault();
+      vscode.postMessage({ type: 'reset' });
+    });
+
+    document.body.addEventListener('click', function (event) {
       const el = event.target.closest ? event.target.closest('a[data-url]') : null;
       if (!el) {
         return;

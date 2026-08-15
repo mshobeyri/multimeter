@@ -61,8 +61,8 @@ export default class StartPanel implements vscode.WebviewViewProvider {
         this.pushState();
         return;
       }
-      if (message?.type === 'completeLevel') {
-        this.onboarding.completeCurrentLevel();
+      if (message?.type === 'completeStep') {
+        this.onboarding.completeCurrentTask();
         return;
       }
       if (message?.type === 'showHow') {
@@ -71,6 +71,10 @@ export default class StartPanel implements vscode.WebviewViewProvider {
       }
       if (message?.type === 'openUrl') {
         await this.openUrl(message.url);
+        return;
+      }
+      if (message?.type === 'reset') {
+        await this.onboarding.reset();
         return;
       }
     });

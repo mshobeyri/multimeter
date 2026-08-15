@@ -336,31 +336,12 @@ export class OnboardingController {
     void collapseGetStartedPanel();
   }
 
-  completeCurrentLevel(): void {
+  completeCurrentTask(): void {
     const currentId = currentTaskId(this.state.tasks);
     if (!currentId) {
       return;
     }
-    const currentLevel = ONBOARDING_LEVELS.find(
-        level => level.tasks.some(task => task.id === currentId));
-    if (!currentLevel) {
-      return;
-    }
-    let changed = false;
-    for (const task of currentLevel.tasks) {
-      if (!this.state.tasks[task.id]) {
-        this.state.tasks[task.id] = true;
-        changed = true;
-      }
-    }
-    if (!changed) {
-      return;
-    }
-    if (!currentTaskId(this.state.tasks)) {
-      this.scheduleCollapse();
-    }
-    void this.persist();
-    this.emit();
+    this.mark(currentId);
   }
 
   mark(task: OnboardingTaskId): void {
