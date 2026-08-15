@@ -12,7 +12,7 @@
 class Testlight < Formula
   desc "CLI runner for Multimeter .mmt API tests, suites, and documentation"
   homepage "https://github.com/mshobeyri/multimeter"
-  license "MIT"
+  license "Apache-2.0"
   version "0.4.4"
 
   # ── Platform binaries ──────────────────────────────────────────────

@@ -11,7 +11,7 @@ const faqItems: FAQItem[] = [
   {
     question: 'Is Multimeter free?',
     answer:
-      'Yes! Multimeter is 100% free and open source under the BSL (Business Source License). You can use it for personal projects, commercial work, and enterprise deployments without any cost or restrictions.',
+      'Yes. Multimeter is free and open source under the Apache License 2.0. You can use it for personal projects, commercial work, and enterprise deployments.',
   },
   {
     question: 'Do I need to create an account?',
@@ -26,7 +26,7 @@ const faqItems: FAQItem[] = [
   {
     question: 'How do I use Multimeter in CI/CD?',
     answer:
-      'Use the testlight CLI tool. Install it via npm (npm install -g testlight), then run your tests with "npx testlight run path/to/test.mmt" or run .http and .bru files that Multimeter converts to test flows. It integrates with any CI/CD system — GitHub Actions, Jenkins, GitLab CI, Azure DevOps, and more.',
+      'Use the testlight CLI (npm package mmt-testlight) or the GitHub Action. Install with npm install -g mmt-testlight, then run npx mmt-testlight run path/to/test.mmt. In GitHub Actions: uses: mshobeyri/multimeter/.github/actions/testlight@main. It also runs .http and .bru files. Works with GitHub Actions, Jenkins, GitLab CI, Azure DevOps, and more.',
   },
   {
     question: 'What formats can I import from?',
@@ -92,7 +92,7 @@ export default function FAQ() {
                 </button>
                 <div
                   className={`overflow-hidden transition-all duration-300 ${
-                    openIndex === index ? 'max-h-96' : 'max-h-0'
+                    openIndex === index ? 'max-h-[40rem]' : 'max-h-0'
                   }`}
                 >
                   <p className="px-6 pb-5 text-slate-400 leading-relaxed">

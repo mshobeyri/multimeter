@@ -2,7 +2,7 @@
   <a href="https://mmt.dev">
     <img src="res/logo.png" alt="Logo" width="115" height="115">
   </a>
-  <h4> Start with a request. Grow into a testing platform. Never switch tools.</h4>
+  <h4> REST Client and API testing in VS Code. Git-native alternative to Postman, Bruno, and Thunder Client.</h4>
   <p>
     <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
       <img src="https://vsmarketplacebadges.dev/installs-short/mshobeyri.multimeter.svg" alt="VS Code Installs"/>
@@ -11,7 +11,7 @@
       <img src="https://vsmarketplacebadges.dev/version-short/mshobeyri.multimeter.svg" alt="Version"/>
     </a>
     <a href="https://github.com/mshobeyri/multimeter/blob/main/LICENSE.md">
-      <img src="https://img.shields.io/badge/license-BSL-green" alt="License"/>
+      <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"/>
     </a>
   </p>
   <p>
@@ -19,7 +19,7 @@
     &middot;
     <a href="https://mmt.dev"><img src="res/website.png" alt="mmt.dev" width="16" height="16" style="vertical-align: text-bottom;"/> Website</a>
     &middot;
-    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
+    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature_request.yml"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
   </p>
 </div>
 
@@ -172,6 +172,26 @@ That means:
 - ✅ Easier debugging
 - ✅ Reproducible results
 
+GitHub Actions:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: mshobeyri/multimeter/.github/actions/testlight@main
+  with:
+    file: tests/suite.mmt
+    report: junit
+    report-file: results/junit.xml
+```
+
+Or from a terminal:
+
+```sh
+npm install -g mmt-testlight
+mmt-testlight run tests/suite.mmt --report junit
+```
+
+See the [GitHub Action](./.github/actions/testlight/README.md) and [Testlight install](https://mmt.dev/docs/features/testlight/install).
+
 
 ## 📦 Everything stays in Git
 
@@ -202,5 +222,9 @@ Multimeter helps you answer:
 > "Does this system still behave correctly?"
 
 ---
+
+## License
+
+Multimeter is licensed under the [Apache License 2.0](LICENSE.md).
 
 [Demos](https://mmt.dev/demos) · [Documentation](./docs/toc.md) · [Website](https://mmt.dev) · [GitHub](https://github.com/mshobeyri/multimeter)

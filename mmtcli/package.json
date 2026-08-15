@@ -2,6 +2,7 @@
   "name": "mmt-testlight",
   "version": "0.4.4",
   "description": "Multimeter CLI test runner",
+  "license": "Apache-2.0",
   "private": false,
   "bin": {
     "testlight": "dist/cli.js",

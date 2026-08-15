@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://mmt.dev/</loc></url>
+  <url><loc>https://mmt.dev/downloads</loc></url>
+  <url><loc>https://mmt.dev/demos</loc></url>
+  <url><loc>https://mmt.dev/tutorials</loc></url>
+  <url><loc>https://mmt.dev/roadmap</loc></url>
+  <url><loc>https://mmt.dev/docs/quick-start</loc></url>
+  <url><loc>https://mmt.dev/compare</loc></url>
+  <url><loc>https://mmt.dev/compare/postman</loc></url>
+  <url><loc>https://mmt.dev/compare/bruno</loc></url>
+  <url><loc>https://mmt.dev/compare/thunder-client</loc></url>
+  <url><loc>https://mmt.dev/compare/rest-client</loc></url>
+</urlset>

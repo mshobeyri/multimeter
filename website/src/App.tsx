@@ -6,6 +6,7 @@ import Demos from './pages/Demos'
 import Tutorials from './pages/Tutorials'
 import Roadmap from './pages/Roadmap'
 import TestServer from './pages/TestServer'
+import ComparePage, { CompareIndexPage } from './pages/ComparePage'
 import DocsLayout from './pages/docs/DocsLayout'
 import DocPage from './pages/docs/DocPage'
 import { ExampleDetailPage, ExamplesIndexPage } from './pages/docs/ExamplesPage'
@@ -19,6 +20,8 @@ function App() {
         <Route path="/demos" element={<Demos />} />
         <Route path="/tutorials" element={<Tutorials />} />
         <Route path="/roadmap" element={<Roadmap />} />
+        <Route path="/compare" element={<CompareIndexPage />} />
+        <Route path="/compare/:slug" element={<ComparePage />} />
         <Route path="/test-server" element={<TestServer />} />
 
         <Route path="/docs" element={<DocsLayout />}>

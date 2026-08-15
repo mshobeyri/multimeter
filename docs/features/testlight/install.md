@@ -22,6 +22,19 @@ Quick try with the repo examples:
 npx testlight run examples/basic/02_simple_test/echo_test.mmt --quiet
 ```
 
+## GitHub Action
+
+```yaml
+- uses: actions/checkout@v4
+- uses: mshobeyri/multimeter/.github/actions/testlight@main
+  with:
+    file: tests/suite.mmt
+    report: junit
+    report-file: results/junit.xml
+```
+
+See the [action README](https://github.com/mshobeyri/multimeter/blob/main/.github/actions/testlight/README.md).
+
 ## macOS (Homebrew)
 
 ```sh

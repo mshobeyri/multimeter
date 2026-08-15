@@ -4,7 +4,7 @@ import FadeIn from '../components/FadeIn'
 const highlights = [
   {
     icon: Code2,
-    title: 'BSL License',
+    title: 'Apache 2.0',
     description: 'Use it anywhere — personal projects, startups, or enterprise.',
     color: 'text-green-400',
   },
@@ -41,7 +41,7 @@ export default function Replaces() {
             <span className="gradient-text">open source</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-12">
-            Multimeter is open source under the BSL (Business Source License). Use it for any project,
+            Multimeter is open source under the Apache License 2.0. Use it for any project,
             contribute to its development, or fork it for your own needs.
           </p>
         </FadeIn>

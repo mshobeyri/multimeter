@@ -8,7 +8,7 @@
   },
   "homepage": "https://mmt.dev",
   "repository": "https://github.com/mshobeyri/multimeter",
-  "license": "BUSL-1.1",
+  "license": "Apache-2.0",
   "keywords": [
     "multimeter",
     "testlight",

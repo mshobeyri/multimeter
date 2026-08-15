@@ -1,4 +1,5 @@
 import { Check, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import FadeIn from '../components/FadeIn'
 
 type ToolKey = 'multimeter' | 'postman' | 'insomnia' | 'bruno' | 'robot' | 'cucumber' | 'jmeter' | 'neoload' | 'playwright'
@@ -161,6 +162,15 @@ export default function Comparison() {
             </h2>
             <p className="text-lg text-slate-400">
               See how we stack up against other popular API testing tools
+            </p>
+            <p className="text-sm text-slate-500 mt-3">
+              <Link to="/compare/postman" className="text-primary-light hover:underline">vs Postman</Link>
+              {' · '}
+              <Link to="/compare/bruno" className="text-primary-light hover:underline">vs Bruno</Link>
+              {' · '}
+              <Link to="/compare/thunder-client" className="text-primary-light hover:underline">vs Thunder Client</Link>
+              {' · '}
+              <Link to="/compare/rest-client" className="text-primary-light hover:underline">vs REST Client</Link>
             </p>
           </div>
         </FadeIn>

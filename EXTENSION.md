@@ -2,13 +2,13 @@
   <a href="https://mmt.dev">
     <img src="res/logo.png" alt="Logo" width="115" height="115">
   </a>
-  <h4> Start with a request. Grow into a testing platform. Never switch tools.</h4>
+  <h4> REST Client and API testing in VS Code. Git-native alternative to Postman, Bruno, and Thunder Client.</h4>
   <p>
     <a href="https://mmt.dev/demos"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
     &middot;
     <a href="https://mmt.dev"><img src="res/website.png" alt="mmt.dev" width="16" height="16" style="vertical-align: text-bottom;"/> Website</a>
     &middot;
-    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
+    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature_request.yml"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
   </p>
 </div>
 
@@ -113,6 +113,22 @@ That means:
 - Easier debugging
 - Reproducible results
 
+GitHub Actions:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: mshobeyri/multimeter/.github/actions/testlight@main
+  with:
+    file: tests/suite.mmt
+    report: junit
+    report-file: results/junit.xml
+```
+
+```sh
+npm install -g mmt-testlight
+mmt-testlight run tests/suite.mmt --report junit
+```
+
 ## <img src="res/git.png" alt="Git" width="24" height="24" style="vertical-align: text-bottom;"/> Why Git?
 ---
 
@@ -141,5 +157,7 @@ Multimeter helps you answer:
 > "Does this system still behave correctly?"
 
 ---
+
+Licensed under [Apache 2.0](https://github.com/mshobeyri/multimeter/blob/main/LICENSE.md).
 
 [Demos](https://mmt.dev/demos) · [Documentation](https://github.com/mshobeyri/multimeter/tree/dev/docs) · [Website](https://mmt.dev)
