@@ -13,7 +13,7 @@ class MmtTestlight < Formula
   desc "CLI runner for Multimeter .mmt API tests, suites, and documentation"
   homepage "https://github.com/mshobeyri/multimeter"
   license "MIT"
-  version "0.4.3"
+  version "0.4.4"
 
   # ── Platform binaries ──────────────────────────────────────────────
   on_macos do
