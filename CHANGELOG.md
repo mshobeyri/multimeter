@@ -2,6 +2,13 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.34.1]
+
+- Relicense as Apache 2.0
+- Marketplace listing: REST Client & API Testing; Git-native alternative to Postman, Bruno, and Thunder Client
+- Point the listing screenshot at Get Started and a first POST
+- Document the GitHub Action and `mmt-testlight` install in the Marketplace readme
+
 ## [testlight 0.4.4]
 
 - Support multiple CLI presets (`-P` / `--preset`, repeatable or comma-separated) and add short flags (`-F`, `-x`, `-r`, `-R`, `-L`)
