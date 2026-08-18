@@ -14,25 +14,28 @@ import MockServerPanel from './panels/MockServerPanel';
 import StartPanel, {openSimplePostRequest} from './panels/StartPanel';
 import {initOnboarding, OnboardingController, getOnboarding} from './onboarding';
 import {registerRunStatusBar} from './runStatusBar';
+import TempFilesPanel from './panels/TempFilesPanel';
+import {TempFilesController} from './tempFiles/tempFilesController';
+import {TEMP_MMT_SCHEME} from './tempFiles/tempMmtUri';
 import {openUntitledGalleryMmt} from './untitledGalleryMmt';
 import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 
 export function activate(context: vscode.ExtensionContext) {
   const onboarding = initOnboarding(context);
   const historyManager = new HistoryManager(context.globalStorageUri);
+  const tempFiles = new TempFilesController(context);
   const mmtviewPanel = new MmtEditorProvider(context, historyManager);
 
   registerEditorProvider(context, mmtviewPanel);
   registerDocumentLinks(context);
 
   const {historyPanel, environmentPanel, connectionsPanel} =
-      registerSidePanels(context, historyManager, onboarding);
+      registerSidePanels(context, historyManager, onboarding, tempFiles);
 
   registerConnectionsCommands(context, connectionsPanel);
   registerHistoryCommands(context, historyPanel, historyManager);
   registerEnvironmentCommands(context, environmentPanel, mmtviewPanel);
   registerMiscCommands(context);
-  registerApiTestStatusBar(context);
 
   registerRunStatusBar(context);
 
@@ -45,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
 // ---------------------------------------------------------------------------
 
 function registerDocumentLinks(context: vscode.ExtensionContext): void {
-  const schemes = ['file', 'untitled', 'vscode-remote', 'vscode-vfs'];
+  const schemes = ['file', 'untitled', TEMP_MMT_SCHEME, 'vscode-remote', 'vscode-vfs'];
   const provider = new MmtDocumentLinkProvider();
   for (const scheme of schemes) {
     context.subscriptions.push(vscode.languages.registerDocumentLinkProvider(
@@ -94,10 +97,15 @@ function registerEditorProvider(
 
 function registerSidePanels(
     context: vscode.ExtensionContext, historyManager: HistoryManager,
-    onboarding: OnboardingController): {
+    onboarding: OnboardingController,
+    tempFiles: TempFilesController): {
   historyPanel: HistoryPanel; environmentPanel: EnvironmentPanel;
   connectionsPanel: ConnectionsPanel;
 } {
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider(
+      TempFilesPanel.viewType, new TempFilesPanel(context, tempFiles),
+      {webviewOptions: {retainContextWhenHidden: true}}));
+
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       StartPanel.viewType, new StartPanel(context, onboarding),
       {webviewOptions: {retainContextWhenHidden: true}}));
@@ -316,16 +324,5 @@ async function closeMatchingTabs(
   for (const tab of tabs) {
     await vscode.window.tabGroups.close(tab);
   }
-}
-
-function registerApiTestStatusBar(context: vscode.ExtensionContext): void {
-  const item =
-      vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  item.name = 'Multimeter';
-  item.text = '$(mmt-logo)';
-  item.tooltip = 'New Multimeter file';
-  item.command = 'multimeter.apiTest.new';
-  item.show();
-  context.subscriptions.push(item);
 }
 

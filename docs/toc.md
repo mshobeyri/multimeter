@@ -4,6 +4,15 @@
 - [Getting Started](./quick-start.md)
 - [Install](./install.md)
 
+### Panels
+- [Overview](./panels/index.md)
+- [Temp Files](./panels/temp-files.md)
+- [Get Started](./panels/get-started.md)
+- [Mock Server](./files/server/panel.md)
+- [Connections](./panels/connections.md)
+- [Environment Variables](./files/env/ui.md)
+- [History](./panels/history.md)
+
 ### MMT Files
 - [Overview](./files.md)
 - [API](./files/api/index.md)
@@ -94,7 +103,6 @@
 - [Run in CI](./tasks/run-in-ci.md)
 
 ### Features
-- [History](./features/history.md)
 - [Logging](./features/logging.md)
   - [Log levels](./features/logging/log-levels.md)
   - [Where logs appear](./features/logging/where-logs-appear.md)
@@ -107,7 +115,6 @@
   - [Options](./features/testlight/options.md)
   - [Environment priority](./features/testlight/environment-priority.md)
   - [Examples](./features/testlight/examples.md)
-- [Connections](./features/connections.md)
 - [Flow chart](./features/flow-chart.md)
 - [Dynamic values](./features/dynamic-values.md)
 - [Data-driven tests](./features/data-driven-tests.md)

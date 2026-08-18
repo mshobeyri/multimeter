@@ -21,7 +21,7 @@ Notes:
 - `id` is optional, but recommended when you want to reference the response in later steps.
 - Inline `expect`, `debug`, and `report` work the same way as on `call` steps.
 - The response exposed through `id` includes `body`, `headers`, `cookies`, `status`, and `duration`.
-- In the Multimeter editor, **Ctrl+click** (⌘+click on macOS) the `http:` URL to open a temporary `type: api` file with the same request data.
+- In the Multimeter editor, **Ctrl+click** (⌘+click on macOS) the `http:` URL to open a temporary `type: api` file with the same request data. It appears in the [Temp Files](../../../panels/temp-files.md) panel.
 
 Example using the response later in the `flow:`
 

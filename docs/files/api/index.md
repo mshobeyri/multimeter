@@ -72,7 +72,7 @@ Fixed bar at the bottom of the tester:
 | {{btn:history}} | Opens the **History** panel |
 | {{btn:sparkle-filled}} | Toggle auto-format (beautify) for bodies |
 
-See also: [History](../../features/history.md) · [Connections](../../features/connections.md)
+See also: [History](../../panels/history.md) · [Connections](../../panels/connections.md)
 
 ## Supported
 

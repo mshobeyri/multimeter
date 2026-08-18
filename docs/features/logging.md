@@ -56,4 +56,4 @@ Timestamps and level tags prefix each line (`[info]`, `[debug]`, etc.).
 
 - [API logging](./logging/api-logging.md) · [Test logging](./logging/test-logging.md) · [Suite logging](./logging/suite-logging.md)
 - [Testlight](./testlight/index.md) — `--log-level` and `--quiet` for terminal runs
-- [History](./history.md) — recent requests and responses in the bottom panel (separate from run logs)
+- [History](../panels/history.md) — recent requests and responses in the bottom panel (separate from run logs)

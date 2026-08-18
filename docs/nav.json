@@ -13,6 +13,39 @@
     ]
   },
   {
+    "title": "Panels",
+    "items": [
+      {
+        "title": "Overview",
+        "path": "panels/index.md"
+      },
+      {
+        "title": "Temp Files",
+        "path": "panels/temp-files.md"
+      },
+      {
+        "title": "Get Started",
+        "path": "panels/get-started.md"
+      },
+      {
+        "title": "Mock Server",
+        "path": "files/server/panel.md"
+      },
+      {
+        "title": "Connections",
+        "path": "panels/connections.md"
+      },
+      {
+        "title": "Environment Variables",
+        "path": "files/env/ui.md"
+      },
+      {
+        "title": "History",
+        "path": "panels/history.md"
+      }
+    ]
+  },
+  {
     "title": "MMT Files",
     "items": [
       {
@@ -527,10 +560,6 @@
     "title": "Features",
     "items": [
       {
-        "title": "History",
-        "path": "features/history.md"
-      },
-      {
         "title": "Logging",
         "path": "features/logging.md",
         "children": [
@@ -605,10 +634,6 @@
             "path": "features/testlight/see-also.md"
           }
         ]
-      },
-      {
-        "title": "Connections",
-        "path": "features/connections.md"
       },
       {
         "title": "Flow chart",

@@ -125,6 +125,7 @@ export default class StartPanel implements vscode.WebviewViewProvider {
     }
     if (step === 'saveFile') {
       await vscode.commands.executeCommand('workbench.action.files.save');
+      this.onboarding.mark('saveFile');
     }
   }
 

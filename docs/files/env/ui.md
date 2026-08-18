@@ -29,4 +29,4 @@ To change variable definitions, preset groups, HTTP settings, or certificates in
 
 ---
 
-See also: [Environment overview](./index.md) · [CLI](./cli.md) · [Project root](./project-root.md) · [Reference](./reference.md)
+See also: [Environment overview](./index.md) · [CLI](./cli.md) · [Project root](./project-root.md) · [Reference](./reference.md) · [Panels](../../panels/index.md)
