@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.34.2]
+
+- Add a Temp Files sidebar panel for unsaved `.mmt` drafts (pin, archive, save as file); drafts persist across restarts and workspaces
+- Move panel docs under a Panels topic (Temp Files, Get Started, Connections, History)
+- Mark Get Started, Temp Files, Apache 2.0, remote editors, and cross-platform curl as shipped on the website roadmap
+
 ## [1.34.1]
 
 - Relicense as Apache 2.0
