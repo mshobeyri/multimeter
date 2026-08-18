@@ -44,7 +44,7 @@ When Reflect is on, the response body includes the payload you sent. Turn Reflec
 
 ## Request history
 
-The panel records each incoming request. Inspect method, URL, headers, body, and arrival order in the history view. See also: [History](../../features/history.md).
+The panel records each incoming request. Inspect method, URL, headers, body, and arrival order in the history view. See also: [History](../../panels/history.md).
 
 ## Run a server file
 
@@ -92,4 +92,4 @@ Certificate paths are stored in VS Code workspace state. Only PEM format is supp
 
 ---
 
-See also: [Mock Server overview](./index.md) · [Quick start](./quick-start.md) · [CLI](./cli.md)
+See also: [Mock Server overview](./index.md) · [Quick start](./quick-start.md) · [CLI](./cli.md) · [Panels](../../panels/index.md)

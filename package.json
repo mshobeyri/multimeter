@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "REST Client and API testing in VS Code. Git-native alternative to Postman, Bruno, and Thunder Client.",
-  "version": "1.34.1",
+  "version": "1.34.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -131,6 +131,17 @@
         }
       }
     },
+    "resourceLabelFormatters": [
+      {
+        "scheme": "mmt-temp",
+        "formatting": {
+          "label": "${path}",
+          "separator": "/",
+          "stripPathStartingSeparator": true,
+          "workspaceSuffix": "temp"
+        }
+      }
+    ],
     "configuration": {
       "title": "Multimeter",
       "properties": {
@@ -188,6 +199,12 @@
           },
           {
             "filenamePattern": "untitled:/**/*.mmt"
+          },
+          {
+            "filenamePattern": "mmt-temp:/**/*.mmt"
+          },
+          {
+            "filenamePattern": "mmt-temp://**/*.mmt"
           },
           {
             "filenamePattern": "vscode-remote:/**/*.mmt"
@@ -376,12 +393,20 @@
     "views": {
       "multimeter-activitybar": [
         {
+          "id": "multimeter.tempFiles",
+          "name": "Temp Files",
+          "icon": "res/activity.png",
+          "type": "webview",
+          "visibility": "visible",
+          "order": 1
+        },
+        {
           "id": "multimeter.start",
           "name": "Get Started",
           "icon": "res/activity.png",
           "type": "webview",
           "visibility": "visible",
-          "order": 1
+          "order": 2
         },
         {
           "id": "multimeter.mock.server",
@@ -389,7 +414,7 @@
           "icon": "res/activity.png",
           "type": "webview",
           "visibility": "collapsed",
-          "order": 2
+          "order": 3
         },
         {
           "id": "multimeter.connections",
@@ -397,7 +422,7 @@
           "icon": "res/activity.png",
           "type": "webview",
           "visibility": "collapsed",
-          "order": 3
+          "order": 4
         }
       ],
       "multimeter-panel": [

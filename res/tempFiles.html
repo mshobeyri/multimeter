@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons/dist/codicon.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 8px;
+      font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+      font-size: 13px;
+      color: var(--vscode-foreground, #ccc);
+    }
+
+    .new-file-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 28px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: var(--vscode-button-secondaryBackground, #3a3d41);
+      color: var(--vscode-button-secondaryForeground, #ccc);
+      font-size: 13px;
+    }
+
+    .new-file-btn:hover {
+      background: var(--vscode-button-secondaryHoverBackground, #45494e);
+    }
+
+    .section {
+      margin-bottom: 2px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      padding: 4px 6px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--vscode-descriptionForeground, #888);
+      font-family: inherit;
+    }
+
+    .section-header:hover {
+      background: var(--vscode-list-hoverBackground, #2a2d2e);
+    }
+
+    .section-chevron {
+      font-size: 14px;
+      width: 16px;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      flex: 1;
+      text-align: left;
+    }
+
+    .section-count {
+      font-weight: 600;
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .section.collapsed .file-list {
+      display: none;
+    }
+
+    .file-row {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .file-row:hover,
+    .file-row.active {
+      background: var(--vscode-list-hoverBackground, #2a2d2e);
+    }
+
+    .file-row.active {
+      background: var(--vscode-list-inactiveSelectionBackground, var(--vscode-list-hoverBackground, #2a2d2e));
+    }
+
+    .file-type-icon {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+      font-size: 14px;
+      color: var(--vscode-descriptionForeground, #888);
+    }
+
+    .file-type-icon.has-color {
+      color: var(--type-color);
+    }
+
+    .file-body {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .file-title {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--vscode-foreground, #ccc);
+      line-height: 16px;
+    }
+
+    .file-sub {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground, #888);
+      line-height: 14px;
+    }
+
+    .file-actions {
+      display: none;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+      margin-left: 4px;
+    }
+
+    .file-row:hover .file-actions,
+    .file-row:focus-within .file-actions,
+    .file-row.pinned .file-actions.always-pin {
+      display: flex;
+    }
+
+    .file-row.pinned:not(:hover):not(:focus-within) .file-actions .action-btn:not(.pin-btn) {
+      display: none;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--vscode-icon-foreground, #c5c5c5);
+      cursor: pointer;
+    }
+
+    .action-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground, #333);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 36px 16px;
+      color: var(--vscode-descriptionForeground, #888);
+    }
+
+    .empty-state .codicon {
+      font-size: 28px;
+      margin-bottom: 10px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+
+<body>
+  <button class="new-file-btn" id="new-file-btn" type="button">New MMT file</button>
+  <div id="files-root"></div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    const saved = vscode.getState() || {};
+    let files = [];
+    let activeId = null;
+    let collapsed = Object.assign(
+      { pinned: false, files: false, archived: true },
+      saved.collapsed || {}
+    );
+
+    document.getElementById('new-file-btn').addEventListener('click', () => {
+      vscode.postMessage({ command: 'newFile' });
+    });
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (msg && msg.command === 'setFiles') {
+        files = Array.isArray(msg.files) ? msg.files : [];
+        activeId = msg.activeId || null;
+        render();
+      }
+    });
+
+    function persistState() {
+      vscode.setState({ collapsed: collapsed });
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderSection(id, title, items) {
+      if (!items.length) {
+        return '';
+      }
+      const isCollapsed = !!collapsed[id];
+      const chevron = isCollapsed ? 'chevron-right' : 'chevron-down';
+      return (
+        '<section class="section' + (isCollapsed ? ' collapsed' : '') + '" data-section="' + id + '">' +
+          '<button class="section-header" type="button" data-toggle-section="' + id + '" aria-expanded="' + (!isCollapsed) + '">' +
+            '<span class="section-chevron codicon codicon-' + chevron + '" aria-hidden="true"></span>' +
+            '<span class="section-title">' + escapeHtml(title) + '</span>' +
+            '<span class="section-count">' + items.length + '</span>' +
+          '</button>' +
+          '<div class="file-list">' + items.map(renderRow).join('') + '</div>' +
+        '</section>'
+      );
+    }
+
+    function renderRow(file) {
+      const colorStyle = file.color ? '--type-color:' + file.color : '';
+      const colorClass = file.color ? ' has-color' : '';
+      const pinnedClass = file.pinned ? ' pinned' : '';
+      const activeClass = file.id === activeId ? ' active' : '';
+      return (
+        '<div class="file-row' + pinnedClass + activeClass + '" data-id="' + escapeHtml(file.id) + '" role="button" tabindex="0">' +
+          '<span class="file-type-icon' + colorClass + '" style="' + colorStyle + '" aria-hidden="true">' +
+            '<span class="codicon codicon-' + escapeHtml(file.icon || 'file') + '"></span>' +
+          '</span>' +
+          '<div class="file-body">' +
+            '<div class="file-title" title="' + escapeHtml(file.title) + '">' + escapeHtml(file.title) + '</div>' +
+            '<div class="file-sub">' + escapeHtml(file.createdLabel || '') + '</div>' +
+          '</div>' +
+          '<div class="file-actions' + (file.pinned ? ' always-pin' : '') + '">' +
+            renderActions(file) +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    function renderActions(file) {
+      if (file.archived) {
+        return (
+          '<button class="action-btn" data-action="unarchive" title="Unarchive" aria-label="Unarchive">' +
+            '<span class="codicon codicon-unarchive"></span>' +
+          '</button>'
+        );
+      }
+      const pinTitle = file.pinned ? 'Unpin' : 'Pin';
+      const pinIcon = file.pinned ? 'pinned' : 'pin';
+      return (
+        '<button class="action-btn" data-action="remove" title="Archive" aria-label="Archive">' +
+          '<span class="codicon codicon-archive"></span>' +
+        '</button>' +
+        '<button class="action-btn" data-action="saveAs" title="Save as File" aria-label="Save as File">' +
+          '<span class="codicon codicon-save-as"></span>' +
+        '</button>' +
+        '<button class="action-btn pin-btn" data-action="pin" title="' + pinTitle + '" aria-label="' + pinTitle + '">' +
+          '<span class="codicon codicon-' + pinIcon + '"></span>' +
+        '</button>'
+      );
+    }
+
+    function render() {
+      const root = document.getElementById('files-root');
+      if (!files.length) {
+        root.innerHTML =
+          '<div class="empty-state">' +
+            '<div class="codicon codicon-file"></div>' +
+            '<div>No temporary files</div>' +
+            '<div>New APIs and tests stay here until you save or remove them.</div>' +
+          '</div>';
+        return;
+      }
+      const pinned = files.filter(function (file) { return file.pinned && !file.archived; });
+      const rest = files.filter(function (file) { return !file.pinned && !file.archived; });
+      const archived = files.filter(function (file) { return file.archived; });
+      root.innerHTML =
+        renderSection('pinned', 'Pinned', pinned) +
+        renderSection('files', 'Files', rest) +
+        renderSection('archived', 'Archived', archived);
+    }
+
+    document.getElementById('files-root').addEventListener('click', (event) => {
+      const toggle = event.target.closest('[data-toggle-section]');
+      if (toggle) {
+        event.preventDefault();
+        const id = toggle.getAttribute('data-toggle-section');
+        collapsed[id] = !collapsed[id];
+        persistState();
+        render();
+        return;
+      }
+      const actionBtn = event.target.closest('[data-action]');
+      const row = event.target.closest('.file-row');
+      if (!row) {
+        return;
+      }
+      const id = row.getAttribute('data-id');
+      if (actionBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        vscode.postMessage({ command: actionBtn.getAttribute('data-action'), id: id });
+        return;
+      }
+      vscode.postMessage({ command: 'open', id: id });
+    });
+
+    document.getElementById('files-root').addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      const toggle = event.target.closest('[data-toggle-section]');
+      if (toggle) {
+        return;
+      }
+      const row = event.target.closest('.file-row');
+      if (!row) {
+        return;
+      }
+      event.preventDefault();
+      vscode.postMessage({ command: 'open', id: row.getAttribute('data-id') });
+    });
+
+    render();
+  </script>
+</body>
+
+</html>

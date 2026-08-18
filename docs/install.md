@@ -12,7 +12,7 @@ After install:
 2. Create a file ending in `.mmt`.
 3. The Multimeter editor opens — use **Send** / **Run** in the toolbar.
 
-The extension includes the custom editor, environment panel, mock server, history, convertor, and AI assistant.
+The extension includes the custom editor, [panels](./panels/index.md) (Temp Files, Get Started, mock server, connections, environment, history), convertor, and AI assistant.
 
 ## CLI (Testlight)
 
@@ -21,6 +21,7 @@ Install Testlight for terminal and CI runs — see [Testlight — Install](./fea
 ## Next steps
 
 - [Getting Started](./quick-start.md) — run your first request
+- [Panels](./panels/index.md) — Temp Files, Get Started, and the other sidebar views
 - [Testlight](./features/testlight/index.md) — CLI commands and options
 - [Start with a task](./tasks/index.md) — pick a goal
 - [Downloads](/downloads) — full install options and versions

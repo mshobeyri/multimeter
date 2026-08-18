@@ -10,27 +10,15 @@ For CLI and CI, install [Testlight](./features/testlight/index.md) — see [Inst
 
 ## 2. VS Code extension intro
 
-After install, click the Multimeter activity icon in the VS Code sidebar. You get a custom `.mmt` editor plus panels, status-bar actions, and a gallery for new files.
+After install, click the Multimeter activity icon in the VS Code sidebar. You get a custom `.mmt` editor, [panels](./panels/index.md), and a gallery for new files.
 
 [![VS Code extension intro](https://img.youtube.com/vi/dEbbsbPxqDc/hqdefault.jpg)](https://youtu.be/dEbbsbPxqDc)
 
-### Panels
-
-| Control | Where | What it does |
-|---|---|---|
-| {{btn:server-environment:Environment Variables}} | Bottom Multimeter panel | Switch presets, edit variables, and load a workspace env file (`multimeter.mmt`) — see [Environment variables panel](./files/env/ui.md) |
-| {{btn:server:Mock Server}} | Activity bar | Start HTTP/HTTPS/WebSocket mocks, or load a `type: server` file — see [Mock server panel](./files/server/panel.md) |
-| {{btn:plug:Connections}} | Activity bar | Watch active HTTP keep-alive and WebSocket sessions; close them when needed — see [Connections panel](./features/connections.md) |
-| {{btn:history:History}} | Bottom Multimeter panel | Inspect recent requests and responses (method, URL, status, timing, bodies) — see [History](./features/history.md) |
-
-### Status bar
-
-- Click {{btn:file:Multimeter}} (status bar, right) — opens a new untitled `.mmt` file on the empty page
-- While something is running, click {{btn:sync~spin:Stop}} (status bar, left) — stops the active test, suite, API run, or mock server
+See **[Panels](./panels/index.md)** for Temp Files, Get Started, Mock Server, Connections, Environment Variables, and History.
 
 ### Empty page (new `.mmt`)
 
-When a file has no `type:` yet, Multimeter shows the empty page instead of the full editor:
+Create a draft from [Temp Files](./panels/temp-files.md) → **New MMT file** (or Command Palette **New Multimeter File**). When a file has no `type:` yet, Multimeter shows the empty page instead of the full editor:
 
 1. **Select type** — click a type icon such as {{btn:symbol-method:API}} or {{btn:beaker:Test}} to write `type: …` and open that editor
 2. **Gallery** — or click a sample card; it fills the file with a working snippet you can run immediately
@@ -81,5 +69,6 @@ Click {{btn:play:Run test}} — the Report panel shows whether checks passed.
 ## Next steps
 
 - [Send an API request](./tasks/send-api-request.md) — inputs, outputs, and headers
+- [Panels](./panels/index.md) — Temp Files, Get Started, and the other views
 - [Browse examples](/docs/examples) — copy a working folder
 - [MMT Files](./files.md) — types, shared metadata, and layout

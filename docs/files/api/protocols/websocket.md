@@ -30,4 +30,4 @@ Tip: For WS, use tests to send/receive frames with `call` steps that invoke this
 
 Tip: drive frames from [test `call` steps](../../test/steps/call.md).
 
-See also: [Connections panel](../../../features/connections.md) · [API tester](../../index.md)
+See also: [Connections panel](../../../panels/connections.md) · [API tester](../../index.md)

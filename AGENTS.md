@@ -32,7 +32,7 @@
 
 ## VS Code extension + webview
 - Extension host (`src/`):
-  - `extension.ts`: entrypoint; registers the `.mmt` custom editor, side panels (history, mock server, environment, certificates), and chat participants from `src/assistant.ts`.
+  - `extension.ts`: entrypoint; registers the `.mmt` custom editor, side panels (temp files, history, mock server, environment, certificates), and chat participants from `src/assistant.ts`.
   - `mmtEditorProvider.ts`: glue between webview messages and `runner.runFile`. It:
     - Receives `command` messages like `runCurrentDocument`, `runCurlCommand`, etc.
     - Calls `runner.runFile({ rawFile: document.getText(), filePath: document.uri.fsPath, inputs, envvar, fileLoader, jsRunner, logger })`.
