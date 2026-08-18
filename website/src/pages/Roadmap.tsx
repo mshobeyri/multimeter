@@ -140,6 +140,11 @@ const roadmap: RoadmapMonth[] = [
     year: 2026,
     items: [
       { title: 'Test call caching (cache on imported tests within a run)', status: 'done' },
+      { title: 'Get Started first-run onboarding', status: 'done' },
+      { title: 'Temp Files panel for unsaved .mmt drafts', status: 'done' },
+      { title: 'Open-source launch (Apache 2.0)', status: 'done' },
+      { title: 'Remote / Docker workspace .mmt editor', status: 'done' },
+      { title: 'Cross-platform curl (Bash, PowerShell, CMD)', status: 'done' },
       { title: 'Multipart form-data & file upload bodies', status: 'planned' },
       { title: 'Response schema / contract validation (JSON Schema)', status: 'planned' },
       { title: 'CLI tag filtering (testlight --tags)', status: 'planned' },
@@ -147,7 +152,6 @@ const roadmap: RoadmapMonth[] = [
       { title: 'Cookie jar / session persistence across requests', status: 'planned' },
       { title: 'OpenAPI export from .mmt API files', status: 'planned' },
       { title: 'Advanced load thresholds and distributed execution', status: 'planned' },
-      { title: 'Source-available / open-source launch', status: 'planned' },
     ],
   },
 ]
