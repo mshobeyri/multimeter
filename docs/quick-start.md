@@ -12,7 +12,7 @@ For CLI and CI, install [Testlight](./features/testlight/index.md) — see [Inst
 
 After install, click the Multimeter activity icon in the VS Code sidebar. You get a custom `.mmt` editor, [panels](./panels/index.md), and a gallery for new files.
 
-[![VS Code extension intro](https://img.youtube.com/vi/dEbbsbPxqDc/hqdefault.jpg)](https://youtu.be/dEbbsbPxqDc)
+[![VS Code extension intro](https://img.youtube.com/vi/qlJTTd8YX6w/hqdefault.jpg)](https://youtu.be/qlJTTd8YX6w)
 
 See **[Panels](./panels/index.md)** for Temp Files, Get Started, Mock Server, Connections, Environment Variables, and History.
 
