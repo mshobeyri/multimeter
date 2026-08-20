@@ -322,28 +322,27 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div className="apitest-panel-wrapper">
+              <div className={`apitest-panel-wrapper${isTestModified ? " mmt-working-copy" : ""}`}>
                 <APITest
                   api={api}
                   onUpdateApi={update}
                   onModificationChange={handleModificationChange}
                   onRequestReset={handleRequestReset}
                   rightOfUrlButton={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    isTestModified ? (
+                      <UnsavedChangesWarning
+                        originalYaml={appliedContent}
+                        modifiedYaml={modifiedYaml}
+                        onSave={() => setAPI(savedModifiedApi)}
+                        onReset={handleWarningReset}
+                      />
+                    ) : (
                       <HeaderAction
                         icon="edit"
                         label="Edit API"
                         onClick={() => setPage('edit')}
                       />
-                      {isTestModified && (
-                        <UnsavedChangesWarning
-                          originalYaml={appliedContent}
-                          modifiedYaml={modifiedYaml}
-                          onSave={() => setAPI(savedModifiedApi)}
-                          onReset={handleWarningReset}
-                        />
-                      )}
-                    </div>
+                    )
                   }
                 />
               </div>

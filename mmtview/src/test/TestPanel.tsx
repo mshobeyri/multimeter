@@ -287,7 +287,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
             style={{ transform: pageTranslate(page) }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: 'column' }}>
+              <div
+                className={isTestModified ? "mmt-working-copy" : undefined}
+                style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: 'column' }}
+              >
                 <PanelRunHeader
                   icon="beaker"
                   title={test.title || 'Test'}
@@ -304,18 +307,17 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                           label="Save as MMT"
                           onClick={() => onSaveAsMmt(test)}
                         />
-                      ) : (
+                      ) : !isTestModified ? (
                         <HeaderAction
                           icon="edit"
                           label="Edit Test"
                           onClick={() => setPage('edit')}
                         />
-                      )}
+                      ) : null}
                       {isTestModified && (
                         <UnsavedChangesWarning
                           originalYaml={appliedContent}
                           modifiedYaml={modifiedYaml}
-                          yamlHeaderLabel="YAML ↔ temporary inputs"
                           onSave={() => setTest(savedModifiedTest)}
                           onReset={handleWarningReset}
                         />

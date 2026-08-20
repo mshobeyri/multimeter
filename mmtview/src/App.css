@@ -1081,6 +1081,27 @@ button:focus {
   display: flex;
 }
 
+/* Filled yellow bar overlay at the top — does not shift layout. */
+.mmt-working-copy {
+  --mmt-working-copy-accent: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+  --mmt-working-copy-bar-height: 6px;
+  --mmt-working-copy-frame-width: 2px;
+  position: relative;
+}
+
+.mmt-working-copy::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--mmt-working-copy-bar-height);
+  background: var(--mmt-working-copy-accent);
+  pointer-events: none;
+  z-index: 6;
+  border-radius: 4px 4px 0 0;
+}
+
 .api-edit-topbar {
   display: flex;
   align-items: center;
@@ -1195,10 +1216,40 @@ button:focus {
   color: inherit;
 }
 
-/* Warning button shown in test mode when API has been modified */
+/* Warning button shown when the tester is a working copy */
+.unsaved-changes-anchor {
+  position: relative;
+}
+
 .unsaved-warning-btn {
-  color: var(--vscode-notificationsWarningIcon-foreground, #cca700) !important;
-  padding: 4px 6px;
+  color: var(--mmt-working-copy-accent, var(--vscode-notificationsWarningIcon-foreground, #cca700)) !important;
+  white-space: nowrap;
+}
+
+/* Overlay U-box: no in-flow border (avoids shifting the URL row). */
+.mmt-working-copy .unsaved-warning-btn {
+  --unsaved-extend: 0px;
+  position: relative;
+  z-index: 7;
+  overflow: visible;
+}
+
+.mmt-working-copy .unsaved-warning-btn::before {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--unsaved-extend) - 2px);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: var(--mmt-working-copy-frame-width, 2px) solid var(--mmt-working-copy-accent);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  pointer-events: none;
+}
+
+.mmt-working-copy .unsaved-warning-btn > * {
+  transform: translateY(calc(var(--unsaved-extend) / -2));
 }
 
 /* Popup that explains unsaved test-mode changes */

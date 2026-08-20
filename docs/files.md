@@ -49,7 +49,7 @@ Every `.mmt` file opens as a **split editor**:
 
 The two panes stay in sync while you edit YAML. Click {{btn:edit:Edit}} on the right to switch that pane into **edit mode** (forms and tabs instead of the run / preview view). Use the back control on the edit header to return.
 
-You can always edit the YAML directly. The right panel follows, except when the **API tester** has temporary UI changes that are not in the file yet — see [API](./files/api/index.md#temporary-ui-changes).
+You can always edit the YAML directly. The right panel follows, except when the **API tester** is a working copy — see [API](./files/api/index.md#unsaved-changes).
 
 ### Show YAML, UI, or both
 
