@@ -233,6 +233,23 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
     resetRef.current?.();
   }, [appliedContent, setContent]);
 
+  // Working copy becomes the YAML — drop input overrides so later YAML
+  // edits apply to the UI instead of re-entering working-copy mode.
+  const handleWarningSave = useCallback(() => {
+    resetAfterApplyRef.current = true;
+    dismissedYamlRef.current = null;
+    pendingYamlRef.current = null;
+    setTempInputs({});
+    setDirtyInputKeys(new Set());
+    const newYaml = testToYaml(savedModifiedTest);
+    if (newYaml === contentRef.current && newYaml === appliedContent) {
+      resetAfterApplyRef.current = false;
+      resetRef.current?.();
+      return;
+    }
+    setTest(savedModifiedTest);
+  }, [appliedContent, savedModifiedTest, setTest]);
+
   const importsMap = React.useMemo(() => {
     const raw = test?.import;
     if (!raw || typeof raw !== "object") {
@@ -318,7 +335,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                         <UnsavedChangesWarning
                           originalYaml={appliedContent}
                           modifiedYaml={modifiedYaml}
-                          onSave={() => setTest(savedModifiedTest)}
+                          onSave={handleWarningSave}
                           onReset={handleWarningReset}
                         />
                       )}

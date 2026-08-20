@@ -276,6 +276,23 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     resetRef.current?.();
   }, [appliedContent, setContent]);
 
+  // Working copy becomes the YAML — drop tester overrides so later YAML
+  // edits apply to the UI instead of re-entering working-copy mode.
+  const handleWarningSave = useCallback(() => {
+    const newYaml = apiToYaml(savedModifiedApi);
+    resetAfterApplyRef.current = true;
+    dismissedYamlRef.current = null;
+    pendingYamlRef.current = null;
+    setTestRequestData(undefined);
+    setTestTouchedFields(new Set());
+    setAppliedContent(newYaml);
+    setContent(newYaml, { force: true });
+    if (newYaml === appliedContent) {
+      resetAfterApplyRef.current = false;
+      resetRef.current?.();
+    }
+  }, [appliedContent, savedModifiedApi, setContent]);
+
   useEffect(() => {
     localStorage.setItem(LAST_API_PAGE_KEY, page);
   }, [page]);
@@ -333,7 +350,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                       <UnsavedChangesWarning
                         originalYaml={appliedContent}
                         modifiedYaml={modifiedYaml}
-                        onSave={() => setAPI(savedModifiedApi)}
+                        onSave={handleWarningSave}
                         onReset={handleWarningReset}
                       />
                     ) : (
