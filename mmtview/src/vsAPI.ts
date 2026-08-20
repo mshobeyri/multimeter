@@ -278,8 +278,9 @@ export const pushHistory = (item: {
   query?: Record<string, string>,
   content?: string,
   time?: string
-duration?: number
+  duration?: number
   status?: number
+  statusText?: string
 }) => {
   window.vscode?.postMessage({
     command: 'addHistory',
@@ -341,8 +342,11 @@ function normalizeOpenFilePath(filename: string): string {
   return raw;
 }
 
-  export function showHistoryPanel() {
-    window.vscode?.postMessage({command: 'openHistoryPanel'});
+  export function showHistoryPanel(options?: { openLatest?: boolean }) {
+    window.vscode?.postMessage({
+      command: 'openHistoryPanel',
+      openLatest: !!options?.openLatest,
+    });
   }
 
   /** Pin the current preview tab so the next single-click open won't replace it. */

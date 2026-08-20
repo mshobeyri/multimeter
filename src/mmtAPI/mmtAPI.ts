@@ -607,7 +607,9 @@ export const messageReceived = async (
       break;
 
     case 'openHistoryPanel':
-      await vscode.commands.executeCommand('multimeter.history.show');
+      await vscode.commands.executeCommand('multimeter.history.show', {
+        openLatest: !!message.openLatest,
+      });
       break;
 
     case 'updateConfig':

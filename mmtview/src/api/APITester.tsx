@@ -670,6 +670,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               errorMessage={responseData.errorMessage}
               errorCode={responseData.errorCode}
               warning={responseData.warning}
+              onClick={() => showHistoryPanel({ openLatest: true })}
             />
           )}
 

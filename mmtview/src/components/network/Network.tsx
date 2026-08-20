@@ -93,15 +93,16 @@ export function useNetwork(_autoFormatBody = false): NetworkAPI {
           onResponse: (res: any) => {
             setLoading(false);
             pushHistory({
-              type: "recv",
+              type: typeof res.status === "number" && res.status < 0 ? "error" : "recv",
               method,
               protocol,
               title: url ?? "",
               cookies: parseSetCookie(res.headers?.["set-cookie"]),
               headers: res.headers || {},
-              content: toContentString(res.body),
-              duration: res.duration || -1,
-              status: res.status || -1,
+              content: toContentString(res.body) || String(res.statusText || "").trim(),
+              duration: typeof res.duration === "number" ? res.duration : -1,
+              status: typeof res.status === "number" ? res.status : -1,
+              statusText: String(res.statusText || "").trim() || undefined,
             });
             resolve({
               body: res.body,
@@ -124,9 +125,10 @@ export function useNetwork(_autoFormatBody = false): NetworkAPI {
               title: url ?? "",
               cookies: {},
               headers: {},
-              content: toContentString(error),
+              content: toContentString(error) || String(error.message || "").trim(),
               duration: error.duration || -1,
-              status: error?.status ? error?.status : 500
+              status: typeof error.status === "number" ? error.status : -1,
+              statusText: String(error.message || "").trim() || undefined,
             });
 
             resolve({
@@ -195,9 +197,10 @@ export function useNetwork(_autoFormatBody = false): NetworkAPI {
               method: `${service}/${method}`,
               protocol: "grpc",
               title: url || `${service}/${method}`,
-              content: toContentString(error),
+              content: toContentString(error) || String(error.message || "").trim(),
               duration: error.duration || -1,
-              status: error.status || -1,
+              status: typeof error.status === "number" ? error.status : -1,
+              statusText: String(error.message || "").trim() || undefined,
             });
             resolve({
               body: error.body || null,

@@ -13,6 +13,7 @@ export interface HistoryItem {
   cookies?: Record<string, string>;
   content?: string;
   status?: number;
+  statusText?: string;
   duration?: number;
   time?: string;
 }
