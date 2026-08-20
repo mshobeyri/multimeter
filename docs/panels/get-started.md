@@ -22,7 +22,7 @@ The panel has two levels: a short welcome, then **Your first request**. Each ste
 | **Send the first POST** | Click **Send**. The response appears on the right |
 | **Change the body message** | Edit `message` in the left YAML (not the tester pane) |
 | **Send again** | Confirm the new body comes back in the response |
-| **Save the file** | Persist the YAML (`Cmd+S` / `Ctrl+S`). Tester-only edits on the right stay a working copy until **UNSAVED CHANGES** → **Save to YAML** |
+| **Save the file** | Persist the YAML (`Cmd+S` / `Ctrl+S`). Tester-only edits on the right stay temporary until **UNSAVED CHANGES** → **Save to YAML** |
 
 When you finish, the panel offers next steps (docs, GitHub, marketplace).
 

@@ -5,7 +5,7 @@ import { defineTheme, getMonacoThemeName } from "../text/Theme";
 interface UnsavedChangesWarningProps {
   /** Current file / applied YAML (left / original side of the diff). */
   originalYaml: string;
-  /** YAML with the user's working-copy UI edits merged in. */
+  /** YAML with the user's temporary UI edits merged in. */
   modifiedYaml: string;
   onSave: () => void;
   onReset: () => void;
@@ -73,7 +73,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
         ref={buttonRef}
         className="action-button api-edit-launcher unsaved-warning-btn"
         onClick={() => setOpen(v => !v)}
-        title="The UI is a working copy with unsaved changes"
+        title="The UI has unsaved changes"
         type="button"
       >
         <span className="codicon codicon-warning" aria-hidden />
@@ -94,7 +94,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
             </button>
           </div>
           <p className="unsaved-changes-popup-desc">
-            The UI is a working copy. It contains the following unsaved changes.
+            The UI is temporary. It contains the following unsaved changes.
           </p>
           <div className="unsaved-changes-popup-yaml-header">
             <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
@@ -102,7 +102,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
                 className="button-icon"
                 onClick={() => { onSave(); setOpen(false); }}
                 type="button"
-                title="Save working-copy edits into the YAML"
+                title="Write UI edits into the YAML"
               >
                 <span className="codicon codicon-save" aria-hidden /> Save to YAML
               </button>
@@ -110,7 +110,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
                 className="button-icon"
                 onClick={() => { onReset(); setOpen(false); }}
                 type="button"
-                title="Discard working-copy edits"
+                title="Discard UI changes"
               >
                 <span className="codicon codicon-discard" aria-hidden /> Discard
               </button>

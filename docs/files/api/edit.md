@@ -2,7 +2,7 @@
 
 Open an API file in VS Code and click {{btn:edit:Edit API}} in the tester top bar to switch from the **API tester** to **edit mode**. Use the back control on the edit header to return to the tester.
 
-Edits in edit mode write directly to the YAML file (unlike tester working-copy edits, which replace **Edit API** with **UNSAVED CHANGES** until you Save to YAML or Discard).
+Edits in edit mode write directly to the YAML. The tester UI is temporary until you **Save to YAML** or **Discard** (see [Unsaved Changes](./index.md#unsaved-changes)).
 
 ## Tabs
 

@@ -1216,7 +1216,7 @@ button:focus {
   color: inherit;
 }
 
-/* Warning button shown when the tester is a working copy */
+/* Warning button shown when the tester has unsaved UI edits */
 .unsaved-changes-anchor {
   position: relative;
 }

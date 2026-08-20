@@ -130,7 +130,7 @@ export function showVSCodeMessage(level: LogLevel, message: string) {
   });
 }
 
-export type YamlUiConflictChoice = 'ui-to-yaml' | 'yaml-to-ui' | 'cancel';
+export type YamlUiConflictChoice = 'discard-ui' | 'cancel';
 
 /** Native VS Code modal dialog; returns the clicked button label, or undefined if dismissed. */
 export function showVSCodeModalDialog(options: {
@@ -160,24 +160,16 @@ export function showVSCodeModalDialog(options: {
   });
 }
 
-export async function showYamlUiConflictDialog(
-    modifiedFieldsLabel: string,
-    surface: 'API tester' | 'test' = 'API tester'): Promise<YamlUiConflictChoice> {
-  const fields = modifiedFieldsLabel ? ` (${modifiedFieldsLabel})` : '';
-  const surfaceLabel = surface === 'test' ? 'test inputs UI' : 'API tester UI';
+export async function showYamlUiConflictDialog(): Promise<YamlUiConflictChoice> {
   const choice = await showVSCodeModalDialog({
     level: 'warning',
-    message: 'YAML conflicts with UI edits',
-    detail:
-        `You changed the ${surfaceLabel}${fields}. Applying this YAML update would discard those UI edits.\n\nHow do you want to continue?`,
+    message: 'Unsaved changes in UI',
+    detail: 'The UI is temporary and has unsaved edits. Discard them to apply this YAML.',
     // Modal dialogs already provide a system Cancel / Escape dismiss.
-    buttons: ['Reset UI to YAML', 'Reset YAML to UI'],
+    buttons: ['Discard UI changes'],
   });
-  if (choice === 'Reset UI to YAML') {
-    return 'ui-to-yaml';
-  }
-  if (choice === 'Reset YAML to UI') {
-    return 'yaml-to-ui';
+  if (choice === 'Discard UI changes') {
+    return 'discard-ui';
   }
   return 'cancel';
 }
