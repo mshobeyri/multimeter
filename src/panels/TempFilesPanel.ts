@@ -4,10 +4,13 @@ import * as vscode from 'vscode';
 
 import {formatRelativeTime} from '../tempFiles/tempFileMeta';
 import {TempFilesController} from '../tempFiles/tempFilesController';
+import {parseTempMmtUri} from '../tempFiles/TempFileStore';
+import {TEMP_MMT_SCHEME} from '../tempFiles/tempMmtUri';
 
 export default class TempFilesPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = 'multimeter.tempFiles';
   private view?: vscode.WebviewView;
+  private dirtySignature = '';
 
   constructor(
       private readonly context: vscode.ExtensionContext,
@@ -19,6 +22,18 @@ export default class TempFilesPanel implements vscode.WebviewViewProvider {
     context.subscriptions.push(
         vscode.window.tabGroups.onDidChangeTabs(() => {
           this.refresh();
+        }));
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument(event => {
+          if (event.document.uri.scheme === TEMP_MMT_SCHEME) {
+            this.refreshIfDirtyChanged();
+          }
+        }));
+    context.subscriptions.push(
+        vscode.workspace.onDidSaveTextDocument(document => {
+          if (document.uri.scheme === TEMP_MMT_SCHEME) {
+            this.refresh();
+          }
         }));
   }
 
@@ -36,16 +51,26 @@ export default class TempFilesPanel implements vscode.WebviewViewProvider {
     void this.refresh();
   }
 
+  private refreshIfDirtyChanged(): void {
+    if (dirtySignature(dirtyTempFileIds()) === this.dirtySignature) {
+      return;
+    }
+    void this.refresh();
+  }
+
   async refresh(): Promise<void> {
     if (!this.view) {
       return;
     }
     await this.controller.store.ensureLoaded();
+    const dirtyIds = dirtyTempFileIds();
+    this.dirtySignature = dirtySignature(dirtyIds);
     this.view.webview.postMessage({
       command: 'setFiles',
       files: this.controller.store.listItems().map(item => ({
         ...item,
         createdLabel: formatRelativeTime(item.createdAt),
+        dirty: dirtyIds.has(item.id),
       })),
       activeId: this.controller.activeId(),
     });
@@ -96,4 +121,22 @@ export default class TempFilesPanel implements vscode.WebviewViewProvider {
         path.join(this.context.extensionPath, 'res', 'tempFiles.html');
     return fs.readFileSync(htmlPath, 'utf8');
   }
+}
+
+function dirtySignature(ids: Set<string>): string {
+  return [...ids].sort().join(',');
+}
+
+function dirtyTempFileIds(): Set<string> {
+  const ids = new Set<string>();
+  for (const document of vscode.workspace.textDocuments) {
+    if (document.uri.scheme !== TEMP_MMT_SCHEME || !document.isDirty) {
+      continue;
+    }
+    const id = parseTempMmtUri(document.uri)?.id;
+    if (id) {
+      ids.add(id);
+    }
+  }
+  return ids;
 }

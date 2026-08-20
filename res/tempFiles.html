@@ -119,12 +119,28 @@
       flex: 1;
     }
 
+    .file-title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
     .file-title {
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
       color: var(--vscode-foreground, #ccc);
       line-height: 16px;
+      min-width: 0;
+    }
+
+    .file-dirty-dot {
+      flex-shrink: 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--vscode-foreground, #ccc);
     }
 
     .file-sub {
@@ -252,7 +268,10 @@
             '<span class="codicon codicon-' + escapeHtml(file.icon || 'file') + '"></span>' +
           '</span>' +
           '<div class="file-body">' +
-            '<div class="file-title" title="' + escapeHtml(file.title) + '">' + escapeHtml(file.title) + '</div>' +
+            '<div class="file-title-row">' +
+              '<div class="file-title" title="' + escapeHtml(file.title) + '">' + escapeHtml(file.title) + '</div>' +
+              (file.dirty ? '<span class="file-dirty-dot" title="Unsaved changes" aria-label="Unsaved changes"></span>' : '') +
+            '</div>' +
             '<div class="file-sub">' + escapeHtml(file.createdLabel || '') + '</div>' +
           '</div>' +
           '<div class="file-actions' + (file.pinned ? ' always-pin' : '') + '">' +
