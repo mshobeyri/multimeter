@@ -14,6 +14,7 @@ import TabBar from "../components/TabBar";
 import PrimaryButton from "../components/PrimaryButton";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
 import PanelEditHeader from "../components/PanelEditHeader";
+import { HideWhenYamlError } from "../api/YamlErrorWarning";
 
 const LAST_ENV_PAGE_KEY = "mmtview:env:lastPage";
 
@@ -352,11 +353,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                   icon="server-environment"
                   title="Environment"
                   actions={
-                    <HeaderAction
-                      icon="edit"
-                      label="Edit Environment"
-                      onClick={() => setPage('edit')}
-                    />
+                    <HideWhenYamlError>
+                      <HeaderAction
+                        icon="edit"
+                        label="Edit Environment"
+                        onClick={() => setPage('edit')}
+                      />
+                    </HideWhenYamlError>
                   }
                 />
                 <div className="run-action-bar">

@@ -20,7 +20,12 @@ Run glyphs appear in the left margin of the YAML pane:
 |---|---|
 | `title` | Test title from `title:` (shown with the beaker icon) |
 | {{btn:type-hierarchy-sub:Flow chart}} | Opens the flowchart view for the test steps |
-| {{btn:edit:Edit Test}} | Switches to **edit mode** — see [Edit Test](./edit.md) |
+| {{btn:edit:Edit Test}} | Switches to **edit mode** — see [Edit Test](./edit.md). Hidden while the runner has unsaved input changes |
+| {{btn:warning:UNSAVED CHANGES}} | Appears instead of Edit Test when runner inputs have unsaved UI edits |
+
+Input edits in the runner are **temporary**. They are used for Run, but they are not in the YAML until you **Save to YAML**. **Edit Test** writes the YAML; the runner does not.
+
+If you edit the YAML while the runner has unsaved input changes, a dialog titled **Unsaved changes in UI** asks you to **Discard UI changes**. Dismiss the dialog to keep the runner as-is.
 
 See also: [Flow chart](../../features/flow-chart.md)
 

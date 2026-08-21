@@ -158,7 +158,10 @@ function registerHistoryCommands(
         historyPanel.refreshHistory();
       }));
   context.subscriptions.push(
-      vscode.commands.registerCommand('multimeter.history.show', async () => {
+      vscode.commands.registerCommand('multimeter.history.show', async (opts?: {openLatest?: boolean}) => {
+        if (opts?.openLatest) {
+          historyPanel.openLatest();
+        }
         await vscode.commands.executeCommand('multimeter.history.focus');
       }));
 }

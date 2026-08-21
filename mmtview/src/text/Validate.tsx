@@ -243,7 +243,10 @@ const isTopLevelGraphqlRequiredError = (error: any): boolean => {
 };
 
 const isSchemaBranchError = (error: any): boolean => {
-    return error?.keyword === 'if';
+    const keyword = String(error?.keyword || '');
+    return keyword === 'if' || keyword === 'then' || keyword === 'else' ||
+        keyword === 'anyOf' || keyword === 'oneOf' || keyword === 'allOf' ||
+        keyword === 'not' || keyword === 'pattern';
 };
 
 const DATA_IMPORT_EXTENSIONS = ['.json', '.yaml', '.yml', '.csv'];

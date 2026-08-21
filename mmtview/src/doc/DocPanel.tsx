@@ -9,6 +9,7 @@ import DocViewMarkdown from './DocViewMarkdown';
 import TabBar from '../components/TabBar';
 import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
 import PanelEditHeader from '../components/PanelEditHeader';
+import { HideWhenYamlError } from '../api/YamlErrorWarning';
 
 
 const LAST_DOC_TAB_KEY = "mmtview:doc:lastTab";
@@ -111,11 +112,13 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
                     />
                   }
                   actions={
-                    <HeaderAction
-                      icon="edit"
-                      label="Edit Doc"
-                      onClick={() => setPage('edit')}
-                    />
+                    <HideWhenYamlError>
+                      <HeaderAction
+                        icon="edit"
+                        label="Edit Doc"
+                        onClick={() => setPage('edit')}
+                      />
+                    </HideWhenYamlError>
                   }
                 />
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', width: '100%', minWidth: 0 }}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
@@ -21,6 +21,8 @@ import { FileContext } from "./fileContext";
 import PanelErrorBoundary from "./shared/PanelErrorBoundary";
 import { ensureThemeSync } from "./text/Theme";
 import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
+import { collectYamlEditorErrors } from "./text/yamlEditorErrors";
+import YamlErrorWarning from "./api/YamlErrorWarning";
 
 /** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
 function toEditorText(text: string): string {
@@ -368,6 +370,19 @@ const App: React.FC = () => {
     }
   }, [validContent, sourceFormat]);
 
+  const yamlErrors = useMemo(() => {
+    if (sourceFormat !== "mmt") {
+      return [];
+    }
+    return collectYamlEditorErrors(content);
+  }, [content, sourceFormat]);
+
+  const yamlStale = sourceFormat === "mmt" && content !== validContent && yamlErrors.length > 0;
+
+  const restoreValidYaml = useCallback(() => {
+    setContent(validContent);
+  }, [validContent]);
+
   useEffect(() => {
     if (isInitLoad.current) {
       isInitLoad.current = false;
@@ -454,7 +469,7 @@ const App: React.FC = () => {
     : { display: "none", width: 0, minWidth: 0, margin: 0, padding: 0, pointerEvents: "none" };
 
   return (
-    <FileContext.Provider value={{ mmtFilePath, projectRoot }}>
+    <FileContext.Provider value={{ mmtFilePath, projectRoot, yamlErrors, yamlStale, restoreValidYaml }}>
       <div ref={splitHostRef} style={{ height: "100%", width: "100%", overflow: "hidden" }}>
         <SplitPane
           split="vertical"
@@ -499,7 +514,15 @@ const App: React.FC = () => {
               sourceFormat={sourceFormat}
             />
           </div>
-          <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
+          <div
+            className={yamlErrors.length > 0 ? "mmt-yaml-error" : undefined}
+            style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}
+          >
+            {yamlErrors.length > 0 && !docType && (
+              <div className="yaml-error-fallback">
+                <YamlErrorWarning />
+              </div>
+            )}
             <div
               style={{
                 width: "100%",

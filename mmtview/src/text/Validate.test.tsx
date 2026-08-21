@@ -50,7 +50,11 @@ describe('validateYamlContent API method requirements', () => {
       'method: nope',
     ].join('\n'));
 
-    expect(errors.some(error => String(error.message).includes('Invalid value'))).toBe(true);
+    const messages = errors.map(error => String(error.message));
+    expect(messages.some(message => message.includes('Invalid value'))).toBe(true);
+    expect(messages.some(message => /should match pattern/i.test(message))).toBe(false);
+    expect(messages.some(message => /anyOf/i.test(message))).toBe(false);
+    expect(messages.filter(message => message.includes('method'))).toHaveLength(1);
   });
 
   it('accepts data imports on env files', () => {

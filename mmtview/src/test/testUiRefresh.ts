@@ -114,7 +114,3 @@ export function computeDirtyInputKeys(
   });
   return dirty;
 }
-
-export function modifiedInputKeysLabel(dirtyKeys: Set<string>): string {
-  return Array.from(dirtyKeys).join(", ");
-}

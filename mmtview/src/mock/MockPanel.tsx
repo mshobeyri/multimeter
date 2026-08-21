@@ -13,6 +13,7 @@ import TabBar from "../components/TabBar";
 import RunStopToggle from "../components/RunStopToggle";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
 import PanelEditHeader from "../components/PanelEditHeader";
+import { HideWhenYamlError } from "../api/YamlErrorWarning";
 
 interface MockPanelProps {
   content: string;
@@ -141,11 +142,13 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   title={mockData.title || 'Server'}
                   iconStyle={{ color: running ? greenChrome.text : undefined, transition: 'color 0.2s' }}
                   actions={
-                    <HeaderAction
-                      icon="edit"
-                      label="Edit Mock"
-                      onClick={() => setPage('edit')}
-                    />
+                    <HideWhenYamlError>
+                      <HeaderAction
+                        icon="edit"
+                        label="Edit Mock"
+                        onClick={() => setPage('edit')}
+                      />
+                    </HideWhenYamlError>
                   }
                 />
                 <div className="run-action-bar">

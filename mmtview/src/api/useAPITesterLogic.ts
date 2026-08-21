@@ -492,16 +492,20 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
           const url = req?.url ?? "";
           const protocol = protocolResolver.getEffectiveProtocol(
             req?.protocol as any, req?.url) || "http";
+          const status = typeof response.status === "number" ? response.status : -1;
+          const statusText = String(response.errorMessage || response.statusText || "").trim();
+          const body = toContentString(response.body);
           pushHistory({
-            type: response.status != null && response.status < 0 ? "error" : "recv",
+            type: status < 0 ? "error" : "recv",
             method: method.toUpperCase(),
             protocol,
             title: url,
             cookies: response.cookies,
             headers: response.headers,
-            content: toContentString(response.body ?? response.errorMessage),
+            content: body || statusText,
             duration: response.duration,
-            status: response.status,
+            status,
+            statusText: statusText || undefined,
           });
         }
       }

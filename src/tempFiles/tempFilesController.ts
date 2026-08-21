@@ -18,7 +18,6 @@ export function getTempFilesController(): TempFilesController {
 export class TempFilesController {
   readonly store: TempFileStore;
   readonly provider: TempMmtFileSystemProvider;
-  private readonly saveTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(context: vscode.ExtensionContext) {
     this.store = new TempFileStore(context.globalStorageUri);
@@ -29,11 +28,6 @@ export class TempFilesController {
         vscode.workspace.registerFileSystemProvider(
             TEMP_MMT_SCHEME, this.provider,
             {isCaseSensitive: true, isReadonly: false}));
-
-    context.subscriptions.push(
-        vscode.workspace.onDidChangeTextDocument(event => {
-          this.handleDocumentChange(event.document);
-        }));
 
     void this.store.ensureLoaded();
   }
@@ -162,28 +156,6 @@ export class TempFilesController {
     await this.remove(id);
     await vscode.commands.executeCommand(
         'vscode.openWith', target, 'mmt.editor', {preview: false});
-  }
-
-  private handleDocumentChange(document: vscode.TextDocument): void {
-    if (document.uri.scheme !== TEMP_MMT_SCHEME) {
-      return;
-    }
-    const parsed = parseTempMmtUri(document.uri);
-    if (!parsed) {
-      return;
-    }
-    void this.store.updateContent(parsed.id, document.getText());
-    const key = document.uri.toString();
-    const existing = this.saveTimers.get(key);
-    if (existing) {
-      clearTimeout(existing);
-    }
-    this.saveTimers.set(key, setTimeout(() => {
-      this.saveTimers.delete(key);
-      if (!document.isClosed) {
-        void document.save();
-      }
-    }, 400));
   }
 }
 

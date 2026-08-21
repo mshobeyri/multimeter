@@ -68,6 +68,11 @@ class HistoryPanel implements vscode.WebviewViewProvider {
     this.updateHistoryView(this._view);
   }
 
+  openLatest() {
+    this.openIdx = 0;
+    this.refreshHistory();
+  }
+
   resolveWebviewView(
       webviewView: vscode.WebviewView,
       _context: vscode.WebviewViewResolveContext,

@@ -5,6 +5,7 @@ import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
 import APITest from "./APITester";
 import UnsavedChangesWarning from "./UnsavedChangesWarning";
+import YamlErrorWarning, { HideWhenYamlError } from "./YamlErrorWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
@@ -27,20 +28,6 @@ const API_EDIT_TABS = [
   { id: "examples" as const, label: "Examples", icon: "lightbulb" },
 ];
 
-const REQUEST_FIELD_LABELS: Partial<Record<keyof Request, string>> = {
-  url: "URL",
-  query: "Params",
-  body: "Body",
-  headers: "Headers",
-  cookies: "Cookies",
-  method: "Method",
-  protocol: "Protocol",
-  format: "Format",
-  graphql: "GraphQL",
-  grpc: "gRPC",
-  timeout: "Timeout",
-};
-
 interface APIsProps {
   content: string;
   setContent: (value: string, options?: { force?: boolean }) => void;
@@ -49,7 +36,7 @@ interface APIsProps {
 const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   // `appliedContent` is what the right-side API UI is built from.
   // When the tester has temporary edits, YAML changes are held until the
-  // user resolves the native VS Code conflict dialog.
+  // user discards the UI changes or cancels.
   const [appliedContent, setAppliedContent] = useState(content);
   const resetAfterApplyRef = useRef(false);
   const pendingYamlRef = useRef<string | null>(null);
@@ -150,38 +137,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     [hasUiOverrides, savedModifiedApi]
   );
 
-  const modifiedFieldsLabel = useMemo(() => {
-    if (!testRequestData || testTouchedFields.size === 0) {
-      return "";
-    }
-    const labels: string[] = [];
-    testTouchedFields.forEach((field) => {
-      const fieldKey = field as string;
-      const reqVal = uiFieldValue(fieldKey);
-      const apiVal = (api as unknown as Record<string, unknown>)[fieldKey];
-      if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
-        labels.push(REQUEST_FIELD_LABELS[field] || fieldKey);
-      }
-    });
-    return labels.join(", ");
-  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
-
-  const modifiedFieldsLabelRef = useRef(modifiedFieldsLabel);
-  const modifiedYamlRef = useRef(modifiedYaml);
-  const savedModifiedApiRef = useRef(savedModifiedApi);
   const contentRef = useRef(content);
-
-  useEffect(() => {
-    modifiedFieldsLabelRef.current = modifiedFieldsLabel;
-  }, [modifiedFieldsLabel]);
-
-  useEffect(() => {
-    modifiedYamlRef.current = modifiedYaml;
-  }, [modifiedYaml]);
-
-  useEffect(() => {
-    savedModifiedApiRef.current = savedModifiedApi;
-  }, [savedModifiedApi]);
 
   useEffect(() => {
     contentRef.current = content;
@@ -200,21 +156,11 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     }
     dialogOpenRef.current = true;
     try {
-      const choice = await showYamlUiConflictDialog(modifiedFieldsLabelRef.current);
+      const choice = await showYamlUiConflictDialog();
       const yaml = pendingYamlRef.current ?? contentRef.current;
 
-      if (choice === "ui-to-yaml") {
+      if (choice === "discard-ui") {
         applyYamlAndResetUi(yaml);
-        return;
-      }
-
-      if (choice === "yaml-to-ui") {
-        const uiYaml = modifiedYamlRef.current || apiToYaml(savedModifiedApiRef.current);
-        resetAfterApplyRef.current = true;
-        dismissedYamlRef.current = null;
-        pendingYamlRef.current = null;
-        setAppliedContent(uiYaml);
-        setContent(uiYaml, { force: true });
         return;
       }
 
@@ -224,7 +170,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     } finally {
       dialogOpenRef.current = false;
     }
-  }, [applyYamlAndResetUi, setContent]);
+  }, [applyYamlAndResetUi]);
 
   // Gate YAML → UI updates when the tester has temporary edits.
   useEffect(() => {
@@ -275,6 +221,23 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     setContent(stored, { force: true });
     resetRef.current?.();
   }, [appliedContent, setContent]);
+
+  // Save temporary UI into YAML — drop tester overrides so later YAML
+  // edits apply to the UI instead of looking like unsaved changes again.
+  const handleWarningSave = useCallback(() => {
+    const newYaml = apiToYaml(savedModifiedApi);
+    resetAfterApplyRef.current = true;
+    dismissedYamlRef.current = null;
+    pendingYamlRef.current = null;
+    setTestRequestData(undefined);
+    setTestTouchedFields(new Set());
+    setAppliedContent(newYaml);
+    setContent(newYaml, { force: true });
+    if (newYaml === appliedContent) {
+      resetAfterApplyRef.current = false;
+      resetRef.current?.();
+    }
+  }, [appliedContent, savedModifiedApi, setContent]);
 
   useEffect(() => {
     localStorage.setItem(LAST_API_PAGE_KEY, page);
@@ -329,21 +292,25 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                   onModificationChange={handleModificationChange}
                   onRequestReset={handleRequestReset}
                   rightOfUrlButton={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <HeaderAction
-                        icon="edit"
-                        label="Edit API"
-                        onClick={() => setPage('edit')}
-                      />
-                      {isTestModified && (
-                        <UnsavedChangesWarning
-                          originalYaml={appliedContent}
-                          modifiedYaml={modifiedYaml}
-                          onSave={() => setAPI(savedModifiedApi)}
-                          onReset={handleWarningReset}
-                        />
-                      )}
-                    </div>
+                    <>
+                      <YamlErrorWarning />
+                      <HideWhenYamlError>
+                        {isTestModified ? (
+                          <UnsavedChangesWarning
+                            originalYaml={appliedContent}
+                            modifiedYaml={modifiedYaml}
+                            onSave={handleWarningSave}
+                            onReset={handleWarningReset}
+                          />
+                        ) : (
+                          <HeaderAction
+                            icon="edit"
+                            label="Edit API"
+                            onClick={() => setPage('edit')}
+                          />
+                        )}
+                      </HideWhenYamlError>
+                    </>
                   }
                 />
               </div>

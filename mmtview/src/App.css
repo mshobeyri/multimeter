@@ -1081,6 +1081,44 @@ button:focus {
   display: flex;
 }
 
+/* Top status bar: one rectangle on the panel; yellow unsaved, red YAML error. */
+.mmt-yaml-error {
+  position: relative;
+}
+
+.panel-box:has(.unsaved-warning-btn) {
+  --mmt-status-bar: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+}
+
+.panel-box:has(.yaml-error-btn) {
+  --mmt-status-bar: var(--vscode-errorForeground, #f14c4c);
+}
+
+.panel-box:has(.unsaved-warning-btn)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--mmt-status-bar);
+  /* Match .action-button rest opacity; hover brightens only the button. */
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 6;
+  border-radius: 4px 4px 0 0;
+}
+
+.unsaved-warning-btn {
+  --mmt-status-accent: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+  color: var(--mmt-status-accent) !important;
+  white-space: nowrap;
+}
+
+.yaml-error-btn {
+  --mmt-status-accent: var(--vscode-errorForeground, #f14c4c);
+}
+
 .api-edit-topbar {
   display: flex;
   align-items: center;
@@ -1195,10 +1233,48 @@ button:focus {
   color: inherit;
 }
 
-/* Warning button shown in test mode when API has been modified */
-.unsaved-warning-btn {
-  color: var(--vscode-notificationsWarningIcon-foreground, #cca700) !important;
-  padding: 4px 6px;
+/* Warning / error chip popup anchor */
+.unsaved-changes-anchor {
+  position: relative;
+}
+
+.yaml-error-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.yaml-error-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: calc(var(--vscode-font-size, 13px) - 1px);
+  line-height: 1.4;
+  padding: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.yaml-error-item:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.yaml-error-fallback {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 8;
 }
 
 /* Popup that explains unsaved test-mode changes */
@@ -1234,6 +1310,10 @@ button:focus {
 .unsaved-changes-popup-icon {
   color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
   flex-shrink: 0;
+}
+
+.yaml-error-popup .unsaved-changes-popup-icon {
+  color: var(--vscode-errorForeground, #f14c4c);
 }
 
 .unsaved-changes-popup-close {
@@ -1421,6 +1501,7 @@ select.method-select:focus-visible {
   background: var(--vscode-editor-background, #232323);
   padding: 0;
   z-index: 5;
+  overflow: visible;
 }
 
 .apitest-toolbar-inner {
@@ -1613,6 +1694,29 @@ select.method-select:focus-visible {
   box-sizing: border-box;
   user-select: none;
   min-width: 25px;
+}
+
+.response-badge--clickable {
+  cursor: pointer;
+}
+
+.response-badge-tooltip {
+  position: fixed;
+  z-index: 10000;
+  max-width: min(420px, 70vw);
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  color: var(--vscode-editorHoverWidget-foreground, #cccccc);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+  pointer-events: none;
 }
 
 /* Toolbar buttons used in API tester response header / edit toggles */
@@ -1914,7 +2018,13 @@ select.method-select:focus-visible {
 
 .notype-type-icons {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.notype-type-icons-row {
+  display: flex;
   justify-content: center;
   gap: 10px 12px;
 }
@@ -2006,7 +2116,6 @@ select.method-select:focus-visible {
   color: var(--vscode-descriptionForeground, #9d9d9d);
   font-size: 12px;
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-  text-transform: lowercase;
 }
 
 .notype-divider::before,

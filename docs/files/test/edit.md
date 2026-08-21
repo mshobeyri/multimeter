@@ -2,6 +2,8 @@
 
 Open a test file in VS Code and click {{btn:edit:Edit Test}} in the runner top bar to switch from the **test runner** to **edit mode**. Use the back control on the edit header to return to the runner.
 
+Edits in edit mode write directly to the YAML. Runner input edits are temporary until you **Save to YAML** or **Discard**.
+
 The separate {{btn:type-hierarchy-sub:Flow chart}} control opens a read-only flowchart view — it is not part of edit mode.
 
 ## Tabs

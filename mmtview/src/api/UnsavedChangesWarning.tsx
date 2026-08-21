@@ -7,8 +7,6 @@ interface UnsavedChangesWarningProps {
   originalYaml: string;
   /** YAML with the user's temporary UI edits merged in. */
   modifiedYaml: string;
-  /** Label above the diff preview (e.g. "Modified API"). */
-  yamlHeaderLabel?: string;
   onSave: () => void;
   onReset: () => void;
 }
@@ -16,7 +14,6 @@ interface UnsavedChangesWarningProps {
 const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
   originalYaml,
   modifiedYaml,
-  yamlHeaderLabel = "YAML ↔ temporary UI",
   onSave,
   onReset,
 }) => {
@@ -39,21 +36,22 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
   }, [open]);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="unsaved-changes-anchor">
       <button
         ref={buttonRef}
-        className="action-button unsaved-warning-btn"
+        className="action-button api-edit-launcher unsaved-warning-btn"
         onClick={() => setOpen(v => !v)}
-        title="YAML auto-sync paused — temporary UI changes"
+        title="The UI has unsaved changes"
         type="button"
       >
-        <span className="codicon codicon-sync-ignored" aria-hidden />
+        <span className="codicon codicon-warning" aria-hidden />
+        <span className="api-edit-launcher-text">UNSAVED CHANGES</span>
       </button>
       {open && (
         <div ref={popupRef} className="unsaved-changes-popup">
           <div className="unsaved-changes-popup-header">
-            <span className="codicon codicon-sync-ignored unsaved-changes-popup-icon" aria-hidden />
-            <span>YAML auto-sync paused</span>
+            <span className="codicon codicon-warning unsaved-changes-popup-icon" aria-hidden />
+            <span>UNSAVED CHANGES</span>
             <button
               className="unsaved-changes-popup-close"
               onClick={() => setOpen(false)}
@@ -64,28 +62,25 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
             </button>
           </div>
           <p className="unsaved-changes-popup-desc">
-            Auto-sync from YAML to the UI is disabled because you have temporary
-            changes. Update YAML to write them to the file, or Reset to YAML to
-            discard them and resume syncing.
+            The UI is temporary. It contains the following unsaved changes.
           </p>
           <div className="unsaved-changes-popup-yaml-header">
-            <span>{yamlHeaderLabel}</span>
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
               <button
                 className="button-icon"
                 onClick={() => { onSave(); setOpen(false); }}
                 type="button"
-                title="Update YAML with temporary UI changes"
+                title="Write UI edits into the YAML"
               >
-                <span className="codicon codicon-reply" aria-hidden /> Update YAML
+                <span className="codicon codicon-save" aria-hidden /> Save to YAML
               </button>
               <button
                 className="button-icon"
                 onClick={() => { onReset(); setOpen(false); }}
                 type="button"
-                title="Reset UI to the current YAML file"
+                title="Discard UI changes"
               >
-                <span className="codicon codicon-refresh" aria-hidden /> Reset to YAML
+                <span className="codicon codicon-discard" aria-hidden /> Discard
               </button>
             </div>
           </div>

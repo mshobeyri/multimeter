@@ -17,6 +17,7 @@ Use the **Temp Files** panel (first view in the Multimeter activity bar) when yo
 - [Get Started](./get-started.md) also creates a temp file when you begin the first-request walkthrough
 - Ctrl/Cmd+click on an inline HTTP step URL also lands here
 - Closing the editor tab does **not** delete the draft — it stays in the panel until you remove it
+- Unsaved edits show a dirty dot on the editor tab (and in this list), the same as other open files. Save with `Cmd+S` / `Ctrl+S` to write the draft; it still is not a workspace file until **Save as File**
 - **Archive** moves the draft into **Archived**. Unarchive it from there to bring it back
 - Restarting VS Code restores the list from local extension storage
 - The timestamp is when the draft was created; editing it does not change that time

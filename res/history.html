@@ -673,7 +673,7 @@ __THEME_ACCENT_JS__
             var semanticKey;
             if (type === 'send') {
                 semanticKey = 'blue';
-            } else if (type === 'recv' && !(status >= 400)) {
+            } else if (type === 'recv' && !(status >= 400) && !(status < 0)) {
                 semanticKey = 'green';
             } else {
                 semanticKey = 'red';
@@ -700,6 +700,30 @@ __THEME_ACCENT_JS__
 
         function statusAccentColor(isError) {
             return TA.accentChromeFor(isError ? 'red' : 'green').text;
+        }
+
+        function formatHistoryStatus(item) {
+            if (typeof item.status === 'number' && item.status < 0) {
+                var text = String(item.statusText || item.content || 'ERROR').trim();
+                var code = text.split(/[:\n]/)[0].trim() || 'ERROR';
+                if (code.length > 36) {
+                    return code.slice(0, 33) + '...';
+                }
+                return code;
+            }
+            if (item.status !== undefined && item.status !== null) {
+                return String(item.status);
+            }
+            return '';
+        }
+
+        function formatHistoryStatusDetail(item) {
+            var status = item.status !== undefined && item.status !== null ? String(item.status) : '';
+            var text = String(item.statusText || '').trim();
+            if (status && text) {
+                return status + ' — ' + text;
+            }
+            return text || status;
         }
 
         function getMethodOrProtocolBadge(item) {
@@ -794,8 +818,9 @@ __THEME_ACCENT_JS__
                 '<ul class="history-list">' +
                 history.map(function (item, idx) {
                     const isError = item.type === 'error';
-                    const errTone = isError || item.status >= 400;
+                    const errTone = isError || item.status >= 400 || item.status < 0;
                     const statusColor = statusAccentColor(errTone);
+                    const statusLabel = formatHistoryStatus(item);
                     const bodyText = item.content == null ? '' : String(item.content);
                     const displayBody = formattedBodyByIdx[idx]
                         ? tryFormatBody(bodyText, item.headers)
@@ -811,8 +836,8 @@ __THEME_ACCENT_JS__
                         (item.duration >= 0
                             ? '<span style="color:' + statusColor + ';">(' + item.duration + 'ms)</span> '
                             : '') +
-                        (item.status !== undefined
-                            ? '<span style="color:' + statusColor + ';font-weight: bold;">[' + item.status + ']</span> '
+                        (statusLabel
+                            ? '<span style="color:' + statusColor + ';font-weight: bold;">[' + escapeHtml(statusLabel) + ']</span> '
                             : ''
                         ) +
                         item.time +
@@ -822,8 +847,8 @@ __THEME_ACCENT_JS__
                             ? '<div class="drawer-content">' +
                             '<div class="drawer-section"><span class="drawer-section-title">Method</span><div class="drawer-sub"><span class="drawer-value">' + item.method + '</span></div></div>' +
                             '<div class="drawer-section"><span class="drawer-section-title">Protocol</span><div class="drawer-sub"><span class="drawer-value">' + item.protocol + '</span></div></div>' +
-                            (item.status !== undefined
-                                ? '<div class="drawer-section"><span class="drawer-section-title">Status</span><div class="drawer-sub"><span class="drawer-value" style="color:' + statusColor + ';">' + item.status + '</span></div></div>'
+                            (statusLabel
+                                ? '<div class="drawer-section"><span class="drawer-section-title">Status</span><div class="drawer-sub"><span class="drawer-value" style="color:' + statusColor + ';">' + escapeHtml(formatHistoryStatusDetail(item)) + '</span></div></div>'
                                 : ''
                             ) +
                             (item.cookies && Object.keys(item.cookies).length

@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
+import { FileContext } from '../fileContext';
+import YamlErrorWarning from '../api/YamlErrorWarning';
 
 export type PanelEditHeaderProps = {
   title: React.ReactNode;
@@ -20,6 +22,9 @@ export default function PanelEditHeader({
   trailing,
   children,
 }: PanelEditHeaderProps) {
+  const { yamlErrors } = useContext(FileContext);
+  const hasYamlErrors = (yamlErrors?.length ?? 0) > 0;
+
   return (
     <div className="api-edit-header">
       <div className="api-edit-header-row">
@@ -33,6 +38,11 @@ export default function PanelEditHeader({
         </button>
         <div className="api-edit-title">{title}</div>
         {trailing}
+        {hasYamlErrors && (
+          <div style={{ marginLeft: 'auto' }}>
+            <YamlErrorWarning />
+          </div>
+        )}
       </div>
       {children}
     </div>

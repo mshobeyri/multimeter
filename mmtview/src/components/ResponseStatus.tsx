@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useAccentChrome } from '../shared/useAccentChrome';
 import { AccentChrome, harmonizeAccent } from '../shared/themeAccent';
@@ -10,6 +11,7 @@ interface ResponseStatusProps {
   warning?: string;
   protocol?: 'http' | 'ws' | 'graphql' | 'grpc';
   className?: string;
+  onClick?: () => void;
 }
 
 type BadgeStyle = {
@@ -124,7 +126,18 @@ function getWSResponseStatusTitle(
   return {title, label: status ?? errorCode ?? 'WS'};
 }
 
-const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, errorCode, warning, protocol, className }) => {
+const ResponseStatus: React.FC<ResponseStatusProps> = ({
+  status,
+  errorMessage,
+  errorCode,
+  warning,
+  protocol,
+  className,
+  onClick,
+}) => {
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [tipOpen, setTipOpen] = useState(false);
+  const [tipPos, setTipPos] = useState({ bottom: 0, right: 0 });
   const successChrome = useAccentChrome('green');
   const errorChrome = useAccentChrome('red');
   const warningChrome = useMemo(
@@ -145,13 +158,61 @@ const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, e
           ? getWSResponseStatusTitle(status, errorMessage, errorCode)
           : getHTTPResponseStatusTitle(status, errorMessage, errorCode, warning);
 
+  const showTip = () => {
+    if (!title) {
+      return;
+    }
+    const el = badgeRef.current;
+    if (!el) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    setTipPos({
+      bottom: window.innerHeight - rect.top + 6,
+      right: window.innerWidth - rect.right,
+    });
+    setTipOpen(true);
+  };
+
+  const hideTip = () => setTipOpen(false);
+
   return (
     <div
-      className={`response-badge ${className || ''}`.trim()}
+      ref={badgeRef}
+      className={`response-badge ${onClick ? 'response-badge--clickable' : ''} ${className || ''}`.trim()}
       style={style}
-      title={title}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onMouseEnter={showTip}
+      onMouseLeave={hideTip}
+      onFocus={showTip}
+      onBlur={hideTip}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (!onClick) {
+          return;
+        }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       {label}
+      {tipOpen && title
+        ? createPortal(
+            <span
+              className="response-badge-tooltip"
+              style={{
+                right: tipPos.right,
+                bottom: tipPos.bottom,
+              }}
+            >
+              {title}
+            </span>,
+            document.body,
+          )
+        : null}
     </div>
   );
 };

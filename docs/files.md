@@ -47,9 +47,13 @@ Every `.mmt` file opens as a **split editor**:
 
 ![YAML on the left and API tester UI on the right](./screenshots/yaml-ui-split.png)
 
-The two panes stay in sync while you edit YAML. Click {{btn:edit:Edit}} on the right to switch that pane into **edit mode** (forms and tabs instead of the run / preview view). Use the back control on the edit header to return.
+The **YAML** on the left is the file. The **Edit** page on the right writes to that YAML. The normal tester / runner UI is **temporary**: Send and Run use it, but it is not in the file until you **Save to YAML**.
 
-You can always edit the YAML directly. The right panel follows, except when the **API tester** has temporary UI changes that are not in the file yet — see [API](./files/api/index.md#temporary-ui-changes).
+Click {{btn:edit:Edit}} on the right to switch that pane into **edit mode** (forms and tabs instead of the run / preview view). Use the back control on the edit header to return.
+
+You can always edit the YAML directly. If the tester already has unsaved UI edits, you are asked whether to discard them — see [API](./files/api/index.md#unsaved-changes).
+
+If the YAML has errors, the right pane keeps the last valid UI and shows a red {{btn:error:YAML ERROR}} button (same layout as unsaved changes). Open it to read the error, click a line to jump there, or **Restore YAML** to revert to the last valid version.
 
 ### Show YAML, UI, or both
 

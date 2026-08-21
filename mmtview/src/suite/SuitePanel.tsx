@@ -7,6 +7,7 @@ import { FlowchartView } from '../flowchart';
 import { FileContext } from '../fileContext';
 import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
 import PanelEditHeader from '../components/PanelEditHeader';
+import { HideWhenYamlError } from '../api/YamlErrorWarning';
 
 interface SuitePanelProps {
   content: string;
@@ -56,11 +57,13 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
                         onClick={() => setPage('flow')}
                         disabled={Boolean(flowchartState?.noItems)}
                       />
-                      <HeaderAction
-                        icon="edit"
-                        label="Edit Suite"
-                        onClick={() => setPage('edit')}
-                      />
+                      <HideWhenYamlError>
+                        <HeaderAction
+                          icon="edit"
+                          label="Edit Suite"
+                          onClick={() => setPage('edit')}
+                        />
+                      </HideWhenYamlError>
                     </>
                   }
                 />

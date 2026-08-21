@@ -6,6 +6,7 @@ import { FlowchartView } from '../flowchart';
 import { FileContext } from '../fileContext';
 import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
 import PanelEditHeader from '../components/PanelEditHeader';
+import { HideWhenYamlError } from '../api/YamlErrorWarning';
 
 interface LoadTestPanelProps {
   content: string;
@@ -56,11 +57,13 @@ const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) =>
                         onClick={() => setPage('flow')}
                         disabled={Boolean(flowchartState?.noItems)}
                       />
-                      <HeaderAction
-                        icon="edit"
-                        label="Edit Load Test"
-                        onClick={() => setPage('edit')}
-                      />
+                      <HideWhenYamlError>
+                        <HeaderAction
+                          icon="edit"
+                          label="Edit Load Test"
+                          onClick={() => setPage('edit')}
+                        />
+                      </HideWhenYamlError>
                     </>
                   }
                 />
