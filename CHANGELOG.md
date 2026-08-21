@@ -2,7 +2,7 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
-## [1.34.3]
+## [1.35.0]
 
 - Treat the tester/runner UI as temporary: **UNSAVED CHANGES** replaces Edit until **Save to YAML** or **Discard**
 - Simplify the YAML-vs-UI conflict dialog to **Unsaved changes in UI** with **Discard UI changes**
