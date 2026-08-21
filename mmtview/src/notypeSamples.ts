@@ -52,8 +52,8 @@ export const notypeHelpLinks: Record<NotypeSampleType, { docsUrl: string; demoUr
 export const notypeSamples: NotypeSample[] = [
   {
     type: "api",
-    title: "Simple GET request",
-    description: "Call an endpoint and inspect the response.",
+    title: "HTTP GET request",
+    description: "Call an endpoint.",
     codicon: "symbol-method",
     content: `type: api
 title: Simple GET request
@@ -63,8 +63,8 @@ method: get
   },
   {
     type: "api",
-    title: "POST JSON body",
-    description: "Send a JSON payload to an echo server.",
+    title: "HTTP POST JSON request",
+    description: "Send a JSON payload to server.",
     codicon: "send",
     content: `type: api
 title: POST JSON body
@@ -78,7 +78,7 @@ body:
   {
     type: "env",
     title: "Environment variables",
-    description: "Store shared values like base URL and API keys.",
+    description: "Store shared values.",
     codicon: "server-environment",
     content: `type: env
 variables:
@@ -88,7 +88,7 @@ variables:
   },
   {
     type: "test",
-    title: "HTTP status check",
+    title: "HTTP status check test",
     description: "Send a request and assert the status code.",
     codicon: "beaker",
     content: `type: test
@@ -102,7 +102,7 @@ steps:
   },
   {
     type: "test",
-    title: "POST and verify body",
+    title: "HTTP POST and verify",
     description: "Send a POST request and check echoed fields.",
     codicon: "check",
     content: `type: test
@@ -155,7 +155,7 @@ sources:
   },
   {
     type: "server",
-    title: "Server",
+    title: "Mock Server",
     description: "Serve canned responses for local development.",
     codicon: "server",
     content: `type: server

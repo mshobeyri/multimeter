@@ -95,7 +95,7 @@ const NotypePanel: React.FC<NotypePanelProps> = ({ content, setContent }) => {
           </div>
         </div>
 
-        <div className="notype-divider" aria-hidden>or select sample from gallery</div>
+        <div className="notype-divider" aria-hidden>Or select sample from gallery</div>
 
         <div className="notype-gallery" role="list">
           {notypeSamples.map(sample => {
