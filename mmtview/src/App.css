@@ -2110,7 +2110,6 @@ select.method-select:focus-visible {
   color: var(--vscode-descriptionForeground, #9d9d9d);
   font-size: 12px;
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-  text-transform: lowercase;
 }
 
 .notype-divider::before,
