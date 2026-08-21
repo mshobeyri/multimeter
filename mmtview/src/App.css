@@ -2018,7 +2018,13 @@ select.method-select:focus-visible {
 
 .notype-type-icons {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.notype-type-icons-row {
+  display: flex;
   justify-content: center;
   gap: 10px 12px;
 }
