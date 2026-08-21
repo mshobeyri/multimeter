@@ -2,6 +2,17 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.34.3]
+
+- Treat the tester/runner UI as temporary: **UNSAVED CHANGES** replaces Edit until **Save to YAML** or **Discard**
+- Simplify the YAML-vs-UI conflict dialog to **Unsaved changes in UI** with **Discard UI changes**
+- Show YAML parse/schema errors on the right pane as **YAML ERROR** (jump to line, **Restore YAML** when the file is stale)
+- Show API network errors immediately in the Response panel and keep them in History
+- Save Temp Files drafts only when you choose Save, and show a dirty dot while YAML is unsaved
+- Clear tester working-copy state after Save to YAML
+- Update the empty-file gallery (fields, sample divider, type-icon rows that never wrap to a single leftover)
+- Point Getting Started intro at the new demo video
+
 ## [1.34.2]
 
 - Add a Temp Files sidebar panel for unsaved `.mmt` drafts (pin, archive, save as file); drafts persist across restarts and workspaces
