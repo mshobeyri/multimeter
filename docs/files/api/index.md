@@ -30,7 +30,7 @@ Example run glyphs appear only when the example has a non-empty `name`.
 
 The API tester is **temporary**. Edits to method, URL, body, headers, and so on are used for Send, but they are not in the YAML until you save them there. Closing the file discards them. **Edit API** writes the YAML; the tester does not.
 
-When the tester has unsaved edits, a filled yellow bar overlays the top of the tester without moving other controls. **Edit API** is replaced by {{btn:warning:UNSAVED CHANGES}}, with a box that hangs from that bar. Open it to compare the two versions:
+When the tester has unsaved edits, a bar at the top of the right pane turns yellow and **Edit API** is replaced by {{btn:warning:UNSAVED CHANGES}}. Open it to compare the two versions:
 
 - {{btn:save:Save to YAML}} — write the tester values into the YAML
 - {{btn:discard:Discard}} — throw away the UI changes and follow the YAML again
@@ -38,6 +38,10 @@ When the tester has unsaved edits, a filled yellow bar overlays the top of the t
 If you edit the YAML while the tester has unsaved changes, a dialog titled **Unsaved changes in UI** asks you to **Discard UI changes** (apply the YAML). Dismiss the dialog to keep the tester as-is.
 
 ![Unsaved Changes — Save to YAML writes tester edits into the file; Discard throws them away](../../screenshots/api-yaml-autosync-paused.png)
+
+### YAML errors
+
+When the YAML on the left has errors, the tester keeps the last valid UI. The same top bar turns red and **Edit API** is replaced by {{btn:error:YAML ERROR}}. Open it to read the errors. Click an error to jump to that line. If the YAML is broken, **Restore YAML** reverts it to the last valid version.
 
 ### Tabs
 

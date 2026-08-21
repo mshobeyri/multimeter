@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
+import { FileContext } from '../fileContext';
+import YamlErrorWarning from '../api/YamlErrorWarning';
 
 export type HeaderActionProps = {
   icon: string;
@@ -61,6 +63,8 @@ export default function PanelRunHeader({
   const iconName = icon
     ? (icon.startsWith('codicon-') ? icon : `codicon-${icon}`)
     : null;
+  const { yamlErrors } = useContext(FileContext);
+  const hasYamlErrors = (yamlErrors?.length ?? 0) > 0;
 
   return (
     <div className="api-edit-header">
@@ -75,8 +79,11 @@ export default function PanelRunHeader({
             {title}
           </div>
         )}
-        {actions != null && (
-          <div className="panel-run-header-actions">{actions}</div>
+        {(hasYamlErrors || actions != null) && (
+          <div className="panel-run-header-actions">
+            {hasYamlErrors && <YamlErrorWarning />}
+            {actions}
+          </div>
         )}
       </div>
     </div>

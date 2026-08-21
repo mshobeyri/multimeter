@@ -10,6 +10,7 @@ import TestTest from "./TestTest";
 import { FileContext } from "../fileContext";
 import { FlowchartView } from "../flowchart";
 import UnsavedChangesWarning from "../api/UnsavedChangesWarning";
+import { HideWhenYamlError } from "../api/YamlErrorWarning";
 import { showYamlUiConflictDialog } from "../vsAPI";
 import TabBar from "../components/TabBar";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
@@ -271,7 +272,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div
-                className={isTestModified ? "mmt-working-copy" : undefined}
                 style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: 'column' }}
               >
                 <PanelRunHeader
@@ -284,27 +284,29 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                         label="Flow chart"
                         onClick={() => setPage('flow')}
                       />
-                      {onSaveAsMmt ? (
-                        <HeaderAction
-                          icon="save-as"
-                          label="Save as MMT"
-                          onClick={() => onSaveAsMmt(test)}
-                        />
-                      ) : !isTestModified ? (
-                        <HeaderAction
-                          icon="edit"
-                          label="Edit Test"
-                          onClick={() => setPage('edit')}
-                        />
-                      ) : null}
-                      {isTestModified && (
-                        <UnsavedChangesWarning
-                          originalYaml={appliedContent}
-                          modifiedYaml={modifiedYaml}
-                          onSave={handleWarningSave}
-                          onReset={handleWarningReset}
-                        />
-                      )}
+                      <HideWhenYamlError>
+                        {onSaveAsMmt ? (
+                          <HeaderAction
+                            icon="save-as"
+                            label="Save as MMT"
+                            onClick={() => onSaveAsMmt(test)}
+                          />
+                        ) : !isTestModified ? (
+                          <HeaderAction
+                            icon="edit"
+                            label="Edit Test"
+                            onClick={() => setPage('edit')}
+                          />
+                        ) : null}
+                        {isTestModified && (
+                          <UnsavedChangesWarning
+                            originalYaml={appliedContent}
+                            modifiedYaml={modifiedYaml}
+                            onSave={handleWarningSave}
+                            onReset={handleWarningReset}
+                          />
+                        )}
+                      </HideWhenYamlError>
                     </>
                   }
                 />

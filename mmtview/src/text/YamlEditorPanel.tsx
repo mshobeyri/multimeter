@@ -47,6 +47,7 @@ import {
 } from "./compatibility";
 import { useRunGlyphs } from './useRunGlyphs';
 import { useFormatAndOrder } from './useFormatAndOrder';
+import { REVEAL_YAML_EVENT } from './yamlEditorErrors';
 // formatting and ordering helper moved to `useFormatAndOrder`
 
 // Keep these viewer-side patterns in sync with `core/src/variableReplacer.ts`.
@@ -223,6 +224,26 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!editorReady) {
+      return;
+    }
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ line?: number; column?: number }>).detail;
+      const line = detail?.line;
+      const editor = editorRef.current;
+      if (!line || !editor) {
+        return;
+      }
+      const column = detail?.column || 1;
+      editor.revealLineInCenter(line);
+      editor.setPosition({ lineNumber: line, column });
+      editor.focus();
+    };
+    window.addEventListener(REVEAL_YAML_EVENT, handler);
+    return () => window.removeEventListener(REVEAL_YAML_EVENT, handler);
+  }, [editorReady]);
 
   const { handleRunClick } = useRunGlyphs({
     monacoRef,

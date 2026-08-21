@@ -1081,25 +1081,42 @@ button:focus {
   display: flex;
 }
 
-/* Filled yellow bar overlay at the top — does not shift layout. */
-.mmt-working-copy {
-  --mmt-working-copy-accent: var(--vscode-notificationsWarningIcon-foreground, #cca700);
-  --mmt-working-copy-bar-height: 6px;
-  --mmt-working-copy-frame-width: 2px;
+/* Top status bar: one rectangle on the panel; yellow unsaved, red YAML error. */
+.mmt-yaml-error {
   position: relative;
 }
 
-.mmt-working-copy::before {
+.panel-box:has(.unsaved-warning-btn) {
+  --mmt-status-bar: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+}
+
+.panel-box:has(.yaml-error-btn) {
+  --mmt-status-bar: var(--vscode-errorForeground, #f14c4c);
+}
+
+.panel-box:has(.unsaved-warning-btn)::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--mmt-working-copy-bar-height);
-  background: var(--mmt-working-copy-accent);
+  height: 6px;
+  background: var(--mmt-status-bar);
+  /* Match .action-button rest opacity; hover brightens only the button. */
+  opacity: 0.8;
   pointer-events: none;
   z-index: 6;
   border-radius: 4px 4px 0 0;
+}
+
+.unsaved-warning-btn {
+  --mmt-status-accent: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+  color: var(--mmt-status-accent) !important;
+  white-space: nowrap;
+}
+
+.yaml-error-btn {
+  --mmt-status-accent: var(--vscode-errorForeground, #f14c4c);
 }
 
 .api-edit-topbar {
@@ -1216,40 +1233,48 @@ button:focus {
   color: inherit;
 }
 
-/* Warning button shown when the tester has unsaved UI edits */
+/* Warning / error chip popup anchor */
 .unsaved-changes-anchor {
   position: relative;
 }
 
-.unsaved-warning-btn {
-  color: var(--mmt-working-copy-accent, var(--vscode-notificationsWarningIcon-foreground, #cca700)) !important;
-  white-space: nowrap;
+.yaml-error-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow: auto;
 }
 
-/* Overlay U-box: no in-flow border (avoids shifting the URL row). */
-.mmt-working-copy .unsaved-warning-btn {
-  --unsaved-extend: 0px;
-  position: relative;
-  z-index: 7;
-  overflow: visible;
+.yaml-error-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: calc(var(--vscode-font-size, 13px) - 1px);
+  line-height: 1.4;
+  padding: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.mmt-working-copy .unsaved-warning-btn::before {
-  content: "";
+.yaml-error-item:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.yaml-error-fallback {
   position: absolute;
-  top: calc(-1 * var(--unsaved-extend) - 2px);
-  right: 0;
-  bottom: 0;
-  left: 0;
-  box-sizing: border-box;
-  border: var(--mmt-working-copy-frame-width, 2px) solid var(--mmt-working-copy-accent);
-  border-top: none;
-  border-radius: 0 0 4px 4px;
-  pointer-events: none;
-}
-
-.mmt-working-copy .unsaved-warning-btn > * {
-  transform: translateY(calc(var(--unsaved-extend) / -2));
+  top: 8px;
+  right: 8px;
+  z-index: 8;
 }
 
 /* Popup that explains unsaved test-mode changes */
@@ -1285,6 +1310,10 @@ button:focus {
 .unsaved-changes-popup-icon {
   color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
   flex-shrink: 0;
+}
+
+.yaml-error-popup .unsaved-changes-popup-icon {
+  color: var(--vscode-errorForeground, #f14c4c);
 }
 
 .unsaved-changes-popup-close {

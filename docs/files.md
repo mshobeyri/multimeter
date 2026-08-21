@@ -53,6 +53,8 @@ Click {{btn:edit:Edit}} on the right to switch that pane into **edit mode** (for
 
 You can always edit the YAML directly. If the tester already has unsaved UI edits, you are asked whether to discard them — see [API](./files/api/index.md#unsaved-changes).
 
+If the YAML has errors, the right pane keeps the last valid UI and shows a red {{btn:error:YAML ERROR}} button (same layout as unsaved changes). Open it to read the error, click a line to jump there, or **Restore YAML** to revert to the last valid version.
+
 ### Show YAML, UI, or both
 
 The editor title bar (top right of the `.mmt` tab) has three layout buttons:

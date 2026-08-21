@@ -5,6 +5,7 @@ import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
 import APITest from "./APITester";
 import UnsavedChangesWarning from "./UnsavedChangesWarning";
+import YamlErrorWarning, { HideWhenYamlError } from "./YamlErrorWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
@@ -284,27 +285,32 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div className={`apitest-panel-wrapper${isTestModified ? " mmt-working-copy" : ""}`}>
+              <div className="apitest-panel-wrapper">
                 <APITest
                   api={api}
                   onUpdateApi={update}
                   onModificationChange={handleModificationChange}
                   onRequestReset={handleRequestReset}
                   rightOfUrlButton={
-                    isTestModified ? (
-                      <UnsavedChangesWarning
-                        originalYaml={appliedContent}
-                        modifiedYaml={modifiedYaml}
-                        onSave={handleWarningSave}
-                        onReset={handleWarningReset}
-                      />
-                    ) : (
-                      <HeaderAction
-                        icon="edit"
-                        label="Edit API"
-                        onClick={() => setPage('edit')}
-                      />
-                    )
+                    <>
+                      <YamlErrorWarning />
+                      <HideWhenYamlError>
+                        {isTestModified ? (
+                          <UnsavedChangesWarning
+                            originalYaml={appliedContent}
+                            modifiedYaml={modifiedYaml}
+                            onSave={handleWarningSave}
+                            onReset={handleWarningReset}
+                          />
+                        ) : (
+                          <HeaderAction
+                            icon="edit"
+                            label="Edit API"
+                            onClick={() => setPage('edit')}
+                          />
+                        )}
+                      </HideWhenYamlError>
+                    </>
                   }
                 />
               </div>

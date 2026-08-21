@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { DiffEditor } from "@monaco-editor/react";
 import { defineTheme, getMonacoThemeName } from "../text/Theme";
 
@@ -20,38 +20,6 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const btn = buttonRef.current;
-    if (!btn) {
-      return;
-    }
-    const frame = btn.closest(".mmt-working-copy") as HTMLElement | null;
-    if (!frame) {
-      return;
-    }
-
-    const syncExtend = () => {
-      const br = btn.getBoundingClientRect();
-      const fr = frame.getBoundingClientRect();
-      const styles = getComputedStyle(frame);
-      const barH = Number.parseFloat(styles.getPropertyValue("--mmt-working-copy-bar-height")) || 6;
-      btn.style.setProperty(
-        "--unsaved-extend",
-        `${Math.max(0, br.top - fr.top - barH)}px`
-      );
-    };
-
-    syncExtend();
-    const observer = new ResizeObserver(syncExtend);
-    observer.observe(frame);
-    observer.observe(btn);
-    window.addEventListener("resize", syncExtend);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", syncExtend);
-    };
-  }, []);
 
   useEffect(() => {
     if (!open) { return; }
