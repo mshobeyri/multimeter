@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {buildThemeTokenMessage, MmtTokenColors} from '../themeTokenColors';
+import {embedJsonInHtmlScript} from '../webviewEmbedJson';
 
 class HistoryPanel implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
@@ -115,13 +116,12 @@ class HistoryPanel implements vscode.WebviewViewProvider {
             'vscode-codicons_server_down.svg'),
         'utf8');
     html = html.replace('__THEME_ACCENT_JS__', accentJs);
-    html = html.replace('__HISTORY_DATA__', JSON.stringify(history));
-    html = html.replace(
-        '__TOKEN_COLORS__', JSON.stringify(tokenColors).replace(/</g, '\\u003c'));
+    html = html.replace('__HISTORY_DATA__', embedJsonInHtmlScript(history));
+    html = html.replace('__TOKEN_COLORS__', embedJsonInHtmlScript(tokenColors));
     html = html.replace(
         '__OPEN_IDX__', openIdx === null ? 'null' : String(openIdx));
-    html = html.replace('__SERVER_UP_SVG__', JSON.stringify(serverUpSvg));
-    html = html.replace('__SERVER_DOWN_SVG__', JSON.stringify(serverDownSvg));
+    html = html.replace('__SERVER_UP_SVG__', embedJsonInHtmlScript(serverUpSvg));
+    html = html.replace('__SERVER_DOWN_SVG__', embedJsonInHtmlScript(serverDownSvg));
     return html;
   }
 }
