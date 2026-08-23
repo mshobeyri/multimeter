@@ -6,6 +6,7 @@ import { outputExtractor, mockServer, mockParsePack } from 'mmt-core';
 import { applyValueAccessor } from 'mmt-core/variableReplacer';
 import { dataImportProcessor } from 'mmt-core';
 import { detectAutocompleteDocType } from './autocompleteDocType';
+import { completionRange, withRange, wordCompletionRange } from './autocompleteRange';
 import { matchTokenCompletion, type TokenPrefix } from './autocompleteTokens';
 
 const DEFAULT_EXTRACTION_RULES: Record<string, string> =
@@ -344,15 +345,7 @@ export const handleBeforeMount = (monaco: any) => {
             }
             const bracePos = tokenSource.lastIndexOf('${');
             const replaceStartColumn = bracePos + 3;
-            return aliasSuggestions.map((item) => ({
-                ...item,
-                range: {
-                    startLineNumber: position.lineNumber,
-                    startColumn: replaceStartColumn,
-                    endLineNumber: position.lineNumber,
-                    endColumn: position.column,
-                },
-            }));
+            return withRange(aliasSuggestions, completionRange(position, replaceStartColumn));
         }
 
         const alias = dataImportRefMatch[1];
@@ -420,15 +413,7 @@ export const handleBeforeMount = (monaco: any) => {
         }
         const dotPos = tokenSource.lastIndexOf('.');
         const replaceStartColumn = dotPos >= 0 ? dotPos + 2 : tokenSource.lastIndexOf('${') + 3;
-        return deduplicateSuggestions(suggestions).map((item) => ({
-            ...item,
-            range: {
-                startLineNumber: position.lineNumber,
-                startColumn: replaceStartColumn,
-                endLineNumber: position.lineNumber,
-                endColumn: position.column,
-            },
-        }));
+        return withRange(deduplicateSuggestions(suggestions), completionRange(position, replaceStartColumn));
     };
 
     /** Cache for imported file parsed data */
@@ -842,15 +827,7 @@ export const handleBeforeMount = (monaco: any) => {
                 }
                 if (suggestionList.length > 0) {
                     return {
-                        suggestions: suggestionList.map((item) => ({
-                            ...item,
-                            range: {
-                                startLineNumber: position.lineNumber,
-                                startColumn: replaceStartColumn,
-                                endLineNumber: position.lineNumber,
-                                endColumn: position.column,
-                            }
-                        }))
+                        suggestions: withRange(suggestionList, completionRange(position, replaceStartColumn)),
                     };
                 }
             }
@@ -896,15 +873,10 @@ export const handleBeforeMount = (monaco: any) => {
                                 const dotPos = tokenSource.lastIndexOf('.');
                                 const replaceStartColumn = dotPos + 2; // after the dot
                                 return {
-                                    suggestions: deduplicateSuggestions(suggestions).map((item) => ({
-                                        ...item,
-                                        range: {
-                                            startLineNumber: position.lineNumber,
-                                            startColumn: replaceStartColumn,
-                                            endLineNumber: position.lineNumber,
-                                            endColumn: position.column,
-                                        }
-                                    }))
+                                    suggestions: withRange(
+                                        deduplicateSuggestions(suggestions),
+                                        completionRange(position, replaceStartColumn),
+                                    ),
                                 };
                             }
                         }
@@ -932,15 +904,10 @@ export const handleBeforeMount = (monaco: any) => {
                         const dotPos = tokenSource.lastIndexOf('.');
                         const replaceStartColumn = dotPos + 2;
                         return {
-                            suggestions: deduplicateSuggestions(refSuggestions).map((item) => ({
-                                ...item,
-                                range: {
-                                    startLineNumber: position.lineNumber,
-                                    startColumn: replaceStartColumn,
-                                    endLineNumber: position.lineNumber,
-                                    endColumn: position.column,
-                                }
-                            }))
+                            suggestions: withRange(
+                                deduplicateSuggestions(refSuggestions),
+                                completionRange(position, replaceStartColumn),
+                            ),
                         };
                     }
                 }
@@ -967,15 +934,7 @@ export const handleBeforeMount = (monaco: any) => {
                     const bracePos = tokenSource.lastIndexOf('${');
                     const replaceStartColumn = bracePos + 3;
                     return {
-                        suggestions: nsSuggestions.map((item) => ({
-                            ...item,
-                            range: {
-                                startLineNumber: position.lineNumber,
-                                startColumn: replaceStartColumn,
-                                endLineNumber: position.lineNumber,
-                                endColumn: position.column,
-                            }
-                        }))
+                        suggestions: withRange(nsSuggestions, completionRange(position, replaceStartColumn)),
                     };
                 }
             }
@@ -1007,12 +966,7 @@ export const handleBeforeMount = (monaco: any) => {
                                 insertText: '/',
                                 detail: 'Project root import',
                                 documentation: 'Import from the project root (multimeter.mmt folder). Continue typing to browse files.',
-                                range: {
-                                    startLineNumber: position.lineNumber,
-                                    startColumn: position.column,
-                                    endLineNumber: position.lineNumber,
-                                    endColumn: position.column,
-                                },
+                                range: completionRange(position, position.column),
                             }],
                         };
                     }
@@ -1055,19 +1009,11 @@ export const handleBeforeMount = (monaco: any) => {
                                 detail: defaultVal ? `Default: ${defaultVal}` : `Input parameter`,
                                 documentation: `Input "${key}" from ${callAlias} (${filePath})${defaultVal ? `\nDefault value: ${defaultVal}` : ''}`,
                             }));
-                            const wordInfo = model.getWordUntilPosition(position);
-                            const baseStartColumn = wordInfo?.startColumn ?? position.column;
-                            const baseEndColumn = wordInfo?.endColumn ?? position.column;
                             return {
-                                suggestions: deduplicateSuggestions(suggestionList).map((item) => ({
-                                    ...item,
-                                    range: {
-                                        startLineNumber: position.lineNumber,
-                                        startColumn: baseStartColumn,
-                                        endLineNumber: position.lineNumber,
-                                        endColumn: baseEndColumn,
-                                    }
-                                }))
+                                suggestions: withRange(
+                                    deduplicateSuggestions(suggestionList),
+                                    wordCompletionRange(position, model.getWordUntilPosition(position)),
+                                ),
                             };
                         }
                     }
@@ -1103,19 +1049,11 @@ export const handleBeforeMount = (monaco: any) => {
                             }
                         }
                         if (suggestionList.length > 0) {
-                            const wordInfo = model.getWordUntilPosition(position);
-                            const baseStartColumn = wordInfo?.startColumn ?? position.column;
-                            const baseEndColumn = wordInfo?.endColumn ?? position.column;
                             return {
-                                suggestions: deduplicateSuggestions(suggestionList).map((item) => ({
-                                    ...item,
-                                    range: {
-                                        startLineNumber: position.lineNumber,
-                                        startColumn: baseStartColumn,
-                                        endLineNumber: position.lineNumber,
-                                        endColumn: baseEndColumn,
-                                    }
-                                }))
+                                suggestions: withRange(
+                                    deduplicateSuggestions(suggestionList),
+                                    wordCompletionRange(position, model.getWordUntilPosition(position)),
+                                ),
                             };
                         }
                     }
@@ -1198,17 +1136,13 @@ export const handleBeforeMount = (monaco: any) => {
                         const dashOffset = trimmedLine.startsWith('-')
                             ? Math.min(lineContent.length, lineContent.indexOf('-') + 2)
                             : (baseStartColumn - 1);
+                        const dashStart = Math.max(1, dashOffset + 1);
 
                         return {
-                            suggestions: suggestionList.map((item: any) => ({
-                                ...item,
-                                range: {
-                                    startLineNumber: position.lineNumber,
-                                    startColumn: Math.max(1, dashOffset + 1),
-                                    endLineNumber: position.lineNumber,
-                                    endColumn: Math.max(baseEndColumn, dashOffset + 1),
-                                }
-                            }))
+                            suggestions: withRange(
+                                suggestionList,
+                                completionRange(position, dashStart, Math.max(baseEndColumn, dashStart)),
+                            ),
                         };
                     }
                 }
@@ -1224,35 +1158,31 @@ export const handleBeforeMount = (monaco: any) => {
                 if (parentContext === 'items' || parentContext === 'tests') {
                     const suggestionList = await getSuiteTestsItemSuggestions();
                     const wordInfo = model.getWordUntilPosition(position);
-                    const baseStartColumn = wordInfo?.startColumn ?? position.column;
-                    const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                    const wordRange = wordCompletionRange(position, wordInfo);
                     return {
-                        suggestions: suggestionList.map((item) => ({
-                            ...item,
-                            range: {
-                                startLineNumber: position.lineNumber,
-                                startColumn: Math.max(1, baseStartColumn - listPrefixLength),
-                                endLineNumber: position.lineNumber,
-                                endColumn: baseEndColumn,
-                            }
-                        }))
+                        suggestions: withRange(
+                            suggestionList,
+                            completionRange(
+                                position,
+                                Math.max(1, wordRange.startColumn - listPrefixLength),
+                                wordRange.endColumn,
+                            ),
+                        ),
                     };
                 }
                 if (parentContext === 'servers') {
                     const suggestionList = await getSuiteServersItemSuggestions();
                     const wordInfo = model.getWordUntilPosition(position);
-                    const baseStartColumn = wordInfo?.startColumn ?? position.column;
-                    const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                    const wordRange = wordCompletionRange(position, wordInfo);
                     return {
-                        suggestions: suggestionList.map((item) => ({
-                            ...item,
-                            range: {
-                                startLineNumber: position.lineNumber,
-                                startColumn: Math.max(1, baseStartColumn - listPrefixLength),
-                                endLineNumber: position.lineNumber,
-                                endColumn: baseEndColumn,
-                            }
-                        }))
+                        suggestions: withRange(
+                            suggestionList,
+                            completionRange(
+                                position,
+                                Math.max(1, wordRange.startColumn - listPrefixLength),
+                                wordRange.endColumn,
+                            ),
+                        ),
                     };
                 }
             }
@@ -1272,15 +1202,10 @@ export const handleBeforeMount = (monaco: any) => {
                 if (parentContext === 'import' && position.column >= valueStartColumn) {
                     const suggestionList = await getImportValueSuggestions(typedValue);
                     return {
-                        suggestions: suggestionList.map(item => ({
-                            ...item,
-                            range: {
-                                startLineNumber: position.lineNumber,
-                                startColumn: valueStartColumn,
-                                endLineNumber: position.lineNumber,
-                                endColumn: lineContent.length + 1
-                            }
-                        }))
+                        suggestions: withRange(
+                            suggestionList,
+                            completionRange(position, valueStartColumn, lineContent.length + 1),
+                        )
                     };
                 }
 
@@ -1307,15 +1232,10 @@ export const handleBeforeMount = (monaco: any) => {
 
                     if (suggestionList.length > 0) {
                         return {
-                            suggestions: suggestionList.map(item => ({
-                                ...item,
-                                range: {
-                                    startLineNumber: position.lineNumber,
-                                    startColumn: valueStartColumn,
-                                    endLineNumber: position.lineNumber,
-                                    endColumn: lineContent.length + 1
-                                }
-                            }))
+                            suggestions: withRange(
+                                suggestionList,
+                                completionRange(position, valueStartColumn, lineContent.length + 1),
+                            )
                         };
                     }
                     return { suggestions: [] };
@@ -1334,15 +1254,10 @@ export const handleBeforeMount = (monaco: any) => {
                 if (key === 'import' && position.column >= valueStartColumn) {
                     const suggestionList = await getImportValueSuggestions(typedValue);
                     return {
-                        suggestions: suggestionList.map(item => ({
-                            ...item,
-                            range: {
-                                startLineNumber: position.lineNumber,
-                                startColumn: valueStartColumn,
-                                endLineNumber: position.lineNumber,
-                                endColumn: lineContent.length + 1
-                            }
-                        }))
+                        suggestions: withRange(
+                            suggestionList,
+                            completionRange(position, valueStartColumn, lineContent.length + 1),
+                        )
                     };
                 }
 
@@ -1351,15 +1266,10 @@ export const handleBeforeMount = (monaco: any) => {
 
                     if (suggestionList.length > 0) {
                         return {
-                            suggestions: suggestionList.map(item => ({
-                                ...item,
-                                range: {
-                                    startLineNumber: position.lineNumber,
-                                    startColumn: valueStartColumn,
-                                    endLineNumber: position.lineNumber,
-                                    endColumn: lineContent.length + 1
-                                }
-                            }))
+                            suggestions: withRange(
+                                suggestionList,
+                                completionRange(position, valueStartColumn, lineContent.length + 1),
+                            )
                         };
                     }
                     return { suggestions: [] };
@@ -1397,19 +1307,11 @@ export const handleBeforeMount = (monaco: any) => {
                         const containerKey = m[1];
                         const suggestionList = keySuggestionsByParent[containerKey] || [];
                         if (suggestionList.length > 0) {
-                            const wordInfo = model.getWordUntilPosition(position);
-                            const baseStartColumn = wordInfo?.startColumn ?? position.column;
-                            const baseEndColumn = wordInfo?.endColumn ?? position.column;
                             return {
-                                suggestions: suggestionList.map((item: any) => ({
-                                    ...item,
-                                    range: {
-                                        startLineNumber: position.lineNumber,
-                                        startColumn: baseStartColumn,
-                                        endLineNumber: position.lineNumber,
-                                        endColumn: baseEndColumn,
-                                    }
-                                }))
+                                suggestions: withRange(
+                                    suggestionList,
+                                    wordCompletionRange(position, model.getWordUntilPosition(position)),
+                                ),
                             };
                         }
                     }
@@ -1447,19 +1349,11 @@ export const handleBeforeMount = (monaco: any) => {
                             const siblingKey = `step-${stepType}`;
                             const suggestionList = keySuggestionsByParent[siblingKey] || [];
                             if (suggestionList.length > 0) {
-                                const wordInfo = model.getWordUntilPosition(position);
-                                const baseStartColumn = wordInfo?.startColumn ?? position.column;
-                                const baseEndColumn = wordInfo?.endColumn ?? position.column;
                                 return {
-                                    suggestions: deduplicateSuggestions(suggestionList).map((item: any) => ({
-                                        ...item,
-                                        range: {
-                                            startLineNumber: position.lineNumber,
-                                            startColumn: baseStartColumn,
-                                            endLineNumber: position.lineNumber,
-                                            endColumn: baseEndColumn,
-                                        }
-                                    }))
+                                    suggestions: withRange(
+                                        deduplicateSuggestions(suggestionList),
+                                        wordCompletionRange(position, model.getWordUntilPosition(position)),
+                                    ),
                                 };
                             }
                         }
@@ -1494,12 +1388,7 @@ export const handleBeforeMount = (monaco: any) => {
                 return {
                     ...item,
                     documentation: item.documentation,
-                    range: {
-                        startLineNumber: position.lineNumber,
-                        startColumn,
-                        endLineNumber: position.lineNumber,
-                        endColumn: baseEndColumn
-                    }
+                    range: completionRange(position, startColumn, baseEndColumn),
                 };
             });
 
