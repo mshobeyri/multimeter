@@ -9,6 +9,7 @@ import { detectAutocompleteDocType } from './autocompleteDocType';
 import { completionRange, withRange, wordCompletionRange } from './autocompleteRange';
 import { matchTokenCompletion, type TokenPrefix } from './autocompleteTokens';
 import { parseYamlSectionKeys, parseYamlSectionMap } from './autocompleteYamlSection';
+import { findCallStepBlock } from './autocompleteCallStep';
 
 const DEFAULT_EXTRACTION_RULES: Record<string, string> =
     outputExtractor.DEFAULT_EXTRACTION_RULES || {
@@ -379,94 +380,6 @@ export const handleBeforeMount = (monaco: any) => {
             setTimeout(() => importedFileCache.delete(path), 5000);
             return null;
         }
-    };
-
-    /**
-     * Detect if the cursor is inside the `inputs:` block of a `- call:` step.
-     * Returns the call alias if so, null otherwise.
-     */
-    const getCallAliasForInputsContext = (lines: string[], lineNumber: number, currentIndent: number): string | null => {
-        // Walk upward to find `inputs:` then the parent `- call:` line
-        let foundInputs = false;
-        let inputsIndent = -1;
-        for (let i = lineNumber - 2; i >= 0; i--) {
-            const line = lines[i];
-            if (!line.trim()) { continue; }
-            const indent = line.search(/\S|$/);
-            const trimmed = line.trim();
-
-            if (!foundInputs) {
-                // We're looking for the `inputs:` parent of current line
-                if (indent < currentIndent && /^inputs:\s*$/.test(trimmed)) {
-                    foundInputs = true;
-                    inputsIndent = indent;
-                    continue;
-                }
-                if (indent < currentIndent) {
-                    // Some other key at a lower indent — not under inputs
-                    return null;
-                }
-                continue;
-            }
-
-            // We found inputs:, now look for the `- call:` parent
-            if (indent < inputsIndent) {
-                const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
-                if (callMatch) {
-                    return callMatch[1].trim().replace(/^["']|["']$/g, '');
-                }
-                return null;
-            }
-        }
-        return null;
-    };
-
-    // --- End of import-aware autocomplete helpers ---
-
-    /**
-     * Detect if the cursor is inside the `expect:` or `debug:` block of a `- call:` step.
-     * Returns { alias, field: 'expect' | 'debug' } or null.
-     */
-    const getCallAliasForCheckContext = (lines: string[], lineNumber: number, currentIndent: number): { alias: string; field: string } | null => {
-        let foundField = false;
-        let fieldIndent = -1;
-        let detectedField = 'expect';
-        for (let i = lineNumber - 2; i >= 0; i--) {
-            const line = lines[i];
-            if (!line.trim()) { continue; }
-            const indent = line.search(/\S|$/);
-            const trimmed = line.trim();
-
-            if (!foundField) {
-                // Looking for expect: or debug: parent of current line
-                if (indent < currentIndent && /^expect:\s*$/.test(trimmed)) {
-                    foundField = true;
-                    fieldIndent = indent;
-                    detectedField = 'expect';
-                    continue;
-                }
-                if (indent < currentIndent && /^debug:\s*$/.test(trimmed)) {
-                    foundField = true;
-                    fieldIndent = indent;
-                    detectedField = 'debug';
-                    continue;
-                }
-                if (indent < currentIndent) {
-                    return null;
-                }
-                continue;
-            }
-
-            // Found expect/debug, now look for the `- call:` parent
-            if (indent < fieldIndent) {
-                const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
-                if (callMatch) {
-                    return { alias: callMatch[1].trim().replace(/^["']|["']$/g, ''), field: detectedField };
-                }
-                return null;
-            }
-        }
-        return null;
     };
 
     // Helper function to deduplicate suggestions by label
@@ -875,7 +788,7 @@ export const handleBeforeMount = (monaco: any) => {
             //       <here>  ← suggest username, password, etc. from login.mmt
             if (docType === 'test' && parentContext === 'inputs' && !cursorAtValuePosition) {
                 const allLines = model.getLinesContent();
-                const callAlias = getCallAliasForInputsContext(allLines, lineNumber, currentIndent);
+                const callAlias = findCallStepBlock(allLines, lineNumber, currentIndent, ['inputs'])?.alias;
                 if (callAlias) {
                     const importMap = getImportMap(model);
                     const filePath = importMap[callAlias];
@@ -908,7 +821,7 @@ export const handleBeforeMount = (monaco: any) => {
             //       <here>  ← suggest status_code: , token: , etc.
             if (docType === 'test' && (parentContext === 'expect' || parentContext === 'debug') && !cursorAtValuePosition) {
                 const allLines = model.getLinesContent();
-                const callInfo = getCallAliasForCheckContext(allLines, lineNumber, currentIndent);
+                const callInfo = findCallStepBlock(allLines, lineNumber, currentIndent, ['expect', 'debug']);
                 if (callInfo) {
                     const importMap = getImportMap(model);
                     const filePath = importMap[callInfo.alias];
