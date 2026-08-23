@@ -8,6 +8,7 @@ import { dataImportProcessor } from 'mmt-core';
 import { detectAutocompleteDocType } from './autocompleteDocType';
 import { completionRange, withRange, wordCompletionRange } from './autocompleteRange';
 import { matchTokenCompletion, type TokenPrefix } from './autocompleteTokens';
+import { parseYamlSectionKeys, parseYamlSectionMap } from './autocompleteYamlSection';
 
 const DEFAULT_EXTRACTION_RULES: Record<string, string> =
     outputExtractor.DEFAULT_EXTRACTION_RULES || {
@@ -162,49 +163,7 @@ export const handleBeforeMount = (monaco: any) => {
     };
 
     const getInputsKeysFromModel = (model: any): string[] => {
-        try {
-            const value = String(model?.getValue?.() ?? '');
-            const lines = value.split(/\r?\n/);
-            let inInputs = false;
-            let inputsIndent = 0;
-            let childIndent: number | null = null;
-            const keys: string[] = [];
-            for (const line of lines) {
-                if (!line.trim()) {
-                    continue;
-                }
-                const indent = line.search(/\S|$/);
-                const trimmed = line.trim();
-                if (!inInputs) {
-                    if (/^inputs:\s*$/.test(trimmed)) {
-                        inInputs = true;
-                        inputsIndent = indent;
-                        childIndent = null;
-                    }
-                    continue;
-                }
-
-                if (indent <= inputsIndent) {
-                    break;
-                }
-
-                if (childIndent === null) {
-                    childIndent = indent;
-                }
-
-                if (indent !== childIndent) {
-                    continue;
-                }
-
-                const keyMatch = trimmed.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:/);
-                if (keyMatch) {
-                    keys.push(keyMatch[1]);
-                }
-            }
-            return Array.from(new Set(keys)).sort((a, b) => a.localeCompare(b));
-        } catch {
-            return [];
-        }
+        return parseYamlSectionKeys(String(model?.getValue?.() ?? ''), 'inputs');
     };
 
     const getInputTokenSuggestions = (model: any): any[] => {
@@ -222,37 +181,10 @@ export const handleBeforeMount = (monaco: any) => {
 
     /** Parse the top-level import: map from the document text. Returns { alias: path } */
     const getImportMap = (model: any): Record<string, string> => {
-        try {
-            const value = String(model?.getValue?.() ?? '');
-            const lines = value.split(/\r?\n/);
-            let inImport = false;
-            let importIndent = 0;
-            let childIndent: number | null = null;
-            const map: Record<string, string> = {};
-            for (const line of lines) {
-                if (!line.trim()) { continue; }
-                const indent = line.search(/\S|$/);
-                const trimmed = line.trim();
-                if (!inImport) {
-                    if (/^import:\s*$/.test(trimmed) && indent === 0) {
-                        inImport = true;
-                        importIndent = indent;
-                        childIndent = null;
-                    }
-                    continue;
-                }
-                if (indent <= importIndent) { break; }
-                if (childIndent === null) { childIndent = indent; }
-                if (indent !== childIndent) { continue; }
-                const m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.+)$/);
-                if (m) {
-                    map[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
-                }
-            }
-            return map;
-        } catch {
-            return {};
-        }
+        return parseYamlSectionMap(String(model?.getValue?.() ?? ''), 'import', {
+            rootOnly: true,
+            requireValue: true,
+        });
     };
 
     /** Scan the document for `- call: alias` + `id: varName` pairs. Returns [{ alias, id }] */
@@ -427,61 +359,9 @@ export const handleBeforeMount = (monaco: any) => {
         try {
             const content = await readFile(path);
             if (!content) { return null; }
-            const lines = content.split(/\r?\n/);
-            const inputs: Record<string, string> = {};
-            const outputs: Record<string, string> = {};
-            let fileType = '';
-
-            // Parse type
-            for (const line of lines) {
-                const tm = line.trim().match(/^type:\s*(.+)$/);
-                if (tm) {
-                    fileType = tm[1].trim();
-                    break;
-                }
-            }
-
-            // Parse inputs: section
-            let section: 'none' | 'inputs' | 'outputs' = 'none';
-            let sectionIndent = 0;
-            let childIndent: number | null = null;
-            for (const line of lines) {
-                if (!line.trim()) { continue; }
-                const indent = line.search(/\S|$/);
-                const trimmed = line.trim();
-                if (/^inputs:\s*$/.test(trimmed) && indent === 0) {
-                    section = 'inputs';
-                    sectionIndent = indent;
-                    childIndent = null;
-                    continue;
-                }
-                if (/^outputs:\s*$/.test(trimmed) && indent === 0) {
-                    section = 'outputs';
-                    sectionIndent = indent;
-                    childIndent = null;
-                    continue;
-                }
-                if (section !== 'none') {
-                    if (indent <= sectionIndent && !/^\s*$/.test(line)) {
-                        // Check if this is a new top-level key
-                        if (indent === 0) {
-                            section = 'none';
-                            childIndent = null;
-                            continue;
-                        }
-                    }
-                    if (indent > sectionIndent) {
-                        if (childIndent === null) { childIndent = indent; }
-                        if (indent === childIndent) {
-                            const m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
-                            if (m) {
-                                const target = section === 'inputs' ? inputs : outputs;
-                                target[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
-                            }
-                        }
-                    }
-                }
-            }
+            const fileType = detectAutocompleteDocType(content) || '';
+            const inputs = parseYamlSectionMap(content, 'inputs', { rootOnly: true });
+            const outputs = parseYamlSectionMap(content, 'outputs', { rootOnly: true });
             if (fileType === 'api') {
                 for (const [key, rule] of Object.entries(DEFAULT_EXTRACTION_RULES)) {
                     if (!Object.prototype.hasOwnProperty.call(outputs, key)) {
