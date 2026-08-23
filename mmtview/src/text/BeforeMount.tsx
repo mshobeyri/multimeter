@@ -5,6 +5,8 @@ import { readFile } from '../vsAPI';
 import { outputExtractor, mockServer, mockParsePack } from 'mmt-core';
 import { applyValueAccessor } from 'mmt-core/variableReplacer';
 import { dataImportProcessor } from 'mmt-core';
+import { detectAutocompleteDocType } from './autocompleteDocType';
+import { matchTokenCompletion, type TokenPrefix } from './autocompleteTokens';
 
 const DEFAULT_EXTRACTION_RULES: Record<string, string> =
     outputExtractor.DEFAULT_EXTRACTION_RULES || {
@@ -639,17 +641,10 @@ export const handleBeforeMount = (monaco: any) => {
     };
 
     // Determine the parent context for suggestions
-    const getParentContext = (lines: string[], currentIndent: number, firstLine: string): string => {
+    const getParentContext = (lines: string[], currentIndent: number, docType: string | null): string => {
         // Check document type first
-        if (currentIndent === 0) {
-            if (firstLine === "type: api") return "api";
-            if (firstLine === "type: env") return "env";
-            if (firstLine === "type: doc") return "doc";
-            if (firstLine === "type: test") return "test";
-            if (firstLine === "type: suite") return "suite";
-            if (firstLine === "type: loadtest") return "loadtest";
-            if (firstLine === "type: server") return "server";
-            if (firstLine === "type: report") return "report";
+        if (currentIndent === 0 && docType) {
+            return docType;
         }
 
         // Look for parent context by indentation
@@ -810,24 +805,54 @@ export const handleBeforeMount = (monaco: any) => {
             const lineContent = model.getLineContent(lineNumber);
             const lines = model.getLinesContent().slice(0, lineNumber - 1);
 
-            // Token suggestions: i:<name> for current file inputs:
-            // Mirror e:/r: behavior from general suggestions but scoped to this document.
+            // Token suggestions: i:/e:/r:/c: and <<i:name>> / <<e:name>> forms.
             const tokenSource = lineContent.slice(0, Math.max(0, position.column - 1));
-            const tokenMatch = tokenSource.match(/(^|\s)(i:)([\w-]*)$/);
+            const tokenMatch = matchTokenCompletion(tokenSource);
             if (tokenMatch) {
-                const suggestionList = getInputTokenSuggestions(model);
-                const replaceStartColumn = Math.max(1, position.column - tokenMatch[2].length - tokenMatch[3].length);
-                return {
-                    suggestions: suggestionList.map((item) => ({
-                        ...item,
-                        range: {
-                            startLineNumber: position.lineNumber,
-                            startColumn: replaceStartColumn,
-                            endLineNumber: position.lineNumber,
-                            endColumn: position.column,
-                        }
-                    }))
-                };
+                const replaceStartColumn = tokenMatch.replaceFrom + 1;
+                const namespaceItems = [
+                    { prefix: 'i' as TokenPrefix, detail: 'Input from this file', doc: '<<i:name>> reads inputs: in this file.' },
+                    { prefix: 'e' as TokenPrefix, detail: 'Environment variable', doc: '<<e:name>> reads a workspace environment value.' },
+                    { prefix: 'r' as TokenPrefix, detail: 'Random value', doc: '<<r:uuid>> and other r: tokens generate a value at runtime.' },
+                    { prefix: 'c' as TokenPrefix, detail: 'Current value', doc: '<<c:timestamp>> and other c: tokens insert the current value.' },
+                ];
+                let suggestionList: any[];
+                if (tokenMatch.prefix === null) {
+                    const typed = tokenMatch.typed.toLowerCase();
+                    suggestionList = namespaceItems
+                        .filter((item) => !typed || item.prefix.startsWith(typed))
+                        .map((item) => ({
+                            label: `${item.prefix}:`,
+                            kind: monaco.languages.CompletionItemKind.Variable,
+                            insertText: `${item.prefix}:`,
+                            detail: item.detail,
+                            documentation: item.doc,
+                            sortText: `0${item.prefix}`,
+                        }));
+                } else if (tokenMatch.prefix === 'i') {
+                    suggestionList = getInputTokenSuggestions(model);
+                } else {
+                    const general = keySuggestionsByParent.general || [];
+                    suggestionList = general
+                        .filter((item: any) => String(item.label || '').startsWith(`${tokenMatch.prefix}:`))
+                        .map((item: any) => ({
+                            ...item,
+                            insertText: String(item.insertText || item.label || '').replace(/^\s+/, ''),
+                        }));
+                }
+                if (suggestionList.length > 0) {
+                    return {
+                        suggestions: suggestionList.map((item) => ({
+                            ...item,
+                            range: {
+                                startLineNumber: position.lineNumber,
+                                startColumn: replaceStartColumn,
+                                endLineNumber: position.lineNumber,
+                                endColumn: position.column,
+                            }
+                        }))
+                    };
+                }
             }
 
             // Data import reference suggestions: ${alias.path}
@@ -838,8 +863,8 @@ export const handleBeforeMount = (monaco: any) => {
 
             // Output token suggestions: ${callId.<field>}
             // When user types ${someId. or ${ someId. detect the call id and suggest output fields.
-            const firstLine = model.getLineContent(1).trim();
-            if (firstLine === 'type: test') {
+            const docType = detectAutocompleteDocType(model.getValue());
+            if (docType === 'test') {
                 const outputTokenMatch = tokenSource.match(/\$\{([A-Za-z_][A-Za-z0-9_]*)\.([\w]*)$/);
                 if (outputTokenMatch) {
                     const callId = outputTokenMatch[1];
@@ -888,7 +913,7 @@ export const handleBeforeMount = (monaco: any) => {
             }
 
             // Mock server request reference suggestions: ${url.id}, ${body.name}, ${header.x-api-key}
-            if (firstLine === 'type: server') {
+            if (docType === 'server') {
                 const mockRefMatch = tokenSource.match(/\$\{(url|body|header|query)\.([\w.-]*)$/);
                 if (mockRefMatch) {
                     const namespace = mockRefMatch[1];
@@ -956,7 +981,7 @@ export const handleBeforeMount = (monaco: any) => {
             }
 
             const currentIndent = lineContent.search(/\S|$/);
-            const parentContext = getParentContext(lines, currentIndent, firstLine);
+            const parentContext = getParentContext(lines, currentIndent, docType);
 
             const isImportValuePosition = (() => {
                 const kvMatch = lineContent.match(/^(\s*)(\w+):\s*(.*)$/);
@@ -1014,7 +1039,7 @@ export const handleBeforeMount = (monaco: any) => {
             //   - call: login
             //     inputs:
             //       <here>  ← suggest username, password, etc. from login.mmt
-            if (firstLine === 'type: test' && parentContext === 'inputs' && !cursorAtValuePosition) {
+            if (docType === 'test' && parentContext === 'inputs' && !cursorAtValuePosition) {
                 const allLines = model.getLinesContent();
                 const callAlias = getCallAliasForInputsContext(allLines, lineNumber, currentIndent);
                 if (callAlias) {
@@ -1055,7 +1080,7 @@ export const handleBeforeMount = (monaco: any) => {
             //   - call: login
             //     expect:
             //       <here>  ← suggest status_code: , token: , etc.
-            if (firstLine === 'type: test' && (parentContext === 'expect' || parentContext === 'debug') && !cursorAtValuePosition) {
+            if (docType === 'test' && (parentContext === 'expect' || parentContext === 'debug') && !cursorAtValuePosition) {
                 const allLines = model.getLinesContent();
                 const callInfo = getCallAliasForCheckContext(allLines, lineNumber, currentIndent);
                 if (callInfo) {
@@ -1102,7 +1127,7 @@ export const handleBeforeMount = (monaco: any) => {
             // steps:
             //   - <here>
             // Works even if user already typed "- ".
-            if (firstLine === 'type: test') {
+            if (docType === 'test') {
                 const trimmedLine = lineContent.trim();
                 const isDashLine = trimmedLine === '-' || trimmedLine.startsWith('- ');
                 const isBlankLine = trimmedLine === '';
@@ -1195,7 +1220,7 @@ export const handleBeforeMount = (monaco: any) => {
             const trimmed = lineContent.trim();
             const listPrefixLength = getListPrefixLength(lineContent, (model.getWordUntilPosition(position)?.startColumn ?? position.column));
             const inListItemLine = trimmed.startsWith('-') || trimmed === '';
-            if (firstLine === 'type: suite' && inListItemLine) {
+            if (docType === 'suite' && inListItemLine) {
                 if (parentContext === 'items' || parentContext === 'tests') {
                     const suggestionList = await getSuiteTestsItemSuggestions();
                     const wordInfo = model.getWordUntilPosition(position);
@@ -1262,7 +1287,7 @@ export const handleBeforeMount = (monaco: any) => {
                 // Only suggest values if cursor is after the colon
                 if (position.column >= valueStartColumn) {
                     // In test files, report/internal/external keys get report-level values
-                    const isReportLevelKey = firstLine === 'type: test' && (
+                    const isReportLevelKey = docType === 'test' && (
                         (key === 'report' && (parentContext === 'steps' || parentContext === 'stages')) ||
                         ((key === 'internal' || key === 'external') && parentContext === 'report')
                     );
@@ -1276,7 +1301,7 @@ export const handleBeforeMount = (monaco: any) => {
                     const suggestionList = getValueSuggestions(effectiveKey);
 
                     // When inside expect: or debug:, also suggest inline operators (==, !=, etc.)
-                    if (firstLine === 'type: test' && (parentContext === 'expect' || parentContext === 'debug')) {
+                    if (docType === 'test' && (parentContext === 'expect' || parentContext === 'debug')) {
                         suggestionList.push(...(keySuggestionsByParent['expect-value'] || []));
                     }
 
@@ -1399,7 +1424,7 @@ export const handleBeforeMount = (monaco: any) => {
             //     <cursor>   ← suggest id, inputs
             //   - check: x == 1
             //     <cursor>   ← suggest title, details, report
-            if (firstLine === 'type: test' && (parentContext === 'steps' || parentContext === 'stages')) {
+            if (docType === 'test' && (parentContext === 'steps' || parentContext === 'stages')) {
                 const trimmedLine = lineContent.trim();
                 // Check if cursor is at sibling indent of a step item:
                 // walk up to find the nearest `- <stepType>:` at a lower indent
@@ -1446,7 +1471,7 @@ export const handleBeforeMount = (monaco: any) => {
             // Get parent-specific suggestions and deduplicate
             // When inside report: of a test step, use step-report suggestions (internal/external)
             // instead of type: report file-level suggestions
-            const effectiveContext = (parentContext === 'report' && firstLine === 'type: test')
+            const effectiveContext = (parentContext === 'report' && docType === 'test')
                 ? 'step-report'
                 : parentContext === 'format'
                     ? 'format-keys'
@@ -1480,7 +1505,7 @@ export const handleBeforeMount = (monaco: any) => {
 
             return { suggestions };
         },
-        triggerCharacters: ["\n", " ", ":", "-", ".", "$", "{", "+", "/"],
+        triggerCharacters: ["\n", " ", ":", "-", ".", "$", "{", "+", "/", "<"],
     });
 
     // Validation setup
