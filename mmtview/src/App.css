@@ -1179,6 +1179,12 @@ button:focus {
   flex-shrink: 0;
 }
 
+.panel-run-header-status {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+
 .api-edit-header {
   display: flex;
   flex-direction: column;
@@ -1194,6 +1200,11 @@ button:focus {
   padding-bottom: 16px;
   min-width: 0;
   flex-wrap: wrap;
+}
+
+.api-edit-header-row-status {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .api-edit-title {
@@ -1217,6 +1228,17 @@ button:focus {
 
 .api-edit-header-row .action-button .codicon {
   font-size: calc(var(--vscode-font-size, 13px) * 2);
+}
+
+.api-edit-header-row .action-button.yaml-error-btn,
+.api-edit-header-row .action-button.unsaved-warning-btn {
+  font-size: var(--vscode-font-size, 13px);
+  padding: 4px 10px;
+}
+
+.api-edit-header-row .action-button.yaml-error-btn .codicon,
+.api-edit-header-row .action-button.unsaved-warning-btn .codicon {
+  font-size: 16px;
 }
 
 .panel-edit-header-trailing {

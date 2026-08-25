@@ -6,6 +6,7 @@ import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraint
 import { testToYaml } from 'mmt-core/testParsePack';
 
 import { FileContext } from '../fileContext';
+import { HideWhenYamlError } from '../api/YamlErrorWarning';
 import { setEnvironmentVariables } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import { StepStatus } from '../shared/types';
@@ -419,7 +420,9 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                         postRunCurrentDocument({ reportLifecycle: true });
                     })]}
                 />
-                <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
+                <HideWhenYamlError>
+                    <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
+                </HideWhenYamlError>
             </div>
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
             {hasInputs && (

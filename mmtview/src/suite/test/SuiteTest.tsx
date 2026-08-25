@@ -25,6 +25,7 @@ import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
+import { HideWhenYamlError } from '../../api/YamlErrorWarning';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
 import { runInCoreMenuItem } from '../../components/ContextMenuHost';
 import RunStopToggle from '../../components/RunStopToggle';
@@ -1074,7 +1075,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     runTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
                     runContextMenuItems={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
                 />
-                <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
+                <HideWhenYamlError>
+                    <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
+                </HideWhenYamlError>
             </div>
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
             <div className="test-flow-tree">
