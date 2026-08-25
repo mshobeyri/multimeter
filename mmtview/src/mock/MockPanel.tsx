@@ -1,12 +1,12 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
-import { parseYaml, parseYamlDoc } from "mmt-core/markupConvertor";
+import { parseYaml } from "mmt-core/markupConvertor";
 import { loadEnvVariables } from "../workspaceStorage";
 import MockOverview from "./MockOverview";
 import MockEndpoints from "./MockEndpoints";
 import MockServerSettings from "./MockServerSettings";
-import { canonicalizeMockYaml } from "./mockYaml";
+import { patchMockYaml } from "./mockYaml";
 import { methodTextColor } from "../shared/themeAccent";
 import { useAccentChrome } from "../shared/useAccentChrome";
 import TabBar from "../components/TabBar";
@@ -93,13 +93,15 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
   const updateField = useCallback((key: string, value: any) => {
     try {
-      const doc = parseYamlDoc(content);
-      if (value === '' || value === undefined || value === null) {
-        doc.delete(key);
-      } else {
-        doc.set(key, value);
-      }
-      setContent(canonicalizeMockYaml(doc.toString()));
+      setContent(patchMockYaml(content, (mock) => {
+        const next = { ...mock } as MockData & Record<string, unknown>;
+        if (value === '' || value === undefined || value === null) {
+          delete next[key];
+        } else {
+          next[key] = value;
+        }
+        return next;
+      }));
     } catch { /* ignore */ }
   }, [content, setContent]);
 

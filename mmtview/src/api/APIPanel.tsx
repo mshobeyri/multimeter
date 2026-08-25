@@ -75,8 +75,8 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     resetRef.current = reset;
   }, []);
 
-  const setAPI = (newApi: APIData) => {
-    const newYaml = apiToYaml(newApi);
+    const setAPI = (newApi: APIData) => {
+    const newYaml = apiToYaml(newApi, appliedContent);
     // UI-originated writes are intentional — apply immediately on both sides.
     dismissedYamlRef.current = null;
     pendingYamlRef.current = null;
@@ -133,8 +133,8 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   const isTestModified = page === "test" && hasUiOverrides;
 
   const modifiedYaml = useMemo(
-    () => (hasUiOverrides ? apiToYaml(savedModifiedApi) : ""),
-    [hasUiOverrides, savedModifiedApi]
+    () => (hasUiOverrides ? apiToYaml(savedModifiedApi, appliedContent) : ""),
+    [hasUiOverrides, savedModifiedApi, appliedContent]
   );
 
   const contentRef = useRef(content);
@@ -225,7 +225,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   // Save temporary UI into YAML — drop tester overrides so later YAML
   // edits apply to the UI instead of looking like unsaved changes again.
   const handleWarningSave = useCallback(() => {
-    const newYaml = apiToYaml(savedModifiedApi);
+    const newYaml = apiToYaml(savedModifiedApi, appliedContent);
     resetAfterApplyRef.current = true;
     dismissedYamlRef.current = null;
     pendingYamlRef.current = null;

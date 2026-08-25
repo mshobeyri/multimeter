@@ -73,7 +73,7 @@ export function yamlToDoc(yamlContent: string): DocData {
   }
 }
 
-export function docToYaml(data: DocData): string {
+export function docToYaml(data: DocData, originalYaml?: string): string {
   const out: any = {type: 'doc'};
   if (data.title) {
     out.title = data.title;
@@ -113,7 +113,7 @@ export function docToYaml(data: DocData): string {
   if (data.env && typeof data.env === 'object' && Object.keys(data.env).length) {
     out.env = { ...data.env };
   }
-  return packYaml(out);
+  return packYaml(out, originalYaml);
 }
 
 export default {yamlToDoc, docToYaml};

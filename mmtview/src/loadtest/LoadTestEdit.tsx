@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
+import { parseYaml } from 'mmt-core/markupConvertor';
 import { loadtestToYaml, yamlToLoadTest } from 'mmt-core/loadtestParsePack';
+import { LoadTestData } from 'mmt-core/LoadTestData';
 import FileOverview from '../shared/FileOverview';
 import FilePickerInput from '../components/FilePickerInput';
 import KSVEditor from '../components/KSVEditor';
@@ -42,11 +43,14 @@ interface LoadTestOverviewConfig {
   tags?: string[];
 }
 
-const canonicalizeLoadTestYaml = (content: string): string => {
+const rewriteLoadTestYaml = (
+    content: string, patch: (loadtest: LoadTestData) => void): string | null => {
   try {
-    return loadtestToYaml(yamlToLoadTest(content));
+    const loadtest = yamlToLoadTest(content);
+    patch(loadtest);
+    return loadtestToYaml(loadtest, content);
   } catch {
-    return content;
+    return null;
   }
 };
 
@@ -116,16 +120,6 @@ const buildExportsFromContent = (content: string): string[] => {
     .filter(Boolean);
 };
 
-const updateLoadTestContent = (content: string, updater: (doc: any) => void): string | null => {
-  try {
-    const doc = parseYamlDoc(content);
-    updater(doc);
-    return canonicalizeLoadTestYaml(doc.toString());
-  } catch {
-    return null;
-  }
-};
-
 const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const fileContext = useContext(FileContext);
   const [activeTab, setActiveTab] = useState<LoadTestEditTab>('overview');
@@ -149,22 +143,11 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const persistOverview = useCallback((patch: LoadTestOverviewConfig) => {
     const nextOverview = { ...overview, ...patch };
     setOverview(nextOverview);
-    const updated = updateLoadTestContent(content, (doc) => {
-      if (nextOverview.title) {
-        doc.set('title', nextOverview.title);
-      } else {
-        doc.delete('title');
-      }
-      if (nextOverview.description) {
-        doc.set('description', nextOverview.description);
-      } else {
-        doc.delete('description');
-      }
-      if (nextOverview.tags && nextOverview.tags.length > 0) {
-        doc.set('tags', nextOverview.tags);
-      } else {
-        doc.delete('tags');
-      }
+    const updated = rewriteLoadTestYaml(content, (loadtest) => {
+      loadtest.title = nextOverview.title;
+      loadtest.description = nextOverview.description;
+      loadtest.tags = nextOverview.tags && nextOverview.tags.length > 0 ?
+        nextOverview.tags : undefined;
     });
     if (updated) {
       setContent(updated);
@@ -173,12 +156,8 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
 
   const persistImports = useCallback((nextImports: Record<string, string>) => {
     setImports(nextImports);
-    const updated = updateLoadTestContent(content, (doc) => {
-      if (Object.keys(nextImports).length === 0) {
-        doc.delete('import');
-      } else {
-        doc.set('import', nextImports);
-      }
+    const updated = rewriteLoadTestYaml(content, (loadtest) => {
+      loadtest.import = Object.keys(nextImports).length > 0 ? nextImports : undefined;
     });
     if (updated) {
       setContent(updated);
@@ -209,8 +188,8 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
 
   const persistTest = useCallback((nextTest: string) => {
     setTest(nextTest);
-    const updated = updateLoadTestContent(content, (doc) => {
-      doc.set('test', nextTest);
+    const updated = rewriteLoadTestYaml(content, (loadtest) => {
+      loadtest.test = nextTest;
     });
     if (updated) {
       setContent(updated);
@@ -219,22 +198,10 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
 
   const persistLoad = useCallback((nextLoad: LoadConfig) => {
     setLoad(nextLoad);
-    const updated = updateLoadTestContent(content, (doc) => {
-      if (typeof nextLoad.threads === 'number' && nextLoad.threads !== 1) {
-        doc.set('threads', nextLoad.threads);
-      } else {
-        doc.delete('threads');
-      }
-      if (nextLoad.repeat !== undefined && nextLoad.repeat !== '') {
-        doc.set('repeat', nextLoad.repeat);
-      } else {
-        doc.delete('repeat');
-      }
-      if (nextLoad.rampup && nextLoad.rampup !== '0s') {
-        doc.set('rampup', nextLoad.rampup);
-      } else {
-        doc.delete('rampup');
-      }
+    const updated = rewriteLoadTestYaml(content, (loadtest) => {
+      loadtest.threads = nextLoad.threads;
+      loadtest.repeat = nextLoad.repeat as LoadTestData['repeat'];
+      loadtest.rampup = nextLoad.rampup as LoadTestData['rampup'];
     });
     if (updated) {
       setContent(updated);
@@ -243,22 +210,23 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
 
   const persistEnvironment = useCallback((nextEnv: LoadTestEnvironmentConfig | null) => {
     setEnvironment(nextEnv);
-    const updated = updateLoadTestContent(content, (doc) => {
-      if (!nextEnv || (nextEnv.preset === undefined && nextEnv.file === undefined && (!nextEnv.variables || Object.keys(nextEnv.variables).length === 0))) {
-        doc.delete('environment');
-      } else {
-        const envObj: any = {};
-        if (nextEnv.preset) {
-          envObj.preset = nextEnv.preset;
-        }
-        if (nextEnv.file) {
-          envObj.file = nextEnv.file;
-        }
-        if (nextEnv.variables && Object.keys(nextEnv.variables).length > 0) {
-          envObj.variables = nextEnv.variables;
-        }
-        doc.set('environment', envObj);
+    const updated = rewriteLoadTestYaml(content, (loadtest) => {
+      if (!nextEnv || (nextEnv.preset === undefined && nextEnv.file === undefined &&
+          (!nextEnv.variables || Object.keys(nextEnv.variables).length === 0))) {
+        loadtest.environment = undefined;
+        return;
       }
+      const envObj: LoadTestData['environment'] = {};
+      if (nextEnv.preset) {
+        envObj.preset = nextEnv.preset;
+      }
+      if (nextEnv.file) {
+        envObj.file = nextEnv.file;
+      }
+      if (nextEnv.variables && Object.keys(nextEnv.variables).length > 0) {
+        envObj.variables = nextEnv.variables;
+      }
+      loadtest.environment = envObj;
     });
     if (updated) {
       setContent(updated);
@@ -267,12 +235,8 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
 
   const persistExports = useCallback((nextExports: string[]) => {
     setExports(nextExports);
-    const updated = updateLoadTestContent(content, (doc) => {
-      if (nextExports.length === 0) {
-        doc.delete('export');
-      } else {
-        doc.set('export', nextExports);
-      }
+    const updated = rewriteLoadTestYaml(content, (loadtest) => {
+      loadtest.export = nextExports.length > 0 ? nextExports : undefined;
     });
     if (updated) {
       setContent(updated);

@@ -1,4 +1,4 @@
-import {envToYaml, yamlToEnv} from './envParsePack';
+import {envToYaml, patchEnvYaml, yamlToEnv} from './envParsePack';
 import {formatMmtYaml} from './mmtFormat';
 
 describe('envParsePack', () => {
@@ -99,5 +99,58 @@ presets:
     const first = formatMmtYaml(input, 'multimeter.mmt');
     const second = formatMmtYaml(first.formatted, 'multimeter.mmt');
     expect(second.changed).toBe(false);
+  });
+
+  it('preserves comments outside a patched env section', () => {
+    const input = `# project env
+type: env
+variables:
+  api_url: "https://test.mmt.dev"  # default url
+certificates:
+  server_ca: "./certs/ca.crt"  # company CA
+`;
+    const patched = patchEnvYaml(input, {
+      certificates: {
+        server_ca: './certs/ca.crt',
+        clients: [{
+          name: 'mock-client-p12',
+          host: 'localhost:29444',
+          pfx: './certs/client.p12',
+          passphrase_plain: 'mmt',
+        }],
+      },
+    });
+    expect(patched).toContain('# project env');
+    expect(patched).toContain('# default url');
+    expect(patched).toContain('pfx: ./certs/client.p12');
+    expect(patched).toContain('api_url: "https://test.mmt.dev"');
+  });
+
+  it('keeps comments stuck to keys inside a patched section', () => {
+    const input = `type: env
+variables:
+  # default url
+  api_url: "https://test.mmt.dev"  # inline url
+certificates:
+  # company CA
+  server_ca: "./certs/ca.crt"  # inline ca
+`;
+    const patched = patchEnvYaml(input, {
+      certificates: {
+        server_ca: './certs/ca-new.crt',
+        clients: [{
+          name: 'mock-client-p12',
+          host: 'localhost:29444',
+          pfx: './certs/client.p12',
+          passphrase_plain: 'mmt',
+        }],
+      },
+    });
+    expect(patched).toContain('# default url');
+    expect(patched).toContain('# inline url');
+    expect(patched).toMatch(/# company CA\n\s*server_ca:/);
+    expect(patched).toMatch(/server_ca:.*# inline ca/);
+    expect(patched).toContain('ca-new.crt');
+    expect(patched).toContain('pfx: ./certs/client.p12');
   });
 });

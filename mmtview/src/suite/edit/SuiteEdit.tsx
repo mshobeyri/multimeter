@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
+import { parseYaml } from 'mmt-core/markupConvertor';
 import { suiteToYaml, yamlToSuite } from 'mmt-core/suiteParsePack';
+import { SuiteData } from 'mmt-core/SuiteData';
 import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
@@ -103,22 +104,20 @@ const normalizeSuiteGroups = (groups: SuiteGroup[]): SuiteGroup[] => {
   return filtered.map((group, idx) => ({ ...group, label: `Group ${idx + 1}` }));
 };
 
-const canonicalizeSuiteYaml = (content: string): string => {
+const rewriteSuiteYaml = (content: string, patch: (suite: SuiteData) => void): string | null => {
   try {
-    return suiteToYaml(yamlToSuite(content));
+    const suite = yamlToSuite(content);
+    patch(suite);
+    return suiteToYaml(suite, content);
   } catch {
-    return content;
+    return null;
   }
 };
 
 const updateSuiteContentWithGroups = (content: string, groups: SuiteGroup[]): string | null => {
-  try {
-    const doc = parseYamlDoc(content);
-    doc.set('items', flattenSuiteGroups(groups));
-    return canonicalizeSuiteYaml(doc.toString());
-  } catch {
-    return null;
-  }
+  return rewriteSuiteYaml(content, (suite) => {
+    suite.items = flattenSuiteGroups(groups);
+  });
 };
 
 const buildServersFromContent = (content: string): string[] => {
@@ -132,17 +131,9 @@ const buildServersFromContent = (content: string): string[] => {
 };
 
 const updateSuiteContentWithServers = (content: string, servers: string[]): string | null => {
-  try {
-    const doc = parseYamlDoc(content);
-    if (servers.length === 0) {
-      doc.delete('servers');
-    } else {
-      doc.set('servers', servers);
-    }
-    return canonicalizeSuiteYaml(doc.toString());
-  } catch {
-    return null;
-  }
+  return rewriteSuiteYaml(content, (suite) => {
+    suite.servers = servers.length > 0 ? servers : undefined;
+  });
 };
 
 const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | null => {
@@ -176,65 +167,38 @@ const buildOverviewFromContent = (content: string): SuiteOverviewConfig => {
 };
 
 const updateSuiteContentWithOverview = (content: string, overview: SuiteOverviewConfig): string | null => {
-  try {
-    const doc = parseYamlDoc(content);
-    if (overview.title) {
-      doc.set('title', overview.title);
-    } else {
-      doc.delete('title');
-    }
-    if (overview.description) {
-      doc.set('description', overview.description);
-    } else {
-      doc.delete('description');
-    }
-    if (overview.tags && overview.tags.length > 0) {
-      doc.set('tags', overview.tags);
-    } else {
-      doc.delete('tags');
-    }
-    return canonicalizeSuiteYaml(doc.toString());
-  } catch {
-    return null;
-  }
+  return rewriteSuiteYaml(content, (suite) => {
+    suite.title = overview.title;
+    suite.description = overview.description;
+    suite.tags = overview.tags && overview.tags.length > 0 ? overview.tags : undefined;
+  });
 };
 
 const updateSuiteContentWithImports = (content: string, imports: Record<string, string>): string | null => {
-  try {
-    const doc = parseYamlDoc(content);
-    if (Object.keys(imports).length === 0) {
-      doc.delete('import');
-    } else {
-      doc.set('import', imports);
-    }
-    return canonicalizeSuiteYaml(doc.toString());
-  } catch {
-    return null;
-  }
+  return rewriteSuiteYaml(content, (suite) => {
+    suite.import = Object.keys(imports).length > 0 ? imports : undefined;
+  });
 };
 
 const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironmentConfig | null): string | null => {
-  try {
-    const doc = parseYamlDoc(content);
-    if (!env || (env.preset === undefined && env.file === undefined && (!env.variables || Object.keys(env.variables).length === 0))) {
-      doc.delete('environment');
-    } else {
-      const envObj: any = {};
-      if (env.preset) {
-        envObj.preset = env.preset;
-      }
-      if (env.file) {
-        envObj.file = env.file;
-      }
-      if (env.variables && Object.keys(env.variables).length > 0) {
-        envObj.variables = env.variables;
-      }
-      doc.set('environment', envObj);
+  return rewriteSuiteYaml(content, (suite) => {
+    if (!env || (env.preset === undefined && env.file === undefined &&
+        (!env.variables || Object.keys(env.variables).length === 0))) {
+      suite.environment = undefined;
+      return;
     }
-    return canonicalizeSuiteYaml(doc.toString());
-  } catch {
-    return null;
-  }
+    const envObj: SuiteData['environment'] = {};
+    if (env.preset) {
+      envObj.preset = env.preset;
+    }
+    if (env.file) {
+      envObj.file = env.file;
+    }
+    if (env.variables && Object.keys(env.variables).length > 0) {
+      envObj.variables = env.variables;
+    }
+    suite.environment = envObj;
+  });
 };
 
 const buildExportsFromContent = (content: string): string[] => {
@@ -248,17 +212,9 @@ const buildExportsFromContent = (content: string): string[] => {
 };
 
 const updateSuiteContentWithExports = (content: string, exports: string[]): string | null => {
-  try {
-    const doc = parseYamlDoc(content);
-    if (exports.length === 0) {
-      doc.delete('export');
-    } else {
-      doc.set('export', exports);
-    }
-    return canonicalizeSuiteYaml(doc.toString());
-  } catch {
-    return null;
-  }
+  return rewriteSuiteYaml(content, (suite) => {
+    suite.export = exports.length > 0 ? exports : undefined;
+  });
 };
 
 const collectSuitePaths = (groups: SuiteGroup[]): string[] => {

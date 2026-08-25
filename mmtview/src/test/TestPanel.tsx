@@ -85,7 +85,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
   const setTest = React.useCallback((next: TestData | ((prev: TestData) => TestData)) => {
     const resolved = typeof next === "function" ? (next as (prev: TestData) => TestData)(testRef.current) : next;
     testRef.current = resolved;
-    const newYaml = testToYaml(resolved);
+    const newYaml = testToYaml(resolved, contentRef.current);
     if (newYaml === contentRef.current && newYaml === appliedContent) {
       return;
     }
@@ -120,8 +120,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
   }, [hasUiOverrides, test, tempInputs]);
 
   const modifiedYaml = useMemo(
-    () => (hasUiOverrides ? testToYaml(savedModifiedTest) : ""),
-    [hasUiOverrides, savedModifiedTest]
+    () => (hasUiOverrides ? testToYaml(savedModifiedTest, appliedContent) : ""),
+    [hasUiOverrides, savedModifiedTest, appliedContent]
   );
 
   const applyYamlAndResetUi = useCallback((yaml: string) => {
@@ -208,7 +208,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
     pendingYamlRef.current = null;
     setTempInputs({});
     setDirtyInputKeys(new Set());
-    const newYaml = testToYaml(savedModifiedTest);
+    const newYaml = testToYaml(savedModifiedTest, appliedContent);
     if (newYaml === contentRef.current && newYaml === appliedContent) {
       resetAfterApplyRef.current = false;
       resetRef.current?.();

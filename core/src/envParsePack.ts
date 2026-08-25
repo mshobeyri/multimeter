@@ -1,4 +1,5 @@
-import parseYaml, {packYaml} from './markupConvertor';
+import parseYaml, {packYaml, parseYamlDoc, stringifyYamlDocument} from './markupConvertor';
+import {setYamlRoot} from './yamlAstMerge';
 import {
   EnvCaCertificate,
   EnvCertificates,
@@ -198,7 +199,7 @@ function serializeSetting(setting: EnvSetting): Record<string, any> {
   return obj;
 }
 
-export function envToYaml(env: EnvData): string {
+export function envToYaml(env: EnvData, originalYaml?: string): string {
   const yamlObj: Record<string, any> = {
     type: env.type,
   };
@@ -228,5 +229,52 @@ export function envToYaml(env: EnvData): string {
       yamlObj[key] = value;
     }
   }
-  return packYaml(yamlObj);
+  return packYaml(yamlObj, originalYaml);
+}
+
+export type EnvYamlPatch = {
+  import?: EnvData['import'];
+  variables?: EnvData['variables'];
+  presets?: EnvData['presets'];
+  setting?: EnvSetting;
+  certificates?: EnvCertificates;
+};
+
+/**
+ * Update selected env root keys on the YAML document AST so comments stay
+ * stuck to their keys, same as formatMmtYamlAst.
+ */
+export function patchEnvYaml(rawYaml: string, patch: EnvYamlPatch): string {
+  const doc = parseYamlDoc(rawYaml || '');
+  if ('import' in patch) {
+    setYamlRoot(
+        doc, 'import', isNonEmptyObject(patch.import) ? patch.import : undefined);
+  }
+  if ('variables' in patch) {
+    const variables = patch.variables && Object.keys(patch.variables).length > 0 ?
+      patch.variables :
+      undefined;
+    setYamlRoot(doc, 'variables', variables);
+  }
+  if ('presets' in patch) {
+    const presets = patch.presets && Object.keys(patch.presets).length > 0 ?
+      patch.presets :
+      undefined;
+    setYamlRoot(doc, 'presets', presets);
+  }
+  if ('setting' in patch) {
+    const setting = patch.setting ? serializeSetting(patch.setting) : undefined;
+    setYamlRoot(
+        doc, 'setting', setting && Object.keys(setting).length > 0 ? setting : undefined);
+  }
+  if ('certificates' in patch) {
+    const certificates = patch.certificates ?
+      serializeCertificates(patch.certificates) :
+      undefined;
+    setYamlRoot(
+        doc,
+        'certificates',
+        certificates && Object.keys(certificates).length > 0 ? certificates : undefined);
+  }
+  return stringifyYamlDocument(doc);
 }

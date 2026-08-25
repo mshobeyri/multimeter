@@ -51,7 +51,7 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
         ? (next as (prev: DocData) => DocData)(docRef.current)
         : next;
     docRef.current = resolved;
-    const newYaml = docToYaml(resolved);
+    const newYaml = docToYaml(resolved, contentRef.current);
     if (newYaml === contentRef.current || newYaml === '') {
       return;
     }

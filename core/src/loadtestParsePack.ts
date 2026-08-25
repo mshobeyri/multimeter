@@ -71,7 +71,7 @@ export function yamlToLoadTest(rawYaml: string): LoadTestData {
   return loadtest;
 }
 
-export function loadtestToYaml(loadtest: LoadTestData): string {
+export function loadtestToYaml(loadtest: LoadTestData, originalYaml?: string): string {
   const yamlObj: Record<string, any> = {
     type: loadtest.type,
   };
@@ -113,5 +113,5 @@ export function loadtestToYaml(loadtest: LoadTestData): string {
     yamlObj.export = loadtest.export;
   }
   yamlObj.test = loadtest.test;
-  return packYaml(yamlObj);
+  return packYaml(yamlObj, originalYaml);
 }

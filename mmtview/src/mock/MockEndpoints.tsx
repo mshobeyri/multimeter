@@ -1,9 +1,8 @@
 import React from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
-import { parseYamlDoc } from "mmt-core/markupConvertor";
 import MockEndpointBox, { methodTextColor } from "./MockEndpointBox";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
-import { canonicalizeMockYaml } from "./mockYaml";
+import { patchMockYaml } from "./mockYaml";
 import PrimaryButton from "../components/PrimaryButton";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
@@ -91,14 +90,12 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   /* ─── Fallback helpers ─── */
   const updateFallback = React.useCallback((fallbackEndpoint: MockEndpoint) => {
     try {
-      const doc = parseYamlDoc(content);
       const fallback: Record<string, any> = {};
       fallback.status = fallbackEndpoint.status ?? 404;
       if (fallbackEndpoint.format) { fallback.format = fallbackEndpoint.format; }
       if (fallbackEndpoint.headers && Object.keys(fallbackEndpoint.headers).length > 0) { fallback.headers = fallbackEndpoint.headers; }
       if (fallbackEndpoint.body !== undefined && fallbackEndpoint.body !== null && fallbackEndpoint.body !== '') { fallback.body = fallbackEndpoint.body; }
-      doc.set('fallback', doc.createNode(fallback));
-      setContent(canonicalizeMockYaml(doc.toString()));
+      setContent(patchMockYaml(content, { fallback } as Partial<MockData>));
     } catch { /* ignore */ }
   }, [content, setContent]);
   const contentRef = React.useRef(content);
@@ -149,10 +146,8 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   const commitEndpoints = React.useCallback((items: Record<string, any>) => {
     try {
       const newEndpoints = treeToEndpoints(items);
-      const doc = parseYamlDoc(contentRef.current);
-      doc.set('endpoints', doc.createNode(newEndpoints));
       internalChangeRef.current = true;
-      setContent(canonicalizeMockYaml(doc.toString()));
+      setContent(patchMockYaml(contentRef.current, { endpoints: newEndpoints }));
     } catch (e) {
       console.error('Failed to commit endpoints:', e);
     }
