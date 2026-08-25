@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.35.1]
+
+- Keep `#` comments in YAML when you save from the UI (API, test, env, suite, mock, doc, load test)
+- Support PKCS#12 / PFX client certificates (`pfx` or `cert`+`key`) with samples and a Certificates dropdown UI
+- Pin **YAML ERROR** to the far right of the header and hide Flow chart, Edit, and Export while YAML is invalid
+- Improve YAML autocomplete (shared ranges, call-step parent walks)
+- Keep HTML response bodies from breaking the History panel
+
 ## [1.35.0]
 
 - Treat the tester/runner UI as temporary: **UNSAVED CHANGES** replaces Edit until **Save to YAML** or **Discard**
