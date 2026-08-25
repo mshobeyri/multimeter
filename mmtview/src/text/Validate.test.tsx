@@ -298,6 +298,105 @@ describe('validateYamlContent API method requirements', () => {
     expect(additionalPropertyError?.startLineNumber).not.toBe(3);
   });
 
+  it('accepts PKCS#12 client certificate paths', () => {
+    const errors = validateYamlContent([
+      'type: env',
+      'certificates:',
+      '  clients:',
+      '    - name: mock-client-p12',
+      '      host: localhost:29444',
+      '      pfx: ./certs/client.p12',
+      '      passphrase_plain: mmt',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('Invalid property "pfx"'))).toBe(false);
+    expect(errors.length).toBe(0);
+  });
+
+  it('rejects mixing pfx with cert or key on the same client', () => {
+    const errors = validateYamlContent([
+      'type: env',
+      'certificates:',
+      '  clients:',
+      '    - name: mixed-client',
+      '      host: localhost:29444',
+      '      cert: ./certs/client.crt',
+      '      key: ./certs/client.key',
+      '      pfx: ./certs/client.p12',
+    ].join('\n'));
+
+    const mixedError = errors.find(error =>
+      String(error.message).includes('Use either pfx or cert+key, not both')
+    );
+    expect(mixedError).toBeDefined();
+    expect(mixedError?.startLineNumber).toBe(8);
+  });
+
+  it('rejects a client cert without a key', () => {
+    const errors = validateYamlContent([
+      'type: env',
+      'certificates:',
+      '  clients:',
+      '    - name: pem-client',
+      '      host: localhost:29444',
+      '      cert: ./certs/client.crt',
+    ].join('\n'));
+
+    const missingKey = errors.find(error =>
+      String(error.message).includes('key is required when cert is set')
+    );
+    expect(missingKey).toBeDefined();
+    expect(missingKey?.startLineNumber).toBe(6);
+  });
+
+  it('rejects a client key without a cert', () => {
+    const errors = validateYamlContent([
+      'type: env',
+      'certificates:',
+      '  clients:',
+      '    - name: pem-client',
+      '      host: localhost:29444',
+      '      key: ./certs/client.key',
+    ].join('\n'));
+
+    const missingCert = errors.find(error =>
+      String(error.message).includes('cert is required when key is set')
+    );
+    expect(missingCert).toBeDefined();
+    expect(missingCert?.startLineNumber).toBe(6);
+  });
+
+  it('accepts a client with only name and host while editing', () => {
+    const errors = validateYamlContent([
+      'type: env',
+      'certificates:',
+      '  clients:',
+      '    - name: new-client',
+      '      host: "*"',
+    ].join('\n'));
+
+    expect(errors.length).toBe(0);
+  });
+
+  it('rejects mixing passphrase_plain with passphrase_env on the same client', () => {
+    const errors = validateYamlContent([
+      'type: env',
+      'certificates:',
+      '  clients:',
+      '    - name: mixed-pass',
+      '      host: localhost:29444',
+      '      pfx: ./certs/client.p12',
+      '      passphrase_plain: mmt',
+      '      passphrase_env: CERT_PASS',
+    ].join('\n'));
+
+    const mixedError = errors.find(error =>
+      String(error.message).includes('Use either passphrase_plain or passphrase_env, not both')
+    );
+    expect(mixedError).toBeDefined();
+    expect(mixedError?.startLineNumber).toBe(7);
+  });
+
   it('accepts arrays as direct http expect values', () => {
     const errors = validateYamlContent([
       'type: test',

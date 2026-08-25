@@ -64,6 +64,28 @@ certificates:
     expect(yaml.indexOf('key:')).toBeLessThan(yaml.indexOf('passphrase_env:'));
   });
 
+  it('canonicalizes PKCS#12 client certificate field order', () => {
+    const env = yamlToEnv(`
+type: env
+variables:
+  api_url:
+    local: https://example.com
+certificates:
+  clients:
+    - passphrase_plain: mmt
+      pfx: ./certs/client.p12
+      host: localhost:29444
+      name: mock-client-p12
+`);
+    const yaml = envToYaml(env);
+    expect(yaml.indexOf('name:')).toBeLessThan(yaml.indexOf('host:'));
+    expect(yaml.indexOf('host:')).toBeLessThan(yaml.indexOf('pfx:'));
+    expect(yaml.indexOf('pfx:')).toBeLessThan(yaml.indexOf('passphrase_plain:'));
+    expect(yaml).toContain('pfx: ./certs/client.p12');
+    expect(yaml).not.toContain('cert:');
+    expect(yaml).not.toContain('key:');
+  });
+
   it('is idempotent after formatting', () => {
     const input = `type: env
 variables:

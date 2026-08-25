@@ -22,8 +22,8 @@ certificates:
       key: "./certs/client.key"
       passphrase_env: "CERT_PASS"  # Optional: env variable containing passphrase
     
-    - name: "PFX Bundle"
+    - name: "PKCS#12 Bundle"
       host: "internal.example.com"
-      pfx: "./certs/bundle.pfx"
+      pfx: "./certs/client.p12"    # .p12 or .pfx
       passphrase_plain: "secret"   # Optional: plaintext passphrase (avoid in shared configs)
 ```

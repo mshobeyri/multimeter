@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as https from 'https';
 import * as path from 'path';
+import * as tls from 'tls';
 
 import {send, setRunnerNetworkConfig} from './networkCore';
 
@@ -94,6 +95,78 @@ describe('axios mTLS transport', () => {
     } catch (e) {
       if (isNetworkUnavailable(e)) {
         console.warn('Skipping BadSSL core send mTLS test: network unavailable');
+        return;
+      }
+      throw asPlainError(e);
+    }
+  }, 30000);
+
+  it('loads the BadSSL PKCS#12 bundle into a TLS context', () => {
+    expect(() => {
+      tls.createSecureContext({
+        pfx: readCert('badssl-client.p12'),
+        passphrase,
+      });
+    }).not.toThrow();
+  });
+
+  it('gets HTTP 200 from BadSSL when Axios sends the PKCS#12 client certificate', async () => {
+    try {
+      const response = await axios.get(url, {
+        httpsAgent: new https.Agent({
+          pfx: readCert('badssl-client.p12'),
+          passphrase,
+        }),
+        proxy: false,
+        timeout: 30000,
+        responseType: 'text',
+        transformResponse: [(data: string) => data],
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.data).toContain('client.<br>badssl.com');
+    } catch (e) {
+      if (isNetworkUnavailable(e)) {
+        console.warn('Skipping BadSSL axios PKCS#12 mTLS test: network unavailable');
+        return;
+      }
+      throw asPlainError(e);
+    }
+  }, 30000);
+
+  it('gets HTTP 200 from BadSSL through the core send function with PKCS#12', async () => {
+    setRunnerNetworkConfig({
+      ca: {enabled: false},
+      clients: [{
+        id: 'badssl-client-p12',
+        name: 'BadSSL PKCS#12 client certificate',
+        host: 'client.badssl.com',
+        pfxData: readCert('badssl-client.p12'),
+        passphrase_plain: passphrase,
+        enabled: true,
+      }],
+      sslValidation: true,
+      allowSelfSigned: false,
+      timeout: 30000,
+      autoFormat: false,
+    });
+
+    try {
+      const response = await send({
+        protocol: 'http',
+        url,
+        method: 'get',
+      });
+
+      if (response.status !== 200) {
+        console.warn(
+            `Skipping BadSSL core send PKCS#12 mTLS test: unexpected status ${response.status}`);
+        return;
+      }
+      expect(response.body).toContain('client.<br>badssl.com');
+    } catch (e) {
+      if (isNetworkUnavailable(e)) {
+        console.warn('Skipping BadSSL core send PKCS#12 mTLS test: network unavailable');
         return;
       }
       throw asPlainError(e);

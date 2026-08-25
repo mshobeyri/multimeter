@@ -12,8 +12,9 @@ It is useful for checking that Multimeter sends mTLS client certificate material
 - `certs/badssl.com-client.pem` is the original PEM downloaded from BadSSL.
 - `certs/badssl-client.crt` is the certificate block split from the PEM.
 - `certs/badssl-client.key` is the encrypted private key block split from the PEM.
+- `certs/badssl-client.p12` is the same client identity as a PKCS#12 bundle.
 
-The key passphrase is the public BadSSL test passphrase: `badssl.com`.
+The key and PKCS#12 passphrase is the public BadSSL test passphrase: `badssl.com`. The env file includes both a PEM `cert`/`key` client and a `pfx` client; matching uses the first enabled client for `*:443`, so the PEM client is used at runtime.
 
 ## Run
 
@@ -37,6 +38,12 @@ curl -v \
   --cert examples/professional/08_external_mtls_badssl/certs/badssl-client.crt \
   --key examples/professional/08_external_mtls_badssl/certs/badssl-client.key \
   --pass badssl.com \
+  https://client.badssl.com/
+
+# Equivalent PKCS#12 bundle
+curl -v \
+  --cert-type P12 \
+  --cert examples/professional/08_external_mtls_badssl/certs/badssl-client.p12:badssl.com \
   https://client.badssl.com/
 ```
 

@@ -7,3 +7,7 @@ certificates:
       cert: "./certs/badssl-client.crt"
       key: "./certs/badssl-client.key"
       passphrase_plain: "badssl.com"
+    - name: "BadSSL PKCS#12 client certificate"
+      host: "*:443"
+      pfx: "./certs/badssl-client.p12"
+      passphrase_plain: "badssl.com"

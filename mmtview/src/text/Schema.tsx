@@ -459,11 +459,11 @@ export const EnvSchema = {
                         properties: {
                             name: { type: 'string', description: 'Certificate name' },
                             host: { type: 'string', description: 'Host pattern (e.g., *, *:8443, example.com, *.example.com)' },
-                            cert: { type: 'string', description: 'Path to client certificate file (.pem, .crt, .cer)' },
-                            key: { type: 'string', description: 'Path to client private key file (.key, .pem)' },
-                            pfx: { type: 'string', description: 'Path to client PFX/P12 bundle file (.pfx, .p12)' },
-                            passphrase_plain: { type: 'string', description: 'Plain text passphrase' },
-                            passphrase_env: { type: 'string', description: 'Environment variable for passphrase' }
+                            cert: { type: 'string', description: 'Path to client certificate file (.pem, .crt, .cer). Use with key; do not set pfx on the same client.' },
+                            key: { type: 'string', description: 'Path to client private key file (.key, .pem). Use with cert; do not set pfx on the same client.' },
+                            pfx: { type: 'string', description: 'Path to client PKCS#12 bundle (.pfx, .p12). Alternative to cert+key; do not set cert or key on the same client.' },
+                            passphrase_plain: { type: 'string', description: 'Plain text passphrase. Alternative to passphrase_env; do not set both.' },
+                            passphrase_env: { type: 'string', description: 'Environment variable for passphrase. Alternative to passphrase_plain; do not set both.' }
                         },
                         additionalProperties: false
                     }

@@ -535,7 +535,8 @@ select:focus {
 }
 
 input:disabled,
-textarea:disabled {
+textarea:disabled,
+select:disabled {
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-disabledForeground, #666666);
   opacity: 0.6;
