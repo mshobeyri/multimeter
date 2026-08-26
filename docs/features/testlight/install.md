@@ -1,6 +1,6 @@
 # Install
 
-Use Testlight to run `.mmt` files from a terminal or CI pipeline. Both `testlight` and `mmt` commands are available depending on how you install.
+Use Testlight to run `.mmt` files from a terminal or CI pipeline. The npm package is `mmt-testlight`; the command you run is `testlight` (and `mmt`, depending on how you install).
 
 ## npm
 

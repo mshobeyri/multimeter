@@ -183,11 +183,11 @@ GitHub Actions:
     report-file: results/junit.xml
 ```
 
-Or from a terminal:
+Or from a terminal using the Multimeter CLI called `testlight`. 
 
 ```sh
 npm install -g mmt-testlight
-mmt-testlight run tests/suite.mmt --report junit
+testlight run tests/suite.mmt
 ```
 
 See the [GitHub Action](./.github/actions/testlight/README.md) and [Testlight install](https://mmt.dev/docs/features/testlight/install).

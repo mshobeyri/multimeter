@@ -1,12 +1,12 @@
 # Run in CI
 
-The same `.mmt` files you edit in VS Code run in CI with the `testlight` CLI (`mmt-testlight` on npm).
+The same `.mmt` files you edit in VS Code run in CI with the Multimeter CLI called `testlight`. 
 
 ## Minimal example
 
 ```sh
 npm install -g mmt-testlight
-mmt-testlight run tests/smoke.mmt --env-file ci.env
+testlight run tests/smoke.mmt --env-file ci.env
 ```
 
 Or without a global install:
