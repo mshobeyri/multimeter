@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import "./vendor/codicons/codicon.css";
 import App from "./App";
 
 document.addEventListener("contextmenu", event => {

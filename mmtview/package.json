@@ -2,6 +2,7 @@
   "name": "mmtview",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "engines": {
     "vscode": "^1.70.0"
   },

@@ -641,11 +641,6 @@ button:focus {
   font-size: 16px;
 }
 
-/* VS Code hosts without `collection` still get a visible layers glyph. */
-.test-flow-root-toggle .codicon-collection:before {
-  content: "\ebd2"; /* codicon-layers */
-}
-
 .action-button.is-pressed {
   opacity: 1;
   color: var(--vscode-button-background, #0e639c);

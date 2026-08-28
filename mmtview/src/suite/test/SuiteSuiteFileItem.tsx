@@ -114,7 +114,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             title={statusIcon.title}
                             style={{ color: statusIcon.color }}
                         />
-                        <span className="codicon codicon-package" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+                        <span className="codicon codicon-layers" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
                         {labelPath}
                     </div>
                     {onRun && !isMissing && (
