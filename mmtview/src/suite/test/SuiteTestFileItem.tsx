@@ -9,6 +9,7 @@ import {
     isOpenFileModifier,
     suiteFileLabelTitle,
 } from './suiteTreeLabelClick';
+import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
 
 export type SuiteTestFileItemData = { type: 'test'; path: string; id: string }
 
@@ -20,9 +21,7 @@ interface SuiteTestFileItemProps {
     missingFiles: Set<string>;
     statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     status: StepStatus;
-
-    reportsById: Record<string, StepReportItem[]>;
-    runStateById: Record<string, StepStatus>;
+    stepReports: StepReportItem[];
 
     onRun?: () => void;
     onRunInCore?: () => void;
@@ -40,8 +39,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     missingFiles,
     statusIconFor,
     status,
-    reportsById,
-    runStateById,
+    stepReports,
     onRun,
     onRunInCore,
     runButtonTitle = 'Run',
@@ -58,9 +56,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
         }
         : statusIconFor(status);
 
-    const id = data.id;
-    const runState = id ? (runStateById[id] || 'default') : 'default';
-    const stepReports = id ? (reportsById[id] || []) : [];
+    const runState = status;
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
 
@@ -159,4 +155,4 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     );
 };
 
-export default React.memo(SuiteTestFileItem);
+export default React.memo(SuiteTestFileItem, areSuiteTreeRowPropsEqual);

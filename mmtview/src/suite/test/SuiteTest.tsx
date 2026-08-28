@@ -526,6 +526,53 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             }
         });
 
+        const runStatePatches: Record<string, StepStatus> = {};
+        const reportPatches: Record<string, StepReportItem[]> = {};
+
+        queuedReports.forEach((message: any) => {
+            const runId = typeof message.runId === 'string' ? message.runId : null;
+            const reportedId = typeof message.id === 'string' ? message.id : null;
+            const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
+            if (!targetId || !allowed(targetId)) {
+                return;
+            }
+            const scope = typeof message.scope === 'string' ? message.scope : '';
+            if (scope === 'suite-item') {
+                const status = message.status as StepStatus | undefined;
+                if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled') {
+                    if (!(status === 'passed' && runStatePatches[targetId] === 'failed')) {
+                        runStatePatches[targetId] = status;
+                    }
+                }
+                return;
+            }
+            if (scope === 'test-step-run' &&
+                (message.success === false || message.result === 'failed')) {
+                runStatePatches[targetId] = 'failed';
+                return;
+            }
+            if (scope !== 'test-step') {
+                return;
+            }
+            const normalized: StepReportItem = {
+                stepIndex: Number(message.stepIndex) || 1,
+                stepType: message.stepType === 'assert' ? 'assert' : message.stepType === 'debug' ? 'debug' : 'check',
+                status: message.status === 'failed' ? 'failed' : 'passed',
+                title: typeof message.title === 'string' ? message.title : undefined,
+                details: typeof message.details === 'string' ? message.details : undefined,
+                expects: Array.isArray(message.expects) ? message.expects : [],
+                timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
+                cached: message.cached === true ? true : undefined,
+            };
+            if (!reportPatches[targetId]) {
+                reportPatches[targetId] = [];
+            }
+            reportPatches[targetId].push(normalized);
+            if (normalized.status === 'failed') {
+                runStatePatches[targetId] = 'failed';
+            }
+        });
+
         setLastRunIdByEntryId(prev => {
             const next = { ...prev };
             queuedReports.forEach((message: any) => {
@@ -537,64 +584,27 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return next;
         });
 
-        setLeafRunStateById(prev => {
-            const next = { ...prev };
-            let changed = false;
-            queuedReports.forEach((message: any) => {
-                const runId = typeof message.runId === 'string' ? message.runId : null;
-                const reportedId = typeof message.id === 'string' ? message.id : null;
-                const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
-                if (!targetId || !allowed(targetId)) {
-                    return;
-                }
-                const scope = typeof message.scope === 'string' ? message.scope : '';
-                if (scope === 'suite-item') {
-                    const status = message.status as StepStatus | undefined;
-                    if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled') {
-                        next[targetId] = status;
-                        changed = true;
-                    }
-                    return;
-                }
-                if (scope === 'test-step-run' && message.success === false) {
-                    next[targetId] = 'failed';
-                    changed = true;
-                }
+        const runStateIds = Object.keys(runStatePatches);
+        if (runStateIds.length > 0) {
+            setLeafRunStateById(prev => {
+                const next = { ...prev };
+                runStateIds.forEach((id) => {
+                    next[id] = runStatePatches[id];
+                });
+                return next;
             });
-            return changed ? next : prev;
-        });
+        }
 
-        setLeafReportsById(prev => {
-            const next = { ...prev };
-            let changed = false;
-            queuedReports.forEach((message: any) => {
-                if (message.scope !== 'test-step') {
-                    return;
-                }
-                const runId = typeof message.runId === 'string' ? message.runId : null;
-                const reportedId = typeof message.id === 'string' ? message.id : null;
-                const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
-                if (!targetId || !allowed(targetId)) {
-                    return;
-                }
-                const normalized: StepReportItem = {
-                    stepIndex: Number(message.stepIndex) || 1,
-                    stepType: message.stepType === 'assert' ? 'assert' : message.stepType === 'debug' ? 'debug' : 'check',
-                    status: message.status === 'failed' ? 'failed' : 'passed',
-                    title: typeof message.title === 'string' ? message.title : undefined,
-                    details: typeof message.details === 'string' ? message.details : undefined,
-                    expects: Array.isArray(message.expects) ? message.expects : [],
-                    timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
-                    cached: message.cached === true ? true : undefined,
-                };
-                next[targetId] = [...(next[targetId] || []), normalized];
-                changed = true;
-                if (normalized.status === 'failed') {
-                    setLeafRunStateById(state => ({ ...state, [targetId]: 'failed' }));
-                }
+        const reportIds = Object.keys(reportPatches);
+        if (reportIds.length > 0) {
+            setLeafReportsById(prev => {
+                const next = { ...prev };
+                reportIds.forEach((id) => {
+                    next[id] = [...(next[id] || []), ...reportPatches[id]];
+                });
+                return next;
             });
-            return changed ? next : prev;
-        });
+        }
     }, []);
 
     const [hierarchyByEntryId, setHierarchyByEntryId] = useState<Record<string, SuiteTreeNode>>({});
@@ -859,29 +869,31 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 return;
             }
 
-            if (message.command === 'runFileReport') {
-                const incomingSuiteRunId = typeof (message as any).suiteRunId === 'string' ? (message as any).suiteRunId : null;
-                if (incomingSuiteRunId && ignoredSuiteRunIdsRef.current.has(incomingSuiteRunId)) {
-                    return;
-                }
-                const activeId = suiteRunIdRef.current;
-                if (activeId) {
-                    // When the UI thinks we have an active suite run, only accept
-                    // reports explicitly tagged with the same suiteRunId.
-                    if (!incomingSuiteRunId || incomingSuiteRunId !== activeId) {
+            if (message.command === 'runFileReport' || message.command === 'runFileReports') {
+                const incomingReports = message.command === 'runFileReports' && Array.isArray(message.reports)
+                    ? message.reports
+                    : [message];
+                incomingReports.forEach((report: any) => {
+                    const incomingSuiteRunId = typeof report.suiteRunId === 'string'
+                        ? report.suiteRunId
+                        : (typeof message.suiteRunId === 'string' ? message.suiteRunId : null);
+                    if (incomingSuiteRunId && ignoredSuiteRunIdsRef.current.has(incomingSuiteRunId)) {
                         return;
                     }
-                } else {
-                    // When idle, drop suite-tagged events from other panels/runs.
-                    if (incomingSuiteRunId) {
+                    const activeId = suiteRunIdRef.current;
+                    if (activeId) {
+                        if (!incomingSuiteRunId || incomingSuiteRunId !== activeId) {
+                            return;
+                        }
+                    } else if (incomingSuiteRunId) {
                         return;
                     }
-                }
-                if (mode === 'loadtest' && (message as any).scope === 'loadtest-summary' && (message as any).load) {
-                    setLoadRunSummary((message as any).load);
-                    return;
-                }
-                reportQueueRef.current.push(message);
+                    if (mode === 'loadtest' && report.scope === 'loadtest-summary' && report.load) {
+                        setLoadRunSummary(report.load);
+                        return;
+                    }
+                    reportQueueRef.current.push(report);
+                });
                 return;
             }
             if (message.command === 'validateFilesExistResult') {
@@ -1029,14 +1041,23 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             durationSub: formatOverviewRelativeTime(loadRunSummary?.config?.started_at || suiteRunStartedAt),
             };
         }
-        const allReports = Object.values(leafReportsById).flat();
-        if (allReports.length === 0 && suiteRunState === 'default') {
+        let passed = 0;
+        let failed = 0;
+        let fileCount = 0;
+        for (const reports of Object.values(leafReportsById)) {
+            fileCount += 1;
+            for (const report of reports) {
+                if (report.status === 'failed') {
+                    failed += 1;
+                } else {
+                    passed += 1;
+                }
+            }
+        }
+        const total = passed + failed;
+        if (total === 0 && suiteRunState === 'default') {
             return null;
         }
-        const passed = allReports.filter(r => r.status === 'passed').length;
-        const failed = allReports.filter(r => r.status === 'failed').length;
-        const total = allReports.length;
-        const fileCount = Object.keys(leafReportsById).length;
         const duration = suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined;
         return {
             passed,

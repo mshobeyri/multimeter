@@ -419,8 +419,11 @@ export async function executeSuiteBundle(params: {
   const suiteStart = Date.now();
 
   const suiteLogger = (level: LogLevel, msg: string) => {
-    allLogs.push(String(msg));
-    if (level === 'error') {
+    // Bound in-memory copies; the live logger still receives every line.
+    if (allLogs.length < 20000) {
+      allLogs.push(String(msg));
+    }
+    if (level === 'error' && allErrors.length < 2000) {
       allErrors.push(String(msg));
     }
     options.logger(level, msg);

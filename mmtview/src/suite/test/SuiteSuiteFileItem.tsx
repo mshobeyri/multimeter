@@ -8,6 +8,7 @@ import {
     isOpenFileModifier,
     suiteFileLabelTitle,
 } from './suiteTreeLabelClick';
+import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
 
 export type SuiteSuiteFileItemData = { type: 'suite'; path: string; id: string };
 
@@ -131,4 +132,4 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     );
 };
 
-export default SuiteSuiteFileItem;
+export default React.memo(SuiteSuiteFileItem, areSuiteTreeRowPropsEqual);

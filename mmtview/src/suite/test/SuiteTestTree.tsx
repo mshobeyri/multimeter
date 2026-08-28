@@ -10,6 +10,8 @@ import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 import { ownRunStatus } from './suiteRunStatus';
 
+const EMPTY_STEP_REPORTS: StepReportItem[] = [];
+
 const relativeToParentDir = (childPath: string, parentPath: string): string => {
   if (!childPath || !parentPath) {
     return childPath;
@@ -321,14 +323,14 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   );
 
   // Icon status is own-id only: never roll up children into parents.
-  const getGroupStatus = (groupItemId: string): StepStatus => {
+  const getGroupStatus = useCallback((groupItemId: string): StepStatus => {
     const match = /^group-(\d+)$/.exec(groupItemId);
     if (match) {
       return ownRunStatus(runStateById, createSuiteNodeId([Number(match[1]) - 1]));
     }
     const bundleId = (treeData.items[groupItemId]?.data as any)?.id;
     return ownRunStatus(runStateById, typeof bundleId === 'string' ? bundleId : undefined);
-  };
+  }, [runStateById, treeData.items]);
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
     const match = /^group-(\d+)$/.exec(groupItemId);
@@ -345,7 +347,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     return typeof bundleId === 'string' && bundleId ? [bundleId] : [];
   }, [groups, treeData.items]);
 
-  const renderItem = ({ item, context, arrow, children }: any) => {
+  const renderItem = useCallback(({ item, context, arrow, children }: any) => {
     const data = item.data as SuiteTestTreeItemData;
 
     // Prefer the explicit parentPath recorded in the tree node data.
@@ -385,7 +387,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           context={context}
           arrow={arrow}
           children={children}
-          getGroupStatus={getGroupStatus}
+          status={getGroupStatus(itemId)}
           statusIconFor={statusIconFor}
           canShowStatusIcon={data.type === 'group' || data.type === 'root'}
           showRunButton={data.type === 'group'}
@@ -437,6 +439,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     const testLeafId = itemBundleId;
     const canRunLeaf = typeof testLeafId === 'string' && !!testLeafId;
     const scoped = Boolean(testLeafId && belongs);
+    const showReports = Boolean(scoped && context?.isExpanded && testLeafId);
+    const stepReports = showReports
+      ? (reportsById[testLeafId!] || EMPTY_STEP_REPORTS)
+      : EMPTY_STEP_REPORTS;
 
     return (
       <SuiteTestFileItem
@@ -447,8 +453,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         missingFiles={missingFiles}
         statusIconFor={statusIconFor as any}
         status={status}
-        reportsById={scoped ? reportsById : {}}
-        runStateById={scoped ? runStateById : {}}
+        stepReports={stepReports}
         onRun={canRunLeaf ? () => onRunTargets(testLeafId!) : undefined}
         onRunInCore={
           canRunLeaf && onRunTargetsInCore
@@ -460,7 +465,16 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         displayPath={displayPath}
       />
     );
-  };
+  }, [
+    getGroupStatus,
+    getGroupTargets,
+    missingFiles,
+    onRunTargets,
+    onRunTargetsInCore,
+    reportsById,
+    runStateById,
+    statusIconFor,
+  ]);
   return (
     <ControlledTreeEnvironment
       items={treeData.items}

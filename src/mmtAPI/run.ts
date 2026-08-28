@@ -252,12 +252,21 @@ function applyNetworkConfig(
 
 /** Create a fileLoader scoped to the directory of `basePath`. */
 function createFileLoader(basePath: string): (relPath: string) => Promise<string> {
+  const cache = new Map<string, Promise<string>>();
   return async (relPath: string) => {
-    try {
-      return await readRelativeFileContent(basePath, relPath);
-    } catch {
-      return '';
+    const key = typeof relPath === 'string' ? relPath : '';
+    let pending = cache.get(key);
+    if (!pending) {
+      pending = (async () => {
+        try {
+          return await readRelativeFileContent(basePath, relPath);
+        } catch {
+          return '';
+        }
+      })();
+      cache.set(key, pending);
     }
+    return pending;
   };
 }
 
@@ -556,12 +565,6 @@ export async function handleRunSuite(
       target: bundleTarget,
     });
     forwardLog('debug', `handleRunSuite: created bundle root=${runFilePath} target=${String(bundleTarget)}`);
-
-    try {
-      uiReporter.onDebug({ command: 'suiteBundle', suiteRunId, bundle });
-    } catch (e) {
-      console.warn('Unable to post suiteBundle to webview', e);
-    }
 
     // Merge suite environment with VS Code local storage env vars
     const projectRootSuite = findProjectRoot(runFilePath);
