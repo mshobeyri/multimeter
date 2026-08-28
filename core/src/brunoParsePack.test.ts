@@ -1,6 +1,28 @@
 import {detectDocType} from './runCommon';
-import {generateTestJs} from './runTest';
-import {brunoToAPI, brunoToTest, isBrunoFilePath, validateBrunoDocument} from './brunoParsePack';
+import {generateTestJs, isSerializedMmtTest} from './runTest';
+import {testToYaml} from './testParsePack';
+import {
+  brunoToAPI,
+  brunoToTest,
+  brunoToTestStrict,
+  isBrunoFilePath,
+  parseBrunoDocument,
+  validateBrunoDocument,
+} from './brunoParsePack';
+
+const SOURCE_BRU = `meta {
+  name: Create user
+}
+post {
+  url: https://test.mmt.dev/echo
+}
+headers {
+  Content-Type: application/json
+}
+body:json {
+  {"name":"Ada"}
+}
+`;
 
 describe('brunoParsePack', () => {
   it('detects .bru and .bruno files as test documents', () => {
@@ -8,6 +30,70 @@ describe('brunoParsePack', () => {
     expect(isBrunoFilePath('/tmp/get_user.bruno')).toBe(true);
     expect(detectDocType('/tmp/get_user.bru', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
     expect(detectDocType('/tmp/get_user.bruno', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
+  });
+
+  it('parses the convert-to-mmt example source.bru', () => {
+    const parsed = parseBrunoDocument(SOURCE_BRU);
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.blocks.map(block => block.name)).toEqual(['meta', 'post', 'headers', 'body']);
+    expect(parsed.blocks.find(block => block.name === 'body')?.qualifier).toBe('json');
+    const test = brunoToTestStrict(SOURCE_BRU, 'source.bru');
+    expect(test.steps?.[0]).toMatchObject({
+      http: 'https://test.mmt.dev/echo',
+      method: 'post',
+      format: 'json',
+      body: {name: 'Ada'},
+    });
+  });
+
+  it('parses blocks after comments, BOM, and CRLF', () => {
+    const parsed = parseBrunoDocument(
+        '\uFEFF# collection note\r\n// docs\r\nmeta {\r\n  name: Ping\r\n}\r\nget {\r\n  url: https://example.com\r\n}\r\n');
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.blocks.map(block => block.name)).toEqual(['meta', 'get']);
+  });
+
+  it('parses Bru-lang http: { method, url } and headers: { }', () => {
+    const parsed = parseBrunoDocument(`http: {
+  method: POST
+  url: https://test.mmt.dev/echo
+}
+
+headers: {
+  Content-Type: application/json
+}
+
+body:json {
+  {"ok": true}
+}
+`);
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.blocks.map(block => ({name: block.name, qualifier: block.qualifier}))).toEqual([
+      {name: 'http', qualifier: undefined},
+      {name: 'headers', qualifier: undefined},
+      {name: 'body', qualifier: 'json'},
+    ]);
+    const test = brunoToTestStrict(`http: {
+  method: POST
+  url: https://test.mmt.dev/echo
+}
+`, 'source.bru');
+    expect(test.steps?.[0]).toMatchObject({
+      http: 'https://test.mmt.dev/echo',
+      method: 'post',
+    });
+  });
+
+  it('parses custom http { method } blocks', () => {
+    const test = brunoToTest(`http {
+  method: PATCH
+  url: https://test.mmt.dev/echo
+}
+`, 'patch.bru');
+    expect(test.steps?.[0]).toMatchObject({
+      method: 'patch',
+      http: 'https://test.mmt.dev/echo',
+    });
   });
 
   it('adds debug to request steps used for Bruno runtime conversion', () => {
@@ -191,6 +277,13 @@ body:form-urlencoded {
     expect(errors.some(error => error.message.includes('No Bruno HTTP method block'))).toBe(true);
   });
 
+  it('does not treat serialized MMT YAML as native Bruno source', () => {
+    const yaml = testToYaml(brunoToTest(SOURCE_BRU, 'source.bru'));
+    expect(isSerializedMmtTest(yaml)).toBe(true);
+    expect(isSerializedMmtTest(SOURCE_BRU)).toBe(false);
+    expect(validateBrunoDocument(yaml).some(error => error.message.includes('No Bruno blocks found'))).toBe(true);
+  });
+
   it('generates test JS from a .bru path', async () => {
     const js = await generateTestJs({
       rawText: `meta {
@@ -214,5 +307,23 @@ get {
 
     expect(js).toContain('__http_0');
     expect(js).toContain('https://test.mmt.dev/json');
+  });
+
+  it('generates test JS when the panel sends YAML for a .bru path', async () => {
+    const yaml = testToYaml(brunoToTest(SOURCE_BRU, 'source.bru'));
+    const js = await generateTestJs({
+      rawText: yaml,
+      name: 'source_bru',
+      inputs: {},
+      envVars: {},
+      filePath: '/project/source.bru',
+      projectRoot: '/project',
+      isExternal: false,
+      fileLoader: async () => '',
+    });
+
+    expect(js).toContain('__http_0');
+    expect(js).toContain('https://test.mmt.dev/echo');
+    expect(js).toContain('Ada');
   });
 });

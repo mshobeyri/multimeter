@@ -7,8 +7,10 @@ import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} fr
 import {executeSuite, prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
 import {executeLoadTest, prepareLoadTestRun} from './runLoadTest';
-import {executeTest, generateTestJs, prepareTestRun} from './runTest';
+import {executeTest, generateTestJs, isSerializedMmtTest, prepareTestRun} from './runTest';
 import {processDataImportsInYaml} from './dataImportProcessor';
+import {isBrunoFilePath} from './brunoParsePack';
+import {isHttpFilePath} from './httpParsePack';
 
 export {generateTestJs, runGeneratedJs};
 
@@ -48,7 +50,9 @@ export async function prepareRunFromOptions(
     }
   }
   const docType = detectDocType(filePath, rawText);
-  if (docType) {
+  const nativeExternalTest = (isBrunoFilePath(filePath) || isHttpFilePath(filePath)) &&
+      !isSerializedMmtTest(rawText);
+  if (docType && !nativeExternalTest) {
     rawText = await processDataImportsInYaml({
       rawText,
       filePath,

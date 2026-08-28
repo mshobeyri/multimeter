@@ -1,6 +1,7 @@
 import {detectDocType} from './runCommon';
 import {generateTestJs} from './runTest';
 import {httpRequestToAPI, httpToTest, isHttpFilePath, parseHttpDocument, testToHttp, validateHttpDocument} from './httpParsePack';
+import {testToYaml} from './testParsePack';
 
 describe('httpParsePack', () => {
   it('detects .http and .https files as test documents', () => {
@@ -240,6 +241,23 @@ Content-Type: application/json
 GET https://test.mmt.dev/json
 `,
       name: 'ping_http',
+      inputs: {},
+      envVars: {},
+      filePath: '/project/ping.http',
+      projectRoot: '/project',
+      isExternal: false,
+      fileLoader: async () => '',
+    });
+
+    expect(js).toContain('__http_0');
+    expect(js).toContain('https://test.mmt.dev/json');
+  });
+
+  it('generates test JS when the panel sends YAML for a .http path', async () => {
+    const yaml = testToYaml(httpToTest(`GET https://test.mmt.dev/json`, 'ping.http'));
+    const js = await generateTestJs({
+      rawText: yaml,
+      name: 'ping_http_yaml',
       inputs: {},
       envVars: {},
       filePath: '/project/ping.http',
