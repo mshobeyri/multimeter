@@ -501,6 +501,42 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                 className={`tree-view-box${(expandable && isOpen) ? ' active' : ''}`}
                                 {...context.itemContainerWithoutChildrenProps}
                             >
+                                {expandable && (
+                                    <button
+                                        className="action-button"
+                                        type="button"
+                                        title={isOpen ? 'Collapse box' : 'Expand box'}
+                                        aria-label={isOpen ? 'Collapse box' : 'Expand box'}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        onPointerUp={(e) => {
+                                            e.stopPropagation();
+                                            setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }));
+                                        }}
+                                        onKeyDown={(e) => {
+                                            e.stopPropagation();
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }));
+                                            }
+                                        }}
+                                        draggable={false}
+                                        tabIndex={0}
+                                        style={{
+                                            display: 'inline-flex',
+                                            paddingTop: 8,
+                                            lineHeight: 0,
+                                            alignSelf: 'flex-start',
+                                            width: 24,
+                                            minWidth: 24,
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <span
+                                            className={`codicon ${isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+                                            style={{ fontSize: 16 }}
+                                        />
+                                    </button>
+                                )}
                                 {arrow}
                                 <NoTreeInterference>
                                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -532,9 +568,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                                     return { items: itemsCopy };
                                                 });
                                             }}
-                                            showExpand={expandable}
                                             expanded={isOpen}
-                                            onToggleExpand={() => setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }))}
                                             onDuplicate={() => doDuplicate(String(item.index))}
                                             onRemove={() => doRemove(String(item.index))}
                                         />

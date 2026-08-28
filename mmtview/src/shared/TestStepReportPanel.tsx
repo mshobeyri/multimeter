@@ -355,6 +355,29 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                 (report.details && report.details.trim().length > 0)
               );
               const isDetailsExpanded = Boolean(expandedDetails[reportKey]);
+              const toggleDetails = () => {
+                if (!hasDetails) {
+                  return;
+                }
+                setExpandedDetails((prev) => ({ ...prev, [reportKey]: !isDetailsExpanded }));
+              };
+              const onHeaderActivate = (event: React.MouseEvent | React.KeyboardEvent) => {
+                if (!hasDetails) {
+                  return;
+                }
+                if ('key' in event) {
+                  if (event.key !== 'Enter' && event.key !== ' ') {
+                    return;
+                  }
+                  event.preventDefault();
+                } else {
+                  const sel = window.getSelection();
+                  if (sel && !sel.isCollapsed && sel.toString().trim()) {
+                    return;
+                  }
+                }
+                toggleDetails();
+              };
               return (
                 <div
                   key={reportKey}
@@ -362,41 +385,53 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     border: '1px solid var(--vscode-editorWidget-border, #2a2a2a)',
                     backgroundColor: 'transparent',
                     borderRadius: 6,
-                    padding: '8px 12px',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 12,
                   }}
                 >
-                  <StatusIconWithCache
-                    status={isDebug ? 'debug' : report.status}
-                    cached={report.cached === true}
-                    style={{ marginTop: 2 }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="report-selectable" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}</span>
-                      {hasDetails && (
-                        <button
-                          className="action-button"
-                          type="button"
-                          onClick={() => setExpandedDetails((prev) => ({ ...prev, [reportKey]: !isDetailsExpanded }))}
-                          style={{
-                            padding: 0,
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: 'pointer',
-                          }}
-                          title={isDetailsExpanded ? 'Hide details' : 'Show details'}
-                        >
-                          <span className={`codicon ${isDetailsExpanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
-                        </button>
-                      )}
-                      {showTimestamps && <span style={{ opacity: 0.7, fontSize: 12 }}>{new Date(report.timestamp).toLocaleTimeString()}</span>}
-                    </div>
-
-                    {isDetailsExpanded && (
-                      <div style={{ marginTop: 4 }}>
+                  <div
+                    role={hasDetails ? 'button' : undefined}
+                    tabIndex={hasDetails ? 0 : undefined}
+                    title={hasDetails ? (isDetailsExpanded ? 'Hide details' : 'Show details') : undefined}
+                    onClick={onHeaderActivate}
+                    onKeyDown={onHeaderActivate}
+                    style={{
+                      padding: '8px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      cursor: hasDetails ? 'pointer' : 'default',
+                    }}
+                  >
+                    <span className="tree-view-box-row-arrow" aria-hidden>
+                      {hasDetails ? (
+                        <span
+                          className={`codicon ${isDetailsExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+                          style={{ fontSize: 16, lineHeight: 1, display: 'inline-flex' }}
+                        />
+                      ) : null}
+                    </span>
+                    <StatusIconWithCache
+                      status={isDebug ? 'debug' : report.status}
+                      cached={report.cached === true}
+                    />
+                    <span
+                      className="report-selectable"
+                      style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+                    >
+                      {report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}
+                    </span>
+                    {showTimestamps && (
+                      <span style={{ opacity: 0.7, fontSize: 12, flexShrink: 0 }}>
+                        {new Date(report.timestamp).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  {isDetailsExpanded && (
+                    <div
+                      style={{ margin: '0 12px 8px', paddingLeft: 32 }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onDoubleClick={(e) => e.stopPropagation()}
+                    >
                         {hasExpects && (
                           <div>
                             <SectionTitle label={isDebug ? 'Debug' : (report.expects.length === 1 ? 'Expect' : 'Expects')} />
@@ -457,9 +492,6 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                         )}
                       </div>
                     )}
-                  </div>
-
-
                 </div>
               );
             })}

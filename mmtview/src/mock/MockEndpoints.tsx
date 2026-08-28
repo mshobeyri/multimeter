@@ -392,6 +392,30 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                 style={{ alignItems: 'flex-start' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
+                  <button
+                    className="action-button"
+                    type="button"
+                    title={isOpen ? 'Collapse box' : 'Expand box'}
+                    aria-label={isOpen ? 'Collapse box' : 'Expand box'}
+                    onPointerDown={e => e.stopPropagation()}
+                    onPointerUp={e => {
+                      e.stopPropagation();
+                      setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }));
+                    }}
+                    draggable={false}
+                    tabIndex={0}
+                    style={{
+                      display: 'inline-flex',
+                      width: 24,
+                      minWidth: 24,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span
+                      className={`codicon ${isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+                      style={{ fontSize: 16 }}
+                    />
+                  </button>
                   {arrow}
                 </div>
                 <NoTreeInterference>
@@ -409,9 +433,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                           return { items: itemsCopy };
                         });
                       }}
-                      showExpand={true}
                       expanded={isOpen}
-                      onToggleExpand={() => setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }))}
                       onDuplicate={() => doDuplicate(String(item.index))}
                       onRemove={() => doRemove(String(item.index))}
                     />
@@ -446,6 +468,30 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
 
       <div className={`tree-view-box mock-fallback-editor${fallbackOpen ? ' active' : ''}`} style={{ alignItems: 'flex-start', marginTop: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
+          <button
+            className="action-button"
+            type="button"
+            title={fallbackOpen ? 'Collapse box' : 'Expand box'}
+            aria-label={fallbackOpen ? 'Collapse box' : 'Expand box'}
+            onPointerDown={e => e.stopPropagation()}
+            onPointerUp={e => {
+              e.stopPropagation();
+              setFallbackOpen(value => !value);
+            }}
+            draggable={false}
+            tabIndex={0}
+            style={{
+              display: 'inline-flex',
+              width: 24,
+              minWidth: 24,
+              justifyContent: 'center',
+            }}
+          >
+            <span
+              className={`codicon ${fallbackOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+              style={{ fontSize: 16 }}
+            />
+          </button>
           <span style={{ display: 'inline-flex', alignSelf: 'center', width: 16, justifyContent: 'center' }} aria-hidden>
             <span className="codicon codicon-circle-slash" style={{ fontSize: 14, opacity: 0.8, color: 'var(--vscode-descriptionForeground)' }} />
           </span>
@@ -461,9 +507,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                 body: mockData.fallback?.body,
               }}
               onChange={updateFallback}
-              showExpand={true}
               expanded={fallbackOpen}
-              onToggleExpand={() => setFallbackOpen(value => !value)}
               variant="fallback"
             />
           </div>

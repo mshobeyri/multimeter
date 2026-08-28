@@ -9,9 +9,7 @@ interface MockEndpointBoxProps {
   onChange: (value: MockEndpoint) => void;
   onDuplicate?: () => void;
   onRemove?: () => void;
-  showExpand?: boolean;
   expanded?: boolean;
-  onToggleExpand?: () => void;
   variant?: 'endpoint' | 'fallback';
 }
 
@@ -47,7 +45,7 @@ export function methodTextColor(method: string): string {
 }
 
 const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
-  endpoint, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand, variant = 'endpoint',
+  endpoint, onChange, onDuplicate, onRemove, expanded, variant = 'endpoint',
 }) => {
   /* ─── Local state: commit only on blur / Enter ─── */
   const bodyToStr = (b: any) =>
@@ -193,15 +191,6 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
             draggable={false} tabIndex={0} aria-haspopup="menu" aria-expanded={openMenu} title="More actions"
           >
             <span className="codicon codicon-kebab-vertical" />
-          </button>
-        )}
-        {showExpand && (
-          <button className="action-button" type="button"
-            onPointerDown={e => e.stopPropagation()}
-            onPointerUp={e => { e.stopPropagation(); onToggleExpand?.(); }}
-            draggable={false} tabIndex={0} title={expanded ? 'Collapse' : 'Expand'}
-          >
-            <span className={`codicon ${expanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
           </button>
         )}
         {menu && ReactDOM.createPortal(menu, document.body)}
