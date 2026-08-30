@@ -1774,10 +1774,6 @@ select.method-select:focus-visible {
   flex-shrink: 0;
 }
 
-.apitest-section .label {
-  padding-top: 0;
-}
-
 .apitest-send-row {
   flex-shrink: 0;
   display: flex;
@@ -1811,11 +1807,13 @@ select.method-select:focus-visible {
 }
 
 /* Body wrapper: grows to fill section, minimum 150px triggers scroll.
-   Position:relative so the bodyview can be position:absolute inside. */
+   Position:relative so the bodyview can be position:absolute inside.
+   Use the same 5px inset as edit-mode field blocks. */
 .apitest-body-wrapper {
   flex: 1;
   min-height: 150px;
-  padding: 0 8px 8px;
+  padding: 5px;
+  box-sizing: border-box;
   position: relative;
 }
 
@@ -1823,10 +1821,10 @@ select.method-select:focus-visible {
    dimensions regardless of flex chain. */
 .apitest-body-wrapper .bodyview {
   position: absolute;
-  top: 0;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
   height: auto;
   width: auto;
   overflow: hidden;
