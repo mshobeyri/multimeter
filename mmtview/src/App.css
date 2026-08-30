@@ -1693,13 +1693,32 @@ select.method-select:focus-visible {
   cursor: default;
 }
 
+/*
+ * API tester padding: match test-type .panel-box inset (16px).
+ * Apply on .apitest-root / edit page so the run view is never flush when
+ * panel-box padding is cleared for the API swipe layout.
+ */
+.panel-box:has(.apitest-root) {
+  padding: 0;
+}
+
+.panel-box:has(.api-selector--header) {
+  padding-top: 0;
+}
+
+.api-swipe-page--edit {
+  padding: 16px;
+  box-sizing: border-box;
+}
+
 .apitest-root {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  padding: 8px;
+  padding: 16px;
   padding-bottom: 0;
+  box-sizing: border-box;
   min-height: 0;
   min-width: 0;
   gap: 0;
@@ -1707,20 +1726,19 @@ select.method-select:focus-visible {
 }
 
 .apitest-root--source {
-  padding: 0;
-}
-
-.panel-box:has(.apitest-root--source),
-.panel-box:has(.api-selector--header) {
-  padding-top: 0;
+  padding-top: 8px;
 }
 
 .apitest-url-row {
-  padding: 8px;
+  padding: 0 0 8px;
 }
 
-.apitest-root--source .apitest-url-row {
-  padding: 8px 8px 8px 0;
+.apitest-tabs-row {
+  padding: 0 0 8px;
+}
+
+.apitest-fixed-header .tab-bar {
+  margin-bottom: 0;
 }
 
 .apitest-fixed-header {

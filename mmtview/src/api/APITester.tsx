@@ -386,7 +386,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         )}
       </div>
 
-      <div style={{ padding: "0 8px 8px" }}>
+      <div className="apitest-tabs-row">
         <div className="tab-bar" style={{ gap: 8 }}>
           {TAB_OPTIONS
             .filter(tab => {
