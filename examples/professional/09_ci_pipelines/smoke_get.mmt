@@ -1,0 +1,9 @@
+type: test
+title: CI smoke GET
+description: Public smoke check used by the GitHub, GitLab, and Azure pipeline examples
+steps:
+  - http: https://test.mmt.dev/json
+    title: Get JSON
+    method: get
+    expect:
+      status: 200

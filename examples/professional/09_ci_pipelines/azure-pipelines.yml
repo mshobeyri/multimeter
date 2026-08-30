@@ -1,0 +1,26 @@
+# Copy to azure-pipelines.yml
+# Change the suite path if this folder is not the repository root.
+
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+
+  - script: |
+      npm install -g mmt-testlight
+      mkdir -p results
+      testlight run suite.mmt --report junit --report-file results/junit.xml
+    displayName: Run Multimeter tests
+
+  - task: PublishTestResults@2
+    condition: always()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: results/junit.xml
+      failTaskOnFailedTests: true

@@ -7,6 +7,7 @@ const {
   normalizeUserPath,
   resolveUserPath,
   resolveUserPathPreferExisting,
+  writeTextFile,
 } = require('./pathNormalize.cjs');
 
 describe('pathNormalize (Windows-shaped)', () => {
@@ -151,5 +152,12 @@ describe('pathNormalize FS layout (../../ file + env)', () => {
 
     expect(resolvedFile).toBe(testFile);
     expect(resolvedEnv).toBe(localEnv);
+  });
+
+  it('creates missing parent directories when writing a report file', () => {
+    const reportPath = path.join(root, 'results', 'nested', 'junit.xml');
+    const written = writeTextFile(reportPath, '<testsuites/>');
+    expect(written).toBe(reportPath);
+    expect(fs.readFileSync(reportPath, 'utf8')).toBe('<testsuites/>');
   });
 });

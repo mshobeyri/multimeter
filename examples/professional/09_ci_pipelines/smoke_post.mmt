@@ -1,0 +1,12 @@
+type: test
+title: CI smoke POST
+description: Public smoke check used by the GitHub, GitLab, and Azure pipeline examples
+steps:
+  - http: https://test.mmt.dev/echo
+    title: Post echo
+    method: post
+    body:
+      message: hello ci
+    expect:
+      status: 200
+      body.body.message: hello ci

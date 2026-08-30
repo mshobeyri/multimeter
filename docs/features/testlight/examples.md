@@ -29,6 +29,10 @@
   ```sh
   testlight run examples/professional/03_load_test/loadtest.mmt --report html --report-file reports/load.html
   ```
+- Run the CI smoke suite (same command GitHub, GitLab, and Azure use)
+  ```sh
+  testlight run examples/professional/09_ci_pipelines/suite.mmt --report junit --report-file results/junit.xml
+  ```
 
 - Run a specific example by name or index
   ```sh

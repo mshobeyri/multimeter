@@ -27,8 +27,8 @@ Run Multimeter (`.mmt`) API tests, test suites, and generate documentation in yo
 | `input` | No | — | Input variables (`KEY=VALUE` pairs) |
 | `example` | No | — | Specific example name or index |
 | `report` | No | — | Report format: `junit`, `html`, `md`, `mmt` |
-| `report-file` | No | — | Custom report output path |
-| `out` | No | — | Write result JSON to file |
+| `report-file` | No | — | Custom report output path. Parent directories are created. |
+| `out` | No | — | Write result JSON to file. Parent directories are created. |
 | `quiet` | No | `false` | Minimal output |
 | `log-level` | No | — | `error`, `warn`, `info`, `debug`, `trace` |
 | `version` | No | `latest` | testlight version to install |
