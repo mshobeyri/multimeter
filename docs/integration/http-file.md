@@ -4,9 +4,9 @@ Use `.http` and `.https` files with Multimeter without giving up REST Client or 
 
 ## Run directly
 
-In VS Code, open a `.http` or `.https` file with **Open With...** → **Multimeter HTTP Test Editor**. Each request runs as a test flow with Multimeter reporting, environments, and suite support.
+In VS Code, open a `.http` or `.https` file with **Open With...** → **Multimeter HTTP Test Editor**, or **Open as MMT**.
 
-The structured UI is read-only for HTTP files. Use **Save as MMT** in the editor to create an editable `type: test` file from the parsed requests.
+The selector lists **All** (run every request as one test) and each request. Hover a list item for **Save as MMT**. The left editor stays on the HTTP source.
 
 ## Import in tests
 
@@ -52,5 +52,5 @@ Use editable `.mmt` files for advanced flow control, data-driven loops, mocks, l
 
 ## See also
 
-- [Import HTTP in test example](../../examples/intermediate/15_http_files/README.md)
+- [HTTP file examples](../../examples/intermediate/15_http_files/README.md) — start with `auth_user_flow.http` and pick **All** or one request
 - [Bruno](./bruno.md) · [Postman](./postman.md) · [Test import](../files/test/import.md)

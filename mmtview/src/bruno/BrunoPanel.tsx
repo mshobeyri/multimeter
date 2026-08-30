@@ -1,17 +1,9 @@
-import React, { useCallback, useContext, useMemo, useState } from "react";
+import React, { useCallback, useContext, useMemo } from "react";
 import type { BrunoSourceFile } from "mmt-core/brunoParsePack";
 import { brunoCollectionToTest, brunoToTest } from "mmt-core/brunoParsePack";
-import { testToYaml } from "mmt-core/testParsePack";
-import SourceViewSwitch, { SourceViewMode } from "../components/SourceViewSwitch";
+import { listSpecApisFromFiles } from "mmt-core/importConvertor";
 import { FileContext } from "../fileContext";
-import SpecApiPanel from "../spec/SpecApiPanel";
-import TestPanel from "../test/TestPanel";
-
-const BRUNO_VIEW_KEY = "mmtview:bruno:view";
-
-function readBrunoView(): SourceViewMode {
-  return localStorage.getItem(BRUNO_VIEW_KEY) === "test" ? "test" : "api";
-}
+import SourceKindPanel from "../source/SourceKindPanel";
 
 function sameBrunoFile(file: BrunoSourceFile, filePath?: string): boolean {
   if (!filePath) {
@@ -56,38 +48,28 @@ interface BrunoPanelProps {
 
 const BrunoPanel: React.FC<BrunoPanelProps> = ({ content, setContent }) => {
   const { mmtFilePath, collectionFiles, collectionName } = useContext(FileContext);
-  const [view, setView] = useState<SourceViewMode>(readBrunoView);
   const files = useMemo(
     () => mergeBrunoCollectionFiles(collectionFiles, mmtFilePath, content),
     [collectionFiles, mmtFilePath, content]
   );
-  const onChangeView = useCallback((next: SourceViewMode) => {
-    localStorage.setItem(BRUNO_VIEW_KEY, next);
-    setView(next);
-  }, []);
+  const apis = useMemo(() => listSpecApisFromFiles(files), [files]);
   const parseTest = useCallback((_value: string) => {
     if (files.length > 1) {
       return brunoCollectionToTest(files, collectionName || "Bruno collection");
     }
     return brunoToTest(content, mmtFilePath || "");
   }, [files, collectionName, content, mmtFilePath]);
-  const switcher = <SourceViewSwitch value={view} onChange={onChangeView} />;
 
-  if (view === "test") {
-    return (
-      <TestPanel
-        content={content}
-        setContent={setContent}
-        parseTest={parseTest}
-        headerLeading={switcher}
-        onSaveAsMmt={(test) => window.vscode?.postMessage({
-          command: "saveContentAsMmt",
-          text: testToYaml(test),
-        })}
-      />
-    );
-  }
-  return <SpecApiPanel content={content} files={files} leading={switcher} />;
+  return (
+    <SourceKindPanel
+      content={content}
+      setContent={setContent}
+      apis={apis}
+      parseTest={parseTest}
+      includeAll
+      emptyMessage="No Bruno requests were found."
+    />
+  );
 };
 
 export default BrunoPanel;

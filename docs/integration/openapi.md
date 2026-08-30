@@ -4,7 +4,7 @@ Bootstrap Multimeter API files from OpenAPI 3.x (JSON or YAML) or Swagger specs.
 
 ## Open as MMT
 
-Right-click an OpenAPI/Swagger file and choose **Open as MMT**, or use **Open With...** → **Multimeter Spec Editor**. The left pane stays the spec. The right pane lists every operation as a tree — pick the operation itself or one of its named request examples, then send it with the API tester. Use **Save as MMT** if you want an editable `.mmt` file for that operation.
+Right-click an OpenAPI/Swagger file and choose **Open as MMT**, or use **Open With...** → **Multimeter Spec Editor**. The left pane stays the spec. Pick an operation or a named example from the selector, then Send. Hover a list item for **Save as MMT**.
 
 ## Convert to MMT
 

@@ -6,10 +6,7 @@ Use Bruno `.bru` and `.bruno` request files with Multimeter while keeping Bruno-
 
 In VS Code, open a `.bru` file with **Open With...** → **Multimeter Bruno Test Editor**, or **Open as MMT**.
 
-- **As API** — send the request in the API tester. If the file sits in a Bruno collection (a folder with `bruno.json`), the selector lists every request in that collection.
-- **As Test** — run the open file as a test flow, or the whole collection in `meta.seq` order when `bruno.json` is present.
-
-The left editor stays on the file you opened. The selector only changes the tester on the right. The structured UI is read-only; use **Save as MMT** to create an editable `.mmt` file from the current view.
+The selector lists **All** (the file or collection as one test) and each request. Hover a list item for **Save as MMT**. The left editor stays on the file you opened.
 
 ## Import in tests
 

@@ -6,7 +6,7 @@ import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
 import BrunoPanel from "./bruno/BrunoPanel";
-import HttpTestPanel from "./http/HttpTestPanel";
+import HttpPanel from "./http/HttpPanel";
 import SuitePanel from "./suite/SuitePanel";
 import LoadTestPanel from "./loadtest/LoadTestPanel";
 import DocPanel from "./doc/DocPanel";
@@ -587,7 +587,7 @@ const App: React.FC = () => {
                 )}
                 {docType === "test" && (
                   sourceFormat === "http" ?
-                    <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
+                    <HttpPanel content={validContent} setContent={uiSetContent} /> :
                     sourceFormat === "bruno" ?
                     <BrunoPanel content={validContent} setContent={uiSetContent} /> :
                     <TestPanel content={validContent} setContent={uiSetContent} />

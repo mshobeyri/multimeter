@@ -4,7 +4,7 @@ Import SOAP API definitions from WSDL files into Multimeter.
 
 ## Open as MMT
 
-Right-click a `.wsdl` file and choose **Open as MMT**, or use **Open With...** → **Multimeter Spec Editor**. The WSDL stays on the left. The right pane lists every operation — pick one to send it with the API tester. Use **Save as MMT** if you want an editable `.mmt` file for that operation.
+Right-click a `.wsdl` file and choose **Open as MMT**, or use **Open With...** → **Multimeter Spec Editor**. The WSDL stays on the left. Pick an operation from the selector, then Send. Hover a list item for **Save as MMT**.
 
 ## Convert to MMT
 

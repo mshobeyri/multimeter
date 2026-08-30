@@ -2,7 +2,7 @@
 
 These examples show `.bru` files that can be opened through **Open With...** → **Multimeter Bruno Test Editor**, or **Open as MMT**.
 
-Use **As API** to send the request in the API tester. Use **As Test** to run the request (or the whole collection) as a test flow. The structured UI is read-only; **Save as MMT** writes an editable `.mmt` file from the current view.
+The header has a selector and **Save as MMT**. **All** runs the file or collection as one test; pick a request to Send it. The Test and API UIs are the same as for `.mmt` files.
 
 ## Files
 

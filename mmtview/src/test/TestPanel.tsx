@@ -21,6 +21,7 @@ interface TestPanelProps {
   setContent: (value: string, options?: { force?: boolean }) => void;
   parseTest?: (value: string) => TestData;
   onSaveAsMmt?: (test: TestData) => void;
+  readOnly?: boolean;
   headerLeading?: React.ReactNode;
 }
 
@@ -44,7 +45,7 @@ function pageTranslate(page: TestPage): string {
   return "translateX(0%)";
 }
 
-const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = yamlToTest, onSaveAsMmt, headerLeading }) => {
+const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = yamlToTest, onSaveAsMmt, readOnly, headerLeading }) => {
   // `appliedContent` is what the right-side test UI is built from.
   // When the runner has temporary input edits, YAML changes are held until the
   // user discards the UI changes or cancels — same as APIPanel.
@@ -57,7 +58,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
   const test = useMemo(() => parseTest(appliedContent), [appliedContent, parseTest]);
   const testRef = React.useRef<TestData>(test);
   const contentRef = React.useRef(content);
-  const isReadOnly = !!onSaveAsMmt;
+  const isReadOnly = readOnly || !!onSaveAsMmt;
 
   const [tempInputs, setTempInputs] = useState<JSONRecord>({});
   const [dirtyInputKeys, setDirtyInputKeys] = useState<Set<string>>(new Set());
@@ -291,9 +292,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                           <HeaderAction
                             icon="save-as"
                             label="Save as MMT"
+                            iconOnly
                             onClick={() => onSaveAsMmt(test)}
                           />
-                        ) : !isTestModified ? (
+                        ) : !isReadOnly && !isTestModified ? (
                           <HeaderAction
                             icon="edit"
                             label="Edit Test"

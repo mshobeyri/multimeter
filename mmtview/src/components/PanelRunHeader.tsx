@@ -8,6 +8,7 @@ export type HeaderActionProps = {
   onClick?: () => void;
   title?: string;
   disabled?: boolean;
+  iconOnly?: boolean;
 };
 
 /** Ghost header launcher (Edit / Flow chart / Save as …). */
@@ -17,18 +18,21 @@ export function HeaderAction({
   onClick,
   title,
   disabled,
+  iconOnly,
 }: HeaderActionProps) {
   const iconName = icon.startsWith('codicon-') ? icon : `codicon-${icon}`;
   return (
     <button
-      className="action-button api-edit-launcher"
+      className={`action-button api-edit-launcher${iconOnly ? " is-icon-only" : ""}`}
       onClick={onClick}
       title={title || label}
       type="button"
       disabled={disabled}
     >
       <span className={`codicon ${iconName}`} aria-hidden />
-      <span className="api-edit-launcher-text">{label}</span>
+      {iconOnly ? null : (
+        <span className="api-edit-launcher-text">{label}</span>
+      )}
     </button>
   );
 }
@@ -74,6 +78,9 @@ export default function PanelRunHeader({
       <div className="tab-bar tab-bar-single panel-run-header">
         <div className="panel-run-header-start">
           {beforeTitle}
+          {beforeTitle != null && leading == null ? (
+            <span className="source-header-divider" aria-hidden />
+          ) : null}
           {leading != null ? (
             leading
           ) : (

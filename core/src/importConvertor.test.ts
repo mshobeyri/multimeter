@@ -373,6 +373,19 @@ tests {
     expect(httpApis.map(item => item.title)).toEqual(['ping', 'echo']);
     expect(httpApis.every(item => item.examples.length === 0)).toBe(true);
 
+    const titledHttp = listSpecApis([
+      '### Login',
+      'POST https://test.mmt.dev/echo',
+      '',
+      '### List books',
+      'GET https://test.mmt.dev/json',
+      '',
+      '### Delete user',
+      'DELETE https://test.mmt.dev/status/200',
+    ].join('\n'), 'library.http');
+    expect(titledHttp.map(item => item.title)).toEqual(['Login', 'List books', 'Delete user']);
+    expect(titledHttp.map(item => item.method)).toEqual(['post', 'get', 'delete']);
+
     const brunoApis = listSpecApis([
       'meta {',
       '  name: Get user',

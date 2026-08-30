@@ -1259,8 +1259,69 @@ button:focus {
   color: inherit;
 }
 
+.api-edit-launcher.is-icon-only {
+  padding: 4px 6px;
+}
+
 .api-selector {
   position: relative;
+}
+
+.api-selector-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground, #d4d4d4);
+  padding: 4px 6px;
+}
+
+.api-selector--header .api-selector-trigger {
+  opacity: 0.8;
+}
+
+.api-selector--header .api-selector-trigger:hover,
+.api-selector--header .api-selector-trigger.is-open {
+  opacity: 1;
+}
+
+.apitest-method-cluster {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.apitest-method-cluster .api-selector-trigger {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--mmt-accent-border, var(--mmt-accent-fill, transparent));
+  border-right: 1px solid color-mix(in oklab, var(--mmt-accent-on-fill, #fff) 38%, transparent);
+  border-radius: 2px 0 0 2px;
+  color: var(--mmt-accent-on-fill, var(--vscode-button-foreground, #fff));
+  background-color: var(
+    --mmt-accent-fill,
+    color-mix(
+      in oklab,
+      var(--mmt-accent, #888) 52%,
+      var(--vscode-editor-background, #1e1e1e)
+    )
+  );
+}
+
+.apitest-method-cluster .api-selector-trigger:hover,
+.apitest-method-cluster .api-selector-trigger.is-open {
+  background-color: var(--mmt-accent-fill);
+}
+
+.apitest-method-cluster select.method-select,
+.apitest-method-cluster select.method-select:focus,
+.apitest-method-cluster select.method-select:focus-visible {
+  border-radius: 0 2px 2px 0;
 }
 
 .source-view-switch {
@@ -1274,6 +1335,7 @@ button:focus {
 .source-view-switch-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 4px 8px;
   border: none;
@@ -1282,6 +1344,11 @@ button:focus {
   cursor: pointer;
   opacity: 0.55;
   font-size: var(--vscode-font-size, 13px);
+}
+
+.api-selector .source-view-switch-btn {
+  padding: 4px 6px;
+  min-width: 28px;
 }
 
 .source-view-switch-btn .codicon {
@@ -1293,11 +1360,26 @@ button:focus {
   background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
 }
 
+.panel-run-header-start .api-selector {
+  flex: 0 0 auto;
+}
+
+.panel-run-header-start .api-selector-trigger {
+  padding: 4px 6px;
+}
+
+.panel-run-header-start .source-header-divider {
+  width: 1px;
+  height: 16px;
+  flex-shrink: 0;
+  background: var(--vscode-widget-border, #454545);
+}
+
 .apitest-selector-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 8px 0;
+  padding: 4px 8px 0;
   min-width: 0;
 }
 
@@ -1333,17 +1415,50 @@ button:focus {
   overflow-x: hidden;
 }
 
+.api-selector-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .api-selector-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  width: auto;
   padding: 6px 10px;
   background: transparent;
   border: none;
   color: var(--vscode-foreground, #d4d4d4);
   cursor: pointer;
   text-align: left;
+}
+
+.api-selector-save {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-icon-foreground, #c5c5c5);
+  cursor: pointer;
+}
+
+.api-selector-row:hover .api-selector-save,
+.api-selector-row:focus-within .api-selector-save {
+  display: flex;
+}
+
+.api-selector-save:hover {
+  background: var(--vscode-toolbar-hoverBackground, #333);
 }
 
 .api-selector-item:hover,
@@ -1589,6 +1704,23 @@ select.method-select:focus-visible {
   min-width: 0;
   gap: 0;
   overflow-x: hidden;
+}
+
+.apitest-root--source {
+  padding: 0;
+}
+
+.panel-box:has(.apitest-root--source),
+.panel-box:has(.api-selector--header) {
+  padding-top: 0;
+}
+
+.apitest-url-row {
+  padding: 8px;
+}
+
+.apitest-root--source .apitest-url-row {
+  padding: 8px 8px 8px 0;
 }
 
 .apitest-fixed-header {
