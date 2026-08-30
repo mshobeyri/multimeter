@@ -1,4 +1,26 @@
+import type { BrunoSourceFile } from "mmt-core/brunoParsePack";
+
 export type SourceFormat = "mmt" | "http" | "bruno" | "openapi" | "postman" | "wsdl";
+
+export function parseCollectionFiles(value: unknown): BrunoSourceFile[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const files: BrunoSourceFile[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const path = typeof (item as {path?: unknown}).path === "string" ? (item as {path: string}).path : "";
+    const content = typeof (item as {content?: unknown}).content === "string" ? (item as {content: string}).content : "";
+    if (!path && !content) {
+      continue;
+    }
+    const uri = typeof (item as {uri?: unknown}).uri === "string" ? (item as {uri: string}).uri : undefined;
+    files.push({path, content, uri});
+  }
+  return files;
+}
 
 export const SPEC_SOURCE_FORMATS = ["openapi", "postman", "wsdl"] as const;
 

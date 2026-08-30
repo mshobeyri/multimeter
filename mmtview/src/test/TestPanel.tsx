@@ -21,6 +21,7 @@ interface TestPanelProps {
   setContent: (value: string, options?: { force?: boolean }) => void;
   parseTest?: (value: string) => TestData;
   onSaveAsMmt?: (test: TestData) => void;
+  headerLeading?: React.ReactNode;
 }
 
 const LAST_TAB_KEY = "mmtview:lastTab";
@@ -43,7 +44,7 @@ function pageTranslate(page: TestPage): string {
   return "translateX(0%)";
 }
 
-const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = yamlToTest, onSaveAsMmt }) => {
+const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = yamlToTest, onSaveAsMmt, headerLeading }) => {
   // `appliedContent` is what the right-side test UI is built from.
   // When the runner has temporary input edits, YAML changes are held until the
   // user discards the UI changes or cancels — same as APIPanel.
@@ -277,6 +278,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                 <PanelRunHeader
                   icon="beaker"
                   title={test.title || 'Test'}
+                  beforeTitle={headerLeading}
                   actions={
                     <>
                       <HeaderAction

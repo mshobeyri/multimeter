@@ -34,6 +34,78 @@ export function isBrunoFilePath(filePath: string): boolean {
   return lower.endsWith('.bru') || lower.endsWith('.bruno');
 }
 
+export function isBrunoRequestFilePath(filePath: string): boolean {
+  if (!isBrunoFilePath(filePath)) {
+    return false;
+  }
+  const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  const base = normalized.split('/').pop() || '';
+  if (base === 'collection.bru' || base === 'folder.bru') {
+    return false;
+  }
+  if (normalized.includes('/environments/')) {
+    return false;
+  }
+  return true;
+}
+
+export interface BrunoSourceFile {
+  path: string;
+  content: string;
+  uri?: string;
+}
+
+export function brunoRequestSeq(content: string): number {
+  const document = parseBrunoDocument(content);
+  const meta = parseKeyValueBlock(firstBlock(document, 'meta')?.content || '');
+  const seq = Number(meta.seq);
+  return Number.isFinite(seq) ? seq : Number.MAX_SAFE_INTEGER;
+}
+
+export function sortBrunoSourceFiles(files: BrunoSourceFile[]): BrunoSourceFile[] {
+  return [...files].sort((left, right) => {
+    const seqDelta = brunoRequestSeq(left.content) - brunoRequestSeq(right.content);
+    if (seqDelta !== 0) {
+      return seqDelta;
+    }
+    return left.path.localeCompare(right.path);
+  });
+}
+
+export function brunoCollectionToTest(
+    files: BrunoSourceFile[], title = 'Bruno collection'): TestData {
+  const requestFiles = sortBrunoSourceFiles(
+      files.filter(file => isBrunoRequestFilePath(file.path)));
+  const steps: TestFlowStep[] = [];
+  const usedIds = new Set<string>();
+  for (const file of requestFiles) {
+    const test = brunoToTest(file.content, file.path);
+    for (const step of test.steps || []) {
+      const next = {...step} as TestFlowStep;
+      if ('id' in next && next.id) {
+        let id = String(next.id);
+        let suffix = 2;
+        while (usedIds.has(id)) {
+          id = `${next.id}${suffix}`;
+          suffix++;
+        }
+        usedIds.add(id);
+        (next as {id?: string}).id = id;
+      }
+      steps.push(next);
+    }
+  }
+  return {
+    type: 'test',
+    title,
+    description: '',
+    tags: ['bruno'],
+    inputs: {},
+    outputs: {},
+    steps: applyRunDebugToRequestSteps(steps),
+  };
+}
+
 const lineForOffset = (content: string, offset: number): number => {
   return content.slice(0, offset).split('\n').length;
 };

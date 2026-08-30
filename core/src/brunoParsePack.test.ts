@@ -2,11 +2,14 @@ import {detectDocType} from './runCommon';
 import {generateTestJs, isSerializedMmtTest} from './runTest';
 import {testToYaml} from './testParsePack';
 import {
+  brunoCollectionToTest,
   brunoToAPI,
   brunoToTest,
   brunoToTestStrict,
   isBrunoFilePath,
+  isBrunoRequestFilePath,
   parseBrunoDocument,
+  sortBrunoSourceFiles,
   validateBrunoDocument,
 } from './brunoParsePack';
 
@@ -325,5 +328,46 @@ get {
     expect(js).toContain('__http_0');
     expect(js).toContain('https://test.mmt.dev/echo');
     expect(js).toContain('Ada');
+  });
+
+  it('skips collection, folder, and environment Bruno files', () => {
+    expect(isBrunoRequestFilePath('/lib/get_health.bru')).toBe(true);
+    expect(isBrunoRequestFilePath('/lib/collection.bru')).toBe(false);
+    expect(isBrunoRequestFilePath('/lib/folder.bru')).toBe(false);
+    expect(isBrunoRequestFilePath('/lib/environments/local.bru')).toBe(false);
+  });
+
+  it('sorts collection files by meta.seq then path', () => {
+    const files = sortBrunoSourceFiles([
+      {path: '/lib/z.bru', content: 'meta {\n  name: Z\n  seq: 2\n}\nget {\n  url: https://example.com/z\n}\n'},
+      {path: '/lib/a.bru', content: 'meta {\n  name: A\n  seq: 2\n}\nget {\n  url: https://example.com/a\n}\n'},
+      {path: '/lib/b.bru', content: 'meta {\n  name: B\n  seq: 1\n}\nget {\n  url: https://example.com/b\n}\n'},
+    ]);
+    expect(files.map(file => file.path)).toEqual(['/lib/b.bru', '/lib/a.bru', '/lib/z.bru']);
+  });
+
+  it('builds a sequential test from a Bruno collection', () => {
+    const test = brunoCollectionToTest([
+      {
+        path: '/lib/collection.bru',
+        content: 'meta {\n  name: Library\n}\n',
+      },
+      {
+        path: '/lib/health.bru',
+        content: 'meta {\n  name: Health\n  seq: 1\n}\nget {\n  url: https://test.mmt.dev/status/200\n}\n',
+      },
+      {
+        path: '/lib/create.bru',
+        content: 'meta {\n  name: Health\n  seq: 2\n}\npost {\n  url: https://test.mmt.dev/echo\n}\n',
+      },
+    ], 'Library');
+    expect(test.title).toBe('Library');
+    expect(test.steps).toHaveLength(2);
+    const steps = test.steps || [];
+    expect(steps.map(step => (step as {http?: string}).http)).toEqual([
+      'https://test.mmt.dev/status/200',
+      'https://test.mmt.dev/echo',
+    ]);
+    expect(steps.map(step => (step as {id?: string}).id)).toEqual(['Health', 'Health2']);
   });
 });

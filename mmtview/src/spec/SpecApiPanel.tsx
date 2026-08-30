@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiToYaml } from "mmt-core/apiParsePack";
-import { findSpecApiSelection, listSpecApis } from "mmt-core/importConvertor";
+import type { BrunoSourceFile } from "mmt-core/brunoParsePack";
+import { findSpecApiSelection, listSpecApis, listSpecApisFromFiles } from "mmt-core/importConvertor";
 import APIPanel from "../api/APIPanel";
 import { HeaderAction } from "../components/PanelRunHeader";
 import { FileContext } from "../fileContext";
@@ -8,11 +9,18 @@ import ApiSelector from "./ApiSelector";
 
 interface SpecApiPanelProps {
   content: string;
+  files?: BrunoSourceFile[];
+  leading?: React.ReactNode;
 }
 
-const SpecApiPanel: React.FC<SpecApiPanelProps> = ({ content }) => {
+const SpecApiPanel: React.FC<SpecApiPanelProps> = ({ content, files, leading }) => {
   const { mmtFilePath } = React.useContext(FileContext);
-  const items = useMemo(() => listSpecApis(content, mmtFilePath || ""), [content, mmtFilePath]);
+  const items = useMemo(() => {
+    if (files && files.length > 0) {
+      return listSpecApisFromFiles(files);
+    }
+    return listSpecApis(content, mmtFilePath || "");
+  }, [content, files, mmtFilePath]);
   const [selectedId, setSelectedId] = useState(items[0]?.id);
   const selection = findSpecApiSelection(items, selectedId);
   const selected = selection?.item;
@@ -30,7 +38,10 @@ const SpecApiPanel: React.FC<SpecApiPanelProps> = ({ content }) => {
     return (
       <div className="panel">
         <div className="panel-box" style={{ padding: 16 }}>
-          No API operations were found in this spec.
+          {leading}
+          <div style={{ paddingTop: leading ? 12 : 0 }}>
+            No API operations were found in this spec.
+          </div>
         </div>
       </div>
     );
@@ -45,7 +56,10 @@ const SpecApiPanel: React.FC<SpecApiPanelProps> = ({ content }) => {
       initialExampleIndex={selection.exampleIndex}
       selector={
         <>
-          <ApiSelector items={items} value={selectedId || selected.id} onChange={setSelectedId} />
+          {leading}
+          {items.length > 1 || selected.examples.length > 0 ? (
+            <ApiSelector items={items} value={selectedId || selected.id} onChange={setSelectedId} />
+          ) : null}
           <HeaderAction
             icon="save-as"
             label="Save as MMT"

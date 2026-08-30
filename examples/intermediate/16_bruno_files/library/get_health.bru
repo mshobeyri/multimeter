@@ -1,0 +1,27 @@
+meta {
+  name: Get health
+  type: http
+  seq: 1
+}
+
+docs {
+  Probe the sandbox. Open any file in this folder to pick this request from the selector.
+}
+
+get {
+  url: {{baseUrl}}/status/200
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  expect(res.status).to.equal(200);
+}

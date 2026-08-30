@@ -1,11 +1,13 @@
 # Bruno file examples
 
-These examples show `.bru` files that can be opened through **Open With...** -> **Multimeter Bruno Test Editor**.
+These examples show `.bru` files that can be opened through **Open With...** → **Multimeter Bruno Test Editor**, or **Open as MMT**.
 
-The Multimeter Bruno editor treats Bruno request files as runnable test flows. The structured UI is read-only for `.bru` files; use **Save as MMT** to convert one into an editable `.mmt` test.
+Use **As API** to send the request in the API tester. Use **As Test** to run the request (or the whole collection) as a test flow. The structured UI is read-only; **Save as MMT** writes an editable `.mmt` file from the current view.
 
 ## Files
 
+- `library/`: a Bruno collection (`bruno.json` plus several request files). Open any file in that folder to pick requests from the selector, or run the collection as one test.
+- `checkout_book_complete.bru`: one complete standalone request with meta, docs, vars, headers, query params, bearer auth, a JSON body, and several `expect` checks.
 - `get_profile.bru`: a simple Bruno GET request with variables, headers, bearer auth, query params, and assertions.
 - `create_user_json.bru`: a POST request with a JSON body and bearer auth.
 - `update_profile_form.bru`: a PUT request with a form-urlencoded body.
@@ -26,10 +28,12 @@ import:
   updateProfile: update_profile_form.bru
   deleteApiKey: delete_user_api_key.bru
   xmlEcho: xml_echo.bru
+  checkout: checkout_book_complete.bru
 steps:
   - call: profile
   - call: createUser
   - call: updateProfile
   - call: deleteApiKey
   - call: xmlEcho
+  - call: checkout
 ```

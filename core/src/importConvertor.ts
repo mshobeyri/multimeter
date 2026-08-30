@@ -1,6 +1,7 @@
 import {APIData, ExampleData} from './APIData';
 import {apiToYaml} from './apiParsePack';
-import {brunoToAPI, brunoToTest, isBrunoFilePath} from './brunoParsePack';
+import {brunoToAPI, brunoToTest, isBrunoFilePath, isBrunoRequestFilePath, sortBrunoSourceFiles} from './brunoParsePack';
+import type {BrunoSourceFile} from './brunoParsePack';
 import {safeStepIdFromAlias, slugToCamel, slugValue} from './identifierUtils';
 import {httpRequestCallExtras, httpRequestToAPI, isHttpFilePath, parseHttpDocument} from './httpParsePack';
 import {packYaml, parseYamlStrict} from './markupConvertor';
@@ -161,6 +162,28 @@ export function listSpecApis(rawFile: string, filePath = ''): SpecApiItem[] {
       url: typeof api.url === 'string' ? api.url : undefined,
       api,
       examples,
+    };
+  });
+}
+
+export function listSpecApisFromFiles(files: BrunoSourceFile[]): SpecApiItem[] {
+  const items: SpecApiItem[] = [];
+  const brunoFiles = sortBrunoSourceFiles(files.filter(file => isBrunoRequestFilePath(file.path)));
+  const sources = brunoFiles.length > 0 ? brunoFiles : files;
+  for (const file of sources) {
+    for (const item of listSpecApis(file.content, file.path)) {
+      items.push(item);
+    }
+  }
+  return items.map((item, index) => {
+    const id = `${index}:${item.title || item.url || 'api'}`;
+    return {
+      ...item,
+      id,
+      examples: item.examples.map(example => ({
+        ...example,
+        id: `${id}:ex:${example.exampleIndex}`,
+      })),
     };
   });
 }

@@ -17,6 +17,7 @@ import {openUntitledMmtWithContent} from '../untitledGalleryMmt';
 import {resolveWorkspaceEnvFilePath} from './network';
 import {buildThemeTokenMessage} from '../themeTokenColors';
 import {resolveSourceFormat} from '../mmtSourceFormat';
+import {brunoWebviewExtras} from '../brunoCollection';
 
 const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
   outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
@@ -199,7 +200,7 @@ export async function handleLoadDocumentContent(
     uri: document.uri.toString(),
     content: document.getText(),
     projectRoot,
-    sourceFormat
+    ...brunoWebviewExtras(sourceFormat, document.uri.fsPath),
   });
 
   // Send theme token colors with document load (avoids race with early theme post).

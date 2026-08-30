@@ -42,6 +42,8 @@ export type PanelRunHeaderProps = {
   iconTitle?: string;
   /** Right-side actions (HeaderAction, warnings, etc.). */
   actions?: React.ReactNode;
+  /** Optional control before the title chip (for example As API / As Test). */
+  beforeTitle?: React.ReactNode;
   /**
    * Replace the default title chip (e.g. Doc view TabBar).
    * When set, `title` / `icon` are ignored.
@@ -59,6 +61,7 @@ export default function PanelRunHeader({
   iconTitle,
   actions,
   leading,
+  beforeTitle,
 }: PanelRunHeaderProps) {
   const iconName = icon
     ? (icon.startsWith('codicon-') ? icon : `codicon-${icon}`)
@@ -69,16 +72,19 @@ export default function PanelRunHeader({
   return (
     <div className="api-edit-header">
       <div className="tab-bar tab-bar-single panel-run-header">
-        {leading != null ? (
-          leading
-        ) : (
-          <div className="tab-button active panel-run-header-title" title={iconTitle}>
-            {iconName && (
-              <span className={`codicon ${iconName}`} aria-hidden style={iconStyle} />
-            )}
-            {title}
-          </div>
-        )}
+        <div className="panel-run-header-start">
+          {beforeTitle}
+          {leading != null ? (
+            leading
+          ) : (
+            <div className="tab-button active panel-run-header-title" title={iconTitle}>
+              {iconName && (
+                <span className={`codicon ${iconName}`} aria-hidden style={iconStyle} />
+              )}
+              {title}
+            </div>
+          )}
+        </div>
         {!hasYamlErrors && actions != null && (
           <div className="panel-run-header-actions">
             {actions}

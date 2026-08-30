@@ -1,4 +1,4 @@
-import {convertToMmt, detectImportSource, findSpecApiSelection, listSpecApis} from './importConvertor';
+import {convertToMmt, detectImportSource, findSpecApiSelection, listSpecApis, listSpecApisFromFiles} from './importConvertor';
 import {parseYamlStrict} from './markupConvertor';
 
 describe('importConvertor', () => {
@@ -384,6 +384,27 @@ tests {
     expect(brunoApis).toHaveLength(1);
     expect(brunoApis[0].title).toBe('Get user');
     expect(brunoApis[0].method).toBe('get');
+  });
+
+  it('lists every Bruno collection request as a spec API', () => {
+    const apis = listSpecApisFromFiles([
+      {
+        path: '/lib/collection.bru',
+        content: 'meta {\n  name: Library\n}\n',
+      },
+      {
+        path: '/lib/checkout.bru',
+        content: 'meta {\n  name: Checkout\n  seq: 2\n}\npost {\n  url: https://test.mmt.dev/echo\n}\n',
+      },
+      {
+        path: '/lib/health.bru',
+        content: 'meta {\n  name: Health\n  seq: 1\n}\nget {\n  url: https://test.mmt.dev/status/200\n}\n',
+      },
+    ]);
+    expect(apis.map(item => item.title)).toEqual(['Health', 'Checkout']);
+    expect(apis.map(item => item.method)).toEqual(['get', 'post']);
+    expect(apis[0].id).toBe('0:Health');
+    expect(apis[1].id).toBe('1:Checkout');
   });
 
   it('lists OpenAPI named request examples as selector children', () => {

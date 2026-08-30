@@ -1144,6 +1144,14 @@ button:focus {
   margin-bottom: -1px;
 }
 
+.panel-run-header-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
 .panel-run-header-title {
   cursor: default;
   display: flex;
@@ -1255,6 +1263,36 @@ button:focus {
   position: relative;
 }
 
+.source-view-switch {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.source-view-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  opacity: 0.55;
+  font-size: var(--vscode-font-size, 13px);
+}
+
+.source-view-switch-btn .codicon {
+  font-size: 14px;
+}
+
+.source-view-switch-btn.is-active {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
 .apitest-selector-row {
   display: flex;
   align-items: center;
@@ -1266,6 +1304,10 @@ button:focus {
 .apitest-selector-row .api-selector {
   flex: 1;
   min-width: 0;
+}
+
+.apitest-selector-row > .api-edit-launcher:last-child {
+  margin-left: auto;
 }
 
 .api-selector .api-edit-launcher-text {

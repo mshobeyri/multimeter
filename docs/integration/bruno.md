@@ -4,9 +4,12 @@ Use Bruno `.bru` and `.bruno` request files with Multimeter while keeping Bruno-
 
 ## Run directly
 
-In VS Code, open a `.bru` file with **Open With...** → **Multimeter Bruno Test Editor**. The request runs as a test flow with Multimeter reporting, environments, and suite support.
+In VS Code, open a `.bru` file with **Open With...** → **Multimeter Bruno Test Editor**, or **Open as MMT**.
 
-The structured UI is read-only for Bruno files. Use **Save as MMT** in the editor to create an editable `type: test` file from the parsed request.
+- **As API** — send the request in the API tester. If the file sits in a Bruno collection (a folder with `bruno.json`), the selector lists every request in that collection.
+- **As Test** — run the open file as a test flow, or the whole collection in `meta.seq` order when `bruno.json` is present.
+
+The left editor stays on the file you opened. The selector only changes the tester on the right. The structured UI is read-only; use **Save as MMT** to create an editable `.mmt` file from the current view.
 
 ## Import in tests
 
@@ -42,13 +45,18 @@ Common single-request `.bru` structure:
 - Random variables (`{{$uuid}}`, etc.) map to Multimeter `r:` tokens
 - Simple `expect(res.status).to.equal(200)` assertions become Multimeter `expect` checks
 
+## Collections
+
+A Bruno collection is a folder with `bruno.json` and one `.bru` file per request. Opening any request file loads the siblings (skipping `collection.bru`, `folder.bru`, `environments/`, and paths listed in `bruno.json` `ignore`).
+
+Requests are ordered by `meta.seq`, then file path. Convert to MMT still works one file at a time.
+
 ## Limitations
 
-- Bruno collection folders are not expanded automatically — import or open individual `.bru` files
 - Pre-request and post-response scripts are not executed as Bruno scripts
 - File bodies, multipart helpers, and advanced auth may need conversion to editable `.mmt` for full control
 
 ## See also
 
-- [Import Bruno in test example](../../examples/intermediate/16_bruno_files/README.md)
+- [Bruno file examples](../../examples/intermediate/16_bruno_files/README.md) — start with `library/` for a collection, or `checkout_book_complete.bru` for a single request
 - [HTTP file](./http-file.md) · [Postman](./postman.md)

@@ -5,7 +5,7 @@ import './App.css';
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
-import BrunoTestPanel from "./bruno/BrunoTestPanel";
+import BrunoPanel from "./bruno/BrunoPanel";
 import HttpTestPanel from "./http/HttpTestPanel";
 import SuitePanel from "./suite/SuitePanel";
 import LoadTestPanel from "./loadtest/LoadTestPanel";
@@ -13,7 +13,7 @@ import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
 import ReportPanel from "./report/ReportPanel";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
-import { isBrunoFilePath, parseBrunoDocument } from "mmt-core/brunoParsePack";
+import { isBrunoFilePath, parseBrunoDocument, type BrunoSourceFile } from "mmt-core/brunoParsePack";
 import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
 import { normalizeNewlines } from "mmt-core/textLines";
 import YamlEditorPanel from "./text/YamlEditorPanel";
@@ -28,6 +28,7 @@ import {
   SourceFormat,
   editorLanguageForSource,
   isSpecSourceFormat,
+  parseCollectionFiles,
   parseSourceFormat,
 } from "./sourceFormat";
 
@@ -154,6 +155,8 @@ const App: React.FC = () => {
   const [sourceFormat, setSourceFormat] = useState<SourceFormat>("mmt");
   const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
   const [projectRoot, setProjectRoot] = useState<string | undefined>(undefined);
+  const [collectionFiles, setCollectionFiles] = useState<BrunoSourceFile[]>([]);
+  const [collectionName, setCollectionName] = useState<string | undefined>(undefined);
   const [yamlFontSize, setYamlFontSize] = useState<number>(12);
   const [collapseDescription, setCollapseDescription] = useState<boolean>(false);
 
@@ -281,6 +284,13 @@ const App: React.FC = () => {
 
         if (message.uri) setMmtFilePath(message.uri);
         if (message.projectRoot) setProjectRoot(message.projectRoot);
+        if (nextSourceFormat === "bruno") {
+          setCollectionFiles(parseCollectionFiles(message.collectionFiles));
+          setCollectionName(typeof message.collectionName === "string" ? message.collectionName : undefined);
+        } else {
+          setCollectionFiles([]);
+          setCollectionName(undefined);
+        }
       }
 
       // External document change (undo / revert) – update content without
@@ -321,6 +331,10 @@ const App: React.FC = () => {
           } catch {
             // keep previous validContent
           }
+        }
+        if (nextSourceFormat === "bruno" && message.collectionFiles) {
+          setCollectionFiles(parseCollectionFiles(message.collectionFiles));
+          setCollectionName(typeof message.collectionName === "string" ? message.collectionName : undefined);
         }
       }
 
@@ -494,7 +508,7 @@ const App: React.FC = () => {
     : { display: "none", width: 0, minWidth: 0, margin: 0, padding: 0, pointerEvents: "none" };
 
   return (
-    <FileContext.Provider value={{ mmtFilePath, projectRoot, yamlErrors, yamlStale, restoreValidYaml }}>
+    <FileContext.Provider value={{ mmtFilePath, projectRoot, yamlErrors, yamlStale, restoreValidYaml, collectionFiles, collectionName }}>
       <div ref={splitHostRef} style={{ height: "100%", width: "100%", overflow: "hidden" }}>
         <SplitPane
           split="vertical"
@@ -575,7 +589,7 @@ const App: React.FC = () => {
                   sourceFormat === "http" ?
                     <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
                     sourceFormat === "bruno" ?
-                    <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
+                    <BrunoPanel content={validContent} setContent={uiSetContent} /> :
                     <TestPanel content={validContent} setContent={uiSetContent} />
                 )}
                 {docType === "suite" && (

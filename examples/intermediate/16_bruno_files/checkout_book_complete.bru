@@ -1,0 +1,61 @@
+meta {
+  name: Checkout Book
+  type: http
+  seq: 6
+}
+
+docs {
+  Complete Bruno request used to try Open as MMT.
+  Switch As API to send the request, or As Test to run every expect below.
+}
+
+post {
+  url: {{baseUrl}}/echo
+  body: json
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+  authToken: demo-token
+  memberId: mem-17
+  bookId: 42
+  bookTitle: The Name of the Wind
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+  X-Trace: {{$uuid}}
+  X-Client: multimeter-bruno
+}
+
+params:query {
+  source: library
+  dryRun: false
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "action": "checkout",
+    "book": {
+      "id": 42,
+      "title": "{{bookTitle}}"
+    },
+    "memberId": "{{memberId}}",
+    "days": 21,
+    "notes": "Hold at front desk"
+  }
+}
+
+tests {
+  expect(res.status).to.equal(200);
+  expect(res.body.body.action).to.equal("checkout");
+  expect(res.body.body.memberId).to.equal("mem-17");
+  expect(res.body.body.days).to.equal(21);
+  expect(res.body.query.source).to.equal("library");
+}
