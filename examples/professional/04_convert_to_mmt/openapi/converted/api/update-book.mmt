@@ -1,0 +1,32 @@
+type: api
+title: Update book
+description: Echoes an updated book payload.
+inputs:
+  body: |-
+    {
+      "id": 42,
+      "title": "The Wise Man's Fear",
+      "author": "Patrick Rothfuss",
+      "year": 2011
+    }
+url: https://test.mmt.dev/echo
+protocol: http
+method: put
+format: json
+auth:
+  type: bearer
+  token: i:token
+headers:
+  Content-Type: application/json
+body: <<i:body>>
+examples:
+  - name: Rename title
+  - name: New edition year
+    inputs:
+      body: |-
+        {
+          "id": 42,
+          "title": "The Name of the Wind",
+          "author": "Patrick Rothfuss",
+          "year": 2018
+        }

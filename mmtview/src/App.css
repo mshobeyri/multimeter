@@ -1251,6 +1251,93 @@ button:focus {
   color: inherit;
 }
 
+.api-selector {
+  position: relative;
+}
+
+.apitest-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 0;
+  min-width: 0;
+}
+
+.apitest-selector-row .api-selector {
+  flex: 1;
+  min-width: 0;
+}
+
+.api-selector .api-edit-launcher-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-selector-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1000;
+  background: var(--vscode-editorWidget-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  min-width: 280px;
+  max-width: min(420px, 80vw);
+  max-height: min(360px, 70vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.api-selector-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  text-align: left;
+}
+
+.api-selector-item:hover,
+.api-selector-item.is-selected {
+  background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.api-selector-method {
+  flex: 0 0 auto;
+  min-width: 4.5em;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.api-selector-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-selector-item.is-child {
+  padding-left: 28px;
+}
+
+.api-selector-example-icon {
+  min-width: 4.5em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.api-selector-example-icon .codicon {
+  font-size: 14px;
+}
+
 /* Warning / error chip popup anchor */
 .unsaved-changes-anchor {
   position: relative;

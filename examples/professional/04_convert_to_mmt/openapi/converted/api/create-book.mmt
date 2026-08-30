@@ -1,0 +1,41 @@
+type: api
+title: Create book
+description: Echoes the request body. Use the named examples to switch payloads.
+inputs:
+  body: |-
+    {
+      "title": "The Name of the Wind",
+      "author": "Patrick Rothfuss",
+      "year": 2007,
+      "isbn": "9780756404741"
+    }
+url: https://test.mmt.dev/echo
+protocol: http
+method: post
+format: json
+auth:
+  type: bearer
+  token: i:token
+headers:
+  Content-Type: application/json
+body: <<i:body>>
+examples:
+  - name: Fantasy novel
+    description: Default hardcover draft
+  - name: Science fiction
+    inputs:
+      body: |-
+        {
+          "title": "Project Hail Mary",
+          "author": "Andy Weir",
+          "year": 2021,
+          "isbn": "9780593135204"
+        }
+  - name: Missing title
+    description: Invalid body for a 400-style review
+    inputs:
+      body: |-
+        {
+          "author": "Unknown",
+          "year": 1999
+        }

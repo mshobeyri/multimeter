@@ -31,6 +31,8 @@ interface APITestProps {
   onModificationChange?: (requestData: Request | undefined, touchedFields: Set<keyof Request>) => void;
   onRequestReset?: (reset: () => void) => void;
   rightOfUrlButton?: React.ReactNode;
+  selector?: React.ReactNode;
+  initialExampleIndex?: number;
 }
 
 type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc";
@@ -87,7 +89,7 @@ const PROTOCOL_LABELS: Record<string, string> = {
   grpc: "gRPC",
 };
 
-const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton }) => {
+const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
   const { mmtFilePath } = useContext(FileContext);
   const {
     requestData,
@@ -113,7 +115,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     network,
     examples,
     isSending,
-  } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
+  } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath, initialExampleIndex });
 
   useEffect(() => {
     onModificationChange?.(requestData, touchedFields);
@@ -351,6 +353,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     <div className="apitest-root">
       {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
+      {selector && (
+        <div className="apitest-selector-row">
+          {selector}
+        </div>
+      )}
       <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
         <select
           className="method-select"

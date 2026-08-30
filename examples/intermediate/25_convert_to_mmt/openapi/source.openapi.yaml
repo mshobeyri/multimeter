@@ -1,0 +1,18 @@
+openapi: 3.0.0
+info:
+  title: Convert Example API
+  version: 1.0.0
+servers:
+  - url: https://test.mmt.dev
+paths:
+  /json:
+    get:
+      summary: Get sample JSON
+      parameters:
+        - name: trace
+          in: header
+          schema:
+            example: demo
+      responses:
+        '200':
+          description: Sample JSON payload

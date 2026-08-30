@@ -29,7 +29,7 @@ Right-click a `.http`, `.https`, or `.rest` file in the Explorer and choose **Co
 
 Pick the generated files, a destination folder, and a collision policy (skip, overwrite, or rename).
 
-Example output: [HTTP convert example](../../examples/professional/04_convert_to_mmt/http/README.md)
+Example output: [HTTP convert example](../../examples/intermediate/25_convert_to_mmt/http/README.md)
 
 ## Supported syntax
 

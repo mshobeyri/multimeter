@@ -1,0 +1,31 @@
+type: api
+title: Checkout book
+description: Starts a loan. Path `{loanId}` is replaced from the example.
+inputs:
+  body: |-
+    {
+      "bookId": 42,
+      "memberId": "mem-17",
+      "days": 21
+    }
+url: https://test.mmt.dev/echo/loan-1001
+protocol: http
+method: post
+format: json
+auth:
+  type: bearer
+  token: i:token
+headers:
+  Content-Type: application/json
+body: <<i:body>>
+examples:
+  - name: Member checkout
+  - name: Staff override
+    inputs:
+      body: |-
+        {
+          "bookId": 7,
+          "memberId": "staff-1",
+          "days": 7,
+          "override": true
+        }

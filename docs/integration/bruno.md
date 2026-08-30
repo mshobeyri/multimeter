@@ -27,7 +27,7 @@ See [import](../files/test/import.md).
 
 Right-click a `.bru` or `.bruno` file in the Explorer and choose **Convert to MMT...**. Multimeter generates matching `api/` and `tests/` files you can edit in the normal Multimeter UI.
 
-Example output: [Bruno convert example](../../examples/professional/04_convert_to_mmt/bruno/README.md)
+Example output: [Bruno convert example](../../examples/intermediate/25_convert_to_mmt/bruno/README.md)
 
 ## Supported syntax
 

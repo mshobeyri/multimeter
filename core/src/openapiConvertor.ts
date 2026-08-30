@@ -1,4 +1,4 @@
-import { APIData, AuthConfig } from './APIData';
+import { APIData, AuthConfig, ExampleData } from './APIData';
 import { formatBody } from './markupConvertor';
 
 export function openApiToAPI(openApiSpec: any): APIData[] {
@@ -129,11 +129,89 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         delete (apiData as any).auth;
       }
 
+      attachOpenApiExamples(apiData, operation, format);
+
       apis.push(apiData);
     });
   });
 
   return apis;
+}
+
+function formatExampleBody(format: 'json' | 'xml' | 'text', value: any): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return formatBody(format, value, true);
+}
+
+type NamedRequestExample = {name: string; description?: string; body: string};
+
+function collectNamedRequestExamples(
+    operation: any, format: 'json' | 'xml' | 'text'): NamedRequestExample[] {
+  const content = operation?.requestBody?.content;
+  if (!content || typeof content !== 'object') {
+    return [];
+  }
+  const contentTypes = Object.keys(content);
+  const firstContentType = contentTypes[0];
+  const named = firstContentType ? content[firstContentType]?.examples : undefined;
+  if (!named || typeof named !== 'object' || Array.isArray(named)) {
+    return [];
+  }
+  const examples: NamedRequestExample[] = [];
+  for (const [key, spec] of Object.entries(named) as Array<[string, any]>) {
+    const value = spec?.value ?? spec?.example;
+    if (value === undefined) {
+      continue;
+    }
+    const name = String(spec?.summary || spec?.name || key || '').trim() || key;
+    const example: NamedRequestExample = {
+      name,
+      body: formatExampleBody(format, value),
+    };
+    if (typeof spec?.description === 'string' && spec.description) {
+      example.description = spec.description;
+    }
+    examples.push(example);
+  }
+  return examples;
+}
+
+function attachOpenApiExamples(
+    apiData: APIData, operation: any, format: 'json' | 'xml' | 'text'): void {
+  const namedExamples = collectNamedRequestExamples(operation, format);
+  if (namedExamples.length === 0) {
+    return;
+  }
+
+  const defaultBody = typeof apiData.body === 'string'
+    ? apiData.body
+    : (apiData.body != null ? formatExampleBody(format, apiData.body) : namedExamples[0].body);
+  if (!apiData.inputs) {
+    apiData.inputs = {};
+  }
+  if (apiData.body !== '<<i:body>>') {
+    apiData.inputs.body = defaultBody;
+    apiData.body = '<<i:body>>';
+  } else if (apiData.inputs.body === undefined) {
+    apiData.inputs.body = defaultBody;
+  }
+
+  const examples: ExampleData[] = namedExamples.map((example) => {
+    const item: ExampleData = {name: example.name};
+    if (example.description) {
+      item.description = example.description;
+    }
+    if (example.body !== apiData.inputs?.body) {
+      item.inputs = {body: example.body};
+    }
+    return item;
+  }).filter((example) => example.name || example.inputs || example.description);
+
+  if (examples.length > 0) {
+    apiData.examples = examples;
+  }
 }
 
 function resolveOpenApiAuth(operation: any, spec: any): AuthConfig | undefined {

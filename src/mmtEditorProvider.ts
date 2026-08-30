@@ -9,6 +9,7 @@ import {messageReceived} from './mmtAPI/mmtAPI';
 import {handleRunCurrentDocument} from './mmtAPI/run';
 import {buildThemeTokenMessage} from './themeTokenColors';
 import {getOnboarding, coachTargetForTask, OnboardingTaskId} from './onboarding';
+import {resolveSourceFormat} from './mmtSourceFormat';
 
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
@@ -216,6 +217,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             command: 'documentContentChanged',
             uri: document.uri.toString(),
             content: document.getText(),
+            sourceFormat: resolveSourceFormat(
+                document.getText(), document.uri.fsPath),
           });
         });
 
@@ -276,6 +279,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       command: 'documentContentChanged',
       uri: document.uri.toString(),
       content: document.getText(),
+      sourceFormat: resolveSourceFormat(document.getText(), document.uri.fsPath),
     });
   }
 }

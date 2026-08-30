@@ -127,4 +127,62 @@ describe('openapiConvertor.openApiToAPI', () => {
     expect((api.body as string).includes('<name>')).toBe(true);
     expect((api.body as string).includes('<id>')).toBe(true);
   });
+
+  it('turns named requestBody examples into selectable API examples', () => {
+    const spec = {
+      openapi: '3.0.0',
+      servers: [{url: 'https://test.mmt.dev'}],
+      paths: {
+        '/pets': {
+          post: {
+            summary: 'Create pet',
+            requestBody: {
+              content: {
+                'application/json': {
+                  example: {name: 'Default'},
+                  examples: {
+                    cat: {summary: 'Cat', value: {name: 'Whiskers'}},
+                    dog: {name: 'Dog', description: 'A dog', value: {name: 'Rex'}},
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const apis = openApiToAPI(spec);
+    expect(apis).toHaveLength(1);
+    expect(apis[0].body).toBe('<<i:body>>');
+    expect(JSON.parse(String(apis[0].inputs?.body))).toEqual({name: 'Default'});
+    expect(apis[0].examples?.map(example => example.name)).toEqual(['Cat', 'Dog']);
+    expect(apis[0].examples?.[0].inputs?.body && JSON.parse(String(apis[0].examples[0].inputs.body))).toEqual({name: 'Whiskers'});
+    expect(apis[0].examples?.[1].description).toBe('A dog');
+  });
+
+  it('uses the first named example as the default body when no single example is set', () => {
+    const spec = {
+      openapi: '3.0.0',
+      paths: {
+        '/pets': {
+          post: {
+            requestBody: {
+              content: {
+                'application/json': {
+                  examples: {
+                    only: {value: {ok: true}},
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.body).toBe('<<i:body>>');
+    expect(JSON.parse(String(api.inputs?.body))).toEqual({ok: true});
+    expect(api.examples?.[0].name).toBe('only');
+    expect(api.examples?.[0].inputs).toBeUndefined();
+  });
 });

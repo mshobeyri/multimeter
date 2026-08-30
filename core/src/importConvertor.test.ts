@@ -1,4 +1,4 @@
-import {convertToMmt, detectImportSource} from './importConvertor';
+import {convertToMmt, detectImportSource, findSpecApiSelection, listSpecApis} from './importConvertor';
 import {parseYamlStrict} from './markupConvertor';
 
 describe('importConvertor', () => {
@@ -8,6 +8,61 @@ describe('importConvertor', () => {
     expect(detectImportSource('<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"></definitions>', 'service.wsdl')).toBe('wsdl');
     expect(detectImportSource('GET https://example.com', 'request.http')).toBe('http');
     expect(detectImportSource('meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}', 'get-user.bru')).toBe('bruno');
+  });
+
+  it('lists OpenAPI operations for the spec selector', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: {title: 'Pets', version: '1.0.0'},
+      paths: {
+        '/pets': {
+          get: {summary: 'List pets', operationId: 'listPets'},
+          post: {summary: 'Create pet', operationId: 'createPet'},
+        },
+      },
+    };
+    const apis = listSpecApis(JSON.stringify(spec), 'pets.openapi.json');
+    expect(apis).toHaveLength(2);
+    expect(apis.map(item => item.title)).toEqual(['List pets', 'Create pet']);
+    expect(apis[0].api.type).toBe('api');
+    expect(apis[0].method).toBe('get');
+    expect(apis[0].examples).toEqual([]);
+    expect(apis[1].examples).toEqual([]);
+  });
+
+  it('lists Postman requests for the spec selector', () => {
+    const collection = {
+      info: {name: 'Users', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'},
+      item: [
+        {name: 'Get user', request: {method: 'GET', url: 'https://example.com/users/1'}},
+        {name: 'Create user', request: {method: 'POST', url: 'https://example.com/users'}},
+      ],
+    };
+    const apis = listSpecApis(JSON.stringify(collection), 'users.postman_collection.json');
+    expect(apis.length).toBeGreaterThanOrEqual(2);
+    expect(apis.every(item => item.api.type === 'api')).toBe(true);
+  });
+
+  it('lists WSDL operations for the spec selector', () => {
+    const wsdl = `<?xml version="1.0"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://schemas.xmlsoap.org/2001/XMLSchema" targetNamespace="urn:customer">
+  <types>
+    <xsd:schema targetNamespace="urn:customer">
+      <xsd:element name="GetCustomer">
+        <xsd:complexType><xsd:sequence><xsd:element name="id" type="xsd:string" /></xsd:sequence></xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+  <message name="GetCustomerRequest"><part name="parameters" element="tns:GetCustomer" /></message>
+  <portType name="CustomerPort"><operation name="GetCustomer"><input message="tns:GetCustomerRequest" /></operation></portType>
+  <binding name="CustomerBinding" type="tns:CustomerPort"><soap:binding transport="http://schemas.xmlsoap.org/soap/http" /><operation name="GetCustomer"><soap:operation soapAction="urn:GetCustomer" /></operation></binding>
+  <service name="CustomerService"><port name="CustomerPort" binding="tns:CustomerBinding"><soap:address location="https://soap.example.com/customer" /></port></service>
+</definitions>`;
+    const apis = listSpecApis(wsdl, 'customer.wsdl');
+    expect(apis).toHaveLength(1);
+    expect(apis[0].title).toMatch(/GetCustomer/i);
+    expect(apis[0].api.type).toBe('api');
+    expect(apis[0].examples).toEqual([]);
   });
 
   it('converts a Postman collection into API, test, and env files', () => {
@@ -298,5 +353,208 @@ tests {
     expect(test.steps[0].id).toBe('iCreateUser');
     expect(test.steps[0].debug).toBe(true);
     expect(test.steps[0].expect.status).toBe('== 201');
+  });
+
+  it('returns no spec APIs for empty or unknown files', () => {
+    expect(listSpecApis('{}', 'notes.json')).toEqual([]);
+    expect(listSpecApis('', 'empty.yaml')).toEqual([]);
+    expect(listSpecApis('not-a-spec', 'readme.txt')).toEqual([]);
+  });
+
+  it('lists HTTP and Bruno files as spec APIs', () => {
+    const httpApis = listSpecApis([
+      '###',
+      '# @name ping',
+      'GET https://test.mmt.dev/json',
+      '###',
+      '# @name echo',
+      'POST https://test.mmt.dev/echo',
+    ].join('\n'), 'flow.http');
+    expect(httpApis.map(item => item.title)).toEqual(['ping', 'echo']);
+    expect(httpApis.every(item => item.examples.length === 0)).toBe(true);
+
+    const brunoApis = listSpecApis([
+      'meta {',
+      '  name: Get user',
+      '}',
+      'get {',
+      '  url: https://test.mmt.dev/users/1',
+      '}',
+    ].join('\n'), 'get-user.bru');
+    expect(brunoApis).toHaveLength(1);
+    expect(brunoApis[0].title).toBe('Get user');
+    expect(brunoApis[0].method).toBe('get');
+  });
+
+  it('lists OpenAPI named request examples as selector children', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: {title: 'Pets', version: '1.0.0'},
+      paths: {
+        '/pets': {
+          post: {
+            summary: 'Create pet',
+            requestBody: {
+              content: {
+                'application/json': {
+                  example: {name: 'Default'},
+                  examples: {
+                    cat: {summary: 'Cat', value: {name: 'Whiskers'}},
+                    dog: {summary: 'Dog', description: 'A dog', value: {name: 'Rex'}},
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const apis = listSpecApis(JSON.stringify(spec), 'pets.openapi.json');
+    expect(apis).toHaveLength(1);
+    expect(apis[0].examples.map(example => example.title)).toEqual(['Cat', 'Dog']);
+    expect(apis[0].examples[0].exampleIndex).toBe(0);
+    expect(apis[0].api.body).toBe('<<i:body>>');
+    expect(apis[0].api.inputs?.body).toContain('Default');
+    expect(apis[0].api.examples?.[0].inputs?.body).toContain('Whiskers');
+    expect(apis[0].api.examples?.[1].inputs?.body).toContain('Rex');
+
+    const cat = findSpecApiSelection(apis, apis[0].examples[0].id);
+    expect(cat?.item.id).toBe(apis[0].id);
+    expect(cat?.exampleIndex).toBe(0);
+    expect(findSpecApiSelection(apis, apis[0].id)?.exampleIndex).toBe(-1);
+    expect(findSpecApiSelection(apis, 'missing')?.item.id).toBe(apis[0].id);
+    expect(findSpecApiSelection([], 'x')).toBeUndefined();
+  });
+
+  it('lists Postman saved responses as selector examples', () => {
+    const collection = {
+      info: {name: 'Users', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'},
+      item: [
+        {
+          name: 'Create user',
+          request: {
+            method: 'POST',
+            header: [{key: 'Content-Type', value: 'application/json'}],
+            url: {raw: 'https://test.mmt.dev/users'},
+            body: {mode: 'raw', raw: '{"name":"Ada"}'},
+          },
+          response: [
+            {
+              name: 'Ada',
+              originalRequest: {
+                method: 'POST',
+                url: {raw: 'https://test.mmt.dev/users'},
+                body: {mode: 'raw', raw: '{"name":"Ada"}'},
+              },
+              code: 201,
+              body: '{"id":"u1"}',
+            },
+            {
+              name: 'Grace',
+              originalRequest: {
+                method: 'POST',
+                url: {raw: 'https://test.mmt.dev/users'},
+                body: {mode: 'raw', raw: '{"name":"Grace"}'},
+              },
+              code: 201,
+              body: '{"id":"u2"}',
+            },
+          ],
+        },
+      ],
+    };
+    const apis = listSpecApis(JSON.stringify(collection), 'users.postman_collection.json');
+    expect(apis).toHaveLength(1);
+    expect(apis[0].examples.map(example => example.title)).toEqual(['Ada', 'Grace']);
+    expect(apis[0].api.examples?.[1].inputs?.body).toContain('Grace');
+  });
+
+  it('converts OpenAPI named examples into API example YAML', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: {title: 'Pets', version: '1.0.0'},
+      servers: [{url: 'https://test.mmt.dev'}],
+      paths: {
+        '/pets': {
+          post: {
+            summary: 'Create pet',
+            requestBody: {
+              content: {
+                'application/json': {
+                  example: {name: 'Default'},
+                  examples: {
+                    cat: {summary: 'Cat', value: {name: 'Whiskers'}},
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const result = convertToMmt(JSON.stringify(spec), {sourcePath: 'pets.openapi.json'});
+    expect(result.files).toHaveLength(1);
+    const api = parseYamlStrict(result.files[0].content);
+    expect(api.body).toBe('<<i:body>>');
+    expect(api.inputs.body).toContain('Default');
+    expect(api.examples).toHaveLength(1);
+    expect(api.examples[0].name).toBe('Cat');
+    expect(api.examples[0].inputs.body).toContain('Whiskers');
+  });
+
+  it('converts Postman saved examples into API example YAML', () => {
+    const collection = {
+      info: {name: 'Users', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'},
+      item: [
+        {
+          name: 'Create user',
+          request: {
+            method: 'POST',
+            header: [{key: 'Content-Type', value: 'application/json'}],
+            url: {raw: 'https://test.mmt.dev/users'},
+            body: {mode: 'raw', raw: '{"name":"Ada"}'},
+          },
+          response: [
+            {
+              name: 'Grace',
+              originalRequest: {
+                method: 'POST',
+                header: [{key: 'Content-Type', value: 'application/json'}],
+                url: {raw: 'https://test.mmt.dev/users'},
+                body: {mode: 'raw', raw: '{"name":"Grace"}'},
+              },
+              code: 201,
+              body: '{"id":"u2"}',
+            },
+          ],
+        },
+      ],
+    };
+    const result = convertToMmt(JSON.stringify(collection), {sourcePath: 'users.postman_collection.json'});
+    const api = parseYamlStrict(result.files.find(file => file.path === 'api/create-user.mmt')!.content);
+    expect(api.inputs.body).toContain('Ada');
+    expect(api.examples[0].name).toBe('Grace');
+    expect(api.examples[0].inputs.body).toContain('Grace');
+  });
+
+  it('converts Swagger 2 specs and warns when OpenAPI has no operations', () => {
+    const swagger = {
+      swagger: '2.0',
+      info: {title: 'Legacy', version: '1.0.0'},
+      host: 'test.mmt.dev',
+      paths: {
+        '/health': {
+          get: {summary: 'Health'},
+        },
+      },
+    };
+    const result = convertToMmt(JSON.stringify(swagger), {sourcePath: 'legacy.swagger.json'});
+    expect(result.sourceKind).toBe('openapi');
+    expect(result.files).toHaveLength(1);
+    expect(parseYamlStrict(result.files[0].content).title).toBe('Health');
+
+    const empty = convertToMmt(JSON.stringify({openapi: '3.0.0', info: {title: 'Empty'}, paths: {}}), {sourcePath: 'empty.openapi.json'});
+    expect(empty.files).toEqual([]);
+    expect(empty.warnings[0]).toMatch(/No OpenAPI operations/);
   });
 });

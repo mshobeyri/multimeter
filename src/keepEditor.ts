@@ -4,6 +4,7 @@ const MMT_VIEW_TYPES = new Set([
   'mmt.editor',
   'mmt.httpEditor',
   'mmt.brunoEditor',
+  'mmt.specEditor',
 ]);
 
 type TabInputLike = {

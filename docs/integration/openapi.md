@@ -2,6 +2,10 @@
 
 Bootstrap Multimeter API files from OpenAPI 3.x (JSON or YAML) or Swagger specs.
 
+## Open as MMT
+
+Right-click an OpenAPI/Swagger file and choose **Open as MMT**, or use **Open With...** → **Multimeter Spec Editor**. The left pane stays the spec. The right pane lists every operation as a tree — pick the operation itself or one of its named request examples, then send it with the API tester. Use **Save as MMT** if you want an editable `.mmt` file for that operation.
+
 ## Convert to MMT
 
 1. Right-click an OpenAPI/Swagger file (for example `openapi.yaml`, `openapi.json`, `swagger.yaml`) in the VS Code Explorer
@@ -29,7 +33,9 @@ Multimeter generates `type: api` files under `api/` with protocol, method, URL, 
 - Review generated inputs and headers before writing tests
 - Use the API editor to refine bodies and add `setenv` for downstream tests
 
-Example output: [OpenAPI convert example](../../examples/professional/04_convert_to_mmt/openapi/README.md)
+Basic convert: [one-operation OpenAPI example](../../examples/intermediate/25_convert_to_mmt/openapi/README.md)
+
+Full spec (operations, named examples, auth, schemas): [Library API example](../../examples/professional/04_convert_to_mmt/openapi/README.md)
 
 ## See also
 

@@ -31,9 +31,12 @@ const API_EDIT_TABS = [
 interface APIsProps {
   content: string;
   setContent: (value: string, options?: { force?: boolean }) => void;
+  readOnly?: boolean;
+  selector?: React.ReactNode;
+  initialExampleIndex?: number;
 }
 
-const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
+const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, selector, initialExampleIndex }) => {
   // `appliedContent` is what the right-side API UI is built from.
   // When the tester has temporary edits, YAML changes are held until the
   // user discards the UI changes or cancels.
@@ -47,7 +50,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   const api = useMemo<APIData>(() => yamlToAPI(resolvedContent), [resolvedContent]);
 
   const [page, setPage] = useState<"test" | "edit">(
-    () => (localStorage.getItem(LAST_API_PAGE_KEY) as "test" | "edit") || "test"
+    () => readOnly ? "test" : ((localStorage.getItem(LAST_API_PAGE_KEY) as "test" | "edit") || "test")
   );
   const [tab, setTab] = useState<"overview" | "interface" | "examples">(
     () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples") || "overview"
@@ -240,8 +243,17 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   }, [appliedContent, savedModifiedApi, setContent]);
 
   useEffect(() => {
+    if (readOnly && page !== "test") {
+      setPage("test");
+    }
+  }, [readOnly, page]);
+
+  useEffect(() => {
+    if (readOnly) {
+      return;
+    }
     localStorage.setItem(LAST_API_PAGE_KEY, page);
-  }, [page]);
+  }, [page, readOnly]);
 
   useEffect(() => {
     localStorage.setItem(LAST_API_TAB_KEY, tab);
@@ -291,26 +303,30 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                   onUpdateApi={update}
                   onModificationChange={handleModificationChange}
                   onRequestReset={handleRequestReset}
+                  initialExampleIndex={initialExampleIndex}
+                  selector={readOnly ? selector : undefined}
                   rightOfUrlButton={
-                    <>
-                      <YamlErrorWarning />
-                      <HideWhenYamlError>
-                        {isTestModified ? (
-                          <UnsavedChangesWarning
-                            originalYaml={appliedContent}
-                            modifiedYaml={modifiedYaml}
-                            onSave={handleWarningSave}
-                            onReset={handleWarningReset}
-                          />
-                        ) : (
-                          <HeaderAction
-                            icon="edit"
-                            label="Edit API"
-                            onClick={() => setPage('edit')}
-                          />
-                        )}
-                      </HideWhenYamlError>
-                    </>
+                    readOnly ? undefined : (
+                      <>
+                        <YamlErrorWarning />
+                        <HideWhenYamlError>
+                          {isTestModified ? (
+                            <UnsavedChangesWarning
+                              originalYaml={appliedContent}
+                              modifiedYaml={modifiedYaml}
+                              onSave={handleWarningSave}
+                              onReset={handleWarningReset}
+                            />
+                          ) : (
+                            <HeaderAction
+                              icon="edit"
+                              label="Edit API"
+                              onClick={() => setPage('edit')}
+                            />
+                          )}
+                        </HideWhenYamlError>
+                      </>
+                    )
                   }
                 />
               </div>

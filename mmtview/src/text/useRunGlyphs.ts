@@ -4,6 +4,7 @@ import {safeList} from 'mmt-core/safer';
 import {useCallback, useEffect, useRef} from 'react';
 
 import {showVSCodeMessage} from '../vsAPI';
+import type {SourceFormat} from '../sourceFormat';
 
 import {extractRootKeyInfo, extractExampleLineInfo} from './validator';
 
@@ -19,7 +20,7 @@ export function useRunGlyphs(params: {
   editorReady: boolean;
   docType: string | null;
   shouldShowRunControls: boolean;
-  sourceFormat?: 'mmt' | 'http' | 'bruno';
+  sourceFormat?: SourceFormat;
 }) {
   const {
     monacoRef,

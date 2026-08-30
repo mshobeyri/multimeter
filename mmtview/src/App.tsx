@@ -23,6 +23,13 @@ import { ensureThemeSync } from "./text/Theme";
 import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
 import { collectYamlEditorErrors } from "./text/yamlEditorErrors";
 import YamlErrorWarning from "./api/YamlErrorWarning";
+import SpecApiPanel from "./spec/SpecApiPanel";
+import {
+  SourceFormat,
+  editorLanguageForSource,
+  isSpecSourceFormat,
+  parseSourceFormat,
+} from "./sourceFormat";
 
 /** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
 function toEditorText(text: string): string {
@@ -144,7 +151,7 @@ const App: React.FC = () => {
   const [content, setContent] = useState("");
   const [validContent, setValidContent] = useState("");
   const [documentContentLoaded, setDocumentContentLoaded] = useState(false);
-  const [sourceFormat, setSourceFormat] = useState<"mmt" | "http" | "bruno">("mmt");
+  const [sourceFormat, setSourceFormat] = useState<SourceFormat>("mmt");
   const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
   const [projectRoot, setProjectRoot] = useState<string | undefined>(undefined);
   const [yamlFontSize, setYamlFontSize] = useState<number>(12);
@@ -206,6 +213,10 @@ const App: React.FC = () => {
       }
       return;
     }
+    if (isSpecSourceFormat(sourceFormat)) {
+      setValidContent(content);
+      return;
+    }
     try {
       if (isUsableMmtYaml(content)) {
         setValidContent(content);
@@ -234,8 +245,11 @@ const App: React.FC = () => {
             lastWindowWidthRef.current = window.innerWidth;
           }
         }
-        const nextSourceFormat = message.sourceFormat === "http" || isHttpFilePath(message.uri || "") ? "http" :
-          message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") ? "bruno" : "mmt";
+        const nextSourceFormat = parseSourceFormat(
+          message.sourceFormat === "http" || isHttpFilePath(message.uri || "") ? "http" :
+            message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") ? "bruno" :
+              message.sourceFormat
+        );
         setSourceFormat(nextSourceFormat);
         setContent(toEditorText(message.content));
 
@@ -251,6 +265,8 @@ const App: React.FC = () => {
           if (parsed.blocks.length > 0) {
             setValidContent(toEditorText(message.content));
           }
+        } else if (isSpecSourceFormat(nextSourceFormat)) {
+          setValidContent(toEditorText(message.content));
         } else {
           try {
             const editorText = toEditorText(message.content);
@@ -270,8 +286,12 @@ const App: React.FC = () => {
       // External document change (undo / revert) – update content without
       // echoing an updateDocumentContent message back to the extension.
       if (message.command === "documentContentChanged") {
-        const nextSourceFormat = message.sourceFormat === "http" || isHttpFilePath(message.uri || mmtFilePath || "") ? "http" :
-          message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || mmtFilePath || "") ? "bruno" : sourceFormat;
+        const nextSourceFormat = parseSourceFormat(
+          message.sourceFormat === "http" || isHttpFilePath(message.uri || mmtFilePath || "") ? "http" :
+            message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || mmtFilePath || "") ? "bruno" :
+              message.sourceFormat,
+          sourceFormat
+        );
         setSourceFormat(nextSourceFormat);
         const editorText = toEditorText(message.content);
         setContent(prev => {
@@ -291,6 +311,8 @@ const App: React.FC = () => {
           if (parsed.blocks.length > 0) {
             setValidContent(editorText);
           }
+        } else if (isSpecSourceFormat(nextSourceFormat)) {
+          setValidContent(editorText);
         } else {
           try {
             if (isUsableMmtYaml(editorText)) {
@@ -356,6 +378,9 @@ const App: React.FC = () => {
   }, [setContent, mmtFilePath, sourceFormat]);
 
   const docType = useMemo(() => {
+    if (isSpecSourceFormat(sourceFormat)) {
+      return validContent.trim() ? "spec" : null;
+    }
     if (sourceFormat === "http" || sourceFormat === "bruno") {
       return validContent.trim() ? "test" : null;
     }
@@ -510,7 +535,7 @@ const App: React.FC = () => {
               onFocusChange={setYamlEditorFocused}
               fontSize={yamlFontSize}
               collapseDescription={collapseDescription}
-              language={sourceFormat === "http" || sourceFormat === "bruno" ? "http" : "yaml"}
+              language={editorLanguageForSource(sourceFormat, mmtFilePath)}
               sourceFormat={sourceFormat}
             />
           </div>
@@ -536,6 +561,9 @@ const App: React.FC = () => {
               <PanelErrorBoundary resetKey={`${docType || "none"}::${validContent}`}>
                 {docType === "env" && (
                   <EnvironmentPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "spec" && (
+                  <SpecApiPanel content={validContent} />
                 )}
                 {docType === "api" && (
                   <APIPanel content={validContent} setContent={uiSetContent} />

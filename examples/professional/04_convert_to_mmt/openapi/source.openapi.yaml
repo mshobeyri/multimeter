@@ -1,18 +1,361 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: Convert Example API
-  version: 1.0.0
+  title: Library API
+  version: 1.2.0
+  description: |
+    Sample OpenAPI spec for Multimeter. Open this file with **Open as MMT**
+    to pick an operation or one of its named examples, then Send.
+
+    All paths hit the public [test.mmt.dev](https://test.mmt.dev) sandbox.
+    `POST` / `PUT` echo the body; `GET /json` returns a fixed payload;
+    `DELETE /status/200` returns HTTP 200.
+  contact:
+    name: Multimeter
+    url: https://mmt.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
 servers:
   - url: https://test.mmt.dev
+    description: Public Multimeter test server
+
+tags:
+  - name: books
+    description: Catalog browse and mutations
+  - name: loans
+    description: Checkout and return
+  - name: health
+    description: Service probes
+
+security:
+  - bearerAuth: []
+
 paths:
   /json:
     get:
-      summary: Get sample JSON
+      tags: [books]
+      operationId: listBooks
+      summary: List books
+      description: Returns the sandbox JSON catalog snapshot.
       parameters:
-        - name: trace
-          in: header
+        - $ref: '#/components/parameters/TraceHeader'
+        - name: include
+          in: query
+          description: Optional extra fields to request
           schema:
-            example: demo
+            type: string
+            example: author
       responses:
         '200':
-          description: Sample JSON payload
+          description: Catalog payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Catalog'
+              example:
+                userId: 1
+                id: 1
+                title: Sample
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /echo:
+    post:
+      tags: [books]
+      operationId: createBook
+      summary: Create book
+      description: Echoes the request body. Use the named examples to switch payloads.
+      parameters:
+        - $ref: '#/components/parameters/TraceHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookDraft'
+            example:
+              title: The Name of the Wind
+              author: Patrick Rothfuss
+              year: 2007
+              isbn: '9780756404741'
+            examples:
+              fantasy:
+                summary: Fantasy novel
+                description: Default hardcover draft
+                value:
+                  title: The Name of the Wind
+                  author: Patrick Rothfuss
+                  year: 2007
+                  isbn: '9780756404741'
+              scifi:
+                summary: Science fiction
+                value:
+                  title: Project Hail Mary
+                  author: Andy Weir
+                  year: 2021
+                  isbn: '9780593135204'
+              missingTitle:
+                summary: Missing title
+                description: Invalid body for a 400-style review
+                value:
+                  author: Unknown
+                  year: 1999
+      responses:
+        '200':
+          description: Echo of the created book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [books]
+      operationId: updateBook
+      summary: Update book
+      description: Echoes an updated book payload.
+      parameters:
+        - $ref: '#/components/parameters/TraceHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Book'
+            examples:
+              rename:
+                summary: Rename title
+                value:
+                  id: 42
+                  title: The Wise Man's Fear
+                  author: Patrick Rothfuss
+                  year: 2011
+              reprint:
+                summary: New edition year
+                value:
+                  id: 42
+                  title: The Name of the Wind
+                  author: Patrick Rothfuss
+                  year: 2018
+      responses:
+        '200':
+          description: Echo of the updated book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags: [books]
+      operationId: searchBooks
+      summary: Search books
+      description: Echoes query parameters. Useful for paging and filters.
+      parameters:
+        - name: q
+          in: query
+          description: Free-text title or author
+          schema:
+            type: string
+            example: Rothfuss
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 20
+        - $ref: '#/components/parameters/TraceHeader'
+      responses:
+        '200':
+          description: Echoed search query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /echo/{loanId}:
+    post:
+      tags: [loans]
+      operationId: checkoutBook
+      summary: Checkout book
+      description: Starts a loan. Path `{loanId}` is replaced from the example.
+      parameters:
+        - name: loanId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: loan-1001
+        - $ref: '#/components/parameters/TraceHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Checkout'
+            examples:
+              member:
+                summary: Member checkout
+                value:
+                  bookId: 42
+                  memberId: mem-17
+                  days: 21
+              staff:
+                summary: Staff override
+                value:
+                  bookId: 7
+                  memberId: staff-1
+                  days: 7
+                  override: true
+      responses:
+        '200':
+          description: Echo of the checkout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /status/200:
+    delete:
+      tags: [loans]
+      operationId: returnBook
+      summary: Return book
+      description: Sandbox delete that always returns 200.
+      parameters:
+        - $ref: '#/components/parameters/TraceHeader'
+      responses:
+        '200':
+          description: Returned
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /status/{code}:
+    get:
+      tags: [health]
+      operationId: healthStatus
+      summary: Health status
+      description: Returns the given HTTP status from the sandbox.
+      security: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 200
+            enum: [200, 204, 400, 401, 404, 500]
+      responses:
+        '200':
+          description: Healthy
+        '400':
+          description: Client error probe
+        '500':
+          description: Server error probe
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Optional on the sandbox. Send any token or leave empty.
+
+  parameters:
+    TraceHeader:
+      name: X-Trace
+      in: header
+      required: false
+      schema:
+        type: string
+        example: demo
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    BookDraft:
+      type: object
+      required: [title, author]
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        year:
+          type: integer
+          minimum: 1400
+        isbn:
+          type: string
+
+    Book:
+      allOf:
+        - $ref: '#/components/schemas/BookDraft'
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+
+    Catalog:
+      type: object
+      properties:
+        userId:
+          type: integer
+        id:
+          type: integer
+        title:
+          type: string
+
+    Checkout:
+      type: object
+      required: [bookId, memberId]
+      properties:
+        bookId:
+          type: integer
+        memberId:
+          type: string
+        days:
+          type: integer
+          default: 14
+        override:
+          type: boolean
+
+    EchoResponse:
+      type: object
+      description: test.mmt.dev echo envelope
+      additionalProperties: true
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
