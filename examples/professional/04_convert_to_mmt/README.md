@@ -1,22 +1,22 @@
 # Convert a full OpenAPI spec
 
-A complete Library API spec you can **Open as MMT** or **Convert to MMT...**.
+OpenAPI for the public [test.mmt.dev](https://test.mmt.dev) Multimeter Test Server. Use **Open as MMT** or **Convert to MMT...**.
 
 The spec covers the features Multimeter maps from OpenAPI:
 
 - Multiple paths and methods (`GET`, `POST`, `PUT`, `DELETE`)
 - Named request examples (the Open as MMT tree shows each operation and its examples)
 - Path, query, and header parameters
-- Shared `components` (schemas, parameters, responses, bearer auth)
+- Shared `components` (schemas, parameters, responses, bearer and basic auth)
 - Tags, servers, and operation descriptions
 
-All operations hit the public [test.mmt.dev](https://test.mmt.dev) sandbox, so Send works after you pick an operation.
+Operations match real sandbox endpoints (`/json`, `/echo`, `/status/{code}`, `/auth/bearer`, …), so Send works after you pick an operation.
 
 ## Files
 
 | Path | Description |
 |---|---|
-| `openapi/source.openapi.yaml` | Full OpenAPI 3 spec |
+| `openapi/source.openapi.yaml` | Full OpenAPI 3 spec for test.mmt.dev |
 | `openapi/converted/api/` | Expected `type: api` files from **Convert to MMT...** |
 
 ## How to use

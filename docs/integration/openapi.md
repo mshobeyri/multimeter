@@ -35,7 +35,7 @@ Multimeter generates `type: api` files under `api/` with protocol, method, URL, 
 
 Basic convert: [one-operation OpenAPI example](../../examples/intermediate/25_convert_to_mmt/openapi/README.md)
 
-Full spec (operations, named examples, auth, schemas): [Library API example](../../examples/professional/04_convert_to_mmt/openapi/README.md)
+Full spec (operations, named examples, auth, schemas): [Multimeter Test Server OpenAPI example](../../examples/professional/04_convert_to_mmt/openapi/README.md)
 
 ## See also
 
