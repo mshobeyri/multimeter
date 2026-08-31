@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StepStatus } from './types';
 import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
+import ReportStatusFilterButton from './ReportStatusFilterButton';
+import { ReportStatusFilter, filterStepReports } from './reportStatusFilter';
 
 /** Parsed call result details extracted from the `_` field of an API call output. */
 interface CallResultDetails {
@@ -282,11 +284,21 @@ interface TestStepReportPanelProps {
   disabledRun?: boolean;
   showHeader?: boolean;
   showTimestamps?: boolean;
+  /** When true (default with showHeader), show All/Passed/Failed view filter. */
+  showStatusFilter?: boolean;
 }
 
 const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
-  const { isExpanded, stepReports, runState, showHeader = true, showTimestamps = true } = props;
+  const {
+    isExpanded,
+    stepReports,
+    runState,
+    showHeader = true,
+    showTimestamps = true,
+    showStatusFilter = showHeader,
+  } = props;
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
   const stepCountRef = useRef(0);
 
   useEffect(() => {
@@ -298,6 +310,11 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
       setExpandedDetails({});
     }
   }, [isExpanded]);
+
+  const visibleReports = useMemo(
+    () => filterStepReports(stepReports, statusFilter),
+    [stepReports, statusFilter]
+  );
 
   const unescapeCommon = useCallback((s: string): string => {
     if (!s) {
@@ -312,19 +329,20 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     return null;
   }
 
+  const filterControl = showStatusFilter ? (
+    <ReportStatusFilterButton
+      value={statusFilter}
+      onChange={setStatusFilter}
+      disabled={stepReports.length === 0}
+    />
+  ) : null;
+
   return (
-    <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginTop: 8 }}>
-      {showHeader && (
-        <div
-          style={{
-            marginBottom: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-            backgroundColor: 'transparent',
-          }}
-        >
+    <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', marginTop: showStatusFilter ? 0 : 8 }}>
+      {showStatusFilter && (
+        <div className="report-section-header">
+          {showHeader ? <div className="label">Report</div> : <span />}
+          {filterControl}
         </div>
       )}
 
@@ -335,15 +353,22 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
           borderRadius: 6,
           padding: 12,
           background: 'transparent',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
         }}
       >
         {stepReports.length === 0 ? (
           <div style={{ opacity: 0.7 }}>
             {runState === 'running' ? 'Waiting for checks and asserts to report…' : 'No check/assert results yet.'}
           </div>
+        ) : visibleReports.length === 0 ? (
+          <div style={{ opacity: 0.7 }}>
+            No {statusFilter} results in this report.
+          </div>
         ) : (
           <div className="report-selectable" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {stepReports.map((report, reportIdx) => {
+            {visibleReports.map((report, reportIdx) => {
               const isDebug = report.stepType === 'debug';
               // Stable key: timestamp remounts wipe selection / collapse details.
               const reportKey = `${report.stepType}-${report.stepIndex}-${reportIdx}`;

@@ -9,6 +9,7 @@ import { StepStatus } from '../../shared/types';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 import { ownRunStatus } from './suiteRunStatus';
+import { ReportStatusFilter, filterTreeItemsByStatus } from '../../shared/reportStatusFilter';
 
 const EMPTY_STEP_REPORTS: StepReportItem[] = [];
 
@@ -64,6 +65,8 @@ interface SuiteTestTreeProps {
 
   reportsById: Record<string, StepReportItem[]>;
   runStateById: Record<string, StepStatus>;
+  /** View-only status filter; does not change run data or exports. */
+  statusFilter?: ReportStatusFilter;
 
   onRunTargets: (target: string) => void | Promise<void>;
   /** Logs-only core run (no UI panel updates). */
@@ -129,6 +132,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   statusIconFor,
   reportsById,
   runStateById,
+  statusFilter = 'all',
   onRunTargets,
   onRunTargetsInCore,
 }) => {
@@ -308,6 +312,43 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     return { items };
   }, [base.items, expandedItems, groups, hierarchyByEntryId]);
 
+  const visibleItems = useMemo(() => {
+    if (statusFilter === 'all') {
+      return treeData.items;
+    }
+    return filterTreeItemsByStatus(
+      treeData.items,
+      'suite-root',
+      statusFilter,
+      (item) => {
+        const data = item.data as SuiteTestTreeItemData | undefined;
+        const itemIndex = String(item.index);
+        if (!data) {
+          return 'default';
+        }
+        if (data.type === 'root') {
+          return 'default';
+        }
+        if (data.type === 'group') {
+          const match = /^group-(\d+)$/.exec(itemIndex);
+          if (match) {
+            return ownRunStatus(runStateById, createSuiteNodeId([Number(match[1]) - 1]));
+          }
+          const bundleId = (data as { id?: string }).id;
+          return ownRunStatus(runStateById, typeof bundleId === 'string' ? bundleId : undefined);
+        }
+        const itemBundleId = (data as { id?: string }).id;
+        const ownerEntryId = owningEntryIdFromTreeIndex(itemIndex);
+        const belongs =
+          !itemBundleId || bundleIdBelongsToEntry(ownerEntryId, itemBundleId);
+        if (!belongs) {
+          return 'default';
+        }
+        return ownRunStatus(runStateById, itemBundleId || itemIndex);
+      },
+    );
+  }, [treeData.items, statusFilter, runStateById]);
+
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
       setExpandedItems((prev) => (prev.includes(String(item.index)) ? prev : [...prev, String(item.index)]));
@@ -477,7 +518,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   ]);
   return (
     <ControlledTreeEnvironment
-      items={treeData.items}
+      items={visibleItems}
       getItemTitle={(item) => {
         const data = item.data as SuiteTestTreeItemData;
         // Show the id in the accessible/title string for all node kinds.

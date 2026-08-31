@@ -1862,7 +1862,7 @@ select.method-select:focus-visible {
   padding-top: 8px;
   padding-right: 8px;
   gap: 8px;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   box-sizing: border-box;
   min-width: 0;
@@ -1946,9 +1946,64 @@ select.method-select:focus-visible {
   opacity: 1;
 }
 
+.report-status-filter {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.report-status-filter-icon {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--vscode-foreground, #ccc);
+  opacity: 0.75;
+}
+
+.report-status-filter-icon.is-active {
+  opacity: 1;
+  color: var(--vscode-focusBorder, #007fd4);
+}
+
+.report-status-filter-icon.is-disabled {
+  opacity: 0.4;
+}
+
+.report-section-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  /* Room for the absolutely positioned filter icon + right inset */
+  padding-right: 28px;
+}
+
+.report-section-header .label {
+  margin-bottom: 0;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  min-width: 0;
+}
+
 .test-flow-tree {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .test-flow-tree>div>ul {

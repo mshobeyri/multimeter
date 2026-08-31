@@ -23,6 +23,8 @@ import {
 } from './suiteHierarchyFingerprint';
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
+import ReportStatusFilterButton from '../../shared/ReportStatusFilterButton';
+import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
 import { HideWhenYamlError } from '../../api/YamlErrorWarning';
@@ -454,6 +456,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const [loadRunSummary, setLoadRunSummary] = useState<LoadRunSummary | null>(null);
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
+    const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
     const suiteRunStartTimeRef = useRef<number | null>(null);
     const [suiteRunStartedAt, setSuiteRunStartedAt] = useState<number | null>(null);
     const [suiteRunDurationMs, setSuiteRunDurationMs] = useState<number | null>(null);
@@ -1078,6 +1081,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             statusIconFor={statusIconFor}
             reportsById={leafReportsById}
             runStateById={leafRunStateById}
+            statusFilter={statusFilter}
             onRunTargets={onRunTargets}
             onRunTargetsInCore={onRunTargetsInCore}
         />
@@ -1100,7 +1104,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
             </div>
-            <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
             <div className="test-flow-tree">
                 {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div> : (
                     <>
@@ -1226,7 +1230,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             />
                         ) : (
                             <>
-                                <div className="label" style={{ marginBottom: 10 }}>Tests</div>
+                                <div className="report-section-header">
+                                    <div className="label">Tests</div>
+                                    <ReportStatusFilterButton
+                                        value={statusFilter}
+                                        onChange={setStatusFilter}
+                                        disabled={Object.keys(leafRunStateById).length === 0}
+                                    />
+                                </div>
                                 {tree}
                             </>
                         )}

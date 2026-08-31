@@ -408,7 +408,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
     }, [stepReports, runState, runStartedAt, runDurationMs]);
 
     return (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
             <div className="run-action-bar">
                 <RunStopToggle
                     running={isRunning}
@@ -424,7 +424,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                     <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
             </div>
-            <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
             {hasInputs && (
                 <div style={{ marginBottom: 12 }}>
                     <VEditor
@@ -453,15 +453,13 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                 </div>
             )}
             {overviewStats && <OverviewBoxes stats={overviewStats} />}
-            {(hasInputs || hasOutputs || overviewStats) && (
-                <div className="label" style={{ marginBottom: 10 }}>Report</div>
-            )}
             <TestStepReportPanel
                 isExpanded={true}
                 stepReports={stepReports}
                 runState={runState === 'running' ? 'running' : runState === 'passed' ? 'passed' : runState === 'failed' ? 'failed' : 'default'}
                 onRun={handleRun}
                 runButtonLabel="Run test"
+                showHeader={Boolean(hasInputs || hasOutputs || overviewStats || stepReports.length > 0)}
             />
             </div>
         </div>
