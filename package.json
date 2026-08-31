@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "REST Client and API testing in VS Code. Git-native alternative to Postman, Bruno, and Thunder Client.",
-  "version": "1.35.1",
+  "version": "1.35.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"

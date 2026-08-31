@@ -1,7 +1,7 @@
 {
   "name": "multimeter",
   "displayName": "Multimeter",
-  "version": "1.35.1",
+  "version": "1.35.2",
   "description": "Git-native API testing for Cursor: Multimeter MCP tools, .mmt authoring rules, and edit/run commands.",
   "author": {
     "name": "mshobeyri"

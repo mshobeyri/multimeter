@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.35.2]
+
+- Stable release of Multimeter 1.35.1 for marketplace packaging
+
 ## [1.35.1]
 
 - Keep `#` comments in YAML when you save from the UI (API, test, env, suite, mock, doc, load test)
