@@ -1,0 +1,45 @@
+type: server
+title: Vault KV mock
+description: |-
+  Mimics HashiCorp Vault / OpenBao KV v2 read responses so the
+  Multimeter HTTP + setenv flow can be demonstrated without a real Vault.
+  Also exposes a bearer-protected probe that accepts the secret token.
+port: 9108
+cors: true
+endpoints:
+  - method: get
+    path: /v1/secret/data/mmt
+    status: 200
+    format: json
+    # Same nested shape as Vault KV v2: data.data.<key>
+    body:
+      request_id: mock-request
+      data:
+        data:
+          token: testtoken
+          api_url: https://test.mmt.dev
+        metadata:
+          version: 1
+  - method: get
+    path: /auth/bearer
+    match:
+      headers:
+        Authorization: Bearer testtoken
+    status: 200
+    format: json
+    body:
+      authenticated: true
+      message: token accepted
+  - method: get
+    path: /auth/bearer
+    status: 401
+    format: json
+    body:
+      authenticated: false
+      message: missing or invalid bearer token
+fallback:
+  status: 404
+  format: json
+  body:
+    errors:
+      - path not found

@@ -1,0 +1,22 @@
+type: api
+title: Vault KV read
+description: |-
+  Reads a secret over plain HTTP the same way you would call Vault or OpenBao
+  KV v2 (`GET /v1/secret/data/...` + `X-Vault-Token`).
+
+  `setenv` promotes `token` into the runtime environment so later APIs can use
+  `e:api_token` / `<<e:api_token>>`.
+
+  Default URL hits the local mock in this example. Point `vault_addr` at a real
+  Vault/OpenBao and set `vault_token` to use your cluster instead.
+protocol: http
+method: get
+url: <<e:vault_addr>>/v1/secret/data/<<e:vault_secret_path>>
+headers:
+  X-Vault-Token: <<e:vault_token>>
+  Accept: application/json
+format: json
+outputs:
+  api_token: body.data.data.token
+setenv:
+  api_token: body.data.data.token

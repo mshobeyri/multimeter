@@ -1,0 +1,16 @@
+type: api
+title: Bearer auth with env token
+description: |-
+  Calls a bearer-protected endpoint using the token pulled from Vault
+  (or the mock) via `setenv` → `e:api_token`.
+
+  Default URL hits the local mock. Swap to
+  `https://test.mmt.dev/auth/bearer` to verify against the public sandbox
+  (expects `Bearer testtoken`).
+protocol: http
+method: get
+url: <<e:vault_addr>>/auth/bearer
+format: json
+auth:
+  type: bearer
+  token: e:api_token
