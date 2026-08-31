@@ -15,7 +15,7 @@ import {readRelativeFileContent, readRelativeFileBinary} from './file';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 import {onRunStarted, onRunFinished} from '../runStatusBar';
-import {keepMmtEditorSoon} from '../keepEditor';
+import {keepMmtEditor} from '../keepEditor';
 import {getOnboarding} from '../onboarding';
 import {
   createWebviewRunReporter,
@@ -286,7 +286,8 @@ export async function handleRunCurrentDocument(
   };
 
   // Keep preview tab open while a run is in progress (file may not be dirty).
-  keepMmtEditorSoon(document.uri);
+  // Await so pin finishes before other run side effects; must not remount webview.
+  await keepMmtEditor(document.uri);
 
   const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);
@@ -442,7 +443,8 @@ export async function handleRunSuite(
   };
 
   // Keep preview tab open while a suite run is in progress.
-  keepMmtEditorSoon(document.uri);
+  // Await so pin finishes before other run side effects; must not remount webview.
+  await keepMmtEditor(document.uri);
 
   const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);

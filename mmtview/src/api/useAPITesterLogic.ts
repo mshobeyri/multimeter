@@ -373,8 +373,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   }, [requestData, selectedExampleIdx, currentInputs]);
 
   const handleRunInCore = useCallback(() => {
-    window.vscode?.postMessage({ command: "showLogOutputChannel" });
     runViaCore({ forSend: false });
+    window.vscode?.postMessage({ command: "showLogOutputChannel" });
   }, [runViaCore]);
 
   const handleSend = useCallback(async () => {
