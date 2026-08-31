@@ -10,6 +10,11 @@ describe('httpParsePack', () => {
     expect(detectDocType('/tmp/flow.http', 'GET https://example.com')).toBe('test');
   });
 
+  it('prefers serialized MMT YAML type over .http path when the API panel sends rawFile', () => {
+    expect(detectDocType('/tmp/flow.http', 'type: api\nurl: https://example.com\nmethod: get\n')).toBe('api');
+    expect(detectDocType('/tmp/flow.https', 'type: test\nsteps:\n  - http: https://example.com\n')).toBe('test');
+  });
+
   it('adds debug to request steps used for HTTP runtime conversion', () => {
     const test = httpToTest(`GET https://test.mmt.dev/json`, 'ping.http');
     expect(test.steps?.[0]).toMatchObject({

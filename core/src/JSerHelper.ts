@@ -74,6 +74,13 @@ export const fileType = (path: string, content: string): Type => {
   }
 
   if (path.endsWith('.http') || path.endsWith('.https') || path.endsWith('.bru') || path.endsWith('.bruno')) {
+    // Source selector / API Send posts MMT YAML as rawFile while the open
+    // path is still .bru / .http. Prefer that type so API runs hit executeApi
+    // (and post multimeter.api.run.result) instead of the native test path.
+    const fromYaml = mmtTypeFromYamlPrefix(content);
+    if (fromYaml) {
+      return fromYaml;
+    }
     return 'test';
   }
 

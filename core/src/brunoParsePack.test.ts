@@ -35,6 +35,11 @@ describe('brunoParsePack', () => {
     expect(detectDocType('/tmp/get_user.bruno', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
   });
 
+  it('prefers serialized MMT YAML type over .bru path when the API panel sends rawFile', () => {
+    expect(detectDocType('/tmp/get_user.bru', 'type: api\ntitle: Get user\nurl: https://example.com\n')).toBe('api');
+    expect(detectDocType('/tmp/get_user.bru', 'type: test\ntitle: Flow\nsteps:\n  - http: https://example.com\n')).toBe('test');
+  });
+
   it('parses the convert-to-mmt example source.bru', () => {
     const parsed = parseBrunoDocument(SOURCE_BRU);
     expect(parsed.warnings).toEqual([]);
