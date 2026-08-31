@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useMemo } from "react";
 import type { BrunoSourceFile } from "mmt-core/brunoParsePack";
-import { brunoCollectionToTest, brunoToTest } from "mmt-core/brunoParsePack";
+import { brunoCollectionToTest, brunoToTest, isBrunoCollectionFilePath } from "mmt-core/brunoParsePack";
 import { listSpecApisFromFiles } from "mmt-core/importConvertor";
 import { FileContext } from "../fileContext";
 import SourceKindPanel from "../source/SourceKindPanel";
@@ -21,6 +21,10 @@ export function mergeBrunoCollectionFiles(
     files: BrunoSourceFile[] | undefined,
     filePath: string | undefined,
     content: string): BrunoSourceFile[] {
+  // Opening bruno.json: use the loaded collection only (JSON is not a request).
+  if (isBrunoCollectionFilePath(filePath || "")) {
+    return files && files.length > 0 ? files : [];
+  }
   if (!files || files.length === 0) {
     if (!content.trim()) {
       return [];
@@ -48,17 +52,18 @@ interface BrunoPanelProps {
 
 const BrunoPanel: React.FC<BrunoPanelProps> = ({ content, setContent }) => {
   const { mmtFilePath, collectionFiles, collectionName } = useContext(FileContext);
+  const isCollection = isBrunoCollectionFilePath(mmtFilePath || "");
   const files = useMemo(
     () => mergeBrunoCollectionFiles(collectionFiles, mmtFilePath, content),
     [collectionFiles, mmtFilePath, content]
   );
   const apis = useMemo(() => listSpecApisFromFiles(files), [files]);
   const parseTest = useCallback((_value: string) => {
-    if (files.length > 1) {
+    if (isCollection) {
       return brunoCollectionToTest(files, collectionName || "Bruno collection");
     }
     return brunoToTest(content, mmtFilePath || "");
-  }, [files, collectionName, content, mmtFilePath]);
+  }, [isCollection, files, collectionName, content, mmtFilePath]);
 
   return (
     <SourceKindPanel
@@ -67,7 +72,9 @@ const BrunoPanel: React.FC<BrunoPanelProps> = ({ content, setContent }) => {
       apis={apis}
       parseTest={parseTest}
       includeAll
-      emptyMessage="No Bruno requests were found."
+      emptyMessage={isCollection
+        ? "No Bruno requests were found in this collection."
+        : "No Bruno request was found in this file."}
     />
   );
 };

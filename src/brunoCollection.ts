@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import {isBrunoRequestFilePath} from 'mmt-core/brunoParsePack';
+import {isBrunoCollectionFilePath, isBrunoRequestFilePath} from 'mmt-core/brunoParsePack';
 
 const DEFAULT_IGNORE = ['node_modules', '.git', '.svn', '.hg'];
 
@@ -14,21 +14,6 @@ export interface BrunoCollectionFile {
 export interface BrunoCollectionPayload {
   collectionName?: string;
   collectionFiles: BrunoCollectionFile[];
-}
-
-function findBrunoCollectionRoot(filePath: string): string|undefined {
-  let dir = path.dirname(filePath);
-  for (let i = 0; i < 16; i++) {
-    if (fs.existsSync(path.join(dir, 'bruno.json'))) {
-      return dir;
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) {
-      break;
-    }
-    dir = parent;
-  }
-  return undefined;
 }
 
 function readBrunoCollectionMeta(root: string): {name?: string; ignore: Set<string>} {
@@ -99,20 +84,16 @@ export function brunoWebviewExtras(
   };
 }
 
+/**
+ * Collection listing is only for opening `bruno.json`.
+ * Opening a `.bru` request shows that request alone (test + API).
+ */
 export function loadBrunoCollectionPayload(openFilePath: string): BrunoCollectionPayload {
   const empty: BrunoCollectionPayload = {collectionFiles: []};
-  if (!openFilePath) {
+  if (!openFilePath || !isBrunoCollectionFilePath(openFilePath)) {
     return empty;
   }
-  let root: string|undefined;
-  try {
-    root = findBrunoCollectionRoot(openFilePath);
-  } catch {
-    return empty;
-  }
-  if (!root) {
-    return empty;
-  }
+  const root = path.dirname(openFilePath);
   const meta = readBrunoCollectionMeta(root);
   const collectionFiles: BrunoCollectionFile[] = [];
   for (const filePath of walkBrunoRequestFiles(root, meta.ignore)) {

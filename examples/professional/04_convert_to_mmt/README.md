@@ -8,7 +8,7 @@ Full [test.mmt.dev](https://test.mmt.dev) coverage across every import format Mu
 |---|---|---|
 | `openapi/` | `source.openapi.yaml` | Full OpenAPI 3 for the sandbox |
 | `http/` | `source.http` | All HTTP endpoints in one file |
-| `bruno/` | `*.bru` + `bruno.json` | Bruno collection (open the folder or a request) |
+| `bruno/` | `*.bru` + `bruno.json` | Bruno collection (open `bruno.json` or a single `.bru`) |
 | `postman/` | `source.postman_collection.json` | Postman collection with folders |
 | `wsdl/` | `source.wsdl` | Multi-operation WSDL convert sample (`/xml`) |
 
@@ -18,7 +18,7 @@ WebSocket `WS /ws` is listed on the sandbox help page but is not exported from O
 
 ### Open as MMT
 
-1. Right-click a source file (or Bruno collection folder) → **Open as MMT**
+1. Right-click a source file (or Bruno `bruno.json`) → **Open as MMT**
 2. Pick an operation / request from the selector
 3. Send — responses come from `https://test.mmt.dev`
 

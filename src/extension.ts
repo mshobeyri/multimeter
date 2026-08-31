@@ -265,6 +265,8 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
               'Please select an MMT, HTTP, Bruno, OpenAPI, Postman, or WSDL file');
           return;
         }
+        // Spec-family extensions (.json/.yaml/…) need content sniffing; Bruno
+        // collection manifests are excluded from isSpecFamilyPath already.
         if (isSpecFamilyUri(targetUri) && !hasMmtExtension(targetUri)) {
           const document = await vscode.workspace.openTextDocument(targetUri);
           const kind = detectImportSource(document.getText(), targetUri.fsPath);
@@ -305,11 +307,17 @@ function isSpecFamilyUri(uri: vscode.Uri): boolean {
   return isSpecFamilyPath(uriPathForExt(uri));
 }
 
+function isBrunoJsonPath(lowerPath: string): boolean {
+  const base = lowerPath.replace(/\\/g, '/').split('/').pop() || '';
+  return base === 'bruno.json';
+}
+
 function isMmtFamilyUri(uri: vscode.Uri): boolean {
   const lowerPath = uriPathForExt(uri);
   return lowerPath.endsWith('.mmt') || lowerPath.endsWith('.http') ||
       lowerPath.endsWith('.https') || lowerPath.endsWith('.bru') ||
-      lowerPath.endsWith('.bruno') || isSpecFamilyPath(lowerPath);
+      lowerPath.endsWith('.bruno') || isBrunoJsonPath(lowerPath) ||
+      isSpecFamilyPath(lowerPath);
 }
 
 function mmtViewTypeForUri(uri: vscode.Uri): string {
@@ -317,7 +325,8 @@ function mmtViewTypeForUri(uri: vscode.Uri): string {
   if (lowerPath.endsWith('.http') || lowerPath.endsWith('.https')) {
     return 'mmt.httpEditor';
   }
-  if (lowerPath.endsWith('.bru') || lowerPath.endsWith('.bruno')) {
+  if (lowerPath.endsWith('.bru') || lowerPath.endsWith('.bruno') ||
+      isBrunoJsonPath(lowerPath)) {
     return 'mmt.brunoEditor';
   }
   if (isSpecFamilyPath(lowerPath)) {

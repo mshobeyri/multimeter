@@ -34,6 +34,13 @@ export function isBrunoFilePath(filePath: string): boolean {
   return lower.endsWith('.bru') || lower.endsWith('.bruno');
 }
 
+/** True for Bruno collection manifests (`bruno.json`), not request files. */
+export function isBrunoCollectionFilePath(filePath: string): boolean {
+  const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  const base = normalized.split('/').pop() || '';
+  return base === 'bruno.json';
+}
+
 export function isBrunoRequestFilePath(filePath: string): boolean {
   if (!isBrunoFilePath(filePath)) {
     return false;

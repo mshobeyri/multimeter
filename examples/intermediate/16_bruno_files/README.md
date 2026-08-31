@@ -2,11 +2,11 @@
 
 These examples show `.bru` files that can be opened through **Open With...** → **Multimeter Bruno Test Editor**, or **Open as MMT**.
 
-The header has a selector and **Save as MMT**. **All** runs the file or collection as one test; pick a request to Send it. The Test and API UIs are the same as for `.mmt` files.
+The header has a selector and **Save as MMT**. For a single `.bru`, **All** runs that request as one test; pick the request to Send it as an API. For a collection, open `bruno.json` to get **All** (every request as one test) plus each request in the list.
 
 ## Files
 
-- `library/`: a Bruno collection (`bruno.json` plus several request files). Open any file in that folder to pick requests from the selector, or run the collection as one test.
+- `library/`: a Bruno collection (`bruno.json` plus several request files). Open `bruno.json` for the full collection, or any `.bru` for that request alone.
 - `checkout_book_complete.bru`: one complete standalone request with meta, docs, vars, headers, query params, bearer auth, a JSON body, and several `expect` checks.
 - `get_profile.bru`: a simple Bruno GET request with variables, headers, bearer auth, query params, and assertions.
 - `create_user_json.bru`: a POST request with a JSON body and bearer auth.

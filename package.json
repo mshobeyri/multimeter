@@ -251,16 +251,25 @@
             "filenamePattern": "file:/**/*.bruno"
           },
           {
+            "filenamePattern": "file:/**/bruno.json"
+          },
+          {
             "filenamePattern": "vscode-remote:/**/*.bru"
           },
           {
             "filenamePattern": "vscode-remote:/**/*.bruno"
           },
           {
+            "filenamePattern": "vscode-remote:/**/bruno.json"
+          },
+          {
             "filenamePattern": "vscode-vfs:/**/*.bru"
           },
           {
             "filenamePattern": "vscode-vfs:/**/*.bruno"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/bruno.json"
           }
         ],
         "priority": "option"

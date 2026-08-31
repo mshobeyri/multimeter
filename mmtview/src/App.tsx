@@ -13,7 +13,7 @@ import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
 import ReportPanel from "./report/ReportPanel";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
-import { isBrunoFilePath, parseBrunoDocument, type BrunoSourceFile } from "mmt-core/brunoParsePack";
+import { isBrunoCollectionFilePath, isBrunoFilePath, parseBrunoDocument, type BrunoSourceFile } from "mmt-core/brunoParsePack";
 import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
 import { normalizeNewlines } from "mmt-core/textLines";
 import YamlEditorPanel from "./text/YamlEditorPanel";
@@ -210,6 +210,10 @@ const App: React.FC = () => {
       return;
     }
     if (sourceFormat === "bruno") {
+      if (isBrunoCollectionFilePath(mmtFilePath || "")) {
+        setValidContent(content);
+        return;
+      }
       const parsed = parseBrunoDocument(content);
       if (parsed.blocks.length > 0) {
         setValidContent(content);
@@ -250,7 +254,7 @@ const App: React.FC = () => {
         }
         const nextSourceFormat = parseSourceFormat(
           message.sourceFormat === "http" || isHttpFilePath(message.uri || "") ? "http" :
-            message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") ? "bruno" :
+            message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") || isBrunoCollectionFilePath(message.uri || "") ? "bruno" :
               message.sourceFormat
         );
         setSourceFormat(nextSourceFormat);
@@ -264,9 +268,14 @@ const App: React.FC = () => {
             setValidContent(toEditorText(message.content));
           }
         } else if (nextSourceFormat === "bruno") {
-          const parsed = parseBrunoDocument(message.content);
-          if (parsed.blocks.length > 0) {
+          if (isBrunoCollectionFilePath(message.uri || "") ||
+              (Array.isArray(message.collectionFiles) && message.collectionFiles.length > 0)) {
             setValidContent(toEditorText(message.content));
+          } else {
+            const parsed = parseBrunoDocument(message.content);
+            if (parsed.blocks.length > 0) {
+              setValidContent(toEditorText(message.content));
+            }
           }
         } else if (isSpecSourceFormat(nextSourceFormat)) {
           setValidContent(toEditorText(message.content));
@@ -298,7 +307,8 @@ const App: React.FC = () => {
       if (message.command === "documentContentChanged") {
         const nextSourceFormat = parseSourceFormat(
           message.sourceFormat === "http" || isHttpFilePath(message.uri || mmtFilePath || "") ? "http" :
-            message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || mmtFilePath || "") ? "bruno" :
+            message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || mmtFilePath || "") ||
+              isBrunoCollectionFilePath(message.uri || mmtFilePath || "") ? "bruno" :
               message.sourceFormat,
           sourceFormat
         );
@@ -317,9 +327,14 @@ const App: React.FC = () => {
             setValidContent(editorText);
           }
         } else if (nextSourceFormat === "bruno") {
-          const parsed = parseBrunoDocument(editorText);
-          if (parsed.blocks.length > 0) {
+          if (isBrunoCollectionFilePath(message.uri || mmtFilePath || "") ||
+              (Array.isArray(message.collectionFiles) && message.collectionFiles.length > 0)) {
             setValidContent(editorText);
+          } else {
+            const parsed = parseBrunoDocument(editorText);
+            if (parsed.blocks.length > 0) {
+              setValidContent(editorText);
+            }
           }
         } else if (isSpecSourceFormat(nextSourceFormat)) {
           setValidContent(editorText);

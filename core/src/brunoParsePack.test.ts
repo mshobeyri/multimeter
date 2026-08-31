@@ -6,6 +6,7 @@ import {
   brunoToAPI,
   brunoToTest,
   brunoToTestStrict,
+  isBrunoCollectionFilePath,
   isBrunoFilePath,
   isBrunoRequestFilePath,
   parseBrunoDocument,
@@ -33,6 +34,14 @@ describe('brunoParsePack', () => {
     expect(isBrunoFilePath('/tmp/get_user.bruno')).toBe(true);
     expect(detectDocType('/tmp/get_user.bru', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
     expect(detectDocType('/tmp/get_user.bruno', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
+  });
+
+  it('detects bruno.json collection manifests', () => {
+    expect(isBrunoCollectionFilePath('/lib/bruno.json')).toBe(true);
+    expect(isBrunoCollectionFilePath('file:///lib/bruno.json')).toBe(true);
+    expect(isBrunoCollectionFilePath('/lib/bruno.json.bak')).toBe(false);
+    expect(isBrunoCollectionFilePath('/lib/get_health.bru')).toBe(false);
+    expect(isBrunoFilePath('/lib/bruno.json')).toBe(false);
   });
 
   it('prefers serialized MMT YAML type over .bru path when the API panel sends rawFile', () => {

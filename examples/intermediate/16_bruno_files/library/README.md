@@ -1,7 +1,8 @@
 # Library Bruno collection
 
-A small Bruno collection (`bruno.json` plus one `.bru` file per request). Open any request with **Open as MMT**.
+A small Bruno collection (`bruno.json` plus one `.bru` file per request).
 
-The header lists **All** (run the collection as one test) and each request. Pick a request to Send it. The Test and API UIs are the same as for `.mmt` files. The left editor stays on the file you opened.
+- Open **`bruno.json`** with **Open as MMT** to run the whole collection (**All** as one test) or pick any request from the selector.
+- Open a single **`.bru`** to work with that request only (test + API). Sibling requests are not listed.
 
 All requests hit [test.mmt.dev](https://test.mmt.dev).

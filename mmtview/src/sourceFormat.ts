@@ -37,7 +37,14 @@ export function parseSourceFormat(value: unknown, fallback: SourceFormat = "mmt"
 }
 
 export function editorLanguageForSource(format: SourceFormat, filePath?: string): string {
-  if (format === "http" || format === "bruno") {
+  if (format === "bruno") {
+    const lower = String(filePath || "").toLowerCase().replace(/\\/g, "/");
+    if ((lower.split("/").pop() || "") === "bruno.json") {
+      return "json";
+    }
+    return "http";
+  }
+  if (format === "http") {
     return "http";
   }
   if (format === "wsdl") {
