@@ -31,6 +31,8 @@ Pick the generated files, a destination folder, and a collision policy (skip, ov
 
 Example output: [HTTP convert example](../../examples/intermediate/25_convert_to_mmt/http/README.md)
 
+Full sandbox HTTP file: [professional HTTP convert](../../examples/professional/04_convert_to_mmt/http/README.md)
+
 ## Supported syntax
 
 Targets VS Code REST Client and JetBrains HTTP Client syntax:

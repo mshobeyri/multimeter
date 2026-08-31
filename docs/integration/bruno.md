@@ -29,6 +29,8 @@ Right-click a `.bru` or `.bruno` file in the Explorer and choose **Convert to MM
 
 Example output: [Bruno convert example](../../examples/intermediate/25_convert_to_mmt/bruno/README.md)
 
+Full sandbox Bruno collection: [professional Bruno convert](../../examples/professional/04_convert_to_mmt/bruno/README.md)
+
 ## Supported syntax
 
 Common single-request `.bru` structure:

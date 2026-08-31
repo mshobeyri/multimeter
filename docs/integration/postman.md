@@ -39,6 +39,8 @@ Complex auth flows and Postman sandbox APIs may need manual touch-ups after impo
 
 Example output: [Postman convert example](../../examples/intermediate/25_convert_to_mmt/postman/README.md)
 
+Full sandbox Postman collection: [professional Postman convert](../../examples/professional/04_convert_to_mmt/postman/README.md)
+
 ## See also
 
 - [OpenAPI spec](./openapi.md) · [HTTP file](./http-file.md) · [Bruno](./bruno.md) · [Environment](../files/env/index.md)

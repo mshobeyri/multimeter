@@ -14,4 +14,4 @@ Each format is one request or one operation so the mapping stays easy to read.
 
 All live HTTP examples target [test.mmt.dev](https://test.mmt.dev).
 
-For a full OpenAPI spec with many operations, named examples, auth, and schemas, see [professional convert](../../professional/04_convert_to_mmt/).
+For the full sandbox endpoint set across every format (OpenAPI, HTTP, Bruno, Postman, WSDL), see [professional convert](../../professional/04_convert_to_mmt/).

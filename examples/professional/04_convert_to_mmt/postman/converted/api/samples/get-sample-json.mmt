@@ -1,0 +1,28 @@
+type: api
+title: Get sample JSON
+outputs:
+  status: status
+  statusCode: status
+  id: body.id
+  name: body.name
+  description: body.description
+  version: body.version
+  tags: body.tags
+url: <<e:host>>/json
+method: get
+format: json
+headers:
+  Accept: application/json
+examples:
+  - name: sample json
+    outputs:
+      status: 200
+      statusCode: 200
+      id: 1
+      name: Multimeter
+      description: API testing tool
+      version: 1.0.0
+      tags:
+        - api
+        - testing
+        - automation

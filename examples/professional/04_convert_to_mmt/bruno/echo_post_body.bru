@@ -1,0 +1,32 @@
+meta {
+  name: Echo POST body
+  type: http
+  seq: 5
+}
+
+docs {
+  Echo POST envelope
+}
+
+post {
+  url: {{baseUrl}}/echo
+  body: json
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Content-Type: application/json
+  X-Trace: demo
+}
+
+body:json {
+  {
+    "name": "Ada",
+    "role": "engineer"
+  }
+}
+

@@ -24,6 +24,8 @@ Review generated SOAP envelopes and endpoint URLs against your environment befor
 
 Example output: [WSDL convert example](../../examples/intermediate/25_convert_to_mmt/wsdl/README.md)
 
+Multi-operation WSDL sample: [professional WSDL convert](../../examples/professional/04_convert_to_mmt/wsdl/README.md)
+
 ## See also
 
 - [OpenAPI spec](./openapi.md) · [HTTP protocol](../files/api/protocols/http.md) · [API files](../files/api/index.md)

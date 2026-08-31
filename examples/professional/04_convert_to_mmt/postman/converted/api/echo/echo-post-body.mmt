@@ -1,0 +1,13 @@
+type: api
+title: Echo POST body
+url: <<e:host>>/echo
+method: post
+format: json
+headers:
+  Content-Type: application/json
+  X-Trace: demo
+body: |-
+  {
+    "name": "Ada",
+    "role": "engineer"
+  }

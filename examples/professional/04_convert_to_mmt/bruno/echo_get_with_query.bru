@@ -1,0 +1,25 @@
+meta {
+  name: Echo GET with query
+  type: http
+  seq: 7
+}
+
+docs {
+  Echo query string
+}
+
+get {
+  url: {{baseUrl}}/echo?q=multimeter&page=1&limit=20
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+  X-Trace: demo
+}
+

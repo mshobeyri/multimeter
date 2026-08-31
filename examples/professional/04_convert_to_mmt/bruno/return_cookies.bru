@@ -1,0 +1,24 @@
+meta {
+  name: Return cookies
+  type: http
+  seq: 20
+}
+
+docs {
+  Cookies sent by the client
+}
+
+get {
+  url: {{baseUrl}}/cookies
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+

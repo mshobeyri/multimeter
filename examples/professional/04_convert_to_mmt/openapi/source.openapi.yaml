@@ -33,6 +33,22 @@ tags:
     description: Request introspection helpers
 
 paths:
+  /:
+    get:
+      tags: [samples]
+      operationId: serviceHelp
+      summary: Service help
+      description: Returns the Multimeter Test Server endpoint catalog.
+      security: []
+      responses:
+        '200':
+          description: Service catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
   /json:
     get:
       tags: [samples]
@@ -340,6 +356,170 @@ paths:
                 additionalProperties: true
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /html:
+    get:
+      tags: [samples]
+      operationId: getSampleHtml
+      summary: Get sample HTML
+      description: Returns a fixed sample HTML page.
+      security: []
+      responses:
+        '200':
+          description: Sample HTML
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /bytes/{n}:
+    get:
+      tags: [samples]
+      operationId: getRandomBytes
+      summary: Random bytes
+      description: Returns n random bytes (max 100KB).
+      security: []
+      parameters:
+        - name: n
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 102400
+            example: 64
+      responses:
+        '200':
+          description: Binary payload
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /anything:
+    post:
+      tags: [echo]
+      operationId: echoAnything
+      summary: Echo anything alias
+      description: Alias for `/echo` — echoes method, URL, headers, and body.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EchoPayload'
+            example:
+              via: anything
+      responses:
+        '200':
+          description: Echo envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+
+  /method/{method}:
+    get:
+      tags: [status]
+      operationId: methodMatch
+      summary: Method match
+      description: Returns 200 if the HTTP method matches the path segment, otherwise 405.
+      security: []
+      parameters:
+        - name: method
+          in: path
+          required: true
+          schema:
+            type: string
+            example: get
+            enum: [get, post, put, patch, delete, head, options]
+      responses:
+        '200':
+          description: Method matched
+        '405':
+          description: Method did not match
+
+  /redirect/{n}:
+    get:
+      tags: [status]
+      operationId: redirectN
+      summary: Redirect n times
+      description: Redirects up to 20 times, then returns 200.
+      security: []
+      parameters:
+        - name: n
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            example: 2
+      responses:
+        '200':
+          description: Final response after redirects
+        '302':
+          description: Intermediate redirect
+
+  /cache/{seconds}:
+    get:
+      tags: [status]
+      operationId: cacheHeaders
+      summary: Cache headers
+      description: Sets Cache-Control max-age (max 86400).
+      security: []
+      parameters:
+        - name: seconds
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 86400
+            example: 60
+      responses:
+        '200':
+          description: Response with Cache-Control
+
+  /cookies:
+    get:
+      tags: [inspect]
+      operationId: getCookies
+      summary: Return cookies
+      description: Returns cookies sent by the client.
+      security: []
+      responses:
+        '200':
+          description: Cookie map
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /cookies/set:
+    get:
+      tags: [inspect]
+      operationId: setCookies
+      summary: Set cookie
+      description: Sets cookies from query parameters (`?session=demo`).
+      security: []
+      parameters:
+        - name: session
+          in: query
+          schema:
+            type: string
+            example: demo
+      responses:
+        '200':
+          description: Cookies updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
 
 components:
   securitySchemes:

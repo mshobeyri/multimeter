@@ -1,0 +1,25 @@
+meta {
+  name: Return request headers
+  type: http
+  seq: 13
+}
+
+docs {
+  Echo request headers
+}
+
+get {
+  url: {{baseUrl}}/headers
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+  X-Trace: demo
+}
+

@@ -1,0 +1,31 @@
+type: test
+title: Status
+description: Generated from Postman collection folder "Status".
+tags:
+  - postman
+import:
+  returnStatus200: +/api/status/return-status-200.mmt
+  returnStatus404: +/api/status/return-status-404.mmt
+  delayedResponse: +/api/status/delayed-response.mmt
+  redirectTwice: +/api/status/redirect-twice.mmt
+  cacheHeaders: +/api/status/cache-headers.mmt
+  methodMatchGet: +/api/status/method-match-get.mmt
+steps:
+  - call: returnStatus200
+    id: iReturnStatus200
+    debug: true
+  - call: returnStatus404
+    id: iReturnStatus404
+    debug: true
+  - call: delayedResponse
+    id: iDelayedResponse
+    debug: true
+  - call: redirectTwice
+    id: iRedirectTwice
+    debug: true
+  - call: cacheHeaders
+    id: iCacheHeaders
+    debug: true
+  - call: methodMatchGet
+    id: iMethodMatchGet
+    debug: true

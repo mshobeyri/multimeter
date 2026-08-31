@@ -1,6 +1,6 @@
-# Multimeter Test Server spec
+# Multimeter Test Server — OpenAPI
 
-Full OpenAPI 3 sample for the public [test.mmt.dev](https://test.mmt.dev) sandbox: operations, named examples, auth, and shared components.
+Full OpenAPI 3 for [test.mmt.dev](https://test.mmt.dev): samples, echo, status/delay/redirect, auth, cookies, and inspect helpers.
 
 - Source: `source.openapi.yaml`
 - Converted APIs: `converted/api/`

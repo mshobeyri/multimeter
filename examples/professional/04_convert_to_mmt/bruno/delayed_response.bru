@@ -1,0 +1,24 @@
+meta {
+  name: Delayed response
+  type: http
+  seq: 12
+}
+
+docs {
+  Wait 250ms then respond
+}
+
+get {
+  url: {{baseUrl}}/delay/250
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+

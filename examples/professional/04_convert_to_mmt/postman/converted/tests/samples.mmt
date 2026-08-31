@@ -1,0 +1,29 @@
+type: test
+title: Samples
+description: Generated from Postman collection folder "Samples".
+tags:
+  - postman
+import:
+  serviceHelp: +/api/samples/service-help.mmt
+  getSampleJson: +/api/samples/get-sample-json.mmt
+  getSampleXml: +/api/samples/get-sample-xml.mmt
+  getSampleHtml: +/api/samples/get-sample-html.mmt
+  randomBytes: +/api/samples/random-bytes.mmt
+steps:
+  - call: serviceHelp
+    id: iServiceHelp
+    debug: true
+  - call: getSampleJson
+    id: iGetSampleJson
+    expect:
+      status: == 200
+    debug: true
+  - call: getSampleXml
+    id: iGetSampleXml
+    debug: true
+  - call: getSampleHtml
+    id: iGetSampleHtml
+    debug: true
+  - call: randomBytes
+    id: iRandomBytes
+    debug: true

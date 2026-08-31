@@ -1,0 +1,28 @@
+meta {
+  name: Bearer auth check
+  type: http
+  seq: 18
+}
+
+docs {
+  Bearer testtoken
+}
+
+get {
+  url: {{baseUrl}}/auth/bearer
+  body: none
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+
+auth:bearer {
+  token: testtoken
+}
+

@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<definitions
+  xmlns="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:tns="urn:mmt-test"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="urn:mmt-test">
+
+  <types>
+    <xsd:schema targetNamespace="urn:mmt-test" elementFormDefault="qualified">
+      <xsd:element name="GetSampleXml">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="trace" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="EchoMessage">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="message" type="xsd:string"/>
+            <xsd:element name="role" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ProbeStatus">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="code" type="xsd:int"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+
+  <message name="GetSampleXmlRequest"><part name="parameters" element="tns:GetSampleXml"/></message>
+  <message name="EchoMessageRequest"><part name="parameters" element="tns:EchoMessage"/></message>
+  <message name="ProbeStatusRequest"><part name="parameters" element="tns:ProbeStatus"/></message>
+
+  <portType name="TestServerPort">
+    <operation name="GetSampleXml">
+      <documentation>Maps to GET https://test.mmt.dev/xml for convert demos.</documentation>
+      <input message="tns:GetSampleXmlRequest"/>
+    </operation>
+    <operation name="EchoMessage">
+      <documentation>Sample SOAP-shaped body; sandbox serves XML at /xml.</documentation>
+      <input message="tns:EchoMessageRequest"/>
+    </operation>
+    <operation name="ProbeStatus">
+      <documentation>Illustrates a second operation for Convert to MMT.</documentation>
+      <input message="tns:ProbeStatusRequest"/>
+    </operation>
+  </portType>
+
+  <binding name="TestServerBinding" type="tns:TestServerPort">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+    <operation name="GetSampleXml">
+      <soap:operation soapAction="urn:GetSampleXml"/>
+      <input><soap:body use="literal"/></input>
+    </operation>
+    <operation name="EchoMessage">
+      <soap:operation soapAction="urn:EchoMessage"/>
+      <input><soap:body use="literal"/></input>
+    </operation>
+    <operation name="ProbeStatus">
+      <soap:operation soapAction="urn:ProbeStatus"/>
+      <input><soap:body use="literal"/></input>
+    </operation>
+  </binding>
+
+  <service name="MultimeterTestServer">
+    <documentation>
+      WSDL convert sample. The sandbox is HTTP/JSON first; /xml returns sample XML.
+      Use this file to exercise Multimeter WSDL → MMT conversion with multiple operations.
+    </documentation>
+    <port name="TestServerPort" binding="tns:TestServerBinding">
+      <soap:address location="https://test.mmt.dev/xml"/>
+    </port>
+  </service>
+</definitions>

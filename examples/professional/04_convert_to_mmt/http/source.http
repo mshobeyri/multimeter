@@ -1,0 +1,133 @@
+@host = https://test.mmt.dev
+@token = testtoken
+
+###
+# @name Service help
+GET {{host}}/
+Accept: application/json
+
+###
+# @name Get sample JSON
+GET {{host}}/json
+Accept: application/json
+
+###
+# @name Get sample XML
+GET {{host}}/xml
+Accept: application/xml
+
+###
+# @name Get sample HTML
+GET {{host}}/html
+Accept: text/html
+
+###
+# @name Echo POST body
+POST {{host}}/echo
+Content-Type: application/json
+X-Trace: demo
+
+{
+  "name": "Ada",
+  "role": "engineer"
+}
+
+###
+# @name Echo PUT body
+PUT {{host}}/echo
+Content-Type: application/json
+X-Trace: demo
+
+{
+  "id": 1,
+  "name": "Multimeter",
+  "active": true
+}
+
+###
+# @name Echo GET with query
+GET {{host}}/echo?q=multimeter&page=1&limit=20
+X-Trace: demo
+Accept: application/json
+
+###
+# @name Echo DELETE
+DELETE {{host}}/echo
+X-Trace: demo
+
+###
+# @name Echo anything alias
+POST {{host}}/anything
+Content-Type: application/json
+
+{
+  "via": "anything"
+}
+
+###
+# @name Return status 200
+GET {{host}}/status/200
+Accept: application/json
+
+###
+# @name Return status 404
+GET {{host}}/status/404
+Accept: application/json
+
+###
+# @name Delayed response
+GET {{host}}/delay/250
+Accept: application/json
+
+###
+# @name Return request headers
+GET {{host}}/headers
+X-Trace: demo
+Accept: application/json
+
+###
+# @name Return client IP
+GET {{host}}/ip
+Accept: application/json
+
+###
+# @name Method match GET
+GET {{host}}/method/get
+Accept: application/json
+
+###
+# @name Redirect twice
+GET {{host}}/redirect/2
+Accept: application/json
+
+###
+# @name Random bytes
+GET {{host}}/bytes/64
+Accept: application/octet-stream
+
+###
+# @name Bearer auth check
+GET {{host}}/auth/bearer
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# @name Basic auth check
+GET {{host}}/auth/basic
+Authorization: Basic dXNlcjpwYXNz
+Accept: application/json
+
+###
+# @name Return cookies
+GET {{host}}/cookies
+Accept: application/json
+
+###
+# @name Set cookie
+GET {{host}}/cookies/set?session=demo
+Accept: application/json
+
+###
+# @name Cache headers
+GET {{host}}/cache/60
+Accept: application/json

@@ -1,0 +1,24 @@
+meta {
+  name: Cache headers
+  type: http
+  seq: 22
+}
+
+docs {
+  Cache-Control max-age=60
+}
+
+get {
+  url: {{baseUrl}}/cache/60
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+
