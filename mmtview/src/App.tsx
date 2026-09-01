@@ -68,7 +68,7 @@ type WebviewViewState = {
   windowWidth?: number;
 };
 
-const minPanelSize = 300;
+const minPanelSize = 420;
 const defaultPanelRatio = 0.5;
 
 function isPanelMode(value: unknown): value is PanelMode {
