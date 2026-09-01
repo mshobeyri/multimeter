@@ -4,9 +4,9 @@ Use `.http` and `.https` files with Multimeter without giving up REST Client or 
 
 ## Run directly
 
-In VS Code, open a `.http` or `.https` file with **Open With...** → **Multimeter HTTP Test Editor**, or **Open as MMT**.
+See [Spec editor](./spec-editor.md) for the {{btn:list-tree}} request picker, **All** vs single request, and {{btn:save-as}}.
 
-The selector lists **All** (run every request as one test) and each request. Hover a list item for **Save as MMT**. The left editor stays on the HTTP source.
+In VS Code, open a `.http` or `.https` file with **Open With...** → **Multimeter HTTP Test Editor**, or **Open as MMT**. The left editor stays on the HTTP source.
 
 ## Import in tests
 

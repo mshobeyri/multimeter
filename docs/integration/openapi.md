@@ -2,9 +2,13 @@
 
 Bootstrap Multimeter API files from OpenAPI 3.x (JSON or YAML) or Swagger specs.
 
-## Open as MMT
+## Run directly
 
-Right-click an OpenAPI/Swagger file and choose **Open as MMT**, or use **Open With...** → **Multimeter Spec Editor**. The left pane stays the spec. Pick an operation or a named example from the selector, then Send. Hover a list item for **Save as MMT**.
+See [Spec editor](./spec-editor.md) for the {{btn:list-tree}} request picker and {{btn:save-as}}.
+
+In VS Code, right-click an OpenAPI or Swagger file (`.yaml`, `.yml`, `.json`) and choose **Open as MMT**, or use **Open With...** → **Multimeter Spec Editor**. The spec stays on the left.
+
+Click {{btn:list-tree}}, pick an **operation** or a **named example** ({{btn:lightbulb}} child row), then {{btn:send:Send}}. There is no **All** row for OpenAPI — each operation runs as a single API send. Hover a row for **Save as MMT**.
 
 ## Convert to MMT
 
@@ -16,13 +20,14 @@ Multimeter generates `type: api` files under `api/` with protocol, method, URL, 
 
 ## What Multimeter maps
 
-- Path, query, and header parameters → API `inputs`
-- Request/response schemas → body templates and `format`
+- Path, query, and header parameters → API `inputs` (including shared `#/components/parameters/...` refs)
+- Request/response schemas → body templates and `format` (including `#/components/schemas/...` and `#/components/requestBodies/...` refs in the same file)
 - **XML bodies** — when a spec defines `application/xml`, Multimeter generates XML body templates from the schema
-- Example payloads from the spec when available
+- Example payloads from the spec when available (inline `example` / `examples` on the operation or media type)
 
 ## Notes and limits
 
+- **Internal `$ref` only** — Multimeter resolves same-file JSON Pointer refs (`#/components/...`, Swagger 2 `#/definitions/...`). External file refs (`other.yaml#/...`) are not followed automatically.
 - WebSocket endpoints are **not** exported from OpenAPI — add WS APIs manually in the API editor
 - Advanced schema features (oneOf/anyOf, polymorphism) may need simplification in generated bodies
 - Complex auth flows may require manual touch-ups after import

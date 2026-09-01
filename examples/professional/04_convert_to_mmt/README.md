@@ -16,11 +16,11 @@ WebSocket `WS /ws` is listed on the sandbox help page but is not exported from O
 
 ## How to use
 
-### Open as MMT
+### Open as MMT (run directly)
 
 1. Right-click a source file (or Bruno `bruno.json`) → **Open as MMT**
-2. Pick an operation / request from the selector
-3. Send — responses come from `https://test.mmt.dev`
+2. Click {{btn:list-tree}} and choose **All**, a single operation/request, or a named example — see [Spec editor](../../docs/integration/spec-editor.md)
+3. {{btn:send:Send}} or **Run** — responses come from `https://test.mmt.dev`
 
 ### Convert to MMT
 

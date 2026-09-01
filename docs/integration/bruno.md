@@ -2,22 +2,19 @@
 
 Use Bruno `.bru` and `.bruno` request files with Multimeter while keeping Bruno-compatible source files.
 
-## Run a request
+## Run directly
+
+See [Spec editor](./spec-editor.md) for the {{btn:list-tree}} request picker, **All** vs single request, and {{btn:save-as}}.
 
 In VS Code, open a `.bru` file with **Open With...** → **Multimeter Bruno Test Editor**, or **Open as MMT**.
 
-The selector lists **All** (that request as one test) and the request as an API (with examples when present). Hover a list item for **Save as MMT**. The left editor stays on the file you opened.
-
-Opening a single `.bru` does **not** pull in sibling requests from the collection.
+Opening a single `.bru` does **not** pull in sibling requests from the collection. Click {{btn:list-tree}} to pick **All** (one sequential test) or that request (API **Send**).
 
 ## Run a collection
 
-Open the collection’s `bruno.json` the same way (**Open With...** / **Open as MMT**). Multimeter walks the collection folder (skipping `collection.bru`, `folder.bru`, `environments/`, and paths listed in `bruno.json` `ignore`) and shows:
+Open the collection’s `bruno.json` the same way (**Open With...** / **Open as MMT**). Multimeter walks the collection folder (skipping `collection.bru`, `folder.bru`, `environments/`, and paths listed in `bruno.json` `ignore`).
 
-- **All** — every request as one sequential test
-- Each request as an API (with examples)
-
-The left editor shows `bruno.json` (JSON). Requests are ordered by `meta.seq`, then file path.
+Click {{btn:list-tree}} to pick **All** (every request as one sequential test) or a single request (API **Send**). The left editor shows `bruno.json` (JSON). Requests are ordered by `meta.seq`, then file path.
 
 ## Import in tests
 

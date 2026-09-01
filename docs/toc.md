@@ -123,6 +123,7 @@
 - [MCP](./features/mcp/index.md)
 
 ### Integration
+- [Spec editor (Open as MMT)](./integration/spec-editor.md)
 - [HTTP file](./integration/http-file.md)
 - [Bruno](./integration/bruno.md)
 - [Postman](./integration/postman.md)

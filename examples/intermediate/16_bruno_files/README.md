@@ -2,7 +2,7 @@
 
 These examples show `.bru` files that can be opened through **Open With...** → **Multimeter Bruno Test Editor**, or **Open as MMT**.
 
-The header has a selector and **Save as MMT**. For a single `.bru`, **All** runs that request as one test; pick the request to Send it as an API. For a collection, open `bruno.json` to get **All** (every request as one test) plus each request in the list.
+Use {{btn:list-tree}} in the header to pick **All** (one test) or a single request (API **Send**). See [Spec editor](../../docs/integration/spec-editor.md) for the full picker guide. Hover a row for {{btn:save-as}}.
 
 ## Files
 

@@ -741,6 +741,10 @@
     "title": "Integration",
     "items": [
       {
+        "title": "Spec editor",
+        "path": "integration/spec-editor.md"
+      },
+      {
         "title": "HTTP file",
         "path": "integration/http-file.md"
       },
