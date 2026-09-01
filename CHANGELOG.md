@@ -2,6 +2,17 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.36.0]
+
+- Open Bruno collections only via `bruno.json` (single `.bru` files stay request-only)
+- Fix API Send for Bruno and HTTP source files
+- Fix first-run UI reset when pinning preview tabs after Run
+- Add view-only All / Passed / Failed filter for test and suite reports
+- Raise the webview minimum width from 300px to 400px
+- Point the professional OpenAPI convert example at test.mmt.dev and add convert samples for all test.mmt.dev endpoints
+- Add a professional Vault HTTP + `setenv` example
+- Add pinned OpenAPI fixture specs (JSON and YAML) and conversion unit tests
+
 ## [1.35.2]
 
 - Stable release of Multimeter 1.35.1 for marketplace packaging
