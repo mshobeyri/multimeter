@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StepStatus } from './types';
 import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
+import ReportStatusFilterButton from './ReportStatusFilterButton';
+import { ReportStatusFilter, filterStepReports } from './reportStatusFilter';
 
 /** Parsed call result details extracted from the `_` field of an API call output. */
 interface CallResultDetails {
@@ -282,11 +284,21 @@ interface TestStepReportPanelProps {
   disabledRun?: boolean;
   showHeader?: boolean;
   showTimestamps?: boolean;
+  /** When true (default with showHeader), show All/Passed/Failed view filter. */
+  showStatusFilter?: boolean;
 }
 
 const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
-  const { isExpanded, stepReports, runState, showHeader = true, showTimestamps = true } = props;
+  const {
+    isExpanded,
+    stepReports,
+    runState,
+    showHeader = true,
+    showTimestamps = true,
+    showStatusFilter = showHeader,
+  } = props;
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
   const stepCountRef = useRef(0);
 
   useEffect(() => {
@@ -298,6 +310,11 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
       setExpandedDetails({});
     }
   }, [isExpanded]);
+
+  const visibleReports = useMemo(
+    () => filterStepReports(stepReports, statusFilter),
+    [stepReports, statusFilter]
+  );
 
   const unescapeCommon = useCallback((s: string): string => {
     if (!s) {
@@ -312,19 +329,20 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     return null;
   }
 
+  const filterControl = showStatusFilter ? (
+    <ReportStatusFilterButton
+      value={statusFilter}
+      onChange={setStatusFilter}
+      disabled={stepReports.length === 0}
+    />
+  ) : null;
+
   return (
-    <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginTop: 8 }}>
-      {showHeader && (
-        <div
-          style={{
-            marginBottom: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-            backgroundColor: 'transparent',
-          }}
-        >
+    <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', marginTop: showStatusFilter ? 0 : 8 }}>
+      {showStatusFilter && (
+        <div className="report-section-header">
+          {showHeader ? <div className="label">Report</div> : <span />}
+          {filterControl}
         </div>
       )}
 
@@ -335,15 +353,22 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
           borderRadius: 6,
           padding: 12,
           background: 'transparent',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
         }}
       >
         {stepReports.length === 0 ? (
           <div style={{ opacity: 0.7 }}>
             {runState === 'running' ? 'Waiting for checks and asserts to report…' : 'No check/assert results yet.'}
           </div>
+        ) : visibleReports.length === 0 ? (
+          <div style={{ opacity: 0.7 }}>
+            No {statusFilter} results in this report.
+          </div>
         ) : (
           <div className="report-selectable" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {stepReports.map((report, reportIdx) => {
+            {visibleReports.map((report, reportIdx) => {
               const isDebug = report.stepType === 'debug';
               // Stable key: timestamp remounts wipe selection / collapse details.
               const reportKey = `${report.stepType}-${report.stepIndex}-${reportIdx}`;
@@ -355,6 +380,29 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                 (report.details && report.details.trim().length > 0)
               );
               const isDetailsExpanded = Boolean(expandedDetails[reportKey]);
+              const toggleDetails = () => {
+                if (!hasDetails) {
+                  return;
+                }
+                setExpandedDetails((prev) => ({ ...prev, [reportKey]: !isDetailsExpanded }));
+              };
+              const onHeaderActivate = (event: React.MouseEvent | React.KeyboardEvent) => {
+                if (!hasDetails) {
+                  return;
+                }
+                if ('key' in event) {
+                  if (event.key !== 'Enter' && event.key !== ' ') {
+                    return;
+                  }
+                  event.preventDefault();
+                } else {
+                  const sel = window.getSelection();
+                  if (sel && !sel.isCollapsed && sel.toString().trim()) {
+                    return;
+                  }
+                }
+                toggleDetails();
+              };
               return (
                 <div
                   key={reportKey}
@@ -362,41 +410,53 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     border: '1px solid var(--vscode-editorWidget-border, #2a2a2a)',
                     backgroundColor: 'transparent',
                     borderRadius: 6,
-                    padding: '8px 12px',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 12,
                   }}
                 >
-                  <StatusIconWithCache
-                    status={isDebug ? 'debug' : report.status}
-                    cached={report.cached === true}
-                    style={{ marginTop: 2 }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="report-selectable" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}</span>
-                      {hasDetails && (
-                        <button
-                          className="action-button"
-                          type="button"
-                          onClick={() => setExpandedDetails((prev) => ({ ...prev, [reportKey]: !isDetailsExpanded }))}
-                          style={{
-                            padding: 0,
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: 'pointer',
-                          }}
-                          title={isDetailsExpanded ? 'Hide details' : 'Show details'}
-                        >
-                          <span className={`codicon ${isDetailsExpanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
-                        </button>
-                      )}
-                      {showTimestamps && <span style={{ opacity: 0.7, fontSize: 12 }}>{new Date(report.timestamp).toLocaleTimeString()}</span>}
-                    </div>
-
-                    {isDetailsExpanded && (
-                      <div style={{ marginTop: 4 }}>
+                  <div
+                    role={hasDetails ? 'button' : undefined}
+                    tabIndex={hasDetails ? 0 : undefined}
+                    title={hasDetails ? (isDetailsExpanded ? 'Hide details' : 'Show details') : undefined}
+                    onClick={onHeaderActivate}
+                    onKeyDown={onHeaderActivate}
+                    style={{
+                      padding: '8px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      cursor: hasDetails ? 'pointer' : 'default',
+                    }}
+                  >
+                    <span className="tree-view-box-row-arrow" aria-hidden>
+                      {hasDetails ? (
+                        <span
+                          className={`codicon ${isDetailsExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+                          style={{ fontSize: 16, lineHeight: 1, display: 'inline-flex' }}
+                        />
+                      ) : null}
+                    </span>
+                    <StatusIconWithCache
+                      status={isDebug ? 'debug' : report.status}
+                      cached={report.cached === true}
+                    />
+                    <span
+                      className="report-selectable"
+                      style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+                    >
+                      {report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}
+                    </span>
+                    {showTimestamps && (
+                      <span style={{ opacity: 0.7, fontSize: 12, flexShrink: 0 }}>
+                        {new Date(report.timestamp).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  {isDetailsExpanded && (
+                    <div
+                      style={{ margin: '0 12px 8px', paddingLeft: 32 }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onDoubleClick={(e) => e.stopPropagation()}
+                    >
                         {hasExpects && (
                           <div>
                             <SectionTitle label={isDebug ? 'Debug' : (report.expects.length === 1 ? 'Expect' : 'Expects')} />
@@ -457,9 +517,6 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                         )}
                       </div>
                     )}
-                  </div>
-
-
                 </div>
               );
             })}

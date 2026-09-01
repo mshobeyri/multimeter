@@ -69,9 +69,7 @@ interface TestFlowBoxProps {
   onChange: (value: any) => void;
   onDuplicate?: () => void;
   onRemove?: () => void;
-  showExpand?: boolean;
   expanded?: boolean;
-  onToggleExpand?: () => void;
   importValidation?: {
     missingImports: MissingImportEntry[];
     inputsByAlias: Record<string, string[]>;
@@ -79,7 +77,7 @@ interface TestFlowBoxProps {
   };
 }
 
-const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand, importValidation }) => {
+const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, expanded, importValidation }) => {
   const { type, stepData, testData } = data;
 
   const Actions = () => {
@@ -170,20 +168,6 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         >
           <span className="codicon codicon-kebab-vertical" />
         </button>
-        {showExpand && (
-          <button
-            className="action-button"
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-            onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand?.(); } }}
-            draggable={false}
-            tabIndex={0}
-            title={expanded ? 'Collapse box' : 'Expand box'}
-          >
-            <span className={`codicon ${expanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
-          </button>
-        )}
         {menu && ReactDOM.createPortal(menu, document.body)}
       </div>
     );

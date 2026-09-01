@@ -1,0 +1,33 @@
+meta {
+  name: Echo PUT body
+  type: http
+  seq: 6
+}
+
+docs {
+  Echo PUT envelope
+}
+
+put {
+  url: {{baseUrl}}/echo
+  body: json
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Content-Type: application/json
+  X-Trace: demo
+}
+
+body:json {
+  {
+    "id": 1,
+    "name": "Multimeter",
+    "active": true
+  }
+}
+

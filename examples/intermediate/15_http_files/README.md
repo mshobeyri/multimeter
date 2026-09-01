@@ -1,8 +1,8 @@
 # HTTP file examples
 
-These examples show `.http` files that can be opened through **Open With...** -> **Multimeter HTTP Test Editor**.
+These examples show `.http` files that can be opened through **Open With...** → **Multimeter HTTP Test Editor**, or **Open as MMT**.
 
-The Multimeter HTTP editor treats these files as runnable test flows. The structured UI is read-only for `.http` files; use **Save as MMT** to convert one into an editable `.mmt` test.
+The header has a selector and **Save as MMT**. **All** runs every request as one test; pick a request to Send it. The Test and API UIs are the same as for `.mmt` files.
 
 All live requests target the public [test.mmt.dev](https://test.mmt.dev) test server.
 

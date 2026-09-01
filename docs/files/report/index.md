@@ -54,3 +54,4 @@ After any test, suite, or load test run in VS Code, use {{btn:export:Export}} on
 
 - [Quick start](./quick-start.md) · [JUnit](./junit.md) · [HTML](./html.md) · [Markdown](./markdown.md)
 - [CI/CD](./ci.md) · [CLI](./cli.md) · [Reference](./reference.md)
+- Example: [CI pipelines (GitHub, GitLab, Azure)](../../../examples/professional/09_ci_pipelines/README.md)

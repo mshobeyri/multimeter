@@ -72,7 +72,7 @@ export function yamlToSuite(rawYaml: string): SuiteData {
   return suite;
 }
 
-export function suiteToYaml(suite: SuiteData): string {
+export function suiteToYaml(suite: SuiteData, originalYaml?: string): string {
   const yamlObj: Record<string, any> = {
     type: suite.type,
   };
@@ -111,7 +111,7 @@ export function suiteToYaml(suite: SuiteData): string {
     yamlObj.export = suite.export;
   }
   yamlObj.items = suite.items;
-  return packYaml(yamlObj);
+  return packYaml(yamlObj, originalYaml);
 }
 
 export function splitSuiteGroups(items: string[]): string[][] {

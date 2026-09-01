@@ -4,6 +4,7 @@ import {safeList} from 'mmt-core/safer';
 import {useCallback, useEffect, useRef} from 'react';
 
 import {showVSCodeMessage} from '../vsAPI';
+import type {SourceFormat} from '../sourceFormat';
 
 import {extractRootKeyInfo, extractExampleLineInfo} from './validator';
 
@@ -19,7 +20,7 @@ export function useRunGlyphs(params: {
   editorReady: boolean;
   docType: string | null;
   shouldShowRunControls: boolean;
-  sourceFormat?: 'mmt' | 'http' | 'bruno';
+  sourceFormat?: SourceFormat;
 }) {
   const {
     monacoRef,
@@ -64,15 +65,16 @@ export function useRunGlyphs(params: {
       if (docType === 'suite' || docType === 'loadtest') {
         // Suite and loadtest files use the dedicated runSuite handler for lifecycle/export support.
         const suiteRunId = `suite-glyph:${Date.now()}`;
-        window.vscode?.postMessage({command: 'showLogOutputChannel'});
+        // Post run before showLog so the host can pin a preview tab first.
         window.vscode?.postMessage({command: 'runSuite', suiteRunId});
+        window.vscode?.postMessage({command: 'showLogOutputChannel'});
       } else {
         const message: any = {command: 'runCurrentDocument'};
         if (docType === 'api') {
           message.inputs = {exampleIndex: -1};
         }
-        window.vscode?.postMessage({command: 'showLogOutputChannel'});
         window.vscode?.postMessage(message);
+        window.vscode?.postMessage({command: 'showLogOutputChannel'});
       }
     } catch (err: any) {
       showVSCodeMessage('error', err?.message || 'Failed to run document.');
@@ -89,9 +91,9 @@ export function useRunGlyphs(params: {
             'warn', 'Selected example was not found in this document.');
         return;
       }
-      window.vscode?.postMessage({command: 'showLogOutputChannel'});
       window.vscode?.postMessage(
           {command: 'runCurrentDocument', inputs: {exampleIndex}});
+      window.vscode?.postMessage({command: 'showLogOutputChannel'});
     } catch (err: any) {
       showVSCodeMessage('error', err?.message || 'Failed to run example.');
     }

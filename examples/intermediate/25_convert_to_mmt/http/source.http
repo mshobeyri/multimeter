@@ -1,0 +1,6 @@
+@host = https://test.mmt.dev
+
+###
+# @name ping
+GET {{host}}/json
+Accept: application/json

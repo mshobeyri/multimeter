@@ -1,0 +1,21 @@
+type: api
+title: GetSampleXml
+inputs:
+  trace: string
+url: https://test.mmt.dev/xml
+protocol: http
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: urn:GetSampleXml
+body: |-
+  <?xml version="1.0" encoding="utf-8"?>
+  <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="urn:mmt-test">
+    <soapenv:Header/>
+    <soapenv:Body>
+      <tns:GetSampleXml>
+          <tns:trace><<i:trace>></tns:trace>
+      </tns:GetSampleXml>
+    </soapenv:Body>
+  </soapenv:Envelope>

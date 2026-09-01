@@ -5,15 +5,15 @@ import './App.css';
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
-import BrunoTestPanel from "./bruno/BrunoTestPanel";
-import HttpTestPanel from "./http/HttpTestPanel";
+import BrunoPanel from "./bruno/BrunoPanel";
+import HttpPanel from "./http/HttpPanel";
 import SuitePanel from "./suite/SuitePanel";
 import LoadTestPanel from "./loadtest/LoadTestPanel";
 import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
 import ReportPanel from "./report/ReportPanel";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
-import { isBrunoFilePath, parseBrunoDocument } from "mmt-core/brunoParsePack";
+import { isBrunoCollectionFilePath, isBrunoFilePath, parseBrunoDocument, type BrunoSourceFile } from "mmt-core/brunoParsePack";
 import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
 import { normalizeNewlines } from "mmt-core/textLines";
 import YamlEditorPanel from "./text/YamlEditorPanel";
@@ -23,6 +23,14 @@ import { ensureThemeSync } from "./text/Theme";
 import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
 import { collectYamlEditorErrors } from "./text/yamlEditorErrors";
 import YamlErrorWarning from "./api/YamlErrorWarning";
+import SpecApiPanel from "./spec/SpecApiPanel";
+import {
+  SourceFormat,
+  editorLanguageForSource,
+  isSpecSourceFormat,
+  parseCollectionFiles,
+  parseSourceFormat,
+} from "./sourceFormat";
 
 /** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
 function toEditorText(text: string): string {
@@ -60,7 +68,7 @@ type WebviewViewState = {
   windowWidth?: number;
 };
 
-const minPanelSize = 300;
+const minPanelSize = 420;
 const defaultPanelRatio = 0.5;
 
 function isPanelMode(value: unknown): value is PanelMode {
@@ -144,9 +152,11 @@ const App: React.FC = () => {
   const [content, setContent] = useState("");
   const [validContent, setValidContent] = useState("");
   const [documentContentLoaded, setDocumentContentLoaded] = useState(false);
-  const [sourceFormat, setSourceFormat] = useState<"mmt" | "http" | "bruno">("mmt");
+  const [sourceFormat, setSourceFormat] = useState<SourceFormat>("mmt");
   const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
   const [projectRoot, setProjectRoot] = useState<string | undefined>(undefined);
+  const [collectionFiles, setCollectionFiles] = useState<BrunoSourceFile[]>([]);
+  const [collectionName, setCollectionName] = useState<string | undefined>(undefined);
   const [yamlFontSize, setYamlFontSize] = useState<number>(12);
   const [collapseDescription, setCollapseDescription] = useState<boolean>(false);
 
@@ -200,10 +210,18 @@ const App: React.FC = () => {
       return;
     }
     if (sourceFormat === "bruno") {
+      if (isBrunoCollectionFilePath(mmtFilePath || "")) {
+        setValidContent(content);
+        return;
+      }
       const parsed = parseBrunoDocument(content);
       if (parsed.blocks.length > 0) {
         setValidContent(content);
       }
+      return;
+    }
+    if (isSpecSourceFormat(sourceFormat)) {
+      setValidContent(content);
       return;
     }
     try {
@@ -234,8 +252,11 @@ const App: React.FC = () => {
             lastWindowWidthRef.current = window.innerWidth;
           }
         }
-        const nextSourceFormat = message.sourceFormat === "http" || isHttpFilePath(message.uri || "") ? "http" :
-          message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") ? "bruno" : "mmt";
+        const nextSourceFormat = parseSourceFormat(
+          message.sourceFormat === "http" || isHttpFilePath(message.uri || "") ? "http" :
+            message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") || isBrunoCollectionFilePath(message.uri || "") ? "bruno" :
+              message.sourceFormat
+        );
         setSourceFormat(nextSourceFormat);
         setContent(toEditorText(message.content));
 
@@ -247,10 +268,17 @@ const App: React.FC = () => {
             setValidContent(toEditorText(message.content));
           }
         } else if (nextSourceFormat === "bruno") {
-          const parsed = parseBrunoDocument(message.content);
-          if (parsed.blocks.length > 0) {
+          if (isBrunoCollectionFilePath(message.uri || "") ||
+              (Array.isArray(message.collectionFiles) && message.collectionFiles.length > 0)) {
             setValidContent(toEditorText(message.content));
+          } else {
+            const parsed = parseBrunoDocument(message.content);
+            if (parsed.blocks.length > 0) {
+              setValidContent(toEditorText(message.content));
+            }
           }
+        } else if (isSpecSourceFormat(nextSourceFormat)) {
+          setValidContent(toEditorText(message.content));
         } else {
           try {
             const editorText = toEditorText(message.content);
@@ -265,13 +293,25 @@ const App: React.FC = () => {
 
         if (message.uri) setMmtFilePath(message.uri);
         if (message.projectRoot) setProjectRoot(message.projectRoot);
+        if (nextSourceFormat === "bruno") {
+          setCollectionFiles(parseCollectionFiles(message.collectionFiles));
+          setCollectionName(typeof message.collectionName === "string" ? message.collectionName : undefined);
+        } else {
+          setCollectionFiles([]);
+          setCollectionName(undefined);
+        }
       }
 
       // External document change (undo / revert) – update content without
       // echoing an updateDocumentContent message back to the extension.
       if (message.command === "documentContentChanged") {
-        const nextSourceFormat = message.sourceFormat === "http" || isHttpFilePath(message.uri || mmtFilePath || "") ? "http" :
-          message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || mmtFilePath || "") ? "bruno" : sourceFormat;
+        const nextSourceFormat = parseSourceFormat(
+          message.sourceFormat === "http" || isHttpFilePath(message.uri || mmtFilePath || "") ? "http" :
+            message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || mmtFilePath || "") ||
+              isBrunoCollectionFilePath(message.uri || mmtFilePath || "") ? "bruno" :
+              message.sourceFormat,
+          sourceFormat
+        );
         setSourceFormat(nextSourceFormat);
         const editorText = toEditorText(message.content);
         setContent(prev => {
@@ -287,10 +327,17 @@ const App: React.FC = () => {
             setValidContent(editorText);
           }
         } else if (nextSourceFormat === "bruno") {
-          const parsed = parseBrunoDocument(editorText);
-          if (parsed.blocks.length > 0) {
+          if (isBrunoCollectionFilePath(message.uri || mmtFilePath || "") ||
+              (Array.isArray(message.collectionFiles) && message.collectionFiles.length > 0)) {
             setValidContent(editorText);
+          } else {
+            const parsed = parseBrunoDocument(editorText);
+            if (parsed.blocks.length > 0) {
+              setValidContent(editorText);
+            }
           }
+        } else if (isSpecSourceFormat(nextSourceFormat)) {
+          setValidContent(editorText);
         } else {
           try {
             if (isUsableMmtYaml(editorText)) {
@@ -299,6 +346,10 @@ const App: React.FC = () => {
           } catch {
             // keep previous validContent
           }
+        }
+        if (nextSourceFormat === "bruno" && message.collectionFiles) {
+          setCollectionFiles(parseCollectionFiles(message.collectionFiles));
+          setCollectionName(typeof message.collectionName === "string" ? message.collectionName : undefined);
         }
       }
 
@@ -356,6 +407,9 @@ const App: React.FC = () => {
   }, [setContent, mmtFilePath, sourceFormat]);
 
   const docType = useMemo(() => {
+    if (isSpecSourceFormat(sourceFormat)) {
+      return validContent.trim() ? "spec" : null;
+    }
     if (sourceFormat === "http" || sourceFormat === "bruno") {
       return validContent.trim() ? "test" : null;
     }
@@ -469,7 +523,7 @@ const App: React.FC = () => {
     : { display: "none", width: 0, minWidth: 0, margin: 0, padding: 0, pointerEvents: "none" };
 
   return (
-    <FileContext.Provider value={{ mmtFilePath, projectRoot, yamlErrors, yamlStale, restoreValidYaml }}>
+    <FileContext.Provider value={{ mmtFilePath, projectRoot, yamlErrors, yamlStale, restoreValidYaml, collectionFiles, collectionName }}>
       <div ref={splitHostRef} style={{ height: "100%", width: "100%", overflow: "hidden" }}>
         <SplitPane
           split="vertical"
@@ -510,7 +564,7 @@ const App: React.FC = () => {
               onFocusChange={setYamlEditorFocused}
               fontSize={yamlFontSize}
               collapseDescription={collapseDescription}
-              language={sourceFormat === "http" || sourceFormat === "bruno" ? "http" : "yaml"}
+              language={editorLanguageForSource(sourceFormat, mmtFilePath)}
               sourceFormat={sourceFormat}
             />
           </div>
@@ -537,6 +591,9 @@ const App: React.FC = () => {
                 {docType === "env" && (
                   <EnvironmentPanel content={validContent} setContent={uiSetContent} />
                 )}
+                {docType === "spec" && (
+                  <SpecApiPanel content={validContent} />
+                )}
                 {docType === "api" && (
                   <APIPanel content={validContent} setContent={uiSetContent} />
                 )}
@@ -545,9 +602,9 @@ const App: React.FC = () => {
                 )}
                 {docType === "test" && (
                   sourceFormat === "http" ?
-                    <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
+                    <HttpPanel content={validContent} setContent={uiSetContent} /> :
                     sourceFormat === "bruno" ?
-                    <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
+                    <BrunoPanel content={validContent} setContent={uiSetContent} /> :
                     <TestPanel content={validContent} setContent={uiSetContent} />
                 )}
                 {docType === "suite" && (

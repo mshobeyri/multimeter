@@ -1,6 +1,7 @@
 import { APISchema, EnvSchema, TestSchema, SuiteSchema, LoadTestSchema, DocSchema, MockSchema, ReportSchema, GeneralSchema } from './Schema';
 import { parseYamlDoc } from 'mmt-core/markupConvertor';
 import Ajv from 'ajv';
+import { clientCertFieldIssues } from './clientCertificateFields';
 
 const ajv = new Ajv({ allErrors: true, verbose: true });
 
@@ -318,6 +319,44 @@ const formatValidationMessage = (path: string, message: string | undefined): str
     return path ? `${path}: ${text}` : text;
 };
 
+const appendClientCertificateFieldErrors = (
+    errors: any[],
+    parsedContent: any,
+    content: string,
+    pathMap: YamlPathPositionMap
+): void => {
+    if (parsedContent?.type !== 'env') {
+        return;
+    }
+    const clients = parsedContent?.certificates?.clients;
+    if (!Array.isArray(clients)) {
+        return;
+    }
+    clients.forEach((client, index) => {
+        if (!client || typeof client !== 'object' || Array.isArray(client)) {
+            return;
+        }
+        for (const issue of clientCertFieldIssues(client)) {
+            const instancePath = `/certificates/clients/${index}/${issue.field}`;
+            const { line, column } = resolveErrorPosition(
+                content,
+                pathMap,
+                { instancePath, keyword: 'type' },
+                `.certificates.clients[${index}]`
+            );
+            errors.push({
+                severity: 8,
+                startLineNumber: line,
+                startColumn: column,
+                endLineNumber: line,
+                endColumn: 100,
+                message: issue.message,
+                source: 'mmt-validation'
+            });
+        }
+    });
+};
+
 export const validateYamlContent = (content: string): any[] => {
     const errors: any[] = [];
 
@@ -426,6 +465,8 @@ export const validateYamlContent = (content: string): any[] => {
                 }
             });
         }
+
+        appendClientCertificateFieldErrors(errors, parsedContent, content, pathMap);
 
         return errors;
     } catch (yamlError: any) {

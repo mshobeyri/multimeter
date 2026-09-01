@@ -6,6 +6,7 @@ import * as mmtcore from 'mmt-core';
 import { parseRefDescription, extractMarkdownSection, resolveRefPath } from 'mmt-core/docHtml';
 import { readFile, readFileAsDataUrl } from '../vsAPI';
 import PrimaryButton from '../components/PrimaryButton';
+import { HideWhenYamlError } from '../api/YamlErrorWarning';
 
 interface DocViewProps { doc: DocData; }
 
@@ -143,9 +144,11 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
         <PrimaryButton icon="open-preview" onClick={handleOpenPreview}>
           Show Preview
         </PrimaryButton>
-        <PrimaryButton icon="export" onClick={handleExport}>
-          Export
-        </PrimaryButton>
+        <HideWhenYamlError>
+          <PrimaryButton icon="export" onClick={handleExport}>
+            Export
+          </PrimaryButton>
+        </HideWhenYamlError>
       </div>
       <pre
         style={{

@@ -1,6 +1,6 @@
 # Multimeter CLI (mmtcli)
 
-CLI runner for Multimeter test files.
+CLI runner for Multimeter test files. The npm package is `mmt-testlight`; the command you run is `testlight`.
 
 ## Usage
 

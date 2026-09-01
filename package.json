@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "REST Client and API testing in VS Code. Git-native alternative to Postman, Bruno, and Thunder Client.",
-  "version": "1.35.0",
+  "version": "1.36.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -251,16 +251,77 @@
             "filenamePattern": "file:/**/*.bruno"
           },
           {
+            "filenamePattern": "file:/**/bruno.json"
+          },
+          {
             "filenamePattern": "vscode-remote:/**/*.bru"
           },
           {
             "filenamePattern": "vscode-remote:/**/*.bruno"
           },
           {
+            "filenamePattern": "vscode-remote:/**/bruno.json"
+          },
+          {
             "filenamePattern": "vscode-vfs:/**/*.bru"
           },
           {
             "filenamePattern": "vscode-vfs:/**/*.bruno"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/bruno.json"
+          }
+        ],
+        "priority": "option"
+      },
+      {
+        "viewType": "mmt.specEditor",
+        "displayName": "Multimeter Spec Editor",
+        "selector": [
+          {
+            "filenamePattern": "file:/**/*.json"
+          },
+          {
+            "filenamePattern": "file:/**/*.yaml"
+          },
+          {
+            "filenamePattern": "file:/**/*.yml"
+          },
+          {
+            "filenamePattern": "file:/**/*.xml"
+          },
+          {
+            "filenamePattern": "file:/**/*.wsdl"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.json"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.yaml"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.yml"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.xml"
+          },
+          {
+            "filenamePattern": "vscode-remote:/**/*.wsdl"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.json"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.yaml"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.yml"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.xml"
+          },
+          {
+            "filenamePattern": "vscode-vfs:/**/*.wsdl"
           }
         ],
         "priority": "option"
@@ -473,27 +534,27 @@
       "editor/title": [
         {
           "command": "multimeter.mmt.show.ui",
-          "when": "activeCustomEditorId == mmt.editor",
+          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
           "group": "navigation"
         },
         {
           "command": "multimeter.mmt.show.yaml",
-          "when": "activeCustomEditorId == mmt.editor",
+          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
           "group": "navigation"
         },
         {
           "command": "multimeter.mmt.show.full",
-          "when": "activeCustomEditorId == mmt.editor",
+          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
           "group": "navigation"
         },
         {
           "command": "multimeter.mmt.show.as.text",
-          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.httpEditor || activeCustomEditorId == mmt.brunoEditor",
+          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.httpEditor || activeCustomEditorId == mmt.brunoEditor || activeCustomEditorId == mmt.specEditor",
           "group": "navigation"
         },
         {
           "command": "multimeter.mmt.show.as.mmt",
-          "when": "(resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno) && activeCustomEditorId != mmt.editor && activeCustomEditorId != mmt.httpEditor && activeCustomEditorId != mmt.brunoEditor",
+          "when": "(resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno || resourceExtname == .json || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .xml || resourceExtname == .wsdl) && activeCustomEditorId != mmt.editor && activeCustomEditorId != mmt.httpEditor && activeCustomEditorId != mmt.brunoEditor && activeCustomEditorId != mmt.specEditor",
           "group": "navigation"
         }
       ],
@@ -510,7 +571,7 @@
         },
         {
           "command": "multimeter.mmt.show.as.mmt",
-          "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno",
+          "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno || resourceExtname == .json || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .xml || resourceExtname == .wsdl",
           "group": "navigation@52"
         }
       ],
@@ -533,7 +594,7 @@
         },
         {
           "command": "multimeter.mmt.show.as.mmt",
-          "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno"
+          "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno || resourceExtname == .json || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .xml || resourceExtname == .wsdl"
         }
       ]
     }

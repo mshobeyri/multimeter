@@ -57,9 +57,21 @@ interface UseAPITesterLogicParams {
   api: APIData;
   onUpdateApi?: (patch: Partial<APIData>) => void;
   filePath?: string;
+  initialExampleIndex?: number;
 }
 
-export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLogicParams) {
+function clampExampleIndex(examples: unknown[] | undefined, index: number | undefined): number {
+  if (typeof index !== "number" || index < 0) {
+    return -1;
+  }
+  const list = safeList(examples);
+  if (index >= list.length) {
+    return -1;
+  }
+  return index;
+}
+
+export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIndex }: UseAPITesterLogicParams) {
   const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(() => readCachedBodyAutoFormat());
   const autoFormatBodyRef = useRef(autoFormatBody);
   autoFormatBodyRef.current = autoFormatBody;
@@ -72,9 +84,13 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const sendPendingRef = useRef(false);
   const [responseData, setResponseData] = useState<Response>();
   const [responseRevision, setResponseRevision] = useState<number>(0);
-  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(-1);
+  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(
+    () => clampExampleIndex(api.examples, initialExampleIndex)
+  );
   const prevApiRef = useRef<APIData | undefined>(undefined);
-  const prevExampleIdxRef = useRef<number>(-1);
+  const prevExampleIdxRef = useRef<number>(
+    clampExampleIndex(api.examples, initialExampleIndex)
+  );
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
   const currentInputsRef = useRef<JSONRecord>({});
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
@@ -357,8 +373,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   }, [requestData, selectedExampleIdx, currentInputs]);
 
   const handleRunInCore = useCallback(() => {
-    window.vscode?.postMessage({ command: "showLogOutputChannel" });
     runViaCore({ forSend: false });
+    window.vscode?.postMessage({ command: "showLogOutputChannel" });
   }, [runViaCore]);
 
   const handleSend = useCallback(async () => {

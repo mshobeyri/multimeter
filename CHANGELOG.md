@@ -2,6 +2,33 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.36.1]
+
+- Resolve same-file OpenAPI `$ref` pointers for shared parameters, request bodies, and schemas during Convert to MMT
+
+## [1.36.0]
+
+- Open Bruno collections only via `bruno.json` (single `.bru` files stay request-only)
+- Fix API Send for Bruno and HTTP source files
+- Fix first-run UI reset when pinning preview tabs after Run
+- Add view-only All / Passed / Failed filter for test and suite reports
+- Raise the webview minimum width from 300px to 400px
+- Point the professional OpenAPI convert example at test.mmt.dev and add convert samples for all test.mmt.dev endpoints
+- Add a professional Vault HTTP + `setenv` example
+- Add pinned OpenAPI fixture specs (JSON and YAML) and conversion unit tests
+
+## [1.35.2]
+
+- Stable release of Multimeter 1.35.1 for marketplace packaging
+
+## [1.35.1]
+
+- Keep `#` comments in YAML when you save from the UI (API, test, env, suite, mock, doc, load test)
+- Support PKCS#12 / PFX client certificates (`pfx` or `cert`+`key`) with samples and a Certificates dropdown UI
+- Pin **YAML ERROR** to the far right of the header and hide Flow chart, Edit, and Export while YAML is invalid
+- Improve YAML autocomplete (shared ranges, call-step parent walks)
+- Keep HTML response bodies from breaking the History panel
+
 ## [1.35.0]
 
 - Treat the tester/runner UI as temporary: **UNSAVED CHANGES** replaces Edit until **Save to YAML** or **Discard**

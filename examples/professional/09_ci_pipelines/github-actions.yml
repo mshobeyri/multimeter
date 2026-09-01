@@ -1,0 +1,28 @@
+# Copy to .github/workflows/mmt.yml
+# Change `file` if this suite is not at the repository root.
+
+name: Multimeter
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Multimeter suite
+        uses: mshobeyri/multimeter/.github/actions/testlight@main
+        with:
+          file: suite.mmt
+          report: junit
+          report-file: results/junit.xml
+
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testlight-junit
+          path: results/junit.xml

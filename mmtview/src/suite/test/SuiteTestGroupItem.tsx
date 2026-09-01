@@ -2,6 +2,7 @@ import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TreeRunButton from '../../components/TreeRunButton';
+import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
 
 export type SuiteTestGroupItemData = { type: 'group' | 'root' | 'import-group'; label: string };
 
@@ -10,7 +11,7 @@ interface SuiteTestGroupItemProps {
   context: any;
   arrow: React.ReactNode;
   children: React.ReactNode;
-  getGroupStatus: (itemId: string) => StepStatus;
+  status: StepStatus;
   statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
   canShowStatusIcon?: boolean;
   showRunButton?: boolean;
@@ -26,7 +27,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
   context,
   arrow,
   children,
-  getGroupStatus,
+  status,
   statusIconFor,
   canShowStatusIcon = true,
   showRunButton = false,
@@ -44,7 +45,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
   const statusIcon = isRoot
     ? { icon: 'codicon-files', color: 'var(--vscode-editor-foreground, #c5c5c5)', title: 'Suite' }
     : canShowStatusIcon
-      ? statusIconFor(getGroupStatus(String(item.index)))
+      ? statusIconFor(status)
       : null;
 
   return (
@@ -77,9 +78,9 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
               <span className={`codicon ${statusIcon.icon}`} aria-hidden title={statusIcon.title} style={{ color: statusIcon.color }} />
             )}
             {data.type === 'group' || data.type === 'import-group' ? (
-              <span className="codicon codicon-layers" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+              <span className="codicon codicon-collection" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
             ) : (
-              <span className="codicon codicon-package" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+              <span className="codicon codicon-layers" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
             )}
             <span>{data.label}</span>
           </div>
@@ -98,4 +99,4 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
   );
 };
 
-export default SuiteTestGroupItem;
+export default React.memo(SuiteTestGroupItem, areSuiteTreeRowPropsEqual);

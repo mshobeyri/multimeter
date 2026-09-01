@@ -1,7 +1,15 @@
 type: suite
-title: Convert Example
-description: Generated from Postman collection folder "Convert Example".
+title: Multimeter Test Server
+description: Generated from Postman collection folder "Multimeter Test Server".
 tags:
   - postman
 items:
-  - ../tests/collection.mmt
+  - +/suites/auth.mmt
+  - then
+  - +/suites/echo.mmt
+  - then
+  - +/suites/inspect.mmt
+  - then
+  - +/suites/samples.mmt
+  - then
+  - +/suites/status.mmt

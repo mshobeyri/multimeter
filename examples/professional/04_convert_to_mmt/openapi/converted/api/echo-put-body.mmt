@@ -1,0 +1,25 @@
+type: api
+title: Echo PUT body
+description: Same echo envelope as POST, for PUT requests.
+inputs:
+  body: |-
+    {
+      "id": 1,
+      "name": "Multimeter",
+      "active": true
+    }
+url: https://test.mmt.dev/echo
+protocol: http
+method: put
+format: json
+headers:
+  Content-Type: application/json
+body: <<i:body>>
+examples:
+  - name: Update fields
+  - name: Partial fields
+    inputs:
+      body: |-
+        {
+          "active": false
+        }

@@ -229,7 +229,7 @@ export function yamlToTest(yamlContent: string): TestData {
   }
 }
 
-export function testToYaml(test: TestData): string {
+export function testToYaml(test: TestData, originalYaml?: string): string {
   const yamlObj: Record<string, any> = {
     type: test.type,
   };
@@ -260,7 +260,7 @@ export function testToYaml(test: TestData): string {
   if (Array.isArray(test.stages)) {
     yamlObj.stages = reorderStages(test.stages);
   }
-  return packYaml(yamlObj);
+  return packYaml(yamlObj, originalYaml);
 }
 
 export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {

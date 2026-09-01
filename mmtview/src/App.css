@@ -535,7 +535,8 @@ select:focus {
 }
 
 input:disabled,
-textarea:disabled {
+textarea:disabled,
+select:disabled {
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-disabledForeground, #666666);
   opacity: 0.6;
@@ -638,11 +639,6 @@ button:focus {
 .test-flow-root-toggle .codicon,
 .test-flow-root-add .codicon {
   font-size: 16px;
-}
-
-/* VS Code hosts without `collection` still get a visible layers glyph. */
-.test-flow-root-toggle .codicon-collection:before {
-  content: "\ebd2"; /* codicon-layers */
 }
 
 .action-button.is-pressed {
@@ -1148,6 +1144,14 @@ button:focus {
   margin-bottom: -1px;
 }
 
+.panel-run-header-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
 .panel-run-header-title {
   cursor: default;
   display: flex;
@@ -1178,6 +1182,12 @@ button:focus {
   flex-shrink: 0;
 }
 
+.panel-run-header-status {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+
 .api-edit-header {
   display: flex;
   flex-direction: column;
@@ -1193,6 +1203,11 @@ button:focus {
   padding-bottom: 16px;
   min-width: 0;
   flex-wrap: wrap;
+}
+
+.api-edit-header-row-status {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .api-edit-title {
@@ -1218,6 +1233,17 @@ button:focus {
   font-size: calc(var(--vscode-font-size, 13px) * 2);
 }
 
+.api-edit-header-row .action-button.yaml-error-btn,
+.api-edit-header-row .action-button.unsaved-warning-btn {
+  font-size: var(--vscode-font-size, 13px);
+  padding: 4px 10px;
+}
+
+.api-edit-header-row .action-button.yaml-error-btn .codicon,
+.api-edit-header-row .action-button.unsaved-warning-btn .codicon {
+  font-size: 16px;
+}
+
 .panel-edit-header-trailing {
   margin-left: auto;
 }
@@ -1231,6 +1257,242 @@ button:focus {
 
 .api-edit-launcher .api-edit-launcher-text {
   color: inherit;
+}
+
+.api-edit-launcher.is-icon-only {
+  padding: 4px 6px;
+}
+
+.api-selector {
+  position: relative;
+}
+
+.api-selector-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground, #d4d4d4);
+  padding: 4px 6px;
+}
+
+.api-selector--header .api-selector-trigger {
+  opacity: 0.8;
+}
+
+.api-selector--header .api-selector-trigger:hover,
+.api-selector--header .api-selector-trigger.is-open {
+  opacity: 1;
+}
+
+.apitest-method-cluster {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.apitest-method-cluster .api-selector-trigger {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--mmt-accent-border, var(--mmt-accent-fill, transparent));
+  border-right: 1px solid color-mix(in oklab, var(--mmt-accent-on-fill, #fff) 38%, transparent);
+  border-radius: 2px 0 0 2px;
+  color: var(--mmt-accent-on-fill, var(--vscode-button-foreground, #fff));
+  background-color: var(
+    --mmt-accent-fill,
+    color-mix(
+      in oklab,
+      var(--mmt-accent, #888) 52%,
+      var(--vscode-editor-background, #1e1e1e)
+    )
+  );
+}
+
+.apitest-method-cluster .api-selector-trigger:hover,
+.apitest-method-cluster .api-selector-trigger.is-open {
+  background-color: var(--mmt-accent-fill);
+}
+
+.apitest-method-cluster select.method-select,
+.apitest-method-cluster select.method-select:focus,
+.apitest-method-cluster select.method-select:focus-visible {
+  border-radius: 0 2px 2px 0;
+}
+
+.source-view-switch {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.source-view-switch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  opacity: 0.55;
+  font-size: var(--vscode-font-size, 13px);
+}
+
+.api-selector .source-view-switch-btn {
+  padding: 4px 6px;
+  min-width: 28px;
+}
+
+.source-view-switch-btn .codicon {
+  font-size: 14px;
+}
+
+.source-view-switch-btn.is-active {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.panel-run-header-start .api-selector {
+  flex: 0 0 auto;
+}
+
+.panel-run-header-start .api-selector-trigger {
+  padding: 4px 6px;
+}
+
+.panel-run-header-start .source-header-divider {
+  width: 1px;
+  height: 16px;
+  flex-shrink: 0;
+  background: var(--vscode-widget-border, #454545);
+}
+
+.apitest-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 0;
+  min-width: 0;
+}
+
+.apitest-selector-row .api-selector {
+  flex: 1;
+  min-width: 0;
+}
+
+.apitest-selector-row > .api-edit-launcher:last-child {
+  margin-left: auto;
+}
+
+.api-selector .api-edit-launcher-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-selector-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1000;
+  background: var(--vscode-editorWidget-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  min-width: 280px;
+  max-width: min(420px, 80vw);
+  max-height: min(360px, 70vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.api-selector-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.api-selector-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  text-align: left;
+}
+
+.api-selector-save {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-icon-foreground, #c5c5c5);
+  cursor: pointer;
+}
+
+.api-selector-row:hover .api-selector-save,
+.api-selector-row:focus-within .api-selector-save {
+  display: flex;
+}
+
+.api-selector-save:hover {
+  background: var(--vscode-toolbar-hoverBackground, #333);
+}
+
+.api-selector-item:hover,
+.api-selector-item.is-selected {
+  background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.api-selector-method {
+  flex: 0 0 auto;
+  min-width: 4.5em;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.api-selector-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-selector-item.is-child {
+  padding-left: 28px;
+}
+
+.api-selector-example-icon {
+  min-width: 4.5em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.api-selector-example-icon .codicon {
+  font-size: 14px;
 }
 
 /* Warning / error chip popup anchor */
@@ -1431,17 +1693,52 @@ select.method-select:focus-visible {
   cursor: default;
 }
 
+/*
+ * API tester padding: match test-type .panel-box inset (16px).
+ * Apply on .apitest-root / edit page so the run view is never flush when
+ * panel-box padding is cleared for the API swipe layout.
+ */
+.panel-box:has(.apitest-root) {
+  padding: 0;
+}
+
+.panel-box:has(.api-selector--header) {
+  padding-top: 0;
+}
+
+.api-swipe-page--edit {
+  padding: 16px;
+  box-sizing: border-box;
+}
+
 .apitest-root {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  padding: 8px;
+  padding: 16px;
   padding-bottom: 0;
+  box-sizing: border-box;
   min-height: 0;
   min-width: 0;
   gap: 0;
   overflow-x: hidden;
+}
+
+.apitest-root--source {
+  padding-top: 8px;
+}
+
+.apitest-url-row {
+  padding: 0 0 8px;
+}
+
+.apitest-tabs-row {
+  padding: 0 0 8px;
+}
+
+.apitest-fixed-header .tab-bar {
+  margin-bottom: 0;
 }
 
 .apitest-fixed-header {
@@ -1477,10 +1774,6 @@ select.method-select:focus-visible {
   flex-shrink: 0;
 }
 
-.apitest-section .label {
-  padding-top: 0;
-}
-
 .apitest-send-row {
   flex-shrink: 0;
   display: flex;
@@ -1514,11 +1807,13 @@ select.method-select:focus-visible {
 }
 
 /* Body wrapper: grows to fill section, minimum 150px triggers scroll.
-   Position:relative so the bodyview can be position:absolute inside. */
+   Position:relative so the bodyview can be position:absolute inside.
+   Use the same 5px inset as edit-mode field blocks. */
 .apitest-body-wrapper {
   flex: 1;
   min-height: 150px;
-  padding: 0 8px 8px;
+  padding: 5px;
+  box-sizing: border-box;
   position: relative;
 }
 
@@ -1526,10 +1821,10 @@ select.method-select:focus-visible {
    dimensions regardless of flex chain. */
 .apitest-body-wrapper .bodyview {
   position: absolute;
-  top: 0;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
   height: auto;
   width: auto;
   overflow: hidden;
@@ -1567,7 +1862,7 @@ select.method-select:focus-visible {
   padding-top: 8px;
   padding-right: 8px;
   gap: 8px;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   box-sizing: border-box;
   min-width: 0;
@@ -1651,9 +1946,64 @@ select.method-select:focus-visible {
   opacity: 1;
 }
 
+.report-status-filter {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.report-status-filter-icon {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--vscode-foreground, #ccc);
+  opacity: 0.75;
+}
+
+.report-status-filter-icon.is-active {
+  opacity: 1;
+  color: var(--vscode-focusBorder, #007fd4);
+}
+
+.report-status-filter-icon.is-disabled {
+  opacity: 0.4;
+}
+
+.report-section-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  /* Room for the absolutely positioned filter icon + right inset */
+  padding-right: 28px;
+}
+
+.report-section-header .label {
+  margin-bottom: 0;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  min-width: 0;
+}
+
 .test-flow-tree {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .test-flow-tree>div>ul {
@@ -2364,10 +2714,10 @@ select.method-select:focus-visible {
   transition: color 0.15s;
 }
 
-@media (max-width: 300px) {
+@media (max-width: 420px) {
   body {
     overflow-x: auto;
-    min-width: 300px;
+    min-width: 420px;
   }
 }
 

@@ -1,6 +1,6 @@
 # Passphrase handling
 
-For security, you can store passphrases in environment variables instead of the env `file:`
+For security, store passphrases in an environment variable (`passphrase_env`) instead of in the env file (`passphrase_plain`). Set one of those fields, not both.
 
 ```yaml
 clients:

@@ -280,7 +280,7 @@ function parseConnectionConfig(
   return connection;
 }
 
-export function mockToYaml(mock: MockData): string {
+export function mockToYaml(mock: MockData, originalYaml?: string): string {
   const obj: Record<string, any> = {
     type: mock.type,
   };
@@ -320,7 +320,7 @@ export function mockToYaml(mock: MockData): string {
     if (mock.fallback.body !== undefined && mock.fallback.body !== null && mock.fallback.body !== '') { fb.body = mock.fallback.body; }
     obj.fallback = fb;
   }
-  return packYaml(obj);
+  return packYaml(obj, originalYaml);
 }
 
 const ENV_TOKEN_RE =

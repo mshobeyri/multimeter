@@ -1,0 +1,22 @@
+type: test
+title: Vault HTTP setenv → protected API
+description: |-
+  Starts a Vault-shaped mock, reads a secret over HTTP, promotes the token
+  with setenv, then calls a bearer-protected API on test.mmt.dev.
+import:
+  vaultMock: ./server/vault_kv_mock.mmt
+  vaultRead: ./api/vault_kv_read.mmt
+  bearerCheck: ./api/bearer_with_env_token.mmt
+steps:
+  - run: vaultMock
+  - call: vaultRead
+    id: secret
+    expect:
+      status: 200
+      api_token: testtoken
+  - setenv:
+      api_token: ${secret.api_token}
+  - call: bearerCheck
+    expect:
+      status: 200
+    report: all

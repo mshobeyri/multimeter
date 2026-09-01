@@ -2,6 +2,14 @@
 
 Import Postman Collection v2 exports into editable Multimeter projects.
 
+## Run directly
+
+See [Spec editor](./spec-editor.md) for the {{btn:list-tree}} request picker and {{btn:save-as}}.
+
+In VS Code, right-click a Postman collection JSON file and choose **Open as MMT**, or use **Open With...** → **Multimeter Spec Editor**. The collection stays on the left.
+
+Click {{btn:list-tree}}, pick a **request** or a **saved example** ({{btn:lightbulb}} child row), then {{btn:send:Send}}. There is no **All** row for Postman collections in the spec editor — run requests one at a time, or use **Convert to MMT** below for a full project. Hover a row for **Save as MMT**.
+
 ## Convert to MMT
 
 1. Export or save your Postman collection as JSON
@@ -33,7 +41,9 @@ Complex auth flows and Postman sandbox APIs may need manual touch-ups after impo
 - Review generated inputs and headers — tweak names to match your project
 - Use the API editor to refine bodies and add `setenv` for downstream tests
 
-Example output: [Postman convert example](../../examples/professional/04_convert_to_mmt/postman/README.md)
+Example output: [Postman convert example](../../examples/intermediate/25_convert_to_mmt/postman/README.md)
+
+Full sandbox Postman collection: [professional Postman convert](../../examples/professional/04_convert_to_mmt/postman/README.md)
 
 ## See also
 

@@ -5,8 +5,12 @@ import {TestData, TestFlowHttp, TestFlowStep} from './TestData';
 import {validateTestData} from './testParsePack';
 
 const HTTP_METHODS = new Set([
-  'get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace',
+  'get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect',
 ]);
+
+const isMethodBlockName = (name: string): boolean => {
+  return HTTP_METHODS.has(name) || name === 'http';
+};
 
 export interface BrunoParseWarning {
   line: number;
@@ -30,63 +34,162 @@ export function isBrunoFilePath(filePath: string): boolean {
   return lower.endsWith('.bru') || lower.endsWith('.bruno');
 }
 
+/** True for Bruno collection manifests (`bruno.json`), not request files. */
+export function isBrunoCollectionFilePath(filePath: string): boolean {
+  const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  const base = normalized.split('/').pop() || '';
+  return base === 'bruno.json';
+}
+
+export function isBrunoRequestFilePath(filePath: string): boolean {
+  if (!isBrunoFilePath(filePath)) {
+    return false;
+  }
+  const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  const base = normalized.split('/').pop() || '';
+  if (base === 'collection.bru' || base === 'folder.bru') {
+    return false;
+  }
+  if (normalized.includes('/environments/')) {
+    return false;
+  }
+  return true;
+}
+
+export interface BrunoSourceFile {
+  path: string;
+  content: string;
+  uri?: string;
+}
+
+export function brunoRequestSeq(content: string): number {
+  const document = parseBrunoDocument(content);
+  const meta = parseKeyValueBlock(firstBlock(document, 'meta')?.content || '');
+  const seq = Number(meta.seq);
+  return Number.isFinite(seq) ? seq : Number.MAX_SAFE_INTEGER;
+}
+
+export function sortBrunoSourceFiles(files: BrunoSourceFile[]): BrunoSourceFile[] {
+  return [...files].sort((left, right) => {
+    const seqDelta = brunoRequestSeq(left.content) - brunoRequestSeq(right.content);
+    if (seqDelta !== 0) {
+      return seqDelta;
+    }
+    return left.path.localeCompare(right.path);
+  });
+}
+
+export function brunoCollectionToTest(
+    files: BrunoSourceFile[], title = 'Bruno collection'): TestData {
+  const requestFiles = sortBrunoSourceFiles(
+      files.filter(file => isBrunoRequestFilePath(file.path)));
+  const steps: TestFlowStep[] = [];
+  const usedIds = new Set<string>();
+  for (const file of requestFiles) {
+    const test = brunoToTest(file.content, file.path);
+    for (const step of test.steps || []) {
+      const next = {...step} as TestFlowStep;
+      if ('id' in next && next.id) {
+        let id = String(next.id);
+        let suffix = 2;
+        while (usedIds.has(id)) {
+          id = `${next.id}${suffix}`;
+          suffix++;
+        }
+        usedIds.add(id);
+        (next as {id?: string}).id = id;
+      }
+      steps.push(next);
+    }
+  }
+  return {
+    type: 'test',
+    title,
+    description: '',
+    tags: ['bruno'],
+    inputs: {},
+    outputs: {},
+    steps: applyRunDebugToRequestSteps(steps),
+  };
+}
+
 const lineForOffset = (content: string, offset: number): number => {
   return content.slice(0, offset).split('\n').length;
 };
 
-export function parseBrunoDocument(content: string): BrunoDocument {
-  const source = String(content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const blocks: BrunoBlock[] = [];
-  const warnings: BrunoParseWarning[] = [];
-  const blockPattern = /^\s*([A-Za-z][A-Za-z0-9_-]*)(?::([A-Za-z0-9_-]+))?\s*\{/gm;
-  let match: RegExpExecArray | null;
-
-  while ((match = blockPattern.exec(source)) !== null) {
-    const openIndex = source.indexOf('{', match.index);
-    let depth = 0;
-    let quote: string | undefined;
-    let escaped = false;
-    let closeIndex = -1;
-    for (let i = openIndex; i < source.length; i++) {
-      const char = source[i];
-      if (quote) {
-        if (escaped) {
-          escaped = false;
-        } else if (char === '\\') {
-          escaped = true;
-        } else if (char === quote) {
-          quote = undefined;
-        }
-        continue;
+const findBlockCloseIndex = (source: string, openIndex: number): number => {
+  let depth = 0;
+  let quote: string | undefined;
+  let escaped = false;
+  for (let i = openIndex; i < source.length; i++) {
+    const char = source[i];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === quote) {
+        quote = undefined;
       }
-      if (char === '"' || char === "'" || char === '`') {
-        quote = char;
-        continue;
-      }
-      if (char === '{') {
-        depth++;
-      } else if (char === '}') {
-        depth--;
-        if (depth === 0) {
-          closeIndex = i;
-          break;
-        }
+      continue;
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
+    if (char === '{') {
+      depth++;
+    } else if (char === '}') {
+      depth--;
+      if (depth === 0) {
+        return i;
       }
     }
+  }
+  return -1;
+};
 
-    const startLine = lineForOffset(source, match.index);
+export function parseBrunoDocument(content: string): BrunoDocument {
+  const source = String(content || '')
+      .replace(/^\uFEFF/, '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
+  const blocks: BrunoBlock[] = [];
+  const warnings: BrunoParseWarning[] = [];
+  // Classic `body:json {` and Bru-lang `http: {` / `headers: {`.
+  const blockLine = /^(\s*)([A-Za-z][A-Za-z0-9_-]*)(?::([A-Za-z0-9_-]*))?\s*\{/;
+
+  let offset = 0;
+  while (offset < source.length) {
+    const newline = source.indexOf('\n', offset);
+    const lineEnd = newline < 0 ? source.length : newline;
+    const line = source.slice(offset, lineEnd);
+    const match = blockLine.exec(line);
+    if (!match) {
+      if (newline < 0) {
+        break;
+      }
+      offset = newline + 1;
+      continue;
+    }
+
+    const openIndex = offset + match[0].lastIndexOf('{');
+    const closeIndex = findBlockCloseIndex(source, openIndex);
+    const startLine = lineForOffset(source, offset);
+    const blockName = (match[2] || '').toLowerCase();
     if (closeIndex < 0) {
-      warnings.push({line: startLine, message: `Unclosed Bruno block "${match[1]}"`});
+      warnings.push({line: startLine, message: `Unclosed Bruno block "${blockName}"`});
       break;
     }
 
+    const qualifier = (match[3] || '').toLowerCase();
     blocks.push({
-      name: (match[1] || '').toLowerCase(),
-      qualifier: match[2]?.toLowerCase(),
+      name: blockName,
+      qualifier: qualifier || undefined,
       content: source.slice(openIndex + 1, closeIndex).trim(),
       startLine,
     });
-    blockPattern.lastIndex = closeIndex + 1;
+    offset = closeIndex + 1;
   }
 
   if (blocks.length === 0 && source.trim()) {
@@ -324,9 +427,11 @@ const parseBrunoRequest = (content: string, filePath = ''): BrunoRequestData => 
   const document = parseBrunoDocument(content);
   const variables = collectVariables(document);
   const meta = parseKeyValueBlock(firstBlock(document, 'meta')?.content || '');
-  const methodBlock = document.blocks.find(block => HTTP_METHODS.has(block.name));
+  const methodBlock = document.blocks.find(block => isMethodBlockName(block.name));
   const methodInfo = parseKeyValueBlock(methodBlock?.content || '');
   const title = meta.name || (filePath ? filePath.split(/[/\\]/).pop() || 'Bruno request' : 'Bruno request');
+  const methodFromHttpBlock = String(methodInfo.method || 'get').toLowerCase();
+  const method = (methodBlock?.name === 'http' ? methodFromHttpBlock : (methodBlock?.name || 'get')) as Method;
   const headers = Object.fromEntries(
       Object.entries(parseKeyValueBlock(firstBlock(document, 'headers')?.content || ''))
           .map(([key, value]) => [key, convertVariables(value, variables)]));
@@ -347,7 +452,7 @@ const parseBrunoRequest = (content: string, filePath = ''): BrunoRequestData => 
   return {
     title,
     id: sanitizeId(meta.name || 'request'),
-    method: (methodBlock?.name || 'get') as Method,
+    method,
     url: convertVariables(methodInfo.url || '', variables),
     format,
     query: Object.keys(query).length > 0 ? query : undefined,
@@ -432,7 +537,7 @@ export function brunoToTest(content: string, filePath = ''): TestData {
 export function validateBrunoDocument(content: string): BrunoParseWarning[] {
   const document = parseBrunoDocument(content);
   const errors: BrunoParseWarning[] = [...document.warnings];
-  const methodBlocks = document.blocks.filter(block => HTTP_METHODS.has(block.name));
+  const methodBlocks = document.blocks.filter(block => isMethodBlockName(block.name));
   if (methodBlocks.length === 0) {
     errors.push({line: 1, message: 'No Bruno HTTP method block found'});
   }

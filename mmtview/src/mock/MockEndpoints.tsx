@@ -1,9 +1,8 @@
 import React from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
-import { parseYamlDoc } from "mmt-core/markupConvertor";
 import MockEndpointBox, { methodTextColor } from "./MockEndpointBox";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
-import { canonicalizeMockYaml } from "./mockYaml";
+import { patchMockYaml } from "./mockYaml";
 import PrimaryButton from "../components/PrimaryButton";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
@@ -91,14 +90,12 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   /* ─── Fallback helpers ─── */
   const updateFallback = React.useCallback((fallbackEndpoint: MockEndpoint) => {
     try {
-      const doc = parseYamlDoc(content);
       const fallback: Record<string, any> = {};
       fallback.status = fallbackEndpoint.status ?? 404;
       if (fallbackEndpoint.format) { fallback.format = fallbackEndpoint.format; }
       if (fallbackEndpoint.headers && Object.keys(fallbackEndpoint.headers).length > 0) { fallback.headers = fallbackEndpoint.headers; }
       if (fallbackEndpoint.body !== undefined && fallbackEndpoint.body !== null && fallbackEndpoint.body !== '') { fallback.body = fallbackEndpoint.body; }
-      doc.set('fallback', doc.createNode(fallback));
-      setContent(canonicalizeMockYaml(doc.toString()));
+      setContent(patchMockYaml(content, { fallback } as Partial<MockData>));
     } catch { /* ignore */ }
   }, [content, setContent]);
   const contentRef = React.useRef(content);
@@ -149,10 +146,8 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   const commitEndpoints = React.useCallback((items: Record<string, any>) => {
     try {
       const newEndpoints = treeToEndpoints(items);
-      const doc = parseYamlDoc(contentRef.current);
-      doc.set('endpoints', doc.createNode(newEndpoints));
       internalChangeRef.current = true;
-      setContent(canonicalizeMockYaml(doc.toString()));
+      setContent(patchMockYaml(contentRef.current, { endpoints: newEndpoints }));
     } catch (e) {
       console.error('Failed to commit endpoints:', e);
     }
@@ -397,6 +392,30 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                 style={{ alignItems: 'flex-start' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
+                  <button
+                    className="action-button"
+                    type="button"
+                    title={isOpen ? 'Collapse box' : 'Expand box'}
+                    aria-label={isOpen ? 'Collapse box' : 'Expand box'}
+                    onPointerDown={e => e.stopPropagation()}
+                    onPointerUp={e => {
+                      e.stopPropagation();
+                      setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }));
+                    }}
+                    draggable={false}
+                    tabIndex={0}
+                    style={{
+                      display: 'inline-flex',
+                      width: 24,
+                      minWidth: 24,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span
+                      className={`codicon ${isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+                      style={{ fontSize: 16 }}
+                    />
+                  </button>
                   {arrow}
                 </div>
                 <NoTreeInterference>
@@ -414,9 +433,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                           return { items: itemsCopy };
                         });
                       }}
-                      showExpand={true}
                       expanded={isOpen}
-                      onToggleExpand={() => setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }))}
                       onDuplicate={() => doDuplicate(String(item.index))}
                       onRemove={() => doRemove(String(item.index))}
                     />
@@ -451,6 +468,30 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
 
       <div className={`tree-view-box mock-fallback-editor${fallbackOpen ? ' active' : ''}`} style={{ alignItems: 'flex-start', marginTop: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
+          <button
+            className="action-button"
+            type="button"
+            title={fallbackOpen ? 'Collapse box' : 'Expand box'}
+            aria-label={fallbackOpen ? 'Collapse box' : 'Expand box'}
+            onPointerDown={e => e.stopPropagation()}
+            onPointerUp={e => {
+              e.stopPropagation();
+              setFallbackOpen(value => !value);
+            }}
+            draggable={false}
+            tabIndex={0}
+            style={{
+              display: 'inline-flex',
+              width: 24,
+              minWidth: 24,
+              justifyContent: 'center',
+            }}
+          >
+            <span
+              className={`codicon ${fallbackOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+              style={{ fontSize: 16 }}
+            />
+          </button>
           <span style={{ display: 'inline-flex', alignSelf: 'center', width: 16, justifyContent: 'center' }} aria-hidden>
             <span className="codicon codicon-circle-slash" style={{ fontSize: 14, opacity: 0.8, color: 'var(--vscode-descriptionForeground)' }} />
           </span>
@@ -466,9 +507,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                 body: mockData.fallback?.body,
               }}
               onChange={updateFallback}
-              showExpand={true}
               expanded={fallbackOpen}
-              onToggleExpand={() => setFallbackOpen(value => !value)}
               variant="fallback"
             />
           </div>

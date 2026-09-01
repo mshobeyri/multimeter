@@ -1,6 +1,6 @@
 import React from "react";
 import parseYaml from "mmt-core/markupConvertor";
-import { envToYaml } from "mmt-core/envParsePack";
+import { patchEnvYaml } from "mmt-core/envParsePack";
 import EnvironmentVariableEdit from "./EnvironmentVariableEdit";
 import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
 import EnvironmentCertificatesEdit from "./EnvironmentCertificatesEdit";
@@ -13,27 +13,6 @@ interface EnvironmentEditProps {
   content: string;
   setContent: (value: string) => void;
   tab: "overview" | "variables" | "presets" | "settings" | "certificates";
-}
-
-function packEnvironmentData(envData: EnvironmentData): string {
-  const {
-    type,
-    import: imports,
-    variables,
-    presets,
-    setting,
-    certificates,
-    ...rest
-  } = envData as EnvironmentData & Record<string, unknown>;
-  return envToYaml({
-    type: 'env',
-    import: imports,
-    variables,
-    presets,
-    setting,
-    certificates,
-    extra: Object.keys(rest).length > 0 ? rest : undefined,
-  });
 }
 
 const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, tab }) => {
@@ -50,40 +29,25 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, 
   }
 
   const handleImportsChange = (imports: Record<string, string>) => {
-    if (!envData) return;
-    const newEnvData = { ...envData, import: Object.keys(imports).length > 0 ? imports : undefined };
-    const yamlString = packEnvironmentData(newEnvData);
-    setContent(yamlString);
+    setContent(patchEnvYaml(content, {
+      import: Object.keys(imports).length > 0 ? imports : undefined,
+    }));
   };
 
   const handleVariablesChange = (variables: EnvironmentData["variables"]) => {
-    if (!envData) return;
-    const newEnvData = { ...envData, variables };
-    const yamlString = packEnvironmentData(newEnvData);
-    setContent(yamlString);
+    setContent(patchEnvYaml(content, { variables }));
   };
 
   const handlePresetsChange = (presets: EnvironmentData["presets"]) => {
-    if (!envData) return;
-    const newEnvData = { ...envData, presets };
-    const yamlString = packEnvironmentData(newEnvData);
-    setContent(yamlString);
+    setContent(patchEnvYaml(content, { presets }));
   };
 
   const handleSettingChange = (setting: EnvSetting) => {
-    if (!envData) return;
-    const newEnvData = { ...envData, setting };
-    const yamlString = packEnvironmentData(newEnvData);
-    setContent(yamlString);
+    setContent(patchEnvYaml(content, { setting }));
   };
 
   const handleCertificatesChange = (certificates: EnvCertificates) => {
-    if (!envData) {
-      return;
-    }
-    const newEnvData = { ...envData, certificates };
-    const yamlString = packEnvironmentData(newEnvData);
-    setContent(yamlString);
+    setContent(patchEnvYaml(content, { certificates }));
   };
 
   if (!envData) {

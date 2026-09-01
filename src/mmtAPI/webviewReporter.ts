@@ -45,6 +45,18 @@ export interface CreateWebviewRunReporterOptions {
   rememberChildId?: (runId: string, id: string) => void;
 }
 
+/** Status/lifecycle scopes that should reach the UI immediately. */
+const IMMEDIATE_REPORT_SCOPES = new Set([
+  'suite-item',
+  'suite-run-start',
+  'suite-run-finished',
+  'test-step-run',
+  'test-outputs',
+  'loadtest-summary',
+]);
+
+const REPORT_BATCH_MS = 50;
+
 /**
  * Builds a reporter that owns all webview report posting for a run.
  *
@@ -68,6 +80,49 @@ export function createWebviewRunReporter(
     webviewPanel.webview.postMessage(payload);
   };
 
+  const pendingReports: Record<string, any>[] = [];
+  let flushTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const flushReports = () => {
+    if (flushTimer !== undefined) {
+      clearTimeout(flushTimer);
+      flushTimer = undefined;
+    }
+    if (pendingReports.length === 0) {
+      return;
+    }
+    const reports = pendingReports.splice(0, pendingReports.length);
+    if (reports.length === 1) {
+      post(reports[0]);
+      return;
+    }
+    post({
+      command: 'runFileReports',
+      suiteRunId: options.suiteRunId,
+      reports,
+    });
+  };
+
+  const enqueueReport = (payload: Record<string, any>) => {
+    pendingReports.push(payload);
+    if (flushTimer !== undefined) {
+      return;
+    }
+    flushTimer = setTimeout(() => {
+      flushTimer = undefined;
+      flushReports();
+    }, REPORT_BATCH_MS);
+  };
+
+  const postReport = (payload: Record<string, any>, immediate: boolean) => {
+    if (immediate) {
+      flushReports();
+      post(payload);
+      return;
+    }
+    enqueueReport(payload);
+  };
+
   return {
     type,
     updatesPanel,
@@ -89,12 +144,13 @@ export function createWebviewRunReporter(
             msg.runId && id) {
           options.rememberChildId?.(msg.runId, id);
         }
-        post({
+        const scope = typeof msg?.scope === 'string' ? msg.scope : '';
+        postReport({
           command: 'runFileReport',
           suiteRunId: options.suiteRunId,
           ...msg,
           id,
-        });
+        }, IMMEDIATE_REPORT_SCOPES.has(scope));
         return;
       }
       post({
@@ -106,12 +162,14 @@ export function createWebviewRunReporter(
       post(payload);
     },
     onRunEnd: (payload) => {
+      flushReports();
       post(payload);
     },
     onDebug: (payload) => {
       post(payload);
     },
     onCancelled: (payload) => {
+      flushReports();
       post(payload);
     },
   };

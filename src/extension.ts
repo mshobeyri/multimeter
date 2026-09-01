@@ -1,3 +1,4 @@
+import {detectImportSource, isSpecSourceKind} from 'mmt-core/importConvertor';
 import {connectionTracker} from 'mmt-core/networkCoreNode';
 import * as vscode from 'vscode';
 
@@ -19,6 +20,7 @@ import {TempFilesController} from './tempFiles/tempFilesController';
 import {TEMP_MMT_SCHEME} from './tempFiles/tempMmtUri';
 import {openUntitledGalleryMmt} from './untitledGalleryMmt';
 import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
+import {isSpecFamilyPath} from './mmtSourceFormat';
 
 export function activate(context: vscode.ExtensionContext) {
   const onboarding = initOnboarding(context);
@@ -68,6 +70,10 @@ function registerEditorProvider(
       }));
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(
       'mmt.brunoEditor', mmtviewPanel, {
+        webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
+      }));
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(
+      'mmt.specEditor', mmtviewPanel, {
         webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
       }));
 
@@ -235,7 +241,7 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
         const targetUri = resolveMmtTargetUri(uri);
         if (!targetUri || !isMmtFamilyUri(targetUri)) {
           vscode.window.showErrorMessage(
-              'Please select an MMT, HTTP, or Bruno file');
+              'Please select an MMT, HTTP, Bruno, OpenAPI, Postman, or WSDL file');
           return;
         }
         await closeMatchingTabs(targetUri, (tab) =>
@@ -256,8 +262,19 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
         const targetUri = resolveMmtTargetUri(uri);
         if (!targetUri || !isMmtFamilyUri(targetUri)) {
           vscode.window.showErrorMessage(
-              'Please select an MMT, HTTP, or Bruno file');
+              'Please select an MMT, HTTP, Bruno, OpenAPI, Postman, or WSDL file');
           return;
+        }
+        // Spec-family extensions (.json/.yaml/…) need content sniffing; Bruno
+        // collection manifests are excluded from isSpecFamilyPath already.
+        if (isSpecFamilyUri(targetUri) && !hasMmtExtension(targetUri)) {
+          const document = await vscode.workspace.openTextDocument(targetUri);
+          const kind = detectImportSource(document.getText(), targetUri.fsPath);
+          if (!isSpecSourceKind(kind)) {
+            vscode.window.showErrorMessage(
+                'This file does not look like an OpenAPI spec, Postman collection, or WSDL.');
+            return;
+          }
         }
         // Prefer openWith over closing/recreating tabs so remote/docker URIs
         // keep their scheme and VS Code can reuse the existing group cleanly.
@@ -286,11 +303,21 @@ function hasMmtExtension(uri: vscode.Uri): boolean {
   return uriPathForExt(uri).endsWith('.mmt');
 }
 
+function isSpecFamilyUri(uri: vscode.Uri): boolean {
+  return isSpecFamilyPath(uriPathForExt(uri));
+}
+
+function isBrunoJsonPath(lowerPath: string): boolean {
+  const base = lowerPath.replace(/\\/g, '/').split('/').pop() || '';
+  return base === 'bruno.json';
+}
+
 function isMmtFamilyUri(uri: vscode.Uri): boolean {
   const lowerPath = uriPathForExt(uri);
   return lowerPath.endsWith('.mmt') || lowerPath.endsWith('.http') ||
       lowerPath.endsWith('.https') || lowerPath.endsWith('.bru') ||
-      lowerPath.endsWith('.bruno');
+      lowerPath.endsWith('.bruno') || isBrunoJsonPath(lowerPath) ||
+      isSpecFamilyPath(lowerPath);
 }
 
 function mmtViewTypeForUri(uri: vscode.Uri): string {
@@ -298,8 +325,12 @@ function mmtViewTypeForUri(uri: vscode.Uri): string {
   if (lowerPath.endsWith('.http') || lowerPath.endsWith('.https')) {
     return 'mmt.httpEditor';
   }
-  if (lowerPath.endsWith('.bru') || lowerPath.endsWith('.bruno')) {
+  if (lowerPath.endsWith('.bru') || lowerPath.endsWith('.bruno') ||
+      isBrunoJsonPath(lowerPath)) {
     return 'mmt.brunoEditor';
+  }
+  if (isSpecFamilyPath(lowerPath)) {
+    return 'mmt.specEditor';
   }
   return 'mmt.editor';
 }

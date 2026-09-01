@@ -1,0 +1,36 @@
+{
+  "info": {
+    "name": "Convert Example",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ping",
+      "request": {
+        "method": "GET",
+        "url": "https://test.mmt.dev/json",
+        "header": [
+          {"key": "Accept", "value": "application/json"}
+        ]
+      },
+      "response": [
+        {
+          "name": "sample json",
+          "code": 200,
+          "body": "{\"id\":1,\"name\":\"Multimeter\",\"description\":\"API testing tool\",\"version\":\"1.0.0\"}"
+        }
+      ],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "pm.require(\"manual-package\");"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

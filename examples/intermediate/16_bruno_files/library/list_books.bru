@@ -1,0 +1,31 @@
+meta {
+  name: List books
+  type: http
+  seq: 2
+}
+
+docs {
+  GET the sandbox catalog snapshot.
+}
+
+get {
+  url: {{baseUrl}}/json
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+
+params:query {
+  include: author
+}
+
+tests {
+  expect(res.status).to.equal(200);
+}

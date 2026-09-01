@@ -17,7 +17,9 @@ Passed and failed counts include every check/assert from all executed tests, API
 
 ## Tests tree
 
-Below the overview cards, the **Tests** section groups items by execution stage. Expand a test to see the same step **Report** list and status icons documented in [Reports (Test)](../test/reports.md#report-list).
+Below the overview cards, the **Tests** section groups items by execution stage. Use the **filter** control on the **Tests** header to show **All**, **Passed**, or **Failed** items (ancestors of failed/passed children stay visible). This is view-only — exports still include the full run.
+
+Expand a test to see the same step **Report** list and status icons documented in [Reports (Test)](../test/reports.md#report-list). The nested **Report** list has its own **All / Passed / Failed** filter on the **Report** header.
 
 Each item row also shows:
 

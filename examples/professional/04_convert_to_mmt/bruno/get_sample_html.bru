@@ -1,0 +1,24 @@
+meta {
+  name: Get sample HTML
+  type: http
+  seq: 4
+}
+
+docs {
+  Fixed sample HTML
+}
+
+get {
+  url: {{baseUrl}}/html
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: text/html
+}
+

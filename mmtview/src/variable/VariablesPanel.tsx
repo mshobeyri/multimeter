@@ -21,11 +21,11 @@ function yamlToVariables(yamlContent: string): VariablesData {
   }
 }
 
-function variablesToYaml(variablesData: VariablesData): string {
+function variablesToYaml(variablesData: VariablesData, originalYaml?: string): string {
   const yamlObj: Record<string, any> = {};
   if (variablesData.type) yamlObj.type = variablesData.type;
   yamlObj.variables = variablesData.variables;
-  return packYaml(yamlObj);
+  return packYaml(yamlObj, originalYaml);
 }
 
 const VariablesPanel: React.FC<VariablesProps> = ({ content, setContent }) => {
@@ -51,7 +51,7 @@ const VariablesPanel: React.FC<VariablesProps> = ({ content, setContent }) => {
       lastUpdate.current = null;
       return;
     }
-    setContent(variablesToYaml(variablesData));
+    setContent(variablesToYaml(variablesData, content));
     lastUpdate.current = "ui";
   }, [variablesData, setContent]);
 

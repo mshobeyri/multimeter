@@ -1,33 +1,253 @@
 {
   "info": {
-    "name": "Convert Example",
+    "name": "Multimeter Test Server",
+    "description": "Postman collection for the public https://test.mmt.dev sandbox. Open as MMT or Convert to MMT to exercise every documented HTTP endpoint.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    { "key": "host", "value": "https://test.mmt.dev" },
+    { "key": "token", "value": "testtoken" }
+  ],
   "item": [
     {
-      "name": "Ping",
-      "request": {
-        "method": "GET",
-        "url": "https://test.mmt.dev/json",
-        "header": [
-          {"key": "Accept", "value": "application/json"}
-        ]
-      },
-      "response": [
+      "name": "Samples",
+      "item": [
         {
-          "name": "sample json",
-          "code": 200,
-          "body": "{\"id\":1,\"name\":\"Multimeter\",\"description\":\"API testing tool\",\"version\":\"1.0.0\"}"
+          "name": "Service help",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/"
+          }
+        },
+        {
+          "name": "Get sample JSON",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/json"
+          },
+          "response": [
+            {
+              "name": "sample json",
+              "code": 200,
+              "body": "{\"id\":1,\"name\":\"Multimeter\",\"description\":\"API testing tool\",\"version\":\"1.0.0\",\"tags\":[\"api\",\"testing\",\"automation\"]}"
+            }
+          ]
+        },
+        {
+          "name": "Get sample XML",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/xml" }],
+            "url": "{{host}}/xml"
+          }
+        },
+        {
+          "name": "Get sample HTML",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "text/html" }],
+            "url": "{{host}}/html"
+          }
+        },
+        {
+          "name": "Random bytes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/octet-stream" }],
+            "url": "{{host}}/bytes/64"
+          }
         }
-      ],
-      "event": [
+      ]
+    },
+    {
+      "name": "Echo",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.response.to.have.status(200);",
-              "pm.require(\"manual-package\");"
-            ]
+          "name": "Echo POST body",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Trace", "value": "demo" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada\",\n  \"role\": \"engineer\"\n}"
+            },
+            "url": "{{host}}/echo"
+          }
+        },
+        {
+          "name": "Echo PUT body",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Trace", "value": "demo" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"name\": \"Multimeter\",\n  \"active\": true\n}"
+            },
+            "url": "{{host}}/echo"
+          }
+        },
+        {
+          "name": "Echo GET with query",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Trace", "value": "demo" }
+            ],
+            "url": "{{host}}/echo?q=multimeter&page=1&limit=20"
+          }
+        },
+        {
+          "name": "Echo DELETE",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-Trace", "value": "demo" }],
+            "url": "{{host}}/echo"
+          }
+        },
+        {
+          "name": "Echo anything alias",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"via\": \"anything\"\n}"
+            },
+            "url": "{{host}}/anything"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Status",
+      "item": [
+        {
+          "name": "Return status 200",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/status/200"
+          }
+        },
+        {
+          "name": "Return status 404",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/status/404"
+          }
+        },
+        {
+          "name": "Delayed response",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/delay/250"
+          }
+        },
+        {
+          "name": "Redirect twice",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/redirect/2"
+          }
+        },
+        {
+          "name": "Cache headers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/cache/60"
+          }
+        },
+        {
+          "name": "Method match GET",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/method/get"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inspect",
+      "item": [
+        {
+          "name": "Return request headers",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Trace", "value": "demo" }
+            ],
+            "url": "{{host}}/headers"
+          }
+        },
+        {
+          "name": "Return client IP",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/ip"
+          }
+        },
+        {
+          "name": "Return cookies",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/cookies"
+          }
+        },
+        {
+          "name": "Set cookie",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/cookies/set?session=demo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Bearer auth check",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/auth/bearer"
+          }
+        },
+        {
+          "name": "Basic auth check",
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                { "key": "username", "value": "user", "type": "string" },
+                { "key": "password", "value": "pass", "type": "string" }
+              ]
+            },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{host}}/auth/basic"
           }
         }
       ]

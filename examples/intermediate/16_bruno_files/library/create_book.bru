@@ -1,0 +1,44 @@
+meta {
+  name: Create book
+  type: http
+  seq: 3
+}
+
+docs {
+  POST a book draft. The sandbox echoes the JSON body.
+}
+
+post {
+  url: {{baseUrl}}/echo
+  body: json
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+  authToken: demo-token
+  bookTitle: The Name of the Wind
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "title": "{{bookTitle}}",
+    "author": "Patrick Rothfuss",
+    "year": 2007
+  }
+}
+
+tests {
+  expect(res.status).to.equal(200);
+  expect(res.body.body.title).to.equal("The Name of the Wind");
+  expect(res.body.body.year).to.equal(2007);
+}

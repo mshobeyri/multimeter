@@ -4,6 +4,7 @@ const MMT_VIEW_TYPES = new Set([
   'mmt.editor',
   'mmt.httpEditor',
   'mmt.brunoEditor',
+  'mmt.specEditor',
 ]);
 
 type TabInputLike = {
@@ -26,6 +27,10 @@ function tabMatchesUri(tab: vscode.Tab, uri: vscode.Uri): boolean {
  * Promote a preview (italic) tab to a permanent tab so the next single-click
  * open does not replace it. Mirrors VS Code's behavior for dirty editors, for
  * cases like an active test run or mock server that do not dirty the file.
+ *
+ * Important: do not pin via `vscode.openWith(..., { preview: false })`. That
+ * recreates the custom editor webview and resets React UI state — which shows
+ * up as "first Run after open resets the UI".
  */
 export async function keepMmtEditor(uri: vscode.Uri): Promise<void> {
   try {
@@ -51,15 +56,15 @@ export async function keepMmtEditor(uri: vscode.Uri): Promise<void> {
       return;
     }
 
-    if (previewTab.isActive) {
-      await vscode.commands.executeCommand('workbench.action.keepEditor');
-      return;
+    // keepEditor only applies to the active tab. Focus the existing preview
+    // instance first when needed (still preview: true so the webview is reused).
+    if (!previewTab.isActive) {
+      await vscode.commands.executeCommand('vscode.openWith', uri, viewType, {
+        preview: true,
+        preserveFocus: false,
+      });
     }
-
-    await vscode.commands.executeCommand('vscode.openWith', uri, viewType, {
-      preview: false,
-      preserveFocus: true,
-    });
+    await vscode.commands.executeCommand('workbench.action.keepEditor');
   } catch {
     // Best-effort: failing to pin must not break runs or edits.
   }

@@ -1,18 +1,650 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: Convert Example API
+  title: Multimeter Test Server
   version: 1.0.0
+  description: |
+    OpenAPI for the public [test.mmt.dev](https://test.mmt.dev) sandbox used by
+    Multimeter examples. Open with **Open as MMT** to pick an operation or a
+    named example, then Send — responses match these paths exactly.
+
+    Useful for demos of Multimeter OpenAPI import: multiple methods, path and
+    query parameters, named request examples, shared components, and auth.
+  contact:
+    name: Multimeter
+    url: https://mmt.dev
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
 servers:
   - url: https://test.mmt.dev
+    description: Public Multimeter test server
+
+tags:
+  - name: samples
+    description: Fixed sample payloads
+  - name: echo
+    description: Echo request method, URL, headers, and body
+  - name: status
+    description: Status codes and delayed responses
+  - name: auth
+    description: Basic and bearer authentication probes
+  - name: inspect
+    description: Request introspection helpers
+
 paths:
+  /:
+    get:
+      tags: [samples]
+      operationId: serviceHelp
+      summary: Service help
+      description: Returns the Multimeter Test Server endpoint catalog.
+      security: []
+      responses:
+        '200':
+          description: Service catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
   /json:
     get:
+      tags: [samples]
+      operationId: getSampleJson
       summary: Get sample JSON
-      parameters:
-        - name: trace
-          in: header
-          schema:
-            example: demo
+      description: Returns a fixed Multimeter sample JSON object.
+      security: []
       responses:
         '200':
           description: Sample JSON payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SampleJson'
+              example:
+                id: 1
+                name: Multimeter
+                description: API testing tool
+                version: 1.0.0
+                tags: [api, testing, automation]
+                nested:
+                  enabled: true
+                  count: 42
+                  items:
+                    - key: alpha
+                      value: 1
+                    - key: beta
+                      value: 2
+
+  /xml:
+    get:
+      tags: [samples]
+      operationId: getSampleXml
+      summary: Get sample XML
+      description: Returns a fixed sample XML document.
+      security: []
+      responses:
+        '200':
+          description: Sample XML payload
+          content:
+            application/xml:
+              schema:
+                type: string
+              example: |
+                <?xml version="1.0"?>
+                <root>
+                  <id>1</id>
+                  <name>Multimeter</name>
+                </root>
+
+  /echo:
+    post:
+      tags: [echo]
+      operationId: echoPost
+      summary: Echo POST body
+      description: Echoes method, URL, headers, body, and a timestamp.
+      parameters:
+        - $ref: '#/components/parameters/TraceHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EchoPayload'
+            example:
+              name: Ada
+              role: engineer
+            examples:
+              user:
+                summary: User profile
+                description: Simple JSON object
+                value:
+                  name: Ada
+                  role: engineer
+              nested:
+                summary: Nested payload
+                value:
+                  order:
+                    id: 1001
+                    items:
+                      - sku: ABC
+                        qty: 2
+              emptyObject:
+                summary: Empty object
+                value: {}
+      responses:
+        '200':
+          description: Echo envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+
+    put:
+      tags: [echo]
+      operationId: echoPut
+      summary: Echo PUT body
+      description: Same echo envelope as POST, for PUT requests.
+      parameters:
+        - $ref: '#/components/parameters/TraceHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EchoPayload'
+            examples:
+              update:
+                summary: Update fields
+                value:
+                  id: 1
+                  name: Multimeter
+                  active: true
+              patchLike:
+                summary: Partial fields
+                value:
+                  active: false
+      responses:
+        '200':
+          description: Echo envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+
+    get:
+      tags: [echo]
+      operationId: echoGet
+      summary: Echo GET with query
+      description: Echoes query parameters with the request envelope.
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: Free-text query value to echo
+          schema:
+            type: string
+            example: multimeter
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 20
+        - $ref: '#/components/parameters/TraceHeader'
+      responses:
+        '200':
+          description: Echo envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+
+    delete:
+      tags: [echo]
+      operationId: echoDelete
+      summary: Echo DELETE
+      description: Echoes a DELETE with no body.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/TraceHeader'
+      responses:
+        '200':
+          description: Echo envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+
+  /status/{code}:
+    get:
+      tags: [status]
+      operationId: getStatusCode
+      summary: Return status code
+      description: Responds with the given HTTP status (100–599).
+      security: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 599
+            example: 200
+            enum: [200, 204, 400, 401, 404, 500]
+      responses:
+        '200':
+          description: Requested status (when code is 200)
+        '400':
+          description: Client error probe
+        '401':
+          description: Unauthorized probe
+        '404':
+          description: Not found probe
+        '500':
+          description: Server error probe
+
+  /delay/{ms}:
+    get:
+      tags: [status]
+      operationId: delayedResponse
+      summary: Delayed response
+      description: Waits up to 10000ms, then returns a small JSON payload.
+      security: []
+      parameters:
+        - name: ms
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10000
+            example: 250
+      responses:
+        '200':
+          description: Delayed acknowledgement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelayResponse'
+              example:
+                delayed: 250
+                method: GET
+                timestamp: 2026-01-01T00:00:00.000Z
+
+  /headers:
+    get:
+      tags: [inspect]
+      operationId: getRequestHeaders
+      summary: Return request headers
+      description: Returns the headers Multimeter (or your client) sent.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/TraceHeader'
+      responses:
+        '200':
+          description: Headers object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeadersResponse'
+
+  /ip:
+    get:
+      tags: [inspect]
+      operationId: getClientIp
+      summary: Return client IP
+      description: Returns the caller IP address as seen by the sandbox.
+      security: []
+      responses:
+        '200':
+          description: Client IP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IpResponse'
+              example:
+                ip: 203.0.113.10
+
+  /auth/bearer:
+    get:
+      tags: [auth]
+      operationId: authBearer
+      summary: Bearer auth check
+      description: |
+        Requires `Authorization: Bearer testtoken`. Any other token fails.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BearerAuthResponse'
+              example:
+                authenticated: true
+                token: testtoken
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/basic:
+    get:
+      tags: [auth]
+      operationId: authBasic
+      summary: Basic auth check
+      description: Requires Basic auth with username `user` and password `pass`.
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /html:
+    get:
+      tags: [samples]
+      operationId: getSampleHtml
+      summary: Get sample HTML
+      description: Returns a fixed sample HTML page.
+      security: []
+      responses:
+        '200':
+          description: Sample HTML
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /bytes/{n}:
+    get:
+      tags: [samples]
+      operationId: getRandomBytes
+      summary: Random bytes
+      description: Returns n random bytes (max 100KB).
+      security: []
+      parameters:
+        - name: n
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 102400
+            example: 64
+      responses:
+        '200':
+          description: Binary payload
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /anything:
+    post:
+      tags: [echo]
+      operationId: echoAnything
+      summary: Echo anything alias
+      description: Alias for `/echo` — echoes method, URL, headers, and body.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EchoPayload'
+            example:
+              via: anything
+      responses:
+        '200':
+          description: Echo envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoResponse'
+
+  /method/{method}:
+    get:
+      tags: [status]
+      operationId: methodMatch
+      summary: Method match
+      description: Returns 200 if the HTTP method matches the path segment, otherwise 405.
+      security: []
+      parameters:
+        - name: method
+          in: path
+          required: true
+          schema:
+            type: string
+            example: get
+            enum: [get, post, put, patch, delete, head, options]
+      responses:
+        '200':
+          description: Method matched
+        '405':
+          description: Method did not match
+
+  /redirect/{n}:
+    get:
+      tags: [status]
+      operationId: redirectN
+      summary: Redirect n times
+      description: Redirects up to 20 times, then returns 200.
+      security: []
+      parameters:
+        - name: n
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            example: 2
+      responses:
+        '200':
+          description: Final response after redirects
+        '302':
+          description: Intermediate redirect
+
+  /cache/{seconds}:
+    get:
+      tags: [status]
+      operationId: cacheHeaders
+      summary: Cache headers
+      description: Sets Cache-Control max-age (max 86400).
+      security: []
+      parameters:
+        - name: seconds
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 86400
+            example: 60
+      responses:
+        '200':
+          description: Response with Cache-Control
+
+  /cookies:
+    get:
+      tags: [inspect]
+      operationId: getCookies
+      summary: Return cookies
+      description: Returns cookies sent by the client.
+      security: []
+      responses:
+        '200':
+          description: Cookie map
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /cookies/set:
+    get:
+      tags: [inspect]
+      operationId: setCookies
+      summary: Set cookie
+      description: Sets cookies from query parameters (`?session=demo`).
+      security: []
+      parameters:
+        - name: session
+          in: query
+          schema:
+            type: string
+            example: demo
+      responses:
+        '200':
+          description: Cookies updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Use the literal token `testtoken` on test.mmt.dev.
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Username `user`, password `pass`.
+
+  parameters:
+    TraceHeader:
+      name: X-Trace
+      in: header
+      required: false
+      schema:
+        type: string
+        example: demo
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    SampleJson:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        version:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        nested:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            count:
+              type: integer
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  value:
+                    type: integer
+
+    EchoPayload:
+      type: object
+      description: Arbitrary JSON body echoed by /echo
+      additionalProperties: true
+
+    EchoResponse:
+      type: object
+      description: test.mmt.dev echo envelope
+      properties:
+        method:
+          type: string
+        url:
+          type: string
+        path:
+          type: string
+        headers:
+          type: object
+          additionalProperties: true
+        body:
+          description: Parsed request body when present
+        timestamp:
+          type: string
+          format: date-time
+      additionalProperties: true
+
+    DelayResponse:
+      type: object
+      properties:
+        delayed:
+          type: integer
+        method:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    HeadersResponse:
+      type: object
+      properties:
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+
+    IpResponse:
+      type: object
+      properties:
+        ip:
+          type: string
+
+    BearerAuthResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        token:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string

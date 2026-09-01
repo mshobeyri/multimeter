@@ -123,10 +123,11 @@ GitHub Actions:
     report: junit
     report-file: results/junit.xml
 ```
+Or from a terminal using the Multimeter CLI called `testlight`. 
 
 ```sh
 npm install -g mmt-testlight
-mmt-testlight run tests/suite.mmt --report junit
+testlight run tests/suite.mmt
 ```
 
 ## <img src="res/git.png" alt="Git" width="24" height="24" style="vertical-align: text-bottom;"/> Why Git?

@@ -1,11 +1,95 @@
 type: test
 title: source.http
-description: Generated from HTTP request "ping".
+description: Generated from HTTP file "source.http".
 tags:
   - http
 import:
-  ping: ../api/ping.mmt
+  serviceHelp: ../api/service-help.mmt
+  getSampleJson: ../api/get-sample-json.mmt
+  getSampleXml: ../api/get-sample-xml.mmt
+  getSampleHtml: ../api/get-sample-html.mmt
+  echoPostBody: ../api/echo-post-body.mmt
+  echoPutBody: ../api/echo-put-body.mmt
+  echoGetWithQuery: ../api/echo-get-with-query.mmt
+  echoDelete: ../api/echo-delete.mmt
+  echoAnythingAlias: ../api/echo-anything-alias.mmt
+  returnStatus200: ../api/return-status-200.mmt
+  returnStatus404: ../api/return-status-404.mmt
+  delayedResponse: ../api/delayed-response.mmt
+  returnRequestHeaders: ../api/return-request-headers.mmt
+  returnClientIp: ../api/return-client-ip.mmt
+  methodMatchGet: ../api/method-match-get.mmt
+  redirectTwice: ../api/redirect-twice.mmt
+  randomBytes: ../api/random-bytes.mmt
+  bearerAuthCheck: ../api/bearer-auth-check.mmt
+  basicAuthCheck: ../api/basic-auth-check.mmt
+  returnCookies: ../api/return-cookies.mmt
+  setCookie: ../api/set-cookie.mmt
+  cacheHeaders: ../api/cache-headers.mmt
 steps:
-  - call: ping
-    id: iPing
+  - call: serviceHelp
+    id: iServiceHelp
+    debug: true
+  - call: getSampleJson
+    id: iGetSampleJson
+    debug: true
+  - call: getSampleXml
+    id: iGetSampleXml
+    debug: true
+  - call: getSampleHtml
+    id: iGetSampleHtml
+    debug: true
+  - call: echoPostBody
+    id: iEchoPostBody
+    debug: true
+  - call: echoPutBody
+    id: iEchoPutBody
+    debug: true
+  - call: echoGetWithQuery
+    id: iEchoGetWithQuery
+    debug: true
+  - call: echoDelete
+    id: iEchoDelete
+    debug: true
+  - call: echoAnythingAlias
+    id: iEchoAnythingAlias
+    debug: true
+  - call: returnStatus200
+    id: iReturnStatus200
+    debug: true
+  - call: returnStatus404
+    id: iReturnStatus404
+    debug: true
+  - call: delayedResponse
+    id: iDelayedResponse
+    debug: true
+  - call: returnRequestHeaders
+    id: iReturnRequestHeaders
+    debug: true
+  - call: returnClientIp
+    id: iReturnClientIp
+    debug: true
+  - call: methodMatchGet
+    id: iMethodMatchGet
+    debug: true
+  - call: redirectTwice
+    id: iRedirectTwice
+    debug: true
+  - call: randomBytes
+    id: iRandomBytes
+    debug: true
+  - call: bearerAuthCheck
+    id: iBearerAuthCheck
+    debug: true
+  - call: basicAuthCheck
+    id: iBasicAuthCheck
+    debug: true
+  - call: returnCookies
+    id: iReturnCookies
+    debug: true
+  - call: setCookie
+    id: iSetCookie
+    debug: true
+  - call: cacheHeaders
+    id: iCacheHeaders
     debug: true

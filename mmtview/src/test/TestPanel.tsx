@@ -21,6 +21,8 @@ interface TestPanelProps {
   setContent: (value: string, options?: { force?: boolean }) => void;
   parseTest?: (value: string) => TestData;
   onSaveAsMmt?: (test: TestData) => void;
+  readOnly?: boolean;
+  headerLeading?: React.ReactNode;
 }
 
 const LAST_TAB_KEY = "mmtview:lastTab";
@@ -43,7 +45,7 @@ function pageTranslate(page: TestPage): string {
   return "translateX(0%)";
 }
 
-const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = yamlToTest, onSaveAsMmt }) => {
+const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = yamlToTest, onSaveAsMmt, readOnly, headerLeading }) => {
   // `appliedContent` is what the right-side test UI is built from.
   // When the runner has temporary input edits, YAML changes are held until the
   // user discards the UI changes or cancels — same as APIPanel.
@@ -56,7 +58,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
   const test = useMemo(() => parseTest(appliedContent), [appliedContent, parseTest]);
   const testRef = React.useRef<TestData>(test);
   const contentRef = React.useRef(content);
-  const isReadOnly = !!onSaveAsMmt;
+  const isReadOnly = readOnly || !!onSaveAsMmt;
 
   const [tempInputs, setTempInputs] = useState<JSONRecord>({});
   const [dirtyInputKeys, setDirtyInputKeys] = useState<Set<string>>(new Set());
@@ -85,7 +87,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
   const setTest = React.useCallback((next: TestData | ((prev: TestData) => TestData)) => {
     const resolved = typeof next === "function" ? (next as (prev: TestData) => TestData)(testRef.current) : next;
     testRef.current = resolved;
-    const newYaml = testToYaml(resolved);
+    const newYaml = testToYaml(resolved, contentRef.current);
     if (newYaml === contentRef.current && newYaml === appliedContent) {
       return;
     }
@@ -120,8 +122,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
   }, [hasUiOverrides, test, tempInputs]);
 
   const modifiedYaml = useMemo(
-    () => (hasUiOverrides ? testToYaml(savedModifiedTest) : ""),
-    [hasUiOverrides, savedModifiedTest]
+    () => (hasUiOverrides ? testToYaml(savedModifiedTest, appliedContent) : ""),
+    [hasUiOverrides, savedModifiedTest, appliedContent]
   );
 
   const applyYamlAndResetUi = useCallback((yaml: string) => {
@@ -208,7 +210,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
     pendingYamlRef.current = null;
     setTempInputs({});
     setDirtyInputKeys(new Set());
-    const newYaml = testToYaml(savedModifiedTest);
+    const newYaml = testToYaml(savedModifiedTest, appliedContent);
     if (newYaml === contentRef.current && newYaml === appliedContent) {
       resetAfterApplyRef.current = false;
       resetRef.current?.();
@@ -277,6 +279,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                 <PanelRunHeader
                   icon="beaker"
                   title={test.title || 'Test'}
+                  beforeTitle={headerLeading}
                   actions={
                     <>
                       <HeaderAction
@@ -289,9 +292,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                           <HeaderAction
                             icon="save-as"
                             label="Save as MMT"
+                            iconOnly
                             onClick={() => onSaveAsMmt(test)}
                           />
-                        ) : !isTestModified ? (
+                        ) : !isReadOnly && !isTestModified ? (
                           <HeaderAction
                             icon="edit"
                             label="Edit Test"

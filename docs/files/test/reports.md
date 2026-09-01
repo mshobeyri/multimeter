@@ -23,6 +23,8 @@ While a run is in progress, counts and duration update live. Before the first ru
 
 Below the overview cards, the **Report** section lists every check, assert, and debug step from the run.
 
+Use the **filter** control on the **Report** header to show **All**, **Passed**, or **Failed** steps. This is view-only — it does not change what ran or what gets exported.
+
 ### Step status icons
 
 Each row starts with a status icon:

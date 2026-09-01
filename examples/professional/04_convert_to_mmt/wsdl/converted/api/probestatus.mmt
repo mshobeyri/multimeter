@@ -1,0 +1,21 @@
+type: api
+title: ProbeStatus
+inputs:
+  code: 0
+url: https://test.mmt.dev/xml
+protocol: http
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: urn:ProbeStatus
+body: |-
+  <?xml version="1.0" encoding="utf-8"?>
+  <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="urn:mmt-test">
+    <soapenv:Header/>
+    <soapenv:Body>
+      <tns:ProbeStatus>
+          <tns:code><<i:code>></tns:code>
+      </tns:ProbeStatus>
+    </soapenv:Body>
+  </soapenv:Envelope>

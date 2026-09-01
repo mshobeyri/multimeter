@@ -1,0 +1,27 @@
+type: test
+title: Echo
+description: Generated from Postman collection folder "Echo".
+tags:
+  - postman
+import:
+  echoPostBody: +/api/echo/echo-post-body.mmt
+  echoPutBody: +/api/echo/echo-put-body.mmt
+  echoGetWithQuery: +/api/echo/echo-get-with-query.mmt
+  echoDelete: +/api/echo/echo-delete.mmt
+  echoAnythingAlias: +/api/echo/echo-anything-alias.mmt
+steps:
+  - call: echoPostBody
+    id: iEchoPostBody
+    debug: true
+  - call: echoPutBody
+    id: iEchoPutBody
+    debug: true
+  - call: echoGetWithQuery
+    id: iEchoGetWithQuery
+    debug: true
+  - call: echoDelete
+    id: iEchoDelete
+    debug: true
+  - call: echoAnythingAlias
+    id: iEchoAnythingAlias
+    debug: true

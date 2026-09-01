@@ -1,4 +1,4 @@
-import {envToYaml, yamlToEnv} from './envParsePack';
+import {envToYaml, patchEnvYaml, yamlToEnv} from './envParsePack';
 import {formatMmtYaml} from './mmtFormat';
 
 describe('envParsePack', () => {
@@ -64,6 +64,28 @@ certificates:
     expect(yaml.indexOf('key:')).toBeLessThan(yaml.indexOf('passphrase_env:'));
   });
 
+  it('canonicalizes PKCS#12 client certificate field order', () => {
+    const env = yamlToEnv(`
+type: env
+variables:
+  api_url:
+    local: https://example.com
+certificates:
+  clients:
+    - passphrase_plain: mmt
+      pfx: ./certs/client.p12
+      host: localhost:29444
+      name: mock-client-p12
+`);
+    const yaml = envToYaml(env);
+    expect(yaml.indexOf('name:')).toBeLessThan(yaml.indexOf('host:'));
+    expect(yaml.indexOf('host:')).toBeLessThan(yaml.indexOf('pfx:'));
+    expect(yaml.indexOf('pfx:')).toBeLessThan(yaml.indexOf('passphrase_plain:'));
+    expect(yaml).toContain('pfx: ./certs/client.p12');
+    expect(yaml).not.toContain('cert:');
+    expect(yaml).not.toContain('key:');
+  });
+
   it('is idempotent after formatting', () => {
     const input = `type: env
 variables:
@@ -77,5 +99,58 @@ presets:
     const first = formatMmtYaml(input, 'multimeter.mmt');
     const second = formatMmtYaml(first.formatted, 'multimeter.mmt');
     expect(second.changed).toBe(false);
+  });
+
+  it('preserves comments outside a patched env section', () => {
+    const input = `# project env
+type: env
+variables:
+  api_url: "https://test.mmt.dev"  # default url
+certificates:
+  server_ca: "./certs/ca.crt"  # company CA
+`;
+    const patched = patchEnvYaml(input, {
+      certificates: {
+        server_ca: './certs/ca.crt',
+        clients: [{
+          name: 'mock-client-p12',
+          host: 'localhost:29444',
+          pfx: './certs/client.p12',
+          passphrase_plain: 'mmt',
+        }],
+      },
+    });
+    expect(patched).toContain('# project env');
+    expect(patched).toContain('# default url');
+    expect(patched).toContain('pfx: ./certs/client.p12');
+    expect(patched).toContain('api_url: "https://test.mmt.dev"');
+  });
+
+  it('keeps comments stuck to keys inside a patched section', () => {
+    const input = `type: env
+variables:
+  # default url
+  api_url: "https://test.mmt.dev"  # inline url
+certificates:
+  # company CA
+  server_ca: "./certs/ca.crt"  # inline ca
+`;
+    const patched = patchEnvYaml(input, {
+      certificates: {
+        server_ca: './certs/ca-new.crt',
+        clients: [{
+          name: 'mock-client-p12',
+          host: 'localhost:29444',
+          pfx: './certs/client.p12',
+          passphrase_plain: 'mmt',
+        }],
+      },
+    });
+    expect(patched).toContain('# default url');
+    expect(patched).toContain('# inline url');
+    expect(patched).toMatch(/# company CA\n\s*server_ca:/);
+    expect(patched).toMatch(/server_ca:.*# inline ca/);
+    expect(patched).toContain('ca-new.crt');
+    expect(patched).toContain('pfx: ./certs/client.p12');
   });
 });

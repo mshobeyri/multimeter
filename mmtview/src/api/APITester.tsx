@@ -31,6 +31,8 @@ interface APITestProps {
   onModificationChange?: (requestData: Request | undefined, touchedFields: Set<keyof Request>) => void;
   onRequestReset?: (reset: () => void) => void;
   rightOfUrlButton?: React.ReactNode;
+  selector?: React.ReactNode;
+  initialExampleIndex?: number;
 }
 
 type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc";
@@ -87,7 +89,7 @@ const PROTOCOL_LABELS: Record<string, string> = {
   grpc: "gRPC",
 };
 
-const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton }) => {
+const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
   const { mmtFilePath } = useContext(FileContext);
   const {
     requestData,
@@ -113,7 +115,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     network,
     examples,
     isSending,
-  } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
+  } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath, initialExampleIndex });
 
   useEffect(() => {
     onModificationChange?.(requestData, touchedFields);
@@ -348,16 +350,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   };
 
   return (
-    <div className="apitest-root">
+    <div className={`apitest-root${selector ? " apitest-root--source" : ""}`}>
       {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
-      <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
-        <select
+      <div className="apitest-url-row" style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
+        <div className="apitest-method-cluster" style={methodChromeVars as React.CSSProperties}>
+          {selector}
+          <select
           className="method-select"
           value={methodOrProtocolValue}
           onChange={e => handleMethodOrProtocolChange(e.target.value)}
           title="HTTP method or protocol (temporary override)"
-          style={methodChromeVars as React.CSSProperties}
         >
           {HTTP_METHODS.map(m => (
             <option key={m} value={`method:${m}`}>{m.toUpperCase()}</option>
@@ -367,6 +370,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             <option key={p} value={`protocol:${p}`}>{PROTOCOL_LABELS[p] || p}</option>
           ))}
         </select>
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <UrlInput
             url={requestData?.url ?? ""}
@@ -382,7 +386,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         )}
       </div>
 
-      <div style={{ padding: "0 8px 8px" }}>
+      <div className="apitest-tabs-row">
         <div className="tab-bar" style={{ gap: 8 }}>
           {TAB_OPTIONS
             .filter(tab => {

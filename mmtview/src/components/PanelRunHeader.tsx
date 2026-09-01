@@ -8,6 +8,7 @@ export type HeaderActionProps = {
   onClick?: () => void;
   title?: string;
   disabled?: boolean;
+  iconOnly?: boolean;
 };
 
 /** Ghost header launcher (Edit / Flow chart / Save as …). */
@@ -17,18 +18,21 @@ export function HeaderAction({
   onClick,
   title,
   disabled,
+  iconOnly,
 }: HeaderActionProps) {
   const iconName = icon.startsWith('codicon-') ? icon : `codicon-${icon}`;
   return (
     <button
-      className="action-button api-edit-launcher"
+      className={`action-button api-edit-launcher${iconOnly ? " is-icon-only" : ""}`}
       onClick={onClick}
       title={title || label}
       type="button"
       disabled={disabled}
     >
       <span className={`codicon ${iconName}`} aria-hidden />
-      <span className="api-edit-launcher-text">{label}</span>
+      {iconOnly ? null : (
+        <span className="api-edit-launcher-text">{label}</span>
+      )}
     </button>
   );
 }
@@ -42,6 +46,8 @@ export type PanelRunHeaderProps = {
   iconTitle?: string;
   /** Right-side actions (HeaderAction, warnings, etc.). */
   actions?: React.ReactNode;
+  /** Optional control before the title chip (for example As API / As Test). */
+  beforeTitle?: React.ReactNode;
   /**
    * Replace the default title chip (e.g. Doc view TabBar).
    * When set, `title` / `icon` are ignored.
@@ -59,6 +65,7 @@ export default function PanelRunHeader({
   iconTitle,
   actions,
   leading,
+  beforeTitle,
 }: PanelRunHeaderProps) {
   const iconName = icon
     ? (icon.startsWith('codicon-') ? icon : `codicon-${icon}`)
@@ -69,20 +76,30 @@ export default function PanelRunHeader({
   return (
     <div className="api-edit-header">
       <div className="tab-bar tab-bar-single panel-run-header">
-        {leading != null ? (
-          leading
-        ) : (
-          <div className="tab-button active panel-run-header-title" title={iconTitle}>
-            {iconName && (
-              <span className={`codicon ${iconName}`} aria-hidden style={iconStyle} />
-            )}
-            {title}
+        <div className="panel-run-header-start">
+          {beforeTitle}
+          {beforeTitle != null && leading == null ? (
+            <span className="source-header-divider" aria-hidden />
+          ) : null}
+          {leading != null ? (
+            leading
+          ) : (
+            <div className="tab-button active panel-run-header-title" title={iconTitle}>
+              {iconName && (
+                <span className={`codicon ${iconName}`} aria-hidden style={iconStyle} />
+              )}
+              {title}
+            </div>
+          )}
+        </div>
+        {!hasYamlErrors && actions != null && (
+          <div className="panel-run-header-actions">
+            {actions}
           </div>
         )}
-        {(hasYamlErrors || actions != null) && (
-          <div className="panel-run-header-actions">
-            {hasYamlErrors && <YamlErrorWarning />}
-            {actions}
+        {hasYamlErrors && (
+          <div className="panel-run-header-status">
+            <YamlErrorWarning />
           </div>
         )}
       </div>

@@ -1,12 +1,18 @@
 import {detectDocType} from './runCommon';
 import {generateTestJs} from './runTest';
 import {httpRequestToAPI, httpToTest, isHttpFilePath, parseHttpDocument, testToHttp, validateHttpDocument} from './httpParsePack';
+import {testToYaml} from './testParsePack';
 
 describe('httpParsePack', () => {
   it('detects .http and .https files as test documents', () => {
     expect(isHttpFilePath('/tmp/flow.http')).toBe(true);
     expect(isHttpFilePath('/tmp/flow.https')).toBe(true);
     expect(detectDocType('/tmp/flow.http', 'GET https://example.com')).toBe('test');
+  });
+
+  it('prefers serialized MMT YAML type over .http path when the API panel sends rawFile', () => {
+    expect(detectDocType('/tmp/flow.http', 'type: api\nurl: https://example.com\nmethod: get\n')).toBe('api');
+    expect(detectDocType('/tmp/flow.https', 'type: test\nsteps:\n  - http: https://example.com\n')).toBe('test');
   });
 
   it('adds debug to request steps used for HTTP runtime conversion', () => {
@@ -240,6 +246,23 @@ Content-Type: application/json
 GET https://test.mmt.dev/json
 `,
       name: 'ping_http',
+      inputs: {},
+      envVars: {},
+      filePath: '/project/ping.http',
+      projectRoot: '/project',
+      isExternal: false,
+      fileLoader: async () => '',
+    });
+
+    expect(js).toContain('__http_0');
+    expect(js).toContain('https://test.mmt.dev/json');
+  });
+
+  it('generates test JS when the panel sends YAML for a .http path', async () => {
+    const yaml = testToYaml(httpToTest(`GET https://test.mmt.dev/json`, 'ping.http'));
+    const js = await generateTestJs({
+      rawText: yaml,
+      name: 'ping_http_yaml',
       inputs: {},
       envVars: {},
       filePath: '/project/ping.http',

@@ -1,0 +1,11 @@
+type: test
+title: source.http
+description: Generated from HTTP request "ping".
+tags:
+  - http
+import:
+  ping: ../api/ping.mmt
+steps:
+  - call: ping
+    id: iPing
+    debug: true

@@ -1,0 +1,24 @@
+meta {
+  name: Service help
+  type: http
+  seq: 1
+}
+
+docs {
+  GET / help page
+}
+
+get {
+  url: {{baseUrl}}/
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+

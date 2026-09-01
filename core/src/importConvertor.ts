@@ -1,6 +1,7 @@
-import {APIData} from './APIData';
+import {APIData, ExampleData} from './APIData';
 import {apiToYaml} from './apiParsePack';
-import {brunoToAPI, brunoToTest, isBrunoFilePath} from './brunoParsePack';
+import {brunoToAPI, brunoToTest, isBrunoFilePath, isBrunoRequestFilePath, sortBrunoSourceFiles} from './brunoParsePack';
+import type {BrunoSourceFile} from './brunoParsePack';
 import {safeStepIdFromAlias, slugToCamel, slugValue} from './identifierUtils';
 import {httpRequestCallExtras, httpRequestToAPI, isHttpFilePath, parseHttpDocument} from './httpParsePack';
 import {packYaml, parseYamlStrict} from './markupConvertor';
@@ -69,6 +70,122 @@ interface PostmanTestFile {
   title: string;
   groupKey: string;
   data: TestData;
+}
+
+export const SPEC_SOURCE_KINDS = ['openapi', 'postman', 'wsdl'] as const;
+export type SpecSourceKind = typeof SPEC_SOURCE_KINDS[number];
+
+export function isSpecSourceKind(kind: string | undefined): kind is SpecSourceKind {
+  return !!kind && (SPEC_SOURCE_KINDS as readonly string[]).includes(kind);
+}
+
+export interface SpecApiExampleItem {
+  id: string;
+  title: string;
+  exampleIndex: number;
+}
+
+export interface SpecApiItem {
+  id: string;
+  title: string;
+  method?: string;
+  url?: string;
+  api: APIData;
+  examples: SpecApiExampleItem[];
+}
+
+export interface SpecApiSelection {
+  item: SpecApiItem;
+  exampleIndex: number;
+}
+
+function specExampleTitle(example: ExampleData | undefined, index: number): string {
+  const name = String(example?.name || '').trim();
+  return name || `Example ${index + 1}`;
+}
+
+export function findSpecApiSelection(
+    items: SpecApiItem[], selectedId?: string): SpecApiSelection | undefined {
+  if (!items.length) {
+    return undefined;
+  }
+  for (const item of items) {
+    if (item.id === selectedId) {
+      return {item, exampleIndex: -1};
+    }
+    const example = item.examples.find(child => child.id === selectedId);
+    if (example) {
+      return {item, exampleIndex: example.exampleIndex};
+    }
+  }
+  return {item: items[0], exampleIndex: -1};
+}
+
+export function listSpecApis(rawFile: string, filePath = ''): SpecApiItem[] {
+  const kind = detectImportSource(rawFile, filePath);
+  let apis: APIData[] = [];
+  if (kind === 'openapi') {
+    const spec = parseStructured(rawFile);
+    if (!isOpenApiSpec(spec)) {
+      return [];
+    }
+    apis = openApiToAPI(spec);
+  } else if (kind === 'postman') {
+    const collection = parseStructured(rawFile);
+    if (!isPostmanCollection(collection)) {
+      return [];
+    }
+    apis = postmanToAPI(collection);
+  } else if (kind === 'wsdl') {
+    apis = wsdlToAPI(rawFile);
+  } else if (kind === 'http') {
+    apis = parseHttpDocument(rawFile).requests
+        .map((request, index) => httpRequestToAPI(request, index))
+        .filter((api): api is APIData => !!api);
+  } else if (kind === 'bruno') {
+    const api = brunoToAPI(rawFile, filePath);
+    if (api) {
+      apis = [api];
+    }
+  }
+  return apis.map((api, index) => {
+    const id = `${index}:${api.title || api.url || 'api'}`;
+    const examples = (api.examples || []).map((example, exampleIndex) => ({
+      id: `${id}:ex:${exampleIndex}`,
+      title: specExampleTitle(example, exampleIndex),
+      exampleIndex,
+    }));
+    return {
+      id,
+      title: api.title || api.url || `API ${index + 1}`,
+      method: api.method,
+      url: typeof api.url === 'string' ? api.url : undefined,
+      api,
+      examples,
+    };
+  });
+}
+
+export function listSpecApisFromFiles(files: BrunoSourceFile[]): SpecApiItem[] {
+  const items: SpecApiItem[] = [];
+  const brunoFiles = sortBrunoSourceFiles(files.filter(file => isBrunoRequestFilePath(file.path)));
+  const sources = brunoFiles.length > 0 ? brunoFiles : files;
+  for (const file of sources) {
+    for (const item of listSpecApis(file.content, file.path)) {
+      items.push(item);
+    }
+  }
+  return items.map((item, index) => {
+    const id = `${index}:${item.title || item.url || 'api'}`;
+    return {
+      ...item,
+      id,
+      examples: item.examples.map(example => ({
+        ...example,
+        id: `${id}:ex:${example.exampleIndex}`,
+      })),
+    };
+  });
 }
 
 export function detectImportSource(rawFile: string, sourcePath?: string): ImportSourceKind | undefined {

@@ -153,8 +153,24 @@ function resolveUserPathPreferExisting(input, baseDirs, pathMod, existsFn) {
   return first;
 }
 
+/**
+ * Write a UTF-8 file, creating missing parent directories.
+ * @param {string} filePath
+ * @param {string} content
+ * @returns {string} resolved path
+ */
+function writeTextFile(filePath, content) {
+  const api = pathApi();
+  const fs = require('fs');
+  const resolved = api.resolve(String(filePath ?? ''));
+  fs.mkdirSync(api.dirname(resolved), {recursive: true});
+  fs.writeFileSync(resolved, content, 'utf8');
+  return resolved;
+}
+
 module.exports = {
   normalizeUserPath,
   resolveUserPath,
   resolveUserPathPreferExisting,
+  writeTextFile,
 };

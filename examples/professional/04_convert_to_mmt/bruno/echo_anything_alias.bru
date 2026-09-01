@@ -1,0 +1,30 @@
+meta {
+  name: Echo anything alias
+  type: http
+  seq: 9
+}
+
+docs {
+  /anything aliases /echo
+}
+
+post {
+  url: {{baseUrl}}/anything
+  body: json
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "via": "anything"
+  }
+}
+

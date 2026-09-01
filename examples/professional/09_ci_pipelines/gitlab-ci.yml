@@ -1,0 +1,17 @@
+# Copy to .gitlab-ci.yml
+# Change the suite path if this folder is not the repository root.
+
+image: node:20
+
+test:
+  stage: test
+  script:
+    - npm install -g mmt-testlight
+    - mkdir -p results
+    - testlight run suite.mmt --report junit --report-file results/junit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: results/junit.xml
+    paths:
+      - results/junit.xml

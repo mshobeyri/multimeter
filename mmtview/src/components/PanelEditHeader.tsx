@@ -39,7 +39,7 @@ export default function PanelEditHeader({
         <div className="api-edit-title">{title}</div>
         {trailing}
         {hasYamlErrors && (
-          <div style={{ marginLeft: 'auto' }}>
+          <div className="api-edit-header-row-status">
             <YamlErrorWarning />
           </div>
         )}

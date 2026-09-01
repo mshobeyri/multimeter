@@ -9,6 +9,8 @@ import {messageReceived} from './mmtAPI/mmtAPI';
 import {handleRunCurrentDocument} from './mmtAPI/run';
 import {buildThemeTokenMessage} from './themeTokenColors';
 import {getOnboarding, coachTargetForTask, OnboardingTaskId} from './onboarding';
+import {resolveSourceFormat} from './mmtSourceFormat';
+import {brunoWebviewExtras} from './brunoCollection';
 
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
@@ -163,8 +165,11 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         path.join(this.context.extensionPath, 'mmtview', 'build', 'index.html');
     const htmlContent = fs.readFileSync(htmlPath, 'utf8');
     const buildPath = path.join(this.context.extensionPath, 'mmtview', 'build');
-    const fixUri = (file: string) => webviewPanel.webview.asWebviewUri(
-        vscode.Uri.file(path.join(buildPath, file)));
+    const fixUri = (file: string) => {
+      const rel = String(file || '').replace(/^\/+/, '').replace(/^\.\//, '');
+      return webviewPanel.webview.asWebviewUri(
+          vscode.Uri.file(path.join(buildPath, rel)));
+    };
     const coachUri = webviewPanel.webview.asWebviewUri(
         vscode.Uri.joinPath(this.context.extensionUri, 'res', 'coachArrow.js'));
     // Replace all src/href with webview-safe URIs
@@ -213,6 +218,9 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             command: 'documentContentChanged',
             uri: document.uri.toString(),
             content: document.getText(),
+            ...brunoWebviewExtras(
+                resolveSourceFormat(document.getText(), document.uri.fsPath),
+                document.uri.fsPath),
           });
         });
 
@@ -273,6 +281,9 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       command: 'documentContentChanged',
       uri: document.uri.toString(),
       content: document.getText(),
+      ...brunoWebviewExtras(
+          resolveSourceFormat(document.getText(), document.uri.fsPath),
+          document.uri.fsPath),
     });
   }
 }

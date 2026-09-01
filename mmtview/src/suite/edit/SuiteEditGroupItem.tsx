@@ -43,6 +43,11 @@ const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
           {statusIcon && (
             <span className={`codicon ${statusIcon.icon}`} aria-hidden style={{ color: statusIcon.color }} />
           )}
+          {isRoot ? (
+            <span className="codicon codicon-layers" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+          ) : (
+            <span className="codicon codicon-collection" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+          )}
           <span style={{ fontFamily: 'var(--vscode-editor-font-family)' }}>{data.label}</span>
         </div>
       </div>

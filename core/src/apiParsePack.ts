@@ -305,7 +305,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
   };
 }
 
-export function apiToYaml(api: APIData): string {
+export function apiToYaml(api: APIData, originalYaml?: string): string {
   // Directly map APIField fields to YAML
   const yamlObj: Record<string, any> = {
     type: api.type,
@@ -400,5 +400,5 @@ export function apiToYaml(api: APIData): string {
   if (isNonEmptyList(api.examples)) {
     yamlObj.examples = api.examples;
   };
-  return packYaml(yamlObj);
+  return packYaml(yamlObj, originalYaml);
 }

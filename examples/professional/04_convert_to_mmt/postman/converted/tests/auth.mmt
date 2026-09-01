@@ -1,0 +1,15 @@
+type: test
+title: Auth
+description: Generated from Postman collection folder "Auth".
+tags:
+  - postman
+import:
+  bearerAuthCheck: +/api/auth/bearer-auth-check.mmt
+  basicAuthCheck: +/api/auth/basic-auth-check.mmt
+steps:
+  - call: bearerAuthCheck
+    id: iBearerAuthCheck
+    debug: true
+  - call: basicAuthCheck
+    id: iBasicAuthCheck
+    debug: true

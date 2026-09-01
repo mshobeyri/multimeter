@@ -1,0 +1,24 @@
+meta {
+  name: Set cookie
+  type: http
+  seq: 21
+}
+
+docs {
+  Set cookies from query
+}
+
+get {
+  url: {{baseUrl}}/cookies/set?session=demo
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+

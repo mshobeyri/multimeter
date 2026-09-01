@@ -16,6 +16,8 @@ import * as fs from 'fs';
 import {openUntitledMmtWithContent} from '../untitledGalleryMmt';
 import {resolveWorkspaceEnvFilePath} from './network';
 import {buildThemeTokenMessage} from '../themeTokenColors';
+import {resolveSourceFormat} from '../mmtSourceFormat';
+import {brunoWebviewExtras} from '../brunoCollection';
 
 const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
   outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
@@ -190,9 +192,7 @@ export async function handleLoadDocumentContent(
     mmtProvider: any) {
   // Resolve project root for +/ imports (same logic used by run)
   const projectRoot = findProjectRoot(document.uri.fsPath);
-  const lowerPath = document.uri.fsPath.toLowerCase();
-  const sourceFormat = lowerPath.endsWith('.http') || lowerPath.endsWith('.https') ? 'http' :
-    isBrunoFilePath(lowerPath) ? 'bruno' : 'mmt';
+  const sourceFormat = resolveSourceFormat(document.getText(), document.uri.fsPath);
 
   // Send document data to the current panel
   webviewPanel.webview.postMessage({
@@ -200,7 +200,7 @@ export async function handleLoadDocumentContent(
     uri: document.uri.toString(),
     content: document.getText(),
     projectRoot,
-    sourceFormat
+    ...brunoWebviewExtras(sourceFormat, document.uri.fsPath),
   });
 
   // Send theme token colors with document load (avoids race with early theme post).

@@ -10,8 +10,9 @@ import path from 'path';
 import {createRequire} from 'module';
 
 const requireFromCli = createRequire(__filename);
-const {resolveUserPath} = requireFromCli('../src/pathNormalize.cjs') as {
+const {resolveUserPath, writeTextFile} = requireFromCli('../src/pathNormalize.cjs') as {
   resolveUserPath: (input: string, baseDir?: string, pathMod?: typeof path) => string;
+  writeTextFile: (filePath: string, content: string) => string;
 };
 
 import {summarize} from './loadTest.js';
@@ -380,8 +381,7 @@ program.command('run')
           }
         }
         if (outFile) {
-          const outPath = path.resolve(outFile);
-          fs.writeFileSync(outPath, JSON.stringify(result, null, 2), 'utf8');
+          const outPath = writeTextFile(outFile, JSON.stringify(result, null, 2));
           if (!opts.quiet) {
             console.log(`Result written: ${outPath}`);
           }
@@ -402,8 +402,7 @@ program.command('run')
             reportContent = serializer(collectedResults);
           }
           if (reportContent) {
-            const reportPath = path.resolve(reportFile);
-            fs.writeFileSync(reportPath, reportContent, 'utf8');
+            const reportPath = writeTextFile(reportFile, reportContent);
             if (!opts.quiet) {
               console.log(`Report written: ${reportPath}`);
             }
@@ -654,7 +653,7 @@ program.command('doc')
             path.resolve(
                 process.cwd(),
                 `${path.basename(full, path.extname(full))}${defExt}`);
-        fs.writeFileSync(outPath, htmlOrMd, 'utf8');
+        writeTextFile(outPath, htmlOrMd);
         console.log(`Doc generated: ${outPath}`);
       } catch (e: any) {
         console.error('Error generating doc:', e?.message || e);

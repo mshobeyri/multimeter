@@ -1,10 +1,9 @@
 import React from "react";
 import { MockConnectionConfig, MockConnectionMode, MockData } from "mmt-core/MockData";
-import { parseYamlDoc } from "mmt-core/markupConvertor";
 import FilePickerInput from "../components/FilePickerInput";
 import KSVEditor from "../components/KSVEditor";
 import { FileContext } from "../fileContext";
-import { canonicalizeMockYaml } from "./mockYaml";
+import { patchMockYaml } from "./mockYaml";
 
 interface MockServerSettingsProps {
   data: MockData;
@@ -28,16 +27,18 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
 
   const setConnection = React.useCallback((nextConnection: MockConnectionConfig | undefined, forceHttps = false) => {
     try {
-      const doc = parseYamlDoc(content);
-      if (forceHttps) {
-        doc.set('protocol', 'https');
-      }
-      if (!nextConnection || isEmptyConnection(nextConnection)) {
-        doc.delete('connection');
-      } else {
-        doc.set('connection', nextConnection);
-      }
-      setContent(canonicalizeMockYaml(doc.toString()));
+      setContent(patchMockYaml(content, (mock) => {
+        const next = { ...mock };
+        if (forceHttps) {
+          next.protocol = 'https';
+        }
+        if (!nextConnection || isEmptyConnection(nextConnection)) {
+          delete next.connection;
+        } else {
+          next.connection = nextConnection;
+        }
+        return next;
+      }));
     } catch {
       updateField('connection', nextConnection && !isEmptyConnection(nextConnection) ? nextConnection : undefined);
       if (forceHttps) {
@@ -56,10 +57,12 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
 
   const setPlainConnection = () => {
     try {
-      const doc = parseYamlDoc(content);
-      doc.delete('protocol');
-      doc.delete('connection');
-      setContent(canonicalizeMockYaml(doc.toString()));
+      setContent(patchMockYaml(content, (mock) => {
+        const next = { ...mock };
+        delete next.protocol;
+        delete next.connection;
+        return next;
+      }));
     } catch {
       updateField('protocol', undefined);
       updateField('connection', undefined);
@@ -68,17 +71,19 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
 
   const updateProtocol = (protocol: string) => {
     try {
-      const doc = parseYamlDoc(content);
-      if (protocol === 'http') {
-        doc.delete('protocol');
-        doc.delete('connection');
-      } else {
-        doc.set('protocol', protocol);
-        if (protocol !== 'https') {
-          doc.delete('connection');
+      setContent(patchMockYaml(content, (mock) => {
+        const next = { ...mock };
+        if (protocol === 'http') {
+          delete next.protocol;
+          delete next.connection;
+        } else {
+          next.protocol = protocol as MockData['protocol'];
+          if (protocol !== 'https') {
+            delete next.connection;
+          }
         }
-      }
-      setContent(canonicalizeMockYaml(doc.toString()));
+        return next;
+      }));
     } catch {
       updateField('protocol', protocol === 'http' ? undefined : protocol);
       if (protocol !== 'https') {

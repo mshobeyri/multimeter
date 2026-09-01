@@ -1,0 +1,29 @@
+meta {
+  name: Basic auth check
+  type: http
+  seq: 19
+}
+
+docs {
+  Basic user:pass
+}
+
+get {
+  url: {{baseUrl}}/auth/basic
+  body: none
+  auth: basic
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+
+auth:basic {
+  username: user
+  password: pass
+}
+

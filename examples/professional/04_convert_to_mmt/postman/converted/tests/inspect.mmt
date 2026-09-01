@@ -1,0 +1,23 @@
+type: test
+title: Inspect
+description: Generated from Postman collection folder "Inspect".
+tags:
+  - postman
+import:
+  returnRequestHeaders: +/api/inspect/return-request-headers.mmt
+  returnClientIp: +/api/inspect/return-client-ip.mmt
+  returnCookies: +/api/inspect/return-cookies.mmt
+  setCookie: +/api/inspect/set-cookie.mmt
+steps:
+  - call: returnRequestHeaders
+    id: iReturnRequestHeaders
+    debug: true
+  - call: returnClientIp
+    id: iReturnClientIp
+    debug: true
+  - call: returnCookies
+    id: iReturnCookies
+    debug: true
+  - call: setCookie
+    id: iSetCookie
+    debug: true

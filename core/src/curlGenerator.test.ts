@@ -56,8 +56,14 @@ describe('curlGenerator', () => {
     };
     const set = buildCurlCommandSet({method: 'get', url: 'https://secure.example'}, certs);
     expect(set.posix).toContain(`--cacert 'C:\\certs\\ca.pem'`);
+    expect(set.posix).toContain('--cert-type P12');
+    expect(set.posix).toContain(`--cert 'C:\\certs\\client.p12'`);
     expect(set.powershell).toContain('--cacert "C:\\\\certs\\\\ca.pem"');
+    expect(set.powershell).toContain('--cert-type P12');
+    expect(set.powershell).toContain('--cert "C:\\\\certs\\\\client.p12"');
     expect(set.cmd).toContain('--cacert "C:\\certs\\ca.pem"');
+    expect(set.cmd).toContain('--cert-type P12');
+    expect(set.cmd).toContain('--cert "C:\\certs\\client.p12"');
   });
 
   it('formats a multi-shell reference block', () => {

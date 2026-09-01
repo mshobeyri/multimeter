@@ -74,11 +74,20 @@ export const fileType = (path: string, content: string): Type => {
   }
 
   if (path.endsWith('.http') || path.endsWith('.https') || path.endsWith('.bru') || path.endsWith('.bruno')) {
+    // Source selector / API Send posts MMT YAML as rawFile while the open
+    // path is still .bru / .http. Prefer that type so API runs hit executeApi
+    // (and post multimeter.api.run.result) instead of the native test path.
+    const fromYaml = mmtTypeFromYamlPrefix(content);
+    if (fromYaml) {
+      return fromYaml;
+    }
     return 'test';
   }
 
   if (!path.endsWith('.mmt')) {
-    return null;
+    // Spec / HTTP / Bruno UI runs send MMT YAML as rawFile while the path
+    // is still the original source (openapi.yaml, collection.json, …).
+    return mmtTypeFromYamlPrefix(content);
   }
 
   if (content.includes('type: api')) {
@@ -104,6 +113,12 @@ export const fileType = (path: string, content: string): Type => {
   }
   return null;
 };
+
+function mmtTypeFromYamlPrefix(content: string): Type {
+  const match = /^\s*type:\s*(api|test|suite|loadtest|env|server|doc|report)\b/m
+      .exec(String(content || ''));
+  return (match?.[1] as Type) || null;
+}
 
 /** Matches one or more duration tokens such as 1h, 5m, 3s, 500ms. */
 export const DURATION_EXPRESSION_RE = /^((?:\d+(?:\.\d+)?)(?:ns|ms|s|m|h))+$/;

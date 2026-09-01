@@ -1,0 +1,36 @@
+# Prove the documented GitHub Action + README snippet against a real example suite.
+name: Testlight action
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - '.github/actions/testlight/**'
+      - '.github/workflows/testlight-action.yml'
+      - 'examples/basic/04_basic_suite/**'
+  pull_request:
+    paths:
+      - '.github/actions/testlight/**'
+      - '.github/workflows/testlight-action.yml'
+      - 'examples/basic/04_basic_suite/**'
+  workflow_dispatch:
+
+jobs:
+  readme-snippet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run example suite
+        uses: ./.github/actions/testlight
+        with:
+          file: examples/basic/04_basic_suite/suite.mmt
+          report: junit
+          report-file: results/junit.xml
+
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testlight-junit
+          path: results/junit.xml

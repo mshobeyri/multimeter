@@ -7,6 +7,7 @@ import {restoreOmitKeyword} from './omitKeyword';
 import {isOmitSentinel} from './omitKeyword';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 import {normalizeNewlines} from './textLines';
+import {mergeYamlValue} from './yamlAstMerge';
 
 /**
  * Quote YAML-unsafe expect/debug operators (`!=`, `!*`, `>`, …) before parsing.
@@ -94,24 +95,39 @@ function applyKeywordScalarStyles(node: any, original: any): void {
   }
 }
 
-function packYaml(obj: any): string {
+function packYaml(obj: any, originalYaml?: string): string {
   try {
     const restored = restoreOmitKeyword(obj);
     // Monaco/Windows editors often produce CRLF; YAML double-quotes those as
     // visible `\r` escapes. Normalize before emit so .mmt files stay LF-only.
     const normalized = normalizeYamlStringNewlines(restored);
+    if (typeof originalYaml === 'string' && originalYaml.length > 0) {
+      const doc = parseYamlDoc(originalYaml);
+      if (doc?.contents) {
+        const merged = mergeYamlValue(doc, doc.contents, normalized);
+        if (merged !== doc.contents) {
+          doc.contents = merged as typeof doc.contents;
+        }
+        applyKeywordScalarStyles(doc.contents, obj);
+        return stringifyYamlDocument(doc);
+      }
+    }
     const doc = new YAML.Document();
     doc.contents = doc.createNode(normalized);
     applyKeywordScalarStyles(doc.contents, obj);
-    applyDescriptionBlockLiteralStyles(doc.contents);
-    return emitUnquotedOperators(doc.toString({
-      aliasDuplicateObjects: false,
-      blockQuote: 'literal',
-      lineWidth: 0,
-    } as any));
+    return stringifyYamlDocument(doc);
   } catch (e) {
     return '';
   }
+}
+
+function stringifyYamlDocument(doc: YAML.Document): string {
+  applyDescriptionBlockLiteralStyles(doc.contents);
+  return emitUnquotedOperators(doc.toString({
+    aliasDuplicateObjects: false,
+    blockQuote: 'literal',
+    lineWidth: 0,
+  } as any));
 }
 
 /** Deep-normalize CRLF/CR to LF in string leaves destined for YAML output. */
@@ -373,6 +389,7 @@ export {
   parseYamlStrict,
   parseYamlDoc,
   packYaml,
+  stringifyYamlDocument,
   formatBody,
   contentTypeForFormat,
   flattenXmlObj,

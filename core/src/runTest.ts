@@ -5,8 +5,33 @@ import {GenerateJsOptions, mergeInputs, RunFileOptions, TestOutputsReporterEvent
 import * as testParsePack from './testParsePack';
 import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, httpToTestStrict, isHttpFilePath} from './httpParsePack';
+import parseYaml from './markupConvertor';
 import {restoreOmitKeyword} from './omitKeyword';
 import {resolveInputsMap} from './variableReplacer';
+import {TestData} from './TestData';
+
+/**
+ * True when the buffer is MMT `type: test` YAML rather than native .bru/.http
+ * source. The visual test panel sends YAML as rawFile even when the open file
+ * is still named .bru / .http.
+ */
+export function isSerializedMmtTest(rawText: string): boolean {
+  const doc = parseYaml(rawText);
+  return isPlainObject(doc) && doc.type === 'test';
+}
+
+function parseTestForRun(rawText: string, filePath: string, strict: boolean): TestData {
+  if (isSerializedMmtTest(rawText)) {
+    return strict ? testParsePack.yamlToTestStrict(rawText) : testParsePack.yamlToTest(rawText);
+  }
+  if (isHttpFilePath(filePath)) {
+    return strict ? httpToTestStrict(rawText, filePath) : httpToTest(rawText, filePath);
+  }
+  if (isBrunoFilePath(filePath)) {
+    return strict ? brunoToTestStrict(rawText, filePath) : brunoToTest(rawText, filePath);
+  }
+  return strict ? testParsePack.yamlToTestStrict(rawText) : testParsePack.yamlToTest(rawText);
+}
 
 const createRunId = (): string => {
   return `${Date.now().toString(36)}-${
@@ -17,10 +42,7 @@ export const __testOnlyCreateRunId = createRunId;
 
 export function prepareTestRun(
     rawText: string, manualInputs: Record<string, any>, filePath = ''): Partial<PreparedRun> {
-  const testDoc =
-      isHttpFilePath(filePath) ? httpToTest(rawText, filePath) :
-      isBrunoFilePath(filePath) ? brunoToTest(rawText, filePath) :
-      (testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any);
+  const testDoc = parseTestForRun(rawText, filePath, false);
   const defaultInputs = isPlainObject(testDoc?.inputs) ?
       testDoc.inputs as Record<string, any>:
       {};
@@ -46,11 +68,7 @@ export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
   });
   // Use strict parsing for the root test file to surface YAML/validation errors.
   const sourceFilePath = filePath || '';
-  const test = isHttpFilePath(sourceFilePath) ?
-      httpToTestStrict(rawText, sourceFilePath) :
-      isBrunoFilePath(sourceFilePath) ?
-      brunoToTestStrict(rawText, sourceFilePath) :
-      testParsePack.yamlToTestStrict(rawText);
+  const test = parseTestForRun(rawText, sourceFilePath, true);
   let js = await JSer.rootTestToJsfunc({test, name, inputs, envVars, filePath, projectRoot, isExternal});
   const anyJSer: any = JSer as any;
   if (anyJSer.variableReplacer &&
@@ -118,7 +136,8 @@ export async function executeTest(
       (options as any).id, options.fileLoader, setenvReporter,
       options.abortSignal, true, options.skipServerCleanup,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
-      undefined, undefined, undefined, 'Test', options.binaryFileLoader);
+      (options as any).__mmtIsSuiteBundleChildRun === true, undefined, undefined, 'Test',
+      options.binaryFileLoader);
   if (forwardReporter) {
     if (result.outputs && typeof result.outputs === 'object' && Object.keys(result.outputs).length > 0) {
       const outputsEvent: TestOutputsReporterEvent = {

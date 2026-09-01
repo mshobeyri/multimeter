@@ -1,0 +1,36 @@
+type: api
+title: Echo POST body
+description: Echoes method, URL, headers, body, and a timestamp.
+inputs:
+  body: |-
+    {
+      "name": "Ada",
+      "role": "engineer"
+    }
+url: https://test.mmt.dev/echo
+protocol: http
+method: post
+format: json
+headers:
+  Content-Type: application/json
+body: <<i:body>>
+examples:
+  - name: User profile
+    description: Simple JSON object
+  - name: Nested payload
+    inputs:
+      body: |-
+        {
+          "order": {
+            "id": 1001,
+            "items": [
+              {
+                "sku": "ABC",
+                "qty": 2
+              }
+            ]
+          }
+        }
+  - name: Empty object
+    inputs:
+      body: "{}"

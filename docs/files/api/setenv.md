@@ -16,6 +16,8 @@ These become available to subsequent steps/tests as environment variables (`e:to
 
 See [Environment](../env/index.md) for defining variables, presets, and how `e:` / `<<e:…>>` resolve at runtime.
 
+Example (Vault / OpenBao over HTTP + setenv): [professional Vault HTTP setenv](../../../examples/professional/10_vault_http_setenv/README.md).
+
 Deprecated: referencing an `outputs` key by name still works for compatibility:
 ```yaml
 setenv:

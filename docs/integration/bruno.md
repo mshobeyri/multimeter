@@ -4,9 +4,17 @@ Use Bruno `.bru` and `.bruno` request files with Multimeter while keeping Bruno-
 
 ## Run directly
 
-In VS Code, open a `.bru` file with **Open With...** → **Multimeter Bruno Test Editor**. The request runs as a test flow with Multimeter reporting, environments, and suite support.
+See [Spec editor](./spec-editor.md) for the {{btn:list-tree}} request picker, **All** vs single request, and {{btn:save-as}}.
 
-The structured UI is read-only for Bruno files. Use **Save as MMT** in the editor to create an editable `type: test` file from the parsed request.
+In VS Code, open a `.bru` file with **Open With...** → **Multimeter Bruno Test Editor**, or **Open as MMT**.
+
+Opening a single `.bru` does **not** pull in sibling requests from the collection. Click {{btn:list-tree}} to pick **All** (one sequential test) or that request (API **Send**).
+
+## Run a collection
+
+Open the collection’s `bruno.json` the same way (**Open With...** / **Open as MMT**). Multimeter walks the collection folder (skipping `collection.bru`, `folder.bru`, `environments/`, and paths listed in `bruno.json` `ignore`).
+
+Click {{btn:list-tree}} to pick **All** (every request as one sequential test) or a single request (API **Send**). The left editor shows `bruno.json` (JSON). Requests are ordered by `meta.seq`, then file path.
 
 ## Import in tests
 
@@ -27,7 +35,9 @@ See [import](../files/test/import.md).
 
 Right-click a `.bru` or `.bruno` file in the Explorer and choose **Convert to MMT...**. Multimeter generates matching `api/` and `tests/` files you can edit in the normal Multimeter UI.
 
-Example output: [Bruno convert example](../../examples/professional/04_convert_to_mmt/bruno/README.md)
+Example output: [Bruno convert example](../../examples/intermediate/25_convert_to_mmt/bruno/README.md)
+
+Full sandbox Bruno collection: [professional Bruno convert](../../examples/professional/04_convert_to_mmt/bruno/README.md)
 
 ## Supported syntax
 
@@ -44,11 +54,10 @@ Common single-request `.bru` structure:
 
 ## Limitations
 
-- Bruno collection folders are not expanded automatically — import or open individual `.bru` files
 - Pre-request and post-response scripts are not executed as Bruno scripts
 - File bodies, multipart helpers, and advanced auth may need conversion to editable `.mmt` for full control
 
 ## See also
 
-- [Import Bruno in test example](../../examples/intermediate/16_bruno_files/README.md)
+- [Bruno file examples](../../examples/intermediate/16_bruno_files/README.md) — open `library/bruno.json` for the full collection, or any `.bru` for a single request
 - [HTTP file](./http-file.md) · [Postman](./postman.md)

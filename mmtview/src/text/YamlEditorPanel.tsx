@@ -11,6 +11,7 @@ import { loadEnvVariables } from "../workspaceStorage";
 import { useImportValidation } from "./useImportValidation";
 import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
+import { isSpecSourceFormat, type SourceFormat } from "../sourceFormat";
 import { getFileLinkTargetAtPosition } from "./yamlLinks";
 import {
   findHttpStepAtPosition,
@@ -70,7 +71,7 @@ interface YamlEditorPanelProps {
   content: string;
   setContent: (value: string) => void;
   language?: string;
-  sourceFormat?: "mmt" | "http" | "bruno";
+  sourceFormat?: SourceFormat;
   showNumbers?: boolean;
   fontSize?: number;
   collapseDescription?: boolean;
@@ -308,7 +309,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const model = editor.getModel();
     if (!model) return;
 
-    if (sourceFormat === "http" || sourceFormat === "bruno") {
+    if (sourceFormat === "http" || sourceFormat === "bruno" || isSpecSourceFormat(sourceFormat)) {
       monaco.editor.setModelMarkers(model, "yaml", []);
       setYamlProblems([]);
       return;
@@ -352,6 +353,15 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
   // Parse imports map whenever content changes
   useEffect(() => {
+    if (isSpecSourceFormat(sourceFormat)) {
+      importsMapRef.current = {};
+      setDocType(null);
+      if (lastImportsSignatureRef.current !== "[]") {
+        lastImportsSignatureRef.current = "[]";
+        setImportsMapState({});
+      }
+      return;
+    }
     try {
       // Use plain YAML parse to get a JS object and read import
       const js = parseYaml(content) as any;
@@ -375,7 +385,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         setImportsMapState({});
       }
     }
-  }, [content]);
+  }, [content, sourceFormat]);
 
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {

@@ -9,6 +9,9 @@ import { StepStatus } from '../../shared/types';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 import { ownRunStatus } from './suiteRunStatus';
+import { ReportStatusFilter, filterTreeItemsByStatus } from '../../shared/reportStatusFilter';
+
+const EMPTY_STEP_REPORTS: StepReportItem[] = [];
 
 const relativeToParentDir = (childPath: string, parentPath: string): string => {
   if (!childPath || !parentPath) {
@@ -62,6 +65,8 @@ interface SuiteTestTreeProps {
 
   reportsById: Record<string, StepReportItem[]>;
   runStateById: Record<string, StepStatus>;
+  /** View-only status filter; does not change run data or exports. */
+  statusFilter?: ReportStatusFilter;
 
   onRunTargets: (target: string) => void | Promise<void>;
   /** Logs-only core run (no UI panel updates). */
@@ -127,6 +132,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   statusIconFor,
   reportsById,
   runStateById,
+  statusFilter = 'all',
   onRunTargets,
   onRunTargetsInCore,
 }) => {
@@ -306,6 +312,43 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     return { items };
   }, [base.items, expandedItems, groups, hierarchyByEntryId]);
 
+  const visibleItems = useMemo(() => {
+    if (statusFilter === 'all') {
+      return treeData.items;
+    }
+    return filterTreeItemsByStatus(
+      treeData.items,
+      'suite-root',
+      statusFilter,
+      (item) => {
+        const data = item.data as SuiteTestTreeItemData | undefined;
+        const itemIndex = String(item.index);
+        if (!data) {
+          return 'default';
+        }
+        if (data.type === 'root') {
+          return 'default';
+        }
+        if (data.type === 'group') {
+          const match = /^group-(\d+)$/.exec(itemIndex);
+          if (match) {
+            return ownRunStatus(runStateById, createSuiteNodeId([Number(match[1]) - 1]));
+          }
+          const bundleId = (data as { id?: string }).id;
+          return ownRunStatus(runStateById, typeof bundleId === 'string' ? bundleId : undefined);
+        }
+        const itemBundleId = (data as { id?: string }).id;
+        const ownerEntryId = owningEntryIdFromTreeIndex(itemIndex);
+        const belongs =
+          !itemBundleId || bundleIdBelongsToEntry(ownerEntryId, itemBundleId);
+        if (!belongs) {
+          return 'default';
+        }
+        return ownRunStatus(runStateById, itemBundleId || itemIndex);
+      },
+    );
+  }, [treeData.items, statusFilter, runStateById]);
+
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
       setExpandedItems((prev) => (prev.includes(String(item.index)) ? prev : [...prev, String(item.index)]));
@@ -321,14 +364,14 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   );
 
   // Icon status is own-id only: never roll up children into parents.
-  const getGroupStatus = (groupItemId: string): StepStatus => {
+  const getGroupStatus = useCallback((groupItemId: string): StepStatus => {
     const match = /^group-(\d+)$/.exec(groupItemId);
     if (match) {
       return ownRunStatus(runStateById, createSuiteNodeId([Number(match[1]) - 1]));
     }
     const bundleId = (treeData.items[groupItemId]?.data as any)?.id;
     return ownRunStatus(runStateById, typeof bundleId === 'string' ? bundleId : undefined);
-  };
+  }, [runStateById, treeData.items]);
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
     const match = /^group-(\d+)$/.exec(groupItemId);
@@ -345,7 +388,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     return typeof bundleId === 'string' && bundleId ? [bundleId] : [];
   }, [groups, treeData.items]);
 
-  const renderItem = ({ item, context, arrow, children }: any) => {
+  const renderItem = useCallback(({ item, context, arrow, children }: any) => {
     const data = item.data as SuiteTestTreeItemData;
 
     // Prefer the explicit parentPath recorded in the tree node data.
@@ -385,7 +428,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           context={context}
           arrow={arrow}
           children={children}
-          getGroupStatus={getGroupStatus}
+          status={getGroupStatus(itemId)}
           statusIconFor={statusIconFor}
           canShowStatusIcon={data.type === 'group' || data.type === 'root'}
           showRunButton={data.type === 'group'}
@@ -437,6 +480,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     const testLeafId = itemBundleId;
     const canRunLeaf = typeof testLeafId === 'string' && !!testLeafId;
     const scoped = Boolean(testLeafId && belongs);
+    const showReports = Boolean(scoped && context?.isExpanded && testLeafId);
+    const stepReports = showReports
+      ? (reportsById[testLeafId!] || EMPTY_STEP_REPORTS)
+      : EMPTY_STEP_REPORTS;
 
     return (
       <SuiteTestFileItem
@@ -447,8 +494,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         missingFiles={missingFiles}
         statusIconFor={statusIconFor as any}
         status={status}
-        reportsById={scoped ? reportsById : {}}
-        runStateById={scoped ? runStateById : {}}
+        stepReports={stepReports}
         onRun={canRunLeaf ? () => onRunTargets(testLeafId!) : undefined}
         onRunInCore={
           canRunLeaf && onRunTargetsInCore
@@ -460,10 +506,19 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         displayPath={displayPath}
       />
     );
-  };
+  }, [
+    getGroupStatus,
+    getGroupTargets,
+    missingFiles,
+    onRunTargets,
+    onRunTargetsInCore,
+    reportsById,
+    runStateById,
+    statusIconFor,
+  ]);
   return (
     <ControlledTreeEnvironment
-      items={treeData.items}
+      items={visibleItems}
       getItemTitle={(item) => {
         const data = item.data as SuiteTestTreeItemData;
         // Show the id in the accessible/title string for all node kinds.
