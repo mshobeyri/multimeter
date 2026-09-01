@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.36.1]
+
+- Resolve same-file OpenAPI `$ref` pointers for shared parameters, request bodies, and schemas during Convert to MMT
+
 ## [1.36.0]
 
 - Open Bruno collections only via `bruno.json` (single `.bru` files stay request-only)
