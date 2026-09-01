@@ -1,6 +1,8 @@
 import { APIData, AuthConfig, ExampleData } from './APIData';
 import { formatBody } from './markupConvertor';
 
+const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
+
 export function openApiToAPI(openApiSpec: any): APIData[] {
   if (!openApiSpec || !openApiSpec.paths) {
     return [];
@@ -9,36 +11,32 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
   const apis: APIData[] = [];
   const baseUrl = openApiSpec.servers?.[0]?.url || '';
 
-  // Iterate through all paths
   Object.entries(openApiSpec.paths).forEach(([p, pathItem]: [string, any]) => {
-    // Iterate through all HTTP methods for this path
     Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {
-      if (!['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'].includes(method)) {
-        return; // Skip non-HTTP methods
+      if (!HTTP_METHODS.has(method)) {
+        return;
       }
 
       const title = operation.summary || operation.operationId || `${method.toUpperCase()} ${p}`;
+      const parameters = mergeOpenApiParameters(openApiSpec, pathItem, operation);
+      const requestBody = resolveOpenApiNode(openApiSpec, operation.requestBody);
 
-      // Build headers from parameters
       const headers: Record<string, string> = {};
       const query: Record<string, string> = {};
 
-      if (operation.parameters) {
-        operation.parameters.forEach((param: any) => {
-          if (param.in === 'header') {
-            headers[param.name] = param.example || param.schema?.example || '';
-          } else if (param.in === 'query') {
-            query[param.name] = param.example || param.schema?.example || '';
-          }
-        });
-      }
+      parameters.forEach((param: any) => {
+        if (param.in === 'header') {
+          headers[param.name] = readOpenApiExampleValue(param);
+        } else if (param.in === 'query') {
+          query[param.name] = readOpenApiExampleValue(param);
+        }
+      });
 
-      // Handle request body
       let body: string | object | undefined;
       let format: 'json' | 'xml' | 'text' = 'json';
 
-      if (operation.requestBody?.content) {
-        const contentTypes = Object.keys(operation.requestBody.content);
+      if (requestBody?.content) {
+        const contentTypes = Object.keys(requestBody.content);
         const firstContentType = contentTypes[0];
 
         if (firstContentType) {
@@ -50,53 +48,24 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
 
           headers['Content-Type'] = firstContentType;
 
-          const contentSpec = operation.requestBody.content[firstContentType];
-
-          // Check for example at content level first (common for XML)
-          if (contentSpec?.example) {
-            body = typeof contentSpec.example === 'string' ? contentSpec.example : formatBody(format, contentSpec.example, true);
-          }
-          // Then check for example at schema level
-          else if (contentSpec?.schema?.example) {
-            body = typeof contentSpec.schema.example === 'string'
-              ? contentSpec.schema.example
-              : formatBody(format, contentSpec.schema.example, true);
-          }
-          // Generate example from schema properties
-          else if (contentSpec?.schema?.properties) {
-            const example: any = {};
-            Object.entries(contentSpec.schema.properties).forEach(([propName, propSchema]: [string, any]) => {
-              example[propName] = propSchema.example
-                || propSchema.default
-                || (propSchema.type === 'string' ? 'string'
-                  : propSchema.type === 'number' ? 0
-                  : propSchema.type === 'boolean' ? false
-                  : null);
-            });
-            body = formatBody(format, example, true);
-          }
-          // For XML with string schema type, try to create a basic structure
-          else if (format === 'xml' && contentSpec?.schema?.type === 'string') {
-            body = '<root/>'; // Fallback XML structure
-          }
+          const contentSpec = resolveOpenApiNode(openApiSpec, requestBody.content[firstContentType]);
+          body = buildBodyFromContent(openApiSpec, contentSpec, format);
         }
       }
 
-      // Build full URL - handle path parameters
       let processedPath = p;
-      if (operation.parameters) {
-        operation.parameters.forEach((param: any) => {
-          if (param.in === 'path') {
-            const example = param.example || param.schema?.example || `{${param.name}}`;
-            processedPath = processedPath.replace(`{${param.name}}`, String(example));
-          }
-        });
-      }
+      parameters.forEach((param: any) => {
+        if (param.in === 'path') {
+          const example = readOpenApiExampleValue(param) || `{${param.name}}`;
+          processedPath = processedPath.replace(`{${param.name}}`, String(example));
+        }
+      });
 
       const fullUrl = baseUrl + processedPath;
-
-      // Resolve auth from operation or global security + securitySchemes
       const auth = resolveOpenApiAuth(operation, openApiSpec);
+      const operationForExamples = requestBody === operation.requestBody
+        ? operation
+        : {...operation, requestBody};
 
       const apiData: APIData = {
         type: 'api',
@@ -112,7 +81,6 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         auth,
       } as APIData;
 
-      // Clean up undefined fields
       if (!apiData.description) {
         delete (apiData as any).description;
       }
@@ -129,13 +97,178 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         delete (apiData as any).auth;
       }
 
-      attachOpenApiExamples(apiData, operation, format);
+      attachOpenApiExamples(apiData, operationForExamples, format);
 
       apis.push(apiData);
     });
   });
 
   return apis;
+}
+
+function readOpenApiExampleValue(value: any): string {
+  if (value == null) {
+    return '';
+  }
+  if (typeof value !== 'object') {
+    return String(value);
+  }
+  const example = value.example ?? value.schema?.example ?? value.schema?.default;
+  return example == null ? '' : String(example);
+}
+
+function parameterKey(param: any): string {
+  return `${param?.in || ''}:${param?.name || ''}`;
+}
+
+function mergeOpenApiParameters(spec: any, pathItem: any, operation: any): any[] {
+  const merged = new Map<string, any>();
+  const pathParams = Array.isArray(pathItem?.parameters) ? pathItem.parameters : [];
+  const operationParams = Array.isArray(operation?.parameters) ? operation.parameters : [];
+
+  for (const param of pathParams) {
+    const resolved = resolveOpenApiNode(spec, param);
+    if (resolved?.name && resolved?.in) {
+      merged.set(parameterKey(resolved), resolved);
+    }
+  }
+  for (const param of operationParams) {
+    const resolved = resolveOpenApiNode(spec, param);
+    if (resolved?.name && resolved?.in) {
+      merged.set(parameterKey(resolved), resolved);
+    }
+  }
+  return Array.from(merged.values());
+}
+
+function resolveInternalRef(spec: any, ref: string): any {
+  if (!ref.startsWith('#/')) {
+    return undefined;
+  }
+  const tokens = ref.slice(2).split('/').map(decodeJsonPointerToken);
+  let current: any = spec;
+  for (const token of tokens) {
+    if (current == null) {
+      return undefined;
+    }
+    current = current[token];
+  }
+  return current;
+}
+
+function decodeJsonPointerToken(token: string): string {
+  return token.replace(/~1/g, '/').replace(/~0/g, '~');
+}
+
+function resolveOpenApiNode(spec: any, node: any, seen: Set<string> = new Set()): any {
+  if (node == null || typeof node !== 'object') {
+    return node;
+  }
+  if (!node.$ref || typeof node.$ref !== 'string') {
+    return node;
+  }
+
+  const ref = node.$ref;
+  if (!ref.startsWith('#/')) {
+    return node;
+  }
+  if (seen.has(ref)) {
+    return node;
+  }
+
+  const target = resolveInternalRef(spec, ref);
+  if (target == null) {
+    return node;
+  }
+
+  const nextSeen = new Set(seen);
+  nextSeen.add(ref);
+  const resolved = resolveOpenApiNode(spec, target, nextSeen);
+  const {$ref, ...overrides} = node;
+  if (Object.keys(overrides).length === 0) {
+    return resolved;
+  }
+  if (resolved && typeof resolved === 'object' && !Array.isArray(resolved)) {
+    return {...resolved, ...overrides};
+  }
+  return resolved;
+}
+
+function buildBodyFromContent(
+    spec: any, contentSpec: any, format: 'json' | 'xml' | 'text'): string | object | undefined {
+  if (!contentSpec) {
+    return undefined;
+  }
+  if (contentSpec.example !== undefined) {
+    return typeof contentSpec.example === 'string'
+      ? contentSpec.example
+      : formatBody(format, contentSpec.example, true);
+  }
+
+  const schema = resolveOpenApiNode(spec, contentSpec.schema);
+  return buildBodyFromSchema(spec, schema, format);
+}
+
+function buildBodyFromSchema(
+    spec: any, schema: any, format: 'json' | 'xml' | 'text', seen: Set<string> = new Set()): string | undefined {
+  const resolved = resolveOpenApiNode(spec, schema, seen);
+  if (!resolved) {
+    return undefined;
+  }
+  if (resolved.example !== undefined) {
+    return typeof resolved.example === 'string'
+      ? resolved.example
+      : formatBody(format, resolved.example, true);
+  }
+  if (resolved.properties && typeof resolved.properties === 'object') {
+    const example: any = {};
+    Object.entries(resolved.properties).forEach(([propName, propSchema]: [string, any]) => {
+      const resolvedProp = resolveOpenApiNode(spec, propSchema, seen);
+      example[propName] = readSchemaExampleValue(spec, resolvedProp, seen);
+    });
+    return formatBody(format, example, true);
+  }
+  if (format === 'xml' && resolved.type === 'string') {
+    return '<root/>';
+  }
+  return undefined;
+}
+
+function readSchemaExampleValue(spec: any, schema: any, seen: Set<string> = new Set()): any {
+  const resolved = resolveOpenApiNode(spec, schema, seen);
+  if (!resolved) {
+    return null;
+  }
+  if (resolved.example !== undefined) {
+    return resolved.example;
+  }
+  if (resolved.default !== undefined) {
+    return resolved.default;
+  }
+  if (resolved.enum && Array.isArray(resolved.enum) && resolved.enum.length > 0) {
+    return resolved.enum[0];
+  }
+  if (resolved.type === 'string') {
+    return 'string';
+  }
+  if (resolved.type === 'number' || resolved.type === 'integer') {
+    return 0;
+  }
+  if (resolved.type === 'boolean') {
+    return false;
+  }
+  if (resolved.type === 'array') {
+    const item = readSchemaExampleValue(spec, resolved.items, seen);
+    return item == null ? [] : [item];
+  }
+  if (resolved.properties && typeof resolved.properties === 'object') {
+    const example: any = {};
+    Object.entries(resolved.properties).forEach(([propName, propSchema]: [string, any]) => {
+      example[propName] = readSchemaExampleValue(spec, propSchema, seen);
+    });
+    return example;
+  }
+  return null;
 }
 
 function formatExampleBody(format: 'json' | 'xml' | 'text', value: any): string {
@@ -219,15 +352,14 @@ function resolveOpenApiAuth(operation: any, spec: any): AuthConfig | undefined {
   if (!Array.isArray(secReqs) || secReqs.length === 0) {
     return undefined;
   }
-  const schemes = spec.components?.securitySchemes || {};
-  // Use the first security requirement's first scheme
+  const schemes = spec.components?.securitySchemes || spec.securityDefinitions || {};
   for (const req of secReqs) {
     const names = Object.keys(req || {});
     if (!names.length) {
       continue;
     }
     const schemeName = names[0];
-    const scheme = schemes[schemeName];
+    const scheme = resolveOpenApiNode(spec, schemes[schemeName]);
     if (!scheme) {
       continue;
     }

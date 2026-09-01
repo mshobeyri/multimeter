@@ -36,7 +36,7 @@ describe('openapiConvertor fixtures', () => {
     expect(findByStatus).toMatchObject({
       method: 'get',
       url: '/api/v3/pet/findByStatus',
-      query: {status: ''},
+      query: {status: 'available'},
     });
 
     const login = apis.find(api => api.title === 'Logs user into the system.');
@@ -59,7 +59,12 @@ describe('openapiConvertor fixtures', () => {
       url: '/api/v3/store/order',
       headers: {'Content-Type': 'application/json'},
     });
-    expect(placeOrder?.body).toBeUndefined();
+    expect(JSON.parse(String(placeOrder?.body))).toMatchObject({
+      id: 10,
+      petId: 198772,
+      quantity: 7,
+      status: 'approved',
+    });
   });
 
   it('converts Swagger 2 JSON Petstore with path-only URLs', () => {

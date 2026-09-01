@@ -185,4 +185,136 @@ describe('openapiConvertor.openApiToAPI', () => {
     expect(api.examples?.[0].name).toBe('only');
     expect(api.examples?.[0].inputs).toBeUndefined();
   });
+
+  it('resolves internal parameter refs from components', () => {
+    const spec = {
+      openapi: '3.0.0',
+      servers: [{url: 'https://test.mmt.dev'}],
+      components: {
+        parameters: {
+          TraceHeader: {
+            name: 'X-Trace',
+            in: 'header',
+            schema: {type: 'string', example: 'demo'},
+          },
+        },
+      },
+      paths: {
+        '/echo': {
+          post: {
+            summary: 'Echo POST body',
+            parameters: [{$ref: '#/components/parameters/TraceHeader'}],
+            requestBody: {
+              content: {
+                'application/json': {
+                  example: {name: 'Ada'},
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.headers).toEqual({'Content-Type': 'application/json', 'X-Trace': 'demo'});
+  });
+
+  it('merges path-level parameter refs with operation parameters', () => {
+    const spec = {
+      openapi: '3.0.0',
+      servers: [{url: 'https://test.mmt.dev'}],
+      components: {
+        parameters: {
+          TraceHeader: {
+            name: 'X-Trace',
+            in: 'header',
+            schema: {type: 'string', example: 'path'},
+          },
+        },
+      },
+      paths: {
+        '/items/{id}': {
+          parameters: [{$ref: '#/components/parameters/TraceHeader'}],
+          get: {
+            summary: 'Get item',
+            parameters: [
+              {name: 'id', in: 'path', schema: {example: 7}},
+              {name: 'verbose', in: 'query', schema: {example: 'yes'}},
+            ],
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.url).toBe('https://test.mmt.dev/items/7');
+    expect(api.headers).toEqual({'X-Trace': 'path'});
+    expect(api.query).toEqual({verbose: 'yes'});
+  });
+
+  it('generates request bodies from resolved schema refs', () => {
+    const spec = {
+      openapi: '3.0.0',
+      servers: [{url: 'https://test.mmt.dev'}],
+      components: {
+        schemas: {
+          Pet: {
+            type: 'object',
+            properties: {
+              name: {type: 'string', example: 'doggie'},
+              status: {type: 'string', example: 'available'},
+            },
+          },
+        },
+      },
+      paths: {
+        '/pets': {
+          post: {
+            summary: 'Add pet',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {$ref: '#/components/schemas/Pet'},
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(JSON.parse(String(api.body))).toEqual({name: 'doggie', status: 'available'});
+  });
+
+  it('resolves requestBody component refs', () => {
+    const spec = {
+      openapi: '3.0.0',
+      servers: [{url: 'https://test.mmt.dev'}],
+      components: {
+        requestBodies: {
+          UserBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  properties: {
+                    username: {type: 'string', example: 'ada'},
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      paths: {
+        '/users': {
+          post: {
+            summary: 'Create user',
+            requestBody: {$ref: '#/components/requestBodies/UserBody'},
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(JSON.parse(String(api.body))).toEqual({username: 'ada'});
+    expect(api.headers).toEqual({'Content-Type': 'application/json'});
+  });
 });
