@@ -17,6 +17,17 @@ export function parseReportStatusFilter(value: unknown): ReportStatusFilter {
   return 'all';
 }
 
+/** Short empty-state copy when a status filter matches nothing. */
+export function emptyReportFilterMessage(filter: ReportStatusFilter): string {
+  if (filter === 'passed') {
+    return 'No passed tests.';
+  }
+  if (filter === 'failed') {
+    return 'No failed tests.';
+  }
+  return 'No tests to show.';
+}
+
 export function stepMatchesReportFilter(
   status: StepStatus | undefined,
   filter: ReportStatusFilter,

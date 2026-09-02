@@ -569,7 +569,7 @@ const App: React.FC = () => {
             />
           </div>
           <div
-            className={yamlErrors.length > 0 ? "mmt-yaml-error" : undefined}
+            className={["mmt-ui-panel", yamlErrors.length > 0 ? "mmt-yaml-error" : undefined].filter(Boolean).join(" ") || undefined}
             style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}
           >
             {yamlErrors.length > 0 && !docType && (

@@ -3,6 +3,8 @@ import { StepStatus } from './types';
 import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
 import ReportStatusFilterButton from './ReportStatusFilterButton';
+import ReportHeaderMoreMenu from './ReportHeaderMoreMenu';
+import ReportEmptyFilterPlaceholder from './ReportEmptyFilterPlaceholder';
 import { ReportStatusFilter, filterStepReports } from './reportStatusFilter';
 
 /** Parsed call result details extracted from the `_` field of an API call output. */
@@ -316,6 +318,35 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     [stepReports, statusFilter]
   );
 
+  const detailKeys = useMemo(() => {
+    return visibleReports
+      .map((report, reportIdx) => {
+        const reportKey = `${report.stepType}-${report.stepIndex}-${reportIdx}`;
+        const callDetails = parseCallDetails(report.details);
+        const hasDetails = Boolean(
+          report.expects.length > 0 ||
+          callDetails ||
+          (report.details && report.details.trim().length > 0)
+        );
+        return hasDetails ? reportKey : null;
+      })
+      .filter((key): key is string => Boolean(key));
+  }, [visibleReports]);
+
+  const expandAllDetails = useCallback(() => {
+    setExpandedDetails((prev) => {
+      const next = { ...prev };
+      for (const key of detailKeys) {
+        next[key] = true;
+      }
+      return next;
+    });
+  }, [detailKeys]);
+
+  const collapseAllDetails = useCallback(() => {
+    setExpandedDetails({});
+  }, []);
+
   const unescapeCommon = useCallback((s: string): string => {
     if (!s) {
       return s;
@@ -330,11 +361,18 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
   }
 
   const filterControl = showStatusFilter ? (
-    <ReportStatusFilterButton
-      value={statusFilter}
-      onChange={setStatusFilter}
-      disabled={stepReports.length === 0}
-    />
+    <div className="report-section-header-actions">
+      <ReportStatusFilterButton
+        value={statusFilter}
+        onChange={setStatusFilter}
+        disabled={stepReports.length === 0}
+      />
+      <ReportHeaderMoreMenu
+        onExpandAll={expandAllDetails}
+        onCollapseAll={collapseAllDetails}
+        disabled={detailKeys.length === 0}
+      />
+    </div>
   ) : null;
 
   return (
@@ -363,9 +401,10 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
             {runState === 'running' ? 'Waiting for checks and asserts to report…' : 'No check/assert results yet.'}
           </div>
         ) : visibleReports.length === 0 ? (
-          <div style={{ opacity: 0.7 }}>
-            No {statusFilter} results in this report.
-          </div>
+          <ReportEmptyFilterPlaceholder
+            filter={statusFilter}
+            onShowAll={() => setStatusFilter('all')}
+          />
         ) : (
           <div className="report-selectable" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {visibleReports.map((report, reportIdx) => {

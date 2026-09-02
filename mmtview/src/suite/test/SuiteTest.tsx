@@ -7,6 +7,7 @@ import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import { SuiteEntry, SuiteGroup } from '../types';
 import { SuiteTestTree } from './';
+import type { SuiteTestTreeHandle } from './SuiteTestTree';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
 import { SuiteTreeNode } from './suiteHierarchy';
@@ -24,6 +25,7 @@ import {
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import ReportStatusFilterButton from '../../shared/ReportStatusFilterButton';
+import ReportHeaderMoreMenu from '../../shared/ReportHeaderMoreMenu';
 import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
@@ -457,6 +459,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
     const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
+    const suiteTreeRef = useRef<SuiteTestTreeHandle>(null);
     const suiteRunStartTimeRef = useRef<number | null>(null);
     const [suiteRunStartedAt, setSuiteRunStartedAt] = useState<number | null>(null);
     const [suiteRunDurationMs, setSuiteRunDurationMs] = useState<number | null>(null);
@@ -1075,6 +1078,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
     const tree = (
         <SuiteTestTree
+            ref={suiteTreeRef}
             groups={groups}
             hierarchyByEntryId={hierarchyByEntryId}
             missingFiles={effectiveMissingFiles}
@@ -1082,6 +1086,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             reportsById={leafReportsById}
             runStateById={leafRunStateById}
             statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
             onRunTargets={onRunTargets}
             onRunTargetsInCore={onRunTargetsInCore}
         />
@@ -1232,11 +1237,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             <>
                                 <div className="report-section-header">
                                     <div className="label">Tests</div>
-                                    <ReportStatusFilterButton
-                                        value={statusFilter}
-                                        onChange={setStatusFilter}
-                                        disabled={Object.keys(leafRunStateById).length === 0}
-                                    />
+                                    <div className="report-section-header-actions">
+                                        <ReportStatusFilterButton
+                                            value={statusFilter}
+                                            onChange={setStatusFilter}
+                                            disabled={Object.keys(leafRunStateById).length === 0}
+                                        />
+                                        <ReportHeaderMoreMenu
+                                            onExpandAll={() => suiteTreeRef.current?.expandAll()}
+                                            onCollapseAll={() => suiteTreeRef.current?.collapseAll()}
+                                        />
+                                    </div>
                                 </div>
                                 {tree}
                             </>

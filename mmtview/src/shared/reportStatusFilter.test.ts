@@ -3,6 +3,7 @@ import {
   filterTreeItemsByStatus,
   parseReportStatusFilter,
   stepMatchesReportFilter,
+  emptyReportFilterMessage,
 } from './reportStatusFilter';
 import type { StepStatus } from './types';
 
@@ -11,6 +12,12 @@ describe('reportStatusFilter', () => {
     expect(parseReportStatusFilter('failed')).toBe('failed');
     expect(parseReportStatusFilter('passed')).toBe('passed');
     expect(parseReportStatusFilter('nope')).toBe('all');
+  });
+
+  it('emptyReportFilterMessage covers filter cases', () => {
+    expect(emptyReportFilterMessage('passed')).toBe('No passed tests.');
+    expect(emptyReportFilterMessage('failed')).toBe('No failed tests.');
+    expect(emptyReportFilterMessage('all')).toBe('No tests to show.');
   });
 
   it('filters step reports by status without mutating source', () => {

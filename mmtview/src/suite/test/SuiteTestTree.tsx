@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
@@ -10,8 +10,14 @@ import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 import { ownRunStatus } from './suiteRunStatus';
 import { ReportStatusFilter, filterTreeItemsByStatus } from '../../shared/reportStatusFilter';
+import ReportEmptyFilterPlaceholder from '../../shared/ReportEmptyFilterPlaceholder';
 
 const EMPTY_STEP_REPORTS: StepReportItem[] = [];
+
+export type SuiteTestTreeHandle = {
+  expandAll: () => void;
+  collapseAll: () => void;
+};
 
 const relativeToParentDir = (childPath: string, parentPath: string): string => {
   if (!childPath || !parentPath) {
@@ -67,6 +73,7 @@ interface SuiteTestTreeProps {
   runStateById: Record<string, StepStatus>;
   /** View-only status filter; does not change run data or exports. */
   statusFilter?: ReportStatusFilter;
+  onStatusFilterChange?: (next: ReportStatusFilter) => void;
 
   onRunTargets: (target: string) => void | Promise<void>;
   /** Logs-only core run (no UI panel updates). */
@@ -125,7 +132,55 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
   return { items, allPaths, groupIds };
 };
 
-const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
+/** Collect every expandable tree id (groups, entries, nested suite/group/test nodes). */
+export function collectSuiteExpandableIds(
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): string[] {
+  const ids = new Set<string>(['suite-root']);
+  const collect = (parentId: string, nodes: any[]) => {
+    for (let idx = 0; idx < (nodes || []).length; idx++) {
+      const n = nodes[idx];
+      if (!n || typeof n !== 'object') {
+        continue;
+      }
+      const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
+      const uiId = `${parentId}::${baseId}`;
+      if (n.kind === 'group') {
+        if (Array.isArray(nodes) && nodes.length === 1) {
+          collect(parentId, n.children || []);
+          continue;
+        }
+        ids.add(uiId);
+        collect(uiId, n.children || []);
+        continue;
+      }
+      if (n.kind === 'suite' || n.kind === 'test') {
+        ids.add(uiId);
+        if (n.kind === 'suite') {
+          collect(uiId, n.children || []);
+        }
+      }
+    }
+  };
+
+  groups.forEach((group, idx) => {
+    if (groups.length > 1) {
+      ids.add(`group-${idx + 1}`);
+    }
+    group.entries.forEach((entry) => {
+      ids.add(entry.id);
+      const root = hierarchyByEntryId[entry.id] as any;
+      if (root && typeof root === 'object' && root.kind === 'suite') {
+        collect(entry.id, Array.isArray(root.children) ? root.children : []);
+      }
+    });
+  });
+
+  return Array.from(ids);
+}
+
+const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(function SuiteTestTree({
   groups,
   hierarchyByEntryId,
   missingFiles,
@@ -133,11 +188,22 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   reportsById,
   runStateById,
   statusFilter = 'all',
+  onStatusFilterChange,
   onRunTargets,
   onRunTargetsInCore,
-}) => {
+}, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
+
+  const expandAll = useCallback(() => {
+    setExpandedItems(collectSuiteExpandableIds(groups, hierarchyByEntryId));
+  }, [groups, hierarchyByEntryId]);
+
+  const collapseAll = useCallback(() => {
+    setExpandedItems(['suite-root']);
+  }, []);
+
+  useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
 
   // Expand base group nodes by default — one-time on mount.
   useEffect(() => {
@@ -349,6 +415,14 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     );
   }, [treeData.items, statusFilter, runStateById]);
 
+  const hasVisibleLeaves = useMemo(() => {
+    if (statusFilter === 'all') {
+      return true;
+    }
+    const root = visibleItems['suite-root'];
+    return Array.isArray(root?.children) && root.children.length > 0;
+  }, [statusFilter, visibleItems]);
+
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
       setExpandedItems((prev) => (prev.includes(String(item.index)) ? prev : [...prev, String(item.index)]));
@@ -517,6 +591,13 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     statusIconFor,
   ]);
   return (
+    <>
+      {!hasVisibleLeaves ? (
+        <ReportEmptyFilterPlaceholder
+          filter={statusFilter}
+          onShowAll={() => onStatusFilterChange?.('all')}
+        />
+      ) : (
     <ControlledTreeEnvironment
       items={visibleItems}
       getItemTitle={(item) => {
@@ -568,7 +649,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     >
       <Tree treeId="suite-test-tree" rootItem="suite-root" treeLabel="Suite structure" />
     </ControlledTreeEnvironment>
+      )}
+    </>
   );
-};
+});
 
 export default React.memo(SuiteTestTree);

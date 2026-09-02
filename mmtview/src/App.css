@@ -7,6 +7,25 @@ button,
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
 }
 
+/* Right UI panel: match section titles (VS Code UI font), not the editor monospace. */
+.mmt-ui-panel {
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+}
+
+.mmt-ui-panel input,
+.mmt-ui-panel textarea,
+.mmt-ui-panel button,
+.mmt-ui-panel select,
+.mmt-ui-panel .tab-button,
+.mmt-ui-panel .tab-button-small,
+.mmt-ui-panel .action-button,
+.mmt-ui-panel .toolbar-button,
+.mmt-ui-panel .primary-button,
+.mmt-ui-panel .tree-view-box-row-label {
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
 /* Theme-aligned native checkboxes (VS Code checkbox tokens) */
 input[type="checkbox"] {
   width: 14px;
@@ -1914,7 +1933,7 @@ select.method-select:focus-visible {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  font-family: var(--vscode-editor-font-family);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1957,11 +1976,40 @@ select.method-select:focus-visible {
   opacity: 1;
 }
 
+.report-section-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+.report-section-header .label {
+  margin: 0;
+  margin-bottom: 0;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.report-section-header-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .report-status-filter {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative;
   width: 20px;
   height: 20px;
   display: inline-flex;
@@ -1986,28 +2034,88 @@ select.method-select:focus-visible {
   opacity: 0.4;
 }
 
-.report-section-header {
-  position: relative;
-  display: flex;
+.report-header-more {
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  margin-bottom: 10px;
-  /* Room for the absolutely positioned filter icon + right inset */
-  padding-right: 28px;
+  justify-content: center;
 }
 
-.report-section-header .label {
-  margin-bottom: 0;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  padding-left: 5px;
-  padding-right: 5px;
-  min-width: 0;
+.report-header-more-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  min-width: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-header-more-icon {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--vscode-foreground, #ccc);
+  opacity: 0.75;
+}
+
+.report-header-more-btn:hover .report-header-more-icon {
+  opacity: 1;
+}
+
+.report-header-more-icon.is-disabled {
+  opacity: 0.4;
+}
+
+.report-empty-filter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  margin: 0;
+  padding: 28px 20px;
+  box-sizing: border-box;
+  text-align: center;
+  border: 1px dashed var(--vscode-editorWidget-border, #444);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground, #999);
+}
+
+.report-empty-filter-icon {
+  font-size: 22px;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.report-empty-filter-message {
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.4;
+  max-width: 28em;
+}
+
+.report-empty-filter-link {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  cursor: pointer;
+  font: inherit;
+  font-size: calc(var(--vscode-font-size, 13px) * 2 / 3);
+  text-decoration: none;
+}
+
+.report-empty-filter-link:hover {
+  color: var(--vscode-textLink-activeForeground, #3794ff);
+  text-decoration: underline;
+}
+
+.report-empty-filter-link:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .test-flow-tree {
