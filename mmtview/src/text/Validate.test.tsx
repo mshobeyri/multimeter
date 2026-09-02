@@ -166,7 +166,7 @@ describe('validateYamlContent API method requirements', () => {
     expect(errors.some(error => String(error.message).includes(': must have required property \'method\''))).toBe(false);
   });
 
-  it('requires method for URLs inferred as HTTP', () => {
+  it('does not require method for URLs inferred as HTTP without body', () => {
     const errors = validateYamlContent([
       'type: api',
       'title: HTTP API',
@@ -174,10 +174,23 @@ describe('validateYamlContent API method requirements', () => {
       'format: json',
     ].join('\n'));
 
-    expect(errors.some(error => String(error.message).includes('method'))).toBe(true);
+    expect(errors.some(error => String(error.message).includes('method'))).toBe(false);
   });
 
-  it('requires top-level method for explicit HTTP even when the URL is WebSocket', () => {
+  it('does not require method when body is present', () => {
+    const errors = validateYamlContent([
+      'type: api',
+      'title: HTTP API',
+      'url: https://test.mmt.dev/echo',
+      'format: json',
+      'body:',
+      '  message: hello',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('method'))).toBe(false);
+  });
+
+  it('does not require top-level method for explicit HTTP without body', () => {
     const errors = validateYamlContent([
       'type: api',
       'title: Forced HTTP',
@@ -186,7 +199,7 @@ describe('validateYamlContent API method requirements', () => {
       'format: json',
     ].join('\n'));
 
-    expect(errors.some(error => String(error.message).includes('method'))).toBe(true);
+    expect(errors.some(error => String(error.message).includes('method'))).toBe(false);
   });
 
   it('explains that GraphQL uses graphql.operation instead of body', () => {

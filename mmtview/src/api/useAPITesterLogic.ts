@@ -15,6 +15,7 @@ import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { pushHistory } from "../vsAPI";
 import { protocolResolver } from "mmt-core";
+import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import { responseBodyToRawString } from "./responseBodyDisplay";
 import {
   cacheBodyAutoFormat,
@@ -46,7 +47,10 @@ function buildUiApiRawFile(api: APIData, requestData: Request | undefined): stri
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(
     merged.protocol, merged.url);
   if (effectiveProtocol === "http" && !merged.method) {
-    merged = { ...merged, method: "get" };
+    merged = {
+      ...merged,
+      method: resolveApiHttpMethod(undefined, merged.body),
+    };
   }
   return apiToYaml(merged);
 }
@@ -347,7 +351,9 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       sendPendingRef.current = true;
       const protocol = protocolResolver.getEffectiveProtocol(
         requestData?.protocol as any, requestData?.url) || "http";
-      const methodRaw = requestData?.method || apiRef.current?.method || "get";
+      const methodRaw = resolveApiHttpMethod(
+        requestData?.method || apiRef.current?.method,
+        requestData?.body ?? apiRef.current?.body);
       const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
       const url = requestData?.url ?? "";
       pushHistory({
@@ -503,7 +509,9 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
 
         if (fromSend) {
           const req = requestDataRef.current;
-          const methodRaw = req?.method || apiRef.current?.method || "get";
+          const methodRaw = resolveApiHttpMethod(
+            req?.method || apiRef.current?.method,
+            req?.body ?? apiRef.current?.body);
           const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
           const url = req?.url ?? "";
           const protocol = protocolResolver.getEffectiveProtocol(

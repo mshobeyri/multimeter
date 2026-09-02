@@ -1,4 +1,5 @@
 import {APIData, ExampleData} from './APIData';
+import {resolveApiHttpMethod} from './apiMethod';
 import {JSONRecord} from './CommonData';
 import {apiToYaml} from './apiParsePack';
 import {parseYamlDoc} from './markupConvertor';
@@ -62,7 +63,7 @@ export function buildApiPreviewFromHttpStep(
     query: step.query,
     protocol: 'http',
     format: step.format,
-    method: step.method || 'get',
+    method: resolveApiHttpMethod(step.method, step.body),
     timeout: step.timeout,
     headers: step.headers,
     body: step.body,

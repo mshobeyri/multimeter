@@ -16,7 +16,7 @@ Direct HTTP steps use the same HTTP request fields as API files where they make 
 
 Notes:
 - `http` is the request URL and is required.
-- `method` defaults to `get` if omitted.
+- `method` defaults to `post` when `body` is set, otherwise `get`.
 - `timeout` overrides the default request timeout for this step, in milliseconds.
 - `id` is optional, but recommended when you want to reference the response in later steps.
 - Inline `expect`, `debug`, and `report` work the same way as on `call` steps.

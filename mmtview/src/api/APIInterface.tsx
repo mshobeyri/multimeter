@@ -226,11 +226,20 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           <div style={{ padding: "5px" }}>
             <select
               value={data.method || ""}
-              onChange={e => onChange({ ...data, method: e.target.value as Method })}
+              onChange={e => {
+                const method = e.target.value as Method;
+                if (method) {
+                  onChange({ ...data, method });
+                } else {
+                  const next = { ...data };
+                  delete next.method;
+                  onChange(next);
+                }
+              }}
               style={{ width: "100%" }}
               disabled={effectiveProtocol !== "http"}
             >
-              <option value="" disabled>Select method...</option>
+              <option key="" value="">(auto - post when body set, else get)</option>
               {safeList(methodOptions).map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}

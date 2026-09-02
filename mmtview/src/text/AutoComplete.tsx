@@ -394,7 +394,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Sends an HTTP request directly from the test without importing an API.',
                 'Fields:',
                 '  - id: optional variable name to assign the output',
-                '  - method: HTTP method (defaults to get)',
+                '  - method: HTTP method (defaults to post when body is set, otherwise get)',
                 '  - timeout: optional per-request timeout in milliseconds',
                 '  - query, headers, body: request details',
                 '  - expect/debug/report: validation and reporting',
@@ -840,7 +840,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "method: ",
             detail: 'HTTP method [get, post, put, patch, delete, head, options, trace]',
-            documentation: 'The HTTP method for the request. Defines the type of operation to perform.\nOptions:\n\t- get: Retrieve data\n\t- post: Create new resource\n\t- put: Update entire resource\n\t- patch: Partial update\n\t- delete: Remove resource\n\t- head: Get headers only\n\t- options: Get allowed methods\n\t- trace: Debug request path\nExample: method: post',
+            documentation: 'The HTTP method for the request. Defines the type of operation to perform.\nWhen omitted: post if a body is present, otherwise get.\nOptions:\n\t- get: Retrieve data\n\t- post: Create new resource\n\t- put: Update entire resource\n\t- patch: Partial update\n\t- delete: Remove resource\n\t- head: Get headers only\n\t- options: Get allowed methods\n\t- trace: Debug request path\nExample: method: post',
         },
         {
             label: "timeout",
@@ -1733,7 +1733,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
     const httpSiblings = [
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture HTTP result', documentation: 'Variable name to capture the HTTP step output.\nExample:\n- http: https://test.mmt.dev/echo\n  id: users' },
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://test.mmt.dev/echo\n  title: Fetch users' },
-        { label: 'method', kind: monaco.languages.CompletionItemKind.Property, insertText: 'method: ', detail: 'HTTP method', documentation: 'HTTP method for this request. Defaults to get.\nExample: method: post' },
+        { label: 'method', kind: monaco.languages.CompletionItemKind.Property, insertText: 'method: ', detail: 'HTTP method', documentation: 'HTTP method for this request. Defaults to post when body is set, otherwise get.\nExample: method: post' },
         { label: 'timeout', kind: monaco.languages.CompletionItemKind.Property, insertText: 'timeout: 5000', detail: 'Request timeout override [number, ms]', documentation: 'Overrides the default network timeout for this HTTP step only, in milliseconds.\nExample: timeout: 5000' },
         { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format.\nScalar: json, xml, xmle, text, urlencoded, binary\nOr choose request/response to set them separately:\nformat:\n  request: json\n  response: xml' },
         { label: 'query', kind: monaco.languages.CompletionItemKind.Property, insertText: 'query:\n\t', detail: 'Query parameters', documentation: 'Query parameters for this request.\nExample:\nquery:\n  page: "1"' },

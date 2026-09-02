@@ -1,3 +1,5 @@
+import {resolveApiHttpMethod} from './apiMethod';
+
 export type CurlShellKind = 'posix' | 'powershell' | 'cmd';
 
 export interface CurlCertificateOptions {
@@ -70,7 +72,7 @@ function buildCurlParts(
     input: CurlRequestInput,
     certificates?: CurlCertificateOptions): CurlPart[] {
   const parts: CurlPart[] = [];
-  const method = String(input.method || 'GET').toUpperCase();
+  const method = resolveApiHttpMethod(input.method, input.body).toUpperCase();
   if (method !== 'GET') {
     parts.push({kind: 'pair', flag: '-X', value: method});
   }

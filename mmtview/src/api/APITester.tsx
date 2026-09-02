@@ -19,6 +19,7 @@ import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
 import { displayResponseBody } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
+import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
 import {
   accentChromeCssVars,
@@ -149,7 +150,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   );
   const methodOrProtocolValue = (effectiveProtocol === "ws" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc")
     ? `protocol:${effectiveProtocol}`
-    : `method:${(requestData?.method || api.method || "get").toLowerCase()}`;
+    : `method:${resolveApiHttpMethod(
+        requestData?.method || api.method,
+        requestData?.body ?? api.body).toLowerCase()}`;
   const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
     ? methodOrProtocolValue.slice("protocol:".length)
     : methodOrProtocolValue.slice("method:".length);
