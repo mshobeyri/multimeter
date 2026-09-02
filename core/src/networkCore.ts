@@ -10,6 +10,7 @@ import * as https from 'https';
 import WebSocket from 'ws';
 
 import {connectionTracker} from './connectionTracker';
+import {resolveApiHttpMethod} from './apiMethod';
 import {DEFAULT_NETWORK_CONFIG, findMatchingClientCertificate, HttpRequest, HttpResponse, NetworkConfig, Request, Response,} from './NetworkData';
 
 // Re-export connectionTracker for use by extension
@@ -341,7 +342,7 @@ function sendHttp2Request(
     });
 
     const headers = {
-      ':method': (req.method || 'get').toUpperCase(),
+      ':method': resolveApiHttpMethod(req.method, req.body).toUpperCase(),
       ':path': buildRequestPath(parsedUrl, req.query),
       ':scheme': parsedUrl.protocol.replace(':', ''),
       ':authority': parsedUrl.host,
@@ -415,7 +416,7 @@ function sendNativeHttpsRequest(
       hostname: parsedUrl.hostname,
       port: parsedUrl.port || undefined,
       path: buildRequestPath(parsedUrl, req.query),
-      method: req.method || 'get',
+      method: resolveApiHttpMethod(req.method, req.body),
       headers,
       rejectUnauthorized: skipCertificateValidation ? false :
                                                       config.sslValidation,
@@ -615,7 +616,7 @@ export async function sendHttpRequest(
   }
   const baseRequestConfig = {
     url: req.url,
-    method: req.method || 'get',
+    method: resolveApiHttpMethod(req.method, req.body),
     data: req.body,
     params: req.query,
     withCredentials: true,

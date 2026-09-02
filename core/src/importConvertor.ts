@@ -5,7 +5,7 @@ import type {BrunoSourceFile} from './brunoParsePack';
 import {safeStepIdFromAlias, slugToCamel, slugValue} from './identifierUtils';
 import {httpRequestCallExtras, httpRequestToAPI, isHttpFilePath, parseHttpDocument} from './httpParsePack';
 import {packYaml, parseYamlStrict} from './markupConvertor';
-import {openApiToAPI} from './openapiConvertor';
+import {buildOpenApiEnvFromSpec, openApiToAPI} from './openapiConvertor';
 import {postmanToAPI} from './postmanConvertor';
 import {SuiteData} from './SuiteData';
 import {suiteToYaml} from './suiteParsePack';
@@ -270,12 +270,21 @@ function looksLikeWsdl(rawFile: string): boolean {
 function convertOpenApiToMmt(openApiSpec: any, _options: ConvertToMmtOptions): ConvertToMmtResult {
   const apis = openApiToAPI(openApiSpec);
   const used = new Set<string>();
-  const files = apis.map(api => ({
+  const files: ConvertedMmtFile[] = apis.map(api => ({
     path: uniquePath(`api/${slug(api.title || `${api.method || 'api'}-${api.url || 'request'}`)}.mmt`, used),
     kind: 'api' as const,
     sourceName: api.title,
     content: apiToYaml(api),
   }));
+  const env = buildOpenApiEnvFromSpec(openApiSpec);
+  if (env) {
+    files.push({
+      path: uniquePath('multimeter.mmt', used),
+      kind: 'env',
+      sourceName: 'OpenAPI server variables',
+      content: packYaml(env),
+    });
+  }
   return {
     sourceKind: 'openapi',
     title: openApiSpec.info?.title,

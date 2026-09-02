@@ -1,4 +1,5 @@
 import {APIData} from './APIData';
+import {resolveApiHttpMethod} from './apiMethod';
 import {apiToJSfunc} from './JSerAPI';
 import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from './JSerHelper';
 import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from './TestData';
@@ -613,7 +614,7 @@ const httpStepToApiData = (step: TestFlowHttp): APIData => ({
   query: step.query,
   protocol: 'http',
   format: step.format,
-  method: step.method || 'get',
+  method: resolveApiHttpMethod(step.method, step.body),
   timeout: step.timeout,
   headers: step.headers,
   body: step.body,
@@ -765,7 +766,8 @@ try {
   }
 } catch {}`;
   }
-  const title = step.title || step.id || `${step.method || 'get'} ${step.http}`;
+  const title = step.title || step.id ||
+      `${resolveApiHttpMethod(step.method, step.body)} ${step.http}`;
   result = appendExpectAndDebugChecks(
       result, step, resultVar, title, useExternalReport);
   return result;

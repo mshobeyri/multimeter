@@ -1753,7 +1753,7 @@ select.method-select:focus-visible {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   overflow: hidden;
 }
 
@@ -1776,13 +1776,24 @@ select.method-select:focus-visible {
 
 .apitest-send-row {
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  height: 46px;
+}
+
+.apitest-send-row .horizontal-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  margin: 0;
+  transform: translateY(-50%);
 }
 
 .apitest-send-controls {
-  position: relative;
-  transform: translate(-10px, 70%);
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translate(-10px, -50%);
   display: flex;
   justify-content: flex-end;
   align-items: center;

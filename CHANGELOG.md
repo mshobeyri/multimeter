@@ -2,6 +2,16 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.37.0]
+
+- Infer HTTP method when omitted: `post` if a body is present, otherwise `get`; explicit `method` still wins
+- Make API `method` optional in schema and show an auto default in API Edit (like protocol)
+- Map OpenAPI server URL placeholders (`{host}`, `{base_url}`, …) to `<<e:…>>` tokens for Open as MMT and Convert to MMT
+- Export `multimeter.mmt` from Convert to MMT when OpenAPI server variables are present (defaults and enums)
+- Recover unquoted YAML `url: {base_url}` server entries as env tokens
+- Clean up the API Body tab: remove Request/Response Body labels and equalize Send-button spacing
+- Document the spec editor picker and Run directly for third-party imports
+
 ## [1.36.1]
 
 - Resolve same-file OpenAPI `$ref` pointers for shared parameters, request bodies, and schemas during Convert to MMT

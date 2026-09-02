@@ -92,7 +92,7 @@ See also: [History](../../panels/history.md) · [Connections](../../panels/conne
   - URLs starting with `ws://` or `wss://` default to `ws`
   - All other URLs default to `http`
 - `url:` server URL
-- `method:` HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
+- `method:` HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace` (optional — defaults to `post` when `body` is set, otherwise `get`)
 - `timeout:` per-request timeout in milliseconds (optional; overrides the default network timeout)
 - `headers:` HTTP headers
 - `query:` query parameters for HTTP requests

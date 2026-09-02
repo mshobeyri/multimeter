@@ -190,6 +190,40 @@ describe('importConvertor', () => {
     expect(api.query.include).toBe('owner');
   });
 
+  it('exports multimeter.mmt when OpenAPI server URL uses variables', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: {title: 'Pets', version: '1.0.0'},
+      servers: [{
+        url: 'https://{host}/v1',
+        variables: {
+          host: {
+            default: 'api.example.com',
+            enum: ['dev.example.com', 'api.example.com'],
+          },
+        },
+      }],
+      paths: {
+        '/pets': {
+          get: {summary: 'List pets'},
+        },
+      },
+    };
+
+    const result = convertToMmt(JSON.stringify(spec), {sourcePath: 'pets.openapi.json'});
+    expect(result.files).toHaveLength(2);
+    const api = parseYamlStrict(result.files.find(file => file.kind === 'api')!.content);
+    expect(api.url).toBe('https://<<e:host>>/v1/pets');
+    const envFile = result.files.find(file => file.path === 'multimeter.mmt');
+    expect(envFile?.kind).toBe('env');
+    const env = parseYamlStrict(envFile!.content);
+    expect(env.variables.host).toEqual({
+      'dev-example-com': 'dev.example.com',
+      'api-example-com': 'api.example.com',
+    });
+    expect(env.presets.openapi.default.host).toBe('api-example-com');
+  });
+
   it('converts WSDL operations into SOAP API files', () => {
     const wsdl = `<?xml version="1.0"?>
 <definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:customer">

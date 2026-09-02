@@ -1,7 +1,162 @@
 import { APIData, AuthConfig, ExampleData } from './APIData';
+import { EnvData, EnvVariableValue } from './EnvData';
+import { slugValue } from './identifierUtils';
 import { formatBody } from './markupConvertor';
 
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
+const SERVER_VAR_RE = /\{([a-zA-Z0-9._-]+)\}/g;
+const SERVER_VAR_NAME_RE = /^[A-Za-z0-9._-]+$/;
+
+export type OpenApiPrimaryServer = {
+  urlTemplate: string;
+  variables: Record<string, {default?: string; enum?: string[]}>;
+};
+
+/**
+ * Read `servers[0]` into a URL template plus variable defs.
+ * YAML often parses unquoted `{base_url}` as `{base_url: null}` — recover that here.
+ */
+export function readOpenApiPrimaryServer(spec: any): OpenApiPrimaryServer {
+  const server = spec?.servers?.[0];
+  if (!server) {
+    return {urlTemplate: '', variables: {}};
+  }
+
+  const variables: Record<string, {default?: string; enum?: string[]}> = {};
+  if (server.variables && typeof server.variables === 'object' && !Array.isArray(server.variables)) {
+    for (const [name, def] of Object.entries(server.variables)) {
+      if (def && typeof def === 'object') {
+        variables[name] = def as {default?: string; enum?: string[]};
+      }
+    }
+  }
+
+  let urlTemplate = normalizeOpenApiServerUrl(server.url);
+  const recovered = recoverYamlFlowMappingServerUrl(server.url);
+  if (recovered?.defaultValue && !variables[recovered.name]?.default) {
+    variables[recovered.name] = {...variables[recovered.name], default: recovered.defaultValue};
+  }
+
+  return {urlTemplate, variables};
+}
+
+function recoverYamlFlowMappingServerUrl(raw: unknown):
+    {name: string; template: string; defaultValue?: string} | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length !== 1) {
+    return undefined;
+  }
+  const [name, value] = entries[0];
+  if (!SERVER_VAR_NAME_RE.test(name)) {
+    return undefined;
+  }
+  if (value == null || value === '') {
+    return {name, template: `{${name}}`};
+  }
+  if (typeof value === 'string') {
+    return {name, template: `{${name}}`, defaultValue: value};
+  }
+  return undefined;
+}
+
+/** Coerce parsed OpenAPI server `url` values into a template string. */
+export function normalizeOpenApiServerUrl(raw: unknown): string {
+  if (typeof raw === 'string') {
+    return raw;
+  }
+  const recovered = recoverYamlFlowMappingServerUrl(raw);
+  return recovered?.template || '';
+}
+
+export function listOpenApiServerVariableNames(serverUrl: string): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+  SERVER_VAR_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = SERVER_VAR_RE.exec(serverUrl)) !== null) {
+    const name = match[1];
+    if (!seen.has(name)) {
+      seen.add(name);
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+/** Replace OpenAPI `{name}` server variables with Multimeter `<<e:name>>` tokens. */
+export function openApiServerUrlToMmtUrl(serverUrl: string): string {
+  return serverUrl.replace(SERVER_VAR_RE, '<<e:$1>>');
+}
+
+export function resolveOpenApiBaseUrl(openApiSpec: any): string {
+  const {urlTemplate} = readOpenApiPrimaryServer(openApiSpec);
+  return openApiServerUrlToMmtUrl(urlTemplate);
+}
+
+function envChoiceKeyForValue(value: string, used: Set<string>): string {
+  const base = /^[A-Za-z_][A-Za-z0-9_-]*$/.test(value) ? value : slugValue(value);
+  let key = base || 'value';
+  if (!used.has(key)) {
+    used.add(key);
+    return key;
+  }
+  let index = 2;
+  while (used.has(`${key}_${index}`)) {
+    index++;
+  }
+  const unique = `${key}_${index}`;
+  used.add(unique);
+  return unique;
+}
+
+/** Build `type: env` from OpenAPI `servers[0].variables` when the server URL uses `{var}` placeholders. */
+export function buildOpenApiEnvFromSpec(openApiSpec: any): EnvData | undefined {
+  const {urlTemplate, variables: serverVars} = readOpenApiPrimaryServer(openApiSpec);
+  const names = listOpenApiServerVariableNames(urlTemplate);
+  if (names.length === 0) {
+    return undefined;
+  }
+
+  const variables: Record<string, EnvVariableValue> = {};
+  const presetChoices: Record<string, string> = {};
+
+  for (const name of names) {
+    const spec = serverVars[name];
+    const defaultVal = spec?.default != null ? String(spec.default) : '';
+    if (Array.isArray(spec?.enum) && spec.enum.length > 0) {
+      const choices: Record<string, string> = {};
+      const usedKeys = new Set<string>();
+      for (const entry of spec.enum) {
+        const val = String(entry);
+        const key = envChoiceKeyForValue(val, usedKeys);
+        choices[key] = val;
+      }
+      const defaultKey = Object.entries(choices).find(([, val]) => val === defaultVal)?.[0]
+        || Object.keys(choices)[0];
+      variables[name] = choices;
+      presetChoices[name] = defaultKey;
+    } else if (defaultVal) {
+      variables[name] = {default: defaultVal};
+      presetChoices[name] = 'default';
+    } else {
+      variables[name] = {default: ''};
+      presetChoices[name] = 'default';
+    }
+  }
+
+  return {
+    type: 'env',
+    variables,
+    presets: {
+      openapi: {
+        default: presetChoices,
+      },
+    },
+  };
+}
 
 export function openApiToAPI(openApiSpec: any): APIData[] {
   if (!openApiSpec || !openApiSpec.paths) {
@@ -9,7 +164,7 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
   }
 
   const apis: APIData[] = [];
-  const baseUrl = openApiSpec.servers?.[0]?.url || '';
+  const baseUrl = resolveOpenApiBaseUrl(openApiSpec);
 
   Object.entries(openApiSpec.paths).forEach(([p, pathItem]: [string, any]) => {
     Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {

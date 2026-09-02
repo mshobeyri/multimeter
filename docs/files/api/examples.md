@@ -29,7 +29,7 @@ examples:
 
 ## Validation and requirements
 
-- For `protocol: http`, `method` is required
+- For `protocol: http`, `method` is optional (defaults to `post` when `body` is set, otherwise `get`)
 - For `method: post|put|patch`, `body` is required
 - Unknown fields are rejected (strict schema)
 - YAML comments (`#`) are preserved when you format the file (Format Document). Prefer the `description` field for structured docs that survive UI edits.

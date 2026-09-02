@@ -19,6 +19,7 @@ import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
 import { displayResponseBody } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
+import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
 import {
   accentChromeCssVars,
@@ -149,7 +150,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   );
   const methodOrProtocolValue = (effectiveProtocol === "ws" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc")
     ? `protocol:${effectiveProtocol}`
-    : `method:${(requestData?.method || api.method || "get").toLowerCase()}`;
+    : `method:${resolveApiHttpMethod(
+        requestData?.method || api.method,
+        requestData?.body ?? api.body).toLowerCase()}`;
   const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
     ? methodOrProtocolValue.slice("protocol:".length)
     : methodOrProtocolValue.slice("method:".length);
@@ -446,9 +449,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           </div>
         ) : null}
         {shouldShowBody() && (
-          <>
-            <div className="label">Request Body</div>
-            <div className="apitest-body-wrapper" data-mmt-coach="body">
+          <div className="apitest-body-wrapper" data-mmt-coach="body">
               {requestFormat(requestData?.format) === "binary" ? (
                 <FilePickerInput
                   value={typeof requestData?.body === "string" ? requestData.body : ""}
@@ -471,8 +472,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   }}
                 />
               )}
-            </div>
-          </>
+          </div>
         )}
 
         {shouldShowGraphql() && (
@@ -633,18 +633,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         )}
 
         {(shouldShowResponse() || shouldShowGraphql() || shouldShowGrpc()) && (
-          <>
-            <div className="label">Response Body</div>
-            <div className="apitest-body-wrapper">
-              <BodyView
-                value={displayResponseBody(responseData, autoFormatBody)}
-                format={responseFormat(requestData?.format)}
-                mode="live"
-                onInspectPosition={handleAddOutputVariable}
-                refreshKey={responseRevision}
-              />
-            </div>
-          </>
+          <div className="apitest-body-wrapper">
+            <BodyView
+              value={displayResponseBody(responseData, autoFormatBody)}
+              format={responseFormat(requestData?.format)}
+              mode="live"
+              onInspectPosition={handleAddOutputVariable}
+              refreshKey={responseRevision}
+            />
+          </div>
         )}
 
         {shouldShowOutputs() && (

@@ -308,30 +308,6 @@ export const APISchema = {
     allOf: [
         {
             if: {
-                anyOf: [
-                    {
-                        properties: {
-                            protocol: { const: 'http' }
-                        },
-                        required: ['protocol']
-                    },
-                    {
-                        properties: {
-                            url: {
-                                not: { pattern: '^\\s*(wss?|grpcs?)://' }
-                            }
-                        },
-                        required: ['url'],
-                        not: { required: ['protocol'] }
-                    }
-                ]
-            },
-            then: {
-                required: ['method']
-            }
-        },
-        {
-            if: {
                 properties: {
                     method: { enum: ['post', 'put', 'patch'] }
                 },

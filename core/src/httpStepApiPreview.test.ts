@@ -131,11 +131,19 @@ describe('httpStepApiPreview', () => {
     expect(collectInputsForHttpStep(step, {})).toEqual({missing: ''});
   });
 
-  test('defaults method to get when omitted', () => {
+  test('defaults method to get when omitted and no body', () => {
     const api = buildApiPreviewFromHttpStep({
       http: 'https://example.com',
     });
     expect(api.method).toBe('get');
+  });
+
+  test('defaults method to post when body is present', () => {
+    const api = buildApiPreviewFromHttpStep({
+      http: 'https://example.com',
+      body: {message: 'hello'},
+    });
+    expect(api.method).toBe('post');
   });
 
   test('omits examples when there is no expect map', () => {

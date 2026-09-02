@@ -1,4 +1,5 @@
 import {APIData, AuthConfig} from './APIData';
+import {resolveApiHttpMethod} from './apiMethod';
 import {JSONRecord, requestFormat} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
@@ -127,7 +128,8 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       (explicitProtocol ? `'${explicitProtocol}'` : `protocolFromUrl_(__resolvedUrl)`);
 
   // GraphQL: override method, headers, and body
-  const effectiveMethod = isGraphQL ? 'post' : (replaced.method || '');
+  const effectiveMethod = isGraphQL ? 'post' :
+      resolveApiHttpMethod(replaced.method, replaced.body);
   const reqFormat = requestFormat(replaced.format);
   const isBinaryRequest = !isGraphQL && reqFormat === 'binary';
   if (isGraphQL) {

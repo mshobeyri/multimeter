@@ -9,6 +9,7 @@ import YamlErrorWarning, { HideWhenYamlError } from "./YamlErrorWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
+import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import { requestFormat } from "mmt-core/CommonData";
 import { packBodyForYamlCompare } from "mmt-core/markupConvertor";
 import { safeList, safeListCopy } from "mmt-core/safer";
@@ -113,7 +114,10 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
     if (effectiveProtocol !== 'http' || modifiedApi.method) {
       return modifiedApi;
     }
-    return { ...modifiedApi, method: 'get' } as APIData;
+    return {
+      ...modifiedApi,
+      method: resolveApiHttpMethod(undefined, modifiedApi.body),
+    } as APIData;
   }, [modifiedApi]);
 
   const hasUiOverrides = useMemo(() => {

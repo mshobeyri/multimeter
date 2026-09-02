@@ -35,6 +35,8 @@ Multimeter generates `type: api` files under `api/` with protocol, method, URL, 
 ## Tips after import
 
 - Map your base URL to an environment variable (for example `api_url`) and reference it with `<<e:api_url>>`
+- OpenAPI `servers[].variables` (`{host}`, `{environment}`, …) are converted to `<<e:host>>` tokens automatically; **Convert to MMT** also writes a `multimeter.mmt` env file with defaults and enum choices when those placeholders are present
+- Unquoted YAML like `url: {base_url}` is supported (YAML parses it as a flow mapping); prefer quoted `url: '{base_url}'` or a full template such as `url: https://{host}/v1` with a `variables:` block for strict OpenAPI tooling
 - Review generated inputs and headers before writing tests
 - Use the API editor to refine bodies and add `setenv` for downstream tests
 
