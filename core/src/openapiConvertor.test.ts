@@ -1,4 +1,5 @@
-import { openApiToAPI } from './openapiConvertor';
+import { openApiToAPI, buildOpenApiEnvFromSpec } from './openapiConvertor';
+import { parseYamlStrict } from './markupConvertor';
 
 describe('openapiConvertor.openApiToAPI', () => {
   it('returns empty array for invalid input', () => {
@@ -316,5 +317,69 @@ describe('openapiConvertor.openApiToAPI', () => {
     const api = openApiToAPI(spec)[0];
     expect(JSON.parse(String(api.body))).toEqual({username: 'ada'});
     expect(api.headers).toEqual({'Content-Type': 'application/json'});
+  });
+
+  it('maps OpenAPI server variables to <<e:>> tokens in API URLs', () => {
+    const spec = {
+      openapi: '3.0.0',
+      servers: [{
+        url: 'https://{host}/v1',
+        variables: {
+          host: {
+            default: 'api.example.com',
+            enum: ['dev.example.com', 'api.example.com'],
+          },
+        },
+      }],
+      paths: {
+        '/items': {
+          get: {summary: 'List items'},
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.url).toBe('https://<<e:host>>/v1/items');
+  });
+
+  it('builds env file from OpenAPI server variables', () => {
+    const spec = {
+      openapi: '3.0.0',
+      servers: [{
+        url: 'https://{environment}.example.com/v1',
+        variables: {
+          environment: {
+            default: 'api',
+            enum: ['dev', 'staging', 'api'],
+          },
+        },
+      }],
+      paths: {'/health': {get: {summary: 'Health'}}},
+    };
+    const env = buildOpenApiEnvFromSpec(spec);
+    expect(env).toMatchObject({
+      type: 'env',
+      variables: {
+        environment: {dev: 'dev', staging: 'staging', api: 'api'},
+      },
+      presets: {openapi: {default: {environment: 'api'}}},
+    });
+  });
+
+  it('recovers YAML flow-mapping server url `{base_url}` into env token', () => {
+    const spec = parseYamlStrict([
+      'openapi: 3.0.3',
+      'servers:',
+      '  - url: {base_url}',
+      'paths:',
+      '  /json:',
+      '    get:',
+      '      summary: Get JSON',
+    ].join('\n'));
+    const api = openApiToAPI(spec)[0];
+    expect(api.url).toBe('<<e:base_url>>/json');
+    expect(buildOpenApiEnvFromSpec(spec)).toMatchObject({
+      type: 'env',
+      variables: {base_url: {default: ''}},
+    });
   });
 });
