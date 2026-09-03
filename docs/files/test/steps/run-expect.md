@@ -17,7 +17,11 @@ Full `call` field reference: [call](./call.md).
   expect:
     status_code: == 200
     echoed_message: == <<i:message>>
+```
 
+Expected sides follow the same YAML typing as `if` / `check`: unquoted `200` / `true` / `null` are number / bool / null; quote to force a string (`== "200"`).
+
+```yaml
 # Multiple checks on the same field
 - call: login
   expect:

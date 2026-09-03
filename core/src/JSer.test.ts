@@ -1427,28 +1427,29 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('hello')).toEqual({ operator: '==', expected: 'hello' });
   });
 
-  it('parses == operator prefix', () => {
-    expect(parseExpectValue('== 200')).toEqual({ operator: '==', expected: '200' });
+  it('parses == operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('== 200')).toEqual({ operator: '==', expected: 200 });
+    expect(parseExpectValue('== "200"')).toEqual({ operator: '==', expected: '200' });
   });
 
-  it('parses != operator prefix', () => {
-    expect(parseExpectValue('!= 500')).toEqual({ operator: '!=', expected: '500' });
+  it('parses != operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('!= 500')).toEqual({ operator: '!=', expected: 500 });
   });
 
-  it('parses < operator prefix', () => {
-    expect(parseExpectValue('< 100')).toEqual({ operator: '<', expected: '100' });
+  it('parses < operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('< 100')).toEqual({ operator: '<', expected: 100 });
   });
 
-  it('parses > operator prefix', () => {
-    expect(parseExpectValue('> 0')).toEqual({ operator: '>', expected: '0' });
+  it('parses > operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('> 0')).toEqual({ operator: '>', expected: 0 });
   });
 
-  it('parses <= operator prefix', () => {
-    expect(parseExpectValue('<= 300')).toEqual({ operator: '<=', expected: '300' });
+  it('parses <= operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('<= 300')).toEqual({ operator: '<=', expected: 300 });
   });
 
-  it('parses >= operator prefix', () => {
-    expect(parseExpectValue('>= 100')).toEqual({ operator: '>=', expected: '100' });
+  it('parses >= operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('>= 100')).toEqual({ operator: '>=', expected: 100 });
   });
 
   it('parses =@ (is in) operator prefix', () => {
@@ -1464,14 +1465,15 @@ describe('parseExpectValue', () => {
   });
 
   it('parses =~ (type-unsafe equal) operator prefix', () => {
-    expect(parseExpectValue('=~ true')).toEqual({ operator: '=~', expected: 'true' });
+    expect(parseExpectValue('=~ true')).toEqual({ operator: '=~', expected: true });
+    expect(parseExpectValue('=~ "true"')).toEqual({ operator: '=~', expected: 'true' });
   });
 
   it('parses new regex, count, and fuzzy operators', () => {
     expect(parseExpectValue('=* /ok/i')).toEqual({ operator: '=*', expected: '/ok/i' });
     expect(parseExpectValue('!* /fail/')).toEqual({ operator: '!*', expected: '/fail/' });
-    expect(parseExpectValue('=# 3')).toEqual({ operator: '=#', expected: '3' });
-    expect(parseExpectValue('!# 0')).toEqual({ operator: '!#', expected: '0' });
+    expect(parseExpectValue('=# 3')).toEqual({ operator: '=#', expected: 3 });
+    expect(parseExpectValue('!# 0')).toEqual({ operator: '!#', expected: 0 });
     expect(parseExpectValue('>% John')).toEqual({ operator: '>%', expected: 'John' });
     expect(parseExpectValue('>0% John')).toEqual({ operator: '>0%', expected: 'John' });
     expect(parseExpectValue('>10% John')).toEqual({ operator: '>10%', expected: 'John' });
@@ -1638,6 +1640,22 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(_login_0.status_code, 200)');
+  });
+
+  it('keeps quoted numeric expect values as strings', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectQuotedNum',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: '== "200"' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
     expect(js).toContain('equals_(_login_0.status_code, `200`)');
   });
 
@@ -1654,7 +1672,7 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('notEquals_(_login_0.status_code, `500`)');
+    expect(js).toContain('notEquals_(_login_0.status_code, 500)');
   });
 
   it('generates multiple checks from array expect value', async () => {
@@ -1670,8 +1688,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(_login_0.status_code, `200`)');
-    expect(js).toContain('notEquals_(_login_0.status_code, `500`)');
+    expect(js).toContain('equals_(_login_0.status_code, 200)');
+    expect(js).toContain('notEquals_(_login_0.status_code, 500)');
   });
 
   it('generates deep object equality for call expect values', async () => {
@@ -1760,7 +1778,7 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('equals_(_login_0.status_code, 200)');
-    expect(js).toContain('notEquals_(_login_0.token, `null`)');
+    expect(js).toContain('isNotOmitted_(_login_0.token)');
   });
 
   it('supports dot-notation for nested field access', async () => {
@@ -1871,7 +1889,7 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     const statusIdx = js.indexOf('equals_(_login_0.status_code, 200)');
-    const tokenIdx = js.indexOf('notEquals_(_login_0.token, `null`)');
+    const tokenIdx = js.indexOf('isNotOmitted_(_login_0.token)');
     expect(statusIdx).toBeGreaterThan(-1);
     expect(tokenIdx).toBeGreaterThan(-1);
     expect(statusIdx).toBeLessThan(tokenIdx);
@@ -1941,8 +1959,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equalsAsString_(_getXml_0.active, `true`)');
-    expect(js).toContain('notEqualsAsString_(_getXml_0.code, `0`)');
+    expect(js).toContain('equalsAsString_(_getXml_0.active, true)');
+    expect(js).toContain('notEqualsAsString_(_getXml_0.code, 0)');
   });
 
   it('uses step title in generated checks when provided', async () => {

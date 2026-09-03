@@ -95,7 +95,11 @@ Output paths follow the same rules as API outputs (`status`, `body`, `headers`, 
   expect:
     status_code: == 200
     echoed_message: == <<i:message>>
+```
 
+Expected values use the same YAML typing as `if` / `check`: unquoted `200` is a number; use `== "200"` for a string.
+
+```yaml
 # Multiple checks on the same field
 - call: login
   expect:

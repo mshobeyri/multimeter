@@ -265,7 +265,8 @@ const normalizeAssertExpected = (rawValue: string): string => {
   }
   const quoted = /^(['"])([\s\S]*)\1$/.exec(trimmed);
   if (quoted) {
-    return quoted[2];
+    // Keep quotes so expect YAML typing treats `"1"` as a string, not number 1.
+    return JSON.stringify(quoted[2]);
   }
   return trimmed;
 };

@@ -316,8 +316,12 @@ program.command('run')
         const {runJSCode, setRunnerNetworkConfig} = await loadJsRunnerModule();
         const full = resolveUserPath(file, process.cwd(), path);
         const rawText = fs.readFileSync(full, 'utf8');
+        // Quote unsafe expect/check operators (!=, >60%, …) before js-yaml
+        // so summarize does not throw on valid .mmt that the runner accepts.
         const raw =
-            /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
+            /\.json$/i.test(full) ?
+                JSON.parse(rawText) :
+                yaml.load(mmtcore.testParsePack.quoteExpectOperators(rawText));
         const summary = summarize(raw);
         if (!opts.quiet) {
           console.log(`Loaded: ${full} (${summary})`);
