@@ -16,7 +16,7 @@ See also: [Environment](../files/env/index.md) · [Inputs](../files/api/inputs.m
 | `r:` | Random value (new per evaluation; see caching below) | `Random.ts` |
 | `c:` | Current date/time/locale value | `Current.ts` |
 
-**API docs only:** In API `description` text, `<<o:name>>` still documents an output field for generated docs — it does not substitute at API run time. In **tests**, `o:` / `<<o:name>>` are runtime tokens for the local `outputs` object (same as `${outputs.name}`). To read a previous step’s extracted call result, use `${stepId.path}` (for example `${login.body.token}`). See [Outputs](../files/api/outputs.md) and [check — output paths](../files/test/steps/check.md#output-path-behavior).
+**API docs only:** In API `description` text, `<<o:name>>` still documents an output field for generated docs — it does not substitute at API run time. In **tests**, `o:` / `<<o:name>>` are runtime tokens for the local `outputs` object (same as `${outputs.name}`). Step results use `${stepId.path}` (for example `${login.body.token}`). See [Outputs](../files/api/outputs.md) and [check — output paths](../files/test/steps/check.md#output-path-behavior).
 
 ## Syntax forms
 

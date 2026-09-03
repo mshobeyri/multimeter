@@ -169,35 +169,35 @@ describe('parseExpectValue quotes and omit', () => {
 describe('comparison codegen for quotes and omit', () => {
   it('emits unquoted string compares for == "fail test"', () => {
     expect(conditionalStatementToJSfunc('${echoed} == "fail test"'))
-      .toBe('equals_(`${echoed}`, `fail test`)');
+      .toBe('equals_(echoed, "fail test")');
     expect(conditionalStatementToJSfunc("${echoed} == 'fail test'"))
-      .toBe('equals_(`${echoed}`, `fail test`)');
+      .toBe('equals_(echoed, "fail test")');
     expect(checkToJSfunc('${echoed} == "fail test"', false))
       .toContain('equals_(echoed, `fail test`)');
   });
 
   it('emits empty-string compares for "" and \'\'', () => {
-    expect(conditionalStatementToJSfunc('${x} == ""')).toBe('equals_(`${x}`, ``)');
-    expect(conditionalStatementToJSfunc("${x} == ''")).toBe('equals_(`${x}`, ``)');
-    expect(conditionalStatementToJSfunc('${x} != ""')).toBe('notEquals_(`${x}`, ``)');
+    expect(conditionalStatementToJSfunc('${x} == ""')).toBe('equals_(x, "")');
+    expect(conditionalStatementToJSfunc("${x} == ''")).toBe('equals_(x, "")');
+    expect(conditionalStatementToJSfunc('${x} != ""')).toBe('notEquals_(x, "")');
   });
 
   it('emits omit helpers for bare omit, not for quoted omit', () => {
     expect(conditionalStatementToJSfunc('${x} == omit')).toBe('isOmitted_(x)');
     expect(conditionalStatementToJSfunc('${x} != omit')).toBe('isNotOmitted_(x)');
-    expect(conditionalStatementToJSfunc('${x} == "omit"')).toBe('equals_(`${x}`, `omit`)');
-    expect(conditionalStatementToJSfunc("${x} == 'omit'")).toBe('equals_(`${x}`, `omit`)');
+    expect(conditionalStatementToJSfunc('${x} == "omit"')).toBe('equals_(x, "omit")');
+    expect(conditionalStatementToJSfunc("${x} == 'omit'")).toBe('equals_(x, "omit")');
     expect(checkToJSfunc('${x} == omit', false)).toContain('isOmitted_(x)');
     expect(checkToJSfunc('${x} == "omit"', false)).toContain('equals_(x, `omit`)');
   });
 
   it('emits ignore-case and trim helpers with unquoted expected', () => {
     expect(conditionalStatementToJSfunc('${name} =i "John"'))
-      .toBe('equalsIgnoreCase_(`${name}`, `John`)');
+      .toBe('equalsIgnoreCase_(name, "John")');
     expect(conditionalStatementToJSfunc('${name} =X "  hi  "'))
-      .toBe('trimEquals_(`${name}`, `  hi  `)');
+      .toBe('trimEquals_(name, "  hi  ")');
     expect(conditionalStatementToJSfunc('${name} =iX "  John "'))
-      .toBe('trimEqualsIgnoreCase_(`${name}`, `  John `)');
+      .toBe('trimEqualsIgnoreCase_(name, "  John ")');
   });
 
   it('emits quoted expected codegen for every string operator', () => {
@@ -238,8 +238,9 @@ describe('comparison codegen for quotes and omit', () => {
       const helper = helperByOp[op];
       expect(helper).toBeDefined();
       expect(js).toContain(helper);
-      expect(js).toContain('`x`');
+      expect(js).toContain('"x"');
       expect(js).not.toContain('`"x"`');
+      expect(js).not.toContain('`x`');
     }
   });
 });

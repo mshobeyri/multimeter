@@ -13,3 +13,5 @@ stages:
     steps:
       - call: getProfile
 ```
+
+Each side of a comparison is treated like a **YAML value** (so `200` is a number, `hello` / `12s` are strings). Use `${stepId.field}` to refer to a previous call/http result. Dynamic tokens such as `e:HOST` / `o:token` still work and become `${…}` references.

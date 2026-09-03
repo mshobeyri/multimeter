@@ -20,6 +20,10 @@ stages:
           token: ${doLogin.token}
 ```
 
+Independent stages run as concurrent `async` IIFEs on a **single JavaScript thread**, so writes to hoisted step variables do not tear. There is no parallel mutation of the same key unless two stages share a **duplicate step `id`** — keep ids unique (last write wins).
+
+To **read** another stage’s step result, set `after` so that stage’s promise is awaited first. Reading `${doLogin}` from a sibling stage without `after` can see `undefined`.
+
 | Topic | What it covers |
 |---|---|
 | [Stage condition](./stage-condition.md) | Skip a stage when a condition is false |

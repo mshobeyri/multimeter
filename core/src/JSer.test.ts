@@ -728,6 +728,88 @@ describe('output o: tokens in tests', () => {
   });
 });
 
+describe('step id locals across stages', () => {
+  it('hoists call id to high scope and reads via ${id.field}', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'idLocals',
+      test: {
+        title: 'id locals',
+        tags: [],
+        description: '',
+        steps: [
+          {call: 'login', id: 'doLogin'} as any,
+          {print: 't=${doLogin.token}'} as any,
+          {check: '${doLogin.status} == 200'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('let doLogin;');
+    expect(js).toContain('doLogin = await login(');
+    expect(js).not.toContain('const doLogin =');
+    expect(js).toContain('console.log(`t=${doLogin.token}`);');
+    expect(js).not.toContain('ids_');
+    expect(js).not.toContain('<<id:');
+  });
+
+  it('keeps ids reachable after if/for blocks', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'idIf',
+      test: {
+        title: 'id if',
+        tags: [],
+        description: '',
+        steps: [
+          {
+            if: '1 == 1',
+            steps: [{call: 'login', id: 'doLogin'}],
+          } as any,
+          {print: '${doLogin.token}'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('let doLogin;');
+    expect(js).toContain('doLogin = await login(');
+    expect(js).toContain('${doLogin.token}');
+  });
+
+  it('hoists step ids across stages for ${id} after after:', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'idStages',
+      test: {
+        title: 'id stages',
+        tags: [],
+        description: '',
+        stages: [
+          {
+            id: 'login',
+            steps: [{call: 'login', id: 'doLogin'}],
+          },
+          {
+            id: 'profile',
+            after: 'login',
+            steps: [
+              {print: '${doLogin.token}'} as any,
+            ],
+          },
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('let doLogin;');
+    expect(js).toContain('doLogin = await login(');
+    expect(js).not.toContain('const doLogin =');
+    expect(js).toContain('await Promise.all([loginPromise]);');
+    expect(js).toContain('const profilePromise = (async () => {');
+    expect(js).toContain('${doLogin.token}');
+    expect(js).not.toContain('ids_');
+  });
+});
+
 describe('step reporter instrumentation', () => {
   it('relies on shared check_ helper instead of inlining reporter code', async () => {
     const ctx: TestContext = {
@@ -1196,7 +1278,8 @@ describe('empty test items are valid', () => {
     const js = await testToJsfunc(ctx, true);
 
     expect(js).toContain('const __http_0 = async');
-    expect(js).toContain('const getUser = await __http_0({});');
+    expect(js).toContain('let getUser;');
+    expect(js).toContain('getUser = await __http_0({});');
     expect(js).toContain('https://example.com/users/${userId}');
     expect(js).toContain('timeout: 5000');
     expect(js).toContain('extractOutputs_');
@@ -1458,50 +1541,59 @@ describe('parseExpectValue', () => {
 describe('conditionalStatementToJSfunc', () => {
   it('parses fuzzy operators after multi-word actual values', () => {
     expect(conditionalStatementToJSfunc('mehrdad zahra >100% mehrdad sahar'))
-        .toBe('fuzzyMatch_(`mehrdad zahra`, `mehrdad sahar`, 100)');
+        .toBe('fuzzyMatch_("mehrdad zahra", "mehrdad sahar", 100)');
   });
 
   it('uses 80 percent as the default fuzzy threshold for >%', () => {
     expect(conditionalStatementToJSfunc('name >% Jon'))
-        .toBe('fuzzyMatch_(`name`, `Jon`, 80)');
+        .toBe('fuzzyMatch_("name", "Jon", 80)');
     expect(conditionalStatementToJSfunc('name <% admin'))
-        .toBe('notFuzzyMatch_(`name`, `admin`, 80)');
+        .toBe('notFuzzyMatch_("name", "admin", 80)');
   });
 
   it('combines comparisons with && and ||', () => {
     expect(conditionalStatementToJSfunc('${a} == 1 && ${b} == 2'))
-        .toBe('equals_(`${a}`, `1`) && equals_(`${b}`, `2`)');
+        .toBe('equals_(a, 1) && equals_(b, 2)');
     expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2'))
-        .toBe('equals_(`${a}`, `1`) || equals_(`${b}`, `2`)');
+        .toBe('equals_(a, 1) || equals_(b, 2)');
     expect(conditionalStatementToJSfunc('${a} == 1 && ${b} == 2 || ${c} != 3'))
-        .toBe('(equals_(`${a}`, `1`) && equals_(`${b}`, `2`)) || notEquals_(`${c}`, `3`)');
+        .toBe('(equals_(a, 1) && equals_(b, 2)) || notEquals_(c, 3)');
     expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2 && ${c} == 3'))
-        .toBe('equals_(`${a}`, `1`) || (equals_(`${b}`, `2`) && equals_(`${c}`, `3`))');
+        .toBe('equals_(a, 1) || (equals_(b, 2) && equals_(c, 3))');
+  });
+
+  it('treats bare words as YAML strings and ${…} as JS', () => {
+    expect(conditionalStatementToJSfunc('${result.status} == 200'))
+        .toBe('equals_(result.status, 200)');
+    expect(conditionalStatementToJSfunc('12s == 100'))
+        .toBe('equals_("12s", 100)');
+    expect(conditionalStatementToJSfunc('akjsdhk == true'))
+        .toBe('equals_("akjsdhk", true)');
   });
 
   it('supports ignore-case, trim, and length comparison operators', () => {
     expect(conditionalStatementToJSfunc('name =i John'))
-        .toBe('equalsIgnoreCase_(`name`, `John`)');
+        .toBe('equalsIgnoreCase_("name", "John")');
     expect(conditionalStatementToJSfunc('name !i John'))
-        .toBe('notEqualsIgnoreCase_(`name`, `John`)');
+        .toBe('notEqualsIgnoreCase_("name", "John")');
     expect(conditionalStatementToJSfunc('name =X John'))
-        .toBe('trimEquals_(`name`, `John`)');
+        .toBe('trimEquals_("name", "John")');
     expect(conditionalStatementToJSfunc('name !X John'))
-        .toBe('notTrimEquals_(`name`, `John`)');
+        .toBe('notTrimEquals_("name", "John")');
     expect(conditionalStatementToJSfunc('name =iX John'))
-        .toBe('trimEqualsIgnoreCase_(`name`, `John`)');
+        .toBe('trimEqualsIgnoreCase_("name", "John")');
     expect(conditionalStatementToJSfunc('name !iX John'))
-        .toBe('notTrimEqualsIgnoreCase_(`name`, `John`)');
+        .toBe('notTrimEqualsIgnoreCase_("name", "John")');
     expect(conditionalStatementToJSfunc('items <# 3'))
-        .toBe('lengthLess_(`items`, `3`)');
+        .toBe('lengthLess_("items", 3)');
     expect(conditionalStatementToJSfunc('items <=# 3'))
-        .toBe('lengthLessOrEqual_(`items`, `3`)');
+        .toBe('lengthLessOrEqual_("items", 3)');
     expect(conditionalStatementToJSfunc('items ># 3'))
-        .toBe('lengthGreater_(`items`, `3`)');
+        .toBe('lengthGreater_("items", 3)');
     expect(conditionalStatementToJSfunc('items >=# 3'))
-        .toBe('lengthGreaterOrEqual_(`items`, `3`)');
+        .toBe('lengthGreaterOrEqual_("items", 3)');
     expect(conditionalStatementToJSfunc('${items} <# 3'))
-        .toBe('lengthLess_(items, `3`)');
+        .toBe('lengthLess_(items, 3)');
   });
 
   it('treats == omit and != omit as presence checks', () => {
@@ -1760,7 +1852,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const res = await login(');
+    expect(js).toContain('let res;');
+    expect(js).toContain('res = await login(');
     expect(js).toContain('equals_(res.status_code, 200)');
   });
 

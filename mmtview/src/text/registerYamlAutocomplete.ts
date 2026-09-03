@@ -173,7 +173,7 @@ export function registerYamlAutocomplete(monaco: any) {
             const results: { alias: string; id: string }[] = [];
             for (let i = 0; i < lines.length; i++) {
                 const trimmed = lines[i].trim();
-                const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
+                const callMatch = trimmed.match(/^-\s*(?:call|http):\s*(.+)$/);
                 if (!callMatch) { continue; }
                 const alias = callMatch[1].trim().replace(/^["']|["']$/g, '');
                 const callIndent = lines[i].search(/\S|$/);

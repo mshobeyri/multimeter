@@ -70,7 +70,7 @@ Without `${...}`, the text is treated as a literal string (for example `name: ro
 
 ## Referencing outputs
 
-After a call with `id: doLogin`, later steps can read `outputs:`
+After a call with `id: doLogin`, the result is a **high-scope variable** in the generated test. Later steps (including other stages with `after`, and steps after `if` / `for` / `repeat`) can read it with `${doLogin.status}`:
 
 ```yaml
 - check: ${doLogin.status} == 200

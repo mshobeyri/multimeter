@@ -151,4 +151,22 @@ describe('expectOperatorYaml', () => {
     expect(filtered.length).toBeGreaterThan(0);
     expect(filtered.some(error => String(error.message).includes('path: !^'))).toBe(false);
   });
+
+  it('quotes a comparison that follows a quoted scalar on condition/check', () => {
+    const yaml = [
+      'stages:',
+      '  - id: settings',
+      "    condition: 'id:profile' == 200",
+      '    after: auth',
+      'steps:',
+      '  - check: "id:profile" == 200',
+    ].join('\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('condition: "\'id:profile\' == 200"');
+    const doc = YAML.parse(quoted) as any;
+    expect(doc.stages[0].condition).toBe("'id:profile' == 200");
+    expect(doc.steps[0].check).toBe('"id:profile" == 200');
+    expect(YAML.parseDocument(yaml).errors.length).toBeGreaterThan(0);
+    expect(YAML.parseDocument(quoted).errors).toEqual([]);
+  });
 });
