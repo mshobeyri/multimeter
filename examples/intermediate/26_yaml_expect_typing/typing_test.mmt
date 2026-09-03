@@ -1,0 +1,29 @@
+type: test
+title: YAML expect and check typing
+description: |-
+  Covers the typing rules that broke several examples under testlight:
+  unquoted numbers/null/omit vs quoted string literals, and != null expects.
+steps:
+  - http: https://test.mmt.dev/echo
+    id: echo
+    method: post
+    body:
+      displayName: Alex
+      nickname: "omit"
+      bio: null
+      bioText: "null"
+    expect:
+      status: == 200
+      body.body.displayName: Alex
+      body.body.nickname: "omit"
+      body.body.bio: null
+      body.body.bioText: "null"
+  - check: ${echo.status} == 200
+  - check: ${echo.body.body.nickname} == "omit"
+  - check: ${echo.body.body.bioText} == "null"
+  - http: https://test.mmt.dev/echo?userId=1
+    id: query
+    method: get
+    expect:
+      status: == 200
+      body.query.userId: == "1"
