@@ -129,6 +129,10 @@ export function registerYamlAutocomplete(monaco: any) {
         return parseYamlSectionKeys(String(model?.getValue?.() ?? ''), 'inputs');
     };
 
+    const getOutputsKeysFromModel = (model: any): string[] => {
+        return parseYamlSectionKeys(String(model?.getValue?.() ?? ''), 'outputs');
+    };
+
     const getInputTokenSuggestions = (model: any): any[] => {
         const names = getInputsKeysFromModel(model);
         return names.map((name) => ({
@@ -137,6 +141,17 @@ export function registerYamlAutocomplete(monaco: any) {
             insertText: 'i:' + name,
             documentation: `Input token i:${name} (from this file's inputs:)`,
             detail: `Input: ${name}`,
+        }));
+    };
+
+    const getOutputTokenSuggestions = (model: any): any[] => {
+        const names = getOutputsKeysFromModel(model);
+        return names.map((name) => ({
+            label: 'o:' + name,
+            kind: monaco.languages.CompletionItemKind.Variable,
+            insertText: 'o:' + name,
+            documentation: `Output token o:${name} (from this file's outputs:)`,
+            detail: `Output: ${name}`,
         }));
     };
 
@@ -545,7 +560,7 @@ export function registerYamlAutocomplete(monaco: any) {
             const lineContent = model.getLineContent(lineNumber);
             const lines = model.getLinesContent().slice(0, lineNumber - 1);
 
-            // Token suggestions: i:/e:/r:/c: and <<i:name>> / <<e:name>> forms.
+            // Token suggestions: i:/e:/r:/c:/o: and <<i:name>> / <<e:name>> / <<o:name>> forms.
             const tokenSource = lineContent.slice(0, Math.max(0, position.column - 1));
             const tokenMatch = matchTokenCompletion(tokenSource);
             if (tokenMatch) {
@@ -555,6 +570,7 @@ export function registerYamlAutocomplete(monaco: any) {
                     { prefix: 'e' as TokenPrefix, detail: 'Environment variable', doc: '<<e:name>> reads a workspace environment value.' },
                     { prefix: 'r' as TokenPrefix, detail: 'Random value', doc: '<<r:uuid>> and other r: tokens generate a value at runtime.' },
                     { prefix: 'c' as TokenPrefix, detail: 'Current value', doc: '<<c:timestamp>> and other c: tokens insert the current value.' },
+                    { prefix: 'o' as TokenPrefix, detail: 'Test output', doc: '<<o:name>> reads/writes the test outputs object (set keys: o:name).' },
                 ];
                 let suggestionList: any[];
                 if (tokenMatch.prefix === null) {
@@ -571,6 +587,8 @@ export function registerYamlAutocomplete(monaco: any) {
                         }));
                 } else if (tokenMatch.prefix === 'i') {
                     suggestionList = getInputTokenSuggestions(model);
+                } else if (tokenMatch.prefix === 'o') {
+                    suggestionList = getOutputTokenSuggestions(model);
                 } else {
                     const general = keySuggestionsByParent.general || [];
                     suggestionList = general

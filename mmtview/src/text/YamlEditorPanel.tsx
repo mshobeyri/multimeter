@@ -65,6 +65,11 @@ const PLAIN_TOKEN_HIGHLIGHT_RE = new RegExp(
   `:\\s(?:[ieorc]:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}|e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\})`,
   'g'
 );
+// `o:name` (and nested accessors) used as a YAML key, e.g. `o:asd: 100` under set.
+const OUTPUT_KEY_TOKEN_HIGHLIGHT_RE = new RegExp(
+  `(?:^|[\\s,{])(o:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE})(?=\\s*:)`,
+  'gm'
+);
 const YAML_CONSTANT_HIGHLIGHT_RE = /(^|:\s+|-\s+)(omit|null)(?=\s*(?:#.*)?$|\s|,|\]|\})/gm;
 
 interface YamlEditorPanelProps {
@@ -1034,6 +1039,25 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
           range: new monaco.Range(
             start.lineNumber,
             start.column + 2,
+            end.lineNumber,
+            end.column
+          ),
+          options: { inlineClassName: I_PREFIX_CLASS }
+        });
+      }
+    }
+    {
+      const value = model.getValue();
+      let match;
+      while ((match = OUTPUT_KEY_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        const token = match[1];
+        const tokenOffset = match[0].lastIndexOf(token);
+        const start = model.getPositionAt(match.index + tokenOffset);
+        const end = model.getPositionAt(match.index + tokenOffset + token.length);
+        matches.push({
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column,
             end.lineNumber,
             end.column
           ),

@@ -12,10 +12,11 @@ See also: [Environment](../files/env/index.md) · [Inputs](../files/api/inputs.m
 |--------|---------|------------|
 | `e:` | Environment variable from a `type: env` file or runtime env | [Environment](../files/env/index.md) |
 | `i:` | Input declared under `inputs:` on the current API or test | [Inputs](../files/api/inputs.md) |
+| `o:` | Test `outputs` object (read anywhere; write via `set` keys) | [Variables](../files/test/steps/variables.md) |
 | `r:` | Random value (new per evaluation; see caching below) | `Random.ts` |
 | `c:` | Current date/time/locale value | `Current.ts` |
 
-**Not runtime tokens:** `<<o:name>>` in API descriptions documents an output field for generated docs — it does not substitute at run time. To read a previous step’s extracted output in a test, use `${stepId.path}` (for example `${login.body.token}`). See [Outputs](../files/api/outputs.md) and [check — output paths](../files/test/steps/check.md#output-path-behavior).
+**API docs only:** In API `description` text, `<<o:name>>` still documents an output field for generated docs — it does not substitute at API run time. In **tests**, `o:` / `<<o:name>>` are runtime tokens for the local `outputs` object (same as `${outputs.name}`). To read a previous step’s extracted call result, use `${stepId.path}` (for example `${login.body.token}`). See [Outputs](../files/api/outputs.md) and [check — output paths](../files/test/steps/check.md#output-path-behavior).
 
 ## Syntax forms
 
@@ -36,6 +37,29 @@ Each prefix supports a **name** made of letters, digits, `_`, and `-` (must star
 |------|---------|-------|
 | Angle brackets | `<<i:user_id>>` | Use inside strings |
 | Plain | `i:user_id` | Entire value after `: ` only (not inside arbitrary text like `hi:i:user_id`) |
+
+### Outputs (`o:`) — tests only
+
+| Form | Example | Notes |
+|------|---------|-------|
+| Angle brackets | `<<o:token>>` | Read `outputs.token` inside strings |
+| Plain | `o:token` | Standalone value / check expressions |
+| Set key | `o:token: value` or `o:user.name: value` | Writes `outputs.token` / `outputs.user.name` (only on `set`) |
+
+```yaml
+outputs:
+  token: null
+  user: null
+
+steps:
+  - set:
+      o:token: "abc"
+      o:user.name: "alice"
+  - print: "token=<<o:token>>"
+  - check: <<o:token>> == "abc"
+```
+
+Equivalent JS forms `${outputs.token}` and `${outputs.user.name}` remain valid.
 
 ### Random (`r:`) and current (`c:`)
 
@@ -60,7 +84,7 @@ body:
 
 ## Accessors
 
-Append an accessor path after the token name to use part of a string, array, or object value. Supported on all four prefixes (`e:`, `i:`, `r:`, `c:`).
+Append an accessor path after the token name to use part of a string, array, or object value. Supported on all prefixes (`e:`, `i:`, `o:`, `r:`, `c:`).
 
 | Accessor | Example | Meaning |
 |----------|---------|---------|

@@ -1,4 +1,4 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations } from './variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations, replaceOutputTokenRefs, replaceOutputTokensPlain, rewriteOutputSetKey } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
   it('normalizes <<e:VAR>> to envVariables.VAR', () => {
@@ -146,6 +146,45 @@ describe('toTemplateValueJs', () => {
         .toBe('`asd_${__mmt_access(message, "[0:4]")}`');
     expect(toTemplateValueJs('<<i:message[1:2]>>'))
         .toBe('__mmt_access(message, "[1:2]")');
+  });
+
+  it('full <<o:name>> returns outputs expression', () => {
+    expect(toTemplateValueJs('<<o:token>>')).toBe('outputs.token');
+    expect(toTemplateValueJs('o:token')).toBe('outputs.token');
+  });
+
+  it('supports nested accessors on o: refs', () => {
+    expect(toTemplateValueJs('<<o:user.name>>'))
+        .toBe('__mmt_access(outputs.user, ".name")');
+    expect(toTemplateValueJs('id=<<o:user.name>>'))
+        .toBe('`id=${__mmt_access(outputs.user, ".name")}`');
+  });
+});
+
+describe('replaceOutputTokens / rewriteOutputSetKey', () => {
+  it('rewrites set keys to outputs paths', () => {
+    expect(rewriteOutputSetKey('o:asd')).toBe('outputs.asd');
+    expect(rewriteOutputSetKey('o:user.name')).toBe('outputs.user.name');
+    expect(rewriteOutputSetKey('o:items[0]')).toBe('outputs.items[0]');
+    expect(rewriteOutputSetKey('token')).toBeUndefined();
+  });
+
+  it('replaces o: tokens in deep objects', () => {
+    expect(replaceOutputTokenRefs({
+      print: 'token=<<o:token>>',
+      check: 'o:token == 1',
+      nested: {x: '<<o:user.name>>'},
+    })).toEqual({
+      print: 'token=${outputs.token}',
+      check: '${outputs.token} == 1',
+      nested: {x: '${__mmt_access(outputs.user, ".name")}'},
+    });
+  });
+
+  it('plain o: becomes outputs. for conditions', () => {
+    expect(replaceOutputTokensPlain('o:token == 1')).toBe('outputs.token == 1');
+    expect(replaceOutputTokensPlain('o:user.name')).toBe(
+        '__mmt_access(outputs.user, ".name")');
   });
 });
 

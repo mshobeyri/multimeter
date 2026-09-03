@@ -10,6 +10,7 @@ import {
   collectInputRefsFromObject,
   normalizeEnvTokens,
   replaceAllRefs,
+  replaceOutputTokenRefs,
   resolveInputsMap,
   toTemplateWithEnvVars,
 } from './variableReplacer';
@@ -134,6 +135,8 @@ export const testToJsfunc = async(
   // via resolveInputsMap — overlaying raw YAML defaults here breaks
   // <<i:other>> composition when those defaults are still e:/i: tokens.
   let replaced = replaceAllRefs(ctx.test, paramsAsObj, {}, ctx.envVars ?? {});
+  // Test-only: o:/<<o:…>> → ${outputs.…}. Do not run on APIs (doc annotations).
+  replaced = replaceOutputTokenRefs(replaced);
 
   let inputParams = toInputsParams(replaced.inputs || {}, ' = ');
   if (inputParams.length > 0) {

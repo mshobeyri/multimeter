@@ -6,7 +6,7 @@ import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectVa
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from './omitKeyword';
-import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
+import {replaceEnvTokensPlain, replaceOutputTokensPlain, rewriteOutputSetKey, toTemplateWithEnvVars} from './variableReplacer';
 
 function randomName(): string {
   // Generate a random stage name like "stage_xxxxx"
@@ -195,7 +195,8 @@ export const formatLogicalCondition = (
 
 export const conditionalStatementToJSfunc = (check: string): string => {
   // Replace env tokens like e:FOO -> envVariables.FOO
-  const normalized = replaceEnvTokens(check);
+  // Replace output tokens like o:token -> outputs.token
+  const normalized = replaceOutputTokensPlain(replaceEnvTokens(check));
   const { clauses, joins } = parseLogicalCondition(normalized);
   if (clauses.length === 0) {
     return 'true';
@@ -773,13 +774,14 @@ try {
   return result;
 };
 
-const varToJSfunc = (key: string, step: any): string => {
+const varToJSfunc = (decl: string, step: any, rewriteOutputKeys = false): string => {
   return Object.entries(step)
       .map(([varName, value]) => {
+        const lhs = rewriteOutputKeys ? (rewriteOutputSetKey(varName) ?? varName) : varName;
         if (typeof value === 'string') {
-          return `${key}${varName} = \`${value}\`;`;
+          return `${decl}${lhs} = \`${value}\`;`;
         } else {
-          return `${key}${varName} = ${value};`;
+          return `${decl}${lhs} = ${value};`;
         }
       })
       .join('\n');
@@ -862,7 +864,7 @@ export const flowStepsToJsfunc = async (
                 }
                 break;
               case 'set':
-                stepJs = varToJSfunc('', (step as any).set);
+                stepJs = varToJSfunc('', (step as any).set, true);
                 break;
               case 'var':
                 stepJs = varToJSfunc('var ', (step as any).var);

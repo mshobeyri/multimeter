@@ -25,6 +25,22 @@ describe('matchTokenCompletion', () => {
     });
   });
 
+  it('matches <<o: after a value', () => {
+    expect(matchTokenCompletion('print: <<o:tok')).toEqual({
+      prefix: 'o',
+      typed: 'tok',
+      replaceFrom: 'print: <<'.length,
+    });
+  });
+
+  it('matches a bare o: token after a space', () => {
+    expect(matchTokenCompletion('x: o:token')).toEqual({
+      prefix: 'o',
+      typed: 'token',
+      replaceFrom: 'x: '.length,
+    });
+  });
+
   it('does not match a normal word', () => {
     expect(matchTokenCompletion('title: Hello')).toBeNull();
   });

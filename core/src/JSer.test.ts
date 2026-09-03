@@ -701,6 +701,33 @@ describe('interdependent input defaults', () => {
   });
 });
 
+describe('output o: tokens in tests', () => {
+  it('set o: keys write outputs paths and reads use outputs.', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'outputTokens',
+      test: {
+        title: 'output tokens',
+        tags: [],
+        description: '',
+        outputs: {asd: null, user: null},
+        steps: [
+          {set: {'o:asd': 100, 'o:user.name': 'alice'}} as any,
+          {print: 'v=<<o:asd>>'} as any,
+          {check: '<<o:asd>> == 100'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('outputs.asd = 100;');
+    expect(js).toContain('outputs.user.name = `alice`;');
+    expect(js).toContain('console.log(`v=${outputs.asd}`);');
+    expect(js).toMatch(/outputs\.asd/);
+    expect(js).not.toContain('o:asd =');
+    expect(js).not.toContain('<<o:asd>>');
+  });
+});
+
 describe('step reporter instrumentation', () => {
   it('relies on shared check_ helper instead of inlining reporter code', async () => {
     const ctx: TestContext = {
