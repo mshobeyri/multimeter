@@ -11,7 +11,7 @@ steps:
     expect:
       status: 200
     debug: true
+  # Postman `pm.*` is not available — Multimeter js using the step id instead.
   - js: |-
-      // Original Postman test script. Review before relying on it at runtime.
-      pm.response.to.have.status(200);
-      pm.require("manual-package");
+      check_(equals_(iPing.status, 200), 'check', 'iPing.status == 200', 'all', 'Ping (js)');
+      console.log('Ping name:', iPing.name);

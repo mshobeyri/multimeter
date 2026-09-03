@@ -1423,8 +1423,11 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue(['a', 'b'] as any)).toEqual({ operator: '==', expected: ['a', 'b'] });
   });
 
-  it('defaults plain string to == operator', () => {
+  it('defaults plain string to == operator without re-coercing omit/null', () => {
     expect(parseExpectValue('hello')).toEqual({ operator: '==', expected: 'hello' });
+    expect(parseExpectValue('omit')).toEqual({ operator: '==', expected: 'omit' });
+    expect(parseExpectValue('null')).toEqual({ operator: '==', expected: 'null' });
+    expect(parseExpectValue('200')).toEqual({ operator: '==', expected: '200' });
   });
 
   it('parses == operator prefix with YAML-typed expected', () => {

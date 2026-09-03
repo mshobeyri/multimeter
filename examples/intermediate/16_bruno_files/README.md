@@ -11,7 +11,6 @@ Use {{btn:list-tree}} in the header to pick **All** (one test) or a single reque
 - `get_profile.bru`: a simple Bruno GET request with variables, headers, bearer auth, query params, and assertions.
 - `create_user_json.bru`: a POST request with a JSON body and bearer auth.
 - `update_profile_form.bru`: a PUT request with a form-urlencoded body.
-- `delete_user_api_key.bru`: a DELETE request using API key auth in a header.
 - `xml_echo.bru`: a POST request with an XML text body.
 - `import_bruno_in_test.mmt`: a Multimeter test that imports a `.bru` file and calls it like any other test import.
 
@@ -26,14 +25,12 @@ import:
   profile: get_profile.bru
   createUser: create_user_json.bru
   updateProfile: update_profile_form.bru
-  deleteApiKey: delete_user_api_key.bru
   xmlEcho: xml_echo.bru
   checkout: checkout_book_complete.bru
 steps:
   - call: profile
   - call: createUser
   - call: updateProfile
-  - call: deleteApiKey
   - call: xmlEcho
   - call: checkout
 ```

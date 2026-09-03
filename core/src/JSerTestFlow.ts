@@ -475,11 +475,13 @@ export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): 
 /**
  * Parse a single expect value into operator + expected parts.
  * - String starting with a known operator (e.g. '== 200', '!= 500'): split into operator + expected.
- * - Plain string without operator prefix (e.g. 'hello'): defaults to '==' operator.
- * - Number or boolean: keep typed, defaults to '==' operator.
+ * - Plain string without operator prefix (e.g. 'hello', 'omit', 'null'): keep as string.
+ * - Number / boolean / null / omit-sentinel: keep typed from YAML.
  *
- * Expected sides use the same YAML scalar rules as `if` / `check` / `condition`:
- * unquoted `200` / `true` / `null` stay typed; quoted `"200"` stays a string.
+ * Operator suffixes use the same YAML scalar rules as `if` / `check`:
+ * `== 200` → number, `== "200"` / `== "omit"` / `== "null"` → strings.
+ * Plain map values are already YAML-typed, so `'omit'` / `'null'` stay literals
+ * (unquoted `omit` / `null` arrive as the omit sentinel / JS null).
  */
 export const parseExpectValue = (value: ExpectValue): { operator: string; expected: ExpectValue } => {
   if (isOmitSentinel(value)) {
@@ -503,8 +505,8 @@ export const parseExpectValue = (value: ExpectValue): { operator: string; expect
     }
     return { operator: prefixed.operator, expected: parseScalarComparisonExpected(expectedRaw) };
   }
-  // No operator prefix found → default to equality with YAML-typed expected.
-  return { operator: '==', expected: parseScalarComparisonExpected(trimmed) };
+  // Already a YAML string value — do not re-coerce omit/null/numbers.
+  return { operator: '==', expected: trimmed };
 };
 
 const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[] => {
