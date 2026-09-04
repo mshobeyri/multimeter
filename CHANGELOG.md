@@ -2,6 +2,32 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.38.0]
+
+### Tests and dynamic values
+
+- Add `o:` / `<<o:…>>` tokens for reading and writing test `outputs` (set keys like `o:session_token`)
+- Hoist call/http step `id`s as high-scope `let`s so `${id.field}` works across steps, stages (with `after`), and nested `if` / `for` / `repeat`
+
+### Behavior change — comparison typing
+
+- `if`, `check`, `assert`, and `expect` comparison sides are typed like YAML values:
+  - unquoted `200` / `true` / `null` → number / boolean / null
+  - quoted `"200"` / `"omit"` / `"null"` → strings
+  - `${…}` remains a live JS reference
+- **Migration:** if you compare a string field to a number-looking value, quote it (`== "200"`). Unquoted `== 200` now means the number `200` (this can fail where both sides used to be stringified).
+
+### Fixes
+
+- Quote unsafe expect operators (`!=`, `>60%`, …) before the CLI summarizes YAML so files with `expect: token: != null` run under testlight
+- Keep YAML-quoted `"omit"` / `"null"` as string expects (do not re-coerce them to the omit keyword / null)
+- Preserve quoted string asserts from HTTP/Bruno convert (e.g. `=== "1"` → `== "1"`)
+
+### Examples
+
+- Update chained calls to use `o:` outputs; remove the broken Bruno delete sample; replace Postman `pm.*` js with a working Multimeter `js` check
+- Add `examples/intermediate/26_yaml_expect_typing` and unit regressions for the scenarios above
+
 ## [1.37.0]
 
 - Infer HTTP method when omitted: `post` if a body is present, otherwise `get`; explicit `method` still wins
