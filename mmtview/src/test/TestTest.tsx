@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { TestData } from 'mmt-core/TestData';
 import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
@@ -219,20 +220,27 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
     }, []);
 
     const handleRun = useCallback(() => {
+        if (runState === 'pending' || runState === 'running') {
+            return;
+        }
         if (latestRunIdRef.current) {
             ignoredRunIdsRef.current.add(latestRunIdRef.current);
             trimIgnoredRuns();
         }
         latestRunIdRef.current = null;
-        setStepReports([]);
-        setOutputs({});
-        setRunState('running');
         const startedAt = Date.now();
         runStartTimeRef.current = startedAt;
-        setRunStartedAt(startedAt);
-        setRunDurationMs(null);
+        // Paint "Starting…" before heavy yaml serialize blocks the click handler.
+        flushSync(() => {
+            setStepReports([]);
+            setOutputs({});
+            setRunState('pending');
+            setRunStartedAt(startedAt);
+            setRunDurationMs(null);
+        });
         postRunCurrentDocument();
-    }, [trimIgnoredRuns, postRunCurrentDocument]);
+        setRunState('running');
+    }, [runState, trimIgnoredRuns, postRunCurrentDocument]);
 
     const handleStop = useCallback(() => {
         window.vscode?.postMessage({
@@ -389,12 +397,14 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
         });
     }, [stepReports, runState, outputs, mmtFilePath, runStartedAt, runDurationMs, testData.title]);
 
-    const exportDisabled = runState === 'running' || stepReports.length === 0;
+    const exportDisabled =
+        runState === 'pending' || runState === 'running' || stepReports.length === 0;
 
+    const isPreparing = runState === 'pending';
     const isRunning = runState === 'running';
 
     const overviewStats = useMemo((): OverviewStats | null => {
-        if (stepReports.length === 0 && runState === 'default') {
+        if (stepReports.length === 0 && (runState === 'default' || runState === 'pending')) {
             return null;
         }
         const passed = stepReports.filter(r => r.status === 'passed').length;
@@ -416,13 +426,24 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
             <div className="run-action-bar">
                 <RunStopToggle
+                    preparing={isPreparing}
                     running={isRunning}
                     onRun={handleRun}
                     onStop={handleStop}
                     runLabel="Run test"
+                    preparingLabel="Starting…"
                     stopLabel="Stop test"
                     runContextMenuItems={[runInCoreMenuItem(() => {
+                        if (runState === 'pending' || runState === 'running') {
+                            return;
+                        }
+                        flushSync(() => {
+                            setStepReports([]);
+                            setOutputs({});
+                            setRunState('pending');
+                        });
                         postRunCurrentDocument({ reportLifecycle: true });
+                        setRunState('running');
                     })]}
                 />
                 <HideWhenYamlError>
@@ -461,7 +482,15 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
             <TestStepReportPanel
                 isExpanded={true}
                 stepReports={stepReports}
-                runState={runState === 'running' ? 'running' : runState === 'passed' ? 'passed' : runState === 'failed' ? 'failed' : 'default'}
+                runState={
+                    runState === 'pending' || runState === 'running'
+                        ? runState
+                        : runState === 'passed'
+                            ? 'passed'
+                            : runState === 'failed'
+                                ? 'failed'
+                                : 'default'
+                }
                 onRun={handleRun}
                 runButtonLabel="Run test"
                 showHeader={Boolean(hasInputs || hasOutputs || overviewStats || stepReports.length > 0)}

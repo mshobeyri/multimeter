@@ -10,6 +10,8 @@ export type PrimaryButtonProps = {
   children?: React.ReactNode;
   /** Codicon name without `codicon-` prefix. */
   icon?: string;
+  /** Apply `codicon-modifier-spin` to the icon (loading/sync). */
+  iconSpin?: boolean;
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   onPointerUp?: (event: React.PointerEvent<HTMLButtonElement>) => void;
@@ -61,6 +63,7 @@ const PrimaryButton = forwardRef<HTMLButtonElement, PrimaryButtonProps>(
     {
       children,
       icon,
+      iconSpin,
       onClick,
       onPointerDown,
       onPointerUp,
@@ -103,7 +106,14 @@ const PrimaryButton = forwardRef<HTMLButtonElement, PrimaryButtonProps>(
         title={title}
         style={{ ...accentStyle, ...style }}
       >
-        {iconName && <span className={`codicon ${iconName}`} aria-hidden />}
+        {iconName && (
+          <span
+            className={['codicon', iconName, iconSpin ? 'codicon-modifier-spin' : '']
+              .filter(Boolean)
+              .join(' ')}
+            aria-hidden
+          />
+        )}
         {children}
       </button>
     );
