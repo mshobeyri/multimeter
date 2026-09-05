@@ -17,9 +17,10 @@ When the request involves a `.mmt` file (create, modify, validate, format, or ru
 3. **Other syntax** → `read_documentation` with default **min** pack (`pack: full` only if needed)
 4. **API listing** → `discover_api` when you need to find APIs
 5. **Edit** — write scaffold yaml or **patch** an existing file (no full rewrite)
-6. **Validate** → `validate({ file, workspaceRoot })` after every edit
-7. **Format** (optional) → `format({ file, workspaceRoot })`
-8. **Run** (only when asked) → `run({ file, workspaceRoot })`
+6. **Tighten asserts** → `suggest_assertions` when improving coverage from outputs/response
+7. **Validate** → `validate({ file, workspaceRoot })` after every edit
+8. **Format** (optional) → `format({ file, workspaceRoot })`
+9. **Run** (only when asked) → `run({ file, workspaceRoot })`
 
 ## Never do this first
 

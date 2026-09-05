@@ -11,6 +11,7 @@ If Multimeter MCP tools exist (`scaffold_test`, `validate`, `run`, …), use tho
 ```
 testlight docs <topic>          # local syntax (pack min by default)
 testlight scaffold test --from <api.mmt> [-o path]
+testlight suggest asserts --from <api.mmt> [--body-file resp.json]
 # patch the file if needed
 testlight validate <file.mmt>
 testlight run <file.mmt>        # only when asked to execute

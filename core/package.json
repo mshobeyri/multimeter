@@ -200,6 +200,11 @@
       "require": "./dist/testScaffold.js",
       "default": "./dist/testScaffold.js"
     },
+    "./suggestAssertions": {
+      "types": "./dist/suggestAssertions.d.ts",
+      "require": "./dist/suggestAssertions.js",
+      "default": "./dist/suggestAssertions.js"
+    },
     "./mmtFormat": {
       "types": "./dist/mmtFormat.d.ts",
       "require": "./dist/mmtFormat.js",

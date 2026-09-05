@@ -2,6 +2,7 @@ import {JSer, apiParsePack, runner, testParsePack} from 'mmt-core';
 import {formatMmtYaml} from 'mmt-core/mmtFormat';
 import {runJSCode} from 'mmt-core/jsRunner';
 import * as testScaffold from 'mmt-core/testScaffold';
+import {suggestAssertions} from 'mmt-core/suggestAssertions';
 import fs from 'fs';
 import path from 'path';
 
@@ -300,6 +301,73 @@ export async function handleScaffoldTest(args: {
         'REQUIRED for new tests from an API: start from this yaml (do not invent a blank test).',
         'Write yaml to suggestedPath (or a user-chosen path), apply only minimal edits, then validate(file).',
         'Do not rewrite the whole file after scaffold unless the user asks for a different structure.',
+      ].join(' '),
+    });
+  } catch (error: any) {
+    return toolError(error?.message || String(error));
+  }
+}
+
+export async function handleSuggestAssertions(args: {
+  workspaceRoot?: string;
+  apiPath?: string;
+  stepId?: string;
+  status?: number;
+  body?: unknown;
+  bodyFile?: string;
+  style?: 'expect' | 'assert' | 'both';
+  maxFields?: number;
+}) {
+  try {
+    let outputs: Record<string, string> | undefined;
+    let stepId = args.stepId;
+    if (args.apiPath) {
+      if (!args.workspaceRoot) {
+        return toolError('workspaceRoot is required when apiPath is set');
+      }
+      const {api} = loadApiFromPath(args.apiPath, args.workspaceRoot);
+      outputs = (api.outputs || {}) as Record<string, string>;
+      if (!stepId) {
+        const apiRel = toPosixRel(
+            args.workspaceRoot,
+            resolveWorkspacePath(args.workspaceRoot, args.apiPath));
+        stepId = testScaffold.safeStepIdFromAlias(
+            testScaffold.suggestAliasFromPath(apiRel));
+      }
+    }
+
+    let body = args.body as any;
+    if (args.bodyFile) {
+      const full = resolveWorkspacePath(args.workspaceRoot, args.bodyFile);
+      if (!fileExists(full)) {
+        return toolError(`bodyFile not found: ${full}`);
+      }
+      const raw = readTextFile(full);
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        return toolError(`bodyFile must be JSON: ${full}`);
+      }
+    }
+
+    if (!outputs && body === undefined && args.status === undefined) {
+      return toolError(
+          'Provide apiPath (for outputs), body/bodyFile, and/or status');
+    }
+
+    const result = suggestAssertions({
+      stepId,
+      status: args.status,
+      outputs,
+      body,
+      style: args.style,
+      maxFields: args.maxFields,
+    });
+    return toolJson({
+      ...result,
+      usage: [
+        'Patch the existing test with expectYaml or assertYaml — do not rewrite the whole file.',
+        'Then call validate(file).',
       ].join(' '),
     });
   } catch (error: any) {

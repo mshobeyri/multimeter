@@ -19,6 +19,7 @@ Do **not** first try:
 |-------------|-------------------|------|
 | Generate test from API | **`scaffold_test`** | Write returned yaml → minimal edits → `validate` |
 | Inspect one API | **`api_card`** | Prefer over full file / OpenAPI dump |
+| Tighten asserts | **`suggest_assertions`** | Patch expect/assert only → `validate` |
 | Create or change other types | `read_documentation(topic)` (pack **min**) | Edit/patch → `validate` → `format` (optional) |
 | Change existing `.mmt` file | `read_documentation(topic)` if needed | **Patch only** → `validate` |
 | List APIs | `discover_api` | Then `api_card` / `scaffold_test` |

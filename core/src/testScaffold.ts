@@ -96,6 +96,8 @@ export function suggestAliasFromPath(apiPath: string): string {
   return slugToCamel(basename(apiPath));
 }
 
+export {safeStepIdFromAlias} from './identifierUtils';
+
 export function suggestTestPath(apiPath: string): string {
   const slug = slugValue(basename(apiPath));
   const apiDir = dirname(apiPath);

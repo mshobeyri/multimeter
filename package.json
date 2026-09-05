@@ -655,6 +655,7 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "jest",
+    "test:ai-eval": "jest core/src/aiScaffoldEval.test.ts core/src/suggestAssertions.test.ts core/src/testScaffold.test.ts --silent",
     "website": "npm run dev --prefix website",
     "cursor:validate-plugin": "node scripts/validate-cursor-plugin.mjs"
   },

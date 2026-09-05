@@ -10,6 +10,7 @@ import {
   handleReadDocumentation,
   handleRun,
   handleScaffoldTest,
+  handleSuggestAssertions,
   handleValidate,
 } from './tools/handlers';
 
@@ -20,6 +21,7 @@ export const SERVER_INSTRUCTIONS = [
   'Do not web-search Multimeter YAML syntax — use read_documentation (pack min by default) or scaffold_test.',
   'Prefer api_card over dumping full API files or OpenAPI specs.',
   'Modify workflow: read_documentation(topic) → patch file (no full rewrite) → validate(file) → fix until valid → optional format(file).',
+  'After adding asserts from a response shape, prefer suggest_assertions then patch — do not rewrite the whole test.',
   'Run workflow: run({ file, workspaceRoot }) only — never testlight or shell.',
   'Generate test from API: scaffold_test(workspaceRoot, apiPath) → write returned yaml → minimal edits → validate → optional format → optional run.',
   'After every edit to a .mmt file, call validate before telling the user the task is complete.',
@@ -135,6 +137,30 @@ export function createMmtMcpServer(): McpServer {
         annotations: {readOnlyHint: true},
       },
       async (args) => handleScaffoldTest(args),
+  );
+
+  server.registerTool(
+      'suggest_assertions',
+      {
+        title: 'Suggest assert/expect patches',
+        description: [
+          'Suggest compact expect/assert YAML patches from API outputs and/or a JSON response body.',
+          'Use after a run or when tightening a scaffolded smoke test — patch only, do not rewrite the file.',
+          DO_NOT_SHELL,
+        ].join(' '),
+        inputSchema: {
+          workspaceRoot: z.string().optional().describe('Workspace root (required with apiPath or bodyFile)'),
+          apiPath: z.string().optional().describe('API .mmt to read outputs from'),
+          stepId: z.string().optional().describe('Call step id for ${id.field} asserts'),
+          status: z.number().optional().describe('HTTP status to expect'),
+          body: z.unknown().optional().describe('Parsed JSON response body'),
+          bodyFile: z.string().optional().describe('Path to a JSON response file'),
+          style: z.enum(['expect', 'assert', 'both']).optional().describe('Patch style (default both)'),
+          maxFields: z.number().int().positive().optional().describe('Max body fields to suggest'),
+        },
+        annotations: {readOnlyHint: true},
+      },
+      async (args) => handleSuggestAssertions(args),
   );
 
   server.registerTool(

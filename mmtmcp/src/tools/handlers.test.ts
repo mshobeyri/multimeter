@@ -5,6 +5,7 @@ import {
   handleDiscoverApi,
   handleReadDocumentation,
   handleScaffoldTest,
+  handleSuggestAssertions,
   handleValidate,
   handleRun,
 } from './handlers';
@@ -71,6 +72,19 @@ describe('MCP handlers', () => {
     expect(payload.apiCard.filePath).toContain('get_json.mmt');
     expect(payload.alias).toBeTruthy();
     expect(payload.importPath).toBeTruthy();
+  });
+
+  it('suggest_assertions returns expect/assert patches from API outputs', async () => {
+    const result = await handleSuggestAssertions({
+      workspaceRoot,
+      apiPath: 'examples/basic/05_basic_documentation/api/get_user.mmt',
+      status: 200,
+    });
+    const payload = JSON.parse(result.content[0].text);
+    expect(payload.expect.status).toBe(200);
+    expect(payload.expect.name).toBe('!= null');
+    expect(payload.assertYaml).toContain('- assert:');
+    expect(payload.patchHint).toContain('expect:');
   });
 
   it('validate rejects invalid test content on disk', async () => {

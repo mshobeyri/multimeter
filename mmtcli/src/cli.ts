@@ -276,6 +276,7 @@ program.name('testlight')
           '  testlight scaffold test --from path/to/api.mmt -o tests/api-smoke.mmt',
           '  testlight docs test',
           '  testlight validate path/to/test.mmt',
+          '  testlight suggest asserts --from path/to/api.mmt',
           '',
           'Run `testlight <command> --help` for command-specific options.',
         ].join('\n'));
@@ -699,6 +700,84 @@ program.command('validate')
         process.exit(2);
       }
     });
+
+{
+  const suggest = program.command('suggest').description(
+      'Suggest low-token patches for .mmt files (AI/offline-friendly)');
+  suggest.command('asserts')
+      .description('Suggest expect/assert patches from API outputs or JSON body')
+      .option('--from <file>', 'API .mmt file (reads outputs)')
+      .option('--body-file <file>', 'JSON response body file')
+      .option('--body <json>', 'JSON response body string')
+      .option('--status <n>', 'HTTP status to expect', (v) => Number(v))
+      .option('--step-id <id>', 'Call step id for ${id.field} asserts')
+      .option(
+          '--style <name>', 'expect | assert | both (default both)', 'both')
+      .option('--max-fields <n>', 'Max body fields', (v) => Number(v))
+      .action(async (opts: {
+        from?: string;
+        bodyFile?: string;
+        body?: string;
+        status?: number;
+        stepId?: string;
+        style?: string;
+        maxFields?: number;
+      }) => {
+        try {
+          const {suggestAssertions} = await import('mmt-core/suggestAssertions');
+          const {safeStepIdFromAlias, suggestAliasFromPath} =
+              await import('mmt-core/testScaffold');
+          let outputs: Record<string, string>|undefined;
+          let stepId = opts.stepId;
+          if (opts.from) {
+            const apiFull = resolveUserPath(opts.from, process.cwd(), path);
+            const apiText = fs.readFileSync(apiFull, 'utf8');
+            if (mmtcore.JSer.fileType(apiFull, apiText) !== 'api') {
+              console.error(`Expected type: api: ${apiFull}`);
+              process.exit(2);
+            }
+            const api = apiParsePack.yamlToAPIStrict(apiText);
+            outputs = (api.outputs || {}) as Record<string, string>;
+            if (!stepId) {
+              const apiRel =
+                  path.relative(process.cwd(), apiFull).replace(/\\/g, '/') ||
+                  path.basename(apiFull);
+              stepId = safeStepIdFromAlias(suggestAliasFromPath(apiRel));
+            }
+          }
+          let body: unknown;
+          if (opts.bodyFile) {
+            const full = resolveUserPath(opts.bodyFile, process.cwd(), path);
+            body = JSON.parse(fs.readFileSync(full, 'utf8'));
+          } else if (opts.body) {
+            body = JSON.parse(opts.body);
+          }
+          if (!outputs && body === undefined && opts.status === undefined) {
+            console.error('Provide --from, --body/--body-file, and/or --status');
+            process.exit(2);
+          }
+          const styleRaw = String(opts.style || 'both').toLowerCase();
+          if (styleRaw !== 'expect' && styleRaw !== 'assert' && styleRaw !== 'both') {
+            console.error(`Invalid --style: ${opts.style}`);
+            process.exit(2);
+          }
+          const result = suggestAssertions({
+            stepId,
+            status: opts.status,
+            outputs,
+            body: body as any,
+            style: styleRaw as any,
+            maxFields: opts.maxFields,
+          });
+          process.stdout.write(
+              (result.patchHint.endsWith('\n') ? result.patchHint :
+                                                 `${result.patchHint}\n`));
+        } catch (e: any) {
+          console.error('Error suggesting asserts:', e?.message || e);
+          process.exit(2);
+        }
+      });
+}
 
 program.command('doc')
     .argument('<file>', 'Doc file (.mmt/.yaml/.yml)')
