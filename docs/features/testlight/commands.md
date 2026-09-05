@@ -18,3 +18,13 @@
   - See [Doc](../../files/doc/index.md) for authoring `type: doc` files
 - version-info
   - Print the CLI and Node.js version
+- update
+  - Refresh a **standalone / portal** binary from GitHub Releases (or a mirror)
+  - Options:
+    - `--check` — report whether an update is available without installing
+    - `--to <version>` — install a specific version
+    - `--channel <name>` — latest matching pre-release channel (`beta`, `rc`, `prerelease`)
+    - `--force` — reinstall even if current is newest
+    - `--base-url <url>` — portal mirror (`TESTLIGHT_RELEASE_BASE_URL`)
+  - npm / Homebrew installs print the proper upgrade command instead of replacing files
+  - See [Install](./install.md#update-standalone--portal-binaries)

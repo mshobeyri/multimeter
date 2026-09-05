@@ -71,4 +71,39 @@ archive to your artifact store and invoke it in CI:
 ./bin/linux-x64/testlight run path/to/test.mmt --quiet
 ```
 
+## Update standalone / portal binaries
+
+If you installed the GitHub Release binary (or a portal copy of it), refresh it in place:
+
+```sh
+testlight update              # latest stable from GitHub Releases
+testlight update --check      # print whether an update is available
+testlight update --to 1.38.1
+testlight update --channel beta
+```
+
+npm installs should use npm instead (`testlight update` prints the command):
+
+```sh
+npm install -g mmt-testlight@latest
+```
+
+Homebrew:
+
+```sh
+brew upgrade mmt-testlight
+```
+
+### Private portal / mirror
+
+Host the same asset names under a versioned prefix and point the CLI at it:
+
+```sh
+export TESTLIGHT_RELEASE_BASE_URL=https://portal.example/artifacts/testlight
+# expects: $TESTLIGHT_RELEASE_BASE_URL/v1.38.1/testlight-linux-x64.tar.gz
+testlight update --to 1.38.1
+```
+
+Optional: `TESTLIGHT_REPO=owner/name` to resolve “latest” from another GitHub repo’s releases.
+
 See also: [Commands](./commands.md) · [Examples](./examples.md) · [Run in CI](../../tasks/run-in-ci.md)

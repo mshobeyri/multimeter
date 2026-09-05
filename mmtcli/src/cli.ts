@@ -20,6 +20,7 @@ import {startMockServerFromPath, stopAllServers} from './mockRunner.js';
 import {buildCliRunArgs} from './runArgs.js';
 import {formatCliDocs, listCliDocTopics} from './aiDocs.js';
 import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
+import {runUpdate} from './selfUpdate.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -277,6 +278,8 @@ program.name('testlight')
           '  testlight docs test',
           '  testlight validate path/to/test.mmt',
           '  testlight suggest asserts --from path/to/api.mmt',
+          '  testlight update',
+          '  testlight update --check',
           '',
           'Run `testlight <command> --help` for command-specific options.',
         ].join('\n'));
@@ -562,6 +565,54 @@ program.command('version-info')
     .action(() => {
       console.log(`multimeter cli ${CLI_VERSION}`);
       console.log('Node:', process.version);
+    });
+
+program.command('update')
+    .description(
+        'Update standalone/portal testlight binary from GitHub releases (or a mirror)')
+    .option('--check', 'Only check whether an update is available', false)
+    .option(
+        '--to <version>',
+        'Install a specific version (e.g. 1.38.1). Avoids GitHub latest lookup.')
+    .option(
+        '--channel <name>',
+        'Pick latest matching channel from GitHub (beta, rc, prerelease)')
+    .option(
+        '--force',
+        'Reinstall even when the current version is already newest',
+        false)
+    .option(
+        '--repo <owner/name>',
+        'GitHub repo for releases (default: mshobeyri/multimeter or TESTLIGHT_REPO)')
+    .option(
+        '--base-url <url>',
+        'Portal/mirror base URL: <url>/v<version>/testlight-<platform>.tar.gz|zip (or TESTLIGHT_RELEASE_BASE_URL)')
+    .action(async (opts: {
+      check?: boolean;
+      to?: string;
+      channel?: string;
+      force?: boolean;
+      repo?: string;
+      baseUrl?: string;
+    }) => {
+      try {
+        const result = await runUpdate({
+          currentVersion: CLI_VERSION,
+          checkOnly: !!opts.check,
+          version: opts.to,
+          channel: opts.channel,
+          force: !!opts.force,
+          repo: opts.repo,
+          releaseBaseUrl: opts.baseUrl,
+        });
+        console.log(result.message);
+        if (!result.ok) {
+          process.exit(2);
+        }
+      } catch (e: any) {
+        console.error('Error updating testlight:', e?.message || e);
+        process.exit(2);
+      }
     });
 
 {
