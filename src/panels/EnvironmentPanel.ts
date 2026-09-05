@@ -2,12 +2,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+export type EnvVarSource = 'file' | 'manual' | 'runtime';
+
 export interface EnvironmentVar {
   name: string;
   label: string;
   value: string|number|boolean;
   options: {label: string; value: string | number | boolean}[];
-  isManual?: boolean;
+  source?: EnvVarSource;
 }
 
 export default class EnvironmentPanel implements vscode.WebviewViewProvider {
@@ -53,7 +55,8 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           if (idx !== -1) {
             environmentVars[idx].value = message.value;
             environmentVars[idx].label = message.label;
-            environmentVars[idx].isManual = message.isManual === true;
+            environmentVars[idx].source = parseEnvVarSource(message.source) ??
+                environmentVars[idx].source ?? 'file';
             await this.context.workspaceState.update(
                 'multimeter.environment.storage', environmentVars);
             await vscode.commands.executeCommand('multimeter.environment.refresh');
@@ -70,7 +73,11 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           break;
         }
         case 'multimeter.environment.clear': {
-          await this.clearEnvironments();
+          const scope = message.scope === 'runtime' || message.scope === 'manual' ||
+                  message.scope === 'all' ?
+              message.scope :
+              'all';
+          await this.clearEnvironments(scope);
           await vscode.commands.executeCommand('multimeter.environment.refresh');
           break;
         }
@@ -91,7 +98,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
             label: 'Manual',
             value: message.value ?? '',
             options: [],
-            isManual: true
+            source: 'manual'
           };
           environmentVars.push(newVar);
           await this.context.workspaceState.update(
@@ -160,11 +167,10 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
       const storedVars = this.context.workspaceState.get<EnvironmentVar[]|Record<string, any>>(
           'multimeter.environment.storage', []);
 
-      if (Array.isArray(storedVars)) {
-        return storedVars;
-      }
-
-      return Object.values(storedVars || {});
+      const raw = Array.isArray(storedVars) ?
+          storedVars :
+          Object.values(storedVars || {});
+      return raw.map(normalizeEnvironmentVar);
     } catch (error) {
       console.error(
           'Failed to load environment variables from workspace storage:',
@@ -244,14 +250,17 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     await vscode.commands.executeCommand('multimeter.environment.refresh');
   }
 
-  async clearEnvironments() {
+  async clearEnvironments(scope: 'runtime'|'manual'|'all' = 'all') {
     try {
-      const result = await vscode.window.showWarningMessage(
-          'Are you sure you want to clear all environment variables?',
-          {modal: true}, 'Clear All', 'Cancel');
+      if (scope === 'all') {
+        const result = await vscode.window.showWarningMessage(
+            'Are you sure you want to clear all environment variables?',
+            {modal: true}, 'Clear All', 'Cancel');
 
-      if (result === 'Clear All') {
-        // Clear from workspace storage
+        if (result !== 'Clear All') {
+          return;
+        }
+
         await this.context.workspaceState.update(
             'multimeter.environment.storage', {});
         await this.context.workspaceState.update(
@@ -259,10 +268,67 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
         vscode.window.showInformationMessage('Environment variables cleared');
         this.refreshEnvironmentVars();
+        return;
       }
+
+      const label = scope === 'runtime' ? 'runtime' : 'manual';
+      const confirmLabel = scope === 'runtime' ?
+          'Clear runtime variables' :
+          'Clear manual variable';
+      const result = await vscode.window.showWarningMessage(
+          `Are you sure you want to clear ${label} environment variables?`,
+          {modal: true}, confirmLabel, 'Cancel');
+
+      if (result !== confirmLabel) {
+        return;
+      }
+
+      const environmentVars = this.getWorkspaceEnvironmentVars();
+      const remaining = environmentVars.filter(
+          v => resolveEnvVarSource(v) !== scope);
+      await this.context.workspaceState.update(
+          'multimeter.environment.storage', remaining);
+      vscode.window.showInformationMessage(
+          scope === 'runtime' ? 'Runtime variables cleared' :
+                                'Manual variables cleared');
+      this.refreshEnvironmentVars();
     } catch (error) {
       vscode.window.showErrorMessage(
           `Failed to clear environment variables: ${error}`);
     }
   }
+}
+
+function parseEnvVarSource(value: unknown): EnvVarSource|undefined {
+  if (value === 'file' || value === 'manual' || value === 'runtime') {
+    return value;
+  }
+  return undefined;
+}
+
+function normalizeEnvironmentVar(raw: any): EnvironmentVar {
+  const source = parseEnvVarSource(raw?.source) ??
+      (raw?.isManual === true ? 'manual' : undefined) ??
+      inferLegacyEnvVarSource(raw);
+  return {
+    name: typeof raw?.name === 'string' ? raw.name : String(raw?.name ?? ''),
+    label: typeof raw?.label === 'string' ? raw.label : String(raw?.label ?? ''),
+    value: raw?.value,
+    options: Array.isArray(raw?.options) ? raw.options : [],
+    source,
+  };
+}
+
+function inferLegacyEnvVarSource(envVar: any): EnvVarSource {
+  const label = typeof envVar?.label === 'string' ? envVar.label : '';
+  if ((!Array.isArray(envVar?.options) || envVar.options.length === 0) &&
+      (label === 'api' || label === 'test' || label.startsWith('api - ') ||
+       label.startsWith('test - '))) {
+    return 'runtime';
+  }
+  return 'file';
+}
+
+function resolveEnvVarSource(envVar: EnvironmentVar): EnvVarSource {
+  return parseEnvVarSource(envVar.source) ?? inferLegacyEnvVarSource(envVar);
 }

@@ -612,6 +612,7 @@ async function handleSetEnvVariables(
     name: item.name,
     value: item.value,
     label,
+    source: 'runtime' as const,
   })));
 }
 

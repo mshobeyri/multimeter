@@ -161,7 +161,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           name: pair.name,
           label: pair.value.label,
           value: pair.value.value,
-          options: pair.options
+          options: pair.options,
+          source: 'file'
         });
       });
 
@@ -221,7 +222,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       value: pair.value?.value ?? "",
       options: Array.isArray(pair.options)
         ? pair.options.filter((opt: any): opt is { label: string; value: JSONValue } => !!opt && typeof opt === "object" && "label" in opt && "value" in opt)
-        : []
+        : [],
+      source: 'file' as const
     }));
 
   // Load selections from VSCode

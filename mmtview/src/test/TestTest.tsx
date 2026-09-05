@@ -288,7 +288,12 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                 if (variables && typeof variables === 'object') {
                     const updates = Object.entries(variables)
                         .filter(([name, value]) => typeof name === 'string' && name && value != null && value !== '')
-                        .map(([name, value]) => ({name, value: value as string | number | boolean, label}));
+                        .map(([name, value]) => ({
+                            name,
+                            value: value as string | number | boolean,
+                            label,
+                            source: 'runtime' as const,
+                        }));
                     if (updates.length > 0) {
                         setEnvironmentVariables(updates);
                     }
