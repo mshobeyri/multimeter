@@ -2,16 +2,29 @@ import type { StepStatus } from './types';
 import type { StepReportItem } from './TestStepReportPanel';
 
 /** View-only filter for report / suite tree status. */
-export type ReportStatusFilter = 'all' | 'passed' | 'failed';
+export type ReportStatusFilter =
+  | 'all'
+  | 'passed'
+  | 'failed'
+  | 'running'
+  | 'running_failed';
 
 export const REPORT_STATUS_FILTER_OPTIONS: { value: ReportStatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'passed', label: 'Passed' },
   { value: 'failed', label: 'Failed' },
+  { value: 'running', label: 'Running' },
+  { value: 'running_failed', label: 'Running | Failed' },
 ];
 
 export function parseReportStatusFilter(value: unknown): ReportStatusFilter {
-  if (value === 'passed' || value === 'failed' || value === 'all') {
+  if (
+    value === 'passed' ||
+    value === 'failed' ||
+    value === 'running' ||
+    value === 'running_failed' ||
+    value === 'all'
+  ) {
     return value;
   }
   return 'all';
@@ -25,6 +38,12 @@ export function emptyReportFilterMessage(filter: ReportStatusFilter): string {
   if (filter === 'failed') {
     return 'No failed tests.';
   }
+  if (filter === 'running') {
+    return 'No running tests.';
+  }
+  if (filter === 'running_failed') {
+    return 'No running or failed tests.';
+  }
   return 'No tests to show.';
 }
 
@@ -34,6 +53,12 @@ export function stepMatchesReportFilter(
 ): boolean {
   if (filter === 'all') {
     return true;
+  }
+  if (filter === 'running') {
+    return status === 'running';
+  }
+  if (filter === 'running_failed') {
+    return status === 'running' || status === 'failed';
   }
   return status === filter;
 }
