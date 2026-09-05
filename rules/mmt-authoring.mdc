@@ -1,0 +1,53 @@
+---
+description: Low-token Multimeter .mmt authoring — scaffold, patch, validate
+globs: "**/*.mmt"
+alwaysApply: true
+---
+
+# Multimeter `.mmt` authoring (keep short)
+
+## File types
+
+- `api` — one endpoint
+- `test` — call APIs/tests + assert
+- `env` — variables/presets
+- `suite` — group runnable items
+- `doc` / `server` / `loadtest` / `report` — as named
+
+## Tokens (snake_case)
+
+- Env: `e:api_url`, embed `<<e:api_url>>/users`
+- Inputs: `i:user_id`
+- Random: `r:uuid`, `r:epoch_ms`
+- Current: `c:date`, `c:epoch_ms`
+- Bare token as whole YAML value; `<< >>` only inside strings
+
+## Smoke skeleton
+
+```yaml
+type: test
+title: Login smoke
+tags: [smoke]
+import:
+  login: ../apis/login.mmt
+inputs:
+  username: i:username
+  password: i:password
+steps:
+  - call: login
+    id: iLogin
+    inputs:
+      username: i:username
+      password: i:password
+    expect:
+      status: 200
+```
+
+## Hard rules
+
+1. **Never web-search** Multimeter YAML syntax — use MCP/`testlight` local docs.
+2. **New test from API** → call MCP `scaffold_test` (or `testlight scaffold test --from`) first; then minimal edits.
+3. **Modify** → patch only; do not rewrite the whole file.
+4. **Validate** after every edit (`validate` MCP or equivalent) before finishing.
+5. Prefer smoke unless the user asks for more. No YAML comments (`#`).
+6. When MCP is available: MCP tools first — not shell exploration.

@@ -26,10 +26,26 @@ export interface ApiDetailsSummary {
 }
 
 function splitPath(filePath: string): string[] {
-  return filePath
+  const raw = filePath
       .replace(/\\/g, '/')
       .split('/')
-      .filter(part => part.length > 0 && part !== '.');
+      .filter(part => part.length > 0);
+  const out: string[] = [];
+  for (const part of raw) {
+    if (part === '.') {
+      continue;
+    }
+    if (part === '..') {
+      if (out.length > 0 && out[out.length - 1] !== '..') {
+        out.pop();
+      } else {
+        out.push('..');
+      }
+      continue;
+    }
+    out.push(part);
+  }
+  return out;
 }
 
 function basename(filePath: string): string {
@@ -83,11 +99,7 @@ export function suggestAliasFromPath(apiPath: string): string {
 export function suggestTestPath(apiPath: string): string {
   const slug = slugValue(basename(apiPath));
   const apiDir = dirname(apiPath);
-  const parent = splitPath(apiDir).pop() || '';
-  if (parent === 'apis' || parent === 'api') {
-    return joinPath(dirname(apiDir), 'tests', `${slug}-smoke.mmt`);
-  }
-  return joinPath(apiDir, '..', 'tests', `${slug}-smoke.mmt`);
+  return joinPath(dirname(apiDir), 'tests', `${slug}-smoke.mmt`);
 }
 
 export function buildApiDetailsSummary(

@@ -32,6 +32,8 @@ describe('testScaffold', () => {
   it('suggests alias and test path from api file path', () => {
     expect(suggestAliasFromPath('apis/login.mmt')).toBe('login');
     expect(suggestTestPath('apis/login.mmt')).toBe('./tests/login-smoke.mmt');
+    expect(suggestTestPath('examples/basic/01_simple_api/get_json.mmt'))
+        .toBe('examples/basic/tests/get-json-smoke.mmt');
   });
 
   it('builds api details summary with import path', () => {
@@ -40,6 +42,15 @@ describe('testScaffold', () => {
     expect(summary.suggestedTestPath).toBe('./tests/login-smoke.mmt');
     expect(summary.suggestedImportPath).toBe('../apis/login.mmt');
     expect(summary.outputs?.token).toBe('body.body.token');
+  });
+
+  it('builds import path for nested example-style api folders', () => {
+    const summary = buildApiDetailsSummary(
+        'examples/basic/01_simple_api/get_json.mmt', loginApi);
+    expect(summary.suggestedTestPath)
+        .toBe('examples/basic/tests/get-json-smoke.mmt');
+    expect(summary.suggestedImportPath)
+        .toBe('../01_simple_api/get_json.mmt');
   });
 
   it('scaffolds a valid smoke test from api data', () => {

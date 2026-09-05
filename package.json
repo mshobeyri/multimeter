@@ -52,6 +52,9 @@
     ],
     "chatInstructions": [
       {
+        "path": "./rules/mmt-authoring.mdc"
+      },
+      {
         "path": "./rules/mmt-mcp.instructions.md"
       }
     ],

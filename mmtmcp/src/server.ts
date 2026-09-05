@@ -8,6 +8,7 @@ import {
   handleListExamples,
   handleReadDocumentation,
   handleRun,
+  handleScaffoldTest,
   handleValidate,
 } from './tools/handlers';
 
@@ -15,9 +16,10 @@ export const SERVER_INSTRUCTIONS = [
   'Multimeter MCP is the primary interface for all .mmt file work in VS Code Copilot.',
   'For create, modify, validate, format, or run requests: call Multimeter MCP tools in the FIRST tool-call batch.',
   'Do not explore npm packages, testlight CLI, shell commands, or node server.js before using these tools.',
-  'Modify workflow: read_documentation(topic) → edit file → validate(file) → fix until valid → optional format(file).',
+  'Do not web-search Multimeter YAML syntax — use read_documentation or scaffold_test.',
+  'Modify workflow: read_documentation(topic) → patch file (no full rewrite) → validate(file) → fix until valid → optional format(file).',
   'Run workflow: run({ file, workspaceRoot }) only — never testlight or shell.',
-  'Generate workflow: read_documentation + discover_api → write file → validate → optional format → optional run.',
+  'Generate test from API: scaffold_test(workspaceRoot, apiPath) → write returned yaml → minimal edits → validate → optional format → optional run.',
   'After every edit to a .mmt file, call validate before telling the user the task is complete.',
   'Never add YAML comments (#). Use snake_case tokens such as e:api_url and i:user_id.',
 ].join(' ');
@@ -76,7 +78,8 @@ export function createMmtMcpServer(): McpServer {
       {
         title: 'Discover workspace APIs',
         description: [
-          'Call when generating or modifying tests that call APIs, or when you need import paths and inputs.',
+          'Call when listing APIs or inspecting one API before scaffolding a test.',
+          'For new tests from an API, prefer scaffold_test after you know apiPath.',
           'Pass apiPath to inspect one API file including inputs, outputs, examples, and suggested import paths.',
           DO_NOT_SHELL,
         ].join(' '),
@@ -87,6 +90,28 @@ export function createMmtMcpServer(): McpServer {
         annotations: {readOnlyHint: true},
       },
       async (args) => handleDiscoverApi(args),
+  );
+
+  server.registerTool(
+      'scaffold_test',
+      {
+        title: 'Scaffold test from API',
+        description: [
+          'REQUIRED first step when generating a new Multimeter test from an existing API .mmt.',
+          'Returns valid smoke (or example) test YAML, suggested path, import alias, and a compact apiCard.',
+          'Write the yaml, apply only minimal edits, then validate. Do not invent a blank test from scratch.',
+          DO_NOT_SHELL,
+        ].join(' '),
+        inputSchema: {
+          workspaceRoot: z.string().describe('Workspace root directory'),
+          apiPath: z.string().describe('API .mmt file path relative to workspaceRoot or absolute'),
+          strategy: z.enum(['smoke', 'example']).optional().describe('smoke (default) or example inputs'),
+          alias: z.string().optional().describe('Optional import alias override'),
+          outPath: z.string().optional().describe('Optional suggested output test path (relative)'),
+        },
+        annotations: {readOnlyHint: true},
+      },
+      async (args) => handleScaffoldTest(args),
   );
 
   server.registerTool(
@@ -194,7 +219,7 @@ export function createMmtMcpServer(): McpServer {
               'Workflow:',
               '1. read_documentation(topic matching the file type)',
               '2. discover_api if API context is needed',
-              '3. Apply the edit in the workspace',
+              '3. Patch the file in the workspace (do not rewrite the whole file)',
               '4. validate(file) — required before finishing',
               '5. Fix errors and validate again until valid',
               '6. format(file) if helpful',
@@ -251,16 +276,16 @@ export function createMmtMcpServer(): McpServer {
               `Generate Multimeter tests for API: ${apiPath}`,
               workspaceRoot ? `Workspace root: ${workspaceRoot}` : '',
               '',
-              'Use Multimeter MCP tools first. Do not use testlight or shell commands.',
+              'Use Multimeter MCP tools first. Do not use testlight, shell, or web search for syntax.',
               'Follow this workflow:',
-              '1. read_documentation(topic: "test")',
-              '2. discover_api(workspaceRoot, apiPath)',
-              '3. Generate the test YAML yourself',
-              '4. Write the file in the workspace',
-              '5. validate(file) — required',
-              '6. Fix validation errors and validate again',
-              '7. format(file) if needed',
-              '8. run(file) when the user wants execution',
+              '1. scaffold_test({ workspaceRoot, apiPath }) — required; do not invent YAML from scratch',
+              '2. Write the returned yaml to suggestedPath (or a user path)',
+              '3. Apply only minimal edits (title, asserts, inputs) — no full rewrite',
+              '4. validate(file) — required',
+              '5. Fix validation errors and validate again',
+              '6. format(file) if needed',
+              '7. run(file) when the user wants execution',
+              'Optional: read_documentation(topic: "test") only if scaffold output needs explanation.',
             ].filter(Boolean).join('\n'),
           },
         }],

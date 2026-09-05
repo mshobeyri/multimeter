@@ -270,6 +270,8 @@ program.name('testlight')
           '  testlight run path/to/test.mmt',
           '  testlight run path/to/test.mmt -F env.mmt -P runner.dev -P custom.prod',
           '  testlight run path/to/suite.mmt --report html',
+          '  testlight scaffold test --from path/to/api.mmt',
+          '  testlight scaffold test --from path/to/api.mmt -o tests/api-smoke.mmt',
           '',
           'Run `testlight <command> --help` for command-specific options.',
         ].join('\n'));
@@ -556,6 +558,73 @@ program.command('version-info')
       console.log(`multimeter cli ${CLI_VERSION}`);
       console.log('Node:', process.version);
     });
+
+{
+  const scaffold = program.command('scaffold').description(
+      'Scaffold Multimeter .mmt files (AI/offline-friendly)');
+  scaffold.command('test')
+      .description('Scaffold a smoke test from an API .mmt')
+      .requiredOption('--from <file>', 'Source API .mmt file')
+      .option(
+          '-s, --strategy <name>', 'smoke (default) or example', 'smoke')
+      .option('-a, --alias <name>', 'Import alias override')
+      .option(
+          '-o, --out <file>',
+          'Write test YAML to file (default: print to stdout)')
+      .action(async (
+          opts: {from: string; strategy?: string; alias?: string; out?: string}) => {
+        try {
+          const {scaffoldTestFromApi, buildApiDetailsSummary, suggestTestPath} =
+              await import('mmt-core/testScaffold');
+          const apiFull = resolveUserPath(opts.from, process.cwd(), path);
+          if (!fs.existsSync(apiFull)) {
+            console.error(`API file not found: ${apiFull}`);
+            process.exit(2);
+          }
+          const apiText = fs.readFileSync(apiFull, 'utf8');
+          if (mmtcore.JSer.fileType(apiFull, apiText) !== 'api') {
+            console.error(`Expected type: api: ${apiFull}`);
+            process.exit(2);
+          }
+          const api = apiParsePack.yamlToAPIStrict(apiText);
+          const cwd = process.cwd();
+          const apiRel = path.relative(cwd, apiFull).replace(/\\/g, '/') ||
+              path.basename(apiFull);
+          const strategyRaw = String(opts.strategy || 'smoke').toLowerCase();
+          if (strategyRaw !== 'smoke' && strategyRaw !== 'example') {
+            console.error(`Invalid --strategy (use smoke or example): ${opts.strategy}`);
+            process.exit(2);
+          }
+          const outRel = opts.out ?
+              path.relative(cwd, resolveUserPath(opts.out, cwd, path))
+                  .replace(/\\/g, '/') :
+              suggestTestPath(apiRel);
+          const summary = buildApiDetailsSummary(apiRel, api, outRel);
+          const alias = opts.alias || summary.suggestedAlias;
+          const test = scaffoldTestFromApi(api, {
+            alias,
+            importPath: summary.suggestedImportPath,
+            strategy: strategyRaw as 'smoke' | 'example',
+          });
+          const yamlOut = mmtcore.testParsePack.testToYaml(test);
+          mmtcore.testParsePack.yamlToTestStrict(yamlOut);
+          if (opts.out) {
+            const outFull = resolveUserPath(opts.out, cwd, path);
+            const outDir = path.dirname(outFull);
+            if (!fs.existsSync(outDir)) {
+              fs.mkdirSync(outDir, {recursive: true});
+            }
+            writeTextFile(outFull, yamlOut.endsWith('\n') ? yamlOut : `${yamlOut}\n`);
+            console.error(`Scaffolded: ${outFull}`);
+          } else {
+            process.stdout.write(yamlOut.endsWith('\n') ? yamlOut : `${yamlOut}\n`);
+          }
+        } catch (e: any) {
+          console.error('Error scaffolding test:', e?.message || e);
+          process.exit(2);
+        }
+      });
+}
 
 program.command('doc')
     .argument('<file>', 'Doc file (.mmt/.yaml/.yml)')

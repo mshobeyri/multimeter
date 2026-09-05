@@ -3,6 +3,7 @@ import path from 'path';
 import {
   handleDiscoverApi,
   handleReadDocumentation,
+  handleScaffoldTest,
   handleValidate,
   handleRun,
 } from './handlers';
@@ -25,6 +26,22 @@ describe('MCP handlers', () => {
     });
     const payload = JSON.parse(result.content[0].text);
     expect(payload.apiCount).toBeGreaterThan(0);
+  });
+
+  it('scaffold_test returns valid smoke YAML from an example API', async () => {
+    const apiPath = 'examples/basic/01_simple_api/get_json.mmt';
+    const result = await handleScaffoldTest({
+      workspaceRoot,
+      apiPath,
+      strategy: 'smoke',
+    });
+    const payload = JSON.parse(result.content[0].text);
+    expect(payload.yaml).toMatch(/^type:\s*test/m);
+    expect(payload.validation.valid).toBe(true);
+    expect(payload.suggestedPath).toContain('smoke');
+    expect(payload.apiCard.filePath).toContain('get_json.mmt');
+    expect(payload.alias).toBeTruthy();
+    expect(payload.importPath).toBeTruthy();
   });
 
   it('validate rejects invalid test content on disk', async () => {

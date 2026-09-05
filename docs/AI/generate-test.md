@@ -1,5 +1,7 @@
 This file tells the AI how to generate **`type: test`** `.mmt` files.
 
+**Prefer MCP `scaffold_test` (or `testlight scaffold test --from`) for new tests from an API.** Use this guide for fields and step types beyond the scaffold baseline — not as an excuse to invent a full file from scratch.
+
 Always follow these rules:
 - Output must be valid YAML.
 - The first non-comment line must be `type: test`.

@@ -206,6 +206,59 @@ function loadApiFromPath(apiPath: string, workspaceRoot?: string) {
   return {fullPath, api, content};
 }
 
+function toPosixRel(workspaceRoot: string | undefined, fullPath: string): string {
+  return toWorkspaceRelative(workspaceRoot, fullPath).replace(/\\/g, '/');
+}
+
+export async function handleScaffoldTest(args: {
+  workspaceRoot: string;
+  apiPath: string;
+  strategy?: 'smoke' | 'example';
+  alias?: string;
+  outPath?: string;
+}) {
+  try {
+    const {fullPath, api} = loadApiFromPath(args.apiPath, args.workspaceRoot);
+    const apiRel = toPosixRel(args.workspaceRoot, fullPath);
+    const suggestedPath = (args.outPath || testScaffold.suggestTestPath(apiRel)).replace(/\\/g, '/');
+    const summary = testScaffold.buildApiDetailsSummary(apiRel, api, suggestedPath);
+    const alias = args.alias || summary.suggestedAlias;
+    const strategy = args.strategy || 'smoke';
+    const test = testScaffold.scaffoldTestFromApi(api, {
+      alias,
+      importPath: summary.suggestedImportPath,
+      strategy,
+    });
+    const yamlContent = testParsePack.testToYaml(test);
+    const validation = validateContent(yamlContent, suggestedPath, 'test');
+    return toolJson({
+      yaml: yamlContent,
+      suggestedPath,
+      alias,
+      importPath: summary.suggestedImportPath,
+      strategy,
+      apiCard: {
+        filePath: apiRel,
+        title: summary.title,
+        method: summary.method,
+        url: summary.url,
+        protocol: summary.protocol,
+        inputs: summary.inputs,
+        outputs: summary.outputs,
+        exampleCount: summary.examples?.length || 0,
+      },
+      validation,
+      usage: [
+        'REQUIRED for new tests from an API: start from this yaml (do not invent a blank test).',
+        'Write yaml to suggestedPath (or a user-chosen path), apply only minimal edits, then validate(file).',
+        'Do not rewrite the whole file after scaffold unless the user asks for a different structure.',
+      ].join(' '),
+    });
+  } catch (error: any) {
+    return toolError(error?.message || String(error));
+  }
+}
+
 export async function handleValidate(args: {
   file: string;
   workspaceRoot?: string;

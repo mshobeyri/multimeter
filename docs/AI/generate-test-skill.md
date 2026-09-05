@@ -4,37 +4,45 @@ Use this skill when the user wants a Multimeter test generated from an API file,
 
 ## Goal
 
-Produce a valid Multimeter `type: test` YAML file that is deterministic, minimal, and easy to validate.
+Produce a valid Multimeter `type: test` YAML file that is deterministic, minimal, and easy to validate — with **low token cost**.
 
-## Required workflow
+## Required workflow (API → test)
 
-1. Read the target API file or spec and identify the relevant endpoint and inputs.
-2. Prefer a smoke-test baseline first.
-3. Use `call`, `assert`, and `check` steps.
-4. Reuse imports, aliases, and environment tokens consistently.
-5. Validate the generated YAML before returning it.
+1. Identify the target API `.mmt` path (use `discover_api` only if the path is unknown).
+2. Call MCP **`scaffold_test({ workspaceRoot, apiPath })`** — **required**. Do not invent a blank test.
+   - Offline / no MCP: `testlight scaffold test --from <api.mmt>`
+3. Write the returned YAML to `suggestedPath` (or the user path).
+4. Apply **only minimal** edits (title, expects, inputs). Prefer smoke unless asked for more.
+5. Call **`validate`** before finishing; fix until valid.
+6. Stop when validate passes — no polish rewrite.
 
 ## Rules
 
 - Output only valid YAML for the generated test.
 - Start the file with `type: test`.
-- Keep the first non-comment line as `type: test`.
-- Prefer small, focused smoke tests unless the user asks for broader coverage.
+- Never add YAML comments (`#`).
+- Never web-search Multimeter syntax.
 - Use tokens such as `e:`, `i:`, `r:`, and `c:` when appropriate.
+- Modify requests: patch only; do not rewrite the whole file.
 - If the source is ambiguous, ask a short clarifying question before generating.
 
-## Suggested structure
+## Scaffold baseline (what `scaffold_test` already produces)
 
 ```yaml
 type: test
-title: <human-readable title>
-tags: []
+title: <API title> smoke test
+tags: [smoke, ...]
+import:
+  <alias>: <relative-api-path>
+inputs:
+  <name>: i:<name>
 steps:
-  - call: <imported_api_or_test>
+  - call: <alias>
     id: <step_id>
     inputs:
-      <name>: <value>
-  - assert: ${<step_id>.status} == 200
+      <name>: i:<name>
+    expect:
+      status: 200
 ```
 
 ## When to use this skill
