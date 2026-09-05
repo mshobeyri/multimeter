@@ -13,12 +13,13 @@ When the request involves a `.mmt` file (create, modify, validate, format, or ru
 ## Required order
 
 1. **New test from API** → `scaffold_test({ workspaceRoot, apiPath })` (required; do not invent blank YAML)
-2. **Other syntax** → `read_documentation` (topic: `test`, `api`, `suite`, etc.) when needed
-3. **API listing** → `discover_api` when you need to find APIs (prefer `scaffold_test` once `apiPath` is known)
-4. **Edit** — write scaffold yaml or **patch** an existing file (no full rewrite)
-5. **Validate** → `validate({ file, workspaceRoot })` after every edit
-6. **Format** (optional) → `format({ file, workspaceRoot })`
-7. **Run** (only when asked) → `run({ file, workspaceRoot })`
+2. **Inspect one API** → `api_card` (prefer over full file dump)
+3. **Other syntax** → `read_documentation` with default **min** pack (`pack: full` only if needed)
+4. **API listing** → `discover_api` when you need to find APIs
+5. **Edit** — write scaffold yaml or **patch** an existing file (no full rewrite)
+6. **Validate** → `validate({ file, workspaceRoot })` after every edit
+7. **Format** (optional) → `format({ file, workspaceRoot })`
+8. **Run** (only when asked) → `run({ file, workspaceRoot })`
 
 ## Never do this first
 

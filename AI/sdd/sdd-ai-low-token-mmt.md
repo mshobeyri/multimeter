@@ -1,7 +1,7 @@
 # SDD: Low-Token, High-Quality AI for `.mmt`
 
 **Date:** 2026-09-05  
-**Status:** Phase A shipped in tree (authoring rule + scaffold MCP/CLI + scaffold-first prompts); Phase B next  
+**Status:** Phase A + B shipped in tree (scaffold, api_card, min docs packs, testlight docs/validate, offline guide); Phase C next  
 **Related:** `AI/sdd/sdd-mcp-ai-assistant.md` (MCP foundation — largely shipped)
 
 ---

@@ -18,12 +18,14 @@ Do **not** first try:
 | User intent | First MCP tool(s) | Then |
 |-------------|-------------------|------|
 | Generate test from API | **`scaffold_test`** | Write returned yaml → minimal edits → `validate` |
-| Create or change other types | `read_documentation(topic)` | Edit/patch → `validate` → `format` (optional) |
+| Inspect one API | **`api_card`** | Prefer over full file / OpenAPI dump |
+| Create or change other types | `read_documentation(topic)` (pack **min**) | Edit/patch → `validate` → `format` (optional) |
 | Change existing `.mmt` file | `read_documentation(topic)` if needed | **Patch only** → `validate` |
-| List / inspect APIs | `discover_api` | Then `scaffold_test` for new tests |
+| List APIs | `discover_api` | Then `api_card` / `scaffold_test` |
 | Run or execute `.mmt` | `run({ file, workspaceRoot })` | Report `success`, logs, errors |
-| Unsure of syntax | `read_documentation` | Use returned docs, not web search |
+| Unsure of syntax | `read_documentation` (min; `pack: full` if needed) | Use returned docs, not web search |
 | Need examples | `list_examples` | Follow patterns, then `validate` |
+| Offline / no MCP | see `offline-agent.md` | `testlight docs` → `scaffold` → `validate` |
 
 ## Generate test from API (required)
 

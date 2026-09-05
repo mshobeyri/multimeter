@@ -47,14 +47,24 @@ function copyRecursive(from, to) {
 }
 
 function copyGuides() {
+  fs.rmSync(guidesOut, {recursive: true, force: true});
   fs.mkdirSync(guidesOut, {recursive: true});
-  for (const name of fs.readdirSync(guidesSrc)) {
-    if (name.endsWith('.md')) {
-      fs.copyFileSync(path.join(guidesSrc, name), path.join(guidesOut, name));
-    }
-  }
+  copyMarkdownTree(guidesSrc, guidesOut);
   if (fs.existsSync(profileSrc)) {
     fs.copyFileSync(profileSrc, path.join(guidesOut, 'testgen-profile-ai.md'));
+  }
+}
+
+function copyMarkdownTree(from, to) {
+  fs.mkdirSync(to, {recursive: true});
+  for (const entry of fs.readdirSync(from, {withFileTypes: true})) {
+    const src = path.join(from, entry.name);
+    const dest = path.join(to, entry.name);
+    if (entry.isDirectory()) {
+      copyMarkdownTree(src, dest);
+    } else if (entry.name.endsWith('.md')) {
+      fs.copyFileSync(src, dest);
+    }
   }
 }
 

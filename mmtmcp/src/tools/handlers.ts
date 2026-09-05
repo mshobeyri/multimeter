@@ -16,6 +16,7 @@ import {
   walkMmtFiles,
 } from '../fsAdapter';
 import {
+  DocumentationPack,
   DocumentationTopic,
   listExamples,
   readDocumentation,
@@ -113,12 +114,18 @@ function validateContent(content: string, filePath?: string, expectedType?: stri
 
 export async function handleReadDocumentation(args: {
   topic?: DocumentationTopic;
+  pack?: DocumentationPack;
 }) {
   try {
-    const result = readDocumentation(args.topic || 'overview');
+    const pack = args.pack || 'min';
+    const result = readDocumentation(args.topic || 'overview', pack);
     return toolJson({
       ...result,
-      usage: 'The LLM should generate Multimeter YAML itself using this documentation. Do not ask the MCP server to generate tests.',
+      usage: [
+        result.usage,
+        'Generate Multimeter YAML using this documentation (or scaffold_test for API tests).',
+        'Do not ask the MCP server to generate tests itself.',
+      ].join(' '),
     });
   } catch (error: any) {
     return toolError(error?.message || String(error));
@@ -141,6 +148,7 @@ export async function handleListExamples(args: {
 export async function handleDiscoverApi(args: {
   workspaceRoot: string;
   apiPath?: string;
+  includeContent?: boolean;
 }) {
   const root = resolveWorkspacePath(undefined, args.workspaceRoot);
   if (!fileExists(root)) {
@@ -172,13 +180,13 @@ export async function handleDiscoverApi(args: {
 
     let selectedApi;
     if (args.apiPath) {
-      const {fullPath, api} = loadApiFromPath(args.apiPath, args.workspaceRoot);
-      const summary = testScaffold.buildApiDetailsSummary(fullPath, api);
-      selectedApi = {
-        ...summary,
-        filePath: toWorkspaceRelative(args.workspaceRoot, fullPath),
-        content: readTextFile(fullPath),
-      };
+      selectedApi = buildApiCardPayload(args.apiPath, args.workspaceRoot);
+      if (args.includeContent) {
+        selectedApi = {
+          ...selectedApi,
+          content: readTextFile(resolveWorkspacePath(args.workspaceRoot, args.apiPath)),
+        };
+      }
     }
 
     return toolJson({
@@ -186,7 +194,10 @@ export async function handleDiscoverApi(args: {
       apiCount: apis.length,
       apis,
       selectedApi,
-      usage: 'Use selectedApi inputs, outputs, and suggestedImportPath when generating a test file.',
+      usage: [
+        'Prefer selectedApi / api_card for generation — do not dump full OpenAPI or full .mmt unless includeContent is needed.',
+        'For new tests, call scaffold_test(apiPath) next.',
+      ].join(' '),
     });
   } catch (error: any) {
     return toolError(error?.message || String(error));
@@ -208,6 +219,43 @@ function loadApiFromPath(apiPath: string, workspaceRoot?: string) {
 
 function toPosixRel(workspaceRoot: string | undefined, fullPath: string): string {
   return toWorkspaceRelative(workspaceRoot, fullPath).replace(/\\/g, '/');
+}
+
+export function buildApiCardPayload(apiPath: string, workspaceRoot: string) {
+  const {fullPath, api} = loadApiFromPath(apiPath, workspaceRoot);
+  const apiRel = toPosixRel(workspaceRoot, fullPath);
+  const summary = testScaffold.buildApiDetailsSummary(apiRel, api);
+  return {
+    filePath: apiRel,
+    title: summary.title,
+    method: summary.method,
+    url: summary.url,
+    protocol: summary.protocol,
+    inputs: summary.inputs,
+    outputs: summary.outputs,
+    exampleCount: summary.examples?.length || 0,
+    suggestedAlias: summary.suggestedAlias,
+    suggestedImportPath: summary.suggestedImportPath,
+    suggestedTestPath: summary.suggestedTestPath,
+  };
+}
+
+export async function handleApiCard(args: {
+  workspaceRoot: string;
+  apiPath: string;
+}) {
+  try {
+    const card = buildApiCardPayload(args.apiPath, args.workspaceRoot);
+    return toolJson({
+      ...card,
+      usage: [
+        'Compact API card for generation. Prefer this over reading the full API file or OpenAPI.',
+        'Next for a new test: scaffold_test({ workspaceRoot, apiPath }).',
+      ].join(' '),
+    });
+  } catch (error: any) {
+    return toolError(error?.message || String(error));
+  }
 }
 
 export async function handleScaffoldTest(args: {

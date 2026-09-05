@@ -6,7 +6,9 @@ import {GUIDE_RESOURCES, readGuideContent, resolveGuidesDir} from '../resources/
 export type DocumentationTopic =
   'overview' | 'workflow' | 'test' | 'api' | 'loadtest' | 'suite' | 'env' | 'doc' | 'constraints' | 'all';
 
-const TOPIC_FILES: Record<Exclude<DocumentationTopic, 'all'>, string[]> = {
+export type DocumentationPack = 'min' | 'full';
+
+const FULL_TOPIC_FILES: Record<Exclude<DocumentationTopic, 'all'>, string[]> = {
   overview: ['agent-workflow.md', 'general.md', 'generate.md'],
   workflow: ['agent-workflow.md'],
   test: ['generate-test.md'],
@@ -18,22 +20,51 @@ const TOPIC_FILES: Record<Exclude<DocumentationTopic, 'all'>, string[]> = {
   constraints: ['generate-test-skill.md'],
 };
 
-export function readDocumentation(topic: DocumentationTopic = 'overview'): {
+const MIN_TOPIC_FILES: Record<Exclude<DocumentationTopic, 'all'>, string[]> = {
+  overview: ['min/overview.md'],
+  workflow: ['min/workflow.md'],
+  test: ['min/test.md'],
+  api: ['min/api.md'],
+  loadtest: ['min/loadtest.md'],
+  suite: ['min/suite.md'],
+  env: ['min/env.md'],
+  doc: ['min/doc.md'],
+  constraints: ['min/constraints.md'],
+};
+
+export function listDocumentationTopics(): Exclude<DocumentationTopic, 'all'>[] {
+  return Object.keys(MIN_TOPIC_FILES) as Exclude<DocumentationTopic, 'all'>[];
+}
+
+export function readDocumentation(
+    topic: DocumentationTopic = 'overview',
+    pack: DocumentationPack = 'min',
+): {
   topic: DocumentationTopic;
+  pack: DocumentationPack;
   sections: Array<{name: string; fileName: string; content: string}>;
+  usage: string;
 } {
+  const table = pack === 'full' ? FULL_TOPIC_FILES : MIN_TOPIC_FILES;
   const files = topic === 'all' ?
-      Array.from(new Set(Object.values(TOPIC_FILES).flat())) :
-      TOPIC_FILES[topic];
+      Array.from(new Set(Object.values(table).flat())) :
+      table[topic];
   const sections = files.map(fileName => {
     const resource = GUIDE_RESOURCES.find(item => item.fileName === fileName);
     return {
-      name: resource?.name || fileName.replace(/\.md$/, ''),
+      name: resource?.name || fileName.replace(/\.md$/, '').replace(/^min\//, ''),
       fileName,
       content: readGuideContent(fileName),
     };
   });
-  return {topic, sections};
+  return {
+    topic,
+    pack,
+    sections,
+    usage: pack === 'min' ?
+        'Default min pack. Request pack: "full" only when you need rare syntax.' :
+        'Full documentation pack. Prefer pack: "min" for routine generate/modify.',
+  };
 }
 
 export function resolveExamplesDir(): string {
@@ -128,6 +159,5 @@ export function listExamples(options?: {
   };
 }
 
-export function resolveGuidesRoot(): string {
-  return resolveGuidesDir();
-}
+/** @deprecated Prefer readDocumentation(..., 'full') */
+export const TOPIC_FILES = FULL_TOPIC_FILES;

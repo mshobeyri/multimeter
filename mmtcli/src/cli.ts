@@ -18,6 +18,8 @@ const {resolveUserPath, writeTextFile} = requireFromCli('../src/pathNormalize.cj
 import {summarize} from './loadTest.js';
 import {startMockServerFromPath, stopAllServers} from './mockRunner.js';
 import {buildCliRunArgs} from './runArgs.js';
+import {formatCliDocs, listCliDocTopics} from './aiDocs.js';
+import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -272,6 +274,8 @@ program.name('testlight')
           '  testlight run path/to/suite.mmt --report html',
           '  testlight scaffold test --from path/to/api.mmt',
           '  testlight scaffold test --from path/to/api.mmt -o tests/api-smoke.mmt',
+          '  testlight docs test',
+          '  testlight validate path/to/test.mmt',
           '',
           'Run `testlight <command> --help` for command-specific options.',
         ].join('\n'));
@@ -625,6 +629,76 @@ program.command('version-info')
         }
       });
 }
+
+program.command('docs')
+    .description('Print bundled Multimeter AI docs (offline-friendly)')
+    .argument(
+        '[topic]',
+        `Topic: ${listCliDocTopics().join('|')}`,
+        'overview')
+    .option(
+        '-p, --pack <name>',
+        'min (default, low token) or full',
+        'min')
+    .action((topic: string, opts: {pack?: string}) => {
+      try {
+        const packRaw = String(opts.pack || 'min').toLowerCase();
+        if (packRaw !== 'min' && packRaw !== 'full') {
+          console.error(`Invalid --pack (use min or full): ${opts.pack}`);
+          process.exit(2);
+        }
+        const allowed = new Set(listCliDocTopics());
+        if (!allowed.has(topic)) {
+          console.error(`Unknown topic "${topic}". Use: ${listCliDocTopics().join(', ')}`);
+          process.exit(2);
+        }
+        const text = formatCliDocs(topic as any, packRaw as 'min'|'full');
+        process.stdout.write(text.endsWith('\n') ? text : `${text}\n`);
+      } catch (e: any) {
+        console.error('Error reading docs:', e?.message || e);
+        process.exit(2);
+      }
+    });
+
+program.command('validate')
+    .description('Validate a .mmt API or test file')
+    .argument('<file>', 'Path to .mmt file')
+    .option(
+        '-t, --type <name>',
+        'Expected type: api|test')
+    .action((file: string, opts: {type?: string}) => {
+      try {
+        const full = resolveValidatePath(file);
+        if (!fs.existsSync(full)) {
+          console.error(`File not found: ${full}`);
+          process.exit(2);
+        }
+        const expected = opts.type ? String(opts.type).toLowerCase() : undefined;
+        if (expected && expected !== 'api' && expected !== 'test') {
+          console.error(`Unsupported --type (use api or test): ${opts.type}`);
+          process.exit(2);
+        }
+        const result = validateMmtFile(full, expected);
+        if (result.valid) {
+          console.log(JSON.stringify({
+            file: full,
+            valid: true,
+            detectedType: result.detectedType,
+          }, null, 2));
+          return;
+        }
+        console.error(JSON.stringify({
+          file: full,
+          valid: false,
+          detectedType: result.detectedType,
+          errors: result.errors,
+        }, null, 2));
+        process.exit(1);
+      } catch (e: any) {
+        console.error('Error validating:', e?.message || e);
+        process.exit(2);
+      }
+    });
 
 program.command('doc')
     .argument('<file>', 'Doc file (.mmt/.yaml/.yml)')

@@ -3,6 +3,7 @@ import {z} from 'zod';
 
 import {GUIDE_RESOURCES, readGuideContent} from './resources/guides';
 import {
+  handleApiCard,
   handleDiscoverApi,
   handleFormat,
   handleListExamples,
@@ -16,7 +17,8 @@ export const SERVER_INSTRUCTIONS = [
   'Multimeter MCP is the primary interface for all .mmt file work in VS Code Copilot.',
   'For create, modify, validate, format, or run requests: call Multimeter MCP tools in the FIRST tool-call batch.',
   'Do not explore npm packages, testlight CLI, shell commands, or node server.js before using these tools.',
-  'Do not web-search Multimeter YAML syntax — use read_documentation or scaffold_test.',
+  'Do not web-search Multimeter YAML syntax — use read_documentation (pack min by default) or scaffold_test.',
+  'Prefer api_card over dumping full API files or OpenAPI specs.',
   'Modify workflow: read_documentation(topic) → patch file (no full rewrite) → validate(file) → fix until valid → optional format(file).',
   'Run workflow: run({ file, workspaceRoot }) only — never testlight or shell.',
   'Generate test from API: scaffold_test(workspaceRoot, apiPath) → write returned yaml → minimal edits → validate → optional format → optional run.',
@@ -38,15 +40,16 @@ export function createMmtMcpServer(): McpServer {
       {
         title: 'Read Multimeter docs',
         description: [
-          'FIRST step when creating or modifying any .mmt file and you need syntax rules.',
-          'Call before editing when the user asks to change, fix, add, or generate YAML.',
-          'Returns authoritative Multimeter DSL documentation for test, api, suite, env, loadtest, and constraints.',
+          'Call when you need Multimeter YAML syntax rules.',
+          'Defaults to pack "min" (small). Use pack "full" only for rare/advanced syntax.',
+          'For new tests from an API, prefer scaffold_test over loading docs.',
           DO_NOT_SHELL,
         ].join(' '),
         inputSchema: {
           topic: z.enum([
             'overview', 'workflow', 'test', 'api', 'loadtest', 'suite', 'env', 'doc', 'constraints', 'all',
           ]).optional().describe('Documentation topic. Use workflow for MCP-first edit/run steps. Defaults to overview.'),
+          pack: z.enum(['min', 'full']).optional().describe('min (default, low token) or full'),
         },
         annotations: {readOnlyHint: true},
       },
@@ -79,17 +82,37 @@ export function createMmtMcpServer(): McpServer {
         title: 'Discover workspace APIs',
         description: [
           'Call when listing APIs or inspecting one API before scaffolding a test.',
-          'For new tests from an API, prefer scaffold_test after you know apiPath.',
-          'Pass apiPath to inspect one API file including inputs, outputs, examples, and suggested import paths.',
+          'For a single API, prefer api_card. For new tests, prefer scaffold_test once apiPath is known.',
+          'selectedApi omits full file content unless includeContent is true.',
           DO_NOT_SHELL,
         ].join(' '),
         inputSchema: {
           workspaceRoot: z.string().describe('Workspace root directory'),
           apiPath: z.string().optional().describe('Optional API .mmt file path relative to workspaceRoot'),
+          includeContent: z.boolean().optional().describe('Include full API file content (default false)'),
         },
         annotations: {readOnlyHint: true},
       },
       async (args) => handleDiscoverApi(args),
+  );
+
+  server.registerTool(
+      'api_card',
+      {
+        title: 'Compact API card',
+        description: [
+          'Return a small API summary (method, url, inputs, outputs, suggested paths) without dumping the full file.',
+          'Prefer this over reading the whole .mmt or OpenAPI when generating or planning a test.',
+          'Next step for a new test: scaffold_test.',
+          DO_NOT_SHELL,
+        ].join(' '),
+        inputSchema: {
+          workspaceRoot: z.string().describe('Workspace root directory'),
+          apiPath: z.string().describe('API .mmt file path relative to workspaceRoot or absolute'),
+        },
+        annotations: {readOnlyHint: true},
+      },
+      async (args) => handleApiCard(args),
   );
 
   server.registerTool(

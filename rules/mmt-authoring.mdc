@@ -47,7 +47,9 @@ steps:
 
 1. **Never web-search** Multimeter YAML syntax — use MCP/`testlight` local docs.
 2. **New test from API** → call MCP `scaffold_test` (or `testlight scaffold test --from`) first; then minimal edits.
-3. **Modify** → patch only; do not rewrite the whole file.
-4. **Validate** after every edit (`validate` MCP or equivalent) before finishing.
-5. Prefer smoke unless the user asks for more. No YAML comments (`#`).
-6. When MCP is available: MCP tools first — not shell exploration.
+3. Prefer **`api_card`** over dumping full API/OpenAPI content.
+4. **Modify** → patch only; do not rewrite the whole file.
+5. **Validate** after every edit (`validate` MCP or `testlight validate`) before finishing.
+6. Prefer smoke unless the user asks for more. No YAML comments (`#`).
+7. Docs default to **min** pack; request full only when needed.
+8. When MCP is available: MCP tools first — not shell exploration.
