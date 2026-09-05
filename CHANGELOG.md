@@ -2,6 +2,35 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.39.0]
+
+Pre-release.
+
+### Environment panel
+
+- Show variable source icons (runtime / env-file / manual) and replace legacy `isManual` with `source`
+- Add scoped clear menu (runtime, manual, or all) beside **+**
+- Derive preset selection from current variable values instead of sticky local selection
+
+### Run UX and suites
+
+- Show **Starting…** preparing state on test/suite Run before heavy work
+- Cache suite hierarchy by mtime/open-doc stamp to speed nested suite refresh
+- Add report filters **Running** and **Running | Failed** (pending is not treated as running)
+
+### AI / MCP / testlight (low-token authoring)
+
+- Scaffold-first generation: MCP `scaffold_test`, `testlight scaffold test --from`, short always-on authoring rule
+- Compact `api_card`, min documentation packs (`read_documentation` defaults to min), offline `testlight docs` / `validate`
+- `suggest_assertions` / `testlight suggest asserts` for patch-only expect/assert upgrades
+- Golden smoke few-shot pair (`examples/ai/golden_smoke`) and require validate→format; modify = patch only
+- Deterministic AI scaffold eval corpus (`npm run test:ai-eval`)
+
+### CLI
+
+- `testlight update` for standalone/portal binaries (GitHub Releases or `TESTLIGHT_RELEASE_BASE_URL` mirror); npm/Homebrew get upgrade advice
+- Ship **testlight 0.4.5** (CLI version independent of the extension)
+
 ## [1.38.1]
 
 Stable release of the 1.38.0 pre-release (no additional changes).
