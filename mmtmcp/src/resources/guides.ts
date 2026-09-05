@@ -23,6 +23,7 @@ export interface GuideResource {
 }
 
 export const GUIDE_RESOURCES: GuideResource[] = [
+  {uri: 'mmt://guide/golden-smoke', name: 'golden-smoke', fileName: 'golden-smoke.md'},
   {uri: 'mmt://guide/agent-workflow', name: 'agent-workflow', fileName: 'agent-workflow.md'},
   {uri: 'mmt://guide/offline-agent', name: 'offline-agent', fileName: 'offline-agent.md'},
   {uri: 'mmt://guide/general', name: 'general', fileName: 'general.md'},

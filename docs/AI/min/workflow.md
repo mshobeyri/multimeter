@@ -4,11 +4,13 @@ MCP-first when Multimeter MCP is registered.
 
 | Intent | First tool | Then |
 |--------|------------|------|
-| Test from API | `scaffold_test` | Write yaml → minimal edits → `validate` |
+| Test from API | `scaffold_test` | Write yaml → **`validate` → `format`** |
+| Few-shot | `list_examples` | Mirror `goldenSmoke` |
 | Inspect API | `api_card` | Prefer card over full file dump |
-| Modify `.mmt` | patch file | `validate` |
-| Run | `run` | report tool JSON |
+| Tighten asserts | `suggest_assertions` | Patch → **`validate` → `format`** |
+| Modify `.mmt` | **patch only** | **`validate` → `format`** (no full rewrite) |
+| Run | `run` | tool JSON; then suggest_assertions if asked |
 
-Offline (no MCP): `testlight docs <topic>` → `testlight scaffold test --from` → edit → `testlight validate`.
+Offline: `testlight docs` → `scaffold` → edit → `validate`.
 
-Hard rules: no web search for syntax; no blank-page test invent; no full-file rewrite on modify.
+Hard rules: no web search; no blank-page invent; modify = patch only unless user asks to rewrite.

@@ -12,55 +12,60 @@ Do **not** first try:
 - Reading Multimeter source, tarball contents, or package.json to find a runner
 - Guessing YAML syntax from memory or random repo files
 - Inventing a new test from blank without `scaffold_test`
+- Rewriting an entire `.mmt` file when the user asked to change one part
 
 ## Decision tree
 
 | User intent | First MCP tool(s) | Then |
 |-------------|-------------------|------|
-| Generate test from API | **`scaffold_test`** | Write returned yaml → minimal edits → `validate` |
+| Generate test from API | **`scaffold_test`** | Write yaml → minimal edits → **`validate` → `format`** |
+| Need few-shot shape | **`list_examples`** (see `goldenSmoke`) | Mirror pair; still call `scaffold_test` |
 | Inspect one API | **`api_card`** | Prefer over full file / OpenAPI dump |
-| Tighten asserts | **`suggest_assertions`** | Patch expect/assert only → `validate` |
-| Create or change other types | `read_documentation(topic)` (pack **min**) | Edit/patch → `validate` → `format` (optional) |
-| Change existing `.mmt` file | `read_documentation(topic)` if needed | **Patch only** → `validate` |
+| Tighten asserts (after run or from outputs) | **`suggest_assertions`** | Patch only → **`validate` → `format`** |
+| Create or change other types | `read_documentation(topic)` (pack **min**) | Patch → **`validate` → `format`** |
+| Change existing `.mmt` file | (docs only if needed) | **Patch only** → **`validate` → `format`** |
 | List APIs | `discover_api` | Then `api_card` / `scaffold_test` |
-| Run or execute `.mmt` | `run({ file, workspaceRoot })` | Report `success`, logs, errors |
-| Unsure of syntax | `read_documentation` (min; `pack: full` if needed) | Use returned docs, not web search |
-| Need examples | `list_examples` | Follow patterns, then `validate` |
+| Run or execute `.mmt` | `run({ file, workspaceRoot })` | Report tool JSON; if user wants stronger asserts → `suggest_assertions` |
+| Unsure of syntax | `read_documentation` (min; `pack: full` if needed) | Local docs only — no web |
 | Offline / no MCP | see `offline-agent.md` | `testlight docs` → `scaffold` → `validate` |
 
 ## Generate test from API (required)
 
-1. `scaffold_test({ workspaceRoot, apiPath, strategy?: "smoke"|"example" })`
-2. Write `yaml` to `suggestedPath` (or user path).
-3. Apply **only minimal** edits (asserts, inputs, title).
-4. `validate({ file, workspaceRoot })` until `valid: true`.
-5. Optional `format` / `run` when asked.
+1. Optional: `list_examples` and mirror **`goldenSmoke`** (do not invent a different structure).
+2. `scaffold_test({ workspaceRoot, apiPath, strategy?: "smoke"|"example" })`
+3. Write `yaml` to `suggestedPath` (or user path).
+4. Apply **only minimal** edits (asserts, inputs, title).
+5. **`validate({ file, workspaceRoot })` until `valid: true`.**
+6. **`format({ file, workspaceRoot })` after validate passes** (required on generate).
+7. `run` only when the user asks to execute.
+8. If the user then wants stronger asserts from a response: `suggest_assertions` → patch → validate → format.
 
 ## Modify workflow (required)
 
 When the user asks to **modify**, **update**, **fix**, or **add steps** to a `.mmt` `file:`
 
-1. `read_documentation(topic: "<type>")` when syntax is unclear.
-2. If helpful, `discover_api({ workspaceRoot, apiPath })`.
-3. **Patch** the workspace file — do not rewrite the whole file.
-4. **`validate({ file, workspaceRoot })` immediately after every edit.**
-5. Fix validation errors; call `validate` again until `valid: true`.
-6. Optionally `format({ file, workspaceRoot })`.
-7. Only call `run` when the user asks to execute.
+1. `read_documentation(topic: "<type>")` only when syntax is unclear (pack **min**).
+2. If helpful, `api_card` / `discover_api`.
+3. **Patch only** — change the few lines needed. **Do not rewrite the whole file** unless the user explicitly asks for a rewrite/regenerate.
+4. **`validate` immediately after every edit** until `valid: true`.
+5. **`format` after validate passes.**
+6. Only call `run` when the user asks to execute.
 
-## Run workflow (required)
+## Run → tighten asserts (optional)
 
-When the user asks to **run**, **execute**, or **test** a `file:`
+When the user wants better assertions after a successful (or inspected) run:
 
-```
-run({ file: "<path/to/file.mmt>", workspaceRoot: "<workspace root>" })
-```
+1. `suggest_assertions` with `apiPath` and/or response `body` / `bodyFile`
+2. Patch `expect` / `assert` lines only
+3. `validate` → `format`
 
-Return the MCP tool JSON (`success`, `logs`, `failures`, `errors`). Do not substitute shell commands.
+## Validation + format are mandatory
 
-## Validation is mandatory
+After **every** generate or modify on `.mmt` files:
 
-After **every** generate or modify operation on `.mmt` files, call `validate` before telling the user the task is done.
+1. `validate` until valid  
+2. `format`  
+before telling the user the task is done.
 
 ## YAML rules (always)
 

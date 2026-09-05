@@ -8,13 +8,20 @@ Produce a valid Multimeter `type: test` YAML file that is deterministic, minimal
 
 ## Required workflow (API → test)
 
-1. Identify the target API `.mmt` path (use `discover_api` only if the path is unknown).
-2. Call MCP **`scaffold_test({ workspaceRoot, apiPath })`** — **required**. Do not invent a blank test.
-   - Offline / no MCP: `testlight scaffold test --from <api.mmt>`
-3. Write the returned YAML to `suggestedPath` (or the user path).
-4. Apply **only minimal** edits (title, expects, inputs). Prefer smoke unless asked for more.
-5. Call **`validate`** before finishing; fix until valid.
-6. Stop when validate passes — no polish rewrite.
+1. Optional few-shot: `list_examples` → mirror **`goldenSmoke`** (`examples/ai/golden_smoke/`).
+2. Identify the target API `.mmt` path (`discover_api` / `api_card` only if needed).
+3. Call MCP **`scaffold_test({ workspaceRoot, apiPath })`** — **required**. Do not invent a blank test.
+   - Offline: `testlight scaffold test --from <api.mmt>`
+4. Write the returned YAML to `suggestedPath` (or the user path).
+5. Apply **only minimal** edits (title, expects, inputs). Prefer smoke unless asked for more.
+6. **`validate` until valid, then `format`** — both required before finishing.
+7. Stop — no polish rewrite.
+8. If the user wants stronger asserts after a run: **`suggest_assertions` → patch → validate → format**.
+
+## Modify discipline
+
+- **Patch only.** Never replace the whole file unless the user explicitly says rewrite/regenerate.
+- Prefer surgical edits (one step, one expect, one input).
 
 ## Rules
 
@@ -23,10 +30,11 @@ Produce a valid Multimeter `type: test` YAML file that is deterministic, minimal
 - Never add YAML comments (`#`).
 - Never web-search Multimeter syntax.
 - Use tokens such as `e:`, `i:`, `r:`, and `c:` when appropriate.
-- Modify requests: patch only; do not rewrite the whole file.
 - If the source is ambiguous, ask a short clarifying question before generating.
 
-## Scaffold baseline (what `scaffold_test` already produces)
+## Golden smoke shape (mirror this)
+
+See `docs/AI/golden-smoke.md` / `list_examples.goldenSmoke`. Scaffold already produces:
 
 ```yaml
 type: test

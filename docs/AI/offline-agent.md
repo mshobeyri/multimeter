@@ -12,10 +12,12 @@ If Multimeter MCP tools exist (`scaffold_test`, `validate`, `run`, …), use tho
 testlight docs <topic>          # local syntax (pack min by default)
 testlight scaffold test --from <api.mmt> [-o path]
 testlight suggest asserts --from <api.mmt> [--body-file resp.json]
-# patch the file if needed
+# patch the file if needed (never rewrite whole file unless asked)
 testlight validate <file.mmt>
 testlight run <file.mmt>        # only when asked to execute
 ```
+
+Few-shot: mirror `examples/ai/golden_smoke/` (see `docs/AI/golden-smoke.md`).
 
 ### Topics
 
@@ -31,8 +33,9 @@ testlight docs api --pack full
 1. Do **not** open mmt.dev / GitHub / web search for Multimeter YAML syntax.
 2. New tests from an API: **scaffold first** — do not invent blank YAML.
 3. Modify: **patch only** — do not rewrite the whole file.
-4. Always **validate** before claiming done.
-5. Set `MMT_GUIDES_DIR` if guides are not next to the CLI binary.
+4. Always **validate** before claiming done (format when using MCP).
+5. Modify: **patch only** unless the user asks to rewrite.
+6. Set `MMT_GUIDES_DIR` if guides are not next to the CLI binary.
 
 ## Guides location
 

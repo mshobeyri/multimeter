@@ -107,7 +107,21 @@ export function listExamples(options?: {
 }): {
   examplesDir: string;
   examples: Array<ExampleEntry & {content?: string}>;
-  patterns: Array<{name: string; description: string; examplePath: string}>;
+  patterns: Array<{
+    name: string;
+    description: string;
+    examplePath: string;
+    apiPath?: string;
+    guide?: string;
+  }>;
+  goldenSmoke: {
+    apiPath: string;
+    testPath: string;
+    guide: string;
+    api?: string;
+    test?: string;
+  };
+  usage: string;
 } {
   const examplesDir = resolveExamplesDir();
   let examples = loadExamplesIndex();
@@ -131,6 +145,14 @@ export function listExamples(options?: {
 
   const patterns = [
     {
+      name: 'golden-smoke-pair',
+      description:
+          'REQUIRED few-shot: minimal API + scaffolded smoke test. Mirror this; call scaffold_test instead of inventing YAML.',
+      examplePath: 'ai/golden_smoke/tests/echo-smoke.mmt',
+      apiPath: 'ai/golden_smoke/apis/echo.mmt',
+      guide: 'golden-smoke.md',
+    },
+    {
       name: 'api-smoke-test',
       description: 'Call one imported API, assert status, check key outputs.',
       examplePath: 'intermediate/07_simple_suite/test/echo_test.mmt',
@@ -152,10 +174,28 @@ export function listExamples(options?: {
     },
   ];
 
+  const goldenApiRel = 'ai/golden_smoke/apis/echo.mmt';
+  const goldenTestRel = 'ai/golden_smoke/tests/echo-smoke.mmt';
+  const goldenApiFull = path.join(examplesDir, goldenApiRel);
+  const goldenTestFull = path.join(examplesDir, goldenTestRel);
+  const goldenSmoke = {
+    apiPath: goldenApiRel,
+    testPath: goldenTestRel,
+    guide: 'golden-smoke.md',
+    api: fs.existsSync(goldenApiFull) ? fs.readFileSync(goldenApiFull, 'utf8') : undefined,
+    test: fs.existsSync(goldenTestFull) ? fs.readFileSync(goldenTestFull, 'utf8') : undefined,
+  };
+
   return {
     examplesDir,
     examples: enriched,
     patterns,
+    goldenSmoke,
+    usage: [
+      'Prefer patterns[0] golden-smoke-pair / goldenSmoke as the few-shot.',
+      'For new API tests call scaffold_test — do not invent YAML from scratch.',
+      'Modify = patch only; never rewrite the whole file unless the user explicitly asks.',
+    ].join(' '),
   };
 }
 

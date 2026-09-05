@@ -3,6 +3,7 @@ import path from 'path';
 import {
   handleApiCard,
   handleDiscoverApi,
+  handleListExamples,
   handleReadDocumentation,
   handleScaffoldTest,
   handleSuggestAssertions,
@@ -13,6 +14,16 @@ import {
 describe('MCP handlers', () => {
   const repoRoot = path.resolve(__dirname, '..', '..', '..');
   const workspaceRoot = repoRoot;
+
+  it('list_examples exposes goldenSmoke few-shot pair', async () => {
+    process.env.MMT_EXAMPLES_DIR = path.resolve(repoRoot, 'examples');
+    const result = await handleListExamples({maxItems: 5});
+    const payload = JSON.parse(result.content[0].text);
+    expect(payload.patterns[0].name).toBe('golden-smoke-pair');
+    expect(payload.goldenSmoke.api).toMatch(/type:\s*api/);
+    expect(payload.goldenSmoke.test).toMatch(/type:\s*test/);
+    expect(payload.usage).toMatch(/patch only/i);
+  });
 
   it('read_documentation defaults to min pack', async () => {
     process.env.MMT_GUIDES_DIR = path.resolve(repoRoot, 'docs', 'AI');
