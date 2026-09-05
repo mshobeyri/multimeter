@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+import {derivePresetSelections} from './envPresetMatch';
+
 export type EnvVarSource = 'file' | 'manual' | 'runtime';
 
 export interface EnvironmentVar {
@@ -154,10 +156,12 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
   refreshEnvironmentVars() {
     const environmentVars = this.getWorkspaceEnvironmentVars();
     const presets = this.getWorkspaceEnvironmentPresets();
+    const presetSelections = derivePresetSelections(environmentVars, presets);
     this.view?.webview.postMessage({
       command: 'multimeter.environment.panel.refresh',
       data: environmentVars,
       presets,
+      presetSelections,
     });
   }
 
@@ -241,13 +245,14 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
       }
     }
 
-    if (!updated) {
-      return;
+    if (updated) {
+      await this.context.workspaceState.update(
+          'multimeter.environment.storage', environmentVars);
+      await vscode.commands.executeCommand('multimeter.environment.refresh');
+    } else {
+      // Vars already matched; still refresh so derived preset selection shows.
+      this.refreshEnvironmentVars();
     }
-
-    await this.context.workspaceState.update(
-        'multimeter.environment.storage', environmentVars);
-    await vscode.commands.executeCommand('multimeter.environment.refresh');
   }
 
   async clearEnvironments(scope: 'runtime'|'manual'|'all' = 'all') {

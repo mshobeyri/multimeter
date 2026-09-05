@@ -424,13 +424,17 @@
         const vscode = acquireVsCodeApi();
         let environmentVars = [];
         let environmentPresets = {};
-        const presetSelections = {};
+        /** Derived from current vars ↔ preset mappings (not sticky local state). */
+        let presetSelections = {};
 
         window.addEventListener('message', event => {
             const message = event.data;
             if (message.command === 'multimeter.environment.panel.refresh') {
                 environmentVars = message.data || [];
                 environmentPresets = message.presets || {};
+                presetSelections = message.presetSelections && typeof message.presetSelections === 'object'
+                    ? { ...message.presetSelections }
+                    : {};
                 updateUI();
                 renderPresets();
             }
@@ -628,13 +632,6 @@
             presetCard.style.display = 'block';
             presetSection.style.display = 'flex';
 
-            const validPresetNames = new Set(presetEntries.map(([name]) => name));
-            Object.keys(presetSelections).forEach(key => {
-                if (!validPresetNames.has(key)) {
-                    delete presetSelections[key];
-                }
-            });
-
             presetEntries.forEach(([presetName, presetGroup]) => {
                 const envNames = Object.keys(presetGroup || {});
 
@@ -654,7 +651,6 @@
                 placeholder.value = '';
                 placeholder.textContent = 'Select...';
                 placeholder.disabled = true;
-                placeholder.selected = true;
                 select.appendChild(placeholder);
 
                 envNames.forEach(envName => {
@@ -664,18 +660,20 @@
                     select.appendChild(option);
                 });
 
-                const savedSelection = presetSelections[presetName];
-                if (savedSelection && envNames.includes(savedSelection)) {
-                    select.value = savedSelection;
+                const matchedSelection = presetSelections[presetName];
+                if (matchedSelection && envNames.includes(matchedSelection)) {
+                    select.value = matchedSelection;
+                    placeholder.selected = false;
+                } else {
+                    placeholder.selected = true;
+                    select.value = '';
                 }
 
                 select.addEventListener('change', () => {
                     const envName = select.value;
                     if (!envName) {
-                        delete presetSelections[presetName];
                         return;
                     }
-                    presetSelections[presetName] = envName;
                     vscode.postMessage({
                         type: 'multimeter.environment.applyPreset',
                         presetName,
