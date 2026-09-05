@@ -2,7 +2,9 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
-## [1.38.0]
+## [1.38.1]
+
+Stable release of the 1.38.0 pre-release (no additional changes).
 
 ### Tests and dynamic values
 
@@ -27,6 +29,10 @@ All notable changes to the **Multimeter** extension will be documented in this f
 
 - Update chained calls to use `o:` outputs; remove the broken Bruno delete sample; replace Postman `pm.*` js with a working Multimeter `js` check
 - Add `examples/intermediate/26_yaml_expect_typing` and unit regressions for the scenarios above
+
+## [1.38.0]
+
+- Pre-release of the changes listed in 1.38.1
 
 ## [1.37.0]
 
