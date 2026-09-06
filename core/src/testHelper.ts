@@ -10,6 +10,7 @@ import {
 } from './JudgeData';
 import {evaluateJudge} from './judgeEngine';
 import './judgeEngineOllama';
+import './judgeEngineProviders';
 
 /**
  * Abort signal for cooperative test cancellation.

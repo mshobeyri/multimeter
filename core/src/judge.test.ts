@@ -9,6 +9,7 @@ import {
   registerJudgeEngine,
 } from './judgeEngine';
 import './judgeEngineOllama';
+import './judgeEngineProviders';
 import {objectToJudge, validateJudgeObject, yamlToJudgeStrict} from './judgeParsePack';
 import {fileType} from './JSerHelper';
 import {getTestFlowStepType, yamlToTestStrict} from './testParsePack';
@@ -184,6 +185,115 @@ describe('ollama engine evaluateJudge', () => {
     expect(httpPost).toHaveBeenCalled();
     const call = httpPost.mock.calls[0][0];
     expect(call.url).toBe('http://ollama.test/api/chat');
+    expect(result.passed).toBe(true);
+  });
+});
+
+describe('cloud judge engines', () => {
+  const verdictBody = JSON.stringify({
+    checks: {semanticSimilarity: {score: 0.9, passed: true}},
+    criteria: [{passed: true, reason: 'ok'}],
+  });
+
+  type PostArgs = {
+    url: string;
+    headers?: Record<string, string>;
+    body: any;
+    timeoutMs?: number;
+  };
+
+  function mockPost(body: any) {
+    return jest.fn(async (_args: PostArgs) => ({
+      status: 200,
+      statusText: 'OK',
+      body,
+    }));
+  }
+
+  it('openai posts chat/completions with bearer auth', async () => {
+    const httpPost = mockPost({
+      choices: [{message: {content: verdictBody}}],
+    });
+    const result = await evaluateJudge(
+        objectToJudge({
+          type: 'judge',
+          engine: 'openai',
+          model: 'gpt-4o-mini',
+          url: 'https://api.openai.com/v1',
+          auth: {type: 'bearer', token: 'sk-test'},
+        }),
+        {inputs: {actual: 'a'}, checks: {semanticSimilarity: 0.5}, criteria: ['c']},
+        httpPost);
+    expect(httpPost).toHaveBeenCalled();
+    const call = httpPost.mock.calls[0][0];
+    expect(call.url).toBe('https://api.openai.com/v1/chat/completions');
+    expect(call.headers?.Authorization).toBe('Bearer sk-test');
+    expect(call.body.response_format).toEqual({type: 'json_object'});
+    expect(result.passed).toBe(true);
+  });
+
+  it('anthropic posts messages with x-api-key', async () => {
+    const httpPost = mockPost({
+      content: [{type: 'text', text: verdictBody}],
+    });
+    const result = await evaluateJudge(
+        objectToJudge({
+          type: 'judge',
+          engine: 'anthropic',
+          model: 'claude-3-5-haiku-latest',
+          url: 'https://api.anthropic.com',
+          auth: {type: 'api-key', header: 'x-api-key', value: 'ant-key'},
+        }),
+        {inputs: {actual: 'a'}, checks: {semanticSimilarity: 0.5}, criteria: ['c']},
+        httpPost);
+    const call = httpPost.mock.calls[0][0];
+    expect(call.url).toBe('https://api.anthropic.com/v1/messages');
+    expect(call.headers?.['x-api-key']).toBe('ant-key');
+    expect(call.headers?.['anthropic-version']).toBe('2023-06-01');
+    expect(call.body.max_tokens).toBe(4096);
+    expect(result.passed).toBe(true);
+  });
+
+  it('google posts generateContent with x-goog-api-key', async () => {
+    const httpPost = mockPost({
+      candidates: [{content: {parts: [{text: verdictBody}]}}],
+    });
+    const result = await evaluateJudge(
+        objectToJudge({
+          type: 'judge',
+          engine: 'google',
+          model: 'gemini-2.0-flash',
+          url: 'https://generativelanguage.googleapis.com/v1beta',
+          auth: {type: 'api-key', header: 'x-goog-api-key', value: 'goog-key'},
+        }),
+        {inputs: {actual: 'a'}, checks: {semanticSimilarity: 0.5}, criteria: ['c']},
+        httpPost);
+    const call = httpPost.mock.calls[0][0];
+    expect(call.url).toBe(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent');
+    expect(call.headers?.['x-goog-api-key']).toBe('goog-key');
+    expect(call.body.generationConfig.responseMimeType).toBe('application/json');
+    expect(result.passed).toBe(true);
+  });
+
+  it('azure-openai posts deployment chat completions', async () => {
+    const httpPost = mockPost({
+      choices: [{message: {content: verdictBody}}],
+    });
+    const result = await evaluateJudge(
+        objectToJudge({
+          type: 'judge',
+          engine: 'azure-openai',
+          model: 'my-deploy',
+          url: 'https://example.openai.azure.com',
+          auth: {type: 'api-key', header: 'api-key', value: 'az-key'},
+        }),
+        {inputs: {actual: 'a'}, checks: {semanticSimilarity: 0.5}, criteria: ['c']},
+        httpPost);
+    const call = httpPost.mock.calls[0][0];
+    expect(call.url).toBe(
+        'https://example.openai.azure.com/openai/deployments/my-deploy/chat/completions?api-version=2024-10-21');
+    expect(call.headers?.['api-key']).toBe('az-key');
     expect(result.passed).toBe(true);
   });
 });

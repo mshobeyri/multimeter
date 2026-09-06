@@ -47,8 +47,8 @@ options:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `type` | yes | Must be `judge` |
-| `engine` | yes | `ollama` (v1). Later: `openai`, `anthropic`, `google`, `azure-openai` |
-| `model` | yes | Model id / name for that engine |
+| `engine` | yes | `ollama`, `openai`, `anthropic`, `google`, `azure-openai` |
+| `model` | yes | Model id / name (Azure: deployment name) |
 | `url` | yes | Base URL for the engine HTTP API |
 | `auth` | no | Same shape as API `auth` (e.g. bearer token for OpenAI) |
 | `options` | no | e.g. `temperature`, `timeout` (`30s`, ms number) |
@@ -57,13 +57,25 @@ options:
 
 ## Engines
 
-### Ollama (v1)
+### Ollama
 
 Uses `POST {url}/api/chat` with JSON output. Typical URL: `http://127.0.0.1:11434` via `e:ollama_url`. Auth is usually omitted.
 
-### Cloud engines
+### OpenAI
 
-OpenAI / Anthropic / Google / Azure adapters are planned. Same top-level shape (`engine`, `model`, `url`, `auth`, `options`); each adapter validates its own connection fields.
+Uses `POST {url}/chat/completions` with `response_format: json_object`. Typical URL: `https://api.openai.com/v1` and `auth.type: bearer`.
+
+### Anthropic
+
+Uses `POST {url}/v1/messages`. Typical URL: `https://api.anthropic.com`. Prefer `auth.type: api-key` with header `x-api-key` (bearer token also maps to `x-api-key`).
+
+### Google (Gemini)
+
+Uses `POST {url}/models/{model}:generateContent` with JSON mime type. Typical URL: `https://generativelanguage.googleapis.com/v1beta`. Prefer `auth.type: api-key` with header `x-goog-api-key`.
+
+### Azure OpenAI
+
+Uses `POST {url}/openai/deployments/{model}/chat/completions?api-version=…`. `model` is the **deployment name**. Prefer `auth.type: api-key` with header `api-key`.
 
 ## Related
 

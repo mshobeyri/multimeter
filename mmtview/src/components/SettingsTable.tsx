@@ -18,9 +18,17 @@ interface SettingsTableProps {
   columns: SettingsTableColumn[];
   rows: SettingsTableRow[];
   emptyLabel?: string;
+  onRowClick?: (row: SettingsTableRow) => void;
+  isRowActive?: (row: SettingsTableRow) => boolean;
 }
 
-const SettingsTable: React.FC<SettingsTableProps> = ({ columns, rows, emptyLabel }) => {
+const SettingsTable: React.FC<SettingsTableProps> = ({
+  columns,
+  rows,
+  emptyLabel,
+  onRowClick,
+  isRowActive,
+}) => {
   return (
     <div className="settings-table-block">
       <div className="settings-table-wrapper">
@@ -41,27 +49,38 @@ const SettingsTable: React.FC<SettingsTableProps> = ({ columns, rows, emptyLabel
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, rowIndex) => (
-              <tr key={row.key ?? rowIndex}>
-                {columns.map(col => {
-                  const value = row.cells[col.key];
-                  const cellClassNames = [
-                    "settings-table-cell",
-                    col.variant === "code" ? "settings-table-cell-code" : undefined,
-                    col.variant === "key" ? "settings-table-cell-key" : undefined
-                  ].filter(Boolean).join(" ");
-                  return (
-                    <td
-                      key={col.key}
-                      className={cellClassNames}
-                      style={col.align ? { textAlign: col.align } : undefined}
-                    >
-                      {value ?? <span className="settings-table-empty-cell">—</span>}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+            {rows.map((row, rowIndex) => {
+              const active = isRowActive?.(row);
+              const clickable = typeof onRowClick === 'function';
+              return (
+                <tr
+                  key={row.key ?? rowIndex}
+                  className={[
+                    clickable ? 'settings-table-row--clickable' : undefined,
+                    active ? 'settings-table-row--active' : undefined,
+                  ].filter(Boolean).join(' ') || undefined}
+                  onClick={clickable ? () => onRowClick(row) : undefined}
+                >
+                  {columns.map(col => {
+                    const value = row.cells[col.key];
+                    const cellClassNames = [
+                      "settings-table-cell",
+                      col.variant === "code" ? "settings-table-cell-code" : undefined,
+                      col.variant === "key" ? "settings-table-cell-key" : undefined
+                    ].filter(Boolean).join(" ");
+                    return (
+                      <td
+                        key={col.key}
+                        className={cellClassNames}
+                        style={col.align ? { textAlign: col.align } : undefined}
+                      >
+                        {value ?? <span className="settings-table-empty-cell">—</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
