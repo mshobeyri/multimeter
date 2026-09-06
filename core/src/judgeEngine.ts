@@ -7,6 +7,7 @@ import {
   mergeJudgeStepConfig,
   normalizeJudgeCheckValue,
 } from './JudgeData';
+import {buildJudgeBuiltinChecksPrompt} from './judgeChecks';
 import {parseDurationString} from './JSerHelper';
 
 export type JudgeHttpPost = (args: {
@@ -77,7 +78,8 @@ export function buildJudgeSystemPrompt(): string {
     '  "criteria": [ { "passed": true|false, "reason": "..." } ]',
     '}',
     'criteria array MUST have the same length and order as the criteria list you were given.',
-    'For semanticSimilarity, score is 0..1 similarity between inputs.actual and inputs.expected (or closest available fields); passed if score >= threshold.',
+    'For each check, set passed true when score >= the given threshold (if any).',
+    buildJudgeBuiltinChecksPrompt(),
   ].join('\n');
 }
 

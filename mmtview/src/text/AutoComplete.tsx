@@ -150,7 +150,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "engine: ",
             detail: 'Judge engine [ollama|openai|…]',
-            documentation: 'Engine adapter id. v1: ollama. Planned: openai, anthropic, google, azure-openai.'
+            documentation: 'Engine adapter id: ollama, openai, anthropic, google, azure-openai.'
         },
         {
             label: "model",
@@ -183,9 +183,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "defaults",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "defaults:\n\tchecks:\n\t\tsemanticSimilarity: 0.8\n",
+            insertText: "defaults:\n\tchecks:\n\t\tsemanticSimilarity: 0.8\n\t\tanswerRelevance: 0.8\n",
             detail: 'Default checks/criteria',
-            documentation: 'Optional defaults merged into judge steps (step wins on conflict).'
+            documentation: 'Optional defaults merged into judge steps (step wins on conflict).\nBuilt-in checks: semanticSimilarity, answerRelevance, contextFaithfulness, factuality.'
         },
         {
             label: "tags",
@@ -197,10 +197,10 @@ export const KeySuggestionsByParent = (monaco: any) => {
     ];
     const engineValueSuggestions = [
         { label: 'ollama', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'ollama', detail: 'Local Ollama', documentation: 'Local Ollama HTTP API (default for development).' },
-        { label: 'openai', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'openai', detail: 'OpenAI', documentation: 'OpenAI chat completions (planned).' },
-        { label: 'anthropic', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'anthropic', detail: 'Anthropic', documentation: 'Anthropic Messages API (planned).' },
-        { label: 'google', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'google', detail: 'Google AI', documentation: 'Google Gemini (planned).' },
-        { label: 'azure-openai', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'azure-openai', detail: 'Azure OpenAI', documentation: 'Azure OpenAI deployment (planned).' },
+        { label: 'openai', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'openai', detail: 'OpenAI', documentation: 'OpenAI chat completions API.' },
+        { label: 'anthropic', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'anthropic', detail: 'Anthropic', documentation: 'Anthropic Messages API.' },
+        { label: 'google', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'google', detail: 'Google AI', documentation: 'Google Gemini generateContent API.' },
+        { label: 'azure-openai', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'azure-openai', detail: 'Azure OpenAI', documentation: 'Azure OpenAI deployment chat completions.' },
     ];
     const testSuggestions = [
         {
@@ -550,7 +550,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 "\tid: ",
                 "\tcontext:",
                 "\t\tactual: ",
+                "\t\tquestion: ",
                 "\texpect:",
+                "\t\tanswerRelevance: 0.8",
                 "\t\tsemanticSimilarity: 0.9",
                 "\t\tcriteria:",
                 "\t\t\t- ",
@@ -559,20 +561,21 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: [
                 'Evaluates non-deterministic responses via an imported type: judge resource.',
                 'Emits one report box (like call expect) with multiple items.',
-                'context: data for the judge (actual, expected, policy, …).',
+                'context: data for the judge (actual, expected, policy, question, …).',
                 'expect: soft metrics + criteria (continue on fail).',
                 'require: hard metrics + criteria (stop on fail).',
+                'Built-in metrics: semanticSimilarity, answerRelevance, contextFaithfulness, factuality.',
                 'Same metric can appear in both; each level uses its own threshold.',
                 'Example:',
                 '- judge: localJudge',
                 '  context:',
                 '    actual: ${reply}',
+                '    expected: ${expected}',
                 '  expect:',
+                '    answerRelevance: 0.8',
                 '    semanticSimilarity: 0.9',
-                '    criteria:',
-                '      - Be concise',
                 '  require:',
-                '    semanticSimilarity: 0.5',
+                '    contextFaithfulness: 0.5',
             ].join('\n')
         },
         {
@@ -1877,20 +1880,23 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture judge result', documentation: 'Variable for the judge result (${id.passed}, ${id.checks}, ${id.criteria}).' },
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Judge step title', documentation: 'Label shown in reports.' },
         { label: 'context', kind: monaco.languages.CompletionItemKind.Property, insertText: 'context:\n\tactual: ', detail: 'Data for the judge', documentation: 'Flexible map (actual, expected, policy, retrievedContext, …).' },
-        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\tsemanticSimilarity: 0.9\n\tcriteria:\n\t\t- ', detail: 'Soft evaluation (continue on fail)', documentation: 'Metrics + optional criteria. Soft: report and continue. Same metric may also appear under require with a different threshold.' },
-        { label: 'require', kind: monaco.languages.CompletionItemKind.Property, insertText: 'require:\n\tsemanticSimilarity: 0.5\n', detail: 'Hard evaluation (stop on fail)', documentation: 'Metrics + optional criteria. Hard: report and stop the test.' },
+        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\tanswerRelevance: 0.8\n\tsemanticSimilarity: 0.9\n\tcriteria:\n\t\t- ', detail: 'Soft evaluation (continue on fail)', documentation: 'Metrics + optional criteria. Soft: report and continue. Built-ins: semanticSimilarity, answerRelevance, contextFaithfulness, factuality.' },
+        { label: 'require', kind: monaco.languages.CompletionItemKind.Property, insertText: 'require:\n\tcontextFaithfulness: 0.5\n\tsemanticSimilarity: 0.5\n', detail: 'Hard evaluation (stop on fail)', documentation: 'Metrics + optional criteria. Hard: report and stop the test.' },
         { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'all | fails | none (or internal/external object).' },
     ];
     const judgeEvalSiblings = [
-        { label: 'semanticSimilarity', kind: monaco.languages.CompletionItemKind.Property, insertText: 'semanticSimilarity: 0.8\n', detail: 'Similarity threshold', documentation: 'Shorthand for { threshold: 0.8 }. Soft under expect:, hard under require:. Both levels can use the same metric with different thresholds.' },
+        { label: 'semanticSimilarity', kind: monaco.languages.CompletionItemKind.Property, insertText: 'semanticSimilarity: 0.8\n', detail: 'Similarity threshold', documentation: 'Meaning similarity of actual vs expected (0..1). Soft under expect:, hard under require:.' },
+        { label: 'answerRelevance', kind: monaco.languages.CompletionItemKind.Property, insertText: 'answerRelevance: 0.8\n', detail: 'Answer relevance threshold', documentation: 'Whether actual answers question / the user request (0..1).' },
+        { label: 'contextFaithfulness', kind: monaco.languages.CompletionItemKind.Property, insertText: 'contextFaithfulness: 0.7\n', detail: 'Context faithfulness threshold', documentation: 'Whether actual stays grounded in policy / retrievedContext (0..1).' },
+        { label: 'factuality', kind: monaco.languages.CompletionItemKind.Property, insertText: 'factuality: 0.7\n', detail: 'Factuality threshold', documentation: 'Factual consistency of actual vs expected / ground-truth fields (0..1).' },
         { label: 'criteria', kind: monaco.languages.CompletionItemKind.Property, insertText: 'criteria:\n\t- ', detail: 'Free-text criteria', documentation: 'Natural-language requirements. Soft under expect:, hard under require:.' },
     ];
     const judgeContextSiblings = [
         { label: 'actual', kind: monaco.languages.CompletionItemKind.Property, insertText: 'actual: ', detail: 'Text under evaluation', documentation: 'Primary response / reply text for the judge.' },
-        { label: 'expected', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expected: ', detail: 'Reference text', documentation: 'Optional expected / golden answer for similarity checks.' },
-        { label: 'policy', kind: monaco.languages.CompletionItemKind.Property, insertText: 'policy: ', detail: 'Policy text', documentation: 'Optional policy or rules the reply must respect.' },
-        { label: 'question', kind: monaco.languages.CompletionItemKind.Property, insertText: 'question: ', detail: 'User question', documentation: 'Optional original question / prompt.' },
-        { label: 'retrievedContext', kind: monaco.languages.CompletionItemKind.Property, insertText: 'retrievedContext: ', detail: 'RAG context', documentation: 'Optional retrieved context for faithfulness-style checks.' },
+        { label: 'expected', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expected: ', detail: 'Reference text', documentation: 'Optional expected / golden answer (semanticSimilarity, factuality).' },
+        { label: 'policy', kind: monaco.languages.CompletionItemKind.Property, insertText: 'policy: ', detail: 'Policy text', documentation: 'Optional policy or rules (contextFaithfulness, factuality).' },
+        { label: 'question', kind: monaco.languages.CompletionItemKind.Property, insertText: 'question: ', detail: 'User question', documentation: 'Optional original question / prompt (answerRelevance).' },
+        { label: 'retrievedContext', kind: monaco.languages.CompletionItemKind.Property, insertText: 'retrievedContext: ', detail: 'RAG context', documentation: 'Optional retrieved context (contextFaithfulness).' },
     ];
     const stepReportSuggestions = [
         { label: 'internal', kind: monaco.languages.CompletionItemKind.Property, insertText: 'internal: ', detail: 'Report level when running directly', documentation: 'Report level when the test is run directly.\nValues: all (default), fails, none' },

@@ -19,11 +19,13 @@ steps:
       expected: ${expected}
       policy: ${policy}
     expect:
+      answerRelevance: 0.75
       semanticSimilarity: 0.75
       criteria:
         - The response should answer whether a return is allowed.
         - The response should be concise.
     require:
+      contextFaithfulness: 0.50
       semanticSimilarity: 0.50
 
   - print: "judge passed=${j1.passed}"

@@ -26,11 +26,13 @@ steps:
       expected: "The customer can return the product within 30 days."
       policy: ${returnPolicy}
     expect:
+      answerRelevance: 0.80
       semanticSimilarity: 0.90
       criteria:
         - The response should answer the customer's question directly.
         - The response should be concise.
     require:
+      contextFaithfulness: 0.50
       semanticSimilarity: 0.50
 ```
 
@@ -57,8 +59,25 @@ Inside `expect` / `require`:
 
 | Key | Description |
 |-----|-------------|
-| `<metric>` | Threshold (e.g. `semanticSimilarity: 0.90`) |
+| `semanticSimilarity` | Meaning similarity of `actual` vs `expected` (0..1 threshold) |
+| `answerRelevance` | Whether `actual` answers `question` / the user request |
+| `contextFaithfulness` | Whether `actual` stays grounded in `policy` / `retrievedContext` |
+| `factuality` | Factual consistency vs `expected` / ground-truth fields |
+| `<otherMetric>` | Custom named metric (model scores 0..1) |
 | `criteria` | Free-text rules (list of strings) |
+
+Bare numbers are threshold shorthand (`semanticSimilarity: 0.8` ≡ `{ threshold: 0.8 }`).
+
+### Built-in checks
+
+| Check | Typical context | Use when |
+|-------|-----------------|----------|
+| `semanticSimilarity` | `actual`, `expected` | You have a reference answer |
+| `answerRelevance` | `actual`, `question` | Q&A / chat / support replies |
+| `contextFaithfulness` | `actual`, `policy`, `retrievedContext` | Anti-hallucination / RAG / policy |
+| `factuality` | `actual`, `expected`, `policy` | Correctness vs known facts |
+
+Prefer these named checks for common cases so you do not rewrite the same `criteria` every time. Keep `criteria` for one-off rules.
 
 Common `context` keys: `actual`, `expected`, `policy`, `question`, `retrievedContext`, `history`.
 

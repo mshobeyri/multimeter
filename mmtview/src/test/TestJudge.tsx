@@ -1,6 +1,7 @@
 import React from 'react';
 import { ReportLevel, ReportConfig } from 'mmt-core/TestData';
 import { JSONRecord } from 'mmt-core/CommonData';
+import { JUDGE_BUILTIN_CHECKS } from 'mmt-core/judgeChecks';
 import KVEditor from '../components/KVEditor';
 import LEditor from '../components/LEditor';
 
@@ -52,6 +53,29 @@ function buildEvalBlock(metrics: JSONRecord, criteria: string[]): any | undefine
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }
+
+const MetricPresets: React.FC<{
+  metrics: JSONRecord;
+  onAdd: (id: string, threshold: number) => void;
+}> = ({ metrics, onAdd }) => (
+  <div className="judge-metric-presets">
+    {JUDGE_BUILTIN_CHECKS.map((check) => {
+      const present = Object.prototype.hasOwnProperty.call(metrics, check.id);
+      return (
+        <button
+          key={check.id}
+          type="button"
+          className={`judge-metric-chip${present ? ' judge-metric-chip--on' : ''}`}
+          disabled={present}
+          title={check.description}
+          onClick={() => onAdd(check.id, check.defaultThreshold)}
+        >
+          {check.id}
+        </button>
+      );
+    })}
+  </div>
+);
 
 const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
   const [local, setLocal] = React.useState<any>(typeof value === 'object' && value ? value : null);
@@ -116,6 +140,18 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
   const emit = (next: any) => {
     setLocal(next);
     scheduleEmit(next);
+  };
+
+  const addExpectMetric = (id: string, threshold: number) => {
+    emit(buildObj({
+      expect: buildEvalBlock({ ...expectMetrics, [id]: threshold }, expectCriteria),
+    }));
+  };
+
+  const addRequireMetric = (id: string, threshold: number) => {
+    emit(buildObj({
+      require: buildEvalBlock({ ...requireMetrics, [id]: threshold }, requireCriteria),
+    }));
   };
 
   const report = local && typeof local === 'object' ? local.report : undefined;
@@ -186,12 +222,19 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
         valuePlaceholder="${reply}"
       />
 
+      <div className="label" style={{ marginBottom: 0 }}>Expect metrics (soft)</div>
+      <div style={{ padding: '4px 5px 0', fontSize: 11, opacity: 0.7 }}>
+        Click a built-in check to add it, or type a custom metric name below.
+      </div>
+      <div style={{ padding: '4px 5px' }}>
+        <MetricPresets metrics={expectMetrics} onAdd={addExpectMetric} />
+      </div>
       <KVEditor
-        label="Expect metrics (soft)"
+        label=""
         value={expectMetrics}
         onChange={(kv) => emit(buildObj({ expect: buildEvalBlock(kv, expectCriteria) }))}
-        keyPlaceholder="semanticSimilarity"
-        valuePlaceholder="0.9"
+        keyPlaceholder="answerRelevance"
+        valuePlaceholder="0.8"
       />
       <LEditor
         label="Expect criteria (soft)"
@@ -200,11 +243,18 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
         placeholder="Add criterion..."
       />
 
+      <div className="label" style={{ marginBottom: 0 }}>Require metrics (hard)</div>
+      <div style={{ padding: '4px 5px 0', fontSize: 11, opacity: 0.7 }}>
+        Hard fail stops the test. Prefer lower thresholds than expect when using the same metric.
+      </div>
+      <div style={{ padding: '4px 5px' }}>
+        <MetricPresets metrics={requireMetrics} onAdd={addRequireMetric} />
+      </div>
       <KVEditor
-        label="Require metrics (hard)"
+        label=""
         value={requireMetrics}
         onChange={(kv) => emit(buildObj({ require: buildEvalBlock(kv, requireCriteria) }))}
-        keyPlaceholder="semanticSimilarity"
+        keyPlaceholder="contextFaithfulness"
         valuePlaceholder="0.5"
       />
       <LEditor

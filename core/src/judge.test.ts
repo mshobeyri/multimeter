@@ -4,10 +4,12 @@ import {
   unionJudgeChecksForModel,
 } from './JudgeData';
 import {
+  buildJudgeSystemPrompt,
   evaluateJudge,
   parseJudgeModelJson,
   registerJudgeEngine,
 } from './judgeEngine';
+import {JUDGE_BUILTIN_CHECK_IDS} from './judgeChecks';
 import './judgeEngineOllama';
 import './judgeEngineProviders';
 import {objectToJudge, validateJudgeObject, yamlToJudgeStrict} from './judgeParsePack';
@@ -450,5 +452,14 @@ describe('judge codegen', () => {
     expect(js).toContain('expect:');
     expect(js).toContain('require:');
     expect(js).toContain('j1 =');
+  });
+});
+
+describe('judge builtin checks', () => {
+  it('documents built-in checks in the system prompt', () => {
+    const prompt = buildJudgeSystemPrompt();
+    for (const id of JUDGE_BUILTIN_CHECK_IDS) {
+      expect(prompt).toContain(id);
+    }
   });
 });

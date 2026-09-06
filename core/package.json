@@ -215,6 +215,11 @@
       "require": "./dist/httpStepApiPreview.js",
       "default": "./dist/httpStepApiPreview.js"
     },
+    "./judgeChecks": {
+      "types": "./dist/judgeChecks.d.ts",
+      "require": "./dist/judgeChecks.js",
+      "default": "./dist/judgeChecks.js"
+    },
     "./EnvData": {
       "types": "./dist/EnvData.d.ts",
       "require": "./dist/EnvData.js",

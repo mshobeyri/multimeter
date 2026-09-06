@@ -2274,6 +2274,38 @@ select.method-select:focus-visible {
   letter-spacing: -0.2px;
 }
 
+.judge-metric-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.judge-metric-chip {
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-size: 11px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  padding: 3px 8px;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.judge-metric-chip:hover:not(:disabled) {
+  opacity: 1;
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.judge-metric-chip:disabled,
+.judge-metric-chip--on {
+  cursor: default;
+  opacity: 0.7;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  border-color: transparent;
+}
+
 /* ─── Judge engine fields (URL default chip + model combo) ─── */
 
 .judge-affix-field {

@@ -55,6 +55,19 @@ options:
 | `title` / `description` / `tags` | no | Metadata |
 | `defaults` | no | Optional default `checks` / `criteria` merged into steps |
 
+## Built-in checks (used from steps)
+
+Judge **steps** score named metrics under `expect` / `require`. Built-ins:
+
+| Check | Meaning |
+|-------|---------|
+| `semanticSimilarity` | `actual` ≈ `expected` in meaning |
+| `answerRelevance` | `actual` answers `question` |
+| `contextFaithfulness` | `actual` grounded in `policy` / `retrievedContext` |
+| `factuality` | `actual` factually consistent with ground truth |
+
+See [Judge steps](../test/steps/judge.md) for full details. Free-text `criteria` remain available for custom rules.
+
 ## Engines
 
 ### Ollama

@@ -230,9 +230,10 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
             case 'run': return { run: '' };
             case 'judge': return {
                 judge: '',
-                context: { actual: '' },
+                context: { actual: '', question: '' },
                 expect: {
-                    criteria: ['The response should be clear and helpful.'],
+                    answerRelevance: 0.8,
+                    semanticSimilarity: 0.8,
                 },
             };
             case 'stage': return { id: 'stage_1', steps: [{ print: 'stage 1' }] };
