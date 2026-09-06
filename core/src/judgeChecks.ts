@@ -8,13 +8,13 @@ export type JudgeBuiltinCheckId =
 
 export interface JudgeBuiltinCheckDef {
   id: JudgeBuiltinCheckId;
-  /** Short UI / autocomplete label */
+  /** Short autocomplete / docs label */
   label: string;
-  /** Human description for docs / autocomplete / UI */
+  /** Human description for docs / autocomplete */
   description: string;
   /** Context fields this check typically uses */
   contextHints: string[];
-  /** Suggested default threshold when inserting from UI */
+  /** Suggested default threshold (docs / autocomplete inserts) */
   defaultThreshold: number;
   /** Guidance line embedded in the judge system prompt */
   promptGuidance: string;

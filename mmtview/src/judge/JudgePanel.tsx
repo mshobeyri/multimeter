@@ -24,7 +24,6 @@ import {
   isDefaultJudgeUrl,
 } from './judgeEngineDefaults';
 import { JudgeModelCombo, JudgeUrlField } from './judgeEngineFields';
-import { JUDGE_BUILTIN_CHECKS } from 'mmt-core/judgeChecks';
 
 interface JudgePanelProps {
   content: string;
@@ -87,12 +86,6 @@ const MODEL_COLUMNS: SettingsTableColumn[] = [
   { key: 'detail', label: 'Details', width: '28%' },
   { key: 'size', label: 'Size', width: '15%' },
   { key: 'status', label: 'Status', width: '15%' },
-];
-
-const BUILTIN_CHECK_COLUMNS: SettingsTableColumn[] = [
-  { key: 'check', label: 'Check', width: '28%', variant: 'code' },
-  { key: 'meaning', label: 'Meaning', width: '42%' },
-  { key: 'context', label: 'Context', width: '30%', variant: 'code' },
 ];
 
 function buildConfigRows(args: {
@@ -406,21 +399,6 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                       isRowActive={(row) =>
                         modelMatchesConfigured(String(row.key || ''), judge.model)
                       }
-                    />
-
-                    <div className="label" style={{ marginTop: 16, marginBottom: 8 }}>
-                      Built-in checks
-                    </div>
-                    <SettingsTable
-                      columns={BUILTIN_CHECK_COLUMNS}
-                      rows={JUDGE_BUILTIN_CHECKS.map((check) => ({
-                        key: check.id,
-                        cells: {
-                          check: check.id,
-                          meaning: check.description,
-                          context: check.contextHints.join(', '),
-                        },
-                      }))}
                     />
                   </div>
                 </HideWhenYamlError>

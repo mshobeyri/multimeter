@@ -59,10 +59,7 @@ Inside `expect` / `require`:
 
 | Key | Description |
 |-----|-------------|
-| `semanticSimilarity` | Meaning similarity of `actual` vs `expected` (0..1 threshold) |
-| `answerRelevance` | Whether `actual` answers `question` / the user request |
-| `contextFaithfulness` | Whether `actual` stays grounded in `policy` / `retrievedContext` |
-| `factuality` | Factual consistency vs `expected` / ground-truth fields |
+| *(built-in check id)* | Named metric — see [Built-in checks](#built-in-checks) |
 | `<otherMetric>` | Custom named metric (model scores 0..1) |
 | `criteria` | Free-text rules (list of strings) |
 
@@ -70,14 +67,23 @@ Bare numbers are threshold shorthand (`semanticSimilarity: 0.8` ≡ `{ threshold
 
 ### Built-in checks
 
-| Check | Typical context | Use when |
-|-------|-----------------|----------|
-| `semanticSimilarity` | `actual`, `expected` | You have a reference answer |
-| `answerRelevance` | `actual`, `question` | Q&A / chat / support replies |
-| `contextFaithfulness` | `actual`, `policy`, `retrievedContext` | Anti-hallucination / RAG / policy |
-| `factuality` | `actual`, `expected`, `policy` | Correctness vs known facts |
-
 Prefer these named checks for common cases so you do not rewrite the same `criteria` every time. Keep `criteria` for one-off rules.
+
+| Check | Typical context | Suggested threshold | Use when |
+|-------|-----------------|---------------------|----------|
+| `semanticSimilarity` | `actual`, `expected` | `0.8` | You have a reference / golden answer |
+| `answerRelevance` | `actual`, `question` | `0.8` | Q&A / chat / support replies |
+| `contextFaithfulness` | `actual`, `policy`, `retrievedContext` | `0.7` | Anti-hallucination / RAG / policy |
+| `factuality` | `actual`, `expected`, `policy` | `0.7` | Correctness vs known facts |
+
+| Check | What the model scores |
+|-------|------------------------|
+| `semanticSimilarity` | Meaning similarity of `actual` vs `expected` (not exact wording) |
+| `answerRelevance` | Whether `actual` answers `question` / the implied user request |
+| `contextFaithfulness` | Whether `actual` stays grounded in `policy` / `retrievedContext` |
+| `factuality` | Factual consistency of `actual` vs `expected` and other ground-truth fields |
+
+You can still invent custom metric names; the model scores them 0..1 from the name and context.
 
 Common `context` keys: `actual`, `expected`, `policy`, `question`, `retrievedContext`, `history`.
 
