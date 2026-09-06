@@ -2,16 +2,18 @@ type: test
 title: AI judge demo
 description: |
   Evaluates a sample reply with soft expect and hard require
-  (one report box). Requires local Ollama — see README.md.
+  (one report box). Uses Gemini by default; switch the judge step
+  to ollama for a local model — see README.md.
 import:
-  localJudge: ./judges/local.mmt
+  gemini: ./judges/gemini.mmt
+  ollama: ./judges/ollama.mmt
 steps:
   - const:
       reply: "Yes. Under our policy you may return the item within 30 days of purchase."
       expected: "The customer can return the product within 30 days."
       policy: "Returns accepted within 30 days of purchase with receipt."
 
-  - judge: localJudge
+  - judge: gemini
     id: j1
     title: Return-policy reply quality
     context:

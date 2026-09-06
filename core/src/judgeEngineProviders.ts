@@ -11,6 +11,36 @@ import {
   resolveJudgeTimeoutMs,
 } from './judgeEngine';
 
+export function extractJudgeHttpErrorMessage(body: unknown): string {
+  let parsed = body;
+  if (typeof parsed === 'string') {
+    const trimmed = parsed.trim();
+    if (!trimmed) {
+      return '';
+    }
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      return trimmed.length > 300 ? `${trimmed.slice(0, 300)}…` : trimmed;
+    }
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    return '';
+  }
+  const rec = parsed as Record<string, any>;
+  const msg = rec.error?.message || rec.message;
+  return typeof msg === 'string' ? msg.trim() : '';
+}
+
+export function formatJudgeHttpError(
+    label: string,
+    res: {status: number; statusText?: string; body?: unknown},
+    ): string {
+  const head = `${label} HTTP ${res.status} ${res.statusText || ''}`.trim();
+  const fromBody = extractJudgeHttpErrorMessage(res.body);
+  return fromBody ? `${head}: ${fromBody}` : head;
+}
+
 function failResult(req: JudgeRequest, details: string, raw?: unknown): JudgeResult {
   return {
     passed: false,
@@ -46,7 +76,7 @@ async function postJson(
     return {ok: false, result: failResult(req, `${label} request failed: ${msg}`)};
   }
   if (res.status < 200 || res.status >= 300) {
-    const details = `${label} HTTP ${res.status} ${res.statusText || ''}`.trim();
+    const details = formatJudgeHttpError(label, res);
     return {ok: false, result: failResult(req, details, res.body)};
   }
   return {ok: true, body: res.body};

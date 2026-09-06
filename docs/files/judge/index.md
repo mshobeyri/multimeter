@@ -86,6 +86,19 @@ Uses `POST {url}/v1/messages`. Typical URL: `https://api.anthropic.com`. Prefer 
 
 Uses `POST {url}/models/{model}:generateContent` with JSON mime type. Typical URL: `https://generativelanguage.googleapis.com/v1beta`. Prefer `auth.type: api-key` with header `x-goog-api-key`.
 
+`gemini-2.0-flash` was retired (404). Use a current free-tier model such as `gemini-3.5-flash-lite` or `gemini-2.5-flash`.
+
+```yaml
+type: judge
+engine: google
+model: gemini-3.5-flash-lite
+url: https://generativelanguage.googleapis.com/v1beta
+auth:
+  type: api-key
+  header: x-goog-api-key
+  value: e:api_key
+```
+
 ### Azure OpenAI
 
 Uses `POST {url}/openai/deployments/{model}/chat/completions?api-version=…`. `model` is the **deployment name**. Prefer `auth.type: api-key` with header `api-key`.

@@ -14,6 +14,8 @@ import './judgeEngineOllama';
 import './judgeEngineProviders';
 import {objectToJudge, validateJudgeObject, yamlToJudgeStrict} from './judgeParsePack';
 import {fileType} from './JSerHelper';
+import {setFileLoader} from './JSerFileLoader';
+import {importsToJsfunc} from './JSerImports';
 import {getTestFlowStepType, yamlToTestStrict} from './testParsePack';
 import {flowStepsToJsfunc} from './JSerTestFlow';
 import {judge_, isAssertionFailedError} from './testHelper';
@@ -54,6 +56,43 @@ auth:
     const j = yamlToJudgeStrict(yaml);
     expect(j.url).toBe('https://api.openai.com/v1');
     expect(j.auth).toEqual({type: 'bearer', token: 'e:openai_api_key'});
+  });
+
+  it('fileType stays judge when auth is type: api-key', () => {
+    const yaml = `
+type: judge
+engine: google
+model: gemini-2.5-flash
+url: https://generativelanguage.googleapis.com/v1beta
+auth:
+  type: api-key
+  header: x-goog-api-key
+  value: e:api_key
+`;
+    expect(fileType('google.mmt', yaml)).toBe('judge');
+  });
+
+  it('imports a judge file that uses auth type: api-key', async () => {
+    const yaml = `
+type: judge
+engine: google
+model: gemini-2.5-flash
+url: https://generativelanguage.googleapis.com/v1beta
+auth:
+  type: api-key
+  header: x-goog-api-key
+  value: e:api_key
+`;
+    setFileLoader(async (p: string) => {
+      if (p.endsWith('google.mmt')) {
+        return yaml;
+      }
+      return '';
+    });
+    const js = await importsToJsfunc(
+        {localJudge: './judges/google.mmt'}, undefined, '/root/judge_demo.mmt');
+    expect(js).toContain('google');
+    expect(js).toMatch(/api-key|x-goog-api-key/);
   });
 
   it('rejects missing engine/model/url', () => {
@@ -276,6 +315,30 @@ describe('cloud judge engines', () => {
     expect(call.headers?.['x-goog-api-key']).toBe('goog-key');
     expect(call.body.generationConfig.responseMimeType).toBe('application/json');
     expect(result.passed).toBe(true);
+  });
+
+  it('includes provider error body on google HTTP failure', async () => {
+    const httpPost = jest.fn(async () => ({
+      status: 404,
+      statusText: 'Not Found',
+      body: {
+        error: {
+          message: 'This model models/gemini-2.0-flash is no longer available.',
+        },
+      },
+    }));
+    const result = await evaluateJudge(
+        objectToJudge({
+          type: 'judge',
+          engine: 'google',
+          model: 'gemini-2.0-flash',
+          url: 'https://generativelanguage.googleapis.com/v1beta',
+          auth: {type: 'api-key', header: 'x-goog-api-key', value: 'goog-key'},
+        }),
+        {inputs: {actual: 'a'}, checks: {semanticSimilarity: 0.5}, criteria: []},
+        httpPost);
+    expect(result.passed).toBe(false);
+    expect(result.checks[0]?.details).toMatch(/no longer available/i);
   });
 
   it('azure-openai posts deployment chat completions', async () => {

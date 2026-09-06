@@ -460,6 +460,17 @@ function collectStepErrors(
         errors.push(`Step ${context}[${i}]: call is missing required target`);
       }
     }
+    if (stepType === 'judge') {
+      const judgeStep = step as any;
+      const alias = judgeStep.judge;
+      if (typeof alias === 'string' && alias.trim()) {
+        if (!importKeys.has(alias)) {
+          errors.push(`Step ${context}[${i}]: judge target "${alias}" is not imported`);
+        }
+      } else {
+        errors.push(`Step ${context}[${i}]: judge is missing required target`);
+      }
+    }
     if (stepType === 'http') {
       const httpStep = step as any;
       if (typeof httpStep.http !== 'string' || !httpStep.http.trim()) {

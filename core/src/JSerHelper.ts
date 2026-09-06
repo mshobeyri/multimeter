@@ -84,42 +84,15 @@ export const fileType = (path: string, content: string): Type => {
     return 'test';
   }
 
-  if (!path.endsWith('.mmt')) {
-    // Spec / HTTP / Bruno UI runs send MMT YAML as rawFile while the path
-    // is still the original source (openapi.yaml, collection.json, …).
-    return mmtTypeFromYamlPrefix(content);
-  }
-
-  if (content.includes('type: api')) {
-    return 'api';
-  }
-  if (content.includes('type: test')) {
-    return 'test';
-  }
-  if (content.includes('type: suite')) {
-    return 'suite';
-  }
-  if (content.includes('type: loadtest')) {
-    return 'loadtest';
-  }
-  if (content.includes('type: env')) {
-    return 'env';
-  }
-  if (content.includes('type: server')) {
-    return 'server';
-  }
-  if (content.includes('type: report')) {
-    return 'report';
-  }
-  if (content.includes('type: judge')) {
-    return 'judge';
-  }
-  return null;
+  // .mmt and other YAML-shaped buffers: read the document `type:` line.
+  // Do not use substring search — `auth.type: api-key` contains `type: api`.
+  return mmtTypeFromYamlPrefix(content);
 };
 
 function mmtTypeFromYamlPrefix(content: string): Type {
-  const match = /^\s*type:\s*(api|test|suite|loadtest|env|server|doc|report|judge)\b/m
-      .exec(String(content || ''));
+  const match =
+      /^\s*type:\s*(api|test|suite|loadtest|env|server|doc|report|judge)(?:\s*(?:#.*)?)?$/m
+          .exec(String(content || ''));
   return (match?.[1] as Type) || null;
 }
 

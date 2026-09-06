@@ -5,6 +5,7 @@ import {
   extractExampleLineInfo,
   extractInputRefSites,
   findTestCallAliasProblems,
+  findTestJudgeAliasProblems,
   findTestCallInputsProblems,
   findMultilineDescriptionProblems,
   findStageAfterProblems,
@@ -153,6 +154,24 @@ describe('validator test call checks', () => {
     const content = `type: test\nimport:\n  foo: ./api.mmt\nsteps:\n  - call: foo\n`;
     const doc = buildDoc(content);
     const problems = findTestCallAliasProblems(content, doc, 'test', {foo: './api.mmt'});
+    expect(problems).toHaveLength(0);
+  });
+
+  it('flags missing judge aliases for test documents', () => {
+    const content = `type: test\nimport:\n  gemini: ./judges/gemini.mmt\nsteps:\n  - judge: localJudge\n`;
+    const doc = buildDoc(content);
+    const problems = findTestJudgeAliasProblems(content, doc, 'test', {gemini: './judges/gemini.mmt'});
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({
+      message: 'localJudge is not imported',
+      severity: 'warning',
+    });
+  });
+
+  it('ignores judge alias issues when alias exists', () => {
+    const content = `type: test\nimport:\n  gemini: ./judges/gemini.mmt\nsteps:\n  - judge: gemini\n`;
+    const doc = buildDoc(content);
+    const problems = findTestJudgeAliasProblems(content, doc, 'test', {gemini: './judges/gemini.mmt'});
     expect(problems).toHaveLength(0);
   });
 

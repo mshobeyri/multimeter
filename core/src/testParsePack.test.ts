@@ -441,6 +441,16 @@ describe('yamlToTestStrict', () => {
     expect(() => yamlToTestStrict(yaml)).toThrow(/echos.*not imported/i);
   });
 
+  it('throws when judge target is not imported', () => {
+    const yaml = 'type: test\nimport:\n  gemini: ./judges/gemini.mmt\nsteps:\n  - judge: localJudge';
+    expect(() => yamlToTestStrict(yaml)).toThrow(/localJudge.*not imported/i);
+  });
+
+  it('throws when judge value is empty/null', () => {
+    const yaml = 'type: test\nimport:\nsteps:\n  - judge: ';
+    expect(() => yamlToTestStrict(yaml)).toThrow(/judge is missing required target/i);
+  });
+
   it('throws when call value is empty/null', () => {
     const yaml = 'type: test\nimport:\nsteps:\n  - call: ';
     expect(() => yamlToTestStrict(yaml)).toThrow(/call is missing required target/i);

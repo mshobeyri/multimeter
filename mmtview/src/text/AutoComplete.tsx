@@ -574,7 +574,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 `Built-in metrics: ${builtinJudgeIds}.`,
                 'Same metric can appear in both; each level uses its own threshold.',
                 'Example:',
-                '- judge: localJudge',
+                '- judge: gemini',
                 '  context:',
                 // Literal Multimeter tokens in docs (not JS template interpolation).
                 `    actual: \${reply}`,

@@ -10,7 +10,7 @@ Import a [`type: judge`](../../judge/index.md) file, pass context, then evaluate
 type: test
 import:
   chat: ./apis/chat.mmt
-  localJudge: ./judges/local.mmt
+  gemini: ./judges/gemini.mmt
 
 steps:
   - call: chat
@@ -18,7 +18,7 @@ steps:
     inputs:
       question: "Can I return a product after 20 days?"
 
-  - judge: localJudge
+  - judge: gemini
     id: j1
     title: Return-policy reply quality
     context:
