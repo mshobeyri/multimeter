@@ -17,6 +17,8 @@ export interface ExpectItemEvent {
   status: TestStepStatus;
   similarity?: number;
   count?: number;
+  /** Soft vs hard section for judge (and future call require). */
+  level?: 'expect'|'require';
 }
 
 export interface TestStepReporterEvent {

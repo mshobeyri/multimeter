@@ -319,6 +319,11 @@ function mapLeaf(step: any, kind: string, callTitleByAlias: FlowCallImportMap): 
       return { mappedKind: 'assert', label: describeComparison(step.assert) || 'assert' };
     case 'check':
       return { mappedKind: 'check', label: describeComparison(step.check) || 'check' };
+    case 'judge':
+      return {
+        mappedKind: 'assert',
+        label: `judge ${String((step as any).judge ?? '')}`.trim() || 'judge',
+      };
     case 'delay':
       return { mappedKind: 'sleep', label: String(step.delay ?? 'sleep') };
     case 'print':

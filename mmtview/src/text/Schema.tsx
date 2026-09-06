@@ -4,7 +4,7 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-        type: { type: 'string', enum: ['api', 'env', 'test', 'suite', 'loadtest', 'doc', 'server', 'report'] },
+        type: { type: 'string', enum: ['api', 'env', 'test', 'suite', 'loadtest', 'doc', 'server', 'judge', 'report'] },
     }
 }
 
@@ -455,6 +455,30 @@ export const TestSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     required: ['type'],
+    $defs: {
+        judgeEvalBlock: {
+            type: 'object',
+            description: 'Metrics (name → threshold) plus optional free-text criteria',
+            properties: {
+                criteria: {
+                    type: 'array',
+                    items: { type: 'string' }
+                }
+            },
+            additionalProperties: {
+                anyOf: [
+                    { type: 'number' },
+                    {
+                        type: 'object',
+                        properties: {
+                            threshold: { type: 'number' }
+                        },
+                        additionalProperties: true
+                    }
+                ]
+            }
+        }
+    },
     properties: {
         type: { type: 'string', enum: ['test'] },
         title: { type: 'string' },
@@ -822,6 +846,40 @@ export const TestSchema = {
                         },
                         additionalProperties: false
                     },
+                    // judge step — context + soft expect / hard require; one report box
+                    {
+                        type: 'object',
+                        required: ['judge', 'context'],
+                        properties: {
+                            judge: { type: 'string', minLength: 1 },
+                            id: { type: 'string' },
+                            title: { type: 'string' },
+                            context: {
+                                type: 'object',
+                                additionalProperties: true
+                            },
+                            expect: { $ref: '#/$defs/judgeEvalBlock' },
+                            require: { $ref: '#/$defs/judgeEvalBlock' },
+                            report: {
+                                anyOf: [
+                                    { type: 'string', enum: ['all', 'fails', 'none'] },
+                                    {
+                                        type: 'object',
+                                        properties: {
+                                            internal: { type: 'string', enum: ['all', 'fails', 'none'] },
+                                            external: { type: 'string', enum: ['all', 'fails', 'none'] }
+                                        },
+                                        additionalProperties: false
+                                    }
+                                ]
+                            }
+                        },
+                        anyOf: [
+                            { required: ['expect'] },
+                            { required: ['require'] }
+                        ],
+                        additionalProperties: false
+                    },
                     // set step
                     {
                         type: 'object',
@@ -954,6 +1012,82 @@ export const TestSchema = {
         { required: ['steps'] },
         { required: ['stages'] }
     ]
+};
+
+/** `type: judge` — AI judge resource (engine/model/url/auth). */
+export const JudgeSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    required: ['type', 'engine', 'model', 'url'],
+    properties: {
+        type: { type: 'string', enum: ['judge'] },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
+        engine: {
+            type: 'string',
+            enum: ['ollama', 'openai', 'anthropic', 'google', 'azure-openai']
+        },
+        model: { type: 'string', minLength: 1 },
+        url: { type: 'string', minLength: 1 },
+        auth: {
+            anyOf: [
+                { type: 'string', enum: ['none'] },
+                {
+                    type: 'object',
+                    properties: {
+                        type: { type: 'string', enum: ['bearer', 'basic', 'api-key', 'oauth2'] },
+                        token: { type: 'string' },
+                        username: { type: 'string' },
+                        password: { type: 'string' },
+                        header: { type: 'string' },
+                        query: { type: 'string' },
+                        value: { type: 'string' },
+                        grant: { type: 'string', enum: ['client_credentials'] },
+                        token_url: { type: 'string' },
+                        client_id: { type: 'string' },
+                        client_secret: { type: 'string' },
+                        scope: { type: 'string' },
+                    },
+                    required: ['type'],
+                    additionalProperties: false
+                }
+            ]
+        },
+        options: {
+            type: 'object',
+            properties: {
+                temperature: { type: 'number' },
+                timeout: {
+                    anyOf: [
+                        { type: 'number' },
+                        { type: 'string' }
+                    ]
+                }
+            },
+            additionalProperties: true
+        },
+        defaults: {
+            type: 'object',
+            properties: {
+                checks: {
+                    type: 'object',
+                    additionalProperties: {
+                        anyOf: [
+                            { type: 'number' },
+                            { type: 'object', additionalProperties: true }
+                        ]
+                    }
+                },
+                criteria: {
+                    type: 'array',
+                    items: { type: 'string' }
+                }
+            },
+            additionalProperties: false
+        }
+    },
+    additionalProperties: false
 };
 
 export const MockSchema = {

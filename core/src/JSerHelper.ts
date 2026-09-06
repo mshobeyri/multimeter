@@ -111,11 +111,14 @@ export const fileType = (path: string, content: string): Type => {
   if (content.includes('type: report')) {
     return 'report';
   }
+  if (content.includes('type: judge')) {
+    return 'judge';
+  }
   return null;
 };
 
 function mmtTypeFromYamlPrefix(content: string): Type {
-  const match = /^\s*type:\s*(api|test|suite|loadtest|env|server|doc|report)\b/m
+  const match = /^\s*type:\s*(api|test|suite|loadtest|env|server|doc|report|judge)\b/m
       .exec(String(content || ''));
   return (match?.[1] as Type) || null;
 }

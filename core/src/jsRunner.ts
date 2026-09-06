@@ -11,6 +11,8 @@ import * as mmtHelper from './testHelper';
 import type {ServerRunner} from './testHelper';
 import {isAssertionFailedError, isTestAbortError} from './testHelper';
 import {logRunFinished, RunKind} from './runLog';
+import {setJudgeHttpPost_} from './judgeEngine';
+import './judgeEngineOllama';
 
 export type {RunKind};
 export {logRunFinished};
@@ -169,6 +171,31 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     (mmtHelper as any).setServerRunner_(context.serverRunner);
   }
 
+  // Judge engines reuse the same Node HTTP path as send_.
+  setJudgeHttpPost_(async ({url, headers, body, timeoutMs}) => {
+    const res = await send({
+      url,
+      method: 'post',
+      protocol: 'http',
+      headers: headers ?? {'Content-Type': 'application/json'},
+      body,
+      timeout: timeoutMs,
+    });
+    let parsed: any = res.body;
+    if (typeof res.body === 'string') {
+      try {
+        parsed = JSON.parse(res.body);
+      } catch {
+        parsed = res.body;
+      }
+    }
+    return {
+      status: typeof res.status === 'number' ? res.status : -1,
+      statusText: res.statusText || '',
+      body: parsed,
+    };
+  });
+
   // Fresh call-cache only for outermost JS execution. Suite / load-test
   // children set skipServerCleanup so cache stays valid across the hierarchy
   // until TTL expires or the top-level run finishes.
@@ -182,7 +209,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
           Object.keys(mmtHelper)
               .filter(name => name !== 'report_' && name !== 'setenv_' &&
                              name !== 'checkAbort_' && name !== 'importJsModule_' &&
-                             name !== 'check_' && name !== 'checkExpects_')
+                             name !== 'check_' && name !== 'checkExpects_' &&
+                             name !== 'judge_')
               .map(name => `const ${name} = mmtHelper["${name}"];`)
               .join('\n');
     const randomDecls =
@@ -199,6 +227,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.
       `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console, __checkLogMode);\n` +
+      `const judge_ = (judgeDef, step, reportLevel, title) => mmtHelper.judge_(judgeDef, step, reportLevel, title, report_, console, __checkLogMode);\n` +
       // Override checkExpects_ with a closure-based version for parallel execution.
       `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests

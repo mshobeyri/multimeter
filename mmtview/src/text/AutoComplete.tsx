@@ -46,7 +46,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "type: ",
             detail: 'Type of mmt file [api, env, doc, test, suite, loadtest, server, report]',
-            documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite, loadtest, server, report\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a functional test (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\n\t- loadtest: Run one test file with load configuration\n\t- server: Define a mock server\n\t- report: Test/suite run results\nExample: type: loadtest',
+            documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite, loadtest, server, judge, report\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a functional test (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\n\t- loadtest: Run one test file with load configuration\n\t- server: Define a mock server\n\t- judge: AI judge resource (BYO model / Ollama)\n\t- report: Test/suite run results\nExample: type: loadtest',
         }];
 
     const dataImportSuggestion = {
@@ -116,13 +116,92 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Local mock server with configurable endpoints, route matching, conditional responses, and dynamic tokens. Supports HTTP, HTTPS, mTLS, and WebSocket protocols.',
         },
         {
+            label: "Judge",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " judge",
+            detail: 'Define an AI judge',
+            documentation: 'Judge resource for evaluating non-deterministic responses (Ollama / cloud engines). Used from tests via the judge step with check/assert blocks.',
+        },
+        {
             label: "Report",
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " report",
             detail: 'Test/suite run results',
             documentation: 'Report file generated from test or suite runs. Contains summary (tests, passed, failed, errors, skipped), started_at, duration, and per-suite/test step results.',
         },
-    ]
+    ];
+    const judgeSuggestions = [
+        {
+            label: "title",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "title: ",
+            detail: 'Judge title [string]',
+            documentation: 'Display name for this judge resource.'
+        },
+        {
+            label: "description",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "description: ",
+            detail: 'Judge description [string]',
+            documentation: 'Optional description of what this judge evaluates.'
+        },
+        {
+            label: "engine",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "engine: ",
+            detail: 'Judge engine [ollama|openai|…]',
+            documentation: 'Engine adapter id. v1: ollama. Planned: openai, anthropic, google, azure-openai.'
+        },
+        {
+            label: "model",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "model: ",
+            detail: 'Model name',
+            documentation: 'Model id for the engine (e.g. qwen2.5:3b, gpt-4o-mini).'
+        },
+        {
+            label: "url",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "url: ",
+            detail: 'Engine base URL [string]',
+            documentation: 'Required base URL for the engine HTTP API.\nOllama: url: e:ollama_url\nOpenAI: url: https://api.openai.com/v1'
+        },
+        {
+            label: "auth",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "auth:\n\ttype: bearer\n\ttoken: e:openai_api_key\n",
+            detail: 'Auth (same shape as API)',
+            documentation: 'Optional auth for cloud engines. Same shape as API auth.\nOpenAI example:\nauth:\n  type: bearer\n  token: e:openai_api_key'
+        },
+        {
+            label: "options",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "options:\n\ttemperature: 0\n\ttimeout: 30s\n",
+            detail: 'Model/execution options',
+            documentation: 'Common options: temperature, timeout (e.g. 30s).'
+        },
+        {
+            label: "defaults",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "defaults:\n\tchecks:\n\t\tsemanticSimilarity: 0.8\n",
+            detail: 'Default checks/criteria',
+            documentation: 'Optional defaults merged into judge steps (step wins on conflict).'
+        },
+        {
+            label: "tags",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "tags:\n\t- ",
+            detail: 'Tags [array]',
+            documentation: 'Optional tags for organizing judge files.'
+        },
+    ];
+    const engineValueSuggestions = [
+        { label: 'ollama', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'ollama', detail: 'Local Ollama', documentation: 'Local Ollama HTTP API (default for development).' },
+        { label: 'openai', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'openai', detail: 'OpenAI', documentation: 'OpenAI chat completions (planned).' },
+        { label: 'anthropic', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'anthropic', detail: 'Anthropic', documentation: 'Anthropic Messages API (planned).' },
+        { label: 'google', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'google', detail: 'Google AI', documentation: 'Google Gemini (planned).' },
+        { label: 'azure-openai', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'azure-openai', detail: 'Azure OpenAI', documentation: 'Azure OpenAI deployment (planned).' },
+    ];
     const testSuggestions = [
         {
             label: "title",
@@ -461,6 +540,39 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '    title: "User count too low"',
                 '    details: "Expected at least one user"',
                 '    report: all  # or: fails, none, or object with internal/external'
+            ].join('\n')
+        },
+        {
+            label: "judge",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: [
+                "- judge: ",
+                "\tid: ",
+                "\tcontext:",
+                "\t\tactual: ",
+                "\texpect:",
+                "\t\tsemanticSimilarity: 0.9",
+                "\t\tcriteria:",
+                "\t\t\t- ",
+            ].join('\n'),
+            detail: 'AI judge (context + expect / require; one report box)',
+            documentation: [
+                'Evaluates non-deterministic responses via an imported type: judge resource.',
+                'Emits one report box (like call expect) with multiple items.',
+                'context: data for the judge (actual, expected, policy, …).',
+                'expect: soft metrics + criteria (continue on fail).',
+                'require: hard metrics + criteria (stop on fail).',
+                'Same metric can appear in both; each level uses its own threshold.',
+                'Example:',
+                '- judge: localJudge',
+                '  context:',
+                '    actual: ${reply}',
+                '  expect:',
+                '    semanticSimilarity: 0.9',
+                '    criteria:',
+                '      - Be concise',
+                '  require:',
+                '    semanticSimilarity: 0.5',
             ].join('\n')
         },
         {
@@ -1759,6 +1871,25 @@ export const KeySuggestionsByParent = (monaco: any) => {
     const dataSiblings = [
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Data variable name', documentation: 'Variable name to access loaded data in subsequent steps.' },
     ];
+    const judgeSiblings = [
+        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture judge result', documentation: 'Variable for the judge result (${id.passed}, ${id.checks}, ${id.criteria}).' },
+        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Judge step title', documentation: 'Label shown in reports.' },
+        { label: 'context', kind: monaco.languages.CompletionItemKind.Property, insertText: 'context:\n\tactual: ', detail: 'Data for the judge', documentation: 'Flexible map (actual, expected, policy, retrievedContext, …).' },
+        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\tsemanticSimilarity: 0.9\n\tcriteria:\n\t\t- ', detail: 'Soft evaluation (continue on fail)', documentation: 'Metrics + optional criteria. Soft: report and continue. Same metric may also appear under require with a different threshold.' },
+        { label: 'require', kind: monaco.languages.CompletionItemKind.Property, insertText: 'require:\n\tsemanticSimilarity: 0.5\n', detail: 'Hard evaluation (stop on fail)', documentation: 'Metrics + optional criteria. Hard: report and stop the test.' },
+        { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'all | fails | none (or internal/external object).' },
+    ];
+    const judgeEvalSiblings = [
+        { label: 'semanticSimilarity', kind: monaco.languages.CompletionItemKind.Property, insertText: 'semanticSimilarity: 0.8\n', detail: 'Similarity threshold', documentation: 'Shorthand for { threshold: 0.8 }. Soft under expect:, hard under require:. Both levels can use the same metric with different thresholds.' },
+        { label: 'criteria', kind: monaco.languages.CompletionItemKind.Property, insertText: 'criteria:\n\t- ', detail: 'Free-text criteria', documentation: 'Natural-language requirements. Soft under expect:, hard under require:.' },
+    ];
+    const judgeContextSiblings = [
+        { label: 'actual', kind: monaco.languages.CompletionItemKind.Property, insertText: 'actual: ', detail: 'Text under evaluation', documentation: 'Primary response / reply text for the judge.' },
+        { label: 'expected', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expected: ', detail: 'Reference text', documentation: 'Optional expected / golden answer for similarity checks.' },
+        { label: 'policy', kind: monaco.languages.CompletionItemKind.Property, insertText: 'policy: ', detail: 'Policy text', documentation: 'Optional policy or rules the reply must respect.' },
+        { label: 'question', kind: monaco.languages.CompletionItemKind.Property, insertText: 'question: ', detail: 'User question', documentation: 'Optional original question / prompt.' },
+        { label: 'retrievedContext', kind: monaco.languages.CompletionItemKind.Property, insertText: 'retrievedContext: ', detail: 'RAG context', documentation: 'Optional retrieved context for faithfulness-style checks.' },
+    ];
     const stepReportSuggestions = [
         { label: 'internal', kind: monaco.languages.CompletionItemKind.Property, insertText: 'internal: ', detail: 'Report level when running directly', documentation: 'Report level when the test is run directly.\nValues: all (default), fails, none' },
         { label: 'external', kind: monaco.languages.CompletionItemKind.Property, insertText: 'external: ', detail: 'Report level when imported/suite', documentation: 'Report level when the test is imported or run as part of a suite.\nValues: all, fails (default), none' },
@@ -1841,6 +1972,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         loadtest: loadtestSuggestions,
         report: reportSuggestions,
         mock: mockSuggestions,
+        judge: judgeSuggestions,
+        engine: engineValueSuggestions,
         services: servicesSuggestions,
         html: htmlSuggestions,
         env: envSuggestions,
@@ -1877,6 +2010,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         'step-for': forRepeatSiblings,
         'step-repeat': forRepeatSiblings,
         'step-data': dataSiblings,
+        'step-judge': judgeSiblings,
+        'judge-eval': judgeEvalSiblings,
+        'judge-context': judgeContextSiblings,
         'step-report': stepReportSuggestions,
         'report-level': reportLevelValues,
         'expect-value': expectValueOperatorSuggestions,

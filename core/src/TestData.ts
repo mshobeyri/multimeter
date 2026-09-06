@@ -79,7 +79,9 @@ export interface TestImportItem {
 }
 
 export type FlowType =
-  'stages'|'steps'|'stage'|'step'|'call'|'http'|'run'|'check'|'assert'|'if'|'for'|'repeat'|
+  'stages'|'steps'|'stage'|'step'|'call'|'http'|'run'|'check'|'assert'|
+    'judge'|
+    'if'|'for'|'repeat'|
     'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'data'|'setenv';
 
 export interface TestFlowBase {
@@ -134,6 +136,30 @@ export interface TestFlowAssert extends TestFlowBase {
   assert: Comparison;
 }
 
+export type JudgeChecksMap = Record<string, number|{threshold?: number; [key: string]: unknown}>;
+
+/**
+ * Soft/hard evaluation block under a judge step.
+ * Metric keys map to thresholds; optional `criteria` is a free-text list.
+ */
+export type JudgeEvalBlock = JudgeChecksMap & {
+  criteria?: string[];
+};
+
+/** AI judge step — `context` + soft `expect` / hard `require` (like call expect + require). */
+export interface TestFlowJudge extends TestFlowBase {
+  judge: string;
+  id?: string;
+  title?: string;
+  /** Data shown to the judge (actual, expected, policy, …). */
+  context?: Record<string, any>;
+  /** Soft evaluation (continue on failure) — metrics + optional criteria. */
+  expect?: JudgeEvalBlock;
+  /** Hard evaluation (stop on failure) — metrics + optional criteria. */
+  require?: JudgeEvalBlock;
+  report?: ReportLevel|ReportConfig;
+}
+
 export interface TestFlowCondition extends TestFlowBase {
   if: Comparison;
   steps: TestFlowSteps;
@@ -180,7 +206,8 @@ export interface TestFlowRun extends TestFlowBase {
   run: string;  // alias of an imported server file
 }
 export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowHttp|TestFlowCheck|
-    TestFlowAssert|TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|
+    TestFlowAssert|TestFlowJudge|
+    TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|
     TestFlowPrint|TestFlowDelay|TestFlowSet|TestFlowVar|TestFlowConst|
     TestFlowLet|TestFlowData|TestFlowSetEnv|TestFlowRun;
 
@@ -224,13 +251,15 @@ export interface TestDataStages extends TestDataBase {
 export type TestData = TestDataSteps|TestDataStages;
 
 export const flowTypeOptions = [
-  'call', 'http', 'run', 'check', 'assert', 'if', 'for', 'repeat', 'delay', 'end', 'js',
+  'call', 'http', 'run', 'check', 'assert', 'judge',
+  'if', 'for', 'repeat', 'delay', 'end', 'js',
   'print', 'data', 'set', 'var', 'const', 'let', 'setenv'
 ] as FlowType[];
 
 // Flow types that the UI can add as individual steps/folders
 export const addableFlowTypes = [
-  'print', 'call', 'http', 'run', 'js', 'set', 'var', 'const', 'let', 'assert', 'check', 'if',
+  'print', 'call', 'http', 'run', 'js', 'set', 'var', 'const', 'let', 'assert', 'check',
+  'judge', 'if',
   'for', 'repeat', 'delay', 'setenv', 'stage'
 ] as FlowType[];
 export type CheckOps =

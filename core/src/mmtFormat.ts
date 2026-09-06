@@ -5,7 +5,7 @@ import {parseReportMmt} from './reportParser';
 import YAML from 'yaml';
 
 export type MmtDocType =
-  'api' | 'test' | 'env' | 'suite' | 'doc' | 'server' | 'loadtest' | 'report' | 'csv' | null;
+  'api' | 'test' | 'env' | 'suite' | 'doc' | 'server' | 'loadtest' | 'judge' | 'report' | 'csv' | null;
 
 export function detectMmtDocType(content: string, filePath?: string): MmtDocType {
   if (filePath) {
@@ -32,6 +32,9 @@ export function detectMmtDocType(content: string, filePath?: string): MmtDocType
   if (content.includes('type: loadtest')) {
     return 'loadtest';
   }
+  if (content.includes('type: judge')) {
+    return 'judge';
+  }
   if (content.includes('type: report')) {
     return 'report';
   }
@@ -57,6 +60,7 @@ export function formatMmtYaml(content: string, filePath?: string): {
     case 'suite':
     case 'loadtest':
     case 'server':
+    case 'judge':
       // AST path preserves `#` comments while reordering known keys.
       formatted = formatMmtYamlAst(content, docType);
       break;

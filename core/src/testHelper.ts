@@ -2,6 +2,14 @@ import {parseCacheExpiryAtMs} from './JSerHelper';
 import {applyOmitToOutgoingRequest, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
 import {opsList} from './TestData';
 import {wrapJsHelperModuleSource} from './jsModuleExport';
+import type {JudgeData, JudgeResult} from './JudgeData';
+import {
+  normalizeJudgeCheckValue,
+  splitJudgeEvalBlock,
+  unionJudgeChecksForModel,
+} from './JudgeData';
+import {evaluateJudge} from './judgeEngine';
+import './judgeEngineOllama';
 
 /**
  * Abort signal for cooperative test cancellation.
@@ -638,6 +646,7 @@ export const reportWithContext_ = (
           status: i.passed ? 'passed' : 'failed',
           similarity: similarityForComparison_(normalizeComparison(i.comparison), i.actual, i.expected),
           count: countForComparison_(normalizeComparison(i.comparison), i.actual),
+          ...(i.level === 'expect' || i.level === 'require' ? {level: i.level} : {}),
         }))
       : [{
           comparison: normalizeComparison(comparison),
@@ -925,7 +934,7 @@ export const check_ = (
 ): void => {
   const doReport = typeof reportFn === 'function' ? reportFn : report_;
   const c = consoleFn || console;
-  const label = type === 'check' ? 'Check' : 'Assert';
+  const label = type === 'assert' ? 'Assert' : 'Check';
   const titlePart = title ? `"${title}" - ` : '';
   if (passed) {
     const msg = formatCheckLogLine_(true, label, titlePart, raw);
@@ -1052,4 +1061,145 @@ export const checkExpects_ = (
       throw new AssertionFailedError();
     }
   }
+};
+
+/**
+ * Run an AI judge step.
+ * - `expect:` soft metrics + criteria (continue on fail)
+ * - `require:` hard metrics + criteria (stop on fail)
+ * Same metric may appear in both; each level is scored against its own threshold.
+ * Emits **one** batched report box (like call expects). Throws only if a
+ * require item fails.
+ */
+export const judge_ = async (
+    judgeDef: JudgeData,
+    step: {
+      context?: Record<string, unknown>;
+      expect?: Record<string, any>;
+      require?: Record<string, any>;
+    },
+    reportLevel: string = 'all',
+    title?: string,
+    reportFn?: (...args: any[]) => void,
+    consoleFn?: {log: (...a: any[]) => void; debug: (...a: any[]) => void; error: (...a: any[]) => void; trace: (...a: any[]) => void},
+    checkLogMode: CheckLogMode = 'default',
+    ): Promise<JudgeResult & {hardFailed?: boolean}> => {
+  const failHard = (msg: string): JudgeResult & {hardFailed: boolean} => {
+    const result: JudgeResult & {hardFailed: boolean} = {
+      passed: false,
+      hardFailed: true,
+      checks: [],
+      criteria: [{index: 0, text: '', passed: false, reason: msg}],
+    };
+    checkExpects_(
+        [{passed: false, comparison: 'judge', actual: undefined, expected: msg}],
+        'assert', reportLevel, title, msg, reportFn, consoleFn, checkLogMode);
+    return result;
+  };
+
+  if (!judgeDef || typeof judgeDef !== 'object' || (judgeDef as any).type !== 'judge') {
+    return failHard('judge_ requires a type: judge import');
+  }
+
+  const soft = splitJudgeEvalBlock(step?.expect);
+  const hard = splitJudgeEvalBlock(step?.require);
+  const modelChecks = unionJudgeChecksForModel(soft.metrics, hard.metrics);
+  const criteria = [...soft.criteria, ...hard.criteria];
+
+  if (Object.keys(modelChecks).length === 0 && criteria.length === 0) {
+    return failHard('Judge step requires expect and/or require');
+  }
+
+  const result = await evaluateJudge(judgeDef, {
+    inputs: step?.context ?? {},
+    checks: modelChecks,
+    criteria,
+  });
+
+  const scoreByName = new Map(result.checks.map(c => [c.name, c]));
+  // Criteria from the model are in order: soft criteria first, then hard.
+  const softCriteriaCount = soft.criteria.length;
+
+  type ExpectItem = {
+    passed: boolean;
+    comparison: string;
+    actual?: any;
+    expected?: any;
+    hard: boolean;
+    level: 'expect'|'require';
+  };
+  const items: ExpectItem[] = [];
+
+  const pushMetricItems = (
+      metrics: Record<string, any>,
+      level: 'expect'|'require',
+      hardLevel: boolean,
+      ) => {
+    for (const [name, value] of Object.entries(metrics)) {
+      const spec = normalizeJudgeCheckValue(value);
+      const threshold =
+          typeof spec.threshold === 'number' ? spec.threshold : undefined;
+      const fromModel = scoreByName.get(name);
+      const score = fromModel?.score;
+      let passed = fromModel?.passed ?? false;
+      if (threshold != null && score != null) {
+        passed = score >= threshold;
+      }
+      const comparison = threshold != null ?
+          `${name} >= ${threshold}` :
+          name;
+      const details = [
+        score != null ? `score=${score}` : '',
+        fromModel?.details || '',
+      ].filter(Boolean).join('; ');
+      items.push({
+        passed,
+        comparison: details ? `${comparison} (${details})` : comparison,
+        actual: score,
+        expected: threshold,
+        hard: hardLevel,
+        level,
+      });
+    }
+  };
+
+  pushMetricItems(soft.metrics, 'expect', false);
+  pushMetricItems(hard.metrics, 'require', true);
+
+  for (let i = 0; i < result.criteria.length; i++) {
+    const criterion = result.criteria[i];
+    const hardLevel = i >= softCriteriaCount;
+    const level: 'expect'|'require' = hardLevel ? 'require' : 'expect';
+    items.push({
+      passed: criterion.passed,
+      comparison: criterion.text || `criteria[${criterion.index}]`,
+      actual: criterion.passed,
+      expected: true,
+      hard: hardLevel,
+      level,
+    });
+    if (!criterion.passed && criterion.reason) {
+      const last = items[items.length - 1];
+      last.comparison = `${last.comparison} — ${criterion.reason}`;
+    }
+  }
+
+  const hardFailed = items.some(i => i.hard && !i.passed);
+  const reportType: 'check'|'assert' = hardFailed ? 'assert' : 'check';
+  const reportItems = items.map(({passed, comparison, actual, expected, level}) => ({
+    passed, comparison, actual, expected, level,
+  }));
+
+  // Overall passed only if every reported item passed
+  const allPassed = items.every(i => i.passed);
+
+  checkExpects_(
+      reportItems, reportType, reportLevel, title, undefined, reportFn, consoleFn,
+      checkLogMode);
+
+  return {
+    ...result,
+    passed: allPassed,
+    hardFailed,
+  };
 };

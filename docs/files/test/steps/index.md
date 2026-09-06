@@ -14,6 +14,7 @@ Use `call` when the request or flow already lives in a reusable imported file, a
 | [Inline expect](./run-expect.md) | Validate call outputs on the same step |
 | [check](./check.md) | Validate values; log failures and continue |
 | [assert](./assert.md) | Validate values; stop the flow on failure |
+| [judge](./judge.md) | AI judgment (`check` / `assert` blocks) |
 | [Control flow](./control-flow.md) | `if`, `for`, `repeat`, `delay` |
 | [js](./js.md) | Inline JavaScript |
 | [Variables](./variables.md) | `print`, `set`, `var`, `const`, `let`, `setenv`, `data` |

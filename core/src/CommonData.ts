@@ -1,4 +1,4 @@
-export type Type = "env" | "api" | "test" | "suite" | "loadtest" | "doc" | "csv" | "server" | "report" | null;
+export type Type = "env" | "api" | "test" | "suite" | "loadtest" | "doc" | "csv" | "server" | "report" | "judge" | null;
 
 export type Protocol = "http" | "ws" | "graphql" | "grpc";
 export type Format = "json" | "xml" | "xmle" | "text" | "urlencoded" | "binary";
@@ -79,7 +79,8 @@ export const typeOptions = [
   { value: "env", label: "Environment" },
   { value: "loadtest", label: "Load Test" },
   { value: "doc", label: "Document" },
-  { value: "server", label: "Server" }
+  { value: "server", label: "Server" },
+  { value: "judge", label: "Judge" }
 ];
 
 export interface MMTFile {

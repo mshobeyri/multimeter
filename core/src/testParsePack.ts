@@ -18,6 +18,9 @@ export const STEP_KEY_ORDER: Record<string, string[]> = {
   run:    ['run'],
   check:  ['check'],
   assert: ['assert'],
+  judge:  [
+    'judge', 'id', 'title', 'context', 'expect', 'require', 'report'
+  ],
   if:     ['if', 'steps', 'else'],
   for:    ['for', 'steps'],
   repeat: ['repeat', 'steps'],
@@ -54,7 +57,9 @@ const VALID_STEP_KEYS: Record<string, Set<string>> = {
   run:     new Set(['run']),
   check:   new Set(['check', 'title', 'report', 'details']),
   assert:  new Set(['assert', 'title', 'report', 'details']),
-  if:      new Set(['if', 'steps', 'else']),
+  judge:   new Set([
+    'judge', 'id', 'title', 'context', 'expect', 'require', 'report'
+  ]),  if:      new Set(['if', 'steps', 'else']),
   for:     new Set(['for', 'steps']),
   repeat:  new Set(['repeat', 'steps']),
   delay:   new Set(['delay']),
@@ -281,6 +286,9 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   }
   if ('run' in step) {
     return 'run';
+  }
+  if ('judge' in step) {
+    return 'judge';
   }
   if ('check' in step) {
     return 'check';

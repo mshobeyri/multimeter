@@ -4,6 +4,7 @@ import { FlowType, CheckOps } from "mmt-core/TestData";
 import { formatLogicalCondition, parseComparisonParts, parseLogicalCondition, type LogicalJoin } from "mmt-core/JSerTestFlow";
 import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
+import TestJudge from "./TestJudge";
 import TestHttp from "./TestHttp";
 import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
@@ -191,6 +192,14 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             importedOutputsByAlias={importValidation?.outputsByAlias}
             onChange={callObj => onChange({ ...callObj })}
             placeholder="select a call"
+          />
+        );
+      case 'judge':
+        return (
+          <TestJudge
+            value={stepData}
+            imports={typeof testData?.import === 'object' ? testData.import as Record<string, string> : undefined}
+            onChange={judgeObj => onChange({ ...judgeObj })}
           />
         );
       case 'http':

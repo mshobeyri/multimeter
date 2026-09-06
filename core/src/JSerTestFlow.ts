@@ -2,11 +2,11 @@ import {APIData} from './APIData';
 import {resolveApiHttpMethod} from './apiMethod';
 import {apiToJSfunc} from './JSerAPI';
 import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from './JSerHelper';
-import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from './TestData';
+import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from './omitKeyword';
-import {replaceEnvTokensToJs, replaceOutputTokensToJs, rewriteOutputSetKey, toTemplateWithEnvVars} from './variableReplacer';
+import {replaceEnvTokensToJs, replaceOutputTokensToJs, rewriteOutputSetKey, toTemplateValueJs, toTemplateWithEnvVars} from './variableReplacer';
 import * as YAML from 'yaml';
 
 function randomName(): string {
@@ -472,6 +472,58 @@ export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): st
 export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): string =>
   comparisonToJSfunc('assert', assert, useExternalReport);
 
+/** Serialize a YAML value for judge step fields (context / expect / require), preserving ${} refs. */
+const judgeValueToJs = (value: unknown): string => {
+  if (typeof value === 'string') {
+    if (/^\$\{[\s\S]+\}$/.test(value.trim())) {
+      return value.trim().slice(2, -1).trim() || 'undefined';
+    }
+    return toTemplateValueJs(value);
+  }
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(judgeValueToJs).join(', ')}]`;
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+        .map(([k, v]) => `${JSON.stringify(k)}: ${judgeValueToJs(v)}`);
+    return `{${entries.join(', ')}}`;
+  }
+  return JSON.stringify(value);
+};
+
+const judgeStepToJSfunc = (
+    step: TestFlowJudge,
+    useExternalReport: boolean,
+    stepIdx: number,
+    hoistedIds?: Set<string>,
+    ): string => {
+  const alias = step.judge;
+  if (typeof alias !== 'string' || !alias.trim()) {
+    return '';
+  }
+
+  const reportCfg = normalizeReportConfig(step.report);
+  const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
+  const title = step.title ? JSON.stringify(step.title) : 'undefined';
+
+  const contextJs = judgeValueToJs(step.context ?? {});
+  const expectJs = step.expect ? judgeValueToJs(step.expect) : 'undefined';
+  const requireJs = step.require ? judgeValueToJs(step.require) : 'undefined';
+
+  const safeName = alias.replace(/[^a-zA-Z0-9_]/g, '_') || 'judge';
+  const resultVar = step.id || `_${safeName}_${stepIdx}`;
+  const awaitExpr =
+      `await judge_(${alias}, { context: ${contextJs}, expect: ${expectJs}, require: ${requireJs} }, '${reportLevel}', ${title})`;
+  const hoisted = !!(step.id && hoistedIds?.has(step.id));
+  return assignResultVar(resultVar, awaitExpr, hoisted) + ';';
+};
+
 /**
  * Parse a single expect value into operator + expected parts.
  * - String starting with a known operator (e.g. '== 200', '!= 500'): split into operator + expected.
@@ -912,6 +964,10 @@ export const flowStepsToJsfunc = async (
                 break;
               case 'assert':
                 stepJs = assertToJSfunc((step as TestFlowAssert).assert, useExternalReport);
+                break;
+              case 'judge':
+                stepJs = judgeStepToJSfunc(
+                    step as TestFlowJudge, useExternalReport, idx, hoistedIds);
                 break;
               case 'if':
                 stepJs = await ifToJSfunc(

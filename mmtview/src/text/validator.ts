@@ -276,6 +276,19 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "endpoints",
         "fallback",
       ];
+    case "judge":
+      return [
+        "type",
+        "title",
+        "description",
+        "tags",
+        "engine",
+        "model",
+        "url",
+        "auth",
+        "options",
+        "defaults",
+      ];
     case "report":
       return [
         "type",
@@ -318,9 +331,11 @@ export function detectOrderingIssue(doc: any, content: string, expectedOrder: st
  * Canonical key orders for step types (must match core/testParsePack).
  */
 const STEP_KEY_ORDER: Record<string, string[]> = {
-  call:   ['call', 'id', 'title', 'inputs', 'expect', 'debug', 'report'],
+  call:   ['call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report'],
+  http:   ['http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body', 'outputs', 'expect', 'debug', 'report'],
   check:  ['check'],
   assert: ['assert'],
+  judge:  ['judge', 'id', 'title', 'context', 'expect', 'require', 'report'],
   if:     ['if', 'steps', 'else'],
   for:    ['for', 'steps'],
   repeat: ['repeat', 'steps'],

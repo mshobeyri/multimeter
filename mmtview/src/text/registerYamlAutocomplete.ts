@@ -395,6 +395,28 @@ export function registerYamlAutocomplete(monaco: any) {
         return 0;
     };
 
+    /** True when cursor is nested under a `- judge:` step item. */
+    const isInsideJudgeStep = (lines: string[], currentIndent: number): boolean => {
+        for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i];
+            if (!line.trim()) {
+                continue;
+            }
+            const indent = line.search(/\S|$/);
+            if (indent >= currentIndent) {
+                continue;
+            }
+            if (/^-\s*judge\s*:/.test(line.trim())) {
+                return true;
+            }
+            // Hit another step item or a section at lower indent — stop.
+            if (/^-\s*\w+\s*:/.test(line.trim()) || indent === 0) {
+                return false;
+            }
+        }
+        return false;
+    };
+
     // Determine the parent context for suggestions
     const getParentContext = (lines: string[], currentIndent: number, docType: string | null): string => {
         // Check document type first
@@ -885,7 +907,7 @@ export function registerYamlAutocomplete(monaco: any) {
                                 // Skip lines deeper than current (sibling properties like title:, id:)
                                 if (indent > currentIndent) { continue; }
                                 // At or above current indent, check for step pattern
-                                const stepMatch = l.trim().match(/^-\s*(call|check|assert|if|for|repeat|data|print|js|set|var|const|let|delay|setenv)\s*:/);
+                                const stepMatch = l.trim().match(/^-\s*(call|check|assert|judge|if|for|repeat|data|print|js|set|var|const|let|delay|setenv)\s*:/);
                                 if (stepMatch) {
                                     const siblingKey = `step-${stepMatch[1]}`;
                                     const siblingList = keySuggestionsByParent[siblingKey] || [];
@@ -1035,6 +1057,39 @@ export function registerYamlAutocomplete(monaco: any) {
                 }
 
                 if (position.column >= valueStartColumn) {
+                    // `- judge: <alias>` — suggest imported judge aliases (not file-level judge keys)
+                    if (key === 'judge' && docType === 'test') {
+                        const importMap = getImportMap(model);
+                        const typed = typedValue.trim().toLowerCase();
+                        const aliasSuggestions = Object.entries(importMap)
+                            .filter(([alias, filePath]) => {
+                                if (typeof filePath !== 'string') {
+                                    return false;
+                                }
+                                const lower = filePath.toLowerCase();
+                                if (!lower.endsWith('.mmt')) {
+                                    return false;
+                                }
+                                return !typed || alias.toLowerCase().startsWith(typed);
+                            })
+                            .map(([alias, filePath]) => ({
+                                label: alias,
+                                kind: monaco.languages.CompletionItemKind.Reference,
+                                insertText: alias,
+                                detail: `Judge import: ${filePath}`,
+                                documentation: `Use imported judge "${alias}" from ${filePath}`,
+                                sortText: `0${alias}`,
+                            }));
+                        if (aliasSuggestions.length > 0) {
+                            return {
+                                suggestions: withRange(
+                                    deduplicateSuggestions(aliasSuggestions),
+                                    completionRange(position, valueStartColumn, lineContent.length + 1),
+                                ),
+                            };
+                        }
+                    }
+
                     const suggestionList = getValueSuggestions(key);
 
                     if (suggestionList.length > 0) {
@@ -1116,7 +1171,7 @@ export function registerYamlAutocomplete(monaco: any) {
                             continue; // sibling property like id:, title: — skip
                         }
                         // Check for step pattern (at same or lower indent)
-                        const stepMatch = l.trim().match(/^-\s*(call|check|assert|if|for|repeat|data|print|js|set|var|const|let|delay|setenv)\s*:/);
+                        const stepMatch = l.trim().match(/^-\s*(call|check|assert|judge|if|for|repeat|data|print|js|set|var|const|let|delay|setenv)\s*:/);
                         if (stepMatch) {
                             const stepType = stepMatch[1];
                             const siblingKey = `step-${stepType}`;
@@ -1138,11 +1193,22 @@ export function registerYamlAutocomplete(monaco: any) {
             // Get parent-specific suggestions and deduplicate
             // When inside report: of a test step, use step-report suggestions (internal/external)
             // instead of type: report file-level suggestions
+            // When inside expect:/require: of a judge step, use judge-eval (metrics/criteria)
+            // instead of call expect keys or comparison-object keys.
+            // When inside context: of a judge step, use judge-context keys.
             const effectiveContext = (parentContext === 'report' && docType === 'test')
                 ? 'step-report'
                 : parentContext === 'format'
                     ? 'format-keys'
-                    : parentContext;
+                    : ((parentContext === 'expect' || parentContext === 'require') &&
+                        docType === 'test' &&
+                        isInsideJudgeStep(lines, currentIndent))
+                        ? 'judge-eval'
+                        : (parentContext === 'context' &&
+                            docType === 'test' &&
+                            isInsideJudgeStep(lines, currentIndent))
+                            ? 'judge-context'
+                            : parentContext;
             const parentSuggestions = keySuggestionsByParent[effectiveContext] || [];
             const baseSuggestions = deduplicateSuggestions(parentSuggestions);
 

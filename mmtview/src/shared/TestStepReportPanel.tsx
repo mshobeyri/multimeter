@@ -262,6 +262,8 @@ export interface ExpectReportItem {
   status: StepStatus;
   similarity?: number;
   count?: number;
+  /** Soft vs hard section (judge expect / require). */
+  level?: 'expect' | 'require';
 }
 
 export interface StepReportItem {
@@ -496,44 +498,66 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                       onClick={(e) => e.stopPropagation()}
                       onDoubleClick={(e) => e.stopPropagation()}
                     >
-                        {hasExpects && (
-                          <div>
-                            <SectionTitle label={isDebug ? 'Debug' : (report.expects.length === 1 ? 'Expect' : 'Expects')} />
-                            <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {report.expects.map((item, idx) => {
-                              const itemMeta = isDebug ? statusIconFor('debug') : statusIconFor(item.status);
-                              const showActualDetails = !isDebug && (typeof item.similarity === 'number' || typeof item.count === 'number') && item.actual !== undefined && item.expected !== undefined;
-                              const showFailureDetails = !isDebug && item.status === 'failed' && item.actual !== undefined && item.expected !== undefined;
-                              return (
-                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 4 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span
-                                      className={`codicon ${itemMeta.icon}`}
-                                      style={{ color: itemMeta.color, fontSize: 12 }}
-                                      aria-label={itemMeta.title}
-                                    ></span>
-                                    <span style={{
-                                      fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                                      fontSize: 'var(--vscode-editor-font-size, 12px)',
-                                    }}>{item.comparison}</span>
-                                  </div>
-                                  {(showActualDetails || showFailureDetails) && (
-                                    <>
-                                      <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
-                                      {typeof item.similarity === 'number' && (
-                                        <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>similarity: {item.similarity}%</span>
-                                      )}
-                                      {typeof item.count === 'number' && (
-                                        <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>count: {item.count}</span>
-                                      )}
-                                    </>
-                                  )}
+                        {hasExpects && (() => {
+                          const softItems = report.expects.filter(i => i.level !== 'require');
+                          const hardItems = report.expects.filter(i => i.level === 'require');
+                          const renderItems = (items: ExpectReportItem[], sectionLabel: string, first: boolean) => {
+                            if (items.length === 0) {
+                              return null;
+                            }
+                            return (
+                              <div>
+                                <SectionTitle
+                                  label={sectionLabel}
+                                  first={first}
+                                />
+                                <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                  {items.map((item, idx) => {
+                                    const itemMeta = isDebug ? statusIconFor('debug') : statusIconFor(item.status);
+                                    const showActualDetails = !isDebug && (typeof item.similarity === 'number' || typeof item.count === 'number') && item.actual !== undefined && item.expected !== undefined;
+                                    const showFailureDetails = !isDebug && item.status === 'failed' && item.actual !== undefined && item.expected !== undefined;
+                                    return (
+                                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 4 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                          <span
+                                            className={`codicon ${itemMeta.icon}`}
+                                            style={{ color: itemMeta.color, fontSize: 12 }}
+                                            aria-label={itemMeta.title}
+                                          ></span>
+                                          <span style={{
+                                            fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                                            fontSize: 'var(--vscode-editor-font-size, 12px)',
+                                          }}>{item.comparison}</span>
+                                        </div>
+                                        {(showActualDetails || showFailureDetails) && (
+                                          <>
+                                            <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
+                                            {typeof item.similarity === 'number' && (
+                                              <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>similarity: {item.similarity}%</span>
+                                            )}
+                                            {typeof item.count === 'number' && (
+                                              <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>count: {item.count}</span>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              );
-                            })}
-                          </div>
-                          </div>
-                        )}
+                              </div>
+                            );
+                          };
+                          const softLabel = isDebug
+                            ? 'Debug'
+                            : (softItems.length === 1 ? 'Expect' : 'Expects');
+                          const hardLabel = hardItems.length === 1 ? 'Require' : 'Requires';
+                          return (
+                            <div>
+                              {renderItems(softItems, softLabel, true)}
+                              {renderItems(hardItems, hardLabel, softItems.length === 0)}
+                            </div>
+                          );
+                        })()}
                         {callDetails ? (
                           <StructuredDetails callDetails={callDetails} />
                         ) : (
