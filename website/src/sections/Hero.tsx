@@ -19,13 +19,13 @@ const qualities = [
 
 const features = [
   'API Test',
+  'AI Checks',
   'Mock Server',
   'Load Test',
-  'Smoke Tests',
-  'Documentation',
   'WebSocket Test',
   'Test Suites',
-  'Test Reports',
+  'Smoke Tests',
+  'CI Reports',
 ]
 
 const toolLogos = [

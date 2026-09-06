@@ -2,7 +2,6 @@ import Hero from '../sections/Hero'
 import Features from '../sections/Features'
 import BuiltForVSCode from '../sections/BuiltForVSCode'
 import GitNative from '../sections/GitNative'
-import Protocols from '../sections/Protocols'
 import MockServer from '../sections/MockServer'
 import AITestGen from '../sections/AITestGen'
 import CICDReady from '../sections/CICDReady'
@@ -19,7 +18,6 @@ export default function Home() {
         <Features />
         <BuiltForVSCode />
         <GitNative />
-        <Protocols />
         <AITestGen />
         <MockServer />
         <CICDReady />
