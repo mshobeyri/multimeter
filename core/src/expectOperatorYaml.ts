@@ -6,7 +6,8 @@ import { detectNewline, joinLines, splitNormalizedLines } from './textLines';
  * YAML interprets specially:
  *   `!`  → tag indicator  (value silently loses the operator)
  *   `>`  → block-scalar indicator  (parse error)
- * We pre-quote these inside `expect:` / `require:` / `debug:` blocks before YAML.parse sees them.
+ * We pre-quote these inside `expect:` / `require:` / `debug:` / `match:` blocks
+ * before YAML.parse sees them.
  *
  * Longer operators first so `>=` wins over `>` and `!=` is unambiguous.
  */
@@ -22,10 +23,14 @@ const FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
  */
 const MAP_ENTRY_RE = /^([^:]+?:\s+)(.+)$/;
 
+/** Blocks whose nested scalars use check/expect operator prefixes. */
+const OPERATOR_MAP_BLOCK_RE = /^\s*(?:-\s+)?(?:expect|require|debug|match):\s*$/;
+
 /**
  * Pre-process raw YAML text to double-quote values whose leading characters would
  * be mangled by the YAML parser:
  * - `expect:` / `require:` / `debug:` map values and list items (e.g. `status: != 200`)
+ * - `match:` maps on mock endpoints (e.g. `body.xxx: != salam`)
  * - `operator:` fields on check/assert object forms (e.g. `operator: !=`)
  *
  * Preserves the input newline style so CST byte ranges from `parseDocument`
@@ -44,7 +49,7 @@ export function quoteExpectOperators(yaml: string): string {
     }
     const indent = line.search(/\S/);
 
-    if (/^\s*(?:expect|require|debug):\s*$/.test(line)) {
+    if (OPERATOR_MAP_BLOCK_RE.test(line)) {
       inExpect = true;
       expectIndent = indent;
       lines[i] = line;
@@ -87,7 +92,7 @@ export function emitUnquotedOperators(yaml: string): string {
     }
     const indent = line.search(/\S/);
 
-    if (/^\s*(?:expect|require|debug):\s*$/.test(line)) {
+    if (OPERATOR_MAP_BLOCK_RE.test(line)) {
       inExpect = true;
       expectIndent = indent;
       continue;

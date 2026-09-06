@@ -36,6 +36,38 @@ endpoints:
     expect(yaml).toContain('type: pong');
   });
 
+  it('preserves unquoted bang operators in match body/headers/query', () => {
+    const parsed = yamlToMock(`
+type: server
+port: 29443
+endpoints:
+  - method: post
+    path: /health
+    match:
+      body:
+        xxx: != salam
+        profile.name: !C bad
+      headers:
+        authorization: !^ Basic
+      query:
+        mode: != sandbox
+    status: 200
+    body:
+      ok: true
+`);
+    expect(parsed).not.toBeNull();
+    expect((parsed!.endpoints[0] as any).match?.body).toEqual({
+      xxx: '!= salam',
+      'profile.name': '!C bad',
+    });
+    expect((parsed!.endpoints[0] as any).match?.headers).toEqual({
+      authorization: '!^ Basic',
+    });
+    expect((parsed!.endpoints[0] as any).match?.query).toEqual({
+      mode: '!= sandbox',
+    });
+  });
+
   it('accepts https protocol with tls connection config', () => {
     const {data, errors} = parseMockData({
       type: 'server',

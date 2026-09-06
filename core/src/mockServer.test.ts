@@ -1,5 +1,6 @@
 import {matchPath, autoDetectFormat, partialMatch, findEndpoint, buildResponse, buildFallbackResponse, createMockRouter, MockRequest, replaceRequestRefs, buildRequestContext, parseRequestBody, inferRequestBodyFormat, extractPathParamNames} from './mockServer';
 import {MockEndpoint, MockData} from './MockData';
+import {yamlToMock} from './mockParsePack';
 import {resolveEmbeddedTokens} from './variableReplacer';
 
 describe('matchPath', () => {
@@ -673,5 +674,118 @@ describe('createMockRouter', () => {
     const router = createMockRouter(data);
     const resp = router({method: 'get', path: '/unknown', headers: {}, query: {}, body: null});
     expect(resp.status).toBe(404);
+  });
+});
+
+describe('mock match from YAML (operator quoting)', () => {
+  function req(method: string, path: string, extra?: Partial<MockRequest>): MockRequest {
+    return {method, path, headers: {}, query: {}, body: null, ...extra};
+  }
+
+  it('matches != after parsing unquoted YAML (user TLS example)', () => {
+    const mock = yamlToMock(`
+type: server
+title: TLS Mock Server
+protocol: https
+port: 29443
+endpoints:
+  - method: post
+    path: /health
+    match:
+      body:
+        xxx: != salam
+    status: 200
+    format: json
+    body:
+      status: ok
+      message: hello from tls mock 2
+fallback:
+  status: 404
+  format: json
+  body:
+    error: not found
+`);
+    expect(mock).not.toBeNull();
+    expect((mock!.endpoints[0] as any).match?.body?.xxx).toBe('!= salam');
+
+    const router = createMockRouter(mock!);
+    const hit = router(req('post', '/health', {body: {xxx: 'sala'}}));
+    expect(hit.status).toBe(200);
+    expect(JSON.parse(hit.body).message).toBe('hello from tls mock 2');
+
+    const miss = router(req('post', '/health', {body: {xxx: 'salam'}}));
+    expect(miss.status).toBe(404);
+  });
+
+  it('matches several bang/compare operators from YAML match maps', () => {
+    const mock = yamlToMock(`
+type: server
+port: 8080
+endpoints:
+  - method: post
+    path: /x
+    match:
+      body:
+        user.role: != admin
+        note: =C hello
+      headers:
+        x-token: !^ Basic
+      query:
+        mode: != sandbox
+    status: 200
+    body: filtered
+  - method: post
+    path: /x
+    status: 200
+    body: default
+`);
+    const router = createMockRouter(mock!);
+
+    expect(router(req('post', '/x', {
+      headers: {Authorization: 'Bearer x'},
+      query: {mode: 'live'},
+      body: {user: {role: 'user'}, note: 'say hello there'},
+    })).body).toBe('filtered');
+
+    expect(router(req('post', '/x', {
+      headers: {'x-token': 'Basic abc'},
+      query: {mode: 'live'},
+      body: {user: {role: 'user'}, note: 'say hello there'},
+    })).body).toBe('default');
+
+    expect(router(req('post', '/x', {
+      headers: {Authorization: 'Bearer x'},
+      query: {mode: 'sandbox'},
+      body: {user: {role: 'user'}, note: 'say hello there'},
+    })).body).toBe('default');
+
+    expect(router(req('post', '/x', {
+      headers: {Authorization: 'Bearer x'},
+      query: {mode: 'live'},
+      body: {user: {role: 'admin'}, note: 'say hello there'},
+    })).body).toBe('default');
+  });
+
+  it('matches == omit and =* regex from YAML match body', () => {
+    const mock = yamlToMock(`
+type: server
+port: 8080
+endpoints:
+  - method: post
+    path: /x
+    match:
+      body:
+        missing: == omit
+        code: =* /^[A-Z]{3}$/
+    status: 200
+    body: ok
+fallback:
+  status: 404
+  body: no
+`);
+    const router = createMockRouter(mock!);
+    expect(router(req('post', '/x', {body: {code: 'ABC'}})).body).toBe('ok');
+    expect(router(req('post', '/x', {body: {code: 'ABC', missing: 1}})).status).toBe(404);
+    expect(router(req('post', '/x', {body: {code: 'ab'}})).status).toBe(404);
   });
 });
