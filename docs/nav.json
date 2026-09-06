@@ -217,6 +217,10 @@
                 "path": "files/test/steps/assert.md"
               },
               {
+                "title": "judge",
+                "path": "files/test/steps/judge.md"
+              },
+              {
                 "title": "Control flow",
                 "path": "files/test/steps/control-flow.md"
               },
@@ -481,6 +485,21 @@
           }
         ],
         "icon": "dashboard"
+      },
+      {
+        "title": "Judge",
+        "path": "files/judge/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "files/judge/index.md"
+          },
+          {
+            "title": "Judge steps",
+            "path": "files/test/steps/judge.md"
+          }
+        ],
+        "icon": "law"
       },
       {
         "title": "Report",
