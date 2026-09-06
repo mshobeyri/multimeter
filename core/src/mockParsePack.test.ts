@@ -1,4 +1,4 @@
-import {mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from './mockParsePack';
+import {loadMockFromYaml, mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from './mockParsePack';
 
 describe('mockParsePack', () => {
   it('mockToYaml does not add title when missing', () => {
@@ -66,6 +66,29 @@ endpoints:
     expect((parsed!.endpoints[0] as any).match?.query).toEqual({
       mode: '!= sandbox',
     });
+  });
+
+  it('loadMockFromYaml keeps != operators (unlike raw YAML.parse)', () => {
+    const raw = `
+type: server
+port: 29443
+endpoints:
+  - method: post
+    path: /health
+    match:
+      body:
+        xxx: != salam
+    status: 200
+    body:
+      ok: true
+`;
+    const viaRaw = require('yaml').parseDocument(raw).toJS();
+    expect(viaRaw.endpoints[0].match.body.xxx).toBe('salam');
+
+    const {data, errors} = loadMockFromYaml(raw);
+    expect(errors.filter(e => e.severity === 'error')).toEqual([]);
+    expect(data).not.toBeNull();
+    expect((data!.endpoints[0] as any).match?.body?.xxx).toBe('!= salam');
   });
 
   it('accepts https protocol with tls connection config', () => {

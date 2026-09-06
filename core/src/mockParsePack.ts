@@ -207,6 +207,16 @@ export function yamlToMock(yamlContent: string): MockData | null {
   return data;
 }
 
+/**
+ * Parse + validate a mock server YAML string.
+ * Uses the shared YAML prepare step so match operators like `!=` are not
+ * stripped by the YAML tag parser (raw `YAML.parse` would turn `!= salam` into `salam`).
+ */
+export function loadMockFromYaml(yamlContent: string): {data: MockData | null; errors: ParseError[]} {
+  const yaml = parseYaml(yamlContent);
+  return parseMockData(yaml);
+}
+
 function normalizeMockProtocolField(raw: any, errors?: ParseError[]): MockProtocol | string {
   if (raw === undefined || raw === null || raw === '') {
     return 'http';

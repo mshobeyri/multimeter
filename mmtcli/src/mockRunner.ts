@@ -6,7 +6,6 @@ import fs from 'fs';
 import http from 'http';
 import https from 'https';
 import path from 'path';
-import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
 import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 
@@ -116,10 +115,10 @@ export async function startMockServerFromPath(
   }
 
   const rawContent = fs.readFileSync(filePath, 'utf-8');
-  let parsed: any;
+  let processedContent = rawContent;
   try {
     const processor = (mmtcore as any).dataImportProcessor;
-    const processedContent = processor?.processDataImportsInYaml ?
+    processedContent = processor?.processDataImportsInYaml ?
       await processor.processDataImportsInYaml({
         rawText: rawContent,
         filePath,
@@ -127,14 +126,13 @@ export async function startMockServerFromPath(
         fileLoader: async (p: string) => fs.readFileSync(p, 'utf-8'),
       }) :
       rawContent;
-    parsed = yaml.load(processedContent);
   } catch (err: any) {
     throw new Error(`Mock server: YAML parse error in ${path.basename(filePath)}: ${err.message}`);
   }
 
-  const {data, errors} = mockParsePack.parseMockData(parsed);
+  const {data, errors} = mockParsePack.loadMockFromYaml(processedContent);
   if (errors.length > 0 || !data) {
-    const msg = errors.map((e: any) => e.message).join('; ');
+    const msg = errors.map((e: any) => e.message).join('; ') || 'Invalid mock server file';
     throw new Error(`Mock server validation errors in ${path.basename(filePath)}: ${msg}`);
   }
 

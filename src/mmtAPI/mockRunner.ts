@@ -4,7 +4,6 @@ import * as https from 'https';
 import * as path from 'path';
 import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 import * as vscode from 'vscode';
-import YAML from 'yaml';
 import * as mmtcore from 'mmt-core';
 import { mockParsePack, mockServer, variableReplacer, MockData as MockDataNS } from 'mmt-core';
 
@@ -187,17 +186,9 @@ export async function startMockServer(
   stopMockServer(documentUri);
 
   const rawContent = document.getText();
-  let parsed: any;
-  try {
-    parsed = YAML.parse(rawContent);
-  } catch (err: any) {
-    vscode.window.showErrorMessage(`Mock server: YAML parse error: ${err.message}`);
-    return;
-  }
-
-  const { data, errors } = mockParsePack.parseMockData(parsed);
+  const { data, errors } = mockParsePack.loadMockFromYaml(rawContent);
   if (errors.length > 0 || !data) {
-    const msg = errors.map(e => e.message).join('; ');
+    const msg = errors.map(e => e.message).join('; ') || 'Invalid mock server file';
     vscode.window.showErrorMessage(`Mock server validation errors: ${msg}`);
     return;
   }
@@ -436,22 +427,21 @@ export async function startMockServerFromPath(
   stopMockServer(documentUri);
 
   const rawContent = fs.readFileSync(filePath, 'utf-8');
-  let parsed: any;
+  let processedContent = rawContent;
   try {
-    const processedContent = await (mmtcore as any).dataImportProcessor.processDataImportsInYaml({
+    processedContent = await (mmtcore as any).dataImportProcessor.processDataImportsInYaml({
       rawText: rawContent,
       filePath,
       projectRoot: findProjectRootSync(filePath, fs.existsSync, path.dirname, path.join) ?? undefined,
       fileLoader: async (p: string) => fs.readFileSync(p, 'utf-8'),
     });
-    parsed = YAML.parse(processedContent);
   } catch (err: any) {
     throw new Error(`Mock server: YAML parse error in ${path.basename(filePath)}: ${err.message}`);
   }
 
-  const { data, errors } = mockParsePack.parseMockData(parsed);
+  const { data, errors } = mockParsePack.loadMockFromYaml(processedContent);
   if (errors.length > 0 || !data) {
-    const msg = errors.map(e => e.message).join('; ');
+    const msg = errors.map(e => e.message).join('; ') || 'Invalid mock server file';
     throw new Error(`Mock server validation errors in ${path.basename(filePath)}: ${msg}`);
   }
 
