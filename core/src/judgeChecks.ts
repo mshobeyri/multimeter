@@ -78,3 +78,61 @@ export function buildJudgeBuiltinChecksPrompt(): string {
     'For any other check name, interpret it sensibly from the name and score 0..1; set passed if score >= threshold when a threshold is provided.',
   ].join('\n');
 }
+
+/** Comma-separated builtin ids (docs / autocomplete copy). */
+export function builtinJudgeCheckIdsCsv(): string {
+  return JUDGE_BUILTIN_CHECK_IDS.join(', ');
+}
+
+const JUDGE_CHECK_VALUE_ANYOF = [
+  {type: 'number'},
+  {
+    type: 'object',
+    properties: {threshold: {type: 'number'}},
+    additionalProperties: true,
+  },
+] as const;
+
+/** JSON Schema `properties` for the four built-in metric keys. */
+export function builtinJudgeCheckSchemaProperties(
+    opts?: {includeDescription?: boolean},
+    ): Record<string, Record<string, unknown>> {
+  const withDesc = opts?.includeDescription !== false;
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const check of JUDGE_BUILTIN_CHECKS) {
+    const prop: Record<string, unknown> = {
+      anyOf: JUDGE_CHECK_VALUE_ANYOF.map(item => ({...item})),
+    };
+    if (withDesc) {
+      prop.description =
+          `${check.description} (0..1 threshold or { threshold })`;
+    }
+    out[check.id] = prop;
+  }
+  return out;
+}
+
+/** YAML snippet for `defaults.checks` autocomplete (first two builtins). */
+export function builtinJudgeDefaultsChecksYaml(indentTabs = 2): string {
+  const prefix = '\t'.repeat(indentTabs);
+  return JUDGE_BUILTIN_CHECKS.slice(0, 2)
+      .map(c => `${prefix}${c.id}: ${c.defaultThreshold}`)
+      .join('\n');
+}
+
+export type JudgeBuiltinSuggest = {
+  id: JudgeBuiltinCheckId;
+  insertText: string;
+  detail: string;
+  documentation: string;
+};
+
+/** Autocomplete rows for expect/require metric keys. */
+export function builtinJudgeEvalSuggestions(): JudgeBuiltinSuggest[] {
+  return JUDGE_BUILTIN_CHECKS.map(c => ({
+    id: c.id,
+    insertText: `${c.id}: ${c.defaultThreshold}\n`,
+    detail: `${c.label} threshold`,
+    documentation: c.description,
+  }));
+}

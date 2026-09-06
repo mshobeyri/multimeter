@@ -1,4 +1,5 @@
 import { opsList } from 'mmt-core/TestData';
+import { builtinJudgeCheckSchemaProperties } from 'mmt-core/judgeChecks';
 
 export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
@@ -464,34 +465,7 @@ export const TestSchema = {
                     type: 'array',
                     items: { type: 'string' }
                 },
-                semanticSimilarity: {
-                    description: 'Meaning similarity of actual vs expected (0..1 threshold or { threshold })',
-                    anyOf: [
-                        { type: 'number' },
-                        { type: 'object', properties: { threshold: { type: 'number' } }, additionalProperties: true }
-                    ]
-                },
-                answerRelevance: {
-                    description: 'Whether actual answers question / user request (0..1)',
-                    anyOf: [
-                        { type: 'number' },
-                        { type: 'object', properties: { threshold: { type: 'number' } }, additionalProperties: true }
-                    ]
-                },
-                contextFaithfulness: {
-                    description: 'Whether actual stays grounded in policy / retrievedContext (0..1)',
-                    anyOf: [
-                        { type: 'number' },
-                        { type: 'object', properties: { threshold: { type: 'number' } }, additionalProperties: true }
-                    ]
-                },
-                factuality: {
-                    description: 'Factual consistency vs expected / ground truth (0..1)',
-                    anyOf: [
-                        { type: 'number' },
-                        { type: 'object', properties: { threshold: { type: 'number' } }, additionalProperties: true }
-                    ]
-                }
+                ...builtinJudgeCheckSchemaProperties(),
             },
             additionalProperties: {
                 anyOf: [
@@ -1152,12 +1126,7 @@ export const JudgeSchema = {
             properties: {
                 checks: {
                     type: 'object',
-                    properties: {
-                        semanticSimilarity: { anyOf: [{ type: 'number' }, { type: 'object' }] },
-                        answerRelevance: { anyOf: [{ type: 'number' }, { type: 'object' }] },
-                        contextFaithfulness: { anyOf: [{ type: 'number' }, { type: 'object' }] },
-                        factuality: { anyOf: [{ type: 'number' }, { type: 'object' }] },
-                    },
+                    properties: builtinJudgeCheckSchemaProperties({ includeDescription: false }),
                     additionalProperties: {
                         anyOf: [
                             { type: 'number' },

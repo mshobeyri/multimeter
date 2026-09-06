@@ -1,10 +1,17 @@
 import { loadEnvVariables } from '../workspaceStorage';
 import { JSONValue } from 'mmt-core/CommonData';
 import { Random, Current } from 'mmt-core';
+import {
+    builtinJudgeCheckIdsCsv,
+    builtinJudgeDefaultsChecksYaml,
+    builtinJudgeEvalSuggestions,
+} from 'mmt-core/judgeChecks';
 import { buildOperatorSuggestions, operatorListText } from './operatorSuggestions';
 
 export const KeySuggestionsByParent = (monaco: any) => {
     const variablesSuggestions: any[] = [];
+    const builtinJudgeIds = builtinJudgeCheckIdsCsv();
+    const builtinJudgeEvalRows = builtinJudgeEvalSuggestions();
 
     // Dynamic random token suggestions sourced from Random.RANDOM_TOKEN_MAP (single source of truth)
     const randomTokenSuggestions = Object.keys(Random.RANDOM_TOKEN_MAP)
@@ -183,9 +190,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "defaults",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "defaults:\n\tchecks:\n\t\tsemanticSimilarity: 0.8\n\t\tanswerRelevance: 0.8\n",
+            insertText: `defaults:\n\tchecks:\n${builtinJudgeDefaultsChecksYaml(2)}\n`,
             detail: 'Default checks/criteria',
-            documentation: 'Optional defaults merged into judge steps (step wins on conflict).\nBuilt-in checks: semanticSimilarity, answerRelevance, contextFaithfulness, factuality.'
+            documentation: `Optional defaults merged into judge steps (step wins on conflict).\nBuilt-in checks: ${builtinJudgeIds}.`
         },
         {
             label: "tags",
@@ -564,7 +571,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'context: data for the judge (actual, expected, policy, question, …).',
                 'expect: soft metrics + criteria (continue on fail).',
                 'require: hard metrics + criteria (stop on fail).',
-                'Built-in metrics: semanticSimilarity, answerRelevance, contextFaithfulness, factuality.',
+                `Built-in metrics: ${builtinJudgeIds}.`,
                 'Same metric can appear in both; each level uses its own threshold.',
                 'Example:',
                 '- judge: localJudge',
@@ -1881,15 +1888,18 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture judge result', documentation: `Variable for the judge result (\${id.passed}, \${id.checks}, \${id.criteria}).` },
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Judge step title', documentation: 'Label shown in reports.' },
         { label: 'context', kind: monaco.languages.CompletionItemKind.Property, insertText: 'context:\n\tactual: ', detail: 'Data for the judge', documentation: 'Flexible map (actual, expected, policy, retrievedContext, …).' },
-        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\tanswerRelevance: 0.8\n\tsemanticSimilarity: 0.9\n\tcriteria:\n\t\t- ', detail: 'Soft evaluation (continue on fail)', documentation: 'Metrics + optional criteria. Soft: report and continue. Built-ins: semanticSimilarity, answerRelevance, contextFaithfulness, factuality.' },
+        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\tanswerRelevance: 0.8\n\tsemanticSimilarity: 0.9\n\tcriteria:\n\t\t- ', detail: 'Soft evaluation (continue on fail)', documentation: `Metrics + optional criteria. Soft: report and continue. Built-ins: ${builtinJudgeIds}.` },
         { label: 'require', kind: monaco.languages.CompletionItemKind.Property, insertText: 'require:\n\tcontextFaithfulness: 0.5\n\tsemanticSimilarity: 0.5\n', detail: 'Hard evaluation (stop on fail)', documentation: 'Metrics + optional criteria. Hard: report and stop the test.' },
         { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'all | fails | none (or internal/external object).' },
     ];
     const judgeEvalSiblings = [
-        { label: 'semanticSimilarity', kind: monaco.languages.CompletionItemKind.Property, insertText: 'semanticSimilarity: 0.8\n', detail: 'Similarity threshold', documentation: 'Meaning similarity of actual vs expected (0..1). Soft under expect:, hard under require:.' },
-        { label: 'answerRelevance', kind: monaco.languages.CompletionItemKind.Property, insertText: 'answerRelevance: 0.8\n', detail: 'Answer relevance threshold', documentation: 'Whether actual answers question / the user request (0..1).' },
-        { label: 'contextFaithfulness', kind: monaco.languages.CompletionItemKind.Property, insertText: 'contextFaithfulness: 0.7\n', detail: 'Context faithfulness threshold', documentation: 'Whether actual stays grounded in policy / retrievedContext (0..1).' },
-        { label: 'factuality', kind: monaco.languages.CompletionItemKind.Property, insertText: 'factuality: 0.7\n', detail: 'Factuality threshold', documentation: 'Factual consistency of actual vs expected / ground-truth fields (0..1).' },
+        ...builtinJudgeEvalRows.map(row => ({
+            label: row.id,
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: row.insertText,
+            detail: row.detail,
+            documentation: `${row.documentation} Soft under expect:, hard under require:.`,
+        })),
         { label: 'criteria', kind: monaco.languages.CompletionItemKind.Property, insertText: 'criteria:\n\t- ', detail: 'Free-text criteria', documentation: 'Natural-language requirements. Soft under expect:, hard under require:.' },
     ];
     const judgeContextSiblings = [

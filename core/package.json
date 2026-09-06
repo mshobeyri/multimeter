@@ -150,6 +150,31 @@
       "require": "./dist/mockServer.js",
       "default": "./dist/mockServer.js"
     },
+    "./mockDispatch": {
+      "types": "./dist/mockDispatch.d.ts",
+      "require": "./dist/mockDispatch.js",
+      "default": "./dist/mockDispatch.js"
+    },
+    "./mockTlsMaterial": {
+      "types": "./dist/mockTlsMaterial.d.ts",
+      "require": "./dist/mockTlsMaterial.js",
+      "default": "./dist/mockTlsMaterial.js"
+    },
+    "./judgeProbe": {
+      "types": "./dist/judgeProbe.d.ts",
+      "require": "./dist/judgeProbe.js",
+      "default": "./dist/judgeProbe.js"
+    },
+    "./judgeAuth": {
+      "types": "./dist/judgeAuth.d.ts",
+      "require": "./dist/judgeAuth.js",
+      "default": "./dist/judgeAuth.js"
+    },
+    "./JudgeData": {
+      "types": "./dist/JudgeData.d.ts",
+      "require": "./dist/JudgeData.js",
+      "default": "./dist/JudgeData.js"
+    },
     "./reportCollector": {
       "types": "./dist/reportCollector.d.ts",
       "require": "./dist/reportCollector.js",

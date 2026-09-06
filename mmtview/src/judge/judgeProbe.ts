@@ -1,12 +1,11 @@
 import {AuthConfig} from 'mmt-core/APIData';
-import {applyAuthToRequest} from 'mmt-core/apiParsePack';
+import {appendQuery, buildJudgeAuth} from 'mmt-core/judgeAuth';
 import {resolveEnvTokenValues} from 'mmt-core/variableReplacer';
 import {NetworkNodeApi} from '../components/network/NetworkNodeApi';
 import {
   JudgeModelInfo,
   modelMatchesConfigured,
   parseModels,
-  probeHeadersForEngine,
   probeUrlForEngine,
 } from './judgeProbeHelpers';
 
@@ -84,9 +83,8 @@ export function probeJudgeConnection(args: {
   }
 
   const auth = resolveAuthForProbe(args.auth, envParams);
-  const applied = applyAuthToRequest(auth, {});
-  const headers = probeHeadersForEngine(args.engine, auth, applied.headers);
-  const url = probeUrlForEngine(args.engine, resolvedUrl);
+  const built = buildJudgeAuth(args.engine, auth, {});
+  const url = appendQuery(probeUrlForEngine(args.engine, resolvedUrl), built.query);
   const started = Date.now();
 
   args.onResult({state: 'loading', models: []});
@@ -95,8 +93,7 @@ export function probeJudgeConnection(args: {
     url,
     method: 'GET',
     timeout: args.timeoutMs ?? 8000,
-    headers,
-    query: applied.query,
+    headers: built.headers,
     onResponse: (res) => {
       const durationMs = Date.now() - started;
       const status = typeof res?.status === 'number' ? res.status : -1;

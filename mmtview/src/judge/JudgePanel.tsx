@@ -18,7 +18,7 @@ import { safeList } from 'mmt-core/safer';
 import { NetworkNodeApi } from '../components/network/NetworkNodeApi';
 import { patchJudgeYaml } from './judgeYaml';
 import { JudgeProbeResult, probeJudgeConnection } from './judgeProbe';
-import { JudgeModelInfo, modelMatchesConfigured } from './judgeProbeHelpers';
+import { JudgeModelInfo, modelMatchesConfigured, shouldAutoProbeJudge } from './judgeProbeHelpers';
 import {
   defaultUrlForEngine,
   isDefaultJudgeUrl,
@@ -191,7 +191,7 @@ function modelsEmptyLabel(probe: JudgeProbeResult): string {
     return probe.message || 'Unable to list models';
   }
   if (probe.state === 'idle') {
-    return 'Refresh to list models from the engine.';
+    return 'Click Refresh status to list models (cloud engines are not auto-probed).';
   }
   return 'No models reported by this engine.';
 }
@@ -265,16 +265,20 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
     });
   }, [judge, envParams]);
 
-  // Auto-probe on view, and when editing the Engine tab.
+  // Auto-probe local engines only. Cloud list-models (OpenAI GET /v1/models)
+  // is rate-limited; opening/editing the file must not fire it.
   useEffect(() => {
     if (!judge?.url) {
+      return;
+    }
+    if (!shouldAutoProbeJudge(String(judge.engine || ''))) {
       return;
     }
     if (page === 'view' || (page === 'edit' && tab === 'engine')) {
       refreshStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, tab, judge?.engine, judge?.url, judge?.model, judge?.auth, envParams]);
+  }, [page, tab, judge?.engine, judge?.url, judge?.model, envParams]);
 
   const chrome = useAccentChrome('#e3b341');
   const greenChrome = useAccentChrome('green');

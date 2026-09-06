@@ -1,6 +1,11 @@
 import React from 'react';
 import { ReportLevel, ReportConfig } from 'mmt-core/TestData';
 import { JSONRecord } from 'mmt-core/CommonData';
+import {
+  buildJudgeEvalBlock,
+  flattenJudgeChecksForUi,
+  splitJudgeEvalBlock,
+} from 'mmt-core/JudgeData';
 import KVEditor from '../components/KVEditor';
 import LEditor from '../components/LEditor';
 
@@ -8,49 +13,6 @@ interface TestJudgeProps {
   value: any;
   imports?: Record<string, string>;
   onChange: (value: any) => void;
-}
-
-function metricsMapFromBlock(block: any): JSONRecord {
-  if (!block || typeof block !== 'object' || Array.isArray(block)) {
-    return {};
-  }
-  const out: JSONRecord = {};
-  for (const [name, value] of Object.entries(block)) {
-    if (name === 'criteria') {
-      continue;
-    }
-    if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
-      out[name] = value;
-    } else if (value && typeof value === 'object' && typeof (value as any).threshold === 'number') {
-      out[name] = (value as any).threshold;
-    } else if (value != null) {
-      out[name] = String(value);
-    }
-  }
-  return out;
-}
-
-function criteriaListFromBlock(block: any): string[] {
-  if (!block || typeof block !== 'object' || !Array.isArray(block.criteria)) {
-    return [];
-  }
-  return block.criteria.map((c: any) => String(c ?? '')).filter((c: string) => c.trim() !== '');
-}
-
-function buildEvalBlock(metrics: JSONRecord, criteria: string[]): any | undefined {
-  const out: Record<string, any> = {};
-  for (const [name, value] of Object.entries(metrics || {})) {
-    const key = String(name || '').trim();
-    if (!key) {
-      continue;
-    }
-    out[key] = value;
-  }
-  const crit = (criteria || []).map((c) => String(c ?? '').trim()).filter(Boolean);
-  if (crit.length > 0) {
-    out.criteria = crit;
-  }
-  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
@@ -90,14 +52,16 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
   const currentId = local && typeof local === 'object' && typeof local.id === 'string' ? local.id : '';
   const currentTitle = local && typeof local === 'object' && typeof local.title === 'string' ? local.title : '';
 
+  const expectSplit = React.useMemo(
+      () => splitJudgeEvalBlock(local?.expect), [local]);
+  const requireSplit = React.useMemo(
+      () => splitJudgeEvalBlock(local?.require), [local]);
   const expectMetrics = React.useMemo(
-      () => metricsMapFromBlock(local?.expect), [local]);
-  const expectCriteria = React.useMemo(
-      () => criteriaListFromBlock(local?.expect), [local]);
+      () => flattenJudgeChecksForUi(expectSplit.metrics) as JSONRecord, [expectSplit]);
   const requireMetrics = React.useMemo(
-      () => metricsMapFromBlock(local?.require), [local]);
-  const requireCriteria = React.useMemo(
-      () => criteriaListFromBlock(local?.require), [local]);
+      () => flattenJudgeChecksForUi(requireSplit.metrics) as JSONRecord, [requireSplit]);
+  const expectCriteria = expectSplit.criteria;
+  const requireCriteria = requireSplit.criteria;
 
   const buildObj = (patch: Record<string, any>) => {
     const base = (local && typeof local === 'object') ? { ...local } : {};
@@ -193,14 +157,14 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
       <KVEditor
         label=""
         value={expectMetrics}
-        onChange={(kv) => emit(buildObj({ expect: buildEvalBlock(kv, expectCriteria) }))}
+        onChange={(kv) => emit(buildObj({ expect: buildJudgeEvalBlock(kv, expectCriteria) }))}
         keyPlaceholder="answerRelevance"
         valuePlaceholder="0.8"
       />
       <LEditor
         label="Expect criteria (soft)"
         value={expectCriteria}
-        onChange={(list) => emit(buildObj({ expect: buildEvalBlock(expectMetrics, list) }))}
+        onChange={(list) => emit(buildObj({ expect: buildJudgeEvalBlock(expectMetrics, list) }))}
         placeholder="Add criterion..."
       />
 
@@ -211,14 +175,14 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
       <KVEditor
         label=""
         value={requireMetrics}
-        onChange={(kv) => emit(buildObj({ require: buildEvalBlock(kv, requireCriteria) }))}
+        onChange={(kv) => emit(buildObj({ require: buildJudgeEvalBlock(kv, requireCriteria) }))}
         keyPlaceholder="contextFaithfulness"
         valuePlaceholder="0.5"
       />
       <LEditor
         label="Require criteria (hard)"
         value={requireCriteria}
-        onChange={(list) => emit(buildObj({ require: buildEvalBlock(requireMetrics, list) }))}
+        onChange={(list) => emit(buildObj({ require: buildJudgeEvalBlock(requireMetrics, list) }))}
         placeholder="Add criterion..."
       />
 

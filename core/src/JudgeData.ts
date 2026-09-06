@@ -129,6 +129,51 @@ export function splitJudgeEvalBlock(
 }
 
 /**
+ * Build an expect/require block from editor metrics + criteria.
+ * Returns undefined when both are empty (so YAML omits the key).
+ */
+export function buildJudgeEvalBlock(
+    metrics: Record<string, unknown>|JudgeChecksMap|undefined|null,
+    criteria: string[]|undefined|null,
+    ): Record<string, unknown>|undefined {
+  const out: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(metrics || {})) {
+    const key = String(name || '').trim();
+    if (!key) {
+      continue;
+    }
+    out[key] = value;
+  }
+  const crit = (criteria || []).map(c => String(c ?? '').trim()).filter(Boolean);
+  if (crit.length > 0) {
+    out.criteria = crit;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Flatten check values for KV editors (object `{ threshold }` → number).
+ */
+export function flattenJudgeChecksForUi(
+    metrics: JudgeChecksMap|undefined|null,
+    ): Record<string, string|number|boolean> {
+  const out: Record<string, string|number|boolean> = {};
+  for (const [name, value] of Object.entries(metrics || {})) {
+    if (typeof value === 'number' || typeof value === 'string' ||
+        typeof value === 'boolean') {
+      out[name] = value;
+    } else if (
+      value && typeof value === 'object' &&
+        typeof (value as {threshold?: unknown}).threshold === 'number') {
+      out[name] = (value as {threshold: number}).threshold;
+    } else if (value != null) {
+      out[name] = String(value);
+    }
+  }
+  return out;
+}
+
+/**
  * Build a single checks map for the model call from soft + hard metrics.
  * When the same metric appears at both levels, send the looser (min) threshold;
  * caller re-applies each level's threshold to the returned score.
