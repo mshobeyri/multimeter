@@ -501,26 +501,6 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                         />
                       </div>
 
-                      <div className="label" style={{ marginTop: 8 }}>
-                        Available models
-                        {probe.models.length ? ` (${probe.models.length})` : ''}
-                      </div>
-                      <div style={{ padding: '5px 0 8px' }}>
-                        <SettingsTable
-                          columns={MODEL_COLUMNS}
-                          rows={modelRows}
-                          emptyLabel={modelsEmptyLabel(probe)}
-                          onRowClick={(row) => {
-                            if (row.key != null) {
-                              update({ model: String(row.key) });
-                            }
-                          }}
-                          isRowActive={(row) =>
-                            modelMatchesConfigured(String(row.key || ''), judge.model)
-                          }
-                        />
-                      </div>
-
                       <div className="label">Auth</div>
                       <div style={{ padding: 5, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <div style={{ fontSize: 11, opacity: 0.7 }}>
