@@ -183,11 +183,11 @@ endpoints:
     content: `type: judge
 title: Local quality judge
 engine: ollama
-model: qwen2.5:3b
+model: qwen2.5-coder:7b
 url: http://127.0.0.1:11434
 options:
   temperature: 0
-  timeout: 30s
+  timeout: 120s
 `,
   },
   {

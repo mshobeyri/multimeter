@@ -5,7 +5,7 @@ Demonstrates `type: judge` with a `judge` step using soft **`expect`** and hard 
 ## Setup
 
 1. Install and run [Ollama](https://ollama.com/) on `http://127.0.0.1:11434`.
-2. Pull a model, e.g. `ollama pull qwen2.5:3b` (or match `model:` in `judges/local.mmt`).
+2. Pull a model matching `model:` in `judges/local.mmt`, e.g. `ollama pull qwen2.5-coder:7b`.
 
 ## Files
 

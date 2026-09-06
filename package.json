@@ -643,7 +643,7 @@
     "pack-pre-release": "vsce package --pre-release --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file",
     "publish": "vsce publish --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file",
     "vscode:prepublish": "npm run build:vendor && npm run package",
-    "compile": "npm run buildcore && npm run buildmcp && npm run buildview && npm run check-types && npm run lint && node esbuild.js",
+    "compile": "npm run buildcore && npm run buildmcp && npm run buildview && npm run build --prefix mmtcli && npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
