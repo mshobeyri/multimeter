@@ -160,6 +160,11 @@
       "require": "./dist/mockTlsMaterial.js",
       "default": "./dist/mockTlsMaterial.js"
     },
+    "./httpTraceLog": {
+      "types": "./dist/httpTraceLog.d.ts",
+      "require": "./dist/httpTraceLog.js",
+      "default": "./dist/httpTraceLog.js"
+    },
     "./judgeProbe": {
       "types": "./dist/judgeProbe.d.ts",
       "require": "./dist/judgeProbe.js",

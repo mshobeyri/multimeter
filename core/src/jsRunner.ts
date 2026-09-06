@@ -12,6 +12,7 @@ import type {ServerRunner} from './testHelper';
 import {isAssertionFailedError, isTestAbortError} from './testHelper';
 import {logRunFinished, RunKind} from './runLog';
 import {setJudgeHttpPost_} from './judgeEngine';
+import {formatHttpTraceRequest, formatHttpTraceResponse} from './httpTraceLog';
 import './judgeEngineOllama';
 
 export type {RunKind};
@@ -173,27 +174,47 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
 
   // Judge engines reuse the same Node HTTP path as send_.
   setJudgeHttpPost_(async ({url, headers, body, timeoutMs}) => {
-    const res = await send({
+    const reqHeaders = headers ?? {'Content-Type': 'application/json'};
+    lg('trace', formatHttpTraceRequest({
+      method: 'POST',
       url,
-      method: 'post',
-      protocol: 'http',
-      headers: headers ?? {'Content-Type': 'application/json'},
+      headers: reqHeaders,
       body,
-      timeout: timeoutMs,
-    });
-    let parsed: any = res.body;
-    if (typeof res.body === 'string') {
-      try {
-        parsed = JSON.parse(res.body);
-      } catch {
-        parsed = res.body;
+    }));
+    try {
+      const res = await send({
+        url,
+        method: 'post',
+        protocol: 'http',
+        headers: reqHeaders,
+        body,
+        timeout: timeoutMs,
+      });
+      lg('trace', formatHttpTraceResponse({
+        status: typeof res.status === 'number' ? res.status : '?',
+        durationMs: typeof res.duration === 'number' ? res.duration : undefined,
+        headers: res.headers,
+        body: res.body,
+      }));
+      let parsed: any = res.body;
+      if (typeof res.body === 'string') {
+        try {
+          parsed = JSON.parse(res.body);
+        } catch {
+          parsed = res.body;
+        }
       }
+      return {
+        status: typeof res.status === 'number' ? res.status : -1,
+        statusText: res.statusText || '',
+        body: parsed,
+      };
+    } catch (err: any) {
+      lg('trace', formatHttpTraceResponse({
+        error: err?.message || String(err),
+      }));
+      throw err;
     }
-    return {
-      status: typeof res.status === 'number' ? res.status : -1,
-      statusText: res.statusText || '',
-      body: parsed,
-    };
   });
 
   // Fresh call-cache only for outermost JS execution. Suite / load-test
@@ -273,25 +294,33 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     };
     const sendFn = async (req: any) => {
       if (context.traceSend) {
-        const reqSummary = req ?
-            `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` :
-            'unknown';
-        lg('trace', `Request: ${reqSummary}`);
+        lg('trace', formatHttpTraceRequest({
+          method: req?.method,
+          url: req?.url,
+          headers: req?.headers,
+          query: req?.query,
+          body: req?.body,
+        }));
       }
       try {
         const res = await send(req);
         recordNetworkDuration(res);
         if (context.traceSend) {
-          const status = res && typeof res.status === 'number' ? res.status : '?';
-          const duration = res && typeof res.duration === 'number' ?
-              ` (${res.duration}ms)` :
-              '';
-          lg('trace', `Response: ${status}${duration}`);
+          lg('trace', formatHttpTraceResponse({
+            status: res && typeof res.status === 'number' ? res.status : '?',
+            durationMs: res && typeof res.duration === 'number' ?
+                res.duration :
+                undefined,
+            headers: res?.headers,
+            body: res?.body,
+          }));
         }
         return res;
       } catch (err: any) {
         if (context.traceSend) {
-          lg('trace', `Response: error - ${err?.message || String(err)}`);
+          lg('trace', formatHttpTraceResponse({
+            error: err?.message || String(err),
+          }));
         }
         throw err;
       }

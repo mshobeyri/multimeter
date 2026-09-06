@@ -38,4 +38,6 @@ steps:
 
 ### Network requests (call steps)
 
-When a test calls an API via a `call` step, the request and response are logged at `trace` level. Lower the log level to `trace` to see full network details during test runs.
+When a test calls an API via a `call` step or a `judge` step, the request and response (headers, body) are logged at `trace` level. Auth headers (`Authorization`, `x-api-key`, …) are redacted. Lower the log level to `trace` to see full network details during test runs.
+
+Judge panel **Refresh status** (list-models) also writes the same trace lines to the Multimeter Output channel.

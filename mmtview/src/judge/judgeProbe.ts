@@ -1,7 +1,9 @@
 import {AuthConfig} from 'mmt-core/APIData';
 import {appendQuery, buildJudgeAuth} from 'mmt-core/judgeAuth';
+import {formatHttpTraceRequest, formatHttpTraceResponse} from 'mmt-core/httpTraceLog';
 import {resolveEnvTokenValues} from 'mmt-core/variableReplacer';
 import {NetworkNodeApi} from '../components/network/NetworkNodeApi';
+import {logToOutput} from '../vsAPI';
 import {
   JudgeModelInfo,
   modelMatchesConfigured,
@@ -88,6 +90,11 @@ export function probeJudgeConnection(args: {
   const started = Date.now();
 
   args.onResult({state: 'loading', models: []});
+  logToOutput('trace', formatHttpTraceRequest({
+    method: 'GET',
+    url,
+    headers: built.headers,
+  }));
 
   return NetworkNodeApi.sendHttp({
     url,
@@ -97,6 +104,12 @@ export function probeJudgeConnection(args: {
     onResponse: (res) => {
       const durationMs = Date.now() - started;
       const status = typeof res?.status === 'number' ? res.status : -1;
+      logToOutput('trace', formatHttpTraceResponse({
+        status,
+        durationMs,
+        headers: res?.headers,
+        body: res?.body,
+      }));
       if (status < 0 || status >= 400) {
         args.onResult({
           state: 'error',
@@ -132,6 +145,9 @@ export function probeJudgeConnection(args: {
       });
     },
     onError: (err) => {
+      logToOutput('trace', formatHttpTraceResponse({
+        error: err?.message || 'Connection failed',
+      }));
       args.onResult({
         state: 'error',
         message: err?.message || 'Connection failed',

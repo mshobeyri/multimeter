@@ -90,7 +90,12 @@ Uses `POST {url}/models/{model}:generateContent` with JSON mime type. Typical UR
 
 Uses `POST {url}/openai/deployments/{model}/chat/completions?api-version=…`. `model` is the **deployment name**. Prefer `auth.type: api-key` with header `api-key`.
 
+## Trace logs
+
+Set the Multimeter Output filter (or `testlight --log-level trace`) to **Trace** to see the HTTP request and response for judge evaluations and the panel list-models probe. Secrets in auth headers are redacted.
+
 ## Related
 
 - [Judge steps](../test/steps/judge.md)
 - [Import](../test/import.md)
+- [Logging](../../features/logging.md)
