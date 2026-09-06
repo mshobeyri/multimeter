@@ -18,7 +18,7 @@ import { safeList } from 'mmt-core/safer';
 import { NetworkNodeApi } from '../components/network/NetworkNodeApi';
 import { patchJudgeYaml } from './judgeYaml';
 import { JudgeProbeResult, probeJudgeConnection } from './judgeProbe';
-import { JudgeModelInfo, modelMatchesConfigured, shouldAutoProbeJudge } from './judgeProbeHelpers';
+import { JudgeModelInfo, modelMatchesConfigured } from './judgeProbeHelpers';
 import {
   defaultUrlForEngine,
   isDefaultJudgeUrl,
@@ -32,6 +32,12 @@ interface JudgePanelProps {
 
 const LAST_JUDGE_PAGE_KEY = 'mmtview:judge:lastPage';
 const LAST_JUDGE_TAB_KEY = 'mmtview:judge:lastTab';
+const LAST_JUDGE_AUTO_REFRESH_KEY = 'mmtview:judge:autoRefresh';
+
+function readAutoRefreshPref(): boolean {
+  const saved = localStorage.getItem(LAST_JUDGE_AUTO_REFRESH_KEY);
+  return saved !== '0' && saved !== 'false';
+}
 
 const JUDGE_EDIT_TABS = [
   { id: 'overview' as const, label: 'Overview', icon: 'search' },
@@ -191,7 +197,7 @@ function modelsEmptyLabel(probe: JudgeProbeResult): string {
     return probe.message || 'Unable to list models';
   }
   if (probe.state === 'idle') {
-    return 'Click Refresh status to list models (cloud engines are not auto-probed).';
+    return 'Click Refresh status to list models, or enable Auto refresh.';
   }
   return 'No models reported by this engine.';
 }
@@ -205,6 +211,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
   });
   const [envParams, setEnvParams] = useState<Record<string, any>>({});
   const [probe, setProbe] = useState<JudgeProbeResult>({ state: 'idle', models: [] });
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(readAutoRefreshPref);
   const probeRequestRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -214,6 +221,10 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
   useEffect(() => {
     localStorage.setItem(LAST_JUDGE_TAB_KEY, tab);
   }, [tab]);
+
+  useEffect(() => {
+    localStorage.setItem(LAST_JUDGE_AUTO_REFRESH_KEY, autoRefresh ? '1' : '0');
+  }, [autoRefresh]);
 
   useEffect(() => {
     const cleanup = loadEnvVariables((envVars) => {
@@ -265,20 +276,20 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
     });
   }, [judge, envParams]);
 
-  // Auto-probe local engines only. Cloud list-models (OpenAI GET /v1/models)
-  // is rate-limited; opening/editing the file must not fire it.
+  // Auto-probe only when the Auto refresh checkbox is on.
   useEffect(() => {
-    if (!judge?.url) {
+    if (!autoRefresh || !judge?.url) {
       return;
     }
-    if (!shouldAutoProbeJudge(String(judge.engine || ''))) {
+    if (!(page === 'view' || (page === 'edit' && tab === 'engine'))) {
       return;
     }
-    if (page === 'view' || (page === 'edit' && tab === 'engine')) {
+    const timer = window.setTimeout(() => {
       refreshStatus();
-    }
+    }, 400);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, tab, judge?.engine, judge?.url, judge?.model, envParams]);
+  }, [autoRefresh, page, tab, judge?.engine, judge?.url, judge?.model, envParams]);
 
   const chrome = useAccentChrome('#e3b341');
   const greenChrome = useAccentChrome('green');
@@ -366,6 +377,17 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                   }
                 />
                 <div className="run-action-bar">
+                  <label
+                    className="judge-auto-refresh"
+                    title="When checked, list models automatically on open and when engine settings change"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={autoRefresh}
+                      onChange={(e) => setAutoRefresh(e.target.checked)}
+                    />
+                    <span>Auto refresh</span>
+                  </label>
                   <PrimaryButton
                     icon="refresh"
                     iconSpin={probe.state === 'loading'}

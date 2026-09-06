@@ -1971,6 +1971,18 @@ select.method-select:focus-visible {
   padding-bottom: 8px;
 }
 
+.judge-auto-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--vscode-foreground);
+  font-size: var(--vscode-font-size, 13px);
+  user-select: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .run-action-bar .button-icon,
 .run-action-bar .primary-button {
   opacity: 1;
