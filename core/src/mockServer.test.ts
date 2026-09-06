@@ -72,8 +72,17 @@ describe('partialMatch', () => {
     expect(partialMatch({user: {name: 'Ali'}}, {user: {name: 'Bob'}})).toBe(false);
   });
 
-  it('coerces values to string for comparison', () => {
-    expect(partialMatch({count: 5 as any}, {count: '5'})).toBe(true);
+  it('uses expect equality (no string coercion)', () => {
+    expect(partialMatch({count: 5 as any}, {count: '5'})).toBe(false);
+    expect(partialMatch({count: 5 as any}, {count: 5})).toBe(true);
+    expect(partialMatch({count: '=~ 5'}, {count: 5})).toBe(true);
+  });
+
+  it('supports dotted paths and operators', () => {
+    expect(partialMatch({'user.name': 'Ali'}, {user: {name: 'Ali', age: 1}})).toBe(true);
+    expect(partialMatch({'user.name': '!= Bob'}, {user: {name: 'Ali'}})).toBe(true);
+    expect(partialMatch({'user.name': '=C Al'}, {user: {name: 'Ali'}})).toBe(true);
+    expect(partialMatch({'user.name': '=C xx'}, {user: {name: 'Ali'}})).toBe(false);
   });
 });
 
@@ -312,12 +321,64 @@ describe('findEndpoint match priority', () => {
     expect(findEndpoint(eps, req('post', '/x', {body: null}))!.endpoint.body).toBe('default');
   });
 
-  it('coerces body values to string when comparing match rules', () => {
+  it('uses expect equality for body match (no string coercion)', () => {
     const eps: MockEndpoint[] = [
       {method: 'post', path: '/x', status: 200, body: 'default'},
-      {method: 'post', path: '/x', match: {body: {n: '5'}}, status: 200, body: 'filtered'},
+      {method: 'post', path: '/x', match: {body: {n: 5}}, status: 200, body: 'num'},
+      {method: 'post', path: '/x', match: {body: {n: '=~ 5'}}, status: 200, body: 'as-string'},
     ];
-    expect(findEndpoint(eps, req('post', '/x', {body: {n: 5}}))!.endpoint.body).toBe('filtered');
+    expect(findEndpoint(eps, req('post', '/x', {body: {n: 5}}))!.endpoint.body).toBe('num');
+    expect(findEndpoint(eps, req('post', '/x', {body: {n: '5'}}))!.endpoint.body).toBe('as-string');
+  });
+
+  it('matches body path operators when catch-all is first', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/x', status: 200, body: 'default'},
+      {
+        method: 'post',
+        path: '/x',
+        match: {body: {'user.role': 'admin', 'user.name': '=C Ada'}},
+        status: 200,
+        body: 'admin',
+      },
+      {
+        method: 'post',
+        path: '/x',
+        match: {body: {'user.role': '!= admin'}},
+        status: 200,
+        body: 'other',
+      },
+    ];
+    expect(findEndpoint(eps, req('post', '/x', {
+      body: {user: {role: 'admin', name: 'Ada Lovelace'}},
+    }))!.endpoint.body).toBe('admin');
+    expect(findEndpoint(eps, req('post', '/x', {
+      body: {user: {role: 'user', name: 'Bob'}},
+    }))!.endpoint.body).toBe('other');
+  });
+
+  it('matches header and query operators', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'get', path: '/x', status: 200, body: 'default'},
+      {
+        method: 'get',
+        path: '/x',
+        match: {
+          headers: {authorization: '=C Bearer'},
+          query: {mode: '!= sandbox'},
+        },
+        status: 200,
+        body: 'filtered',
+      },
+    ];
+    expect(findEndpoint(eps, req('get', '/x', {
+      headers: {Authorization: 'Bearer secret'},
+      query: {mode: 'live'},
+    }))!.endpoint.body).toBe('filtered');
+    expect(findEndpoint(eps, req('get', '/x', {
+      headers: {Authorization: 'Basic x'},
+      query: {mode: 'live'},
+    }))!.endpoint.body).toBe('default');
   });
 
   it('keeps method and path gates before match priority', () => {

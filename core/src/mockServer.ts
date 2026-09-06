@@ -1,6 +1,7 @@
 import {Format, JSONValue} from './CommonData';
 import {contentTypeForFormat, formatBody, formattedBodyToYamlObject} from './markupConvertor';
 import {MockData, MockEndpoint, MockFallback, MockMatch} from './MockData';
+import {matchExpectMap, matchHeaderExpectMap} from './expectCompare';
 import {applyValueAccessor} from './variableReplacer';
 
 /**
@@ -70,34 +71,12 @@ export {contentTypeForFormat};
 
 /** Deep partial match: does `actual` contain all key-value pairs from `expected`? */
 export function partialMatch(expected: Record<string, any>, actual: Record<string, any>): boolean {
-  if (!expected || !actual) {
-    return false;
-  }
-  for (const [key, val] of Object.entries(expected)) {
-    const actualVal = actual[key];
-    if (typeof val === 'object' && val !== null && typeof actualVal === 'object' && actualVal !== null) {
-      if (!partialMatch(val, actualVal)) {
-        return false;
-      }
-    } else if (String(val) !== String(actualVal)) {
-      return false;
-    }
-  }
-  return true;
+  return matchExpectMap(expected, actual);
 }
 
-/** Case-insensitive header match. */
+/** Case-insensitive header match (supports expect operators on values). */
 function matchHeaders(expected: Record<string, string>, actual: Record<string, string>): boolean {
-  const lower: Record<string, string> = {};
-  for (const [k, v] of Object.entries(actual)) {
-    lower[k.toLowerCase()] = v;
-  }
-  for (const [k, v] of Object.entries(expected)) {
-    if (lower[k.toLowerCase()] !== v) {
-      return false;
-    }
-  }
-  return true;
+  return matchHeaderExpectMap(expected, actual);
 }
 
 /** Resolve r:/c:/e: tokens in a string map (headers, query expectations, etc.). */
@@ -119,8 +98,8 @@ function matchCondition(
     match: MockMatch, req: MockRequest, tokenResolver?: TokenResolver): boolean {
   const resolved: MockMatch = tokenResolver ? tokenResolver(match) : match;
   if (resolved.body) {
-    const reqBody = typeof req.body === 'object' ? req.body : {};
-    if (!partialMatch(resolved.body as Record<string, any>, reqBody)) {
+    // Keep non-object bodies as-is so path/omit checks can still run.
+    if (!matchExpectMap(resolved.body as Record<string, any>, req.body)) {
       return false;
     }
   }
@@ -130,7 +109,7 @@ function matchCondition(
     }
   }
   if (resolved.query) {
-    if (!partialMatch(resolved.query, req.query)) {
+    if (!matchExpectMap(resolved.query, req.query)) {
       return false;
     }
   }
