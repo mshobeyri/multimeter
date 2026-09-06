@@ -7,6 +7,11 @@ describe('expectOperatorYaml', () => {
     expect(quoteExpectOperators(yaml)).toContain('path: "!^ /start"');
   });
 
+  it('quotes !^ operator in require block', () => {
+    const yaml = 'require:\n  path: !^ /start';
+    expect(quoteExpectOperators(yaml)).toContain('path: "!^ /start"');
+  });
+
   it('quotes >% and fuzzy-percent operators in expect block', () => {
     expect(quoteExpectOperators('expect:\n  name: >% Jon')).toContain('name: ">% Jon"');
     expect(quoteExpectOperators('expect:\n  name: >75% Jon')).toContain('name: ">75% Jon"');

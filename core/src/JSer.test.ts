@@ -1911,10 +1911,48 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    // expect uses check (non-throwing) behavior, not assert
-    expect(js).toContain("checkExpects_(");
-    expect(js).toContain("'check'");
-    expect(js).not.toContain("'assert'");
+    // Soft expect uses check unless a require item fails
+    expect(js).toContain('checkExpects_(');
+    expect(js).toContain("level: \"expect\"");
+    expect(js).toContain("__mmtHardFailed ? 'assert' : 'check'");
+    expect(js).not.toContain("level: \"require\"");
+  });
+
+  it('require is hard-failing and tags level', async () => {
+    const ctx: TestContext = {
+      name: 'callRequire',
+      test: {
+        steps: [{
+          call: 'login',
+          require: { token: '!= null' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('const _login_0 = await login(');
+    expect(js).toContain("level: \"require\"");
+    expect(js).toContain("__mmtHardFailed ? 'assert' : 'check'");
+  });
+
+  it('combines expect and require in one report box', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectRequire',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: 200 },
+          require: { token: '!= null' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain("level: \"expect\"");
+    expect(js).toContain("level: \"require\"");
+    expect(js.match(/checkExpects_/g)?.length).toBe(1);
   });
 
   it('handles plain string expect value (default equality)', async () => {

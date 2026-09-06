@@ -991,7 +991,13 @@ export const check_ = (
  * @param consoleFn   - optional console override
  */
 export const checkExpects_ = (
-    items: Array<{ passed: boolean; comparison: string; actual?: any; expected?: any }>,
+    items: Array<{
+      passed: boolean;
+      comparison: string;
+      actual?: any;
+      expected?: any;
+      level?: 'expect'|'require';
+    }>,
     type: 'check' | 'assert' | 'debug',
     reportLevel: string,
     title?: string,

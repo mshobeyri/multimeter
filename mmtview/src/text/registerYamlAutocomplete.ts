@@ -8,6 +8,7 @@ import { completionRange, withRange, wordCompletionRange } from './autocompleteR
 import { matchTokenCompletion, type TokenPrefix } from './autocompleteTokens';
 import { parseYamlSectionKeys, parseYamlSectionMap } from './autocompleteYamlSection';
 import { findCallStepBlock } from './autocompleteCallStep';
+import { matchTestStepLine } from './testStepTypes';
 
 const DEFAULT_EXTRACTION_RULES: Record<string, string> =
     outputExtractor.DEFAULT_EXTRACTION_RULES || {
@@ -815,15 +816,15 @@ export function registerYamlAutocomplete(monaco: any) {
                 }
             }
 
-            // Call inline expect autocomplete: when inside expect: of a call step,
+            // Call inline expect/require autocomplete: when inside expect:/require: of a call step,
             // suggest output parameters as map keys (e.g. status_code: , token: ).
             // Example:
             //   - call: login
             //     expect:
             //       <here>  ← suggest status_code: , token: , etc.
-            if (docType === 'test' && (parentContext === 'expect' || parentContext === 'debug') && !cursorAtValuePosition) {
+            if (docType === 'test' && (parentContext === 'expect' || parentContext === 'require' || parentContext === 'debug') && !cursorAtValuePosition) {
                 const allLines = model.getLinesContent();
-                const callInfo = findCallStepBlock(allLines, lineNumber, currentIndent, ['expect', 'debug']);
+                const callInfo = findCallStepBlock(allLines, lineNumber, currentIndent, ['expect', 'require', 'debug']);
                 if (callInfo) {
                     const importMap = getImportMap(model);
                     const filePath = importMap[callInfo.alias];
@@ -832,7 +833,11 @@ export function registerYamlAutocomplete(monaco: any) {
                         const suggestionList: any[] = [];
                         if (parsed?.outputs) {
                             for (const [key, rule] of Object.entries(parsed.outputs)) {
-                                const fieldLabel = callInfo.field === 'debug' ? 'Debug' : 'Expect';
+                                const fieldLabel = callInfo.field === 'debug'
+                                    ? 'Debug'
+                                    : callInfo.field === 'require'
+                                        ? 'Require'
+                                        : 'Expect';
                                 suggestionList.push({
                                     label: key,
                                     kind: monaco.languages.CompletionItemKind.Field,
@@ -907,9 +912,9 @@ export function registerYamlAutocomplete(monaco: any) {
                                 // Skip lines deeper than current (sibling properties like title:, id:)
                                 if (indent > currentIndent) { continue; }
                                 // At or above current indent, check for step pattern
-                                const stepMatch = l.trim().match(/^-\s*(call|check|assert|judge|if|for|repeat|data|print|js|set|var|const|let|delay|setenv)\s*:/);
-                                if (stepMatch) {
-                                    const siblingKey = `step-${stepMatch[1]}`;
+                                const stepType = matchTestStepLine(l.trim());
+                                if (stepType) {
+                                    const siblingKey = `step-${stepType}`;
                                     const siblingList = keySuggestionsByParent[siblingKey] || [];
                                     for (const sib of siblingList) {
                                         if (!suggestionList.some((s: any) => s.label === sib.label)) {
@@ -1020,8 +1025,8 @@ export function registerYamlAutocomplete(monaco: any) {
                         : key;
                     const suggestionList = getValueSuggestions(effectiveKey);
 
-                    // When inside expect: or debug:, also suggest inline operators (==, !=, etc.)
-                    if (docType === 'test' && (parentContext === 'expect' || parentContext === 'debug')) {
+                    // When inside expect:/require:/debug:, also suggest inline operators (==, !=, etc.)
+                    if (docType === 'test' && (parentContext === 'expect' || parentContext === 'require' || parentContext === 'debug')) {
                         suggestionList.push(...(keySuggestionsByParent['expect-value'] || []));
                     }
 
@@ -1171,9 +1176,8 @@ export function registerYamlAutocomplete(monaco: any) {
                             continue; // sibling property like id:, title: — skip
                         }
                         // Check for step pattern (at same or lower indent)
-                        const stepMatch = l.trim().match(/^-\s*(call|check|assert|judge|if|for|repeat|data|print|js|set|var|const|let|delay|setenv)\s*:/);
-                        if (stepMatch) {
-                            const stepType = stepMatch[1];
+                        const stepType = matchTestStepLine(l.trim());
+                        if (stepType) {
                             const siblingKey = `step-${stepType}`;
                             const suggestionList = keySuggestionsByParent[siblingKey] || [];
                             if (suggestionList.length > 0) {

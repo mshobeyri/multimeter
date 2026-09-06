@@ -22,6 +22,6 @@ steps:
 
 Use this to make tests self-contained — no need to manually start servers before running.
 
-For validating call outputs inline, see [Inline expect and debug](./run-expect.md).
+For validating call outputs inline, see [Inline expect, require, and debug](./run-expect.md).
 
 Next: [Inline expect](./run-expect.md) · [check](./check.md) · [assert](./assert.md) · [Mock servers in tests](../../server/in-tests.md)

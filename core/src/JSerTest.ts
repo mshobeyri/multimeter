@@ -193,7 +193,7 @@ export const testToJsfunc = async(
       }
       if (step.call && typeof step.call === 'string') {
         const allowedOutputs = importOutputKeysMap[step.call];
-        const validateOutputMap = (map: Record<string, unknown> | undefined, label: 'expect' | 'debug') => {
+        const validateOutputMap = (map: Record<string, unknown> | undefined, label: 'expect' | 'require' | 'debug') => {
           if (!allowedOutputs || !map || typeof map !== 'object' || Array.isArray(map)) {
             return;
           }
@@ -205,6 +205,7 @@ export const testToJsfunc = async(
           }
         };
         validateOutputMap(step.expect, 'expect');
+        validateOutputMap(step.require, 'require');
         if (step.debug !== true) {
           validateOutputMap(step.debug, 'debug');
         }

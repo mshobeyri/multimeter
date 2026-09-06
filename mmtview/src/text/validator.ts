@@ -331,8 +331,8 @@ export function detectOrderingIssue(doc: any, content: string, expectedOrder: st
  * Canonical key orders for step types (must match core/testParsePack).
  */
 const STEP_KEY_ORDER: Record<string, string[]> = {
-  call:   ['call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report'],
-  http:   ['http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body', 'outputs', 'expect', 'debug', 'report'],
+  call:   ['call', 'id', 'title', 'inputs', 'outputs', 'expect', 'require', 'debug', 'report'],
+  http:   ['http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body', 'outputs', 'expect', 'require', 'debug', 'report'],
   check:  ['check'],
   assert: ['assert'],
   judge:  ['judge', 'id', 'title', 'context', 'expect', 'require', 'report'],
@@ -611,8 +611,8 @@ function collectCallExpectKeySitesFromSteps(seqItems: any[], content: string, re
     const callPair = stepPairs.find((pair) => pair?.key?.value === "call");
     const alias = callPair?.value?.value;
     if (typeof alias === "string" && alias.trim()) {
-      // Collect keys from both expect and debug blocks
-      for (const blockKey of ["expect", "debug"]) {
+      // Collect keys from expect, require, and debug blocks
+      for (const blockKey of ["expect", "require", "debug"]) {
         const blockPair = stepPairs.find((pair) => pair?.key?.value === blockKey);
         const blockPairs: any[] = Array.isArray(blockPair?.value?.items) ? blockPair.value.items : [];
 

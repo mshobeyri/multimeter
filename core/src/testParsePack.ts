@@ -9,11 +9,11 @@ import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from '.
  */
 export const STEP_KEY_ORDER: Record<string, string[]> = {
   call:   [
-    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report'
+    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'require', 'debug', 'report'
   ],
   http:   [
     'http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body',
-    'outputs', 'expect', 'debug', 'report'
+    'outputs', 'expect', 'require', 'debug', 'report'
   ],
   run:    ['run'],
   check:  ['check'],
@@ -47,19 +47,20 @@ const VALID_TEST_ROOT_KEYS = new Set([
 /** Valid keys per step type. */
 const VALID_STEP_KEYS: Record<string, Set<string>> = {
   call:    new Set([
-    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report',
+    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'require', 'debug', 'report',
     'interface'
   ]),
   http:    new Set([
     'http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body',
-    'outputs', 'expect', 'debug', 'report'
+    'outputs', 'expect', 'require', 'debug', 'report'
   ]),
   run:     new Set(['run']),
   check:   new Set(['check', 'title', 'report', 'details']),
   assert:  new Set(['assert', 'title', 'report', 'details']),
   judge:   new Set([
     'judge', 'id', 'title', 'context', 'expect', 'require', 'report'
-  ]),  if:      new Set(['if', 'steps', 'else']),
+  ]),
+  if:      new Set(['if', 'steps', 'else']),
   for:     new Set(['for', 'steps']),
   repeat:  new Set(['repeat', 'steps']),
   delay:   new Set(['delay']),

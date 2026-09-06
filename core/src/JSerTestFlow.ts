@@ -695,6 +695,7 @@ const collectHttpOutputPaths = (step: TestFlowHttp): Record<string, string> => {
     outputs[key] = value;
   }
   addMapKeys(step.expect);
+  addMapKeys(step.require);
   addMapKeys(step.debug);
   return outputs;
 };
@@ -713,38 +714,63 @@ const httpStepToApiData = (step: TestFlowHttp): APIData => ({
   body: step.body,
 });
 
+const buildExpectMapItems = (
+    map: ExpectMap | undefined,
+    level: 'expect' | 'require',
+    resultVar: string,
+    actualForField: (resultVar: string, field: string) => string,
+    ): string[] => {
+  if (!map) {
+    return [];
+  }
+  const items: string[] = [];
+  for (const [field, val] of Object.entries(map)) {
+    const values = isExplicitMultiCheckArray(val) ? val : [val];
+    for (const v of values) {
+      const {operator, expected} = parseExpectValue(v);
+      const actualExpr = actualForField(resultVar, field);
+      const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
+      const displayComparison = `${field} ${operator} ${displayExpected}`;
+      const conditionStatement = comparisonFromPartsToJSfunc(actualExpr, operator, expected);
+      const expectedExpr = expectValueToJs(expected);
+      items.push(
+          `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr}, level: ${JSON.stringify(level)} }`);
+    }
+  }
+  return items;
+};
+
 const appendExpectAndDebugChecks = (
-    result: string, step: {expect?: ExpectMap; debug?: ExpectMap | true; report?: ReportLevel | ReportConfig; title?: string; id?: string},
-  resultVar: string | undefined, title: string, useExternalReport: boolean,
-  actualForField: (resultVar: string, field: string) => string = outputAccessExpression): string => {
+    result: string,
+    step: {
+      expect?: ExpectMap;
+      require?: ExpectMap;
+      debug?: ExpectMap|true;
+      report?: ReportLevel|ReportConfig;
+      title?: string;
+      id?: string;
+    },
+    resultVar: string|undefined, title: string, useExternalReport: boolean,
+    actualForField: (resultVar: string, field: string) => string = outputAccessExpression):
+    string => {
   if (!resultVar) {
     return result;
   }
-  if (step.expect) {
+  const softItems = buildExpectMapItems(step.expect, 'expect', resultVar, actualForField);
+  const hardItems = buildExpectMapItems(step.require, 'require', resultVar, actualForField);
+  if (softItems.length > 0 || hardItems.length > 0) {
     const details = `\${JSON.stringify(${resultVar})}`;
     const reportCfg = normalizeReportConfig(step.report);
     const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
     const finalTitle = toTemplateWithVars(title);
     const finalDetails = toTemplateWithVars(details);
-
-    const expectItems: string[] = [];
-    for (const [field, val] of Object.entries(step.expect)) {
-      const values = isExplicitMultiCheckArray(val) ? val : [val];
-      for (const v of values) {
-        const { operator, expected } = parseExpectValue(v);
-        const actualExpr = actualForField(resultVar, field);
-        const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
-        const displayComparison = `${field} ${operator} ${displayExpected}`;
-        const conditionStatement = comparisonFromPartsToJSfunc(actualExpr, operator, expected);
-        const expectedExpr = expectValueToJs(expected);
-        expectItems.push(
-          `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`
-        );
-      }
-    }
-
+    const allItems = [...softItems, ...hardItems];
     result += '\ncheckAbort_();\n';
-    result += `checkExpects_([\n${expectItems.join(',\n')}\n], 'check', '${reportLevel}', ${finalTitle}, ${finalDetails});\n`;
+    result += `{\n`;
+    result += `  const __mmtExpectItems = [\n${allItems.join(',\n')}\n  ];\n`;
+    result += `  const __mmtHardFailed = __mmtExpectItems.some(i => i.level === 'require' && !i.passed);\n`;
+    result += `  checkExpects_(__mmtExpectItems, __mmtHardFailed ? 'assert' : 'check', '${reportLevel}', ${finalTitle}, ${finalDetails});\n`;
+    result += `}\n`;
   }
 
   if (step.debug) {
@@ -760,15 +786,14 @@ const appendExpectAndDebugChecks = (
       for (const [field, val] of Object.entries(step.debug as Record<string, any>)) {
         const values = isExplicitMultiCheckArray(val) ? val : [val];
         for (const v of values) {
-          const { operator, expected } = parseExpectValue(v);
+          const {operator, expected} = parseExpectValue(v);
           const actualExpr = actualForField(resultVar, field);
           const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
           const displayComparison = `${field} ${operator} ${displayExpected}`;
           const conditionStatement = comparisonFromPartsToJSfunc(actualExpr, operator, expected);
           const expectedExpr = expectValueToJs(expected);
           debugItems.push(
-            `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`
-          );
+              `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`);
         }
       }
 
@@ -833,10 +858,11 @@ const callToJSfunc = async (
   }
 
   const hasExpect = !!step.expect;
+  const hasRequire = !!step.require;
   const hasDebug = !!step.debug;
   const callName = step.call || step.title || step.id || 'call';
   const safeName = callName.replace(/[^a-zA-Z0-9_]/g, '_') || 'call';
-  const resultVar = step.id || ((hasExpect || hasDebug) ? `_${safeName}_${stepIdx}` : undefined);
+  const resultVar = step.id || ((hasExpect || hasRequire || hasDebug) ? `_${safeName}_${stepIdx}` : undefined);
   let callExpr = `await ${step.call}({${inputParams}});`;
   if (resultVar) {
     const hoisted = !!(step.id && hoistedIds?.has(step.id));
@@ -857,8 +883,9 @@ const httpToJSfunc = async (
     return '';
   }
   const hasExpect = !!step.expect;
+  const hasRequire = !!step.require;
   const hasDebug = !!step.debug;
-  const resultVar = step.id || ((hasExpect || hasDebug) ? `_http_${stepIdx}` : undefined);
+  const resultVar = step.id || ((hasExpect || hasRequire || hasDebug) ? `_http_${stepIdx}` : undefined);
   const httpFunctionName = `__http_${stepIdx}`;
   const httpFunction = await apiToJSfunc({
     api: httpStepToApiData(step),

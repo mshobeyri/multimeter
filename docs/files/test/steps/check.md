@@ -54,7 +54,7 @@ Use an object when you need explicit fields, a custom title, details, or per-che
 
 ## Operators
 
-Operators used by `check`, [assert](./assert.md), and call-level [`expect`](./call.md#expect):
+Operators used by `check`, [assert](./assert.md), and call-level [`expect`](./call.md#expect) / [`require`](./call.md#require):
 
 | Operator | Meaning |
 |----------|---------|

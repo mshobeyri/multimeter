@@ -547,7 +547,33 @@ export const TestSchema = {
                             },
                             expect: {
                                 type: 'object',
-                                description: 'Map of output field names to expected values. Non-throwing — logs failures but continues.',
+                                description: 'Map of output field names to expected values. Soft — logs failures but continues.',
+                                additionalProperties: {
+                                    oneOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        { type: 'null' },
+                                        { type: 'object' },
+                                        {
+                                            type: 'array',
+                                            items: {
+                                                anyOf: [
+                                                    { type: 'string' },
+                                                    { type: 'number' },
+                                                    { type: 'boolean' },
+                                                    { type: 'object' },
+                                                    { type: 'array' },
+                                                    { type: 'null' }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            require: {
+                                type: 'object',
+                                description: 'Map of output field names to required values. Hard — failures stop the test (like assert). Same shape as expect.',
                                 additionalProperties: {
                                     oneOf: [
                                         { type: 'string' },
@@ -642,7 +668,33 @@ export const TestSchema = {
                             },
                             expect: {
                                 type: 'object',
-                                description: 'Map of response paths (for example body.message) to expected values. Non-throwing — logs failures but continues.',
+                                description: 'Map of response paths (for example body.message) to expected values. Soft — logs failures but continues.',
+                                additionalProperties: {
+                                    oneOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        { type: 'null' },
+                                        { type: 'object' },
+                                        {
+                                            type: 'array',
+                                            items: {
+                                                anyOf: [
+                                                    { type: 'string' },
+                                                    { type: 'number' },
+                                                    { type: 'boolean' },
+                                                    { type: 'object' },
+                                                    { type: 'array' },
+                                                    { type: 'null' }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            require: {
+                                type: 'object',
+                                description: 'Map of response paths to required values. Hard — failures stop the test. Same shape as expect.',
                                 additionalProperties: {
                                     oneOf: [
                                         { type: 'string' },

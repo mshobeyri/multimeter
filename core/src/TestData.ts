@@ -94,7 +94,10 @@ export interface TestFlowCall extends TestFlowBase {
   title?: string;
   inputs?: Record<string, any>;
   outputs?: Record<string, any>;
+  /** Soft inline validation (continue on fail). */
   expect?: ExpectMap;
+  /** Hard inline validation (stop on fail) — same map shape as expect. */
+  require?: ExpectMap;
   debug?: ExpectMap | true;
   report?: ReportLevel | ReportConfig;
 }
@@ -110,7 +113,10 @@ export interface TestFlowHttp extends TestFlowBase {
   headers?: Record<string, string>;
   body?: string|object|null;
   outputs?: Record<string, string>;
+  /** Soft inline validation (continue on fail). */
   expect?: ExpectMap;
+  /** Hard inline validation (stop on fail) — same map shape as expect. */
+  require?: ExpectMap;
   debug?: ExpectMap | true;
   report?: ReportLevel | ReportConfig;
 }

@@ -6,7 +6,8 @@ Use `assert` when a failed comparison must **stop the test flow**. Syntax, opera
 |------|------------|
 | [check](./check.md) | Log and report; continue |
 | **assert** | Log and report; **stop execution** |
-| [expect on call/http](./call.md#expect) | Same as check (non-throwing) |
+| [expect on call/http](./call.md#expect) | Soft (continue) |
+| [require on call/http](./call.md#require) | Hard (stop) — same map as expect |
 
 ## Examples
 

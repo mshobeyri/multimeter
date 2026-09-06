@@ -28,12 +28,13 @@ See [import](../import.md) for supported import types and path rules.
 | Field | Required | Description |
 |-------|----------|-------------|
 | `call` | yes | Import **alias** from the file's `import:` section (not a file path). |
-| `id` | no | Variable name for the call result. Use `${id.field}` in later steps. When `expect` or `debug` is set and `id` is omitted, Multimeter assigns an internal name (for example `_login_0`). |
+| `id` | no | Variable name for the call result. Use `${id.field}` in later steps. When `expect`, `require`, or `debug` is set and `id` is omitted, Multimeter assigns an internal name (for example `_login_0`). |
 | `title` | no | Label in reports and the Flow view. Defaults to the imported file's title, then the alias, then `id`. |
 | `inputs` | no | Key-value map passed to the callee's `inputs:`. Values support tokens (`i:`, `e:`, `r:`, `c:`), `${...}` expressions, and literals. |
-| `expect` | no | Inline output validation on this step. Non-throwing — failures are reported but execution continues. Uses the same [operators](./check.md#operators) as `check`. See [expect formats](#expect) below. |
+| `expect` | no | Soft inline output validation. Failures are reported but execution continues. Uses the same [operators](./check.md#operators) as `check`. See [expect](#expect) below. |
+| `require` | no | Hard inline output validation. Same map shape as `expect`, but failures **stop** the test (like [assert](./assert.md)). Soft and hard share one report box. See [require](#require) below. |
 | `debug` | no | Same syntax as `expect`, but rows show a debug icon and are excluded from exported reports. Set `debug: true` to dump all top-level output keys. |
-| `report` | no | Controls when `expect` results are emitted: `all`, `fails`, `none`, or `{ internal, external }`. Default: `internal: all`, `external: fails`. See [check — Report configuration](./check.md#report-configuration). |
+| `report` | no | Controls when `expect` / `require` results are emitted: `all`, `fails`, `none`, or `{ internal, external }`. Default: `internal: all`, `external: fails`. See [check — Report configuration](./check.md#report-configuration). |
 
 ## `inputs`
 
@@ -81,7 +82,7 @@ Output paths follow the same rules as API outputs (`status`, `body`, `headers`, 
 
 ## `expect`
 
-`expect` validates callee outputs on the same step without a separate `check`. Each key is an output field name; each value is an expected result. All entries in one `expect` block are grouped into **one report row**, with each comparison as a sub-item.
+`expect` validates callee outputs on the same step without a separate `check`. Soft — failures are reported but execution continues. Each key is an output field name; each value is an expected result. Entries from `expect` and `require` on the same call are grouped into **one report row**.
 
 ```yaml
 # Default equality (operator ==)
@@ -113,11 +114,12 @@ Expected values use the same YAML typing as `if` / `check`: unquoted `200` is a 
     body.user.name: == John
     body.user.active: true
 
-# With title and report
+# Soft + hard on the same call
 - call: login
   title: Login validation
   expect:
     status_code: 200
+  require:
     token: != null
   report:
     internal: all
@@ -126,7 +128,19 @@ Expected values use the same YAML typing as `if` / `check`: unquoted `200` is a 
 
 Operator reference: [check — Operators](./check.md#operators).
 
-`omit` in `expect:`
+## `require`
+
+`require` uses the same map syntax as `expect`, but a failed item **stops** the test (same as [assert](./assert.md)). Prefer `require` on the call for hard gates; keep standalone `- assert:` for comparisons that are not tied to a single call's outputs.
+
+```yaml
+- call: login
+  id: doLogin
+  require:
+    status_code: 200
+    token: != null
+```
+
+`omit` in `expect:` / `require:`
 - Unquoted `omit` — field/path is missing.
 - `null` — field exists with a null value.
 - `!= omit` — field is present.
@@ -138,7 +152,7 @@ Operator reference: [check — Operators](./check.md#operators).
     body.user.first_name: != omit
 ```
 
-For more expect/debug examples, see [Inline expect and debug](./run-expect.md).
+For more expect/require/debug examples, see [Inline expect, require, and debug](./run-expect.md).
 
 ## `debug`
 

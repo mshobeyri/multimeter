@@ -17,7 +17,7 @@ export interface ExpectItemEvent {
   status: TestStepStatus;
   similarity?: number;
   count?: number;
-  /** Soft vs hard section for judge (and future call require). */
+  /** Soft vs hard section for judge and call/http expect vs require. */
   level?: 'expect'|'require';
 }
 

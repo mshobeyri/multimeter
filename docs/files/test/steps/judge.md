@@ -69,4 +69,4 @@ One batched report listing each expect/require item. The step stops only if a **
 ## Related
 
 - [Judge files](../../judge/index.md)
-- [check](./check.md) · [assert](./assert.md) · [call expect](./call.md#expect)
+- [check](./check.md) · [assert](./assert.md) · [call expect / require](./call.md#expect)
