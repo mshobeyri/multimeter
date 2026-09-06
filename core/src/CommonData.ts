@@ -72,16 +72,8 @@ export const jsonTypes = [
   "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"
 ];
 
-export const typeOptions = [
-  { value: "api", label: "API" },
-  { value: "test", label: "Test" },
-  { value: "suite", label: "Suite" },
-  { value: "env", label: "Environment" },
-  { value: "loadtest", label: "Load Test" },
-  { value: "doc", label: "Document" },
-  { value: "server", label: "Server" },
-  { value: "judge", label: "Judge" }
-];
+/** Gallery / new-file type picker — labels and values from shared {@link MMT_FILE_TYPES}. */
+export {MMT_FILE_TYPE_OPTIONS as typeOptions} from './mmtFileType';
 
 export interface MMTFile {
   type: Type;

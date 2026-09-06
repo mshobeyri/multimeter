@@ -220,6 +220,11 @@
       "require": "./dist/judgeChecks.js",
       "default": "./dist/judgeChecks.js"
     },
+    "./mmtFileType": {
+      "types": "./dist/mmtFileType.d.ts",
+      "require": "./dist/mmtFileType.js",
+      "default": "./dist/mmtFileType.js"
+    },
     "./EnvData": {
       "types": "./dist/EnvData.d.ts",
       "require": "./dist/EnvData.js",

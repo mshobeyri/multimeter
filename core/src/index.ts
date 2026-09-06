@@ -55,3 +55,4 @@ export * as reportHtml from "./reportHtml";
 export * as reportMarkdown from "./reportMarkdown";
 export * as reportParser from "./reportParser";
 export * as statusIcons from "./statusIcons";
+export * as mmtFileType from "./mmtFileType";

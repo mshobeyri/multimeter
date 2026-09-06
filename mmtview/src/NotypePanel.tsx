@@ -1,12 +1,15 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import parseYaml from "mmt-core/markupConvertor";
 import { typeOptions } from "mmt-core/CommonData";
+import {
+  mmtFileTypeColor,
+  mmtFileTypeIcon,
+  mmtFileTypeLabel,
+} from "mmt-core/mmtFileType";
 import MultimeterLogo from "./components/MultimeterLogo";
 import {
   notypeHelpLinks,
   notypeSamples,
-  notypeTypeColors,
-  notypeTypeIcons,
   type NotypeSampleType,
 } from "./notypeSamples";
 import { maxItemsPerRow, packTypeRows } from "./notypeTypeRows";
@@ -73,7 +76,7 @@ const NotypePanel: React.FC<NotypePanelProps> = ({ content, setContent }) => {
 
         <div className="notype-gallery" role="list">
           {notypeSamples.map(sample => {
-            const typeLabel = typeOptions.find(opt => opt.value === sample.type)?.label ?? sample.type;
+            const typeLabel = mmtFileTypeLabel(sample.type);
             const help = notypeHelpLinks[sample.type];
             return (
               <div
@@ -189,8 +192,8 @@ function NotypeTypeIcons({ onSelect }: { onSelect: (type: string) => void }) {
         <div key={row.map((opt) => opt.value).join("-")} className="notype-type-icons-row">
           {row.map((opt) => {
             const type = opt.value as NotypeSampleType;
-            const color = notypeTypeColors[type];
-            const icon = notypeTypeIcons[type];
+            const color = mmtFileTypeColor(type);
+            const icon = mmtFileTypeIcon(type);
             return (
               <button
                 key={opt.value}
