@@ -69,19 +69,12 @@ Bare numbers are threshold shorthand (`semanticSimilarity: 0.8` ≡ `{ threshold
 
 Prefer these named checks for common cases so you do not rewrite the same `criteria` every time. Keep `criteria` for one-off rules.
 
-| Check | Typical context | Suggested threshold | Use when |
-|-------|-----------------|---------------------|----------|
-| `semanticSimilarity` | `actual`, `expected` | `0.8` | You have a reference / golden answer |
-| `answerRelevance` | `actual`, `question` | `0.8` | Q&A / chat / support replies |
-| `contextFaithfulness` | `actual`, `policy`, `retrievedContext` | `0.7` | Anti-hallucination / RAG / policy |
-| `factuality` | `actual`, `expected`, `policy` | `0.7` | Correctness vs known facts |
-
-| Check | What the model scores |
-|-------|------------------------|
-| `semanticSimilarity` | Meaning similarity of `actual` vs `expected` (not exact wording) |
-| `answerRelevance` | Whether `actual` answers `question` / the implied user request |
-| `contextFaithfulness` | Whether `actual` stays grounded in `policy` / `retrievedContext` |
-| `factuality` | Factual consistency of `actual` vs `expected` and other ground-truth fields |
+| Check | Typical context | Suggested threshold | Explanation |
+|-------|-----------------|---------------------|-------------|
+| `semanticSimilarity` | `actual`, `expected` | `0.8` | Meaning similarity of `actual` vs `expected` (not exact wording) |
+| `answerRelevance` | `actual`, `question` | `0.8` | Whether `actual` answers `question` / the implied user request |
+| `contextFaithfulness` | `actual`, `policy`, `retrievedContext` | `0.7` | Whether `actual` stays grounded in `policy` / `retrievedContext` |
+| `factuality` | `actual`, `expected`, `policy` | `0.7` | Factual consistency of `actual` vs `expected` and other ground-truth fields |
 
 You can still invent custom metric names; the model scores them 0..1 from the name and context.
 
