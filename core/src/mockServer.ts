@@ -285,9 +285,11 @@ function resolveEndpointPath(path: string, tokenResolver?: TokenResolver): strin
 }
 
 /**
- * Find the first matching endpoint for a request.
+ * Find the best matching endpoint for a request.
  * Named endpoints are checked first if x-mock-example header is present.
- * tokenResolver is used for e:/r:/c: tokens in path patterns and match rules.
+ * Otherwise: method+path candidates with a successful `match` win over
+ * bare path matches (so a catch-all listed first does not shadow filters).
+ * Among equals, file order wins. tokenResolver resolves e:/r:/c: in paths/rules.
  */
 export function findEndpoint(
     endpoints: MockEndpoint[], req: MockRequest,
@@ -311,7 +313,8 @@ export function findEndpoint(
     }
   }
 
-  // Standard first-match
+  let catchAll: MatchResult | null = null;
+
   for (const ep of endpoints) {
     // Method check (skip for reflect-only or ws endpoints without method)
     if (ep.method && ep.method !== method) {
@@ -323,15 +326,21 @@ export function findEndpoint(
       continue;
     }
 
-    // Match conditions (resolve e:/r:/c: in expected values)
-    if (ep.match && !matchCondition(ep.match, req, tokenResolver)) {
+    if (ep.match) {
+      if (matchCondition(ep.match, req, tokenResolver)) {
+        // Prefer the first successful filtered match
+        return {endpoint: ep, pathParams: params};
+      }
       continue;
     }
 
-    return {endpoint: ep, pathParams: params};
+    // Remember first bare path match; only use if no filtered match succeeds
+    if (!catchAll) {
+      catchAll = {endpoint: ep, pathParams: params};
+    }
   }
 
-  return null;
+  return catchAll;
 }
 
 /**

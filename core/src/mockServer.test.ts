@@ -104,15 +104,48 @@ describe('findEndpoint', () => {
     expect(findEndpoint(endpoints, req('delete', '/users'))).toBeNull();
   });
 
-  it('first match wins (conditional match)', () => {
+  it('prefers conditional match over later catch-all', () => {
     const result = findEndpoint(endpoints, req('post', '/login', {body: {username: 'admin'}}));
     expect(result!.endpoint.name).toBe('admin-login');
     expect(result!.endpoint.body).toEqual({role: 'admin'});
   });
 
-  it('falls through to second match when condition fails', () => {
+  it('falls through to catch-all when condition fails', () => {
     const result = findEndpoint(endpoints, req('post', '/login', {body: {username: 'bob'}}));
     expect(result!.endpoint.body).toEqual({role: 'user'});
+  });
+
+  it('prefers filtered match even when catch-all is listed first', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/health', status: 200, body: {message: 'mock 1'}},
+      {
+        method: 'post',
+        path: '/health',
+        match: {headers: {xxx: '1'}, body: {ddd: 'salam'}},
+        status: 200,
+        body: {message: 'mock 2'},
+      },
+    ];
+    const hit = findEndpoint(eps, req('post', '/health', {
+      headers: {xxx: '1'},
+      body: {ddd: 'salam'},
+    }));
+    expect(hit!.endpoint.body).toEqual({message: 'mock 2'});
+
+    const miss = findEndpoint(eps, req('post', '/health', {
+      headers: {xxx: '1'},
+      body: {ddd: 'other'},
+    }));
+    expect(miss!.endpoint.body).toEqual({message: 'mock 1'});
+  });
+
+  it('among multiple successful filters, first in file wins', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/x', match: {body: {a: '1'}}, status: 200, body: 'first'},
+      {method: 'post', path: '/x', match: {body: {a: '1', b: '2'}}, status: 200, body: 'second'},
+    ];
+    const result = findEndpoint(eps, req('post', '/x', {body: {a: '1', b: '2'}}));
+    expect(result!.endpoint.body).toBe('first');
   });
 
   it('extracts path params', () => {
@@ -150,6 +183,205 @@ describe('findEndpoint', () => {
 
     const result2 = findEndpoint(eps, req('get', '/search', {query: {type: 'free'}}));
     expect(result2!.endpoint.body).toBe('all');
+  });
+});
+
+describe('findEndpoint match priority', () => {
+  function req(method: string, path: string, extra?: Partial<MockRequest>): MockRequest {
+    return {method, path, headers: {}, query: {}, body: null, ...extra};
+  }
+
+  it('requires all match sections (body + headers + query)', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/pay', status: 200, body: 'default'},
+      {
+        method: 'post',
+        path: '/pay',
+        match: {
+          headers: {authorization: 'Bearer x'},
+          query: {mode: 'live'},
+          body: {amount: '10'},
+        },
+        status: 200,
+        body: 'filtered',
+      },
+    ];
+
+    expect(findEndpoint(eps, req('post', '/pay', {
+      headers: {authorization: 'Bearer x'},
+      query: {mode: 'live'},
+      body: {amount: '10'},
+    }))!.endpoint.body).toBe('filtered');
+
+    expect(findEndpoint(eps, req('post', '/pay', {
+      headers: {authorization: 'Bearer x'},
+      query: {mode: 'live'},
+      body: {amount: '99'},
+    }))!.endpoint.body).toBe('default');
+
+    expect(findEndpoint(eps, req('post', '/pay', {
+      headers: {authorization: 'Bearer x'},
+      query: {mode: 'sandbox'},
+      body: {amount: '10'},
+    }))!.endpoint.body).toBe('default');
+
+    expect(findEndpoint(eps, req('post', '/pay', {
+      headers: {authorization: 'Bearer y'},
+      query: {mode: 'live'},
+      body: {amount: '10'},
+    }))!.endpoint.body).toBe('default');
+  });
+
+  it('partial body match ignores extra request fields', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/users', status: 200, body: 'default'},
+      {
+        method: 'post',
+        path: '/users',
+        match: {body: {role: 'admin'}},
+        status: 200,
+        body: 'admin',
+      },
+    ];
+    const hit = findEndpoint(eps, req('post', '/users', {
+      body: {role: 'admin', name: 'Ada', extra: {nested: true}},
+    }));
+    expect(hit!.endpoint.body).toBe('admin');
+  });
+
+  it('matches nested body fields with catch-all listed first', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/users', status: 200, body: 'default'},
+      {
+        method: 'post',
+        path: '/users',
+        match: {body: {user: {role: 'admin'}}},
+        status: 200,
+        body: 'admin',
+      },
+    ];
+    expect(findEndpoint(eps, req('post', '/users', {
+      body: {user: {role: 'admin', id: 1}},
+    }))!.endpoint.body).toBe('admin');
+    expect(findEndpoint(eps, req('post', '/users', {
+      body: {user: {role: 'user'}},
+    }))!.endpoint.body).toBe('default');
+  });
+
+  it('header match is case-insensitive on header names', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'get', path: '/api', status: 401, body: 'no'},
+      {
+        method: 'get',
+        path: '/api',
+        match: {headers: {'X-Api-Key': 'secret'}},
+        status: 200,
+        body: 'ok',
+      },
+    ];
+    expect(findEndpoint(eps, req('get', '/api', {
+      headers: {'x-api-key': 'secret'},
+    }))!.endpoint.body).toBe('ok');
+  });
+
+  it('skips failed filters and uses a later successful filter', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/x', status: 200, body: 'default'},
+      {method: 'post', path: '/x', match: {body: {kind: 'a'}}, status: 200, body: 'a'},
+      {method: 'post', path: '/x', match: {body: {kind: 'b'}}, status: 200, body: 'b'},
+    ];
+    expect(findEndpoint(eps, req('post', '/x', {body: {kind: 'b'}}))!.endpoint.body).toBe('b');
+    expect(findEndpoint(eps, req('post', '/x', {body: {kind: 'a'}}))!.endpoint.body).toBe('a');
+    expect(findEndpoint(eps, req('post', '/x', {body: {kind: 'c'}}))!.endpoint.body).toBe('default');
+  });
+
+  it('returns null when only filters exist and none succeed', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/x', match: {body: {kind: 'a'}}, status: 200, body: 'a'},
+      {method: 'post', path: '/x', match: {body: {kind: 'b'}}, status: 200, body: 'b'},
+    ];
+    expect(findEndpoint(eps, req('post', '/x', {body: {kind: 'c'}}))).toBeNull();
+  });
+
+  it('does not treat string body as matching object body rules', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/x', status: 200, body: 'default'},
+      {method: 'post', path: '/x', match: {body: {ddd: 'salam'}}, status: 200, body: 'filtered'},
+    ];
+    expect(findEndpoint(eps, req('post', '/x', {body: 'salam'}))!.endpoint.body).toBe('default');
+    expect(findEndpoint(eps, req('post', '/x', {body: null}))!.endpoint.body).toBe('default');
+  });
+
+  it('coerces body values to string when comparing match rules', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/x', status: 200, body: 'default'},
+      {method: 'post', path: '/x', match: {body: {n: '5'}}, status: 200, body: 'filtered'},
+    ];
+    expect(findEndpoint(eps, req('post', '/x', {body: {n: 5}}))!.endpoint.body).toBe('filtered');
+  });
+
+  it('keeps method and path gates before match priority', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'get', path: '/health', status: 200, body: 'get-default'},
+      {
+        method: 'post',
+        path: '/health',
+        match: {headers: {xxx: '1'}, body: {ddd: 'salam'}},
+        status: 200,
+        body: 'post-filtered',
+      },
+      {method: 'post', path: '/health', status: 200, body: 'post-default'},
+      {method: 'post', path: '/other', match: {body: {ddd: 'salam'}}, status: 200, body: 'other'},
+    ];
+    expect(findEndpoint(eps, req('post', '/health', {
+      headers: {xxx: '1'},
+      body: {ddd: 'salam'},
+    }))!.endpoint.body).toBe('post-filtered');
+    expect(findEndpoint(eps, req('get', '/health', {
+      headers: {xxx: '1'},
+      body: {ddd: 'salam'},
+    }))!.endpoint.body).toBe('get-default');
+    expect(findEndpoint(eps, req('post', '/other', {
+      body: {ddd: 'salam'},
+    }))!.endpoint.body).toBe('other');
+  });
+
+  it('uses first bare catch-all when several have no match', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/x', status: 200, body: 'first'},
+      {method: 'post', path: '/x', status: 200, body: 'second'},
+      {method: 'post', path: '/x', match: {body: {a: '1'}}, status: 200, body: 'filtered'},
+    ];
+    expect(findEndpoint(eps, req('post', '/x', {body: {}}))!.endpoint.body).toBe('first');
+    expect(findEndpoint(eps, req('post', '/x', {body: {a: '1'}}))!.endpoint.body).toBe('filtered');
+  });
+
+  it('x-mock-example still overrides match priority', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/login', name: 'default', status: 200, body: 'default'},
+      {
+        method: 'post',
+        path: '/login',
+        name: 'admin',
+        match: {body: {username: 'admin'}},
+        status: 200,
+        body: 'admin',
+      },
+    ];
+    const forced = findEndpoint(eps, req('post', '/login', {
+      headers: {'x-mock-example': 'admin'},
+      body: {username: 'not-admin'},
+    }));
+    expect(forced!.endpoint.body).toBe('admin');
+  });
+
+  it('prefers an earlier filtered match over a later more-specific filter', () => {
+    const eps: MockEndpoint[] = [
+      {method: 'post', path: '/x', status: 200, body: 'default'},
+      {method: 'post', path: '/x', match: {body: {a: '1'}}, status: 200, body: 'broad'},
+      {method: 'post', path: '/x', match: {body: {a: '1', b: '2'}}, status: 200, body: 'narrow'},
+    ];
+    expect(findEndpoint(eps, req('post', '/x', {body: {a: '1', b: '2'}}))!.endpoint.body).toBe('broad');
   });
 });
 

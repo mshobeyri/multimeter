@@ -18,6 +18,8 @@ Define mock behavior in `type: server` YAML. The visual editor exposes these fie
 
 Each entry under `endpoints:` supports method, path, name, match rules, status, response body/format, headers, tags, and **reflect** mode (echo the request back).
 
+Use `match:` to pick among several endpoints with the same method and path. Filtered endpoints win over a bare catch-all (even if the catch-all is listed first). `match.body` / `query` are partial: only the keys you list must match.
+
 ### Example
 
 ```yaml
@@ -41,6 +43,18 @@ endpoints:
       id: "${url.id}"
       name: Test User
       created: c:date
+
+  - method: post
+    path: /users
+    match:
+      body:
+        role: admin
+    status: 201
+    format: json
+    body:
+      id: r:uuid
+      role: admin
+      name: "${body.name}"
 
   - method: post
     path: /users

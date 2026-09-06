@@ -26,10 +26,11 @@
 - `method:` HTTP verb | env token — required unless `reflect: true`
 - `path:` string — required (supports `:param` segments)
 - `name:` string (optional label; must be unique within the file)
-- `match:` object (all listed rules must match)
+- `match:` object (all listed rules must match; partial deep equality — extra request fields are ignored)
   - `body:` record&lt;string, JSONValue&gt;
   - `headers:` record&lt;string, string&gt;
   - `query:` record&lt;string, string&gt;
+  - When several endpoints share method+path, a successful `match` wins over a bare (no-`match`) endpoint even if the catch-all is listed first. Among successful filters, file order wins.
 - `status:` number (100–599; default `200`)
 - `format:` `json` | `xml` | `xmle` | `text` | `urlencoded`
 - `headers:` record&lt;string, string&gt;
