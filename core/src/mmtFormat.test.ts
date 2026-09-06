@@ -1,6 +1,8 @@
 import {formatMmtYaml} from './mmtFormat';
 import {formatMmtYamlAst, reorderMapPairs} from './mmtFormatAst';
 import YAML, {isMap} from 'yaml';
+import fs from 'fs';
+import path from 'path';
 
 const apiYaml = `type: api
 title: Echo
@@ -395,6 +397,18 @@ describe('mmtFormat comment preservation', () => {
     ]);
     const again = formatMmtYaml(formatted, 'local.mmt');
     expect(again.formatted).toBe(formatted);
+  });
+
+  it('keeps AI golden smoke examples format-idempotent', () => {
+    const root = path.resolve(__dirname, '../..');
+    for (const rel of [
+      'examples/ai/golden_smoke/apis/echo.mmt',
+      'examples/ai/golden_smoke/tests/echo-smoke.mmt',
+    ]) {
+      const content = fs.readFileSync(path.join(root, rel), 'utf8');
+      const {formatted} = formatMmtYaml(content, rel);
+      expect(formatted).toBe(content);
+    }
   });
 });
 

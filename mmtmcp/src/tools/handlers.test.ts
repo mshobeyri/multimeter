@@ -1,5 +1,6 @@
 import path from 'path';
 
+import {formatMmtYaml} from 'mmt-core/mmtFormat';
 import {
   handleApiCard,
   handleDiscoverApi,
@@ -23,6 +24,11 @@ describe('MCP handlers', () => {
     expect(payload.goldenSmoke.api).toMatch(/type:\s*api/);
     expect(payload.goldenSmoke.test).toMatch(/type:\s*test/);
     expect(payload.usage).toMatch(/patch only/i);
+    // Few-shot must already be canonical Format Document order (agents mirror it).
+    expect(formatMmtYaml(payload.goldenSmoke.api, 'echo.mmt').formatted)
+        .toBe(payload.goldenSmoke.api);
+    expect(formatMmtYaml(payload.goldenSmoke.test, 'echo-smoke.mmt').formatted)
+        .toBe(payload.goldenSmoke.test);
   });
 
   it('read_documentation defaults to min pack', async () => {

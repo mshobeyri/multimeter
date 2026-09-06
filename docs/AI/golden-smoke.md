@@ -8,13 +8,13 @@ Canonical low-token example. Mirror this shape; prefer `scaffold_test` over inve
 type: api
 title: Echo message
 description: Golden smoke API for AI agents — minimal POST with outputs
-method: post
-url: https://test.mmt.dev/echo
-format: json
 inputs:
   message: hello
 outputs:
   echoed: body.message
+url: https://test.mmt.dev/echo
+method: post
+format: json
 body:
   message: i:message
 ```
