@@ -1,11 +1,11 @@
 /** Split items into rows so a wrap never leaves a single leftover when avoidable. */
-export function packTypeRows<T>(items: T[], maxPerRow: number): T[][] {
+export function packTypeRows<T>(items: readonly T[], maxPerRow: number): T[][] {
   if (items.length === 0) {
     return [];
   }
   const cap = Math.max(1, Math.floor(maxPerRow) || 1);
   if (cap >= items.length) {
-    return [items];
+    return [[...items]];
   }
 
   const rows: T[][] = [];
@@ -17,7 +17,7 @@ export function packTypeRows<T>(items: T[], maxPerRow: number): T[][] {
     if (remaining - take === 1 && take > 2) {
       take -= 1;
     }
-    rows.push(items.slice(index, index + take));
+    rows.push(items.slice(index, index + take) as T[]);
     index += take;
   }
   return rows;
