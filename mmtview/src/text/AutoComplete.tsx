@@ -569,8 +569,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Example:',
                 '- judge: localJudge',
                 '  context:',
-                '    actual: ${reply}',
-                '    expected: ${expected}',
+                // Literal Multimeter tokens in docs (not JS template interpolation).
+                `    actual: \${reply}`,
+                `    expected: \${expected}`,
                 '  expect:',
                 '    answerRelevance: 0.8',
                 '    semanticSimilarity: 0.9',
@@ -1877,7 +1878,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Data variable name', documentation: 'Variable name to access loaded data in subsequent steps.' },
     ];
     const judgeSiblings = [
-        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture judge result', documentation: 'Variable for the judge result (${id.passed}, ${id.checks}, ${id.criteria}).' },
+        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture judge result', documentation: `Variable for the judge result (\${id.passed}, \${id.checks}, \${id.criteria}).` },
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Judge step title', documentation: 'Label shown in reports.' },
         { label: 'context', kind: monaco.languages.CompletionItemKind.Property, insertText: 'context:\n\tactual: ', detail: 'Data for the judge', documentation: 'Flexible map (actual, expected, policy, retrievedContext, …).' },
         { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\tanswerRelevance: 0.8\n\tsemanticSimilarity: 0.9\n\tcriteria:\n\t\t- ', detail: 'Soft evaluation (continue on fail)', documentation: 'Metrics + optional criteria. Soft: report and continue. Built-ins: semanticSimilarity, answerRelevance, contextFaithfulness, factuality.' },

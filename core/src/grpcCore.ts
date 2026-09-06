@@ -167,9 +167,13 @@ async function reflectServiceDefinition(
     return grpc.loadPackageDefinition(cached);
   }
 
-  // Load the reflection proto
-  const reflectionProtoPath = require.resolve('@grpc/proto-loader/build/src/../../protos/grpc/reflection/v1/reflection.proto');
-  const reflectionAlphaProtoPath = require.resolve('@grpc/proto-loader/build/src/../../protos/grpc/reflection/v1alpha/reflection.proto');
+  // Resolve reflection .proto files from the installed @grpc/proto-loader package
+  // (avoid require.resolve on deep package paths — esbuild warns and may not copy them).
+  const protoLoaderRoot = path.dirname(require.resolve('@grpc/proto-loader/package.json'));
+  const reflectionProtoPath = path.join(
+      protoLoaderRoot, 'protos', 'grpc', 'reflection', 'v1', 'reflection.proto');
+  const reflectionAlphaProtoPath = path.join(
+      protoLoaderRoot, 'protos', 'grpc', 'reflection', 'v1alpha', 'reflection.proto');
 
   let descriptorBytes: Buffer | null = null;
 

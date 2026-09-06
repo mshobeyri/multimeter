@@ -61,6 +61,8 @@ await esbuild.build({
     'js-yaml',
     'yaml',
     'xml-js',
+    '@grpc/grpc-js',
+    '@grpc/proto-loader',
   ],
   logOverride: {
     'unsupported-dynamic-import': 'silent',

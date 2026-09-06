@@ -183,7 +183,7 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
         value={(local?.context || {}) as any}
         onChange={(kv) => emit(buildObj({ context: Object.keys(kv).length ? kv : undefined }))}
         keyPlaceholder="actual"
-        valuePlaceholder="${reply}"
+        valuePlaceholder={`\${reply}`}
       />
 
       <div className="label" style={{ marginBottom: 0 }}>Expect metrics (soft)</div>
