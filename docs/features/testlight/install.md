@@ -28,8 +28,9 @@ One version number is shared by Testlight, the VS Code extension, and the GitHub
 
 | Tag | Channel | What you get |
 |---|---|---|
-| `v1.40.0` | pre-release | npm `@beta`, Docker `:beta`, Marketplace pre-release, GitHub prerelease |
 | `v1.40.1` | stable | npm `@latest`, Docker `:latest`, Marketplace release, GitHub latest |
+| `v1.40.1-beta` | pre-release | npm `@beta`, Docker `:beta`, GitHub prerelease (Marketplace skipped) |
+| `v1.40.1-rc.1` | pre-release | npm `@rc`, Docker `:rc`, GitHub prerelease |
 
 Default installs stay on stable. Opt in to pre-release:
 

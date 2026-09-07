@@ -72,7 +72,7 @@ git tag -f "v${VERSION}"
 git push origin HEAD:main
 git push -f origin "v${VERSION}"
 
-# Floating @v1 is stable only. Pre-releases stay on vX.Y.0.
+# Floating @v1 is stable only. Pre-releases keep a versioned tag only.
 if [ "$PRERELEASE" != "true" ]; then
   major="${VERSION%%.*}"
   git tag -f "v${major}"

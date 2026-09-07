@@ -75,13 +75,13 @@
 
 ### Release workflow
 
-When the user says **"release version X.Y.Z"** (or "release version X.Y.Z pre-release"):
+When the user says **"release version X.Y.Z"** or **"release version X.Y.Z-beta"** (or another suffix):
 
-1. Run `node scripts/sync-versions.mjs --set X.Y.Z` so the extension, Testlight CLI, Cursor plugin, and GitHub Action share that version.
-2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited. Put `## [X.Y.Z]` at the top. `X.Y.0` is a pre-release automatically.
+1. Run `node scripts/sync-versions.mjs --set X.Y.Z` (or `X.Y.Z-beta` / `-rc.1` / `-pre`) so the extension, Testlight CLI, Cursor plugin, and GitHub Action share that version.
+2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited. Put `## [X.Y.Z]` at the top.
 3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
-4. Push the commit, then push tag `vX.Y.Z` (`git tag vX.Y.Z && git push origin vX.Y.Z`). **Release testlight** publishes every channel from that tag: `X.Y.0` → pre-release everywhere (npm `@beta`, Docker `:beta`, Marketplace `--pre-release`, GitHub/Action prerelease); `X.Y.1+` → stable everywhere (`@latest`, `:latest`, Marketplace release, floating Action `@v1`). Do not use `-rc` / `-beta` suffixes if the Marketplace should publish (VS Code only accepts `major.minor.patch`).
-5. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing. Local `npm run pack` / `pack-pre-release` is optional; CI publishes the Marketplace build.
+4. Push the commit, then push the matching tag (`git tag vX.Y.Z && git push origin vX.Y.Z`). **Release testlight** publishes from that tag. A plain `vX.Y.Z` is **stable** (npm `@latest`, Docker `:latest`, Marketplace release, floating Action `@v1`). A suffix marks **pre-release**: `vX.Y.Z-beta` → npm `@beta` / Docker `:beta`; `vX.Y.Z-rc.1` → `@rc`; `vX.Y.Z-pre` → `@pre`. Do not infer pre-release from a `.0` patch. Marketplace publishes only `major.minor.patch` (no suffix).
+5. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing. Local `npm run pack` / `pack-pre-release` is optional; CI publishes the Marketplace build. Do **not** ship a real product version just to test the pipeline — use a suffixed tag such as `vX.Y.Z-beta` and unpublish it if needed.
 
 ## Build, test, and packaging
 - From repo root:

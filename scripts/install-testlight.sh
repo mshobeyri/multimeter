@@ -70,7 +70,7 @@ resolve_version() {
   fi
 
   if [[ -n "$prerelease" && "$prerelease" != "0" ]]; then
-    # GitHub-marked prereleases, including X.Y.0 (no hyphen in the tag).
+    # GitHub-marked prereleases (tag suffix such as -beta, or prerelease: true).
     local version
     if command -v python3 >/dev/null 2>&1; then
       version=$(CHANNEL="$channel" python3 - "$REPO" <<'PY'

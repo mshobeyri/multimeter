@@ -2,12 +2,6 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
-## [1.41.0]
-
-Pre-release.
-
-- Verify the unified tag pipeline: npm `@beta`, Docker `:beta`, Marketplace pre-release, GitHub/Action prerelease
-
 ## [1.40.0]
 
 Pre-release.

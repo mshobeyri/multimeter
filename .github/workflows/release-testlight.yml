@@ -3,9 +3,11 @@
 # ──────────────────────────────────────────────────────────────────────
 # Triggered when a version tag (v*.*.*) is pushed.
 # One version drives Testlight, the VS Code extension, and the GitHub Action.
-#   v1.40.1        → stable (npm @latest, Marketplace stable)
-#   v1.40.0        → pre-release (X.Y.0 → npm @beta, Marketplace --pre-release)
-#   v1.40.0-rc.1   → pre-release (npm @rc)
+#   v1.40.1          → stable (npm @latest, Marketplace stable)
+#   v1.40.1-beta     → pre-release (npm @beta, Docker :beta, GitHub prerelease)
+#   v1.40.1-rc.1     → pre-release (npm @rc)
+#   v1.40.1-pre      → pre-release (npm @pre)
+# A plain X.Y.Z tag is always stable, including X.Y.0. Marketplace skips hyphenated versions.
 # ──────────────────────────────────────────────────────────────────────
 
 name: Release testlight
@@ -304,7 +306,7 @@ jobs:
             exit 0
           fi
           if echo "$VERSION" | grep -qE '[-]'; then
-            echo "Skip Marketplace: VS Code only accepts major.minor.patch (no -rc / -beta suffix). Use vX.Y.0 for a Marketplace pre-release."
+            echo "Skip Marketplace: VS Code only accepts major.minor.patch (no -rc / -beta / -pre suffix)."
             exit 0
           fi
           if [ "$PRERELEASE" = "true" ]; then

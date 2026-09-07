@@ -33,21 +33,22 @@ Versions live in these places that must stay in sync for an extension release:
 
 Keep them aligned with `npm run sync-versions` or `node scripts/sync-versions.mjs --set X.Y.Z`. CI checks this on `dev`/`main` and on `v*` tags.
 
-`X.Y.0` is a pre-release automatically (Marketplace `--pre-release`, npm `@beta`, GitHub Release prerelease). `X.Y.1+` is stable. Suffixes like `-beta.1` / `-rc.1` are also pre-release.
+A plain `X.Y.Z` tag is stable. Pre-release is **only** an explicit suffix (`-beta`, `-beta.1`, `-rc.1`, `-pre`). Do not infer channel from a `.0` patch. You can ship as many pre-releases as you want (`1.40.1-beta`, `1.40.1-beta.1`, `1.40.2-beta`).
 
-On **"release version X.Y.Z"** (or pre-release):
+On **"release version X.Y.Z"** or **"release version X.Y.Z-beta"**:
 
-1. `node scripts/sync-versions.mjs --set X.Y.Z`
+1. `node scripts/sync-versions.mjs --set X.Y.Z` (or `X.Y.Z-beta`)
 2. Add `## [X.Y.Z]` to `CHANGELOG.md`
 3. Commit `Release version X.Y.Z` and push the branch
-4. Push tag `vX.Y.Z` (`git tag vX.Y.Z && git push origin vX.Y.Z`)
+4. Push the matching tag (`git tag vX.Y.Z && git push origin vX.Y.Z`)
 
 **Release testlight** runs only on `v*` tags. One tag is one channel for every app:
 
 | Tag | npm | Docker | Marketplace | GitHub / Action | Homebrew |
 |---|---|---|---|---|---|
-| `vX.Y.0` | `@beta` | `:beta` | `--pre-release` | prerelease (no `@v1` move) | unchanged |
-| `vX.Y.1+` | `@latest` | `:latest` | stable | latest + `@v1` | formula after checksums |
+| `vX.Y.Z` | `@latest` | `:latest` | stable | latest + `@v1` | formula after checksums |
+| `vX.Y.Z-beta` | `@beta` | `:beta` | skipped (suffix) | prerelease (no `@v1` move) | unchanged |
+| `vX.Y.Z-rc.1` | `@rc` | `:rc` | skipped (suffix) | prerelease (no `@v1` move) | unchanged |
 
 Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`. Changelog edits do not publish.
 

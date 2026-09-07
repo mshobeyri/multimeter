@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 # Shared pre-release detection for Testlight, the VS Code extension, and the GitHub Action.
-# X.Y.0 is a pre-release (same convention as the Marketplace). Suffixes like -beta.1 also are.
+# Only an explicit suffix marks a pre-release (v1.40.1-beta, -rc.1, -pre).
+# A plain X.Y.Z tag is stable, including X.Y.0.
 
 is_prerelease() {
   local version="$1"
-  if echo "$version" | grep -qE '[-](alpha|beta|rc|dev|canary)'; then
-    return 0
-  fi
-  echo "$version" | grep -qE '^[0-9]+\.[0-9]+\.0$'
+  echo "$version" | grep -qE '[-](alpha|beta|rc|pre|dev|canary)'
 }
 
 prerelease_channel() {
