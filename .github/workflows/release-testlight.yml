@@ -199,6 +199,7 @@ jobs:
           cd ../mmtmcp && npm ci && npm run build
 
       - name: Publish mmt-testlight
+        continue-on-error: true
         run: cd mmtcli && npm publish --access public --tag ${{ needs.channel.outputs.npm_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
