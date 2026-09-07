@@ -182,6 +182,8 @@ export default function Comparison() {
               {' · '}
               <Link to="/compare/bruno" className="text-primary-light hover:underline">vs Bruno</Link>
               {' · '}
+              <Link to="/compare/promptfoo" className="text-primary-light hover:underline">vs Promptfoo</Link>
+              {' · '}
               <Link to="/compare/thunder-client" className="text-primary-light hover:underline">vs Thunder Client</Link>
               {' · '}
               <Link to="/compare/rest-client" className="text-primary-light hover:underline">vs REST Client</Link>

@@ -11,7 +11,7 @@ const capabilities = [
   },
   {
     icon: Scale,
-    title: 'Check responses',
+    title: 'Judge with AI',
     description:
       'Evaluate non-deterministic replies in the same run — relevance, similarity, faithfulness, and factuality using your own model (Ollama or cloud).',
   },
@@ -25,14 +25,15 @@ export default function AITestGen() {
           <div className="text-center mb-14">
             <span className="text-purple-400 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 justify-center">
               <Sparkles size={16} />
-              AI-Powered
+              AI-Native
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-4">
-              Let AI write — and check — your tests
+              Let AI write — and <span className="gradient-text">judge</span> — your tests
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              Use AI where it helps most: authoring flows quickly, and judging fuzzy or AI-generated
-              API responses without leaving Multimeter.
+              Use AI where it helps most: authoring flows quickly, and scoring fuzzy or AI-generated
+              API replies in the same <span className="text-slate-200">.mmt</span> run.
+              An alternative to a separate Promptfoo eval stack.
             </p>
           </div>
         </FadeIn>

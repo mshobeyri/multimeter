@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import fs from 'node:fs'
 import path from 'node:path'
+import type { ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { demoPlaylist } from './demoPlaylist'
 import { tutorialPlaylist } from './tutorialPlaylist'
@@ -211,11 +212,54 @@ function youtubePlaylistPlugin(): Plugin {
 function docsAssetsPlugin(): Plugin {
   const docsRoot = path.resolve(repoRoot, 'docs')
   const mount = '/docs-assets'
+  const rawMount = '/raw/docs'
+
+  const serveDocFile = (url: string, mountPath: string, res: ServerResponse, next: () => void) => {
+    const rel = decodeURIComponent(url.slice(mountPath.length + 1).split('?')[0])
+    const filePath = path.resolve(docsRoot, rel)
+    if (!filePath.startsWith(docsRoot) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      next()
+      return false
+    }
+    const ext = path.extname(filePath).toLowerCase()
+    const types: Record<string, string> = {
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.md': 'text/markdown; charset=utf-8',
+    }
+    res.setHeader('Content-Type', types[ext] || 'application/octet-stream')
+    fs.createReadStream(filePath).pipe(res)
+    return true
+  }
+
+  const copyMarkdownTree = (from: string, to: string) => {
+    if (!fs.existsSync(from)) {
+      return
+    }
+    fs.mkdirSync(to, {recursive: true})
+    for (const entry of fs.readdirSync(from, {withFileTypes: true})) {
+      if (entry.name.startsWith('.')) {
+        continue
+      }
+      const src = path.join(from, entry.name)
+      const dest = path.join(to, entry.name)
+      if (entry.isDirectory()) {
+        copyMarkdownTree(src, dest)
+      } else if (entry.name.endsWith('.md')) {
+        fs.copyFileSync(src, dest)
+      }
+    }
+  }
 
   return {
     name: 'docs-assets',
     configureServer(server) {
-      // Docs live outside website/; watch them and refresh the eager markdown glob.
       server.watcher.add(docsRoot)
       server.watcher.on('change', (file) => {
         if (!file.startsWith(docsRoot) || !file.endsWith('.md')) {
@@ -236,35 +280,25 @@ function docsAssetsPlugin(): Plugin {
       })
       server.middlewares.use((req, res, next) => {
         const url = req.url || ''
+        if (url.startsWith(`${rawMount}/`)) {
+          if (!serveDocFile(url, rawMount, res, next)) {
+            res.statusCode = 404
+            res.end('Not found')
+          }
+          return
+        }
         if (!url.startsWith(`${mount}/`)) {
           next()
           return
         }
-        const rel = decodeURIComponent(url.slice(mount.length + 1).split('?')[0])
-        const filePath = path.resolve(docsRoot, rel)
-        if (!filePath.startsWith(docsRoot) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+        if (!serveDocFile(url, mount, res, next)) {
           res.statusCode = 404
           res.end('Not found')
-          return
         }
-        const ext = path.extname(filePath).toLowerCase()
-        const types: Record<string, string> = {
-          '.mp4': 'video/mp4',
-          '.webm': 'video/webm',
-          '.png': 'image/png',
-          '.jpg': 'image/jpeg',
-          '.jpeg': 'image/jpeg',
-          '.gif': 'image/gif',
-          '.webp': 'image/webp',
-          '.svg': 'image/svg+xml',
-          '.md': 'text/markdown; charset=utf-8',
-        }
-        res.setHeader('Content-Type', types[ext] || 'application/octet-stream')
-        fs.createReadStream(filePath).pipe(res)
       })
     },
     closeBundle() {
-      const outDir = path.resolve(websiteRoot, 'dist', 'docs-assets')
+      const mediaOut = path.resolve(websiteRoot, 'dist', 'docs-assets')
       const copyRecursive = (from: string, to: string) => {
         if (!fs.existsSync(from)) {
           return
@@ -277,7 +311,6 @@ function docsAssetsPlugin(): Plugin {
           const src = path.join(from, entry.name)
           const dest = path.join(to, entry.name)
           if (entry.isDirectory()) {
-            // Skip AI and large non-media trees; copy media folders only
             if (['AI', 'tasks', 'files', 'features', 'guides', 'running'].includes(entry.name)) {
               continue
             }
@@ -287,7 +320,8 @@ function docsAssetsPlugin(): Plugin {
           }
         }
       }
-      copyRecursive(docsRoot, outDir)
+      copyRecursive(docsRoot, mediaOut)
+      copyMarkdownTree(docsRoot, path.resolve(websiteRoot, 'dist', 'raw', 'docs'))
     },
   }
 }

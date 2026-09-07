@@ -1,3 +1,4 @@
+import Seo from '../../components/Seo'
 import { Link, useLocation } from 'react-router-dom'
 import { getDocMarkdown } from '../../docs/loadContent'
 import MarkdownContent, { getDocTitle, useDocHeadings } from '../../docs/MarkdownContent'
@@ -67,6 +68,11 @@ export default function DocPage() {
 
   return (
     <div className="flex gap-10">
+      <Seo
+        title={`${title} — Multimeter docs`}
+        description={`Multimeter documentation: ${title}. Git-native API testing with YAML .mmt files, testlight CLI, and @mmt/mcp.`}
+        path={basePath}
+      />
       <article className="min-w-0 flex-1 max-w-3xl">
         <MarkdownContent markdown={markdown} basePath={basePath} contentPath={contentPath} />
         <span className="sr-only">{title}</span>

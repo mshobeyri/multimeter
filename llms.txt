@@ -1,0 +1,38 @@
+# Multimeter
+
+> Git-native API testing for VS Code and CI. YAML `.mmt` files. CLI `testlight` (npm `mmt-testlight`). MCP `@mmt/mcp`. Free Apache-2.0 alternative to Postman, Bruno, and Thunder Client. Not an electrical meter.
+
+Website: https://mmt.dev
+Docs: https://mmt.dev/docs/quick-start
+Repo: https://github.com/mshobeyri/multimeter
+Marketplace: https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter
+npm CLI: https://www.npmjs.com/package/mmt-testlight
+GitHub Action: https://github.com/mshobeyri/testlight-action
+Agent briefing (no JS): https://mmt.dev/for-agents.html
+Full map: https://mmt.dev/llms-full.txt
+
+## Use with AI agents
+
+- Cursor / Claude / Copilot: MCP `npx -y @mmt/mcp` or the bundled VS Code MCP server
+- First tools: `scaffold_test`, `validate`, `format`, `run` — do not invent `.mmt` syntax
+- Workflow: https://mmt.dev/raw/docs/AI/agent-workflow.md
+- MCP overview: https://mmt.dev/docs/features/mcp
+- Cursor/Claude clients: https://mmt.dev/docs/features/mcp/other-mcp-clients
+
+## Humans
+
+- Install: https://mmt.dev/docs/install
+- `.mmt` API: https://mmt.dev/docs/files/api
+- `.mmt` test: https://mmt.dev/docs/files/test
+- Testlight CLI: https://mmt.dev/docs/features/testlight/install
+- Compare Postman: https://mmt.dev/compare/postman
+- Compare Bruno: https://mmt.dev/compare/bruno
+- Min docs pack: https://mmt.dev/raw/docs/AI/min/overview.md
+
+## Raw markdown (crawler-friendly)
+
+Prefix https://mmt.dev/raw/docs/ plus the path under `docs/` in the repo, for example:
+
+- https://mmt.dev/raw/docs/quick-start.md
+- https://mmt.dev/raw/docs/files/test/index.md
+- https://mmt.dev/raw/docs/features/mcp/mcp-tools.md

@@ -13,6 +13,13 @@
   --color-border: #334155;
 }
 
+summary {
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;

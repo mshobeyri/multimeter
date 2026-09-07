@@ -2,13 +2,23 @@
   <a href="https://mmt.dev">
     <img src="res/logo.png" alt="Logo" width="115" height="115">
   </a>
-  <h4> REST Client and API testing in VS Code. Git-native alternative to Postman, Bruno, and Thunder Client.</h4>
+  <h4>REST Client and API testing in VS Code. Git-native AI-powered alternative to Postman. YAML .mmt files.</h4>
   <p>
-    <a href="https://mmt.dev/demos"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
+    <a href="https://mmt.dev/demos">Demo</a>
     &middot;
-    <a href="https://mmt.dev"><img src="res/website.png" alt="mmt.dev" width="16" height="16" style="vertical-align: text-bottom;"/> Website</a>
+    <a href="https://mmt.dev">Website</a>
     &middot;
-    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature_request.yml"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
+    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature_request.yml">Request Feature</a>
+    &middot;
+    <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">VS Code</a>
+    &middot;
+    <a href="https://www.npmjs.com/package/mmt-testlight">CLI</a>
+    &middot;
+    <a href="https://github.com/mshobeyri/testlight-action">GitHub Action</a>
+    &middot;
+    <a href="https://mmt.dev/docs/quick-start">Docs</a>
+    &middot;
+    <a href="https://mmt.dev/llms.txt">llms.txt</a>
   </p>
 </div>
 
@@ -99,6 +109,15 @@ As your project grows, Multimeter grows with it.
 - [& More...](https://github.com/mshobeyri/multimeter/tree/dev/examples)
 
 Add only when you need them. **Everything stays in the same ecosystem.** 
+
+## 🤖 MCP, AI generation, and AI judges
+---
+
+Cursor, Copilot, and Claude write and run the same `.mmt` files you edit in VS Code. MCP (`@mmt/mcp`) gives them `scaffold_test`, `validate`, `format`, and `run` — generate tests from an API or a description, then keep them in Git.
+
+**Judge** an API answer in the same test. Compare semantic similarity to an expected reply, or check something open-ended — for example, how funny the response is. Bring your own model (Ollama or cloud). An alternative to a separate Promptfoo eval stack.
+
+See [MCP docs](https://mmt.dev/docs/features/mcp) · [Judge docs](https://mmt.dev/docs/files/judge)
 
 ## 🔁 Built for reliable CI
 ---

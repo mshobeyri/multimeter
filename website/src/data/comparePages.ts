@@ -41,6 +41,31 @@ export const comparePages: ComparePageData[] = [
     ],
   },
   {
+    slug: 'promptfoo',
+    name: 'Promptfoo',
+    title: 'Multimeter vs Promptfoo — AI-native API tests, not a separate eval stack',
+    description:
+      'Compare Multimeter and Promptfoo. Judge non-deterministic API replies in the same Git-native .mmt flow, next to ordinary asserts, mocks, and CI.',
+    intro:
+      'Promptfoo is a strong LLM eval harness: prompt datasets, metrics, and red-team runs live in their own product. Multimeter is an API testing platform. When a service returns fuzzy or model-generated text, you add a type: judge file and a judge step in the same .mmt test that already calls the API. Deterministic checks stay first-class. You do not export traces into a second eval tool.',
+    switchReasons: [
+      'Judge relevance, similarity, faithfulness, and factuality inside the API test, not after it',
+      'Keep judge configs and tests as YAML in Git — same files in VS Code and CI',
+      'Bring your own model (Ollama or cloud); no Promptfoo cloud account',
+      'Mocks, suites, load, and docs stay in the same toolchain',
+    ],
+    rows: [
+      { feature: 'Focus', other: 'Prompt / dataset LLM eval', multimeter: 'API tests + in-flow AI judge' },
+      { feature: 'Price', other: 'Open source / cloud plans', multimeter: 'Free (Apache 2.0)' },
+      { feature: 'Where it runs', other: 'CLI + Promptfoo UI/cloud', multimeter: 'VS Code + testlight CLI' },
+      { feature: 'Storage', other: 'Eval configs and datasets', multimeter: 'Git-native YAML (.mmt)' },
+      { feature: 'AI judging', other: 'Core product', multimeter: 'type: judge + judge step' },
+      { feature: 'Deterministic API asserts', other: 'Secondary', multimeter: 'Primary, beside judge' },
+      { feature: 'Mock server / suites', other: 'No (eval-focused)', multimeter: 'Built-in' },
+      { feature: 'CI', other: 'Promptfoo CLI', multimeter: 'testlight / GitHub Action' },
+    ],
+  },
+  {
     slug: 'bruno',
     name: 'Bruno',
     title: 'Multimeter vs Bruno — Git-native API testing without leaving VS Code',
