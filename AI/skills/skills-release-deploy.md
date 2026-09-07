@@ -25,12 +25,23 @@ Versions live in these places that must stay in sync for an extension release:
 
 | File | Field | Scope |
 |---|---|---|
-| `package.json` (root) | `"version"` | VS Code extension |
+| `package.json` (root) | `"version"` | Source of truth (extension + Testlight + Action) |
 | `.cursor-plugin/plugin.json` | `"version"` | Cursor plugin marketplace manifest |
 | `mmtcli/package.json` | `"version"` | CLI (`mmt-testlight` on npm, Docker, binaries) |
-| `packaging/homebrew/mmt-testlight.rb` | `version` + `sha256` hashes | Homebrew formula |
+| `.github/actions/testlight/action.yml` | `version` default | GitHub Action installs this CLI version |
+| `packaging/homebrew/mmt-testlight.rb` | `version` + `sha256` hashes | Homebrew formula (updated after binary checksums) |
 
-The extension and CLI versions are independent. The CLI version is derived from `mmtcli/package.json` by all release scripts. On **"release version X.Y.Z"**, bump root `package.json` and `.cursor-plugin/plugin.json` together.
+Keep them aligned with `npm run sync-versions` or `node scripts/sync-versions.mjs --set X.Y.Z`. CI checks this on `dev`/`main` and on `v*` tags.
+
+`X.Y.0` is a pre-release automatically (Marketplace `--pre-release`, npm `@beta`, GitHub Release prerelease). `X.Y.1+` is stable. Suffixes like `-beta.1` / `-rc.1` are also pre-release.
+
+On **"release version X.Y.Z"** (or pre-release):
+
+1. `node scripts/sync-versions.mjs --set X.Y.Z`
+2. Add `## [X.Y.Z]` to `CHANGELOG.md`
+3. Commit `Release version X.Y.Z` and push to `dev` or `main`
+
+The **Tag release** workflow (`release-on-commit.yml`) creates `vX.Y.Z` from that commit message or from a new CHANGELOG heading. **Release testlight** then publishes Testlight, `mshobeyri/testlight-action`, and the VS Code extension when secrets are set (`NPM_TOKEN`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`).
 
 ---
 

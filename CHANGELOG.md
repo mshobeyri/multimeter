@@ -2,6 +2,16 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.40.0]
+
+Pre-release.
+
+- One version for the VS Code extension, Testlight CLI, and GitHub Action (`1.40.0`)
+- `X.Y.0` tags are pre-release automatically (npm `@beta`, Marketplace pre-release, Action prerelease)
+- Push `Release version X.Y.Z` or a new CHANGELOG heading to tag and publish all channels
+- Publish `mshobeyri/testlight-action@v1.40.0` and install matching `mmt-testlight@1.40.0`
+- Gemini judge example, unmatched `judge:` alias warnings, and `auth.type: api-key` file-type fix
+
 ## [1.39.0]
 
 Pre-release.

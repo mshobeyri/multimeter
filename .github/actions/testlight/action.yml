@@ -47,9 +47,9 @@ inputs:
     description: 'Log verbosity: error, warn, info, debug, trace'
     required: false
   version:
-    description: 'testlight version to install (default: latest). Use "beta" or "rc" for pre-release channels.'
+    description: 'testlight version to install (default: 1.40.0). Use latest, beta, rc, or X.Y.Z.'
     required: false
-    default: 'latest'
+    default: '1.40.0'
   working-directory:
     description: 'Working directory for running the command'
     required: false
