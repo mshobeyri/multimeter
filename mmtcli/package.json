@@ -1,6 +1,6 @@
 {
   "name": "mmt-testlight",
-  "version": "1.42.0-pre",
+  "version": "1.42.1-pre",
   "description": "Multimeter CLI test runner",
   "license": "Apache-2.0",
   "private": false,

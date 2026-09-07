@@ -39,7 +39,7 @@ This repository can also call the local copy:
 | `out` | No | — | Write result JSON to file. Parent directories are created. |
 | `quiet` | No | `false` | Minimal output |
 | `log-level` | No | — | `error`, `warn`, `info`, `debug`, `trace` |
-| `version` | No | `1.42.0-pre` | `mmt-testlight` version (`1.40.0`, `latest`, `beta`, `rc`, or `X.Y.Z`) |
+| `version` | No | `1.42.1-pre` | `mmt-testlight` version (`1.40.0`, `latest`, `beta`, `rc`, or `X.Y.Z`) |
 | `working-directory` | No | `.` | Working directory |
 
 ## Outputs

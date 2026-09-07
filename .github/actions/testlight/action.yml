@@ -47,9 +47,9 @@ inputs:
     description: 'Log verbosity: error, warn, info, debug, trace'
     required: false
   version:
-    description: 'testlight version to install (default: 1.42.0-pre). Use latest, beta, rc, or X.Y.Z.'
+    description: 'testlight version to install (default: 1.42.1-pre). Use latest, beta, rc, or X.Y.Z.'
     required: false
-    default: '1.42.0-pre'
+    default: '1.42.1-pre'
   working-directory:
     description: 'Working directory for running the command'
     required: false

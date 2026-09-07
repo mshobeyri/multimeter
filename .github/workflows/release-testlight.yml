@@ -304,6 +304,10 @@ jobs:
             echo "Skip Marketplace publish: set repo secret VSCE_PAT"
             exit 0
           fi
+          if echo "$MARKETPLACE_VERSION" | grep -qE -- '-'; then
+            echo "Refusing Marketplace publish: version '${MARKETPLACE_VERSION}' contains a hyphen. Use major.minor.patch only."
+            exit 1
+          fi
           if [ "$VERSION" != "$MARKETPLACE_VERSION" ]; then
             node scripts/sync-versions.mjs --set "$MARKETPLACE_VERSION"
           fi

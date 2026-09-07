@@ -81,13 +81,13 @@ Two channels, chosen only by the tag. Do **not** infer pre-release from a `.0` p
 
 | Tag | Channel | npm | Docker | VS Code Marketplace | GitHub / Action |
 |---|---|---|---|---|---|
-| `vX.Y.Z` | **stable** | `@latest` | `:latest` | `X.Y.Z` stable | latest + floating `@v1` |
-| `vX.Y.Z-pre` | **pre** | `@pre` | `:pre` | `X.Y.Z` **pre-release** (`vsce --pre-release`) | prerelease, no `@v1` move |
+| `vX.Y.Z` | **stable** | `@latest` | `:latest` | version **`X.Y.Z`** stable | latest + floating `@v1` |
+| `vX.Y.Z-pre` | **pre** | `@pre` | `:pre` | version **`X.Y.Z`** + `--pre-release` flag | prerelease, no `@v1` move |
 
-Marketplace only accepts `major.minor.patch`, so `v1.41.2-pre` publishes as **1.41.2 pre-release** (not stable). A later `v1.41.2` can promote that same number to stable.
+**Marketplace version must never contain `-pre` (or any hyphen).** VS Code only accepts `major.minor.patch`. `-pre` exists only on the git tag, npm, Docker, and GitHub Release. Before `vsce package` / `vsce publish`, strip `-pre` so `package.json` `"version"` is `X.Y.Z`. Pre-release on the Marketplace is the **`--pre-release` flag**, not the version string. Example: tag `v1.42.0-pre` → Marketplace identity `1.42.0` pre-release. Never publish `1.42.0-pre` to the Marketplace.
 
-- **"release version X.Y.Z"** → stable. Goes to npm `@latest`, Docker `:latest`, and Marketplace stable.
-- **"release version X.Y.Z-pre"** (or "pre-release X.Y.Z") → pre. Use version `X.Y.Z-pre` and tag `vX.Y.Z-pre`. Does **not** move latest. Marketplace gets `X.Y.Z` as a pre-release.
+- **"release version X.Y.Z"** → stable. Goes to npm `@latest`, Docker `:latest`, and Marketplace `X.Y.Z` stable.
+- **"release version X.Y.Z-pre"** (or "pre-release X.Y.Z") → pre. Use version `X.Y.Z-pre` and tag `vX.Y.Z-pre`. Does **not** move latest. Marketplace gets `X.Y.Z` with `--pre-release`.
 
 Steps:
 
@@ -95,7 +95,7 @@ Steps:
 2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited. Put `## [X.Y.Z]` (or `## [X.Y.Z-pre]`) at the top.
 3. Stage all changes and create a git commit with the message: `Release version X.Y.Z` (or `Release version X.Y.Z-pre`).
 4. Push the commit, then push the matching tag: `git tag vX.Y.Z && git push origin vX.Y.Z` (or `vX.Y.Z-pre`). **Release testlight** publishes every channel from that tag.
-5. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing. Local `npm run pack` / `pack-pre-release` is optional; CI publishes Marketplace (stable or `--pre-release`) from the tag.
+5. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing. Local `npm run pack` (stable) or `npm run pack-pre-release` (after stripping `-pre` from `package.json`) is optional. Never pack/publish a VSIX whose version string contains `-pre`. CI publishes Marketplace from the tag.
 
 Do **not** ship a product version just to test the pipeline — use a `-pre` tag. Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`. Missing secrets skip that job.
 

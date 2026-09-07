@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.42.1-pre]
+
+Pre-release.
+
+- Marketplace version stays `major.minor.patch`; `-pre` is only the git/npm/Docker tag. `v1.42.1-pre` publishes Marketplace **1.42.1** with `--pre-release`.
+
 ## [1.42.0-pre]
 
 Pre-release.
