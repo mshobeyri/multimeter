@@ -85,6 +85,42 @@ export function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+export function extractMarkdownDescription(markdown, fallback) {
+  const lines = String(markdown || '').split('\n');
+  let i = 0;
+  if (lines[0]?.startsWith('# ')) {
+    i = 1;
+  }
+  while (i < lines.length && !lines[i].trim()) {
+    i += 1;
+  }
+  const chunks = [];
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim() || line.startsWith('#') || line.startsWith('```') || line.startsWith('|')) {
+      break;
+    }
+    chunks.push(line);
+    i += 1;
+  }
+  const text = chunks
+    .join(' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\{\{[^}]+\}\}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length < 40) {
+    return fallback;
+  }
+  if (text.length > 160) {
+    return `${text.slice(0, 157).replace(/\s+\S*$/, '')}…`;
+  }
+  return text;
+}
+
 export function pathToHref(contentPath) {
   const withoutExt = contentPath.replace(/\.md$/, '');
   if (withoutExt === 'tasks/index') {
@@ -160,6 +196,21 @@ export function allSitemapHrefs() {
     }
     return a.localeCompare(b);
   });
+}
+
+export function lastmodForHref(href) {
+  const docFile = docFileForHref(href);
+  if (docFile && fs.existsSync(docFile)) {
+    return fs.statSync(docFile).mtime.toISOString().slice(0, 10);
+  }
+  if (href.startsWith('/docs/examples/') && href !== '/docs/examples') {
+    const parts = href.split('/').filter(Boolean);
+    const readme = path.join(repoRoot, 'examples', parts[2], parts[3], 'README.md');
+    if (fs.existsSync(readme)) {
+      return fs.statSync(readme).mtime.toISOString().slice(0, 10);
+    }
+  }
+  return new Date().toISOString().slice(0, 10);
 }
 
 export function docFileForHref(href) {

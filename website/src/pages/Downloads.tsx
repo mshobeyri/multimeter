@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { ExternalLink, Download } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 import FAQ from '../components/FAQ'
+import Seo from '../components/Seo'
 
 function useVscodeVersion() {
   const [version, setVersion] = useState<string | null>(null)
@@ -113,6 +114,11 @@ export default function Downloads() {
 
   return (
     <div className="pt-24">
+      <Seo
+        title="Downloads — Multimeter"
+        description="Install the Multimeter VS Code extension, testlight CLI, and GitHub Action. AI-powered REST Client and Git-native API testing."
+        path="/downloads"
+      />
       {/* Hero */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 text-center">
         <FadeIn>

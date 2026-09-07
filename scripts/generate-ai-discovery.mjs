@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   allSitemapHrefs,
+  lastmodForHref,
   origin,
   repoRoot,
   websitePublic,
@@ -17,7 +18,11 @@ const ordered = allSitemapHrefs();
 const sitemap = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-  ...ordered.map((loc) => `  <url><loc>${origin}${loc === '/' ? '/' : loc}</loc></url>`),
+  ...ordered.map((loc) => {
+    const href = loc === '/' ? '/' : loc;
+    const lastmod = lastmodForHref(href);
+    return `  <url><loc>${origin}${href}</loc><lastmod>${lastmod}</lastmod></url>`;
+  }),
   '</urlset>',
   '',
 ].join('\n');

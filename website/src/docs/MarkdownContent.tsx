@@ -315,6 +315,42 @@ export function getDocTitle(markdown: string): string {
   return extractTitle(markdown)
 }
 
+export function getDocDescription(markdown: string, fallback: string): string {
+  const lines = markdown.split('\n')
+  let i = 0
+  if (lines[0]?.startsWith('# ')) {
+    i = 1
+  }
+  while (i < lines.length && !lines[i].trim()) {
+    i += 1
+  }
+  const chunks: string[] = []
+  while (i < lines.length) {
+    const line = lines[i]
+    if (!line.trim() || line.startsWith('#') || line.startsWith('```') || line.startsWith('|')) {
+      break
+    }
+    chunks.push(line)
+    i += 1
+  }
+  const text = chunks
+    .join(' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\{\{[^}]+\}\}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (text.length < 40) {
+    return fallback
+  }
+  if (text.length > 160) {
+    return `${text.slice(0, 157).replace(/\s+\S*$/, '')}…`
+  }
+  return text
+}
+
 export default function MarkdownContent({
   markdown,
   basePath,

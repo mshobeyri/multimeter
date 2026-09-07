@@ -4,6 +4,7 @@ import { ChevronRight, FileCode2, FolderOpen } from 'lucide-react'
 import { examples } from 'virtual:examples'
 import type { ExampleEntry, ExampleTier } from 'virtual:examples'
 import MarkdownContent from '../../docs/MarkdownContent'
+import Seo from '../../components/Seo'
 
 const TIER_ORDER: ExampleTier[] = ['basic', 'intermediate', 'professional']
 const TIER_LABEL: Record<ExampleTier, string> = {
@@ -25,6 +26,11 @@ export function ExamplesIndexPage() {
 
   return (
     <div className="max-w-3xl">
+      <Seo
+        title="Examples — Multimeter docs"
+        description="Sample YAML .mmt API and test files from the Multimeter repo."
+        path="/docs/examples"
+      />
       <h1 className="text-3xl font-bold text-white mb-3">Examples</h1>
       <p className="text-slate-400 mb-8">
         Real folders from the Multimeter repo. Open one to read the README and browse every{' '}
@@ -191,6 +197,12 @@ export function ExampleDetailPage() {
   if (!example) {
     return (
       <div className="py-12">
+        <Seo
+          title="Example not found — Multimeter"
+          description="This example does not exist."
+          path={`/docs/examples/${tier ?? ''}/${slug ?? ''}`}
+          noIndex
+        />
         <h1 className="text-2xl font-bold text-white mb-2">Example not found</h1>
         <Link to="/docs/examples" className="text-primary-light hover:underline">
           Back to examples
@@ -201,6 +213,14 @@ export function ExampleDetailPage() {
 
   return (
     <div className="space-y-8">
+      <Seo
+        title={`${example.title} — Multimeter examples`}
+        description={
+          example.description ||
+          `${example.title} — YAML .mmt example from the Multimeter repo.`
+        }
+        path={`/docs/examples/${example.tier}/${example.slug}`}
+      />
       <div>
         <p className="text-sm text-primary-light mb-2">
           <Link to="/docs/examples" className="hover:underline">

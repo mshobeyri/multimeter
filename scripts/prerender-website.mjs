@@ -11,6 +11,8 @@ import {
   collectNavLeaves,
   docFileForHref,
   escapeHtml,
+  exampleUrls,
+  extractMarkdownDescription,
   repoRoot,
 } from './geo.mjs';
 
@@ -34,13 +36,52 @@ for (const page of MARKETING) {
 }
 for (const leaf of docLeaves) {
   if (!pages.has(leaf.href)) {
+    const mdPath = path.join(repoRoot, 'docs', leaf.contentPath);
+    const fallback = `${leaf.title} in Multimeter, the AI-powered REST Client for VS Code.`;
+    const description =
+      fs.existsSync(mdPath)
+        ? extractMarkdownDescription(fs.readFileSync(mdPath, 'utf8'), fallback)
+        : fallback;
     pages.set(leaf.href, {
       path: leaf.href,
       title: `${leaf.title} — Multimeter docs`,
-      description: `${leaf.title}. ${CANONICAL_BLURB}`,
+      description,
       contentPath: leaf.contentPath,
     });
   }
+}
+
+for (const url of exampleUrls()) {
+  if (pages.has(url)) {
+    continue;
+  }
+  if (url === '/docs/examples') {
+    pages.set(url, {
+      path: url,
+      title: 'Examples — Multimeter docs',
+      description: 'Sample YAML .mmt API and test files from the Multimeter repo.',
+    });
+    continue;
+  }
+  const parts = url.split('/').filter(Boolean);
+  const tier = parts[2];
+  const slug = parts[3];
+  const readme = path.join(repoRoot, 'examples', tier, slug, 'README.md');
+  let title = slug;
+  let description = `Multimeter example ${slug}: YAML .mmt API testing.`;
+  if (fs.existsSync(readme)) {
+    const markdown = fs.readFileSync(readme, 'utf8');
+    const heading = markdown.match(/^#\s+(.+)$/m);
+    if (heading) {
+      title = heading[1].trim();
+    }
+    description = extractMarkdownDescription(markdown, description);
+  }
+  pages.set(url, {
+    path: url,
+    title: `${title} — Multimeter examples`,
+    description,
+  });
 }
 
 function replaceAttrBlock(html, attrName, value) {

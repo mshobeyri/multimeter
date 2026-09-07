@@ -10,6 +10,7 @@ import ComparePage, { CompareIndexPage } from './pages/ComparePage'
 import DocsLayout from './pages/docs/DocsLayout'
 import DocPage from './pages/docs/DocPage'
 import { ExampleDetailPage, ExamplesIndexPage } from './pages/docs/ExamplesPage'
+import NotFound from './pages/NotFound'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="examples/:tier/:slug" element={<ExampleDetailPage />} />
           <Route path="*" element={<DocPage />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )

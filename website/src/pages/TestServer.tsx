@@ -1,5 +1,6 @@
 import FadeIn from '../components/FadeIn'
 import { ExternalLink } from 'lucide-react'
+import Seo from '../components/Seo'
 
 const BASE_URL = 'https://test.mmt.dev'
 
@@ -46,6 +47,11 @@ function methodColor(method: string): string {
 export default function TestServer() {
   return (
     <div className="min-h-screen bg-background pt-32 pb-20">
+      <Seo
+        title="Test server — Multimeter"
+        description="Public HTTP echo test server at test.mmt.dev for trying Multimeter or any HTTP client."
+        path="/test-server"
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <FadeIn>
           <div className="text-center mb-12">

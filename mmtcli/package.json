@@ -4,6 +4,26 @@
   "description": "AI-powered REST Client and Git-native API testing CLI for YAML .mmt files. Same tests in VS Code and CI. Alternative to Postman.",
   "license": "Apache-2.0",
   "private": false,
+  "homepage": "https://mmt.dev/docs/features/testlight/install",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mshobeyri/multimeter.git",
+    "directory": "mmtcli"
+  },
+  "bugs": {
+    "url": "https://github.com/mshobeyri/multimeter/issues"
+  },
+  "keywords": [
+    "api-testing",
+    "rest-client",
+    "cli",
+    "ci",
+    "yaml",
+    "postman-alternative",
+    "testlight",
+    "multimeter",
+    "mcp"
+  ],
   "bin": {
     "testlight": "dist/cli.js",
     "mmt": "dist/cli.js"
