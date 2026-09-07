@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Keep extension, Testlight CLI, Cursor plugin, and GitHub Action on one version.
+ * Keep extension, Testlight CLI, Cursor plugin, GitHub Action, and @mmt/mcp on one version.
  *
  *   node scripts/sync-versions.mjs              # copy root package.json → others
  *   node scripts/sync-versions.mjs --set 1.40.0
@@ -33,6 +33,15 @@ function replaceOnce(rel, pattern, replacement) {
   write(rel, text.replace(pattern, replacement));
 }
 
+function replaceAll(rel, pattern, replacement) {
+  const text = read(rel);
+  const next = text.replace(pattern, replacement);
+  if (next === text) {
+    throw new Error(`No match in ${rel} for ${pattern}`);
+  }
+  write(rel, next);
+}
+
 function replaceJsonVersion(rel, version) {
   replaceOnce(rel, /("version"\s*:\s*")[^"]+(")/, `$1${version}$2`);
 }
@@ -47,6 +56,8 @@ function currentVersions() {
     extension: readJson('package.json').version,
     plugin: readJson('.cursor-plugin/plugin.json').version,
     cli: readJson('mmtcli/package.json').version,
+    mcp: readJson('mmtmcp/package.json').version,
+    mcpRegistry: readJson('mmtmcp/server.json').version,
     action: versionDefault,
   };
 }
@@ -59,12 +70,25 @@ function applyVersion(version) {
   replaceJsonVersion('package.json', version);
   replaceJsonVersion('.cursor-plugin/plugin.json', version);
   replaceJsonVersion('mmtcli/package.json', version);
+  replaceJsonVersion('mmtmcp/package.json', version);
   replaceOnce('mmtcli/package-lock.json', /("version"\s*:\s*")[^"]+(")/, `$1${version}$2`);
   replaceOnce(
       'mmtcli/package-lock.json',
       /("name"\s*:\s*"mmt-testlight",\s*"version"\s*:\s*")[^"]+(")/,
       `$1${version}$2`,
   );
+  replaceOnce('mmtmcp/package-lock.json', /("version"\s*:\s*")[^"]+(")/, `$1${version}$2`);
+  replaceAll(
+      'mmtmcp/package-lock.json',
+      /("name"\s*:\s*"@mmt\/mcp",\s*"version"\s*:\s*")[^"]+(")/g,
+      `$1${version}$2`,
+  );
+  const server = readJson('mmtmcp/server.json');
+  server.version = version;
+  if (server.packages?.[0]) {
+    server.packages[0].version = version;
+  }
+  write('mmtmcp/server.json', `${JSON.stringify(server, null, 2)}\n`);
 
   replaceOnce(
       '.github/actions/testlight/action.yml',

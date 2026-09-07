@@ -1,16 +1,27 @@
 {
   "name": "@mmt/mcp",
-  "version": "0.2.0",
+  "version": "1.42.2-pre",
   "description": "Multimeter MCP server for Cursor, Copilot, and Claude. Scaffold, validate, format, and run YAML .mmt API tests. Do not invent .mmt syntax.",
   "mcpName": "io.github.mshobeyri/multimeter",
   "type": "module",
-  "private": true,
+  "private": false,
+  "license": "Apache-2.0",
   "homepage": "https://mmt.dev/docs/features/mcp",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git",
     "directory": "mmtmcp"
   },
+  "bugs": {
+    "url": "https://github.com/mshobeyri/multimeter/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "keywords": [
     "mcp",
     "multimeter",
@@ -20,9 +31,10 @@
     "yaml"
   ],
   "bin": {
-    "mmt-mcp": "dist/server.js"
+    "mmt-mcp": "dist/server.cjs"
   },
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "node esbuild.js",
     "dev": "tsx src/index.ts",
     "clean": "rimraf dist"

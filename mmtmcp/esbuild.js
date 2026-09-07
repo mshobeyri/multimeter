@@ -143,4 +143,5 @@ await esbuild.build({
 
 copyGuides();
 buildExamplesIndex();
+fs.copyFileSync(path.join(__dirname, 'dist', 'server.js'), path.join(__dirname, 'dist', 'server.cjs'));
 console.log('mmtmcp build complete');

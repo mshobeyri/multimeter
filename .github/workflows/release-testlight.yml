@@ -196,10 +196,15 @@ jobs:
           npm ci
           cd core && npm run build
           cd ../mmtcli && npm ci && npm run build
+          cd ../mmtmcp && npm ci && npm run build
 
-      - name: Publish to npm
+      - name: Publish mmt-testlight
         run: cd mmtcli && npm publish --access public --tag ${{ needs.channel.outputs.npm_tag }}
-        # Published as mmt-testlight (registers testlight + mmt CLI commands)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @mmt/mcp
+        run: cd mmtmcp && npm publish --access public --tag ${{ needs.channel.outputs.npm_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -240,6 +245,7 @@ jobs:
               echo
               echo '```sh'
               echo "npm install -g mmt-testlight@${CHANNEL}"
+              echo "npx -y @mmt/mcp@${CHANNEL}"
               echo "docker pull mshobeyri/mmt-testlight:${CHANNEL}"
               echo "CHANNEL=${CHANNEL} curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash"
               echo '```'
@@ -248,6 +254,7 @@ jobs:
               echo
               echo '```sh'
               echo 'npm install -g mmt-testlight'
+              echo 'npx -y @mmt/mcp'
               echo 'docker pull mshobeyri/mmt-testlight:latest'
               echo 'curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash'
               echo '```'

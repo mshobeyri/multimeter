@@ -7,12 +7,12 @@
     "url": "https://github.com/mshobeyri/multimeter",
     "source": "github"
   },
-  "version": "0.2.0",
+  "version": "1.42.2-pre",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@mmt/mcp",
-      "version": "0.2.0",
+      "version": "1.42.2-pre",
       "transport": {
         "type": "stdio"
       }

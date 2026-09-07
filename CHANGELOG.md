@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.42.2-pre]
+
+Pre-release.
+
+- Publish `@mmt/mcp` on npm (`@pre`) with MCP Registry `server.json` (`io.github.mshobeyri/multimeter`)
+- Website GEO/SEO: prerendered docs, unique meta, `llms.txt`, schema, real 404s
+- Position as an AI-powered REST Client (in-flow judges; Promptfoo alternative)
+
 ## [1.42.1-pre]
 
 Pre-release.
@@ -13,6 +21,10 @@ Pre-release.
 Pre-release.
 
 - Two release channels: `vX.Y.Z` is stable; `vX.Y.Z-pre` is pre-release (npm `@pre`, Docker `:pre`, Marketplace `X.Y.Z` pre-release)
+
+## [1.41.0]
+
+Skipped.
 
 ## [1.40.0]
 
