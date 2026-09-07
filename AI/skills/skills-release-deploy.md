@@ -39,9 +39,10 @@ On **"release version X.Y.Z"** (or pre-release):
 
 1. `node scripts/sync-versions.mjs --set X.Y.Z`
 2. Add `## [X.Y.Z]` to `CHANGELOG.md`
-3. Commit `Release version X.Y.Z` and push to `dev` or `main`
+3. Commit `Release version X.Y.Z` and push the branch
+4. Push tag `vX.Y.Z` (`git tag vX.Y.Z && git push origin vX.Y.Z`)
 
-The **Tag release** workflow (`release-on-commit.yml`) creates `vX.Y.Z` from that commit message or from a new CHANGELOG heading. **Release testlight** then publishes Testlight, `mshobeyri/testlight-action`, and the VS Code extension when secrets are set (`NPM_TOKEN`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`).
+**Release testlight** runs only on `v*` tags. It publishes Testlight, `mshobeyri/testlight-action`, and the VS Code extension when secrets are set (`NPM_TOKEN`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`). Changelog edits and `Release version` commits do not publish by themselves.
 
 ---
 

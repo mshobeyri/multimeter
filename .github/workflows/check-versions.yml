@@ -15,5 +15,3 @@ jobs:
           node-version: '20'
       - name: Extension, CLI, plugin, and Action share one version
         run: node scripts/sync-versions.mjs --check
-      - name: Release detect self-test
-        run: node scripts/detect-release.mjs --self-test
