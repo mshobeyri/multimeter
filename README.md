@@ -3,17 +3,7 @@
     <img src="res/logo.png" alt="Logo" width="115" height="115">
   </a>
   <h4>AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files.</h4>
-  <p>
-    <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
-      <img src="https://vsmarketplacebadges.dev/installs-short/mshobeyri.multimeter.svg" alt="VS Code Installs"/>
-    </a>
-    <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
-      <img src="https://vsmarketplacebadges.dev/version-short/mshobeyri.multimeter.svg" alt="Version"/>
-    </a>
-    <a href="https://github.com/mshobeyri/multimeter/blob/main/LICENSE.md">
-      <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"/>
-    </a>
-  </p>
+
   <p>
     <a href="https://mmt.dev/demos">Demo</a>
     &middot;
@@ -30,6 +20,17 @@
     <a href="https://mmt.dev/docs/quick-start">Docs</a>
     &middot;
     <a href="https://mmt.dev/llms.txt">llms.txt</a>
+  </p>
+    <p>
+    <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
+      <img src="https://vsmarketplacebadges.dev/installs-short/mshobeyri.multimeter.svg" alt="VS Code Installs"/>
+    </a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
+      <img src="https://vsmarketplacebadges.dev/version-short/mshobeyri.multimeter.svg" alt="Version"/>
+    </a>
+    <a href="https://github.com/mshobeyri/multimeter/blob/main/LICENSE.md">
+      <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"/>
+    </a>
   </p>
 </div>
 
