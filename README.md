@@ -2,7 +2,7 @@
   <a href="https://mmt.dev">
     <img src="res/logo.png" alt="Logo" width="115" height="115">
   </a>
-  <h4>REST Client and API testing in VS Code. Git-native AI-powered alternative to Postman. YAML .mmt files.</h4>
+  <h4>AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files.</h4>
   <p>
     <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
       <img src="https://vsmarketplacebadges.dev/installs-short/mshobeyri.multimeter.svg" alt="VS Code Installs"/>

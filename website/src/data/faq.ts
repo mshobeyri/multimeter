@@ -7,7 +7,7 @@ export const faqItems: FaqItem[] = [
   {
     question: 'What is Multimeter?',
     answer:
-      'Multimeter is a REST Client and API testing tool for VS Code — not an electrical meter. Git-native AI-powered alternative to Postman. Tests are YAML .mmt files in your repo. The CLI is testlight (npm package mmt-testlight). The MCP server is @mmt/mcp for Cursor, GitHub Copilot, and Claude. You can also judge non-deterministic replies with AI in the same test flow (an alternative to a separate Promptfoo stack).',
+      'Multimeter is an AI-powered REST Client and API testing tool for VS Code — not an electrical meter. Git-native alternative to Postman. Tests are YAML .mmt files in your repo. The CLI is testlight (npm package mmt-testlight). The MCP server is @mmt/mcp for Cursor, GitHub Copilot, and Claude. You can also judge non-deterministic replies with AI in the same test flow (an alternative to a separate Promptfoo stack).',
   },
   {
     question: 'How do I use Multimeter with Cursor, Copilot, or Claude?',

@@ -28,7 +28,7 @@ export default function AITestGen() {
               AI-Native
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-4">
-              Let AI write — and <span className="gradient-text">judge</span> — your tests
+              Let AI write and <span className="gradient-text">judge</span> your tests
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
               Use AI where it helps most: authoring flows quickly, and scoring fuzzy or AI-generated

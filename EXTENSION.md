@@ -2,7 +2,7 @@
   <a href="https://mmt.dev">
     <img src="res/logo.png" alt="Logo" width="115" height="115">
   </a>
-  <h4>REST Client and API testing in VS Code. Git-native AI-powered alternative to Postman. YAML .mmt files.</h4>
+  <h4>AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files.</h4>
   <p>
     <a href="https://mmt.dev/demos">Demo</a>
     &middot;
