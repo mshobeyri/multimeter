@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.41.2-beta]
+
+Pre-release.
+
+- Channel is the tag suffix only (`-beta`, `-rc`, `-pre`). A plain `X.Y.Z` tag is stable.
+
 ## [1.40.0]
 
 Pre-release.
