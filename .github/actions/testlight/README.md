@@ -2,17 +2,25 @@
 
 Run Multimeter (`.mmt`) API tests, test suites, and generate documentation in your GitHub Actions workflow.
 
+Published listing: [mshobeyri/testlight-action](https://github.com/mshobeyri/testlight-action). Keep this folder in sync with that repo when the action inputs or steps change.
+
 ## Usage
 
 ```yaml
 - name: Run API tests
-  uses: mshobeyri/multimeter/.github/actions/testlight@main
+  uses: mshobeyri/testlight-action@v1
   with:
     file: tests/login.mmt
     env-file: tests/env.mmt
     preset: ci
     report: junit
     report-file: test-results/report.xml
+```
+
+This repository can also call the local copy:
+
+```yaml
+- uses: ./.github/actions/testlight
 ```
 
 ## Inputs
@@ -53,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run tests
-        uses: mshobeyri/multimeter/.github/actions/testlight@main
+        uses: mshobeyri/testlight-action@v1
         with:
           file: tests/suite.mmt
 ```
@@ -68,7 +76,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run tests
-        uses: mshobeyri/multimeter/.github/actions/testlight@main
+        uses: mshobeyri/testlight-action@v1
         with:
           file: tests/suite.mmt
           env-file: tests/env.mmt
@@ -94,7 +102,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate docs
-        uses: mshobeyri/multimeter/.github/actions/testlight@main
+        uses: mshobeyri/testlight-action@v1
         with:
           command: doc
           file: api/catalog.mmt

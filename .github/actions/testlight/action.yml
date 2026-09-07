@@ -1,5 +1,6 @@
-name: 'Run Testlight'
-description: 'Run Multimeter (.mmt) API tests, test suites, and generate docs with testlight'
+# Keep in sync with https://github.com/mshobeyri/testlight-action
+name: 'Testlight'
+description: 'Run Multimeter (.mmt) API tests, test suites, and generate docs with Testlight'
 author: 'mshobeyri'
 
 branding:

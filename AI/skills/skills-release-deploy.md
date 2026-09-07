@@ -13,7 +13,7 @@ Comprehensive reference for building, packaging, and publishing Multimeter acros
 | **Docker** | `mshobeyri/mmt-testlight` | [Docker Hub](https://hub.docker.com/r/mshobeyri/mmt-testlight) | `mshobeyri/mmt-testlight` |
 | **Homebrew** | `mmt-testlight` formula | [mshobeyri/multimeter tap](https://github.com/mshobeyri/homebrew-multimeter) | `mshobeyri/multimeter/mmt-testlight` |
 | **GitHub Releases** | Platform binaries + checksums | [GitHub](https://github.com/mshobeyri/multimeter/releases) | Tag: `vX.Y.Z` |
-| **GitHub Action** | Composite action | `mshobeyri/multimeter` repo under `bin/github-action/` | `mshobeyri/multimeter@vX` |
+| **GitHub Action** | Composite action | [mshobeyri/testlight-action](https://github.com/mshobeyri/testlight-action) (source copy in `.github/actions/testlight/`) | `mshobeyri/testlight-action@v1` |
 | **One-line installer** | Shell script | Raw GitHub URL | `scripts/install-testlight.sh` |
 | **Standalone binaries** | macOS x64/arm64, Linux x64/arm64, Windows x64 | GitHub Releases | `testlight-<platform>.<ext>` (versionless; version is the release tag) |
 
@@ -278,13 +278,13 @@ gh release create vX.Y.Z-beta.1 --prerelease ...
 
 ### Location
 
-- `bin/github-action/action.yml` — composite action definition
-- `bin/github-action/README.md` — usage docs
+- Published repo: [mshobeyri/testlight-action](https://github.com/mshobeyri/testlight-action) (`action.yml` at repo root)
+- In-repo copy used by Multimeter CI: `.github/actions/testlight/`
 
 ### Usage (for consumers)
 
 ```yaml
-- uses: mshobeyri/multimeter@v1
+- uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt
     env-file: env/staging.mmt
@@ -294,7 +294,7 @@ gh release create vX.Y.Z-beta.1 --prerelease ...
 
 ### How It Works
 
-1. Sets up Node.js 18
+1. Sets up Node.js 20
 2. Installs `mmt-testlight` globally via npm (supports `version: latest | beta | rc | X.Y.Z`)
 3. Runs `testlight <command> <file>` with all configured flags
 4. Outputs: `result`, `report`, `exit-code`
@@ -302,6 +302,8 @@ gh release create vX.Y.Z-beta.1 --prerelease ...
 ### Update Steps
 
 The action installs from npm, so no binary update is needed — just publish to npm and consumers get the new version.
+
+When `action.yml` inputs or steps change, update both `.github/actions/testlight/action.yml` and the published `testlight-action` repo, then move the `v1` tag if the change is compatible.
 
 ---
 
@@ -466,7 +468,7 @@ VERSION=0.4.0-beta.1 ./scripts/release-testlight.sh --publish --pre-release
 | `scripts/validate-cursor-plugin.mjs` | Cursor plugin layout/manifest validator |
 | `packaging/homebrew/mmt-testlight.rb` | Homebrew formula |
 | `packaging/docker/README.md` | Docker Hub repository overview |
-| `bin/github-action/action.yml` | GitHub Action definition |
+| `.github/actions/testlight/action.yml` | In-repo Testlight GitHub Action (keep in sync with `mshobeyri/testlight-action`) |
 | `mmtcli/esbuild.mjs` | CLI esbuild bundler config (ESM; must stay `.mjs` — package has no `"type": "module"`) |
 | `mmtcli/package.json` | CLI npm package (version source of truth) |
 | `package.json` (root) | Extension version + workspace scripts |

@@ -26,14 +26,14 @@ npx testlight run examples/basic/02_simple_test/echo_test.mmt --quiet
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: mshobeyri/multimeter/.github/actions/testlight@main
+- uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt
     report: junit
     report-file: results/junit.xml
 ```
 
-See the [action README](https://github.com/mshobeyri/multimeter/blob/main/.github/actions/testlight/README.md).
+See the [action README](https://github.com/mshobeyri/testlight-action).
 
 ## macOS (Homebrew)
 

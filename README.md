@@ -176,7 +176,7 @@ GitHub Actions:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: mshobeyri/multimeter/.github/actions/testlight@main
+- uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt
     report: junit
@@ -190,7 +190,7 @@ npm install -g mmt-testlight
 testlight run tests/suite.mmt
 ```
 
-See the [GitHub Action](./.github/actions/testlight/README.md) and [Testlight install](https://mmt.dev/docs/features/testlight/install).
+See the [GitHub Action](https://github.com/mshobeyri/testlight-action) and [Testlight install](https://mmt.dev/docs/features/testlight/install).
 
 
 ## 📦 Everything stays in Git

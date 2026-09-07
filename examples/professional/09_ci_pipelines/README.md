@@ -39,7 +39,7 @@ npx mmt-testlight run examples/professional/09_ci_pipelines/suite.mmt \
 Copy `github-actions.yml` to `.github/workflows/mmt.yml`. It uses the Multimeter Action:
 
 ```yaml
-- uses: mshobeyri/multimeter/.github/actions/testlight@main
+- uses: mshobeyri/testlight-action@v1
   with:
     file: suite.mmt
     report: junit
