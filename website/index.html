@@ -7,10 +7,11 @@
     <title>Multimeter — AI-powered REST Client and API testing in VS Code (Postman alternative)</title>
     <meta
       name="description"
-      content="AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files. MCP for Cursor and Copilot (@mmt/mcp). Judge responses with AI in the same test flow — also an alternative to Promptfoo."
+      content="Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. YAML .mmt files, testlight CLI, @mmt/mcp. Git-native alternative to Postman. Judge API answers with AI — also an alternative to Promptfoo."
     />
     <link rel="canonical" href="https://mmt.dev/" />
     <link rel="alternate" type="text/plain" href="https://mmt.dev/llms.txt" title="llms.txt" />
+    <link rel="alternate" type="text/plain" href="https://mmt.dev/.well-known/llms.txt" title="llms.txt (well-known)" />
     <meta name="keywords" content="REST Client, API testing, Postman alternative, Bruno alternative, Thunder Client alternative, VS Code REST client, Git-native, YAML tests, .mmt, testlight, MCP, Cursor, Copilot, Promptfoo alternative" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Multimeter" />
@@ -18,14 +19,14 @@
     <meta property="og:title" content="Multimeter — AI-powered REST Client and API testing in VS Code" />
     <meta
       property="og:description"
-      content="AI-powered Git-native alternative to Postman. YAML .mmt files. MCP for Cursor and Copilot. Judge responses with AI — also an alternative to Promptfoo."
+      content="Multimeter is an AI-powered REST Client for VS Code. It is not an electrical multimeter. Git-native alternative to Postman. YAML .mmt files. MCP @mmt/mcp."
     />
     <meta property="og:image" content="https://mmt.dev/og.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Multimeter — AI-powered REST Client and API testing in VS Code" />
     <meta
       name="twitter:description"
-      content="AI-powered Git-native alternative to Postman. YAML .mmt files. MCP for Cursor and Copilot."
+      content="Multimeter is an AI-powered REST Client for VS Code. It is not an electrical multimeter. Git-native alternative to Postman."
     />
     <meta name="twitter:image" content="https://mmt.dev/og.png" />
     <script type="application/ld+json">
@@ -33,22 +34,89 @@
       "@context": "https://schema.org",
       "@graph": [
         {
-          "@type": "SoftwareApplication",
+          "@type": "Organization",
+          "@id": "https://mmt.dev/#org",
           "name": "Multimeter",
-          "alternateName": ["mmt", "testlight", "mmt-testlight"],
-          "applicationCategory": "DeveloperApplication",
-          "operatingSystem": "Windows, macOS, Linux",
-          "license": "https://www.apache.org/licenses/LICENSE-2.0",
           "url": "https://mmt.dev",
-          "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter",
-          "description": "AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files. MCP for Cursor and Copilot (@mmt/mcp). Judge responses with AI. Also an alternative to Promptfoo.",
-          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "logo": "https://mmt.dev/logo.svg",
           "sameAs": [
             "https://github.com/mshobeyri/multimeter",
             "https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter",
             "https://www.npmjs.com/package/mmt-testlight",
-            "https://github.com/mshobeyri/testlight-action"
+            "https://www.npmjs.com/package/@mmt/mcp",
+            "https://github.com/mshobeyri/testlight-action",
+            "https://www.youtube.com/@mmt_dev",
+            "https://www.linkedin.com/company/multimetertest"
           ]
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://mmt.dev/#app",
+          "name": "Multimeter",
+          "alternateName": ["mmt", "testlight", "mmt-testlight", "@mmt/mcp"],
+          "applicationCategory": "DeveloperApplication",
+          "applicationSubCategory": "API testing",
+          "operatingSystem": "Windows, macOS, Linux",
+          "license": "https://www.apache.org/licenses/LICENSE-2.0",
+          "url": "https://mmt.dev",
+          "image": "https://mmt.dev/og.png",
+          "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter",
+          "description": "Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. YAML .mmt files in Git. CLI testlight. MCP @mmt/mcp. Git-native alternative to Postman. AI judges in the same test flow.",
+          "disambiguatingDescription": "Not an electrical multimeter. An API testing tool for VS Code.",
+          "isAccessibleForFree": true,
+          "featureList": [
+            "Git-native YAML .mmt files",
+            "VS Code and Cursor REST client",
+            "HTTP, WebSocket, GraphQL, and gRPC",
+            "MCP server @mmt/mcp",
+            "AI test generation via scaffold_test",
+            "AI response judging (type: judge)",
+            "Mock servers",
+            "Test suites",
+            "testlight CLI and GitHub Action",
+            "Generated HTML and Markdown docs"
+          ],
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "publisher": { "@id": "https://mmt.dev/#org" },
+          "sameAs": [
+            "https://github.com/mshobeyri/multimeter",
+            "https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter",
+            "https://www.npmjs.com/package/mmt-testlight",
+            "https://www.npmjs.com/package/@mmt/mcp",
+            "https://github.com/mshobeyri/testlight-action",
+            "https://www.youtube.com/@mmt_dev",
+            "https://www.linkedin.com/company/multimetertest"
+          ]
+        },
+        {
+          "@type": "HowTo",
+          "name": "Install Multimeter",
+          "description": "Install the VS Code extension, CLI, and MCP server.",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "name": "Install the VS Code extension",
+              "text": "Install mshobeyri.multimeter from the Visual Studio Marketplace.",
+              "url": "https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Install the CLI",
+              "text": "npm install -g mmt-testlight then testlight run path/to/test.mmt"
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Add MCP for agents",
+              "text": "npx -y @mmt/mcp in Cursor, Copilot, or Claude. First tools: scaffold_test, validate, format, run."
+            }
+          ]
+        },
+        {
+          "@type": "VideoObject",
+          "name": "Multimeter API: Create first JSON Request",
+          "description": "Create a type: api .mmt file and send a JSON POST in VS Code.",
+          "embedUrl": "https://www.youtube.com/embed/U3Fyhtv-_iM",
+          "contentUrl": "https://www.youtube.com/watch?v=U3Fyhtv-_iM"
         },
         {
           "@type": "FAQPage",
@@ -58,7 +126,7 @@
               "name": "What is Multimeter?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Multimeter is an AI-powered REST Client and API testing tool for VS Code. Git-native alternative to Postman. YAML .mmt files. MCP for Cursor and Copilot (@mmt/mcp)."
+                "text": "Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. Tests are YAML .mmt files in Git. The CLI is testlight. The MCP server is @mmt/mcp."
               }
             },
             {
@@ -88,7 +156,7 @@
   </head>
   <body>
     <noscript>
-      <p>AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files. MCP for Cursor and Copilot (@mmt/mcp). Judge responses with AI — also an alternative to Promptfoo. Not an electrical meter.</p>
+      <p>Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. Tests are YAML .mmt files in Git. CLI testlight (mmt-testlight). MCP @mmt/mcp. Git-native alternative to Postman. Judge API answers with AI — also an alternative to Promptfoo. Apache License 2.0.</p>
       <p>
         <a href="https://mmt.dev/for-agents.html">For AI agents</a> ·
         <a href="https://mmt.dev/llms.txt">llms.txt</a> ·

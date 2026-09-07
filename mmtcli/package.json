@@ -1,7 +1,7 @@
 {
   "name": "mmt-testlight",
   "version": "1.42.1-pre",
-  "description": "Multimeter CLI test runner",
+  "description": "AI-powered REST Client and Git-native API testing CLI for YAML .mmt files. Same tests in VS Code and CI. Alternative to Postman.",
   "license": "Apache-2.0",
   "private": false,
   "bin": {

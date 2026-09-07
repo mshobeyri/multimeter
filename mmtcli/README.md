@@ -1,6 +1,8 @@
 # Multimeter CLI (mmtcli)
 
-CLI runner for Multimeter test files. The npm package is `mmt-testlight`; the command you run is `testlight`.
+**testlight** runs Multimeter YAML `.mmt` tests in CI and locally. npm package: `mmt-testlight`.
+
+Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. Git-native alternative to Postman. Docs: https://mmt.dev
 
 ## Usage
 

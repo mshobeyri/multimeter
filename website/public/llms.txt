@@ -1,15 +1,17 @@
 # Multimeter
 
-> Git-native and AI-native API testing for VS Code and CI. YAML `.mmt` files. CLI `testlight` (npm `mmt-testlight`). MCP `@mmt/mcp`. Judge responses with AI in the same test flow. Free Apache-2.0 alternative to Postman, Bruno, Thunder Client, and Promptfoo. Not an electrical meter.
+> Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. Tests are YAML .mmt files in Git. The CLI is testlight (npm mmt-testlight). The MCP server is @mmt/mcp for Cursor, GitHub Copilot, and Claude. Git-native alternative to Postman. Judge API answers with AI (semantic similarity or open-ended checks) in the same test flow — also an alternative to Promptfoo. Apache License 2.0. No account required.
 
 Website: https://mmt.dev
 Docs: https://mmt.dev/docs/quick-start
 Repo: https://github.com/mshobeyri/multimeter
 Marketplace: https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter
 npm CLI: https://www.npmjs.com/package/mmt-testlight
+MCP: https://www.npmjs.com/package/@mmt/mcp
 GitHub Action: https://github.com/mshobeyri/testlight-action
 Agent briefing (no JS): https://mmt.dev/for-agents.html
 Full map: https://mmt.dev/llms-full.txt
+This file: https://mmt.dev/llms.txt · https://mmt.dev/.well-known/llms.txt
 
 ## Use with AI agents
 
@@ -17,6 +19,7 @@ Full map: https://mmt.dev/llms-full.txt
 - First tools: `scaffold_test`, `validate`, `format`, `run` — do not invent `.mmt` syntax
 - Workflow: https://mmt.dev/raw/docs/AI/agent-workflow.md
 - MCP overview: https://mmt.dev/docs/features/mcp
+- Judge (AI checks): https://mmt.dev/docs/files/judge
 - Cursor/Claude clients: https://mmt.dev/docs/features/mcp/other-mcp-clients
 
 ## Humans
@@ -27,6 +30,7 @@ Full map: https://mmt.dev/llms-full.txt
 - Testlight CLI: https://mmt.dev/docs/features/testlight/install
 - Compare Postman: https://mmt.dev/compare/postman
 - Compare Bruno: https://mmt.dev/compare/bruno
+- Compare Promptfoo: https://mmt.dev/compare/promptfoo
 - Min docs pack: https://mmt.dev/raw/docs/AI/min/overview.md
 
 ## Raw markdown (crawler-friendly)
@@ -35,4 +39,5 @@ Prefix https://mmt.dev/raw/docs/ plus the path under `docs/` in the repo, for ex
 
 - https://mmt.dev/raw/docs/quick-start.md
 - https://mmt.dev/raw/docs/files/test/index.md
+- https://mmt.dev/raw/docs/files/judge/index.md
 - https://mmt.dev/raw/docs/features/mcp/mcp-tools.md
