@@ -48,7 +48,12 @@ export default function ComparePage() {
   if (!page) {
     return (
       <>
-        <Seo title="Compare Multimeter" description="API testing comparisons." />
+        <Seo
+          title="Page not found — Compare Multimeter"
+          description="This comparison page does not exist."
+          path={`/compare/${slug ?? ''}`}
+          noIndex
+        />
         <div className="pt-28 pb-24 px-4 max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold text-white mb-3">Page not found</h1>
           <Link to="/compare" className="text-primary-light hover:underline">

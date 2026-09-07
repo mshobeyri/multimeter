@@ -1,9 +1,24 @@
 {
   "name": "@mmt/mcp",
   "version": "0.2.0",
-  "description": "Multimeter MCP server for AI test generation",
+  "description": "Multimeter MCP server for Cursor, Copilot, and Claude. Scaffold, validate, format, and run YAML .mmt API tests. Do not invent .mmt syntax.",
+  "mcpName": "io.github.mshobeyri/multimeter",
   "type": "module",
   "private": true,
+  "homepage": "https://mmt.dev/docs/features/mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mshobeyri/multimeter.git",
+    "directory": "mmtmcp"
+  },
+  "keywords": [
+    "mcp",
+    "multimeter",
+    "api-testing",
+    "cursor",
+    "testlight",
+    "yaml"
+  ],
   "bin": {
     "mmt-mcp": "dist/server.js"
   },

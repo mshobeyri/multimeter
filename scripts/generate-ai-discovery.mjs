@@ -1,100 +1,28 @@
 #!/usr/bin/env node
 /**
- * Sitemap + raw markdown mirrors for AI crawlers.
- * Run from repo root or website/: node scripts/generate-ai-discovery.mjs
+ * Sitemap, llms.txt, well-known copy, and static agent HTML for AI crawlers.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {
+  allSitemapHrefs,
+  lastmodForHref,
+  origin,
+  repoRoot,
+  websitePublic,
+  writeForAgentsHtml,
+  writeLlmsTxt,
+} from './geo.mjs';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '..');
-const websitePublic = path.join(repoRoot, 'website/public');
-const origin = 'https://mmt.dev';
-
-function pathToHref(contentPath) {
-  const withoutExt = contentPath.replace(/\.md$/, '');
-  if (withoutExt === 'tasks/index') {
-    return '/docs/tasks';
-  }
-  if (withoutExt.endsWith('/index')) {
-    return `/docs/${withoutExt.slice(0, -'/index'.length)}`;
-  }
-  return `/docs/${withoutExt}`;
-}
-
-function collectNavHrefs(items, out) {
-  for (const item of items) {
-    if (item.path) {
-      out.add(pathToHref(item.path));
-    }
-    if (item.href && String(item.href).startsWith('/')) {
-      out.add(item.href.replace(/\/$/, '') || item.href);
-    }
-    if (item.children) {
-      collectNavHrefs(item.children, out);
-    }
-  }
-}
-
-function exampleUrls() {
-  const urls = ['/docs/examples'];
-  const examplesRoot = path.join(repoRoot, 'examples');
-  for (const tier of ['basic', 'intermediate', 'professional']) {
-    const tierDir = path.join(examplesRoot, tier);
-    if (!fs.existsSync(tierDir)) {
-      continue;
-    }
-    for (const entry of fs.readdirSync(tierDir, {withFileTypes: true})) {
-      if (entry.isDirectory() && !entry.name.startsWith('.')) {
-        urls.push(`/docs/examples/${tier}/${entry.name}`);
-      }
-    }
-  }
-  return urls;
-}
-
-const marketing = [
-  '/',
-  '/downloads',
-  '/demos',
-  '/tutorials',
-  '/roadmap',
-  '/compare',
-  '/compare/postman',
-  '/compare/bruno',
-  '/compare/promptfoo',
-  '/compare/thunder-client',
-  '/compare/rest-client',
-  '/test-server',
-  '/for-agents.html',
-  '/llms.txt',
-  '/llms-full.txt',
-];
-
-const nav = JSON.parse(fs.readFileSync(path.join(repoRoot, 'docs/nav.json'), 'utf8'));
-const hrefs = new Set(marketing);
-for (const section of nav) {
-  collectNavHrefs(section.items || [], hrefs);
-}
-for (const url of exampleUrls()) {
-  hrefs.add(url);
-}
-
-const ordered = [...hrefs].sort((a, b) => {
-  if (a === '/') {
-    return -1;
-  }
-  if (b === '/') {
-    return 1;
-  }
-  return a.localeCompare(b);
-});
-
+const ordered = allSitemapHrefs();
 const sitemap = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-  ...ordered.map((loc) => `  <url><loc>${origin}${loc === '/' ? '/' : loc}</loc></url>`),
+  ...ordered.map((loc) => {
+    const href = loc === '/' ? '/' : loc;
+    const lastmod = lastmodForHref(href);
+    return `  <url><loc>${origin}${href}</loc><lastmod>${lastmod}</lastmod></url>`;
+  }),
   '</urlset>',
   '',
 ].join('\n');
@@ -102,11 +30,20 @@ const sitemap = [
 fs.mkdirSync(websitePublic, {recursive: true});
 fs.writeFileSync(path.join(websitePublic, 'sitemap.xml'), sitemap);
 
-for (const name of ['llms.txt', 'llms-full.txt']) {
-  const src = path.join(repoRoot, name);
-  if (fs.existsSync(src)) {
-    fs.copyFileSync(src, path.join(websitePublic, name));
-  }
+const llmsTxt = writeLlmsTxt();
+fs.writeFileSync(path.join(repoRoot, 'llms.txt'), llmsTxt);
+fs.writeFileSync(path.join(websitePublic, 'llms.txt'), llmsTxt);
+const wellKnown = path.join(websitePublic, '.well-known');
+fs.mkdirSync(wellKnown, {recursive: true});
+fs.writeFileSync(path.join(wellKnown, 'llms.txt'), llmsTxt);
+
+const forAgents = writeForAgentsHtml();
+fs.writeFileSync(path.join(websitePublic, 'for-agents.html'), forAgents);
+
+const fullSrc = path.join(repoRoot, 'llms-full.txt');
+if (fs.existsSync(fullSrc)) {
+  fs.copyFileSync(fullSrc, path.join(websitePublic, 'llms-full.txt'));
 }
 
 console.log(`sitemap: ${ordered.length} URLs → website/public/sitemap.xml`);
+console.log('wrote llms.txt, .well-known/llms.txt, for-agents.html');

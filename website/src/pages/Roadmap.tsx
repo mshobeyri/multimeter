@@ -1,5 +1,6 @@
 import FadeIn from '../components/FadeIn'
 import { Check, Clock, Circle } from 'lucide-react'
+import Seo from '../components/Seo'
 
 type ItemStatus = 'done' | 'in-progress' | 'planned'
 
@@ -165,6 +166,11 @@ const statusConfig: Record<ItemStatus, { icon: typeof Check; color: string; bg: 
 export default function Roadmap() {
   return (
     <div className="pt-32 pb-24 px-4 sm:px-6 lg:px-8">
+      <Seo
+        title="Roadmap — Multimeter"
+        description="What Multimeter has shipped and what is coming next for the AI-powered REST Client in VS Code."
+        path="/roadmap"
+      />
       <div className="max-w-4xl mx-auto">
         <FadeIn>
           <div className="text-center mb-16">

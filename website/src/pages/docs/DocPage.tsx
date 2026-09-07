@@ -1,7 +1,7 @@
 import Seo from '../../components/Seo'
 import { Link, useLocation } from 'react-router-dom'
 import { getDocMarkdown } from '../../docs/loadContent'
-import MarkdownContent, { getDocTitle, useDocHeadings } from '../../docs/MarkdownContent'
+import MarkdownContent, { getDocDescription, getDocTitle, useDocHeadings } from '../../docs/MarkdownContent'
 import { findNavItem } from '../../docs/nav'
 
 function OnThisPage({ headings }: { headings: Array<{ id: string; text: string; level: number }> }) {
@@ -40,6 +40,12 @@ export default function DocPage() {
   if (!contentPath) {
     return (
       <div className="py-12">
+        <Seo
+          title="Page not found — Multimeter docs"
+          description="This docs page does not exist."
+          path={basePath}
+          noIndex
+        />
         <h1 className="text-2xl font-bold text-white mb-2">Page not found</h1>
         <p className="text-slate-400 mb-4">No docs page for {basePath}</p>
         <Link to="/docs/quick-start" className="text-primary-light hover:underline">
@@ -55,6 +61,12 @@ export default function DocPage() {
   if (!markdown) {
     return (
       <div className="py-12">
+        <Seo
+          title="Page not found — Multimeter docs"
+          description="This docs page does not exist."
+          path={basePath}
+          noIndex
+        />
         <h1 className="text-2xl font-bold text-white mb-2">Page not found</h1>
         <p className="text-slate-400 mb-4">Missing content: {contentPath}</p>
         <Link to="/docs/quick-start" className="text-primary-light hover:underline">
@@ -65,12 +77,16 @@ export default function DocPage() {
   }
 
   const title = getDocTitle(markdown)
+  const description = getDocDescription(
+    markdown,
+    `${title} in Multimeter, the AI-powered REST Client and API testing tool for VS Code.`,
+  )
 
   return (
     <div className="flex gap-10">
       <Seo
         title={`${title} — Multimeter docs`}
-        description={`Multimeter documentation: ${title}. Git-native API testing with YAML .mmt files, testlight CLI, and @mmt/mcp.`}
+        description={description}
         path={basePath}
       />
       <article className="min-w-0 flex-1 max-w-3xl">

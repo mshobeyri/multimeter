@@ -625,7 +625,11 @@
     "openapi",
     "soap",
     "mock-server",
-    "testing"
+    "testing",
+    "mcp",
+    "cursor",
+    "testlight",
+    "ai"
   ],
   "license": "Apache-2.0",
   "workspaces": [

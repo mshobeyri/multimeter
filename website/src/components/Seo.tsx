@@ -15,10 +15,12 @@ export default function Seo({
   title,
   description,
   path = '/',
+  noIndex = false,
 }: {
   title: string
   description: string
   path?: string
+  noIndex?: boolean
 }) {
   useEffect(() => {
     const previousTitle = document.title
@@ -40,11 +42,40 @@ export default function Seo({
       content: description,
     })
     upsertMeta('meta[property="og:url"]', { property: 'og:url', content: url })
+    upsertMeta('meta[property="og:image"]', {
+      property: 'og:image',
+      content: 'https://mmt.dev/og.png',
+    })
+    upsertMeta('meta[property="og:image:alt"]', {
+      property: 'og:image:alt',
+      content: 'Multimeter — AI-powered REST Client for VS Code',
+    })
+    upsertMeta('meta[property="og:type"]', { property: 'og:type', content: 'website' })
     upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: title })
     upsertMeta('meta[name="twitter:description"]', {
       name: 'twitter:description',
       content: description,
     })
+    upsertMeta('meta[name="twitter:image"]', {
+      name: 'twitter:image',
+      content: 'https://mmt.dev/og.png',
+    })
+    upsertMeta('meta[name="twitter:image:alt"]', {
+      name: 'twitter:image:alt',
+      content: 'Multimeter — AI-powered REST Client for VS Code',
+    })
+    upsertMeta('meta[name="twitter:card"]', {
+      name: 'twitter:card',
+      content: 'summary_large_image',
+    })
+    if (noIndex) {
+      upsertMeta('meta[name="robots"]', { name: 'robots', content: 'noindex, follow' })
+    } else {
+      const robots = document.querySelector('meta[name="robots"]')
+      if (robots?.getAttribute('content') === 'noindex, follow') {
+        robots.remove()
+      }
+    }
 
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
     if (!canonical) {
@@ -60,6 +91,6 @@ export default function Seo({
         meta.setAttribute('content', previousDescription)
       }
     }
-  }, [title, description, path])
+  }, [title, description, path, noIndex])
   return null
 }

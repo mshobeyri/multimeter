@@ -11,7 +11,7 @@ export default function FAQ() {
             Frequently Asked Questions
           </h2>
           <p className="text-center text-slate-400 mb-12">
-            REST Client and API testing in VS Code — YAML .mmt files, testlight, MCP.
+            Multimeter is an AI-powered REST Client for VS Code. It is not an electrical multimeter.
           </p>
         </FadeIn>
 
