@@ -30,6 +30,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          npm ci
           cd mmtmcp
           npm ci
           npm run build
