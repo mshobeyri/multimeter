@@ -2,13 +2,23 @@
   <a href="https://mmt.dev">
     <img src="res/logo.png" alt="Logo" width="115" height="115">
   </a>
-  <h4> REST Client and API testing in VS Code. Git-native alternative to Postman, Bruno, and Thunder Client.</h4>
+  <h4>AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files.</h4>
   <p>
-    <a href="https://mmt.dev/demos"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
+    <a href="https://mmt.dev/demos">Demo</a>
     &middot;
-    <a href="https://mmt.dev"><img src="res/website.png" alt="mmt.dev" width="16" height="16" style="vertical-align: text-bottom;"/> Website</a>
+    <a href="https://mmt.dev">Website</a>
     &middot;
-    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature_request.yml"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
+    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature_request.yml">Request Feature</a>
+    &middot;
+    <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">VS Code</a>
+    &middot;
+    <a href="https://www.npmjs.com/package/mmt-testlight">CLI</a>
+    &middot;
+    <a href="https://github.com/mshobeyri/testlight-action">GitHub Action</a>
+    &middot;
+    <a href="https://mmt.dev/docs/quick-start">Docs</a>
+    &middot;
+    <a href="https://mmt.dev/llms.txt">llms.txt</a>
   </p>
 </div>
 
@@ -16,41 +26,40 @@
   <img src="res/intro.png" alt="Multimeter — Get Started, YAML, and API tester" width="640" />
 </p>
 
-## 🚀 Simplicity along with Power.
+## 🚀 Start with a request. Grow into a platform.
 ---
 
-**Multimeter** combines the simplicity of Git-native tools like Bruno with the power of a complete API testing platform like Postman.
+**Multimeter** is Git-native API testing in VS Code. Requests, tests, mocks, and docs are YAML `.mmt` files in your repo.
 
-Start with a single HTTP request.  Grow into tests, suites, mocks, reports, auto-generated documentation, and CI workflows when you need them.
+Start with a single HTTP request. Grow into tests, suites, mocks, reports, documentation, and CI when you need them.
 
-All in the same tool. No migration required.
+All in the same tool. No migration. No second product.
 
-| **👮 Coming from Postman?** | **🦮 Coming from Bruno?** |
-|-|-|
-| ✔️ Powerful ecosystem<br>✔️ Rich API tooling<br>✔️ Collaboration features<br>|  ✔️ Git-native<br>✔️ Lightweight<br>✔️ Simple<br>|
-|✖️ Huge collections<br> ✖️ JavaScript everywhere<br>✖️ CI/local mismatch<br>✖️ Environment sprawl<br>✖️ Tests tied to a platform<br>✖️ Hidden states scattered |✖️ Repeated request definitions<br>✖️ Multi-step API workflows<br>✖️ Large test suites<br>✖️ Keeping mocks in sync<br>✖️ CI reports<br>✖️ Generated documentation |
-
-[See full comparision](https://mmt.dev/#comparison)
-
-## 🎯 Why Multimeter?
+## 🎯 What you get
 ---
 
-**Everything to start simply**
+**Simple by default**
 
-- ✔️ Git-native
-- ✔️ File-based
-- ✔️ Lightweight
-- ✔️ No cloud lock-in
+- ✔️ Git-native, file-based YAML
+- ✔️ Lightweight — no account, no cloud lock-in
+- ✔️ Collaboration through pull requests, like code
+- ✔️ The same files locally and in CI
 
-**Everything teams eventually need as projects grow**
+**A full testing platform when you need it**
 
-- ✔️ API testing
-- ✔️ Test suites
+- ✔️ HTTP, WebSocket, GraphQL, and gRPC
+- ✔️ Multi-step flows and test suites
 - ✔️ Mock servers
-- ✔️ Documentation
+- ✔️ Generated documentation
 - ✔️ Reports
-- ✔️ CI workflows
-- ➕ [& More...](https://mmt.dev/#features)
+- ✔️ CI with `testlight`
+
+**AI in the same files**
+
+- ✔️ Generate tests from an API or a description (Cursor, Copilot, Claude via MCP)
+- ✔️ Judge replies — semantic similarity, or open-ended checks like how funny a response is
+- ✔️ Bring your own model (Ollama or cloud)
+- ➕ [More features](https://mmt.dev/#features)
 
 ## 🪜 Start simple, grow easily...
 ---
@@ -99,6 +108,15 @@ As your project grows, Multimeter grows with it.
 - [& More...](https://github.com/mshobeyri/multimeter/tree/dev/examples)
 
 Add only when you need them. **Everything stays in the same ecosystem.** 
+
+## 🤖 MCP, AI generation, and AI judges
+---
+
+Cursor, Copilot, and Claude write and run the same `.mmt` files you edit in VS Code. MCP (`@mmt/mcp`) gives them `scaffold_test`, `validate`, `format`, and `run` — generate tests from an API or a description, then keep them in Git.
+
+**Judge** an API answer in the same test. Compare semantic similarity to an expected reply, or check something open-ended — for example, how funny the response is. Bring your own model (Ollama or cloud). An alternative to a separate Promptfoo eval stack.
+
+See [MCP docs](https://mmt.dev/docs/features/mcp) · [Judge docs](https://mmt.dev/docs/files/judge)
 
 ## 🔁 Built for reliable CI
 ---

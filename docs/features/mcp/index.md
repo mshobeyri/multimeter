@@ -1,6 +1,6 @@
-# Multimeter MCP for GitHub Copilot
+# Multimeter MCP for Cursor, Copilot, and Claude
 
-Multimeter ships a bundled **MCP server** with the VS Code extension. GitHub Copilot (agent mode) and other MCP clients can use it to create, validate, format, and run `.mmt` files.
+Multimeter ships an **MCP server** (npm `@mmt/mcp`, also bundled in the VS Code extension). Cursor, GitHub Copilot (agent mode), Claude, and other MCP clients can create, validate, format, and run `.mmt` files.
 
 **Important:** The MCP server does **not** generate tests. The LLM generates YAML. The MCP server provides knowledge, project context, validation, formatting, and execution.
 

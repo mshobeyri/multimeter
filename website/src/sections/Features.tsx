@@ -106,7 +106,7 @@ export default function Features() {
               <span className="gradient-text">Nothing you don't.</span>
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              API testing, mocks, suites, load, and AI judgment — one Git-native workflow.
+              API testing, mocks, suites, load, and AI judgment — one Git-native, AI-native workflow.
             </p>
           </div>
         </FadeIn>

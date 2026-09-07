@@ -4,13 +4,13 @@ import FadeIn from '../components/FadeIn'
 import HeroIllustration from '../components/HeroIllustration'
 
 const qualities = [
+  'AI-Native',
   'Git-native',
   'No Lock-in',
   'One Tool',
   'YAML-based',
   'Dev-First',
   'Drag & Drop',
-  'AI-Friendly',
   'CI/CD Ready',
   'Open Source',
   '100% Local',
@@ -18,8 +18,8 @@ const qualities = [
 ]
 
 const features = [
-  'API Test',
   'AI Checks',
+  'API Test',
   'Mock Server',
   'Load Test',
   'WebSocket Test',
@@ -154,6 +154,14 @@ export default function Hero() {
             <div className="max-w-4xl mx-auto mb-10 pt-8 sm:pt-10">
               <p className="text-lg sm:text-xl text-white font-semibold mb-4">
                 Start with a request. Grow into a testing platform. Never switch tools.
+              </p>
+              <p className="text-base sm:text-lg text-slate-400 max-w-3xl mx-auto">
+                Git-native and <span className="text-white font-bold">AI-native</span> API testing
+                for VS Code and CI. YAML <span className="text-slate-200">.mmt</span> files,
+                CLI <span className="text-slate-200">testlight</span>, MCP <span className="text-slate-200">@mmt/mcp</span>.
+                {' '}
+                <span className="text-white font-bold">Judge responses with AI</span> in the same test flow.
+                Alternative to Postman, Bruno, and <span className="text-white font-bold">Promptfoo</span>. Not an electrical meter.
               </p>
             </div>
           </FadeIn>

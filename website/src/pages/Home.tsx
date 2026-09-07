@@ -1,3 +1,4 @@
+import Seo from '../components/Seo'
 import Hero from '../sections/Hero'
 import Features from '../sections/Features'
 import BuiltForVSCode from '../sections/BuiltForVSCode'
@@ -13,6 +14,11 @@ import CTA from '../sections/CTA'
 export default function Home() {
   return (
     <>
+      <Seo
+        title="Multimeter — AI-powered REST Client and API testing in VS Code (Postman alternative)"
+        description="AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files. MCP for Cursor and Copilot (@mmt/mcp). Judge responses with AI in the same test flow — also an alternative to Promptfoo."
+        path="/"
+      />
       <Hero />
       <div className="relative z-10 bg-surface">
         <Features />

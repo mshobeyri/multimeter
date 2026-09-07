@@ -10,8 +10,9 @@ export function CompareIndexPage() {
   return (
     <>
       <Seo
-        title="Multimeter vs Postman, Bruno, Thunder Client, REST Client"
-        description="Compare Multimeter with Postman, Bruno, Thunder Client, and REST Client. Git-native API testing in VS Code, with a CLI for CI."
+        title="Multimeter vs Postman, Bruno, Thunder Client, REST Client, Promptfoo"
+        description="Compare Multimeter with Postman, Bruno, Thunder Client, REST Client, and Promptfoo. REST Client and API testing in VS Code. Same files in CI."
+        path="/compare"
       />
       <div className="pt-28 pb-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
@@ -60,7 +61,7 @@ export default function ComparePage() {
 
   return (
     <>
-      <Seo title={page.title} description={page.description} />
+      <Seo title={page.title} description={page.description} path={`/compare/${page.slug}`} />
       <div className="pt-28 pb-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <p className="text-primary text-sm font-semibold uppercase tracking-wider mb-3">

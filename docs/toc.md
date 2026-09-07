@@ -124,6 +124,7 @@
 - [Data imports](./features/data-imports.md)
 - [Certificates](./features/certificates/index.md)
 - [MCP](./features/mcp/index.md)
+  - [Cursor, Claude, Copilot](./features/mcp/other-mcp-clients.md)
 
 ### Integration
 - [Spec editor (Open as MMT)](./integration/spec-editor.md)

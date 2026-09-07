@@ -1,63 +1,8 @@
-import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import FadeIn from './FadeIn'
-
-interface FAQItem {
-  question: string
-  answer: string
-}
-
-const faqItems: FAQItem[] = [
-  {
-    question: 'Is Multimeter free?',
-    answer:
-      'Yes. Multimeter is free and open source under the Apache License 2.0. You can use it for personal projects, commercial work, and enterprise deployments.',
-  },
-  {
-    question: 'Do I need to create an account?',
-    answer:
-      'No. Multimeter requires zero setup — no login, no account, no cloud registration. Install the VS Code extension and start testing immediately. Access control is handled naturally through your Git repository permissions.',
-  },
-  {
-    question: 'How does collaboration work?',
-    answer:
-      'Your tests are plain YAML files (.mmt), and you can also reuse existing .http and Bruno request files, stored in your Git repository alongside your code. Collaboration works exactly like code collaboration — through pull requests, code reviews, branches, and merges. No proprietary sync needed.',
-  },
-  {
-    question: 'How do I use Multimeter in CI/CD?',
-    answer:
-      'Use the testlight CLI (npm package mmt-testlight) or the GitHub Action. Install with npm install -g mmt-testlight, then run npx mmt-testlight run path/to/test.mmt. In GitHub Actions: uses: mshobeyri/testlight-action@v1. It also runs .http and .bru files. Works with GitHub Actions, Jenkins, GitLab CI, Azure DevOps, and more.',
-  },
-  {
-    question: 'What formats can I import from?',
-    answer:
-      'Multimeter can import or convert Postman collections, OpenAPI / Swagger specifications, WSDL / SOAP definitions, .http / .https request files, Bruno .bru / .bruno files, and curl commands. Use external request files directly from Open With, or convert them into editable MMT tests and APIs.',
-  },
-  {
-    question: 'Does Multimeter upload any data externally?',
-    answer:
-      'No. Multimeter is fully local. Your API tests, environment variables, credentials, and all data stay on your machine and in your repository. Nothing is ever sent to external servers.',
-  },
-  {
-    question: 'What protocols are supported?',
-    answer:
-      'Multimeter supports HTTP/REST, WebSocket, SOAP/XML, GraphQL, and gRPC protocols. You can test any API endpoint with full control over headers, body, authentication, response validation, and existing .http or Bruno file workflows.',
-  },
-  {
-    question: 'What report formats are available?',
-    answer:
-      'Multimeter generates reports in four formats: JUnit XML (for CI/CD tools like Jenkins, GitHub Actions, GitLab CI), HTML (self-contained visual reports), Markdown (for PRs and documentation), and MMT Report (YAML format that opens in the built-in viewer). Generate them from the CLI with --report, from the VS Code Export button, or automatically via the suite export: field.',
-  },
-  {
-    question: 'How does the mock server work?',
-    answer:
-      'Define mock servers as simple YAML files (type: server) with routes, status codes, and response bodies. They support dynamic responses via template variables (params, body, random, date), reflect mode (echo back requests), and both HTTP and WebSocket protocols. Start them from suites with the servers: field, from tests with the run step, or manually from the VS Code panel.',
-  },
-]
+import { faqItems } from '../data/faq'
 
 export default function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
-
   return (
     <section id="faq" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
@@ -66,40 +11,23 @@ export default function FAQ() {
             Frequently Asked Questions
           </h2>
           <p className="text-center text-slate-400 mb-12">
-            Everything you need to know about Multimeter
+            REST Client and API testing in VS Code — YAML .mmt files, testlight, MCP.
           </p>
         </FadeIn>
 
         <div className="space-y-3">
-          {faqItems.map((item, index) => (
-            <FadeIn key={index} delay={index * 50}>
-              <div className="border border-border rounded-xl overflow-hidden">
-                <button
-                  onClick={() =>
-                    setOpenIndex(openIndex === index ? null : index)
-                  }
-                  className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-surface-light/50 transition-colors"
-                >
-                  <span className="text-white font-medium pr-4">
-                    {item.question}
-                  </span>
+          {faqItems.map((item) => (
+            <FadeIn key={item.question}>
+              <details className="border border-border rounded-xl overflow-hidden group">
+                <summary className="cursor-pointer list-none px-6 py-5 text-left hover:bg-surface-light/50 transition-colors flex items-center justify-between gap-4">
+                  <span className="text-white font-medium">{item.question}</span>
                   <ChevronDown
                     size={20}
-                    className={`text-slate-400 shrink-0 transition-transform duration-300 ${
-                      openIndex === index ? 'rotate-180' : ''
-                    }`}
+                    className="text-slate-400 shrink-0 transition-transform group-open:rotate-180"
                   />
-                </button>
-                <div
-                  className={`overflow-hidden transition-all duration-300 ${
-                    openIndex === index ? 'max-h-[40rem]' : 'max-h-0'
-                  }`}
-                >
-                  <p className="px-6 pb-5 text-slate-400 leading-relaxed">
-                    {item.answer}
-                  </p>
-                </div>
-              </div>
+                </summary>
+                <p className="px-6 pb-5 text-slate-400 leading-relaxed">{item.answer}</p>
+              </details>
             </FadeIn>
           ))}
         </div>

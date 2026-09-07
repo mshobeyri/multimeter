@@ -28,6 +28,8 @@ const footerLinks: Record<string, FooterLink[]> = {
     { name: 'Test Server', href: '/test-server' },
   ],
   Community: [
+    { name: 'For AI agents', href: '/for-agents.html', external: true },
+    { name: 'llms.txt', href: '/llms.txt', external: true },
     { name: 'GitHub', href: 'https://github.com/mshobeyri/multimeter', external: true },
     { name: 'YouTube (@mmt_dev)', href: 'https://www.youtube.com/@mmt_dev', external: true },
     { name: 'VS Code Marketplace', href: 'https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter', external: true },
@@ -53,7 +55,7 @@ export default function Footer() {
               <span className="text-xl font-bold text-white">Multimeter</span>
             </Link>
             <p className="text-sm text-slate-400 mb-6">
-              Functional, Automation And Performance Testing. All as code...
+              AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman. YAML .mmt files. MCP for Cursor and Copilot.
             </p>
             <div className="flex items-center gap-4">
               <a
