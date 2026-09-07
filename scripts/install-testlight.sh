@@ -198,7 +198,7 @@ main() {
 
   echo ""
   echo "✓ testlight v${version} installed to ${install_dir}"
-  if echo "$version" | grep -qE '[-](alpha|beta|rc|dev|canary)'; then
+  if echo "$version" | grep -qE -- '-pre([.-]|$)'; then
     echo "  (pre-release)"
   fi
   echo "  Both 'testlight' and 'mmt' commands are available."

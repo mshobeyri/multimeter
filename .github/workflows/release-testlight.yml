@@ -3,11 +3,8 @@
 # ──────────────────────────────────────────────────────────────────────
 # Triggered when a version tag (v*.*.*) is pushed.
 # One version drives Testlight, the VS Code extension, and the GitHub Action.
-#   v1.40.1          → stable (npm @latest, Marketplace stable)
-#   v1.40.1-beta     → pre-release (npm @beta, Docker :beta, GitHub prerelease)
-#   v1.40.1-rc.1     → pre-release (npm @rc)
-#   v1.40.1-pre      → pre-release (npm @pre)
-# A plain X.Y.Z tag is always stable, including X.Y.0. Marketplace skips hyphenated versions.
+#   v1.41.2       → stable (npm @latest, Docker :latest, Marketplace stable, Action @v1)
+#   v1.41.2-pre   → pre-release (npm @pre, Docker :pre, Marketplace 1.41.2 --pre-release)
 # ──────────────────────────────────────────────────────────────────────
 
 name: Release testlight
@@ -25,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.channel.outputs.version }}
+      marketplace_version: ${{ steps.channel.outputs.marketplace_version }}
       prerelease: ${{ steps.channel.outputs.prerelease }}
       npm_tag: ${{ steps.channel.outputs.npm_tag }}
       float_tag: ${{ steps.channel.outputs.float_tag }}
@@ -299,18 +297,20 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           VERSION: ${{ needs.channel.outputs.version }}
+          MARKETPLACE_VERSION: ${{ needs.channel.outputs.marketplace_version }}
           PRERELEASE: ${{ needs.channel.outputs.prerelease }}
         run: |
           if [ -z "${VSCE_PAT}" ]; then
             echo "Skip Marketplace publish: set repo secret VSCE_PAT"
             exit 0
           fi
-          if echo "$VERSION" | grep -qE '[-]'; then
-            echo "Skip Marketplace: VS Code only accepts major.minor.patch (no -rc / -beta / -pre suffix)."
-            exit 0
+          if [ "$VERSION" != "$MARKETPLACE_VERSION" ]; then
+            node scripts/sync-versions.mjs --set "$MARKETPLACE_VERSION"
           fi
           if [ "$PRERELEASE" = "true" ]; then
+            echo "Marketplace: ${MARKETPLACE_VERSION} as pre-release (from ${VERSION})"
             npx @vscode/vsce publish --pre-release --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file
           else
+            echo "Marketplace: ${MARKETPLACE_VERSION} as stable"
             npx @vscode/vsce publish --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file
           fi

@@ -2,11 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
-## [1.41.2-beta]
+## [1.42.0-pre]
 
 Pre-release.
 
-- Channel is the tag suffix only (`-beta`, `-rc`, `-pre`). A plain `X.Y.Z` tag is stable.
+- Two release channels: `vX.Y.Z` is stable; `vX.Y.Z-pre` is pre-release (npm `@pre`, Docker `:pre`, Marketplace `X.Y.Z` pre-release)
 
 ## [1.40.0]
 

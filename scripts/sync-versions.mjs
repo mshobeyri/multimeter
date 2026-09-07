@@ -85,7 +85,7 @@ function applyVersion(version) {
   if (fs.existsSync(website)) {
     replaceOnce(
         'website/src/sections/CICDReady.tsx',
-        /(mmt-testlight@)[0-9]+(?:\.[0-9]+){2}/,
+        /(mmt-testlight@)[0-9]+(?:\.[0-9]+){2}(?:-[0-9A-Za-z.-]+)?/,
         `$1${version}`,
     );
   }

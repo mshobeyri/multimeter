@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
 # Shared pre-release detection for Testlight, the VS Code extension, and the GitHub Action.
-# Only an explicit suffix marks a pre-release (v1.40.1-beta, -rc.1, -pre).
-# A plain X.Y.Z tag is stable, including X.Y.0.
+# Two channels only:
+#   v1.41.2       → stable
+#   v1.41.2-pre   → pre-release (also 1.41.2-pre.1)
+# A plain X.Y.Z tag is always stable.
 
 is_prerelease() {
   local version="$1"
-  echo "$version" | grep -qE '[-](alpha|beta|rc|pre|dev|canary)'
+  echo "$version" | grep -qE -- '-pre([.-]|$)'
 }
 
 prerelease_channel() {
-  local version="$1"
-  local channel
-  channel=$(echo "$version" | sed -n 's/.*-\([a-z]*\).*/\1/p')
-  if [ -z "$channel" ]; then
-    channel="beta"
-  fi
-  echo "$channel"
+  echo "pre"
+}
+
+# Marketplace only accepts major.minor.patch. 1.41.2-pre → 1.41.2
+marketplace_version() {
+  echo "$1" | sed -E 's/-pre([.].*)?$//'
 }
 
 # Writes version / prerelease / npm_tag / float_tag to $GITHUB_OUTPUT when set.
@@ -23,6 +24,7 @@ emit_github_outputs() {
   local version="$1"
   local out="${GITHUB_OUTPUT:-/dev/stdout}"
   echo "version=${version}" >> "$out"
+  echo "marketplace_version=$(marketplace_version "$version")" >> "$out"
   if is_prerelease "$version"; then
     local channel
     channel=$(prerelease_channel "$version")

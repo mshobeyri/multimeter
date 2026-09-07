@@ -75,13 +75,29 @@
 
 ### Release workflow
 
-When the user says **"release version X.Y.Z"** or **"release version X.Y.Z-beta"** (or another suffix):
+**Always ask the user for the exact version name before releasing.** If they say "release" or "pre-release" without a number, stop and ask (for example `1.41.2` or `1.41.2-pre`). Do not invent, bump, or substitute a version.
 
-1. Run `node scripts/sync-versions.mjs --set X.Y.Z` (or `X.Y.Z-beta` / `-rc.1` / `-pre`) so the extension, Testlight CLI, Cursor plugin, and GitHub Action share that version.
-2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited. Put `## [X.Y.Z]` at the top.
-3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
-4. Push the commit, then push the matching tag (`git tag vX.Y.Z && git push origin vX.Y.Z`). **Release testlight** publishes from that tag. A plain `vX.Y.Z` is **stable** (npm `@latest`, Docker `:latest`, Marketplace release, floating Action `@v1`). A suffix marks **pre-release**: `vX.Y.Z-beta` → npm `@beta` / Docker `:beta`; `vX.Y.Z-rc.1` → `@rc`; `vX.Y.Z-pre` → `@pre`. Do not infer pre-release from a `.0` patch. Marketplace publishes only `major.minor.patch` (no suffix).
-5. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing. Local `npm run pack` / `pack-pre-release` is optional; CI publishes the Marketplace build. Do **not** ship a real product version just to test the pipeline — use a suffixed tag such as `vX.Y.Z-beta` and unpublish it if needed.
+Two channels, chosen only by the tag. Do **not** infer pre-release from a `.0` patch. The user says which channel they want.
+
+| Tag | Channel | npm | Docker | VS Code Marketplace | GitHub / Action |
+|---|---|---|---|---|---|
+| `vX.Y.Z` | **stable** | `@latest` | `:latest` | `X.Y.Z` stable | latest + floating `@v1` |
+| `vX.Y.Z-pre` | **pre** | `@pre` | `:pre` | `X.Y.Z` **pre-release** (`vsce --pre-release`) | prerelease, no `@v1` move |
+
+Marketplace only accepts `major.minor.patch`, so `v1.41.2-pre` publishes as **1.41.2 pre-release** (not stable). A later `v1.41.2` can promote that same number to stable.
+
+- **"release version X.Y.Z"** → stable. Goes to npm `@latest`, Docker `:latest`, and Marketplace stable.
+- **"release version X.Y.Z-pre"** (or "pre-release X.Y.Z") → pre. Use version `X.Y.Z-pre` and tag `vX.Y.Z-pre`. Does **not** move latest. Marketplace gets `X.Y.Z` as a pre-release.
+
+Steps:
+
+1. Run `node scripts/sync-versions.mjs --set X.Y.Z` (or `X.Y.Z-pre`) so the extension, Testlight CLI, Cursor plugin, and GitHub Action share that version.
+2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited. Put `## [X.Y.Z]` (or `## [X.Y.Z-pre]`) at the top.
+3. Stage all changes and create a git commit with the message: `Release version X.Y.Z` (or `Release version X.Y.Z-pre`).
+4. Push the commit, then push the matching tag: `git tag vX.Y.Z && git push origin vX.Y.Z` (or `vX.Y.Z-pre`). **Release testlight** publishes every channel from that tag.
+5. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing. Local `npm run pack` / `pack-pre-release` is optional; CI publishes Marketplace (stable or `--pre-release`) from the tag.
+
+Do **not** ship a product version just to test the pipeline — use a `-pre` tag. Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`. Missing secrets skip that job.
 
 ## Build, test, and packaging
 - From repo root:

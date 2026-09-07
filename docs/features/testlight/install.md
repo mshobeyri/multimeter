@@ -28,16 +28,15 @@ One version number is shared by Testlight, the VS Code extension, and the GitHub
 
 | Tag | Channel | What you get |
 |---|---|---|
-| `v1.40.1` | stable | npm `@latest`, Docker `:latest`, Marketplace release, GitHub latest |
-| `v1.40.1-beta` | pre-release | npm `@beta`, Docker `:beta`, GitHub prerelease (Marketplace skipped) |
-| `v1.40.1-rc.1` | pre-release | npm `@rc`, Docker `:rc`, GitHub prerelease |
+| `v1.41.2` | stable | npm `@latest`, Docker `:latest`, Marketplace stable, GitHub latest |
+| `v1.41.2-pre` | pre-release | npm `@pre`, Docker `:pre`, Marketplace `1.41.2` pre-release, GitHub prerelease |
 
 Default installs stay on stable. Opt in to pre-release:
 
 ```sh
-npm install -g mmt-testlight@beta
-docker pull mshobeyri/mmt-testlight:beta
-CHANNEL=beta curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash
+npm install -g mmt-testlight@pre
+docker pull mshobeyri/mmt-testlight:pre
+CHANNEL=pre curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash
 ```
 
 In VS Code, use **Switch to Pre-Release Version**. Homebrew stays on the last stable.
