@@ -22,6 +22,25 @@ Quick try with the repo examples:
 npx testlight run examples/basic/02_simple_test/echo_test.mmt --quiet
 ```
 
+## Pre-release vs stable
+
+One version number is shared by Testlight, the VS Code extension, and the GitHub Action. The **tag** decides the channel:
+
+| Tag | Channel | What you get |
+|---|---|---|
+| `v1.40.0` | pre-release | npm `@beta`, Docker `:beta`, Marketplace pre-release, GitHub prerelease |
+| `v1.40.1` | stable | npm `@latest`, Docker `:latest`, Marketplace release, GitHub latest |
+
+Default installs stay on stable. Opt in to pre-release:
+
+```sh
+npm install -g mmt-testlight@beta
+docker pull mshobeyri/mmt-testlight:beta
+CHANNEL=beta curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash
+```
+
+In VS Code, use **Switch to Pre-Release Version**. Homebrew stays on the last stable.
+
 ## GitHub Action
 
 ```yaml

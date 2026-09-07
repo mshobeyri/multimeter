@@ -69,12 +69,15 @@ else
 fi
 
 git tag -f "v${VERSION}"
-# Floating major tag tracks the latest 1.x Action, including pre-releases.
-major="${VERSION%%.*}"
-git tag -f "v${major}"
-
 git push origin HEAD:main
-git push -f origin "v${VERSION}" "v${major}"
+git push -f origin "v${VERSION}"
+
+# Floating @v1 is stable only. Pre-releases stay on vX.Y.0.
+if [ "$PRERELEASE" != "true" ]; then
+  major="${VERSION%%.*}"
+  git tag -f "v${major}"
+  git push -f origin "v${major}"
+fi
 
 if gh release view "v${VERSION}" >/dev/null 2>&1; then
   echo "Release v${VERSION} already exists on $ACTION_REPO"

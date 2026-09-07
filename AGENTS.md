@@ -80,7 +80,7 @@ When the user says **"release version X.Y.Z"** (or "release version X.Y.Z pre-re
 1. Run `node scripts/sync-versions.mjs --set X.Y.Z` so the extension, Testlight CLI, Cursor plugin, and GitHub Action share that version.
 2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed). This is the **only** time CHANGELOG.md should be edited. Put `## [X.Y.Z]` at the top. `X.Y.0` is a pre-release automatically.
 3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
-4. Push the commit, then push tag `vX.Y.Z` (`git tag vX.Y.Z && git push origin vX.Y.Z`). **Release testlight** publishes Testlight, `testlight-action`, and the VS Code extension from that tag only.
+4. Push the commit, then push tag `vX.Y.Z` (`git tag vX.Y.Z && git push origin vX.Y.Z`). **Release testlight** publishes every channel from that tag: `X.Y.0` → pre-release everywhere (npm `@beta`, Docker `:beta`, Marketplace `--pre-release`, GitHub/Action prerelease); `X.Y.1+` → stable everywhere (`@latest`, `:latest`, Marketplace release, floating Action `@v1`). Do not use `-rc` / `-beta` suffixes if the Marketplace should publish (VS Code only accepts `major.minor.patch`).
 5. Run `npm run cursor:validate-plugin` and fix any Cursor plugin validation errors before finishing. Local `npm run pack` / `pack-pre-release` is optional; CI publishes the Marketplace build.
 
 ## Build, test, and packaging

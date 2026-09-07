@@ -225,41 +225,44 @@ jobs:
           cat release-assets/checksum-*.txt > release-assets/checksums-sha256.txt
           rm -f release-assets/checksum-*.txt
 
+      - name: Release notes
+        id: notes
+        shell: bash
+        run: |
+          VERSION='${{ needs.channel.outputs.version }}'
+          CHANNEL='${{ needs.channel.outputs.npm_tag }}'
+          {
+            echo 'body<<EOF'
+            echo "## testlight v${VERSION}"
+            echo
+            if [ '${{ needs.channel.outputs.prerelease }}' = 'true' ]; then
+              echo "Pre-release (\`${CHANNEL}\`). Default \`latest\` installs stay on the last stable."
+              echo
+              echo '```sh'
+              echo "npm install -g mmt-testlight@${CHANNEL}"
+              echo "docker pull mshobeyri/mmt-testlight:${CHANNEL}"
+              echo "CHANNEL=${CHANNEL} curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash"
+              echo '```'
+            else
+              echo 'Stable release.'
+              echo
+              echo '```sh'
+              echo 'npm install -g mmt-testlight'
+              echo 'docker pull mshobeyri/mmt-testlight:latest'
+              echo 'curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash'
+              echo '```'
+            fi
+            echo
+            echo 'See [CHANGELOG.md](CHANGELOG.md).'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "testlight v${{ needs.channel.outputs.version }}"
           prerelease: ${{ needs.channel.outputs.prerelease == 'true' }}
-          body: |
-            ## testlight v${{ needs.channel.outputs.version }}
-
-            ### Installation
-
-            **npm (recommended):**
-            ```sh
-            npm install -g mmt-testlight
-            # or
-            npx testlight --help
-            ```
-
-            **Binary (one-line installer):**
-            ```sh
-            curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash
-            ```
-
-            **Homebrew (macOS/Linux):**
-            ```sh
-            brew install mshobeyri/testlight/testlight
-            ```
-
-            **Docker:**
-            ```sh
-            docker run --rm -v "$PWD:/workspace" -w /workspace ${{ secrets.DOCKERHUB_USERNAME }}/mmt-testlight run tests/suite.mmt
-            ```
-
-            Both `testlight` and `mmt` commands are available in all installation methods.
-
-            See [CHANGELOG.md](CHANGELOG.md) for details.
+          body: ${{ steps.notes.outputs.body }}
           files: release-assets/*
           fail_on_unmatched_files: false
 
@@ -293,12 +296,18 @@ jobs:
       - name: Publish VS Code extension
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VERSION: ${{ needs.channel.outputs.version }}
+          PRERELEASE: ${{ needs.channel.outputs.prerelease }}
         run: |
           if [ -z "${VSCE_PAT}" ]; then
             echo "Skip Marketplace publish: set repo secret VSCE_PAT"
             exit 0
           fi
-          if [ "${{ needs.channel.outputs.prerelease }}" = "true" ]; then
+          if echo "$VERSION" | grep -qE '[-]'; then
+            echo "Skip Marketplace: VS Code only accepts major.minor.patch (no -rc / -beta suffix). Use vX.Y.0 for a Marketplace pre-release."
+            exit 0
+          fi
+          if [ "$PRERELEASE" = "true" ]; then
             npx @vscode/vsce publish --pre-release --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file
           else
             npx @vscode/vsce publish --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file

@@ -42,7 +42,14 @@ On **"release version X.Y.Z"** (or pre-release):
 3. Commit `Release version X.Y.Z` and push the branch
 4. Push tag `vX.Y.Z` (`git tag vX.Y.Z && git push origin vX.Y.Z`)
 
-**Release testlight** runs only on `v*` tags. It publishes Testlight, `mshobeyri/testlight-action`, and the VS Code extension when secrets are set (`NPM_TOKEN`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`). Changelog edits and `Release version` commits do not publish by themselves.
+**Release testlight** runs only on `v*` tags. One tag is one channel for every app:
+
+| Tag | npm | Docker | Marketplace | GitHub / Action | Homebrew |
+|---|---|---|---|---|---|
+| `vX.Y.0` | `@beta` | `:beta` | `--pre-release` | prerelease (no `@v1` move) | unchanged |
+| `vX.Y.1+` | `@latest` | `:latest` | stable | latest + `@v1` | formula after checksums |
+
+Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`. Changelog edits do not publish.
 
 ---
 
