@@ -18,6 +18,12 @@ Define mock behavior in `type: server` YAML. The visual editor exposes these fie
 
 Each entry under `endpoints:` supports method, path, name, match rules, status, response body/format, headers, tags, and **reflect** mode (echo the request back).
 
+Use `match:` to pick among several endpoints with the same method and path. Filtered endpoints win over a bare catch-all (even if the catch-all is listed first).
+
+`match.body` / `match.query` accept nested maps or **dotted paths**, and values use the same [operators as check/expect](../test/steps/check.md#operators) (`!=`, `=C`, `=*`, …). Extra request fields are ignored. `match.headers` is the same for values (names are case-insensitive).
+
+YAML-unsafe prefixes such as `!=` / `!C` / `>` may be written unquoted under `match:` — Multimeter quotes them before parsing (same as `expect:`).
+
 ### Example
 
 ```yaml
@@ -44,6 +50,24 @@ endpoints:
 
   - method: post
     path: /users
+    match:
+      body:
+        role: admin
+        profile.name: "=C Ada"
+      headers:
+        authorization: "=C Bearer"
+    status: 201
+    format: json
+    body:
+      id: r:uuid
+      role: admin
+      name: "${body.name}"
+
+  - method: post
+    path: /users
+    match:
+      body:
+        role: "!= admin"
     status: 201
     format: json
     body:

@@ -17,6 +17,15 @@ describe('parseTempFileMeta', () => {
     expect(meta.color).toBe('#1f6feb');
   });
 
+  it('maps judge type to the law icon', () => {
+    const meta = parseTempFileMeta(
+        'type: judge\ntitle: Local quality judge\nengine: ollama\n');
+    expect(meta.type).toBe('judge');
+    expect(meta.title).toBe('Local quality judge');
+    expect(meta.icon).toBe('law');
+    expect(meta.color).toBe('#e3b341');
+  });
+
   it('falls back for empty gallery files', () => {
     const meta = parseTempFileMeta('', 'untitled');
     expect(meta.type).toBeNull();

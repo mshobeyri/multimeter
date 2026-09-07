@@ -150,6 +150,36 @@
       "require": "./dist/mockServer.js",
       "default": "./dist/mockServer.js"
     },
+    "./mockDispatch": {
+      "types": "./dist/mockDispatch.d.ts",
+      "require": "./dist/mockDispatch.js",
+      "default": "./dist/mockDispatch.js"
+    },
+    "./mockTlsMaterial": {
+      "types": "./dist/mockTlsMaterial.d.ts",
+      "require": "./dist/mockTlsMaterial.js",
+      "default": "./dist/mockTlsMaterial.js"
+    },
+    "./httpTraceLog": {
+      "types": "./dist/httpTraceLog.d.ts",
+      "require": "./dist/httpTraceLog.js",
+      "default": "./dist/httpTraceLog.js"
+    },
+    "./judgeProbe": {
+      "types": "./dist/judgeProbe.d.ts",
+      "require": "./dist/judgeProbe.js",
+      "default": "./dist/judgeProbe.js"
+    },
+    "./judgeAuth": {
+      "types": "./dist/judgeAuth.d.ts",
+      "require": "./dist/judgeAuth.js",
+      "default": "./dist/judgeAuth.js"
+    },
+    "./JudgeData": {
+      "types": "./dist/JudgeData.d.ts",
+      "require": "./dist/JudgeData.js",
+      "default": "./dist/JudgeData.js"
+    },
     "./reportCollector": {
       "types": "./dist/reportCollector.d.ts",
       "require": "./dist/reportCollector.js",
@@ -200,6 +230,11 @@
       "require": "./dist/testScaffold.js",
       "default": "./dist/testScaffold.js"
     },
+    "./suggestAssertions": {
+      "types": "./dist/suggestAssertions.d.ts",
+      "require": "./dist/suggestAssertions.js",
+      "default": "./dist/suggestAssertions.js"
+    },
     "./mmtFormat": {
       "types": "./dist/mmtFormat.d.ts",
       "require": "./dist/mmtFormat.js",
@@ -209,6 +244,16 @@
       "types": "./dist/httpStepApiPreview.d.ts",
       "require": "./dist/httpStepApiPreview.js",
       "default": "./dist/httpStepApiPreview.js"
+    },
+    "./judgeChecks": {
+      "types": "./dist/judgeChecks.d.ts",
+      "require": "./dist/judgeChecks.js",
+      "default": "./dist/judgeChecks.js"
+    },
+    "./mmtFileType": {
+      "types": "./dist/mmtFileType.d.ts",
+      "require": "./dist/mmtFileType.js",
+      "default": "./dist/mmtFileType.js"
     },
     "./EnvData": {
       "types": "./dist/EnvData.d.ts",

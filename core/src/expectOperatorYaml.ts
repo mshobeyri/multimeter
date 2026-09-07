@@ -6,7 +6,8 @@ import { detectNewline, joinLines, splitNormalizedLines } from './textLines';
  * YAML interprets specially:
  *   `!`  → tag indicator  (value silently loses the operator)
  *   `>`  → block-scalar indicator  (parse error)
- * We pre-quote these inside `expect:` / `debug:` blocks before YAML.parse sees them.
+ * We pre-quote these inside `expect:` / `require:` / `debug:` / `match:` blocks
+ * before YAML.parse sees them.
  *
  * Longer operators first so `>=` wins over `>` and `!=` is unambiguous.
  */
@@ -22,10 +23,14 @@ const FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
  */
 const MAP_ENTRY_RE = /^([^:]+?:\s+)(.+)$/;
 
+/** Blocks whose nested scalars use check/expect operator prefixes. */
+const OPERATOR_MAP_BLOCK_RE = /^\s*(?:-\s+)?(?:expect|require|debug|match):\s*$/;
+
 /**
  * Pre-process raw YAML text to double-quote values whose leading characters would
  * be mangled by the YAML parser:
- * - `expect:` / `debug:` map values and list items (e.g. `status: != 200`)
+ * - `expect:` / `require:` / `debug:` map values and list items (e.g. `status: != 200`)
+ * - `match:` maps on mock endpoints (e.g. `body.xxx: != salam`)
  * - `operator:` fields on check/assert object forms (e.g. `operator: !=`)
  *
  * Preserves the input newline style so CST byte ranges from `parseDocument`
@@ -44,7 +49,7 @@ export function quoteExpectOperators(yaml: string): string {
     }
     const indent = line.search(/\S/);
 
-    if (/^\s*(?:expect|debug):\s*$/.test(line)) {
+    if (OPERATOR_MAP_BLOCK_RE.test(line)) {
       inExpect = true;
       expectIndent = indent;
       lines[i] = line;
@@ -55,12 +60,12 @@ export function quoteExpectOperators(yaml: string): string {
       if (indent <= expectIndent) {
         inExpect = false;
       } else {
-        lines[i] = quoteLineIfNeeded(line);
+        lines[i] = quoteTrailingCompareAfterQuotedScalar(quoteLineIfNeeded(line));
         continue;
       }
     }
 
-    lines[i] = quoteOperatorFieldLine(line);
+    lines[i] = quoteTrailingCompareAfterQuotedScalar(quoteOperatorFieldLine(line));
   }
 
   return joinLines(lines, eol);
@@ -87,7 +92,7 @@ export function emitUnquotedOperators(yaml: string): string {
     }
     const indent = line.search(/\S/);
 
-    if (/^\s*(?:expect|debug):\s*$/.test(line)) {
+    if (OPERATOR_MAP_BLOCK_RE.test(line)) {
       inExpect = true;
       expectIndent = indent;
       continue;
@@ -254,6 +259,85 @@ function quoteOperatorFieldLine(line: string): string {
   }
   const leadingWS = line.slice(0, line.length - trimmed.length);
   return leadingWS + 'operator: ' + quoteValue(rawValue);
+}
+
+const EXPR_FIELD_RE = /^((?:-\s+)?(?:condition|check|assert|if):\s+)(.*)$/;
+const COMPARISON_OPS = [...opsList].sort((a, b) => b.length - a.length);
+const FUZZY_PERCENT_LEADING_RE = /^(?:[<>](?:0|[1-9][0-9]?|100)%)/;
+
+/**
+ * Fold `condition: 'id:profile' == 200` into one YAML string.
+ * A quoted scalar ends the value, so a trailing `== …` is a parse error.
+ */
+function quoteTrailingCompareAfterQuotedScalar(line: string): string {
+  const trimmed = line.trimStart();
+  const match = trimmed.match(EXPR_FIELD_RE);
+  if (!match) {
+    return line;
+  }
+  const value = match[2];
+  const quoted = readQuotedPrefix(value);
+  if (!quoted || quoted.length >= value.trimEnd().length) {
+    return line;
+  }
+  const trailing = value.slice(quoted.length);
+  if (!looksLikeTrailingComparison(trailing)) {
+    return line;
+  }
+  const leadingWS = line.slice(0, line.length - trimmed.length);
+  return leadingWS + match[1] + quoteValue(value);
+}
+
+function readQuotedPrefix(value: string): string|undefined {
+  const q = value[0];
+  if (q !== '"' && q !== '\'') {
+    return undefined;
+  }
+  if (q === '\'') {
+    let i = 1;
+    while (i < value.length) {
+      if (value[i] === '\'') {
+        if (value[i + 1] === '\'') {
+          i += 2;
+          continue;
+        }
+        return value.slice(0, i + 1);
+      }
+      i++;
+    }
+    return undefined;
+  }
+  let i = 1;
+  while (i < value.length) {
+    if (value[i] === '\\') {
+      i += 2;
+      continue;
+    }
+    if (value[i] === '"') {
+      return value.slice(0, i + 1);
+    }
+    i++;
+  }
+  return undefined;
+}
+
+function looksLikeTrailingComparison(raw: string): boolean {
+  const t = raw.trimStart();
+  if (!t) {
+    return false;
+  }
+  if (FUZZY_PERCENT_LEADING_RE.test(t)) {
+    return true;
+  }
+  for (const op of COMPARISON_OPS) {
+    if (t === op || t.startsWith(op + ' ')) {
+      return true;
+    }
+    if (t.startsWith(op) && t.length > op.length && /\s/.test(t[op.length])) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function quoteLineIfNeeded(line: string): string {

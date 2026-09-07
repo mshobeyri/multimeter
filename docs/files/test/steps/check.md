@@ -2,6 +2,8 @@
 
 Use `check` to validate a value during a test run. A failed check is logged and reported, but **execution continues**. To stop the flow on failure, use [assert](./assert.md).
 
+For AI / non-deterministic evaluation (semantic quality, rubrics), use [judge](./judge.md) with nested `check` / `assert` blocks instead of fuzzy operators alone.
+
 Checks also power inline `expect` on [call](./call.md) and [http](./http.md) steps (non-throwing) and `condition` on [stages](../stages/stage-condition.md) and [if](./control-flow.md) steps.
 
 ## Inline form
@@ -52,7 +54,7 @@ Use an object when you need explicit fields, a custom title, details, or per-che
 
 ## Operators
 
-Operators used by `check`, [assert](./assert.md), and call-level [`expect`](./call.md#expect):
+Operators used by `check`, [assert](./assert.md), and call-level [`expect`](./call.md#expect) / [`require`](./call.md#require):
 
 | Operator | Meaning |
 |----------|---------|

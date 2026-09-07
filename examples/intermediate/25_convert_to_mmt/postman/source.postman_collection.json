@@ -19,17 +19,6 @@
           "code": 200,
           "body": "{\"id\":1,\"name\":\"Multimeter\",\"description\":\"API testing tool\",\"version\":\"1.0.0\"}"
         }
-      ],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.response.to.have.status(200);",
-              "pm.require(\"manual-package\");"
-            ]
-          }
-        }
       ]
     }
   ]

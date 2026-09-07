@@ -7,6 +7,11 @@ describe('expectOperatorYaml', () => {
     expect(quoteExpectOperators(yaml)).toContain('path: "!^ /start"');
   });
 
+  it('quotes !^ operator in require block', () => {
+    const yaml = 'require:\n  path: !^ /start';
+    expect(quoteExpectOperators(yaml)).toContain('path: "!^ /start"');
+  });
+
   it('quotes >% and fuzzy-percent operators in expect block', () => {
     expect(quoteExpectOperators('expect:\n  name: >% Jon')).toContain('name: ">% Jon"');
     expect(quoteExpectOperators('expect:\n  name: >75% Jon')).toContain('name: ">75% Jon"');
@@ -150,5 +155,61 @@ describe('expectOperatorYaml', () => {
     const filtered = filterOperatorYamlErrors(yaml, doc.errors);
     expect(filtered.length).toBeGreaterThan(0);
     expect(filtered.some(error => String(error.message).includes('path: !^'))).toBe(false);
+  });
+
+  it('quotes a comparison that follows a quoted scalar on condition/check', () => {
+    const yaml = [
+      'stages:',
+      '  - id: settings',
+      "    condition: 'id:profile' == 200",
+      '    after: auth',
+      'steps:',
+      '  - check: "id:profile" == 200',
+    ].join('\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('condition: "\'id:profile\' == 200"');
+    const doc = YAML.parse(quoted) as any;
+    expect(doc.stages[0].condition).toBe("'id:profile' == 200");
+    expect(doc.steps[0].check).toBe('"id:profile" == 200');
+    expect(YAML.parseDocument(yaml).errors.length).toBeGreaterThan(0);
+    expect(YAML.parseDocument(quoted).errors).toEqual([]);
+  });
+
+  it('quotes bang operators inside mock match blocks', () => {
+    const yaml = [
+      'type: server',
+      'endpoints:',
+      '  - method: post',
+      '    path: /health',
+      '    match:',
+      '      body:',
+      '        xxx: != salam',
+      '        nested.path: !C error',
+      '      headers:',
+      '        authorization: !^ Basic',
+      '      query:',
+      '        mode: != sandbox',
+    ].join('\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('xxx: "!= salam"');
+    expect(quoted).toContain('nested.path: "!C error"');
+    expect(quoted).toContain('authorization: "!^ Basic"');
+    expect(quoted).toContain('mode: "!= sandbox"');
+    const doc = YAML.parse(quoted) as any;
+    expect(doc.endpoints[0].match.body.xxx).toBe('!= salam');
+    expect(doc.endpoints[0].match.headers.authorization).toBe('!^ Basic');
+  });
+
+  it('emits unquoted bang operators from mock match blocks', () => {
+    const yaml = [
+      'type: server',
+      'endpoints:',
+      '  - match:',
+      '      body:',
+      '        xxx: "!= salam"',
+    ].join('\n');
+    const emitted = emitUnquotedOperators(yaml);
+    expect(emitted).toContain('xxx: != salam');
+    expect(emitted).not.toContain('"!= salam"');
   });
 });

@@ -10,16 +10,18 @@ import {TestData} from './TestData';
 // ---------------------------------------------------------------------------
 // Shared token helpers
 //
-// Supported forms for env/input/random/current references in .mmt files:
+// Supported forms for env/input/random/current/output references in .mmt files:
 //   <<e:VAR>>          angle-bracket-wrapped
 //   <e:VAR>            single-angle-bracket-wrapped (env only)
 //   e:{VAR}            brace-wrapped (env only)
 //   e:VAR              plain
+//   <<o:name>> / o:name  test outputs object (runtime; not API doc annotations)
 //
 // Optional accessor suffixes are supported after the base token name:
 //   <<i:message[0]>>   single index / first character
 //   <<i:message[0:3]>> slice (string/array .slice semantics)
 //   <<e:user.name>>    property access
+//   <<o:user.name>>    nested outputs field
 // ---------------------------------------------------------------------------
 
 export const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
@@ -207,13 +209,67 @@ export const replaceInputTokensToJs = (s: string): string =>
         {includeSingleAngles: false, includeBraceForm: false});
 
 /**
- * Convert remaining `e:` / `r:` / `c:` / `i:` tokens in a string to `${...}`
+ * Replace `o:` / `<<o:…>>` tokens with `${outputs.…}` interpolations for
+ * test codegen. API description annotations use the same spelling but are
+ * not run through this helper (only tests call `replaceOutputTokenRefs`).
+ */
+export const replaceOutputTokensToJs = (s: string): string =>
+    replaceTokenForms(
+        s, 'o',
+        (name, accessor) => '${' +
+            toJsAccessorExpression(`outputs.${name}`, accessor) + '}',
+        {includeSingleAngles: false, includeBraceForm: false});
+
+/**
+ * Plain `o:name` → `outputs.name` (no `${…}`), for check/if expressions.
+ */
+export const replaceOutputTokensPlain = (s: string): string =>
+    replaceTokenForms(
+        s, 'o',
+        (name, accessor) => toJsAccessorExpression(`outputs.${name}`, accessor),
+        {includeAngles: false, includeSingleAngles: false, includeBraceForm: false});
+
+/**
+ * Rewrite a `set` step key `o:user.name` to assignment LHS `outputs.user.name`.
+ * Returns undefined when the key is not an `o:` token.
+ */
+export function rewriteOutputSetKey(key: string): string|undefined {
+  const m = new RegExp(`^o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`)
+                .exec(String(key ?? ''));
+  if (!m || !m[1]) {
+    return undefined;
+  }
+  // Assignment LHS must be a direct path (not __mmt_access).
+  return `outputs.${m[1]}${m[2] || ''}`;
+}
+
+/**
+ * Deep-walk a value and convert `o:` / `<<o:…>>` string tokens to
+ * `${outputs.…}` placeholders. Used for test files only.
+ */
+export function replaceOutputTokenRefs(value: any): any {
+  if (typeof value === 'string') {
+    return replaceOutputTokensToJs(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(replaceOutputTokenRefs);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, replaceOutputTokenRefs(v)]));
+  }
+  return value;
+}
+
+/**
+ * Convert remaining `e:` / `r:` / `c:` / `i:` / `o:` tokens in a string to `${...}`
  * interpolations (without wrapping in backticks).
  */
 export const replaceDynamicTokensToJsInterpolations = (s: string): string => {
   let out = replaceEnvTokensToJs(String(s ?? ''));
   out = replaceRandCurrentTokensToJs(out);
   out = replaceInputTokensToJs(out);
+  out = replaceOutputTokensToJs(out);
   return out;
 };
 
@@ -237,11 +293,11 @@ export function embedDynamicTokensAsJsInterpolations(value: any): any {
 }
 
 /**
- * Convert a string value to a JS expression, resolving e:, r:, c:, and i: tokens.
+ * Convert a string value to a JS expression, resolving e:, r:, c:, i:, and o: tokens.
  *
  * If the **entire** string is a single token (e.g. `<<e:HOST>>`, `r:email`,
- * `<<i:message>>`), returns a bare JS expression. Otherwise returns a backtick
- * template literal with `${…}` interpolations.
+ * `<<i:message>>`, `<<o:token>>`), returns a bare JS expression. Otherwise
+ * returns a backtick template literal with `${…}` interpolations.
  */
 export function toTemplateValueJs(value: string): string {
   const s = String(value ?? '');
@@ -254,6 +310,8 @@ export function toTemplateValueJs(value: string): string {
   const fullCurrPlain = new RegExp(`^c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullInputAngle = new RegExp(`^<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullInputPlain = new RegExp(`^i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
+  const fullOutputAngle = new RegExp(`^<<\\s*o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullOutputPlain = new RegExp(`^o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
 
   let m = fullEnvAngle.exec(s) || fullEnvPlain.exec(s);
   if (m && m[1]) {
@@ -271,10 +329,15 @@ export function toTemplateValueJs(value: string): string {
   if (m && m[1]) {
     return toJsAccessorExpression(m[1], m[2] || '');
   }
+  m = fullOutputAngle.exec(s) || fullOutputPlain.exec(s);
+  if (m && m[1]) {
+    return toJsAccessorExpression(`outputs.${m[1]}`, m[2] || '');
+  }
 
   let result = replaceEnvTokensToJs(s);
   result = replaceRandCurrentTokensToJs(result);
   result = replaceInputTokensToJs(result);
+  result = replaceOutputTokensToJs(result);
   return '`' + escapeBackticks(result) + '`';
 }
 

@@ -1,5 +1,6 @@
 import YAML, {isMap, isPair, isScalar, isSeq, Pair, YAMLMap} from 'yaml';
 import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
+import {JUDGE_KEY_ORDER} from './judgeParsePack';
 import {
   CHECK_ASSERT_VALUE_ORDER,
   getTestFlowStepType,
@@ -37,6 +38,7 @@ export const ROOT_KEY_ORDER: Record<string, string[]> = {
     'type', 'title', 'description', 'tags', 'import', 'environment', 'threads',
     'repeat', 'rampup', 'export', 'test',
   ],
+  judge: [...JUDGE_KEY_ORDER],
 };
 
 const GRAPHQL_KEY_ORDER = ['operation', 'variables', 'operationName'];
@@ -57,6 +59,8 @@ const SETTING_HTTP_KEY_ORDER = ['version', 'timeout'];
 const HTML_KEY_ORDER = ['triable', 'cors_proxy'];
 const SERVICE_KEY_ORDER = ['name', 'description', 'sources'];
 const EXAMPLE_KEY_ORDER = ['name', 'description', 'inputs', 'outputs'];
+const JUDGE_OPTIONS_KEY_ORDER = ['temperature', 'timeout'];
+const JUDGE_DEFAULTS_KEY_ORDER = ['checks', 'criteria'];
 
 type VisitKind =
   'root'|'step'|'steps'|'stage'|'stages'|'endpoint'|'endpoints'|'client'|
@@ -163,6 +167,12 @@ function visit(node: unknown, kind: VisitKind, rootOrder?: string[]): void {
         visit(value, 'generic');
       } else if (key === 'html' && isMap(value)) {
         reorderMapPairs(value, HTML_KEY_ORDER);
+        visit(value, 'generic');
+      } else if (key === 'options' && isMap(value)) {
+        reorderMapPairs(value, JUDGE_OPTIONS_KEY_ORDER);
+        visit(value, 'generic');
+      } else if (key === 'defaults' && isMap(value)) {
+        reorderMapPairs(value, JUDGE_DEFAULTS_KEY_ORDER);
         visit(value, 'generic');
       } else if (key === 'services' && isSeq(value)) {
         for (const service of value.items) {

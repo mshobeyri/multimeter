@@ -70,23 +70,40 @@ resolve_version() {
   fi
 
   if [[ -n "$prerelease" && "$prerelease" != "0" ]]; then
-    # Fetch the latest pre-release (optionally filtered by channel)
-    local releases
-    releases=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases?per_page=20")
-
+    # GitHub-marked prereleases (tag suffix such as -beta, or prerelease: true).
     local version
-    if [[ -n "$channel" ]]; then
-      # Find latest pre-release matching the channel (e.g. beta, rc)
-      version=$(echo "$releases" \
-        | grep '"tag_name"' \
-        | grep -i "$channel" \
-        | head -1 \
-        | sed 's/.*"v\(.*\)".*/\1/')
+    if command -v python3 >/dev/null 2>&1; then
+      version=$(CHANNEL="$channel" python3 - "$REPO" <<'PY'
+import json, os, re, sys, urllib.request
+repo = sys.argv[1]
+channel = (os.environ.get("CHANNEL") or "").lower()
+url = f"https://api.github.com/repos/{repo}/releases?per_page=30"
+with urllib.request.urlopen(url) as resp:
+    releases = json.load(resp)
+for rel in releases:
+    if not rel.get("prerelease"):
+        continue
+    tag = str(rel.get("tag_name") or "").lstrip("v")
+    if not tag:
+        continue
+    if channel == "beta":
+        if re.match(r"^\d+\.\d+\.0$", tag) or "beta" in tag.lower():
+            print(tag)
+            break
+    elif channel:
+        if channel in tag.lower():
+            print(tag)
+            break
+    else:
+        print(tag)
+        break
+PY
+)
     else
-      # Find any pre-release (tag contains a hyphen)
-      version=$(echo "$releases" \
+      version=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases?per_page=30" \
+        | grep -E '"tag_name"|"prerelease"' \
+        | grep -B1 '"prerelease": true' \
         | grep '"tag_name"' \
-        | grep '"v[0-9]*\.[0-9]*\.[0-9]*-' \
         | head -1 \
         | sed 's/.*"v\(.*\)".*/\1/')
     fi
@@ -181,7 +198,7 @@ main() {
 
   echo ""
   echo "✓ testlight v${version} installed to ${install_dir}"
-  if echo "$version" | grep -qE '[-](alpha|beta|rc|dev|canary)'; then
+  if echo "$version" | grep -qE -- '-pre([.-]|$)'; then
     echo "  (pre-release)"
   fi
   echo "  Both 'testlight' and 'mmt' commands are available."

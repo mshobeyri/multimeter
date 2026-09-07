@@ -11,6 +11,7 @@ import SuitePanel from "./suite/SuitePanel";
 import LoadTestPanel from "./loadtest/LoadTestPanel";
 import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
+import JudgePanel from "./judge/JudgePanel";
 import ReportPanel from "./report/ReportPanel";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { isBrunoCollectionFilePath, isBrunoFilePath, parseBrunoDocument, type BrunoSourceFile } from "mmt-core/brunoParsePack";
@@ -569,7 +570,7 @@ const App: React.FC = () => {
             />
           </div>
           <div
-            className={yamlErrors.length > 0 ? "mmt-yaml-error" : undefined}
+            className={["mmt-ui-panel", yamlErrors.length > 0 ? "mmt-yaml-error" : undefined].filter(Boolean).join(" ") || undefined}
             style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}
           >
             {yamlErrors.length > 0 && !docType && (
@@ -615,6 +616,9 @@ const App: React.FC = () => {
                 )}
                 {docType === "server" && (
                   <MockPanel content={validContent} setContent={uiSetContent} />
+                )}
+                {docType === "judge" && (
+                  <JudgePanel content={validContent} setContent={uiSetContent} />
                 )}
                 {docType === "report" && (
                   <ReportPanel content={validContent} setContent={uiSetContent} />

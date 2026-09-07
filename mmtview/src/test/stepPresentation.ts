@@ -36,6 +36,8 @@ export function codiconForStepType(type?: string): string {
       return 'layers';
     case 'run':
       return 'server';
+    case 'judge':
+      return 'law';
     default:
       return 'file';
   }
@@ -59,6 +61,8 @@ export function displayNameForStepType(type?: string): string {
       return 'assert';
     case 'check':
       return 'check';
+    case 'judge':
+      return 'judge';
     case 'set':
       return 'set';
     case 'const':

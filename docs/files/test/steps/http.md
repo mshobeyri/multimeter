@@ -19,7 +19,7 @@ Notes:
 - `method` defaults to `post` when `body` is set, otherwise `get`.
 - `timeout` overrides the default request timeout for this step, in milliseconds.
 - `id` is optional, but recommended when you want to reference the response in later steps.
-- Inline `expect`, `debug`, and `report` work the same way as on `call` steps.
+- Inline `expect`, `require`, `debug`, and `report` work the same way as on `call` steps.
 - The response exposed through `id` includes `body`, `headers`, `cookies`, `status`, and `duration`.
 - In the Multimeter editor, **Ctrl+click** (⌘+click on macOS) the `http:` URL to open a temporary `type: api` file with the same request data. It appears in the [Temp Files](../../../panels/temp-files.md) panel.
 

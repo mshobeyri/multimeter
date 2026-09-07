@@ -1,6 +1,8 @@
 import {formatMmtYaml} from './mmtFormat';
 import {formatMmtYamlAst, reorderMapPairs} from './mmtFormatAst';
 import YAML, {isMap} from 'yaml';
+import fs from 'fs';
+import path from 'path';
 
 const apiYaml = `type: api
 title: Echo
@@ -352,6 +354,61 @@ describe('mmtFormat comment preservation', () => {
       '# request name',
       '# service first ideally',
     ]);
+  });
+
+  it('formats judge yaml and preserves comments', () => {
+    const yaml = [
+      '# local ollama judge',
+      'model: qwen2.5:3b',
+      'type: judge',
+      'engine: ollama',
+      'title: Local quality judge',
+      'options:',
+      '  timeout: 30s',
+      '  # keep cool',
+      '  temperature: 0',
+      'url: e:ollama_url',
+      'defaults:',
+      '  criteria:',
+      '    - Be concise',
+      '  checks:',
+      '    semanticSimilarity: 0.8',
+      '',
+    ].join('\n');
+    const {formatted, docType} = formatMmtYaml(yaml, 'local.mmt');
+    expect(docType).toBe('judge');
+    expect(formatted.indexOf('type: judge'))
+        .toBeLessThan(formatted.indexOf('title:'));
+    expect(formatted.indexOf('title:'))
+        .toBeLessThan(formatted.indexOf('engine:'));
+    expect(formatted.indexOf('engine:'))
+        .toBeLessThan(formatted.indexOf('model:'));
+    expect(formatted.indexOf('model:'))
+        .toBeLessThan(formatted.indexOf('url:'));
+    expect(formatted.indexOf('url:'))
+        .toBeLessThan(formatted.indexOf('options:'));
+    expect(formatted.indexOf('temperature:'))
+        .toBeLessThan(formatted.indexOf('timeout:'));
+    expect(formatted.indexOf('checks:'))
+        .toBeLessThan(formatted.indexOf('criteria:'));
+    expectAllComments(formatted, [
+      '# local ollama judge',
+      '# keep cool',
+    ]);
+    const again = formatMmtYaml(formatted, 'local.mmt');
+    expect(again.formatted).toBe(formatted);
+  });
+
+  it('keeps AI golden smoke examples format-idempotent', () => {
+    const root = path.resolve(__dirname, '../..');
+    for (const rel of [
+      'examples/ai/golden_smoke/apis/echo.mmt',
+      'examples/ai/golden_smoke/tests/echo-smoke.mmt',
+    ]) {
+      const content = fs.readFileSync(path.join(root, rel), 'utf8');
+      const {formatted} = formatMmtYaml(content, rel);
+      expect(formatted).toBe(content);
+    }
   });
 });
 

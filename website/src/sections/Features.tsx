@@ -2,94 +2,70 @@ import {
   DollarSign,
   GitBranch,
   Bot,
-  Layers,
-  Shield,
+  Scale,
   Server,
-  FileText,
-  Repeat,
   Gauge,
   MousePointer2,
   Terminal,
   Workflow,
-  ClipboardCheck,
-  FlaskConical,
-  Braces,
+  Repeat,
 } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
-
-function VSCodeLogo({ size = 24 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="-0.55 0 235.1 235.1" xmlns="http://www.w3.org/2000/svg">
-      <path
-        fill="#0179cb"
-        d="M83.3 143.9l-58 45.2L0 176.5V58.7L25.2 46l57.6 45.3L174 0l60 23.9v186.9l-59.7 24.3-91-91.2zm88.9 15.9V75.3l-54.6 42.3 54.6 42.2zM27.3 144.6L56 118.5 27.3 89.9v54.7z"
-      />
-    </svg>
-  )
-}
 
 const features = [
   {
     icon: DollarSign,
     title: 'Free & Open Source',
     description:
-      '100% free and open source under the Apache License 2.0. No subscriptions, no feature gates, no restrictions.',
+      'Apache License 2.0. No subscriptions, no feature gates, no cloud lock-in.',
     color: 'text-green-400',
     bg: 'bg-green-400/10',
   },
   {
     icon: GitBranch,
-    title: 'Git-Native & YAML',
+    title: 'Git-Native & Local',
     description:
-      'Tests are plain YAML files versioned in Git alongside your code. PRs, reviews, and diffs work naturally.',
+      'Plain YAML .mmt files in your repo. Diffs, PRs, and reviews stay local — no cloud sync of secrets.',
     color: 'text-orange-400',
     bg: 'bg-orange-400/10',
+  },
+  {
+    icon: Scale,
+    title: 'AI Response Checks',
+    description:
+      'Score non-deterministic replies in the same test flow — relevance, similarity, faithfulness, and factuality with your own model.',
+    color: 'text-amber-400',
+    bg: 'bg-amber-400/10',
   },
   {
     icon: Bot,
     title: 'AI Test Generation',
     description:
-      'Ask the built-in AI assistant to generate tests from descriptions, OpenAPI specs, or existing APIs.',
+      'Generate and refine .mmt tests from descriptions, OpenAPI specs, or existing APIs with the built-in assistant.',
     color: 'text-purple-400',
     bg: 'bg-purple-400/10',
   },
   {
     icon: MousePointer2,
-    title: 'Drag & Drop Test Builder',
+    title: 'Drag & Drop Flows',
     description:
-      'Build functional test flows visually — no scripting required.',
+      'Build functional test flows visually, then keep them as editable YAML.',
     color: 'text-lime-400',
     bg: 'bg-lime-400/10',
   },
   {
     icon: Workflow,
-    title: 'Flowchart Test View',
+    title: 'Flowchart View',
     description:
-      'See every test as a flowchart, making branches, loops, calls, and assertions easier to understand and review.',
+      'See branches, loops, calls, and asserts as a flowchart for faster review.',
     color: 'text-teal-400',
     bg: 'bg-teal-400/10',
-  },
-  {
-    icon: Layers,
-    title: 'One Replaces Many',
-    description:
-      'API testing, beta load testing, mock servers, documentation — one tool instead of Postman, JMeter, and more.',
-    color: 'text-blue-400',
-    bg: 'bg-blue-400/10',
-  },
-  {
-    icon: Shield,
-    title: 'Secure & Private',
-    description:
-      'Everything stays local. No cloud sync, no data collection, no external uploads. Your credentials are safe.',
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-400/10',
   },
   {
     icon: Server,
     title: 'Built-in Mock Server',
     description:
-      'Spin up HTTP and WebSocket mock servers instantly. Perfect for frontend development and integration testing.',
+      'HTTP and WebSocket mocks from .mmt files — for local development and integration tests.',
     color: 'text-pink-400',
     bg: 'bg-pink-400/10',
   },
@@ -97,55 +73,23 @@ const features = [
     icon: Terminal,
     title: 'CI/CD Ready',
     description:
-      'Run the same .mmt, .http-backed, and Bruno-backed flows in pipelines with testlight, export reports, and keep automation version-controlled.',
+      'Run the same flows with testlight in pipelines and export HTML, Markdown, or JUnit when you need them.',
     color: 'text-emerald-400',
     bg: 'bg-emerald-400/10',
-  },
-  {
-    icon: ClipboardCheck,
-    title: 'Different Reports',
-    description:
-      'Export runs as HTML, Markdown, JUnit XML, or MMT reports depending on whether you need CI output, shareable docs, or interactive review.',
-    color: 'text-amber-400',
-    bg: 'bg-amber-400/10',
-  },
-  {
-    icon: FlaskConical,
-    title: 'Native Fuzzy Tests',
-    description:
-      'Create variation-heavy API and flow checks directly in Multimeter instead of bolting fuzz-style coverage onto a separate toolchain.',
-    color: 'text-fuchsia-400',
-    bg: 'bg-fuchsia-400/10',
-  },
-  {
-    icon: FileText,
-    title: 'Auto-Generated Docs',
-    description:
-      'Generate beautiful HTML or Markdown API documentation directly from your .mmt test files.',
-    color: 'text-yellow-400',
-    bg: 'bg-yellow-400/10',
   },
   {
     icon: Gauge,
     title: 'Load Testing (Beta)',
     description:
-      'Run one .mmt test scenario with threads, ramp-up, repeat limits, and load-oriented reports.',
+      'Reuse a .mmt scenario with threads, ramp-up, and load-oriented reports.',
     color: 'text-red-400',
     bg: 'bg-red-400/10',
   },
   {
-    icon: VSCodeLogo,
-    title: 'VS Code Native',
-    description:
-      'Design, run, debug, and review API tests inside VS Code with native panels and Git-friendly files.',
-    color: 'text-sky-400',
-    bg: 'bg-sky-400/10',
-  },
-  {
     icon: Repeat,
-    title: 'Other tools support',
+    title: 'Import Other Tools',
     description:
-      'Convert or reuse Postman, OpenAPI / Swagger, WSDL / SOAP, Bruno, .http / .rest request files, and curl commands.',
+      'Bring in Postman, OpenAPI, WSDL, Bruno, .http / .rest, and curl — keep shipping as .mmt.',
     color: 'text-indigo-400',
     bg: 'bg-indigo-400/10',
   },
@@ -162,15 +106,14 @@ export default function Features() {
               <span className="gradient-text">Nothing you don't.</span>
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              Multimeter gives you the power of enterprise testing tools with the simplicity
-              of a single VS Code extension.
+              API testing, mocks, suites, load, and AI judgment — one Git-native workflow.
             </p>
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {features.map((feature, index) => (
-            <FadeIn key={feature.title} delay={index * 75}>
+            <FadeIn key={feature.title} delay={index * 60}>
               <div className="group relative bg-surface-light border border-border rounded-2xl p-6 hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 h-full">
                 <div
                   className={`${feature.bg} ${feature.color} w-12 h-12 rounded-xl flex items-center justify-center mb-4`}

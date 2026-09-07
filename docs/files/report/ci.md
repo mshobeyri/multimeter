@@ -17,7 +17,7 @@ Use the Multimeter Action, or the same npm install as the other pipelines.
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: mshobeyri/multimeter/.github/actions/testlight@main
+- uses: mshobeyri/testlight-action@v1
   with:
     file: suite.mmt
     report: junit

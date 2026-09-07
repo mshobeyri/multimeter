@@ -1,4 +1,4 @@
-import {mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from './mockParsePack';
+import {loadMockFromYaml, mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from './mockParsePack';
 
 describe('mockParsePack', () => {
   it('mockToYaml does not add title when missing', () => {
@@ -34,6 +34,61 @@ endpoints:
     const yaml = mockToYaml(parsed!);
     expect(yaml).toContain('messages:');
     expect(yaml).toContain('type: pong');
+  });
+
+  it('preserves unquoted bang operators in match body/headers/query', () => {
+    const parsed = yamlToMock(`
+type: server
+port: 29443
+endpoints:
+  - method: post
+    path: /health
+    match:
+      body:
+        xxx: != salam
+        profile.name: !C bad
+      headers:
+        authorization: !^ Basic
+      query:
+        mode: != sandbox
+    status: 200
+    body:
+      ok: true
+`);
+    expect(parsed).not.toBeNull();
+    expect((parsed!.endpoints[0] as any).match?.body).toEqual({
+      xxx: '!= salam',
+      'profile.name': '!C bad',
+    });
+    expect((parsed!.endpoints[0] as any).match?.headers).toEqual({
+      authorization: '!^ Basic',
+    });
+    expect((parsed!.endpoints[0] as any).match?.query).toEqual({
+      mode: '!= sandbox',
+    });
+  });
+
+  it('loadMockFromYaml keeps != operators (unlike raw YAML.parse)', () => {
+    const raw = `
+type: server
+port: 29443
+endpoints:
+  - method: post
+    path: /health
+    match:
+      body:
+        xxx: != salam
+    status: 200
+    body:
+      ok: true
+`;
+    const viaRaw = require('yaml').parseDocument(raw).toJS();
+    expect(viaRaw.endpoints[0].match.body.xxx).toBe('salam');
+
+    const {data, errors} = loadMockFromYaml(raw);
+    expect(errors.filter(e => e.severity === 'error')).toEqual([]);
+    expect(data).not.toBeNull();
+    expect((data!.endpoints[0] as any).match?.body?.xxx).toBe('!= salam');
   });
 
   it('accepts https protocol with tls connection config', () => {

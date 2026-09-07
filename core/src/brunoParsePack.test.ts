@@ -235,7 +235,7 @@ tests {
       body: {name: 'Ada'},
       expect: {
         status: '== 201',
-        'body.name': '== Ada',
+        'body.name': '== "Ada"',
       },
     });
   });

@@ -19,13 +19,13 @@ steps:
     expect:
       token: != null
   - set:
-      outputs.session_token: ${auth.token}
-      outputs.user_id: ${auth.user_id}
+      o:session_token: ${auth.token}
+      o:user_id: ${auth.user_id}
   - setenv:
       auth_token: ${auth.token}
   - call: getProfile
     inputs:
-      token: ${session_token}
-      user_id: ${user_id}
+      token: o:session_token
+      user_id: o:user_id
     expect:
       name: != null

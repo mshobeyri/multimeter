@@ -1,4 +1,4 @@
-import {runner, suiteHierarchy, suiteBundle, runConfig, SuiteData} from 'mmt-core';
+import {runner, suiteBundle, runConfig, SuiteData} from 'mmt-core';
 import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
 import {LogLevel} from 'mmt-core/CommonData';
 import {findProjectRootSync} from 'mmt-core/fileHelper';
@@ -12,6 +12,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {readRelativeFileContent, readRelativeFileBinary} from './file';
+import {getCachedSuiteHierarchy} from './suiteHierarchyCache';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 import {onRunStarted, onRunFinished} from '../runStatusBar';
@@ -552,12 +553,25 @@ export async function handleRunSuite(
     const bundleTarget = typeof target === 'string' && target ? target : undefined;
     const fileLoader = createFileLoader(runFilePath);
     const binaryFileLoader = createBinaryFileLoader(runFilePath);
-    const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
+    const {tree: hierarchyTree, fromCache} = await getCachedSuiteHierarchy({
       suiteFilePath: runFilePath,
-      suiteRawText: rawSuite,
-      fileLoader,
+      loadRootText: async () => rawSuite,
+      fileLoader: async (requestedPath: string) => {
+        try {
+          // Hierarchy resolves to absolute paths; createFileLoader is relative-aware.
+          return await fileLoader(requestedPath);
+        } catch {
+          return '';
+        }
+      },
     });
-    forwardLog('debug', `handleRunSuite: built hierarchy for ${runFilePath}`);
+    if (hierarchyTree.kind !== 'suite') {
+      throw new Error(`Expected suite hierarchy for ${runFilePath}`);
+    }
+    const tree = hierarchyTree;
+    forwardLog(
+        'debug',
+        `handleRunSuite: ${fromCache ? 'reused cached' : 'built'} hierarchy for ${runFilePath}`);
     const bundle = suiteBundle.createSuiteBundle({
       rootSuitePath: runFilePath,
       hierarchy: tree,

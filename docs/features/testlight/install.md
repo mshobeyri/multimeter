@@ -22,18 +22,37 @@ Quick try with the repo examples:
 npx testlight run examples/basic/02_simple_test/echo_test.mmt --quiet
 ```
 
+## Pre-release vs stable
+
+One version number is shared by Testlight, the VS Code extension, and the GitHub Action. The **tag** decides the channel:
+
+| Tag | Channel | What you get |
+|---|---|---|
+| `v1.41.2` | stable | npm `@latest`, Docker `:latest`, Marketplace stable, GitHub latest |
+| `v1.41.2-pre` | pre-release | npm `@pre`, Docker `:pre`, Marketplace `1.41.2` pre-release, GitHub prerelease |
+
+Default installs stay on stable. Opt in to pre-release:
+
+```sh
+npm install -g mmt-testlight@pre
+docker pull mshobeyri/mmt-testlight:pre
+CHANNEL=pre curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash
+```
+
+In VS Code, use **Switch to Pre-Release Version**. Homebrew stays on the last stable.
+
 ## GitHub Action
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: mshobeyri/multimeter/.github/actions/testlight@main
+- uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt
     report: junit
     report-file: results/junit.xml
 ```
 
-See the [action README](https://github.com/mshobeyri/multimeter/blob/main/.github/actions/testlight/README.md).
+See the [action README](https://github.com/mshobeyri/testlight-action).
 
 ## macOS (Homebrew)
 
@@ -70,5 +89,40 @@ archive to your artifact store and invoke it in CI:
 # Linux
 ./bin/linux-x64/testlight run path/to/test.mmt --quiet
 ```
+
+## Update standalone / portal binaries
+
+If you installed the GitHub Release binary (or a portal copy of it), refresh it in place:
+
+```sh
+testlight update              # latest stable from GitHub Releases
+testlight update --check      # print whether an update is available
+testlight update --to 1.38.1
+testlight update --channel beta
+```
+
+npm installs should use npm instead (`testlight update` prints the command):
+
+```sh
+npm install -g mmt-testlight@latest
+```
+
+Homebrew:
+
+```sh
+brew upgrade mmt-testlight
+```
+
+### Private portal / mirror
+
+Host the same asset names under a versioned prefix and point the CLI at it:
+
+```sh
+export TESTLIGHT_RELEASE_BASE_URL=https://portal.example/artifacts/testlight
+# expects: $TESTLIGHT_RELEASE_BASE_URL/v1.38.1/testlight-linux-x64.tar.gz
+testlight update --to 1.38.1
+```
+
+Optional: `TESTLIGHT_REPO=owner/name` to resolve “latest” from another GitHub repo’s releases.
 
 See also: [Commands](./commands.md) · [Examples](./examples.md) · [Run in CI](../../tasks/run-in-ci.md)

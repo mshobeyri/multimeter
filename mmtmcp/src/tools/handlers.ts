@@ -2,6 +2,7 @@ import {JSer, apiParsePack, runner, testParsePack} from 'mmt-core';
 import {formatMmtYaml} from 'mmt-core/mmtFormat';
 import {runJSCode} from 'mmt-core/jsRunner';
 import * as testScaffold from 'mmt-core/testScaffold';
+import {suggestAssertions} from 'mmt-core/suggestAssertions';
 import fs from 'fs';
 import path from 'path';
 
@@ -16,6 +17,7 @@ import {
   walkMmtFiles,
 } from '../fsAdapter';
 import {
+  DocumentationPack,
   DocumentationTopic,
   listExamples,
   readDocumentation,
@@ -113,12 +115,18 @@ function validateContent(content: string, filePath?: string, expectedType?: stri
 
 export async function handleReadDocumentation(args: {
   topic?: DocumentationTopic;
+  pack?: DocumentationPack;
 }) {
   try {
-    const result = readDocumentation(args.topic || 'overview');
+    const pack = args.pack || 'min';
+    const result = readDocumentation(args.topic || 'overview', pack);
     return toolJson({
       ...result,
-      usage: 'The LLM should generate Multimeter YAML itself using this documentation. Do not ask the MCP server to generate tests.',
+      usage: [
+        result.usage,
+        'Generate Multimeter YAML using this documentation (or scaffold_test for API tests).',
+        'Do not ask the MCP server to generate tests itself.',
+      ].join(' '),
     });
   } catch (error: any) {
     return toolError(error?.message || String(error));
@@ -141,6 +149,7 @@ export async function handleListExamples(args: {
 export async function handleDiscoverApi(args: {
   workspaceRoot: string;
   apiPath?: string;
+  includeContent?: boolean;
 }) {
   const root = resolveWorkspacePath(undefined, args.workspaceRoot);
   if (!fileExists(root)) {
@@ -172,13 +181,13 @@ export async function handleDiscoverApi(args: {
 
     let selectedApi;
     if (args.apiPath) {
-      const {fullPath, api} = loadApiFromPath(args.apiPath, args.workspaceRoot);
-      const summary = testScaffold.buildApiDetailsSummary(fullPath, api);
-      selectedApi = {
-        ...summary,
-        filePath: toWorkspaceRelative(args.workspaceRoot, fullPath),
-        content: readTextFile(fullPath),
-      };
+      selectedApi = buildApiCardPayload(args.apiPath, args.workspaceRoot);
+      if (args.includeContent) {
+        selectedApi = {
+          ...selectedApi,
+          content: readTextFile(resolveWorkspacePath(args.workspaceRoot, args.apiPath)),
+        };
+      }
     }
 
     return toolJson({
@@ -186,7 +195,10 @@ export async function handleDiscoverApi(args: {
       apiCount: apis.length,
       apis,
       selectedApi,
-      usage: 'Use selectedApi inputs, outputs, and suggestedImportPath when generating a test file.',
+      usage: [
+        'Prefer selectedApi / api_card for generation — do not dump full OpenAPI or full .mmt unless includeContent is needed.',
+        'For new tests, call scaffold_test(apiPath) next.',
+      ].join(' '),
     });
   } catch (error: any) {
     return toolError(error?.message || String(error));
@@ -204,6 +216,163 @@ function loadApiFromPath(apiPath: string, workspaceRoot?: string) {
   }
   const api = apiParsePack.yamlToAPIStrict(content);
   return {fullPath, api, content};
+}
+
+function toPosixRel(workspaceRoot: string | undefined, fullPath: string): string {
+  return toWorkspaceRelative(workspaceRoot, fullPath).replace(/\\/g, '/');
+}
+
+export function buildApiCardPayload(apiPath: string, workspaceRoot: string) {
+  const {fullPath, api} = loadApiFromPath(apiPath, workspaceRoot);
+  const apiRel = toPosixRel(workspaceRoot, fullPath);
+  const summary = testScaffold.buildApiDetailsSummary(apiRel, api);
+  return {
+    filePath: apiRel,
+    title: summary.title,
+    method: summary.method,
+    url: summary.url,
+    protocol: summary.protocol,
+    inputs: summary.inputs,
+    outputs: summary.outputs,
+    exampleCount: summary.examples?.length || 0,
+    suggestedAlias: summary.suggestedAlias,
+    suggestedImportPath: summary.suggestedImportPath,
+    suggestedTestPath: summary.suggestedTestPath,
+  };
+}
+
+export async function handleApiCard(args: {
+  workspaceRoot: string;
+  apiPath: string;
+}) {
+  try {
+    const card = buildApiCardPayload(args.apiPath, args.workspaceRoot);
+    return toolJson({
+      ...card,
+      usage: [
+        'Compact API card for generation. Prefer this over reading the full API file or OpenAPI.',
+        'Next for a new test: scaffold_test({ workspaceRoot, apiPath }).',
+      ].join(' '),
+    });
+  } catch (error: any) {
+    return toolError(error?.message || String(error));
+  }
+}
+
+export async function handleScaffoldTest(args: {
+  workspaceRoot: string;
+  apiPath: string;
+  strategy?: 'smoke' | 'example';
+  alias?: string;
+  outPath?: string;
+}) {
+  try {
+    const {fullPath, api} = loadApiFromPath(args.apiPath, args.workspaceRoot);
+    const apiRel = toPosixRel(args.workspaceRoot, fullPath);
+    const suggestedPath = (args.outPath || testScaffold.suggestTestPath(apiRel)).replace(/\\/g, '/');
+    const summary = testScaffold.buildApiDetailsSummary(apiRel, api, suggestedPath);
+    const alias = args.alias || summary.suggestedAlias;
+    const strategy = args.strategy || 'smoke';
+    const test = testScaffold.scaffoldTestFromApi(api, {
+      alias,
+      importPath: summary.suggestedImportPath,
+      strategy,
+    });
+    const yamlContent = testParsePack.testToYaml(test);
+    const validation = validateContent(yamlContent, suggestedPath, 'test');
+    return toolJson({
+      yaml: yamlContent,
+      suggestedPath,
+      alias,
+      importPath: summary.suggestedImportPath,
+      strategy,
+      apiCard: {
+        filePath: apiRel,
+        title: summary.title,
+        method: summary.method,
+        url: summary.url,
+        protocol: summary.protocol,
+        inputs: summary.inputs,
+        outputs: summary.outputs,
+        exampleCount: summary.examples?.length || 0,
+      },
+      validation,
+      usage: [
+        'REQUIRED for new tests from an API: start from this yaml (do not invent a blank test).',
+        'Write yaml to suggestedPath (or a user-chosen path), apply only minimal edits, then validate(file).',
+        'Do not rewrite the whole file after scaffold unless the user asks for a different structure.',
+      ].join(' '),
+    });
+  } catch (error: any) {
+    return toolError(error?.message || String(error));
+  }
+}
+
+export async function handleSuggestAssertions(args: {
+  workspaceRoot?: string;
+  apiPath?: string;
+  stepId?: string;
+  status?: number;
+  body?: unknown;
+  bodyFile?: string;
+  style?: 'expect' | 'assert' | 'both';
+  maxFields?: number;
+}) {
+  try {
+    let outputs: Record<string, string> | undefined;
+    let stepId = args.stepId;
+    if (args.apiPath) {
+      if (!args.workspaceRoot) {
+        return toolError('workspaceRoot is required when apiPath is set');
+      }
+      const {api} = loadApiFromPath(args.apiPath, args.workspaceRoot);
+      outputs = (api.outputs || {}) as Record<string, string>;
+      if (!stepId) {
+        const apiRel = toPosixRel(
+            args.workspaceRoot,
+            resolveWorkspacePath(args.workspaceRoot, args.apiPath));
+        stepId = testScaffold.safeStepIdFromAlias(
+            testScaffold.suggestAliasFromPath(apiRel));
+      }
+    }
+
+    let body = args.body as any;
+    if (args.bodyFile) {
+      const full = resolveWorkspacePath(args.workspaceRoot, args.bodyFile);
+      if (!fileExists(full)) {
+        return toolError(`bodyFile not found: ${full}`);
+      }
+      const raw = readTextFile(full);
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        return toolError(`bodyFile must be JSON: ${full}`);
+      }
+    }
+
+    if (!outputs && body === undefined && args.status === undefined) {
+      return toolError(
+          'Provide apiPath (for outputs), body/bodyFile, and/or status');
+    }
+
+    const result = suggestAssertions({
+      stepId,
+      status: args.status,
+      outputs,
+      body,
+      style: args.style,
+      maxFields: args.maxFields,
+    });
+    return toolJson({
+      ...result,
+      usage: [
+        'Patch the existing test with expectYaml or assertYaml — do not rewrite the whole file.',
+        'Then call validate(file).',
+      ].join(' '),
+    });
+  } catch (error: any) {
+    return toolError(error?.message || String(error));
+  }
 }
 
 export async function handleValidate(args: {

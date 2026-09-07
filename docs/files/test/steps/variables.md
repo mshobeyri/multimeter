@@ -12,6 +12,8 @@ Create or change variables for later steps. `set` mutates existing (or creates n
 ```yaml
 - set:
     token: ${doLogin.token}   # mutable
+    o:token: ${doLogin.token} # writes outputs.token
+    o:user.name: "alice"      # nested outputs field
 
 - var:
     attempt: 1
@@ -22,6 +24,8 @@ Create or change variables for later steps. `set` mutates existing (or creates n
 - let:
     note: "temp"
 ```
+
+Use `o:name` (or nested `o:user.name`) as a **`set` key** to assign the test’s `outputs` object. Read the same fields anywhere with `o:name`, `<<o:name>>`, or `${outputs.name}` — see [Dynamic values](../../../features/dynamic-values.md).
 
 When to use which:
 - `set`: creates or updates a variable in the current scope (mutable). Use for values that change across steps.

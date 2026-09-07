@@ -26,7 +26,7 @@ const faqItems: FAQItem[] = [
   {
     question: 'How do I use Multimeter in CI/CD?',
     answer:
-      'Use the testlight CLI (npm package mmt-testlight) or the GitHub Action. Install with npm install -g mmt-testlight, then run npx mmt-testlight run path/to/test.mmt. In GitHub Actions: uses: mshobeyri/multimeter/.github/actions/testlight@main. It also runs .http and .bru files. Works with GitHub Actions, Jenkins, GitLab CI, Azure DevOps, and more.',
+      'Use the testlight CLI (npm package mmt-testlight) or the GitHub Action. Install with npm install -g mmt-testlight, then run npx mmt-testlight run path/to/test.mmt. In GitHub Actions: uses: mshobeyri/testlight-action@v1. It also runs .http and .bru files. Works with GitHub Actions, Jenkins, GitLab CI, Azure DevOps, and more.',
   },
   {
     question: 'What formats can I import from?',

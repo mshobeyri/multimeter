@@ -12,6 +12,7 @@ Multimeter projects are folders of YAML `.mmt` files. The top-level `type` field
 | $(layers) | `suite` | Group and run tests or other suites | [Suite](./files/suite/index.md) |
 | $(book) | `doc` | Generate API documentation | [Doc](./files/doc/index.md) |
 | $(server) | `server` | Mock server endpoints | [Mock Server](./files/server/index.md) |
+| $(law) | `judge` | AI judge resource (BYO model / Ollama) | [Judge](./files/judge/index.md) |
 | $(dashboard) | `loadtest` | Concurrency / ramp-up load scenario (beta) | [Load Test](./files/loadtest/index.md) |
 | $(file-text) | `report` | Structured results (usually generated) | [Report](./files/report/index.md) |
 

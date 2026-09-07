@@ -11,9 +11,10 @@ Use `call` when the request or flow already lives in a reusable imported file, a
 | [call](./call.md) | Invoke an imported API or test |
 | [http](./http.md) | Send a one-off HTTP request |
 | [run](./run.md) | Start an imported mock server |
-| [Inline expect](./run-expect.md) | Validate call outputs on the same step |
+| [Inline expect](./run-expect.md) | Soft/hard validate call outputs on the same step (`expect` / `require`) |
 | [check](./check.md) | Validate values; log failures and continue |
 | [assert](./assert.md) | Validate values; stop the flow on failure |
+| [judge](./judge.md) | AI judgment (`expect` / `require`) |
 | [Control flow](./control-flow.md) | `if`, `for`, `repeat`, `delay` |
 | [js](./js.md) | Inline JavaScript |
 | [Variables](./variables.md) | `print`, `set`, `var`, `const`, `let`, `setenv`, `data` |

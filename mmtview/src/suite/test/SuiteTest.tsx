@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
@@ -7,6 +8,7 @@ import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import { SuiteEntry, SuiteGroup } from '../types';
 import { SuiteTestTree } from './';
+import type { SuiteTestTreeHandle } from './SuiteTestTree';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
 import { SuiteTreeNode } from './suiteHierarchy';
@@ -24,6 +26,7 @@ import {
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import ReportStatusFilterButton from '../../shared/ReportStatusFilterButton';
+import ReportHeaderMoreMenu from '../../shared/ReportHeaderMoreMenu';
 import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
@@ -457,6 +460,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
     const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
+    const suiteTreeRef = useRef<SuiteTestTreeHandle>(null);
     const suiteRunStartTimeRef = useRef<number | null>(null);
     const [suiteRunStartedAt, setSuiteRunStartedAt] = useState<number | null>(null);
     const [suiteRunDurationMs, setSuiteRunDurationMs] = useState<number | null>(null);
@@ -648,21 +652,25 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
     const fetchHierarchyByEntryId = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
         const result: Record<string, SuiteTreeNode> = {};
+        const tasks: Array<Promise<void>> = [];
         for (const group of groups) {
             for (const entry of group.entries) {
-                try {
-                    const res = await getSuiteHierarchy(entry.path, entry.id);
-                    const tree = res?.tree;
-                    if (tree && typeof tree === 'object') {
-                        // Key by entry id (position), not path — duplicate
-                        // items like two `suite1.mmt` rows must keep independent trees.
-                        result[entry.id] = tree;
+                tasks.push((async () => {
+                    try {
+                        const res = await getSuiteHierarchy(entry.path, entry.id);
+                        const tree = res?.tree;
+                        if (tree && typeof tree === 'object') {
+                            // Key by entry id (position), not path — duplicate
+                            // items like two `suite1.mmt` rows must keep independent trees.
+                            result[entry.id] = tree;
+                        }
+                    } catch {
+                        // Ignore; tree will treat it as non-suite.
                     }
-                } catch {
-                    // Ignore; tree will treat it as non-suite.
-                }
+                })());
             }
         }
+        await Promise.all(tasks);
         return result;
     }, [groups]);
 
@@ -917,51 +925,74 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [allPaths]);
 
     const onRunSuite = useCallback(async () => {
-        const hierarchy = await ensureHierarchyFresh();
-        const nextSuiteRunId = `suite-ui:${Date.now()}`;
-        const startedAt = Date.now();
-        beginSuiteRun(nextSuiteRunId);
-        setSuiteRunState('running');
-        suiteRunStartTimeRef.current = startedAt;
-        setSuiteRunStartedAt(startedAt);
-        setSuiteRunDurationMs(0);
-        pendingLeafResetRef.current = 'all';
-        partialRunTargetRef.current = null;
-        setLeafReportsById({});
-        // Mark every known runnable node pending until its own suite-item arrives.
-        setLeafRunStateById(buildFullSuitePendingState(groups, hierarchy));
-        window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-    }, [groups, ensureHierarchyFresh, beginSuiteRun]);
+        if (suiteRunState === 'pending' || suiteRunState === 'running') {
+            return;
+        }
+        // Show Starting… before hierarchy fetch / pending-state work.
+        flushSync(() => {
+            setSuiteRunState('pending');
+            setLeafReportsById({});
+            setSuiteRunDurationMs(0);
+        });
+        try {
+            const hierarchy = await ensureHierarchyFresh();
+            const nextSuiteRunId = `suite-ui:${Date.now()}`;
+            const startedAt = Date.now();
+            beginSuiteRun(nextSuiteRunId);
+            suiteRunStartTimeRef.current = startedAt;
+            setSuiteRunStartedAt(startedAt);
+            pendingLeafResetRef.current = 'all';
+            partialRunTargetRef.current = null;
+            // Mark every known runnable node pending until its own suite-item arrives.
+            setLeafRunStateById(buildFullSuitePendingState(groups, hierarchy));
+            setSuiteRunState('running');
+            window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
+        } catch (error) {
+            setSuiteRunState('default');
+            throw error;
+        }
+    }, [groups, ensureHierarchyFresh, beginSuiteRun, suiteRunState]);
 
     const onRunTargets = useCallback(async (target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
         if (!requestedTarget) {
             return;
         }
+        if (suiteRunState === 'pending' || suiteRunState === 'running') {
+            return;
+        }
 
-        const previousHierarchy = hierarchyByEntryIdRef.current;
-        const hierarchy = await ensureHierarchyFresh();
-        const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, hierarchy);
+        flushSync(() => {
+            setSuiteRunState('pending');
+            setSuiteRunDurationMs(0);
+        });
+        try {
+            const previousHierarchy = hierarchyByEntryIdRef.current;
+            const hierarchy = await ensureHierarchyFresh();
+            const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, hierarchy);
 
-        pendingLeafResetRef.current = [effectiveTarget];
-        // Prefix allowlist: target + descendants (suite-node:1.1 → suite-node:1.1.*).
-        partialRunTargetRef.current = effectiveTarget;
-        const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchy);
-        setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
-        setLeafRunStateById((prev) => ({
-            ...resetLeafStateMap(prev, [effectiveTarget]),
-            ...pendingMap,
-        }));
+            pendingLeafResetRef.current = [effectiveTarget];
+            // Prefix allowlist: target + descendants (suite-node:1.1 → suite-node:1.1.*).
+            partialRunTargetRef.current = effectiveTarget;
+            const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchy);
+            setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
+            setLeafRunStateById((prev) => ({
+                ...resetLeafStateMap(prev, [effectiveTarget]),
+                ...pendingMap,
+            }));
 
-        const nextSuiteRunId = `suite-ui:${Date.now()}`;
-        const startedAt = Date.now();
-        beginSuiteRun(nextSuiteRunId);
-        setSuiteRunState('running');
-        suiteRunStartTimeRef.current = startedAt;
-        setSuiteRunStartedAt(startedAt);
-        setSuiteRunDurationMs(0);
-        window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
-    }, [groups, ensureHierarchyFresh, beginSuiteRun]);
+            const nextSuiteRunId = `suite-ui:${Date.now()}`;
+            const startedAt = Date.now();
+            beginSuiteRun(nextSuiteRunId);
+            suiteRunStartTimeRef.current = startedAt;
+            setSuiteRunStartedAt(startedAt);
+            setSuiteRunState('running');
+            window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
+        } catch (error) {
+            setSuiteRunState('default');
+            throw error;
+        }
+    }, [groups, ensureHierarchyFresh, beginSuiteRun, suiteRunState]);
 
     const onRunSuiteInCore = useCallback(async () => {
         await ensureHierarchyFresh();
@@ -1020,7 +1051,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         });
     }, [leafReportsById, leafRunStateById, suiteRunState, suiteRunStartedAt, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
 
-    const suiteExportDisabled = suiteRunState === 'running' || (mode === 'loadtest' ? !loadRunSummary : Object.keys(leafReportsById).length === 0);
+    const suiteExportDisabled =
+        suiteRunState === 'pending' ||
+        suiteRunState === 'running' ||
+        (mode === 'loadtest' ? !loadRunSummary : Object.keys(leafReportsById).length === 0);
     const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
     const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
 
@@ -1058,7 +1092,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             }
         }
         const total = passed + failed;
-        if (total === 0 && suiteRunState === 'default') {
+        if (total === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
             return null;
         }
         const duration = suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined;
@@ -1075,6 +1109,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
     const tree = (
         <SuiteTestTree
+            ref={suiteTreeRef}
             groups={groups}
             hierarchyByEntryId={hierarchyByEntryId}
             missingFiles={effectiveMissingFiles}
@@ -1082,6 +1117,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             reportsById={leafReportsById}
             runStateById={leafRunStateById}
             statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
             onRunTargets={onRunTargets}
             onRunTargetsInCore={onRunTargetsInCore}
         />
@@ -1091,10 +1127,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
             <div className="run-action-bar">
                 <RunStopToggle
+                    preparing={suiteRunState === 'pending'}
                     running={suiteRunState === 'running'}
                     onRun={onRunSuite}
                     onStop={onStopSuite}
                     runLabel={runLabel}
+                    preparingLabel="Starting…"
                     stopLabel={stopLabel}
                     disabled={!canRun}
                     runTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
@@ -1232,11 +1270,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             <>
                                 <div className="report-section-header">
                                     <div className="label">Tests</div>
-                                    <ReportStatusFilterButton
-                                        value={statusFilter}
-                                        onChange={setStatusFilter}
-                                        disabled={Object.keys(leafRunStateById).length === 0}
-                                    />
+                                    <div className="report-section-header-actions">
+                                        <ReportStatusFilterButton
+                                            value={statusFilter}
+                                            onChange={setStatusFilter}
+                                            disabled={Object.keys(leafRunStateById).length === 0}
+                                        />
+                                        <ReportHeaderMoreMenu
+                                            onExpandAll={() => suiteTreeRef.current?.expandAll()}
+                                            onCollapseAll={() => suiteTreeRef.current?.collapseAll()}
+                                        />
+                                    </div>
                                 </div>
                                 {tree}
                             </>

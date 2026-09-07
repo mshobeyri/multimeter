@@ -276,6 +276,19 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "endpoints",
         "fallback",
       ];
+    case "judge":
+      return [
+        "type",
+        "title",
+        "description",
+        "tags",
+        "engine",
+        "model",
+        "url",
+        "auth",
+        "options",
+        "defaults",
+      ];
     case "report":
       return [
         "type",
@@ -318,9 +331,11 @@ export function detectOrderingIssue(doc: any, content: string, expectedOrder: st
  * Canonical key orders for step types (must match core/testParsePack).
  */
 const STEP_KEY_ORDER: Record<string, string[]> = {
-  call:   ['call', 'id', 'title', 'inputs', 'expect', 'debug', 'report'],
+  call:   ['call', 'id', 'title', 'inputs', 'outputs', 'expect', 'require', 'debug', 'report'],
+  http:   ['http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body', 'outputs', 'expect', 'require', 'debug', 'report'],
   check:  ['check'],
   assert: ['assert'],
+  judge:  ['judge', 'id', 'title', 'context', 'expect', 'require', 'report'],
   if:     ['if', 'steps', 'else'],
   for:    ['for', 'steps'],
   repeat: ['repeat', 'steps'],
@@ -494,17 +509,22 @@ export function detectTestStepOrderingIssue(doc: any, content: string): Ordering
   return null;
 }
 
-function collectCallSitesFromSteps(seqItems: any[], content: string, results: CallSiteInfo[]): void {
+function collectAliasSitesFromSteps(
+  seqItems: any[],
+  content: string,
+  results: CallSiteInfo[],
+  aliasKey: "call" | "judge",
+): void {
   for (const stepNode of seqItems) {
     const stepPairs: any[] = Array.isArray(stepNode?.items) ? stepNode.items : [];
-    const callPair = stepPairs.find((pair) => pair?.key?.value === "call");
-    const alias = callPair?.value?.value;
+    const aliasPair = stepPairs.find((pair) => pair?.key?.value === aliasKey);
+    const alias = aliasPair?.value?.value;
     if (typeof alias === "string" && alias.trim()) {
       const offset =
-        Array.isArray(callPair?.value?.range) && typeof callPair.value.range[0] === "number"
-          ? callPair.value.range[0]
-          : Array.isArray(callPair?.range)
-            ? callPair.range[0]
+        Array.isArray(aliasPair?.value?.range) && typeof aliasPair.value.range[0] === "number"
+          ? aliasPair.value.range[0]
+          : Array.isArray(aliasPair?.range)
+            ? aliasPair.range[0]
             : undefined;
       const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
       results.push({ alias, line });
@@ -513,12 +533,24 @@ function collectCallSitesFromSteps(seqItems: any[], content: string, results: Ca
     const nestedStepsPair = stepPairs.find((pair) => pair?.key?.value === "steps");
     const nestedSeq: any[] = Array.isArray(nestedStepsPair?.value?.items) ? nestedStepsPair.value.items : [];
     if (nestedSeq.length) {
-      collectCallSitesFromSteps(nestedSeq, content, results);
+      collectAliasSitesFromSteps(nestedSeq, content, results, aliasKey);
     }
   }
 }
 
 function extractTestCallSites(doc: any, content: string): CallSiteInfo[] {
+  return extractTestAliasSites(doc, content, "call");
+}
+
+function extractTestJudgeSites(doc: any, content: string): CallSiteInfo[] {
+  return extractTestAliasSites(doc, content, "judge");
+}
+
+function extractTestAliasSites(
+  doc: any,
+  content: string,
+  aliasKey: "call" | "judge",
+): CallSiteInfo[] {
   if (!doc?.contents?.items) {
     return [];
   }
@@ -529,9 +561,9 @@ function extractTestCallSites(doc: any, content: string): CallSiteInfo[] {
     return [];
   }
 
-  const callSites: CallSiteInfo[] = [];
-  collectCallSitesFromSteps(stepsPair.value.items, content, callSites);
-  return callSites;
+  const sites: CallSiteInfo[] = [];
+  collectAliasSitesFromSteps(stepsPair.value.items, content, sites, aliasKey);
+  return sites;
 }
 
 function collectCallInputKeySitesFromSteps(seqItems: any[], content: string, results: CallInputKeyInfo[]): void {
@@ -596,8 +628,8 @@ function collectCallExpectKeySitesFromSteps(seqItems: any[], content: string, re
     const callPair = stepPairs.find((pair) => pair?.key?.value === "call");
     const alias = callPair?.value?.value;
     if (typeof alias === "string" && alias.trim()) {
-      // Collect keys from both expect and debug blocks
-      for (const blockKey of ["expect", "debug"]) {
+      // Collect keys from expect, require, and debug blocks
+      for (const blockKey of ["expect", "require", "debug"]) {
         const blockPair = stepPairs.find((pair) => pair?.key?.value === blockKey);
         const blockPairs: any[] = Array.isArray(blockPair?.value?.items) ? blockPair.value.items : [];
 
@@ -800,12 +832,31 @@ export function findTestCallAliasProblems(
   docType: string | null,
   importsMap: Record<string, string>
 ): ProblemEntry[] {
+  return findTestImportAliasProblems(content, yamlDoc, docType, importsMap, extractTestCallSites);
+}
+
+export function findTestJudgeAliasProblems(
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  importsMap: Record<string, string>
+): ProblemEntry[] {
+  return findTestImportAliasProblems(content, yamlDoc, docType, importsMap, extractTestJudgeSites);
+}
+
+function findTestImportAliasProblems(
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  importsMap: Record<string, string>,
+  extractSites: (doc: any, text: string) => CallSiteInfo[],
+): ProblemEntry[] {
   if (docType !== "test" || !yamlDoc) {
     return [];
   }
 
   const importKeys = new Set(Object.keys(importsMap || {}));
-  return extractTestCallSites(yamlDoc, content)
+  return extractSites(yamlDoc, content)
     .filter((site) => !importKeys.has(site.alias))
     .map((site) => ({
       message: `${site.alias} is not imported`,
@@ -856,7 +907,10 @@ export function computeTestCallAliasMarkers(
     return { markers: [], problems: [] };
   }
 
-  const problems = findTestCallAliasProblems(content, yamlDoc, docType, importsMap);
+  const problems = [
+    ...findTestCallAliasProblems(content, yamlDoc, docType, importsMap),
+    ...findTestJudgeAliasProblems(content, yamlDoc, docType, importsMap),
+  ];
   const markers = problems.map((problem) => {
     const lineNumber = Math.min(Math.max(problem.line ?? 1, 1), model.getLineCount());
     return {

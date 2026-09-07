@@ -10,7 +10,6 @@ import {keepMmtEditorSoon} from '../keepEditor';
 import {loadWorkspaceEnvFile, refreshWorkspaceCertificatesFromEnvFile} from '../workspaceEnvLoader';
 import {buildThemeTokenMessage} from '../themeTokenColors';
 import {
-  suiteHierarchy,
   JSer,
   testParsePack,
   apiParsePack,
@@ -18,6 +17,11 @@ import {
   markupConvertor,
   CommonData,
 } from 'mmt-core';
+import {
+  getCachedSuiteHierarchy,
+  getCachedTestHierarchyNode,
+  peekFreshCachedHierarchy,
+} from './suiteHierarchyCache';
 import {
   buildCurlCommand as buildCurlCommandForShell,
   buildCurlCommandSet,
@@ -476,14 +480,37 @@ export const messageReceived = async (
         break;
       }
       try {
-        const rawText = await file.readRelativeFileContent(document.uri.fsPath, filename);
         // Make it absolute for proper relative resolution.
         const filePath = path.resolve(path.dirname(document.uri.fsPath), filename);
+
+        // Fast path: re-stat nested deps only; skip reads/parsing when unchanged.
+        const cachedTree = await peekFreshCachedHierarchy(filePath, leafPrefix);
+        if (cachedTree) {
+          webviewPanel.webview.postMessage({
+            command: 'suiteHierarchyResult',
+            requestId: message?.requestId,
+            filename,
+            suiteFilePath: filePath,
+            tree: cachedTree,
+          });
+          break;
+        }
+
+        const loadRootText = async () =>
+            file.readRelativeFileContent(document.uri.fsPath, filename);
+        const fileLoader = async (requestedPath: string) => {
+          try {
+            return await file.readFileContent(requestedPath);
+          } catch {
+            return '';
+          }
+        };
+
+        const rawText = await loadRootText();
         const docType = JSer.fileType(filePath, rawText);
 
-        // For test files, return a simple test node with title (not full hierarchy)
         if (docType === 'test') {
-          let title: string | undefined;
+          let title: string|undefined;
           try {
             const testDoc = testParsePack.yamlToTest(rawText);
             if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
@@ -492,34 +519,27 @@ export const messageReceived = async (
           } catch {
             // Ignore parsing errors
           }
+          const {tree} = await getCachedTestHierarchyNode({
+            filePath,
+            leafPrefix,
+            title,
+          });
           webviewPanel.webview.postMessage({
             command: 'suiteHierarchyResult',
             requestId: message?.requestId,
             filename,
             suiteFilePath: filePath,
-            tree: {
-              kind: 'test',
-              id: leafPrefix || 'test',
-              path: filePath,
-              title,
-            },
+            tree,
           });
           break;
         }
 
-        // For suite files, build full hierarchy
-        const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
+        const {tree} = await getCachedSuiteHierarchy({
           suiteFilePath: filePath,
-          suiteRawText: rawText,
           leafPrefix,
-          fileLoader: async (requestedPath: string) => {
-            try {
-              return await file.readFileContent(requestedPath);
-            } catch {
-              return '';
-            }
-          },
-        } as any);
+          loadRootText: async () => rawText,
+          fileLoader,
+        });
 
         webviewPanel.webview.postMessage({
           command: 'suiteHierarchyResult',

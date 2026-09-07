@@ -62,18 +62,15 @@ if $PUBLISH_ALL; then
   PUBLISH_DOCKER=true
 fi
 
-# Auto-detect pre-release from version string (e.g. 0.4.0-beta.1, 0.4.0-rc.1)
-if echo "$VERSION" | grep -qE '[-](alpha|beta|rc|dev|canary)'; then
+# shellcheck source=scripts/version-channel.sh
+. "$SCRIPTS_DIR/version-channel.sh"
+if is_prerelease "$VERSION"; then
   PRE_RELEASE=true
 fi
 
 # Derive the npm dist-tag and Docker floating tag for pre-releases
 if $PRE_RELEASE; then
-  # Extract the pre-release channel (beta, rc, alpha, etc.)
-  PRE_CHANNEL=$(echo "$VERSION" | sed -n 's/.*-\([a-z]*\).*/\1/p')
-  if [ -z "$PRE_CHANNEL" ]; then
-    PRE_CHANNEL="beta"
-  fi
+  PRE_CHANNEL=$(prerelease_channel "$VERSION")
   NPM_TAG="$PRE_CHANNEL"         # npm install mmt-testlight@beta
   DOCKER_FLOAT_TAG="$PRE_CHANNEL" # testlight:beta
 else

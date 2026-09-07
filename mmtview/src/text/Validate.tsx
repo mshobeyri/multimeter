@@ -1,4 +1,4 @@
-import { APISchema, EnvSchema, TestSchema, SuiteSchema, LoadTestSchema, DocSchema, MockSchema, ReportSchema, GeneralSchema } from './Schema';
+import { APISchema, EnvSchema, TestSchema, SuiteSchema, LoadTestSchema, DocSchema, MockSchema, JudgeSchema, ReportSchema, GeneralSchema } from './Schema';
 import { parseYamlDoc } from 'mmt-core/markupConvertor';
 import Ajv from 'ajv';
 import { clientCertFieldIssues } from './clientCertificateFields';
@@ -387,6 +387,8 @@ export const validateYamlContent = (content: string): any[] => {
             validate = ajv.compile(DocSchema);
         } else if (parsedContent.type && parsedContent.type === 'server') {
             validate = ajv.compile(MockSchema);
+        } else if (parsedContent.type && parsedContent.type === 'judge') {
+            validate = ajv.compile(JudgeSchema);
         } else if (parsedContent.type && parsedContent.type === 'report') {
             validate = ajv.compile(ReportSchema);
         }

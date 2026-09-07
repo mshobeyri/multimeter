@@ -1,0 +1,18 @@
+type: test
+title: Echo message smoke test
+description: Smoke test for API "Echo message".
+tags:
+  - smoke
+  - post
+import:
+  echo: ../apis/echo.mmt
+inputs:
+  message: i:message
+steps:
+  - call: echo
+    id: iEcho
+    inputs:
+      message: i:message
+    expect:
+      status: 200
+      echoed: != null

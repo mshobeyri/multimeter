@@ -1,23 +1,38 @@
-# Inline expect and debug
+# Inline expect, require, and debug
 
-Use `expect` on a [`call`](./call.md) or [`http`](./http.md) step to validate outputs inline, without a separate `check`/`assert` step. Each key is an output field name; each value is the expected result. All expect entries in a single call are grouped into **one report item**, with each comparison as a sub-item. Expect is non-throwing — it logs failures but continues execution (same behavior as [check](./check.md)).
+Use `expect` / `require` on a [`call`](./call.md) or [`http`](./http.md) step to validate outputs inline, without a separate `check`/`assert` step. Each key is an output field name; each value is the expected result. Soft (`expect`) and hard (`require`) entries on the same call share **one report item**.
+
+| Block | On failure |
+|-------|------------|
+| `expect` | Log and report; **continue** (like [check](./check.md)) |
+| `require` | Log and report; **stop** (like [assert](./assert.md)) |
 
 Full `call` field reference: [call](./call.md).
 
 **Formats:**
 
 ```yaml
-# Simple equality (default operator is ==)
+# Soft
 - call: login
   expect:
     status_code: 200
 
-# Explicit operator
-- call: echo
-  expect:
-    status_code: == 200
-    echoed_message: == <<i:message>>
+# Hard
+- call: login
+  require:
+    token: != null
 
+# Soft + hard (one report box)
+- call: login
+  expect:
+    status_code: 200
+  require:
+    token: != null
+```
+
+Expected sides follow the same YAML typing as `if` / `check`: unquoted `200` / `true` / `null` are number / bool / null; quote to force a string (`== "200"`).
+
+```yaml
 # Multiple checks on the same field
 - call: login
   expect:

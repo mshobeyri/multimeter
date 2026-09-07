@@ -18,7 +18,7 @@ steps:
 ```
 
 - `http` sends the request directly — see [http step](./steps/http.md)
-- `expect` validates output inline on the same step — see [Inline expect](./steps/run-expect.md)
+- `expect` / `require` validate output inline on the same step — see [Inline expect](./steps/run-expect.md)
 - Use `call` instead when reusing a `type: api` file — see [call step](./steps/call.md)
 
 More: [Steps](./steps/index.md) · [Reports](./reports.md) · [Stages](./stages/index.md) · [import](./import.md) · [Complete example](./complete-example.md)

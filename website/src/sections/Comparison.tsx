@@ -32,6 +32,20 @@ const features: FeatureRow[] = [
     values: { multimeter: true, postman: false, insomnia: 'Partial', bruno: 'Partial', robot: true, cucumber: true, jmeter: true, neoload: false, playwright: true },
   },
   {
+    feature: 'AI Response Checks',
+    values: {
+      multimeter: true,
+      postman: false,
+      insomnia: false,
+      bruno: false,
+      robot: 'Via library',
+      cucumber: 'Via code',
+      jmeter: false,
+      neoload: false,
+      playwright: 'Via code',
+    },
+  },
+  {
     feature: 'HTTP / REST',
     values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: 'Via code', jmeter: true, neoload: true, playwright: true },
   },

@@ -355,7 +355,8 @@ const responsePathToExpectKey = (path: string): string | undefined => {
 const normalizeExpected = (raw: string): string => {
   const trimmed = raw.trim().replace(/;\s*$/, '');
   const quoted = /^(['"])([\s\S]*)\1$/.exec(trimmed);
-  return quoted ? quoted[2] : trimmed;
+  // Keep quotes so expect YAML typing treats `"1"` as a string, not number 1.
+  return quoted ? JSON.stringify(quoted[2]) : trimmed;
 };
 
 const extractTestExpects = (script: string): TestFlowHttp['expect'] | undefined => {

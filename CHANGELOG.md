@@ -2,6 +2,89 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.42.1-pre]
+
+Pre-release.
+
+- Marketplace version stays `major.minor.patch`; `-pre` is only the git/npm/Docker tag. `v1.42.1-pre` publishes Marketplace **1.42.1** with `--pre-release`.
+
+## [1.42.0-pre]
+
+Pre-release.
+
+- Two release channels: `vX.Y.Z` is stable; `vX.Y.Z-pre` is pre-release (npm `@pre`, Docker `:pre`, Marketplace `X.Y.Z` pre-release)
+
+## [1.40.0]
+
+Pre-release.
+
+- One version for the VS Code extension, Testlight CLI, and GitHub Action (`1.40.0`)
+- `X.Y.0` tags are pre-release automatically (npm `@beta`, Marketplace pre-release, Action prerelease)
+- Push tag `vX.Y.Z` to publish Testlight, the GitHub Action, and the VS Code extension
+- Publish `mshobeyri/testlight-action@v1.40.0` and install matching `mmt-testlight@1.40.0`
+- Gemini judge example, unmatched `judge:` alias warnings, and `auth.type: api-key` file-type fix
+
+## [1.39.0]
+
+Pre-release.
+
+### Environment panel
+
+- Show variable source icons (runtime / env-file / manual) and replace legacy `isManual` with `source`
+- Add scoped clear menu (runtime, manual, or all) beside **+**
+- Derive preset selection from current variable values instead of sticky local selection
+
+### Run UX and suites
+
+- Show **Starting…** preparing state on test/suite Run before heavy work
+- Cache suite hierarchy by mtime/open-doc stamp to speed nested suite refresh
+- Add report filters **Running** and **Running | Failed** (pending is not treated as running)
+
+### AI / MCP / testlight (low-token authoring)
+
+- Scaffold-first generation: MCP `scaffold_test`, `testlight scaffold test --from`, short always-on authoring rule
+- Compact `api_card`, min documentation packs (`read_documentation` defaults to min), offline `testlight docs` / `validate`
+- `suggest_assertions` / `testlight suggest asserts` for patch-only expect/assert upgrades
+- Golden smoke few-shot pair (`examples/ai/golden_smoke`) and require validate→format; modify = patch only
+- Deterministic AI scaffold eval corpus (`npm run test:ai-eval`)
+
+### CLI
+
+- `testlight update` for standalone/portal binaries (GitHub Releases or `TESTLIGHT_RELEASE_BASE_URL` mirror); npm/Homebrew get upgrade advice
+- Ship **testlight 0.4.5** (CLI version independent of the extension)
+
+## [1.38.1]
+
+Stable release of the 1.38.0 pre-release (no additional changes).
+
+### Tests and dynamic values
+
+- Add `o:` / `<<o:…>>` tokens for reading and writing test `outputs` (set keys like `o:session_token`)
+- Hoist call/http step `id`s as high-scope `let`s so `${id.field}` works across steps, stages (with `after`), and nested `if` / `for` / `repeat`
+
+### Behavior change — comparison typing
+
+- `if`, `check`, `assert`, and `expect` comparison sides are typed like YAML values:
+  - unquoted `200` / `true` / `null` → number / boolean / null
+  - quoted `"200"` / `"omit"` / `"null"` → strings
+  - `${…}` remains a live JS reference
+- **Migration:** if you compare a string field to a number-looking value, quote it (`== "200"`). Unquoted `== 200` now means the number `200` (this can fail where both sides used to be stringified).
+
+### Fixes
+
+- Quote unsafe expect operators (`!=`, `>60%`, …) before the CLI summarizes YAML so files with `expect: token: != null` run under testlight
+- Keep YAML-quoted `"omit"` / `"null"` as string expects (do not re-coerce them to the omit keyword / null)
+- Preserve quoted string asserts from HTTP/Bruno convert (e.g. `=== "1"` → `== "1"`)
+
+### Examples
+
+- Update chained calls to use `o:` outputs; remove the broken Bruno delete sample; replace Postman `pm.*` js with a working Multimeter `js` check
+- Add `examples/intermediate/26_yaml_expect_typing` and unit regressions for the scenarios above
+
+## [1.38.0]
+
+- Pre-release of the changes listed in 1.38.1
+
 ## [1.37.0]
 
 - Infer HTTP method when omitted: `post` if a body is present, otherwise `get`; explicit `method` still wins

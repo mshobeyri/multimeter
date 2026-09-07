@@ -10,6 +10,7 @@ The `import` section brings external files into a test. Each entry is an **alias
 | API definition | `.mmt` (`type: api`) | `call` | [call](./steps/call.md) |
 | Test flow | `.mmt` (`type: test`) | `call` (nested test) | [call](./steps/call.md) |
 | Mock server | `.mmt` (`type: server`) | `run` | [Mock servers in tests](../server/in-tests.md) |
+| Judge | `.mmt` (`type: judge`) | `judge` | [Judge](../judge/index.md) · [Judge steps](./steps/judge.md) |
 | HTTP Client file | `.http`, `.https` | `call` (converted to a test flow) | [HTTP file](../../integration/http-file.md) |
 | Bruno request | `.bru`, `.bruno` | `call` (converted to a test flow) | [Bruno](../../integration/bruno.md) |
 | Data file | `.csv`, `.json`, `.yaml`, `.yml` | `data`, `for`, `${alias.path}` | [Data-driven tests](../../features/data-driven-tests.md) |

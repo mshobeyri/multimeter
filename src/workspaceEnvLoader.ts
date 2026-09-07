@@ -14,6 +14,7 @@ interface EnvVariable {
   label: string;
   value: string | number | boolean;
   options: EnvOption[];
+  source?: 'file' | 'manual' | 'runtime';
 }
 
 interface EnvCaCertificate {
@@ -222,7 +223,8 @@ function parseEnvVariables(variablesObj: Record<string, any> | undefined): EnvVa
         name,
         label: firstOption?.label ?? name,
         value: firstOption?.value ?? '',
-        options
+        options,
+        source: 'file'
       });
     } else if (typeof value === 'object' && value !== null) {
       // Object map (named choices)
@@ -235,7 +237,8 @@ function parseEnvVariables(variablesObj: Record<string, any> | undefined): EnvVa
         name,
         label: firstOption?.label ?? name,
         value: firstOption?.value ?? '',
-        options
+        options,
+        source: 'file'
       });
     } else {
       // Scalar value
@@ -243,7 +246,8 @@ function parseEnvVariables(variablesObj: Record<string, any> | undefined): EnvVa
         name,
         label: name,
         value: value as string | number | boolean,
-        options: [{label: String(value), value: value as string | number | boolean}]
+        options: [{label: String(value), value: value as string | number | boolean}],
+        source: 'file'
       });
     }
   }

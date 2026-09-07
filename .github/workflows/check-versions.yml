@@ -1,0 +1,17 @@
+name: Check versions
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Extension, CLI, plugin, and Action share one version
+        run: node scripts/sync-versions.mjs --check

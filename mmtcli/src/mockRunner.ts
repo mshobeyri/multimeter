@@ -6,65 +6,15 @@ import fs from 'fs';
 import http from 'http';
 import https from 'https';
 import path from 'path';
-import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
 import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
+import {dispatchMockHttpRequest} from 'mmt-core/mockDispatch';
+import {buildMockHttpsOptions} from 'mmt-core/mockTlsMaterial';
 
 const {mockParsePack, mockServer, variableReplacer} = mmtcore;
 
-type GeneratedTlsMaterial = {
-  cert: string;
-  key: string;
-};
-
 /** Track active servers so we can clean them all up at exit. */
 const activeServers = new Map<string, {server: http.Server | https.Server; port: number; dispose: () => void}>();
-let generatedDefaultTlsMaterial: GeneratedTlsMaterial | undefined;
-
-function getDefaultMockTlsMaterial(): GeneratedTlsMaterial {
-  if (generatedDefaultTlsMaterial) {
-    return generatedDefaultTlsMaterial;
-  }
-
-  // Generate a localhost-only self-signed cert at runtime so the CLI
-  // does not embed or distribute a static private key.
-  const forge = require('node-forge');
-  const keys = forge.pki.rsa.generateKeyPair(2048);
-  const certificate = forge.pki.createCertificate();
-  const now = new Date();
-  const expiresAt = new Date(now);
-  expiresAt.setFullYear(expiresAt.getFullYear() + 10);
-
-  certificate.publicKey = keys.publicKey;
-  certificate.serialNumber = Math.max(Date.now(), 1).toString(16);
-  certificate.validity.notBefore = now;
-  certificate.validity.notAfter = expiresAt;
-
-  const subject = [{name: 'commonName', value: 'localhost'}];
-  certificate.setSubject(subject);
-  certificate.setIssuer(subject);
-  certificate.setExtensions([
-    {name: 'basicConstraints', cA: false},
-    {name: 'keyUsage', digitalSignature: true, keyEncipherment: true},
-    {name: 'extKeyUsage', serverAuth: true},
-    {
-      name: 'subjectAltName',
-      altNames: [
-        {type: 2, value: 'localhost'},
-        {type: 7, ip: '127.0.0.1'},
-        {type: 7, ip: '::1'},
-      ],
-    },
-  ]);
-  certificate.sign(keys.privateKey, forge.md.sha256.create());
-
-  generatedDefaultTlsMaterial = {
-    cert: forge.pki.certificateToPem(certificate),
-    key: forge.pki.privateKeyToPem(keys.privateKey),
-  };
-
-  return generatedDefaultTlsMaterial;
-}
 
 function resolveFilePath(relative: string, basePath: string): string {
   return resolveCertFilePath(relative, {baseFilePath: basePath});
@@ -78,26 +28,11 @@ function createHttpsMockServer(
     data: any,
     filePath: string,
     requestHandler: http.RequestListener): https.Server {
-  const connection = data.connection || {};
-  const hasCustomCert = !!connection.cert || !!connection.key;
-  if (hasCustomCert && (!connection.cert || !connection.key)) {
-    throw new Error('connection.cert and connection.key must be provided together');
-  }
-  const defaultTlsMaterial = hasCustomCert ? undefined : getDefaultMockTlsMaterial();
-  const tlsOptions: https.ServerOptions = {
-    cert: connection.cert ? fs.readFileSync(resolveFilePath(connection.cert, filePath)) : defaultTlsMaterial!.cert,
-    key: connection.key ? fs.readFileSync(resolveFilePath(connection.key, filePath)) : defaultTlsMaterial!.key,
-  };
-  if (connection.client_ca) {
-    tlsOptions.ca = fs.readFileSync(resolveFilePath(connection.client_ca, filePath));
-  }
-  if (connection.mode === 'mtls') {
-    if (!connection.client_ca) {
-      throw new Error('connection.client_ca is required when connection.mode is mtls');
-    }
-    tlsOptions.requestCert = true;
-    tlsOptions.rejectUnauthorized = true;
-  }
+  const tlsOptions = buildMockHttpsOptions(
+      data.connection,
+      (abs) => fs.readFileSync(abs),
+      (rel) => resolveFilePath(rel, filePath),
+  );
   return https.createServer(tlsOptions, requestHandler);
 }
 
@@ -116,10 +51,10 @@ export async function startMockServerFromPath(
   }
 
   const rawContent = fs.readFileSync(filePath, 'utf-8');
-  let parsed: any;
+  let processedContent = rawContent;
   try {
     const processor = (mmtcore as any).dataImportProcessor;
-    const processedContent = processor?.processDataImportsInYaml ?
+    processedContent = processor?.processDataImportsInYaml ?
       await processor.processDataImportsInYaml({
         rawText: rawContent,
         filePath,
@@ -127,14 +62,13 @@ export async function startMockServerFromPath(
         fileLoader: async (p: string) => fs.readFileSync(p, 'utf-8'),
       }) :
       rawContent;
-    parsed = yaml.load(processedContent);
   } catch (err: any) {
     throw new Error(`Mock server: YAML parse error in ${path.basename(filePath)}: ${err.message}`);
   }
 
-  const {data, errors} = mockParsePack.parseMockData(parsed);
+  const {data, errors} = mockParsePack.loadMockFromYaml(processedContent);
   if (errors.length > 0 || !data) {
-    const msg = errors.map((e: any) => e.message).join('; ');
+    const msg = errors.map((e: any) => e.message).join('; ') || 'Invalid mock server file';
     throw new Error(`Mock server validation errors in ${path.basename(filePath)}: ${msg}`);
   }
 
@@ -189,55 +123,30 @@ export async function startMockServerFromPath(
     let body = '';
     req.on('data', (chunk: Buffer) => { body += chunk; });
     req.on('end', async () => {
-      let pathname = urlStr;
-      const queryObj: Record<string, string> = {};
-      const qIdx = urlStr.indexOf('?');
-      if (qIdx >= 0) {
-        pathname = urlStr.slice(0, qIdx);
-        const searchParams = new URLSearchParams(urlStr.slice(qIdx + 1));
-        searchParams.forEach((v, k) => { queryObj[k] = v; });
-      }
-
-      const parsedBody = mockServer.parseRequestBody(body, (req.headers || {}) as Record<string, string>);
-
-      const mockReq = {
-        method,
-        path: pathname,
-        headers: (req.headers || {}) as Record<string, string>,
-        query: queryObj,
-        body: parsedBody,
-      };
-
-      let mockRes: ReturnType<typeof router>;
+      let result: ReturnType<typeof dispatchMockHttpRequest>;
       try {
-        mockRes = router(mockReq);
+        result = dispatchMockHttpRequest(router, {
+          method,
+          url: urlStr,
+          headers: (req.headers || {}) as Record<string, string>,
+          rawBody: body,
+          resolveHeaderToken: (v) => String(variableReplacer.resolveEmbeddedTokens(v, envVars)),
+        });
       } catch (err: any) {
         res.statusCode = 500;
         res.end(JSON.stringify({error: 'Mock router error', message: err.message}));
         return;
       }
 
-      // Apply delay
-      if (mockRes.delay && mockRes.delay > 0) {
-        await new Promise<void>(resolve => setTimeout(resolve, mockRes.delay));
+      if (result.delay > 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, result.delay));
       }
 
-      // Resolve tokens in response headers per-request
-      if (mockRes.headers) {
-        for (const [k, v] of Object.entries(mockRes.headers)) {
-          if (typeof v === 'string') {
-            res.setHeader(k, String(variableReplacer.resolveEmbeddedTokens(v, envVars)));
-          } else {
-            res.setHeader(k, v);
-          }
-        }
+      res.statusCode = result.status;
+      for (const [k, v] of Object.entries(result.headers)) {
+        res.setHeader(k, v);
       }
-
-      res.statusCode = mockRes.status;
-      const responseBody = mockRes.body !== undefined ? (
-        typeof mockRes.body === 'string' ? mockRes.body : JSON.stringify(mockRes.body)
-      ) : '';
-      res.end(responseBody);
+      res.end(result.body);
     });
   };
 

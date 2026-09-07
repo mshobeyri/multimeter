@@ -1,0 +1,12 @@
+type: judge
+title: Gemini quality judge
+engine: google
+model: gemini-3.5-flash-lite
+url: https://generativelanguage.googleapis.com/v1beta
+auth:
+  type: api-key
+  header: x-goog-api-key
+  value: e:api_key
+options:
+  temperature: 0
+  timeout: 30s

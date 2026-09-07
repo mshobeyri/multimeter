@@ -3,11 +3,14 @@ import {z} from 'zod';
 
 import {GUIDE_RESOURCES, readGuideContent} from './resources/guides';
 import {
+  handleApiCard,
   handleDiscoverApi,
   handleFormat,
   handleListExamples,
   handleReadDocumentation,
   handleRun,
+  handleScaffoldTest,
+  handleSuggestAssertions,
   handleValidate,
 } from './tools/handlers';
 
@@ -15,10 +18,14 @@ export const SERVER_INSTRUCTIONS = [
   'Multimeter MCP is the primary interface for all .mmt file work in VS Code Copilot.',
   'For create, modify, validate, format, or run requests: call Multimeter MCP tools in the FIRST tool-call batch.',
   'Do not explore npm packages, testlight CLI, shell commands, or node server.js before using these tools.',
-  'Modify workflow: read_documentation(topic) → edit file → validate(file) → fix until valid → optional format(file).',
+  'Do not web-search Multimeter YAML syntax — use read_documentation (pack min by default) or scaffold_test.',
+  'Prefer api_card over dumping full API files or OpenAPI specs. Mirror list_examples.goldenSmoke for shape.',
+  'Modify = patch only. Do not rewrite the whole .mmt file unless the user explicitly asks to rewrite/regenerate.',
+  'Modify workflow: optional read_documentation(min) → patch → validate → format (format required after validate).',
+  'After a run, to tighten asserts: suggest_assertions → patch → validate → format.',
   'Run workflow: run({ file, workspaceRoot }) only — never testlight or shell.',
-  'Generate workflow: read_documentation + discover_api → write file → validate → optional format → optional run.',
-  'After every edit to a .mmt file, call validate before telling the user the task is complete.',
+  'Generate test from API: scaffold_test → write yaml → minimal edits → validate → format → optional run.',
+  'After every edit to a .mmt file, call validate then format before telling the user the task is complete.',
   'Never add YAML comments (#). Use snake_case tokens such as e:api_url and i:user_id.',
 ].join(' ');
 
@@ -36,15 +43,16 @@ export function createMmtMcpServer(): McpServer {
       {
         title: 'Read Multimeter docs',
         description: [
-          'FIRST step when creating or modifying any .mmt file and you need syntax rules.',
-          'Call before editing when the user asks to change, fix, add, or generate YAML.',
-          'Returns authoritative Multimeter DSL documentation for test, api, suite, env, loadtest, and constraints.',
+          'Call when you need Multimeter YAML syntax rules.',
+          'Defaults to pack "min" (small). Use pack "full" only for rare/advanced syntax.',
+          'For new tests from an API, prefer scaffold_test over loading docs.',
           DO_NOT_SHELL,
         ].join(' '),
         inputSchema: {
           topic: z.enum([
             'overview', 'workflow', 'test', 'api', 'loadtest', 'suite', 'env', 'doc', 'constraints', 'all',
           ]).optional().describe('Documentation topic. Use workflow for MCP-first edit/run steps. Defaults to overview.'),
+          pack: z.enum(['min', 'full']).optional().describe('min (default, low token) or full'),
         },
         annotations: {readOnlyHint: true},
       },
@@ -76,17 +84,84 @@ export function createMmtMcpServer(): McpServer {
       {
         title: 'Discover workspace APIs',
         description: [
-          'Call when generating or modifying tests that call APIs, or when you need import paths and inputs.',
-          'Pass apiPath to inspect one API file including inputs, outputs, examples, and suggested import paths.',
+          'Call when listing APIs or inspecting one API before scaffolding a test.',
+          'For a single API, prefer api_card. For new tests, prefer scaffold_test once apiPath is known.',
+          'selectedApi omits full file content unless includeContent is true.',
           DO_NOT_SHELL,
         ].join(' '),
         inputSchema: {
           workspaceRoot: z.string().describe('Workspace root directory'),
           apiPath: z.string().optional().describe('Optional API .mmt file path relative to workspaceRoot'),
+          includeContent: z.boolean().optional().describe('Include full API file content (default false)'),
         },
         annotations: {readOnlyHint: true},
       },
       async (args) => handleDiscoverApi(args),
+  );
+
+  server.registerTool(
+      'api_card',
+      {
+        title: 'Compact API card',
+        description: [
+          'Return a small API summary (method, url, inputs, outputs, suggested paths) without dumping the full file.',
+          'Prefer this over reading the whole .mmt or OpenAPI when generating or planning a test.',
+          'Next step for a new test: scaffold_test.',
+          DO_NOT_SHELL,
+        ].join(' '),
+        inputSchema: {
+          workspaceRoot: z.string().describe('Workspace root directory'),
+          apiPath: z.string().describe('API .mmt file path relative to workspaceRoot or absolute'),
+        },
+        annotations: {readOnlyHint: true},
+      },
+      async (args) => handleApiCard(args),
+  );
+
+  server.registerTool(
+      'scaffold_test',
+      {
+        title: 'Scaffold test from API',
+        description: [
+          'REQUIRED first step when generating a new Multimeter test from an existing API .mmt.',
+          'Returns valid smoke (or example) test YAML, suggested path, import alias, and a compact apiCard.',
+          'Write the yaml, apply only minimal edits, then validate. Do not invent a blank test from scratch.',
+          DO_NOT_SHELL,
+        ].join(' '),
+        inputSchema: {
+          workspaceRoot: z.string().describe('Workspace root directory'),
+          apiPath: z.string().describe('API .mmt file path relative to workspaceRoot or absolute'),
+          strategy: z.enum(['smoke', 'example']).optional().describe('smoke (default) or example inputs'),
+          alias: z.string().optional().describe('Optional import alias override'),
+          outPath: z.string().optional().describe('Optional suggested output test path (relative)'),
+        },
+        annotations: {readOnlyHint: true},
+      },
+      async (args) => handleScaffoldTest(args),
+  );
+
+  server.registerTool(
+      'suggest_assertions',
+      {
+        title: 'Suggest assert/expect patches',
+        description: [
+          'Suggest compact expect/assert YAML patches from API outputs and/or a JSON response body.',
+          'Use after a run or when tightening a scaffolded smoke test — patch only, do not rewrite the file.',
+          DO_NOT_SHELL,
+        ].join(' '),
+        inputSchema: {
+          workspaceRoot: z.string().optional().describe('Workspace root (required with apiPath or bodyFile)'),
+          apiPath: z.string().optional().describe('API .mmt to read outputs from'),
+          stepId: z.string().optional().describe('Call step id for ${id.field} asserts'),
+          status: z.number().optional().describe('HTTP status to expect'),
+          body: z.unknown().optional().describe('Parsed JSON response body'),
+          bodyFile: z.string().optional().describe('Path to a JSON response file'),
+          style: z.enum(['expect', 'assert', 'both']).optional().describe('Patch style (default both)'),
+          maxFields: z.number().int().positive().optional().describe('Max body fields to suggest'),
+        },
+        annotations: {readOnlyHint: true},
+      },
+      async (args) => handleSuggestAssertions(args),
   );
 
   server.registerTool(
@@ -191,14 +266,16 @@ export function createMmtMcpServer(): McpServer {
               workspaceRoot ? `Workspace root: ${workspaceRoot}` : '',
               '',
               'Use Multimeter MCP tools only. Do not use testlight, npm, or shell commands.',
+              'HARD RULE: patch only — do not rewrite the whole file unless the user explicitly asked to rewrite/regenerate.',
               'Workflow:',
-              '1. read_documentation(topic matching the file type)',
-              '2. discover_api if API context is needed',
-              '3. Apply the edit in the workspace',
-              '4. validate(file) — required before finishing',
+              '1. read_documentation(topic, pack: "min") only if syntax is unclear',
+              '2. api_card / discover_api if API context is needed',
+              '3. Patch the few lines required (never full-file rewrite by default)',
+              '4. validate(file) — required',
               '5. Fix errors and validate again until valid',
-              '6. format(file) if helpful',
+              '6. format(file) — required after validate',
               '7. run(file) only if the user asked to execute',
+              '8. If tightening asserts after a run: suggest_assertions → patch → validate → format',
             ].filter(Boolean).join('\n'),
           },
         }],
@@ -251,16 +328,15 @@ export function createMmtMcpServer(): McpServer {
               `Generate Multimeter tests for API: ${apiPath}`,
               workspaceRoot ? `Workspace root: ${workspaceRoot}` : '',
               '',
-              'Use Multimeter MCP tools first. Do not use testlight or shell commands.',
-              'Follow this workflow:',
-              '1. read_documentation(topic: "test")',
-              '2. discover_api(workspaceRoot, apiPath)',
-              '3. Generate the test YAML yourself',
-              '4. Write the file in the workspace',
-              '5. validate(file) — required',
-              '6. Fix validation errors and validate again',
-              '7. format(file) if needed',
-              '8. run(file) when the user wants execution',
+              'Use Multimeter MCP tools first. Do not use testlight, shell, or web search for syntax.',
+              'Mirror list_examples.goldenSmoke shape. Follow this workflow:',
+              '1. scaffold_test({ workspaceRoot, apiPath }) — required; do not invent YAML from scratch',
+              '2. Write the returned yaml to suggestedPath (or a user path)',
+              '3. Apply only minimal edits (title, asserts, inputs) — no full rewrite',
+              '4. validate(file) — required until valid',
+              '5. format(file) — required after validate',
+              '6. run(file) only when the user wants execution',
+              '7. If tightening asserts later: suggest_assertions → patch → validate → format',
             ].filter(Boolean).join('\n'),
           },
         }],

@@ -38,6 +38,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const { mmtFilePath } = useContext(FileContext);
   const step = value && typeof value === 'object' ? value : {};
   const expectList = React.useMemo(() => expectMapToUiRows(step.expect), [step.expect]);
+  const requireList = React.useMemo(() => expectMapToUiRows(step.require), [step.require]);
   const callReport = step.report;
   const isReportObjectForm = callReport && typeof callReport === 'object';
   const reportInternalValue: ReportLevel = isReportObjectForm
@@ -47,7 +48,12 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     ? (callReport as ReportConfig).external ?? 'fails'
     : (typeof callReport === 'string' ? callReport as ReportLevel : 'fails');
 
-  const emit = (patch: Record<string, any>, nextExpect?: ExpectRow[], nextReport?: any) => {
+  const emit = (
+      patch: Record<string, any>,
+      nextExpect?: ExpectRow[],
+      nextRequire?: ExpectRow[],
+      nextReport?: any,
+  ) => {
     const next: any = {
       ...step,
       ...patch,
@@ -80,6 +86,12 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     } else {
       delete next.expect;
     }
+    const requireMap = uiRowsToExpectMap(nextRequire ?? requireList);
+    if (requireMap) {
+      next.require = requireMap;
+    } else {
+      delete next.require;
+    }
     const report = nextReport !== undefined ? nextReport : callReport;
     if (report !== undefined) {
       next.report = report;
@@ -98,7 +110,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     } else {
       report = { internal, external };
     }
-    emit({}, undefined, report);
+    emit({}, undefined, undefined, report);
   };
 
   const handleAddExpect = () => {
@@ -117,6 +129,24 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
       i === index ? applyExpectUiRowChange(row, part, val) : row
     ));
     emit({}, updated);
+  };
+
+  const handleAddRequire = () => {
+    const defaultField = requireList.length > 0
+      ? requireList[requireList.length - 1].field
+      : 'status';
+    emit({}, undefined, [...requireList, createEmptyExpectUiRow(defaultField)]);
+  };
+
+  const handleRemoveRequire = (index: number) => {
+    emit({}, undefined, requireList.filter((_, i) => i !== index));
+  };
+
+  const handleRequirePartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
+    const updated = requireList.map((row, i) => (
+      i === index ? applyExpectUiRowChange(row, part, val) : row
+    ));
+    emit({}, undefined, updated);
   };
 
   const selectedMethod = String(step.method || 'get').toLowerCase();
@@ -318,7 +348,70 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             </div>
           </div>
 
-          {expectList.length > 0 && (
+          <div className="label">Require</div>
+          <div style={{ padding: "5px" }}>
+            <datalist id="http-require-response-fields">
+              {responseFields.map(field => (
+                <option key={field} value={field} />
+              ))}
+            </datalist>
+            {requireList.length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {requireList.map((row, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <input
+                      list="http-require-response-fields"
+                      value={row.field}
+                      onChange={e => handleRequirePartChange(i, 'field', e.target.value)}
+                      style={{ flex: 2, minWidth: 0 }}
+                      title="Response path to require"
+                      placeholder="status"
+                    />
+                    <OperatorSelect
+                      value={row.op as any}
+                      onChange={nextOp => handleRequirePartChange(i, 'op', nextOp)}
+                      style={{ flex: 1, minWidth: 0 }}
+                      title="Comparison operator"
+                    />
+                    <input
+                      type="text"
+                      value={row.expected}
+                      onChange={e => handleRequirePartChange(i, 'expected', e.target.value)}
+                      style={{ flex: 2, minWidth: 0 }}
+                      placeholder="required value"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveRequire(i)}
+                      className="action-button codicon codicon-close"
+                      style={{ flexShrink: 0 }}
+                      title="Remove require"
+                      aria-label="Remove require"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.7 }}>No requirements</div>
+            )}
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={handleAddRequire}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                + Add require
+              </button>
+            </div>
+          </div>
+
+          {(expectList.length > 0 || requireList.length > 0) && (
             <>
           <div className="label">Report</div>
           <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>

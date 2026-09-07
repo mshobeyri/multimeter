@@ -1,5 +1,5 @@
 import {JSONValue} from 'mmt-core/CommonData';
-import {EnvVariable, EnvCertificates, CertificateSettings} from './EnvironmentData';
+import {EnvVariable, EnvVarSource, EnvCertificates, CertificateSettings} from './EnvironmentData';
 import {clearEnvPresets, loadEnvVariables, saveEnvVariablesFromObject, saveCertificatesFromObject, loadCertificates, clearCertificates, saveCertificateSettings, loadCertificateSettings, clearCertificateSettings as clearCertSettingsStorage} from '../workspaceStorage';
 
 /**
@@ -36,8 +36,12 @@ export const setEnvironmentVariable =
  * Sets multiple environment variables in one read-modify-write to avoid races.
  */
 export const setEnvironmentVariables =
-    (updates: Array<{name: string; value: string|number|boolean; label?: string}>):
-        void => {
+    (updates: Array<{
+      name: string;
+      value: string|number|boolean;
+      label?: string;
+      source?: EnvVarSource;
+    }>): void => {
           if (!Array.isArray(updates) || updates.length === 0) {
             return;
           }
@@ -48,11 +52,13 @@ export const setEnvironmentVariables =
                 continue;
               }
               updated = updated.filter(v => v.name !== item.name);
+              const source: EnvVarSource = item.source || 'runtime';
               updated.push({
                 name: item.name,
                 label: item.label || item.name,
                 value: item.value,
                 options: [],
+                source,
               });
             }
             saveEnvVariablesFromObject(updated);

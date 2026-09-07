@@ -7,7 +7,6 @@ const footerLinks: Record<string, FooterLink[]> = {
   Product: [
     { name: 'Features', href: '/#features' },
     { name: 'Test Flows', href: '/#test-flows' },
-    { name: 'Protocols', href: '/#protocols' },
     { name: 'Mock Server', href: '/#mock-server' },
     { name: 'Comparison', href: '/compare' },
     { name: 'Downloads', href: '/downloads' },
@@ -16,7 +15,7 @@ const footerLinks: Record<string, FooterLink[]> = {
   ],
   Resources: [
     { name: 'Git-Native Files', href: '/#git-native' },
-    { name: 'AI Test Generation', href: '/#ai-test-generation' },
+    { name: 'AI Write & Check', href: '/#ai-test-generation' },
     { name: 'CI/CD', href: '/#ci-cd' },
     { name: 'Website Documentation', href: '/#documentation' },
     { name: 'FAQ', href: '/#faq' },

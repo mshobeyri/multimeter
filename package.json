@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "REST Client and API testing in VS Code. Git-native alternative to Postman, Bruno, and Thunder Client.",
-  "version": "1.37.0",
+	"version": "1.42.1-pre",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -51,6 +51,9 @@
       }
     ],
     "chatInstructions": [
+      {
+        "path": "./rules/mmt-authoring.mdc"
+      },
       {
         "path": "./rules/mmt-mcp.instructions.md"
       }
@@ -640,7 +643,7 @@
     "pack-pre-release": "vsce package --pre-release --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file",
     "publish": "vsce publish --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file",
     "vscode:prepublish": "npm run build:vendor && npm run package",
-    "compile": "npm run buildcore && npm run buildmcp && npm run buildview && npm run check-types && npm run lint && node esbuild.js",
+    "compile": "npm run buildcore && npm run buildmcp && npm run buildview && npm run build --prefix mmtcli && npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
@@ -652,8 +655,10 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "jest",
+    "test:ai-eval": "jest core/src/aiScaffoldEval.test.ts core/src/suggestAssertions.test.ts core/src/testScaffold.test.ts --silent",
     "website": "npm run dev --prefix website",
-    "cursor:validate-plugin": "node scripts/validate-cursor-plugin.mjs"
+    "cursor:validate-plugin": "node scripts/validate-cursor-plugin.mjs",
+    "sync-versions": "node scripts/sync-versions.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

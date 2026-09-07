@@ -7,6 +7,10 @@ describe('Multimeter MCP server', () => {
     expect(server).toBeDefined();
     expect(SERVER_INSTRUCTIONS).toContain('FIRST tool-call batch');
     expect(SERVER_INSTRUCTIONS).toContain('read_documentation');
+    expect(SERVER_INSTRUCTIONS).toContain('scaffold_test');
+    expect(SERVER_INSTRUCTIONS).toContain('api_card');
+    expect(SERVER_INSTRUCTIONS).toContain('patch only');
+    expect(SERVER_INSTRUCTIONS).toContain('suggest_assertions');
     expect(SERVER_INSTRUCTIONS).toContain('validate');
   });
 

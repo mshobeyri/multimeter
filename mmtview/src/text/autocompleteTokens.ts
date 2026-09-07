@@ -1,4 +1,4 @@
-export type TokenPrefix = 'i' | 'e' | 'r' | 'c';
+export type TokenPrefix = 'i' | 'e' | 'r' | 'c' | 'o';
 
 export interface TokenCompletionMatch {
   prefix: TokenPrefix | null;
@@ -7,12 +7,12 @@ export interface TokenCompletionMatch {
   replaceFrom: number;
 }
 
-const ANGLE_PREFIX = /<<((?:i|e|r|c):)([\w-]*)$/;
-const BARE_PREFIX = /(^|[\s"'`])((?:i|e|r|c):)([\w-]*)$/;
+const ANGLE_PREFIX = /<<((?:i|e|r|c|o):)([\w-]*)$/;
+const BARE_PREFIX = /(^|[\s"'`])((?:i|e|r|c|o):)([\w-]*)$/;
 const ANGLE_OPEN = /<<([\w-]*)$/;
 
 function asPrefix(raw: string): TokenPrefix | null {
-  if (raw === 'i' || raw === 'e' || raw === 'r' || raw === 'c') {
+  if (raw === 'i' || raw === 'e' || raw === 'r' || raw === 'c' || raw === 'o') {
     return raw;
   }
   return null;

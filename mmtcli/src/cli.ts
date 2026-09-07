@@ -18,6 +18,9 @@ const {resolveUserPath, writeTextFile} = requireFromCli('../src/pathNormalize.cj
 import {summarize} from './loadTest.js';
 import {startMockServerFromPath, stopAllServers} from './mockRunner.js';
 import {buildCliRunArgs} from './runArgs.js';
+import {formatCliDocs, listCliDocTopics} from './aiDocs.js';
+import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
+import {runUpdate} from './selfUpdate.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -270,6 +273,13 @@ program.name('testlight')
           '  testlight run path/to/test.mmt',
           '  testlight run path/to/test.mmt -F env.mmt -P runner.dev -P custom.prod',
           '  testlight run path/to/suite.mmt --report html',
+          '  testlight scaffold test --from path/to/api.mmt',
+          '  testlight scaffold test --from path/to/api.mmt -o tests/api-smoke.mmt',
+          '  testlight docs test',
+          '  testlight validate path/to/test.mmt',
+          '  testlight suggest asserts --from path/to/api.mmt',
+          '  testlight update',
+          '  testlight update --check',
           '',
           'Run `testlight <command> --help` for command-specific options.',
         ].join('\n'));
@@ -316,8 +326,12 @@ program.command('run')
         const {runJSCode, setRunnerNetworkConfig} = await loadJsRunnerModule();
         const full = resolveUserPath(file, process.cwd(), path);
         const rawText = fs.readFileSync(full, 'utf8');
+        // Quote unsafe expect/check operators (!=, >60%, …) before js-yaml
+        // so summarize does not throw on valid .mmt that the runner accepts.
         const raw =
-            /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
+            /\.json$/i.test(full) ?
+                JSON.parse(rawText) :
+                yaml.load(mmtcore.testParsePack.quoteExpectOperators(rawText));
         const summary = summarize(raw);
         if (!opts.quiet) {
           console.log(`Loaded: ${full} (${summary})`);
@@ -552,6 +566,269 @@ program.command('version-info')
       console.log(`multimeter cli ${CLI_VERSION}`);
       console.log('Node:', process.version);
     });
+
+program.command('update')
+    .description(
+        'Update standalone/portal testlight binary from GitHub releases (or a mirror)')
+    .option('--check', 'Only check whether an update is available', false)
+    .option(
+        '--to <version>',
+        'Install a specific version (e.g. 1.38.1). Avoids GitHub latest lookup.')
+    .option(
+        '--channel <name>',
+        'Pick latest matching channel from GitHub (beta, rc, prerelease)')
+    .option(
+        '--force',
+        'Reinstall even when the current version is already newest',
+        false)
+    .option(
+        '--repo <owner/name>',
+        'GitHub repo for releases (default: mshobeyri/multimeter or TESTLIGHT_REPO)')
+    .option(
+        '--base-url <url>',
+        'Portal/mirror base URL: <url>/v<version>/testlight-<platform>.tar.gz|zip (or TESTLIGHT_RELEASE_BASE_URL)')
+    .action(async (opts: {
+      check?: boolean;
+      to?: string;
+      channel?: string;
+      force?: boolean;
+      repo?: string;
+      baseUrl?: string;
+    }) => {
+      try {
+        const result = await runUpdate({
+          currentVersion: CLI_VERSION,
+          checkOnly: !!opts.check,
+          version: opts.to,
+          channel: opts.channel,
+          force: !!opts.force,
+          repo: opts.repo,
+          releaseBaseUrl: opts.baseUrl,
+        });
+        console.log(result.message);
+        if (!result.ok) {
+          process.exit(2);
+        }
+      } catch (e: any) {
+        console.error('Error updating testlight:', e?.message || e);
+        process.exit(2);
+      }
+    });
+
+{
+  const scaffold = program.command('scaffold').description(
+      'Scaffold Multimeter .mmt files (AI/offline-friendly)');
+  scaffold.command('test')
+      .description('Scaffold a smoke test from an API .mmt')
+      .requiredOption('--from <file>', 'Source API .mmt file')
+      .option(
+          '-s, --strategy <name>', 'smoke (default) or example', 'smoke')
+      .option('-a, --alias <name>', 'Import alias override')
+      .option(
+          '-o, --out <file>',
+          'Write test YAML to file (default: print to stdout)')
+      .action(async (
+          opts: {from: string; strategy?: string; alias?: string; out?: string}) => {
+        try {
+          const {scaffoldTestFromApi, buildApiDetailsSummary, suggestTestPath} =
+              await import('mmt-core/testScaffold');
+          const apiFull = resolveUserPath(opts.from, process.cwd(), path);
+          if (!fs.existsSync(apiFull)) {
+            console.error(`API file not found: ${apiFull}`);
+            process.exit(2);
+          }
+          const apiText = fs.readFileSync(apiFull, 'utf8');
+          if (mmtcore.JSer.fileType(apiFull, apiText) !== 'api') {
+            console.error(`Expected type: api: ${apiFull}`);
+            process.exit(2);
+          }
+          const api = apiParsePack.yamlToAPIStrict(apiText);
+          const cwd = process.cwd();
+          const apiRel = path.relative(cwd, apiFull).replace(/\\/g, '/') ||
+              path.basename(apiFull);
+          const strategyRaw = String(opts.strategy || 'smoke').toLowerCase();
+          if (strategyRaw !== 'smoke' && strategyRaw !== 'example') {
+            console.error(`Invalid --strategy (use smoke or example): ${opts.strategy}`);
+            process.exit(2);
+          }
+          const outRel = opts.out ?
+              path.relative(cwd, resolveUserPath(opts.out, cwd, path))
+                  .replace(/\\/g, '/') :
+              suggestTestPath(apiRel);
+          const summary = buildApiDetailsSummary(apiRel, api, outRel);
+          const alias = opts.alias || summary.suggestedAlias;
+          const test = scaffoldTestFromApi(api, {
+            alias,
+            importPath: summary.suggestedImportPath,
+            strategy: strategyRaw as 'smoke' | 'example',
+          });
+          const yamlOut = mmtcore.testParsePack.testToYaml(test);
+          mmtcore.testParsePack.yamlToTestStrict(yamlOut);
+          if (opts.out) {
+            const outFull = resolveUserPath(opts.out, cwd, path);
+            const outDir = path.dirname(outFull);
+            if (!fs.existsSync(outDir)) {
+              fs.mkdirSync(outDir, {recursive: true});
+            }
+            writeTextFile(outFull, yamlOut.endsWith('\n') ? yamlOut : `${yamlOut}\n`);
+            console.error(`Scaffolded: ${outFull}`);
+          } else {
+            process.stdout.write(yamlOut.endsWith('\n') ? yamlOut : `${yamlOut}\n`);
+          }
+        } catch (e: any) {
+          console.error('Error scaffolding test:', e?.message || e);
+          process.exit(2);
+        }
+      });
+}
+
+program.command('docs')
+    .description('Print bundled Multimeter AI docs (offline-friendly)')
+    .argument(
+        '[topic]',
+        `Topic: ${listCliDocTopics().join('|')}`,
+        'overview')
+    .option(
+        '-p, --pack <name>',
+        'min (default, low token) or full',
+        'min')
+    .action((topic: string, opts: {pack?: string}) => {
+      try {
+        const packRaw = String(opts.pack || 'min').toLowerCase();
+        if (packRaw !== 'min' && packRaw !== 'full') {
+          console.error(`Invalid --pack (use min or full): ${opts.pack}`);
+          process.exit(2);
+        }
+        const allowed = new Set(listCliDocTopics());
+        if (!allowed.has(topic)) {
+          console.error(`Unknown topic "${topic}". Use: ${listCliDocTopics().join(', ')}`);
+          process.exit(2);
+        }
+        const text = formatCliDocs(topic as any, packRaw as 'min'|'full');
+        process.stdout.write(text.endsWith('\n') ? text : `${text}\n`);
+      } catch (e: any) {
+        console.error('Error reading docs:', e?.message || e);
+        process.exit(2);
+      }
+    });
+
+program.command('validate')
+    .description('Validate a .mmt API or test file')
+    .argument('<file>', 'Path to .mmt file')
+    .option(
+        '-t, --type <name>',
+        'Expected type: api|test')
+    .action((file: string, opts: {type?: string}) => {
+      try {
+        const full = resolveValidatePath(file);
+        if (!fs.existsSync(full)) {
+          console.error(`File not found: ${full}`);
+          process.exit(2);
+        }
+        const expected = opts.type ? String(opts.type).toLowerCase() : undefined;
+        if (expected && expected !== 'api' && expected !== 'test') {
+          console.error(`Unsupported --type (use api or test): ${opts.type}`);
+          process.exit(2);
+        }
+        const result = validateMmtFile(full, expected);
+        if (result.valid) {
+          console.log(JSON.stringify({
+            file: full,
+            valid: true,
+            detectedType: result.detectedType,
+          }, null, 2));
+          return;
+        }
+        console.error(JSON.stringify({
+          file: full,
+          valid: false,
+          detectedType: result.detectedType,
+          errors: result.errors,
+        }, null, 2));
+        process.exit(1);
+      } catch (e: any) {
+        console.error('Error validating:', e?.message || e);
+        process.exit(2);
+      }
+    });
+
+{
+  const suggest = program.command('suggest').description(
+      'Suggest low-token patches for .mmt files (AI/offline-friendly)');
+  suggest.command('asserts')
+      .description('Suggest expect/assert patches from API outputs or JSON body')
+      .option('--from <file>', 'API .mmt file (reads outputs)')
+      .option('--body-file <file>', 'JSON response body file')
+      .option('--body <json>', 'JSON response body string')
+      .option('--status <n>', 'HTTP status to expect', (v) => Number(v))
+      .option('--step-id <id>', 'Call step id for ${id.field} asserts')
+      .option(
+          '--style <name>', 'expect | assert | both (default both)', 'both')
+      .option('--max-fields <n>', 'Max body fields', (v) => Number(v))
+      .action(async (opts: {
+        from?: string;
+        bodyFile?: string;
+        body?: string;
+        status?: number;
+        stepId?: string;
+        style?: string;
+        maxFields?: number;
+      }) => {
+        try {
+          const {suggestAssertions} = await import('mmt-core/suggestAssertions');
+          const {safeStepIdFromAlias, suggestAliasFromPath} =
+              await import('mmt-core/testScaffold');
+          let outputs: Record<string, string>|undefined;
+          let stepId = opts.stepId;
+          if (opts.from) {
+            const apiFull = resolveUserPath(opts.from, process.cwd(), path);
+            const apiText = fs.readFileSync(apiFull, 'utf8');
+            if (mmtcore.JSer.fileType(apiFull, apiText) !== 'api') {
+              console.error(`Expected type: api: ${apiFull}`);
+              process.exit(2);
+            }
+            const api = apiParsePack.yamlToAPIStrict(apiText);
+            outputs = (api.outputs || {}) as Record<string, string>;
+            if (!stepId) {
+              const apiRel =
+                  path.relative(process.cwd(), apiFull).replace(/\\/g, '/') ||
+                  path.basename(apiFull);
+              stepId = safeStepIdFromAlias(suggestAliasFromPath(apiRel));
+            }
+          }
+          let body: unknown;
+          if (opts.bodyFile) {
+            const full = resolveUserPath(opts.bodyFile, process.cwd(), path);
+            body = JSON.parse(fs.readFileSync(full, 'utf8'));
+          } else if (opts.body) {
+            body = JSON.parse(opts.body);
+          }
+          if (!outputs && body === undefined && opts.status === undefined) {
+            console.error('Provide --from, --body/--body-file, and/or --status');
+            process.exit(2);
+          }
+          const styleRaw = String(opts.style || 'both').toLowerCase();
+          if (styleRaw !== 'expect' && styleRaw !== 'assert' && styleRaw !== 'both') {
+            console.error(`Invalid --style: ${opts.style}`);
+            process.exit(2);
+          }
+          const result = suggestAssertions({
+            stepId,
+            status: opts.status,
+            outputs,
+            body: body as any,
+            style: styleRaw as any,
+            maxFields: opts.maxFields,
+          });
+          process.stdout.write(
+              (result.patchHint.endsWith('\n') ? result.patchHint :
+                                                 `${result.patchHint}\n`));
+        } catch (e: any) {
+          console.error('Error suggesting asserts:', e?.message || e);
+          process.exit(2);
+        }
+      });
+}
 
 program.command('doc')
     .argument('<file>', 'Doc file (.mmt/.yaml/.yml)')

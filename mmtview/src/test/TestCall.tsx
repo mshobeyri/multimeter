@@ -118,6 +118,11 @@ const TestCall: React.FC<TestCallProps> = ({
     return expectMapToUiRows(raw);
   }, [local]);
 
+  const requireList: ExpectRow[] = React.useMemo(() => {
+    const raw = local && typeof local === 'object' ? (local as any).require : undefined;
+    return expectMapToUiRows(raw);
+  }, [local]);
+
   const callReport = React.useMemo(() => {
     return local && typeof local === 'object' ? (local as any).report : undefined;
   }, [local]);
@@ -150,13 +155,14 @@ const TestCall: React.FC<TestCallProps> = ({
   /** Build the full call object from current state */
   const buildCallObj = (overrides?: {
     alias?: string; id?: string; title?: string; inputs?: Record<string, any>;
-    expect?: ExpectRow[]; report?: any;
+    expect?: ExpectRow[]; require?: ExpectRow[]; report?: any;
   }) => {
     const alias = overrides?.alias ?? currentAlias;
     const id = overrides?.id ?? currentId;
     const title = overrides?.title ?? currentTitle;
     const inp = overrides?.inputs ?? inputs;
     const exp = overrides?.expect ?? expectList;
+    const req = overrides?.require ?? requireList;
     const rep = overrides?.report !== undefined ? overrides.report : callReport;
     if (!alias) { return {}; }
     const obj: any = { call: alias };
@@ -165,6 +171,8 @@ const TestCall: React.FC<TestCallProps> = ({
     obj.inputs = inp;
     const expectMap = uiRowsToExpectMap(exp);
     if (expectMap) { obj.expect = expectMap; }
+    const requireMap = uiRowsToExpectMap(req);
+    if (requireMap) { obj.require = requireMap; }
     if (rep !== undefined) { obj.report = rep; }
     return obj;
   };
@@ -294,7 +302,7 @@ const TestCall: React.FC<TestCallProps> = ({
     return ['_.status', ...outs];
   }, [currentAlias, importedOutputsByAlias]);
 
-  // --- Expect handlers ---
+  // --- Expect / require handlers ---
 
   const handleAddExpect = () => {
     const defaultField = expectList.length > 0
@@ -326,6 +334,32 @@ const TestCall: React.FC<TestCallProps> = ({
       i === index ? applyExpectUiRowChange(row, part, val) : row
     ));
     const next = buildCallObj({ expect: updated });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleAddRequire = () => {
+    const defaultField = requireList.length > 0
+      ? requireList[requireList.length - 1].field
+      : (availableOutputs[0] || '');
+    const next = buildCallObj({
+      require: [...requireList, createEmptyExpectUiRow(defaultField)],
+    });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleRemoveRequire = (index: number) => {
+    const next = buildCallObj({ require: requireList.filter((_, i) => i !== index) });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleRequirePartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
+    const updated = requireList.map((row, i) => (
+      i === index ? applyExpectUiRowChange(row, part, val) : row
+    ));
+    const next = buildCallObj({ require: updated });
     setLocal(next);
     scheduleEmit(next);
   };
@@ -535,7 +569,73 @@ const TestCall: React.FC<TestCallProps> = ({
             </div>
           </div>
 
-          {expectList.length > 0 && (
+          <div className="label">Require</div>
+          <div style={{ padding: "5px" }}>
+            {requireList.length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {requireList.map((row, i) => {
+                  return (
+                    <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <select
+                        value={row.field}
+                        onChange={(e) => handleRequirePartChange(i, 'field', e.target.value)}
+                        style={{ flex: 2, minWidth: 0 }}
+                        title="Output field to require"
+                      >
+                        <option value="" disabled>-- field --</option>
+                        {availableOutputs.map(o => (
+                          <option key={o} value={o}>{o}</option>
+                        ))}
+                        {row.field && !availableOutputs.includes(row.field) && (
+                          <option key={row.field} value={row.field}>{row.field}</option>
+                        )}
+                      </select>
+                      <OperatorSelect
+                        value={row.op as any}
+                        onChange={(nextOp) => handleRequirePartChange(i, 'op', nextOp)}
+                        style={{ flex: 1, minWidth: 0 }}
+                        title="Comparison operator"
+                      />
+                      <input
+                        type="text"
+                        value={row.expected}
+                        onChange={(e) => handleRequirePartChange(i, 'expected', e.target.value)}
+                        style={{ flex: 2, minWidth: 0 }}
+                        placeholder="required value"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRequire(i)}
+                        className="action-button codicon codicon-close"
+                        style={{ flexShrink: 0 }}
+                        title="Remove require"
+                        aria-label="Remove require"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.7 }}>No requirements</div>
+            )}
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={handleAddRequire}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                + Add require
+              </button>
+            </div>
+          </div>
+
+          {(expectList.length > 0 || requireList.length > 0) && (
             <>
               <div className="label">Report</div>
               <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>

@@ -9,15 +9,18 @@ import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from '.
  */
 export const STEP_KEY_ORDER: Record<string, string[]> = {
   call:   [
-    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report'
+    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'require', 'debug', 'report'
   ],
   http:   [
     'http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body',
-    'outputs', 'expect', 'debug', 'report'
+    'outputs', 'expect', 'require', 'debug', 'report'
   ],
   run:    ['run'],
   check:  ['check'],
   assert: ['assert'],
+  judge:  [
+    'judge', 'id', 'title', 'context', 'expect', 'require', 'report'
+  ],
   if:     ['if', 'steps', 'else'],
   for:    ['for', 'steps'],
   repeat: ['repeat', 'steps'],
@@ -44,16 +47,19 @@ const VALID_TEST_ROOT_KEYS = new Set([
 /** Valid keys per step type. */
 const VALID_STEP_KEYS: Record<string, Set<string>> = {
   call:    new Set([
-    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report',
+    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'require', 'debug', 'report',
     'interface'
   ]),
   http:    new Set([
     'http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body',
-    'outputs', 'expect', 'debug', 'report'
+    'outputs', 'expect', 'require', 'debug', 'report'
   ]),
   run:     new Set(['run']),
   check:   new Set(['check', 'title', 'report', 'details']),
   assert:  new Set(['assert', 'title', 'report', 'details']),
+  judge:   new Set([
+    'judge', 'id', 'title', 'context', 'expect', 'require', 'report'
+  ]),
   if:      new Set(['if', 'steps', 'else']),
   for:     new Set(['for', 'steps']),
   repeat:  new Set(['repeat', 'steps']),
@@ -282,6 +288,9 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   if ('run' in step) {
     return 'run';
   }
+  if ('judge' in step) {
+    return 'judge';
+  }
   if ('check' in step) {
     return 'check';
   }
@@ -449,6 +458,17 @@ function collectStepErrors(
         }
       } else {
         errors.push(`Step ${context}[${i}]: call is missing required target`);
+      }
+    }
+    if (stepType === 'judge') {
+      const judgeStep = step as any;
+      const alias = judgeStep.judge;
+      if (typeof alias === 'string' && alias.trim()) {
+        if (!importKeys.has(alias)) {
+          errors.push(`Step ${context}[${i}]: judge target "${alias}" is not imported`);
+        }
+      } else {
+        errors.push(`Step ${context}[${i}]: judge is missing required target`);
       }
     }
     if (stepType === 'http') {

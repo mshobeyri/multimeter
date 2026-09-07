@@ -183,17 +183,47 @@ function createPkgJsRunner() {
 				);
 
 				// Wrap send_ with trace-level logging when requested
-				const sendFn = traceSend ? async (req) => {
+				let formatHttpTraceRequest = (req) => {
 					const reqSummary = req ? `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` : 'unknown';
-					lg('trace', `Request: ${reqSummary}`);
+					return `Request: ${reqSummary}`;
+				};
+				let formatHttpTraceResponse = (args) => {
+					if (args.error) {
+						return `Response: error - ${args.error}`;
+					}
+					const status = args.status ?? '?';
+					const duration = args.durationMs != null ? ` (${args.durationMs}ms)` : '';
+					return `Response: ${status}${duration}`;
+				};
+				try {
+					// eslint-disable-next-line global-require
+					const httpTraceLog = require('../../core/dist/httpTraceLog.js');
+					if (httpTraceLog && httpTraceLog.formatHttpTraceRequest) {
+						formatHttpTraceRequest = httpTraceLog.formatHttpTraceRequest;
+						formatHttpTraceResponse = httpTraceLog.formatHttpTraceResponse;
+					}
+				} catch { /* optional */ }
+				const sendFn = traceSend ? async (req) => {
+					lg('trace', formatHttpTraceRequest({
+						method: req && req.method,
+						url: req && req.url,
+						headers: req && req.headers,
+						query: req && req.query,
+						body: req && req.body,
+					}));
 					try {
 						const res = await networkCore.send(req);
-						const status = res && typeof res.status === 'number' ? res.status : '?';
-						const duration = res && typeof res.duration === 'number' ? ` (${res.duration}ms)` : '';
-						lg('trace', `Response: ${status}${duration}`);
+						lg('trace', formatHttpTraceResponse({
+							status: res && typeof res.status === 'number' ? res.status : '?',
+							durationMs: res && typeof res.duration === 'number' ? res.duration : undefined,
+							headers: res && res.headers,
+							body: res && res.body,
+						}));
 						return res;
 					} catch (err) {
-						lg('trace', `Response: error - ${err?.message || String(err)}`);
+						lg('trace', formatHttpTraceResponse({
+							error: err && err.message ? err.message : String(err),
+						}));
 						throw err;
 					}
 				} : networkCore.send;

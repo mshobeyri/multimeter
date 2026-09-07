@@ -1,4 +1,24 @@
-import {durationToJsMsExpr, isDurationExpression, normalizeTokenName, orderInputKeysForDefaults, parseDurationString, timeUnitToMs, toInputsParams, toLowerUnderscore} from './JSerHelper';
+import {durationToJsMsExpr, fileType, isDurationExpression, normalizeTokenName, orderInputKeysForDefaults, parseDurationString, timeUnitToMs, toInputsParams, toLowerUnderscore} from './JSerHelper';
+
+describe('fileType', () => {
+  test('reads the document type line, not auth type: api-key', () => {
+    const yaml = `
+type: judge
+engine: google
+model: gemini-2.5-flash
+url: https://generativelanguage.googleapis.com/v1beta
+auth:
+  type: api-key
+  header: x-goog-api-key
+  value: e:api_key
+`;
+    expect(fileType('judges/google.mmt', yaml)).toBe('judge');
+  });
+
+  test('still detects type: api', () => {
+    expect(fileType('a.mmt', 'type: api\nurl: https://example.com')).toBe('api');
+  });
+});
 
 describe('toLowerUnderscore', () => {
   test('replaces spaces with underscores and lowercases', () => {

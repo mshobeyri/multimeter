@@ -10,8 +10,10 @@ import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
 import {testToJsfunc} from './JSerTest';
 import {httpToTest, httpToTestStrict, isHttpFilePath} from './httpParsePack';
+import {yamlToJudgeStrict} from './judgeParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {yamlToTest, yamlToTestStrict} from './testParsePack';
+import {toTemplateValueJs} from './variableReplacer';
 
 const basenameNoExt = (p: string): string => {
   const s = String(p ?? '').replace(/\\/g, '/');
@@ -221,11 +223,43 @@ const emitResolved = async(
       // Server files emit a path constant for use with the 'run' step.
       // Example: const my_server_ = "/resolved/path/to/server.mmt";
       results.push(`const ${publicName} = ${JSON.stringify(resolvedPath)};\n`);
+    } else if (type === 'judge') {
+      const judge = yamlToJudgeStrict(content);
+      if (judge.title) {
+        tracker.setFileTitle(resolvedPath, judge.title);
+      }
+      results.push(`const ${publicName} = ${judgeDataToJsLiteral(judge)};\n`);
     }
   }
 
   return results;
 };
+
+/** Emit a judge object literal with e:/r:/c: tokens resolved at runtime. */
+function judgeDataToJsLiteral(judge: Record<string, any>): string {
+  return valueToJsLiteral(judge);
+}
+
+function valueToJsLiteral(value: unknown): string {
+  if (typeof value === 'string') {
+    return toTemplateValueJs(value);
+  }
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(valueToJsLiteral).join(', ')}]`;
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+        .map(([k, v]) => `${JSON.stringify(k)}: ${valueToJsLiteral(v)}`);
+    return `{${entries.join(', ')}}`;
+  }
+  return JSON.stringify(value);
+}
 
 const toFunctionNameMap =
     (publicNameForPath: Map<string, string>): Record<string, string> => {

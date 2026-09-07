@@ -22,7 +22,7 @@ export default function CICDReady() {
                   <span className="text-green-400">$</span>{' '}
                   <span className="text-slate-300">npm install -g mmt-testlight</span>
                 </div>
-                <div className="text-slate-500">✓ installed mmt-testlight@0.4.0</div>
+                <div className="text-slate-500">✓ installed mmt-testlight@1.42.1-pre</div>
                 <div className="mt-4">
                   <span className="text-green-400">$</span>{' '}
                   <span className="text-slate-300">

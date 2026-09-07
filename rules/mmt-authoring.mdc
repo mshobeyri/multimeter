@@ -1,0 +1,56 @@
+---
+description: Low-token Multimeter .mmt authoring — scaffold, patch, validate
+globs: "**/*.mmt"
+alwaysApply: true
+---
+
+# Multimeter `.mmt` authoring (keep short)
+
+## File types
+
+- `api` — one endpoint
+- `test` — call APIs/tests + assert
+- `env` — variables/presets
+- `suite` — group runnable items
+- `doc` / `server` / `loadtest` / `report` — as named
+
+## Tokens (snake_case)
+
+- Env: `e:api_url`, embed `<<e:api_url>>/users`
+- Inputs: `i:user_id`
+- Random: `r:uuid`, `r:epoch_ms`
+- Current: `c:date`, `c:epoch_ms`
+- Bare token as whole YAML value; `<< >>` only inside strings
+
+## Smoke skeleton
+
+```yaml
+type: test
+title: Login smoke
+tags: [smoke]
+import:
+  login: ../apis/login.mmt
+inputs:
+  username: i:username
+  password: i:password
+steps:
+  - call: login
+    id: iLogin
+    inputs:
+      username: i:username
+      password: i:password
+    expect:
+      status: 200
+```
+
+## Hard rules
+
+1. **Never web-search** Multimeter YAML syntax — use MCP/`testlight` local docs.
+2. **New test from API** → `scaffold_test` / `testlight scaffold` first; mirror `goldenSmoke` shape.
+3. Prefer **`api_card`** over dumping full API/OpenAPI content.
+4. After generate/modify: **`validate` then `format`** (both required).
+5. Tighten asserts: **`suggest_assertions`** → patch → validate → format.
+6. **Modify = patch only** — never rewrite the whole file unless the user asks.
+7. Prefer smoke unless asked for more. No YAML comments (`#`).
+8. Docs default to **min** pack; request full only when needed.
+9. When MCP is available: MCP tools first — not shell exploration.

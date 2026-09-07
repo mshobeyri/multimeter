@@ -44,6 +44,18 @@
   background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.06));
 }
 
+.settings-table-row--clickable {
+  cursor: pointer;
+}
+
+.settings-table-row--active {
+  background: var(--vscode-list-activeSelectionBackground, rgba(9, 71, 113, 0.45));
+}
+
+.settings-table-row--active:hover {
+  background: var(--vscode-list-activeSelectionBackground, rgba(9, 71, 113, 0.55));
+}
+
 .settings-table-cell-key {
   font-weight: 600;
 }

@@ -1,5 +1,6 @@
-name: 'Run Testlight'
-description: 'Run Multimeter (.mmt) API tests, test suites, and generate docs with testlight'
+# Keep in sync with https://github.com/mshobeyri/testlight-action
+name: 'Testlight'
+description: 'Run Multimeter (.mmt) API tests, test suites, and generate docs with Testlight'
 author: 'mshobeyri'
 
 branding:
@@ -46,9 +47,9 @@ inputs:
     description: 'Log verbosity: error, warn, info, debug, trace'
     required: false
   version:
-    description: 'testlight version to install (default: latest). Use "beta" or "rc" for pre-release channels.'
+    description: 'testlight version to install (default: 1.42.1-pre). Use latest, beta, rc, or X.Y.Z.'
     required: false
-    default: 'latest'
+    default: '1.42.1-pre'
   working-directory:
     description: 'Working directory for running the command'
     required: false

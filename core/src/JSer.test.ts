@@ -701,6 +701,115 @@ describe('interdependent input defaults', () => {
   });
 });
 
+describe('output o: tokens in tests', () => {
+  it('set o: keys write outputs paths and reads use outputs.', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'outputTokens',
+      test: {
+        title: 'output tokens',
+        tags: [],
+        description: '',
+        outputs: {asd: null, user: null},
+        steps: [
+          {set: {'o:asd': 100, 'o:user.name': 'alice'}} as any,
+          {print: 'v=<<o:asd>>'} as any,
+          {check: '<<o:asd>> == 100'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('outputs.asd = 100;');
+    expect(js).toContain('outputs.user.name = `alice`;');
+    expect(js).toContain('console.log(`v=${outputs.asd}`);');
+    expect(js).toMatch(/outputs\.asd/);
+    expect(js).not.toContain('o:asd =');
+    expect(js).not.toContain('<<o:asd>>');
+  });
+});
+
+describe('step id locals across stages', () => {
+  it('hoists call id to high scope and reads via ${id.field}', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'idLocals',
+      test: {
+        title: 'id locals',
+        tags: [],
+        description: '',
+        steps: [
+          {call: 'login', id: 'doLogin'} as any,
+          {print: 't=${doLogin.token}'} as any,
+          {check: '${doLogin.status} == 200'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('let doLogin;');
+    expect(js).toContain('doLogin = await login(');
+    expect(js).not.toContain('const doLogin =');
+    expect(js).toContain('console.log(`t=${doLogin.token}`);');
+    expect(js).not.toContain('ids_');
+    expect(js).not.toContain('<<id:');
+  });
+
+  it('keeps ids reachable after if/for blocks', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'idIf',
+      test: {
+        title: 'id if',
+        tags: [],
+        description: '',
+        steps: [
+          {
+            if: '1 == 1',
+            steps: [{call: 'login', id: 'doLogin'}],
+          } as any,
+          {print: '${doLogin.token}'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('let doLogin;');
+    expect(js).toContain('doLogin = await login(');
+    expect(js).toContain('${doLogin.token}');
+  });
+
+  it('hoists step ids across stages for ${id} after after:', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'idStages',
+      test: {
+        title: 'id stages',
+        tags: [],
+        description: '',
+        stages: [
+          {
+            id: 'login',
+            steps: [{call: 'login', id: 'doLogin'}],
+          },
+          {
+            id: 'profile',
+            after: 'login',
+            steps: [
+              {print: '${doLogin.token}'} as any,
+            ],
+          },
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('let doLogin;');
+    expect(js).toContain('doLogin = await login(');
+    expect(js).not.toContain('const doLogin =');
+    expect(js).toContain('await Promise.all([loginPromise]);');
+    expect(js).toContain('const profilePromise = (async () => {');
+    expect(js).toContain('${doLogin.token}');
+    expect(js).not.toContain('ids_');
+  });
+});
+
 describe('step reporter instrumentation', () => {
   it('relies on shared check_ helper instead of inlining reporter code', async () => {
     const ctx: TestContext = {
@@ -1169,7 +1278,8 @@ describe('empty test items are valid', () => {
     const js = await testToJsfunc(ctx, true);
 
     expect(js).toContain('const __http_0 = async');
-    expect(js).toContain('const getUser = await __http_0({});');
+    expect(js).toContain('let getUser;');
+    expect(js).toContain('getUser = await __http_0({});');
     expect(js).toContain('https://example.com/users/${userId}');
     expect(js).toContain('timeout: 5000');
     expect(js).toContain('extractOutputs_');
@@ -1313,32 +1423,36 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue(['a', 'b'] as any)).toEqual({ operator: '==', expected: ['a', 'b'] });
   });
 
-  it('defaults plain string to == operator', () => {
+  it('defaults plain string to == operator without re-coercing omit/null', () => {
     expect(parseExpectValue('hello')).toEqual({ operator: '==', expected: 'hello' });
+    expect(parseExpectValue('omit')).toEqual({ operator: '==', expected: 'omit' });
+    expect(parseExpectValue('null')).toEqual({ operator: '==', expected: 'null' });
+    expect(parseExpectValue('200')).toEqual({ operator: '==', expected: '200' });
   });
 
-  it('parses == operator prefix', () => {
-    expect(parseExpectValue('== 200')).toEqual({ operator: '==', expected: '200' });
+  it('parses == operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('== 200')).toEqual({ operator: '==', expected: 200 });
+    expect(parseExpectValue('== "200"')).toEqual({ operator: '==', expected: '200' });
   });
 
-  it('parses != operator prefix', () => {
-    expect(parseExpectValue('!= 500')).toEqual({ operator: '!=', expected: '500' });
+  it('parses != operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('!= 500')).toEqual({ operator: '!=', expected: 500 });
   });
 
-  it('parses < operator prefix', () => {
-    expect(parseExpectValue('< 100')).toEqual({ operator: '<', expected: '100' });
+  it('parses < operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('< 100')).toEqual({ operator: '<', expected: 100 });
   });
 
-  it('parses > operator prefix', () => {
-    expect(parseExpectValue('> 0')).toEqual({ operator: '>', expected: '0' });
+  it('parses > operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('> 0')).toEqual({ operator: '>', expected: 0 });
   });
 
-  it('parses <= operator prefix', () => {
-    expect(parseExpectValue('<= 300')).toEqual({ operator: '<=', expected: '300' });
+  it('parses <= operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('<= 300')).toEqual({ operator: '<=', expected: 300 });
   });
 
-  it('parses >= operator prefix', () => {
-    expect(parseExpectValue('>= 100')).toEqual({ operator: '>=', expected: '100' });
+  it('parses >= operator prefix with YAML-typed expected', () => {
+    expect(parseExpectValue('>= 100')).toEqual({ operator: '>=', expected: 100 });
   });
 
   it('parses =@ (is in) operator prefix', () => {
@@ -1354,14 +1468,15 @@ describe('parseExpectValue', () => {
   });
 
   it('parses =~ (type-unsafe equal) operator prefix', () => {
-    expect(parseExpectValue('=~ true')).toEqual({ operator: '=~', expected: 'true' });
+    expect(parseExpectValue('=~ true')).toEqual({ operator: '=~', expected: true });
+    expect(parseExpectValue('=~ "true"')).toEqual({ operator: '=~', expected: 'true' });
   });
 
   it('parses new regex, count, and fuzzy operators', () => {
     expect(parseExpectValue('=* /ok/i')).toEqual({ operator: '=*', expected: '/ok/i' });
     expect(parseExpectValue('!* /fail/')).toEqual({ operator: '!*', expected: '/fail/' });
-    expect(parseExpectValue('=# 3')).toEqual({ operator: '=#', expected: '3' });
-    expect(parseExpectValue('!# 0')).toEqual({ operator: '!#', expected: '0' });
+    expect(parseExpectValue('=# 3')).toEqual({ operator: '=#', expected: 3 });
+    expect(parseExpectValue('!# 0')).toEqual({ operator: '!#', expected: 0 });
     expect(parseExpectValue('>% John')).toEqual({ operator: '>%', expected: 'John' });
     expect(parseExpectValue('>0% John')).toEqual({ operator: '>0%', expected: 'John' });
     expect(parseExpectValue('>10% John')).toEqual({ operator: '>10%', expected: 'John' });
@@ -1431,50 +1546,59 @@ describe('parseExpectValue', () => {
 describe('conditionalStatementToJSfunc', () => {
   it('parses fuzzy operators after multi-word actual values', () => {
     expect(conditionalStatementToJSfunc('mehrdad zahra >100% mehrdad sahar'))
-        .toBe('fuzzyMatch_(`mehrdad zahra`, `mehrdad sahar`, 100)');
+        .toBe('fuzzyMatch_("mehrdad zahra", "mehrdad sahar", 100)');
   });
 
   it('uses 80 percent as the default fuzzy threshold for >%', () => {
     expect(conditionalStatementToJSfunc('name >% Jon'))
-        .toBe('fuzzyMatch_(`name`, `Jon`, 80)');
+        .toBe('fuzzyMatch_("name", "Jon", 80)');
     expect(conditionalStatementToJSfunc('name <% admin'))
-        .toBe('notFuzzyMatch_(`name`, `admin`, 80)');
+        .toBe('notFuzzyMatch_("name", "admin", 80)');
   });
 
   it('combines comparisons with && and ||', () => {
     expect(conditionalStatementToJSfunc('${a} == 1 && ${b} == 2'))
-        .toBe('equals_(`${a}`, `1`) && equals_(`${b}`, `2`)');
+        .toBe('equals_(a, 1) && equals_(b, 2)');
     expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2'))
-        .toBe('equals_(`${a}`, `1`) || equals_(`${b}`, `2`)');
+        .toBe('equals_(a, 1) || equals_(b, 2)');
     expect(conditionalStatementToJSfunc('${a} == 1 && ${b} == 2 || ${c} != 3'))
-        .toBe('(equals_(`${a}`, `1`) && equals_(`${b}`, `2`)) || notEquals_(`${c}`, `3`)');
+        .toBe('(equals_(a, 1) && equals_(b, 2)) || notEquals_(c, 3)');
     expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2 && ${c} == 3'))
-        .toBe('equals_(`${a}`, `1`) || (equals_(`${b}`, `2`) && equals_(`${c}`, `3`))');
+        .toBe('equals_(a, 1) || (equals_(b, 2) && equals_(c, 3))');
+  });
+
+  it('treats bare words as YAML strings and ${…} as JS', () => {
+    expect(conditionalStatementToJSfunc('${result.status} == 200'))
+        .toBe('equals_(result.status, 200)');
+    expect(conditionalStatementToJSfunc('12s == 100'))
+        .toBe('equals_("12s", 100)');
+    expect(conditionalStatementToJSfunc('akjsdhk == true'))
+        .toBe('equals_("akjsdhk", true)');
   });
 
   it('supports ignore-case, trim, and length comparison operators', () => {
     expect(conditionalStatementToJSfunc('name =i John'))
-        .toBe('equalsIgnoreCase_(`name`, `John`)');
+        .toBe('equalsIgnoreCase_("name", "John")');
     expect(conditionalStatementToJSfunc('name !i John'))
-        .toBe('notEqualsIgnoreCase_(`name`, `John`)');
+        .toBe('notEqualsIgnoreCase_("name", "John")');
     expect(conditionalStatementToJSfunc('name =X John'))
-        .toBe('trimEquals_(`name`, `John`)');
+        .toBe('trimEquals_("name", "John")');
     expect(conditionalStatementToJSfunc('name !X John'))
-        .toBe('notTrimEquals_(`name`, `John`)');
+        .toBe('notTrimEquals_("name", "John")');
     expect(conditionalStatementToJSfunc('name =iX John'))
-        .toBe('trimEqualsIgnoreCase_(`name`, `John`)');
+        .toBe('trimEqualsIgnoreCase_("name", "John")');
     expect(conditionalStatementToJSfunc('name !iX John'))
-        .toBe('notTrimEqualsIgnoreCase_(`name`, `John`)');
+        .toBe('notTrimEqualsIgnoreCase_("name", "John")');
     expect(conditionalStatementToJSfunc('items <# 3'))
-        .toBe('lengthLess_(`items`, `3`)');
+        .toBe('lengthLess_("items", 3)');
     expect(conditionalStatementToJSfunc('items <=# 3'))
-        .toBe('lengthLessOrEqual_(`items`, `3`)');
+        .toBe('lengthLessOrEqual_("items", 3)');
     expect(conditionalStatementToJSfunc('items ># 3'))
-        .toBe('lengthGreater_(`items`, `3`)');
+        .toBe('lengthGreater_("items", 3)');
     expect(conditionalStatementToJSfunc('items >=# 3'))
-        .toBe('lengthGreaterOrEqual_(`items`, `3`)');
+        .toBe('lengthGreaterOrEqual_("items", 3)');
     expect(conditionalStatementToJSfunc('${items} <# 3'))
-        .toBe('lengthLess_(items, `3`)');
+        .toBe('lengthLess_(items, 3)');
   });
 
   it('treats == omit and != omit as presence checks', () => {
@@ -1519,6 +1643,22 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(_login_0.status_code, 200)');
+  });
+
+  it('keeps quoted numeric expect values as strings', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectQuotedNum',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: '== "200"' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
     expect(js).toContain('equals_(_login_0.status_code, `200`)');
   });
 
@@ -1535,7 +1675,7 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('notEquals_(_login_0.status_code, `500`)');
+    expect(js).toContain('notEquals_(_login_0.status_code, 500)');
   });
 
   it('generates multiple checks from array expect value', async () => {
@@ -1551,8 +1691,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(_login_0.status_code, `200`)');
-    expect(js).toContain('notEquals_(_login_0.status_code, `500`)');
+    expect(js).toContain('equals_(_login_0.status_code, 200)');
+    expect(js).toContain('notEquals_(_login_0.status_code, 500)');
   });
 
   it('generates deep object equality for call expect values', async () => {
@@ -1641,7 +1781,7 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('equals_(_login_0.status_code, 200)');
-    expect(js).toContain('notEquals_(_login_0.token, `null`)');
+    expect(js).toContain('isNotOmitted_(_login_0.token)');
   });
 
   it('supports dot-notation for nested field access', async () => {
@@ -1733,7 +1873,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const res = await login(');
+    expect(js).toContain('let res;');
+    expect(js).toContain('res = await login(');
     expect(js).toContain('equals_(res.status_code, 200)');
   });
 
@@ -1751,7 +1892,7 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     const statusIdx = js.indexOf('equals_(_login_0.status_code, 200)');
-    const tokenIdx = js.indexOf('notEquals_(_login_0.token, `null`)');
+    const tokenIdx = js.indexOf('isNotOmitted_(_login_0.token)');
     expect(statusIdx).toBeGreaterThan(-1);
     expect(tokenIdx).toBeGreaterThan(-1);
     expect(statusIdx).toBeLessThan(tokenIdx);
@@ -1770,10 +1911,48 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    // expect uses check (non-throwing) behavior, not assert
-    expect(js).toContain("checkExpects_(");
-    expect(js).toContain("'check'");
-    expect(js).not.toContain("'assert'");
+    // Soft expect uses check unless a require item fails
+    expect(js).toContain('checkExpects_(');
+    expect(js).toContain("level: \"expect\"");
+    expect(js).toContain("__mmtHardFailed ? 'assert' : 'check'");
+    expect(js).not.toContain("level: \"require\"");
+  });
+
+  it('require is hard-failing and tags level', async () => {
+    const ctx: TestContext = {
+      name: 'callRequire',
+      test: {
+        steps: [{
+          call: 'login',
+          require: { token: '!= null' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('const _login_0 = await login(');
+    expect(js).toContain("level: \"require\"");
+    expect(js).toContain("__mmtHardFailed ? 'assert' : 'check'");
+  });
+
+  it('combines expect and require in one report box', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectRequire',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: 200 },
+          require: { token: '!= null' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain("level: \"expect\"");
+    expect(js).toContain("level: \"require\"");
+    expect(js.match(/checkExpects_/g)?.length).toBe(1);
   });
 
   it('handles plain string expect value (default equality)', async () => {
@@ -1821,8 +2000,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equalsAsString_(_getXml_0.active, `true`)');
-    expect(js).toContain('notEqualsAsString_(_getXml_0.code, `0`)');
+    expect(js).toContain('equalsAsString_(_getXml_0.active, true)');
+    expect(js).toContain('notEqualsAsString_(_getXml_0.code, 0)');
   });
 
   it('uses step title in generated checks when provided', async () => {

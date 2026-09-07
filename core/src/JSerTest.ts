@@ -10,6 +10,7 @@ import {
   collectInputRefsFromObject,
   normalizeEnvTokens,
   replaceAllRefs,
+  replaceOutputTokenRefs,
   resolveInputsMap,
   toTemplateWithEnvVars,
 } from './variableReplacer';
@@ -134,6 +135,8 @@ export const testToJsfunc = async(
   // via resolveInputsMap — overlaying raw YAML defaults here breaks
   // <<i:other>> composition when those defaults are still e:/i: tokens.
   let replaced = replaceAllRefs(ctx.test, paramsAsObj, {}, ctx.envVars ?? {});
+  // Test-only: o:/<<o:…>> → ${outputs.…}. Do not run on APIs (doc annotations).
+  replaced = replaceOutputTokenRefs(replaced);
 
   let inputParams = toInputsParams(replaced.inputs || {}, ' = ');
   if (inputParams.length > 0) {
@@ -190,7 +193,7 @@ export const testToJsfunc = async(
       }
       if (step.call && typeof step.call === 'string') {
         const allowedOutputs = importOutputKeysMap[step.call];
-        const validateOutputMap = (map: Record<string, unknown> | undefined, label: 'expect' | 'debug') => {
+        const validateOutputMap = (map: Record<string, unknown> | undefined, label: 'expect' | 'require' | 'debug') => {
           if (!allowedOutputs || !map || typeof map !== 'object' || Array.isArray(map)) {
             return;
           }
@@ -202,6 +205,7 @@ export const testToJsfunc = async(
           }
         };
         validateOutputMap(step.expect, 'expect');
+        validateOutputMap(step.require, 'require');
         if (step.debug !== true) {
           validateOutputMap(step.debug, 'debug');
         }

@@ -24,7 +24,7 @@ Shows how to **chain API calls** — the output of one call feeds into the next.
 ## Key concepts
 
 - **Step output chaining** — `${auth.token}` and `${auth.user_id}` read values from the `login` call result.
-- **Test outputs** — the test declares top-level `outputs` (`session_token`, `user_id`) and fills them with `set` so they can be reused later in the flow.
+- **Test outputs** — the test declares top-level `outputs` (`session_token`, `user_id`) and fills them with `set` keys `o:session_token` / `o:user_id` so later steps can read `o:…` (same as `${outputs.…}`).
 - **`setenv`** — promotes `${auth.token}` into the environment as `auth_token` so downstream APIs or tests can use `e:auth_token` or `<<e:auth_token>>`.
 - **Inline `expect`** — validates outputs directly on a `call` step without a separate `assert`/`check`. In this example it checks that `token` and `name` are not null.
 
@@ -32,9 +32,9 @@ Shows how to **chain API calls** — the output of one call feeds into the next.
 
 1. `login` is called with `username` and `password` inputs.
 2. The call verifies `token: != null` with inline `expect`.
-3. `set` copies `${auth.token}` and `${auth.user_id}` into the test outputs `session_token` and `user_id`.
+3. `set` writes `o:session_token` / `o:user_id` from `${auth.token}` / `${auth.user_id}`.
 4. `setenv` promotes the token as `auth_token`.
-5. `getProfile` is called with `${session_token}` and `${user_id}`.
+5. `getProfile` is called with `o:session_token` and `o:user_id`.
 6. The second call verifies `name: != null` with inline `expect`.
 
 ## How to use

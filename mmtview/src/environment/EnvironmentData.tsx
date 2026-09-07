@@ -63,9 +63,14 @@ export interface EnvOption {
   value: JSONValue;
 }
 
+/** Where an environment variable came from (for panel icons). */
+export type EnvVarSource = 'file' | 'manual' | 'runtime';
+
 export interface EnvVariable {
   name: string;
   label: string;
   value: JSONValue;
   options: EnvOption[];
+  /** Origin used for env-panel icons: file / manual / runtime (setenv). */
+  source?: EnvVarSource;
 }

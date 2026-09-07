@@ -228,6 +228,14 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
             case 'repeat': return { repeat: '2' };
             case 'delay': return { delay: '1s' };
             case 'run': return { run: '' };
+            case 'judge': return {
+                judge: '',
+                context: { actual: '', question: '' },
+                expect: {
+                    answerRelevance: 0.8,
+                    semanticSimilarity: 0.8,
+                },
+            };
             case 'stage': return { id: 'stage_1', steps: [{ print: 'stage 1' }] };
             default: return { print: '' };
         }
@@ -707,7 +715,7 @@ const isTypeFolder = (type: FlowType | unknown): boolean => {
 }
 
 const isExpandable = (type: FlowType | unknown): boolean => {
-    return type === "print" || type === "js" || type === "call" || type === "http" || type === "check" || type === "assert" || type === 'setenv' || type === 'stage';
+    return type === "print" || type === "js" || type === "call" || type === "http" || type === "check" || type === "assert" || type === "judge" || type === 'setenv' || type === 'stage';
 }
 
 export default TestFlow;

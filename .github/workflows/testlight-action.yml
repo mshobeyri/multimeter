@@ -27,6 +27,9 @@ jobs:
           file: examples/basic/04_basic_suite/suite.mmt
           report: junit
           report-file: results/junit.xml
+          # Use a published npm build. The Action default is the repo version,
+          # which is not on npm until the release job finishes.
+          version: latest
 
       - name: Upload JUnit report
         if: always()

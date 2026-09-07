@@ -1,27 +1,11 @@
-export type TempMmtType =
-    'api'|'test'|'suite'|'env'|'loadtest'|'doc'|'server'|'report'|null;
+import {
+  isMmtFileType,
+  MmtFileType,
+  mmtFileTypeColor,
+  mmtFileTypeIcon,
+} from 'mmt-core/mmtFileType';
 
-export const TEMP_TYPE_ICONS: Record<Exclude<TempMmtType, null>, string> = {
-  api: 'symbol-method',
-  env: 'server-environment',
-  test: 'beaker',
-  suite: 'layers',
-  loadtest: 'dashboard',
-  doc: 'book',
-  server: 'server',
-  report: 'file-text',
-};
-
-export const TEMP_TYPE_COLORS: Record<Exclude<TempMmtType, null>, string> = {
-  api: '#1f6feb',
-  env: '#8957e5',
-  test: '#3fb950',
-  suite: '#58a6ff',
-  loadtest: '#db6d28',
-  doc: '#d4a72c',
-  server: '#39c5cf',
-  report: '#a371f7',
-};
+export type TempMmtType = MmtFileType|null;
 
 export interface TempFileMeta {
   type: TempMmtType;
@@ -29,10 +13,6 @@ export interface TempFileMeta {
   icon: string;
   color: string;
 }
-
-const KNOWN_TYPES = new Set<Exclude<TempMmtType, null>>([
-  'api', 'test', 'suite', 'env', 'loadtest', 'doc', 'server', 'report',
-]);
 
 export function parseTempFileMeta(
     content: string, fallbackTitle = 'Untitled'): TempFileMeta {
@@ -45,8 +25,8 @@ export function parseTempFileMeta(
   return {
     type,
     title,
-    icon: TEMP_TYPE_ICONS[type],
-    color: TEMP_TYPE_COLORS[type],
+    icon: mmtFileTypeIcon(type),
+    color: mmtFileTypeColor(type),
   };
 }
 
@@ -56,10 +36,7 @@ export function parseType(content: string): TempMmtType {
     return null;
   }
   const value = match[1].toLowerCase();
-  if (!KNOWN_TYPES.has(value as Exclude<TempMmtType, null>)) {
-    return null;
-  }
-  return value as Exclude<TempMmtType, null>;
+  return isMmtFileType(value) ? value : null;
 }
 
 export function parseTitle(content: string): string|null {

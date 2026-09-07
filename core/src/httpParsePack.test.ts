@@ -153,8 +153,8 @@ Content-Type: application/json
     expect(test.steps?.[0]).toMatchObject({
       expect: {
         status: '== 201',
-        'body.name': '== Mehrdad',
-        'body.email': '== mehrdad@example.com',
+        'body.name': '== "Mehrdad"',
+        'body.email': '== "mehrdad@example.com"',
         'body.id': '!= undefined',
       },
     });
@@ -400,7 +400,7 @@ Authorization: Bearer {{authToken}}
         'Content-Type': 'application/json',
         Authorization: 'Bearer <<e:authToken>>',
       },
-      expect: {status: '== 201', 'body.name': '== Ali'},
+      expect: {status: '== 201', 'body.name': '== "Ali"'},
     });
     expect(test.steps?.[3]).toEqual({setenv: {userId: '${request_2.body.id}'}});
     expect(test.steps?.[4]).toMatchObject({
@@ -413,7 +413,7 @@ Authorization: Bearer {{authToken}}
       http: 'https://test.mmt.dev/echo/<<e:userId>>',
       method: 'patch',
       body: {name: 'Ali Updated'},
-      expect: {status: '== 200', 'body.name': '== Ali Updated'},
+      expect: {status: '== 200', 'body.name': '== "Ali Updated"'},
     });
     expect(test.steps?.[6]).toMatchObject({
       http: 'https://test.mmt.dev/echo/<<e:userId>>',
@@ -510,7 +510,7 @@ DELETE {{baseUrl}}/posts/{{postId}}
         body: 'This is a test post',
         userId: 1,
       },
-      expect: {status: '== 201', 'body.title': '== Hello World'},
+      expect: {status: '== 201', 'body.title': '== "Hello World"'},
     });
     expect(test.steps?.[1]).toEqual({setenv: {postId: '${request_1.body.id}'}});
     expect(test.steps?.[2]).toMatchObject({

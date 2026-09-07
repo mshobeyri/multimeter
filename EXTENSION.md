@@ -117,7 +117,7 @@ GitHub Actions:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: mshobeyri/multimeter/.github/actions/testlight@main
+- uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt
     report: junit
