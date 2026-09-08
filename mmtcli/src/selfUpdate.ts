@@ -107,11 +107,21 @@ export function detectPlatform(
   return `${osName}-${arch}` as UpdatePlatform;
 }
 
+function isSeaBinary(): boolean {
+  try {
+    // Node 20+ official SEA (used by @yao-pkg/pkg --sea). Not set for vercel/pkg.
+    const sea = require('node:sea') as {isSea?: () => boolean};
+    return typeof sea.isSea === 'function' && sea.isSea();
+  } catch {
+    return false;
+  }
+}
+
 export function detectInstallChannel(execPath: string, scriptPath?: string):
     InstallChannel {
   const exec = execPath.replace(/\\/g, '/');
   const script = (scriptPath || '').replace(/\\/g, '/');
-  if ((process as any).pkg) {
+  if ((process as any).pkg || isSeaBinary()) {
     return 'standalone';
   }
   if (/\/Cellar\/mmt-testlight\//i.test(exec) ||

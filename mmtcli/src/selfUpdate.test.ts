@@ -1,3 +1,7 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import {execFileSync} from 'child_process';
 import {
   buildDownloadUrl,
   compareVersions,
@@ -5,6 +9,7 @@ import {
   detectPlatform,
   normalizeVersion,
   planUpdate,
+  runUpdate,
 } from './selfUpdate';
 
 describe('selfUpdate helpers', () => {
@@ -31,6 +36,7 @@ describe('selfUpdate helpers', () => {
                '/usr/local/bin/node',
                '/usr/local/lib/node_modules/mmt-testlight/dist/cli.js'))
         .toBe('npm');
+    expect(detectInstallChannel('/Applications/testlight')).toBe('standalone');
   });
 
   it('builds github and portal download urls', () => {
@@ -75,5 +81,42 @@ describe('selfUpdate helpers', () => {
     });
     expect(plan.action).toBe('download');
     expect(plan.downloadUrl).toContain('/v1.2.3/testlight-');
+  });
+
+  it('replaces a standalone binary from a downloaded archive', async () => {
+    if (process.platform === 'win32') {
+      return;
+    }
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'testlight-update-test-'));
+    try {
+      const installDir = path.join(tmp, 'install');
+      const payloadDir = path.join(tmp, 'payload');
+      fs.mkdirSync(installDir);
+      fs.mkdirSync(payloadDir);
+      const current = path.join(installDir, 'testlight');
+      fs.writeFileSync(current, 'OLD');
+      fs.chmodSync(current, 0o755);
+      fs.writeFileSync(path.join(payloadDir, 'testlight'), 'NEW');
+      const archive = path.join(tmp, 'pkg.tar.gz');
+      execFileSync('tar', ['-czf', archive, '-C', payloadDir, 'testlight']);
+
+      const result = await runUpdate({
+        currentVersion: '1.0.0',
+        version: '1.2.3',
+        execPath: current,
+        fetchJson: async () => ({tag_name: 'v1.2.3'}),
+        downloadToFile: async (_url, dest) => {
+          fs.copyFileSync(archive, dest);
+        },
+        log: () => {},
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.updated).toBe(true);
+      expect(fs.readFileSync(current, 'utf8')).toBe('NEW');
+      expect(fs.lstatSync(path.join(installDir, 'mmt')).isSymbolicLink()).toBe(true);
+    } finally {
+      fs.rmSync(tmp, {recursive: true, force: true});
+    }
   });
 });

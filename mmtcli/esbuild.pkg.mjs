@@ -27,6 +27,7 @@ await esbuild.build({
   format: 'cjs',
   outfile: 'dist-cjs/pkg-bundle.cjs',
   plugins: [mmtCorePlugin],
+  resolveExtensions: ['.ts', '.js', '.cjs', '.mjs', '.json'],
   // Native addons + reflection protos stay on disk for pkg to embed.
   external: [
     '@grpc/grpc-js',

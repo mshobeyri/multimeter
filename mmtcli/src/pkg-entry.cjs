@@ -547,6 +547,7 @@ function printHelp() {
 	const commands = formatHelpRows([
 		['run [options] <file>', 'Run a .mmt file'],
 		['print-js [options] <file>', 'Print generated JS for a test'],
+		['update [options]', 'Update this standalone binary from GitHub Releases'],
 		['debug-resolve', 'Print pkg module resolution info'],
 	]);
 	const options = formatHelpRows([
@@ -569,6 +570,8 @@ function printHelp() {
 		['testlight run path/to/test.mmt'],
 		['testlight run path/to/test.mmt -e api_url=https://test.mmt.dev -q'],
 		['testlight print-js path/to/test.mmt'],
+		['testlight update'],
+		['testlight update --check'],
 	], '  ', 0);
 	const out = [
 		'Usage: testlight <command> [options]',
@@ -639,6 +642,35 @@ function printPrintJsHelp() {
 		'',
 		'Options:',
 		...options,
+	].join('\n');
+	process.stdout.write(out + '\n');
+}
+
+function printUpdateHelp() {
+	const options = formatHelpRows([
+		['-h, --help', 'Show help'],
+		['--check', 'Only check whether an update is available'],
+		['--to <version>', 'Install a specific version (e.g. 1.38.1)'],
+		['--channel <name>', 'Latest matching channel (beta, rc, prerelease)'],
+		['--force', 'Reinstall even when already newest'],
+		['--repo <owner/name>', 'GitHub repo (default: mshobeyri/multimeter)'],
+		['--base-url <url>', 'Portal/mirror base URL'],
+	]);
+	const examples = formatHelpRows([
+		['testlight update'],
+		['testlight update --check'],
+		['testlight update --to 1.38.1'],
+	], '  ', 0);
+	const out = [
+		'Usage: testlight update [options]',
+		'',
+		'Update this standalone binary from GitHub Releases (or a portal mirror)',
+		'',
+		'Options:',
+		...options,
+		'',
+		'Examples:',
+		...examples,
 	].join('\n');
 	process.stdout.write(out + '\n');
 }
@@ -919,6 +951,53 @@ function parsePrintJsArgv(argv) {
 	return { filePath, opts };
 }
 
+function parseUpdateArgv(argv) {
+	const opts = {
+		check: false,
+		to: undefined,
+		channel: undefined,
+		force: false,
+		repo: undefined,
+		baseUrl: undefined,
+		help: false,
+	};
+	for (let i = 1; i < argv.length; i++) {
+		const a = argv[i];
+		if (!a) {
+			continue;
+		}
+		if (a === '-h' || a === '--help') {
+			opts.help = true;
+			continue;
+		}
+		if (a === '--check') {
+			opts.check = true;
+			continue;
+		}
+		if (a === '--force') {
+			opts.force = true;
+			continue;
+		}
+		if (a === '--to') {
+			opts.to = argv[++i];
+			continue;
+		}
+		if (a === '--channel') {
+			opts.channel = argv[++i];
+			continue;
+		}
+		if (a === '--repo') {
+			opts.repo = argv[++i];
+			continue;
+		}
+		if (a === '--base-url') {
+			opts.baseUrl = argv[++i];
+			continue;
+		}
+	}
+	return opts;
+}
+
 function parseLogLevel(argv) {
 	for (let i = 1; i < argv.length; i++) {
 		const a = argv[i];
@@ -1021,6 +1100,39 @@ async function main() {
 		const jsRunner = createPkgJsRunner();
 		msgs.push(`jsRunner.runJSCode: ${typeof jsRunner.runJSCode}`);
 		process.stdout.write(msgs.join('\n') + '\n');
+		return;
+	}
+	if (command === 'update') {
+		const parsed = parseUpdateArgv(argv);
+		if (parsed.help) {
+			printUpdateHelp();
+			return;
+		}
+		let currentVersion = '';
+		try {
+			currentVersion = String(require('../package.json').version || '');
+		} catch {
+			currentVersion = '';
+		}
+		try {
+			const {runUpdate} = require('./selfUpdate');
+			const result = await runUpdate({
+				currentVersion,
+				checkOnly: !!parsed.check,
+				version: parsed.to,
+				channel: parsed.channel,
+				force: !!parsed.force,
+				repo: parsed.repo,
+				releaseBaseUrl: parsed.baseUrl,
+			});
+			process.stdout.write(String(result.message || '') + '\n');
+			if (!result.ok) {
+				process.exitCode = 2;
+			}
+		} catch (e) {
+			process.stderr.write(`Error updating testlight: ${e && e.message ? e.message : e}\n`);
+			process.exitCode = 2;
+		}
 		return;
 	}
 	if (command !== 'run' && command !== 'print-js') {
