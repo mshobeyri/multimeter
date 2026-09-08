@@ -10,6 +10,7 @@ Comprehensive reference for building, packaging, and publishing Multimeter acros
 |---|---|---|---|
 | **VS Code Extension** | `multimeter-X.Y.Z.vsix` | [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) | `mshobeyri.multimeter` |
 | **npm** | `mmt-testlight` | [npmjs.com](https://www.npmjs.com/package/mmt-testlight) | `mmt-testlight` |
+| **npm** | `mmt-mcp` | [npmjs.com](https://www.npmjs.com/package/mmt-mcp) | `mmt-mcp` |
 | **Docker** | `mshobeyri/mmt-testlight` | [Docker Hub](https://hub.docker.com/r/mshobeyri/mmt-testlight) | `mshobeyri/mmt-testlight` |
 | **Homebrew** | `mmt-testlight` formula | [mshobeyri/multimeter tap](https://github.com/mshobeyri/homebrew-multimeter) | `mshobeyri/multimeter/mmt-testlight` |
 | **GitHub Releases** | Platform binaries + checksums | [GitHub](https://github.com/mshobeyri/multimeter/releases) | Tag: `vX.Y.Z` |
@@ -108,8 +109,8 @@ cd mmtcli && npm run build   # bundle CLI with esbuild
 cd mmtcli && npm publish --access public
 
 # Pre-release (tagged)
-cd mmtcli && npm publish --access public --tag beta
-cd mmtcli && npm publish --access public --tag rc
+cd mmtcli && npm publish --access public --tag pre
+cd mmtmcp && npm publish --access public --tag pre
 ```
 
 ### Tokens / Secrets
@@ -475,7 +476,7 @@ VERSION=0.4.0-beta.1 ./scripts/release-testlight.sh --publish --pre-release
 | `.dockerignore` | Excludes host artifacts from Docker build context |
 | `.vscodeignore` | Excludes dev files from `.vsix` package |
 | `.cursor-plugin/plugin.json` | Cursor plugin manifest (version must match extension) |
-| `mcp.json` | Cursor plugin MCP server entry (`@mmt/mcp`) |
+| `mcp.json` | Cursor plugin MCP server entry (`mmt-mcp`) |
 | `commands/` | Cursor/VS Code agent prompt commands |
 | `rules/` | Cursor rules + Copilot chat instructions |
 | `AI/skills/` | Local/dev agent skills and procedures as flat `.md` files (LinkedIn/YouTube posts, release & deploy); not part of the published Cursor plugin |

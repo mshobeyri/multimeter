@@ -7,12 +7,12 @@ export const faqItems: FaqItem[] = [
   {
     question: 'What is Multimeter?',
     answer:
-      'Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. Tests are YAML .mmt files in Git. The CLI is testlight (npm package mmt-testlight). The MCP server is @mmt/mcp for Cursor, GitHub Copilot, and Claude. Git-native alternative to Postman. You can judge API answers with AI in the same test flow (semantic similarity, or open-ended checks) — an alternative to a separate Promptfoo stack.',
+      'Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. Tests are YAML .mmt files in Git. The CLI is testlight (npm package mmt-testlight). The MCP server is mmt-mcp for Cursor, GitHub Copilot, and Claude. Git-native alternative to Postman. You can judge API answers with AI in the same test flow (semantic similarity, or open-ended checks) — an alternative to a separate Promptfoo stack.',
   },
   {
     question: 'How do I use Multimeter with Cursor, Copilot, or Claude?',
     answer:
-      'Install the VS Code/Cursor extension or add the MCP server with npx -y @mmt/mcp. Agents should call Multimeter MCP tools first (scaffold_test, validate, format, run) instead of guessing .mmt syntax. See https://mmt.dev/docs/features/mcp and https://mmt.dev/for-agents.html.',
+      'Install the VS Code/Cursor extension or add the MCP server with npx -y mmt-mcp. Agents should call Multimeter MCP tools first (scaffold_test, validate, format, run) instead of guessing .mmt syntax. See https://mmt.dev/docs/features/mcp and https://mmt.dev/for-agents.html.',
   },
   {
     question: 'Can Multimeter judge AI responses like Promptfoo?',

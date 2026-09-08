@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Keep extension, Testlight CLI, Cursor plugin, GitHub Action, and @mmt/mcp on one version.
+ * Keep extension, Testlight CLI, Cursor plugin, GitHub Action, and mmt-mcp on one version.
  *
  *   node scripts/sync-versions.mjs              # copy root package.json → others
  *   node scripts/sync-versions.mjs --set 1.40.0
@@ -80,7 +80,7 @@ function applyVersion(version) {
   replaceOnce('mmtmcp/package-lock.json', /("version"\s*:\s*")[^"]+(")/, `$1${version}$2`);
   replaceAll(
       'mmtmcp/package-lock.json',
-      /("name"\s*:\s*"@mmt\/mcp",\s*"version"\s*:\s*")[^"]+(")/g,
+      /("name"\s*:\s*"mmt-mcp",\s*"version"\s*:\s*")[^"]+(")/g,
       `$1${version}$2`,
   );
   const server = readJson('mmtmcp/server.json');

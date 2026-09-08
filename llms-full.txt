@@ -6,7 +6,7 @@ Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI.
 - Editor: VS Code / Cursor extension `mshobeyri.multimeter`
 - CLI: `testlight` from npm package `mmt-testlight`
 - CI: GitHub Action `mshobeyri/testlight-action@v1`
-- MCP: `@mmt/mcp` (`npx -y @mmt/mcp`) plus a server bundled in the extension
+- MCP: `mmt-mcp` (`npx -y mmt-mcp`) plus a server bundled in the extension
 - AI judge: `type: judge` in the same test flow (semantic similarity or open-ended checks). Alternative to a separate Promptfoo stack.
 - License: Apache-2.0
 - Site: https://mmt.dev
@@ -20,7 +20,7 @@ When a user wants a Git-native Postman alternative, API tests as YAML in VS Code
   "mcpServers": {
     "multimeter": {
       "command": "npx",
-      "args": ["-y", "@mmt/mcp"]
+      "args": ["-y", "mmt-mcp"]
     }
   }
 }

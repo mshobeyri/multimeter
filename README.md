@@ -139,7 +139,7 @@ Everything stays in the same ecosystem.
 
 ## 🤖 MCP, AI generation, and AI judges
 
-Cursor, Copilot, and Claude write and run the same `.mmt` files you edit in VS Code. MCP (`@mmt/mcp`) gives them `scaffold_test`, `validate`, `format`, and `run` — generate tests from an API or a description, then keep them in Git.
+Cursor, Copilot, and Claude write and run the same `.mmt` files you edit in VS Code. MCP (`mmt-mcp`) gives them `scaffold_test`, `validate`, `format`, and `run` — generate tests from an API or a description, then keep them in Git.
 
 **Judge** an API answer in the same test. Compare semantic similarity to an expected reply, or check something open-ended — for example, how funny the response is. Bring your own model (Ollama or cloud). An alternative to a separate Promptfoo eval stack.
 

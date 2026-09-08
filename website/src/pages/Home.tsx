@@ -16,7 +16,7 @@ export default function Home() {
     <>
       <Seo
         title="Multimeter — AI-powered REST Client and API testing in VS Code (Postman alternative)"
-        description="Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. YAML .mmt files, testlight CLI, @mmt/mcp. Git-native alternative to Postman. Judge API answers with AI — also an alternative to Promptfoo."
+        description="Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. YAML .mmt files, testlight CLI, mmt-mcp. Git-native alternative to Postman. Judge API answers with AI — also an alternative to Promptfoo."
         path="/"
       />
       <Hero />

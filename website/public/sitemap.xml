@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://mmt.dev/</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/.well-known/llms.txt</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/compare</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/compare/bruno</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/compare/postman</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/compare/promptfoo</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/compare/rest-client</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/compare/thunder-client</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/demos</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/docs/examples</loc><lastmod>2026-09-07</lastmod></url>
+  <url><loc>https://mmt.dev/</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/.well-known/llms.txt</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/compare</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/compare/bruno</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/compare/postman</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/compare/promptfoo</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/compare/rest-client</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/compare/thunder-client</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/demos</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/docs/examples</loc><lastmod>2026-09-08</lastmod></url>
   <url><loc>https://mmt.dev/docs/examples/basic/01_simple_api</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/examples/basic/02_simple_test</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/examples/basic/03_environment_variables</loc><lastmod>2026-08-02</lastmod></url>
@@ -73,14 +73,14 @@
   <url><loc>https://mmt.dev/docs/features/logging/test-logging</loc><lastmod>2026-09-07</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/logging/tips</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/logging/where-logs-appear</loc><lastmod>2026-08-02</lastmod></url>
-  <url><loc>https://mmt.dev/docs/features/mcp</loc><lastmod>2026-09-07</lastmod></url>
+  <url><loc>https://mmt.dev/docs/features/mcp</loc><lastmod>2026-09-08</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/mcp/architecture</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/mcp/copilot-workflow</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/mcp/development</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/mcp/environment-variables</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/mcp/install-vs-code-copilot</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/mcp/mcp-tools</loc><lastmod>2026-08-07</lastmod></url>
-  <url><loc>https://mmt.dev/docs/features/mcp/other-mcp-clients</loc><lastmod>2026-09-07</lastmod></url>
+  <url><loc>https://mmt.dev/docs/features/mcp/other-mcp-clients</loc><lastmod>2026-09-08</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/mcp/running-a-mmt-file-important</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/testlight</loc><lastmod>2026-08-08</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/testlight/commands</loc><lastmod>2026-09-07</lastmod></url>
@@ -211,11 +211,11 @@
   <url><loc>https://mmt.dev/docs/tasks/send-api-request</loc><lastmod>2026-08-18</lastmod></url>
   <url><loc>https://mmt.dev/docs/tasks/use-environments</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/tasks/write-test-flow</loc><lastmod>2026-08-02</lastmod></url>
-  <url><loc>https://mmt.dev/downloads</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/for-agents.html</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/llms-full.txt</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/llms.txt</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/roadmap</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/test-server</loc><lastmod>2026-09-07</lastmod></url>
-  <url><loc>https://mmt.dev/tutorials</loc><lastmod>2026-09-07</lastmod></url>
+  <url><loc>https://mmt.dev/downloads</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/for-agents.html</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/llms-full.txt</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/llms.txt</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/roadmap</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/test-server</loc><lastmod>2026-09-08</lastmod></url>
+  <url><loc>https://mmt.dev/tutorials</loc><lastmod>2026-09-08</lastmod></url>
 </urlset>

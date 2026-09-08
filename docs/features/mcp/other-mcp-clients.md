@@ -13,7 +13,7 @@ Project file `.cursor/mcp.json` (this repo already includes one):
   "mcpServers": {
     "multimeter": {
       "command": "npx",
-      "args": ["-y", "@mmt/mcp"]
+      "args": ["-y", "mmt-mcp"]
     }
   }
 }
@@ -29,7 +29,7 @@ The extension bundles the MCP server. Enable **Multimeter** in Copilot agent MCP
 
 ## Claude (Claude Code / MCP-compatible clients)
 
-Use the same `npx -y @mmt/mcp` stdio server. Point the client at that command. Then follow the same tool order: `scaffold_test` → `validate` → `format` → `run` only if asked.
+Use the same `npx -y mmt-mcp` stdio server. Point the client at that command. Then follow the same tool order: `scaffold_test` → `validate` → `format` → `run` only if asked.
 
 ## Manual / local build
 

@@ -198,16 +198,30 @@ jobs:
           cd ../mmtcli && npm ci && npm run build
           cd ../mmtmcp && npm ci && npm run build
 
-      - name: Publish mmt-testlight
-        continue-on-error: true
-        run: cd mmtcli && npm publish --access public --tag ${{ needs.channel.outputs.npm_tag }}
+      - name: Publish mmt-testlight and mmt-mcp
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish @mmt/mcp
-        run: cd mmtmcp && npm publish --access public --tag ${{ needs.channel.outputs.npm_tag }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ needs.channel.outputs.npm_tag }}
+        run: |
+          publish() {
+            local dir="$1"
+            local name="$2"
+            local version
+            version="$(node -p "require('./${dir}/package.json').version")"
+            echo "Publishing ${name}@${version} (tag ${NPM_TAG})"
+            if (cd "$dir" && npm publish --access public --tag "$NPM_TAG"); then
+              echo "Published ${name}@${version}"
+              return 0
+            fi
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} already on npm; skipping"
+              return 0
+            fi
+            echo "Failed to publish ${name}@${version}"
+            return 1
+          }
+          publish mmtcli mmt-testlight
+          publish mmtmcp mmt-mcp
 
   # ── GitHub Release ────────────────────────────────────────────────
   release:
@@ -246,7 +260,7 @@ jobs:
               echo
               echo '```sh'
               echo "npm install -g mmt-testlight@${CHANNEL}"
-              echo "npx -y @mmt/mcp@${CHANNEL}"
+              echo "npx -y mmt-mcp@${CHANNEL}"
               echo "docker pull mshobeyri/mmt-testlight:${CHANNEL}"
               echo "CHANNEL=${CHANNEL} curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash"
               echo '```'
@@ -255,7 +269,7 @@ jobs:
               echo
               echo '```sh'
               echo 'npm install -g mmt-testlight'
-              echo 'npx -y @mmt/mcp'
+              echo 'npx -y mmt-mcp'
               echo 'docker pull mshobeyri/mmt-testlight:latest'
               echo 'curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash'
               echo '```'
