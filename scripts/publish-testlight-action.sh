@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${VERSION:-$(node -p "require('$REPO_ROOT/package.json').version")}"
+VERSION="${VERSION:-$(node -p "require('$REPO_ROOT/mmtcli/package.json').version")}"
 PRERELEASE="${PRERELEASE:-}"
 ACTION_REPO="${ACTION_REPO:-mshobeyri/testlight-action}"
 
@@ -57,7 +57,7 @@ Run Multimeter (\`.mmt\`) API tests, test suites, and generate documentation in 
 
 Docs: [Install Testlight](https://mmt.dev/docs/features/testlight/install) · [Run in CI](https://mmt.dev/docs/tasks/run-in-ci)
 
-The \`version\` input defaults to \`${VERSION}\` so the Action installs matching \`mmt-testlight@${VERSION}\`.
+The \`version\` input defaults to \`latest\`. Pass \`pre\` or \`X.Y.Z\` to pin \`mmt-testlight\`.
 EOF
 
 cd "$WORKDIR/action"

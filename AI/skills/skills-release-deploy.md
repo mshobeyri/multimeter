@@ -1,494 +1,52 @@
-# Release & Deployment Skills
+# Release & deploy
 
-Comprehensive reference for building, packaging, and publishing Multimeter across all supported platforms and channels.
+## Versions
 
----
+Only these files are bumped:
 
-## Overview of Distribution Channels
-
-| Channel | Package / Artifact | Registry / Host | Identifier |
-|---|---|---|---|
-| **VS Code Extension** | `multimeter-X.Y.Z.vsix` | [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) | `mshobeyri.multimeter` |
-| **npm** | `mmt-testlight` | [npmjs.com](https://www.npmjs.com/package/mmt-testlight) | `mmt-testlight` |
-| **npm** | `mmt-mcp` | [npmjs.com](https://www.npmjs.com/package/mmt-mcp) | `mmt-mcp` |
-| **Docker** | `mshobeyri/mmt-testlight` | [Docker Hub](https://hub.docker.com/r/mshobeyri/mmt-testlight) | `mshobeyri/mmt-testlight` |
-| **Homebrew** | `mmt-testlight` formula | [mshobeyri/multimeter tap](https://github.com/mshobeyri/homebrew-multimeter) | `mshobeyri/multimeter/mmt-testlight` |
-| **GitHub Releases** | Platform binaries + checksums | [GitHub](https://github.com/mshobeyri/multimeter/releases) | Tag: `vX.Y.Z` |
-| **GitHub Action** | Composite action | [mshobeyri/testlight-action](https://github.com/mshobeyri/testlight-action) (source copy in `.github/actions/testlight/`) | `mshobeyri/testlight-action@v1` |
-| **One-line installer** | Shell script | Raw GitHub URL | `scripts/install-testlight.sh` |
-| **Standalone binaries** | macOS x64/arm64, Linux x64/arm64, Windows x64 | GitHub Releases | `testlight-<platform>.<ext>` (versionless; version is the release tag) |
-
----
-
-## Version Tracking
-
-Versions live in these places that must stay in sync for an extension release:
-
-| File | Field | Scope |
+| File | Stable `release X.Y.Z` | Pre-release |
 |---|---|---|
-| `package.json` (root) | `"version"` | Source of truth (extension + Testlight + Action) |
-| `.cursor-plugin/plugin.json` | `"version"` | Cursor plugin marketplace manifest |
-| `mmtcli/package.json` | `"version"` | CLI (`mmt-testlight` on npm, Docker, binaries) |
-| `.github/actions/testlight/action.yml` | `version` default | GitHub Action installs this CLI version |
-| `packaging/homebrew/mmt-testlight.rb` | `version` + `sha256` hashes | Homebrew formula (updated after binary checksums) |
+| `package.json` (VS Code extension) | `X.Y.Z` | `X.Y.Z` (Marketplace forbids `-pre`) |
+| `mmtcli/package.json` | `X.Y.Z` | `X.Y.Z-pre` |
+| `mmtmcp/package.json` | `X.Y.Z` | `X.Y.Z-pre` |
 
-Keep them aligned with `npm run sync-versions` or `node scripts/sync-versions.mjs --set X.Y.Z`. CI checks this on `dev`/`main` and on `v*` tags.
-
-A plain `X.Y.Z` tag is stable. Pre-release is **only** `-pre` (or `-pre.1`). Do not infer channel from a `.0` patch.
-
-On **"release version X.Y.Z"** or **"release version X.Y.Z-pre"**:
-
-1. `node scripts/sync-versions.mjs --set X.Y.Z` (or `X.Y.Z-pre`)
-2. Add `## [X.Y.Z]` to `CHANGELOG.md`
-3. Commit `Release version X.Y.Z` and push the branch
-4. Push the matching tag (`git tag vX.Y.Z && git push origin vX.Y.Z`)
-
-**Release testlight** runs only on `v*` tags. One tag is one channel for every app:
-
-| Tag | npm | Docker | Marketplace | GitHub / Action | Homebrew |
-|---|---|---|---|---|---|
-| `vX.Y.Z` | `@latest` | `:latest` | `X.Y.Z` stable | latest + `@v1` | formula after checksums |
-| `vX.Y.Z-pre` | `@pre` | `:pre` | `X.Y.Z` pre-release (`--pre-release`) | prerelease (no `@v1` move) | unchanged |
-
-Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`. Changelog edits do not publish.
-
----
-
-## 1. VS Code Extension
-
-### Build
+- **release X.Y.Z** → all three are `X.Y.Z`, tag `vX.Y.Z` (stable).
+- **pre-release X.Y.Z** → extension `X.Y.Z`, CLI and MCP `X.Y.Z-pre`, tag `vX.Y.Z-pre`.
 
 ```bash
-npm run compile          # full build: core → webview → extension typecheck + lint + esbuild
-npm run pack             # produces multimeter-X.Y.Z.vsix (uses EXTENSION.md as marketplace readme)
-npm run pack-pre-release # for pre-release builds
+node scripts/sync-versions.mjs --set 1.42.3      # or 1.42.3-pre
+# CHANGELOG.md → ## [1.42.3] or ## [1.42.3-pre]
+# commit: Release version 1.42.3   (or 1.42.3-pre)
+git tag v1.42.3 && git push origin v1.42.3       # or v1.42.3-pre
 ```
 
-Do **not** run bare `vsce package` — it packages the wrong readme (`readme.md` instead of `EXTENSION.md`).
+CI (`.github/workflows/release-testlight.yml`) publishes from the tag.
 
-### Publish
+| Tag | npm | Docker | Marketplace | GitHub |
+|---|---|---|---|---|
+| `vX.Y.Z` | `@latest` | `:latest` | `X.Y.Z` stable | latest + `@v1` |
+| `vX.Y.Z-pre` | `@pre` | `:pre` | `X.Y.Z` + `--pre-release` | prerelease |
+
+Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`. Missing secrets skip that job.
+
+Do not put versions in comments, READMEs, the GitHub Action default, or website copy. Do not bump lockfiles, `.cursor-plugin/plugin.json`, or `mmtmcp/server.json` as part of a release.
+
+## Pack (optional, local)
+
+Root `package.json` is already `X.Y.Z`. Use `EXTENSION.md` as the readme.
 
 ```bash
-# Login once (needs a Personal Access Token from https://dev.azure.com)
-vsce login mshobeyri
-
-# Publish stable
-vsce publish
-
-# Publish pre-release
-vsce publish --pre-release
+npm run pack              # stable
+npm run pack-pre-release  # same version, --pre-release flag
 ```
 
-### Tokens / Secrets
+## Binaries
 
-| Secret | Where | Purpose |
-|---|---|---|
-| Azure DevOps PAT | Local / CI | `vsce login` and `vsce publish` |
+`@yao-pkg/pkg` SEA, Node 22, bundle via `mmtcli/esbuild.pkg.mjs`. Host Node ≥ 22. From `mmtcli`: `npm exec --no -- pkg` (not `npx pkg`). Windows icon: `scripts/apply-windows-icon.mjs` after pack. Layout: `bin/<platform>/testlight`.
 
-### Notes
+## Other channels
 
-- The `.vscodeignore` file controls what goes into the `.vsix`. Verify excluded folders after adding new top-level dirs.
-- Always run `npm run compile` successfully before packaging.
-- The `"version"` in root `package.json` is the extension version shown in Marketplace.
-
----
-
-## 2. npm (`mmt-testlight`)
-
-### Build
-
-```bash
-cd core && npm run build     # compile core TypeScript
-cd mmtcli && npm run build   # bundle CLI with esbuild
-```
-
-### Publish
-
-```bash
-# Stable
-cd mmtcli && npm publish --access public
-
-# Pre-release (tagged)
-cd mmtcli && npm publish --access public --tag pre
-cd mmtmcp && npm publish --access public --tag pre
-```
-
-### Tokens / Secrets
-
-| Secret | Where | Purpose |
-|---|---|---|
-| `NPM_TOKEN` | GitHub Actions secret | `npm publish` in CI (legacy token path) |
-| `~/.npmrc` | Local | `npm login` stores auth locally |
-
-### Preferred: Trusted Publishing (OIDC, no token)
-
-npm supports [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) so CI can publish without a long-lived `NPM_TOKEN`:
-
-1. On npmjs.com → package **mmt-testlight** → **Settings → Trusted Publisher** → GitHub Actions:
-   - Organization or user: `mshobeyri`
-   - Repository: `multimeter`
-   - Workflow filename: `release-testlight.yml` (filename only)
-   - Environment name: leave blank (unless the npm job uses a GitHub Environment)
-2. In the workflow npm job: `permissions: id-token: write`, Node ≥ 22.14, npm ≥ 11.5.1, and **no** `NODE_AUTH_TOKEN` / `NPM_TOKEN` on the publish step.
-3. Optionally add `"repository": { "url": "https://github.com/mshobeyri/multimeter.git" }` to `mmtcli/package.json` for provenance.
-
-Until OIDC is wired in the workflow, CI still uses `secrets.NPM_TOKEN`.
-
-### Verify
-
-```bash
-npm view mmt-testlight version           # latest stable
-npm view mmt-testlight dist-tags         # all tags (latest, beta, rc)
-npx mmt-testlight --version              # quick test
-```
-
----
-
-## 3. Docker (`mshobeyri/mmt-testlight`)
-
-### Build
-
-```bash
-docker build -t mshobeyri/mmt-testlight:latest .
-docker tag mshobeyri/mmt-testlight:latest mshobeyri/mmt-testlight:X.Y.Z
-```
-
-### Push
-
-```bash
-docker login                             # interactive login
-docker push mshobeyri/mmt-testlight:latest
-docker push mshobeyri/mmt-testlight:X.Y.Z
-```
-
-### Update Docker Hub README
-
-```bash
-./scripts/update-dockerhub-readme.sh
-# Reads from: packaging/docker/README.md
-# Requires: DOCKERHUB_USERNAME + DOCKERHUB_TOKEN (or interactive prompt)
-```
-
-### Tokens / Secrets
-
-| Secret | Where | Purpose |
-|---|---|---|
-| `DOCKERHUB_USERNAME` | GitHub Actions secret / env | Docker Hub login |
-| `DOCKERHUB_TOKEN` | GitHub Actions secret / env | Docker Hub PAT ([create here](https://hub.docker.com/settings/security)) |
-
-### Key Files
-
-| File | Purpose |
-|---|---|
-| `Dockerfile` | Multi-stage build (builder → runtime on `node:18-alpine`) |
-| `.dockerignore` | Excludes `node_modules`, `dist`, `src`, etc. from build context |
-| `packaging/docker/README.md` | Docker Hub repository overview (version-controlled) |
-| `scripts/update-dockerhub-readme.sh` | Pushes README to Docker Hub via API |
-
-### Known Issues
-
-- `mmtcli` is **not** an npm workspace (`workspaces` are only `core` + `mmtview`). The Dockerfile **must** run `npm ci --prefix mmtcli` (and copy `mmtcli/package-lock.json`) or the esbuild step fails resolving deps such as `node-forge`.
-- **pkg binaries** must not embed helpers via `Function#toString()` — bytecode builds replace the body with `{ [native code] }`. API runs use `CREATE_API_LOG_HELPERS_SOURCE` (`core/src/apiLogHelpersFactorySource.ts`). After editing `createApiLogHelpers`, rebuild core and run `node scripts/sync-api-log-helpers-source.mjs`, then rebuild with `./scripts/build-binaries.sh` into `bin/<platform>/` (never flat `testlight-macos` / `testlight-linux` names). Binary packaging uses `@yao-pkg/pkg` SEA (`node22-*`) from an esbuild bundle (`mmtcli/esbuild.pkg.mjs`). Host Node must be ≥ 22. Use `npm exec --no -- pkg` from `mmtcli` (plain `npx pkg` can fetch unmaintained `pkg@5`).
-- Windows release zip ships `testlight.exe` + `mmt.cmd` (shim), not a second full `mmt.exe` copy. Icon: `res/testlight.ico` applied via `scripts/apply-windows-icon.mjs` (resedit after `@yao-pkg/pkg --sea`; required in CI).
-- Local binary layout is only `bin/<platform>/testlight` (+ `mmt` symlink or `mmt.cmd`). Release archive filenames stay versionless `testlight-<platform>.tar.gz|zip` for stable `/releases/latest/download/` URLs.
-- `res/doc-template.html` must be copied in Dockerfile (`COPY res/doc-template.html res/doc-template.html`) — the `prebuild` script needs it to generate `docTemplate.ts`.
-- esbuild binary mismatch: the `.dockerignore` must exclude `node_modules` to prevent host platform binaries leaking into the Alpine container. If esbuild version errors occur, run `npm rebuild esbuild` inside the build stage.
-- CI Docker push needs `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN`. Without them the docker job fails (it is `continue-on-error` so the GitHub Release still publishes).
-
----
-
-## 4. Homebrew (`mmt-testlight`)
-
-### Formula Location
-
-- **Source**: `packaging/homebrew/mmt-testlight.rb`
-- **Tap repo**: `https://github.com/mshobeyri/homebrew-multimeter`
-
-### Update Steps (after a release)
-
-1. Build binaries: `./scripts/build-binaries.sh`
-2. Upload archives to GitHub Release (done by CI or `release-testlight.sh --publish-github`)
-3. Compute SHA-256 checksums of the platform `.tar.gz` files:
-   ```bash
-   shasum -a 256 dist-release/testlight-macos-arm64.tar.gz
-   shasum -a 256 dist-release/testlight-macos-x64.tar.gz
-   shasum -a 256 dist-release/testlight-linux-x64.tar.gz
-   shasum -a 256 dist-release/testlight-linux-arm64.tar.gz
-   ```
-4. Update `packaging/homebrew/mmt-testlight.rb`:
-   - `version "X.Y.Z"`
-   - Each `sha256` value for the corresponding platform URL
-5. Copy updated formula(s) to the tap repo and push:
-   ```bash
-   # Via API (no local clone):
-   # gh api --method PUT repos/mshobeyri/homebrew-multimeter/contents/Formula/mmt-testlight.rb ...
-
-   # Or local clone:
-   cp packaging/homebrew/mmt-testlight.rb /path/to/homebrew-multimeter/Formula/mmt-testlight.rb
-   cd /path/to/homebrew-multimeter && git add . && git commit -m "Update mmt-testlight to X.Y.Z" && git push
-   ```
-
-Also keep `packaging/homebrew/testlight.rb` in sync when that formula is published elsewhere.
-
-### Install / Test
-
-```bash
-brew tap mshobeyri/multimeter
-brew install mmt-testlight
-brew upgrade mmt-testlight
-testlight --version
-```
-
-### Notes
-
-- The formula downloads pre-built binaries from GitHub Releases — no compilation.
-- Archive URLs are **versionless**: `…/releases/download/v#{version}/testlight-<platform>.tar.gz`.
-- Supports macOS (x64 + arm64) and Linux (x64 + arm64).
-- Both `testlight` and `mmt` commands are installed (`mmt` is a symlink already inside the archive).
-
----
-
-## 5. GitHub Releases (Standalone Binaries)
-
-### Platforms
-
-| Platform | Archive | Binary |
-|---|---|---|
-| macOS x64 | `testlight-macos-x64.tar.gz` | `testlight` + `mmt` (symlink) |
-| macOS arm64 | `testlight-macos-arm64.tar.gz` | `testlight` + `mmt` (symlink) |
-| Linux x64 | `testlight-linux-x64.tar.gz` | `testlight` + `mmt` (symlink) |
-| Linux arm64 | `testlight-linux-arm64.tar.gz` | `testlight` + `mmt` (symlink) |
-| Windows x64 | `testlight-win-x64.zip` | `testlight.exe` + `mmt.cmd` (shim) |
-
-Asset filenames are **versionless** so `/releases/latest/download/...` URLs on the website stay stable. The release **tag** (`vX.Y.Z`) carries the version.
-
-### Build Locally
-
-```bash
-./scripts/build-binaries.sh                        # all platforms
-./scripts/build-binaries.sh macos-arm64 linux-x64  # specific platforms
-```
-
-Output goes to `bin/<platform>/`. Checksums written to `bin/checksums-sha256.txt`.
-
-### Create Release
-
-```bash
-# Via script (requires `gh` CLI)
-./scripts/release-testlight.sh --publish-github
-
-# Manually
-gh release create vX.Y.Z \
-  --title "testlight vX.Y.Z" \
-  --notes "See CHANGELOG.md" \
-  dist-release/testlight-*.tar.gz \
-  dist-release/testlight-*.zip \
-  dist-release/checksums-sha256.txt
-```
-
-### Pre-release
-
-```bash
-gh release create vX.Y.Z-beta.1 --prerelease ...
-```
-
----
-
-## 6. GitHub Action
-
-### Location
-
-- Published repo: [mshobeyri/testlight-action](https://github.com/mshobeyri/testlight-action) (`action.yml` at repo root)
-- In-repo copy used by Multimeter CI: `.github/actions/testlight/`
-
-### Usage (for consumers)
-
-```yaml
-- uses: mshobeyri/testlight-action@v1
-  with:
-    file: tests/suite.mmt
-    env-file: env/staging.mmt
-    report: junit
-    report-file: results/report.xml
-```
-
-### How It Works
-
-1. Sets up Node.js 20
-2. Installs `mmt-testlight` globally via npm (supports `version: latest | beta | rc | X.Y.Z`)
-3. Runs `testlight <command> <file>` with all configured flags
-4. Outputs: `result`, `report`, `exit-code`
-
-### Update Steps
-
-The action installs from npm, so no binary update is needed — just publish to npm and consumers get the new version.
-
-When `action.yml` inputs or steps change, update both `.github/actions/testlight/action.yml` and the published `testlight-action` repo, then move the `v1` tag if the change is compatible.
-
----
-
-## 7. One-Line Installer Script
-
-### Location
-
-- `scripts/install-testlight.sh` (also copied to `bin/install.sh` during build)
-
-### Usage
-
-```bash
-# Latest stable
-curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash
-
-# Specific version
-VERSION=0.3.1 curl -fsSL .../install-testlight.sh | bash
-
-# Pre-release
-PRERELEASE=1 curl -fsSL .../install-testlight.sh | bash
-CHANNEL=beta curl -fsSL .../install-testlight.sh | bash
-```
-
-### How It Works
-
-1. Detects OS (macos/linux/win) and architecture (x64/arm64)
-2. Resolves version from GitHub API (latest stable, or pre-release by channel)
-3. Downloads the platform archive from GitHub Releases
-4. Extracts and installs to `/usr/local/bin` (or `~/.local/bin`)
-5. Creates `mmt` symlink if needed (Unix archives already include `mmt` → `testlight`; Windows uses `mmt.cmd`)
-
----
-
-## Automated CI Release (GitHub Actions)
-
-### Trigger
-
-Push a version tag:
-
-```bash
-git tag v0.3.1 && git push origin v0.3.1          # stable
-git tag v0.4.0-beta.1 && git push origin v0.4.0-beta.1  # pre-release
-```
-
-### Workflow: `.github/workflows/release-testlight.yml`
-
-| Job | What It Does |
-|---|---|
-| `build` | Builds `pkg` binaries for all 5 platforms (matrix), creates archives + checksums. macOS Intel uses `macos-15-intel` (`macos-13` is retired). |
-| `docker` | Builds and pushes Docker image (`mshobeyri/mmt-testlight:X.Y.Z` + float tag). `continue-on-error: true` if Hub secrets are missing. |
-| `npm` | Publishes `mmt-testlight` to npm (`@latest` or `@beta`/`@rc`). `continue-on-error: true` if `NPM_TOKEN` is missing. |
-| `release` | Downloads all **build** artifacts, creates GitHub Release with archives + checksums. Depends on **`build` only** — not blocked by docker/npm. |
-
-### Pre-release Detection
-
-Automatic from tag format: `vX.Y.Z-beta.N`, `vX.Y.Z-rc.N`, etc.
-- npm dist-tag matches channel name (`beta`, `rc`, `alpha`)
-- Docker float tag matches channel name
-- GitHub Release marked as pre-release
-
-### Required GitHub Secrets
-
-| Secret | Purpose |
-|---|---|
-| `NPM_TOKEN` | npm publish (until Trusted Publishing / OIDC is configured) |
-| `DOCKERHUB_USERNAME` | Docker Hub login |
-| `DOCKERHUB_TOKEN` | Docker Hub push |
-
-Note: GitHub Release creation uses the built-in `GITHUB_TOKEN` (via `permissions: contents: write`). Binaries can ship even when npm/Docker secrets are absent.
-
-### Not published (do not document as install channels)
-
-There are **no** deb, rpm, or snap packages. The website Linux section uses GitHub `.tar.gz` download buttons plus extract/`cp -a testlight mmt /usr/local/bin/` install steps.
-
----
-
-## Local Full Release Script
-
-```bash
-# Build + package only (no publishing)
-./scripts/release-testlight.sh
-
-# Build + publish everywhere
-./scripts/release-testlight.sh --publish
-
-# Selective publishing
-./scripts/release-testlight.sh --publish-npm
-./scripts/release-testlight.sh --publish-github
-./scripts/release-testlight.sh --publish-docker
-
-# Pre-release
-VERSION=0.4.0-beta.1 ./scripts/release-testlight.sh --publish --pre-release
-```
-
-### What It Does
-
-1. Builds platform binaries (`build-binaries.sh`)
-2. Creates `.tar.gz` / `.zip` archives in `dist-release/`
-3. Builds Docker image
-4. Optionally: publishes to npm, creates GitHub Release, pushes Docker image
-
----
-
-## Complete Release Checklist
-
-### For CLI release (testlight vX.Y.Z):
-
-- [ ] Update `mmtcli/package.json` version to `X.Y.Z`
-- [ ] Update `CHANGELOG.md` with changes
-- [ ] Run tests: `npm run test`
-- [ ] Run compile: `npm run compile`
-- [ ] Build and test Docker locally:
-  ```bash
-  docker build -t mshobeyri/mmt-testlight:X.Y.Z .
-  docker run --rm mshobeyri/mmt-testlight:X.Y.Z --version
-  ```
-- [ ] Publish npm: `cd mmtcli && npm publish --access public`
-- [ ] Push Docker: `docker push mshobeyri/mmt-testlight:X.Y.Z && docker push mshobeyri/mmt-testlight:latest`
-- [ ] Update Docker Hub README: `./scripts/update-dockerhub-readme.sh`
-- [ ] Build binaries: `./scripts/build-binaries.sh`
-- [ ] Create GitHub Release with binaries + checksums (or rely on tag → CI `release` job)
-- [ ] Update Homebrew formula (`packaging/homebrew/mmt-testlight.rb`) with new version + SHA-256, push to **homebrew-multimeter** tap
-- [ ] Merge website changes to `main` if Downloads/docs changed (Cloudflare Pages typically deploys from `main`)
-- [ ] Verify all channels:
-  ```bash
-  npm view mmt-testlight version
-  docker run --rm mshobeyri/mmt-testlight --version
-  brew upgrade mmt-testlight && testlight --version
-  curl -fsSL .../install-testlight.sh | bash && testlight --version
-  ```
-
-### For VS Code extension release (vX.Y.Z):
-
-- [ ] Update root `package.json` version to `X.Y.Z`
-- [ ] Update `.cursor-plugin/plugin.json` version to `X.Y.Z`
-- [ ] Update `CHANGELOG.md`
-- [ ] Run: `npm run compile`
-- [ ] Run: `npm run cursor:validate-plugin`
-- [ ] Package: `npm run pack` (or `npm run pack-pre-release`)
-- [ ] Publish: `vsce publish --readme-path EXTENSION.md --allow-package-all-secrets` (or add `--pre-release`)
-- [ ] Verify on Marketplace
-
----
-
-## Key Files Reference
-
-| File | Purpose |
-|---|---|
-| `Dockerfile` | Docker image build definition |
-| `.dockerignore` | Excludes host artifacts from Docker build context |
-| `.vscodeignore` | Excludes dev files from `.vsix` package |
-| `.cursor-plugin/plugin.json` | Cursor plugin manifest (version must match extension) |
-| `mcp.json` | Cursor plugin MCP server entry (`mmt-mcp`) |
-| `commands/` | Cursor/VS Code agent prompt commands |
-| `rules/` | Cursor rules + Copilot chat instructions |
-| `AI/skills/` | Local/dev agent skills and procedures as flat `.md` files (LinkedIn/YouTube posts, release & deploy); not part of the published Cursor plugin |
-| `.github/workflows/release-testlight.yml` | CI pipeline for full CLI release |
-| `scripts/release-testlight.sh` | Local full release script |
-| `scripts/build-binaries.sh` | Build platform binaries via `pkg` |
-| `scripts/install-testlight.sh` | One-line installer for end users |
-| `scripts/update-dockerhub-readme.sh` | Push README to Docker Hub via API |
-| `scripts/validate-cursor-plugin.mjs` | Cursor plugin layout/manifest validator |
-| `packaging/homebrew/mmt-testlight.rb` | Homebrew formula |
-| `packaging/docker/README.md` | Docker Hub repository overview |
-| `.github/actions/testlight/action.yml` | In-repo Testlight GitHub Action (keep in sync with `mshobeyri/testlight-action`) |
-| `mmtcli/esbuild.mjs` | CLI esbuild bundler config (ESM; must stay `.mjs` — package has no `"type": "module"`) |
-| `mmtcli/package.json` | CLI npm package (version source of truth) |
-| `package.json` (root) | Extension version + workspace scripts |
+- **Homebrew**: `packaging/homebrew/mmt-testlight.rb` → tap `mshobeyri/homebrew-multimeter` (checksums after a GitHub Release).
+- **Action**: `.github/actions/testlight/` ↔ `mshobeyri/testlight-action`. Default install is `mmt-testlight@latest`.
+- **MCP Registry**: set `mmtmcp/server.json` when publishing to the registry.
+- **Cursor plugin**: set `.cursor-plugin/plugin.json` when publishing that plugin.

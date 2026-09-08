@@ -1,11 +1,4 @@
-# ──────────────────────────────────────────────────────────────────────
-# CI workflow: Build testlight binaries and create a GitHub release
-# ──────────────────────────────────────────────────────────────────────
-# Triggered when a version tag (v*.*.*) is pushed.
-# One version drives Testlight, the VS Code extension, and the GitHub Action.
-#   v1.41.2       → stable (npm @latest, Docker :latest, Marketplace stable, Action @v1)
-#   v1.41.2-pre   → pre-release (npm @pre, Docker :pre, Marketplace 1.41.2 --pre-release)
-# ──────────────────────────────────────────────────────────────────────
+# Tag vX.Y.Z = stable. Tag vX.Y.Z-pre = pre (Marketplace version is X.Y.Z).
 
 name: Release testlight
 
@@ -328,8 +321,14 @@ jobs:
             echo "Refusing Marketplace publish: version '${MARKETPLACE_VERSION}' contains a hyphen. Use major.minor.patch only."
             exit 1
           fi
-          if [ "$VERSION" != "$MARKETPLACE_VERSION" ]; then
-            node scripts/sync-versions.mjs --set "$MARKETPLACE_VERSION"
+          EXT_VER="$(node -p "require('./package.json').version")"
+          if echo "$EXT_VER" | grep -qE -- '-'; then
+            echo "Refusing Marketplace publish: package.json version '${EXT_VER}' contains a hyphen. sync-versions must drop -pre for the extension."
+            exit 1
+          fi
+          if [ "$EXT_VER" != "$MARKETPLACE_VERSION" ]; then
+            echo "Extension package.json is '${EXT_VER}', Marketplace identity is '${MARKETPLACE_VERSION}'."
+            exit 1
           fi
           if [ "$PRERELEASE" = "true" ]; then
             echo "Marketplace: ${MARKETPLACE_VERSION} as pre-release (from ${VERSION})"

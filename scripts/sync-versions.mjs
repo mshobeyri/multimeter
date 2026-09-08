@@ -1,150 +1,94 @@
 #!/usr/bin/env node
-/**
- * Keep extension, Testlight CLI, Cursor plugin, GitHub Action, and mmt-mcp on one version.
- *
- *   node scripts/sync-versions.mjs              # copy root package.json → others
- *   node scripts/sync-versions.mjs --set 1.40.0
- *   node scripts/sync-versions.mjs --check
- *   node scripts/sync-versions.mjs --check --expect 1.40.0
- */
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+const FILES = {
+  extension: 'package.json',
+  cli: 'mmtcli/package.json',
+  mcp: 'mmtmcp/package.json',
+};
+
 function read(rel) {
   return fs.readFileSync(path.join(root, rel), 'utf8');
-}
-
-function write(rel, text) {
-  fs.writeFileSync(path.join(root, rel), text);
 }
 
 function readJson(rel) {
   return JSON.parse(read(rel));
 }
 
-function replaceOnce(rel, pattern, replacement) {
+function setVersion(rel, version) {
   const text = read(rel);
-  if (!pattern.test(text)) {
-    throw new Error(`No match in ${rel} for ${pattern}`);
+  const next = text.replace(/("version"\s*:\s*")[^"]+(")/, `$1${version}$2`);
+  if (next === text && !text.includes(`"${version}"`)) {
+    throw new Error(`No version field in ${rel}`);
   }
-  write(rel, text.replace(pattern, replacement));
-}
-
-function replaceAll(rel, pattern, replacement) {
-  const text = read(rel);
-  const next = text.replace(pattern, replacement);
-  if (next === text) {
-    throw new Error(`No match in ${rel} for ${pattern}`);
+  if (next !== text) {
+    fs.writeFileSync(path.join(root, rel), next);
   }
-  write(rel, next);
 }
 
-function replaceJsonVersion(rel, version) {
-  replaceOnce(rel, /("version"\s*:\s*")[^"]+(")/, `$1${version}$2`);
-}
-
-function currentVersions() {
-  const action = read('.github/actions/testlight/action.yml');
-  const versionMatch = action.match(
-      /  version:\n    description:[\s\S]*?\n    default:\s*'([^']+)'/,
-  );
-  const versionDefault = versionMatch?.[1] || '';
-  return {
-    extension: readJson('package.json').version,
-    plugin: readJson('.cursor-plugin/plugin.json').version,
-    cli: readJson('mmtcli/package.json').version,
-    mcp: readJson('mmtmcp/package.json').version,
-    mcpRegistry: readJson('mmtmcp/server.json').version,
-    action: versionDefault,
-  };
+function marketplaceVersion(version) {
+  const match = String(version || '').match(/^(\d+\.\d+\.\d+)/);
+  if (!match) {
+    throw new Error(`Invalid version: ${version}`);
+  }
+  return match[1];
 }
 
 function applyVersion(version) {
-  if (!/^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$/.test(version)) {
-    throw new Error(`Invalid version: ${version}`);
+  if (!/^\d+\.\d+\.\d+(-pre)?$/.test(version)) {
+    throw new Error(`Use X.Y.Z or X.Y.Z-pre, got: ${version}`);
   }
-
-  replaceJsonVersion('package.json', version);
-  replaceJsonVersion('.cursor-plugin/plugin.json', version);
-  replaceJsonVersion('mmtcli/package.json', version);
-  replaceJsonVersion('mmtmcp/package.json', version);
-  replaceOnce('mmtcli/package-lock.json', /("version"\s*:\s*")[^"]+(")/, `$1${version}$2`);
-  replaceOnce(
-      'mmtcli/package-lock.json',
-      /("name"\s*:\s*"mmt-testlight",\s*"version"\s*:\s*")[^"]+(")/,
-      `$1${version}$2`,
-  );
-  replaceOnce('mmtmcp/package-lock.json', /("version"\s*:\s*")[^"]+(")/, `$1${version}$2`);
-  replaceAll(
-      'mmtmcp/package-lock.json',
-      /("name"\s*:\s*"mmt-mcp",\s*"version"\s*:\s*")[^"]+(")/g,
-      `$1${version}$2`,
-  );
-  const server = readJson('mmtmcp/server.json');
-  server.version = version;
-  if (server.packages?.[0]) {
-    server.packages[0].version = version;
-  }
-  write('mmtmcp/server.json', `${JSON.stringify(server, null, 2)}\n`);
-
-  replaceOnce(
-      '.github/actions/testlight/action.yml',
-      /(description: 'testlight version to install \(default: )[^)]+(\))/,
-      `$1${version}$2`,
-  );
-  replaceOnce(
-      '.github/actions/testlight/action.yml',
-      /(  version:\n    description:[^\n]+\n    required: false\n    default: ')[^']+(')/,
-      `$1${version}$2`,
-  );
-  replaceOnce(
-      '.github/actions/testlight/README.md',
-      /(\| `version` \| No \| `)[^`]+(`)/,
-      `$1${version}$2`,
-  );
-  const website = path.join(root, 'website/src/sections/CICDReady.tsx');
-  if (fs.existsSync(website)) {
-    replaceOnce(
-        'website/src/sections/CICDReady.tsx',
-        /(mmt-testlight@)[0-9]+(?:\.[0-9]+){2}(?:-[0-9A-Za-z.-]+)?/,
-        `$1${version}`,
-    );
-  }
+  const extension = marketplaceVersion(version);
+  setVersion(FILES.extension, extension);
+  setVersion(FILES.cli, version);
+  setVersion(FILES.mcp, version);
 }
 
-function assertMatch(expect) {
-  const versions = currentVersions();
-  const mismatches = Object.entries(versions).filter(([, value]) => value !== expect);
+function current() {
+  return {
+    extension: readJson(FILES.extension).version,
+    cli: readJson(FILES.cli).version,
+    mcp: readJson(FILES.mcp).version,
+  };
+}
+
+function assertMatch(product) {
+  const wanted = {
+    extension: marketplaceVersion(product),
+    cli: product,
+    mcp: product,
+  };
+  const got = current();
+  const mismatches = Object.keys(wanted).filter((k) => got[k] !== wanted[k]);
   if (mismatches.length) {
-    const detail = mismatches.map(([name, value]) => `  ${name}=${value}`).join('\n');
-    throw new Error(`Version mismatch (expected ${expect}):\n${detail}`);
+    const detail = mismatches.map((k) => `  ${k}: ${got[k]} (want ${wanted[k]})`).join('\n');
+    throw new Error(`Version mismatch:\n${detail}`);
   }
 }
 
 const args = process.argv.slice(2);
-const setIdx = args.indexOf('--set');
-const expectIdx = args.indexOf('--expect');
+const setValue = args.includes('--set') ? args[args.indexOf('--set') + 1] : undefined;
+const expectValue = args.includes('--expect') ? args[args.indexOf('--expect') + 1] : undefined;
 const check = args.includes('--check');
-const setValue = setIdx >= 0 ? args[setIdx + 1] : undefined;
-const expectValue = expectIdx >= 0 ? args[expectIdx + 1] : undefined;
 
 if (setValue) {
   applyVersion(setValue);
 }
 
-const expected = expectValue || readJson('package.json').version;
+const product = expectValue || readJson(FILES.cli).version;
 if (check || expectValue) {
-  assertMatch(expected);
-  console.log(`versions ok: ${expected}`);
+  assertMatch(product);
+  console.log(`ok  extension ${marketplaceVersion(product)}  cli/mcp ${product}`);
   process.exit(0);
 }
 
 if (!setValue) {
-  applyVersion(expected);
+  applyVersion(product);
 }
 
-assertMatch(expected);
-console.log(`synced versions to ${expected}`);
+assertMatch(product);
+console.log(`synced  extension ${marketplaceVersion(product)}  cli/mcp ${product}`);

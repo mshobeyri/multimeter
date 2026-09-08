@@ -234,18 +234,6 @@ async function validateSinglePlugin(pluginDir) {
     addError('"author.name" is required in .cursor-plugin/plugin.json.');
   }
 
-  const packageJson = await readJsonFile(path.join(pluginDir, "package.json"), "Root package.json");
-  if (
-    packageJson &&
-    typeof packageJson.version === "string" &&
-    typeof manifest.version === "string" &&
-    packageJson.version !== manifest.version
-  ) {
-    addError(
-      `.cursor-plugin/plugin.json version "${manifest.version}" must match package.json version "${packageJson.version}".`
-    );
-  }
-
   for (const field of ["logo", "rules", "skills", "agents", "commands", "hooks", "mcpServers"]) {
     for (const value of extractPathValues(manifest[field])) {
       await validateReferencedPath(pluginDir, field, value, pluginName);
