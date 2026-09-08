@@ -16,9 +16,14 @@ Only these files are bumped:
 ```bash
 node scripts/sync-versions.mjs --set 1.42.3      # or 1.42.3-pre
 # CHANGELOG.md → ## [1.42.3] or ## [1.42.3-pre]
+npm run compile --silent
+npm run pack              # stable local VSIX
+# npm run pack-pre-release  # pre-release local VSIX (same Marketplace version, --pre-release)
 # commit: Release version 1.42.3   (or 1.42.3-pre)
 git tag v1.42.3 && git push origin v1.42.3       # or v1.42.3-pre
 ```
+
+Whenever the user asks to **release**, **pre-release**, or **create a version**, always pack a local VS Code VSIX after versions are set (`pack` or `pack-pre-release`). Do not wait to be asked. The VSIX is gitignored (`multimeter-X.Y.Z.vsix` at repo root).
 
 CI (`.github/workflows/release-testlight.yml`) publishes from the tag.
 
@@ -31,9 +36,9 @@ Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`. Missi
 
 Do not put versions in comments, READMEs, the GitHub Action default, or website copy. Do not bump lockfiles, `.cursor-plugin/plugin.json`, or `mmtmcp/server.json` as part of a release.
 
-## Pack (optional, local)
+## Pack (always, local)
 
-Root `package.json` is already `X.Y.Z`. Use `EXTENSION.md` as the readme.
+Root `package.json` is already `X.Y.Z`. Use `EXTENSION.md` as the readme. Always run this when creating a version.
 
 ```bash
 npm run pack              # stable

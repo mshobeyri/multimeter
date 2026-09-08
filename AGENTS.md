@@ -80,9 +80,9 @@ Ask for the exact version. Do not invent one.
 - **"release X.Y.Z"** → stable. `package.json`, `mmtcli/package.json`, and `mmtmcp/package.json` are all `X.Y.Z`. Tag `vX.Y.Z`.
 - **"pre-release X.Y.Z"** → extension `package.json` is `X.Y.Z` (Marketplace cannot have `-pre`). CLI and MCP are `X.Y.Z-pre`. Tag `vX.Y.Z-pre`.
 
-Only those three `package.json` files are versioned. Then CHANGELOG, commit `Release version …`, push the tag. CI publishes npm, Docker, Marketplace, and GitHub Releases.
+Only those three `package.json` files are versioned. Then CHANGELOG, always pack a local VSIX (`npm run pack` or `npm run pack-pre-release`), commit `Release version …`, push the tag. CI publishes npm, Docker, Marketplace, and GitHub Releases.
 
-Local pack: `npm run pack` or `npm run pack-pre-release`. Never ship a VSIX whose version contains a hyphen.
+Never ship a VSIX whose version contains a hyphen.
 
 Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`.
 
