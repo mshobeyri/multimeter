@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.42.3-pre]
+
+Pre-release.
+
+- Faster Windows Testlight binaries (Node 22 SEA package, single esbuild bundle)
+- Apply the Multimeter icon to `testlight.exe` instead of the Node.js icon
+- `testlight update` works on GitHub Release / portal standalone binaries
+
 ## [1.42.2-pre]
 
 Pre-release.

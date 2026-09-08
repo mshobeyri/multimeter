@@ -1,6 +1,6 @@
 {
   "name": "mmt-testlight",
-  "version": "1.42.2-pre",
+  "version": "1.42.3-pre",
   "description": "AI-powered REST Client and Git-native API testing CLI for YAML .mmt files. Same tests in VS Code and CI. Alternative to Postman.",
   "license": "Apache-2.0",
   "private": false,
