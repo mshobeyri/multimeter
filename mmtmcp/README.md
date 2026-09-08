@@ -1,4 +1,4 @@
-# @mmt/mcp
+# mmt-mcp
 
 MCP server for [Multimeter](https://mmt.dev): Git-native API testing in VS Code.
 
@@ -9,7 +9,7 @@ Multimeter is an AI-powered REST Client and API testing tool. It is not an elect
   "mcpServers": {
     "multimeter": {
       "command": "npx",
-      "args": ["-y", "@mmt/mcp"]
+      "args": ["-y", "mmt-mcp"]
     }
   }
 }

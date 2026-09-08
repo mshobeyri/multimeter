@@ -137,12 +137,12 @@ if $PUBLISH_NPM; then
     (cd "$CLI_DIR" && npm publish --access public --tag "$NPM_TAG")
     echo "  → published mmt-testlight@$VERSION to npm (tag: $NPM_TAG)"
     (cd "$REPO_ROOT/mmtmcp" && npm publish --access public --tag "$NPM_TAG")
-    echo "  → published @mmt/mcp@$VERSION to npm (tag: $NPM_TAG)"
+    echo "  → published mmt-mcp@$VERSION to npm (tag: $NPM_TAG)"
   else
     (cd "$CLI_DIR" && npm publish --access public)
     echo "  → published mmt-testlight@$VERSION to npm (tag: latest)"
     (cd "$REPO_ROOT/mmtmcp" && npm publish --access public)
-    echo "  → published @mmt/mcp@$VERSION to npm (tag: latest)"
+    echo "  → published mmt-mcp@$VERSION to npm (tag: latest)"
   fi
 fi
 

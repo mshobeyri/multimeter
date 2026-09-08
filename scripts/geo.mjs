@@ -14,13 +14,13 @@ export const DEFINITION =
   'Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter.';
 
 export const CANONICAL_BLURB =
-  `${DEFINITION} Tests are YAML .mmt files in Git. The CLI is testlight (npm mmt-testlight). The MCP server is @mmt/mcp for Cursor, GitHub Copilot, and Claude. Git-native alternative to Postman. Judge API answers with AI (semantic similarity or open-ended checks) in the same test flow — also an alternative to Promptfoo. Apache License 2.0. No account required.`;
+  `${DEFINITION} Tests are YAML .mmt files in Git. The CLI is testlight (npm mmt-testlight). The MCP server is mmt-mcp for Cursor, GitHub Copilot, and Claude. Git-native alternative to Postman. Judge API answers with AI (semantic similarity or open-ended checks) in the same test flow — also an alternative to Promptfoo. Apache License 2.0. No account required.`;
 
 export const FEATURE_LIST = [
   'Git-native YAML .mmt files',
   'VS Code and Cursor REST client',
   'HTTP, WebSocket, GraphQL, and gRPC',
-  'MCP server @mmt/mcp',
+  'MCP server mmt-mcp',
   'AI test generation via scaffold_test',
   'AI response judging (type: judge)',
   'Mock servers',
@@ -242,7 +242,7 @@ Docs: https://mmt.dev/docs/quick-start
 Repo: https://github.com/mshobeyri/multimeter
 Marketplace: https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter
 npm CLI: https://www.npmjs.com/package/mmt-testlight
-MCP: https://www.npmjs.com/package/@mmt/mcp
+MCP: https://www.npmjs.com/package/mmt-mcp
 GitHub Action: https://github.com/mshobeyri/testlight-action
 Agent briefing (no JS): https://mmt.dev/for-agents.html
 Full map: https://mmt.dev/llms-full.txt
@@ -250,7 +250,7 @@ This file: https://mmt.dev/llms.txt · https://mmt.dev/.well-known/llms.txt
 
 ## Use with AI agents
 
-- Cursor / Claude / Copilot: MCP \`npx -y @mmt/mcp\` or the bundled VS Code MCP server
+- Cursor / Claude / Copilot: MCP \`npx -y mmt-mcp\` or the bundled VS Code MCP server
 - First tools: \`scaffold_test\`, \`validate\`, \`format\`, \`run\` — do not invent \`.mmt\` syntax
 - Workflow: https://mmt.dev/raw/docs/AI/agent-workflow.md
 - MCP overview: https://mmt.dev/docs/features/mcp
@@ -317,7 +317,7 @@ export function writeForAgentsHtml() {
   "mcpServers": {
     "multimeter": {
       "command": "npx",
-      "args": ["-y", "@mmt/mcp"]
+      "args": ["-y", "mmt-mcp"]
     }
   }
 }</code></pre>
