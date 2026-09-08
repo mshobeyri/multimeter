@@ -1,0 +1,60 @@
+# Manual retry: publish mmt-testlight and mmt-mcp from a git ref.
+# Version tags already do this in release-testlight.yml.
+name: Publish npm packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to publish from
+        required: true
+        default: main
+      npm_tag:
+        description: npm dist-tag
+        required: true
+        default: pre
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install and build
+        run: |
+          npm ci
+          cd core && npm run build
+          cd ../mmtcli && npm ci && npm run build
+          cd ../mmtmcp && npm ci && npm run build
+
+      - name: Publish mmt-testlight and mmt-mcp
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ inputs.npm_tag }}
+        run: |
+          publish() {
+            local dir="$1"
+            local name="$2"
+            local version
+            version="$(node -p "require('./${dir}/package.json').version")"
+            echo "Publishing ${name}@${version} (tag ${NPM_TAG})"
+            if (cd "$dir" && npm publish --access public --tag "$NPM_TAG"); then
+              echo "Published ${name}@${version}"
+              return 0
+            fi
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} already on npm; skipping"
+              return 0
+            fi
+            echo "Failed to publish ${name}@${version}"
+            return 1
+          }
+          publish mmtcli mmt-testlight
+          publish mmtmcp mmt-mcp
