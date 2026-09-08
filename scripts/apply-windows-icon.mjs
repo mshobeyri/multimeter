@@ -30,9 +30,32 @@ if (!fs.existsSync(icoPath)) {
   process.exit(1);
 }
 
+const LOCK_CODES = new Set(['EBUSY', 'EPERM', 'EACCES']);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function retry(label, fn) {
+  let last;
+  for (let i = 0; i < 12; i++) {
+    try {
+      return fn();
+    } catch (err) {
+      last = err;
+      if (!LOCK_CODES.has(err?.code) || i === 11) {
+        throw err;
+      }
+      console.warn(`${label}: ${err.code}, retry ${i + 1}/12`);
+      await sleep(500 * (i + 1));
+    }
+  }
+  throw last;
+}
+
 async function main() {
   const ResEdit = await import(pathToFileURL(requireCli.resolve('resedit')).href);
-  const exeData = new Uint8Array(fs.readFileSync(exePath));
+  const exeData = await retry('read exe', () => new Uint8Array(fs.readFileSync(exePath)));
   const icoData = fs.readFileSync(icoPath);
   const before = exeData.byteLength;
 
@@ -82,7 +105,11 @@ async function main() {
 
   res.outputResource(exe);
   const out = Buffer.from(exe.generate());
-  fs.writeFileSync(exePath, out);
+  const tmpPath = `${exePath}.icon-tmp`;
+  await retry('write exe', () => {
+    fs.writeFileSync(tmpPath, out);
+    fs.renameSync(tmpPath, exePath);
+  });
   console.log(
       `Applied Multimeter icon (group ${iconGroupID}) to ${exePath} (${before} → ${out.length} bytes)`);
 }
