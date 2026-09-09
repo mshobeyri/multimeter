@@ -24,7 +24,7 @@ npm run build
 
 ## Bundle standalone binaries (pkg)
 
-Uses `@yao-pkg/pkg` in SEA mode (Node 22). Requires Node ≥ 22 on the machine that builds binaries.
+Uses `@yao-pkg/pkg` in SEA mode (Node 22, Brotli-compressed archive). Requires Node ≥ 22 on the machine that builds binaries.
 
 ```
 npm run pkg

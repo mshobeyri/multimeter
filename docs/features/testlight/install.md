@@ -67,7 +67,7 @@ Linux, Windows, and Docker installs are listed on the [Downloads](/downloads) pa
 
 ## Standalone binary (CI)
 
-For pipelines, use a self-contained binary built with `@yao-pkg/pkg` (SEA / Node 22) — no Node.js required on the runner.
+For pipelines, use a self-contained binary built with `@yao-pkg/pkg` (SEA / Node 22, Brotli-compressed archive) — no Node.js required on the runner.
 
 Build locally from the repo (Node ≥ 22):
 

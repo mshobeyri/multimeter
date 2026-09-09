@@ -40,6 +40,7 @@
     "test": "echo \"(no tests yet)\""
   },
   "pkg": {
+    "compress": "Brotli",
     "assets": [
       "node_modules/@grpc/grpc-js/**",
       "node_modules/@grpc/proto-loader/**",

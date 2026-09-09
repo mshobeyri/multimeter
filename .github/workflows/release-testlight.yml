@@ -84,6 +84,8 @@ jobs:
           cd mmtcli
           npm exec --no -- pkg dist-cjs/pkg-bundle.cjs \
             --sea \
+            --compress Brotli \
+            -c package.json \
             --targets ${{ matrix.pkg-target }} \
             --output ../bin/${{ matrix.platform }}/testlight${{ matrix.ext }}
 

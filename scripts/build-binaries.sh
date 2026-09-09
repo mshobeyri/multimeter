@@ -105,10 +105,14 @@ for platform in $PLATFORMS; do
 
   echo "▸ Building $platform ($pkg_target) → $out_dir/$bin_name"
 
-  # One esbuild file + SEA (stock Node, in-memory VFS) — much faster on Windows
-  # than vercel/pkg snapshot extract + thousands of virtual requires.
+  # Enhanced SEA (package.json config) so --compress is allowed. Simple
+  # `pkg file.js --sea` cannot compress. Brotli shrinks the VFS archive;
+  # each file decompresses lazily on first access in a process (tens of ms),
+  # not a one-time disk extract. The Node runtime itself is unchanged.
   (cd "$CLI_DIR" && npm exec --no -- pkg dist-cjs/pkg-bundle.cjs \
     --sea \
+    --compress Brotli \
+    -c package.json \
     --targets "$pkg_target" \
     --output "$out_dir/$bin_name")
 

@@ -47,7 +47,7 @@ npm run pack-pre-release  # same version, --pre-release flag
 
 ## Binaries
 
-`@yao-pkg/pkg` SEA, Node 22, bundle via `mmtcli/esbuild.pkg.mjs`. Host Node ≥ 22. From `mmtcli`: `npm exec --no -- pkg` (not `npx pkg`). Windows icon: `scripts/apply-windows-icon.mjs` after pack. Layout: `bin/<platform>/testlight`.
+`@yao-pkg/pkg` SEA, Node 22, `--compress Brotli -c package.json` (enhanced SEA; simple `pkg file.js --sea` cannot compress), bundle via `mmtcli/esbuild.pkg.mjs`. Host Node ≥ 22. From `mmtcli`: `npm exec --no -- pkg` (not `npx pkg`). Windows icon: `scripts/apply-windows-icon.mjs` after pack. Layout: `bin/<platform>/testlight`.
 
 ## Other channels
 
