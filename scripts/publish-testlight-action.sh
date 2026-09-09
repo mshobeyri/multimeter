@@ -18,8 +18,8 @@ if [ -z "$PRERELEASE" ]; then
 fi
 
 if [ -n "${CI:-}" ] && [ -z "${TESTLIGHT_ACTION_TOKEN:-}" ]; then
-  echo "Skip publishing $ACTION_REPO: set repo secret TESTLIGHT_ACTION_TOKEN"
-  exit 0
+  echo "TESTLIGHT_ACTION_TOKEN is required to publish $ACTION_REPO"
+  exit 1
 fi
 
 if [ -n "${TESTLIGHT_ACTION_TOKEN:-}" ]; then

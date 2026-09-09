@@ -25,14 +25,14 @@ git tag v1.42.3 && git push origin v1.42.3       # or v1.42.3-pre
 
 Whenever the user asks to **release**, **pre-release**, or **create a version**, always pack a local VS Code VSIX after versions are set (`pack` or `pack-pre-release`). Do not wait to be asked. The VSIX is gitignored (`multimeter-X.Y.Z.vsix` at repo root).
 
-CI (`.github/workflows/release-testlight.yml`) publishes from the tag.
+CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build → GitHub Release**, then Docker, npm, Homebrew (stable only), and the GitHub Action. A failed build or GitHub Release stops the rest. Missing publish secrets fail the job. VS Code Marketplace is **not** published from CI (local VSIX only).
 
-| Tag | npm | Docker | Marketplace | GitHub |
-|---|---|---|---|---|
-| `vX.Y.Z` | `@latest` | `:latest` | `X.Y.Z` stable | latest + `@v1` |
-| `vX.Y.Z-pre` | `@pre` | `:pre` | `X.Y.Z` + `--pre-release` | prerelease |
+| Tag | npm | Docker | GitHub | Homebrew | Action |
+|---|---|---|---|---|---|
+| `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` |
+| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | `@vX.Y.Z-pre` |
 
-Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `VSCE_PAT`. Missing secrets skip that job.
+Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace stays manual (`VSCE_PAT`).
 
 Do not put versions in comments, READMEs, the GitHub Action default, or website copy. Do not bump lockfiles, `.cursor-plugin/plugin.json`, or `mmtmcp/server.json` as part of a release.
 
@@ -51,7 +51,7 @@ npm run pack-pre-release  # same version, --pre-release flag
 
 ## Other channels
 
-- **Homebrew**: `packaging/homebrew/mmt-testlight.rb` → tap `mshobeyri/homebrew-multimeter` (checksums after a GitHub Release).
+- **Homebrew**: CI updates tap `mshobeyri/homebrew-multimeter` after a **stable** GitHub Release (`scripts/publish-homebrew.sh`).
 - **Action**: `.github/actions/testlight/` ↔ `mshobeyri/testlight-action`. Default install is `mmt-testlight@latest`.
 - **MCP Registry**: set `mmtmcp/server.json` when publishing to the registry.
 - **Cursor plugin**: set `.cursor-plugin/plugin.json` when publishing that plugin.
