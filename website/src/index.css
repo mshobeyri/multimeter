@@ -299,6 +299,18 @@ body {
   line-height: 1.6;
 }
 
+.docs-file-preview pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.docs-file-preview pre code {
+  white-space: pre;
+  word-break: normal;
+}
+
 /* highlight.js tokens — tuned for docs dark code panels */
 .docs-prose .hljs {
   background: transparent;
