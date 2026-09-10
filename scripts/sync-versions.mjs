@@ -9,6 +9,7 @@ const FILES = {
   extension: 'package.json',
   cli: 'mmtcli/package.json',
   mcp: 'mmtmcp/package.json',
+  mcpRegistry: 'mmtmcp/server.json',
 };
 
 function read(rel) {
@@ -38,6 +39,19 @@ function marketplaceVersion(version) {
   return match[1];
 }
 
+function setServerJson(version) {
+  const rel = FILES.mcpRegistry;
+  const data = readJson(rel);
+  data.version = version;
+  const packages = Array.isArray(data.packages) ? data.packages : [];
+  for (const pkg of packages) {
+    if (pkg && pkg.identifier === 'mmt-mcp') {
+      pkg.version = version;
+    }
+  }
+  fs.writeFileSync(path.join(root, rel), `${JSON.stringify(data, null, 2)}\n`);
+}
+
 function applyVersion(version) {
   if (!/^\d+\.\d+\.\d+(-pre)?$/.test(version)) {
     throw new Error(`Use X.Y.Z or X.Y.Z-pre, got: ${version}`);
@@ -46,13 +60,19 @@ function applyVersion(version) {
   setVersion(FILES.extension, extension);
   setVersion(FILES.cli, version);
   setVersion(FILES.mcp, version);
+  setServerJson(version);
 }
 
 function current() {
+  const server = readJson(FILES.mcpRegistry);
+  const packages = Array.isArray(server.packages) ? server.packages : [];
+  const npmPkg = packages.find((pkg) => pkg && pkg.identifier === 'mmt-mcp');
   return {
     extension: readJson(FILES.extension).version,
     cli: readJson(FILES.cli).version,
     mcp: readJson(FILES.mcp).version,
+    mcpRegistry: server.version,
+    mcpRegistryNpm: npmPkg ? npmPkg.version : undefined,
   };
 }
 
@@ -61,6 +81,8 @@ function assertMatch(product) {
     extension: marketplaceVersion(product),
     cli: product,
     mcp: product,
+    mcpRegistry: product,
+    mcpRegistryNpm: product,
   };
   const got = current();
   const mismatches = Object.keys(wanted).filter((k) => got[k] !== wanted[k]);

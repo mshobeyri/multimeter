@@ -80,7 +80,7 @@ Ask for the exact version. Do not invent one.
 - **"release X.Y.Z"** → stable. `package.json`, `mmtcli/package.json`, and `mmtmcp/package.json` are all `X.Y.Z`. Tag `vX.Y.Z`.
 - **"pre-release X.Y.Z"** → extension `package.json` is `X.Y.Z` (Marketplace cannot have `-pre`). CLI and MCP are `X.Y.Z-pre`. Tag `vX.Y.Z-pre`.
 
-Only those three `package.json` files are versioned. Then CHANGELOG, always pack a local VSIX (`npm run pack` or `npm run pack-pre-release`), commit `Release version …`, push the tag. CI builds binaries, creates the GitHub Release, then publishes npm, Docker, Homebrew (stable), and the GitHub Action. Marketplace is not published from CI.
+CLI (`mmt-testlight`) and MCP (`mmt-mcp`) share one npm version and dist-tag: stable → `@latest`, pre → `@pre`. `mmtmcp/server.json` must match that same MCP version (CI `--check` enforces it). Then CHANGELOG, always pack a local VSIX (`npm run pack` or `npm run pack-pre-release`), commit `Release version …`, push the tag. CI builds binaries, creates the GitHub Release, then publishes npm (both packages), Docker, Homebrew (stable), and the GitHub Action. Marketplace is not published from CI.
 
 Never ship a VSIX whose version contains a hyphen.
 

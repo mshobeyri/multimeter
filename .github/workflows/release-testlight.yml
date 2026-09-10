@@ -262,6 +262,12 @@ jobs:
             echo "NPM_TOKEN is required"
             exit 1
           fi
+          CLI_VERSION="$(node -p "require('./mmtcli/package.json').version")"
+          MCP_VERSION="$(node -p "require('./mmtmcp/package.json').version")"
+          if [ "$CLI_VERSION" != "$MCP_VERSION" ]; then
+            echo "mmt-testlight ($CLI_VERSION) and mmt-mcp ($MCP_VERSION) must share a version"
+            exit 1
+          fi
           publish() {
             local dir="$1"
             local name="$2"
@@ -281,6 +287,9 @@ jobs:
           }
           publish mmtcli mmt-testlight
           publish mmtmcp mmt-mcp
+          echo "Confirming npm has both packages at ${CLI_VERSION} (tag ${NPM_TAG})"
+          npm view "mmt-testlight@${CLI_VERSION}" version
+          npm view "mmt-mcp@${MCP_VERSION}" version
 
   homebrew:
     runs-on: ubuntu-latest

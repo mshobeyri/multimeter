@@ -9,9 +9,11 @@ Only these files are bumped:
 | `package.json` (VS Code extension) | `X.Y.Z` | `X.Y.Z` (Marketplace forbids `-pre`) |
 | `mmtcli/package.json` | `X.Y.Z` | `X.Y.Z-pre` |
 | `mmtmcp/package.json` | `X.Y.Z` | `X.Y.Z-pre` |
+| `mmtmcp/server.json` | same as MCP `package.json` | same as MCP `package.json` |
 
-- **release X.Y.Z** → all three are `X.Y.Z`, tag `vX.Y.Z` (stable).
+- **release X.Y.Z** → all three `package.json` files are `X.Y.Z`, tag `vX.Y.Z` (stable).
 - **pre-release X.Y.Z** → extension `X.Y.Z`, CLI and MCP `X.Y.Z-pre`, tag `vX.Y.Z-pre`.
+- npm: `mmt-testlight` and `mmt-mcp` always publish together with the same version and dist-tag (`latest` or `pre`).
 
 ```bash
 node scripts/sync-versions.mjs --set 1.42.3      # or 1.42.3-pre
@@ -34,7 +36,7 @@ CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build �
 
 Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace stays manual (`VSCE_PAT`).
 
-Do not put versions in comments, READMEs, the GitHub Action default, or website copy. Do not bump lockfiles, `.cursor-plugin/plugin.json`, or `mmtmcp/server.json` as part of a release.
+Do not put versions in comments, READMEs, the GitHub Action default, or website copy. Do not bump lockfiles or `.cursor-plugin/plugin.json` as part of a release. `mmtmcp/server.json` is set by `scripts/sync-versions.mjs` to the MCP npm version.
 
 ## Pack (always, local)
 
@@ -53,5 +55,5 @@ npm run pack-pre-release  # same version, --pre-release flag
 
 - **Homebrew**: CI updates tap `mshobeyri/homebrew-multimeter` after a **stable** GitHub Release (`scripts/publish-homebrew.sh`).
 - **Action**: `.github/actions/testlight/` ↔ `mshobeyri/testlight-action`. Default install is `mmt-testlight@latest`.
-- **MCP Registry**: set `mmtmcp/server.json` when publishing to the registry.
+- **MCP Registry**: `server.json` version tracks npm `mmt-mcp`. Publishing that file to the official MCP Registry is still separate from the npm job.
 - **Cursor plugin**: set `.cursor-plugin/plugin.json` when publishing that plugin.
