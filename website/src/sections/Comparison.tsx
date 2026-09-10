@@ -192,7 +192,7 @@ export default function Comparison() {
         </FadeIn>
 
         <FadeIn delay={200}>
-          <div className="overflow-x-auto rounded-lg border border-border md:hidden">
+          <div className="compare-mobile overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[760px]">
               <thead>
                 <tr className="bg-surface border-b border-border">
@@ -238,7 +238,7 @@ export default function Comparison() {
             </table>
           </div>
 
-          <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+          <div className="compare-desktop overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[1180px]">
               <thead>
                 <tr className="bg-surface border-b border-border">

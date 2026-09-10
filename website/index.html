@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-store" />
     <title>Multimeter — AI-powered REST Client and API testing in VS Code (Postman alternative)</title>
     <meta
       name="description"
@@ -168,6 +169,42 @@
       </p>
     </noscript>
     <div id="root"></div>
+    <script>
+      (function () {
+        window.addEventListener('pageshow', function (event) {
+          if (event.persisted) {
+            window.location.reload()
+          }
+        })
+        if (!('serviceWorker' in navigator)) {
+          return
+        }
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          if (registrations.length === 0) {
+            return
+          }
+          Promise.all(
+            registrations.map(function (registration) {
+              return registration.unregister()
+            }),
+          ).then(function () {
+            var cleared =
+              'caches' in window
+                ? caches.keys().then(function (keys) {
+                    return Promise.all(
+                      keys.map(function (key) {
+                        return caches.delete(key)
+                      }),
+                    )
+                  })
+                : Promise.resolve()
+            return cleared.then(function () {
+              location.reload()
+            })
+          })
+        })
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

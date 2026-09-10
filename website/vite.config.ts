@@ -326,16 +326,47 @@ function docsAssetsPlugin(): Plugin {
   }
 }
 
+function devCacheBustHtmlPlugin(): Plugin {
+  return {
+    name: 'dev-cache-bust-html',
+    transformIndexHtml(html, ctx) {
+      if (!ctx.server) {
+        return html
+      }
+      return html.replace(
+        'src="/src/main.tsx"',
+        `src="/src/main.tsx?v=${Date.now()}"`,
+      )
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), youtubePlaylistPlugin(), examplesPlugin(), docsAssetsPlugin()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    youtubePlaylistPlugin(),
+    examplesPlugin(),
+    docsAssetsPlugin(),
+    devCacheBustHtmlPlugin(),
+  ],
   server: {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      Pragma: 'no-cache',
+    },
     fs: {
       allow: [websiteRoot, repoRoot],
     },
     watch: {
       // Docs markdown lives outside website/; ensure HMR picks up edits.
       ignored: ['**/node_modules/**', '**/dist/**'],
+    },
+  },
+  preview: {
+    headers: {
+      'Cache-Control': 'no-store',
     },
   },
 })

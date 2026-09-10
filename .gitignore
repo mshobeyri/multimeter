@@ -23,5 +23,11 @@ TODO
 *.vsix
 *.tgz
 dist-release
+*.tsbuildinfo
+# Accidental `tsc` emit next to TypeScript sources
+core/src/**/*.js
+core/src/**/*.js.map
+src/**/*.js
+src/**/*.js.map
 !.cursor-plugin/
 !.cursor-plugin/plugin.json

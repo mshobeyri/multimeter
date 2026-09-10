@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { ChevronDown, Menu, X } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import {
   docsNav,
   docsNavGroupContainsPath,
@@ -176,7 +176,6 @@ function NavEntry({
 }
 
 export default function DocsLayout() {
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [searching, setSearching] = useState(false)
   const location = useLocation()
   const maxMatchDepth = useMemo(
@@ -187,25 +186,10 @@ export default function DocsLayout() {
   return (
     <div className="pt-16 min-h-screen bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="lg:hidden py-3 border-b border-border">
-          <button
-            type="button"
-            onClick={() => setMobileOpen((v) => !v)}
-            className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white"
-          >
-            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
-            Docs menu
-          </button>
-        </div>
-
-        <div className="flex gap-8 lg:gap-10 py-6 lg:py-10">
-          <aside
-            className={`${
-              mobileOpen ? 'block' : 'hidden'
-            } lg:block w-full lg:w-60 shrink-0 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto`}
-          >
+        <div className="docs-layout-row">
+          <aside className="docs-sidebar">
             <DocsSearch
-              onNavigate={() => setMobileOpen(false)}
+              onNavigate={() => undefined}
               onSearchingChange={setSearching}
             />
             {!searching ? (
@@ -220,7 +204,7 @@ export default function DocsLayout() {
                         <NavEntry
                           key={isNavGroup(item) ? item.title : item.href}
                           item={item}
-                          onNavigate={() => setMobileOpen(false)}
+                          onNavigate={() => undefined}
                           maxMatchDepth={maxMatchDepth}
                         />
                       ))}

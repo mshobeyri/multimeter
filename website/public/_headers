@@ -1,15 +1,11 @@
-[build]
-  command = "npm run build"
-  publish = "dist"
+# Cloudflare Pages header file (not TOML). HTML must revalidate or Chrome
+# keeps a stale SPA shell after deploys; hashed /assets/* can stay immutable.
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: public, max-age=0, must-revalidate
 
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
