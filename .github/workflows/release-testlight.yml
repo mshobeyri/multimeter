@@ -288,8 +288,23 @@ jobs:
           publish mmtcli mmt-testlight
           publish mmtmcp mmt-mcp
           echo "Confirming npm has both packages at ${CLI_VERSION} (tag ${NPM_TAG})"
-          npm view "mmt-testlight@${CLI_VERSION}" version
-          npm view "mmt-mcp@${MCP_VERSION}" version
+          confirm() {
+            local name="$1"
+            local version="$2"
+            local i
+            for i in 1 2 3 4 5 6 7 8; do
+              if npm view "${name}@${version}" version >/dev/null 2>&1; then
+                echo "${name}@${version} is on npm"
+                return 0
+              fi
+              echo "Waiting for ${name}@${version} on the registry (${i}/8)"
+              sleep 15
+            done
+            echo "${name}@${version} did not appear on npm yet"
+            return 1
+          }
+          confirm mmt-testlight "$CLI_VERSION"
+          confirm mmt-mcp "$MCP_VERSION"
 
   homebrew:
     runs-on: ubuntu-latest
