@@ -210,49 +210,41 @@ function resolveDocsHref(href: string | undefined, basePath: string, contentPath
     return resolveDocsAsset(href, contentPath)
   }
 
-  // Relative .md → /docs/...
+  // Relative .md → /docs/... Resolve against the markdown file directory.
+  // Do not strip the last URL segment: section index pages are /docs/foo
+  // (a folder), so stripping yields /docs/architecture instead of
+  // /docs/foo/architecture.
   const withoutHash = href.split('#')[0]
   const hash = href.includes('#') ? `#${href.split('#').slice(1).join('#')}` : ''
-  const baseDir = basePath.replace(/\/[^/]*$/, '')
+  const dirFromFile = contentDir(contentPath)
+  const dirFromUrl = basePath.replace(/^\/docs\/?/, '').replace(/\/$/, '')
+  const sourceDir = contentPath ? dirFromFile : dirFromUrl
   let joined = withoutHash
   if (withoutHash.startsWith('./')) {
-    joined = `${baseDir}/${withoutHash.slice(2)}`
+    const rest = withoutHash.slice(2)
+    joined = sourceDir ? `${sourceDir}/${rest}` : rest
   } else if (withoutHash.startsWith('../')) {
-    const parts = baseDir.split('/').filter(Boolean)
+    const parts = sourceDir.split('/').filter(Boolean)
     let rest = withoutHash
     while (rest.startsWith('../')) {
       parts.pop()
       rest = rest.slice(3)
     }
-    joined = `/${parts.join('/')}/${rest}`
+    joined = [...parts, rest].join('/')
   } else {
-    joined = `${baseDir}/${withoutHash}`
+    joined = sourceDir ? `${sourceDir}/${withoutHash}` : withoutHash
   }
 
   joined = joined
     .replace(/\/index\.md$/, '')
     .replace(/\.md$/, '')
     .replace(/\/+/g, '/')
+    .replace(/^\//, '')
 
-  if (!joined.startsWith('/docs')) {
-    if (
-      joined.startsWith('/tasks') ||
-      joined.startsWith('/files') ||
-      joined.startsWith('/features') ||
-      joined.startsWith('/running') ||
-      joined.startsWith('/guides') ||
-      joined.startsWith('/examples')
-    ) {
-      joined = `/docs${joined}`
-    } else if (
-      joined === '/getting-started' ||
-      joined === '/install' ||
-      joined === '/quick-start' ||
-      joined === '/files' ||
-      joined === '/tasks'
-    ) {
-      joined = `/docs${joined}`
-    }
+  if (!joined.startsWith('docs/') && !joined.startsWith('/docs')) {
+    joined = `/docs/${joined}`
+  } else if (!joined.startsWith('/')) {
+    joined = `/${joined}`
   }
 
   if (joined === '/docs/examples' || joined.endsWith('/examples')) {
