@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Generate res/testlight.ico from res/logo.png (Multimeter logo).
- * Uses png-to-ico (npx) so CI does not need ImageMagick.
+ * Uses png-to-ico from mmtcli devDependencies (no ImageMagick).
  *
  * Usage: node scripts/generate-testlight-ico.mjs
  */
@@ -20,14 +20,14 @@ if (!fs.existsSync(pngPath)) {
   process.exit(1);
 }
 
-const require = createRequire(import.meta.url);
+const requireCli = createRequire(path.join(repoRoot, 'mmtcli', 'package.json'));
 
 async function main() {
   let pngToIco;
   try {
-    pngToIco = (await import('png-to-ico')).default;
+    pngToIco = (await import(requireCli.resolve('png-to-ico'))).default;
   } catch {
-    console.error('png-to-ico is required. Run: npm install --no-save png-to-ico');
+    console.error('png-to-ico is required. Install mmtcli devDependencies.');
     process.exit(1);
   }
 

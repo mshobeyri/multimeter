@@ -1,5 +1,7 @@
 # Commands
 
+npm (`mmt-testlight`), Homebrew, and GitHub Release binaries all expose the same `testlight` commands.
+
 - run <file>
   - Execute an API, test, suite, or load test file (.yaml/.yml/.json/.mmt)
   - Writes a JSON summary if `--out` is provided
@@ -18,6 +20,16 @@
   - See [Doc](../../files/doc/index.md) for authoring `type: doc` files
 - version-info
   - Print the CLI and Node.js version
+- docs [topic]
+  - Print bundled agent docs (same content as MCP `read_documentation`)
+  - Topics: `overview` | `workflow` | `test` | `api` | `suite` | `env` | `doc` | `loadtest` | `constraints` | `all` | `offline`
+  - `--pack min|full` (default `min`)
+- scaffold test --from <api.mmt>
+  - Write a smoke test from an API file (same as MCP `scaffold_test`)
+- validate <file>
+  - Validate a `.mmt` file (same as MCP `validate`)
+- suggest asserts --from <api.mmt>
+  - Suggest assertions from an API or a response body (same as MCP `suggest_assertions`)
 - update
   - Refresh a **standalone / portal** binary from GitHub Releases (or a mirror)
   - Options:

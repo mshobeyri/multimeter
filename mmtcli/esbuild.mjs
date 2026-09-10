@@ -4,19 +4,20 @@ import path from 'path';
 import {fileURLToPath} from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isPkg = process.argv.includes('--pkg');
 const coreDir = path.resolve(__dirname, '..', 'core', 'src');
 const guidesSrc = path.resolve(__dirname, '..', 'docs', 'AI');
-const guidesOut = path.join(__dirname, 'dist', 'guides');
+const outDir = isPkg ? path.join(__dirname, 'dist-cjs') : path.join(__dirname, 'dist');
+const guidesOut = path.join(outDir, 'guides');
+const pkgJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+const versionBanner = `globalThis.__MMT_CLI_VERSION__ = ${JSON.stringify(pkgJson.version)};`;
 
-// Plugin to resolve 'mmt-core' and 'mmt-core/<subpath>' to local core sources
 const mmtCorePlugin = {
   name: 'mmt-core-resolver',
   setup(build) {
-    // Resolve bare 'mmt-core' → core/src/index.ts
     build.onResolve({filter: /^mmt-core$/}, () => ({
       path: path.join(coreDir, 'index.ts'),
     }));
-    // Resolve 'mmt-core/<sub>' → core/src/<sub>.ts
     build.onResolve({filter: /^mmt-core\//}, (args) => {
       const sub = args.path.replace(/^mmt-core\//, '');
       return {path: path.join(coreDir, sub + '.ts')};
@@ -48,15 +49,18 @@ await esbuild.build({
   entryPoints: ['src/cli.ts'],
   bundle: true,
   platform: 'node',
-  target: 'node18',
+  target: isPkg ? 'node22' : 'node18',
   format: 'cjs',
-  outfile: 'dist/cli.js',
+  outfile: isPkg ? path.join(outDir, 'pkg-bundle.cjs') : path.join(outDir, 'cli.js'),
   banner: {
-    js: '#!/usr/bin/env node',
+    js: isPkg ? versionBanner : `#!/usr/bin/env node\n${versionBanner}`,
   },
   plugins: [mmtCorePlugin],
-  // Bundle runtime deps used by mmt-core network/js execution.
-  external: [
+  resolveExtensions: ['.ts', '.js', '.cjs', '.mjs', '.json'],
+  external: isPkg ? [
+    '@grpc/grpc-js',
+    '@grpc/proto-loader',
+  ] : [
     'commander',
     'js-yaml',
     'yaml',

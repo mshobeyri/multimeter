@@ -19,7 +19,7 @@
 #   ├── install.sh
 #   └── checksums-sha256.txt
 #
-# Prerequisites: npm, node ≥ 18, pkg (installed as devDep in mmtcli)
+# Prerequisites: npm, node ≥ 22, @yao-pkg/pkg (installed as devDep in mmtcli)
 # Usage:
 #   ./scripts/build-binaries.sh                       # build all targets
 #   ./scripts/build-binaries.sh macos-arm64 linux-x64 # build specific targets
@@ -33,11 +33,11 @@ CLI_DIR="$REPO_ROOT/mmtcli"
 # ── Platform → pkg target mapping (portable, no associative arrays) ──
 pkg_target_for() {
   case "$1" in
-    macos-x64)   echo "node18-macos-x64" ;;
-    macos-arm64) echo "node18-macos-arm64" ;;
-    linux-x64)   echo "node18-linux-x64" ;;
-    linux-arm64) echo "node18-linux-arm64" ;;
-    win-x64)     echo "node18-win-x64" ;;
+    macos-x64)   echo "node22-macos-x64" ;;
+    macos-arm64) echo "node22-macos-arm64" ;;
+    linux-x64)   echo "node22-linux-x64" ;;
+    linux-arm64) echo "node22-linux-arm64" ;;
+    win-x64)     echo "node22-win-x64" ;;
     *) return 1 ;;
   esac
 }
@@ -76,13 +76,18 @@ rm -f "$BIN_DIR"/testlight-macos \
       "$REPO_ROOT"/testlight \
       "$REPO_ROOT"/mmt
 
-# ── 1. Build core + CLI TypeScript (CJS for pkg) ────────────────────
+# ── 1. Build core + bundle CLI for pkg ──────────────────────────────
 echo "▸ Compiling core..."
 (cd "$REPO_ROOT/core" && npm run build --silent)
 
-echo "▸ Compiling CLI (CJS)..."
+echo "▸ Bundling CLI for pkg (single CJS file)..."
 (cd "$CLI_DIR" && rm -rf dist-cjs 2>/dev/null || true)
-(cd "$CLI_DIR" && npm run build:cjs --silent)
+(cd "$CLI_DIR" && npm run build:pkg-bundle --silent)
+
+if echo "$PLATFORMS" | grep -q 'win-'; then
+  echo "▸ Generating Windows icon..."
+  (cd "$REPO_ROOT" && node scripts/generate-testlight-ico.mjs)
+fi
 
 # ── 2. Build each platform binary into bin/<platform>/ ──────────────
 for platform in $PLATFORMS; do
@@ -100,7 +105,14 @@ for platform in $PLATFORMS; do
 
   echo "▸ Building $platform ($pkg_target) → $out_dir/$bin_name"
 
-  (cd "$CLI_DIR" && npx pkg src/pkg-entry.cjs \
+  # Enhanced SEA (package.json config) so --compress is allowed. Simple
+  # `pkg file.js --sea` cannot compress. Brotli shrinks the VFS archive;
+  # each file decompresses lazily on first access in a process (tens of ms),
+  # not a one-time disk extract. The Node runtime itself is unchanged.
+  (cd "$CLI_DIR" && npm exec --no -- pkg dist-cjs/pkg-bundle.cjs \
+    --sea \
+    --compress Brotli \
+    -c package.json \
     --targets "$pkg_target" \
     --output "$out_dir/$bin_name")
 
@@ -109,14 +121,7 @@ for platform in $PLATFORMS; do
     # Windows: tiny cmd shim (full exe copy doubles the zip and is not a shortcut)
     cp "$REPO_ROOT/packaging/windows/mmt.cmd" "$out_dir/mmt.cmd"
     echo "  → wrote mmt.cmd shim → $bin_name"
-    # Apply Multimeter logo to the Windows executable when tools are available
-    if [ -f "$REPO_ROOT/res/testlight.ico" ] || [ -f "$REPO_ROOT/res/logo.png" ]; then
-      (cd "$REPO_ROOT" && node scripts/generate-testlight-ico.mjs 2>/dev/null || true)
-      if [ -f "$REPO_ROOT/res/testlight.ico" ]; then
-        (cd "$REPO_ROOT" && node scripts/apply-windows-icon.mjs "$out_dir/$bin_name") || \
-          echo "  ⚠ could not apply Windows icon (optional)"
-      fi
-    fi
+    (cd "$REPO_ROOT" && node scripts/apply-windows-icon.mjs "$out_dir/$bin_name")
   else
     # Unix: symlink mmt → testlight
     (cd "$out_dir" && ln -sf "$bin_name" mmt)

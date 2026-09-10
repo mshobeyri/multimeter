@@ -264,6 +264,21 @@
       "types": "./dist/envParsePack.d.ts",
       "require": "./dist/envParsePack.js",
       "default": "./dist/envParsePack.js"
+    },
+    "./agentDocs": {
+      "types": "./dist/agentDocs.d.ts",
+      "require": "./dist/agentDocs.js",
+      "default": "./dist/agentDocs.js"
+    },
+    "./validateMmt": {
+      "types": "./dist/validateMmt.d.ts",
+      "require": "./dist/validateMmt.js",
+      "default": "./dist/validateMmt.js"
+    },
+    "./testlightHelp": {
+      "types": "./dist/testlightHelp.d.ts",
+      "require": "./dist/testlightHelp.js",
+      "default": "./dist/testlightHelp.js"
     }
   },
   "scripts": {

@@ -9,7 +9,7 @@ function OnThisPage({ headings }: { headings: Array<{ id: string; text: string; 
     return null
   }
   return (
-    <aside className="hidden xl:block w-48 shrink-0 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto">
+    <aside className="docs-toc">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
         On this page
       </h2>

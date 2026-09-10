@@ -2,6 +2,22 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.42.4]
+
+Stable release of the 1.42.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.42.4` on `@latest`.
+
+- Share one Testlight CLI across npm, GitHub binaries, and MCP
+- Keep Edit visible in the header when YAML has errors
+- Website: docs gallery highlighting, Chrome-safe layout and scroll-in animations, September roadmap
+
+## [1.42.3-pre]
+
+Pre-release.
+
+- Faster Windows Testlight binaries (Node 22 SEA package, single esbuild bundle)
+- Apply the Multimeter icon to `testlight.exe` instead of the Node.js icon
+- `testlight update` works on GitHub Release / portal standalone binaries
+
 ## [1.42.2-pre]
 
 Pre-release.

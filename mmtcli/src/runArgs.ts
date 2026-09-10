@@ -6,15 +6,8 @@ import type {RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
 import type {NetworkConfig, EnvCertificateSettings, EnvSetting} from 'mmt-core/NetworkData';
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
-import {createRequire} from 'module';
 
-const requireFromRunArgs = createRequire(__filename);
-const {resolveUserPath, resolveUserPathPreferExisting} = requireFromRunArgs('../src/pathNormalize.cjs') as {
-  resolveUserPath: (input: string, baseDir?: string, pathMod?: typeof path) => string;
-  resolveUserPathPreferExisting: (
-      input: string, baseDirs: string|string[], pathMod?: typeof path,
-      existsFn?: (p: string) => boolean) => string;
-};
+import {resolveUserPath, resolveUserPathPreferExisting} from './pathNormalize.cjs';
 
 export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 

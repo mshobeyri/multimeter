@@ -568,15 +568,14 @@ export default function PlaylistShowcase({
               ref={(element) => {
                 rowRefs.current[group.key] = element
               }}
-              className="flex flex-col gap-4 overflow-visible pb-2 sm:-mx-2 sm:flex-row sm:snap-x sm:snap-mandatory sm:gap-6 sm:overflow-x-auto sm:overflow-y-hidden sm:px-2 sm:pb-3 sm:overscroll-y-none sm:[touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              className="playlist-track"
             >
-              {group.videos.map(({ video, meta }, videoIndex) => {
+              {group.videos.map(({ video, meta }) => {
                 const displayTitle = useRawTitles ? video.title : meta.title
                 const cardSizeClass = 'h-auto lg:h-[31.2rem]'
 
                 return (
-                  <FadeIn key={video.id} delay={0} direction="none" className="w-full sm:w-[72.5rem] sm:shrink-0 sm:snap-start">
+                  <FadeIn key={video.id} delay={0} direction="none" className="playlist-slide">
                     <div
                       className={`w-full overflow-hidden rounded-2xl border bg-slate-900/60 transition-colors duration-300 hover:bg-slate-900/82 sm:rounded-[30px] ${cardSizeClass} ${getGroupCardStyle(group.key)}`}
                     >
@@ -619,7 +618,7 @@ export default function PlaylistShowcase({
             <button
               type="button"
               onClick={() => scrollRowRight(group.key)}
-              className="absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-950/85 p-3 text-white shadow-[0_12px_30px_rgba(2,12,27,0.4)] backdrop-blur transition-colors hover:border-sky-400/40 hover:text-sky-200 md:inline-flex"
+              className="playlist-next"
               aria-label={`Scroll ${group.meta.title} to the right`}
             >
               <ArrowRight size={18} />

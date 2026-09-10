@@ -13,7 +13,16 @@ testlight run test.mmt.yaml -o result.json
 
 Commands:
 - `testlight run <file>`
+- `testlight print-js <file>`
+- `testlight docs [topic]`
+- `testlight scaffold test --from <api.mmt>`
+- `testlight validate <file>`
+- `testlight suggest asserts --from <api.mmt>`
+- `testlight doc <file>`
 - `testlight version-info`
+- `testlight update`
+
+npm (`mmt-testlight`) and GitHub/Homebrew standalone binaries use the same CLI.
 
 ## Build
 
@@ -23,6 +32,8 @@ npm run build
 ```
 
 ## Bundle standalone binaries (pkg)
+
+Uses `@yao-pkg/pkg` in SEA mode (Node 22, Brotli-compressed archive). Requires Node ≥ 22 on the machine that builds binaries.
 
 ```
 npm run pkg

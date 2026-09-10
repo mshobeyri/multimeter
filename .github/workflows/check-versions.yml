@@ -13,5 +13,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Extension, CLI, plugin, MCP, and Action share one version
+      - name: Check package.json versions
         run: node scripts/sync-versions.mjs --check

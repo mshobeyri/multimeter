@@ -11,7 +11,7 @@ export default function Layout() {
       <main className="flex-1">
         <Outlet />
       </main>
-      <div className="relative z-10">
+      <div>
         <Footer />
       </div>
     </div>

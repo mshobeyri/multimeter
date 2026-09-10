@@ -92,14 +92,10 @@ export default function PanelRunHeader({
             </div>
           )}
         </div>
-        {!hasYamlErrors && actions != null && (
+        {(hasYamlErrors || actions != null) && (
           <div className="panel-run-header-actions">
+            {hasYamlErrors ? <YamlErrorWarning /> : null}
             {actions}
-          </div>
-        )}
-        {hasYamlErrors && (
-          <div className="panel-run-header-status">
-            <YamlErrorWarning />
           </div>
         )}
       </div>

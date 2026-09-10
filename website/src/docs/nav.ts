@@ -8,7 +8,15 @@ import {
 } from './navTypes'
 
 export type { DocsNavEntry, DocsNavLeaf, DocsNavSection } from './navTypes'
-export { isNavGroup, flattenNavItems, pathToHref } from './navTypes'
+export {
+  isNavGroup,
+  flattenNavItems,
+  pathToHref,
+  isDocsNavHrefActive,
+  isDocsNavHrefSelected,
+  docsNavGroupContainsPath,
+  maxMatchingNavDepth,
+} from './navTypes'
 
 type JsonItem = {
   title: string

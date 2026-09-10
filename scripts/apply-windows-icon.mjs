@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * Apply Multimeter logo to a Windows pkg executable.
- * Uses resedit to replace icon group id 1 (Node/pkg default).
- * Aborts if the output would grow (pkg payload offsets would break).
+ * Apply Multimeter logo + version strings to a Windows pkg/SEA executable.
+ * Uses resedit (safe for @yao-pkg/pkg binaries, including after --sea).
  *
  * Usage: node scripts/apply-windows-icon.mjs path/to/testlight.exe
  */
 import fs from 'fs';
 import path from 'path';
-import {fileURLToPath} from 'url';
-import * as ResEdit from 'resedit';
-import * as PELibrary from 'pe-library';
+import {createRequire} from 'module';
+import {fileURLToPath, pathToFileURL} from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
+const requireCli = createRequire(path.join(repoRoot, 'mmtcli', 'package.json'));
+
 const icoPath = path.join(repoRoot, 'res', 'testlight.ico');
 const exePath = process.argv[2];
 
@@ -30,65 +30,91 @@ if (!fs.existsSync(icoPath)) {
   process.exit(1);
 }
 
-const exeData = new Uint8Array(fs.readFileSync(exePath));
-const icoData = fs.readFileSync(icoPath);
-const before = exeData.byteLength;
+const LOCK_CODES = new Set(['EBUSY', 'EPERM', 'EACCES']);
 
-const exe = PELibrary.NtExecutable.from(exeData, {ignoreCert: true});
-const res = ResEdit.NtExecutableResource.from(exe);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-const existingGroups = ResEdit.Resource.IconGroupEntry.fromEntries(res.entries);
-const iconGroupID = existingGroups.length ? existingGroups[0].id : 1;
-const lang = existingGroups.length ? existingGroups[0].lang : 1033;
-
-const iconFile = ResEdit.Data.IconFile.from(icoData);
-ResEdit.Resource.IconGroupEntry.replaceIconsForResource(
-    res.entries,
-    iconGroupID,
-    lang,
-    iconFile.icons.map((item) => item.data),
-);
-
-// Also set basic version strings for Explorer properties.
-const viList = ResEdit.Resource.VersionInfo.fromEntries(res.entries);
-if (viList.length > 0) {
-  const vi = viList[0];
-  const version = JSON.parse(
-      fs.readFileSync(path.join(repoRoot, 'mmtcli', 'package.json'), 'utf8')).version;
-  const parts = String(version).split('.').map((n) => Number(n) || 0);
-  while (parts.length < 4) {
-    parts.push(0);
+async function retry(label, fn) {
+  let last;
+  for (let i = 0; i < 12; i++) {
+    try {
+      return fn();
+    } catch (err) {
+      last = err;
+      if (!LOCK_CODES.has(err?.code) || i === 11) {
+        throw err;
+      }
+      console.warn(`${label}: ${err.code}, retry ${i + 1}/12`);
+      await sleep(500 * (i + 1));
+    }
   }
-  vi.fixedInfo.fileVersionMS = ((parts[0] & 0xffff) << 16) | (parts[1] & 0xffff);
-  vi.fixedInfo.fileVersionLS = ((parts[2] & 0xffff) << 16) | (parts[3] & 0xffff);
-  vi.fixedInfo.productVersionMS = vi.fixedInfo.fileVersionMS;
-  vi.fixedInfo.productVersionLS = vi.fixedInfo.fileVersionLS;
-  vi.setStringValues(
-      {lang: 1033, codepage: 1200},
-      {
-        FileDescription: 'Multimeter Testlight CLI',
-        ProductName: 'Multimeter',
-        CompanyName: 'Multimeter',
-        LegalCopyright: 'Multimeter',
-        OriginalFilename: 'testlight.exe',
-        InternalName: 'testlight',
-      },
+  throw last;
+}
+
+async function main() {
+  const ResEdit = await import(pathToFileURL(requireCli.resolve('resedit')).href);
+  const exeData = await retry('read exe', () => new Uint8Array(fs.readFileSync(exePath)));
+  const icoData = fs.readFileSync(icoPath);
+  const before = exeData.byteLength;
+
+  const exe = ResEdit.NtExecutable.from(exeData, {ignoreCert: true});
+  const res = ResEdit.NtExecutableResource.from(exe);
+
+  const existingGroups = ResEdit.Resource.IconGroupEntry.fromEntries(res.entries);
+  const iconGroupID = existingGroups.length ? existingGroups[0].id : 1;
+  const lang = existingGroups.length ? existingGroups[0].lang : 1033;
+
+  const iconFile = ResEdit.Data.IconFile.from(icoData);
+  ResEdit.Resource.IconGroupEntry.replaceIconsForResource(
+      res.entries,
+      iconGroupID,
+      lang,
+      iconFile.icons.map((item) => item.data),
   );
-  vi.outputToResourceEntries(res.entries);
+
+  const viList = ResEdit.Resource.VersionInfo.fromEntries(res.entries);
+  if (viList.length > 0) {
+    const vi = viList[0];
+    const version = JSON.parse(
+        fs.readFileSync(path.join(repoRoot, 'mmtcli', 'package.json'), 'utf8')).version;
+    const parts = String(version).replace(/-.*$/, '').split('.').map((n) => Number(n) || 0);
+    while (parts.length < 4) {
+      parts.push(0);
+    }
+    vi.fixedInfo.fileVersionMS = ((parts[0] & 0xffff) << 16) | (parts[1] & 0xffff);
+    vi.fixedInfo.fileVersionLS = ((parts[2] & 0xffff) << 16) | (parts[3] & 0xffff);
+    vi.fixedInfo.productVersionMS = vi.fixedInfo.fileVersionMS;
+    vi.fixedInfo.productVersionLS = vi.fixedInfo.fileVersionLS;
+    vi.setStringValues(
+        {lang: 1033, codepage: 1200},
+        {
+          FileDescription: 'Multimeter Testlight CLI',
+          ProductName: 'Multimeter',
+          CompanyName: 'Multimeter',
+          LegalCopyright: 'Multimeter',
+          OriginalFilename: 'testlight.exe',
+          InternalName: 'testlight',
+          ProductVersion: String(version),
+          FileVersion: String(version),
+        },
+    );
+    vi.outputToResourceEntries(res.entries);
+  }
+
+  res.outputResource(exe);
+  const out = Buffer.from(exe.generate());
+  const tmpPath = `${exePath}.icon-tmp`;
+  await retry('write exe', () => {
+    fs.writeFileSync(tmpPath, out);
+    fs.renameSync(tmpPath, exePath);
+  });
+  console.log(
+      `Applied Multimeter icon (group ${iconGroupID}) to ${exePath} (${before} → ${out.length} bytes)`);
 }
 
-res.outputResource(exe);
-const out = Buffer.from(exe.generate());
-if (out.length > before) {
-  console.error(
-      `Icon/version apply would grow exe (${before} → ${out.length}); aborting to protect pkg payload.`);
+main().catch((err) => {
+  console.error(err);
   process.exit(1);
-}
-
-const padded = Buffer.alloc(before);
-out.copy(padded, 0);
-if (out.length < before) {
-  Buffer.from(exeData).copy(padded, out.length, out.length);
-}
-fs.writeFileSync(exePath, padded);
-console.log(`Applied Multimeter icon (group ${iconGroupID}) to ${exePath}`);
+});

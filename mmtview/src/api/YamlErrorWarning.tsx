@@ -109,7 +109,7 @@ const YamlErrorWarning: React.FC = () => {
   );
 };
 
-/** Hide Edit / unsaved actions while YAML errors own the header slot. */
+/** Hide children while YAML errors are present (e.g. export). */
 export function HideWhenYamlError({children}: {children: React.ReactNode}) {
   const {yamlErrors} = useContext(FileContext);
   if (yamlErrors && yamlErrors.length > 0) {

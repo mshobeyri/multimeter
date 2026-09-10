@@ -1,10 +1,116 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ChevronRight, FileCode2, FolderOpen } from 'lucide-react'
+import hljs from 'highlight.js/lib/core'
+import bash from 'highlight.js/lib/languages/bash'
+import graphql from 'highlight.js/lib/languages/graphql'
+import http from 'highlight.js/lib/languages/http'
+import ini from 'highlight.js/lib/languages/ini'
+import javascript from 'highlight.js/lib/languages/javascript'
+import json from 'highlight.js/lib/languages/json'
+import markdown from 'highlight.js/lib/languages/markdown'
+import protobuf from 'highlight.js/lib/languages/protobuf'
+import typescript from 'highlight.js/lib/languages/typescript'
+import xml from 'highlight.js/lib/languages/xml'
+import yaml from 'highlight.js/lib/languages/yaml'
 import { examples } from 'virtual:examples'
 import type { ExampleEntry, ExampleTier } from 'virtual:examples'
 import MarkdownContent from '../../docs/MarkdownContent'
 import Seo from '../../components/Seo'
+
+hljs.registerLanguage('bash', bash)
+hljs.registerLanguage('graphql', graphql)
+hljs.registerLanguage('http', http)
+hljs.registerLanguage('ini', ini)
+hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('json', json)
+hljs.registerLanguage('markdown', markdown)
+hljs.registerLanguage('protobuf', protobuf)
+hljs.registerLanguage('typescript', typescript)
+hljs.registerLanguage('xml', xml)
+hljs.registerLanguage('yaml', yaml)
+
+function languageForExampleFile(filePath: string): string | undefined {
+  const name = filePath.split('/').pop()?.toLowerCase() ?? ''
+  const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : name
+  if (ext === '.mmt' || ext === '.yml' || ext === '.yaml') {
+    return 'yaml'
+  }
+  if (ext === '.md') {
+    return 'markdown'
+  }
+  if (ext === '.js') {
+    return 'javascript'
+  }
+  if (ext === '.ts') {
+    return 'typescript'
+  }
+  if (ext === '.json') {
+    return 'json'
+  }
+  if (ext === '.sh' || ext === '.bash') {
+    return 'bash'
+  }
+  if (ext === '.http' || ext === '.https') {
+    return 'http'
+  }
+  if (ext === '.xml' || ext === '.html') {
+    return 'xml'
+  }
+  if (ext === '.graphql' || ext === '.gql') {
+    return 'graphql'
+  }
+  if (ext === '.proto') {
+    return 'protobuf'
+  }
+  if (ext === '.env' || name === '.env') {
+    return 'ini'
+  }
+  return undefined
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function highlightExampleFile(filePath: string, content: string): string {
+  const language = languageForExampleFile(filePath)
+  if (language && hljs.getLanguage(language)) {
+    try {
+      return hljs.highlight(content, { language, ignoreIllegals: true }).value
+    } catch {
+      // fall through to escaped plaintext
+    }
+  }
+  return escapeHtml(content)
+}
+
+function HighlightedExampleFile({
+  path,
+  content,
+}: {
+  path: string
+  content: string
+}) {
+  const html = useMemo(
+    () => highlightExampleFile(path, content),
+    [path, content],
+  )
+  const language = languageForExampleFile(path) ?? 'plaintext'
+  return (
+    <div className="docs-prose docs-file-preview">
+      <pre className="m-0 p-4 overflow-x-auto">
+        <code
+          className={`hljs language-${language}`}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </pre>
+    </div>
+  )
+}
 
 const TIER_ORDER: ExampleTier[] = ['basic', 'intermediate', 'professional']
 const TIER_LABEL: Record<ExampleTier, string> = {
@@ -173,7 +279,9 @@ function FileTreeNode({
 
 export function ExampleDetailPage() {
   const { tier, slug } = useParams<{ tier: string; slug: string }>()
+  const location = useLocation()
   const example = examples.find((e) => e.tier === tier && e.slug === slug)
+  const hashFile = decodeURIComponent(location.hash.replace(/^#/, ''))
 
   const defaultFile =
     example?.files.find((f) => f.path.endsWith('.mmt'))?.path ??
@@ -184,8 +292,12 @@ export function ExampleDetailPage() {
   const [selectedPath, setSelectedPath] = useState(defaultFile)
 
   useEffect(() => {
+    if (hashFile && example?.files.some((f) => f.path === hashFile)) {
+      setSelectedPath(hashFile)
+      return
+    }
     setSelectedPath(defaultFile)
-  }, [defaultFile, tier, slug])
+  }, [defaultFile, tier, slug, hashFile, example])
 
   const selected = example?.files.find((f) => f.path === selectedPath) ?? example?.files[0]
   const tree = useMemo(
@@ -261,9 +373,7 @@ export function ExampleDetailPage() {
           </div>
           <div className="p-0 max-h-[420px] overflow-auto">
             {selected ? (
-              <pre className="m-0 p-4 text-sm leading-relaxed text-slate-300 font-mono whitespace-pre-wrap break-words">
-                <code>{selected.content}</code>
-              </pre>
+              <HighlightedExampleFile path={selected.path} content={selected.content} />
             ) : (
               <p className="p-4 text-slate-500 text-sm">Select a file</p>
             )}

@@ -1,39 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 
-import {GUIDE_RESOURCES, readGuideContent, resolveGuidesDir} from '../resources/guides';
+import * as agentDocs from 'mmt-core/agentDocs';
 
-export type DocumentationTopic =
-  'overview' | 'workflow' | 'test' | 'api' | 'loadtest' | 'suite' | 'env' | 'doc' | 'constraints' | 'all';
+import {GUIDE_RESOURCES, readGuideContent} from '../resources/guides';
 
-export type DocumentationPack = 'min' | 'full';
+export type DocumentationTopic = Exclude<agentDocs.AgentDocTopic, 'offline'>;
+export type DocumentationPack = agentDocs.AgentDocPack;
 
-const FULL_TOPIC_FILES: Record<Exclude<DocumentationTopic, 'all'>, string[]> = {
-  overview: ['agent-workflow.md', 'general.md', 'generate.md'],
-  workflow: ['agent-workflow.md'],
-  test: ['generate-test.md'],
-  api: ['generate-api.md'],
-  loadtest: ['generate-loadtest.md'],
-  suite: ['generate-suite.md'],
-  env: ['generate-env.md'],
-  doc: ['generate-doc.md'],
-  constraints: ['generate-test-skill.md'],
-};
-
-const MIN_TOPIC_FILES: Record<Exclude<DocumentationTopic, 'all'>, string[]> = {
-  overview: ['min/overview.md'],
-  workflow: ['min/workflow.md'],
-  test: ['min/test.md'],
-  api: ['min/api.md'],
-  loadtest: ['min/loadtest.md'],
-  suite: ['min/suite.md'],
-  env: ['min/env.md'],
-  doc: ['min/doc.md'],
-  constraints: ['min/constraints.md'],
-};
-
-export function listDocumentationTopics(): Exclude<DocumentationTopic, 'all'>[] {
-  return Object.keys(MIN_TOPIC_FILES) as Exclude<DocumentationTopic, 'all'>[];
+export function listDocumentationTopics(): Array<Exclude<DocumentationTopic, 'all'>> {
+  return agentDocs.AGENT_DOC_FILE_TOPICS;
 }
 
 export function readDocumentation(
@@ -45,21 +21,22 @@ export function readDocumentation(
   sections: Array<{name: string; fileName: string; content: string}>;
   usage: string;
 } {
-  const table = pack === 'full' ? FULL_TOPIC_FILES : MIN_TOPIC_FILES;
-  const files = topic === 'all' ?
-      Array.from(new Set(Object.values(table).flat())) :
-      table[topic];
-  const sections = files.map(fileName => {
-    const resource = GUIDE_RESOURCES.find(item => item.fileName === fileName);
+  const loaded = agentDocs.loadAgentDocSections({
+    topic,
+    pack,
+    readText: readGuideContent,
+  });
+  const sections = loaded.sections.map(section => {
+    const resource = GUIDE_RESOURCES.find(item => item.fileName === section.fileName);
     return {
-      name: resource?.name || fileName.replace(/\.md$/, '').replace(/^min\//, ''),
-      fileName,
-      content: readGuideContent(fileName),
+      name: resource?.name || section.fileName.replace(/\.md$/, '').replace(/^min\//, ''),
+      fileName: section.fileName,
+      content: section.content,
     };
   });
   return {
-    topic,
-    pack,
+    topic: loaded.topic as DocumentationTopic,
+    pack: loaded.pack,
     sections,
     usage: pack === 'min' ?
         'Default min pack. Request pack: "full" only when you need rare syntax.' :
@@ -200,4 +177,4 @@ export function listExamples(options?: {
 }
 
 /** @deprecated Prefer readDocumentation(..., 'full') */
-export const TOPIC_FILES = FULL_TOPIC_FILES;
+export const TOPIC_FILES = agentDocs.FULL_TOPIC_FILES;

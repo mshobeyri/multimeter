@@ -1,6 +1,6 @@
 {
   "name": "mmt-mcp",
-  "version": "1.42.2-pre",
+  "version": "1.42.4",
   "description": "Multimeter MCP server for Cursor, Copilot, and Claude. Scaffold, validate, format, and run YAML .mmt API tests. Do not invent .mmt syntax.",
   "mcpName": "io.github.mshobeyri/multimeter",
   "type": "module",
