@@ -10,7 +10,6 @@ import TestTest from "./TestTest";
 import { FileContext } from "../fileContext";
 import { FlowchartView } from "../flowchart";
 import UnsavedChangesWarning from "../api/UnsavedChangesWarning";
-import { HideWhenYamlError } from "../api/YamlErrorWarning";
 import { showYamlUiConflictDialog } from "../vsAPI";
 import TabBar from "../components/TabBar";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
@@ -287,7 +286,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                         label="Flow chart"
                         onClick={() => setPage('flow')}
                       />
-                      <HideWhenYamlError>
                         {onSaveAsMmt ? (
                           <HeaderAction
                             icon="save-as"
@@ -310,7 +308,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                             onReset={handleWarningReset}
                           />
                         )}
-                      </HideWhenYamlError>
                     </>
                   }
                 />

@@ -5,7 +5,7 @@ import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
 import APITest from "./APITester";
 import UnsavedChangesWarning from "./UnsavedChangesWarning";
-import YamlErrorWarning, { HideWhenYamlError } from "./YamlErrorWarning";
+import YamlErrorWarning from "./YamlErrorWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
@@ -313,7 +313,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
                     readOnly ? undefined : (
                       <>
                         <YamlErrorWarning />
-                        <HideWhenYamlError>
                           {isTestModified ? (
                             <UnsavedChangesWarning
                               originalYaml={appliedContent}
@@ -328,7 +327,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
                               onClick={() => setPage('edit')}
                             />
                           )}
-                        </HideWhenYamlError>
                       </>
                     )
                   }

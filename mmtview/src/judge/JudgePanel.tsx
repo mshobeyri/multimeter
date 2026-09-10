@@ -366,14 +366,12 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                   iconTitle="AI Judge"
                   iconStyle={{ color: statusChrome.text, transition: 'color 0.2s' }}
                   actions={
-                    <HideWhenYamlError>
                       <HeaderAction
                         icon="edit"
                         label="Edit Judge"
                         onClick={() => setPage('edit')}
                         title="Edit judge configuration"
                       />
-                    </HideWhenYamlError>
                   }
                 />
                 <div className="run-action-bar">
@@ -440,8 +438,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                 <TabBar tabs={JUDGE_EDIT_TABS} value={tab} onChange={setTab} />
               </PanelEditHeader>
 
-              <HideWhenYamlError>
-                <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 12 }}>
+              <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 12 }}>
                   {tab === 'overview' && (
                     <>
                       <div className="label">Title</div>
@@ -703,7 +700,6 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                     </>
                   )}
                 </div>
-              </HideWhenYamlError>
             </div>
           </div>
         </div>
