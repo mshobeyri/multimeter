@@ -42,5 +42,5 @@ testlight docs api --pack full
 `testlight docs` reads from, in order:
 
 1. `MMT_GUIDES_DIR`
-2. Guides bundled next to the CLI (`guides/` beside `cli.js`)
+2. Guides bundled next to the CLI (`guides/` beside `cli.js` or inside the standalone binary)
 3. Repo `docs/AI` when developing from source

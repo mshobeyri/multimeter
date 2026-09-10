@@ -56,3 +56,6 @@ export * as reportMarkdown from "./reportMarkdown";
 export * as reportParser from "./reportParser";
 export * as statusIcons from "./statusIcons";
 export * as mmtFileType from "./mmtFileType";
+export * as agentDocs from "./agentDocs";
+export * as validateMmt from "./validateMmt";
+export * as testlightHelp from "./testlightHelp";

@@ -5,29 +5,51 @@ import * as mmtcore from 'mmt-core';
 import {Worker, isMainThread, parentPort, workerData} from 'worker_threads';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
-import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
+import {apiParsePack, docHtml, docParsePack, runner, testlightHelp} from 'mmt-core';
 import path from 'path';
 import {createRequire} from 'module';
 
-const requireFromCli = createRequire(__filename);
-const {resolveUserPath, writeTextFile} = requireFromCli('../src/pathNormalize.cjs') as {
-  resolveUserPath: (input: string, baseDir?: string, pathMod?: typeof path) => string;
-  writeTextFile: (filePath: string, content: string) => string;
-};
-
+import {resolveUserPath, writeTextFile} from './pathNormalize.cjs';
 import {summarize} from './loadTest.js';
 import {startMockServerFromPath, stopAllServers} from './mockRunner.js';
 import {buildCliRunArgs} from './runArgs.js';
-import {formatCliDocs, listCliDocTopics} from './aiDocs.js';
+import {formatCliDocs, listCliDocTopics, resolveCliGuidesDir} from './aiDocs.js';
 import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
-import {runUpdate} from './selfUpdate.js';
+import {detectInstallChannel, runUpdate} from './selfUpdate.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
 const program = new Command();
+const requireFromCli = createRequire(__filename);
 
-// Resolve version from the installed package.json (next to dist/cli.js).
+function isPackagedBinary(): boolean {
+  if ((process as any).pkg) {
+    return true;
+  }
+  try {
+    const sea = require('node:sea') as {isSea?: () => boolean};
+    return typeof sea.isSea === 'function' && sea.isSea();
+  } catch {
+    return false;
+  }
+}
+
+function jsRunnerWorkerScript(): string {
+  if (isPackagedBinary()) {
+    return process.execPath;
+  }
+  const script = process.argv[1];
+  if (typeof script === 'string' && script) {
+    return script;
+  }
+  return process.execPath;
+}
+
 function resolveCliVersion(): string {
+  const injected = (globalThis as any).__MMT_CLI_VERSION__;
+  if (typeof injected === 'string' && injected) {
+    return injected;
+  }
   try {
     const version = requireFromCli('../package.json').version;
     if (typeof version === 'string' && version) {
@@ -138,7 +160,7 @@ function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any) {
   const maxWorkers = Math.max(1, Number(process.env.MMT_LOADTEST_WORKERS || 128) || 128);
 
   const createWorker = () => {
-    const worker = new Worker(process.argv[1], {
+    const worker = new Worker(jsRunnerWorkerScript(), {
       workerData: {mmtWorker: 'jsRunner', networkConfig},
     });
     allWorkers.add(worker);
@@ -250,39 +272,10 @@ if (!isMainThread && workerData?.mmtWorker === 'jsRunner') {
 }
 
 program.name('testlight')
-    .description('Multimeter CLI — run .mmt API tests, suites, and docs')
+    .description(testlightHelp.TESTLIGHT_DESCRIPTION)
     .version(CLI_VERSION, '-v, --version', 'Show version')
     .helpOption('-h, --help', 'Show help')
-    .addHelpText(
-        'after',
-        [
-          '',
-          'Run options:',
-          '  -q, --quiet                Minimal output',
-          '  -o, --out <file>           Write result JSON to file',
-          '  -i, --input <k=v...>       Input variables (repeatable)',
-          '  -e, --env <k=v...>         Environment variables (repeatable)',
-          '  -F, --env-file <path>      Environment file (.mmt/.yaml)',
-          '  -P, --preset <name>        Preset from env file (repeatable)',
-          '  -x, --example <name|#n>    Named example or index (#1 is first)',
-          '  -p, --print-js             Print generated JS before executing',
-          '  -r, --report <format>      junit | mmt | html | md | md-detailed',
-          '  -R, --report-file <path>   Report output path',
-          '',
-          'Examples:',
-          '  testlight run path/to/test.mmt',
-          '  testlight run path/to/test.mmt -F env.mmt -P runner.dev -P custom.prod',
-          '  testlight run path/to/suite.mmt --report html',
-          '  testlight scaffold test --from path/to/api.mmt',
-          '  testlight scaffold test --from path/to/api.mmt -o tests/api-smoke.mmt',
-          '  testlight docs test',
-          '  testlight validate path/to/test.mmt',
-          '  testlight suggest asserts --from path/to/api.mmt',
-          '  testlight update',
-          '  testlight update --check',
-          '',
-          'Run `testlight <command> --help` for command-specific options.',
-        ].join('\n'));
+    .addHelpText('after', testlightHelp.TESTLIGHT_HELP_AFTER);
 
 program.option(
   '-L, --log-level <level>',
@@ -565,6 +558,21 @@ program.command('version-info')
     .action(() => {
       console.log(`multimeter cli ${CLI_VERSION}`);
       console.log('Node:', process.version);
+    });
+
+program.command('debug-resolve')
+    .description('Print install, version, and guides resolution')
+    .action(() => {
+      const lines = [
+        `version: ${CLI_VERSION}`,
+        `execPath: ${process.execPath}`,
+        `argv1: ${process.argv[1] || ''}`,
+        `__dirname: ${__dirname}`,
+        `packaged: ${isPackagedBinary()}`,
+        `channel: ${detectInstallChannel(process.execPath, process.argv[1])}`,
+        `guidesDir: ${resolveCliGuidesDir()}`,
+      ];
+      console.log(lines.join('\n'));
     });
 
 program.command('update')

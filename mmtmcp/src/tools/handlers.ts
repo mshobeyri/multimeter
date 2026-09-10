@@ -1,4 +1,5 @@
 import {JSer, apiParsePack, runner, testParsePack} from 'mmt-core';
+import * as validateMmt from 'mmt-core/validateMmt';
 import {formatMmtYaml} from 'mmt-core/mmtFormat';
 import {runJSCode} from 'mmt-core/jsRunner';
 import * as testScaffold from 'mmt-core/testScaffold';
@@ -22,34 +23,6 @@ import {
   listExamples,
   readDocumentation,
 } from '../resources/documentation';
-
-function detectType(content: string, filePath?: string): string | null {
-  if (filePath) {
-    return JSer.fileType(filePath, content);
-  }
-  if (content.includes('type: api')) {
-    return 'api';
-  }
-  if (content.includes('type: test')) {
-    return 'test';
-  }
-  if (content.includes('type: env')) {
-    return 'env';
-  }
-  if (content.includes('type: suite')) {
-    return 'suite';
-  }
-  if (content.includes('type: doc')) {
-    return 'doc';
-  }
-  if (content.includes('type: server')) {
-    return 'server';
-  }
-  if (content.includes('type: loadtest')) {
-    return 'loadtest';
-  }
-  return null;
-}
 
 export function buildValidationSuggestions(errors: string[]): string[] {
   const suggestions = new Set<string>();
@@ -80,37 +53,11 @@ export function buildValidationSuggestions(errors: string[]): string[] {
 }
 
 function validateContent(content: string, filePath?: string, expectedType?: string) {
-  const detectedType = detectType(content, filePath);
-  if (expectedType && detectedType && detectedType !== expectedType) {
-    const errors = [`Expected type "${expectedType}" but detected "${detectedType}"`];
-    return {
-      valid: false,
-      detectedType,
-      errors,
-      suggestions: buildValidationSuggestions(errors),
-    };
-  }
-  try {
-    const type = expectedType || detectedType;
-    if (type === 'api') {
-      apiParsePack.yamlToAPIStrict(content);
-    } else if (type === 'test' || !type) {
-      testParsePack.yamlToTestStrict(content);
-    } else {
-      const errors = [`Validation for type "${type}" is not implemented yet`];
-      return {valid: false, detectedType, errors, suggestions: buildValidationSuggestions(errors)};
-    }
-    return {valid: true, detectedType: type || detectedType, errors: [], suggestions: []};
-  } catch (error: any) {
-    const message = error?.message || String(error);
-    const errors = message.split('\n').filter(Boolean);
-    return {
-      valid: false,
-      detectedType,
-      errors,
-      suggestions: buildValidationSuggestions(errors),
-    };
-  }
+  const result = validateMmt.validateMmtContent(content, filePath, expectedType);
+  return {
+    ...result,
+    suggestions: result.valid ? [] : buildValidationSuggestions(result.errors),
+  };
 }
 
 export async function handleReadDocumentation(args: {

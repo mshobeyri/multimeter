@@ -33,7 +33,7 @@
     "build": "node esbuild.mjs",
     "build:tsc": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:pkg-bundle": "node esbuild.pkg.mjs",
+    "build:pkg-bundle": "node esbuild.mjs --pkg",
     "dev": "tsx src/cli.ts --help",
     "clean": "rimraf dist",
     "pkg": "rimraf dist-cjs && npm run build:pkg-bundle && bash ../scripts/build-binaries.sh",
@@ -42,6 +42,7 @@
   "pkg": {
     "compress": "Brotli",
     "assets": [
+      "dist-cjs/guides/**",
       "node_modules/@grpc/grpc-js/**",
       "node_modules/@grpc/proto-loader/**",
       "../node_modules/@grpc/grpc-js/**",
