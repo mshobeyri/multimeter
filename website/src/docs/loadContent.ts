@@ -1,6 +1,6 @@
 const modules = import.meta.glob('../../../docs/**/*.md', {
   // Bump ?v= when docs HMR outside website/ looks stale on a long-lived Vite process.
-  query: '?raw&v=3',
+  query: '?raw&v=4',
   import: 'default',
   eager: true,
 }) as Record<string, string>

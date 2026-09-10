@@ -183,6 +183,31 @@ export function resolveDocsAsset(src: string | undefined, contentPath: string | 
   return `/docs-assets/${joined}`
 }
 
+const EXAMPLE_GALLERY_TIERS = 'basic|intermediate|professional'
+
+/** Map repo example paths onto /docs/examples/:tier/:slug (optional #file). */
+export function rewriteExampleGalleryHref(joined: string, hash: string): string {
+  const m = joined.match(
+    new RegExp(
+      `^/docs/examples/(${EXAMPLE_GALLERY_TIERS})/([^/]+)(?:/(.*))?$`,
+    ),
+  )
+  if (!m) {
+    return `${joined}${hash}`
+  }
+  const tier = m[1]
+  const slug = m[2]
+  let rest = (m[3] || '').replace(/\/$/, '')
+  if (!rest || rest === 'README') {
+    return `/docs/examples/${tier}/${slug}${hash}`
+  }
+  if (rest.endsWith('/README')) {
+    rest = `${rest}.md`
+  }
+  const fileHash = hash || `#${rest}`
+  return `/docs/examples/${tier}/${slug}${fileHash}`
+}
+
 function resolveDocsHref(href: string | undefined, basePath: string, contentPath?: string): string | undefined {
   if (!href) {
     return href
@@ -247,7 +272,7 @@ function resolveDocsHref(href: string | undefined, basePath: string, contentPath
     joined = `/${joined}`
   }
 
-  if (joined === '/docs/examples' || joined.endsWith('/examples')) {
+  if (joined === '/docs/examples') {
     return `/docs/examples${hash}`
   }
 
@@ -255,7 +280,12 @@ function resolveDocsHref(href: string | undefined, basePath: string, contentPath
     joined = '/docs/quick-start'
   }
 
-  return `${joined}${hash}`
+  if (joined.startsWith('/docs/AI/')) {
+    const repoFile = `${joined.slice('/docs/'.length)}.md`
+    return `https://github.com/mshobeyri/multimeter/blob/dev/${repoFile}${hash}`
+  }
+
+  return rewriteExampleGalleryHref(joined, hash)
 }
 
 function extractTitle(markdown: string): string {

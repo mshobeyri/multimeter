@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ChevronRight, FileCode2, FolderOpen } from 'lucide-react'
 import { examples } from 'virtual:examples'
 import type { ExampleEntry, ExampleTier } from 'virtual:examples'
@@ -173,7 +173,9 @@ function FileTreeNode({
 
 export function ExampleDetailPage() {
   const { tier, slug } = useParams<{ tier: string; slug: string }>()
+  const location = useLocation()
   const example = examples.find((e) => e.tier === tier && e.slug === slug)
+  const hashFile = decodeURIComponent(location.hash.replace(/^#/, ''))
 
   const defaultFile =
     example?.files.find((f) => f.path.endsWith('.mmt'))?.path ??
@@ -184,8 +186,12 @@ export function ExampleDetailPage() {
   const [selectedPath, setSelectedPath] = useState(defaultFile)
 
   useEffect(() => {
+    if (hashFile && example?.files.some((f) => f.path === hashFile)) {
+      setSelectedPath(hashFile)
+      return
+    }
     setSelectedPath(defaultFile)
-  }, [defaultFile, tier, slug])
+  }, [defaultFile, tier, slug, hashFile, example])
 
   const selected = example?.files.find((f) => f.path === selectedPath) ?? example?.files[0]
   const tree = useMemo(

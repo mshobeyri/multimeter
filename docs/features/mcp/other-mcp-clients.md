@@ -21,7 +21,7 @@ Project file `.cursor/mcp.json` (this repo already includes one):
 
 Or install the [Multimeter VS Code / Cursor extension](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) and enable the bundled **Multimeter** MCP server.
 
-When the user asks to create or edit `.mmt` files, call `scaffold_test`, then `validate` and `format`. See [agent workflow](../../AI/agent-workflow.md).
+When the user asks to create or edit `.mmt` files, call `scaffold_test`, then `validate` and `format`. See [Copilot workflow](./copilot-workflow.md) and [MCP tools](./mcp-tools.md).
 
 ## GitHub Copilot (VS Code)
 
