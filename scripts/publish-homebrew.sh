@@ -25,6 +25,7 @@ if [[ ! -f "$CHECKSUMS" ]]; then
 fi
 
 export GH_TOKEN="$TOKEN"
+gh auth setup-git
 
 UPDATED="$(python3 - "$FORMULA_SRC" "$VERSION" "$CHECKSUMS" <<'PY'
 import re
@@ -82,6 +83,7 @@ printf '%s' "$UPDATED" > "$dest"
 cd "$WORKDIR/tap"
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+git remote set-url origin "https://x-access-token:${TOKEN}@github.com/${TAP_REPO}.git"
 git add "$dest"
 if git diff --cached --quiet; then
   echo "Homebrew formula already at $VERSION"

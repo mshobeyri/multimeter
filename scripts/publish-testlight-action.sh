@@ -25,6 +25,7 @@ fi
 if [ -n "${TESTLIGHT_ACTION_TOKEN:-}" ]; then
   export GH_TOKEN="$TESTLIGHT_ACTION_TOKEN"
 fi
+gh auth setup-git
 
 WORKDIR="$(mktemp -d)"
 cleanup() {
@@ -61,6 +62,11 @@ The \`version\` input defaults to \`latest\`. Pass \`pre\` or \`X.Y.Z\` to pin \
 EOF
 
 cd "$WORKDIR/action"
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+if [ -n "${GH_TOKEN:-}" ]; then
+  git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${ACTION_REPO}.git"
+fi
 git add action.yml README.md LICENSE.md
 if git diff --cached --quiet; then
   echo "No action file changes for v${VERSION}"
