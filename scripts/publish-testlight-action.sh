@@ -50,7 +50,7 @@ rsync -a --delete \
   "$SRC/examples/" "$WORKDIR/action/examples/"
 
 mkdir -p "$WORKDIR/action/.github/workflows"
-cp "$SRC/examples/ci.yml" "$WORKDIR/action/.github/workflows/ci.yml"
+cp "$SRC/ci.yml" "$WORKDIR/action/.github/workflows/ci.yml"
 rm -f "$WORKDIR/action/.github/workflows/samples.yml"
 rm -f "$WORKDIR/action/azure-pipelines.yml"
 

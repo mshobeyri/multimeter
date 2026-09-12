@@ -1,6 +1,5 @@
-# Copy to .github/workflows/ci.yml.
-# In this Action repo the suite is examples/tests/suite.mmt and the Action is ./.
-# In your repo: uses: mshobeyri/testlight-action@v1 and file: tests/suite.mmt
+# Copied to mshobeyri/testlight-action as .github/workflows/ci.yml.
+# Runs this repo's Action (uses: ./) against examples/tests.
 name: CI
 
 on:

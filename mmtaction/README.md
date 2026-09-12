@@ -21,16 +21,16 @@ Docs: [Install Testlight](https://mmt.dev/docs/features/testlight/install) · [R
 
 ## Samples
 
-Same shape as a real repo: a workflow plus `tests/`.
+`.mmt` files live under [`examples/tests/`](examples/tests/). The **CI** workflow (`ci.yml`) is separate so this Action repo can run them with `uses: ./`.
 
 | File | What it is |
 |---|---|
-| [`examples/ci.yml`](examples/ci.yml) | Workflow (copy to `.github/workflows/ci.yml`) |
+| [`ci.yml`](ci.yml) | Workflow published as `.github/workflows/ci.yml` |
 | [`examples/tests/suite.mmt`](examples/tests/suite.mmt) | Runs `get.mmt` then `post.mmt` |
 | [`examples/tests/get.mmt`](examples/tests/get.mmt) | GET `https://test.mmt.dev/json` |
 | [`examples/tests/post.mmt`](examples/tests/post.mmt) | POST echo |
 
-This Action repo runs `examples/ci.yml` as `.github/workflows/ci.yml` with `uses: ./`. In your repo, copy `examples/tests/` to `tests/` and use `mshobeyri/testlight-action@v1` as in Usage.
+In your repo, copy `examples/tests/` to `tests/` and use `mshobeyri/testlight-action@v1` as in Usage.
 
 Azure Pipelines is a separate product (`mmtazure/`, `- task: Testlight@1`). See [Run in CI](https://mmt.dev/docs/tasks/run-in-ci).
 
