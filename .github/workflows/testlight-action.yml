@@ -1,4 +1,4 @@
-# Dogfood the Testlight Action product (mmtaction/) against an example suite.
+# Dogfood the Testlight Action product (mmtaction/) against its sample suite.
 # This repo does not consume mshobeyri/testlight-action; customers do.
 name: Testlight action
 
@@ -8,28 +8,24 @@ on:
     paths:
       - 'mmtaction/**'
       - '.github/workflows/testlight-action.yml'
-      - 'examples/basic/04_basic_suite/**'
   pull_request:
     paths:
       - 'mmtaction/**'
       - '.github/workflows/testlight-action.yml'
-      - 'examples/basic/04_basic_suite/**'
   workflow_dispatch:
 
 jobs:
-  readme-snippet:
+  sample-suite:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - name: Run example suite
+      - name: Run sample suite
         uses: ./mmtaction
         with:
-          file: examples/basic/04_basic_suite/suite.mmt
+          file: mmtaction/examples/tests/suite.mmt
           report: junit
           report-file: results/junit.xml
-          # Use a published npm build. The Action default is the repo version,
-          # which is not on npm until the release job finishes.
           version: latest
 
       - name: Upload JUnit report

@@ -1,24 +1,24 @@
-# Copy to .github/workflows/mmt.yml in a repo that contains the .mmt files.
-# Change `file` if the suite is not at examples/suite.mmt.
-
-name: Testlight
+# Copy to .github/workflows/ci.yml.
+# In this Action repo the suite is examples/tests/suite.mmt and the Action is ./.
+# In your repo: uses: mshobeyri/testlight-action@v1 and file: tests/suite.mmt
+name: CI
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - uses: mshobeyri/testlight-action@v1
+      - uses: ./
         with:
-          file: examples/suite.mmt
+          file: examples/tests/suite.mmt
           report: junit
           report-file: results/junit.xml
-
+          version: latest
       - name: Upload JUnit report
         if: always()
         uses: actions/upload-artifact@v5

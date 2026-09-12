@@ -45,7 +45,8 @@ rsync -a --delete \
   "$SRC/examples/" "$WORKDIR/action/examples/"
 
 mkdir -p "$WORKDIR/action/.github/workflows"
-cp "$SRC/ci/samples.yml" "$WORKDIR/action/.github/workflows/samples.yml"
+cp "$SRC/examples/ci.yml" "$WORKDIR/action/.github/workflows/ci.yml"
+rm -f "$WORKDIR/action/.github/workflows/samples.yml"
 rm -f "$WORKDIR/action/azure-pipelines.yml"
 
 cd "$WORKDIR/action"
@@ -54,8 +55,8 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 if [ -n "${GH_TOKEN:-}" ]; then
   git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${ACTION_REPO}.git"
 fi
-git add action.yml README.md LICENSE.md examples .github/workflows/samples.yml
-git rm -f --ignore-unmatch azure-pipelines.yml
+git add action.yml README.md LICENSE.md examples .github/workflows/ci.yml
+git rm -f --ignore-unmatch azure-pipelines.yml .github/workflows/samples.yml
 if git diff --cached --quiet; then
   echo "No action file changes for v${VERSION}"
 else
