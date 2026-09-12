@@ -32,7 +32,7 @@ CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build â
 | Tag | npm | Docker | GitHub | Homebrew | Action |
 |---|---|---|---|---|---|
 | `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` |
-| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | `@vX.Y.Z-pre` |
+| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | skipped |
 
 Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace stays manual (`VSCE_PAT`).
 

@@ -17,6 +17,11 @@ if [ -z "$PRERELEASE" ]; then
   fi
 fi
 
+if [ "$PRERELEASE" = "true" ]; then
+  echo "Skip Testlight Action publish for pre-release v${VERSION} (stable tags only)."
+  exit 0
+fi
+
 if [ -n "${CI:-}" ] && [ -z "${TESTLIGHT_ACTION_TOKEN:-}" ]; then
   echo "TESTLIGHT_ACTION_TOKEN is required to publish $ACTION_REPO"
   exit 1
@@ -67,23 +72,36 @@ git tag -f "v${VERSION}"
 git push origin HEAD:main
 git push -f origin "v${VERSION}"
 
-# Floating @v1 is stable only. Pre-releases keep a versioned tag only.
-if [ "$PRERELEASE" != "true" ]; then
-  major="${VERSION%%.*}"
-  git tag -f "v${major}"
-  git push -f origin "v${major}"
-fi
+major="${VERSION%%.*}"
+git tag -f "v${major}"
+git push -f origin "v${major}"
 
 if gh release view "v${VERSION}" >/dev/null 2>&1; then
   echo "Release v${VERSION} already exists on $ACTION_REPO"
 else
-  pre_flag=()
-  if [ "$PRERELEASE" = "true" ]; then
-    pre_flag=(--prerelease)
-  fi
-  gh release create "v${VERSION}" "${pre_flag[@]}" \
+  gh release create "v${VERSION}" \
     --title "Testlight Action v${VERSION}" \
-    --notes "Matches Testlight / Multimeter ${VERSION}. Installs \`mmt-testlight@${VERSION}\`."
+    --notes "$(cat <<EOF
+Run Multimeter (\`.mmt\`) API tests, test suites, and docs in GitHub Actions.
+
+Installs \`mmt-testlight@${VERSION}\` (or \`latest\` / \`pre\` via the \`version\` input).
+
+## Usage
+
+\`\`\`yaml
+- uses: actions/checkout@v6
+- uses: ${ACTION_REPO}@v${VERSION%%.*}
+  with:
+    file: tests/suite.mmt
+    report: junit
+    report-file: results/junit.xml
+\`\`\`
+
+Docs: https://mmt.dev/docs/features/testlight/install · https://mmt.dev/docs/tasks/run-in-ci
+EOF
+)"
 fi
 
 echo "Published $ACTION_REPO@v${VERSION}"
+echo "Marketplace listing cannot be set from CI (2FA). If this version is not on the listing yet:"
+echo "  https://github.com/${ACTION_REPO}/releases/edit/v${VERSION}"
