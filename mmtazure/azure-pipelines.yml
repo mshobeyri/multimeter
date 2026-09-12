@@ -1,5 +1,5 @@
 # Copy to azure-pipelines.yml in a repo that contains the .mmt files.
-# Change `file` if the suite is not at examples/suite.mmt.
+# Change `file` if the suite is not at tests/suite.mmt.
 #
 # GitHub `with:` == Azure `inputs:`. The task does not check out git.
 # `checkout: self` is a pipeline step (Azure already does it by default).
@@ -15,7 +15,7 @@ steps:
 
   - task: Testlight@1
     inputs:
-      file: examples/suite.mmt
+      file: tests/suite.mmt
       report: junit
       reportFile: results/junit.xml
 
@@ -26,8 +26,3 @@ steps:
       testResultsFiles: results/junit.xml
       failTaskOnFailedTests: true
     displayName: Publish JUnit
-
-  # Tests in another repo (GitHub: a second checkout):
-  # - checkout: git://MyOrg/api-tests@refs/heads/main
-  #   path: tests
-  # then: file: tests/suite.mmt

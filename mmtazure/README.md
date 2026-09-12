@@ -2,6 +2,8 @@
 
 GitHub Action `with:` becomes Azure `inputs:`. Checkout is not part of the task.
 
+Copy [`azure-pipelines.yml`](azure-pipelines.yml) into a repo that has `.mmt` files, or:
+
 ```yaml
 - task: Testlight@1
   inputs:

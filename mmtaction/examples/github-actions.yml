@@ -1,10 +1,5 @@
 # Copy to .github/workflows/mmt.yml in a repo that contains the .mmt files.
 # Change `file` if the suite is not at examples/suite.mmt.
-#
-# Azure equivalent: examples/azure-pipelines.yml
-#   checkout: self          →  actions/checkout@v6
-#   NodeTool + testlight    →  mshobeyri/testlight-action@v1
-#   PublishTestResults@2    →  actions/upload-artifact (or a test reporter)
 
 name: Testlight
 
