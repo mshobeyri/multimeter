@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copy the in-repo composite action to mshobeyri/testlight-action and tag it.
+# Copy mmtaction/ (GitHub Action product) to mshobeyri/testlight-action and tag it.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -34,7 +34,7 @@ cleanup() {
 trap cleanup EXIT
 
 gh repo clone "$ACTION_REPO" "$WORKDIR/action"
-SRC="$REPO_ROOT/.github/actions/testlight"
+SRC="$REPO_ROOT/mmtaction"
 cp "$SRC/action.yml" "$WORKDIR/action/action.yml"
 cp "$REPO_ROOT/LICENSE.md" "$WORKDIR/action/LICENSE.md"
 cp "$SRC/README.md" "$WORKDIR/action/README.md"
@@ -46,6 +46,7 @@ rsync -a --delete \
 
 mkdir -p "$WORKDIR/action/.github/workflows"
 cp "$SRC/ci/samples.yml" "$WORKDIR/action/.github/workflows/samples.yml"
+cp "$SRC/examples/azure-pipelines.yml" "$WORKDIR/action/azure-pipelines.yml"
 
 cd "$WORKDIR/action"
 git config user.name "github-actions[bot]"
@@ -53,7 +54,7 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 if [ -n "${GH_TOKEN:-}" ]; then
   git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${ACTION_REPO}.git"
 fi
-git add action.yml README.md LICENSE.md examples .github/workflows/samples.yml
+git add action.yml README.md LICENSE.md examples .github/workflows/samples.yml azure-pipelines.yml
 if git diff --cached --quiet; then
   echo "No action file changes for v${VERSION}"
 else

@@ -54,6 +54,7 @@ npm run pack-pre-release  # same version, --pre-release flag
 ## Other channels
 
 - **Homebrew**: CI updates tap `mshobeyri/homebrew-multimeter` after a **stable** GitHub Release (`scripts/publish-homebrew.sh`).
-- **Action**: `.github/actions/testlight/` ↔ `mshobeyri/testlight-action`. Default install is `mmt-testlight@latest`.
+- **Action**: `mmtaction/` ↔ `mshobeyri/testlight-action`. Default install is `mmt-testlight@latest`. This repo’s workflows do not consume that Action; customers do (`uses: mshobeyri/testlight-action@v1`).
+- **Azure task**: `mmtazure/` packs an Azure Pipelines task (`Testlight@1`) with the same YAML inputs. Not published from CI yet.
 - **MCP Registry**: `server.json` version tracks npm `mmt-mcp`. Publishing that file to the official MCP Registry is still separate from the npm job.
 - **Cursor plugin**: set `.cursor-plugin/plugin.json` when publishing that plugin.

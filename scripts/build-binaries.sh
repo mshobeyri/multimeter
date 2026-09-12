@@ -193,9 +193,9 @@ echo "  → $homebrew_dir/"
 # GitHub Action
 action_dir="$BIN_DIR/github-action"
 mkdir -p "$action_dir"
-if [ -d "$REPO_ROOT/.github/actions/testlight" ]; then
-  cp "$REPO_ROOT/.github/actions/testlight/action.yml" "$action_dir/action.yml" 2>/dev/null || true
-  cp "$REPO_ROOT/.github/actions/testlight/README.md" "$action_dir/README.md" 2>/dev/null || true
+if [ -d "$REPO_ROOT/mmtaction" ]; then
+  cp "$REPO_ROOT/mmtaction/action.yml" "$action_dir/action.yml" 2>/dev/null || true
+  cp "$REPO_ROOT/mmtaction/README.md" "$action_dir/README.md" 2>/dev/null || true
 fi
 echo "  → $action_dir/"
 

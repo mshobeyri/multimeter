@@ -1,0 +1,32 @@
+# Copy to .github/workflows/mmt.yml in a repo that contains the .mmt files.
+# Change `file` if the suite is not at examples/suite.mmt.
+#
+# Azure equivalent: examples/azure-pipelines.yml
+#   checkout: self          →  actions/checkout@v6
+#   NodeTool + testlight    →  mshobeyri/testlight-action@v1
+#   PublishTestResults@2    →  actions/upload-artifact (or a test reporter)
+
+name: Testlight
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: mshobeyri/testlight-action@v1
+        with:
+          file: examples/suite.mmt
+          report: junit
+          report-file: results/junit.xml
+
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: testlight-junit
+          path: results/junit.xml

@@ -6,6 +6,9 @@
   - `core/`: pure TypeScript library with all parsing, execution and network logic (no VS Code, no `fs` – use dependency injection).
   - `mmtview/`: React + VS Code webview UI for editing/running `.mmt` files.
   - `mmtcli/`: CLI app; binary is `testlight`, used for CI and local runs.
+  - `mmtaction/`: GitHub Action **product** (`action.yml`), published to `mshobeyri/testlight-action`. Not an action this repo consumes.
+  - `mmtazure/`: Azure Pipelines **task** product (`Testlight@1`). Same idea as `mmtaction/`.
+  - `mmtmcp/`: MCP server package.
   - Root `src/`: VS Code extension host code (activation, editor provider, assistant, network bridge).
   - `docs/`: user-facing documentation (API, test, env, suite, CLI, convertor, etc.).
   - `AI/`: internal AI-assisted development artifacts. Not shipped to users.

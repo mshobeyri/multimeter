@@ -1,16 +1,17 @@
-# Prove the documented GitHub Action + README snippet against a real example suite.
+# Dogfood the Testlight Action product (mmtaction/) against an example suite.
+# This repo does not consume mshobeyri/testlight-action; customers do.
 name: Testlight action
 
 on:
   push:
     branches: [main, dev]
     paths:
-      - '.github/actions/testlight/**'
+      - 'mmtaction/**'
       - '.github/workflows/testlight-action.yml'
       - 'examples/basic/04_basic_suite/**'
   pull_request:
     paths:
-      - '.github/actions/testlight/**'
+      - 'mmtaction/**'
       - '.github/workflows/testlight-action.yml'
       - 'examples/basic/04_basic_suite/**'
   workflow_dispatch:
@@ -22,7 +23,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Run example suite
-        uses: ./.github/actions/testlight
+        uses: ./mmtaction
         with:
           file: examples/basic/04_basic_suite/suite.mmt
           report: junit

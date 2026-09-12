@@ -1,0 +1,165 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+  "id": "31011bc8-ab1e-408b-b84f-50cb921ea998",
+  "name": "Testlight",
+  "friendlyName": "Testlight",
+  "description": "Run a Multimeter (.mmt) file with Testlight. Pass paths and flags as YAML inputs; does not check out source.",
+  "helpMarkDown": "Same parameters as [testlight-action](https://github.com/mshobeyri/testlight-action). Docs: [Run in CI](https://mmt.dev/docs/tasks/run-in-ci)",
+  "category": "Test",
+  "visibility": [
+    "Build",
+    "Release"
+  ],
+  "author": "mshobeyri",
+  "version": {
+    "Major": 1,
+    "Minor": 42,
+    "Patch": 4
+  },
+  "instanceNameFormat": "Testlight $(command) $(file)",
+  "minimumAgentVersion": "4.248.0",
+  "inputs": [
+    {
+      "name": "file",
+      "type": "filePath",
+      "label": "File",
+      "required": true,
+      "helpMarkDown": "Path to the .mmt file (API, test, or suite), relative to the working directory."
+    },
+    {
+      "name": "command",
+      "type": "pickList",
+      "label": "Command",
+      "required": false,
+      "defaultValue": "run",
+      "options": {
+        "run": "run",
+        "doc": "doc",
+        "print-js": "print-js"
+      },
+      "helpMarkDown": "Testlight command. Default: run."
+    },
+    {
+      "name": "envFile",
+      "type": "filePath",
+      "label": "Environment file",
+      "required": false,
+      "helpMarkDown": "Path to an environment file (.mmt / .yaml). Maps to --env-file."
+    },
+    {
+      "name": "preset",
+      "type": "string",
+      "label": "Preset",
+      "required": false,
+      "helpMarkDown": "Preset name from the env file. Maps to --preset."
+    },
+    {
+      "name": "env",
+      "type": "string",
+      "label": "Environment variables",
+      "required": false,
+      "helpMarkDown": "Space-separated KEY=VALUE pairs. Maps to -e."
+    },
+    {
+      "name": "input",
+      "type": "string",
+      "label": "Input variables",
+      "required": false,
+      "helpMarkDown": "Space-separated KEY=VALUE pairs. Maps to -i."
+    },
+    {
+      "name": "example",
+      "type": "string",
+      "label": "Example",
+      "required": false,
+      "helpMarkDown": "Example name or index (for example happy-path or #1)."
+    },
+    {
+      "name": "report",
+      "type": "pickList",
+      "label": "Report format",
+      "required": false,
+      "options": {
+        "junit": "junit",
+        "html": "html",
+        "md": "md",
+        "mmt": "mmt"
+      },
+      "helpMarkDown": "Maps to --report."
+    },
+    {
+      "name": "reportFile",
+      "type": "string",
+      "label": "Report file",
+      "required": false,
+      "helpMarkDown": "Output path for the report. Parent folders are created. Maps to --report-file."
+    },
+    {
+      "name": "out",
+      "type": "string",
+      "label": "Result JSON",
+      "required": false,
+      "helpMarkDown": "Write result JSON to this path. Maps to --out."
+    },
+    {
+      "name": "quiet",
+      "type": "boolean",
+      "label": "Quiet",
+      "required": false,
+      "defaultValue": "false",
+      "helpMarkDown": "Minimal output. Maps to --quiet."
+    },
+    {
+      "name": "logLevel",
+      "type": "pickList",
+      "label": "Log level",
+      "required": false,
+      "options": {
+        "error": "error",
+        "warn": "warn",
+        "info": "info",
+        "debug": "debug",
+        "trace": "trace"
+      },
+      "helpMarkDown": "Maps to --log-level."
+    },
+    {
+      "name": "version",
+      "type": "string",
+      "label": "mmt-testlight version",
+      "required": false,
+      "defaultValue": "latest",
+      "helpMarkDown": "npm dist-tag or X.Y.Z (latest, pre, or a version)."
+    },
+    {
+      "name": "workingDirectory",
+      "type": "filePath",
+      "label": "Working directory",
+      "required": false,
+      "defaultValue": "$(System.DefaultWorkingDirectory)",
+      "helpMarkDown": "Directory to run from. Default: the pipeline workspace (already checked out)."
+    }
+  ],
+  "outputVariables": [
+    {
+      "name": "result",
+      "description": "Path to the result JSON file when out is set."
+    },
+    {
+      "name": "report",
+      "description": "Path to the report file when reportFile is set."
+    },
+    {
+      "name": "exitCode",
+      "description": "Exit code of the testlight command."
+    }
+  ],
+  "execution": {
+    "Node20_1": {
+      "target": "index.js"
+    },
+    "Node24": {
+      "target": "index.js"
+    }
+  }
+}

@@ -431,7 +431,7 @@ Multimeter is distributed through multiple channels. Each needs license metadata
 
 #### 11e. GitHub Action
 
-- The custom action in `.github/actions/testlight/` should reference the license in its `action.yml` metadata
+- The GitHub Action product in `mmtaction/` should reference the license in its `action.yml` metadata
 - Users consuming the action in their CI are not redistributing — no license issue
 
 ---

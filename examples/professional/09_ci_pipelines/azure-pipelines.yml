@@ -1,5 +1,8 @@
 # Copy to azure-pipelines.yml
-# Change the suite path if this folder is not the repository root.
+# Change `file` if the suite is not at the repository root.
+#
+# GitHub: uses: mshobeyri/testlight-action@v1  with: { file, report, ... }
+# Azure:  task: Testlight@1                   inputs: { file, report, ... }
 
 trigger:
   - main
@@ -8,15 +11,13 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '20.x'
+  - checkout: self
 
-  - script: |
-      npm install -g mmt-testlight
-      mkdir -p results
-      testlight run suite.mmt --report junit --report-file results/junit.xml
-    displayName: Run Multimeter tests
+  - task: Testlight@1
+    inputs:
+      file: suite.mmt
+      report: junit
+      reportFile: results/junit.xml
 
   - task: PublishTestResults@2
     condition: always()
