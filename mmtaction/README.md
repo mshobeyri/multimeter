@@ -4,6 +4,16 @@ Run Multimeter (`.mmt`) API tests, test suites, and generate documentation in Gi
 
 Source in [Multimeter](https://github.com/mshobeyri/multimeter) is `mmtaction/`. This repo is the published Action.
 
+## Quick start
+
+Try the Action without adding YAML to your own repo:
+
+1. Open this repository (or [fork it](https://github.com/mshobeyri/testlight-action/fork)).
+2. On a fork, enable **Actions** once (**Settings → Actions → General → Allow all actions**).
+3. Go to **Actions → CI → Run workflow** (branch `main`).
+
+That runs [`examples/tests/suite.mmt`](examples/tests/suite.mmt) against `https://test.mmt.dev`. Re-run the same way, or open a previous run and **Re-run all jobs**.
+
 ## Usage
 
 ```yaml
@@ -97,7 +107,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: results/junit.xml
