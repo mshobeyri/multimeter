@@ -16,7 +16,7 @@ See [CLI](./cli.md) for `--report-file` and other formats.
 Use the Multimeter Action, or the same npm install as the other pipelines.
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v6
 - uses: mshobeyri/testlight-action@v1
   with:
     file: suite.mmt

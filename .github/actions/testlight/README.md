@@ -1,26 +1,43 @@
-# Testlight GitHub Action
+# Testlight Action
 
-Run Multimeter (`.mmt`) API tests, test suites, and generate documentation in your GitHub Actions workflow.
+Run Multimeter (`.mmt`) API tests, test suites, and generate documentation in GitHub Actions.
 
-Published listing: [mshobeyri/testlight-action](https://github.com/mshobeyri/testlight-action). Keep this folder in sync with that repo when the action inputs or steps change.
+This is the Marketplace listing for Testlight. The same composite action also lives in the [Multimeter](https://github.com/mshobeyri/multimeter) repo at `.github/actions/testlight`.
 
 ## Usage
 
 ```yaml
-- name: Run API tests
-  uses: mshobeyri/testlight-action@v1
+- uses: actions/checkout@v6
+- uses: mshobeyri/testlight-action@v1
   with:
-    file: tests/login.mmt
+    file: tests/suite.mmt
     env-file: tests/env.mmt
     preset: ci
     report: junit
-    report-file: test-results/report.xml
+    report-file: results/junit.xml
 ```
 
-This repository can also call the local copy:
+The `version` input defaults to `latest`. Pass `pre` or `X.Y.Z` to pin `mmt-testlight`.
+
+Docs: [Install Testlight](https://mmt.dev/docs/features/testlight/install) · [Run in CI](https://mmt.dev/docs/tasks/run-in-ci)
+
+## Sample `.mmt` files
+
+This repo includes runnable files under [`examples/`](examples/). They hit the public test server at `https://test.mmt.dev` (no secrets). The **Samples** workflow runs them with `uses: ./`.
+
+| File | What it does |
+|---|---|
+| [`examples/echo_test.mmt`](examples/echo_test.mmt) | POST echo and assert the body |
+| [`examples/get_json.mmt`](examples/get_json.mmt) | GET a JSON API |
+| [`examples/suite.mmt`](examples/suite.mmt) | Two-test suite |
 
 ```yaml
-- uses: ./.github/actions/testlight
+- uses: actions/checkout@v6
+- uses: ./
+  with:
+    file: examples/suite.mmt
+    report: junit
+    report-file: results/junit.xml
 ```
 
 ## Inputs
@@ -39,7 +56,7 @@ This repository can also call the local copy:
 | `out` | No | — | Write result JSON to file. Parent directories are created. |
 | `quiet` | No | `false` | Minimal output |
 | `log-level` | No | — | `error`, `warn`, `info`, `debug`, `trace` |
-| `version` | No | `latest` | `mmt-testlight` version or dist-tag (`latest`, `pre`, `X.Y.Z`) |
+| `version` | No | `latest` | `mmt-testlight` version to install (`latest`, `pre`, or `X.Y.Z`) |
 | `working-directory` | No | `.` | Working directory |
 
 ## Outputs
@@ -59,7 +76,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run tests
         uses: mshobeyri/testlight-action@v1
         with:
@@ -73,7 +90,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run tests
         uses: mshobeyri/testlight-action@v1
@@ -86,7 +103,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results
           path: results/junit.xml
@@ -99,7 +116,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Generate docs
         uses: mshobeyri/testlight-action@v1
@@ -108,3 +125,7 @@ jobs:
           file: api/catalog.mmt
           out: public/api-docs.html
 ```
+
+## License
+
+Apache License 2.0. See [LICENSE.md](./LICENSE.md).

@@ -34,32 +34,18 @@ cleanup() {
 trap cleanup EXIT
 
 gh repo clone "$ACTION_REPO" "$WORKDIR/action"
-cp "$REPO_ROOT/.github/actions/testlight/action.yml" "$WORKDIR/action/action.yml"
+SRC="$REPO_ROOT/.github/actions/testlight"
+cp "$SRC/action.yml" "$WORKDIR/action/action.yml"
 cp "$REPO_ROOT/LICENSE.md" "$WORKDIR/action/LICENSE.md"
+cp "$SRC/README.md" "$WORKDIR/action/README.md"
 
-# Keep the published README consumer-facing (no in-repo local-copy note).
-cat > "$WORKDIR/action/README.md" <<EOF
-# Testlight GitHub Action
+rsync -a --delete \
+  --exclude '.DS_Store' \
+  --exclude '**/.DS_Store' \
+  "$SRC/examples/" "$WORKDIR/action/examples/"
 
-Run Multimeter (\`.mmt\`) API tests, test suites, and generate documentation in GitHub Actions.
-
-## Usage
-
-\`\`\`yaml
-- uses: actions/checkout@v4
-- uses: ${ACTION_REPO}@v${VERSION}
-  with:
-    file: tests/suite.mmt
-    env-file: tests/env.mmt
-    preset: ci
-    report: junit
-    report-file: results/junit.xml
-\`\`\`
-
-Docs: [Install Testlight](https://mmt.dev/docs/features/testlight/install) · [Run in CI](https://mmt.dev/docs/tasks/run-in-ci)
-
-The \`version\` input defaults to \`latest\`. Pass \`pre\` or \`X.Y.Z\` to pin \`mmt-testlight\`.
-EOF
+mkdir -p "$WORKDIR/action/.github/workflows"
+cp "$SRC/ci/samples.yml" "$WORKDIR/action/.github/workflows/samples.yml"
 
 cd "$WORKDIR/action"
 git config user.name "github-actions[bot]"
@@ -67,7 +53,7 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 if [ -n "${GH_TOKEN:-}" ]; then
   git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${ACTION_REPO}.git"
 fi
-git add action.yml README.md LICENSE.md
+git add action.yml README.md LICENSE.md examples .github/workflows/samples.yml
 if git diff --cached --quiet; then
   echo "No action file changes for v${VERSION}"
 else
