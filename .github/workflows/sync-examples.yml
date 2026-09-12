@@ -20,6 +20,7 @@ on:
       - 'res/logo.png'
       - 'res/logo.svg'
       - 'res/logo_file.svg'
+      - 'res/intro.png'
       - 'res/demo.png'
       - 'res/demo.gif'
       - 'res/website.png'
@@ -75,6 +76,7 @@ jobs:
             logo.png \
             logo.svg \
             logo_file.svg \
+            intro.png \
             demo.png \
             demo.gif \
             website.png \
