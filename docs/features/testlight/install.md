@@ -43,8 +43,10 @@ In VS Code, use **Switch to Pre-Release Version**. Homebrew stays on the last st
 
 ## GitHub Action
 
+Try it first on [testlight-action](https://github.com/mshobeyri/testlight-action): **Actions → CI → Run workflow**. On a fork, enable Actions once, then run the same way.
+
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v6
 - uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt

@@ -32,7 +32,7 @@ CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build �
 | Tag | npm | Docker | GitHub | Homebrew | Action |
 |---|---|---|---|---|---|
 | `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` |
-| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | `@vX.Y.Z-pre` |
+| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | skipped |
 
 Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace stays manual (`VSCE_PAT`).
 
@@ -54,6 +54,7 @@ npm run pack-pre-release  # same version, --pre-release flag
 ## Other channels
 
 - **Homebrew**: CI updates tap `mshobeyri/homebrew-multimeter` after a **stable** GitHub Release (`scripts/publish-homebrew.sh`).
-- **Action**: `.github/actions/testlight/` ↔ `mshobeyri/testlight-action`. Default install is `mmt-testlight@latest`.
+- **Action**: `mmtaction/` ↔ `mshobeyri/testlight-action`. Default install is `mmt-testlight@latest`. This repo’s workflows do not consume that Action; customers do (`uses: mshobeyri/testlight-action@v1`).
+- **Azure task**: `mmtazure/` packs an Azure Pipelines task (`Testlight@1`) with the same YAML inputs. Not published from CI yet.
 - **MCP Registry**: `server.json` version tracks npm `mmt-mcp`. Publishing that file to the official MCP Registry is still separate from the npm job.
 - **Cursor plugin**: set `.cursor-plugin/plugin.json` when publishing that plugin.

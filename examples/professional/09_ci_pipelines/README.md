@@ -54,7 +54,7 @@ Copy `gitlab-ci.yml` to `.gitlab-ci.yml`. GitLab publishes `results/junit.xml` a
 
 ## Azure Pipelines
 
-Copy `azure-pipelines.yml` to `azure-pipelines.yml`. Azure publishes the same JUnit file with `PublishTestResults@2`.
+Copy `azure-pipelines.yml` to `azure-pipelines.yml`. After the org has the Testlight extension, the job is `- task: Testlight@1` with YAML `inputs:` (same idea as GitHub `with:`). `PublishTestResults@2` still publishes JUnit. Checkout is a separate pipeline step.
 
 ## Other pipelines
 

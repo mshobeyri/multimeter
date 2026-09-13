@@ -1,0 +1,69 @@
+{
+  "manifestVersion": 1,
+  "id": "testlight",
+  "name": "Testlight",
+  "version": "1.42.4",
+  "publisher": "mshobeyri",
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "description": "Run Multimeter (.mmt) API tests, suites, and docs in Azure Pipelines.",
+  "categories": [
+    "Azure Pipelines"
+  ],
+  "tags": [
+    "testlight",
+    "multimeter",
+    "api-testing",
+    "junit"
+  ],
+  "icons": {
+    "default": "images/icon.png"
+  },
+  "content": {
+    "details": {
+      "path": "overview.md"
+    }
+  },
+  "links": {
+    "home": {
+      "uri": "https://mmt.dev"
+    },
+    "learn": {
+      "uri": "https://mmt.dev/docs/tasks/run-in-ci"
+    },
+    "repository": {
+      "uri": "https://github.com/mshobeyri/multimeter"
+    },
+    "support": {
+      "uri": "https://github.com/mshobeyri/multimeter/issues"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/mshobeyri/multimeter"
+  },
+  "files": [
+    {
+      "path": "testlight"
+    },
+    {
+      "path": "images",
+      "addressable": true
+    }
+  ],
+  "contributions": [
+    {
+      "id": "testlight-task",
+      "type": "ms.vss-distributed-task.task",
+      "targets": [
+        "ms.vss-distributed-task.tasks"
+      ],
+      "properties": {
+        "name": "testlight"
+      }
+    }
+  ]
+}

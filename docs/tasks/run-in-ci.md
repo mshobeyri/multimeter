@@ -20,7 +20,7 @@ Ready-to-copy GitHub, GitLab, and Azure files: [CI pipelines example](../../exam
 ## GitHub Actions
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v6
 - uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt
@@ -48,22 +48,26 @@ test:
 
 ## Azure Pipelines
 
+Same parameters as GitHub `with:`, as YAML `inputs:`. Checkout stays a pipeline step. The task does not fetch git or start your app.
+
 ```yaml
 steps:
-  - task: NodeTool@0
+  - checkout: self
+  - task: Testlight@1
     inputs:
-      versionSpec: '20.x'
-  - script: |
-      npm install -g mmt-testlight
-      mkdir -p results
-      testlight run suite.mmt --report junit --report-file results/junit.xml
-    displayName: Run Multimeter tests
+      file: suite.mmt
+      envFile: tests/env.mmt
+      preset: ci
+      report: junit
+      reportFile: results/junit.xml
   - task: PublishTestResults@2
     condition: always()
     inputs:
       testResultsFormat: JUnit
       testResultsFiles: results/junit.xml
 ```
+
+Install the Testlight Azure Pipelines extension on the org first (source: `mmtazure/` in this repo). Until then, the same CLI still works as a `script` step.
 
 ## Typical flags
 

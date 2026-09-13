@@ -161,7 +161,7 @@ That means:
 GitHub Actions:
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v6
 - uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt

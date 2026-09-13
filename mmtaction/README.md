@@ -1,27 +1,48 @@
-# Testlight GitHub Action
+# Testlight Action
 
-Run Multimeter (`.mmt`) API tests, test suites, and generate documentation in your GitHub Actions workflow.
+Run Multimeter (`.mmt`) API tests, test suites, and generate documentation in GitHub Actions.
 
-Published listing: [mshobeyri/testlight-action](https://github.com/mshobeyri/testlight-action). Keep this folder in sync with that repo when the action inputs or steps change.
+Source in [Multimeter](https://github.com/mshobeyri/multimeter) is `mmtaction/`. This repo is the published Action.
+
+## Quick start
+
+Try the Action without adding YAML to your own repo:
+
+1. Open this repository (or [fork it](https://github.com/mshobeyri/testlight-action/fork)).
+2. On a fork, enable **Actions** once (**Settings → Actions → General → Allow all actions**).
+3. Go to **Actions → CI → Run workflow** (branch `main`).
+
+That runs [`examples/tests/suite.mmt`](examples/tests/suite.mmt) against `https://test.mmt.dev`. Re-run the same way, or open a previous run and **Re-run all jobs**.
 
 ## Usage
 
 ```yaml
-- name: Run API tests
-  uses: mshobeyri/testlight-action@v1
+- uses: actions/checkout@v6
+- uses: mshobeyri/testlight-action@v1
   with:
-    file: tests/login.mmt
-    env-file: tests/env.mmt
-    preset: ci
+    file: tests/suite.mmt
     report: junit
-    report-file: test-results/report.xml
+    report-file: results/junit.xml
 ```
 
-This repository can also call the local copy:
+The `version` input defaults to `latest`. Pass `pre` or `X.Y.Z` to pin `mmt-testlight`.
 
-```yaml
-- uses: ./.github/actions/testlight
-```
+Docs: [Install Testlight](https://mmt.dev/docs/features/testlight/install) · [Run in CI](https://mmt.dev/docs/tasks/run-in-ci)
+
+## Samples
+
+`.mmt` files live under [`examples/tests/`](examples/tests/). The **CI** workflow (`ci.yml`) is separate so this Action repo can run them with `uses: ./`.
+
+| File | What it is |
+|---|---|
+| [`ci.yml`](ci.yml) | Workflow published as `.github/workflows/ci.yml` |
+| [`examples/tests/suite.mmt`](examples/tests/suite.mmt) | Runs `get.mmt` then `post.mmt` |
+| [`examples/tests/get.mmt`](examples/tests/get.mmt) | GET `https://test.mmt.dev/json` |
+| [`examples/tests/post.mmt`](examples/tests/post.mmt) | POST echo |
+
+In your repo, copy `examples/tests/` to `tests/` and use `mshobeyri/testlight-action@v1` as in Usage.
+
+Azure Pipelines is a separate product (`mmtazure/`, `- task: Testlight@1`). See [Run in CI](https://mmt.dev/docs/tasks/run-in-ci).
 
 ## Inputs
 
@@ -39,7 +60,7 @@ This repository can also call the local copy:
 | `out` | No | — | Write result JSON to file. Parent directories are created. |
 | `quiet` | No | `false` | Minimal output |
 | `log-level` | No | — | `error`, `warn`, `info`, `debug`, `trace` |
-| `version` | No | `latest` | `mmt-testlight` version or dist-tag (`latest`, `pre`, `X.Y.Z`) |
+| `version` | No | `latest` | `mmt-testlight` version to install (`latest`, `pre`, or `X.Y.Z`) |
 | `working-directory` | No | `.` | Working directory |
 
 ## Outputs
@@ -59,7 +80,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run tests
         uses: mshobeyri/testlight-action@v1
         with:
@@ -73,7 +94,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run tests
         uses: mshobeyri/testlight-action@v1
@@ -86,7 +107,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: results/junit.xml
@@ -99,7 +120,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Generate docs
         uses: mshobeyri/testlight-action@v1
@@ -108,3 +129,7 @@ jobs:
           file: api/catalog.mmt
           out: public/api-docs.html
 ```
+
+## License
+
+Apache License 2.0. See [LICENSE.md](./LICENSE.md).
