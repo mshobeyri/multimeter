@@ -37,7 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout multimeter
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Check token
         env:
@@ -91,6 +93,8 @@ jobs:
 
       - name: Commit and push
         working-directory: /tmp/multimeter-examples
+        env:
+          TOKEN: ${{ secrets.EXAMPLES_REPO_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -104,4 +108,8 @@ jobs:
 
           SHORT_SHA="${GITHUB_SHA::7}"
           git commit -m "Sync from multimeter@${SHORT_SHA}"
-          git push origin HEAD:master
+
+          # Drop checkout's GITHUB_TOKEN extraheader so the PAT is what GitHub sees.
+          git remote set-url origin \
+            "https://x-access-token:${TOKEN}@github.com/mshobeyri/multimeter-examples.git"
+          git -c http.https://github.com/.extraheader= push origin HEAD:master
