@@ -41,7 +41,7 @@ const features = [
     icon: Bot,
     title: 'AI Test Generation',
     description:
-      'Generate and refine .mmt tests from descriptions, OpenAPI specs, or existing APIs with the built-in assistant.',
+      'Generate and refine .mmt tests from a description or an OpenAPI spec with Cursor, Copilot, or Claude via MCP.',
     color: 'text-purple-400',
     bg: 'bg-purple-400/10',
   },
@@ -89,7 +89,7 @@ const features = [
     icon: Repeat,
     title: 'Import Other Tools',
     description:
-      'Bring in Postman, OpenAPI, WSDL, Bruno, .http / .rest, and curl — keep shipping as .mmt.',
+      'Bring in Postman, OpenAPI, WSDL, Bruno, .http, and curl — keep shipping as .mmt.',
     color: 'text-indigo-400',
     bg: 'bg-indigo-400/10',
   },
@@ -97,21 +97,21 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8">
+    <section id="features" className="scroll-mt-20 py-28 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <FadeIn>
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Everything you need.{' '}
               <span className="gradient-text">Nothing you don't.</span>
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              API testing, mocks, suites, load, and AI judgment — one Git-native, AI-native workflow.
+              Start with one request. Grow into tests, mocks, suites, and CI — same YAML files.
             </p>
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
           {features.map((feature, index) => (
             <FadeIn key={feature.title} delay={index * 60}>
               <div className="group relative bg-surface-light border border-border rounded-2xl p-6 hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 h-full">

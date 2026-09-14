@@ -9,10 +9,8 @@ export default function CTA() {
           <div className="relative">
             <div className="absolute -inset-8 bg-gradient-to-r from-primary/10 to-accent/10 rounded-3xl blur-3xl pointer-events-none" />
             <div className="relative bg-surface-light border border-border rounded-3xl p-12 sm:p-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-6">
-                Ready to simplify your
-                <br />
-                <br />
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-6 leading-tight">
+                Ready to simplify your{' '}
                 <span className="gradient-text">API testing?</span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-10">
@@ -39,7 +37,7 @@ export default function CTA() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 border border-border hover:border-slate-500 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all hover:bg-surface"
                 >
-                  Star on GitHub ⭐
+                  View on GitHub
                 </a>
               </div>
             </div>

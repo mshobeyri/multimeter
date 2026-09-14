@@ -1,8 +1,8 @@
-import { Check, X } from 'lucide-react'
+import { Check, FileCode, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import FadeIn from '../components/FadeIn'
 
-type ToolKey = 'multimeter' | 'postman' | 'insomnia' | 'bruno' | 'robot' | 'cucumber' | 'jmeter' | 'neoload' | 'playwright'
+type ToolKey = 'multimeter' | 'postman' | 'bruno' | 'restClient'
 type Cell = boolean | string
 
 interface FeatureRow {
@@ -10,200 +10,134 @@ interface FeatureRow {
   values: Record<ToolKey, Cell>
 }
 
-const tools: Array<{ key: ToolKey; name: string; logo: string; highlight?: boolean }> = [
+const tools: Array<{ key: ToolKey; name: string; logo?: string; highlight?: boolean }> = [
   { key: 'multimeter', name: 'Multimeter', logo: '/logo.svg', highlight: true },
   { key: 'postman', name: 'Postman', logo: '/competitors/postman.svg' },
-  { key: 'insomnia', name: 'Insomnia', logo: '/competitors/insomnia.svg' },
   { key: 'bruno', name: 'Bruno', logo: '/competitors/bruno.svg' },
-  { key: 'robot', name: 'Robot Framework', logo: '/competitors/robotframework.svg' },
-  { key: 'cucumber', name: 'Cucumber', logo: '/competitors/cucumber.svg' },
-  { key: 'jmeter', name: 'JMeter', logo: '/competitors/jmeter.svg' },
-  { key: 'neoload', name: 'NeoLoad', logo: '/competitors/neoload.svg' },
-  { key: 'playwright', name: 'Playwright', logo: '/competitors/playwright.svg' },
+  { key: 'restClient', name: 'REST Client' },
 ]
 
 const features: FeatureRow[] = [
   {
-    feature: 'Price',
-    values: { multimeter: 'Free', postman: '$14/user/mo', insomnia: '$12/user/mo', bruno: '$6/user/mo', robot: 'Free', cucumber: 'Free', jmeter: 'Free', neoload: 'Enterprise', playwright: 'Free' },
-  },
-  {
-    feature: 'Open Source',
-    values: { multimeter: true, postman: false, insomnia: 'Partial', bruno: 'Partial', robot: true, cucumber: true, jmeter: true, neoload: false, playwright: true },
-  },
-  {
-    feature: 'AI Response Checks',
+    feature: 'Where files live',
     values: {
-      multimeter: true,
-      postman: false,
-      insomnia: false,
-      bruno: false,
-      robot: 'Via library',
-      cucumber: 'Via code',
-      jmeter: false,
-      neoload: false,
-      playwright: 'Via code',
+      multimeter: 'Git YAML (.mmt)',
+      postman: 'Cloud collections',
+      bruno: 'Git (.bru)',
+      restClient: '.http files',
     },
   },
   {
-    feature: 'HTTP / REST',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: 'Via code', jmeter: true, neoload: true, playwright: true },
+    feature: 'VS Code editor',
+    values: { multimeter: true, postman: false, bruno: false, restClient: true },
   },
   {
-    feature: 'WebSocket',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: 'Partial', robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial', playwright: 'Via browser' },
+    feature: 'Same files in CI',
+    values: {
+      multimeter: 'testlight / Action',
+      postman: 'Newman',
+      bruno: 'bru CLI',
+      restClient: false,
+    },
   },
   {
-    feature: 'GraphQL',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial', playwright: 'Via API' },
+    feature: 'Open specs without converting',
+    values: {
+      multimeter: 'Open as MMT',
+      postman: 'N/A',
+      bruno: 'Import',
+      restClient: false,
+    },
   },
   {
-    feature: 'gRPC',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial', playwright: false },
+    feature: 'Tests and suites',
+    values: {
+      multimeter: true,
+      postman: 'Scripts',
+      bruno: 'Limited',
+      restClient: false,
+    },
   },
   {
-    feature: 'CI/CD CLI',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
+    feature: 'Local mock server',
+    values: { multimeter: true, postman: 'Cloud (paid)', bruno: false, restClient: false },
   },
   {
-    feature: 'Load Testing',
-    values: { multimeter: 'Beta', postman: 'Limited', insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true, playwright: false },
+    feature: 'Account required',
+    values: { multimeter: 'No', postman: 'For teams', bruno: 'No', restClient: 'No' },
   },
   {
-    feature: 'Git-Native Files',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: true, cucumber: true, jmeter: 'XML', neoload: false, playwright: true },
-  },
-  {
-    feature: '.http / Bruno File Support',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
-  },
-  {
-    feature: 'Drag & Drop Test Builder',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: true, neoload: true, playwright: false },
-  },
-  {
-    feature: 'Test Flow Flowchart View',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: 'Partial', playwright: false },
-  },
-  {
-    feature: 'Functional Test Flows',
-    values: { multimeter: true, postman: 'Scripts', insomnia: 'Scripts', bruno: 'Scripts', robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
-  },
-  {
-    feature: 'Test Suites (Parallel / Sequential)',
-    values: { multimeter: true, postman: 'Sequential', insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
-  },
-  {
-    feature: 'Reusing / Chaining Tests',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
-  },
-  {
-    feature: 'Data Extraction (JSONPath/XPath/Regex)',
-    values: { multimeter: true, postman: 'Scripting', insomnia: 'Scripting', bruno: 'Scripting', robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true, playwright: 'Via code' },
-  },
-  {
-    feature: 'AI Test Generation',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
-  },
-  {
-    feature: 'Declarative Test Flows (YAML)',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
-  },
-  {
-    feature: 'BDD / Human-Readable Specs',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: false, neoload: false, playwright: false },
-  },
-  {
-    feature: 'Interactive API Docs (HTML)',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
-  },
-  {
-    feature: 'Mock Server',
-    values: { multimeter: true, postman: 'Cloud only', insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
-  },
-  {
-    feature: 'Environment Variables / Presets',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: 'Variables', cucumber: 'Via code', jmeter: true, neoload: true, playwright: true },
-  },
-  {
-    feature: 'Dynamic Tokens (random, date, uuid)',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true, playwright: 'Via code' },
-  },
-  {
-    feature: 'JS Helper Module Imports',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: true },
-  },
-  {
-    feature: 'CSV Data-Driven Testing',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: 'Via code' },
-  },
-  {
-    feature: 'HTML Report',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
-  },
-  {
-    feature: 'Markdown Report',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: true, jmeter: false, neoload: false, playwright: false },
-  },
-  {
-    feature: 'JUnit Report',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
-  },
-  {
-    feature: 'Fully Offline',
-    values: { multimeter: true, postman: false, insomnia: true, bruno: true, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
+    feature: 'License',
+    values: {
+      multimeter: 'Apache 2.0',
+      postman: 'Proprietary',
+      bruno: 'Open core',
+      restClient: 'MIT',
+    },
   },
 ]
 
-function CellValue({ value, compact = false }: { value: Cell; compact?: boolean }) {
+function CellValue({ value }: { value: Cell }) {
   if (typeof value === 'string') {
-    return <span className={`${compact ? 'text-[11px]' : 'text-[10px]'} leading-tight`}>{value}</span>
+    return (
+      <span className="inline-block max-w-[10rem] text-[13px] leading-snug text-slate-300">
+        {value}
+      </span>
+    )
   }
   if (value) {
-    return <Check size={compact ? 16 : 14} className="text-green-400 mx-auto" />
+    return <Check size={18} className="text-emerald-400 mx-auto" />
   }
-  return <X size={compact ? 16 : 14} className="text-red-400/60 mx-auto" />
+  return <X size={16} className="text-slate-600 mx-auto" />
+}
+
+function ToolMark({ tool }: { tool: (typeof tools)[number] }) {
+  if (tool.logo) {
+    return <img src={tool.logo} alt="" className="w-6 h-6 object-contain" />
+  }
+  return <FileCode size={20} className="text-slate-400" />
 }
 
 export default function Comparison() {
   return (
-    <section id="comparison" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
-      <div className="max-w-7xl mx-auto">
+    <section id="comparison" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
         <FadeIn>
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
               How Multimeter compares
             </h2>
-            <p className="text-lg text-slate-400">
-              See how we stack up against other popular API testing tools
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              Files in Git, inside VS Code — not a cloud collection or a second desktop app.
             </p>
-            <p className="text-sm text-slate-500 mt-3">
-              <Link to="/compare/postman" className="text-primary-light hover:underline">vs Postman</Link>
-              {' · '}
-              <Link to="/compare/bruno" className="text-primary-light hover:underline">vs Bruno</Link>
-              {' · '}
-              <Link to="/compare/promptfoo" className="text-primary-light hover:underline">vs Promptfoo</Link>
-              {' · '}
-              <Link to="/compare/thunder-client" className="text-primary-light hover:underline">vs Thunder Client</Link>
-              {' · '}
-              <Link to="/compare/rest-client" className="text-primary-light hover:underline">vs REST Client</Link>
+            <p className="text-sm text-slate-500 mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3">
+              <Link to="/compare/postman" className="text-primary-light hover:text-white">vs Postman</Link>
+              <Link to="/compare/bruno" className="text-primary-light hover:text-white">vs Bruno</Link>
+              <Link to="/compare/rest-client" className="text-primary-light hover:text-white">vs REST Client</Link>
             </p>
           </div>
         </FadeIn>
 
         <FadeIn delay={200}>
-          <div className="compare-mobile overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[760px]">
+          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#101827] shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
+            <table className="w-full min-w-[720px] border-collapse">
               <thead>
-                <tr className="bg-surface border-b border-border">
-                  <th className="sticky left-0 z-10 bg-surface text-left px-2 py-2 text-[11px] font-medium text-slate-400 min-w-36">
+                <tr className="border-b border-white/10">
+                  <th className="sticky left-0 z-10 bg-[#1a2336] text-left px-5 py-4 text-xs font-medium uppercase tracking-wider text-slate-500 min-w-44">
                     Feature
                   </th>
                   {tools.map((tool) => (
-                    <th key={tool.key} className="px-1.5 py-2 text-center min-w-16">
-                      <div className="flex flex-col items-center gap-1">
-                        <img src={tool.logo} alt={tool.name} className="w-3.5 h-3.5 object-contain" />
-                        <span className={`text-[9px] font-semibold leading-tight ${tool.highlight ? 'text-primary-light' : 'text-slate-400'}`}>
+                    <th
+                      key={tool.key}
+                      className={`px-4 py-4 text-center min-w-[8.5rem] ${
+                        tool.highlight
+                          ? 'bg-indigo-500/15 border-x border-indigo-400/20'
+                          : 'bg-[#1a2336]'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <ToolMark tool={tool} />
+                        <span className={`text-sm font-semibold ${tool.highlight ? 'text-white' : 'text-slate-300'}`}>
                           {tool.name}
                         </span>
                       </div>
@@ -212,74 +146,28 @@ export default function Comparison() {
                 </tr>
               </thead>
               <tbody>
-                {features.map((row, index) => (
-                  <tr
-                    key={row.feature}
-                    className={`border-b border-border/50 ${
-                      index % 2 === 0 ? 'bg-surface-light/30' : 'bg-surface/50'
-                    }`}
-                  >
-                    <td className={`sticky left-0 z-10 px-2 py-1.5 text-[11px] leading-tight text-slate-300 ${
-                      index % 2 === 0 ? 'bg-surface-light' : 'bg-surface'
-                    }`}>
-                      {row.feature}
-                    </td>
-                    {tools.map((tool) => (
-                      <td
-                        key={tool.key}
-                        className={`px-1.5 py-1.5 text-center ${tool.highlight ? 'text-green-400 font-medium' : 'text-slate-400'}`}
-                      >
-                        <CellValue value={row.values[tool.key]} />
+                {features.map((row, index) => {
+                  const zebra = index % 2 === 0 ? 'bg-[#151d2f]' : 'bg-[#101827]'
+                  return (
+                    <tr key={row.feature} className={`border-b border-white/5 last:border-0 ${zebra}`}>
+                      <td className={`sticky left-0 z-10 px-5 py-3.5 text-sm text-slate-200 ${zebra}`}>
+                        {row.feature}
                       </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="compare-desktop overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full min-w-[1180px]">
-              <thead>
-                <tr className="bg-surface border-b border-border">
-                  <th className="sticky left-0 z-10 bg-surface text-left px-3 py-2.5 text-xs font-medium text-slate-400 min-w-44">
-                    Feature
-                  </th>
-                  {tools.map((tool) => (
-                    <th key={tool.key} className="px-2 py-2.5 text-center min-w-24">
-                      <div className="flex flex-col items-center gap-1">
-                        <img src={tool.logo} alt={tool.name} className="w-4 h-4 object-contain" />
-                        <span className={`text-[10px] font-semibold leading-tight ${tool.highlight ? 'text-primary-light' : 'text-slate-400'}`}>
-                          {tool.name}
-                        </span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {features.map((row, index) => (
-                  <tr
-                    key={row.feature}
-                    className={`border-b border-border/50 ${
-                      index % 2 === 0 ? 'bg-surface-light/30' : 'bg-surface/50'
-                    }`}
-                  >
-                    <td className={`sticky left-0 z-10 px-3 py-2 text-xs text-slate-300 ${
-                      index % 2 === 0 ? 'bg-surface-light' : 'bg-surface'
-                    }`}>
-                      {row.feature}
-                    </td>
-                    {tools.map((tool) => (
-                      <td
-                        key={tool.key}
-                        className={`px-2 py-2 text-center ${tool.highlight ? 'text-green-400 font-medium' : 'text-slate-400'}`}
-                      >
-                        <CellValue value={row.values[tool.key]} />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                      {tools.map((tool) => (
+                        <td
+                          key={tool.key}
+                          className={`px-4 py-3.5 text-center ${
+                            tool.highlight
+                              ? 'bg-indigo-500/10 text-white border-x border-indigo-400/15'
+                              : 'text-slate-400'
+                          }`}
+                        >
+                          <CellValue value={row.values[tool.key]} />
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
