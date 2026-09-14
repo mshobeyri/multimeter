@@ -5,7 +5,7 @@ import HeroIllustration from '../components/HeroIllustration'
 const POINTS = [
   'YAML files live in Git',
   'Same files in VS Code and CI',
-  'Apache 2.0. No account.',
+  'Open specs without converting',
 ]
 
 export default function Hero() {
