@@ -16,3 +16,5 @@ Read the matching skill, then follow it:
 | Hacker News, Show HN, first comment, HN replies | `AI/marketing/hacker-news/SKILL.md` |
 
 Show HN drafts: `AI/marketing/drafts/`. Current launch copy is `show-hn-sep-2026.md`.
+
+After a marketing board or planning meeting, write the memo to `AI/marketing/meetings/YYYY-MM-DD-slug.md` (decision, dissent, kill list, what was executed). Do not skip the file. Later sessions read that folder before proposing a new plan.

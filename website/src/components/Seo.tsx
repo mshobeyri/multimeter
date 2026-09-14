@@ -48,7 +48,7 @@ export default function Seo({
     })
     upsertMeta('meta[property="og:image:alt"]', {
       property: 'og:image:alt',
-      content: 'Multimeter — AI-powered REST Client for VS Code',
+      content: 'Multimeter — Git-native REST client for VS Code',
     })
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: 'website' })
     upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: title })
@@ -62,7 +62,7 @@ export default function Seo({
     })
     upsertMeta('meta[name="twitter:image:alt"]', {
       name: 'twitter:image:alt',
-      content: 'Multimeter — AI-powered REST Client for VS Code',
+      content: 'Multimeter — Git-native REST client for VS Code',
     })
     upsertMeta('meta[name="twitter:card"]', {
       name: 'twitter:card',
