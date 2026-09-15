@@ -1,4 +1,4 @@
-import {apiToYaml, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
+import {apiToYaml, applyAuthToRequest, validateAuth, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 
 describe('apiParsePack', () => {
   it('parses legacy import blocks on APIs', () => {
@@ -201,5 +201,130 @@ describe('graphql/grpc round-trip', () => {
     expect(api.grpc!.stream).toBe('bidi');
     const out = apiToYaml(api);
     expect(out).toContain('stream: bidi');
+  });
+});
+
+describe('yamlToAPIStrict and auth failures', () => {
+  it('throws on empty yaml, unknown keys, and protocol mismatches', () => {
+    expect(() => yamlToAPIStrict('')).toThrow(/empty or not an object/);
+    expect(() => yamlToAPIStrict('type: api\nurl: https://x\nfoo: 1')).toThrow(/unknown key/);
+    expect(() => yamlToAPIStrict('type: api\nurl: https://x\nprotocol: graphql')).toThrow(/graphql.operation/);
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://x',
+      'protocol: graphql',
+      'graphql:',
+      '  operation: query { a }',
+      'body: nope',
+    ].join('\n'))).toThrow(/body.*not valid for protocol "graphql"/);
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://x',
+      'protocol: http',
+      'graphql:',
+      '  operation: query { a }',
+    ].join('\n'))).toThrow(/graphql.*ignored/);
+    expect(() => yamlToAPIStrict('type: api\nurl: https://x\nprotocol: grpc')).toThrow(/grpc.service/);
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://x',
+      'protocol: grpc',
+      'grpc:',
+      '  service: s',
+    ].join('\n'))).toThrow(/grpc.method/);
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://x',
+      'protocol: grpc',
+      'grpc:',
+      '  service: s',
+      '  method: m',
+      'body: x',
+    ].join('\n'))).toThrow(/body.*not valid for protocol "grpc"/);
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://x',
+      'protocol: grpc',
+      'grpc:',
+      '  service: s',
+      '  method: m',
+      'query:',
+      '  a: 1',
+    ].join('\n'))).toThrow(/query.*not valid for protocol "grpc"/);
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://x',
+      'protocol: grpc',
+      'grpc:',
+      '  service: s',
+      '  method: m',
+      'cookies:',
+      '  a: 1',
+    ].join('\n'))).toThrow(/cookies.*not valid for protocol "grpc"/);
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://x',
+      'protocol: http',
+      'grpc:',
+      '  service: s',
+      '  method: m',
+    ].join('\n'))).toThrow(/grpc.*ignored/);
+  });
+
+  it('rejects invalid auth and applies valid auth to requests', () => {
+    expect(validateAuth(undefined)).toBeUndefined();
+    expect(validateAuth('none')).toBe('none');
+    expect(() => validateAuth('bearer')).toThrow(/expected an object/);
+    expect(() => validateAuth({type: 'digest'})).toThrow(/Invalid auth type/);
+    expect(() => validateAuth({type: 'bearer'})).toThrow(/token/);
+    expect(() => validateAuth({type: 'basic', username: 'a'})).toThrow(/username.*password/);
+    expect(() => validateAuth({type: 'api-key', value: 'v'})).toThrow(/header" or "query"/);
+    expect(() => validateAuth({type: 'api-key', value: 'v', header: 'H', query: 'q'})).toThrow(/exactly one/);
+    expect(() => validateAuth({type: 'oauth2', grant: 'password', token_url: 't', client_id: 'i', client_secret: 's'}))
+        .toThrow(/client_credentials/);
+    expect(() => validateAuth({type: 'oauth2', grant: 'client_credentials'})).toThrow(/token_url/);
+    expect(() => validateAuth({type: 'oauth2', token_url: 't'})).toThrow(/client_id/);
+    expect(() => validateAuth({type: 'oauth2', token_url: 't', client_id: 'i'})).toThrow(/client_secret/);
+    expect(validateAuth({type: 'api-key', value: 'v', query: 'api_key'})).toEqual({
+      type: 'api-key', query: 'api_key', value: 'v',
+    });
+    expect(applyAuthToRequest(undefined, {A: '1'})).toEqual({headers: {A: '1'}, query: undefined});
+    expect(applyAuthToRequest('none', {A: '1'})).toEqual({headers: {A: '1'}, query: undefined});
+    expect(applyAuthToRequest({type: 'bearer', token: 't'}, {}).headers.Authorization).toBe('Bearer t');
+    expect(applyAuthToRequest({type: 'bearer', token: 't'}, {Authorization: 'keep'}).headers.Authorization).toBe('keep');
+    expect(applyAuthToRequest({type: 'basic', username: 'u', password: 'p'}, {}).headers.Authorization)
+        .toMatch(/^Basic /);
+    expect(applyAuthToRequest({type: 'api-key', header: 'X-Key', value: 'k'}, {}).headers['X-Key']).toBe('k');
+    expect(applyAuthToRequest({type: 'api-key', query: 'k', value: 'v'}, {}, {}).query).toEqual({k: 'v'});
+    expect(applyAuthToRequest({type: 'oauth2', grant: 'client_credentials', token_url: 't', client_id: 'i', client_secret: 's'}, {A: '1'}).headers)
+        .toEqual({A: '1'});
+  });
+
+  it('yamlToAPI stays lenient on junk, invalid auth, and format maps', () => {
+    expect(yamlToAPI('null').url).toBeFalsy();
+    expect(() => yamlToAPI('not: yaml: :')).not.toThrow();
+    expect(yamlToAPI('type: api\nurl: https://x\nauth: bearer').auth).toBeUndefined();
+    expect(yamlToAPI('type: api\nurl: https://x\nformat: yaml').format).toBe('json');
+    expect(yamlToAPI('type: api\nurl: https://x\nformat:\n  request: xml\n  response: text').format)
+        .toEqual({request: 'xml', response: 'text'});
+    expect(yamlToAPI('type: api\nurl: https://x\nformat:\n  request: nope').format).toBe('json');
+    const packed = apiToYaml({
+      type: 'api',
+      url: 'https://x',
+      tags: ['a'],
+      import: {auth: './a.mmt'},
+      outputs: {id: 'body.id'},
+      setenv: {t: 'body.t'},
+      query: {q: '1'},
+      cookies: {c: '2'},
+      headers: {H: '3'},
+      auth: {type: 'bearer', token: 'tok'},
+      grpc: {service: 's', method: 'm', proto: 'a.proto', message: {ok: true}, stream: 'server'},
+      examples: [{name: 'one', outputs: {id: 1}}],
+    } as any);
+    expect(packed).toContain('setenv:');
+    expect(packed).toContain('cookies:');
+    expect(packed).toContain('proto:');
+    expect(packed).toContain('examples:');
   });
 });

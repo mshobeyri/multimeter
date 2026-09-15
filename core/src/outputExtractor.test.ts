@@ -793,5 +793,22 @@ describe('extractOutputs extra sections and auto type', () => {
     expect(extractPathAtPosition('x', 'text' as any, 1, 1)).toBeNull();
     warn.mockRestore();
   });
+
+  it('walks JSON objects and arrays at the cursor', () => {
+    expect(extractPathAtPosition('{"a":[1,{"b":2}]}', 'json', 1, 3)).toEqual(['a']);
+    expect(extractPathAtPosition('{"a":[1,{"b":2}]}', 'json', 1, 8)).toEqual(expect.arrayContaining(['a']));
+    expect(extractPathAtPosition('{"a": true, "b": false, "c": null}', 'json', 1, 8)).toEqual(['a']);
+    expect(extractPathAtPosition('   ', 'json', 1, 1)).toBeNull();
+    const emptyObj = extractOutputs({
+      type: 'json',
+      body: null,
+      headers: {},
+      cookies: {},
+      status: 204,
+      duration: 3,
+    }, {status: 'status', duration: 'duration', body: 'body'});
+    expect(emptyObj.status).toBe(204);
+    expect(emptyObj.duration).toBe(3);
+  });
 });
 

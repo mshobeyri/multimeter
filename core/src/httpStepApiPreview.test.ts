@@ -7,6 +7,7 @@ import {
   pickExpectExampleValue,
   resolveOutputNameForExpectField,
   suggestHttpStepApiFilename,
+  listHttpStepUrlLinkRanges,
 } from './httpStepApiPreview';
 import {yamlToAPI} from './apiParsePack';
 import {TestFlowHttp} from './TestData';
@@ -258,5 +259,21 @@ describe('httpStepApiPreview', () => {
     ].join('\n');
     const hit = findHttpStepAtPosition(content, 5, 18);
     expect(hit?.step.http).toBe('https://nested.example/ok');
+  });
+
+  test('listHttpStepUrlLinkRanges skips non-tests and finds stage URLs', () => {
+    expect(listHttpStepUrlLinkRanges('type: api\nurl: https://x')).toEqual([]);
+    expect(findHttpStepAtPosition('', 1, 1)).toBeNull();
+    const ranges = listHttpStepUrlLinkRanges([
+      'type: test',
+      'stages:',
+      '  - id: s1',
+      '    steps:',
+      '      - http: https://stage.example/ok',
+      '        method: get',
+    ].join('\n'));
+    expect(ranges.some(r => r.line === 5)).toBe(true);
+    expect(collectInputsForHttpStep({http: 'https://x/<<i:id>>'} as any)).toEqual({id: ''});
+    expect(httpStepToApiPreviewYaml({http: 'https://x', method: 'get'} as any)).toContain('type: api');
   });
 });

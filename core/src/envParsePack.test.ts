@@ -153,4 +153,11 @@ certificates:
     expect(patched).toContain('ca-new.crt');
     expect(patched).toContain('pfx: ./certs/client.p12');
   });
+
+  it('rejects non-env documents and keeps unknown extra keys', () => {
+    expect(() => yamlToEnv('type: api\nurl: https://x')).toThrow(/Not an environment document/);
+    const env = yamlToEnv('type: env\nfoo: bar\nvariables:\n  a:\n    default: 1\n');
+    expect(env.extra).toEqual({foo: 'bar'});
+    expect(envToYaml({type: 'env'} as any)).toContain('type: env');
+  });
 });

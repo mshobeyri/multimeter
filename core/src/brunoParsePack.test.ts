@@ -3,6 +3,7 @@ import {generateTestJs, isSerializedMmtTest} from './runTest';
 import {testToYaml} from './testParsePack';
 import {
   brunoCollectionToTest,
+  brunoRequestSeq,
   brunoToAPI,
   brunoToTest,
   brunoToTestStrict,
@@ -383,5 +384,17 @@ get {
       'https://test.mmt.dev/echo',
     ]);
     expect(steps.map(step => (step as {id?: string}).id)).toEqual(['Health', 'Health2']);
+  });
+
+  it('reports unclosed blocks, duplicate methods, and empty URLs', () => {
+    const unclosed = parseBrunoDocument('get {\n  url: https://example.com\n');
+    expect(unclosed.warnings.some(w => w.message.includes('Unclosed Bruno block'))).toBe(true);
+    expect(validateBrunoDocument('get {\n  url: https://a\n}\npost {\n  url: https://b\n}\n')
+        .some(e => e.message.includes('Only one Bruno HTTP method block'))).toBe(true);
+    expect(validateBrunoDocument('get {\n  url:\n}\n').some(e => e.message.includes('Request URL is required'))).toBe(true);
+    expect(() => brunoToTestStrict('meta {\n  name: x\n}\n')).toThrow(/Invalid Bruno test file/);
+    expect(brunoToAPI('meta {\n  name: x\n}\n')).toBeUndefined();
+    expect(brunoRequestSeq('meta {\n  seq: 9\n}\nget {\n  url: https://x\n}\n')).toBe(9);
+    expect(brunoRequestSeq('get {\n  url: https://x\n}\n')).toBe(Number.MAX_SAFE_INTEGER);
   });
 });
