@@ -28,6 +28,9 @@
     <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
       <img src="https://vsmarketplacebadges.dev/version-short/mshobeyri.multimeter.svg" alt="Version"/>
     </a>
+    <a href="https://github.com/mshobeyri/multimeter">
+      <img src="https://img.shields.io/badge/coverage-89.7%25-green.svg" alt="Coverage"/>
+    </a>
     <a href="https://github.com/mshobeyri/multimeter/blob/main/LICENSE.md">
       <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"/>
     </a>
