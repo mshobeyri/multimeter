@@ -1,4 +1,4 @@
-# Testlight
+# Testlight - Multimeter CLI
 
 Run Multimeter (`.mmt`) files in Azure Pipelines. Same inputs as the GitHub Action, as YAML `inputs:` — the task does not check out git and does not start your app.
 
