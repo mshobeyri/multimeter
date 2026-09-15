@@ -31,4 +31,46 @@ describe('Current tokens', () => {
     expect(city.length).toBeGreaterThan(0);
     expect(country.length).toBeGreaterThan(0);
   });
+
+  test('currentCity uses a single-segment timezone', () => {
+    const orig = Intl.DateTimeFormat;
+    (Intl as any).DateTimeFormat = function() {
+      return {resolvedOptions: () => ({timeZone: 'UTC'})};
+    };
+    try {
+      expect(currentCity()).toBe('UTC');
+    } finally {
+      (Intl as any).DateTimeFormat = orig;
+    }
+  });
+
+  test('currentCity and currentCountry fall back to Unknown', () => {
+    const orig = Intl.DateTimeFormat;
+    (Intl as any).DateTimeFormat = function() {
+      throw new Error('no intl');
+    };
+    try {
+      expect(currentCity()).toBe('Unknown');
+      expect(currentCountry()).toBe('Unknown');
+    } finally {
+      (Intl as any).DateTimeFormat = orig;
+    }
+  });
+
+  test('currentCountry returns region code when DisplayNames fails', () => {
+    const orig = Intl.DateTimeFormat;
+    const origDn = (Intl as any).DisplayNames;
+    (Intl as any).DateTimeFormat = function() {
+      return {resolvedOptions: () => ({locale: 'en-US'})};
+    };
+    (Intl as any).DisplayNames = function() {
+      throw new Error('no display names');
+    };
+    try {
+      expect(currentCountry()).toBe('US');
+    } finally {
+      (Intl as any).DateTimeFormat = orig;
+      (Intl as any).DisplayNames = origDn;
+    }
+  });
 });

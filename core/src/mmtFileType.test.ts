@@ -42,5 +42,10 @@ describe('mmtFileType', () => {
     expect(mmtFileTypeIcon('nope')).toBe('file');
     expect(mmtFileTypeColor(undefined)).toBe('');
     expect(mmtFileTypeLabel('csv', 'CSV')).toBe('CSV');
+    expect(mmtFileTypeLabel('csv')).toBe('csv');
+    expect(mmtFileTypeLabel(null)).toBe('Unknown');
+    expect(mmtFileTypeLabel('')).toBe('Unknown');
+    expect(mmtFileTypeIcon('nope', 'notebook')).toBe('notebook');
+    expect(mmtFileTypeColor(undefined, '#fff')).toBe('#fff');
   });
 });

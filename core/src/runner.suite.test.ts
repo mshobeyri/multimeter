@@ -1,4 +1,6 @@
 import {runFile} from './runner';
+import {executeSuiteBundle} from './suiteBundleRunner';
+import {createSuiteBundle} from './suiteBundle';
 
 describe('runner suite', () => {
   it('runs groups sequentially and items in group in parallel', async () => {
@@ -196,5 +198,260 @@ describe('suite bundle grouping', () => {
     expect(bundle.bundle[0].kind).toBe('group');
     expect((bundle.bundle[0] as any).children.length).toBe(3);
     expect((bundle.bundle[0] as any).children.map((c: any) => c.kind)).toEqual(['test', 'suite', 'missing']);
+  });
+});
+
+describe('executeSuiteBundle error and cancel paths', () => {
+  const childTest = ['type: test', 'steps:', '  - print: ok'].join('\n');
+
+  const baseOptions = (overrides: Record<string, any> = {}) => ({
+    file: '',
+    fileType: 'raw',
+    filePath: '/root/suite.mmt',
+    fileLoader: async (p: string) => {
+      if (p.endsWith('child.mmt')) {
+        return childTest;
+      }
+      if (p.endsWith('nested.mmt')) {
+        return ['type: suite', 'items:', '  - ./child.mmt'].join('\n');
+      }
+      return '';
+    },
+    jsRunner: async () => {},
+    logger: () => {},
+    reporter: () => {},
+    ...overrides,
+  });
+
+  const runFileOk = async () => ({
+    docType: 'test' as const,
+    displayName: 'child',
+    identifier: 'child',
+    js: '',
+    result: {success: true, durationMs: 1, errors: [], logs: ['ok']},
+    inputsUsed: {},
+    envVarsUsed: {},
+  });
+
+  const makeBundle = (hierarchy: any, extra: Record<string, any> = {}) =>
+      createSuiteBundle({
+        rootSuitePath: '/root/suite.mmt',
+        hierarchy,
+        ...extra,
+      } as any);
+
+  const runBundle = (params: any) => executeSuiteBundle(params);
+
+  it('throws when the target id is missing', async () => {
+    const bundle = makeBundle({kind: 'suite', id: 'root', path: '/root/suite.mmt', children: []}, {target: 'no-such-id'});
+    await expect(runBundle({
+      bundle,
+      options: baseOptions(),
+      preLogs: [],
+      runFile: runFileOk,
+    })).rejects.toThrow('Suite target not found');
+  });
+
+  it('cancels before servers start and when a server runner is missing', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const hierarchy = {
+      kind: 'suite',
+      id: 'root',
+      path: '/root/suite.mmt',
+      title: 'S',
+      children: [{kind: 'test', id: 't', path: '/root/child.mmt', title: 'Child'}],
+    };
+    const bundle = makeBundle(hierarchy, {servers: ['/root/mock.mmt']});
+    const cancelled = await runBundle({
+      bundle,
+      options: baseOptions({abortSignal: controller.signal}),
+      preLogs: [{level: 'warn', message: 'pre'}],
+      runFile: runFileOk,
+    });
+    expect(cancelled.result.success).toBe(false);
+    expect(cancelled.result.logs).toContain('pre');
+
+    const noRunner = await runBundle({
+      bundle,
+      options: baseOptions(),
+      preLogs: [],
+      runFile: runFileOk,
+    });
+    expect(noRunner.result.success).toBe(false);
+    expect(noRunner.result.errors.some((e: string) => e.includes('no server runner'))).toBe(true);
+  });
+
+  it('starts and stops suite servers, including cleanup errors', async () => {
+    const hierarchy = {
+      kind: 'suite',
+      id: 'root',
+      path: '/root/suite.mmt',
+      children: [{kind: 'test', id: 't', path: '/root/child.mmt'}],
+    };
+    const bundle = makeBundle(hierarchy, {servers: ['mock.mmt'], export: ['report.html']});
+    const logs: string[] = [];
+    const out = await runBundle({
+      bundle,
+      options: baseOptions({
+        logger: (_l: string, m: string) => logs.push(m),
+        serverRunner: async () => () => {
+          throw new Error('cleanup boom');
+        },
+      }),
+      preLogs: [],
+      runFile: runFileOk,
+    });
+    expect(out.result.success).toBe(true);
+    expect(out.suiteExports?.paths).toEqual(['report.html']);
+    expect(logs.some((l: string) => l.includes('Error stopping server'))).toBe(true);
+  });
+
+  it('fails when a suite server throws on start', async () => {
+    const bundle = makeBundle({
+      kind: 'suite',
+      id: 'root',
+      path: '/root/suite.mmt',
+      children: [{kind: 'test', id: 't', path: '/root/child.mmt'}],
+    }, {servers: ['mock.mmt']});
+    const out = await runBundle({
+      bundle,
+      options: baseOptions({
+        serverRunner: async () => {
+          throw new Error('listen failed');
+        },
+      }),
+      preLogs: [],
+      runFile: runFileOk,
+    });
+    expect(out.result.success).toBe(false);
+    expect(out.result.errors.some((e: string) => e.includes('listen failed'))).toBe(true);
+  });
+
+  it('runs a targeted group, nested groups, cycle nodes, and child runFile throws', async () => {
+    const hierarchy = {
+      kind: 'suite',
+      id: 'root',
+      path: '/root/suite.mmt',
+      title: 'Root',
+      children: [
+        {
+          kind: 'group',
+          id: 'g1',
+          label: 'G1',
+          children: [
+            {kind: 'test', id: 't', path: '/root/child.mmt', title: 'T'},
+            {
+              kind: 'group',
+              id: 'inner',
+              label: 'inner',
+              children: [{kind: 'test', id: 't2', path: '/root/child.mmt'}],
+            },
+            {kind: 'cycle', id: 'c', path: '/root/suite.mmt'},
+            {kind: 'server', id: 's', path: '/root/mock.mmt'},
+            {kind: 'missing', id: 'm', path: '/root/gone.mmt'},
+          ],
+        },
+      ],
+    };
+    const bundle = makeBundle(hierarchy);
+    const groupId = bundle.bundle[0].id;
+    const logs: string[] = [];
+    const out = await runBundle({
+      bundle: {...bundle, target: groupId},
+      options: baseOptions({
+        logger: (_l: string, m: string) => logs.push(m),
+        suiteRunId: 'nonce-1',
+        binaryFileLoader: async () => Buffer.from('x'),
+        serverRunner: async () => () => {},
+      }),
+      preLogs: [],
+      runFile: async (opts: any) => {
+        if (String(opts.filePath || '').includes('child')) {
+          throw new Error('child boom');
+        }
+        return runFileOk();
+      },
+    });
+    expect(out.result.success).toBe(false);
+    expect(logs.some((l: string) => l.includes('Circular suite reference'))).toBe(true);
+    expect(logs.some((l: string) => l.includes('child boom'))).toBe(true);
+  });
+
+  it('stops sequential nodes when abortSignal is already aborted in the group mapper', async () => {
+    let reads = 0;
+    const abortSignal = {
+      get aborted() {
+        reads += 1;
+        return reads > 2;
+      },
+    };
+    const bundle = makeBundle({
+      kind: 'suite',
+      id: 'root',
+      path: '/root/suite.mmt',
+      children: [
+        {
+          kind: 'group',
+          id: 'g',
+          label: 'G',
+          children: [
+            {kind: 'test', id: 'a', path: '/root/a.mmt'},
+            {kind: 'test', id: 'b', path: '/root/b.mmt'},
+          ],
+        },
+      ],
+    });
+    const out = await runBundle({
+      bundle,
+      options: baseOptions({
+        abortSignal,
+        fileLoader: async () => childTest,
+      }),
+      preLogs: [],
+      runFile: runFileOk,
+    });
+    expect(out.result.success).toBe(false);
+  });
+
+  it('cancels after a child reports cancelled and targets a single test node', async () => {
+    const hierarchy = {
+      kind: 'suite',
+      id: 'root',
+      path: '/root/suite.mmt',
+      children: [
+        {kind: 'test', id: 'a', path: '/root/a.mmt', title: 'A'},
+        {kind: 'test', id: 'b', path: '/root/b.mmt', title: 'B'},
+      ],
+    };
+    const bundle = makeBundle(hierarchy);
+    const firstId = (bundle.bundle[0] as any).children[0].id;
+    const targeted = await runBundle({
+      bundle: {...bundle, target: firstId},
+      options: baseOptions({fileLoader: async () => childTest}),
+      preLogs: [],
+      runFile: async () => ({
+        ...await runFileOk(),
+        result: {success: false, durationMs: 1, errors: [], logs: [], cancelled: true},
+      }),
+    });
+    expect(targeted.result.success).toBe(false);
+
+    const sequentialCancel = await runBundle({
+      bundle,
+      options: baseOptions({fileLoader: async () => childTest}),
+      preLogs: [],
+      runFile: async (opts: any) => ({
+        ...await runFileOk(),
+        result: {
+          success: false,
+          durationMs: 1,
+          errors: [],
+          logs: [],
+          cancelled: String(opts.filePath).includes('a.mmt'),
+        },
+      }),
+    });
+    expect(sequentialCancel.result.success).toBe(false);
   });
 });

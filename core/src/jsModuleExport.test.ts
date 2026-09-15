@@ -58,6 +58,24 @@ describe('jsModuleExport', () => {
     expect(exported.scale(2)).toBe(20);
   });
 
+  test('wrap skips auto-attach when there are no top-level functions', () => {
+    const wrapped = wrapJsHelperModuleSource('const n = 1;');
+    const moduleObj: {exports: any} = {exports: {keep: true}};
+    const fn = new Function('module', '__filename', '__dirname', wrapped);
+    expect(fn(moduleObj, 'x.js', '')).toEqual({keep: true});
+  });
+
+  test('stripJsCommentsAndStrings ignores names in comments strings and templates', () => {
+    const src = [
+      '/* function hidden() {} */',
+      'const s = "function fake() {}";',
+      'const t = `function alsoFake() {}`;',
+      'const escaped = "say \\"hi\\"";',
+      'function real() { return 1; }',
+    ].join('\n');
+    expect(extractTopLevelFunctionNames(src)).toEqual(['real']);
+  });
+
   test('wrap does not rewrite module.exports when it is a function', () => {
     const wrapped = wrapJsHelperModuleSource(`
       function add(a, b) { return a + b; }

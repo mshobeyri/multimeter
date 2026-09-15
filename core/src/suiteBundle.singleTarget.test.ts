@@ -127,4 +127,37 @@ describe('createSuiteBundle (single target)', () => {
     expect(nestedTest.kind).toBe('test');
     expect(nestedTest.title).toBe('Nested Test Title');
   });
+
+  it('wraps ungrouped root items and keeps missing cycle server export', () => {
+    const hierarchy: any = {
+      kind: 'suite',
+      path: '/repo/root.suite.mmt',
+      children: [
+        {kind: 'test', path: '/repo/a.test.mmt', id: 'custom-id'},
+        {kind: 'missing', path: '/repo/gone.mmt'},
+        {kind: 'cycle', path: '/repo/loop.mmt'},
+        {kind: 'server', path: '/repo/s.mmt'},
+        {kind: 'suite', path: '/repo/child.mmt', title: '  ', children: []},
+        {kind: 'other'},
+      ],
+    };
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/repo/root.suite.mmt',
+      hierarchy,
+      servers: ['/repo/s.mmt'],
+      environment: {file: 'env.mmt'} as any,
+      export: ['out.html'],
+      target: '',
+    });
+    expect(bundle.bundle[0].kind).toBe('group');
+    const kids = (bundle.bundle[0] as any).children;
+    expect(kids[0].id).toBe('custom-id');
+    expect(kids.some((n: any) => n.kind === 'missing')).toBe(true);
+    expect(kids.some((n: any) => n.kind === 'cycle')).toBe(true);
+    expect(kids.find((n: any) => n.kind === 'server').title).toBeUndefined();
+    expect(kids.find((n: any) => n.kind === 'suite').title).toBeUndefined();
+    expect(bundle.servers).toEqual(['/repo/s.mmt']);
+    expect(bundle.export).toEqual(['out.html']);
+    expect(bundle.target).toBeUndefined();
+  });
 });

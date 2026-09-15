@@ -12,6 +12,10 @@ describe('parseSetCookieHeader', () => {
   it('returns empty object for missing input', () => {
     expect(parseSetCookieHeader(undefined)).toEqual({});
   });
+
+  it('skips non-string entries and cookies without names', () => {
+    expect(parseSetCookieHeader([1 as any, '=novalue', 'ok=1'])).toEqual({ok: '1'});
+  });
 });
 
 describe('buildApiTesterResponse', () => {
@@ -97,5 +101,36 @@ describe('buildApiTesterResponse', () => {
 
     expect(response?.cookies).toEqual({session: '1'});
     expect(response?.duration).toBe(5);
+  });
+
+  it('returns null for non-objects and falls back when details is invalid', () => {
+    expect(buildApiTesterResponse('x')).toBeNull();
+    const broken = buildApiTesterResponse({
+      _: {details: '{not-json', status: 418, duration: Number.NaN},
+    });
+    expect(broken?.status).toBe(418);
+    expect(broken?.duration).toBe(-1);
+    expect(broken?.headers).toEqual({});
+    expect(broken?.cookies).toEqual({});
+  });
+
+  it('uses Set-Cookie header case, default status, and warning', () => {
+    const response = buildApiTesterResponse({
+      _: {
+        details: JSON.stringify({
+          response: {
+            statusText: 1,
+            headers: {'Set-Cookie': 'sid=1'},
+            duration: Number.NaN,
+            warning: 'slow',
+          },
+        }),
+      },
+    });
+    expect(response?.status).toBe(-1);
+    expect(response?.errorMessage).toBe('');
+    expect(response?.cookies).toEqual({sid: '1'});
+    expect(response?.warning).toBe('slow');
+    expect(response?.duration).toBe(-1);
   });
 });

@@ -22,7 +22,13 @@ describe('mockDispatch', () => {
     expect(serializeMockResponseBody({ok: true})).toBe('{"ok":true}');
   });
 
+  test('parseMockUrl treats empty input as root', () => {
+    expect(parseMockUrl('')).toEqual({pathname: '/', query: {}});
+  });
+
   test('resolveMockResponseHeaders resolves tokens', () => {
+    expect(resolveMockResponseHeaders(undefined)).toEqual({});
+    expect(resolveMockResponseHeaders({n: 1 as any})).toEqual({n: '1'});
     expect(resolveMockResponseHeaders(
         {a: 'hello', b: 'x'},
         (v) => v === 'hello' ? 'world' : v,
@@ -54,6 +60,18 @@ describe('mockDispatch', () => {
     expect(JSON.parse(result.body)).toEqual({ok: true});
     expect(result.headers['x-echo']).toBe('prod');
     expect(result.query).toEqual({token: 'abc'});
+    expect(result.delay).toBe(0);
+  });
+
+  test('dispatchMockHttpRequest keeps positive delay and empty method', () => {
+    const result = dispatchMockHttpRequest(
+        () => ({status: 200, body: 'ok', delay: 25, headers: {x: 'y'}}),
+        {method: '', url: '/z', headers: {}, rawBody: ''},
+    );
+    expect(result.status).toBe(200);
+    expect(result.body).toBe('ok');
+    expect(result.delay).toBe(25);
+    expect(result.pathname).toBe('/z');
   });
 
   test('dispatchMockHttpRequest propagates router errors', () => {

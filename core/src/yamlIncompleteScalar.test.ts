@@ -15,9 +15,13 @@ describe('yamlIncompleteScalar', () => {
     expect(normalizeIncompleteYamlScalar(true)).toBe('true');
   });
 
-  it('returns undefined for real objects and coerce falls back', () => {
+  it('returns undefined for real objects, arrays, and missing values', () => {
     expect(normalizeIncompleteYamlScalar({a: 1, b: 2})).toBeUndefined();
+    expect(normalizeIncompleteYamlScalar(null)).toBeUndefined();
+    expect(normalizeIncompleteYamlScalar(undefined)).toBeUndefined();
+    expect(normalizeIncompleteYamlScalar([1])).toBeUndefined();
     expect(coerceYamlString({a: 1}, '')).toBe('');
+    expect(coerceYamlString({a: 1}, 'fallback')).toBe('fallback');
     expect(coerceYamlString({http: null})).toBe('http:');
   });
 });

@@ -18,6 +18,12 @@ describe('protocolResolver', () => {
       expect(resolveProtocolFromUrl('https://test.mmt.dev/v1')).toBe('http');
     });
 
+    it('returns grpc for grpc:// and grpcs:// URLs', () => {
+      expect(resolveProtocolFromUrl('grpc://localhost:50051')).toBe('grpc');
+      expect(resolveProtocolFromUrl('grpcs://api.example.com')).toBe('grpc');
+      expect(resolveProtocolFromUrl('  GRPCS://svc  ')).toBe('grpc');
+    });
+
     it('returns http for URLs without scheme', () => {
       expect(resolveProtocolFromUrl('api.example.com/users')).toBe('http');
     });
