@@ -43,6 +43,9 @@ describe('suiteItemStatus', () => {
     expect(worstSuiteItemStatus(['invalid', 'failed'])).toBe('failed');
     expect(worstSuiteItemStatus(['invalid', 'passed'])).toBe('invalid');
     expect(worstSuiteItemStatus(['passed'])).toBe('passed');
+    expect(worstSuiteItemStatus(['skipped'])).toBe('skipped');
+    expect(worstSuiteItemStatus(['skipped', 'passed'])).toBe('passed');
+    expect(worstSuiteItemStatus(['skipped', 'failed'])).toBe('failed');
   });
 });
 

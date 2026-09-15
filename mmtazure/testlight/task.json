@@ -75,6 +75,20 @@
       "helpMarkDown": "Example name or index (for example happy-path or #1)."
     },
     {
+      "name": "tag",
+      "type": "string",
+      "label": "Only tags",
+      "required": false,
+      "helpMarkDown": "Comma-separated tags. Maps to --tag (only run matching tests/suites)."
+    },
+    {
+      "name": "skipTag",
+      "type": "string",
+      "label": "Skip tags",
+      "required": false,
+      "helpMarkDown": "Comma-separated tags. Maps to --skip-tag."
+    },
+    {
       "name": "report",
       "type": "pickList",
       "label": "Report format",

@@ -4,6 +4,7 @@ import { parseYaml } from 'mmt-core/markupConvertor';
 import { formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
+import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import { SuiteEntry, SuiteGroup } from '../types';
@@ -403,6 +404,15 @@ const buildExportsFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
+const buildFilterFromContent = (content: string): { only: string[]; skip: string[] } => {
+    const parsed = parseYaml(content);
+    const filter = parseSuiteYamlFilter(parsed?.filter);
+    return {
+        only: filter?.only ?? [],
+        skip: filter?.skip ?? [],
+    };
+};
+
 const buildLoadTestConfigFromContent = (content: string): LoadTestConfig | null => {
     const parsed = parseYaml(content);
     if (!parsed || typeof parsed !== 'object') {
@@ -433,6 +443,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromContent(content), [content, mode]);
     const environment = useMemo(() => buildEnvironmentFromContent(content), [content]);
     const suiteExports = useMemo(() => buildExportsFromContent(content), [content]);
+    const tagFilter = useMemo(() => buildFilterFromContent(content), [content]);
     const loadConfig = useMemo(() => mode === 'loadtest' ? buildLoadTestConfigFromContent(content) : null, [content, mode]);
     const suiteTitle = useMemo(() => {
         try {
@@ -547,7 +558,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             const scope = typeof message.scope === 'string' ? message.scope : '';
             if (scope === 'suite-item') {
                 const status = message.status as StepStatus | undefined;
-                if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled') {
+                if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled' || status === 'skipped') {
                     if (!(status === 'passed' && runStatePatches[targetId] === 'failed')) {
                         runStatePatches[targetId] = status;
                     }
@@ -844,6 +855,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         setSuiteRunState(
                             hasFailed ? 'failed' :
                             hasInvalid ? 'invalid' :
+                            vals.some(v => v === 'skipped') && !vals.some(v => v === 'passed' || v === 'running') ? 'skipped' :
                             'passed');
                         return prev;
                     });
@@ -1081,6 +1093,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }
         let passed = 0;
         let failed = 0;
+        let skipped = 0;
         let fileCount = 0;
         for (const reports of Object.values(leafReportsById)) {
             fileCount += 1;
@@ -1092,7 +1105,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 }
             }
         }
-        const total = passed + failed;
+        for (const status of Object.values(leafRunStateById)) {
+            if (status === 'skipped') {
+                skipped += 1;
+            }
+        }
+        const total = passed + failed + skipped;
         if (total === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
             return null;
         }
@@ -1103,10 +1121,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             total,
             duration,
             failedSub: total > 0 ? `${((failed / total) * 100).toFixed(1)}%` : '-',
-            totalSub: `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
+            totalSub: skipped > 0 ? `${skipped} skipped` : `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
                     durationSub: formatOverviewRelativeTime(suiteRunStartedAt),
         };
-    }, [leafReportsById, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
+    }, [leafReportsById, leafRunStateById, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
 
     const tree = (
         <SuiteTestTree
@@ -1247,6 +1265,25 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                             </div>
                                         );
                                     })}
+                                </div>
+                            </>
+                        )}
+                        {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
+                            <>
+                                <div className="label" style={{ marginBottom: 6 }}>Filter</div>
+                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                    {tagFilter.only.length > 0 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-filter" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
+                                        </div>
+                                    )}
+                                    {tagFilter.skip.length > 0 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-skip" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}

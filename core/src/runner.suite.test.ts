@@ -111,12 +111,10 @@ describe('runner suite', () => {
       logger: () => {},
     } as any);
 
-    // check group runs, assert group runs, after group should NOT start
-    // check group runs, assert group runs, after group should NOT start
-    // Titles are basenames of the suite entries.
+    // Groups still run after a failed item; the suite result is unsuccessful.
     expect(titles.some(t => t.includes('checkfail'))).toBe(true);
     expect(titles.some(t => t.includes('assertfail'))).toBe(true);
-    expect(titles.some(t => t.includes('after'))).toBe(false);
+    expect(titles.some(t => t.includes('after'))).toBe(true);
 
     expect(res.result.success).toBe(false);
   });
@@ -229,6 +227,58 @@ describe('suite bundle runner nested suite', () => {
 
     expect(started.some((p) => p.includes('mock.mmt'))).toBe(true);
     expect(stopped.length).toBe(started.length);
+  });
+
+  it('skips tests that do not match only-tags', async () => {
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('./suiteHierarchy.js');
+    const {createSuiteBundle} = await import('./suiteBundle.js');
+    const {tagFilterFromLists} = await import('./suiteTagFilter.js');
+
+    const files: Record<string, string> = {
+      '/root/suite.mmt': ['type: suite', 'items:', '  - ./smoke.mmt', '  - ./slow.mmt'].join('\n'),
+      '/root/smoke.mmt': ['type: test', 'tags: [smoke]', 'steps:', '  - print: ok'].join('\n'),
+      '/root/slow.mmt': ['type: test', 'tags: [slow]', 'steps:', '  - print: slow'].join('\n'),
+    };
+    const testFileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/suite.mmt',
+      suiteRawText: files['/root/suite.mmt'],
+      fileLoader: testFileLoader,
+    });
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/root/suite.mmt',
+      hierarchy: tree,
+    });
+    const statuses: Array<{id?: string; status?: string; title?: string}> = [];
+    let jsRuns = 0;
+    await runner.runFile({
+      file: files['/root/suite.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      manualInputs: {},
+      envvar: {},
+      manualEnvvars: {},
+      fileLoader: testFileLoader,
+      tagFilter: tagFilterFromLists(['smoke']),
+      jsRunner: async () => {
+        jsRuns += 1;
+        return {success: true, logs: [], errors: []} as any;
+      },
+      logger: () => {},
+      suiteBundle: bundle,
+      reporter: (msg: any) => {
+        if (msg?.scope === 'suite-item' && msg.status && msg.status !== 'running') {
+          statuses.push({id: msg.id, status: msg.status, title: msg.title});
+        }
+      },
+    } as any);
+    expect(jsRuns).toBe(1);
+    expect(statuses.some((s) => s.status === 'skipped')).toBe(true);
+    expect(statuses.some((s) => s.status === 'passed')).toBe(true);
   });
 });
 

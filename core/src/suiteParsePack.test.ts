@@ -76,6 +76,34 @@ export:
     ]);
   });
 
+  it('parses filter only and skip', () => {
+    const raw = `
+type: suite
+title: Filtered
+filter:
+  only:
+    - smoke
+  skip:
+    - flaky
+items:
+  - test.mmt
+`;
+    const suite = yamlToSuite(raw);
+    expect(suite.filter).toEqual({only: ['smoke'], skip: ['flaky']});
+  });
+
+  it('parses filter list shorthand as only', () => {
+    const raw = `
+type: suite
+filter:
+  - smoke
+  - api
+items:
+  - test.mmt
+`;
+    expect(yamlToSuite(raw).filter).toEqual({only: ['smoke', 'api']});
+  });
+
   it('ignores empty environment config', () => {
     const raw = `
 type: suite

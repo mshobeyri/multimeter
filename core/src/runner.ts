@@ -4,10 +4,14 @@ import docMarkdown from './docMarkdown';
 import {executeApi, prepareApiRun} from './runApi';
 import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
 import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from './runConfig';
-import {executeSuite, prepareSuiteRun} from './runSuite';
+import {prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
+import {buildSuiteHierarchyFromSuiteFile} from './suiteHierarchy';
+import {createSuiteBundle} from './suiteBundle';
 import {executeLoadTest, prepareLoadTestRun} from './runLoadTest';
 import {executeTest, generateTestJs, isSerializedMmtTest, prepareTestRun} from './runTest';
+import {decideTagRun} from './suiteTagFilter';
+import {yamlToTest} from './testParsePack';
 import {processDataImportsInYaml} from './dataImportProcessor';
 import {isBrunoFilePath} from './brunoParsePack';
 import {isHttpFilePath} from './httpParsePack';
@@ -122,19 +126,58 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   }
 
   if (docType === 'test') {
+    if (options.tagFilter) {
+      try {
+        const testDoc = yamlToTest(prepared.rawText);
+        if (decideTagRun('test', testDoc.tags, options.tagFilter, false) === 'skip') {
+          options.reporter && options.reporter({
+            scope: 'suite-item',
+            status: 'skipped',
+            runId: options.runId,
+            filePath: prepared.filePath,
+            title: testDoc.title,
+            docType: 'test',
+            id: options.id,
+          });
+          return {
+            js: '',
+            result: {success: true, durationMs: 0, errors: [], itemStatus: 'skipped'},
+            identifier: prepared.baseName,
+            displayName: testDoc.title || prepared.baseName,
+            docType: 'test',
+            inputsUsed: prepared.inputsUsed,
+            envVarsUsed: prepared.envVarsUsed,
+          } as any;
+        }
+      } catch {
+        // Invalid test still goes through executeTest.
+      }
+    }
     return executeTest(prepared, options, preLogs);
   }
 
   if (docType === 'suite') {
-    if (options.suiteBundle) {
-      return executeSuiteBundle({
-        bundle: options.suiteBundle,
-        options,
-        preLogs,
-        runFile,
+    let bundle = options.suiteBundle;
+    if (!bundle) {
+      const tree = await buildSuiteHierarchyFromSuiteFile({
+        suiteFilePath: prepared.filePath,
+        suiteRawText: prepared.rawText,
+        fileLoader: options.fileLoader,
+      });
+      bundle = createSuiteBundle({
+        rootSuitePath: prepared.filePath,
+        hierarchy: tree,
+        servers: tree.servers,
+        environment: tree.environment,
+        export: tree.export,
       });
     }
-    return executeSuite(prepared, options, preLogs, runFile);
+    return executeSuiteBundle({
+      bundle,
+      options: {...options, suiteBundle: bundle},
+      preLogs,
+      runFile,
+    });
   }
 
   if (docType === 'loadtest') {

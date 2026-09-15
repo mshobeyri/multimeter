@@ -8,7 +8,8 @@ export type ReportStatusFilter =
   | 'failed'
   | 'errors'
   | 'running'
-  | 'running_failed';
+  | 'running_failed'
+  | 'skipped';
 
 export const REPORT_STATUS_FILTER_OPTIONS: { value: ReportStatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -17,6 +18,7 @@ export const REPORT_STATUS_FILTER_OPTIONS: { value: ReportStatusFilter; label: s
   { value: 'errors', label: 'Errors' },
   { value: 'running', label: 'Running' },
   { value: 'running_failed', label: 'Running | Failed' },
+  { value: 'skipped', label: 'Skipped' },
 ];
 
 export function parseReportStatusFilter(value: unknown): ReportStatusFilter {
@@ -26,6 +28,7 @@ export function parseReportStatusFilter(value: unknown): ReportStatusFilter {
     value === 'errors' ||
     value === 'running' ||
     value === 'running_failed' ||
+    value === 'skipped' ||
     value === 'all'
   ) {
     return value;
@@ -49,6 +52,9 @@ export function emptyReportFilterMessage(filter: ReportStatusFilter): string {
   }
   if (filter === 'running_failed') {
     return 'No running or failed tests.';
+  }
+  if (filter === 'skipped') {
+    return 'No skipped tests.';
   }
   return 'No tests to show.';
 }

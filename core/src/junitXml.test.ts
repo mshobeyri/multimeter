@@ -223,4 +223,16 @@ describe('generateJunitXml', () => {
     expect(xml).not.toContain('load.tool');
     expect(xml).not.toContain('timestamp');
   });
+
+  it('emits skipped testcase for skipped suite items', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      testRuns: [
+        makeRun({runId: 'skip-1', result: 'skipped', displayName: 'slow', filePath: '/root/slow.mmt'}),
+      ],
+    };
+    const xml = generateJunitXml(results);
+    expect(xml).toContain('skipped="1"');
+    expect(xml).toContain('<skipped/>');
+  });
 });

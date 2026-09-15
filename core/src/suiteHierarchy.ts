@@ -1,5 +1,5 @@
 import {detectDocType, resolveRelativeTo} from './runCommon';
-import {SuiteEnvironment} from './SuiteData';
+import {SuiteEnvironment, SuiteYamlFilter} from './SuiteData';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {createSuiteNodeId} from './suiteNodeId';
 import {yamlToTest} from './testParsePack';
@@ -9,13 +9,21 @@ import {yamlToMock} from './mockParsePack';
 
 export type SuiteHierarchyNode =
   | {kind: 'group'; id: string; label: string; children: SuiteHierarchyNode[]}
-  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]; servers?: string[]}
-  | {kind: 'test'; id: string; path: string; title?: string}
+  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]; servers?: string[]; tags?: string[]; filter?: SuiteYamlFilter}
+  | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
   | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
 
 export type SuiteHierarchyFileLoader = (path: string) => Promise<string>;
+
+function optionalTags(tags?: string[]): string[]|undefined {
+  if (!Array.isArray(tags) || tags.length === 0) {
+    return undefined;
+  }
+  const out = tags.map((t) => String(t).trim()).filter(Boolean);
+  return out.length ? out : undefined;
+}
 
 export type SuiteHierarchyRootNode = Extract<SuiteHierarchyNode, {kind: 'suite'}> & {
   /** Server file paths from the top-level `servers:` field. */
@@ -71,6 +79,13 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     }
     if (Array.isArray(suiteDoc.export) && suiteDoc.export.length > 0) {
       node.export = suiteDoc.export;
+    }
+    const suiteTags = optionalTags(suiteDoc.tags);
+    if (suiteTags) {
+      node.tags = suiteTags;
+    }
+    if (suiteDoc.filter) {
+      node.filter = suiteDoc.filter;
     }
     return node;
   };
@@ -162,16 +177,27 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     const type = detectDocType(resolvedPath, raw);
     if (type === 'test') {
       let title: string | undefined;
+      let tags: string[] | undefined;
       try {
         const testDoc = isHttpFilePath(resolvedPath) ? httpToTest(raw, resolvedPath) :
           isBrunoFilePath(resolvedPath) ? brunoToTest(raw, resolvedPath) : yamlToTest(raw);
         if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
           title = testDoc.title.trim();
         }
+        tags = optionalTags(testDoc?.tags);
       } catch {
         // ignore
       }
-      return {kind: 'test', id: createSuiteNodeId(indexPath, {prefix: leafPrefix}), path: resolvedPath, title};
+      const testNode: Extract<SuiteHierarchyNode, {kind: 'test'}> = {
+        kind: 'test',
+        id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
+        path: resolvedPath,
+        title,
+      };
+      if (tags) {
+        testNode.tags = tags;
+      }
+      return testNode;
     }
 
     if (type === 'server') {

@@ -129,6 +129,7 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
   const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
   const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
+  const skippedFiles = runs.filter(r => r.result === 'skipped').length;
   const isLoad = results.type === 'loadtest' || !!results.load;
 
   const report: Record<string, any> = {
@@ -175,7 +176,7 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
       passed: totalPassed,
       failed: totalFailed,
       errors: 0,
-      skipped: 0,
+      skipped: skippedFiles,
     };
   }
 

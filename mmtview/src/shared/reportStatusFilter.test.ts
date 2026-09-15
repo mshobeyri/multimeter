@@ -15,6 +15,7 @@ describe('reportStatusFilter', () => {
     expect(parseReportStatusFilter('passed')).toBe('passed');
     expect(parseReportStatusFilter('running')).toBe('running');
     expect(parseReportStatusFilter('running_failed')).toBe('running_failed');
+    expect(parseReportStatusFilter('skipped')).toBe('skipped');
     expect(parseReportStatusFilter('nope')).toBe('all');
   });
 
@@ -26,6 +27,7 @@ describe('reportStatusFilter', () => {
       'errors',
       'running',
       'running_failed',
+      'skipped',
     ]);
     expect(REPORT_STATUS_FILTER_OPTIONS.find((o) => o.value === 'running_failed')?.label)
       .toBe('Running | Failed');
@@ -37,6 +39,7 @@ describe('reportStatusFilter', () => {
     expect(emptyReportFilterMessage('errors')).toBe('No errors.');
     expect(emptyReportFilterMessage('running')).toBe('No running tests.');
     expect(emptyReportFilterMessage('running_failed')).toBe('No running or failed tests.');
+    expect(emptyReportFilterMessage('skipped')).toBe('No skipped tests.');
     expect(emptyReportFilterMessage('all')).toBe('No tests to show.');
   });
 

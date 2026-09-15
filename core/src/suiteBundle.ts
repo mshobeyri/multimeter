@@ -1,4 +1,4 @@
-import {SuiteEnvironment} from './SuiteData';
+import {SuiteEnvironment, SuiteYamlFilter} from './SuiteData';
 import {SuiteHierarchyNode, SuiteHierarchyRootNode} from './suiteHierarchy';
 import {createSuiteNodeId} from './suiteNodeId';
 
@@ -14,8 +14,8 @@ function resolveNodeId(node: SuiteHierarchyNode, indexPath: number[]): string {
 
 export type SuiteBundleNode =
   | {kind: 'group'; id: string; label: string; children: SuiteBundleNode[]}
-  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteBundleNode[]}
-  | {kind: 'test'; id: string; path: string; title?: string}
+  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteBundleNode[]; tags?: string[]; filter?: SuiteYamlFilter}
+  | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
   | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
@@ -31,6 +31,8 @@ export interface SuiteBundle {
   /** Export file paths to generate after suite completion (root-only). */
   export?: string[];
   target?: string;
+  /** YAML `filter:` from the root suite file. */
+  filter?: SuiteYamlFilter;
 }
 
 export function createSuiteBundle(params: {
@@ -72,6 +74,12 @@ export function createSuiteBundle(params: {
         if (typeof node.title === 'string' && node.title.trim()) {
           suiteNode.title = node.title.trim();
         }
+        if (Array.isArray(node.tags) && node.tags.length > 0) {
+          suiteNode.tags = node.tags;
+        }
+        if (node.filter) {
+          suiteNode.filter = node.filter;
+        }
         out.push(suiteNode);
         continue;
       }
@@ -81,6 +89,9 @@ export function createSuiteBundle(params: {
         const testNode: SuiteBundleNode = {kind: 'test', id, path: node.path};
         if (typeof node.title === 'string' && node.title.trim()) {
           testNode.title = node.title.trim();
+        }
+        if (Array.isArray(node.tags) && node.tags.length > 0) {
+          testNode.tags = node.tags;
         }
         out.push(testNode);
         continue;
@@ -129,5 +140,6 @@ export function createSuiteBundle(params: {
     environment: environment ?? undefined,
     export: Array.isArray(params.export) && params.export.length > 0 ? params.export : undefined,
     target: typeof target === 'string' && target ? target : undefined,
+    filter: hierarchy.filter,
   };
 }

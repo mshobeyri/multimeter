@@ -6,12 +6,13 @@ The separate {{btn:type-hierarchy-sub:Flow chart}} control opens a read-only hie
 
 ## Tabs
 
-Edit mode shows a tab bar with five tabs:
+Edit mode shows a tab bar with six tabs:
 
 | Tab | What you edit |
 |---|---|
 | {{btn:note:Overview}} | `title`, `description`, `tags`, and data `import` map |
 | {{btn:beaker:Items}} | Suite item tree — add, reorder, and group entries; `then` separators create parallel stages |
+| {{btn:filter:Filter}} | `filter.only` / `filter.skip` tags that decide which items run |
 | {{btn:server-environment:Servers}} | Mock server files (`type: server`) started before items in the same stage |
 | {{btn:symbol-namespace:Environment}} | Preset, env file, and inline variable overrides for the suite run |
 | {{btn:export:Exports}} | Report export paths (HTML, JSON, Markdown, MMT, JUnit) |
@@ -30,6 +31,15 @@ The Items tab shows the suite as an editable tree:
 - Missing files and circular references are flagged in the runner view
 
 Paths can be relative to the suite file or use the `+/` project-root prefix. See [items](./items.md).
+
+### Filter
+
+Two tag inputs write `filter.only` and `filter.skip` on the suite file:
+
+- **Only tags** — run just the tests and suites whose `tags:` include one of them. Empty runs everything.
+- **Skip tags** — never run tests and suites carrying one of them. Skip wins over only.
+
+Tags are matched against `tags:` on test and suite files, so a tagged suite selects its whole subtree. Filtered-out items appear with a skip icon in the runner. See [Tag filter](./execution.md#tag-filter).
 
 ### Servers
 

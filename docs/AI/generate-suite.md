@@ -154,6 +154,25 @@ items:
   - ./tests/profile.mmt
 ```
 
+### 7. Suite with tag filter
+
+User asks: "Create a suite that only runs smoke tests and skips flaky ones."
+
+```yaml
+type: suite
+title: Smoke
+filter:
+  only:
+    - smoke
+  skip:
+    - flaky
+items:
+  - ./tests/login.mmt
+  - ./tests/checkout.mmt
+```
+
+`only` is OR (empty = all). `skip` is OR (empty = none). Nested running suites AND `only` lists and OR `skip` lists.
+
 ---
 
 ## Style rules for the AI

@@ -73,3 +73,31 @@ The suite panel supports running a single item (or a subtree) from within the it
 - Core executes the subtree rooted at `target` and emits reports tagged with the same `id` so the UI routes output to the correct item.
 
 If you see output appear under the wrong item, it usually means report events are being routed without using `id` (or a per-run `runId`).
+
+## Tag filter
+
+Use `filter:` on a suite to restrict which tests (and nested suites) run. Tags live on `type: test` and `type: suite` files (`tags:`).
+
+```yaml
+type: suite
+title: CI
+filter:
+  only:
+    - smoke
+    - api
+  skip:
+    - flaky
+items:
+  - ./tests/login.mmt
+  - ./tests/slow.mmt
+```
+
+- `only:` — if non-empty, a node runs only when it has at least one of those tags (OR). Empty `only` means all.
+- `skip:` — if non-empty, a node is skipped when it has any of those tags (OR). Empty `skip` means none.
+- Order is **only, then skip**: `run iff matchesOnly && !matchesSkip`.
+- Nested **running** suites merge: `only` lists AND (each list is still OR), `skip` lists OR.
+- `filter:` on a nested suite is ignored while walking into it to find matching children; it applies when that suite itself is selected to run.
+- CLI: `testlight run suite.mmt --tag smoke --skip-tag flaky` (repeatable; comma-separated is OK). CLI tags replace the `filter:` of the file you run.
+- In VS Code, edit `filter:` in the {{btn:filter:Filter}} tab of [Edit Suite](./edit.md#filter). The suite panel lists the active filter above the tests.
+
+Skipped items are reported as skipped (not failed). A group that only contains skipped items is skipped; mixed passed + skipped still counts as passed.

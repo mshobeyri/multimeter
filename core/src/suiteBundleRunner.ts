@@ -8,6 +8,12 @@ import {
   classifySuiteItemStatus,
   worstSuiteItemStatus,
 } from './suiteItemStatus';
+import {
+  decideTagRun,
+  mergeTagFilter,
+  tagFilterFromYaml,
+  type TagFilter,
+} from './suiteTagFilter';
 import {clearTestCallCache_, stopAllServers_, registerServer_} from './testHelper';
 
 /** Cleanup functions for servers started during suite execution. */
@@ -68,6 +74,77 @@ function findNodeById(nodes: readonly SuiteBundleNode[], targetId: string): Suit
   return undefined;
 }
 
+function activeTagFilter(options: RunFileOptions, bundle: SuiteBundle): TagFilter {
+  if (options.tagFilter) {
+    return options.tagFilter;
+  }
+  if (!options.__mmtIsSuiteBundleChildRun) {
+    return tagFilterFromYaml(bundle.filter);
+  }
+  return {};
+}
+
+function nodeHasRunnable(
+    node: SuiteBundleNode, filter: TagFilter, parentSelected: boolean): boolean {
+  if (node.kind === 'test') {
+    return decideTagRun('test', node.tags, filter, parentSelected) === 'run';
+  }
+  if (node.kind === 'suite') {
+    const decision = decideTagRun('suite', node.tags, filter, parentSelected);
+    if (decision === 'skip') {
+      return false;
+    }
+    if (decision === 'run') {
+      return true;
+    }
+    return node.children.some((child) => nodeHasRunnable(child, filter, false));
+  }
+  if (node.kind === 'group') {
+    return node.children.some((child) => nodeHasRunnable(child, filter, parentSelected));
+  }
+  return false;
+}
+
+function nodesHaveRunnable(
+    nodes: readonly SuiteBundleNode[], filter: TagFilter, parentSelected: boolean): boolean {
+  return nodes.some((node) => nodeHasRunnable(node, filter, parentSelected));
+}
+
+function reportSkippedBundleNode(params: {
+  node: Extract<SuiteBundleNode, {kind: 'test'}| {kind: 'suite'}| {kind: 'group'}>;
+  bundle: SuiteBundle;
+  options: RunFileOptions;
+  nextIndex: () => number;
+}): {success: boolean; threw: boolean; cancelled: boolean; status: SuiteStepStatus} {
+  const {node, bundle, options, nextIndex} = params;
+  const currentIndex = nextIndex();
+  const suiteRunNonce = typeof options.suiteRunId === 'string' ? options.suiteRunId : '';
+  const filePath = node.kind === 'group' ? bundle.rootSuitePath : resolveRelativeTo(node.path, bundle.rootSuitePath);
+  const title = node.kind === 'group'
+    ? (typeof node.label === 'string' && node.label.trim() ? node.label.trim() : node.id)
+    : (typeof node.title === 'string' && node.title.trim() ? node.title.trim() : basename(filePath || node.path));
+  const runId =
+      `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:${currentIndex}:${sanitizeIdentifier(node.id)}`;
+  options.reporter && options.reporter({
+    scope: 'suite-item',
+    status: 'skipped',
+    runId,
+    filePath,
+    entry: node.kind === 'group' ? node.label : node.path,
+    title,
+    docType: node.kind === 'suite' ? 'suite' : node.kind === 'test' ? 'test' : undefined,
+    id: node.id,
+  });
+  if (node.kind === 'suite' || node.kind === 'group') {
+    for (const child of node.children) {
+      if (child.kind === 'test' || child.kind === 'suite' || child.kind === 'group') {
+        reportSkippedBundleNode({node: child, bundle, options, nextIndex});
+      }
+    }
+  }
+  return {success: true, threw: false, cancelled: false, status: 'skipped'};
+}
+
 function collectRunnableCountFromRoot(root: readonly SuiteBundleNode[]): number {
   let count = 0;
   const walk = (nodes: readonly SuiteBundleNode[]) => {
@@ -96,6 +173,13 @@ async function runSuiteBundleNode(params: {
   bufferChildLogs?: boolean;
 }): Promise<{success: boolean; threw: boolean; cancelled: boolean; status: SuiteStepStatus}> {
   const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, bufferChildLogs} = params;
+
+  const filter = activeTagFilter(options, bundle);
+  const parentSelected = options.tagParentSelected === true;
+  const decision = decideTagRun(node.kind, node.tags, filter, parentSelected);
+  if (decision === 'skip') {
+    return reportSkippedBundleNode({node, bundle, options, nextIndex});
+  }
 
   const currentIndex = nextIndex();
   const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
@@ -168,14 +252,22 @@ async function runSuiteBundleNode(params: {
     if (node.kind === 'test') {
       childRun = await runFile(childRunOptions);
     } else {
+      const nestedFilter = decision === 'run'
+        ? mergeTagFilter(filter, tagFilterFromYaml(node.filter))
+        : filter;
       childRun = await executeSuiteBundle({
         bundle: {
           rootSuitePath: childFilePath,
           rootTitle: nodeTitle,
           bundle: node.children,
+          filter: node.filter,
           target: undefined,
         },
-        options: childRunOptions,
+        options: {
+          ...childRunOptions,
+          tagFilter: nestedFilter,
+          tagParentSelected: decision === 'run',
+        },
         preLogs: [],
         runFile,
       });
@@ -198,7 +290,7 @@ async function runSuiteBundleNode(params: {
     });
 
     return {
-      success: status === 'passed',
+      success: status === 'passed' || status === 'skipped',
       threw: status === 'invalid' || childRun.result?.threw === true,
       cancelled: childRun.result?.cancelled === true,
       status,
@@ -282,9 +374,9 @@ async function runSuiteGroup(params: {
         nextIndex,
         serverCleanups,
       });
-      const status = childGroup.overallSuccess
-        ? 'passed' as SuiteStepStatus
-        : worstSuiteItemStatus(childGroup.statuses);
+      const status = childGroup.statuses.length > 0
+        ? worstSuiteItemStatus(childGroup.statuses)
+        : (childGroup.overallSuccess ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus);
       return {
         success: childGroup.overallSuccess,
         threw: childGroup.anyThrew,
@@ -326,9 +418,9 @@ async function runSuiteGroup(params: {
   const groupThrew = results.some(r => !!r && r.threw === true);
   const groupCancelled = results.some(r => !!r && (r as any).cancelled === true);
   const statuses = results.map(r => r.status);
-  const groupStatus: SuiteStepStatus = !groupHadAnyFailure
-    ? 'passed'
-    : (statuses.length > 0 ? worstSuiteItemStatus(statuses) : 'failed');
+  const groupStatus: SuiteStepStatus = statuses.length > 0
+    ? worstSuiteItemStatus(statuses)
+    : (!groupHadAnyFailure ? 'passed' : 'failed');
 
   options.reporter && options.reporter({
     scope: 'suite-item',
@@ -407,6 +499,8 @@ export async function executeSuiteBundle(params: {
   } else {
     effectiveOptions = options;
   }
+  const resolvedFilter = activeTagFilter(effectiveOptions, bundle);
+  effectiveOptions = {...effectiveOptions, tagFilter: resolvedFilter};
 
   const suiteDisplayName =
       (typeof bundle.rootTitle === 'string' && bundle.rootTitle.trim()) ?
@@ -560,9 +654,11 @@ export async function executeSuiteBundle(params: {
   };
 
   try {
-    // Start suite-level servers (from the `servers:` field) before running tests.
-    // These servers remain running for the entire suite duration and are cleaned up in `finally`.
-    if (shouldEmitSuiteRunEvents && Array.isArray(bundle.servers) && bundle.servers.length > 0) {
+    // Root `servers:` start before items. Nested suite `servers:` are already
+    // leading server nodes in that suite's children.
+    if (Array.isArray(bundle.servers) && bundle.servers.length > 0 &&
+        nodesHaveRunnable(
+            rootChildren, resolvedFilter, effectiveOptions.tagParentSelected === true)) {
       for (const serverPath of bundle.servers) {
         if (options.abortSignal?.aborted) {
           suiteLogger('warn', 'Suite run cancelled before servers could start.');
@@ -628,9 +724,9 @@ export async function executeSuiteBundle(params: {
 
         await runNodesSequentially(root.children);
 
-        const targetStatus: SuiteStepStatus = overallSuccess
-          ? 'passed'
-          : (itemStatuses.length > 0 ? worstSuiteItemStatus(itemStatuses) : 'failed');
+        const targetStatus: SuiteStepStatus = itemStatuses.length > 0
+          ? worstSuiteItemStatus(itemStatuses)
+          : (overallSuccess ? 'passed' : 'failed');
 
         effectiveOptions.reporter && effectiveOptions.reporter({
           scope: 'suite-item',
@@ -671,13 +767,15 @@ export async function executeSuiteBundle(params: {
 
   const durationMs = Date.now() - suiteStart;
   const cancelled = effectiveOptions.abortSignal?.aborted === true;
-  const aggregatedStatus = overallSuccess ? 'passed' as SuiteStepStatus : worstSuiteItemStatus(itemStatuses);
+  const aggregatedStatus = itemStatuses.length > 0
+    ? worstSuiteItemStatus(itemStatuses)
+    : (overallSuccess ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus);
   const result: RunResult = {
     success: overallSuccess,
     durationMs,
     errors: allErrors,
     logs: allLogs,
-    itemStatus: overallSuccess ? undefined : aggregatedStatus,
+    itemStatus: aggregatedStatus === 'passed' ? undefined : aggregatedStatus,
     threw: aggregatedStatus === 'invalid',
   };
 

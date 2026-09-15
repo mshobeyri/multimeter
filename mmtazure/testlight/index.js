@@ -45,6 +45,8 @@ const preset = input('preset');
 const env = input('env');
 const inputVars = input('input');
 const example = input('example');
+const tag = input('tag');
+const skipTag = input('skipTag');
 const report = input('report');
 const reportFile = input('reportFile');
 const out = input('out');
@@ -80,6 +82,22 @@ addPairs(args, '-e', env);
 addPairs(args, '-i', inputVars);
 if (example) {
   args.push('--example', example);
+}
+if (tag) {
+  for (const part of String(tag).split(',')) {
+    const t = part.trim();
+    if (t) {
+      args.push('--tag', t);
+    }
+  }
+}
+if (skipTag) {
+  for (const part of String(skipTag).split(',')) {
+    const t = part.trim();
+    if (t) {
+      args.push('--skip-tag', t);
+    }
+  }
 }
 if (report) {
   args.push('--report', report);
