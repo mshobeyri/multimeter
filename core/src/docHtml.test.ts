@@ -1,4 +1,4 @@
-import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml, parseRefDescription, extractMarkdownSection, resolveRefPath } from './docHtml';
+import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml, parseRefDescription, extractMarkdownSection, resolveRefPath, resolveEnvVars } from './docHtml';
 import { buildDocMarkdown } from './docMarkdown';
 
 describe('parseParamDescriptions', () => {
@@ -298,6 +298,9 @@ describe('extractEndpoint', () => {
   test('returns empty for no slash', () => {
     expect(extractEndpoint('noslash')).toBe('');
     expect(extractEndpoint('abc?query')).toBe('');
+    expect(extractEndpoint('')).toBe('');
+    expect(extractEndpoint(null)).toBe('');
+    expect(extractEndpoint('http://example.com')).toBe('');
   });
 });
 
@@ -525,7 +528,9 @@ describe('resolveRefPath', () => {
   test('resolves ./sibling in same directory', () => {
     expect(resolveRefPath('./other.md', 'folder/file.mmt')).toBe('folder/other.md');
   });
-});describe('extractMarkdownSection', () => {
+});
+
+describe('extractMarkdownSection', () => {
   const md = [
     '# Top',
     'Intro text.',
@@ -649,5 +654,13 @@ describe('service grouping with overlapping directory names', () => {
     const md = buildDocMarkdown(apis, { title: 'Test', sources: ['.'] });
     expect(md).toContain('Health Check');
     expect(md).toContain('Get Users');
+  });
+
+  test('resolveEnvVars and markdown ignore missing env and unmatched headings', () => {
+    expect(resolveEnvVars('', {A: '1'})).toBe('');
+    expect(resolveEnvVars('<<e:A>>', undefined as any)).toBe('<<e:A>>');
+    expect(resolveEnvVars('hello <<e:A>>', {A: 'world'})).toBe('hello world');
+    expect(simpleMarkdownToHtml('')).toBe('');
+    expect(extractMarkdownSection('# Why?\nbody\n## Nested\nmore\n# Next\n', 'why')).toContain('body');
   });
 });

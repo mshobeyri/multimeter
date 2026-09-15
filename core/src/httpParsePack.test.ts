@@ -1,6 +1,6 @@
 import {detectDocType} from './runCommon';
 import {generateTestJs} from './runTest';
-import {httpRequestToAPI, httpToTest, isHttpFilePath, parseHttpDocument, testToHttp, validateHttpDocument} from './httpParsePack';
+import {httpRequestToAPI, httpToTest, httpToTestStrict, isHttpFilePath, parseHttpDocument, testToHttp, validateHttpDocument} from './httpParsePack';
 import {testToYaml} from './testParsePack';
 
 describe('httpParsePack', () => {
@@ -528,5 +528,40 @@ DELETE {{baseUrl}}/posts/{{postId}}
       method: 'delete',
     });
     expect((test.steps?.[4] as any).expect).toBeUndefined();
+  });
+
+  it('rejects empty URLs, duplicate names, and empty HTTP files', () => {
+    expect(httpRequestToAPI({
+      method: 'get',
+      url: '   ',
+      headers: {},
+      startLine: 1,
+      raw: '',
+      warnings: [],
+    })).toBeUndefined();
+    expect(validateHttpDocument('# comment only')).toEqual(expect.arrayContaining([
+      expect.objectContaining({message: expect.stringMatching(/No HTTP requests/)}),
+    ]));
+    expect(validateHttpDocument(`###
+# @name ping
+GET https://example.com
+###
+# @name ping
+GET https://example.com
+`)).toEqual(expect.arrayContaining([
+      expect.objectContaining({message: expect.stringContaining('Duplicate request name')}),
+    ]));
+    expect(() => httpToTestStrict(`###
+# @name ping
+GET https://example.com
+###
+# @name ping
+GET https://example.com
+`)).toThrow(/Invalid HTTP test file/);
+    expect(testToHttp({type: 'test', steps: [{setenv: {a: 1}} as any]} as any)).toBe('');
+    expect(testToHttp({
+      type: 'test',
+      steps: [{http: 'https://x', method: 'post', body: {ok: true}, headers: {A: '1'}} as any],
+    } as any)).toContain('"ok": true');
   });
 });

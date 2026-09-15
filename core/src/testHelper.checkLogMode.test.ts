@@ -36,8 +36,10 @@ import {
   notMatches_,
   notTrimEquals_,
   notTrimEqualsIgnoreCase_,
+  importJsModule_,
   protocolFromUrl_,
   registerServer_,
+  setFileLoader_,
   reportWithContext_,
   setAbortSignal_,
   setenv_,
@@ -390,6 +392,15 @@ describe('testHelper abort, servers, setenv, judge, check branches', () => {
     registerServer_('other', () => {});
     stopAllServers_();
     expect(isServerRunning_('mock')).toBe(false);
+  });
+
+  it('fails importJsModule_ on empty path, missing loader, and empty source', async () => {
+    await expect(importJsModule_('')).rejects.toThrow('empty path');
+    setFileLoader_(undefined);
+    await expect(importJsModule_('/tmp/helpers.js')).rejects.toThrow('fileLoader is not available');
+    setFileLoader_(async () => '   ');
+    await expect(importJsModule_('/tmp/helpers.js')).rejects.toThrow('empty module source');
+    setFileLoader_(undefined);
   });
 
   it('ignores empty setenv and reporter throws', () => {

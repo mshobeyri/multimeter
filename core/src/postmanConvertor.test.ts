@@ -172,4 +172,120 @@ describe('postmanConvertor.postmanToAPI', () => {
     // unchanged header not present
     expect(ex.inputs!['hdr_content_type']).toBeUndefined();
   });
+
+  it('covers string requests, composed urls, header maps, auth, and broken examples', () => {
+    const longDesc = 'word '.repeat(40).trim();
+    const apis = postmanToAPI({
+      item: [
+        {name: 'skip-folder', item: [null, {request: 'https://example.com/ping'}]},
+        {
+          name: 'Composed',
+          description: {content: longDesc, version: 'v1'},
+          request: {
+            method: 'PUT',
+            header: 'X-A: 1\nX-B: {{token}}\n',
+            url: {
+              protocol: 'https',
+              host: ['api', 'example', 'com'],
+              port: '8443',
+              path: ['v1', 'users'],
+              query: [{key: 'q', value: '{{$randomBoolean}}'}],
+            },
+            auth: {type: 'bearer', bearer: [{key: 'token', value: '{{tok}}'}]},
+            body: {mode: 'raw', raw: 12},
+          },
+        },
+        {
+          name: 'Auths',
+          description: 42,
+          request: {
+            header: {Accept: 'text/xml', 'Content-Type': 'application/xml', skip: {nested: true}},
+            url: 'https://x/xml',
+            auth: {
+              type: 'apikey',
+              apikey: {key: 'X-Key', value: 'secret', in: 'query'},
+            },
+          },
+        },
+        {
+          name: 'Basic empty',
+          request: {
+            url: {raw: 'https://x'},
+            auth: {type: 'basic', basic: []},
+          },
+        },
+        {
+          name: 'Examples',
+          request: {
+            method: 'POST',
+            url: {raw: 'https://x'},
+            header: [{key: 'A', value: '1'}],
+            body: {mode: 'urlencoded', urlencoded: [{key: 'user', value: 'a'}]},
+          },
+          response: [
+            {code: 201, body: '{"id":1}'},
+            {name: 'arr', body: '[1]'},
+            {name: 'bad', body: '{not json'},
+            {
+              name: 'form',
+              originalRequest: {
+                url: {raw: 'https://x?z=1'},
+                body: {mode: 'formdata', formdata: [{key: 'user', value: 'b'}, {key: 'extra', value: '1'}]},
+              },
+            },
+            {
+              name: 'oauth-skip',
+              originalRequest: {url: {raw: 'https://x'}},
+            },
+          ],
+        },
+        {
+          name: 'oauth',
+          request: {
+            url: {raw: 'https://x'},
+            auth: {
+              type: 'oauth2',
+              oauth2: [
+                {key: 'grant_type', value: 'client_credentials'},
+                {key: 'accessTokenUrl', value: 'https://auth/token'},
+                {key: 'clientId', value: 'id'},
+                {key: 'clientSecret', value: 'secret'},
+                {key: 'scope', value: 'read'},
+              ],
+            },
+          },
+        },
+        {
+          name: 'oauth-fail',
+          request: {
+            url: {raw: 'https://x'},
+            auth: {type: 'oauth2', oauth2: {grant_type: 'password'}},
+          },
+        },
+        {
+          name: 'digest',
+          request: {url: {raw: 'https://x'}, auth: {type: 'digest'}},
+        },
+      ],
+    });
+    expect(apis.some(a => a.url?.includes('api.example.com:8443'))).toBe(true);
+    const composed = apis.find(a => a.title === 'Composed')!;
+    expect(composed.tags).toEqual(['v1']);
+    expect(composed.description).toContain('\n');
+    expect(composed.headers?.['X-B']).toBe('<<e:token>>');
+    expect(composed.auth).toEqual({type: 'bearer', token: '<<e:tok>>'});
+    const xml = apis.find(a => a.title === 'Auths')!;
+    expect(xml.format).toBe('xml');
+    expect(xml.auth).toMatchObject({type: 'api-key', query: 'X-Key'});
+    const examples = apis.find(a => a.title === 'Examples')!;
+    expect(examples.outputs?.status).toBe('status');
+    expect(examples.outputs?.id).toBe('body.id');
+    expect(examples.outputs?.body).toBe('body');
+    expect(examples.body && typeof examples.body === 'object').toBe(true);
+    const oauth = apis.find(a => a.title === 'oauth')!;
+    expect(oauth.auth).toMatchObject({type: 'oauth2', grant: 'client_credentials', scope: 'read'});
+    expect(apis.find(a => a.title === 'oauth-fail')!.auth).toBeUndefined();
+    expect(apis.find(a => a.title === 'digest')!.auth).toBeUndefined();
+    expect(apis.find(a => a.title === 'Basic empty')!.auth).toBeUndefined();
+  });
 });

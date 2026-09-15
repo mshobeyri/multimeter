@@ -146,7 +146,7 @@ describe('createApiLogHelpers', () => {
   it('formats empty collections, bigint, Buffer, and match edge cases', () => {
     const helpers = createApiLogHelpers();
     expect(helpers.formatScalar(null)).toBe('null');
-    expect(helpers.formatScalar(1n)).toBe('1');
+    expect(helpers.formatScalar(BigInt(1))).toBe('1');
     expect(helpers.formatScalar(Symbol('x'))).toContain('Symbol');
     expect(helpers.formatScalar(Number.POSITIVE_INFINITY)).toBe('"Infinity"');
     expect(helpers.formatValue([], 0)).toBe('[]');
@@ -157,7 +157,7 @@ describe('createApiLogHelpers', () => {
     expect(helpers.valuesMatch(undefined, 1)).toBe(false);
     expect(helpers.valuesMatch(null, null)).toBe(true);
     expect(helpers.valuesMatch(null, 1)).toBe(false);
-    expect(helpers.valuesMatch({a: 1n}, {a: 1n})).toBe(false);
+    expect(helpers.valuesMatch({a: BigInt(1)}, {a: BigInt(1)})).toBe(false);
     expect(helpers.formatExpects(
         {obj: {a: 1}, miss: undefined},
         {obj: {a: 1}, miss: {nested: '__MMT_OMIT__'}},

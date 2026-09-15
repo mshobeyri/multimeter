@@ -1,4 +1,4 @@
-import { extractOutputs, buildBodyExprFromPath, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from './outputExtractor';
+import { extractOutputs, buildBodyExprFromPath, extractPathAtPosition, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from './outputExtractor';
 import {OMIT_SENTINEL, isOmitSentinel} from './omitKeyword';
 
 describe('outputExtractor', () => {
@@ -776,6 +776,22 @@ describe('extractOutputs extra sections and auto type', () => {
     expect(mergeWithDefaultExtractionRules(undefined).status).toBe('status');
     expect(buildBodyExprFromPath([])).toBe('');
     expect(buildBodyExprFromPath(['a', 0, 'b'])).toBe('body.a.0.b');
+  });
+
+  it('returns empty/omit on invalid JSON, missing paths, and cursor-in-junk', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const badJson = extractOutputs({
+      type: 'json',
+      body: '{not json',
+      headers: {},
+      cookies: {},
+    }, {body: 'body.id', status: 'status', duration: 'duration'});
+    expect(badJson.body == null || isOmitSentinel(badJson.body)).toBe(true);
+    expect(extractPathAtPosition('{', 'json', 1, 1)).toBeNull();
+    expect(extractPathAtPosition('<root></root>', 'xml', 1, 2)).toEqual(expect.any(Array));
+    expect(extractPathAtPosition('x', 'json', 99, 99)).toBeNull();
+    expect(extractPathAtPosition('x', 'text' as any, 1, 1)).toBeNull();
+    warn.mockRestore();
   });
 });
 

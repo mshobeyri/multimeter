@@ -189,7 +189,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     return [];
   }
 
-  const requests = flattenItems(postmanJson.item);
+  const requests = flattenItems(postmanJson.item).filter((req: any) => req && typeof req === 'object');
 
   return requests.map((req: any) => {
     const request = normalizePostmanRequest(req.request);
