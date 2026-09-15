@@ -63,6 +63,8 @@ describe('judgeProbe helpers', () => {
     expect(probeHeadersForEngine('google', {type: 'api-key', value: 'gkey'}, {}))
         .toMatchObject({'x-goog-api-key': 'gkey'});
     expect(probeHeadersForEngine('azure-openai', {type: 'bearer', token: 'az'}, {}))
+        .toMatchObject({Authorization: 'Bearer az'});
+    expect(probeHeadersForEngine('azure-openai', {type: 'api-key', value: 'az'}, {}))
         .toMatchObject({'api-key': 'az'});
   });
 

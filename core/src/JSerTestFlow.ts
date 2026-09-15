@@ -267,7 +267,7 @@ const parseScalarComparisonExpected = (raw: string): ExpectValue => {
   if (trimmed === 'false') {
     return false;
   }
-  if (trimmed === OMIT_KEYWORD || isOmitSentinel(trimmed)) {
+  if (isOmitSentinel(trimmed)) {
     return OMIT_SENTINEL;
   }
   if (isQuotedExpectLiteral(trimmed)) {
@@ -301,7 +301,14 @@ const normalizeComparison =
           throw new Error(`Invalid ${kind} format: ${comp}`);
         }
         const { actual, operator } = parsed;
-        const expected = parseScalarComparisonExpected(parsed.expected);
+        const expectedRaw = String(parsed.expected ?? '').trim();
+        let expected: ExpectValue;
+        if (!isQuotedExpectLiteral(expectedRaw) &&
+            (expectedRaw === OMIT_KEYWORD || isOmitSentinel(expectedRaw))) {
+          expected = (operator === '==' || operator === '!=') ? OMIT_SENTINEL : OMIT_KEYWORD;
+        } else {
+          expected = parseScalarComparisonExpected(parsed.expected);
+        }
         const raw = `${actual} ${operator} ${expectValueToDisplay(expected)}`;
         return {actual, operator, expected, raw};
       }
@@ -557,7 +564,11 @@ export const parseExpectValue = (value: ExpectValue): { operator: string; expect
     }
     return { operator: prefixed.operator, expected: parseScalarComparisonExpected(expectedRaw) };
   }
-  // Already a YAML string value — do not re-coerce omit/null/numbers.
+  // YAML already typed omit/null/numbers. Quoted scalars still need unquoting
+  // when the value is a fully quoted string with no operator prefix.
+  if (isQuotedExpectLiteral(trimmed)) {
+    return { operator: '==', expected: unquoteExpectLiteral(trimmed) };
+  }
   return { operator: '==', expected: trimmed };
 };
 
