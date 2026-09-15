@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
@@ -74,6 +74,7 @@ interface SuiteTestTreeProps {
   /** View-only status filter; does not change run data or exports. */
   statusFilter?: ReportStatusFilter;
   onStatusFilterChange?: (next: ReportStatusFilter) => void;
+  onAllCollapsedChange?: (allCollapsed: boolean) => void;
 
   onRunTargets: (target: string) => void | Promise<void>;
   /** Logs-only core run (no UI panel updates). */
@@ -189,11 +190,12 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   runStateById,
   statusFilter = 'all',
   onStatusFilterChange,
+  onAllCollapsedChange,
   onRunTargets,
   onRunTargetsInCore,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
-  const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
+  const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root', ...base.groupIds]);
 
   const expandAll = useCallback(() => {
     setExpandedItems(collectSuiteExpandableIds(groups, hierarchyByEntryId));
@@ -204,6 +206,23 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   }, []);
 
   useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
+
+  const expandableIds = useMemo(
+    () => collectSuiteExpandableIds(groups, hierarchyByEntryId),
+    [groups, hierarchyByEntryId]
+  );
+
+  const allCollapsed = useMemo(() => {
+    const targets = expandableIds.filter((id) => id !== 'suite-root' && !/^group-\d+$/.test(id));
+    if (targets.length === 0) {
+      return false;
+    }
+    return targets.every((id) => !expandedItems.includes(id));
+  }, [expandableIds, expandedItems]);
+
+  useLayoutEffect(() => {
+    onAllCollapsedChange?.(allCollapsed);
+  }, [allCollapsed, onAllCollapsedChange]);
 
   // Expand base group nodes by default — one-time on mount.
   useEffect(() => {

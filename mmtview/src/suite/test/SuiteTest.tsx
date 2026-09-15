@@ -26,7 +26,7 @@ import {
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import ReportStatusFilterButton from '../../shared/ReportStatusFilterButton';
-import ReportHeaderMoreMenu from '../../shared/ReportHeaderMoreMenu';
+import ReportExpandCollapseButton from '../../shared/ReportExpandCollapseButton';
 import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
@@ -460,6 +460,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
     const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
+    const [allTreeCollapsed, setAllTreeCollapsed] = useState(true);
     const suiteTreeRef = useRef<SuiteTestTreeHandle>(null);
     const suiteRunStartTimeRef = useRef<number | null>(null);
     const [suiteRunStartedAt, setSuiteRunStartedAt] = useState<number | null>(null);
@@ -1118,6 +1119,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             runStateById={leafRunStateById}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            onAllCollapsedChange={setAllTreeCollapsed}
             onRunTargets={onRunTargets}
             onRunTargetsInCore={onRunTargetsInCore}
         />
@@ -1276,7 +1278,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                             onChange={setStatusFilter}
                                             disabled={Object.keys(leafRunStateById).length === 0}
                                         />
-                                        <ReportHeaderMoreMenu
+                                        <ReportExpandCollapseButton
+                                            allCollapsed={allTreeCollapsed}
                                             onExpandAll={() => suiteTreeRef.current?.expandAll()}
                                             onCollapseAll={() => suiteTreeRef.current?.collapseAll()}
                                         />

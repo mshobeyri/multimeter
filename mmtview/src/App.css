@@ -2028,6 +2028,24 @@ select.method-select:focus-visible {
   align-items: center;
   justify-content: center;
   margin: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.report-status-filter select {
+  position: absolute;
+  inset: 0;
+  width: 20px;
+  max-width: 20px;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 12px;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .report-status-filter-icon {
@@ -2052,11 +2070,15 @@ select.method-select:focus-visible {
   justify-content: center;
 }
 
-.report-header-more-btn {
+.action-button.report-header-more-btn {
+  box-sizing: border-box;
   width: 20px;
   height: 20px;
   padding: 0;
   min-width: 20px;
+  max-width: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;

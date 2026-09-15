@@ -41,13 +41,9 @@ const ReportStatusFilterButton: React.FC<ReportStatusFilterButtonProps> = ({
         onChange={handleChange}
         title={`Filter: ${label}`}
         aria-label="Filter by status"
+        className="report-status-filter-select"
         style={{
-          position: 'absolute',
-          inset: 0,
-          opacity: 0,
           cursor: disabled ? 'not-allowed' : 'pointer',
-          width: '100%',
-          height: '100%',
         }}
       >
         {REPORT_STATUS_FILTER_OPTIONS.map((opt) => (

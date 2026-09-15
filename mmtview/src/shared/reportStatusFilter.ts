@@ -6,6 +6,7 @@ export type ReportStatusFilter =
   | 'all'
   | 'passed'
   | 'failed'
+  | 'errors'
   | 'running'
   | 'running_failed';
 
@@ -13,6 +14,7 @@ export const REPORT_STATUS_FILTER_OPTIONS: { value: ReportStatusFilter; label: s
   { value: 'all', label: 'All' },
   { value: 'passed', label: 'Passed' },
   { value: 'failed', label: 'Failed' },
+  { value: 'errors', label: 'Errors' },
   { value: 'running', label: 'Running' },
   { value: 'running_failed', label: 'Running | Failed' },
 ];
@@ -21,6 +23,7 @@ export function parseReportStatusFilter(value: unknown): ReportStatusFilter {
   if (
     value === 'passed' ||
     value === 'failed' ||
+    value === 'errors' ||
     value === 'running' ||
     value === 'running_failed' ||
     value === 'all'
@@ -38,6 +41,9 @@ export function emptyReportFilterMessage(filter: ReportStatusFilter): string {
   if (filter === 'failed') {
     return 'No failed tests.';
   }
+  if (filter === 'errors') {
+    return 'No errors.';
+  }
   if (filter === 'running') {
     return 'No running tests.';
   }
@@ -53,6 +59,9 @@ export function stepMatchesReportFilter(
 ): boolean {
   if (filter === 'all') {
     return true;
+  }
+  if (filter === 'errors') {
+    return status === 'invalid';
   }
   if (filter === 'running') {
     return status === 'running';
