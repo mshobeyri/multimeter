@@ -317,6 +317,23 @@ describe('CSV import parsing', () => {
         .rejects.toThrow(/Import error.*Imported file not found/);
   });
 
+  it('attaches the imported file path to YAML parse errors', async () => {
+    setFileLoader(async (p: string) => {
+      if (p === '/root/broken.mmt') {
+        return 'type: api\nurl: http://example.com\n  bad: indent\n';
+      }
+      return '';
+    });
+    try {
+      await importsToJsfunc({echo: '/root/broken.mmt'}, undefined, '/root/main.mmt');
+      throw new Error('expected import to fail');
+    } catch (error: any) {
+      expect(error.name).toBe('ImportCodeError');
+      expect(error.path).toBe('/root/broken.mmt');
+      expect(String(error.message)).toMatch(/Import error in \/root\/broken\.mmt/);
+    }
+  });
+
   it('throws when call expect references output not defined by imported API', async () => {
     const mock = createTestFileLoaderMock({
       '/root/main.mmt': [

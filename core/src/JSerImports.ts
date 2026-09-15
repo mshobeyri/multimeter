@@ -2,7 +2,7 @@ import {yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 import {csvToJSObj} from './csvConvertor';
 import {dataFileToJsObj, isDataImportPath, processDataImportsInYaml} from './dataImportProcessor';
 import {dirnamePath, fileUriToPath, isAbsPath, joinPath, resolveDotSegments, resolveRequestedAgainst,} from './fileHelper';
-import {createFileImporter} from './fileImporter';
+import {createFileImporter, FileImportError} from './fileImporter';
 import {ImportTracker} from './importTracker';
 import {apiToJSfunc} from './JSerAPI';
 import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from './brunoParsePack';
@@ -14,6 +14,33 @@ import {yamlToJudgeStrict} from './judgeParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {yamlToTest, yamlToTestStrict} from './testParsePack';
 import {toTemplateValueJs} from './variableReplacer';
+
+/** Structured import/codegen error so the UI can open the offending file. */
+export class ImportCodeError extends Error {
+  readonly path?: string;
+  readonly detail: string;
+
+  constructor(detail: string, path?: string) {
+    const cleaned = String(detail ?? '').replace(/^Import error(?: in [^:]+)?:\s*/i, '');
+    super(path ? `Import error in ${path}: ${cleaned}` : `Import error: ${cleaned}`);
+    this.name = 'ImportCodeError';
+    this.path = path;
+    this.detail = cleaned;
+  }
+}
+
+export function toImportCodeError(error: unknown, path?: string): ImportCodeError {
+  if (error instanceof ImportCodeError) {
+    if (path && !error.path) {
+      return new ImportCodeError(error.detail, path);
+    }
+    return error;
+  }
+  const filePath =
+    path || (error instanceof FileImportError ? error.path : undefined);
+  const msg = error instanceof Error ? error.message : String(error);
+  return new ImportCodeError(msg, filePath);
+}
 
 const basenameNoExt = (p: string): string => {
   const s = String(p ?? '').replace(/\\/g, '/');
@@ -123,22 +150,25 @@ const buildAliasMaps =
           continue;
         }
 
-        const test = parseTestContent(content, resolvedPath) as any;
-        const importMap = (test?.import ?? {}) as Record<string, string>;
-        const aliasMap: Record<string, string> = {};
-        for (const [key, requestedPathRaw] of Object.entries(importMap || {})) {
-          if (!isValidJsIdentifier(key)) {
-            throw new Error(
-                `Invalid import key "${key}": must be a valid JS identifier`);
+        try {
+          const test = parseTestContent(content, resolvedPath) as any;
+          const importMap = (test?.import ?? {}) as Record<string, string>;
+          const aliasMap: Record<string, string> = {};
+          for (const [key, requestedPathRaw] of Object.entries(importMap || {})) {
+            if (!isValidJsIdentifier(key)) {
+              throw new Error(
+                  `Invalid import key "${key}": must be a valid JS identifier`);
+            }
+            const requestedPath =
+                resolveRequestedAgainst(resolvedPath, requestedPathRaw, projectRoot);
+            const fn = publicNameForPath.get(requestedPath);
+            aliasMap[key] =
+                fn || defaultFunctionNameForRequestedPath(requestedPath);
           }
-          const requestedPath =
-              resolveRequestedAgainst(resolvedPath, requestedPathRaw, projectRoot);
-          // Look up the public function name directly by resolved path
-          const fn = publicNameForPath.get(requestedPath);
-          aliasMap[key] =
-              fn || defaultFunctionNameForRequestedPath(requestedPath);
+          tracker.setAliasesForImporter(resolvedPath, aliasMap);
+        } catch (error) {
+          throw toImportCodeError(error, resolvedPath);
         }
-        tracker.setAliasesForImporter(resolvedPath, aliasMap);
       }
     };
 
@@ -158,7 +188,8 @@ const emitResolved = async(
     const publicName = publicNameForPath.get(resolvedPath) as string;
     tracker.setTestFuncName(resolvedPath, publicName);
 
-    if (type === 'test') {
+    try {
+      if (type === 'test') {
       const processedContent = await processDataImportsInYaml({
         rawText: content,
         filePath: resolvedPath,
@@ -229,6 +260,9 @@ const emitResolved = async(
         tracker.setFileTitle(resolvedPath, judge.title);
       }
       results.push(`const ${publicName} = ${judgeDataToJsLiteral(judge)};\n`);
+      }
+    } catch (error) {
+      throw toImportCodeError(error, resolvedPath);
     }
   }
 
@@ -288,8 +322,7 @@ export const importsToJsfuncDetailed = async(
 
     return {js: results.join('\n'), functionNameByResolvedPath};
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    throw new Error(`Import error: ${msg}`);
+    throw toImportCodeError(error);
   }
 };
 
