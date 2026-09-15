@@ -65,7 +65,7 @@ function buildDisplayNamesFromHierarchy(
         const label = getNodeLabel(node);
         const currentPath = node.kind === 'group' ? pathParts : [...pathParts, label];
 
-        if (node.kind === 'test' || node.kind === 'suite' || node.kind === 'missing' || node.kind === 'cycle') {
+        if (node.kind === 'test' || node.kind === 'suite' || node.kind === 'server' || node.kind === 'missing' || node.kind === 'cycle') {
             result[node.id] = currentPath.join(' / ');
         }
 

@@ -36,6 +36,9 @@ export function collectHierarchyNodeIds(root: SuiteTreeNode | null | undefined):
     if (!node || typeof node !== 'object') {
       continue;
     }
+    if (node.kind === 'server') {
+      continue;
+    }
     if (typeof node.id === 'string' && node.id) {
       out.push(node.id);
     }
@@ -46,6 +49,40 @@ export function collectHierarchyNodeIds(root: SuiteTreeNode | null | undefined):
     }
   }
   return out;
+}
+
+function omitServerRunStatus(
+  next: Record<string, StepStatus>,
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): void {
+  const stack: SuiteTreeNode[] = [];
+  for (const group of groups) {
+    for (const entry of group.entries) {
+      if (!entry?.id) {
+        continue;
+      }
+      const hierarchy = hierarchyByEntryId[entry.id];
+      if (!hierarchy) {
+        continue;
+      }
+      stack.push(hierarchy);
+    }
+  }
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object') {
+      continue;
+    }
+    if (node.kind === 'server' && typeof node.id === 'string' && node.id) {
+      delete next[node.id];
+    }
+    if ('children' in node && Array.isArray(node.children)) {
+      for (let i = 0; i < node.children.length; i++) {
+        stack.push(node.children[i]);
+      }
+    }
+  }
 }
 
 /**
@@ -63,12 +100,17 @@ export function buildFullSuitePendingState(
       if (!entry?.id) {
         return;
       }
+      const hierarchy = hierarchyByEntryId[entry.id];
+      if (hierarchy?.kind === 'server') {
+        return;
+      }
       next[entry.id] = 'pending';
-      for (const id of collectHierarchyNodeIds(hierarchyByEntryId[entry.id])) {
+      for (const id of collectHierarchyNodeIds(hierarchy)) {
         next[id] = 'pending';
       }
     });
   });
+  omitServerRunStatus(next, groups, hierarchyByEntryId);
   return next;
 }
 
@@ -99,10 +141,14 @@ export function buildTargetPendingState(
       if (!entry?.id) {
         continue;
       }
+      const hierarchy = hierarchyByEntryId[entry.id];
+      if (hierarchy?.kind === 'server') {
+        continue;
+      }
       if (isUnderSuiteTarget(target, entry.id)) {
         next[entry.id] = 'pending';
       }
-      for (const id of collectHierarchyNodeIds(hierarchyByEntryId[entry.id])) {
+      for (const id of collectHierarchyNodeIds(hierarchy)) {
         if (isUnderSuiteTarget(target, id)) {
           next[id] = 'pending';
         }
@@ -110,5 +156,6 @@ export function buildTargetPendingState(
     }
   });
 
+  omitServerRunStatus(next, groups, hierarchyByEntryId);
   return next;
 }

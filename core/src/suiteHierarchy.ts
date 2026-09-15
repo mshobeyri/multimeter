@@ -5,10 +5,11 @@ import {createSuiteNodeId} from './suiteNodeId';
 import {yamlToTest} from './testParsePack';
 import {brunoToTest, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, isHttpFilePath} from './httpParsePack';
+import {yamlToMock} from './mockParsePack';
 
 export type SuiteHierarchyNode =
   | {kind: 'group'; id: string; label: string; children: SuiteHierarchyNode[]}
-  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]}
+  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]; servers?: string[]}
   | {kind: 'test'; id: string; path: string; title?: string}
   | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
@@ -44,8 +45,15 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     // (e.g. suite1 / then / suite1). Only true A→…→A recursion is a cycle.
     const nextAncestors = new Set(ancestors);
     nextAncestors.add(targetFilePath);
-    const children = await buildNodesFromEntries(
+    let children = await buildNodesFromEntries(
         suiteDoc.items ?? [], targetFilePath, indexPath, nextAncestors);
+    // Nested `servers:` run like items at the start of this suite (not YAML rewrite).
+    // Root suites still use the `servers:` field on the bundle.
+    const isNested = indexPath.length > 0;
+    if (isNested && Array.isArray(suiteDoc.servers) && suiteDoc.servers.length > 0) {
+      children = await prependServersAsLeadingItems(
+          suiteDoc.servers, targetFilePath, indexPath, nextAncestors, children);
+    }
     const node: SuiteHierarchyRootNode = {
       kind: 'suite',
       id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
@@ -97,6 +105,39 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     return groupNodes.filter((n): n is SuiteHierarchyNode => n !== null);
   };
 
+  const prependServersAsLeadingItems = async (
+    servers: readonly string[],
+    ownerFilePath: string,
+    suiteIndexPath: number[],
+    ancestors: ReadonlySet<string>,
+    existingChildren: SuiteHierarchyNode[],
+  ): Promise<SuiteHierarchyNode[]> => {
+    const serverNodes =
+        (await Promise.all(servers.map(
+             (entry, idx) => buildNodeFromEntry(
+                 entry, ownerFilePath, [...suiteIndexPath, -1, idx], ancestors))))
+            .filter((n): n is SuiteHierarchyNode => n !== null);
+    if (!serverNodes.length) {
+      return existingChildren;
+    }
+    const first = existingChildren[0];
+    if (first && first.kind === 'group') {
+      return [
+        {...first, children: [...serverNodes, ...first.children]},
+        ...existingChildren.slice(1),
+      ];
+    }
+    return [
+      {
+        kind: 'group',
+        id: createSuiteNodeId([...suiteIndexPath, -1], {prefix: leafPrefix}),
+        label: 'Group 1',
+        children: serverNodes,
+      },
+      ...existingChildren,
+    ];
+  };
+
   const buildNodeFromEntry = async (
       entry: string, ownerFilePath: string, indexPath: number[],
       ancestors: ReadonlySet<string>): Promise<SuiteHierarchyNode | null> => {
@@ -134,8 +175,16 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     }
 
     if (type === 'server') {
-      // Server files can be included in suites to start mock servers
-      return {kind: 'server', id: createSuiteNodeId(indexPath, {prefix: leafPrefix}), path: resolvedPath};
+      let title: string|undefined;
+      try {
+        const mockDoc = yamlToMock(raw);
+        if (typeof mockDoc?.title === 'string' && mockDoc.title.trim()) {
+          title = mockDoc.title.trim();
+        }
+      } catch {
+        // ignore
+      }
+      return {kind: 'server', id: createSuiteNodeId(indexPath, {prefix: leafPrefix}), path: resolvedPath, title};
     }
 
     if (type !== 'suite') {

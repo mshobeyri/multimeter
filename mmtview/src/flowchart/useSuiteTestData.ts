@@ -98,6 +98,9 @@ function collectTestPaths(
       add(entryPath, node.path);
       return;
     }
+    if (node.kind === 'server') {
+      return;
+    }
     if (node.kind === 'suite' || node.kind === 'group') {
       const children = (node as any).children as SuiteTreeNode[] | undefined;
       if (Array.isArray(children)) {

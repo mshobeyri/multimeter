@@ -31,7 +31,7 @@ See [Mock servers in suites](../server/in-suites.md) for a quick overview. Detai
 
 Use the top-level `servers:` field to list mock server files that should start **before** any tests and remain running for the **entire** suite duration. They are stopped automatically when the suite finishes.
 
-> **Note:** `servers` is a **root-only** field — it only takes effect when the suite is run directly. If Suite A imports Suite B, Suite B's `servers` field is ignored. Servers should be declared in the root suite to avoid conflicts.
+When a **nested** suite runs, its `servers:` are treated like mock server files at the beginning of that suite’s `items` (they start with that suite and stop when that suite is done). Root `environment:` and `export:` stay root-only.
 
 ```yaml
 type: suite

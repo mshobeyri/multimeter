@@ -11,7 +11,7 @@ import {
 } from './suiteTreeLabelClick';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
 
-export type SuiteTestFileItemData = { type: 'test'; path: string; id: string }
+export type SuiteTestFileItemData = { type: 'test' | 'server'; path: string; id: string }
 
 interface SuiteTestFileItemProps {
     item: TreeItem<any>;
@@ -47,6 +47,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     displayPath,
 }) => {
     const data = item.data as SuiteTestFileItemData;
+    const isServer = data.type === 'server';
     const isMissing = missingFiles.has(data.path);
     const statusIcon = isMissing
         ? {
@@ -54,14 +55,16 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
             color: 'var(--vscode-editorWarning-foreground, #f8b449)',
             title: 'File not found',
         }
-        : statusIconFor(status);
+        : isServer
+            ? null
+            : statusIconFor(status);
 
     const runState = status;
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
 
     // Show reports when the node is expanded (chevron or label click).
-    const shouldShowReports = context?.isExpanded;
+    const shouldShowReports = !isServer && context?.isExpanded;
 
     const activateLabel = (event: React.MouseEvent | React.KeyboardEvent, openFile: boolean) => {
         handleSuiteFileLabelActivate({
@@ -106,13 +109,20 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                             }
                         }}
                     >
+                        {statusIcon && (
                         <span
                             className={`codicon ${statusIcon.icon}`}
                             aria-hidden
                             title={statusIcon.title}
                             style={{ color: statusIcon.color }}
                         />
-                        <span className="codicon codicon-beaker" aria-hidden title="Test" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+                        )}
+                        <span
+                            className={`codicon ${isServer ? 'codicon-server-environment' : 'codicon-beaker'}`}
+                            aria-hidden
+                            title={isServer ? 'Mock server' : 'Test'}
+                            style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }}
+                        />
                         {labelPath}
                     </div>
                     {onRun && !isMissing && (

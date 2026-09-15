@@ -61,6 +61,7 @@ export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string; id?: string }
   | { type: 'test'; path: string; id: string; title?: string; parentPath?: string }
+  | { type: 'server'; path: string; id: string; title?: string; parentPath?: string }
   | { type: 'suite'; path: string; id: string; title?: string; parentPath?: string };
 
 interface SuiteTestTreeProps {
@@ -156,7 +157,7 @@ export function collectSuiteExpandableIds(
         collect(uiId, n.children || []);
         continue;
       }
-      if (n.kind === 'suite' || n.kind === 'test') {
+      if (n.kind === 'suite' || n.kind === 'test' || n.kind === 'server') {
         ids.add(uiId);
         if (n.kind === 'suite') {
           collect(uiId, n.children || []);
@@ -293,8 +294,19 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         const entryId = entry.id;
 
         if (!isSuite) {
-          // Top-level entries are relative to the suite file itself (this file).
-          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, id: entryId, title: (hierarchy as any)?.title, parentPath: '' } };
+          const isServer = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'server';
+          items[entry.id] = {
+            ...entryItem,
+            isFolder: !isServer,
+            children: [],
+            data: {
+              type: isServer ? 'server' : 'test',
+              path: entry.path,
+              id: entryId,
+              title: (hierarchy as any)?.title,
+              parentPath: '',
+            },
+          };
           continue;
         }
 
@@ -350,11 +362,21 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
               continue;
             }
 
-            if (n.kind === 'test') {
+            if (n.kind === 'test' || n.kind === 'server') {
               const path = n.path;
               const itemId = uiId;
-              // Make imported test nodes expandable so users can toggle the report panel.
-              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: baseId, title: (n as any).title, parentPath: ownerPath } };
+              items[itemId] = {
+                index: itemId,
+                isFolder: n.kind === 'test',
+                children: [],
+                data: {
+                  type: n.kind === 'server' ? 'server' : 'test',
+                  path,
+                  id: baseId,
+                  title: (n as any).title,
+                  parentPath: ownerPath,
+                },
+              };
               outChildren.push(itemId);
               continue;
             }
@@ -487,15 +509,16 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     // Prefer the explicit parentPath recorded in the tree node data.
     // This keeps relative label behavior stable even when the UI id doesn't
     // map 1:1 to a suite path (e.g. top-level suite entries).
-    const parentPath = (data && (data.type === 'test' || data.type === 'suite')) ? (data as any).parentPath : undefined;
-    const rawPath = (data && (data.type === 'test' || data.type === 'suite')) ? (data as any).path : undefined;
+    const isFileRow = data && (data.type === 'test' || data.type === 'suite' || data.type === 'server');
+    const parentPath = isFileRow ? (data as any).parentPath : undefined;
+    const rawPath = isFileRow ? (data as any).path : undefined;
     const displayPath = (() => {
       if (!rawPath || typeof rawPath !== 'string') {
         return undefined;
       }
 
       // Prefer YAML title when present.
-      const title = (data && (data.type === 'test' || data.type === 'suite')) ? (data as any).title : undefined;
+      const title = isFileRow ? (data as any).title : undefined;
       if (typeof title === 'string' && title.trim()) {
         return title.trim();
       }
@@ -542,9 +565,11 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     const ownerEntryId = owningEntryIdFromTreeIndex(entryId);
     const belongs =
       !itemBundleId || bundleIdBelongsToEntry(ownerEntryId, itemBundleId);
-    const status: StepStatus = belongs
-      ? ownRunStatus(runStateById, itemBundleId || entryId)
-      : 'default';
+    const status: StepStatus = data.type === 'server'
+      ? 'default'
+      : belongs
+        ? ownRunStatus(runStateById, itemBundleId || entryId)
+        : 'default';
 
     if (data.type === 'suite') {
       const effectiveTarget = itemBundleId || entryId;
@@ -588,13 +613,13 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         statusIconFor={statusIconFor as any}
         status={status}
         stepReports={stepReports}
-        onRun={canRunLeaf ? () => onRunTargets(testLeafId!) : undefined}
+        onRun={data.type !== 'server' && canRunLeaf ? () => onRunTargets(testLeafId!) : undefined}
         onRunInCore={
-          canRunLeaf && onRunTargetsInCore
+          data.type !== 'server' && canRunLeaf && onRunTargetsInCore
             ? () => onRunTargetsInCore(testLeafId!)
             : undefined
         }
-        runButtonTitle="Run test"
+        runButtonTitle={data.type === 'server' ? 'Run server' : 'Run test'}
         runDisabled={!canRunLeaf}
         displayPath={displayPath}
       />
@@ -622,7 +647,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
       getItemTitle={(item) => {
         const data = item.data as SuiteTestTreeItemData;
         // Show the id in the accessible/title string for all node kinds.
-        if (data?.type === 'test' || data?.type === 'suite') {
+        if (data?.type === 'test' || data?.type === 'suite' || data?.type === 'server') {
           const id = (data as any).id || String(item.index);
           return `${data.path} [${id}]`;
         }

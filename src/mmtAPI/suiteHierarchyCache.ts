@@ -8,6 +8,11 @@ export type SuiteHierarchyTree =
       id: string;
       path: string;
       title?: string;
+    }|{
+      kind: 'server';
+      id: string;
+      path: string;
+      title?: string;
     };
 
 type CacheEntry = {
@@ -99,21 +104,23 @@ function storeCache(
   });
 }
 
-/** Cache a simple test leaf (used when the requested file is type: test). */
+/** Cache a simple test/server leaf (used when the requested file is not a suite). */
 export async function getCachedTestHierarchyNode(params: {
   filePath: string;
   leafPrefix?: string;
   title?: string;
+  kind?: 'test'|'server';
 }): Promise<{tree: SuiteHierarchyTree; fromCache: boolean}> {
+  const kind = params.kind ?? 'test';
   const key = cacheKey(params.filePath, params.leafPrefix);
   const cached = await readCacheIfFresh(key);
-  if (cached && cached.kind === 'test') {
+  if (cached && cached.kind === kind) {
     return {tree: cached, fromCache: true};
   }
 
   const tree: SuiteHierarchyTree = {
-    kind: 'test',
-    id: params.leafPrefix || 'test',
+    kind,
+    id: params.leafPrefix || kind,
     path: params.filePath,
     title: params.title,
   };

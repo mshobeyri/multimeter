@@ -126,6 +126,18 @@ function buildEntry(
   if (hierarchy?.kind === 'suite') {
     return buildSuiteEntry(graph, ctx, hierarchy, predecessors);
   }
+  if (hierarchy?.kind === 'server') {
+    const id = ctx.nextId('server');
+    graph.nodes.push({
+      id,
+      kind: 'test-ref',
+      label: (hierarchy.title && hierarchy.title.trim()) ? hierarchy.title.trim() : basename(path),
+      detail: 'mock server',
+      sourceFile: path,
+    });
+    connectAll(graph, ctx, predecessors, id);
+    return [id];
+  }
   return buildTestEntry(graph, ctx, path, hierarchy, predecessors);
 }
 

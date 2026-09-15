@@ -172,6 +172,64 @@ describe('suite bundle runner nested suite', () => {
     expect(scopes.filter(s => s === 'suite-run-start').length).toBe(1);
     expect(scopes.filter(s => s === 'suite-run-finished').length).toBe(1);
   });
+
+  it('starts nested suite servers: as leading items of that suite', async () => {
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('./suiteHierarchy.js');
+    const {createSuiteBundle} = await import('./suiteBundle.js');
+
+    const files: Record<string, string> = {
+      '/root/suite.mmt': ['type: suite', 'items:', '  - ./inner.mmt'].join('\n'),
+      '/root/inner.mmt': [
+        'type: suite',
+        'servers:',
+        '  - ./mock.mmt',
+        'items:',
+        '  - ./test.mmt',
+      ].join('\n'),
+      '/root/mock.mmt': ['type: server', 'port: 3000'].join('\n'),
+      '/root/test.mmt': ['type: test', 'steps:', '  - print: ok'].join('\n'),
+    };
+
+    const testFileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/suite.mmt',
+      suiteRawText: files['/root/suite.mmt'],
+      fileLoader: testFileLoader,
+    });
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/root/suite.mmt',
+      hierarchy: tree,
+    });
+
+    const started: string[] = [];
+    const stopped: string[] = [];
+    await runner.runFile({
+      file: files['/root/suite.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      manualInputs: {},
+      envvar: {},
+      manualEnvvars: {},
+      fileLoader: testFileLoader,
+      jsRunner: async () => ({success: true, logs: [], errors: []} as any),
+      logger: () => {},
+      serverRunner: async (alias: string) => {
+        started.push(alias);
+        return () => {
+          stopped.push(alias);
+        };
+      },
+      suiteBundle: bundle,
+    } as any);
+
+    expect(started.some((p) => p.includes('mock.mmt'))).toBe(true);
+    expect(stopped.length).toBe(started.length);
+  });
 });
 
 describe('suite bundle grouping', () => {

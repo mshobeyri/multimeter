@@ -22,7 +22,7 @@ tags:                            # optional, for grouping
 
 description: string              # optional, short explanation
 
-servers:                         # optional, root-only: mock servers started before items
+servers:                         # optional: mock servers started before items
   - path/to/server.mmt           # type: server files; kept running for the entire suite
 
 items:                           # REQUIRED, array of files to run
@@ -41,7 +41,7 @@ export:                          # optional, root-only: generate reports after c
   - path/to/report.xml           # supported: .xml (JUnit), .html, .md, .mmt
 ```
 
-> **Root-only fields**: `servers`, `environment`, and `export` only take effect when the suite is run directly. When imported by another suite, these fields are ignored.
+> **Root-only fields**: `environment` and `export` only take effect when the suite is run directly. When imported by another suite, these fields are ignored. `servers:` on a nested suite start when that nested suite runs (as if those files were at the start of its `items`).
 
 > **Legacy alias**: `tests` is still accepted as an alias for `items`, but new suites should use `items`.
 

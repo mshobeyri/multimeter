@@ -1,6 +1,6 @@
 # In suites
 
-Use the top-level `servers:` field to list mock server files that start **before** any tests and remain running for the entire suite. They stop automatically when the suite finishes.
+Use the top-level `servers:` field to list mock server files that start **before** any tests and remain running for the entire suite. They stop automatically when the suite finishes. Nested suites use the same field: when that suite runs, its `servers:` start as if those files were listed at the beginning of its `items`.
 
 ```yaml
 type: suite
@@ -15,7 +15,7 @@ items:
 
 You can also include `type: server` files directly in `items` for inline control over when they start relative to other stages.
 
-For execution flow, partial runs, and the `servers` root-only rule, see [Suite execution](../suite/execution.md#mock-servers-in-suites).
+For execution flow and partial runs, see [Suite execution](../suite/execution.md#mock-servers-in-suites).
 
 ---
 

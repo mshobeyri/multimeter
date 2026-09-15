@@ -12,6 +12,7 @@ import {buildThemeTokenMessage} from '../themeTokenColors';
 import {
   JSer,
   testParsePack,
+  mockParsePack,
   apiParsePack,
   variableReplacer,
   markupConvertor,
@@ -509,12 +510,19 @@ export const messageReceived = async (
         const rawText = await loadRootText();
         const docType = JSer.fileType(filePath, rawText);
 
-        if (docType === 'test') {
+        if (docType === 'test' || docType === 'server') {
           let title: string|undefined;
           try {
-            const testDoc = testParsePack.yamlToTest(rawText);
-            if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
-              title = testDoc.title.trim();
+            if (docType === 'test') {
+              const testDoc = testParsePack.yamlToTest(rawText);
+              if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
+                title = testDoc.title.trim();
+              }
+            } else {
+              const mockDoc = mockParsePack.yamlToMock(rawText);
+              if (typeof mockDoc?.title === 'string' && mockDoc.title.trim()) {
+                title = mockDoc.title.trim();
+              }
             }
           } catch {
             // Ignore parsing errors
@@ -523,6 +531,7 @@ export const messageReceived = async (
             filePath,
             leafPrefix,
             title,
+            kind: docType,
           });
           webviewPanel.webview.postMessage({
             command: 'suiteHierarchyResult',
