@@ -1,4 +1,4 @@
-import {formatMmtYaml} from './mmtFormat';
+import {detectMmtDocType, formatMmtYaml} from './mmtFormat';
 import {formatMmtYamlAst, reorderMapPairs} from './mmtFormatAst';
 import YAML, {isMap} from 'yaml';
 import fs from 'fs';
@@ -20,6 +20,34 @@ function expectAllComments(formatted: string, comments: string[]) {
 }
 
 describe('mmtFormat', () => {
+  it('detects types from content when no path is given', () => {
+    expect(detectMmtDocType('type: api\nurl: x')).toBe('api');
+    expect(detectMmtDocType('type: test\nsteps: []')).toBe('test');
+    expect(detectMmtDocType('type: env\nvariables: {}')).toBe('env');
+    expect(detectMmtDocType('type: suite\nitems: []')).toBe('suite');
+    expect(detectMmtDocType('type: doc\ntitle: D')).toBe('doc');
+    expect(detectMmtDocType('type: server\nport: 1')).toBe('server');
+    expect(detectMmtDocType('type: loadtest\ntest: a.mmt')).toBe('loadtest');
+    expect(detectMmtDocType('type: judge\nengine: ollama')).toBe('judge');
+    expect(detectMmtDocType('type: report\nname: r')).toBe('report');
+    expect(detectMmtDocType('not a document')).toBeNull();
+  });
+
+  it('formats report yaml and rejects unknown or csv types', () => {
+    const report = [
+      'type: report',
+      'name: smoke',
+      'checks: []',
+      '',
+    ].join('\n');
+    const formatted = formatMmtYaml(report);
+    expect(formatted.docType).toBe('report');
+    expect(formatted.formatted).toContain('type: report');
+    expect(() => formatMmtYaml('hello')).toThrow(/Unknown Multimeter document type/);
+    expect(() => formatMmtYaml('a,b\n1,2', 'data.csv')).toThrow(/Formatting is not supported/);
+    expect(() => formatMmtYaml('note: "type: report"\nname: x')).toThrow(/not a valid report/);
+  });
+
   it('formats api yaml', () => {
     const result = formatMmtYaml(apiYaml, 'echo.mmt');
     expect(result.docType).toBe('api');

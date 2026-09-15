@@ -161,3 +161,19 @@ describe('extractPathAtPosition - XML prolog, indices and attributes', () => {
         .toEqual(['root', 'nested', 'item', 1, 'value']);
   });
 });
+
+describe('extractPathAtPosition - JSON literals and bounds', () => {
+  it('tracks numbers booleans escaped strings and whitespace', () => {
+    const json = `{ "n": 12.5e1, "ok": true, "no": false, "s": "a\\"b", "arr": [null] }`;
+    expect(extractPathAtPosition(json, 'json', 1, json.indexOf('12') + 1)).toEqual(['n']);
+    expect(extractPathAtPosition(json, 'json', 1, json.indexOf('true') + 1)).toEqual(['ok']);
+    expect(extractPathAtPosition(json, 'json', 1, json.indexOf('false') + 1)).toEqual(['no']);
+    expect(extractPathAtPosition(json, 'json', 1, json.indexOf('null') + 1)).toEqual(['arr', 0]);
+  });
+
+  it('clamps out-of-range positions and rejects unknown types', () => {
+    const json = `{ "a": 1 }`;
+    expect(extractPathAtPosition(json, 'json', 99, 99)).toBeNull();
+    expect(extractPathAtPosition(json, 'text' as any, 1, 1)).toBeNull();
+  });
+});

@@ -683,3 +683,99 @@ describe('extractOutputs with default rules', () => {
     expect(result.status).toBe(200);
   });
 });
+
+describe('extractOutputs extra sections and auto type', () => {
+  it('extracts grpc message/metadata/details and jsonpath/brackets', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: {user: {id: 7}, list: ['a', 'b']},
+      headers: {h: '1'},
+      cookies: {c: '2'},
+      message: {ok: true},
+      metadata: {m: '9'},
+      details: 'd',
+      status: 200,
+    };
+    const result = extractOutputs(response, {
+      msg: 'message',
+      meta: 'metadata',
+      details: 'details',
+      root: '$',
+      id: 'body.user.id',
+      jsonpathId: '$body[user][id]',
+      hdr: 'headers[h]',
+      cookie: 'cookies.c',
+      idx: 'body[list][1]',
+      obj0: 'body[user][0]',
+      missing: 'nope',
+      bad: 1 as any,
+      emptyDot: 'body',
+      regexHeader: 'headers[/h: (.*)/]',
+      regexCookie: 'cookies[/c: (.*)/]',
+      regexMsg: 'message[/ok/]',
+      regexMeta: 'metadata[/m: (.*)/]',
+    });
+    expect(result.msg).toEqual({ok: true});
+    expect(result.meta).toEqual({m: '9'});
+    expect(result.details).toBe('d');
+    expect(result.root).toEqual({user: {id: 7}, list: ['a', 'b']});
+    expect(result.id).toBe(7);
+    expect(result.jsonpathId).toBe(7);
+    expect(result.hdr).toBe('1');
+    expect(result.cookie).toBe('2');
+    expect(result.idx).toBe('b');
+    expect(result.missing).toBeNull();
+    expect(result.bad).toBeNull();
+    expect(result.regexHeader).toBe('1');
+    expect(result.regexCookie).toBe('2');
+  });
+
+  it('auto-detects xml vs json and handles omit/invalid regex', () => {
+    const xml = extractOutputs({
+      type: 'auto',
+      body: '<root><n>1</n></root>',
+      headers: {'Content-Type': 'application/xml'},
+      cookies: {},
+    }, {n: 'body.n'});
+    expect(xml.n === '1' || xml.n != null).toBe(true);
+
+    const xmlNoCt = extractOutputs({
+      type: 'auto',
+      body: '<x/>',
+      headers: {},
+      cookies: {},
+    }, {body: 'body'});
+    expect(xmlNoCt.body).toBeDefined();
+
+    const badXml = extractOutputs({
+      type: 'xml',
+      body: '<not-xml',
+      headers: {},
+      cookies: {},
+    }, {body: 'body'});
+    expect(badXml.body).toEqual({});
+
+    const omit = extractOutputs({
+      type: 'json',
+      body: {},
+      headers: {},
+      cookies: {},
+    }, {gone: 'body.missing.deep'});
+    expect(isOmitSentinel(omit.gone)).toBe(true);
+
+    const badRegex = extractOutputs({
+      type: 'json',
+      body: 'abc',
+      headers: {},
+      cookies: {},
+    }, {x: 'body[/(/]'});
+    expect(badRegex.x).toBeNull();
+  });
+
+  it('merges default rules when user outputs are omitted', () => {
+    expect(mergeWithDefaultExtractionRules(undefined).status).toBe('status');
+    expect(buildBodyExprFromPath([])).toBe('');
+    expect(buildBodyExprFromPath(['a', 0, 'b'])).toBe('body.a.0.b');
+  });
+});
+

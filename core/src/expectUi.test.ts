@@ -1,4 +1,11 @@
-import { expectMapToUiRows, uiRowToExpectValue, uiRowsToExpectMap } from './expectUi';
+import {
+  applyExpectUiRowChange,
+  createEmptyExpectUiRow,
+  expectMapToUiRows,
+  expectValueToUiRow,
+  uiRowToExpectValue,
+  uiRowsToExpectMap,
+} from './expectUi';
 import { testToYaml, yamlToTest } from './testParsePack';
 
 describe('expectUi', () => {
@@ -47,5 +54,41 @@ steps:
     expect(roundTripped).toContain('- !* 1.*');
     expect(roundTripped).not.toContain('- "!= 201"');
     expect(roundTripped).not.toContain('operator: "!="');
+  });
+
+  it('maps scalars, empty maps, and row edits', () => {
+    expect(expectMapToUiRows(undefined)).toEqual([]);
+    expect(uiRowsToExpectMap([])).toBeUndefined();
+    expect(expectValueToUiRow('ok', true)).toMatchObject({
+      op: '==', expected: 'true', valueKind: 'boolean',
+    });
+    expect(expectValueToUiRow('msg', 'hello')).toMatchObject({
+      op: '==', expected: 'hello', explicitOperator: false,
+    });
+    expect(expectValueToUiRow('msg', null)).toMatchObject({expected: ''});
+    expect(uiRowToExpectValue({
+      field: 'n', op: '==', expected: 'nope', explicitOperator: false, valueKind: 'number',
+    })).toBe('nope');
+    expect(uiRowToExpectValue({
+      field: 'b', op: '==', expected: 'false', explicitOperator: false, valueKind: 'boolean',
+    })).toBe(false);
+    expect(uiRowToExpectValue({
+      field: 's', op: '==', expected: 'x', explicitOperator: false, valueKind: 'string',
+    })).toBe('x');
+    const empty = createEmptyExpectUiRow('status');
+    expect(empty).toEqual({
+      field: 'status', op: '==', expected: '', explicitOperator: false, valueKind: 'string',
+    });
+    expect(applyExpectUiRowChange(empty, 'field', 'code').field).toBe('code');
+    expect(applyExpectUiRowChange(empty, 'op', '!=')).toMatchObject({
+      op: '!=', explicitOperator: true,
+    });
+    expect(applyExpectUiRowChange(empty, 'expected', '201').expected).toBe('201');
+    const merged = uiRowsToExpectMap([
+      {field: 'a', op: '==', expected: '1', explicitOperator: true},
+      {field: 'a', op: '=C', expected: 'x', explicitOperator: true},
+      {field: 'a', op: '!=', expected: '9', explicitOperator: true},
+    ]);
+    expect(merged?.a).toEqual(['== 1', '=C x', '!= 9']);
   });
 });
