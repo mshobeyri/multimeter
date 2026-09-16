@@ -24,7 +24,7 @@ Do not use `multimeter.dev`. Do not put “AI-powered” in the title.
 
 ## When to use drafts
 
-Live launch copy lives in `AI/marketing/drafts/`:
+Live launch copy lives in `marketing/drafts/`:
 
 - `show-hn-sep-2026.md` — current Show HN (Tuesday 15 Sep 2026).
 - `show-hn-tuesday.md` — older draft; Action path in that file is stale. CI is `mshobeyri/testlight-action`, not `.github/actions/testlight`.
