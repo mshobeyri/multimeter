@@ -14,6 +14,12 @@ After install:
 
 The extension includes the custom editor, [panels](./panels/index.md) (Temp Files, Get Started, mock server, connections, environment, history), convertor, and AI assistant.
 
+## MCP for agents
+
+Point Cursor, Claude, Copilot, and other MCP clients at `npx -y mmt-mcp`. Copilot also gets the same server from the VS Code extension — enable **Multimeter** in agent tools.
+
+See [MCP](./features/mcp/index.md) and [Downloads](/downloads).
+
 ## CLI (Testlight)
 
 Install Testlight for terminal and CI runs — see [Testlight — Install](./features/testlight/install.md).

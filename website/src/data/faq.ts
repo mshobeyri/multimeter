@@ -12,7 +12,7 @@ export const faqItems: FaqItem[] = [
   {
     question: 'How do I use Multimeter with Cursor, Copilot, or Claude?',
     answer:
-      'Install the VS Code/Cursor extension or add the MCP server with npx -y mmt-mcp. Agents should call Multimeter MCP tools first (scaffold_test, validate, format, run) instead of guessing .mmt syntax. See https://mmt.dev/docs/features/mcp and https://mmt.dev/for-agents.html.',
+      'Install from the Downloads page: npx -y mmt-mcp for Cursor, Claude, and other MCP clients, or the VS Code/Cursor extension (Copilot uses the bundled server). Agents should call Multimeter MCP tools first (scaffold_test, validate, format, run) instead of guessing .mmt syntax. See https://mmt.dev/downloads and https://mmt.dev/docs/features/mcp.',
   },
   {
     question: 'Can Multimeter judge AI responses like Promptfoo?',
