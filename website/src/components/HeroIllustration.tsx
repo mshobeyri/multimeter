@@ -1,5 +1,11 @@
 import { useCallback, useState } from 'react'
 import Codicon from './Codicon'
+import VSCodeDemoFrame, {
+  VSCodeEditorTabs,
+  VSCodeSidePanel,
+  YamlLine,
+} from './VSCodeDemoFrame'
+import type { VSCodeEditorTab } from './VSCodeDemoFrame'
 
 type DemoTabId = 'api' | 'test' | 'suite'
 
@@ -76,84 +82,6 @@ const RESPONSE_BODY_LINES = [
 ]
 
 const TESTER_TABS = ['In / Out', 'Body', 'Params', 'Headers', 'Cookies', 'Doc']
-const ACTIVITY_ICONS = ['files', 'search', 'source-control', 'debug-alt', 'extensions'] as const
-
-function VSCodeLogo() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M17.4 3.2 8.7 11 3.8 7.3 2 8.6l4.9 3.5L2 15.8l1.8 1.3 4.9-3.7 8.7 7.4L22 18.9V5.1l-4.6-1.9Z"
-        fill="#38BDF8"
-      />
-      <path d="M17.4 7.1v9.8l-6.3-4.8 6.3-5Z" fill="#0EA5E9" />
-      <path d="M17.4 3.2v17.6L22 18.9V5.1l-4.6-1.9Z" fill="#0284C7" />
-    </svg>
-  )
-}
-
-function ActivityBar() {
-  return (
-    <div className="hero-activity-bar pt-5 pb-3 gap-1 border-r border-border bg-surface-light/70">
-      <div className="mb-4 flex h-9 w-9 items-center justify-center" title="VS Code">
-        <VSCodeLogo />
-      </div>
-      {ACTIVITY_ICONS.map((name, index) => (
-        <span
-          key={name}
-          className={`flex h-8 w-8 items-center justify-center ${
-            index === 0
-              ? 'text-slate-200 border-l-2 border-primary-light bg-white/5'
-              : 'text-slate-500'
-          }`}
-          aria-hidden="true"
-        >
-          <Codicon name={name} className="text-base" />
-        </span>
-      ))}
-    </div>
-  )
-}
-
-function EditorTabBar({
-  activeTab,
-  onTabClick,
-}: {
-  activeTab: DemoTabId
-  onTabClick: (tab: DemoTabId) => void
-}) {
-  return (
-    <div className="flex items-stretch border-b border-border bg-surface-light/40 min-h-9">
-      <div className="flex min-w-0 flex-1 overflow-x-auto">
-        {DEMO_TABS.map((tab) => {
-          const active = activeTab === tab.id
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => onTabClick(tab.id)}
-              className={`group flex items-center gap-1.5 px-3 h-9 text-[11px] sm:text-xs shrink-0 border-r border-border ${
-                active
-                  ? 'bg-surface text-slate-200 border-t-2 border-t-primary-light'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-surface/60 border-t-2 border-t-transparent'
-              }`}
-            >
-              <Codicon name={tab.icon} className="text-sm opacity-80" />
-              <span>{tab.label}</span>
-              <span
-                className={`ml-1 text-[10px] leading-none ${
-                  active ? 'text-slate-500' : 'text-slate-600 group-hover:text-slate-400'
-                }`}
-                aria-hidden="true"
-              >
-                ×
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
 
 function YamlPanel({
   tab,
@@ -198,22 +126,6 @@ function YamlPanel({
         </div>
       ) : null}
     </div>
-  )
-}
-
-function YamlLine({ line, colonIdx }: { line: string; colonIdx: number }) {
-  const indent = line.match(/^(\s*)/)?.[1] || ''
-  const keyword = line.slice(indent.length, colonIdx)
-  const rest = line.slice(colonIdx)
-  const valueStart = rest.indexOf(' ')
-  const colon = valueStart === -1 ? rest : rest.slice(0, 2)
-  const value = valueStart === -1 ? '' : rest.slice(2)
-  return (
-    <span style={{ paddingLeft: `${(indent.length / 2) * 12}px` }}>
-      <span className="text-primary-light">{keyword}</span>
-      <span className="text-slate-500">{colon}</span>
-      {value ? <span className="text-accent">{value}</span> : null}
-    </span>
   )
 }
 
@@ -376,18 +288,16 @@ function RunnerPanel({ mode }: { mode: 'test' | 'suite' }) {
   const runLabel = isSuite ? 'Run suite' : 'Run test'
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 border-t sm:border-t-0 sm:border-l border-border text-left bg-surface">
-      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-border">
-        <div className="flex items-center gap-2 min-w-0">
-          <Codicon name={isSuite ? 'layers' : 'beaker'} className="text-slate-300" />
-          <span className="text-xs sm:text-sm text-slate-200 truncate">{title}</span>
-        </div>
+    <VSCodeSidePanel
+      title={title}
+      icon={isSuite ? 'layers' : 'beaker'}
+      action={
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] sm:text-xs font-medium bg-primary text-white shrink-0">
           <Codicon name="run" className="text-sm" />
           {runLabel}
         </div>
-      </div>
-
+      }
+    >
       <div className="px-3 py-3 border-b border-border">
         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Overview</div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -422,7 +332,7 @@ function RunnerPanel({ mode }: { mode: 'test' | 'suite' }) {
           ))}
         </div>
       </div>
-    </div>
+    </VSCodeSidePanel>
   )
 }
 
@@ -448,18 +358,20 @@ export default function HeroIllustration() {
     setCopied(false)
   }, [])
 
+  const editorTabs: VSCodeEditorTab[] = DEMO_TABS.map((item) => ({
+    id: item.id,
+    label: item.label,
+    icon: item.icon,
+    active: item.id === activeTab,
+  }))
+
   return (
-    <div className="glow rounded-2xl overflow-clip border border-border bg-surface">
-      <div className="flex min-h-[520px] sm:min-h-[620px]">
-        <ActivityBar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <EditorTabBar activeTab={activeTab} onTabClick={onTabClick} />
-          <div className="flex flex-col sm:flex-row flex-1 min-h-0">
-            <YamlPanel tab={tab} copied={copied} onCopy={onCopy} />
-            {activeTab === 'api' ? <ApiPanel /> : <RunnerPanel mode={activeTab} />}
-          </div>
-        </div>
+    <VSCodeDemoFrame>
+      <VSCodeEditorTabs tabs={editorTabs} onTabClick={(id) => onTabClick(id as DemoTabId)} />
+      <div className="flex flex-col sm:flex-row flex-1 min-h-0">
+        <YamlPanel tab={tab} copied={copied} onCopy={onCopy} />
+        {activeTab === 'api' ? <ApiPanel /> : <RunnerPanel mode={activeTab} />}
       </div>
-    </div>
+    </VSCodeDemoFrame>
   )
 }

@@ -28,8 +28,8 @@ const features: FeatureRow[] = [
     },
   },
   {
-    feature: 'VS Code editor',
-    values: { multimeter: true, postman: false, bruno: false, restClient: true },
+    feature: 'VS Code native',
+    values: { multimeter: true, postman: false, bruno: false, restClient: false },
   },
   {
     feature: 'Same files in CI',
@@ -55,6 +55,15 @@ const features: FeatureRow[] = [
       multimeter: true,
       postman: 'Scripts',
       bruno: 'Limited',
+      restClient: false,
+    },
+  },
+  {
+    feature: 'AI judges fuzzy replies',
+    values: {
+      multimeter: true,
+      postman: false,
+      bruno: false,
       restClient: false,
     },
   },
@@ -100,17 +109,17 @@ function ToolMark({ tool }: { tool: (typeof tools)[number] }) {
 
 export default function Comparison() {
   return (
-    <section id="comparison" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8">
+    <section id="comparison" className="scroll-mt-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         <FadeIn>
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               How Multimeter compares
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               Files in Git, inside VS Code — not a cloud collection or a second desktop app.
             </p>
-            <p className="text-sm text-slate-500 mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3">
+            <p className="text-sm text-slate-500 mt-6 flex flex-wrap justify-center gap-x-8 gap-y-3">
               <Link to="/compare/postman" className="text-primary-light hover:text-white">vs Postman</Link>
               <Link to="/compare/bruno" className="text-primary-light hover:text-white">vs Bruno</Link>
               <Link to="/compare/rest-client" className="text-primary-light hover:text-white">vs REST Client</Link>
