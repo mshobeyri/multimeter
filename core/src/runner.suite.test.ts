@@ -481,6 +481,105 @@ describe('suite bundle runner nested suite', () => {
     expect(statuses.some((s) => s.status === 'skipped')).toBe(true);
     expect(statuses.some((s) => s.status === 'passed')).toBe(true);
   });
+
+  it('applies suite YAML skip filter without a CLI tagFilter', async () => {
+    const runner = await import('./runner.js');
+    const files: Record<string, string> = {
+      '/root/suite.mmt': [
+        'type: suite',
+        'filter:',
+        '  skip:',
+        '    - slow',
+        'items:',
+        '  - ./ok.mmt',
+        '  - ./slow.mmt',
+      ].join('\n'),
+      '/root/ok.mmt': ['type: test', 'tags: [smoke]', 'steps:', '  - print: ok'].join('\n'),
+      '/root/slow.mmt': ['type: test', 'tags: [slow]', 'steps:', '  - print: slow'].join('\n'),
+    };
+    const fileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+    let jsRuns = 0;
+    const statuses: string[] = [];
+    await runner.runFile({
+      file: files['/root/suite.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      fileLoader,
+      jsRunner: async () => {
+        jsRuns += 1;
+        return {success: true, logs: [], errors: []} as any;
+      },
+      logger: () => {},
+      reporter: (msg: any) => {
+        if (msg?.scope === 'suite-item' && msg.status && msg.status !== 'running') {
+          statuses.push(msg.status);
+        }
+      },
+    } as any);
+    expect(jsRuns).toBe(1);
+    expect(statuses).toContain('skipped');
+    expect(statuses).toContain('passed');
+  });
+
+  it('skips a nested suite and its children when the suite is tagged skip', async () => {
+    const runner = await import('./runner.js');
+    const {tagFilterFromLists} = await import('./suiteTagFilter.js');
+    const files: Record<string, string> = {
+      '/root/suite.mmt': ['type: suite', 'items:', '  - ./nested.mmt', '  - ./ok.mmt'].join('\n'),
+      '/root/nested.mmt': [
+        'type: suite',
+        'tags: [wip]',
+        'items:',
+        '  - ./child.mmt',
+      ].join('\n'),
+      '/root/child.mmt': ['type: test', 'steps:', '  - print: child'].join('\n'),
+      '/root/ok.mmt': ['type: test', 'steps:', '  - print: ok'].join('\n'),
+    };
+    const fileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+    const titles: string[] = [];
+    await runner.runFile({
+      file: files['/root/suite.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      fileLoader,
+      tagFilter: tagFilterFromLists(undefined, ['wip']),
+      jsRunner: async ({title}: any) => {
+        titles.push(String(title));
+        return {success: true, logs: [], errors: []} as any;
+      },
+      logger: () => {},
+      reporter: () => {},
+    } as any);
+    expect(titles.some((t) => t.includes('child'))).toBe(false);
+    expect(titles.some((t) => t.includes('ok'))).toBe(true);
+  });
+
+  it('fails the suite when servers are listed but no server runner exists', async () => {
+    const runner = await import('./runner.js');
+    const logs: string[] = [];
+    const result = await runner.runFile({
+      file: ['type: suite', 'servers:', '  - mock.mmt', 'items:', '  - ok.mmt'].join('\n'),
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      fileLoader: async (p: string) => {
+        if (String(p).endsWith('ok.mmt')) {
+          return 'type: test\nsteps:\n  - print: ok\n';
+        }
+        return 'type: mock\n';
+      },
+      jsRunner: async () => ({success: true, logs: [], errors: []} as any),
+      logger: (_l: string, m: string) => logs.push(m),
+      reporter: () => {},
+    } as any);
+    expect(result.result.success).toBe(false);
+    expect(logs.some((m) => /no server runner/i.test(m) || /Cannot start server/i.test(m))).toBe(true);
+  });
 });
 
 describe('suite bundle grouping', () => {

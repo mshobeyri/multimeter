@@ -1,5 +1,6 @@
 import {
   decideTagRun,
+  isEmptyTagFilter,
   mergeTagFilter,
   parseSuiteYamlFilter,
   tagFilterFromLists,
@@ -14,6 +15,17 @@ describe('suiteTagFilter', () => {
     });
     expect(parseSuiteYamlFilter(['smoke', 'api'])).toEqual({only: ['smoke', 'api']});
     expect(parseSuiteYamlFilter({only: [], skip: []})).toBeUndefined();
+    expect(parseSuiteYamlFilter(null)).toBeUndefined();
+    expect(parseSuiteYamlFilter('smoke')).toBeUndefined();
+    expect(parseSuiteYamlFilter({only: [1, 'smoke', 'smoke']})).toEqual({only: ['1', 'smoke']});
+  });
+
+  it('treats missing or empty filters as empty', () => {
+    expect(isEmptyTagFilter(undefined)).toBe(true);
+    expect(isEmptyTagFilter({})).toBe(true);
+    expect(isEmptyTagFilter({only: [[]], skip: []})).toBe(true);
+    expect(isEmptyTagFilter(tagFilterFromLists(['smoke']))).toBe(false);
+    expect(isEmptyTagFilter(tagFilterFromLists(undefined, ['wip']))).toBe(false);
   });
 
   it('treats empty only as all and empty skip as none', () => {
@@ -51,5 +63,6 @@ describe('suiteTagFilter', () => {
     expect(decideTagRun('test', ['smoke'], merged, false)).toBe('skip');
     expect(decideTagRun('test', ['smoke', 'api', 'wip'], merged, false)).toBe('skip');
     expect(decideTagRun('test', ['smoke', 'api', 'flaky'], merged, false)).toBe('skip');
+    expect(mergeTagFilter({only: [[]]}, {only: [[]]}).only).toBeUndefined();
   });
 });

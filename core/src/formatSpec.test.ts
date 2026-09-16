@@ -1,4 +1,5 @@
 import {
+  formatDuration,
   normalizeFormat,
   packFormatSpec,
   requestFormat,
@@ -33,6 +34,24 @@ describe('FormatSpec helpers', () => {
       request: 'xml',
       response: 'json',
     });
+    expect(packFormatSpec(undefined)).toBeUndefined();
+    expect(normalizeFormat(null)).toEqual({request: 'json', response: 'json'});
+    expect(normalizeFormat('nope' as any)).toEqual({request: 'json', response: 'json'});
+    expect(normalizeFormat(['xml'] as any)).toEqual({request: 'json', response: 'json'});
+  });
+
+  it('formats durations across units', () => {
+    expect(formatDuration(undefined)).toBe('0ms');
+    expect(formatDuration(-1)).toBe('0ms');
+    expect(formatDuration(12.4)).toBe('12ms');
+    expect(formatDuration(1000)).toBe('1s');
+    expect(formatDuration(1500)).toBe('1s 500ms');
+    expect(formatDuration(60_000)).toBe('1m');
+    expect(formatDuration(61_000)).toBe('1m 1s');
+    expect(formatDuration(3_600_000)).toBe('1h');
+    expect(formatDuration(3_660_000)).toBe('1h 1m');
+    expect(formatDuration(86_400_000)).toBe('1d');
+    expect(formatDuration(90_000_000)).toBe('1d 1h');
   });
 });
 

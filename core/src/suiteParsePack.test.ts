@@ -135,4 +135,75 @@ export: []
     expect(yaml).not.toContain('title:');
     expect(yaml).not.toContain('tests:');
   });
+
+  it('parses tags, import, and servers', () => {
+    const raw = `
+type: suite
+title: Full
+description: Nested
+tags:
+  - smoke
+  - ""
+  - 1
+import:
+  lib: ./lib.mmt
+servers:
+  - mock.mmt
+items:
+  - test.mmt
+`;
+    const suite = yamlToSuite(raw);
+    expect(suite.tags).toEqual(['smoke']);
+    expect(suite.import).toEqual({lib: './lib.mmt'});
+    expect(suite.servers).toEqual(['mock.mmt']);
+    expect(suite.description).toBe('Nested');
+  });
+
+  it('rejects non-suite documents and empty items', () => {
+    expect(() => yamlToSuite('type: test\nsteps: []\n')).toThrow(/Not a suite/);
+    expect(() => yamlToSuite('type: suite\nitems: []\n')).toThrow(/non-empty array/);
+  });
+
+  it('round-trips optional suite fields through suiteToYaml', () => {
+    const yaml = suiteToYaml({
+      type: 'suite',
+      title: 'T',
+      description: 'D',
+      tags: ['smoke'],
+      filter: {only: ['api'], skip: ['flaky']},
+      import: {lib: './lib.mmt'},
+      servers: ['mock.mmt'],
+      export: ['./out.xml'],
+      environment: {preset: 'staging', file: './env.mmt', variables: {A: '1'}},
+      items: ['a.mmt'],
+    });
+    expect(yaml).toContain('title: T');
+    expect(yaml).toContain('description: D');
+    expect(yaml).toContain('smoke');
+    expect(yaml).toContain('only:');
+    expect(yaml).toContain('skip:');
+    expect(yaml).toContain('import:');
+    expect(yaml).toContain('servers:');
+    expect(yaml).toContain('export:');
+    expect(yaml).toContain('preset: staging');
+    const parsed = yamlToSuite(yaml);
+    expect(parsed.filter).toEqual({only: ['api'], skip: ['flaky']});
+    expect(parsed.environment?.preset).toBe('staging');
+  });
+
+  it('omits empty environment and skip-only filter noise', () => {
+    const yaml = suiteToYaml({
+      type: 'suite',
+      filter: {skip: ['wip']},
+      environment: {variables: {}},
+      items: ['a.mmt'],
+    });
+    expect(yaml).toContain('skip:');
+    expect(yaml).not.toContain('only:');
+    expect(yaml).not.toContain('environment:');
+  });
+
+  it('skips blank item names when splitting groups', () => {
+    expect(splitSuiteGroups(['a', '', 'then', 'b'])).toEqual([['a'], ['b']]);
+  });
 });

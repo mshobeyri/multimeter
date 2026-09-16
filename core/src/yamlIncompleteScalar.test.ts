@@ -7,6 +7,7 @@ describe('yamlIncompleteScalar', () => {
     expect(normalizeIncompleteYamlScalar({ws: null})).toBe('ws:');
     // Following keys can be swallowed into the same map while typing.
     expect(normalizeIncompleteYamlScalar({http: null, method: 'get'})).toBe('http:');
+    expect(normalizeIncompleteYamlScalar({ftp: null, extra: 'x'})).toBe('ftp:');
   });
 
   it('passes through normal scalars', () => {
