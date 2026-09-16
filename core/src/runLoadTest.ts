@@ -9,6 +9,7 @@ import {formatDuration} from './CommonData';
 import {parseDurationString} from './JSerHelper';
 import {logRunFinished} from './runLog';
 import {roundReportNumber} from './reportFormat';
+import {beginServerSession_, endServerSession_} from './testHelper';
 
 const LOADTEST_ITEM_ID = 'loadtest-test-0';
 const LOADTEST_STATUS_LOG_INTERVAL_MS = 5000;
@@ -75,6 +76,20 @@ export function prepareLoadTestRun(
 }
 
 export async function executeLoadTest(
+  prepared: PreparedRun,
+  options: RunFileOptions,
+  preLogs: {level: LogLevel; message: string}[],
+  runFile: (options: RunFileOptions) => Promise<RunFileResult>,
+): Promise<RunFileResult> {
+  beginServerSession_();
+  try {
+    return await executeLoadTestBody(prepared, options, preLogs, runFile);
+  } finally {
+    endServerSession_();
+  }
+}
+
+async function executeLoadTestBody(
   prepared: PreparedRun,
   options: RunFileOptions,
   preLogs: {level: LogLevel; message: string}[],
@@ -369,7 +384,6 @@ export async function executeLoadTest(
         iterationReporter,
         options.abortSignal,
         true,
-        options.skipServerCleanup,
         childFilePath ? childFilePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
         true,
         true,

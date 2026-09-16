@@ -1,6 +1,6 @@
 import { TestData } from 'mmt-core/TestData';
 import { SuiteGroup } from '../../suite/types';
-import { SuiteTreeNode } from '../../suite/test/suiteHierarchy';
+import { SuiteTreeNode, suiteTreeChildren } from '../../suite/test/suiteHierarchy';
 import { appendGraph, inlineTestGraph } from './inlineTestGraph';
 import { FlowCallImportMap, FlowGraph } from './types';
 
@@ -158,7 +158,7 @@ function buildSuiteEntry(
   connectAll(graph, ctx, predecessors, id);
 
   let tails: string[] = [id];
-  const children = hierarchy.children ?? [];
+  const children = suiteTreeChildren(hierarchy);
   for (const child of children) {
     if (child.kind === 'group') {
       const groupId = ctx.nextId('group');

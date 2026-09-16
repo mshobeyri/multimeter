@@ -29,6 +29,7 @@ interface SuiteTestFileItemProps {
     runDisabled?: boolean;
 
     displayPath?: string;
+    duplicateServer?: boolean;
 }
 
 const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
@@ -45,6 +46,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     runButtonTitle = 'Run',
     runDisabled = false,
     displayPath,
+    duplicateServer = false,
 }) => {
     const data = item.data as SuiteTestFileItemData;
     const isServer = data.type === 'server';
@@ -123,7 +125,12 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                             title={isServer ? 'Mock server' : 'Test'}
                             style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }}
                         />
-                        {labelPath}
+                        <span
+                            className={duplicateServer ? 'mmt-line-error' : undefined}
+                            title={duplicateServer ? 'This mock server is listed more than once in this suite' : undefined}
+                        >
+                            {labelPath}
+                        </span>
                     </div>
                     {onRun && !isMissing && (
                         <TreeRunButton

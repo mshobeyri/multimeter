@@ -27,11 +27,11 @@ In the example above, the execution flow is as follows:
 
 See [Mock servers in suites](../server/in-suites.md) for a quick overview. Details below.
 
+A suite or test run keeps one **public running-server list**. Starting a mock that is already on that list is a no-op — whether the start came from suite `servers:`, an item server, or a test `run:` step. Nested suites and later items share the list. Servers stay up until the **outermost** run finishes.
+
 #### Suite-level servers (`servers:` field)
 
-Use the top-level `servers:` field to list mock server files that should start **before** any tests and remain running for the **entire** suite duration. They are stopped automatically when the suite finishes.
-
-When a **nested** suite runs, its `servers:` are treated like mock server files at the beginning of that suite’s `items` (they start with that suite and stop when that suite is done). Root `environment:` and `export:` stay root-only.
+Use the top-level `servers:` field to start mock servers at the **beginning of that suite**, before any `items`. Nested suites do the same when that nested suite starts. `environment:` and `export:` stay root-only.
 
 ```yaml
 type: suite
@@ -44,24 +44,25 @@ items:
   - tests/profile.mmt
 ```
 
-This is the recommended way to manage mock servers in suites. It is safe even when the same test file appears multiple times, or when multiple tests use the same server — the server is started once and kept alive for all of them.
+This is the recommended way to keep mocks alive for every item in the suite. The same server listed again in a nested suite is skipped, not restarted.
 
 #### Inline servers in `items:`
 
-You can also include `type: server` files directly in the `items` array. Servers start before items in the same stage and stop automatically when the suite completes.
+Include `type: server` files in `items` when the mock should start **at that position** (after earlier `then` stages). Within a stage, item servers start before tests and nested suites in that stage.
 
 ```yaml
 type: suite
 title: Integration Suite with Inline Mock Server
 items:
-  - mocks/user-service.mmt    # type: server — starts first
-  - mocks/auth-service.mmt    # runs in parallel with above
+  - tests/setup.mmt
   - then
-  - tests/login.mmt           # tests run after servers are ready
+  - mocks/user-service.mmt    # starts here, after setup
+  - then
+  - tests/login.mmt
   - tests/profile.mmt
 ```
 
-This lets you set up complex integration environments declaratively, without manual server management. The suite runner ensures servers are running before dependent tests execute.
+Do not list the same file in both `servers:` and `items:` of one suite file — the editor underlines that as an error. The same server in a nested import is allowed.
 
 ## Partial runs
 

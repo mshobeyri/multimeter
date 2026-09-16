@@ -7,7 +7,7 @@ import SuiteSuiteFileItem from './SuiteSuiteFileItem';
 import { SuiteGroup } from '../types';
 import { StepStatus } from '../../shared/types';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
-import { SuiteTreeNode } from './suiteHierarchy';
+import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { ownRunStatus } from './suiteRunStatus';
 import { ReportStatusFilter, filterTreeItemsByStatus } from '../../shared/reportStatusFilter';
 import ReportEmptyFilterPlaceholder from '../../shared/ReportEmptyFilterPlaceholder';
@@ -74,6 +74,8 @@ interface SuiteTestTreeProps {
   runStateById: Record<string, StepStatus>;
   /** View-only status filter; does not change run data or exports. */
   statusFilter?: ReportStatusFilter;
+  /** Bundle ids of mock servers listed twice in the same suite file. */
+  duplicateServerIds?: Set<string>;
   onStatusFilterChange?: (next: ReportStatusFilter) => void;
   onAllCollapsedChange?: (allCollapsed: boolean) => void;
 
@@ -160,7 +162,7 @@ export function collectSuiteExpandableIds(
       if (n.kind === 'suite' || n.kind === 'test' || n.kind === 'server') {
         ids.add(uiId);
         if (n.kind === 'suite') {
-          collect(uiId, n.children || []);
+          collect(uiId, suiteTreeChildren(n));
         }
       }
     }
@@ -174,7 +176,7 @@ export function collectSuiteExpandableIds(
       ids.add(entry.id);
       const root = hierarchyByEntryId[entry.id] as any;
       if (root && typeof root === 'object' && root.kind === 'suite') {
-        collect(entry.id, Array.isArray(root.children) ? root.children : []);
+        collect(entry.id, suiteTreeChildren(root));
       }
     });
   });
@@ -190,6 +192,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   reportsById,
   runStateById,
   statusFilter = 'all',
+  duplicateServerIds,
   onStatusFilterChange,
   onAllCollapsedChange,
   onRunTargets,
@@ -259,13 +262,14 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
             const uiId = `${parentId}::${baseId}`;
             if (n.kind === 'group' || n.kind === 'suite') {
               idsToAdd.add(uiId);
-              if (Array.isArray(n.children) && n.children.length) {
-                collect(uiId, n.children);
+              const kids = n.kind === 'suite' ? suiteTreeChildren(n) : (n.children || []);
+              if (Array.isArray(kids) && kids.length) {
+                collect(uiId, kids);
               }
             }
           }
         };
-        collect(entry.id, Array.isArray(root.children) ? root.children : []);
+        collect(entry.id, suiteTreeChildren(root));
       }
     }
     if (idsToAdd.size) {
@@ -386,8 +390,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
               const itemId = uiId;
               const childIdsForSuite: string[] = [];
               items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId, title: (n as any).title, parentPath: ownerPath } };
-              // Nested suite children are relative to this nested suite file.
-              pushHierarchy(path, itemId, n.children, childIdsForSuite);
+              pushHierarchy(path, itemId, suiteTreeChildren(n), childIdsForSuite);
               outChildren.push(itemId);
               continue;
             }
@@ -407,7 +410,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           }
         };
 
-        pushHierarchy(entry.path, entry.id, Array.isArray(root.children) ? root.children : [], hierarchyChildren);
+        pushHierarchy(entry.path, entry.id, suiteTreeChildren(root), hierarchyChildren);
 
         // Only show imported children when expanded.
         if (hierarchyChildren.length) {
@@ -622,6 +625,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         runButtonTitle={data.type === 'server' ? 'Run server' : 'Run test'}
         runDisabled={!canRunLeaf}
         displayPath={displayPath}
+        duplicateServer={Boolean(itemBundleId && duplicateServerIds?.has(itemBundleId))}
       />
     );
   }, [
@@ -632,6 +636,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     onRunTargetsInCore,
     reportsById,
     runStateById,
+    duplicateServerIds,
     statusIconFor,
   ]);
   return (

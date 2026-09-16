@@ -1,4 +1,5 @@
 import type { SuiteTreeNode } from './suiteHierarchy';
+import { suiteTreeChildren } from './suiteHierarchy';
 
 /** Stable structural fingerprint of a suite hierarchy tree (ids, kinds, paths, labels). */
 export function fingerprintSuiteTreeNode(node: SuiteTreeNode | null | undefined): string {
@@ -14,8 +15,9 @@ export function fingerprintSuiteTreeNode(node: SuiteTreeNode | null | undefined)
   } else if (node.kind === 'missing' || node.kind === 'cycle') {
     parts.push(node.path || '');
   }
-  if ('children' in node && Array.isArray(node.children) && node.children.length) {
-    parts.push('[', ...node.children.map(fingerprintSuiteTreeNode), ']');
+  const kids = suiteTreeChildren(node);
+  if (kids.length) {
+    parts.push('[', ...kids.map(fingerprintSuiteTreeNode), ']');
   }
   return parts.join('|');
 }
@@ -48,10 +50,8 @@ export function findHierarchyNodeById(
     if (node.id === id) {
       return node;
     }
-    if ('children' in node && Array.isArray(node.children)) {
-      for (const child of node.children) {
-        stack.push(child);
-      }
+    for (const child of suiteTreeChildren(node)) {
+      stack.push(child);
     }
   }
   return null;
@@ -115,10 +115,8 @@ export function remapSuiteTargetId(
         pathOnlyMatch = node.id;
       }
     }
-    if ('children' in node && Array.isArray(node.children)) {
-      for (const child of node.children) {
-        stack.push(child);
-      }
+    for (const child of suiteTreeChildren(node)) {
+      stack.push(child);
     }
   }
   return pathOnlyMatch || staleTarget;

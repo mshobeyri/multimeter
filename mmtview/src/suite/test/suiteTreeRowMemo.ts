@@ -13,6 +13,7 @@ export function areSuiteTreeRowPropsEqual<T extends {
   children?: unknown;
   canShowStatusIcon?: boolean;
   showRunButton?: boolean;
+  duplicateServer?: boolean;
 }>(prev: T, next: T): boolean {
   if (prev.item?.index !== next.item?.index) {
     return false;
@@ -39,6 +40,9 @@ export function areSuiteTreeRowPropsEqual<T extends {
     return false;
   }
   if (prev.showRunButton !== next.showRunButton) {
+    return false;
+  }
+  if (prev.duplicateServer !== next.duplicateServer) {
     return false;
   }
   if (prev.item?.isFolder || next.item?.isFolder) {

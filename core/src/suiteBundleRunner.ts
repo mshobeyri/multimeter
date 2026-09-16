@@ -14,10 +14,42 @@ import {
   tagFilterFromYaml,
   type TagFilter,
 } from './suiteTagFilter';
-import {clearTestCallCache_, stopAllServers_, registerServer_} from './testHelper';
+import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from './testHelper';
 
-/** Cleanup functions for servers started during suite execution. */
-type ServerCleanup = () => void;
+async function startListedServers(params: {
+  servers: readonly string[];
+  baseFilePath: string;
+  options: RunFileOptions;
+  suiteLogger: (level: LogLevel, msg: string) => void;
+}): Promise<boolean> {
+  const {servers, baseFilePath, options, suiteLogger} = params;
+  for (const serverPath of servers) {
+    if (options.abortSignal?.aborted) {
+      suiteLogger('warn', 'Suite run cancelled before servers could start.');
+      return false;
+    }
+    const resolvedPath = resolveRelativeTo(serverPath, baseFilePath);
+    const display = basename(resolvedPath || serverPath);
+    if (!options.serverRunner) {
+      suiteLogger('error', `Cannot start server '${display}': no server runner provided`);
+      return false;
+    }
+    try {
+      const outcome = await ensureServerStarted_([serverPath, resolvedPath], () =>
+        options.serverRunner!(serverPath, resolvedPath));
+      if (outcome === 'already-running') {
+        suiteLogger('info', `Server already running: ${display}`);
+      } else {
+        suiteLogger('info', `Suite server started: ${display}`);
+      }
+    } catch (e: any) {
+      const errorMessage = e?.message || String(e);
+      suiteLogger('error', `Failed to start suite server '${display}': ${errorMessage}`);
+      return false;
+    }
+  }
+  return true;
+}
 
 function reportUnresolvedSuiteNode(params: {
   node: Extract<SuiteBundleNode, {kind: 'missing'|'cycle'}>;
@@ -245,7 +277,6 @@ async function runSuiteBundleNode(params: {
       runId,
       id,
       __mmtIsSuiteBundleChildRun: true,
-      skipServerCleanup: true,
     };
 
     let childRun: RunFileResult;
@@ -260,6 +291,7 @@ async function runSuiteBundleNode(params: {
           rootSuitePath: childFilePath,
           rootTitle: nodeTitle,
           bundle: node.children,
+          servers: node.servers,
           filter: node.filter,
           target: undefined,
         },
@@ -324,9 +356,8 @@ async function runSuiteGroup(params: {
   suiteLogger: (level: LogLevel, msg: string) => void;
   baseFileLoader: RunFileOptions['fileLoader'];
   nextIndex: () => number;
-  serverCleanups: ServerCleanup[];
 }): Promise<{overallSuccess: boolean; anyThrew: boolean; anyCancelled: boolean; statuses: SuiteStepStatus[]}> {
-  const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, serverCleanups} = params;
+  const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex} = params;
 
   const isParallel = node.children.length > 1;
   const suiteRunNonce = typeof options.suiteRunId === 'string' ? options.suiteRunId : '';
@@ -344,9 +375,95 @@ async function runSuiteGroup(params: {
     id: node.id,
   });
 
-  const results = await Promise.all(node.children.map(async (child) => {
+  const serverChildren = node.children.filter(
+      (child): child is Extract<SuiteBundleNode, {kind: 'server'}> => child.kind === 'server');
+  const otherChildren = node.children.filter((child) => child.kind !== 'server');
+  const serverStatuses: SuiteStepStatus[] = [];
+
+  for (const child of serverChildren) {
     if (options.abortSignal?.aborted) {
-      return {success: false, threw: false, cancelled: false, status: 'failed' as SuiteStepStatus};
+      return {
+        overallSuccess: false,
+        anyThrew: false,
+        anyCancelled: true,
+        statuses: [...serverStatuses, 'failed'],
+      };
+    }
+    const serverResult = await startServerNode({
+      node: child,
+      bundle,
+      options,
+      suiteLogger,
+    });
+    if (!serverResult.success) {
+      serverStatuses.push('invalid');
+      options.reporter && options.reporter({
+        scope: 'suite-item',
+        status: 'invalid',
+        runId: groupRunId,
+        filePath: bundle.rootSuitePath,
+        entry: node.label,
+        title: groupTitle,
+        id: node.id,
+      });
+      return {
+        overallSuccess: false,
+        anyThrew: false,
+        anyCancelled: false,
+        statuses: serverStatuses,
+      };
+    }
+    serverStatuses.push('passed');
+  }
+
+  // Nested `servers:` start before other items in this stage so parallel
+  // siblings can use the public running-server list.
+  const filter = activeTagFilter(options, bundle);
+  const parentSelected = options.tagParentSelected === true;
+  for (const child of otherChildren) {
+    if (child.kind !== 'suite' || !Array.isArray(child.servers) || child.servers.length === 0) {
+      continue;
+    }
+    if (decideTagRun('suite', child.tags, filter, parentSelected) === 'skip') {
+      continue;
+    }
+    if (options.abortSignal?.aborted) {
+      return {
+        overallSuccess: false,
+        anyThrew: false,
+        anyCancelled: true,
+        statuses: serverStatuses,
+      };
+    }
+    const nestedPath = resolveRelativeTo(child.path, bundle.rootSuitePath) || child.path;
+    const started = await startListedServers({
+      servers: child.servers,
+      baseFilePath: nestedPath,
+      options,
+      suiteLogger,
+    });
+    if (!started) {
+      options.reporter && options.reporter({
+        scope: 'suite-item',
+        status: 'invalid',
+        runId: groupRunId,
+        filePath: bundle.rootSuitePath,
+        entry: node.label,
+        title: groupTitle,
+        id: node.id,
+      });
+      return {
+        overallSuccess: false,
+        anyThrew: false,
+        anyCancelled: false,
+        statuses: [...serverStatuses, 'invalid'],
+      };
+    }
+  }
+
+  const results = await Promise.all(otherChildren.map(async (child) => {
+    if (options.abortSignal?.aborted) {
+      return {success: false, threw: false, cancelled: true, status: 'failed' as SuiteStepStatus};
     }
 
     if (child.kind === 'test' || child.kind === 'suite') {
@@ -363,7 +480,6 @@ async function runSuiteGroup(params: {
     }
 
     if (child.kind === 'group') {
-      // Nested group: runs its own children in parallel.
       const childGroup = await runSuiteGroup({
         node: child,
         bundle,
@@ -372,7 +488,6 @@ async function runSuiteGroup(params: {
         suiteLogger,
         baseFileLoader,
         nextIndex,
-        serverCleanups,
       });
       const status = childGroup.statuses.length > 0
         ? worstSuiteItemStatus(childGroup.statuses)
@@ -382,22 +497,6 @@ async function runSuiteGroup(params: {
         threw: childGroup.anyThrew,
         cancelled: childGroup.anyCancelled,
         status,
-      };
-    }
-
-    if (child.kind === 'server') {
-      const serverResult = await startServerNode({
-        node: child,
-        bundle,
-        options,
-        suiteLogger,
-        serverCleanups,
-      });
-      return {
-        success: serverResult.success,
-        threw: false,
-        cancelled: false,
-        status: serverResult.success ? 'passed' as SuiteStepStatus : 'invalid' as SuiteStepStatus,
       };
     }
 
@@ -414,10 +513,10 @@ async function runSuiteGroup(params: {
     return {success: true, threw: false, cancelled: false, status: 'passed' as SuiteStepStatus};
   }));
 
-  const groupHadAnyFailure = results.some(r => !r || !r.success);
+  const groupHadAnyFailure = serverStatuses.includes('invalid') || results.some(r => !r || !r.success);
   const groupThrew = results.some(r => !!r && r.threw === true);
   const groupCancelled = results.some(r => !!r && (r as any).cancelled === true);
-  const statuses = results.map(r => r.status);
+  const statuses = [...serverStatuses, ...results.map(r => r.status)];
   const groupStatus: SuiteStepStatus = statuses.length > 0
     ? worstSuiteItemStatus(statuses)
     : (!groupHadAnyFailure ? 'passed' : 'failed');
@@ -445,23 +544,25 @@ async function startServerNode(params: {
   bundle: SuiteBundle;
   options: RunFileOptions;
   suiteLogger: (level: LogLevel, msg: string) => void;
-  serverCleanups: ServerCleanup[];
 }): Promise<{success: boolean}> {
-  const {node, bundle, options, suiteLogger, serverCleanups} = params;
+  const {node, bundle, options, suiteLogger} = params;
+
+  const serverFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
+  const display = basename(serverFilePath || node.path);
 
   if (!options.serverRunner) {
     suiteLogger('error', `Cannot start server '${node.path}': no server runner provided`);
     return {success: false};
   }
 
-  const serverFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
-  const display = basename(serverFilePath || node.path);
-
   try {
-    suiteLogger('info', `Starting server: ${display}`);
-    const cleanup = await options.serverRunner(node.path, serverFilePath);
-    serverCleanups.push(cleanup);
-    suiteLogger('info', `Server started: ${display}`);
+    const outcome = await ensureServerStarted_([node.path, serverFilePath], () =>
+      options.serverRunner!(node.path, serverFilePath));
+    if (outcome === 'already-running') {
+      suiteLogger('info', `Server already running: ${display}`);
+    } else {
+      suiteLogger('info', `Server started: ${display}`);
+    }
     return {success: true};
   } catch (e: any) {
     const errorMessage = e?.message || String(e);
@@ -537,9 +638,6 @@ export async function executeSuiteBundle(params: {
   const totalRunnable = collectRunnableCountFromRoot(rootChildren);
 
   if (shouldEmitSuiteRunEvents) {
-    // One call-cache for the whole suite hierarchy (including nested suites)
-    // until TTL expiry or this outermost suite finishes.
-    clearTestCallCache_();
     effectiveOptions.reporter && effectiveOptions.reporter({
       scope: 'suite-run-start',
       runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
@@ -555,9 +653,6 @@ export async function executeSuiteBundle(params: {
 
   // Capture the original loader so child loaders never recurse through an overridden loader.
   const baseFileLoader = options.fileLoader;
-
-  // Track cleanup functions for servers started during this suite run.
-  const serverCleanups: ServerCleanup[] = [];
 
   let flatIndex = 0;
   const nextIndex = () => {
@@ -583,7 +678,6 @@ export async function executeSuiteBundle(params: {
           suiteLogger,
           baseFileLoader,
           nextIndex,
-          serverCleanups,
         });
         itemStatuses.push(...group.statuses);
         if (!group.overallSuccess) {
@@ -603,7 +697,6 @@ export async function executeSuiteBundle(params: {
           bundle,
           options: effectiveOptions,
           suiteLogger,
-          serverCleanups,
         });
         if (!serverResult.success) {
           overallSuccess = false;
@@ -654,41 +747,21 @@ export async function executeSuiteBundle(params: {
   };
 
   try {
-    // Root `servers:` start before items. Nested suite `servers:` are already
-    // leading server nodes in that suite's children.
+    if (beginServerSession_()) {
+      clearTestCallCache_();
+    }
+    // `servers:` start at the beginning of this suite (root or nested).
     if (Array.isArray(bundle.servers) && bundle.servers.length > 0 &&
         nodesHaveRunnable(
             rootChildren, resolvedFilter, effectiveOptions.tagParentSelected === true)) {
-      for (const serverPath of bundle.servers) {
-        if (options.abortSignal?.aborted) {
-          suiteLogger('warn', 'Suite run cancelled before servers could start.');
-          overallSuccess = false;
-          break;
-        }
-        const resolvedPath = resolveRelativeTo(serverPath, bundle.rootSuitePath);
-        const display = basename(resolvedPath || serverPath);
-        if (!options.serverRunner) {
-          suiteLogger('error', `Cannot start server '${display}': no server runner provided`);
-          overallSuccess = false;
-          break;
-        }
-        try {
-          suiteLogger('info', `Starting suite server: ${display}`);
-          const cleanup = await options.serverRunner(serverPath, resolvedPath);
-          serverCleanups.push(cleanup);
-          // Register the server so tests with `run: mock` won't try to start a duplicate.
-          // Register with both the alias and resolved path since tests might use either.
-          registerServer_(serverPath, cleanup);
-          if (resolvedPath && resolvedPath !== serverPath) {
-            registerServer_(resolvedPath, cleanup);
-          }
-          suiteLogger('info', `Suite server started: ${display}`);
-        } catch (e: any) {
-          const errorMessage = e?.message || String(e);
-          suiteLogger('error', `Failed to start suite server '${display}': ${errorMessage}`);
-          overallSuccess = false;
-          break;
-        }
+      const started = await startListedServers({
+        servers: bundle.servers,
+        baseFilePath: bundle.rootSuitePath,
+        options: effectiveOptions,
+        suiteLogger,
+      });
+      if (!started) {
+        overallSuccess = false;
       }
     }
 
@@ -722,7 +795,21 @@ export async function executeSuiteBundle(params: {
           id: root.id,
         });
 
-        await runNodesSequentially(root.children);
+        if (root.kind === 'suite' && Array.isArray(root.servers) && root.servers.length > 0) {
+          const started = await startListedServers({
+            servers: root.servers,
+            baseFilePath: targetFilePath,
+            options: effectiveOptions,
+            suiteLogger,
+          });
+          if (!started) {
+            overallSuccess = false;
+          }
+        }
+
+        if (overallSuccess) {
+          await runNodesSequentially(root.children);
+        }
 
         const targetStatus: SuiteStepStatus = itemStatuses.length > 0
           ? worstSuiteItemStatus(itemStatuses)
@@ -745,21 +832,10 @@ export async function executeSuiteBundle(params: {
       }
     }
   } finally {
-    // Stop all servers started during this suite run (from `servers:` field).
-    for (const cleanup of serverCleanups) {
-      try {
-        cleanup();
-      } catch (e: any) {
-        suiteLogger('warn', `Error stopping server: ${e?.message || String(e)}`);
-      }
-    }
-    // Stop any servers started via `run: mock` steps in child tests.
-    // Only do this at the top-level suite run (not nested suite children).
-    if (shouldEmitSuiteRunEvents) {
-      try {
-        stopAllServers_();
-      } catch (e: any) {
-        suiteLogger('warn', `Error stopping servers: ${e?.message || String(e)}`);
+    const ended = endServerSession_();
+    if (ended.outermost) {
+      for (const message of ended.stopErrors) {
+        suiteLogger('warn', `Error stopping server: ${message}`);
       }
       clearTestCallCache_();
     }

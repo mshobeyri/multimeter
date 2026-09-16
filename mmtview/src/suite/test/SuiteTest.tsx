@@ -12,7 +12,7 @@ import { SuiteTestTree } from './';
 import type { SuiteTestTreeHandle } from './SuiteTestTree';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
-import { SuiteTreeNode } from './suiteHierarchy';
+import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
 import { resetLeafStateMap } from './leafStateReset';
 import {
@@ -34,6 +34,7 @@ import { FileContext } from '../../fileContext';
 import { HideWhenYamlError } from '../../api/YamlErrorWarning';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
 import { runInCoreMenuItem } from '../../components/ContextMenuHost';
+import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
 import RunStopToggle from '../../components/RunStopToggle';
 
 /** Get basename from a file path. */
@@ -70,10 +71,8 @@ function buildDisplayNamesFromHierarchy(
             result[node.id] = currentPath.join(' / ');
         }
 
-        if ('children' in node && Array.isArray(node.children)) {
-            for (const child of node.children) {
-                traverse(child, currentPath);
-            }
+        for (const child of suiteTreeChildren(node)) {
+            traverse(child, currentPath);
         }
     };
 
@@ -627,6 +626,31 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, []);
 
     const [hierarchyByEntryId, setHierarchyByEntryId] = useState<Record<string, SuiteTreeNode>>({});
+    const duplicateServerPathKeys = useMemo(() => {
+        const itemServerPaths: string[] = [];
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                if (entry?.id && hierarchyByEntryId[entry.id]?.kind === 'server') {
+                    itemServerPaths.push(entry.path);
+                }
+            }
+        }
+        return duplicateSuiteServerPaths(servers, allPaths, itemServerPaths);
+    }, [servers, groups, allPaths, hierarchyByEntryId]);
+    const duplicateServerIds = useMemo(() => {
+        const ids = new Set<string>();
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                if (!entry?.id || hierarchyByEntryId[entry.id]?.kind !== 'server') {
+                    continue;
+                }
+                if (isDuplicateSuiteServerPath(entry.path, duplicateServerPathKeys)) {
+                    ids.add(entry.id);
+                }
+            }
+        }
+        return ids;
+    }, [groups, hierarchyByEntryId, duplicateServerPathKeys]);
     const hierarchyByEntryIdRef = useRef<Record<string, SuiteTreeNode>>({});
     hierarchyByEntryIdRef.current = hierarchyByEntryId;
 
@@ -1135,6 +1159,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             statusIconFor={statusIconFor}
             reportsById={leafReportsById}
             runStateById={leafRunStateById}
+            duplicateServerIds={duplicateServerIds}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
             onAllCollapsedChange={setAllTreeCollapsed}
@@ -1261,7 +1286,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                         return (
                                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
                                                 <span className="codicon codicon-server-environment" style={{ fontSize: 14 }} aria-hidden />
-                                                <span title={s}>{name}</span>
+                                                <span
+                                                    className={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'mmt-line-error' : undefined}
+                                                    title={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'This mock server is listed more than once in this suite' : s}
+                                                >
+                                                    {name}
+                                                </span>
                                             </div>
                                         );
                                     })}

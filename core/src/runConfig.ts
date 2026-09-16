@@ -204,13 +204,6 @@ export interface RunFileOptions {
   serverRunner?: (alias: string, filePath: string) => Promise<() => void>;
 
   /**
-   * When true, do not stop servers after test execution.
-   * Used by suite runners to keep servers alive for the entire suite duration.
-   * The suite runner is responsible for cleanup in this case.
-   */
-  skipServerCleanup?: boolean;
-
-  /**
    * Tag filter for this invocation. When set on the run root, replaces suite
    * YAML `filter:`. Nested running suites still merge their own `filter:`.
    */

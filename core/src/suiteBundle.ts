@@ -14,7 +14,7 @@ function resolveNodeId(node: SuiteHierarchyNode, indexPath: number[]): string {
 
 export type SuiteBundleNode =
   | {kind: 'group'; id: string; label: string; children: SuiteBundleNode[]}
-  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteBundleNode[]; tags?: string[]; filter?: SuiteYamlFilter}
+  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteBundleNode[]; servers?: string[]; tags?: string[]; filter?: SuiteYamlFilter}
   | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
   | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
@@ -79,6 +79,9 @@ export function createSuiteBundle(params: {
         }
         if (node.filter) {
           suiteNode.filter = node.filter;
+        }
+        if (Array.isArray(node.servers) && node.servers.length > 0) {
+          suiteNode.servers = node.servers;
         }
         out.push(suiteNode);
         continue;

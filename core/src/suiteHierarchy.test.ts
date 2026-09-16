@@ -160,7 +160,7 @@ describe('suiteHierarchy (core)', () => {
       });
   });
 
-  test('nested suite servers: become leading items of that suite', async () => {
+  test('nested suite servers: stay on the suite, not mixed into items', async () => {
     const files: Record<string, string> = {
       '/root/root.mmt': ['type: suite', 'items:', '  - ./inner.mmt'].join('\n'),
       '/root/inner.mmt': [
@@ -184,15 +184,17 @@ describe('suiteHierarchy (core)', () => {
     const inner = (tree.children[0] as any).children[0];
     expect(inner.kind).toBe('suite');
     expect(inner.servers).toEqual(['./mock.mmt']);
+    expect(inner.serverItems).toEqual([
+      {
+        kind: 'server',
+        id: 'suite-node:0.0.-1.0',
+        path: '/root/mock.mmt',
+        title: 'User mock',
+      },
+    ]);
     const firstGroup = inner.children[0];
     expect(firstGroup.kind).toBe('group');
     expect(firstGroup.children[0]).toEqual({
-      kind: 'server',
-      id: 'suite-node:0.0.-1.0',
-      path: '/root/mock.mmt',
-      title: 'User mock',
-    });
-    expect(firstGroup.children[1]).toEqual({
       kind: 'test',
       id: 'suite-node:0.0.0.0',
       path: '/root/test.mmt',

@@ -1,6 +1,6 @@
 # run
 
-Start an imported mock server. The server runs for the duration of the test and stops automatically when the test finishes.
+Start an imported mock server. The server joins the public running-server list: if this test is the outermost run, it stops when the test finishes; if the test is inside a suite or load test, it stays up until that outer run finishes.
 
 ```yaml
 type: test
@@ -17,8 +17,8 @@ steps:
 
 **Behavior:**
 - If the server is already running, `run` does nothing (idempotent)
-- All servers started by `run` stop automatically when the test finishes
-- If the port is already in use, the test fails with an error
+- Servers join the same public running-server list used by suites. They stop when the **outermost** run finishes (this test, or the enclosing suite / load test)
+- If the port is already in use by another process, the test fails with an error
 
 Use this to make tests self-contained — no need to manually start servers before running.
 

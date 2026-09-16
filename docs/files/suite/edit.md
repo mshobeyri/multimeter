@@ -13,7 +13,7 @@ Edit mode shows a tab bar with six tabs:
 | {{btn:note:Overview}} | `title`, `description`, `tags`, and data `import` map |
 | {{btn:beaker:Items}} | Suite item tree — add, reorder, and group entries; `then` separators create parallel stages |
 | {{btn:filter:Filter}} | `filter.only` / `filter.skip` tags that decide which items run |
-| {{btn:server-environment:Servers}} | Mock server files (`type: server`) started before items in the same stage |
+| {{btn:server-environment:Servers}} | Mock server files (`type: server`) started at the beginning of this suite |
 | {{btn:symbol-namespace:Environment}} | Preset, env file, and inline variable overrides for the suite run |
 | {{btn:export:Exports}} | Report export paths (HTML, JSON, Markdown, MMT, JUnit) |
 
@@ -43,7 +43,7 @@ Tags are matched against `tags:` on test and suite files, so a tagged suite sele
 
 ### Servers
 
-List mock server files to start automatically when the suite reaches that stage. See [Mock servers in suites](../server/in-suites.md).
+List mock server files to start at the beginning of this suite, before items. See [Mock servers in suites](../server/in-suites.md). Listing the same server both here and under **Items** is an error: both paths are underlined in red. The same server in a nested suite is fine. Put a server in **Items** only when it should start in the middle of the suite (at that stage).
 
 ### Environment
 

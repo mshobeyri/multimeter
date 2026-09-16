@@ -33,8 +33,6 @@ export interface RunJSCodeContext {
   traceSend?: boolean;
   /** Optional server runner for starting mock servers in tests. */
   serverRunner?: ServerRunner;
-  /** When true, do not stop servers after execution. Suite runners set this. */
-  skipServerCleanup?: boolean;
   /** Base directory for resolving relative paths (e.g. gRPC proto files). */
   basePath?: string;
   /** True when this JS execution can safely be delegated to an external worker. */
@@ -217,15 +215,17 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     }
   });
 
-  // Fresh call-cache only for outermost JS execution. Suite / load-test
-  // children set skipServerCleanup so cache stays valid across the hierarchy
-  // until TTL expires or the top-level run finishes.
-  if (!context.skipServerCleanup && 'clearTestCallCache_' in mmtHelper &&
-      typeof (mmtHelper as any).clearTestCallCache_ === 'function') {
-    (mmtHelper as any).clearTestCallCache_();
-  }
-
   try {
+    const outermostSession =
+        'beginServerSession_' in mmtHelper &&
+        typeof (mmtHelper as any).beginServerSession_ === 'function' ?
+        (mmtHelper as any).beginServerSession_() === true :
+        true;
+    if (outermostSession && 'clearTestCallCache_' in mmtHelper &&
+        typeof (mmtHelper as any).clearTestCallCache_ === 'function') {
+      (mmtHelper as any).clearTestCallCache_();
+    }
+
     const helperDecls =
           Object.keys(mmtHelper)
               .filter(name => name !== 'report_' && name !== 'setenv_' &&
@@ -354,25 +354,18 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     logRunFinished(lg, runKind, title, false, undefined, {hasError: !isControlFlow});
     throw e;
   } finally {
-    // Only clear abort signal if this run owns it.  During parallel suite
-    // execution (skipServerCleanup=true), clearing unconditionally would
-    // remove the signal for concurrent tests that share the global.
-    if (!context.skipServerCleanup) {
+    const ended =
+        'endServerSession_' in mmtHelper &&
+        typeof (mmtHelper as any).endServerSession_ === 'function' ?
+        (mmtHelper as any).endServerSession_() as {outermost: boolean} :
+        {outermost: true};
+    if (ended.outermost) {
       if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
         (mmtHelper as any).setAbortSignal_(undefined);
       }
-    }
-    // Stop all servers started during this test run, unless suite runner is handling cleanup.
-    if (!context.skipServerCleanup) {
-      if ('stopAllServers_' in mmtHelper && typeof (mmtHelper as any).stopAllServers_ === 'function') {
-        (mmtHelper as any).stopAllServers_();
-      }
-      // Clear server runner.
       if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
         (mmtHelper as any).setServerRunner_(undefined);
       }
-      // Drop in-run call cache when the outermost test finishes so the next
-      // editor/CLI Run starts clean (suite runners clear at suite end).
       if ('clearTestCallCache_' in mmtHelper &&
           typeof (mmtHelper as any).clearTestCallCache_ === 'function') {
         (mmtHelper as any).clearTestCallCache_();

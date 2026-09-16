@@ -16,6 +16,10 @@ import {
   isNotOmitted_,
   isOmitted_,
   isServerRunning_,
+  beginServerSession_,
+  endServerSession_,
+  isServerSessionActive_,
+  listRunningServers_,
   isTestAbortError,
   judge_,
   lengthEquals_,
@@ -389,9 +393,28 @@ describe('testHelper abort, servers, setenv, judge, check branches', () => {
     await startServer_('mock');
     expect(starts).toBe(1);
     expect(isServerRunning_('mock')).toBe(true);
+    expect(listRunningServers_()).toEqual(['mock']);
     registerServer_('other', () => {});
     stopAllServers_();
     expect(isServerRunning_('mock')).toBe(false);
+  });
+
+  it('only the outermost server session stops the public list', async () => {
+    let stopped = 0;
+    setServerRunner_(async () => () => {
+      stopped += 1;
+    });
+    expect(beginServerSession_()).toBe(true);
+    expect(beginServerSession_()).toBe(false);
+    await startServer_('mock');
+    expect(isServerSessionActive_()).toBe(true);
+    expect(endServerSession_()).toEqual({outermost: false, stopErrors: []});
+    expect(isServerRunning_('mock')).toBe(true);
+    expect(stopped).toBe(0);
+    expect(endServerSession_()).toEqual({outermost: true, stopErrors: []});
+    expect(isServerRunning_('mock')).toBe(false);
+    expect(stopped).toBe(1);
+    expect(isServerSessionActive_()).toBe(false);
   });
 
   it('fails importJsModule_ on empty path, missing loader, and empty source', async () => {

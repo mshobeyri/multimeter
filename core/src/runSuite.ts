@@ -5,7 +5,7 @@ import {logRunFinished} from './runLog';
 import {classifySuiteItemStatus} from './suiteItemStatus';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
-import {clearTestCallCache_, stopAllServers_, registerServer_} from './testHelper';
+import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from './testHelper';
 
 const stableIdForSuiteItem = (params: {
   suitePath: string;
@@ -76,11 +76,8 @@ export async function executeSuite(
   suiteLogger('debug', `Running suite: ${suiteDisplayName}`);
 
   let overallSuccess = true;
-  const serverCleanups: Array<() => void> = [];
-  // Nested suite children inherit skipServerCleanup and share the parent
-  // call-cache; only the outermost suite owns cache lifetime.
-  const isOutermostSuite = !options.skipServerCleanup;
-  if (isOutermostSuite) {
+  const outermostSession = beginServerSession_();
+  if (outermostSession) {
     clearTestCallCache_();
   }
 
@@ -102,14 +99,13 @@ export async function executeSuite(
       }
       try {
         suiteLogger('info', `Starting suite server: ${display}`);
-        const cleanup = await options.serverRunner(serverPath, resolvedPath);
-        serverCleanups.push(cleanup);
-        // Register the server so tests with `run: mock` won't try to start a duplicate.
-        registerServer_(serverPath, cleanup);
-        if (resolvedPath && resolvedPath !== serverPath) {
-          registerServer_(resolvedPath, cleanup);
+        const outcome = await ensureServerStarted_([serverPath, resolvedPath], () =>
+          options.serverRunner!(serverPath, resolvedPath));
+        if (outcome === 'already-running') {
+          suiteLogger('info', `Server already running: ${display}`);
+        } else {
+          suiteLogger('info', `Suite server started: ${display}`);
         }
-        suiteLogger('info', `Suite server started: ${display}`);
       } catch (e: any) {
         const errorMessage = e?.message || String(e);
         suiteLogger('error', `Failed to start suite server '${display}': ${errorMessage}`);
@@ -223,7 +219,6 @@ export async function executeSuite(
           logger: childLogger,
           id,
           runId,
-          skipServerCleanup: true,
         } as any);
 
         flushLogBuffer();
@@ -311,21 +306,11 @@ export async function executeSuite(
   } // end else (server startup succeeded)
 
   } finally {
-    // Stop all suite-level servers (from `servers:` field).
-    for (const cleanup of serverCleanups) {
-      try {
-        cleanup();
-      } catch (e: any) {
-        suiteLogger('warn', `Error stopping server: ${e?.message || String(e)}`);
+    const ended = endServerSession_();
+    if (ended.outermost) {
+      for (const message of ended.stopErrors) {
+        suiteLogger('warn', `Error stopping server: ${message}`);
       }
-    }
-    // Stop any servers started via `run: mock` steps in child tests.
-    try {
-      stopAllServers_();
-    } catch (e: any) {
-      suiteLogger('warn', `Error stopping servers: ${e?.message || String(e)}`);
-    }
-    if (isOutermostSuite) {
       clearTestCallCache_();
     }
   }

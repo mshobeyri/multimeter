@@ -434,12 +434,42 @@ export async function handleGetSuiteImportTree(
   });
 }
 
+/** `type: server` lookups, keyed by absolute path, stamped with size+mtime. */
+const serverDocTypeCache = new Map<string, {stamp: string; isServer: boolean}>();
+
+/** Cheap `type: server` check for a referenced file; re-reads only on change. */
+function isServerDocument(absolutePath: string): boolean {
+  if (!absolutePath.toLowerCase().endsWith('.mmt')) {
+    return false;
+  }
+  let stamp: string;
+  try {
+    const stat = fs.statSync(absolutePath);
+    stamp = `${stat.size}:${stat.mtimeMs}`;
+  } catch {
+    return false;
+  }
+  const cached = serverDocTypeCache.get(absolutePath);
+  if (cached && cached.stamp === stamp) {
+    return cached.isServer;
+  }
+  let isServer = false;
+  try {
+    isServer = /^\s*type\s*:\s*server\b/m.test(fs.readFileSync(absolutePath, 'utf8'));
+  } catch {
+    isServer = false;
+  }
+  serverDocTypeCache.set(absolutePath, {stamp, isServer});
+  return isServer;
+}
+
 export function handleValidateFilesExist(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument) {
   const files = Array.isArray(message?.files) ? message.files : [];
   const existing: string[] = [];
   const missing: string[] = [];
+  const servers: string[] = [];
   const projectRoot = findProjectRoot(document.uri.fsPath);
   for (const relativePath of files) {
     if (typeof relativePath !== 'string' || !relativePath.trim()) {
@@ -448,6 +478,9 @@ export function handleValidateFilesExist(
     const absolutePath = resolveImportPath(document.uri.fsPath, relativePath, projectRoot);
     if (fs.existsSync(absolutePath)) {
       existing.push(relativePath);
+      if (isServerDocument(absolutePath)) {
+        servers.push(relativePath);
+      }
     } else {
       missing.push(relativePath);
     }
@@ -457,6 +490,7 @@ export function handleValidateFilesExist(
     requestId: message?.requestId,
     existing,
     missing,
+    servers,
   });
 }
 

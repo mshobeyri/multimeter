@@ -10,6 +10,7 @@ import FileOverview from '../../shared/FileOverview';
 import FilePickerInput from '../../components/FilePickerInput';
 import KSVEditor from '../../components/KSVEditor';
 import SearchableTagInput from '../../components/SearchableTagInput';
+import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
 import { FileContext } from '../../fileContext';
 import TabBar from '../../components/TabBar';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -264,6 +265,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const [environment, setEnvironment] = useState<SuiteEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
   const [exports, setExports] = useState<string[]>(() => buildExportsFromContent(content));
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
+  const [itemServerFiles, setItemServerFiles] = useState<string[]>([]);
 
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const addMenuRef = useRef<HTMLDivElement | null>(null);
@@ -490,13 +492,19 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   }, [exports, persistExports]);
 
   const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
+  const duplicateServerKeys = useMemo(
+    () => duplicateSuiteServerPaths(servers, allPaths, itemServerFiles),
+    [servers, allPaths, itemServerFiles],
+  );
   useEffect(() => {
-    if (allPaths.length > 0) {
-      window.vscode?.postMessage({ command: 'validateFilesExist', files: allPaths });
+    const files = Array.from(new Set([...allPaths, ...servers]));
+    if (files.length > 0) {
+      window.vscode?.postMessage({ command: 'validateFilesExist', files });
     } else {
       setMissingFiles(new Set());
+      setItemServerFiles([]);
     }
-  }, [allPaths]);
+  }, [allPaths, servers]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -506,17 +514,22 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       }
       if (message.command === 'validateFilesExistResult') {
         setMissingFiles(new Set(message.missing || []));
+        const listed = Array.isArray(message.servers)
+          ? message.servers.filter((p: unknown): p is string => typeof p === 'string')
+          : [];
+        setItemServerFiles(listed.filter((path: string) => allPaths.includes(path)));
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [allPaths]);
 
   const noItems = groups.every(group => group.entries.length === 0);
   const tree = (
     <SuiteEditTree
       groups={groups}
       missingFiles={missingFiles}
+      duplicateServerKeys={duplicateServerKeys}
       statusIconFor={statusIconFor}
       groupsModel={groups}
       persistGroups={persistGroups}
@@ -682,6 +695,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
               filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
               showFilePicker
               removable
+              invalid={isDuplicateSuiteServerPath(s, duplicateServerKeys)}
             />
           ))}
         </div>

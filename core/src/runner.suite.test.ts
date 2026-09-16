@@ -171,7 +171,7 @@ describe('suite bundle runner nested suite', () => {
     expect(scopes.filter(s => s === 'suite-run-finished').length).toBe(1);
   });
 
-  it('starts nested suite servers: as leading items of that suite', async () => {
+  it('starts nested suite servers: at the beginning of that suite', async () => {
     const runner = await import('./runner.js');
     const {buildSuiteHierarchyFromSuiteFile} = await import('./suiteHierarchy.js');
     const {createSuiteBundle} = await import('./suiteBundle.js');
@@ -226,7 +226,208 @@ describe('suite bundle runner nested suite', () => {
     } as any);
 
     expect(started.some((p) => p.includes('mock.mmt'))).toBe(true);
-    expect(stopped.length).toBe(started.length);
+  });
+
+  it('reuses a parent suite server when a nested suite lists the same file', async () => {
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('./suiteHierarchy.js');
+    const {createSuiteBundle} = await import('./suiteBundle.js');
+
+    const files: Record<string, string> = {
+      '/root/suite.mmt': [
+        'type: suite',
+        'servers:',
+        '  - ./mock.mmt',
+        'items:',
+        '  - ./inner.mmt',
+      ].join('\n'),
+      '/root/inner.mmt': [
+        'type: suite',
+        'servers:',
+        '  - ./mock.mmt',
+        'items:',
+        '  - ./test.mmt',
+      ].join('\n'),
+      '/root/mock.mmt': ['type: server', 'port: 3000'].join('\n'),
+      '/root/test.mmt': ['type: test', 'steps:', '  - print: ok'].join('\n'),
+    };
+
+    const testFileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/suite.mmt',
+      suiteRawText: files['/root/suite.mmt'],
+      fileLoader: testFileLoader,
+    });
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/root/suite.mmt',
+      hierarchy: tree,
+      servers: tree.servers,
+    });
+
+    const started: string[] = [];
+    const stopped: string[] = [];
+    const outcome: any = await runner.runFile({
+      file: files['/root/suite.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      manualInputs: {},
+      envvar: {},
+      manualEnvvars: {},
+      fileLoader: testFileLoader,
+      jsRunner: async () => ({success: true, logs: [], errors: []} as any),
+      logger: () => {},
+      serverRunner: async (alias: string) => {
+        started.push(alias);
+        return () => {
+          stopped.push(alias);
+        };
+      },
+      suiteBundle: bundle,
+    } as any);
+
+    expect(started.length).toBe(1);
+    expect(outcome.result.success).toBe(true);
+  });
+
+  it('keeps a nested suite server running for a later sibling test', async () => {
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('./suiteHierarchy.js');
+    const {createSuiteBundle} = await import('./suiteBundle.js');
+
+    const files: Record<string, string> = {
+      '/root/suite3.mmt': [
+        'type: suite',
+        'items:',
+        '  - ./suite2.mmt',
+        '  - ./later.mmt',
+      ].join('\n'),
+      '/root/suite2.mmt': [
+        'type: suite',
+        'servers:',
+        '  - ./mock.mmt',
+        'items:',
+        '  - ./inner.mmt',
+      ].join('\n'),
+      '/root/inner.mmt': [
+        'type: suite',
+        'servers:',
+        '  - ./mock.mmt',
+        'items:',
+        '  - ./first.mmt',
+      ].join('\n'),
+      '/root/mock.mmt': ['type: server', 'port: 3000'].join('\n'),
+      '/root/first.mmt': ['type: test', 'steps:', '  - print: first'].join('\n'),
+      '/root/later.mmt': ['type: test', 'steps:', '  - print: later'].join('\n'),
+    };
+    const testFileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/suite3.mmt',
+      suiteRawText: files['/root/suite3.mmt'],
+      fileLoader: testFileLoader,
+    });
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/root/suite3.mmt',
+      hierarchy: tree,
+    });
+    const {isServerRunning_} = await import('./testHelper.js');
+    const started: string[] = [];
+    const runningDuringLater: boolean[] = [];
+    const outcome: any = await runner.runFile({
+      file: files['/root/suite3.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite3.mmt',
+      manualInputs: {},
+      envvar: {},
+      manualEnvvars: {},
+      fileLoader: testFileLoader,
+      jsRunner: async () => ({success: true, logs: [], errors: []} as any),
+      logger: () => {},
+      serverRunner: async (alias: string, filePath?: string) => {
+        started.push(filePath || alias);
+        return () => {};
+      },
+      reporter: (msg: any) => {
+        if (msg?.scope === 'suite-item' && msg.status === 'running' &&
+            String(msg.filePath || '').includes('later.mmt')) {
+          runningDuringLater.push(
+              isServerRunning_('/root/mock.mmt') || isServerRunning_('./mock.mmt'));
+        }
+      },
+      suiteBundle: bundle,
+    } as any);
+
+    expect(started.length).toBe(1);
+    expect(outcome.result.success).toBe(true);
+    expect(runningDuringLater).toEqual([true]);
+  });
+
+  it('starts an item server at its stage, not at the beginning of the suite', async () => {
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('./suiteHierarchy.js');
+    const {createSuiteBundle} = await import('./suiteBundle.js');
+
+    const files: Record<string, string> = {
+      '/root/suite.mmt': [
+        'type: suite',
+        'items:',
+        '  - ./first.mmt',
+        '  - then',
+        '  - ./mock.mmt',
+        '  - then',
+        '  - ./second.mmt',
+      ].join('\n'),
+      '/root/mock.mmt': ['type: server', 'port: 3000'].join('\n'),
+      '/root/first.mmt': ['type: test', 'steps:', '  - print: first'].join('\n'),
+      '/root/second.mmt': ['type: test', 'steps:', '  - print: second'].join('\n'),
+    };
+    const testFileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/suite.mmt',
+      suiteRawText: files['/root/suite.mmt'],
+      fileLoader: testFileLoader,
+    });
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/root/suite.mmt',
+      hierarchy: tree,
+    });
+    const order: string[] = [];
+    await runner.runFile({
+      file: files['/root/suite.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      manualInputs: {},
+      envvar: {},
+      manualEnvvars: {},
+      fileLoader: testFileLoader,
+      jsRunner: async () => ({success: true, logs: [], errors: []} as any),
+      logger: () => {},
+      serverRunner: async (_alias: string, filePath?: string) => {
+        order.push(`server:${filePath || _alias}`);
+        return () => {};
+      },
+      reporter: (msg: any) => {
+        if (msg?.scope === 'suite-item' && msg.status === 'running' && msg.docType === 'test') {
+          order.push(`test:${msg.filePath}`);
+        }
+      },
+      suiteBundle: bundle,
+    } as any);
+
+    expect(order).toEqual([
+      'test:/root/first.mmt',
+      'server:/root/mock.mmt',
+      'test:/root/second.mmt',
+    ]);
   });
 
   it('skips tests that do not match only-tags', async () => {

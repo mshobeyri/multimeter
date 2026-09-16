@@ -2,6 +2,7 @@ import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import type { SuiteGroup } from '../types';
 import type { SuiteTreeNode } from './suiteHierarchy';
+import { suiteTreeChildren } from './suiteHierarchy';
 
 /** True when id is the partial-run target or a descendant under that target's id prefix. */
 export function isUnderSuiteTarget(target: string | null | undefined, id: string | null | undefined): boolean {
@@ -42,10 +43,8 @@ export function collectHierarchyNodeIds(root: SuiteTreeNode | null | undefined):
     if (typeof node.id === 'string' && node.id) {
       out.push(node.id);
     }
-    if ('children' in node && Array.isArray(node.children) && node.children.length) {
-      for (let i = 0; i < node.children.length; i++) {
-        stack.push(node.children[i]);
-      }
+    for (const child of suiteTreeChildren(node)) {
+      stack.push(child);
     }
   }
   return out;
@@ -77,10 +76,8 @@ function omitServerRunStatus(
     if (node.kind === 'server' && typeof node.id === 'string' && node.id) {
       delete next[node.id];
     }
-    if ('children' in node && Array.isArray(node.children)) {
-      for (let i = 0; i < node.children.length; i++) {
-        stack.push(node.children[i]);
-      }
+    for (const child of suiteTreeChildren(node)) {
+      stack.push(child);
     }
   }
 }

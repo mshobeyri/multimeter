@@ -44,10 +44,10 @@ export async function startMockServerFromPath(
   filePath: string,
   envVars: Record<string, any> = {},
 ): Promise<() => void> {
-  // Stop existing server on this path if any
-  const existing = activeServers.get(filePath);
-  if (existing) {
-    existing.dispose();
+  // Already serving this file (parent suite or an earlier item). Restarting
+  // would close it and race the port; nested suites may share the same mock.
+  if (activeServers.has(filePath)) {
+    return () => {};
   }
 
   const rawContent = fs.readFileSync(filePath, 'utf-8');

@@ -22,6 +22,7 @@ import {
   computeMissingImportMarkers,
   computeMissingDocFileMarkers, // Updated from computeMissingLogoFileMarkers
   computeMissingSuiteFileMarkers,
+  computeDuplicateServerMarkers,
   computeOrderingMarkers,
   computeTestCallAliasMarkers,
   findTestCallInputsProblems,
@@ -181,12 +182,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [importsMapState, setImportsMapState] = useState<Record<string, string>>({});
   const lastImportsSignatureRef = useRef<string>("");
   const { missingImports, inputsByAlias: apiInputsByAlias, outputsByAlias: apiOutputsByAlias } = useImportValidation(importsMapState);
-  const { missingSuiteFiles } = useSuiteTestsValidation(docType, content);
+  const { missingSuiteFiles, serverFiles } = useSuiteTestsValidation(docType, content);
   const { missingDocFiles } = useDocFileValidation(docType, content); // Changed from missingLogoFile
   const [yamlProblems, setYamlProblems] = useState<ProblemEntry[]>([]);
   const [orderingProblems, setOrderingProblems] = useState<ProblemEntry[]>([]);
   const [missingImportProblems, setMissingImportProblems] = useState<ProblemEntry[]>([]);
   const [missingSuiteFileProblems, setMissingSuiteFileProblems] = useState<ProblemEntry[]>([]);
+  const [duplicateServerProblems, setDuplicateServerProblems] = useState<ProblemEntry[]>([]);
   const [missingDocFileProblems, setMissingDocFileProblems] = useState<ProblemEntry[]>([]); // Changed from missingLogoFileProblems
   const [callAliasProblems, setCallAliasProblems] = useState<ProblemEntry[]>([]);
   const [callInputsProblems, setCallInputsProblems] = useState<ProblemEntry[]>([]);
@@ -469,6 +471,31 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-suite-files", markers);
     setMissingSuiteFileProblems(problems);
   }, [missingSuiteFiles, content, editorReady]);
+
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const model = editorRef.current.getModel();
+    if (!model) {
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+    } catch {
+      monaco.editor.setModelMarkers(model, "mmt-suite-servers", []);
+      setDuplicateServerProblems([]);
+      return;
+    }
+
+    const { markers, problems } =
+      computeDuplicateServerMarkers(monaco, model, content, doc, docType, serverFiles);
+    monaco.editor.setModelMarkers(model, "mmt-suite-servers", markers);
+    setDuplicateServerProblems(problems);
+  }, [serverFiles, docType, content, editorReady]);
 
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -1210,6 +1237,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...callAliasProblems,
       ...callInputsProblems,
       ...missingSuiteFileProblems,
+      ...duplicateServerProblems,
       ...exampleKeyProblems,
       ...inputRefProblems,
       ...envRefProblems,
@@ -1222,7 +1250,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems, compatibilityProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, duplicateServerProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems, compatibilityProblems]);
 
   return (
     <div style={{ height: "100%", minHeight: 0, overflow: "hidden", position: "relative" }}>

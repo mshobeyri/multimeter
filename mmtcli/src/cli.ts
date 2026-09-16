@@ -104,7 +104,6 @@ function toPlainWorkerContext(context: any): Record<string, any> {
     title: context.title,
     id: context.id,
     traceSend: context.traceSend,
-    skipServerCleanup: context.skipServerCleanup,
     basePath: context.basePath,
     checkLogMode: context.checkLogMode,
   };

@@ -100,15 +100,18 @@ export function useSuiteTestsValidation(docType: string | null, content: string)
       () => extractSuiteTestItems(docType, content),
       [docType, content]);
   const [missingSuiteFiles, setMissingSuiteFiles] = useState<MissingSuiteFileEntry[]>([]);
+  const [serverFiles, setServerFiles] = useState<string[]>([]);
   const pendingIdRef = useRef<number>(0);
 
   useEffect(() => {
     if ((docType !== 'suite' && docType !== 'loadtest') || !window?.vscode) {
       setMissingSuiteFiles([]);
+      setServerFiles([]);
       return;
     }
     if (!paths.length) {
       setMissingSuiteFiles([]);
+      setServerFiles([]);
       return;
     }
     const vscodeApi = window.vscode;
@@ -137,6 +140,12 @@ export function useSuiteTestsValidation(docType: string | null, content: string)
           };
         });
       setMissingSuiteFiles(formatted);
+
+      const servers = Array.isArray(message.servers)
+        ? message.servers.filter((p: any): p is string => typeof p === 'string')
+        : [];
+      setServerFiles((prev) =>
+          (prev.length === servers.length && prev.every((p, i) => p === servers[i])) ? prev : servers);
     };
 
     const requestValidation = () => {
@@ -159,5 +168,5 @@ export function useSuiteTestsValidation(docType: string | null, content: string)
     };
   }, [docType, paths, positions]);
 
-  return {missingSuiteFiles};
+  return {missingSuiteFiles, serverFiles};
 }

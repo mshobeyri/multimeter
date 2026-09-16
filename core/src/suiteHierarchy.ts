@@ -7,9 +7,13 @@ import {brunoToTest, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, isHttpFilePath} from './httpParsePack';
 import {yamlToMock} from './mockParsePack';
 
+export type SuiteServerItemNode =
+  | Extract<SuiteHierarchyNode, {kind: 'server'}>
+  | Extract<SuiteHierarchyNode, {kind: 'missing'}>;
+
 export type SuiteHierarchyNode =
   | {kind: 'group'; id: string; label: string; children: SuiteHierarchyNode[]}
-  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]; servers?: string[]; tags?: string[]; filter?: SuiteYamlFilter}
+  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]; servers?: string[]; serverItems?: SuiteServerItemNode[]; tags?: string[]; filter?: SuiteYamlFilter}
   | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
   | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
@@ -53,15 +57,8 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     // (e.g. suite1 / then / suite1). Only true A→…→A recursion is a cycle.
     const nextAncestors = new Set(ancestors);
     nextAncestors.add(targetFilePath);
-    let children = await buildNodesFromEntries(
+    const children = await buildNodesFromEntries(
         suiteDoc.items ?? [], targetFilePath, indexPath, nextAncestors);
-    // Nested `servers:` run like items at the start of this suite (not YAML rewrite).
-    // Root suites still use the `servers:` field on the bundle.
-    const isNested = indexPath.length > 0;
-    if (isNested && Array.isArray(suiteDoc.servers) && suiteDoc.servers.length > 0) {
-      children = await prependServersAsLeadingItems(
-          suiteDoc.servers, targetFilePath, indexPath, nextAncestors, children);
-    }
     const node: SuiteHierarchyRootNode = {
       kind: 'suite',
       id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
@@ -73,6 +70,15 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     };
     if (Array.isArray(suiteDoc.servers) && suiteDoc.servers.length > 0) {
       node.servers = suiteDoc.servers;
+      const serverItems =
+          (await Promise.all(suiteDoc.servers.map(
+               (entry, idx) => buildNodeFromEntry(
+                   entry, targetFilePath, [...indexPath, -1, idx], nextAncestors))))
+              .filter((n): n is SuiteServerItemNode =>
+                !!n && (n.kind === 'server' || n.kind === 'missing'));
+      if (serverItems.length > 0) {
+        node.serverItems = serverItems;
+      }
     }
     if (suiteDoc.environment) {
       node.environment = suiteDoc.environment;
@@ -118,39 +124,6 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     );
 
     return groupNodes.filter((n): n is SuiteHierarchyNode => n !== null);
-  };
-
-  const prependServersAsLeadingItems = async (
-    servers: readonly string[],
-    ownerFilePath: string,
-    suiteIndexPath: number[],
-    ancestors: ReadonlySet<string>,
-    existingChildren: SuiteHierarchyNode[],
-  ): Promise<SuiteHierarchyNode[]> => {
-    const serverNodes =
-        (await Promise.all(servers.map(
-             (entry, idx) => buildNodeFromEntry(
-                 entry, ownerFilePath, [...suiteIndexPath, -1, idx], ancestors))))
-            .filter((n): n is SuiteHierarchyNode => n !== null);
-    if (!serverNodes.length) {
-      return existingChildren;
-    }
-    const first = existingChildren[0];
-    if (first && first.kind === 'group') {
-      return [
-        {...first, children: [...serverNodes, ...first.children]},
-        ...existingChildren.slice(1),
-      ];
-    }
-    return [
-      {
-        kind: 'group',
-        id: createSuiteNodeId([...suiteIndexPath, -1], {prefix: leafPrefix}),
-        label: 'Group 1',
-        children: serverNodes,
-      },
-      ...existingChildren,
-    ];
   };
 
   const buildNodeFromEntry = async (

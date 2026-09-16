@@ -1943,6 +1943,12 @@ select.method-select:focus-visible {
   cursor: pointer;
 }
 
+.mmt-line-error {
+  text-decoration: underline wavy;
+  text-decoration-color: var(--vscode-errorForeground, #f85149);
+  text-underline-offset: 3px;
+}
+
 .tree-view-box-row .codicon {
   display: inline-flex;
   align-items: center;

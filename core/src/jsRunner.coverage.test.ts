@@ -1,5 +1,12 @@
 import {runJSCode} from './jsRunner';
-import {AssertionFailedError, TestAbortError} from './testHelper';
+import {
+  AssertionFailedError,
+  beginServerSession_,
+  endServerSession_,
+  isServerRunning_,
+  stopAllServers_,
+  TestAbortError,
+} from './testHelper';
 
 jest.mock('./networkCoreNode', () => ({
   send: jest.fn(async (req: any) => {
@@ -33,6 +40,7 @@ describe('jsRunner extra runtime paths', () => {
 
   afterEach(() => {
     logger.mockReset();
+    stopAllServers_();
   });
 
   it('routes console levels and marks console.error as failure', async () => {
@@ -147,6 +155,40 @@ describe('jsRunner extra runtime paths', () => {
     })).rejects.toBeInstanceOf(AssertionFailedError);
   });
 
+  it('stops run: servers when the test is the outermost session', async () => {
+    let stops = 0;
+    await runJSCode({
+      js: `return startServer_('mock');`,
+      title: 'run server',
+      runId: 'r-server-outer',
+      logger,
+      serverRunner: async () => () => {
+        stops += 1;
+      },
+    });
+    expect(isServerRunning_('mock')).toBe(false);
+    expect(stops).toBe(1);
+  });
+
+  it('keeps run: servers when a parent session is already open', async () => {
+    let stops = 0;
+    beginServerSession_();
+    await runJSCode({
+      js: `return startServer_('mock');`,
+      title: 'run server nested',
+      runId: 'r-server-nested',
+      logger,
+      serverRunner: async () => () => {
+        stops += 1;
+      },
+    });
+    expect(isServerRunning_('mock')).toBe(true);
+    expect(stops).toBe(0);
+    endServerSession_();
+    expect(isServerRunning_('mock')).toBe(false);
+    expect(stops).toBe(1);
+  });
+
   it('marks reporter failures without throwing and evicts compiled cache', async () => {
     const events: any[] = [];
     await runJSCode({
@@ -161,7 +203,6 @@ describe('jsRunner extra runtime paths', () => {
       logger,
       reporter: (e) => events.push(e),
       checkLogMode: 'none',
-      skipServerCleanup: true,
     });
     expect(events.length).toBe(4);
 

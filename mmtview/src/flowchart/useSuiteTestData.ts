@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TestData } from 'mmt-core/TestData';
 import { yamlToTest } from 'mmt-core/testParsePack';
-import { SuiteTreeNode } from '../suite/test/suiteHierarchy';
+import { SuiteTreeNode, suiteTreeChildren } from '../suite/test/suiteHierarchy';
 import { SuiteGroup } from '../suite/types';
 import { readFile } from '../vsAPI';
 
@@ -102,12 +102,12 @@ function collectTestPaths(
       return;
     }
     if (node.kind === 'suite' || node.kind === 'group') {
-      const children = (node as any).children as SuiteTreeNode[] | undefined;
-      if (Array.isArray(children)) {
-        for (const child of children) {
-          if ('path' in child && child.path) {
-            walk(child, child.path);
-          }
+      const children = suiteTreeChildren(node);
+      for (const child of children) {
+        if ('path' in child && child.path) {
+          walk(child, child.path);
+        } else {
+          walk(child, entryPath);
         }
       }
     }

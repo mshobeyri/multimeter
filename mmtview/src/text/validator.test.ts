@@ -13,6 +13,7 @@ import {
   extractSuiteTestLineInfo,
   getUndefinedExpectKeyDecorations,
   offsetToLineNumber,
+  computeDuplicateServerMarkers,
 } from './validator';
 
 describe('offsetToLineNumber', () => {
@@ -363,9 +364,68 @@ describe('suite file reference extraction', () => {
     const doc = parseDocument(content);
     const refs = extractSuiteTestLineInfo(doc, content);
     expect(refs).toEqual([
-      {path: 'mocks/missing-server.mmt', line: 3},
-      {path: 'tests/login.mmt', line: 6},
+      {path: 'mocks/missing-server.mmt', line: 3, column: expect.any(Number)},
+      {path: 'tests/login.mmt', line: 6, column: expect.any(Number)},
     ]);
+  });
+});
+
+describe('computeDuplicateServerMarkers', () => {
+  const monaco = {MarkerSeverity: {Error: 8, Warning: 4}};
+  const modelFor = (content: string) => ({
+    getLineCount: () => content.split('\n').length,
+    getLineMaxColumn: (line: number) => (content.split('\n')[line - 1]?.length ?? 0) + 1,
+  });
+
+  const markersFor = (content: string, serverFiles: string[] = []) => {
+    const doc = parseDocument(content);
+    return computeDuplicateServerMarkers(
+        monaco, modelFor(content), content, doc, 'suite', serverFiles);
+  };
+
+  it('flags a server listed in both servers: and items:', () => {
+    const content = [
+      'type: suite',
+      'servers:',
+      '  - mocks/api.mmt',
+      'items:',
+      '  - ./mocks/api.mmt',
+      '  - tests/login.mmt',
+    ].join('\n');
+
+    const {markers, problems} = markersFor(content);
+    expect(markers).toHaveLength(2);
+    expect(markers.map((m: {startLineNumber: number}) => m.startLineNumber).sort()).toEqual([3, 5]);
+    expect(markers[0].severity).toBe(monaco.MarkerSeverity.Error);
+    expect(markers[0].message).toContain('listed more than once');
+    expect(problems[0].severity).toBe('error');
+  });
+
+  it('flags a server repeated inside items: when the host reports its type', () => {
+    const content = [
+      'type: suite',
+      'items:',
+      '  - mocks/api.mmt',
+      '  - tests/login.mmt',
+      '  - mocks/api.mmt',
+    ].join('\n');
+
+    const {markers} = markersFor(content, ['mocks/api.mmt']);
+    expect(markers).toHaveLength(2);
+    expect(markers.map((m: {startLineNumber: number}) => m.startLineNumber).sort()).toEqual([3, 5]);
+  });
+
+  it('leaves single server references and repeated tests alone', () => {
+    const content = [
+      'type: suite',
+      'servers:',
+      '  - mocks/api.mmt',
+      'items:',
+      '  - tests/login.mmt',
+      '  - tests/login.mmt',
+    ].join('\n');
+
+    expect(markersFor(content).markers).toEqual([]);
   });
 });
 
