@@ -1206,6 +1206,117 @@ export function computeDuplicateServerMarkers(
   };
 }
 
+export type SuiteThenLineInfo = {
+  line: number;
+  column: number;
+};
+
+function extractSuiteThenLineInfo(doc: any, content: string): SuiteThenLineInfo[] {
+  const entries = [
+    ...extractStringSequenceLineInfo(doc, content, 'items'),
+    ...extractStringSequenceLineInfo(doc, content, 'tests'),
+  ];
+  return entries
+    .filter((entry) => entry.path === 'then')
+    .map((entry) => ({line: entry.line, column: entry.column}));
+}
+
+function extractSuiteItemSequence(doc: any, content: string): SuiteTestLineInfo[] {
+  return [
+    ...extractStringSequenceLineInfo(doc, content, 'items'),
+    ...extractStringSequenceLineInfo(doc, content, 'tests'),
+  ];
+}
+
+export function findSuiteThenSeparatorProblems(
+  yamlDoc: any,
+  content: string,
+  docType: string | null,
+): ProblemEntry[] {
+  if (docType !== 'suite' || !yamlDoc) {
+    return [];
+  }
+
+  const entries = extractSuiteItemSequence(yamlDoc, content);
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const problems: ProblemEntry[] = [];
+  const seen = new Set<string>();
+  const push = (entry: SuiteTestLineInfo, message: string) => {
+    const key = `${entry.line}:${message}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    problems.push({
+      message,
+      severity: 'error',
+      line: entry.line,
+      column: entry.column,
+    });
+  };
+
+  if (entries.length === 1 && entries[0].path === 'then') {
+    push(entries[0], '"then" must sit between groups of items.');
+    return problems;
+  }
+
+  if (entries[0].path === 'then') {
+    push(entries[0], 'Suite items cannot start with "then".');
+  }
+
+  const last = entries[entries.length - 1];
+  if (last.path === 'then') {
+    push(last, 'Suite items cannot end with "then".');
+  }
+
+  for (let i = 1; i < entries.length; i++) {
+    if (entries[i].path === 'then' && entries[i - 1].path === 'then') {
+      push(entries[i], 'Suite items cannot contain consecutive "then" separators.');
+    }
+  }
+
+  return problems;
+}
+
+export function computeSuiteThenSeparatorMarkers(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+): {markers: any[]; problems: ProblemEntry[]} {
+  if (!model || !yamlDoc || docType !== 'suite') {
+    return {markers: [], problems: []};
+  }
+
+  const problems = findSuiteThenSeparatorProblems(yamlDoc, content, docType);
+  if (problems.length === 0) {
+    return {markers: [], problems: []};
+  }
+
+  const thenLines = new Set(extractSuiteThenLineInfo(yamlDoc, content).map((entry) => entry.line));
+  const markers = problems
+    .filter((problem) => typeof problem.line === 'number' && thenLines.has(problem.line))
+    .map((problem) => {
+      const lineNumber = Math.min(Math.max(problem.line ?? 1, 1), model.getLineCount());
+      const startColumn = Math.max(1, problem.column ?? 1);
+      const endColumn = Math.min(model.getLineMaxColumn(lineNumber), startColumn + 4);
+      return {
+        startLineNumber: lineNumber,
+        startColumn,
+        endLineNumber: lineNumber,
+        endColumn,
+        message: problem.message,
+        severity: monaco.MarkerSeverity.Error,
+      };
+    });
+
+  return {markers, problems};
+}
+
 export type DocFileLineInfo = {
   path: string;
   line: number;

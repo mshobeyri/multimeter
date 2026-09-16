@@ -23,6 +23,7 @@ import {
   computeMissingDocFileMarkers, // Updated from computeMissingLogoFileMarkers
   computeMissingSuiteFileMarkers,
   computeDuplicateServerMarkers,
+  computeSuiteThenSeparatorMarkers,
   computeOrderingMarkers,
   computeTestCallAliasMarkers,
   findTestCallInputsProblems,
@@ -189,6 +190,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [missingImportProblems, setMissingImportProblems] = useState<ProblemEntry[]>([]);
   const [missingSuiteFileProblems, setMissingSuiteFileProblems] = useState<ProblemEntry[]>([]);
   const [duplicateServerProblems, setDuplicateServerProblems] = useState<ProblemEntry[]>([]);
+  const [suiteThenSeparatorProblems, setSuiteThenSeparatorProblems] = useState<ProblemEntry[]>([]);
   const [missingDocFileProblems, setMissingDocFileProblems] = useState<ProblemEntry[]>([]); // Changed from missingLogoFileProblems
   const [callAliasProblems, setCallAliasProblems] = useState<ProblemEntry[]>([]);
   const [callInputsProblems, setCallInputsProblems] = useState<ProblemEntry[]>([]);
@@ -496,6 +498,30 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-suite-servers", markers);
     setDuplicateServerProblems(problems);
   }, [serverFiles, docType, content, editorReady]);
+
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const model = editorRef.current.getModel();
+    if (!model) {
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+    } catch {
+      monaco.editor.setModelMarkers(model, "mmt-suite-then", []);
+      setSuiteThenSeparatorProblems([]);
+      return;
+    }
+
+    const {markers, problems} = computeSuiteThenSeparatorMarkers(monaco, model, content, doc, docType);
+    monaco.editor.setModelMarkers(model, "mmt-suite-then", markers);
+    setSuiteThenSeparatorProblems(problems);
+  }, [docType, content, editorReady]);
 
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -1238,6 +1264,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...callInputsProblems,
       ...missingSuiteFileProblems,
       ...duplicateServerProblems,
+      ...suiteThenSeparatorProblems,
       ...exampleKeyProblems,
       ...inputRefProblems,
       ...envRefProblems,
@@ -1250,7 +1277,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, duplicateServerProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems, compatibilityProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, duplicateServerProblems, suiteThenSeparatorProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems, compatibilityProblems]);
 
   return (
     <div style={{ height: "100%", minHeight: 0, overflow: "hidden", position: "relative" }}>
