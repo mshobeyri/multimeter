@@ -1000,7 +1000,13 @@ export function computeTestCallInputsMarkers(
 export type SuiteTestLineInfo = {
   path: string;
   line: number;
+  column: number;
 };
+
+function columnFromOffset(content: string, offset: number): number {
+  const lastNl = content.lastIndexOf('\n', Math.max(0, offset - 1));
+  return lastNl >= 0 ? offset - lastNl : offset + 1;
+}
 
 function extractStringSequenceLineInfo(
   doc: any,
@@ -1025,7 +1031,8 @@ function extractStringSequenceLineInfo(
           ? item.range[0]
           : undefined;
       const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
-      return { path, line } as SuiteTestLineInfo;
+      const column = typeof offset === "number" ? columnFromOffset(content, offset) : 1;
+      return { path, line, column } as SuiteTestLineInfo;
     })
     .filter(Boolean) as SuiteTestLineInfo[];
 }
@@ -1043,7 +1050,8 @@ export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLi
         ? testPair.value.range[0]
         : undefined;
     const line = typeof offset === 'number' ? offsetToLineNumber(content, offset) : 1;
-    return [{ path, line }];
+    const column = typeof offset === 'number' ? columnFromOffset(content, offset) : 1;
+    return [{ path, line, column }];
   }
   return [
     ...extractStringSequenceLineInfo(doc, content, "servers"),
@@ -1088,6 +1096,225 @@ export function computeMissingSuiteFileMarkers(
       column: marker.startColumn,
     })),
   };
+}
+
+/** `./mock.mmt` and `mock.mmt` point at the same file. */
+export function normalizeSuiteRefPath(path: string): string {
+  return path.trim().replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+/**
+ * Paths that list the same mock server more than once in one suite file
+ * (`servers:` and/or `items:`). Nested suites are not included.
+ */
+export function duplicateSuiteServerPaths(
+  servers: readonly string[],
+  items: readonly string[],
+  extraServerPaths: readonly string[] = [],
+): Set<string> {
+  const known = new Set<string>([
+    ...servers.map((path) => normalizeSuiteRefPath(path)),
+    ...extraServerPaths.map((path) => normalizeSuiteRefPath(path)),
+  ]);
+  if (known.size === 0) {
+    return new Set();
+  }
+  const counts = new Map<string, number>();
+  for (const path of [...servers, ...items]) {
+    const key = normalizeSuiteRefPath(path);
+    if (!known.has(key)) {
+      continue;
+    }
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const duplicated = new Set<string>();
+  counts.forEach((count, key) => {
+    if (count >= 2) {
+      duplicated.add(key);
+    }
+  });
+  return duplicated;
+}
+
+export function isDuplicateSuiteServerPath(path: string, duplicatedKeys: Set<string>): boolean {
+  return duplicatedKeys.has(normalizeSuiteRefPath(path));
+}
+
+/**
+ * A mock server starts once per suite file, so listing the same server twice
+ * (in `servers:` and `items:`, or twice in one of them) is an authoring error.
+ * Nested suites starting the same server are fine and not checked here.
+ */
+export function computeDuplicateServerMarkers(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  serverFiles: readonly string[] = []
+): { markers: any[]; problems: ProblemEntry[] } {
+  if (!model || !yamlDoc || docType !== "suite") {
+    return { markers: [], problems: [] };
+  }
+
+  const declaredServers = extractStringSequenceLineInfo(yamlDoc, content, "servers");
+  const itemRefs = [
+    ...extractStringSequenceLineInfo(yamlDoc, content, "items", {skipThen: true}),
+    ...extractStringSequenceLineInfo(yamlDoc, content, "tests", {skipThen: true}),
+  ];
+  const duplicatedKeys = duplicateSuiteServerPaths(
+    declaredServers.map((entry) => entry.path),
+    itemRefs.map((entry) => entry.path),
+    serverFiles,
+  );
+  if (duplicatedKeys.size === 0) {
+    return { markers: [], problems: [] };
+  }
+
+  const messageFor = (path: string) =>
+    `Mock server "${path}" is listed more than once in this suite. Keep it in servers: or in items:, not both.`;
+
+  const markers: any[] = [];
+  for (const reference of [...declaredServers, ...itemRefs]) {
+    if (!duplicatedKeys.has(normalizeSuiteRefPath(reference.path))) {
+      continue;
+    }
+    const lineNumber = Math.min(Math.max(reference.line, 1), model.getLineCount());
+    const startColumn = Math.max(1, reference.column || 1);
+    const endColumn = Math.min(
+      model.getLineMaxColumn(lineNumber),
+      startColumn + Math.max(1, reference.path.length),
+    );
+    markers.push({
+      startLineNumber: lineNumber,
+      startColumn,
+      endLineNumber: lineNumber,
+      endColumn,
+      message: messageFor(reference.path),
+      severity: monaco.MarkerSeverity.Error,
+    });
+  }
+
+  return {
+    markers,
+    problems: markers.map((marker) => ({
+      message: marker.message,
+      severity: "error" as const,
+      line: marker.startLineNumber,
+      column: marker.startColumn,
+    })),
+  };
+}
+
+export type SuiteThenLineInfo = {
+  line: number;
+  column: number;
+};
+
+function extractSuiteThenLineInfo(doc: any, content: string): SuiteThenLineInfo[] {
+  const entries = [
+    ...extractStringSequenceLineInfo(doc, content, 'items'),
+    ...extractStringSequenceLineInfo(doc, content, 'tests'),
+  ];
+  return entries
+    .filter((entry) => entry.path === 'then')
+    .map((entry) => ({line: entry.line, column: entry.column}));
+}
+
+function extractSuiteItemSequence(doc: any, content: string): SuiteTestLineInfo[] {
+  return [
+    ...extractStringSequenceLineInfo(doc, content, 'items'),
+    ...extractStringSequenceLineInfo(doc, content, 'tests'),
+  ];
+}
+
+export function findSuiteThenSeparatorProblems(
+  yamlDoc: any,
+  content: string,
+  docType: string | null,
+): ProblemEntry[] {
+  if (docType !== 'suite' || !yamlDoc) {
+    return [];
+  }
+
+  const entries = extractSuiteItemSequence(yamlDoc, content);
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const problems: ProblemEntry[] = [];
+  const seen = new Set<string>();
+  const push = (entry: SuiteTestLineInfo, message: string) => {
+    const key = `${entry.line}:${message}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    problems.push({
+      message,
+      severity: 'error',
+      line: entry.line,
+      column: entry.column,
+    });
+  };
+
+  if (entries.length === 1 && entries[0].path === 'then') {
+    push(entries[0], '"then" must sit between groups of items.');
+    return problems;
+  }
+
+  if (entries[0].path === 'then') {
+    push(entries[0], 'Suite items cannot start with "then".');
+  }
+
+  const last = entries[entries.length - 1];
+  if (last.path === 'then') {
+    push(last, 'Suite items cannot end with "then".');
+  }
+
+  for (let i = 1; i < entries.length; i++) {
+    if (entries[i].path === 'then' && entries[i - 1].path === 'then') {
+      push(entries[i], 'Suite items cannot contain consecutive "then" separators.');
+    }
+  }
+
+  return problems;
+}
+
+export function computeSuiteThenSeparatorMarkers(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+): {markers: any[]; problems: ProblemEntry[]} {
+  if (!model || !yamlDoc || docType !== 'suite') {
+    return {markers: [], problems: []};
+  }
+
+  const problems = findSuiteThenSeparatorProblems(yamlDoc, content, docType);
+  if (problems.length === 0) {
+    return {markers: [], problems: []};
+  }
+
+  const thenLines = new Set(extractSuiteThenLineInfo(yamlDoc, content).map((entry) => entry.line));
+  const markers = problems
+    .filter((problem) => typeof problem.line === 'number' && thenLines.has(problem.line))
+    .map((problem) => {
+      const lineNumber = Math.min(Math.max(problem.line ?? 1, 1), model.getLineCount());
+      const startColumn = Math.max(1, problem.column ?? 1);
+      const endColumn = Math.min(model.getLineMaxColumn(lineNumber), startColumn + 4);
+      return {
+        startLineNumber: lineNumber,
+        startColumn,
+        endLineNumber: lineNumber,
+        endColumn,
+        message: problem.message,
+        severity: monaco.MarkerSeverity.Error,
+      };
+    });
+
+  return {markers, problems};
 }
 
 export type DocFileLineInfo = {

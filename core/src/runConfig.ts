@@ -8,7 +8,7 @@ import {processDataImportsInYaml} from './dataImportProcessor';
 export type FileLoader = (path: string) => Promise<string>;
 
 export type TestStepStatus = 'passed'|'failed';
-export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending'|'invalid';
+export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending'|'invalid'|'skipped';
 
 export interface ExpectItemEvent {
   comparison: string;
@@ -204,11 +204,15 @@ export interface RunFileOptions {
   serverRunner?: (alias: string, filePath: string) => Promise<() => void>;
 
   /**
-   * When true, do not stop servers after test execution.
-   * Used by suite runners to keep servers alive for the entire suite duration.
-   * The suite runner is responsible for cleanup in this case.
+   * Tag filter for this invocation. When set on the run root, replaces suite
+   * YAML `filter:`. Nested running suites still merge their own `filter:`.
    */
-  skipServerCleanup?: boolean;
+  tagFilter?: import('./suiteTagFilter').TagFilter;
+  /**
+   * True when an ancestor suite was selected by `only` (run whole subtree
+   * except skip). Internal to suite bundle execution.
+   */
+  tagParentSelected?: boolean;
 }
 
 export interface MergeInputsParams {

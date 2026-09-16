@@ -7,6 +7,7 @@ describe('yamlIncompleteScalar', () => {
     expect(normalizeIncompleteYamlScalar({ws: null})).toBe('ws:');
     // Following keys can be swallowed into the same map while typing.
     expect(normalizeIncompleteYamlScalar({http: null, method: 'get'})).toBe('http:');
+    expect(normalizeIncompleteYamlScalar({ftp: null, extra: 'x'})).toBe('ftp:');
   });
 
   it('passes through normal scalars', () => {
@@ -15,9 +16,13 @@ describe('yamlIncompleteScalar', () => {
     expect(normalizeIncompleteYamlScalar(true)).toBe('true');
   });
 
-  it('returns undefined for real objects and coerce falls back', () => {
+  it('returns undefined for real objects, arrays, and missing values', () => {
     expect(normalizeIncompleteYamlScalar({a: 1, b: 2})).toBeUndefined();
+    expect(normalizeIncompleteYamlScalar(null)).toBeUndefined();
+    expect(normalizeIncompleteYamlScalar(undefined)).toBeUndefined();
+    expect(normalizeIncompleteYamlScalar([1])).toBeUndefined();
     expect(coerceYamlString({a: 1}, '')).toBe('');
+    expect(coerceYamlString({a: 1}, 'fallback')).toBe('fallback');
     expect(coerceYamlString({http: null})).toBe('http:');
   });
 });

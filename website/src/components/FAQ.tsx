@@ -4,13 +4,13 @@ import { faqItems } from '../data/faq'
 
 export default function FAQ() {
   return (
-    <section id="faq" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8">
+    <section id="faq" className="scroll-mt-20 px-4 sm:px-6 lg:px-8 bg-surface-light/10">
       <div className="max-w-3xl mx-auto">
         <FadeIn>
           <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-4">
             Frequently Asked Questions
           </h2>
-          <p className="text-center text-slate-400 mb-12">
+          <p className="text-center text-slate-400 mb-10">
             Git-native REST client and API tests in VS Code. Same YAML files in CI.
           </p>
         </FadeIn>

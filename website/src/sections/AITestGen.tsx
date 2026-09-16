@@ -1,44 +1,50 @@
 import FadeIn from '../components/FadeIn'
 import AIIllustration from '../components/AIIllustration'
-import { Sparkles, Wand2, Scale } from 'lucide-react'
+import { Sparkles, Wand2, Scale, PlugZap } from 'lucide-react'
 
 const capabilities = [
   {
-    icon: Wand2,
-    title: 'Write tests',
+    icon: PlugZap,
+    title: 'MCP server',
     description:
-      'Generate complete .mmt flows from natural language, OpenAPI specs, or existing APIs with Cursor, Copilot, or Claude via MCP.',
+      'The Multimeter MCP server lets Cursor, Copilot, and Claude scaffold, validate, format, and run .mmt files — with project context, not guessed YAML.',
+  },
+  {
+    icon: Wand2,
+    title: 'AI writes tests for you',
+    description:
+      'Describe an endpoint or point at OpenAPI — AI drafts complete .mmt test flows in seconds. Review, run, and commit the same files you would write by hand.',
   },
   {
     icon: Scale,
-    title: 'Judge with AI',
+    title: 'AI judges fuzzy replies',
     description:
-      'Evaluate non-deterministic replies in the same run — relevance, similarity, faithfulness, and factuality using your own model (Ollama or cloud).',
+      'Add a judge step when a response is non-deterministic. It runs alongside classic status, JSON, and assert checks — not instead of them.',
   },
 ]
 
 export default function AITestGen() {
   return (
-    <section id="ai-test-generation" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8">
+    <section id="ai-test-generation" className="scroll-mt-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <FadeIn direction="up">
-          <div className="text-center mb-14">
+          <div className="text-center mb-12">
             <span className="text-purple-400 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 justify-center">
               <Sparkles size={16} />
-              Optional
+              AI &amp; MCP
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-4">
               Let AI write and <span className="gradient-text">judge</span> your tests
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              MCP can scaffold and run <span className="text-slate-200">.mmt</span> files.
-              An optional judge step scores fuzzy replies. Sending a request does not require either.
+              Agents connect through MCP, generate <span className="text-slate-200">.mmt</span> tests with little effort,
+              and add AI judging where deterministic asserts are not enough.
             </p>
           </div>
         </FadeIn>
 
         <FadeIn direction="up" delay={80}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-14">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-6xl mx-auto mb-12">
             {capabilities.map((item) => (
               <div
                 key={item.title}

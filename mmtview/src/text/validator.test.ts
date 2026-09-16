@@ -13,6 +13,9 @@ import {
   extractSuiteTestLineInfo,
   getUndefinedExpectKeyDecorations,
   offsetToLineNumber,
+  computeDuplicateServerMarkers,
+  computeSuiteThenSeparatorMarkers,
+  findSuiteThenSeparatorProblems,
 } from './validator';
 
 describe('offsetToLineNumber', () => {
@@ -363,9 +366,152 @@ describe('suite file reference extraction', () => {
     const doc = parseDocument(content);
     const refs = extractSuiteTestLineInfo(doc, content);
     expect(refs).toEqual([
-      {path: 'mocks/missing-server.mmt', line: 3},
-      {path: 'tests/login.mmt', line: 6},
+      {path: 'mocks/missing-server.mmt', line: 3, column: expect.any(Number)},
+      {path: 'tests/login.mmt', line: 6, column: expect.any(Number)},
     ]);
+  });
+});
+
+describe('computeDuplicateServerMarkers', () => {
+  const monaco = {MarkerSeverity: {Error: 8, Warning: 4}};
+  const modelFor = (content: string) => ({
+    getLineCount: () => content.split('\n').length,
+    getLineMaxColumn: (line: number) => (content.split('\n')[line - 1]?.length ?? 0) + 1,
+  });
+
+  const markersFor = (content: string, serverFiles: string[] = []) => {
+    const doc = parseDocument(content);
+    return computeDuplicateServerMarkers(
+        monaco, modelFor(content), content, doc, 'suite', serverFiles);
+  };
+
+  it('flags a server listed in both servers: and items:', () => {
+    const content = [
+      'type: suite',
+      'servers:',
+      '  - mocks/api.mmt',
+      'items:',
+      '  - ./mocks/api.mmt',
+      '  - tests/login.mmt',
+    ].join('\n');
+
+    const {markers, problems} = markersFor(content);
+    expect(markers).toHaveLength(2);
+    expect(markers.map((m: {startLineNumber: number}) => m.startLineNumber).sort()).toEqual([3, 5]);
+    expect(markers[0].severity).toBe(monaco.MarkerSeverity.Error);
+    expect(markers[0].message).toContain('listed more than once');
+    expect(problems[0].severity).toBe('error');
+  });
+
+  it('flags a server repeated inside items: when the host reports its type', () => {
+    const content = [
+      'type: suite',
+      'items:',
+      '  - mocks/api.mmt',
+      '  - tests/login.mmt',
+      '  - mocks/api.mmt',
+    ].join('\n');
+
+    const {markers} = markersFor(content, ['mocks/api.mmt']);
+    expect(markers).toHaveLength(2);
+    expect(markers.map((m: {startLineNumber: number}) => m.startLineNumber).sort()).toEqual([3, 5]);
+  });
+
+  it('leaves single server references and repeated tests alone', () => {
+    const content = [
+      'type: suite',
+      'servers:',
+      '  - mocks/api.mmt',
+      'items:',
+      '  - tests/login.mmt',
+      '  - tests/login.mmt',
+    ].join('\n');
+
+    expect(markersFor(content).markers).toEqual([]);
+  });
+});
+
+describe('suite then separator validation', () => {
+  const monaco = {MarkerSeverity: {Error: 8, Warning: 4}};
+  const modelFor = (content: string) => ({
+    getLineCount: () => content.split('\n').length,
+    getLineMaxColumn: (line: number) => (content.split('\n')[line - 1]?.length ?? 0) + 1,
+  });
+
+  const markersFor = (content: string) => {
+    const doc = parseDocument(content);
+    return computeSuiteThenSeparatorMarkers(monaco, modelFor(content), content, doc, 'suite');
+  };
+
+  it('flags consecutive then separators', () => {
+    const content = [
+      'type: suite',
+      'items:',
+      '  - test/secure_health_test.mmt',
+      '  - then',
+      '  - then',
+      '  - server/mock_server.mmt',
+    ].join('\n');
+
+    const {markers, problems} = markersFor(content);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('consecutive');
+    expect(problems[0].line).toBe(5);
+    expect(markers).toHaveLength(1);
+    expect(markers[0].startLineNumber).toBe(5);
+    expect(markers[0].severity).toBe(monaco.MarkerSeverity.Error);
+  });
+
+  it('flags a leading then separator', () => {
+    const content = [
+      'type: suite',
+      'items:',
+      '  - then',
+      '  - tests/login.mmt',
+    ].join('\n');
+
+    const {problems} = markersFor(content);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('start');
+    expect(problems[0].line).toBe(3);
+  });
+
+  it('flags a trailing then separator', () => {
+    const content = [
+      'type: suite',
+      'items:',
+      '  - tests/login.mmt',
+      '  - then',
+    ].join('\n');
+
+    const {problems} = markersFor(content);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('end');
+    expect(problems[0].line).toBe(4);
+  });
+
+  it('flags a lone then entry', () => {
+    const content = [
+      'type: suite',
+      'items:',
+      '  - then',
+    ].join('\n');
+
+    const problems = findSuiteThenSeparatorProblems(parseDocument(content), content, 'suite');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('between groups');
+  });
+
+  it('accepts a valid then between groups', () => {
+    const content = [
+      'type: suite',
+      'items:',
+      '  - tests/login.mmt',
+      '  - then',
+      '  - tests/profile.mmt',
+    ].join('\n');
+
+    expect(markersFor(content).problems).toEqual([]);
   });
 });
 

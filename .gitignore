@@ -18,6 +18,7 @@ mmtcli/dist/bin
 /bin/mmt.exe
 mmtview/node_modules
 mmtview/build
+coverage
 playwright-demo/video/
 TODO
 *.vsix

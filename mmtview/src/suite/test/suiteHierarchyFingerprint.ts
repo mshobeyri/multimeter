@@ -1,4 +1,5 @@
 import type { SuiteTreeNode } from './suiteHierarchy';
+import { suiteTreeChildren } from './suiteHierarchy';
 
 /** Stable structural fingerprint of a suite hierarchy tree (ids, kinds, paths, labels). */
 export function fingerprintSuiteTreeNode(node: SuiteTreeNode | null | undefined): string {
@@ -8,14 +9,15 @@ export function fingerprintSuiteTreeNode(node: SuiteTreeNode | null | undefined)
   const parts: string[] = [node.kind, node.id];
   if (node.kind === 'group') {
     parts.push(node.label || '');
-  } else if (node.kind === 'suite' || node.kind === 'test') {
+  } else if (node.kind === 'suite' || node.kind === 'test' || node.kind === 'server') {
     parts.push(node.path || '');
     parts.push(('title' in node && node.title) ? node.title : '');
   } else if (node.kind === 'missing' || node.kind === 'cycle') {
     parts.push(node.path || '');
   }
-  if ('children' in node && Array.isArray(node.children) && node.children.length) {
-    parts.push('[', ...node.children.map(fingerprintSuiteTreeNode), ']');
+  const kids = suiteTreeChildren(node);
+  if (kids.length) {
+    parts.push('[', ...kids.map(fingerprintSuiteTreeNode), ']');
   }
   return parts.join('|');
 }
@@ -48,10 +50,8 @@ export function findHierarchyNodeById(
     if (node.id === id) {
       return node;
     }
-    if ('children' in node && Array.isArray(node.children)) {
-      for (const child of node.children) {
-        stack.push(child);
-      }
+    for (const child of suiteTreeChildren(node)) {
+      stack.push(child);
     }
   }
   return null;
@@ -107,7 +107,7 @@ export function remapSuiteTargetId(
     if (!node || typeof node !== 'object') {
       continue;
     }
-    if ((node.kind === 'test' || node.kind === 'suite') && node.path === oldPath) {
+    if ((node.kind === 'test' || node.kind === 'suite' || node.kind === 'server') && node.path === oldPath) {
       if (oldTitle && node.title === oldTitle) {
         return node.id;
       }
@@ -115,10 +115,8 @@ export function remapSuiteTargetId(
         pathOnlyMatch = node.id;
       }
     }
-    if ('children' in node && Array.isArray(node.children)) {
-      for (const child of node.children) {
-        stack.push(child);
-      }
+    for (const child of suiteTreeChildren(node)) {
+      stack.push(child);
     }
   }
   return pathOnlyMatch || staleTarget;

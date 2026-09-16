@@ -74,7 +74,6 @@ describe('runGeneratedJs', () => {
       undefined,
       undefined,
       false,
-      false,
       undefined,
       false,
       true,
@@ -107,7 +106,6 @@ describe('runGeneratedJs', () => {
       undefined,
       () => {},
       undefined,
-      false,
       false,
       undefined,
       false,
@@ -162,7 +160,6 @@ describe('runGeneratedJs', () => {
       async () => {
         throw new ReferenceError('envVariables is not defined');
       },
-      undefined,
       undefined,
       undefined,
       undefined,

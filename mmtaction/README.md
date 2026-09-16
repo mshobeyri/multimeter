@@ -55,6 +55,8 @@ Azure Pipelines is a separate product (`mmtazure/`, `- task: Testlight@1`). See 
 | `env` | No | — | Environment variables (`KEY=VALUE` pairs) |
 | `input` | No | — | Input variables (`KEY=VALUE` pairs) |
 | `example` | No | — | Specific example name or index |
+| `tag` | No | — | Only run tests/suites with these tags (comma-separated; `--tag`) |
+| `skip-tag` | No | — | Skip tests/suites with these tags (comma-separated; `--skip-tag`) |
 | `report` | No | — | Report format: `junit`, `html`, `md`, `mmt` |
 | `report-file` | No | — | Custom report output path. Parent directories are created. |
 | `out` | No | — | Write result JSON to file. Parent directories are created. |

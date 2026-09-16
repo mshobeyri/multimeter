@@ -30,6 +30,12 @@ inputs:
   example:
     description: 'Run a specific example by name or index (e.g., happy-path or #1)'
     required: false
+  tag:
+    description: 'Only run tests/suites with this tag (comma-separated or repeat via YAML list)'
+    required: false
+  skip-tag:
+    description: 'Skip tests/suites with this tag (comma-separated)'
+    required: false
   report:
     description: 'Report format: junit, html, md, mmt'
     required: false
@@ -102,6 +108,8 @@ runs:
         TL_ENV: ${{ inputs.env }}
         TL_INPUT: ${{ inputs.input }}
         TL_EXAMPLE: ${{ inputs.example }}
+        TL_TAG: ${{ inputs.tag }}
+        TL_SKIP_TAG: ${{ inputs.skip-tag }}
         TL_REPORT: ${{ inputs.report }}
         TL_REPORT_FILE: ${{ inputs.report-file }}
         TL_OUT: ${{ inputs.out }}
@@ -134,6 +142,24 @@ runs:
         fi
         if [[ -n "${TL_EXAMPLE}" ]]; then
           args+=(--example "${TL_EXAMPLE}")
+        fi
+        if [[ -n "${TL_TAG}" ]]; then
+          IFS=',' read -r -a tag_parts <<< "${TL_TAG}"
+          for t in "${tag_parts[@]}"; do
+            t="$(echo "$t" | xargs)"
+            if [[ -n "$t" ]]; then
+              args+=(--tag "$t")
+            fi
+          done
+        fi
+        if [[ -n "${TL_SKIP_TAG}" ]]; then
+          IFS=',' read -r -a skip_parts <<< "${TL_SKIP_TAG}"
+          for t in "${skip_parts[@]}"; do
+            t="$(echo "$t" | xargs)"
+            if [[ -n "$t" ]]; then
+              args+=(--skip-tag "$t")
+            fi
+          done
         fi
         if [[ -n "${TL_REPORT}" ]]; then
           args+=(--report "${TL_REPORT}")

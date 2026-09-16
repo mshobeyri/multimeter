@@ -7,11 +7,18 @@ export interface SuiteEnvironment {
   variables?: Record<string, unknown>;
 }
 
+export interface SuiteYamlFilter {
+  only?: string[];
+  skip?: string[];
+}
+
 export interface SuiteData {
   type: 'suite';
   title?: string;
   description?: string;
   tags?: string[];
+  /** Run-root / nested-run tag filter (only + skip). */
+  filter?: SuiteYamlFilter;
   import?: Record<string, string>;
   servers?: string[];
   items: Array<string>;

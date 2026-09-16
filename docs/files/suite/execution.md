@@ -27,11 +27,11 @@ In the example above, the execution flow is as follows:
 
 See [Mock servers in suites](../server/in-suites.md) for a quick overview. Details below.
 
+A suite or test run keeps one **public running-server list**. Starting a mock that is already on that list is a no-op — whether the start came from suite `servers:`, an item server, or a test `run:` step. Nested suites and later items share the list. Servers stay up until the **outermost** run finishes.
+
 #### Suite-level servers (`servers:` field)
 
-Use the top-level `servers:` field to list mock server files that should start **before** any tests and remain running for the **entire** suite duration. They are stopped automatically when the suite finishes.
-
-> **Note:** `servers` is a **root-only** field — it only takes effect when the suite is run directly. If Suite A imports Suite B, Suite B's `servers` field is ignored. Servers should be declared in the root suite to avoid conflicts.
+Use the top-level `servers:` field to start mock servers at the **beginning of that suite**, before any `items`. Nested suites do the same when that nested suite starts. `environment:` and `export:` stay root-only.
 
 ```yaml
 type: suite
@@ -44,24 +44,25 @@ items:
   - tests/profile.mmt
 ```
 
-This is the recommended way to manage mock servers in suites. It is safe even when the same test file appears multiple times, or when multiple tests use the same server — the server is started once and kept alive for all of them.
+This is the recommended way to keep mocks alive for every item in the suite. The same server listed again in a nested suite is skipped, not restarted.
 
 #### Inline servers in `items:`
 
-You can also include `type: server` files directly in the `items` array. Servers start before items in the same stage and stop automatically when the suite completes.
+Include `type: server` files in `items` when the mock should start **at that position** (after earlier `then` stages). Within a stage, item servers start before tests and nested suites in that stage.
 
 ```yaml
 type: suite
 title: Integration Suite with Inline Mock Server
 items:
-  - mocks/user-service.mmt    # type: server — starts first
-  - mocks/auth-service.mmt    # runs in parallel with above
+  - tests/setup.mmt
   - then
-  - tests/login.mmt           # tests run after servers are ready
+  - mocks/user-service.mmt    # starts here, after setup
+  - then
+  - tests/login.mmt
   - tests/profile.mmt
 ```
 
-This lets you set up complex integration environments declaratively, without manual server management. The suite runner ensures servers are running before dependent tests execute.
+Do not list the same file in both `servers:` and `items:` of one suite file — the editor underlines that as an error. The same server in a nested import is allowed.
 
 ## Partial runs
 
@@ -73,3 +74,31 @@ The suite panel supports running a single item (or a subtree) from within the it
 - Core executes the subtree rooted at `target` and emits reports tagged with the same `id` so the UI routes output to the correct item.
 
 If you see output appear under the wrong item, it usually means report events are being routed without using `id` (or a per-run `runId`).
+
+## Tag filter
+
+Use `filter:` on a suite to restrict which tests (and nested suites) run. Tags live on `type: test` and `type: suite` files (`tags:`).
+
+```yaml
+type: suite
+title: CI
+filter:
+  only:
+    - smoke
+    - api
+  skip:
+    - flaky
+items:
+  - ./tests/login.mmt
+  - ./tests/slow.mmt
+```
+
+- `only:` — if non-empty, a node runs only when it has at least one of those tags (OR). Empty `only` means all.
+- `skip:` — if non-empty, a node is skipped when it has any of those tags (OR). Empty `skip` means none.
+- Order is **only, then skip**: `run iff matchesOnly && !matchesSkip`.
+- Nested **running** suites merge: `only` lists AND (each list is still OR), `skip` lists OR.
+- `filter:` on a nested suite is ignored while walking into it to find matching children; it applies when that suite itself is selected to run.
+- CLI: `testlight run suite.mmt --tag smoke --skip-tag flaky` (repeatable; comma-separated is OK). CLI tags replace the `filter:` of the file you run.
+- In VS Code, edit `filter:` in the {{btn:filter:Filter}} tab of [Edit Suite](./edit.md#filter). The suite panel lists the active filter above the tests.
+
+Skipped items are reported as skipped (not failed). A group that only contains skipped items is skipped; mixed passed + skipped still counts as passed.

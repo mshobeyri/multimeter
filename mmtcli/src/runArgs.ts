@@ -451,6 +451,15 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     projectRoot: findProjectRootForCli(full),
   };
 
+  const onlyTags = Array.isArray(opts.tag) ? opts.tag as string[] : [];
+  const skipTags = Array.isArray(opts.skipTag) ? opts.skipTag as string[] : [];
+  if (onlyTags.length || skipTags.length) {
+    const {tagFilterFromLists} = (mmtcore as any).suiteTagFilter || {};
+    if (typeof tagFilterFromLists === 'function') {
+      (runFileOptions as any).tagFilter = tagFilterFromLists(onlyTags, skipTags);
+    }
+  }
+
   // Wire collecting reporter when --report is requested
   const reportFormat = opts.report as ReportFormat | undefined;
   let getReportResults: (() => any) | undefined;

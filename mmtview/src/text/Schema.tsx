@@ -67,6 +67,19 @@ export const SuiteSchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        filter: {
+            oneOf: [
+                { type: 'array', items: { type: 'string' } },
+                {
+                    type: 'object',
+                    properties: {
+                        only: { type: 'array', items: { type: 'string' } },
+                        skip: { type: 'array', items: { type: 'string' } },
+                    },
+                    additionalProperties: false,
+                },
+            ],
+        },
         import: DataImportSchema,
         servers: { type: 'array', items: { type: 'string' } },
         environment: {

@@ -1,9 +1,10 @@
 {
   "manifestVersion": 1,
   "id": "testlight",
-  "name": "Testlight",
+  "name": "Testlight - Multimeter CLI",
   "version": "1.42.4",
   "publisher": "mshobeyri",
+  "public": true,
   "targets": [
     {
       "id": "Microsoft.VisualStudio.Services"

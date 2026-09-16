@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
   "id": "31011bc8-ab1e-408b-b84f-50cb921ea998",
   "name": "Testlight",
-  "friendlyName": "Testlight",
+  "friendlyName": "Testlight - Multimeter CLI",
   "description": "Run a Multimeter (.mmt) file with Testlight. Pass paths and flags as YAML inputs; does not check out source.",
   "helpMarkDown": "Same parameters as [testlight-action](https://github.com/mshobeyri/testlight-action). Docs: [Run in CI](https://mmt.dev/docs/tasks/run-in-ci)",
   "category": "Test",
@@ -73,6 +73,20 @@
       "label": "Example",
       "required": false,
       "helpMarkDown": "Example name or index (for example happy-path or #1)."
+    },
+    {
+      "name": "tag",
+      "type": "string",
+      "label": "Only tags",
+      "required": false,
+      "helpMarkDown": "Comma-separated tags. Maps to --tag (only run matching tests/suites)."
+    },
+    {
+      "name": "skipTag",
+      "type": "string",
+      "label": "Skip tags",
+      "required": false,
+      "helpMarkDown": "Comma-separated tags. Maps to --skip-tag."
     },
     {
       "name": "report",

@@ -104,7 +104,6 @@ function toPlainWorkerContext(context: any): Record<string, any> {
     title: context.title,
     id: context.id,
     traceSend: context.traceSend,
-    skipServerCleanup: context.skipServerCleanup,
     basePath: context.basePath,
     checkLogMode: context.checkLogMode,
   };
@@ -304,6 +303,16 @@ program.command('run')
     .option(
       '-x, --example <name|#n>',
       'Run a named example (matches name) or numeric index (#1 = first)')
+    .option(
+      '-t, --tag <tag>',
+      'Only run tests/suites with this tag (repeatable, OR; comma-separated ok)',
+      collectPreset,
+      [])
+    .option(
+      '--skip-tag <tag>',
+      'Skip tests/suites with this tag (repeatable, OR; comma-separated ok)',
+      collectPreset,
+      [])
     .option('-p, --print-js', 'Print generated JS before executing', false)
     .option(
       '-r, --report <format>',

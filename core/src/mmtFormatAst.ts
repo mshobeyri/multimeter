@@ -23,7 +23,7 @@ export const ROOT_KEY_ORDER: Record<string, string[]> = {
     'type', 'import', 'variables', 'presets', 'setting', 'certificates',
   ],
   suite: [
-    'type', 'title', 'description', 'tags', 'import', 'environment', 'servers',
+    'type', 'title', 'description', 'tags', 'filter', 'import', 'environment', 'servers',
     'export', 'items', 'tests',
   ],
   doc: [

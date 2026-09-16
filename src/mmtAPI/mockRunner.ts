@@ -326,8 +326,11 @@ export async function startMockServerFromPath(
   // Use the file path as the identifier
   const documentUri = filePath;
 
-  // Stop existing server on this path if any
-  stopMockServer(documentUri);
+  // Already serving this file (parent suite or an earlier item). Restarting
+  // would close it and race the port; nested suites may share the same mock.
+  if (activeServers.has(documentUri)) {
+    return () => {};
+  }
 
   const rawContent = fs.readFileSync(filePath, 'utf-8');
   let processedContent = rawContent;

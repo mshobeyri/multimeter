@@ -18,7 +18,7 @@ steps:
 ### Behavior
 
 - If the server is already running, `run` does nothing (idempotent)
-- All servers started by `run` stop automatically when the test finishes
+- Servers join the same public running-server list used by suites. They stop when the **outermost** run finishes (this test, or the enclosing suite / load test)
 - If the port is already in use by another process, the test fails with an error
 
 In the Flow panel, click **Add item** → **Server** to pick from imported server files. See [run step](../test/steps/run.md) for full details.

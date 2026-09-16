@@ -134,7 +134,7 @@ export async function executeTest(
     const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
       (options as any).id, options.fileLoader, setenvReporter,
-      options.abortSignal, true, options.skipServerCleanup,
+      options.abortSignal, true,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
       (options as any).__mmtIsSuiteBundleChildRun === true, undefined, undefined, 'Test',
       options.binaryFileLoader);

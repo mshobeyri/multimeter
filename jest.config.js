@@ -30,4 +30,9 @@ module.exports = {
     '^mmt-core/(.*)$': '<rootDir>/core/src/$1',
     '^mmt-core$': '<rootDir>/core/src/index.ts',
   },
+  collectCoverageFrom: [
+    'core/src/**/*.{ts,tsx}',
+    '!core/src/**/*.test.ts',
+    '!core/src/**/*.d.ts',
+  ],
 };

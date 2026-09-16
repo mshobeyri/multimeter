@@ -598,4 +598,26 @@ describe('validateTestData', () => {
     const errors = validateTestData(test);
     expect(errors).toHaveLength(0);
   });
+
+  it('flags invalid stages, unknown step keys, and missing http url', () => {
+    expect(validateTestData({
+      type: 'test', title: '', description: '', tags: [],
+      stages: [null as any, {title: 'no-id', extra: 1} as any],
+    } as any)).toEqual(expect.arrayContaining([
+      'Stage entry is not a valid object',
+      expect.stringMatching(/missing required "id"/),
+      expect.stringMatching(/unknown key/),
+    ]));
+    expect(validateTestData({
+      type: 'test', title: '', description: '', tags: [],
+      steps: [{print: 'ok', nope: 1} as any, {http: '', timeout: -1} as any],
+    } as any)).toEqual(expect.arrayContaining([
+      expect.stringMatching(/unknown key/),
+      expect.stringMatching(/missing required URL/),
+      expect.stringMatching(/timeout must be a non-negative/),
+    ]));
+    expect(() => yamlToTestStrict('type: test\nfoo: 1\nsteps:\n  - print: x')).toThrow(/unknown key/);
+    expect(getTestFlowStepType({} as any)).toBe('unknown');
+    expect(getTestFlowStepType({print: 'x'} as any)).toBe('print');
+  });
 });

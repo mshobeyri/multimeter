@@ -30,6 +30,7 @@ See also: [Flow chart](../../features/flow-chart.md)
 |---|---|
 | `environment` | Preset, env file, and inline variables when `environment:` is configured |
 | `servers` | Mock server files listed in `servers:` |
+| `filter` | Only/skip tags from `filter:` — see [Tag filter](./execution.md#tag-filter) |
 | **Exports** | Report export paths from `export:` |
 | **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards (after a run) — see [Reports](./reports.md) |
 | **Tests** | Item tree grouped by execution stage — expand a test to see step reports — see [Reports](./reports.md#tests-tree) |

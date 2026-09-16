@@ -29,6 +29,9 @@ export function isValidationErrorMessage(message: string): boolean {
  * cancelled rather than threw+executionError.
  */
 export function classifySuiteItemStatus(result?: RunResult|null): SuiteStepStatus {
+  if (result?.itemStatus === 'skipped') {
+    return 'skipped';
+  }
   if (!result || result.success) {
     return 'passed';
   }
@@ -57,15 +60,21 @@ export function classifySuiteItemStatus(result?: RunResult|null): SuiteStepStatu
   return 'failed';
 }
 
-/** Prefer failed (assertions/checks) over invalid (structure/runtime issues). */
+/** Prefer failed (assertions/checks) over invalid (structure/runtime issues). Skipped is weakest. */
 export function worstSuiteItemStatus(statuses: SuiteStepStatus[]): SuiteStepStatus {
   let anyFailed = false;
   let anyInvalid = false;
+  let anyPassed = false;
+  let anySkipped = false;
   for (const s of statuses) {
     if (s === 'failed') {
       anyFailed = true;
     } else if (s === 'invalid') {
       anyInvalid = true;
+    } else if (s === 'passed' || s === 'running' || s === 'pending') {
+      anyPassed = true;
+    } else if (s === 'skipped') {
+      anySkipped = true;
     }
   }
   if (anyFailed) {
@@ -73,6 +82,12 @@ export function worstSuiteItemStatus(statuses: SuiteStepStatus[]): SuiteStepStat
   }
   if (anyInvalid) {
     return 'invalid';
+  }
+  if (anyPassed) {
+    return 'passed';
+  }
+  if (anySkipped) {
+    return 'skipped';
   }
   return 'passed';
 }

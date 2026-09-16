@@ -60,6 +60,13 @@ describe('CSV import parsing', () => {
     expect(users[2]).toEqual({name: '0222', family: 'true', age: 12});
   });
 
+  it('returns empty for blank input and empty quoted fields', async () => {
+    expect(new Function(await csvToJSObj('', 'rows') + '\nreturn rows;')()).toEqual([]);
+    const csv = `a,b\n"","x"\n`;
+    const rows = new Function(await csvToJSObj(csv, 'rows') + '\nreturn rows;')();
+    expect(rows).toEqual([{a: '', b: 'x'}]);
+  });
+
   it('coerces unquoted numbers and booleans normally', async () => {
     const csv = `val,flag\n42,true\n3.14,FALSE\n`;
     const code = await csvToJSObj(csv, 'rows');

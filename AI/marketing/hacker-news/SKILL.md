@@ -31,6 +31,15 @@ Live launch copy lives in `AI/marketing/drafts/`:
 
 Prefer the current draft. Update it in place if facts changed (demo URL, Marketplace title, Open as MMT).
 
+## Account gate (do not skip)
+
+A ready draft is not a reason to submit.
+
+- If the founder already expects a flag for **low participation**, do **not** tell them to post. Say so and stop.
+- `mshobeyri` on 15 Sep 2026: Show HN `item?id=49711744` flagged, 1 point, 0 public comments. Prior item `48266440` was also a quiet self-post. **Park HN.** Do not recommend another Show HN from this account until it is used for real comments on other people’s threads (not as a marketing sprint).
+- Do not treat “the copy is ready” or “Tuesday window” as overriding this gate.
+- Do not recommend weeks of HN commenting to farm a retry.
+
 ## Submit rules
 
 1. One Show HN. Submit at https://news.ycombinator.com/submit around **14:00–16:00 local** (US morning).
@@ -40,7 +49,7 @@ Prefer the current draft. Update it in place if facts changed (demo URL, Marketp
 5. Paste the first comment immediately after submit.
 6. Stay on the thread 2–3 hours. Answer questions; do not ask for upvotes.
 7. Do not cross-post LinkedIn/Reddit in the same hour.
-8. Prior May 2025 item (https://news.ycombinator.com/item?id=48266440) was **not** Show HN, linked GitHub, 2 points, 0 comments. It does not block a real Show HN.
+8. A quiet prior self-post does **not** prove a Show HN will land. Combined with a launch-only account, it is a reason **not** to submit.
 
 ## Default title
 

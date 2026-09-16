@@ -1,5 +1,6 @@
 import parseYaml, {packYaml} from './markupConvertor';
 import {SuiteData, SuiteEnvironment} from './SuiteData';
+import {parseSuiteYamlFilter} from './suiteTagFilter';
 
 function readSuiteItems(doc: any): string[] {
   const items = intoStringArray(doc?.items);
@@ -53,6 +54,7 @@ export function yamlToSuite(rawYaml: string): SuiteData {
   }
 
   const tags = Array.isArray(doc.tags) ? doc.tags.filter((t: any) => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean) : undefined;
+  const filter = parseSuiteYamlFilter(doc.filter);
 
   const environment = parseEnvironment(doc);
   const exportPaths = intoStringArray(doc.export);
@@ -62,6 +64,7 @@ export function yamlToSuite(rawYaml: string): SuiteData {
     title: typeof doc.title === 'string' ? doc.title : undefined,
     description: typeof doc.description === 'string' ? doc.description : undefined,
     tags,
+    filter,
     import: doc.import && typeof doc.import === 'object' && !Array.isArray(doc.import) ? {...doc.import} : undefined,
     servers: intoStringArray(doc.servers).length > 0 ? intoStringArray(doc.servers) : undefined,
     items,
@@ -84,6 +87,16 @@ export function suiteToYaml(suite: SuiteData, originalYaml?: string): string {
   }
   if (suite.tags && suite.tags.length > 0) {
     yamlObj.tags = suite.tags;
+  }
+  if (suite.filter && ((suite.filter.only && suite.filter.only.length) || (suite.filter.skip && suite.filter.skip.length))) {
+    const filter: Record<string, string[]> = {};
+    if (suite.filter.only && suite.filter.only.length) {
+      filter.only = suite.filter.only;
+    }
+    if (suite.filter.skip && suite.filter.skip.length) {
+      filter.skip = suite.filter.skip;
+    }
+    yamlObj.filter = filter;
   }
   if (suite.import && Object.keys(suite.import).length > 0) {
     yamlObj.import = suite.import;

@@ -1,7 +1,7 @@
 import {OMIT_SENTINEL} from './omitKeyword';
 import {yamlToAPI} from './apiParsePack';
 import {CREATE_API_LOG_HELPERS_SOURCE} from './apiLogHelpersFactorySource';
-import {ApiLogRawValue, createApiLogHelpers, generateApiJs} from './runApi';
+import {ApiLogRawValue, createApiLogHelpers, executeApi, generateApiJs, prepareApiRun, resolveApiExample} from './runApi';
 
 describe('createApiLogHelpers', () => {
   it('keeps baked factory source in sync for pkg embedding', () => {
@@ -141,5 +141,115 @@ describe('createApiLogHelpers', () => {
     expect(allFail.failLines).toEqual([
       '\u00D7 Check "Echo API" - "s == 2" (1 == 2)',
     ]);
+  });
+
+  it('formats empty collections, bigint, Buffer, and match edge cases', () => {
+    const helpers = createApiLogHelpers();
+    expect(helpers.formatScalar(null)).toBe('null');
+    expect(helpers.formatScalar(BigInt(1))).toBe('1');
+    expect(helpers.formatScalar(Symbol('x'))).toContain('Symbol');
+    expect(helpers.formatScalar(Number.POSITIVE_INFINITY)).toBe('"Infinity"');
+    expect(helpers.formatValue([], 0)).toBe('[]');
+    expect(helpers.formatValue({}, 0)).toBe('{}');
+    expect(helpers.formatKeyValueObject({})).toContain('{}');
+    expect(helpers.formatDuration(-5)).toEqual({__mmt_raw: '0ms'});
+    expect(helpers.formatBodyValue(Buffer.from('hi'))).toBe('<binary 2 bytes>');
+    expect(helpers.valuesMatch(undefined, 1)).toBe(false);
+    expect(helpers.valuesMatch(null, null)).toBe(true);
+    expect(helpers.valuesMatch(null, 1)).toBe(false);
+    expect(helpers.valuesMatch({a: BigInt(1)}, {a: BigInt(1)})).toBe(false);
+    expect(helpers.formatExpects(
+        {obj: {a: 1}, miss: undefined},
+        {obj: {a: 1}, miss: {nested: '__MMT_OMIT__'}},
+        null as any).successLines.length).toBe(1);
+  });
+});
+
+describe('resolveApiExample and prepareApiRun', () => {
+  const api = {
+    type: 'api',
+    title: 'Echo',
+    inputs: {a: 1},
+    examples: [
+      {name: 'Happy', inputs: {a: 2}, outputs: {status: 200}},
+      {inputs: {a: 3}},
+    ],
+  } as any;
+
+  it('resolves by name, index, and falls back with warnings', () => {
+    const warns: string[] = [];
+    const log = (_l: string, m: string) => warns.push(m);
+    expect(resolveApiExample({type: 'api'} as any, 0, undefined, log).exampleInputs).toEqual({});
+    const byName = resolveApiExample(api, undefined, 'happy', log);
+    expect(byName.exampleInputs).toEqual({a: 2});
+    expect(byName.resolvedExampleName).toBe('Happy');
+    const byIndex = resolveApiExample(api, 1, undefined, log);
+    expect(byIndex.exampleInputs).toEqual({a: 3});
+    resolveApiExample(api, undefined, 'missing', log);
+    resolveApiExample(api, 9, undefined, log);
+    expect(warns.some(w => w.includes('missing'))).toBe(true);
+    expect(warns.some(w => w.includes('#10'))).toBe(true);
+  });
+
+  it('merges example inputs in prepareApiRun', () => {
+    const raw = [
+      'type: api',
+      'title: Echo',
+      'url: https://example.com',
+      'method: get',
+      'inputs:',
+      '  a: 1',
+      'examples:',
+      '  - name: Happy',
+      '    inputs:',
+      '      a: 2',
+      '    outputs:',
+      '      status: 200',
+    ].join('\n');
+    const prepared = prepareApiRun(raw, {b: 9}, {exampleName: 'Happy'}, () => {});
+    expect(prepared.exampleName).toBe('Happy');
+    expect(prepared.inputsUsed).toMatchObject({a: 2, b: 9});
+    expect(prepared.exampleOutputs).toEqual({status: 200});
+  });
+});
+
+describe('executeApi', () => {
+  it('throws when apiDoc is missing and runs a generated wrapper with failures', async () => {
+    await expect(executeApi({} as any, {
+      fileLoader: async () => '',
+      jsRunner: async () => {},
+      logger: () => {},
+    } as any, [])).rejects.toThrow('API document not found');
+
+    const raw = [
+      'type: api',
+      'title: Echo',
+      'url: https://example.com',
+      'method: get',
+    ].join('\n');
+    const prepared = {
+      docType: 'api' as const,
+      baseName: 'echo.mmt',
+      title: 'Echo',
+      envVarsUsed: {TOKEN: 'abc'},
+      inputsUsed: {q: 1},
+      apiDoc: yamlToAPI(raw),
+      exampleName: 'Happy',
+      exampleIndex: 0,
+      exampleOutputs: {status: 200},
+      filePath: '/tmp/echo.mmt',
+    };
+    const logs: string[] = [];
+    const result = await executeApi(prepared as any, {
+      fileLoader: async () => { throw new Error('no file'); },
+      jsRunner: async (ctx: any) => {
+        ctx.logger('error', 'wrapper failed');
+        throw new Error('send failed');
+      },
+      logger: (_l: string, m: string) => logs.push(m),
+      binaryFileLoader: async () => Buffer.from([]),
+    } as any, [{level: 'warn', message: 'pre'}]);
+    expect(result.displayName).toContain('Happy');
+    expect(result.result.logs?.some((l: string) => l === 'pre')).toBe(true);
   });
 });

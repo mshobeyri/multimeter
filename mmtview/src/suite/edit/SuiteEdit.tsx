@@ -1,22 +1,26 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { suiteToYaml, yamlToSuite } from 'mmt-core/suiteParsePack';
-import { SuiteData } from 'mmt-core/SuiteData';
+import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
+import { SuiteData, SuiteYamlFilter } from 'mmt-core/SuiteData';
 import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
 import FileOverview from '../../shared/FileOverview';
 import FilePickerInput from '../../components/FilePickerInput';
 import KSVEditor from '../../components/KSVEditor';
+import SearchableTagInput from '../../components/SearchableTagInput';
+import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
 import { FileContext } from '../../fileContext';
 import TabBar from '../../components/TabBar';
 import PrimaryButton from '../../components/PrimaryButton';
 
-type SuiteEditTab = 'overview' | 'items' | 'servers' | 'environment' | 'exports';
+type SuiteEditTab = 'overview' | 'items' | 'filter' | 'servers' | 'environment' | 'exports';
 
 const SUITE_EDIT_TABS = [
   { id: 'overview' as const, label: 'Overview', icon: 'note' },
   { id: 'items' as const, label: 'Items', icon: 'beaker' },
+  { id: 'filter' as const, label: 'Filter', icon: 'filter' },
   { id: 'servers' as const, label: 'Servers', icon: 'server-environment' },
   { id: 'environment' as const, label: 'Environment', icon: 'symbol-namespace' },
   { id: 'exports' as const, label: 'Exports', icon: 'export' },
@@ -26,6 +30,11 @@ interface SuiteEnvironmentConfig {
   preset?: string;
   file?: string;
   variables?: Record<string, unknown>;
+}
+
+interface SuiteFilterConfig {
+  only: string[];
+  skip: string[];
 }
 
 interface SuiteOverviewConfig {
@@ -136,6 +145,28 @@ const updateSuiteContentWithServers = (content: string, servers: string[]): stri
   });
 };
 
+const buildFilterFromContent = (content: string): SuiteFilterConfig => {
+  const parsed = parseYaml(content);
+  const filter = parseSuiteYamlFilter(parsed?.filter);
+  return {
+    only: filter?.only ?? [],
+    skip: filter?.skip ?? [],
+  };
+};
+
+const updateSuiteContentWithFilter = (content: string, filter: SuiteFilterConfig): string | null => {
+  return rewriteSuiteYaml(content, (suite) => {
+    const next: SuiteYamlFilter = {};
+    if (filter.only.length > 0) {
+      next.only = filter.only;
+    }
+    if (filter.skip.length > 0) {
+      next.skip = filter.skip;
+    }
+    suite.filter = (next.only || next.skip) ? next : undefined;
+  });
+};
+
 const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | null => {
   const parsed = parseYaml(content);
   if (!parsed?.environment || typeof parsed.environment !== 'object') {
@@ -229,10 +260,12 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const [overview, setOverview] = useState<SuiteOverviewConfig>(() => buildOverviewFromContent(content));
   const [imports, setImports] = useState<Record<string, string>>(() => buildImportsFromContent(content));
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
+  const [filter, setFilter] = useState<SuiteFilterConfig>(() => buildFilterFromContent(content));
   const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
   const [environment, setEnvironment] = useState<SuiteEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
   const [exports, setExports] = useState<string[]>(() => buildExportsFromContent(content));
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
+  const [itemServerFiles, setItemServerFiles] = useState<string[]>([]);
 
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const addMenuRef = useRef<HTMLDivElement | null>(null);
@@ -243,6 +276,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     setOverview(buildOverviewFromContent(content));
     setImports(buildImportsFromContent(content));
     setGroups(buildSuiteGroupsFromContent(content));
+    setFilter(buildFilterFromContent(content));
     setServers(buildServersFromContent(content));
     setEnvironment(buildEnvironmentFromContent(content));
     setExports(buildExportsFromContent(content));
@@ -356,6 +390,17 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     setAddMenuOpen(false);
   }, [groups, persistGroups]);
 
+  const persistFilter = useCallback(
+    (nextFilter: SuiteFilterConfig) => {
+      setFilter(nextFilter);
+      const updated = updateSuiteContentWithFilter(content, nextFilter);
+      if (updated) {
+        setContent(updated);
+      }
+    },
+    [content, setContent]
+  );
+
   const persistServers = useCallback(
     (nextServers: string[]) => {
       setServers(nextServers);
@@ -447,13 +492,19 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   }, [exports, persistExports]);
 
   const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
+  const duplicateServerKeys = useMemo(
+    () => duplicateSuiteServerPaths(servers, allPaths, itemServerFiles),
+    [servers, allPaths, itemServerFiles],
+  );
   useEffect(() => {
-    if (allPaths.length > 0) {
-      window.vscode?.postMessage({ command: 'validateFilesExist', files: allPaths });
+    const files = Array.from(new Set([...allPaths, ...servers]));
+    if (files.length > 0) {
+      window.vscode?.postMessage({ command: 'validateFilesExist', files });
     } else {
       setMissingFiles(new Set());
+      setItemServerFiles([]);
     }
-  }, [allPaths]);
+  }, [allPaths, servers]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -463,17 +514,22 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       }
       if (message.command === 'validateFilesExistResult') {
         setMissingFiles(new Set(message.missing || []));
+        const listed = Array.isArray(message.servers)
+          ? message.servers.filter((p: unknown): p is string => typeof p === 'string')
+          : [];
+        setItemServerFiles(listed.filter((path: string) => allPaths.includes(path)));
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [allPaths]);
 
   const noItems = groups.every(group => group.entries.length === 0);
   const tree = (
     <SuiteEditTree
       groups={groups}
       missingFiles={missingFiles}
+      duplicateServerKeys={duplicateServerKeys}
       statusIconFor={statusIconFor}
       groupsModel={groups}
       persistGroups={persistGroups}
@@ -592,6 +648,32 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     </>
   );
 
+  const filterTabContent = (
+    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
+      <div className="label" style={{ marginBottom: 6 }}>Only tags</div>
+      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+        <SearchableTagInput
+          tags={filter.only}
+          onChange={(tags) => persistFilter({ ...filter, only: tags })}
+          placeholder="only"
+        />
+      </div>
+      <div className="label" style={{ marginBottom: 6 }}>Skip tags</div>
+      <div style={{ paddingLeft: 4 }}>
+        <SearchableTagInput
+          tags={filter.skip}
+          onChange={(tags) => persistFilter({ ...filter, skip: tags })}
+          placeholder="skip"
+        />
+      </div>
+      <div style={{ marginTop: 12, opacity: 0.7, fontSize: '0.9em' }}>
+        <div>Only: run just the tests and suites tagged with one of these. Empty runs everything.</div>
+        <div style={{ marginTop: 4 }}>Skip: never run tests and suites carrying one of these tags.</div>
+        <div style={{ marginTop: 4 }}>Filters match <code>tags:</code> on test and suite files. A tagged suite runs its whole subtree.</div>
+      </div>
+    </div>
+  );
+
   const serversTabContent = (
     <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
@@ -613,6 +695,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
               filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
               showFilePicker
               removable
+              invalid={isDuplicateSuiteServerPath(s, duplicateServerKeys)}
             />
           ))}
         </div>
@@ -699,6 +782,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {activeTab === 'overview' && overviewTabContent}
         {activeTab === 'items' && testsTabContent}
+        {activeTab === 'filter' && filterTabContent}
         {activeTab === 'servers' && serversTabContent}
         {activeTab === 'environment' && environmentTabContent}
         {activeTab === 'exports' && exportsTabContent}

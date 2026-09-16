@@ -1,5 +1,8 @@
 # Show HN — Tuesday 15 Sep 2026
 
+**Outcome (15 Sep):** Submitted. Flagged. 1 point, 0 public comments. https://news.ycombinator.com/item?id=49711744  
+**Status: PARKED.** Do not tell the founder to submit this again. The bottleneck was account participation, not the draft. Founder already expected the flag.
+
 Post around **14:00–16:00** local (US morning). One Show HN only. Do not ask friends to upvote. Do not post LinkedIn/Reddit in the same hour.
 
 Previous attempt (2 points, 0 comments, **not** Show HN): https://news.ycombinator.com/item?id=48266440

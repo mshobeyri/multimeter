@@ -19,6 +19,8 @@ interface FilePickerInputProps {
   /** Show the remove/clear button (default false) */
   removable?: boolean;
   placeholder?: string;
+  /** Wavy red underline for a line-level validation error. */
+  invalid?: boolean;
 }
 
 const FilePickerInput: React.FC<FilePickerInputProps> = ({
@@ -34,6 +36,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
   showFilePicker = false,
   removable = false,
   placeholder,
+  invalid = false,
 }) => {
   const filterPayload = useMemo(() => {
     if (!filters || filters.length === 0) { return undefined; }
@@ -107,7 +110,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           verticalAlign: 'top',
           paddingRight: rightPadding
         }}
-        className="file-picker-input"
+        className={['file-picker-input', invalid ? 'mmt-line-error' : ''].filter(Boolean).join(' ')}
         title={value}
       />
       {showFilePicker && (

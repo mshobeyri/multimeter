@@ -15,6 +15,7 @@ export type SuiteEditTreeItemData =
 interface SuiteEditTreeProps {
     groups: SuiteGroup[];
     missingFiles: Set<string>;
+    duplicateServerKeys?: Set<string>;
     statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     groupsModel: SuiteGroup[];
     persistGroups: (groups: SuiteGroup[]) => void;
@@ -59,6 +60,7 @@ const buildSuiteEditTree = (groups: SuiteGroup[]) => {
 const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
     groups,
     missingFiles,
+    duplicateServerKeys,
     statusIconFor,
     groupsModel,
     persistGroups,
@@ -208,6 +210,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
                 arrow={arrow}
                 children={children}
                 missingFiles={missingFiles}
+                duplicateServerKeys={duplicateServerKeys}
                 groups={groupsModel}
                 persistGroups={persistGroups}
                 status={'default'}

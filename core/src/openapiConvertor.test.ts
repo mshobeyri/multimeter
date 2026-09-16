@@ -382,4 +382,67 @@ describe('openapiConvertor.openApiToAPI', () => {
       variables: {base_url: {default: ''}},
     });
   });
+
+  it('skips non-methods and covers xml/text bodies, path params, and broken refs', () => {
+    const spec = {
+      openapi: '3.0.0',
+      paths: {
+        '/users/{id}': {
+          parameters: [
+            {$ref: '#/components/parameters/UserId'},
+            {$ref: 'https://example.com/external'},
+            {$ref: '#/components/parameters/Missing'},
+            {name: 'skip-me'},
+          ],
+          get: {
+            summary: 'Get user',
+            parameters: [{$ref: '#/components/parameters/UserId'}],
+          },
+          parameters_not_a_method: {summary: 'ignored'},
+        },
+        '/xml': {
+          post: {
+            requestBody: {
+              content: {
+                'application/xml': {
+                  example: '<user id="1"/>',
+                },
+              },
+            },
+          },
+        },
+        '/text': {
+          put: {
+            requestBody: {
+              content: {
+                'text/plain': {example: 'hello'},
+              },
+            },
+          },
+        },
+        '/cycle': {
+          get: {
+            requestBody: {$ref: '#/components/requestBodies/Cycle'},
+          },
+        },
+      },
+      components: {
+        parameters: {
+          UserId: {in: 'path', name: 'id', example: '42'},
+        },
+        requestBodies: {
+          Cycle: {$ref: '#/components/requestBodies/Cycle'},
+        },
+      },
+    };
+    const apis = openApiToAPI(spec);
+    const getUser = apis.find(a => a.title === 'Get user')!;
+    expect(getUser.url).toBe('/users/42');
+    const xml = apis.find(a => a.url === '/xml')!;
+    expect(xml.format).toBe('xml');
+    expect(xml.headers?.['Content-Type']).toBe('application/xml');
+    const text = apis.find(a => a.url === '/text')!;
+    expect(text.format).toBe('text');
+    expect(apis.some(a => a.title === 'ignored')).toBe(false);
+  });
 });

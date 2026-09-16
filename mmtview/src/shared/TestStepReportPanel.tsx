@@ -3,7 +3,7 @@ import { StepStatus } from './types';
 import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
 import ReportStatusFilterButton from './ReportStatusFilterButton';
-import ReportHeaderMoreMenu from './ReportHeaderMoreMenu';
+import ReportExpandCollapseButton from './ReportExpandCollapseButton';
 import ReportEmptyFilterPlaceholder from './ReportEmptyFilterPlaceholder';
 import { ReportStatusFilter, filterStepReports } from './reportStatusFilter';
 
@@ -349,6 +349,9 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     setExpandedDetails({});
   }, []);
 
+  const hasExpandableDetails = detailKeys.length > 0;
+  const allDetailsCollapsed = hasExpandableDetails && detailKeys.every((key) => !expandedDetails[key]);
+
   const unescapeCommon = useCallback((s: string): string => {
     if (!s) {
       return s;
@@ -369,7 +372,8 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
         onChange={setStatusFilter}
         disabled={stepReports.length === 0}
       />
-      <ReportHeaderMoreMenu
+      <ReportExpandCollapseButton
+        allCollapsed={allDetailsCollapsed}
         onExpandAll={expandAllDetails}
         onCollapseAll={collapseAllDetails}
         disabled={detailKeys.length === 0}

@@ -6,7 +6,7 @@ import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
 import {runJSCode} from './jsRunner';
 import {TestContext, variableReplacer} from './JSerTest';
-import {assertToJSfunc, checkToJSfunc, conditionalStatementToJSfunc, flowStagesToJsfunc, parseExpectValue, setenvToJSfunc} from './JSerTestFlow';
+import {assertToJSfunc, checkToJSfunc, collectCallHttpIds, conditionalStatementToJSfunc, delayToJSfunc, flowStagesToJsfunc, flowToJsFunc, formatLogicalCondition, parseComparisonParts, parseExpectValue, parseLogicalCondition, setenvToJSfunc} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 import {normalizeReportConfig} from './TestData';
 import {OMIT_SENTINEL} from './omitKeyword';
@@ -315,6 +315,23 @@ describe('CSV import parsing', () => {
     });
     await expect(importsToJsfunc({a: 'a.mmt'}))
         .rejects.toThrow(/Import error.*Imported file not found/);
+  });
+
+  it('attaches the imported file path to YAML parse errors', async () => {
+    setFileLoader(async (p: string) => {
+      if (p === '/root/broken.mmt') {
+        return 'type: api\nurl: http://example.com\n  bad: indent\n';
+      }
+      return '';
+    });
+    try {
+      await importsToJsfunc({echo: '/root/broken.mmt'}, undefined, '/root/main.mmt');
+      throw new Error('expected import to fail');
+    } catch (error: any) {
+      expect(error.name).toBe('ImportCodeError');
+      expect(error.path).toBe('/root/broken.mmt');
+      expect(String(error.message)).toMatch(/Import error in \/root\/broken\.mmt/);
+    }
   });
 
   it('throws when call expect references output not defined by imported API', async () => {
@@ -3220,3 +3237,397 @@ describe('validateAuth', () => {
     })).toThrow('token_url');
   });
 });
+
+describe('parseComparisonParts and logical conditions', () => {
+  it('skips a leading operator with no actual and returns null when none remain', () => {
+    expect(parseComparisonParts('== 200')).toBeNull();
+    expect(parseComparisonParts('not-an-operator')).toBeNull();
+    expect(parseComparisonParts('status == 200')).toEqual({
+      actual: 'status',
+      operator: '==',
+      expected: '200',
+    });
+  });
+
+  it('formats empty and joined logical conditions', () => {
+    expect(formatLogicalCondition([], [])).toBe('');
+    expect(parseLogicalCondition('')).toEqual({clauses: [], joins: []});
+    expect(parseLogicalCondition('a == 1 || b == 2 && c == 3')).toEqual({
+      clauses: ['a == 1', 'b == 2', 'c == 3'],
+      joins: ['||', '&&'],
+    });
+    expect(formatLogicalCondition(
+        [
+          {actual: 'a', operator: '==', expected: '1'},
+          {actual: 'b', operator: '!=', expected: '2'},
+        ],
+        ['||'])).toBe('a == 1 || b != 2');
+    expect(formatLogicalCondition(
+        [
+          {actual: 'a', operator: '==', expected: '1'},
+          {actual: 'b', operator: '==', expected: '2'},
+        ],
+        [])).toBe('a == 1 && b == 2');
+  });
+
+  it('treats empty ${} and blank operands as undefined', () => {
+    expect(conditionalStatementToJSfunc('${  } == 1')).toContain('undefined');
+    expect(conditionalStatementToJSfunc('   ')).toBe('true');
+  });
+});
+
+describe('check/assert object form and unusual operators', () => {
+  const ops: Array<{op: string; helper: string}> = [
+    {op: '<', helper: 'less_'},
+    {op: '>', helper: 'greater_'},
+    {op: '<=', helper: 'lessOrEqual_'},
+    {op: '>=', helper: 'greaterOrEqual_'},
+    {op: '==', helper: 'equals_'},
+    {op: '!=', helper: 'notEquals_'},
+    {op: '=i', helper: 'equalsIgnoreCase_'},
+    {op: '!i', helper: 'notEqualsIgnoreCase_'},
+    {op: '=X', helper: 'trimEquals_'},
+    {op: '!X', helper: 'notTrimEquals_'},
+    {op: '=iX', helper: 'trimEqualsIgnoreCase_'},
+    {op: '!iX', helper: 'notTrimEqualsIgnoreCase_'},
+    {op: '=@', helper: 'isAt_'},
+    {op: '!@', helper: 'isNotAt_'},
+    {op: '=C', helper: 'contains_'},
+    {op: '!C', helper: 'notContains_'},
+    {op: '=*', helper: 'matches_'},
+    {op: '!*', helper: 'notMatches_'},
+    {op: '=~', helper: 'equalsAsString_'},
+    {op: '!~', helper: 'notEqualsAsString_'},
+    {op: '=^', helper: 'startsWith_'},
+    {op: '!^', helper: 'notStartsWith_'},
+    {op: '=$', helper: 'endsWith_'},
+    {op: '!$', helper: 'notEndsWith_'},
+    {op: '=#', helper: 'lengthEquals_'},
+    {op: '!#', helper: 'notLengthEquals_'},
+    {op: '<#', helper: 'lengthLess_'},
+    {op: '<=#', helper: 'lengthLessOrEqual_'},
+    {op: '>#', helper: 'lengthGreater_'},
+    {op: '>=#', helper: 'lengthGreaterOrEqual_'},
+  ];
+
+  it('emits helpers for ${actual} object-form checks of every operator', () => {
+    for (const {op, helper} of ops) {
+      const js = checkToJSfunc(
+          {actual: '${status}', expected: 'x', operator: op} as any, false);
+      expect(js).toContain(`${helper}(`);
+    }
+  });
+
+  it('emits fuzzy helpers and omit helpers from object-form checks', () => {
+    expect(checkToJSfunc(
+        {actual: '${name}', expected: 'John', operator: '>50%'} as any, false))
+        .toContain('fuzzyMatch_(');
+    expect(checkToJSfunc(
+        {actual: '${name}', expected: 'John', operator: '<50%'} as any, false))
+        .toContain('notFuzzyMatch_(');
+    expect(checkToJSfunc(
+        {actual: '${name}', expected: 'John', operator: '>%'} as any, false))
+        .toContain('fuzzyMatch_(');
+    expect(checkToJSfunc(
+        {actual: '${x}', expected: null, operator: '=='} as any, false))
+        .toContain('isOmitted_(');
+    expect(checkToJSfunc(
+        {actual: '${x}', expected: null, operator: '!='} as any, false))
+        .toContain('isNotOmitted_(');
+    expect(checkToJSfunc(
+        {actual: '${x}', expected: null, operator: '=C'} as any, false))
+        .toContain('contains_(');
+    expect(checkToJSfunc(
+        {actual: '${x}', expected: 'y', operator: '??'} as any, false))
+        .toContain('true');
+  });
+
+  it('parses typed scalars in string comparisons and rejects invalid objects', () => {
+    expect(checkToJSfunc('flag == true', false)).toContain('equals_');
+    expect(checkToJSfunc('flag == false', false)).toContain('equals_');
+    expect(checkToJSfunc('v == null', false)).toContain('equals_');
+    expect(() => checkToJSfunc('no-operator-here', false)).toThrow('Invalid check format');
+    expect(() => checkToJSfunc({actual: 'x'} as any, false)).toThrow('actual');
+    expect(assertToJSfunc('', false)).toBe('');
+  });
+});
+
+describe('test flow codegen: judge, http, empty, stages', () => {
+  it('emits judge_, skips empty judge/call/http/run, and serializes judge values', async () => {
+    const js = await testToJsfunc({
+      name: 'judgeFlow',
+      test: {
+        steps: [
+          {judge: ''},
+          {call: '  '},
+          {http: ''},
+          {run: ''},
+          {
+            judge: 'myJudge',
+            id: 'j1',
+            title: 'quality',
+            context: {n: 1, ok: true, empty: null, list: [1, '${x}'], nested: {a: '${y}'}},
+            expect: {score: 0.8},
+            require: {safe: true},
+          },
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(js).toContain('await judge_(myJudge');
+    expect(js).toContain('j1 = await judge_');
+    expect(js).toContain('"n": 1');
+    expect(js).toContain('null');
+  });
+
+  it('emits expect/require/debug maps including multi-operator arrays', async () => {
+    const js = await testToJsfunc({
+      name: 'expectMaps',
+      test: {
+        steps: [
+          {
+            call: 'getUser',
+            id: 'u',
+            expect: {status: ['== 200', '!= 500'], body: 'ok'},
+            require: {status: 200},
+            debug: {status: ['== 200']},
+          },
+          {call: 'ping', debug: true},
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(js).toContain('checkExpects_');
+    expect(js).toContain("level: \"require\"");
+    expect(js).toContain("'debug'");
+  });
+
+  it('collects nested call/http ids and rejects unknown stage after ids', async () => {
+    expect(collectCallHttpIds(undefined)).toEqual([]);
+    expect(collectCallHttpIds([
+      {
+        if: 'x == 1',
+        steps: [{call: 'a', id: 'inner'} as any],
+        else: [{http: 'https://x', id: 'elseHttp'} as any],
+      } as any,
+    ])).toEqual(['inner', 'elseHttp']);
+
+    await expect(flowStagesToJsfunc([
+      {id: 'a', after: ['missing'], steps: [{print: 'x'} as any]},
+    ] as any, true)).rejects.toThrow('not a valid stage id');
+  });
+
+  it('handles empty stages, unnamed stages, string after, and empty setenv', async () => {
+    expect(await flowStagesToJsfunc([] as any, true)).toBe('');
+    expect(setenvToJSfunc({}, true)).toBe('');
+    const unnamed = await flowStagesToJsfunc([
+      {steps: [{print: 'one'} as any]},
+    ] as any, true);
+    expect(unnamed).toContain('Promise = (async () =>');
+
+    const ok = await flowStagesToJsfunc([
+      {id: 'first', steps: [{print: 'one'} as any]},
+      {id: 'second', after: 'first', steps: [{print: 'two'} as any]},
+    ] as any, true);
+    expect(ok).toContain('await Promise.all([firstPromise]);');
+
+    const delayJs = delayToJSfunc(100);
+    expect(delayJs).toContain('checkAbort_()');
+    expect(delayJs).toContain('setTimeout');
+
+    const flow = await flowToJsFunc({steps: []} as any, true);
+    expect(flow).toBe('');
+  });
+
+  it('emits delay/for/repeat/js/set/var and print-as-debug when not root', async () => {
+    const js = await testToJsfunc({
+      name: 'miscSteps',
+      test: {
+        steps: [
+          {delay: '10ms'},
+          {repeat: '1s', steps: [{print: 'tick'} as any]},
+          {for: 'const item of items', steps: [{print: '${item}'} as any]},
+          {js: 'const z = 1;'},
+          {set: {foo: 1}},
+          {var: {n: 2}},
+          {const: {c: 3}},
+          {let: {l: 'x'}},
+          {print: 'hi'},
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    }, false);
+    expect(js).toContain('checkAbort_()');
+    expect(js).toContain('for (const start = Date.now()');
+    expect(js).toContain('for (const item of items)');
+    expect(js).toContain('const z = 1;');
+    expect(js).toContain('console.debug');
+  });
+
+  it('emits startServer_ for run steps and http functions for http steps', async () => {
+    const js = await testToJsfunc({
+      name: 'httpRun',
+      test: {
+        steps: [
+          {run: 'mock'},
+          {http: 'https://example.com/x', method: 'get', expect: {status: 200}},
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(js).toContain('await startServer_(mock);');
+    expect(js).toContain('const __http_1 = async');
+    expect(js).toContain('checkExpects_');
+  });
+});
+
+describe('apiToJSfunc graphql, grpc, cookies, auth edge cases', () => {
+  it('compiles GraphQL operation, variables, and error detection', async () => {
+    const js = await apiToJSfunc({
+      api: {
+        type: 'api',
+        protocol: 'graphql',
+        url: 'https://example.com/graphql',
+        graphql: {
+          operation: 'query { ping }',
+        },
+      } as any,
+      name: 'gqlApi',
+      inputs: {},
+      envVars: {},
+      reportOutputKeys: ['body'],
+    });
+    expect(js).toContain("protocol: 'graphql'");
+    expect(js).toContain('application/json');
+    expect(js).not.toContain('operationName:');
+    expect(js).toContain('graphqlErrors');
+    const jsVars = await apiToJSfunc({
+      api: {
+        type: 'api',
+        protocol: 'graphql',
+        url: 'https://example.com/graphql',
+        graphql: {
+          operation: 'query Q($id: ID!) { item(id: $id) { id } }',
+          variables: {id: 1, flag: true},
+          operationName: 'Q',
+        },
+      } as any,
+      name: 'gqlApi2',
+      inputs: {},
+      envVars: {},
+    });
+    expect(jsVars).toContain('operationName:');
+    expect(jsVars).toContain('"id":');
+  });
+
+  it('compiles gRPC with message, stream, and reflect proto default', async () => {
+    const js = await apiToJSfunc({
+      api: {
+        type: 'api',
+        protocol: 'grpc',
+        url: 'localhost:50051',
+        grpc: {
+          service: 'pkg.Svc',
+          method: 'Do',
+          message: {n: 1, s: 'hi'},
+          stream: 'unary',
+        },
+      } as any,
+      name: 'grpcApi',
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain("protocol: 'grpc'");
+    expect(js).toContain('sendGrpc_');
+    expect(js).toContain("'reflect'");
+    expect(js).toContain("'unary'");
+    const jsProto = await apiToJSfunc({
+      api: {
+        type: 'api',
+        protocol: 'grpc',
+        url: 'localhost:50051',
+        grpc: {proto: 'svc.proto', service: 'S', method: 'M'},
+      } as any,
+      name: 'grpcProto',
+      inputs: {},
+      envVars: {},
+    });
+    expect(jsProto).toContain('svc.proto');
+  });
+
+  it('folds cookies into Cookie header and drops undefined query values', async () => {
+    const js = await apiToJSfunc({
+      api: {
+        type: 'api',
+        url: 'https://example.com',
+        method: 'get',
+        cookies: {a: '1', b: '2'},
+        query: {keep: 'yes', drop: undefined},
+      } as any,
+      name: 'cookieApi',
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('"Cookie"');
+    expect(js).toContain('a=1');
+    expect(js).toContain('"keep"');
+    expect(js).not.toContain('"drop"');
+  });
+
+  it('emits oauth2 without scope and skips empty api-key', async () => {
+    const oauth = await apiToJSfunc({
+      api: {
+        type: 'api',
+        url: 'https://example.com',
+        method: 'get',
+        auth: {
+          type: 'oauth2',
+          token_url: 'https://auth.example.com/token',
+          client_id: 'id',
+          client_secret: 'secret',
+        },
+      } as any,
+      name: 'oauthApi',
+      inputs: {},
+      envVars: {},
+    });
+    expect(oauth).toContain('client_credentials');
+    expect(oauth).not.toContain('scope:');
+
+    const emptyKey = await apiToJSfunc({
+      api: {
+        type: 'api',
+        url: 'https://example.com',
+        method: 'get',
+        auth: {type: 'api-key', value: 'x'},
+      } as any,
+      name: 'keyApi',
+      inputs: {},
+      envVars: {},
+    });
+    expect(emptyKey).not.toContain('X-API-Key');
+
+    const unknownAuth = await apiToJSfunc({
+      api: {
+        type: 'api',
+        url: 'https://example.com',
+        method: 'get',
+        auth: {type: 'digest'},
+      } as any,
+      name: 'digestApi',
+      inputs: {},
+      envVars: {},
+    });
+    expect(unknownAuth).not.toContain('Authorization');
+  });
+
+  it('sets urlencoded Content-Type when missing and restores empty/invalid placeholders', () => {
+    expect(restoreUrlEncodedJsPlaceholders('%24%7B%7D')).toBe('%24%7B%7D');
+    expect(restoreUrlEncodedJsPlaceholders('%24%7B%E0%A4%A%7D')).toBe('%24%7B%E0%A4%A%7D');
+  });
+});
+

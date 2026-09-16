@@ -85,4 +85,26 @@ describe('runApi output printing', () => {
     expect(outputLog).not.toContain('status:');
     expect(outputLog).not.toContain('duration:');
   });
+
+  it('embeds example expect checks and example labels in the wrapper', async () => {
+    const js = await generateApiJs({
+      api: {
+        type: 'api',
+        title: 'Echo',
+        url: 'https://example.com',
+        method: 'get',
+      } as any,
+      name: 'echo_api',
+      envVars: {},
+      inputs: {},
+      fileLoader: async () => 'not-a-string' as any,
+      exampleName: 'Happy',
+      exampleIndex: 0,
+      exampleOutputs: {status: 200},
+      checkTitle: 'Echo',
+    });
+    expect(js).toContain("example: Happy(#1)");
+    expect(js).toContain('__mmt_formatExpects');
+    expect(js).toContain('__mmt_expects.failLines');
+  });
 });

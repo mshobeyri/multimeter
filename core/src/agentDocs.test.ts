@@ -42,6 +42,22 @@ describe('agentDocs', () => {
     expect(text).toContain('# min/test.md');
   });
 
+  it('defaults topic and pack when omitted', () => {
+    const loaded = loadAgentDocSections({
+      readText: (fileName) => fileName,
+    });
+    expect(loaded.topic).toBe('overview');
+    expect(loaded.pack).toBe('min');
+    expect(loaded.sections.map(s => s.fileName)).toEqual(['min/overview.md']);
+  });
+
+  it('flattens unique files for topic all', () => {
+    const files = filesForAgentDocTopic('all', 'min');
+    expect(files).toContain('min/test.md');
+    expect(files).toContain('min/overview.md');
+    expect(new Set(files).size).toBe(files.length);
+  });
+
   it('loads structured sections for MCP', () => {
     const loaded = loadAgentDocSections({
       topic: 'api',

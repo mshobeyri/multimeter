@@ -15,6 +15,8 @@ describe('hasApiRequestBody', () => {
     expect(hasApiRequestBody({})).toBe(true);
     expect(hasApiRequestBody({a: 1})).toBe(true);
     expect(hasApiRequestBody([1])).toBe(true);
+    expect(hasApiRequestBody(0)).toBe(true);
+    expect(hasApiRequestBody(false)).toBe(true);
   });
 });
 

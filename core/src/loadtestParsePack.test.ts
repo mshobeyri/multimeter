@@ -36,4 +36,42 @@ repeat: 10
     expect(yaml).toContain('rampup: 10s');
     expect(yaml).toContain('test: test.mmt');
   });
+
+  it('parses tags import env file and serializes them', () => {
+    const loadtest = yamlToLoadTest(`
+type: loadtest
+title: T
+description: D
+tags:
+  - smoke
+  - ''
+import:
+  login: ./login.mmt
+environment:
+  file: env.mmt
+  variables:
+    k: v
+export:
+  - out.html
+test: t.mmt
+repeat: 5
+`);
+    expect(loadtest.tags).toEqual(['smoke']);
+    expect(loadtest.import).toEqual({login: './login.mmt'});
+    expect(loadtest.environment?.file).toBe('env.mmt');
+    expect(loadtest.environment?.variables).toEqual({k: 'v'});
+    const yaml = loadtestToYaml(loadtest);
+    expect(yaml).toContain('description: D');
+    expect(yaml).toContain('smoke');
+    expect(yaml).toContain('file: env.mmt');
+  });
+
+  it('rejects invalid loadtest documents', () => {
+    expect(() => yamlToLoadTest('type: test\n')).toThrow(/Not a loadtest/);
+    expect(() => yamlToLoadTest('type: loadtest\nrepeat: 1\n')).toThrow(/non-empty string/);
+    expect(() => yamlToLoadTest('type: loadtest\ntest: t.mmt\n')).toThrow(/repeat is required/);
+    expect(yamlToLoadTest('type: loadtest\ntest: t.mmt\nrepeat: 1\n').threads).toBe(1);
+    expect(yamlToLoadTest('type: loadtest\ntest: t.mmt\nrepeat: 1\nenvironment: {}\n').environment)
+        .toBeUndefined();
+  });
 });

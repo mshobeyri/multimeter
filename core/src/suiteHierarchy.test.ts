@@ -159,4 +159,75 @@ describe('suiteHierarchy (core)', () => {
         ],
       });
   });
+
+  test('nested suite servers: stay on the suite, not mixed into items', async () => {
+    const files: Record<string, string> = {
+      '/root/root.mmt': ['type: suite', 'items:', '  - ./inner.mmt'].join('\n'),
+      '/root/inner.mmt': [
+        'type: suite',
+        'servers:',
+        '  - ./mock.mmt',
+        'items:',
+        '  - ./test.mmt',
+      ].join('\n'),
+      '/root/mock.mmt': ['type: server', 'title: User mock', 'port: 3000'].join('\n'),
+      '/root/test.mmt': 'type: test\n',
+    };
+    const fileLoader = async (p: string) => files[p] ?? '';
+
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/root.mmt',
+      suiteRawText: files['/root/root.mmt'],
+      fileLoader,
+    });
+
+    const inner = (tree.children[0] as any).children[0];
+    expect(inner.kind).toBe('suite');
+    expect(inner.servers).toEqual(['./mock.mmt']);
+    expect(inner.serverItems).toEqual([
+      {
+        kind: 'server',
+        id: 'suite-node:0.0.-1.0',
+        path: '/root/mock.mmt',
+        title: 'User mock',
+      },
+    ]);
+    const firstGroup = inner.children[0];
+    expect(firstGroup.kind).toBe('group');
+    expect(firstGroup.children[0]).toEqual({
+      kind: 'test',
+      id: 'suite-node:0.0.0.0',
+      path: '/root/test.mmt',
+      title: undefined,
+    });
+  });
+
+  test('root suite servers: stay on the node and are not prepended to items', async () => {
+    const files: Record<string, string> = {
+      '/root/root.mmt': [
+        'type: suite',
+        'servers:',
+        '  - ./mock.mmt',
+        'items:',
+        '  - ./test.mmt',
+      ].join('\n'),
+      '/root/mock.mmt': ['type: server', 'title: User mock', 'port: 3000'].join('\n'),
+      '/root/test.mmt': 'type: test\n',
+    };
+    const fileLoader = async (p: string) => files[p] ?? '';
+
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/root.mmt',
+      suiteRawText: files['/root/root.mmt'],
+      fileLoader,
+    });
+
+    expect(tree.servers).toEqual(['./mock.mmt']);
+    expect((tree.children[0] as any).children[0]).toEqual({
+      kind: 'test',
+      id: 'suite-node:0.0',
+      path: '/root/test.mmt',
+      title: undefined,
+    });
+  });
 });

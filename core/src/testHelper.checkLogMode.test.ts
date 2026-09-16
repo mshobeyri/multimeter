@@ -1,4 +1,61 @@
-import {check_, checkExpects_, contains_, equals_, equalsIgnoreCase_, fuzzyMatch_, isAt_, isNotAt_, isOmitted_, isNotOmitted_, lengthEquals_, lengthGreater_, lengthGreaterOrEqual_, lengthLess_, lengthLessOrEqual_, lengthOf_, matches_, notContains_, notEquals_, notEqualsIgnoreCase_, notFuzzyMatch_, notLengthEquals_, notMatches_, notTrimEquals_, notTrimEqualsIgnoreCase_, reportWithContext_, similarityPercent_, trimEquals_, trimEqualsIgnoreCase_} from './testHelper';
+import {
+  AssertionFailedError,
+  check_,
+  checkAbort_,
+  checkExpects_,
+  contains_,
+  equals_,
+  equalsAsString_,
+  equalsIgnoreCase_,
+  fuzzyMatch_,
+  greater_,
+  greaterOrEqual_,
+  isAt_,
+  isAssertionFailedError,
+  isNotAt_,
+  isNotOmitted_,
+  isOmitted_,
+  isServerRunning_,
+  beginServerSession_,
+  endServerSession_,
+  isServerSessionActive_,
+  listRunningServers_,
+  isTestAbortError,
+  judge_,
+  lengthEquals_,
+  lengthGreater_,
+  lengthGreaterOrEqual_,
+  lengthLess_,
+  lengthLessOrEqual_,
+  lengthOf_,
+  less_,
+  lessOrEqual_,
+  matches_,
+  notContains_,
+  notEquals_,
+  notEqualsAsString_,
+  notEqualsIgnoreCase_,
+  notFuzzyMatch_,
+  notLengthEquals_,
+  notMatches_,
+  notTrimEquals_,
+  notTrimEqualsIgnoreCase_,
+  importJsModule_,
+  protocolFromUrl_,
+  registerServer_,
+  setFileLoader_,
+  reportWithContext_,
+  setAbortSignal_,
+  setenv_,
+  setenvWithContext_,
+  setServerRunner_,
+  similarityPercent_,
+  startServer_,
+  stopAllServers_,
+  TestAbortError,
+  trimEquals_,
+  trimEqualsIgnoreCase_,
+} from './testHelper';
 
 describe('testHelper checkLogMode', () => {
   function makeConsole() {
@@ -287,5 +344,155 @@ describe('testHelper comparison helpers', () => {
     expect(equals_([1, { id: 2 }, 3], [1, { id: 2 }, 3])).toBe(true);
     expect(notEquals_({ message: 'hello' }, { message: 'bye' })).toBe(true);
     expect(notEquals_([1, 2], [2, 1])).toBe(true);
+    expect(equals_({a: 1}, {a: 1, b: 2})).toBe(false);
+    expect(equals_([1], [1, 2])).toBe(false);
+    expect(equals_([1, 2], [1, 3])).toBe(false);
+    expect(equals_({a: 1}, {b: 1})).toBe(false);
+    expect(equals_(null, {})).toBe(false);
+    expect(less_(1, 2)).toBe(true);
+    expect(greater_(2, 1)).toBe(true);
+    expect(lessOrEqual_(2, 2)).toBe(true);
+    expect(greaterOrEqual_(3, 2)).toBe(true);
+    expect(equalsAsString_(true, 'true')).toBe(true);
+    expect(notEqualsAsString_('a', 'b')).toBe(true);
+    expect(equalsAsString_(undefined, '__MMT_OMIT__')).toBe(true);
+    expect(equalsAsString_('__MMT_OMIT__', null)).toBe(true);
+    expect(protocolFromUrl_('wss://x')).toBe('ws');
+    expect(protocolFromUrl_('https://x')).toBe('http');
+    expect(protocolFromUrl_('')).toBe('http');
+  });
+});
+
+describe('testHelper abort, servers, setenv, judge, check branches', () => {
+  afterEach(() => {
+    setAbortSignal_(undefined);
+    setServerRunner_(undefined);
+    stopAllServers_();
+  });
+
+  it('throws TestAbortError when aborted and classifies abort/assert errors', () => {
+    setAbortSignal_(AbortSignal.abort());
+    expect(() => checkAbort_()).toThrow(TestAbortError);
+    expect(isTestAbortError(new TestAbortError())).toBe(true);
+    expect(isTestAbortError({kind: 'test-abort'})).toBe(true);
+    expect(isTestAbortError(new Error('x'))).toBe(false);
+    expect(isAssertionFailedError(new AssertionFailedError())).toBe(true);
+    expect(isAssertionFailedError({kind: 'assertion-failed'})).toBe(true);
+  });
+
+  it('starts servers idempotently and ignores cleanup errors', async () => {
+    await expect(startServer_('mock')).rejects.toThrow('no server runner');
+    let starts = 0;
+    setServerRunner_(async () => {
+      starts += 1;
+      return () => {
+        throw new Error('cleanup');
+      };
+    });
+    await startServer_('mock');
+    await startServer_('mock');
+    expect(starts).toBe(1);
+    expect(isServerRunning_('mock')).toBe(true);
+    expect(listRunningServers_()).toEqual(['mock']);
+    registerServer_('other', () => {});
+    stopAllServers_();
+    expect(isServerRunning_('mock')).toBe(false);
+  });
+
+  it('only the outermost server session stops the public list', async () => {
+    let stopped = 0;
+    setServerRunner_(async () => () => {
+      stopped += 1;
+    });
+    expect(beginServerSession_()).toBe(true);
+    expect(beginServerSession_()).toBe(false);
+    await startServer_('mock');
+    expect(isServerSessionActive_()).toBe(true);
+    expect(endServerSession_()).toEqual({outermost: false, stopErrors: []});
+    expect(isServerRunning_('mock')).toBe(true);
+    expect(stopped).toBe(0);
+    expect(endServerSession_()).toEqual({outermost: true, stopErrors: []});
+    expect(isServerRunning_('mock')).toBe(false);
+    expect(stopped).toBe(1);
+    expect(isServerSessionActive_()).toBe(false);
+  });
+
+  it('fails importJsModule_ on empty path, missing loader, and empty source', async () => {
+    await expect(importJsModule_('')).rejects.toThrow('empty path');
+    setFileLoader_(undefined);
+    await expect(importJsModule_('/tmp/helpers.js')).rejects.toThrow('fileLoader is not available');
+    setFileLoader_(async () => '   ');
+    await expect(importJsModule_('/tmp/helpers.js')).rejects.toThrow('empty module source');
+    setFileLoader_(undefined);
+  });
+
+  it('ignores empty setenv and reporter throws', () => {
+    setenv_({} as any);
+    setenvWithContext_(undefined, undefined, undefined, undefined as any);
+    const throwing = () => {
+      throw new Error('reporter down');
+    };
+    expect(() => setenvWithContext_(throwing, 'run', 'id', {A: 1})).not.toThrow();
+    expect(() => reportWithContext_(throwing, 'run-x', 'id-x', 'check', 'x == 1', undefined, '{"_":{"cached":true}}', true)).not.toThrow();
+  });
+
+  it('logs failed checks with details and throws on failed assert', () => {
+    const consoleFn = {
+      log: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+      trace: jest.fn(),
+    };
+    const reportFn = jest.fn();
+    check_(true, 'check', 'a == 1', 'fails', undefined, undefined, 1, 1, reportFn, consoleFn);
+    expect(consoleFn.debug).toHaveBeenCalled();
+    check_(true, 'check', 'a == 1', 'none', undefined, undefined, 1, 1, reportFn, consoleFn);
+    expect(consoleFn.trace).toHaveBeenCalled();
+    check_(
+        false, 'check', 'a == 1', 'all', 't', '{"x":1}', 2, 1, reportFn, consoleFn);
+    expect(consoleFn.error).toHaveBeenCalled();
+    expect(consoleFn.debug).toHaveBeenCalled();
+    expect(() => check_(false, 'assert', 'a == 1', 'all', undefined, undefined, 2, 1, reportFn, consoleFn))
+        .toThrow(AssertionFailedError);
+  });
+
+  it('covers checkExpects debug, fails/none levels, and assert throw', () => {
+    const consoleFn = {
+      log: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+      trace: jest.fn(),
+    };
+    const reportFn = jest.fn();
+    checkExpects_(
+        [{passed: true, comparison: 'a == 1', actual: 1, expected: 1}],
+        'debug', 'all', 't', undefined, reportFn, consoleFn);
+    checkExpects_(
+        [{passed: true, comparison: 'a == 1', actual: 1, expected: 1}],
+        'check', 'fails', 't', undefined, reportFn, consoleFn);
+    checkExpects_(
+        [{passed: true, comparison: 'a == 1', actual: 1, expected: 1}],
+        'check', 'none', 't', undefined, reportFn, consoleFn);
+    checkExpects_(
+        [{passed: false, comparison: 'a == 1', actual: 2, expected: 1}],
+        'check', 'none', 't', '{"a":1}', reportFn, consoleFn);
+    expect(() => checkExpects_(
+        [{passed: false, comparison: 'a == 1', actual: 2, expected: 1, level: 'require'}],
+        'assert', 'all', 't', '{"a":1}', reportFn, consoleFn)).toThrow(AssertionFailedError);
+  });
+
+  it('judge_ fails hard without a judge definition or expect/require', async () => {
+    await expect(judge_({} as any, {}, 'all', 't', jest.fn(), {
+      log: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+      trace: jest.fn(),
+    })).rejects.toThrow(AssertionFailedError);
+    await expect(judge_({type: 'judge'} as any, {}, 'all', 't', jest.fn(), {
+      log: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+      trace: jest.fn(),
+    })).rejects.toThrow(AssertionFailedError);
   });
 });

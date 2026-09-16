@@ -36,7 +36,7 @@ export interface TestRunResult {
   filePath?: string;
   displayName?: string;
   docType?: string;
-  result: 'passed' | 'failed';
+  result: 'passed' | 'failed' | 'skipped';
   durationMs?: number;
   steps: TestStepResult[];
   outputs?: Record<string, any>;
@@ -207,12 +207,18 @@ export function createReportCollector() {
         run.filePath = event.filePath;
         run.displayName = event.title || event.entry;
         run.docType = event.docType;
-      } else if (event.status === 'passed' || event.status === 'failed') {
-        const run = testRunsByKey.get(key);
+      } else if (event.status === 'passed' || event.status === 'failed' || event.status === 'skipped') {
+        const run = event.status === 'skipped'
+          ? getOrCreateTestRun(key, event.runId || key)
+          : testRunsByKey.get(key);
         if (run) {
           run.result = event.status;
           if (event.docType) {
             run.docType = event.docType;
+          }
+          if (event.status === 'skipped') {
+            run.filePath = event.filePath;
+            run.displayName = event.title || event.entry;
           }
         }
       }

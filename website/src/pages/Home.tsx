@@ -4,10 +4,9 @@ import Hero from '../sections/Hero'
 import Features from '../sections/Features'
 import BuiltForVSCode from '../sections/BuiltForVSCode'
 import GitNative from '../sections/GitNative'
-import MockServer from '../sections/MockServer'
 import AITestGen from '../sections/AITestGen'
 import CICDReady from '../sections/CICDReady'
-import Documentation from '../sections/Documentation'
+import MockAndDocs from '../sections/MockAndDocs'
 import Comparison from '../sections/Comparison'
 import FAQ from '../components/FAQ'
 import CTA from '../sections/CTA'
@@ -27,14 +26,13 @@ export default function Home() {
         path="/"
       />
       <Hero />
-      <div className="relative bg-surface">
+      <div className="relative bg-surface [&>section]:py-24 lg:[&>section]:py-28">
         <Features />
+        <AITestGen />
         <BuiltForVSCode />
         <GitNative />
-        <AITestGen />
-        <MockServer />
+        <MockAndDocs />
         <CICDReady />
-        <Documentation />
         <Comparison />
         <FAQ />
         <CTA />

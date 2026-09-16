@@ -1,4 +1,4 @@
-import { extractOutputs, buildBodyExprFromPath, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from './outputExtractor';
+import { extractOutputs, buildBodyExprFromPath, extractPathAtPosition, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from './outputExtractor';
 import {OMIT_SENTINEL, isOmitSentinel} from './omitKeyword';
 
 describe('outputExtractor', () => {
@@ -683,3 +683,132 @@ describe('extractOutputs with default rules', () => {
     expect(result.status).toBe(200);
   });
 });
+
+describe('extractOutputs extra sections and auto type', () => {
+  it('extracts grpc message/metadata/details and jsonpath/brackets', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: {user: {id: 7}, list: ['a', 'b']},
+      headers: {h: '1'},
+      cookies: {c: '2'},
+      message: {ok: true},
+      metadata: {m: '9'},
+      details: 'd',
+      status: 200,
+    };
+    const result = extractOutputs(response, {
+      msg: 'message',
+      meta: 'metadata',
+      details: 'details',
+      root: '$',
+      id: 'body.user.id',
+      jsonpathId: '$body[user][id]',
+      hdr: 'headers[h]',
+      cookie: 'cookies.c',
+      idx: 'body[list][1]',
+      obj0: 'body[user][0]',
+      missing: 'nope',
+      bad: 1 as any,
+      emptyDot: 'body',
+      regexHeader: 'headers[/h: (.*)/]',
+      regexCookie: 'cookies[/c: (.*)/]',
+      regexMsg: 'message[/ok/]',
+      regexMeta: 'metadata[/m: (.*)/]',
+    });
+    expect(result.msg).toEqual({ok: true});
+    expect(result.meta).toEqual({m: '9'});
+    expect(result.details).toBe('d');
+    expect(result.root).toEqual({user: {id: 7}, list: ['a', 'b']});
+    expect(result.id).toBe(7);
+    expect(result.jsonpathId).toBe(7);
+    expect(result.hdr).toBe('1');
+    expect(result.cookie).toBe('2');
+    expect(result.idx).toBe('b');
+    expect(result.missing).toBeNull();
+    expect(result.bad).toBeNull();
+    expect(result.regexHeader).toBe('1');
+    expect(result.regexCookie).toBe('2');
+  });
+
+  it('auto-detects xml vs json and handles omit/invalid regex', () => {
+    const xml = extractOutputs({
+      type: 'auto',
+      body: '<root><n>1</n></root>',
+      headers: {'Content-Type': 'application/xml'},
+      cookies: {},
+    }, {n: 'body.n'});
+    expect(xml.n === '1' || xml.n != null).toBe(true);
+
+    const xmlNoCt = extractOutputs({
+      type: 'auto',
+      body: '<x/>',
+      headers: {},
+      cookies: {},
+    }, {body: 'body'});
+    expect(xmlNoCt.body).toBeDefined();
+
+    const badXml = extractOutputs({
+      type: 'xml',
+      body: '<not-xml',
+      headers: {},
+      cookies: {},
+    }, {body: 'body'});
+    expect(badXml.body).toEqual({});
+
+    const omit = extractOutputs({
+      type: 'json',
+      body: {},
+      headers: {},
+      cookies: {},
+    }, {gone: 'body.missing.deep'});
+    expect(isOmitSentinel(omit.gone)).toBe(true);
+
+    const badRegex = extractOutputs({
+      type: 'json',
+      body: 'abc',
+      headers: {},
+      cookies: {},
+    }, {x: 'body[/(/]'});
+    expect(badRegex.x).toBeNull();
+  });
+
+  it('merges default rules when user outputs are omitted', () => {
+    expect(mergeWithDefaultExtractionRules(undefined).status).toBe('status');
+    expect(buildBodyExprFromPath([])).toBe('');
+    expect(buildBodyExprFromPath(['a', 0, 'b'])).toBe('body.a.0.b');
+  });
+
+  it('returns empty/omit on invalid JSON, missing paths, and cursor-in-junk', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const badJson = extractOutputs({
+      type: 'json',
+      body: '{not json',
+      headers: {},
+      cookies: {},
+    }, {body: 'body.id', status: 'status', duration: 'duration'});
+    expect(badJson.body == null || isOmitSentinel(badJson.body)).toBe(true);
+    expect(extractPathAtPosition('{', 'json', 1, 1)).toBeNull();
+    expect(extractPathAtPosition('<root></root>', 'xml', 1, 2)).toEqual(expect.any(Array));
+    expect(extractPathAtPosition('x', 'json', 99, 99)).toBeNull();
+    expect(extractPathAtPosition('x', 'text' as any, 1, 1)).toBeNull();
+    warn.mockRestore();
+  });
+
+  it('walks JSON objects and arrays at the cursor', () => {
+    expect(extractPathAtPosition('{"a":[1,{"b":2}]}', 'json', 1, 3)).toEqual(['a']);
+    expect(extractPathAtPosition('{"a":[1,{"b":2}]}', 'json', 1, 8)).toEqual(expect.arrayContaining(['a']));
+    expect(extractPathAtPosition('{"a": true, "b": false, "c": null}', 'json', 1, 8)).toEqual(['a']);
+    expect(extractPathAtPosition('   ', 'json', 1, 1)).toBeNull();
+    const emptyObj = extractOutputs({
+      type: 'json',
+      body: null,
+      headers: {},
+      cookies: {},
+      status: 204,
+      duration: 3,
+    }, {status: 'status', duration: 'duration', body: 'body'});
+    expect(emptyObj.status).toBe(204);
+    expect(emptyObj.duration).toBe(3);
+  });
+});
+

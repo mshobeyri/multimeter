@@ -14,7 +14,7 @@ const ReportEmptyFilterPlaceholder: React.FC<ReportEmptyFilterPlaceholderProps> 
   return (
     <div className="report-empty-filter" role="status">
       <span
-        className={`codicon ${filter === 'failed' ? 'codicon-error' : filter === 'passed' ? 'codicon-pass' : 'codicon-filter'} report-empty-filter-icon`}
+        className={`codicon ${filter === 'failed' ? 'codicon-error' : filter === 'errors' ? 'codicon-warning' : filter === 'passed' ? 'codicon-pass' : 'codicon-filter'} report-empty-filter-icon`}
         aria-hidden
       />
       <div className="report-empty-filter-message">

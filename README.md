@@ -25,6 +25,9 @@
     <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
       <img src="https://vsmarketplacebadges.dev/installs-short/mshobeyri.multimeter.svg" alt="VS Code Installs"/>
     </a>
+    <a href="https://www.npmjs.com/package/mmt-testlight">
+      <img src="https://img.shields.io/npm/dt/mmt-testlight.svg" alt="npm downloads"/>
+    </a>
     <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
       <img src="https://vsmarketplacebadges.dev/version-short/mshobeyri.multimeter.svg" alt="Version"/>
     </a>

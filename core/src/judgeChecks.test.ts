@@ -1,13 +1,28 @@
 import {
   JUDGE_BUILTIN_CHECK_IDS,
   JUDGE_BUILTIN_CHECKS,
+  buildJudgeBuiltinChecksPrompt,
   builtinJudgeCheckIdsCsv,
   builtinJudgeCheckSchemaProperties,
   builtinJudgeDefaultsChecksYaml,
   builtinJudgeEvalSuggestions,
+  getJudgeBuiltinCheck,
 } from './judgeChecks';
 
 describe('judgeChecks schema/autocomplete helpers', () => {
+  test('getJudgeBuiltinCheck resolves ids and misses', () => {
+    expect(getJudgeBuiltinCheck('semanticSimilarity')?.id).toBe('semanticSimilarity');
+    expect(getJudgeBuiltinCheck('nope')).toBeUndefined();
+  });
+
+  test('buildJudgeBuiltinChecksPrompt lists every builtin', () => {
+    const prompt = buildJudgeBuiltinChecksPrompt();
+    expect(prompt).toContain('Built-in checks');
+    for (const check of JUDGE_BUILTIN_CHECKS) {
+      expect(prompt).toContain(check.id);
+    }
+  });
+
   test('builtinJudgeCheckIdsCsv lists all builtins', () => {
     const csv = builtinJudgeCheckIdsCsv();
     for (const id of JUDGE_BUILTIN_CHECK_IDS) {

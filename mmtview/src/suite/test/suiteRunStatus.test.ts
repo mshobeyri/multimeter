@@ -69,6 +69,41 @@ describe('suiteRunStatus helpers', () => {
     expect(pending['suite-node:1.0.0']).toBe('pending');
   });
 
+  it('does not mark mock server items as pending', () => {
+    const hierarchy: Record<string, SuiteTreeNode> = {
+      'suite-node:0.0': {
+        kind: 'suite',
+        id: 'suite-node:0.0',
+        path: 'nested.mmt',
+        children: [
+          { kind: 'server', id: 'suite-node:0.0.-1.0', path: 'mock.mmt', title: 'User mock' },
+          { kind: 'test', id: 'suite-node:0.0.0', path: 't.mmt' },
+        ],
+      },
+      'suite-node:0.1': {
+        kind: 'server',
+        id: 'suite-node:0.1',
+        path: 'top-mock.mmt',
+        title: 'Auth mock',
+      },
+    };
+    const groups = [
+      {
+        label: 'Group 1',
+        entries: [
+          { path: 'nested.mmt', id: 'suite-node:0.0' },
+          { path: 'top-mock.mmt', id: 'suite-node:0.1' },
+        ],
+      },
+    ];
+    const pending = buildFullSuitePendingState(groups, hierarchy);
+    expect(pending[createSuiteNodeId([0])]).toBe('pending');
+    expect(pending['suite-node:0.0']).toBe('pending');
+    expect(pending['suite-node:0.0.0']).toBe('pending');
+    expect(pending['suite-node:0.0.-1.0']).toBeUndefined();
+    expect(pending['suite-node:0.1']).toBeUndefined();
+  });
+
   it('builds target pending for group targets including entry descendants', () => {
     const hierarchy: Record<string, SuiteTreeNode> = {
       'suite-node:0.0': {

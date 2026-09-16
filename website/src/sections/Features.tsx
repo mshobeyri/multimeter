@@ -97,10 +97,10 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="scroll-mt-20 py-28 px-4 sm:px-6 lg:px-8">
+    <section id="features" className="scroll-mt-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <FadeIn>
-          <div className="text-center mb-20">
+          <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Everything you need.{' '}
               <span className="gradient-text">Nothing you don't.</span>
@@ -111,7 +111,7 @@ export default function Features() {
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {features.map((feature, index) => (
             <FadeIn key={feature.title} delay={index * 60}>
               <div className="group relative bg-surface-light border border-border rounded-2xl p-6 hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 h-full">

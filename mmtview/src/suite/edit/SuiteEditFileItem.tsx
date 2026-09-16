@@ -4,6 +4,7 @@ import FilePickerInput from '../../components/FilePickerInput';
 import { FileContext } from '../../fileContext';
 import { SuiteGroup } from '../types';
 import { StepStatus } from '../../shared/types';
+import { isDuplicateSuiteServerPath } from '../../text/validator';
 
 export type SuiteEditFileItemData = { type: 'file'; path: string };
 
@@ -13,6 +14,7 @@ interface SuiteEditFileItemProps {
     arrow: React.ReactNode;
     children: React.ReactNode;
     missingFiles: Set<string>;
+    duplicateServerKeys?: Set<string>;
     groups: SuiteGroup[];
     persistGroups: (groups: SuiteGroup[]) => void;
     status: StepStatus;
@@ -24,6 +26,7 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
     arrow,
     children,
     missingFiles,
+    duplicateServerKeys,
     groups,
     persistGroups,
     status,
@@ -31,6 +34,9 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
     const data = item.data as SuiteEditFileItemData;
     const fileContext = useContext(FileContext);
     const isMissing = missingFiles.has(data.path);
+    const isDuplicateServer = Boolean(
+      duplicateServerKeys && isDuplicateSuiteServerPath(data.path, duplicateServerKeys),
+    );
     const statusIcon = isMissing
         ? {
             icon: 'codicon-warning',
@@ -89,6 +95,7 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
                             onRemovePressed={() => onChange('')}
                             showFilePicker
                             removable
+                            invalid={isDuplicateServer}
                         />
                     </NoTreeInterference>
                 </div>

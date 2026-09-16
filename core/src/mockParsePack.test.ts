@@ -1,4 +1,4 @@
-import {loadMockFromYaml, mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from './mockParsePack';
+import {isMockEnvToken, isMockPortEnvToken, loadMockFromYaml, mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from './mockParsePack';
 
 describe('mockParsePack', () => {
   it('mockToYaml does not add title when missing', () => {
@@ -218,5 +218,58 @@ endpoints:
   it('rejects unresolved or invalid env token protocols', () => {
     expect(() => resolveMockProtocol('e:MISSING', {})).toThrow(/not one of/);
     expect(() => resolveMockProtocol('e:MOCK_PROTOCOL', {MOCK_PROTOCOL: 'ftp'})).toThrow(/not one of/);
+  });
+
+  it('records parse errors for invalid mock files', () => {
+    expect(parseMockData(null).errors[0].message).toMatch(/YAML object/);
+    expect(parseMockData({type: 'api'}).errors[0].message).toMatch(/type must be "server"/);
+    const missing = parseMockData({type: 'server'});
+    expect(missing.errors.map(e => e.message)).toEqual(expect.arrayContaining([
+      'port is required',
+      'endpoints must be an array',
+    ]));
+    const bad = parseMockData({
+      type: 'server',
+      extra: true,
+      port: 0,
+      endpoints: [
+        'nope',
+        {unknown: 1},
+        {path: '/x', method: {e: null}, status: 9, format: 'yaml', delay: -1},
+        {path: '/y', method: 'explode'},
+        {path: '/z', method: 'get', name: 'dup'},
+        {path: '/z2', method: 'get', name: 'dup'},
+        null,
+      ],
+    });
+    expect(bad.errors.some(e => e.message.includes('Unknown field: extra'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('port must be'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('must be an object'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('path is required'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('method must be a string'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('invalid method'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('status must be'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('format must be'))).toBe(true);
+    expect(yamlToMock('[]')).toBeNull();
+    expect(yamlToMock('type: api\n')).toBeNull();
+    expect(parseMockData({type: 'server', port: '99999', endpoints: []}).errors.some(e => e.message.includes('1 and 65535'))).toBe(true);
+    expect(parseMockData({type: 'server', port: 'abc', endpoints: []}).errors.some(e => e.message.includes('env token'))).toBe(true);
+    expect(parseMockData({type: 'server', port: {e: null}, endpoints: []}).errors.some(e => e.message.includes('env token'))).toBe(true);
+    expect(parseMockData({
+      type: 'server',
+      port: 8080,
+      delay: 'slow',
+      connection: 'tls',
+      fallback: 'nope',
+      protocol: {e: null},
+      endpoints: [],
+    }).errors.map(e => e.message)).toEqual(expect.arrayContaining([
+      'delay must be a non-negative number',
+      'connection must be an object',
+      'fallback must be an object',
+      'protocol must be http, https, ws, or an env token like e:MOCK_PROTOCOL',
+    ]));
+    expect(isMockPortEnvToken('e:P')).toBe(true);
+    expect(isMockEnvToken('nope')).toBe(false);
   });
 });

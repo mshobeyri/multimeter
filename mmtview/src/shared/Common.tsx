@@ -21,6 +21,9 @@ export const statusIconFor = (status: StepStatus) => {
     if (status === 'pending') {
         return { icon: 'codicon-compass', color: '#7c847e', title: 'Pending' };
     }
+    if (status === 'skipped') {
+        return { icon: 'codicon-skip', color: 'var(--vscode-descriptionForeground, #7c847e)', title: 'Skipped' };
+    }
     if (status === 'debug') {
         return { icon: 'codicon-debug', color: '#8973ea', title: 'Debug' };
     }
@@ -94,8 +97,7 @@ export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>
             anyCancelled = true;
         } else if (s === 'pending') {
             anyPending = true;
-        }
-        if (s !== 'passed') {
+        } else if (s !== 'passed' && s !== 'skipped') {
             allPassed = false;
         }
     }

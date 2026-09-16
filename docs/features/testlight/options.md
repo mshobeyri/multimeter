@@ -31,5 +31,9 @@
   - Custom output path for the report file (default depends on format)
 - -x, --example <name|#n>
   - Named example or numeric index (#1 is first)
+- -t, --tag <tag>
+  - Only run tests/suites that have this tag (repeatable; comma-separated OK; OR)
+- --skip-tag <tag>
+  - Skip tests/suites that have this tag (repeatable; comma-separated OK; OR)
 - -L, --log-level <level>
   - Set log verbosity: `error`, `warn`, `info`, `debug`, `trace`

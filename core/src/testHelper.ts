@@ -744,10 +744,102 @@ export const setenvWithContext_ = (
 export type ServerRunner = (alias: string, filePath: string) => Promise<() => void>;
 
 let __mmtServerRunner: ServerRunner | undefined;
+/** Public running-server list for the current outermost suite/test run. */
 const __mmtStartedServers = new Map<string, () => void>();
+const __mmtPendingServers = new Map<string, Promise<'started'|'already-running'>>();
+/** Nested tests/suites join this session; only depth 0 stops the list. */
+let __mmtServerSessionDepth = 0;
+
+function normalizeServerKey(alias: string): string {
+  return String(alias || '').trim().replace(/\\/g, '/');
+}
+
+function uniqueServerKeys(aliases: Array<string|undefined>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const alias of aliases) {
+    const key = normalizeServerKey(alias || '');
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
 
 export const setServerRunner_ = (runner: ServerRunner | undefined) => {
   __mmtServerRunner = runner;
+};
+
+/**
+ * Join the public running-server session.
+ * Returns true when this caller opened the outermost session.
+ */
+export const beginServerSession_ = (): boolean => {
+  __mmtServerSessionDepth += 1;
+  return __mmtServerSessionDepth === 1;
+};
+
+/**
+ * Leave the public running-server session.
+ * The outermost leave stops every mock on the list.
+ */
+export const endServerSession_ = (): {outermost: boolean; stopErrors: string[]} => {
+  if (__mmtServerSessionDepth <= 1) {
+    __mmtServerSessionDepth = 0;
+    return {outermost: true, stopErrors: stopAllServers_()};
+  }
+  __mmtServerSessionDepth -= 1;
+  return {outermost: false, stopErrors: []};
+};
+
+export const isServerSessionActive_ = (): boolean => {
+  return __mmtServerSessionDepth > 0;
+};
+
+/**
+ * Shared start for tests (`run:`) and suites (`servers:` / item servers).
+ * If any alias is already on the public running-server list (or a start is in
+ * flight), this is a no-op. Otherwise the mock is started once and registered
+ * under every alias.
+ */
+export const ensureServerStarted_ = async (
+    aliases: Array<string|undefined>,
+    start: () => Promise<() => void>,
+): Promise<'started'|'already-running'> => {
+  const keys = uniqueServerKeys(aliases);
+  if (keys.length === 0) {
+    return 'already-running';
+  }
+  for (const key of keys) {
+    if (__mmtStartedServers.has(key)) {
+      return 'already-running';
+    }
+  }
+  for (const key of keys) {
+    const pending = __mmtPendingServers.get(key);
+    if (pending) {
+      return pending;
+    }
+  }
+  const job = (async (): Promise<'started'|'already-running'> => {
+    try {
+      const cleanup = await start();
+      for (const key of keys) {
+        __mmtStartedServers.set(key, cleanup);
+      }
+      return 'started';
+    } finally {
+      for (const key of keys) {
+        __mmtPendingServers.delete(key);
+      }
+    }
+  })();
+  for (const key of keys) {
+    __mmtPendingServers.set(key, job);
+  }
+  return job;
 };
 
 /**
@@ -755,18 +847,12 @@ export const setServerRunner_ = (runner: ServerRunner | undefined) => {
  * If the server is already running, this is a no-op.
  */
 export const startServer_ = async (alias: string): Promise<void> => {
-  if (__mmtStartedServers.has(alias)) {
-    // Server already running, idempotent
-    return;
-  }
-  if (!__mmtServerRunner) {
-    throw new Error(`Cannot start server "${alias}": no server runner configured`);
-  }
-  // The alias needs to be resolved to a file path by the generated code
-  // For now, we pass the alias directly; the serverRunner implementation
-  // should have access to the import map to resolve it
-  const cleanup = await __mmtServerRunner(alias, alias);
-  __mmtStartedServers.set(alias, cleanup);
+  await ensureServerStarted_([alias], async () => {
+    if (!__mmtServerRunner) {
+      throw new Error(`Cannot start server "${alias}": no server runner configured`);
+    }
+    return __mmtServerRunner(alias, alias);
+  });
 };
 
 /**
@@ -776,28 +862,49 @@ export const startServer_ = async (alias: string): Promise<void> => {
  * @param cleanup The cleanup function to stop the server
  */
 export const registerServer_ = (alias: string, cleanup: () => void): void => {
-  __mmtStartedServers.set(alias, cleanup);
+  const key = normalizeServerKey(alias);
+  if (!key) {
+    return;
+  }
+  __mmtStartedServers.set(key, cleanup);
 };
 
 /**
- * Stop all servers started during this test run.
+ * Aliases currently on the public running-server list.
  */
-export const stopAllServers_ = (): void => {
-  for (const [alias, cleanup] of __mmtStartedServers) {
-    try {
-      cleanup();
-    } catch {
-      // Ignore cleanup errors
-    }
+export const listRunningServers_ = (): string[] => {
+  return Array.from(__mmtStartedServers.keys());
+};
+
+/**
+ * Stop all servers started during this test/suite run.
+ * Returns cleanup error messages (cleanup failures are otherwise ignored).
+ */
+export const stopAllServers_ = (): string[] => {
+  const unique = new Set<() => void>();
+  for (const cleanup of __mmtStartedServers.values()) {
+    unique.add(cleanup);
   }
   __mmtStartedServers.clear();
+  __mmtPendingServers.clear();
+  __mmtServerSessionDepth = 0;
+  const errors: string[] = [];
+  for (const cleanup of unique) {
+    try {
+      cleanup();
+    } catch (e: any) {
+      errors.push(e?.message || String(e));
+    }
+  }
+  return errors;
 };
 
 /**
- * Check if a server is running by alias.
+ * Check if a server is running (or a start is in flight) by alias.
  */
 export const isServerRunning_ = (alias: string): boolean => {
-  return __mmtStartedServers.has(alias);
+  const key = normalizeServerKey(alias);
+  return __mmtStartedServers.has(key) || __mmtPendingServers.has(key);
 };
 
 /**

@@ -322,6 +322,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Suite tags [array of strings]',
             documentation: 'Tags for categorizing suites.',
         },
+        {
+            label: "filter",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "filter:\n\tonly:\n\t\t- \n\tskip:\n\t\t- ",
+            detail: 'Suite tag filter [object]',
+            documentation: 'only: run only tests/suites with these tags (OR). skip: do not run tagged tests/suites. Nested running suites AND only-lists and OR skip-lists.',
+        },
         dataImportSuggestion,
         {
             label: "servers",

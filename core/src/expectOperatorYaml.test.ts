@@ -212,4 +212,19 @@ describe('expectOperatorYaml', () => {
     expect(emitted).toContain('xxx: != salam');
     expect(emitted).not.toContain('"!= salam"');
   });
+
+  it('unquotes expect lines and filters empty operator diagnostics', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - http: https://x',
+      '    expect:',
+      '      status: "== 200"',
+      '    require:',
+      '      body: "!= null"',
+    ].join('\n');
+    const emitted = emitUnquotedOperators(yaml);
+    expect(emitted).toContain('body: != null');
+    expect(filterOperatorYamlErrors('status: == 200', [])).toEqual([]);
+  });
 });

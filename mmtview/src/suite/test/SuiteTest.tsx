@@ -4,6 +4,7 @@ import { parseYaml } from 'mmt-core/markupConvertor';
 import { formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
+import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import { SuiteEntry, SuiteGroup } from '../types';
@@ -11,7 +12,7 @@ import { SuiteTestTree } from './';
 import type { SuiteTestTreeHandle } from './SuiteTestTree';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
-import { SuiteTreeNode } from './suiteHierarchy';
+import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
 import { resetLeafStateMap } from './leafStateReset';
 import {
@@ -26,13 +27,14 @@ import {
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import ReportStatusFilterButton from '../../shared/ReportStatusFilterButton';
-import ReportHeaderMoreMenu from '../../shared/ReportHeaderMoreMenu';
+import ReportExpandCollapseButton from '../../shared/ReportExpandCollapseButton';
 import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
 import { HideWhenYamlError } from '../../api/YamlErrorWarning';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
 import { runInCoreMenuItem } from '../../components/ContextMenuHost';
+import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
 import RunStopToggle from '../../components/RunStopToggle';
 
 /** Get basename from a file path. */
@@ -65,14 +67,12 @@ function buildDisplayNamesFromHierarchy(
         const label = getNodeLabel(node);
         const currentPath = node.kind === 'group' ? pathParts : [...pathParts, label];
 
-        if (node.kind === 'test' || node.kind === 'suite' || node.kind === 'missing' || node.kind === 'cycle') {
+        if (node.kind === 'test' || node.kind === 'suite' || node.kind === 'server' || node.kind === 'missing' || node.kind === 'cycle') {
             result[node.id] = currentPath.join(' / ');
         }
 
-        if ('children' in node && Array.isArray(node.children)) {
-            for (const child of node.children) {
-                traverse(child, currentPath);
-            }
+        for (const child of suiteTreeChildren(node)) {
+            traverse(child, currentPath);
         }
     };
 
@@ -403,6 +403,15 @@ const buildExportsFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
+const buildFilterFromContent = (content: string): { only: string[]; skip: string[] } => {
+    const parsed = parseYaml(content);
+    const filter = parseSuiteYamlFilter(parsed?.filter);
+    return {
+        only: filter?.only ?? [],
+        skip: filter?.skip ?? [],
+    };
+};
+
 const buildLoadTestConfigFromContent = (content: string): LoadTestConfig | null => {
     const parsed = parseYaml(content);
     if (!parsed || typeof parsed !== 'object') {
@@ -433,6 +442,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromContent(content), [content, mode]);
     const environment = useMemo(() => buildEnvironmentFromContent(content), [content]);
     const suiteExports = useMemo(() => buildExportsFromContent(content), [content]);
+    const tagFilter = useMemo(() => buildFilterFromContent(content), [content]);
     const loadConfig = useMemo(() => mode === 'loadtest' ? buildLoadTestConfigFromContent(content) : null, [content, mode]);
     const suiteTitle = useMemo(() => {
         try {
@@ -460,6 +470,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
     const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
+    const [allTreeCollapsed, setAllTreeCollapsed] = useState(true);
     const suiteTreeRef = useRef<SuiteTestTreeHandle>(null);
     const suiteRunStartTimeRef = useRef<number | null>(null);
     const [suiteRunStartedAt, setSuiteRunStartedAt] = useState<number | null>(null);
@@ -546,7 +557,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             const scope = typeof message.scope === 'string' ? message.scope : '';
             if (scope === 'suite-item') {
                 const status = message.status as StepStatus | undefined;
-                if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled') {
+                if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled' || status === 'skipped') {
                     if (!(status === 'passed' && runStatePatches[targetId] === 'failed')) {
                         runStatePatches[targetId] = status;
                     }
@@ -615,6 +626,31 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, []);
 
     const [hierarchyByEntryId, setHierarchyByEntryId] = useState<Record<string, SuiteTreeNode>>({});
+    const duplicateServerPathKeys = useMemo(() => {
+        const itemServerPaths: string[] = [];
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                if (entry?.id && hierarchyByEntryId[entry.id]?.kind === 'server') {
+                    itemServerPaths.push(entry.path);
+                }
+            }
+        }
+        return duplicateSuiteServerPaths(servers, allPaths, itemServerPaths);
+    }, [servers, groups, allPaths, hierarchyByEntryId]);
+    const duplicateServerIds = useMemo(() => {
+        const ids = new Set<string>();
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                if (!entry?.id || hierarchyByEntryId[entry.id]?.kind !== 'server') {
+                    continue;
+                }
+                if (isDuplicateSuiteServerPath(entry.path, duplicateServerPathKeys)) {
+                    ids.add(entry.id);
+                }
+            }
+        }
+        return ids;
+    }, [groups, hierarchyByEntryId, duplicateServerPathKeys]);
     const hierarchyByEntryIdRef = useRef<Record<string, SuiteTreeNode>>({});
     hierarchyByEntryIdRef.current = hierarchyByEntryId;
 
@@ -843,6 +879,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         setSuiteRunState(
                             hasFailed ? 'failed' :
                             hasInvalid ? 'invalid' :
+                            vals.some(v => v === 'skipped') && !vals.some(v => v === 'passed' || v === 'running') ? 'skipped' :
                             'passed');
                         return prev;
                     });
@@ -1080,6 +1117,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }
         let passed = 0;
         let failed = 0;
+        let skipped = 0;
         let fileCount = 0;
         for (const reports of Object.values(leafReportsById)) {
             fileCount += 1;
@@ -1091,7 +1129,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 }
             }
         }
-        const total = passed + failed;
+        for (const status of Object.values(leafRunStateById)) {
+            if (status === 'skipped') {
+                skipped += 1;
+            }
+        }
+        const total = passed + failed + skipped;
         if (total === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
             return null;
         }
@@ -1102,10 +1145,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             total,
             duration,
             failedSub: total > 0 ? `${((failed / total) * 100).toFixed(1)}%` : '-',
-            totalSub: `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
+            totalSub: skipped > 0 ? `${skipped} skipped` : `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
                     durationSub: formatOverviewRelativeTime(suiteRunStartedAt),
         };
-    }, [leafReportsById, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
+    }, [leafReportsById, leafRunStateById, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
 
     const tree = (
         <SuiteTestTree
@@ -1116,8 +1159,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             statusIconFor={statusIconFor}
             reportsById={leafReportsById}
             runStateById={leafRunStateById}
+            duplicateServerIds={duplicateServerIds}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            onAllCollapsedChange={setAllTreeCollapsed}
             onRunTargets={onRunTargets}
             onRunTargetsInCore={onRunTargetsInCore}
         />
@@ -1241,10 +1286,34 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                         return (
                                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
                                                 <span className="codicon codicon-server-environment" style={{ fontSize: 14 }} aria-hidden />
-                                                <span title={s}>{name}</span>
+                                                <span
+                                                    className={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'mmt-line-error' : undefined}
+                                                    title={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'This mock server is listed more than once in this suite' : s}
+                                                >
+                                                    {name}
+                                                </span>
                                             </div>
                                         );
                                     })}
+                                </div>
+                            </>
+                        )}
+                        {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
+                            <>
+                                <div className="label" style={{ marginBottom: 6 }}>Filter</div>
+                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                    {tagFilter.only.length > 0 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-filter" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
+                                        </div>
+                                    )}
+                                    {tagFilter.skip.length > 0 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-skip" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}
@@ -1276,7 +1345,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                             onChange={setStatusFilter}
                                             disabled={Object.keys(leafRunStateById).length === 0}
                                         />
-                                        <ReportHeaderMoreMenu
+                                        <ReportExpandCollapseButton
+                                            allCollapsed={allTreeCollapsed}
                                             onExpandAll={() => suiteTreeRef.current?.expandAll()}
                                             onCollapseAll={() => suiteTreeRef.current?.collapseAll()}
                                         />

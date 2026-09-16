@@ -223,4 +223,80 @@ describe('generateJunitXml', () => {
     expect(xml).not.toContain('load.tool');
     expect(xml).not.toContain('timestamp');
   });
+
+  it('emits skipped testcase for skipped suite items', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      testRuns: [
+        makeRun({runId: 'skip-1', result: 'skipped', displayName: 'slow', filePath: '/root/slow.mmt'}),
+      ],
+    };
+    const xml = generateJunitXml(results);
+    expect(xml).toContain('skipped="1"');
+    expect(xml).toContain('<skipped/>');
+  });
+
+  it('falls back when duration, timestamp, or failure details are missing', () => {
+    const circular: any = {};
+    circular.self = circular;
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          durationMs: -5,
+          steps: [
+            makeStep({
+              title: undefined,
+              stepIndex: 0,
+              status: 'failed',
+              timestamp: undefined,
+              durationMs: undefined,
+              expects: [{comparison: '==', status: 'failed'}],
+            }),
+            makeStep({
+              title: 'obj',
+              status: 'failed',
+              expects: [
+                {comparison: '==', expected: {a: 1}, actual: circular, status: 'failed'},
+                {comparison: '==', expected: null, actual: undefined, status: 'failed'},
+              ],
+            }),
+          ],
+        }),
+      ],
+    };
+    const xml = generateJunitXml(results);
+    expect(xml).toContain('time="0.000"');
+    expect(xml).toContain('name="step-0"');
+    expect(xml).toContain('operator: ==');
+    expect(xml).toContain('expected: {&quot;a&quot;:1}');
+  });
+
+  it('emits load series snapshots when snapshots are absent', () => {
+    const results: CollectedResults = {
+      type: 'loadtest',
+      suiteRun: {runId: 's', startedAt: 1_000, success: true, totalRunnable: 0, testRuns: []},
+      testRuns: [],
+      load: {
+        summary: {requests: 2},
+        config: {threads: 1, started_at: '1970-01-01T00:00:01.000Z'},
+        series: [
+          {timestamp: '1970-01-01T00:00:03.000Z', requests: 2, throughput: 1.23456},
+        ],
+      },
+    };
+    const xml = generateJunitXml(results);
+    expect(xml).toContain('name="load.snapshots.0.at" value="2"');
+    expect(xml).toContain('name="load.threads" value="1"');
+  });
+
+  it('ignores load data without snapshots or series', () => {
+    const results: CollectedResults = {
+      type: 'loadtest',
+      testRuns: [],
+      load: {summary: {requests: 1}},
+    };
+    const xml = generateJunitXml(results);
+    expect(xml).not.toContain('load.snapshots');
+  });
 });
