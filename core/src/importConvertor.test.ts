@@ -145,6 +145,37 @@ describe('importConvertor', () => {
     expect(parseYamlStrict(usersSuite!.content).items).toEqual(['../tests/users.mmt']);
   });
 
+  it('translates single-quoted replaceIn pre-request scripts into setenv', () => {
+    const collection = {
+      info: {
+        name: 'ReplaceIn Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+      },
+      item: [{
+        name: 'Tracking',
+        event: [{
+          listen: 'prerequest',
+          script: {
+            exec: [
+              'pm.collectionVariables.set("tracking_number", pm.variables.replaceIn(\'{{$timestamp}}\'));',
+            ],
+          },
+        }],
+        request: {
+          method: 'POST',
+          url: {raw: 'https://example.com/tracking'},
+        },
+      }],
+    };
+
+    const result = convertToMmt(
+        JSON.stringify(collection),
+        {sourcePath: 'replace-in-single.postman_collection.json'});
+    const test = parseYamlStrict(
+        result.files.find(file => file.kind === 'test')!.content);
+    expect(test.steps[0].setenv.tracking_number).toBe('r:epoch');
+  });
+
   it('translates pm.variables.replaceIn pre-request scripts into setenv', () => {
     const collection = {
       info: {
@@ -320,7 +351,8 @@ describe('importConvertor', () => {
     expect(result.files[0].path).toBe('api/get-pet.mmt');
     const api = parseYamlStrict(result.files[0].content);
     expect(api.type).toBe('api');
-    expect(api.url).toBe('https://test.mmt.dev/pets/123');
+    expect(api.url).toBe('https://test.mmt.dev/pets/<<i:pet_id>>');
+    expect(api.inputs).toEqual({pet_id: '123'});
     expect(api.query.include).toBe('owner');
   });
 

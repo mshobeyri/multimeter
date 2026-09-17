@@ -231,11 +231,14 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         }
       }
 
+      const pathInputs: Record<string, string> = {};
       let processedPath = p;
       parameters.forEach((param: any) => {
-        if (param.in === 'path') {
-          const example = readOpenApiExampleValue(param) || `{${param.name}}`;
-          processedPath = processedPath.replace(`{${param.name}}`, String(example));
+        if (param.in === 'path' && param.name) {
+          const inputKey = normalizeOpenApiInputKey(String(param.name));
+          pathInputs[inputKey] = readOpenApiExampleValue(param);
+          processedPath = processedPath.replace(
+              `{${param.name}}`, `<<i:${inputKey}>>`);
         }
       });
 
@@ -257,6 +260,7 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         query: Object.keys(query).length > 0 ? query : undefined,
         body,
         auth,
+        ...(Object.keys(pathInputs).length > 0 ? {inputs: pathInputs} : {}),
       } as APIData;
 
       if (!apiData.description) {
@@ -282,6 +286,15 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
   });
 
   return apis;
+}
+
+function normalizeOpenApiInputKey(value: string): string {
+  return String(value)
+      .replace(/([a-z])([A-Z])/g, '$1_$2')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/__+/g, '_') || 'value';
 }
 
 function readOpenApiExampleValue(value: any): string {

@@ -49,7 +49,8 @@ describe('openapiConvertor fixtures', () => {
     const getPet = apis.find(api => api.title === 'Find pet by ID.');
     expect(getPet).toMatchObject({
       method: 'get',
-      url: '/api/v3/pet/{petId}',
+      url: '/api/v3/pet/<<i:pet_id>>',
+      inputs: {pet_id: ''},
       auth: {type: 'api-key', header: 'api_key', value: 'i:api_key'},
     });
 
@@ -76,7 +77,8 @@ describe('openapiConvertor fixtures', () => {
     expect(getPet).toBeDefined();
     expect(getPet?.method).toBe('get');
     expect(String(getPet?.url)).toBe(
-        'https://petstore.swagger.io/v2/pet/{petId}');
+        'https://petstore.swagger.io/v2/pet/<<i:pet_id>>');
+    expect(getPet?.inputs).toEqual({pet_id: ''});
   });
 
   it('converts a minimal JSON spec with bearer auth, path/query params, and named examples', () => {
@@ -88,7 +90,8 @@ describe('openapiConvertor fixtures', () => {
     const getItem = apis.find(api => api.title === 'Get item');
     expect(getItem).toMatchObject({
       method: 'get',
-      url: 'https://api.example.com/v1/items/abc-123',
+      url: 'https://api.example.com/v1/items/<<i:item_id>>',
+      inputs: {item_id: 'abc-123'},
       query: {fields: 'name,status'},
       auth: {type: 'bearer', token: 'i:token'},
     });
@@ -96,7 +99,8 @@ describe('openapiConvertor fixtures', () => {
     const createRevision = apis.find(api => api.title === 'Create item revision');
     expect(createRevision).toMatchObject({
       method: 'post',
-      url: 'https://api.example.com/v1/items/abc-123',
+      url: 'https://api.example.com/v1/items/<<i:item_id>>',
+      inputs: {item_id: 'abc-123', body: expect.any(String)},
       body: '<<i:body>>',
     });
     expect(JSON.parse(String(createRevision?.inputs?.body))).toEqual({name: 'Widget', active: true});

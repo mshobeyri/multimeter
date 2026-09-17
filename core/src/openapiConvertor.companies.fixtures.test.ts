@@ -87,6 +87,9 @@ describe('openapiConvertor company fixtures', () => {
     const bitbucket = openApiToAPI(parseFixture('bitbucket.openapi.json'));
     expect(bitbucket.some(api =>
       String(api.url).startsWith('https://api.bitbucket.org/2.0/'))).toBe(true);
+    const addon = bitbucket.find(api => String(api.url).includes('/addon/'));
+    expect(addon?.url).toContain('<<i:');
+    expect(addon?.inputs && Object.keys(addon.inputs).length).toBeGreaterThan(0);
 
     const slack = openApiToAPI(parseFixture('slack.swagger.json'));
     expect(slack.some(api =>
