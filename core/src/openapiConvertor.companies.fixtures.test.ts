@@ -2,7 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {convertToMmt, detectImportSource} from './importConvertor';
 import {openApiToAPI} from './openapiConvertor';
+import {yamlToAPIStrict} from './apiParsePack';
 import {parseYamlStrict} from './markupConvertor';
+import {apiToJSfunc} from './JSerAPI';
 
 const fixturesDir = path.join(__dirname, 'fixtures/openapi/companies');
 
@@ -86,4 +88,25 @@ describe('openapiConvertor company fixtures', () => {
     expect(apis.some(api => String(api.method).toLowerCase() === 'get')).toBe(true);
     expect(apis.some(api => /pipeline/i.test(String(api.url)) || /pipeline/i.test(String(api.title || '')))).toBe(true);
   });
+
+  it.each([...COMPANY_FIXTURES])(
+      'strict-parses and compiles every emitted API from %s',
+      async (name) => {
+        const result = convertToMmt(readFixture(name), {sourcePath: name});
+        const apiFiles = result.files.filter(file => file.kind === 'api');
+        expect(apiFiles.length).toBeGreaterThan(0);
+        for (const [index, file] of apiFiles.entries()) {
+          const api = yamlToAPIStrict(file.content);
+          expect(api.type).toBe('api');
+          expect(api.method || api.protocol === 'graphql').toBeTruthy();
+          expect(api.url).toBeTruthy();
+          const js = await apiToJSfunc({
+            api,
+            name: `openapiCompanyApi${index + 1}`,
+            inputs: {},
+            envVars: {},
+          });
+          expect(js).toContain('send_');
+        }
+      });
 });
