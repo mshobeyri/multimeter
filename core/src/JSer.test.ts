@@ -1886,6 +1886,7 @@ describe('expect on call steps', () => {
           expect: {
             created_at: '=^ c:date',
             request_id: '=^ req-<<r:uuid>>',
+            expires_at: '=^ c:utc_datetime(+1h)',
           },
         } as any],
       } as any,
@@ -1897,6 +1898,7 @@ describe('expect on call steps', () => {
     expect(js).toContain(
         "startsWith_(result.created_at, __mmt_current('date'))");
     expect(js).toContain("__mmt_random('uuid')");
+    expect(js).toContain("__mmt_current('utc_datetime(+1h)')");
     expect(js).not.toContain('`c:date`');
   });
 

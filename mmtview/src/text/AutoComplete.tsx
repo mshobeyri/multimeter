@@ -50,6 +50,18 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: `Inserts current ${name} at runtime. Token form c:${name}.`
         }));
     variablesSuggestions.push(...currentTokenSuggestions);
+    const offsetCurrentSuggestions = Current.CURRENT_TOKEN_OFFSET_NAMES.map(
+        name => ({
+            label: `c:${name}(offset)`,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: ` c:${name}(\${1:+1h1m})`,
+            insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: `Current ${name} with signed offset`,
+            documentation:
+                `Shifts c:${name} by a signed duration such as +1h1m or -1d2m1s.`,
+        }));
+    variablesSuggestions.push(...offsetCurrentSuggestions);
 
     loadEnvVariables((variables: { name: string; label: string; value: JSONValue }[]) => {
         variablesSuggestions.push(...variables.map(envVar => ({

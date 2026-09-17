@@ -524,6 +524,10 @@ describe('multiple template vars in one string', () => {
         .toBe("__mmt_random('datetime_now(1h1m)')");
     expect(toTemplateValueJs('r:utc_datetime_now(1h1m)'))
         .toBe("__mmt_random('utc_datetime_now(1h1m)')");
+    expect(toTemplateValueJs('c:utc_datetime(+1h1m)'))
+        .toBe("__mmt_current('utc_datetime(+1h1m)')");
+    expect(toTemplateValueJs('at-<<c:datetime(-1d2m1s)>>'))
+        .toContain("__mmt_current('datetime(-1d2m1s)')");
   });
 });
 

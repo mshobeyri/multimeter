@@ -1,6 +1,5 @@
 import {LogLevel} from './CommonData';
 import {GrpcRequest, GrpcResponse} from './NetworkData';
-import {normalizeTokenName} from './JSerHelper';
 import {applyValueAccessor} from './variableReplacer';
 // Import your send function from the network core
 import {send, setRunnerNetworkConfig, getRunnerNetworkConfig} from './networkCoreNode';
@@ -60,12 +59,11 @@ function mmtRandom(name: string): any {
 
 // Runtime helper to get current value by token name
 function mmtCurrent(name: string): any {
-  const normalized = normalizeTokenName(name);
-  const fn = Current.CURRENT_TOKEN_MAP[normalized] || Current.CURRENT_TOKEN_MAP[name];
-  if (!fn) {
+  const value = Current.currentValueForToken(name);
+  if (value === undefined) {
     return `c:${name}`;  // Return original token if not found
   }
-  return fn();
+  return value;
 }
 
 function mmtAccess(value: any, accessor: string): any {

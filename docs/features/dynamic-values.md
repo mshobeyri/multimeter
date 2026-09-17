@@ -20,7 +20,7 @@ See also: [Environment](../files/env/index.md) · [Inputs](../files/api/inputs.m
 
 ## Syntax forms
 
-Each prefix supports a **name** made of letters, digits, `_`, and `-` (must start with a letter or `_`). Names are case-sensitive in YAML, but `r:` and `c:` names are normalized when looked up (see [Name normalization](#name-normalization)).
+Each prefix supports a **name** made of letters, digits, `_`, and `-` (must start with a letter or `_`). Names are case-sensitive in YAML, but `r:` and `c:` names are normalized when looked up (see [Name normalization](#name-normalization)). Supported `r:` and temporal `c:` tokens may append arguments in parentheses.
 
 ### Environment (`e:`)
 
@@ -67,6 +67,15 @@ Equivalent JS forms `${outputs.token}` and `${outputs.user.name}` remain valid.
 |------|---------|-------|
 | Angle brackets | `<<r:uuid>>`, `<<c:date>>` | Use inside strings |
 | Plain | `r:uuid`, `c:epoch` | Entire value after `: ` preserves native type |
+
+Random generators accept documented range/length arguments. Temporal current
+tokens accept one signed duration offset:
+
+```yaml
+started_at: c:datetime(-1d2m1s)
+expires_at: c:utc_datetime(+1h1m)
+expires_epoch: c:epoch(+30m)
+```
 
 Examples:
 
@@ -279,6 +288,20 @@ durations, for example `2d4h30m` or `1h1m`.
 ## Current tokens (`c:`)
 
 Each name maps to a generator in `CURRENT_TOKEN_MAP`. Values reflect **now** in the runtime locale/time zone unless noted.
+
+Temporal current tokens accept a signed offset such as `(+1h1m)` or
+`(-1d2m1s)`. The sign applies to the complete duration. Combined durations
+support `w`, `d`, `h`, `m`, `s`, and `ms`.
+
+Examples:
+
+- `c:date(+7d)`
+- `c:datetime(-1d2m1s)`
+- `c:utc_datetime(+1h1m)`
+- `c:epoch(-30m)`
+
+Offsets apply to date/time, weekday, month, year, epoch, and UTC-offset tokens.
+They are intentionally rejected for `c:city`, `c:country`, and `c:timezone`.
 
 | Token | Returns | Example |
 |-------|---------|---------|

@@ -1,8 +1,7 @@
 import {APIData} from './APIData';
 import {JSONRecord} from './CommonData';
-import {normalizeTokenName} from './JSerHelper';
 import {randomValueForToken} from './Random';
-import {CURRENT_TOKEN_MAP} from './Current';
+import {currentValueForToken} from './Current';
 import {isOmitSentinel} from './omitKeyword';
 import {safeList} from './safer';
 import {TestData} from './TestData';
@@ -29,11 +28,15 @@ export const RANDOM_TOKEN_ARGUMENTS_RE =
     '\\(\\s*[^(),\\s]+(?:\\s*,\\s*[^(),\\s]+)?\\s*\\)';
 export const RANDOM_TOKEN_SPEC_RE =
     `${TOKEN_NAME_RE}(?:${RANDOM_TOKEN_ARGUMENTS_RE})?`;
+export const CURRENT_TOKEN_ARGUMENTS_RE =
+    '\\([+-](?:\\d+(?:\\.\\d+)?(?:ms|s|m|h|d|w))+\\)';
+export const CURRENT_TOKEN_SPEC_RE =
+    `${TOKEN_NAME_RE}(?:${CURRENT_TOKEN_ARGUMENTS_RE})?`;
 export const ACCESSOR_SEGMENT_RE =
     '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|:-?\\d*|[A-Za-z_][A-Za-z0-9_]*)\\])';
 export const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
 const DYNAMIC_KEY_RE =
-    `(?:r:${RANDOM_TOKEN_SPEC_RE}|[A-Za-z0-9_]+:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}`;
+    `(?:r:${RANDOM_TOKEN_SPEC_RE}|c:${CURRENT_TOKEN_SPEC_RE}|[A-Za-z0-9_]+:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}`;
 
 function replaceTokenForms(
     s: string, prefix: string,
@@ -45,7 +48,9 @@ function replaceTokenForms(
       includePlain?: boolean,
     } = {}): string {
   const source = String(s ?? '');
-  const tokenSpec = prefix === 'r' ? RANDOM_TOKEN_SPEC_RE : TOKEN_NAME_RE;
+  const tokenSpec = prefix === 'r'
+    ? RANDOM_TOKEN_SPEC_RE
+    : (prefix === 'c' ? CURRENT_TOKEN_SPEC_RE : TOKEN_NAME_RE);
   const capture = `(${tokenSpec})(${ACCESSOR_PATH_RE})`;
   let out = source;
 
@@ -73,10 +78,11 @@ function replaceTokenForms(
 }
 
 function splitTokenNameAccessor(
-    raw: string, allowRandomArguments = false):
+    raw: string, parameterizedPrefix?: 'r'|'c'):
     {name: string, accessor: string}|undefined {
-  const tokenSpec =
-      allowRandomArguments ? RANDOM_TOKEN_SPEC_RE : TOKEN_NAME_RE;
+  const tokenSpec = parameterizedPrefix === 'r'
+    ? RANDOM_TOKEN_SPEC_RE
+    : (parameterizedPrefix === 'c' ? CURRENT_TOKEN_SPEC_RE : TOKEN_NAME_RE);
   const m = new RegExp(`^(${tokenSpec})(${ACCESSOR_PATH_RE})$`)
       .exec(String(raw ?? '').trim());
   if (!m || !m[1]) {
@@ -317,8 +323,8 @@ export function toTemplateValueJs(value: string): string {
   const fullEnvPlain = new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullRandAngle = new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullRandPlain = new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
-  const fullCurrAngle = new RegExp(`^<<\\s*c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
-  const fullCurrPlain = new RegExp(`^c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
+  const fullCurrAngle = new RegExp(`^<<\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullCurrPlain = new RegExp(`^c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
   const fullInputAngle = new RegExp(`^<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullInputPlain = new RegExp(`^i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullOutputAngle = new RegExp(`^<<\\s*o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
@@ -409,16 +415,14 @@ const CURRENT_CACHE = new Map<string, any>();
 export function resetCurrentTokenCache(): void { CURRENT_CACHE.clear(); }
 
 function generateCurrentByName(name: string): any {
-  const normalized = normalizeTokenName(name);
-  const cacheKey = `current:${normalized}`;
+  const cacheKey = `current:${name.trim()}`;
   if (CURRENT_CACHE.has(cacheKey)) {
     return CURRENT_CACHE.get(cacheKey);
   }
-  const fn = CURRENT_TOKEN_MAP[normalized] || CURRENT_TOKEN_MAP[name];
-  if (!fn) {
+  const val = currentValueForToken(name);
+  if (val === undefined) {
     return undefined;
   }
-  const val = fn();
   CURRENT_CACHE.set(cacheKey, val);
   return val;
 }
@@ -492,8 +496,8 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
     const exactMatchers = [
       {re: new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'r'},
       {re: new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'r'},
-      {re: new RegExp(`^<<\\s*c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'c'},
-      {re: new RegExp(`^c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'c'},
+      {re: new RegExp(`^<<\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'c'},
+      {re: new RegExp(`^c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'c'},
       {re: new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'e'},
       {re: new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'e'},
     ];
@@ -705,7 +709,8 @@ export function replaceAllRefs(
       return undefined;
     }
     const parsed = splitTokenNameAccessor(
-        fullKey.slice(idx + 1), prefix === 'r');
+        fullKey.slice(idx + 1),
+        prefix === 'r' || prefix === 'c' ? prefix : undefined);
     if (!parsed) {
       return undefined;
     }

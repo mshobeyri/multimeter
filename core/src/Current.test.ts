@@ -14,6 +14,7 @@ import {
   currentUtcOffset,
   currentUtcTime,
   currentTimezone,
+  currentValueForToken,
   currentWeekdayNumber,
   currentYear,
   CURRENT_TOKEN_MAP,
@@ -85,6 +86,30 @@ describe('Current tokens', () => {
     expect(currentUtcOffset()).toMatch(/^[+-]\d{2}:\d{2}$/);
     expect(currentWeekdayNumber()).toBeGreaterThanOrEqual(1);
     expect(currentWeekdayNumber()).toBeLessThanOrEqual(7);
+  });
+
+  test('applies signed combined-duration offsets to temporal tokens', () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2026-09-17T12:00:00.000Z'));
+      expect(currentValueForToken('utc_datetime(+1h1m)'))
+          .toBe('2026-09-17T13:01:00Z');
+      expect(currentValueForToken('utc_datetime_ms(-1d2m1s)'))
+          .toBe('2026-09-16T11:57:59.000Z');
+      expect(currentValueForToken('epoch(+30m)'))
+          .toBe(Math.floor(Date.parse('2026-09-17T12:30:00Z') / 1000));
+      expect(currentValueForToken('date(+1d)')).toBe(
+          currentDate(new Date('2026-09-18T12:00:00.000Z')));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('rejects offsets on locale tokens and unsigned durations', () => {
+    expect(currentValueForToken('timezone(+1h)')).toBeUndefined();
+    expect(currentValueForToken('city(-1d)')).toBeUndefined();
+    expect(currentValueForToken('date(1h)')).toBeUndefined();
+    expect(currentValueForToken('date(+tomorrow)')).toBeUndefined();
   });
 
   test('current city/country return strings (best-effort)', () => {

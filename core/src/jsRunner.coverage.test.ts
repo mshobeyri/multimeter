@@ -71,6 +71,7 @@ describe('jsRunner extra runtime paths', () => {
           sized: __mmt_random('string(9)'),
           missingR: __mmt_random('no-such'),
           cur: __mmt_current('year'),
+          shifted: __mmt_current('epoch(+1h)'),
           missingC: __mmt_current('no-such'),
           access: __mmt_access({a: {b: 2}}, '.a.b'),
           extracted: extractOutputs_({
@@ -90,6 +91,8 @@ describe('jsRunner extra runtime paths', () => {
     expect(result.sized).toMatch(/^[A-Za-z]{9}$/);
     expect(result.missingR).toBe('r:no-such');
     expect(typeof result.cur).toBe('number');
+    expect(result.shifted).toBeGreaterThan(
+        Math.floor(Date.now() / 1000) + 3500);
     expect(result.missingC).toBe('c:no-such');
     expect(result.access).toBe(2);
     expect(result.extracted.x).toBe(1);
