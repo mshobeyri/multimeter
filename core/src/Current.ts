@@ -12,6 +12,16 @@ export function currentDate(): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+export function currentUtcTime(): string {
+  const d = new Date();
+  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
+}
+
+export function currentUtcDate(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+}
+
 export function currentDay(): string {
   const d = new Date();
   return WEEKDAYS[d.getDay()];
@@ -73,6 +83,8 @@ export function currentCountry(): string {
 export const CURRENT_TOKEN_MAP: Record<string, () => any> = {
   time: currentTime,
   date: currentDate,
+  utc_time: currentUtcTime,
+  utc_date: currentUtcDate,
   day: currentDay,
   month: currentMonth,
   year: currentYear,

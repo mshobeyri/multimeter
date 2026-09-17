@@ -232,6 +232,8 @@ Each name maps to a generator in `CURRENT_TOKEN_MAP`. Values reflect **now** in 
 |-------|---------|---------|
 | `c:time` | Local time `HH:MM:SS` | `14:32:08` |
 | `c:date` | Local date `YYYY-MM-DD` | `2026-08-02` |
+| `c:utc_time` | UTC time `HH:MM:SS` | `18:32:08` |
+| `c:utc_date` | UTC date `YYYY-MM-DD` | `2026-08-02` |
 | `c:day` | Local weekday name | `Sunday` |
 | `c:month` | Local month name | `August` |
 | `c:year` | Local year (number) | `2026` |
@@ -240,7 +242,7 @@ Each name maps to a generator in `CURRENT_TOKEN_MAP`. Values reflect **now** in 
 | `c:city` | City inferred from time zone (best effort) | `New York` |
 | `c:country` | Country inferred from locale (best effort) | `United States` |
 
-**Total:** 9 generators.
+**Total:** 11 generators.
 
 ## Name normalization
 

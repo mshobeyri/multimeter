@@ -1,4 +1,17 @@
-import { currentTime, currentDate, currentDay, currentMonth, currentYear, currentEpoch, currentEpochMs, currentCity, currentCountry } from './Current';
+import {
+  currentCity,
+  currentCountry,
+  currentDate,
+  currentDay,
+  currentEpoch,
+  currentEpochMs,
+  currentMonth,
+  currentTime,
+  currentUtcDate,
+  currentUtcTime,
+  currentYear,
+  CURRENT_TOKEN_MAP,
+} from './Current';
 
 function within(now: number, target: number, windowMs: number): boolean {
   return Math.abs(now - target) <= windowMs;
@@ -21,6 +34,19 @@ describe('Current tokens', () => {
     expect(typeof currentDay()).toBe('string');
     expect(typeof currentMonth()).toBe('string');
     expect(typeof currentYear()).toBe('number');
+  });
+
+  test('UTC date and time use UTC calendar fields', () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2026-09-16T23:45:12.000-07:00'));
+      expect(currentUtcDate()).toBe('2026-09-17');
+      expect(currentUtcTime()).toBe('06:45:12');
+      expect(CURRENT_TOKEN_MAP.utc_date()).toBe('2026-09-17');
+      expect(CURRENT_TOKEN_MAP.utc_time()).toBe('06:45:12');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test('current city/country return strings (best-effort)', () => {
