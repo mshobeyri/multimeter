@@ -13,7 +13,6 @@
   - `docs/`: user-facing documentation (API, test, env, suite, CLI, convertor, etc.).
   - `AI/`: internal AI-assisted development artifacts. Not shipped to users.
     - `sdd/`: Software Design Documents (SDDs) — architectural decisions, competitive strategy, feature designs.
-    - `marketing/`: LinkedIn, YouTube, Hacker News / Show HN skills, drafts, and meeting memos (`meetings/`). Not part of the published Cursor plugin.
     - `skills/`: local/dev agent skills (e.g. release & deploy). Not part of the published Cursor plugin.
     - `doc/`: handover and context documents for AI agent sessions.
 - **Single source of truth** for running `.mmt` files is `core/src/runner.ts`:
