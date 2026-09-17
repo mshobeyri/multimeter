@@ -25,15 +25,22 @@ Multimeter turns collection requests into `type: api` files and optional tests a
 - **Tests** — one test per request that imports and calls the generated API
 - **Suites** — Postman folders become suites that run folder tests and child-folder suites in sequence
 - **Large collections** (5+ APIs) — also generate `multimeter.mmt` with `+/` imports
+- **Environment file** — collection variables and referenced credentials become editable variables
 
 ## Postman-specific mapping
 
 - Dynamic variables (`{{$guid}}`, `{{$randomEmail}}`, `{{$randomInt}}`) → Multimeter `r:` tokens (`r:uuid`, `r:email`, `r:int`, …)
-- `formdata` and `urlencoded` body modes → Multimeter bodies with `format: urlencoded` where applicable
+- Collection and folder auth is inherited by requests; request-level `noauth` overrides it
+- Bearer, basic, API key, and OAuth2 client-credentials auth map directly
+- Interactive OAuth2 becomes a bearer `access_token` environment variable
+- GraphQL bodies become `protocol: graphql`; file bodies with a source path become binary requests
+- URL path variables become API inputs, and disabled headers/query fields remain omitted
+- `urlencoded` bodies map directly; multipart form-data with files produces a manual-review warning
 - Saved response examples with `originalRequest` → auto-generated inputs, header placeholders, and example overrides
-- Unsupported Postman scripts → preserved as `js` steps with review comments
+- Common status assertions, response variable assignments, UUIDs, timestamps, and request-header assignments are translated
+- Unsupported Postman scripts are preserved as commented `js` steps with review warnings, so missing `pm.*` globals cannot break a run
 
-Complex auth flows and Postman sandbox APIs may need manual touch-ups after import.
+OAuth1, multipart file uploads without source paths, and complex Postman sandbox APIs still need manual work after import. Conversion warnings identify affected requests.
 
 ## Tips after import
 

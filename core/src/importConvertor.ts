@@ -54,6 +54,7 @@ interface PostmanWalkItem {
   request?: any;
   response?: any[];
   event?: any[];
+  auth?: any;
 }
 
 interface PostmanRequestFile {
@@ -478,7 +479,8 @@ function convertPostmanToMmt(postmanJson: any, options: ConvertToMmtOptions): Co
   }
 
   if (includeEnv) {
-    const env = buildPostmanEnv(postmanJson, useProjectRootImports);
+    const env =
+        buildPostmanEnv(postmanJson, useProjectRootImports, requestFiles);
     if (env) {
       files.push({path: uniquePath('multimeter.mmt', used), kind: 'env', sourceName: 'Postman variables', content: packYaml(env)});
     }
@@ -496,11 +498,16 @@ function collectPostmanRequests(postmanJson: any, warnings: string[]): PostmanRe
   const requests: PostmanRequestFile[] = [];
   const usedAliases = new Set<string>();
 
-  const walk = (items: PostmanWalkItem[], folders: string[]) => {
+  const walk = (
+      items: PostmanWalkItem[], folders: string[], inheritedAuth?: any,
+      inheritedEvents: any[] = []) => {
     for (const item of items || []) {
       const name = item.name || 'Request';
       if (Array.isArray(item.item)) {
-        walk(item.item, [...folders, name]);
+        walk(
+            item.item, [...folders, name],
+            item.auth === undefined ? inheritedAuth : item.auth,
+            [...inheritedEvents, ...(item.event || [])]);
         continue;
       }
       if (!item.request) {
@@ -509,21 +516,74 @@ function collectPostmanRequests(postmanJson: any, warnings: string[]): PostmanRe
         }
         continue;
       }
-      const api = postmanToAPI({item: [item]})[0];
+      const request =
+          typeof item.request === 'string' ? item.request : {...item.request};
+      const effectiveAuth = typeof request === 'string'
+        ? inheritedAuth
+        : (request.auth === undefined ? inheritedAuth : request.auth);
+      const effectiveItem = {
+        ...item,
+        request,
+        event: [...inheritedEvents, ...(item.event || [])],
+      };
+      const api = postmanToAPI({
+        item: [effectiveItem],
+        auth: effectiveAuth,
+        variable: postmanJson.variable,
+      })[0];
       if (!api) {
         warnings.push(`Skipped Postman item "${name}" because it could not be converted.`);
         continue;
+      }
+      const bodyMode =
+          typeof request === 'string' ? undefined : request.body?.mode;
+      if (bodyMode === 'file' && !api.body) {
+        warnings.push(
+            `Postman file body on "${name}" needs manual review because it has no source path.`);
+      }
+      if (bodyMode === 'formdata' &&
+          request.body?.formdata?.some(
+              (part: any) => part?.type === 'file' || part?.src)) {
+        warnings.push(
+            `Postman form-data file on "${name}" needs manual review because MMT cannot embed a local file.`);
+      } else if (
+        bodyMode === 'formdata' &&
+        Array.isArray(request.body?.formdata) &&
+        request.body.formdata.length > 0
+      ) {
+        warnings.push(
+            `Postman multipart form-data on "${name}" was converted to key/value fields and needs manual review.`);
+      }
+      if (effectiveAuth?.type && effectiveAuth.type !== 'noauth' && !api.auth) {
+        warnings.push(
+            `Postman ${effectiveAuth.type} auth on "${name}" needs manual review.`);
+      } else if (
+        effectiveAuth?.type === 'oauth2' &&
+        api.auth && typeof api.auth !== 'string' &&
+        api.auth.type === 'bearer'
+      ) {
+        warnings.push(
+            `Postman OAuth2 authorization flow on "${name}" was converted to a bearer access_token input.`);
       }
       const folderPath = folders.map(slug).filter(Boolean);
       const apiPath = ['api', ...folderPath, `${slug(api.title || name)}.mmt`].join('/');
       const alias = uniqueAlias(slugToCamel(api.title || name), usedAliases);
       const groupKey = folderPath.join('/') || 'collection';
       const groupTitle = folders[folders.length - 1] || postmanJson.info?.name || 'Postman Collection';
-      requests.push({api, apiPath, alias, groupKey, groupTitle, item});
+      requests.push({
+        api,
+        apiPath,
+        alias,
+        groupKey,
+        groupTitle,
+        item: effectiveItem,
+      });
     }
   };
 
-  walk(postmanJson.item || [], []);
+  walk(
+      postmanJson.item || [], [], postmanJson.auth,
+      postmanJson.event || []);
   return requests;
 }
 
@@ -543,8 +603,16 @@ function buildPostmanTests(
     const steps: TestFlowStep[] = [];
     for (const requestFile of groupRequests) {
       imports[requestFile.alias] = importPathForTest(groupKey, requestFile.apiPath, useProjectRootImports);
+      const preRequestSetEnv =
+          buildPostmanPreRequestSetEnv(requestFile.item, scriptMode);
+      if (preRequestSetEnv &&
+          Object.keys(preRequestSetEnv).length > 0) {
+        steps.push({setenv: preRequestSetEnv});
+      }
       const preRequestScript = unsupportedPostmanScript(requestFile.item, 'prerequest', scriptMode);
       if (preRequestScript) {
+        warnings.push(
+            `Postman prerequest script on "${requestFile.item.name || 'request'}" needs manual review.`);
         steps.push({js: preRequestScript});
       }
       const step: any = {
@@ -689,6 +757,25 @@ function buildPostmanSetEnv(item: PostmanWalkItem, scriptMode: 'translate' | 'pr
   return Object.keys(setenv).length > 0 ? setenv : undefined;
 }
 
+function buildPostmanPreRequestSetEnv(
+    item: PostmanWalkItem,
+    scriptMode: 'translate' | 'preserve' | 'skip'):
+    Record<string, any>|undefined {
+  if (scriptMode === 'skip') {
+    return undefined;
+  }
+  const setenv: Record<string, any> = {};
+  for (const script of getPostmanScripts(item, 'prerequest')) {
+    const assignments = script.matchAll(
+        /pm\.(?:environment|collectionVariables|variables)\.set\(\s*(['"])([^'"]+)\1\s*,\s*(uuidv4\(\)|Date\.now\(\))\s*\)/g);
+    for (const match of assignments) {
+      setenv[match[2]] =
+          match[3] === 'uuidv4()' ? 'r:uuid' : 'c:epoch_ms';
+    }
+  }
+  return Object.keys(setenv).length > 0 ? setenv : undefined;
+}
+
 function getPostmanScripts(item: PostmanWalkItem, listen: 'test' | 'prerequest'): string[] {
   const scripts: string[] = [];
   for (const event of item.event || []) {
@@ -716,8 +803,9 @@ function unsupportedPostmanScript(item: PostmanWalkItem, listen: 'test' | 'prere
     return undefined;
   }
   return [
-    `// Original Postman ${listen} script. Review before relying on it at runtime.`,
-    ...scripts,
+    `// Original Postman ${listen} script is preserved below for manual translation.`,
+    ...scripts.flatMap(script =>
+      script.split('\n').map(line => `// ${line}`)),
   ].join('\n');
 }
 
@@ -726,11 +814,15 @@ function hasUnsupportedPostmanScript(script: string): boolean {
       .replace(/pm\.response\.to\.have\.status\(\s*\d+\s*\)/g, '')
       .replace(/pm\.expect\(\s*pm\.response\.code\s*\)\.to\.(?:eql|equal)\(\s*\d+\s*\)/g, '')
       .replace(/pm\.expect\(\s*pm\.response\.json\(\)\.[A-Za-z_$][A-Za-z0-9_$]*\s*\)\.to\.(?:eql|equal)\(\s*(['"]).*?\1\s*\)/g, '')
-      .replace(/pm\.(?:environment|collectionVariables)\.set\(\s*(['"])[^'"]+\1\s*,\s*pm\.response\.json\(\)\.[A-Za-z_$][A-Za-z0-9_$]*\s*\)/g, '');
+      .replace(/pm\.(?:environment|collectionVariables)\.set\(\s*(['"])[^'"]+\1\s*,\s*pm\.response\.json\(\)\.[A-Za-z_$][A-Za-z0-9_$]*\s*\)/g, '')
+      .replace(/pm\.(?:environment|collectionVariables|variables)\.set\(\s*(['"])[^'"]+\1\s*,\s*(?:uuidv4\(\)|Date\.now\(\))\s*\)/g, '')
+      .replace(/pm\.request\.headers\.(?:upsert|add)\(\s*\{\s*key\s*:\s*(['"]).*?\1\s*,\s*value\s*:\s*pm\.(?:variables|environment|collectionVariables)\.get\(\s*(['"]).*?\2\s*\)\s*\}\s*\)/g, '');
   return /\bpm\./.test(reduced);
 }
 
-function buildPostmanEnv(postmanJson: any, force: boolean): any | undefined {
+function buildPostmanEnv(
+    postmanJson: any, force: boolean,
+    requestFiles: PostmanRequestFile[] = []): any | undefined {
   const variables = Array.isArray(postmanJson.variable) ? postmanJson.variable : [];
   const out: Record<string, any> = {};
   for (const variable of variables) {
@@ -738,6 +830,15 @@ function buildPostmanEnv(postmanJson: any, force: boolean): any | undefined {
       continue;
     }
     out[variable.key] = {default: variable.value ?? ''};
+  }
+  for (const requestFile of requestFiles) {
+    const serialized = JSON.stringify(requestFile.api);
+    for (const match of serialized.matchAll(/<<e:([^><[\]]+)>>/g)) {
+      const name = match[1].trim();
+      if (name && !Object.prototype.hasOwnProperty.call(out, name)) {
+        out[name] = {default: ''};
+      }
+    }
   }
   if (Object.keys(out).length === 0 && !force) {
     return undefined;

@@ -128,6 +128,8 @@ describe('importConvertor', () => {
     expect(testYaml.steps[0].expect['body.id']).toBe('== u1');
     expect(testYaml.steps[1].setenv.user_id).toBe('body.id');
     expect(testYaml.steps[2].js).toContain('Original Postman test script');
+    expect(testYaml.steps[2].js).toContain('// pm.require("package1");');
+    expect(testYaml.steps[2].js).not.toMatch(/(?:^|\n)pm\.require/);
     expect(testYaml.steps[3].call).toBe('getUser');
 
     const envFile = result.files.find(file => file.path === 'multimeter.mmt');
@@ -141,6 +143,105 @@ describe('importConvertor', () => {
 
     const usersSuite = result.files.find(file => file.path === 'suites/users.mmt');
     expect(parseYamlStrict(usersSuite!.content).items).toEqual(['../tests/users.mmt']);
+  });
+
+  it('inherits Postman auth and translates supported collection scripts', () => {
+    const collection = {
+      info: {
+        name: 'Inherited Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+      },
+      auth: {
+        type: 'bearer',
+        bearer: [{key: 'token', value: '{{token}}'}],
+      },
+      event: [{
+        listen: 'prerequest',
+        script: {exec: ['pm.variables.set("timestamp", Date.now());']},
+      }],
+      item: [{
+        name: 'Users',
+        item: [{
+          name: 'List Users',
+          request: {
+            method: 'GET',
+            url: {raw: 'https://example.com/users'},
+          },
+        }],
+      }],
+    };
+
+    const result = convertToMmt(
+        JSON.stringify(collection),
+        {sourcePath: 'inherited.postman_collection.json'});
+    const api = parseYamlStrict(
+        result.files.find(file => file.kind === 'api')!.content);
+    expect(api.auth).toEqual({
+      type: 'bearer',
+      token: '<<e:token>>',
+    });
+
+    const test = parseYamlStrict(
+        result.files.find(file => file.kind === 'test')!.content);
+    expect(test.steps[0].setenv.timestamp).toBe('c:epoch_ms');
+    expect(test.steps[1].call).toBe('listUsers');
+    expect(result.warnings).not.toContain(
+        'Postman prerequest script on "List Users" needs manual review.');
+    const env = parseYamlStrict(
+        result.files.find(file => file.kind === 'env')!.content);
+    expect(env.variables.token.default).toBe('');
+  });
+
+  it('warns when Postman multipart bodies or unsupported auth need manual work', () => {
+    const collection = {
+      info: {
+        name: 'Unsupported Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+      },
+      auth: {type: 'oauth1', oauth1: []},
+      item: [
+        {
+          name: 'Binary upload',
+          request: {
+            method: 'PUT',
+            url: {raw: 'https://example.com/upload'},
+            body: {mode: 'file', file: {src: '/tmp/data.bin'}},
+          },
+        },
+        {
+          name: 'Multipart upload',
+          request: {
+            method: 'POST',
+            url: {raw: 'https://example.com/form'},
+            body: {
+              mode: 'formdata',
+              formdata: [{
+                key: 'document',
+                type: 'file',
+                src: '/tmp/document.pdf',
+              }],
+            },
+          },
+        },
+      ],
+    };
+
+    const result = convertToMmt(
+        JSON.stringify(collection),
+        {sourcePath: 'unsupported.postman_collection.json'});
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      'Postman form-data file on "Multipart upload" needs manual review because MMT cannot embed a local file.',
+      'Postman oauth1 auth on "Binary upload" needs manual review.',
+      'Postman oauth1 auth on "Multipart upload" needs manual review.',
+    ]));
+    const binaryApi = parseYamlStrict(
+        result.files.find(file =>
+          file.path.endsWith('/binary-upload.mmt'))!.content);
+    expect(binaryApi.format).toEqual({
+      request: 'binary',
+      response: 'json',
+    });
+    expect(binaryApi.body).toBe('/tmp/data.bin');
   });
 
   it('uses project-root imports and creates a root env marker for larger Postman conversions', () => {
