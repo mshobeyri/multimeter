@@ -161,7 +161,7 @@ const toSingleQuotedJsString = (s: string): string =>
     `'${String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'`;
 
 const toJsAccessorExpression = (baseExpression: string, accessor = ''): string =>
-    accessor ? `__mmt_access(${baseExpression}, ${JSON.stringify(accessor)})` : baseExpression;
+    accessor ? `mmtAccess_(${baseExpression}, ${JSON.stringify(accessor)})` : baseExpression;
 
 /**
  * Normalize all env-token syntaxes to a JS expression rooted at `envVariables`.
@@ -203,18 +203,18 @@ export const replaceRandCurrentTokensToJs = (s: string): string => {
   let out = replaceTokenForms(
       s, 'r',
       (name, accessor) => '${' +
-          toJsAccessorExpression(`__mmt_random('${name}')`, accessor) + '}',
+          toJsAccessorExpression(`mmtRandom_('${name}')`, accessor) + '}',
       {includeSingleAngles: false, includeBraceForm: false});
   out = replaceTokenForms(
       out, 'c',
       (name, accessor) => '${' +
-          toJsAccessorExpression(`__mmt_current('${name}')`, accessor) + '}',
+          toJsAccessorExpression(`mmtCurrent_('${name}')`, accessor) + '}',
       {includeSingleAngles: false, includeBraceForm: false});
   return out;
 };
 
 /**
- * Replace `i:` token syntaxes with `${inputName}` / `__mmt_access(...)`
+ * Replace `i:` token syntaxes with `${inputName}` / `mmtAccess_(...)`
  * interpolations so API/test default params can reference sibling inputs
  * (e.g. `xx: asd_<<i:message>>` → `` `asd_${message}` ``).
  */
@@ -256,7 +256,7 @@ export function rewriteOutputSetKey(key: string): string|undefined {
   if (!m || !m[1]) {
     return undefined;
   }
-  // Assignment LHS must be a direct path (not __mmt_access).
+  // Assignment LHS must be a direct path (not mmtAccess_).
   return `outputs.${m[1]}${m[2] || ''}`;
 }
 
@@ -336,11 +336,11 @@ export function toTemplateValueJs(value: string): string {
   }
   m = fullRandAngle.exec(s) || fullRandPlain.exec(s);
   if (m && m[1]) {
-    return toJsAccessorExpression(`__mmt_random('${m[1]}')`, m[2] || '');
+    return toJsAccessorExpression(`mmtRandom_('${m[1]}')`, m[2] || '');
   }
   m = fullCurrAngle.exec(s) || fullCurrPlain.exec(s);
   if (m && m[1]) {
-    return toJsAccessorExpression(`__mmt_current('${m[1]}')`, m[2] || '');
+    return toJsAccessorExpression(`mmtCurrent_('${m[1]}')`, m[2] || '');
   }
   m = fullInputAngle.exec(s) || fullInputPlain.exec(s);
   if (m && m[1]) {
@@ -468,7 +468,7 @@ function resolveDynamicTokenValue(
         if (!accessor) {
           return rawInputValue;
         }
-        return `\${__mmt_access(${placeholderMatch[1]}, ${toSingleQuotedJsString(accessor)})}`;
+        return `\${mmtAccess_(${placeholderMatch[1]}, ${toSingleQuotedJsString(accessor)})}`;
       }
       visiting.add(name);
       let resolved = resolveEmbeddedTokens(rawInputValue, envs);

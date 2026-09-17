@@ -611,9 +611,9 @@ describe('env token replacements in generated JS', () => {
       'const b = `X=<<e:FOO[0]>> Y=<<e:BAR[0:2]>>`;'
     ].join('\n');
     const out = variableReplacer(input);
-    expect(out).toContain('const a = __mmt_access(envVariables.AAA, "[0:1]");');
-    expect(out).toContain('${__mmt_access(envVariables.FOO, "[0]")}');
-    expect(out).toContain('${__mmt_access(envVariables.BAR, "[0:2]")}');
+    expect(out).toContain('const a = mmtAccess_(envVariables.AAA, "[0:1]");');
+    expect(out).toContain('${mmtAccess_(envVariables.FOO, "[0]")}');
+    expect(out).toContain('${mmtAccess_(envVariables.BAR, "[0:2]")}');
   });
 });
 
@@ -1815,8 +1815,8 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
-    expect(js).toContain('__mmt_access((Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
-    expect(js).toContain('equals_(__mmt_access(');
+    expect(js).toContain('mmtAccess_((Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
+    expect(js).toContain('equals_(mmtAccess_(');
   });
 
   it('falls back to hidden default outputs for body and status at execution time', async () => {
@@ -1896,9 +1896,9 @@ describe('expect on call steps', () => {
 
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain(
-        "startsWith_(result.created_at, __mmt_current('date'))");
-    expect(js).toContain("__mmt_random('uuid')");
-    expect(js).toContain("__mmt_current('utc_datetime(+1h)')");
+        "startsWith_(result.created_at, mmtCurrent_('date'))");
+    expect(js).toContain("mmtRandom_('uuid')");
+    expect(js).toContain("mmtCurrent_('utc_datetime(+1h)')");
     expect(js).not.toContain('`c:date`');
   });
 
@@ -2194,20 +2194,20 @@ describe('restoreUrlEncodedJsPlaceholders', () => {
 
   it('restores spaces encoded as + inside accessor expressions', () => {
     const encoded = new URLSearchParams({
-      part: "${__mmt_access(xxx, '[1:2]')}",
+      part: "${mmtAccess_(xxx, '[1:2]')}",
     }).toString();
     expect(encoded).toContain('+'); // URLSearchParams uses + for spaces
     const out = restoreUrlEncodedJsPlaceholders(encoded);
-    expect(out).toContain("__mmt_access(xxx, '[1:2]')");
-    expect(out).not.toContain("__mmt_access(xxx,+'[1:2]')");
+    expect(out).toContain("mmtAccess_(xxx, '[1:2]')");
+    expect(out).not.toContain("mmtAccess_(xxx,+'[1:2]')");
   });
 
   it('restores env accessor expressions that use double-quoted accessors', () => {
     const encoded = new URLSearchParams({
-      short: '${__mmt_access(envVariables.USERNAME, "[0:3]")}',
+      short: '${mmtAccess_(envVariables.USERNAME, "[0:3]")}',
     }).toString();
     const out = restoreUrlEncodedJsPlaceholders(encoded);
-    expect(out).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(out).toContain('mmtAccess_(envVariables.USERNAME, "[0:3]")');
     expect(out).not.toContain(',+"[');
   });
 
@@ -2281,9 +2281,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       'body:',
       '  part: i:xxx[1:2]',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
-    expect(js).not.toContain("__mmt_access(xxx,+'[1:2]')");
-    expect(js).toContain("encodeURIComponent(String(__mmt_access(xxx, '[1:2]') ?? ''))");
+    expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
+    expect(js).not.toContain("mmtAccess_(xxx,+'[1:2]')");
+    expect(js).toContain("encodeURIComponent(String(mmtAccess_(xxx, '[1:2]') ?? ''))");
   });
 
   it('preserves index and property accessors on inputs', async () => {
@@ -2300,8 +2300,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  first: i:xxx[0]',
       '  name: <<i:user.name>>',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[0]')");
-    expect(js).toContain("__mmt_access(user, '.name')");
+    expect(js).toContain("mmtAccess_(xxx, '[0]')");
+    expect(js).toContain("mmtAccess_(user, '.name')");
     expect(js).not.toMatch(/,\+'/);
   });
 
@@ -2317,8 +2317,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  tail: i:xxx[1:]',
       '  head: i:xxx[:4]',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[1:]')");
-    expect(js).toContain("__mmt_access(xxx, '[:4]')");
+    expect(js).toContain("mmtAccess_(xxx, '[1:]')");
+    expect(js).toContain("mmtAccess_(xxx, '[:4]')");
     expect(js).not.toMatch(/,\+'/);
   });
 
@@ -2333,7 +2333,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  short: <<e:USERNAME[0:3]>>',
     ]);
     expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
-    expect(js).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(js).toContain('mmtAccess_(envVariables.USERNAME, "[0:3]")');
     expect(js).not.toMatch(/e%3AUSERNAME/i);
   });
 
@@ -2366,8 +2366,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  part: i:xxx[1:2]',
     ]);
     expect(js).toMatch(/xxx\s*=\s*envVariables\.TOKEN/);
-    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
-    expect(js).not.toContain("__mmt_access(xxx,+'[1:2]')");
+    expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
+    expect(js).not.toContain("mmtAccess_(xxx,+'[1:2]')");
   });
 
   it('interpolates multiple tokens mixed with static text in one field', async () => {
@@ -2383,7 +2383,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
     ]);
     expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
     expect(js).toContain("encodeURIComponent(String(id ?? ''))");
-    expect(js).toContain('__mmt_access(envVariables.TENANT, "[0]")');
+    expect(js).toContain('mmtAccess_(envVariables.TENANT, "[0]")');
     expect(js).not.toMatch(/%24%7B|e%3ATENANT/i);
   });
 
@@ -2402,11 +2402,11 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  sized: r:string(12)',
       '  slice: <<r:customToken[0:2]>>',
     ]);
-    expect(js).toContain("__mmt_random('customToken')");
-    expect(js).toContain("__mmt_current('customNow')");
-    expect(js).toContain("__mmt_random('int(10,20)')");
-    expect(js).toContain("__mmt_random('string(12)')");
-    expect(js).toContain('__mmt_access(__mmt_random(\'customToken\'), "[0:2]")');
+    expect(js).toContain("mmtRandom_('customToken')");
+    expect(js).toContain("mmtCurrent_('customNow')");
+    expect(js).toContain("mmtRandom_('int(10,20)')");
+    expect(js).toContain("mmtRandom_('string(12)')");
+    expect(js).toContain('mmtAccess_(mmtRandom_(\'customToken\'), "[0:2]")');
     expect(js).not.toMatch(/r%3AcustomToken|c%3AcustomNow/i);
   });
 
@@ -2428,11 +2428,11 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       inputs: {},
       envVars: {},
     });
-    expect(js).toContain("JSON.stringify(__mmt_random('uuid'))");
-    expect(js).toContain("JSON.stringify(__mmt_random('int(10,20)'))");
+    expect(js).toContain("JSON.stringify(mmtRandom_('uuid'))");
+    expect(js).toContain("JSON.stringify(mmtRandom_('int(10,20)'))");
     expect(js).toContain(
-        "JSON.stringify(__mmt_current('utc_datetime(+1h)'))");
-    expect(js).toContain("__mmt_random('alphanumeric(8)')");
+        "JSON.stringify(mmtCurrent_('utc_datetime(+1h)'))");
+    expect(js).toContain("mmtRandom_('alphanumeric(8)')");
     expect(js).not.toContain('"r:uuid"');
     expect(js).not.toContain('"r:int(10,20)"');
   });
@@ -2467,9 +2467,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  part: i:xxx[1:2]',
       '  user: e:USERNAME',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
     expect(js).toContain('${envVariables.USERNAME}');
-    expect(js).not.toContain('encodeURIComponent(String(__mmt_access');
+    expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 
   it('does not break xml bodies that use input slices and env tokens', async () => {
@@ -2485,9 +2485,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '    part: i:xxx[1:2]',
       '    user: <<e:USERNAME>>',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
     expect(js).toContain('${envVariables.USERNAME}');
-    expect(js).not.toContain('encodeURIComponent(String(__mmt_access');
+    expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 });
 
@@ -2512,13 +2512,13 @@ describe('urlencoded tokens through multilevel imports', () => {
 
   function expectUrlencodedTokenJs(js: string) {
     expect(js).toMatch(/token\s*=\s*envVariables\.AUTH_TOKEN/);
-    expect(js).toContain("__mmt_access(token, '[1:2]')");
-    expect(js).not.toContain("__mmt_access(token,+'[1:2]')");
-    expect(js).toContain("encodeURIComponent(String(__mmt_access(token, '[1:2]') ?? ''))");
+    expect(js).toContain("mmtAccess_(token, '[1:2]')");
+    expect(js).not.toContain("mmtAccess_(token,+'[1:2]')");
+    expect(js).toContain("encodeURIComponent(String(mmtAccess_(token, '[1:2]') ?? ''))");
     expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
-    expect(js).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(js).toContain('mmtAccess_(envVariables.USERNAME, "[0:3]")');
     expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
-    expect(js).toContain("__mmt_access(token, '[0]')");
+    expect(js).toContain("mmtAccess_(token, '[0]')");
     expect(js).not.toMatch(/%24%7B|e%3AUSERNAME|e%3ATENANT|e%3AAUTH_TOKEN/i);
   }
 
@@ -2825,7 +2825,7 @@ describe('input defaults with e: references', () => {
     expect(js).not.toMatch(/user\s*=\s*`e:USERNAME`/);
   });
 
-  it('resolves r: refs in API input defaults to __mmt_random call', async () => {
+  it('resolves r: refs in API input defaults to mmtRandom_ call', async () => {
     const apiYaml = [
       'type: api',
       'protocol: http',
@@ -2840,13 +2840,13 @@ describe('input defaults with e: references', () => {
     const ctx: APIContext =
         {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
     const js = await apiToJSfunc(ctx);
-    // The default value should call __mmt_random('uuid')
-    expect(js).toContain("__mmt_random('uuid')");
+    // The default value should call mmtRandom_('uuid')
+    expect(js).toContain("mmtRandom_('uuid')");
     // Should NOT contain literal 'r:uuid'
     expect(js).not.toMatch(/userId\s*=\s*`r:uuid`/);
   });
 
-  it('resolves c: refs in input defaults to __mmt_current call', async () => {
+  it('resolves c: refs in input defaults to mmtCurrent_ call', async () => {
     const apiYaml = [
       'type: api',
       'protocol: http',
@@ -2860,8 +2860,8 @@ describe('input defaults with e: references', () => {
     const ctx: APIContext =
         {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
     const js = await apiToJSfunc(ctx);
-    // The default value should call __mmt_current('epoch')
-    expect(js).toContain("__mmt_current('epoch')");
+    // The default value should call mmtCurrent_('epoch')
+    expect(js).toContain("mmtCurrent_('epoch')");
     expect(js).not.toMatch(/timestamp\s*=\s*`c:epoch`/);
   });
 });

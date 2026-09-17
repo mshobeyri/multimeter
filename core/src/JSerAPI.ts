@@ -63,7 +63,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
         // A full-field runtime token must retain its native JSON type. Embedded
         // tokens remain string interpolations.
         formattedBody = formattedBody.replace(
-            /"\$\{((?:__mmt_(?:random|current)\([^{}]*\)|__mmt_access\([^{}]*\)))}"/g,
+            /"\$\{((?:mmt(?:Random|Current)_\([^{}]*\)|mmtAccess_\([^{}]*\)))}"/g,
             '${JSON.stringify($1)}');
       }
       const entries = Object.entries(ctx.api.inputs ?? {});
@@ -266,8 +266,8 @@ ${isGraphQL ? `
  * the resolved value (same idea as the JSON `"${name}"` rewrite above).
  *
  * URLSearchParams encodes spaces as `+` (not `%20`). decodeURIComponent does
- * not treat `+` as space, so expressions like `__mmt_access(x, '[1:2]')`
- * would become `__mmt_access(x,+'[1:2]')` (unary-plus → NaN) and silently
+ * not treat `+` as space, so expressions like `mmtAccess_(x, '[1:2]')`
+ * would become `mmtAccess_(x,+'[1:2]')` (unary-plus → NaN) and silently
  * drop the slice accessor. Normalize `+` → `%20` before decoding.
  */
 export function restoreUrlEncodedJsPlaceholders(encodedBody: string): string {

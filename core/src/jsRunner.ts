@@ -269,8 +269,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     if (!fn) {
       fn = new Function(
         'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
-        '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
-        '__mmt_access', '__abortSignal', '__fileLoader', '__binaryFileLoader',
+        '__reporter', '__runId', '__id', 'mmtRandom_', 'mmtCurrent_',
+        'mmtAccess_', '__abortSignal', '__fileLoader', '__binaryFileLoader',
         '__checkLogMode',
         functionBody);
       if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {

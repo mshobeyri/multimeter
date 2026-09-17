@@ -829,7 +829,7 @@ function outputAccessExpression(resultVar: string, field: string): string {
   if (DEFAULT_OUTPUT_KEY_SET.has(root)) {
     const rootLiteral = JSON.stringify(root);
     const base = `(Object.prototype.hasOwnProperty.call(${resultVar}, ${rootLiteral}) ? ${resultVar}[${rootLiteral}] : (${resultVar}._ ? ${resultVar}._[${rootLiteral}] : undefined))`;
-    return accessor ? `__mmt_access(${base}, ${JSON.stringify(accessor)})` : base;
+    return accessor ? `mmtAccess_(${base}, ${JSON.stringify(accessor)})` : base;
   }
   return `${resultVar}.${normalized}`;
 }

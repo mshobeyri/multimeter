@@ -66,14 +66,14 @@ describe('jsRunner extra runtime paths', () => {
     const result = await runJSCode({
       js: `
         return {
-          rnd: __mmt_random('uuid'),
-          bounded: __mmt_random('int(7,7)'),
-          sized: __mmt_random('string(9)'),
-          missingR: __mmt_random('no-such'),
-          cur: __mmt_current('year'),
-          shifted: __mmt_current('epoch(+1h)'),
-          missingC: __mmt_current('no-such'),
-          access: __mmt_access({a: {b: 2}}, '.a.b'),
+          rnd: mmtRandom_('uuid'),
+          bounded: mmtRandom_('int(7,7)'),
+          sized: mmtRandom_('string(9)'),
+          missingR: mmtRandom_('no-such'),
+          cur: mmtCurrent_('year'),
+          shifted: mmtCurrent_('epoch(+1h)'),
+          missingC: mmtCurrent_('no-such'),
+          access: mmtAccess_({a: {b: 2}}, '.a.b'),
           extracted: extractOutputs_({
             type: 'json',
             body: '{"x":1}',
