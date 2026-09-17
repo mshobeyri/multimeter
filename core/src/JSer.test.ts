@@ -2410,6 +2410,33 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
     expect(js).not.toMatch(/r%3AcustomToken|c%3AcustomNow/i);
   });
 
+  it('resolves standalone dynamic JSON body fields at request execution', async () => {
+    const js = await apiToJSfunc({
+      api: {
+        type: 'api',
+        url: 'https://example.com/echo',
+        method: 'post',
+        format: 'json',
+        body: {
+          id: 'r:uuid',
+          count: 'r:int(10,20)',
+          created: 'c:utc_datetime(+1h)',
+          label: 'item-<<r:alphanumeric(8)>>',
+        },
+      } as any,
+      name: 'dynamicBody',
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain("JSON.stringify(__mmt_random('uuid'))");
+    expect(js).toContain("JSON.stringify(__mmt_random('int(10,20)'))");
+    expect(js).toContain(
+        "JSON.stringify(__mmt_current('utc_datetime(+1h)'))");
+    expect(js).toContain("__mmt_random('alphanumeric(8)')");
+    expect(js).not.toContain('"r:uuid"');
+    expect(js).not.toContain('"r:int(10,20)"');
+  });
+
   it('still encodes static reserved characters in neighboring fields', async () => {
     const js = await toJs([
       'type: api',

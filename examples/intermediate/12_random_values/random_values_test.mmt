@@ -9,7 +9,37 @@ steps:
     expect:
       request_method: POST
       random_id: != null
-      random_email: =* [a-z._]+@[a-z]+\.[a-z]+
+      random_email: =C @
       random_name: != null
       lucky_number: != null
       request_id: =^ req-
+      bounded_int:
+        - >= 10
+        - <= 20
+      random_float:
+        - >= 0
+        - <= 1
+      short_code: =# 12
+      username: =C .
+      password: =# 20
+      domain: =C .
+      random_url: =^ https://
+      mac: =* ^([0-9a-f]{2}:){5}[0-9a-f]{2}$
+      user_agent: != null
+      company: != null
+      job_title: != null
+      postal_code: =* ^[0-9]{5}$
+      street_address: =$ Street
+      random_datetime: =^ 2026-
+      random_utc_datetime:
+        - =^ 2026-
+        - =$ Z
+      datetime_near_now: != null
+      utc_datetime_near_now: =$ Z
+      ranged_epoch:
+        - >= 1700000000
+        - <= 1800000000
+      epoch_near_now: != null
+      random_word: != null
+      random_sentence: =$ .
+      random_paragraph: =C .

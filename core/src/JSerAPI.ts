@@ -8,7 +8,7 @@ import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
 import {
   embedDynamicTokensAsJsInterpolations,
   replaceAllRefs,
-  toTemplateWithEnvVars,
+  toTemplateValueJs,
 } from './variableReplacer';
 
 export interface APIContext {
@@ -42,7 +42,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   // `e:VAR` / `r:` / `c:` tokens into `e%3AVAR` and hide them from later
   // template rewriting. Convert them to `${...}` first (JSON/XML keep tokens
   // readable without this).
-  if (reqFormatForBody === 'urlencoded' && replaced.body != null) {
+  if (reqFormatForBody !== 'binary' && replaced.body != null) {
     replaced = {
       ...replaced,
       body: embedDynamicTokensAsJsInterpolations(replaced.body),
@@ -59,6 +59,12 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
         // URLSearchParams encodes `${name}` → %24%7Bname%7D, which would be
         // sent literally. Restore JS interpolations that re-encode at runtime.
         formattedBody = restoreUrlEncodedJsPlaceholders(formattedBody);
+      } else if (reqFormat === 'json') {
+        // A full-field runtime token must retain its native JSON type. Embedded
+        // tokens remain string interpolations.
+        formattedBody = formattedBody.replace(
+            /"\$\{((?:__mmt_(?:random|current)\([^{}]*\)|__mmt_access\([^{}]*\)))}"/g,
+            '${JSON.stringify($1)}');
       }
       const entries = Object.entries(ctx.api.inputs ?? {});
       for (const [name, value] of entries) {
@@ -76,7 +82,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   } catch {
   }
 
-  const toTemplateWithEnvs = toTemplateWithEnvVars;
+  const toTemplateWithEnvs = toTemplateValueJs;
 
   if (replaced.cookies && Object.keys(replaced.cookies).length > 0) {
     let cookies = Object.entries(replaced.cookies || {})

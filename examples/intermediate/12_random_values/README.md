@@ -16,7 +16,7 @@ Demonstrates built-in `r:xxx` tokens in YAML files. These tokens generate random
 
 | File | Description |
 |---|---|
-| `api/random_echo.mmt` | Sends random UUID, email, first name, integer, and boolean values |
+| `api/random_echo.mmt` | Sends primitive, identity, network, business, text, and ranged date/time values |
 | `random_values_test.mmt` | Calls the API and checks that the generated values were echoed back |
 
 ## Example tokens
@@ -29,12 +29,27 @@ body:
   lucky_number: r:int
   active: r:bool
   request_id: req-<<r:uuid>>
+  bounded_int: r:int(10,20)
+  random_float: r:float(0,1)
+  short_code: r:alphanumeric(12)
+  username: r:username
+  domain: r:domain
+  random_url: r:url
+  company: r:company
+  random_datetime: r:datetime(2026-01-01,2026-12-31)
+  random_utc_datetime: r:utc_datetime(2026-01-01T00:00:00Z,2026-12-31T23:59:59Z)
+  datetime_near_now: r:datetime_now(1h1m)
+  utc_datetime_near_now: r:utc_datetime_now(1h1m)
+  ranged_epoch: r:epoch(1700000000,1800000000)
 ```
 
 ## Key concepts
 
 - **Standalone `r:xxx` values** keep their native type. For example, `r:int` becomes a number and `r:bool` becomes a boolean.
 - **Embedded tokens** must use `<< >>`. In this example, `req-<<r:uuid>>` generates a string with a random suffix.
+- **Parameterized generators** use parentheses for lengths and ranges, such as `r:int(10,20)` and `r:alphanumeric(12)`.
+- **Local vs UTC** — `r:datetime` uses local time; `r:utc_datetime` uses UTC and ends in `Z`.
+- **Ranges around now** accept combined durations such as `1h1m`. The generated value is within that distance before or after now.
 - **No JS required** — random values can be used directly in API `body`, `headers`, `query`, `cookies`, `url`, and input defaults.
 - **Inline `expect`** checks the echoed values without adding separate `assert` or `check` steps.
 

@@ -35,7 +35,7 @@ export const CURRENT_TOKEN_SPEC_RE =
 export const ACCESSOR_SEGMENT_RE =
     '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|:-?\\d*|[A-Za-z_][A-Za-z0-9_]*)\\])';
 export const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
-const DYNAMIC_KEY_RE =
+export const DYNAMIC_KEY_RE =
     `(?:r:${RANDOM_TOKEN_SPEC_RE}|c:${CURRENT_TOKEN_SPEC_RE}|[A-Za-z0-9_]+:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}`;
 
 function replaceTokenForms(
