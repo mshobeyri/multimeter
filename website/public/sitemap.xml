@@ -63,7 +63,10 @@
   <url><loc>https://mmt.dev/docs/features/certificates/supported-certificate-formats</loc><lastmod>2026-09-01</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/data-driven-tests</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/data-imports</loc><lastmod>2026-08-02</lastmod></url>
-  <url><loc>https://mmt.dev/docs/features/dynamic-values</loc><lastmod>2026-09-17</lastmod></url>
+  <url><loc>https://mmt.dev/docs/features/dynamic-values</loc><lastmod>2026-09-18</lastmod></url>
+  <url><loc>https://mmt.dev/docs/features/dynamic-values/syntax</loc><lastmod>2026-09-18</lastmod></url>
+  <url><loc>https://mmt.dev/docs/features/dynamic-values/random</loc><lastmod>2026-09-18</lastmod></url>
+  <url><loc>https://mmt.dev/docs/features/dynamic-values/current</loc><lastmod>2026-09-18</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/flow-chart</loc><lastmod>2026-08-02</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/logging</loc><lastmod>2026-08-18</lastmod></url>
   <url><loc>https://mmt.dev/docs/features/logging/api-logging</loc><lastmod>2026-08-02</lastmod></url>
