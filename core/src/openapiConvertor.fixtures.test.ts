@@ -67,7 +67,7 @@ describe('openapiConvertor fixtures', () => {
     });
   });
 
-  it('converts Swagger 2 JSON Petstore with path-only URLs', () => {
+  it('converts Swagger 2 JSON Petstore with host and basePath in URLs', () => {
     const spec = parseFixture('petstore.swagger2.json');
     const apis = openApiToAPI(spec);
 
@@ -75,7 +75,8 @@ describe('openapiConvertor fixtures', () => {
     const getPet = apis.find(api => api.title === 'Find pet by ID');
     expect(getPet).toBeDefined();
     expect(getPet?.method).toBe('get');
-    expect(String(getPet?.url)).toMatch(/\/pet\/\{petId\}/);
+    expect(String(getPet?.url)).toBe(
+        'https://petstore.swagger.io/v2/pet/{petId}');
   });
 
   it('converts a minimal JSON spec with bearer auth, path/query params, and named examples', () => {

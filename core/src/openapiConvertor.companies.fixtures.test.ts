@@ -83,6 +83,22 @@ describe('openapiConvertor company fixtures', () => {
     expect(String(list?.method).toLowerCase()).toBe('get');
   });
 
+  it('Swagger 2 company fixtures include host and basePath in URLs', () => {
+    const bitbucket = openApiToAPI(parseFixture('bitbucket.openapi.json'));
+    expect(bitbucket.some(api =>
+      String(api.url).startsWith('https://api.bitbucket.org/2.0/'))).toBe(true);
+
+    const slack = openApiToAPI(parseFixture('slack.swagger.json'));
+    expect(slack.some(api =>
+      String(api.url).startsWith('https://slack.com/api/'))).toBe(true);
+  });
+
+  it('OpenAPI 3 company fixtures with servers keep absolute URLs', () => {
+    const paypal = openApiToAPI(parseFixture('paypal.openapi.json'));
+    expect(paypal.every(api =>
+      String(api.url).startsWith('https://api-m.paypal.com/'))).toBe(true);
+  });
+
   it('CircleCI fixture includes pipeline-related GETs', () => {
     const apis = openApiToAPI(parseFixture('circleci.openapi.json'));
     expect(apis.some(api => String(api.method).toLowerCase() === 'get')).toBe(true);

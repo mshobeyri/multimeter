@@ -12,6 +12,28 @@ export type OpenApiPrimaryServer = {
   variables: Record<string, {default?: string; enum?: string[]}>;
 };
 
+/** Build a concrete server URL from Swagger 2.0 `host`, `basePath`, and `schemes`. */
+export function buildSwagger2ServerUrl(spec: any): string {
+  if (!spec?.swagger) {
+    return '';
+  }
+  const host = String(spec?.host || '').trim().replace(/\/+$/, '');
+  if (!host) {
+    return '';
+  }
+  const schemes = Array.isArray(spec?.schemes) && spec.schemes.length > 0
+    ? spec.schemes
+    : ['https'];
+  const scheme = String(schemes[0] || 'https').replace(/:$/, '');
+  let basePath = String(spec?.basePath || '').trim();
+  if (basePath === '/') {
+    basePath = '';
+  } else if (basePath) {
+    basePath = `/${basePath.replace(/^\/+|\/+$/g, '')}`;
+  }
+  return `${scheme}://${host}${basePath}`;
+}
+
 /**
  * Read `servers[0]` into a URL template plus variable defs.
  * YAML often parses unquoted `{base_url}` as `{base_url: null}` — recover that here.
@@ -19,7 +41,8 @@ export type OpenApiPrimaryServer = {
 export function readOpenApiPrimaryServer(spec: any): OpenApiPrimaryServer {
   const server = spec?.servers?.[0];
   if (!server) {
-    return {urlTemplate: '', variables: {}};
+    const swagger2Url = spec?.swagger ? buildSwagger2ServerUrl(spec) : '';
+    return {urlTemplate: swagger2Url, variables: {}};
   }
 
   const variables: Record<string, {default?: string; enum?: string[]}> = {};

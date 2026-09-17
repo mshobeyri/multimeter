@@ -1,4 +1,8 @@
-import { openApiToAPI, buildOpenApiEnvFromSpec } from './openapiConvertor';
+import {
+  openApiToAPI,
+  buildOpenApiEnvFromSpec,
+  buildSwagger2ServerUrl,
+} from './openapiConvertor';
 import { parseYamlStrict } from './markupConvertor';
 
 describe('openapiConvertor.openApiToAPI', () => {
@@ -339,6 +343,41 @@ describe('openapiConvertor.openApiToAPI', () => {
     };
     const api = openApiToAPI(spec)[0];
     expect(api.url).toBe('https://<<e:host>>/v1/items');
+  });
+
+  it('builds Swagger 2 server URLs from host, basePath, and schemes', () => {
+    expect(buildSwagger2ServerUrl({
+      swagger: '2.0',
+      host: 'api.bitbucket.org',
+      basePath: '/2.0',
+      schemes: ['https'],
+    })).toBe('https://api.bitbucket.org/2.0');
+    expect(buildSwagger2ServerUrl({
+      swagger: '2.0',
+      host: 'slack.com',
+      basePath: '/api',
+    })).toBe('https://slack.com/api');
+    expect(buildSwagger2ServerUrl({openapi: '3.0.0', host: 'ignored.com'}))
+        .toBe('');
+  });
+
+  it('converts Swagger 2 specs without servers[] using host and basePath', () => {
+    const spec = {
+      swagger: '2.0',
+      host: 'petstore.swagger.io',
+      basePath: '/v2',
+      schemes: ['https'],
+      paths: {
+        '/pet/{petId}': {
+          get: {
+            summary: 'Find pet by ID',
+            parameters: [{in: 'path', name: 'petId', type: 'integer'}],
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.url).toBe('https://petstore.swagger.io/v2/pet/{petId}');
   });
 
   it('builds env file from OpenAPI server variables', () => {
