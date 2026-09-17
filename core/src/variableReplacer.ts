@@ -688,6 +688,8 @@ export interface ReplaceAllRefsOptions {
    * values; code generators disable it so every execution gets fresh values.
    */
   resolveRuntimeTokens?: boolean;
+  /** Clear r:/c: caches before resolving so each call gets fresh runtime values. */
+  refreshRuntimeTokens?: boolean;
 }
 
 // Replaces all references (inputs first, then environment vars)
@@ -695,6 +697,11 @@ export function replaceAllRefs(
     iface: any, defaults: JSONRecord, inputs: JSONRecord,
     envs: JSONRecord, visiting: Set<string> = new Set(),
     options: ReplaceAllRefsOptions = {}): any {
+  if (options.refreshRuntimeTokens) {
+    resetRandomTokenCache();
+    resetCurrentTokenCache();
+  }
+
   const mergedInputs = Object.assign({}, defaults, inputs);
 
   // Dynamic resolver for i:, e:, r:, c:

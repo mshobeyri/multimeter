@@ -25,7 +25,7 @@ import {
   diffApiRefreshScopes,
   isDocOnlyRefresh,
 } from "./apiUiRefresh";
-import { resolveApiTesterRequest } from "./resolveApiTesterRequest";
+import { resolveApiRequest } from "mmt-core/resolveApiRequest";
 
 /** Always prefer the right-panel API Tester request over file YAML. */
 function buildUiApiRawFile(api: APIData, requestData: Request | undefined): string {
@@ -169,7 +169,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   ): Promise<Request> => {
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const envParameters = await loadEnvParameters();
-    return resolveApiTesterRequest(
+    return resolveApiRequest(
       api,
       resolvedInputs,
       envParameters,

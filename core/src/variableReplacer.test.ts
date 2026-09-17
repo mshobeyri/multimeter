@@ -499,6 +499,15 @@ describe('multiple template vars in one string', () => {
     });
   });
 
+  it('refreshRuntimeTokens clears r:/c: caches between resolves', () => {
+    const iface = {id: 'r:uuid'};
+    const first = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
+    const second = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
+    expect(first.id).not.toBe('r:uuid');
+    expect(second.id).not.toBe('r:uuid');
+    expect(first.id).not.toBe(second.id);
+  });
+
   it('resolves parameterized random tokens and preserves invalid forms', () => {
     const resolved = replaceAllRefs(
       {

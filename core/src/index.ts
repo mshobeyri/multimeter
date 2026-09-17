@@ -18,6 +18,8 @@ export * as brunoParsePack from "./brunoParsePack";
 export * as docParsePack from "./docParsePack";
 export * as markupConvertor from "./markupConvertor";
 export * as variableReplacer from "./variableReplacer";
+export {resolveApiRequest} from "./resolveApiRequest";
+export type {ResolveApiRequestOptions} from "./resolveApiRequest";
 export * as omitKeyword from "./omitKeyword";
 export * as outputExtractor from "./outputExtractor";
 export * as textLines from "./textLines";

@@ -14,9 +14,7 @@ import {
   testParsePack,
   mockParsePack,
   apiParsePack,
-  variableReplacer,
-  markupConvertor,
-  CommonData,
+  resolveApiRequest,
 } from 'mmt-core';
 import {
   getCachedSuiteHierarchy,
@@ -256,25 +254,7 @@ function getCurlRequest(
     const api = apiParsePack.yamlToAPIStrict(rawText);
     const inputs = resolveCurlInputs(api, message?.inputs);
     const envVars = extractEnvVarsForCurl(mmtProvider);
-    const request = variableReplacer.replaceAllRefs(
-        api,
-        api.inputs ?? {},
-        inputs,
-        envVars) as Request & {auth?: any};
-    if (request.auth) {
-      const applied = apiParsePack.applyAuthToRequest(
-          request.auth, request.headers || {}, request.query);
-      request.headers = applied.headers;
-      if (applied.query) {
-        request.query = applied.query;
-      }
-      delete request.auth;
-    }
-    if (request.body && typeof request.body !== 'string') {
-      request.body = markupConvertor.formatBody(
-          CommonData.requestFormat(request.format), request.body ?? '');
-    }
-    return request;
+    return resolveApiRequest(api, inputs, envVars);
   } catch {
     return undefined;
   }

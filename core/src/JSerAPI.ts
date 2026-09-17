@@ -38,10 +38,10 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   replaced = stripOmitFromRequest(replaced);
 
   const reqFormatForBody = requestFormat(replaced.format);
-  // URLSearchParams percent-encodes the whole value, which would turn leftover
-  // `e:VAR` / `r:` / `c:` tokens into `e%3AVAR` and hide them from later
-  // template rewriting. Convert them to `${...}` first (JSON/XML keep tokens
-  // readable without this).
+  // Convert leftover dynamic tokens to JS interpolations before formatBody.
+  // urlencoded needs this because URLSearchParams encodes `${...}`; JSON needs
+  // it so standalone `r:` / `c:` fields become runtime calls instead of
+  // literal `"r:uuid"` strings. Skip binary bodies (file paths, not token text).
   if (reqFormatForBody !== 'binary' && replaced.body != null) {
     replaced = {
       ...replaced,
