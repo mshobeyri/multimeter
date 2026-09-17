@@ -1,5 +1,6 @@
 import { APIData, AuthConfig } from './APIData';
 import {OMIT_SENTINEL} from './omitKeyword';
+import {RANDOM_TOKEN_MAP} from './Random';
 
 // Map Postman dynamic random variables to Multimeter random token names
 // Only include those we support in RANDOM_TOKEN_MAP.
@@ -42,9 +43,14 @@ const POSTMAN_RANDOM_MAP: Record<string, string> = {
   '$randomLoremWord': 'word',
   '$randomLoremSentence': 'sentence',
   '$randomLoremParagraph': 'paragraph',
+  '$randomPrice': 'float',
+  '$randomFileName': 'string',
 };
 
-function replacePostmanVars(str: string): string {
+const POSTMAN_RANDOM_TOKEN_NAMES = new Set(Object.values(POSTMAN_RANDOM_MAP));
+
+/** Translate Postman `{{name}}` placeholders to MMT `r:` or `<<e:>>` tokens. */
+export function translatePostmanTemplate(str: string): string {
   return str.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_m, inner) => {
     const name = String(inner).trim();
     if (POSTMAN_RANDOM_MAP[name]) {
@@ -52,6 +58,83 @@ function replacePostmanVars(str: string): string {
     }
     return `<<e:${name}>>`;
   });
+}
+
+function replacePostmanVars(str: string): string {
+  return translatePostmanTemplate(str);
+}
+
+function reviveUnquotedMmtTokens(value: any): any {
+  if (typeof value === 'string') {
+    const match = /^__MMT_UNQUOTED_(.+?)__$/.exec(value);
+    if (match) {
+      return `r:${match[1]}`;
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(reviveUnquotedMmtTokens);
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      out[key] = reviveUnquotedMmtTokens(entry);
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Parse Postman raw JSON bodies, including unquoted `{{$random*}}` placeholders. */
+export function parsePostmanRawJsonBody(raw: string): string | object {
+  const source = String(raw || '');
+  if (!source.trim()) {
+    return source;
+  }
+  const unquotedPattern =
+      /:\s*(\{\{\s*\$([^}]+?)\s*\}\})(\s*[,}\]])/g;
+  let prepared = source.replace(
+      unquotedPattern,
+      (_match, _token, inner, suffix) => {
+        const key = `$${String(inner).trim()}`;
+        const mapped = POSTMAN_RANDOM_MAP[key];
+        if (mapped) {
+          return `: "__MMT_UNQUOTED_${mapped}__"${suffix}`;
+        }
+        return `: ${translatePostmanTemplate(`{{${inner}}}`)}${suffix}`;
+      });
+  prepared = translatePostmanTemplate(prepared);
+  try {
+    return reviveUnquotedMmtTokens(JSON.parse(prepared));
+  } catch {
+    return translatePostmanTemplate(source);
+  }
+}
+
+function convertPostmanRawBody(raw: string, headers: Record<string, string>): string | object {
+  const contentType = Object.entries(headers || {}).find(
+      ([key]) => key.toLowerCase() === 'content-type')?.[1] || '';
+  if (contentType.includes('json') || looksLikeJsonBody(raw)) {
+    return parsePostmanRawJsonBody(raw);
+  }
+  return translatePostmanTemplate(raw);
+}
+
+function looksLikeJsonBody(raw: string): boolean {
+  const trimmed = String(raw || '').trim();
+  return trimmed.startsWith('{') || trimmed.startsWith('[');
+}
+
+export function listSupportedPostmanRandomTokens(): string[] {
+  return Object.keys(POSTMAN_RANDOM_MAP).sort();
+}
+
+export function assertPostmanRandomMapIsSupported(): void {
+  for (const tokenName of POSTMAN_RANDOM_TOKEN_NAMES) {
+    if (!RANDOM_TOKEN_MAP[tokenName]) {
+      throw new Error(`Postman random map points to unsupported token: ${tokenName}`);
+    }
+  }
 }
 
 function transformRecordValues(obj: Record<string, string> | undefined): Record<string, string> | undefined {
@@ -338,7 +421,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     let body: string | object | undefined = undefined;
     let graphql: APIData['graphql'];
     if (request.body?.mode === 'raw') {
-      body = typeof request.body.raw === 'string' ? replacePostmanVars(request.body.raw) : request.body.raw;
+      body = typeof request.body.raw === 'string'
+        ? convertPostmanRawBody(request.body.raw, headers)
+        : request.body.raw;
     } else if (request.body?.mode === 'urlencoded') {
       body = transformRecordValues(extractKeyValue(request.body.urlencoded));
     } else if (request.body?.mode === 'formdata') {

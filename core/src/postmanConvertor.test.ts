@@ -1,4 +1,10 @@
-import { postmanToAPI } from './postmanConvertor';
+import {
+  assertPostmanRandomMapIsSupported,
+  listSupportedPostmanRandomTokens,
+  parsePostmanRawJsonBody,
+  postmanToAPI,
+  translatePostmanTemplate,
+} from './postmanConvertor';
 import {OMIT_SENTINEL} from './omitKeyword';
 
 describe('postmanConvertor.postmanToAPI', () => {
@@ -27,7 +33,7 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(api.method).toBe('get');
     expect(api.url).toBe('https://test.mmt.dev/echo');
     expect(api.format).toBe('json');
-    expect(api.body).toBe('{"hello":"world"}');
+    expect(api.body).toEqual({hello: 'world'});
     // Protocol is undefined for http URLs (inferred from URL)
     expect(api.protocol).toBeUndefined();
   });
@@ -77,6 +83,44 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(socket.body).toEqual({ meta: 'x' });
   });
 
+  it('maps every supported Postman random token to an existing r: generator', () => {
+    expect(() => assertPostmanRandomMapIsSupported()).not.toThrow();
+    expect(listSupportedPostmanRandomTokens()).toContain('$randomLoremWord');
+    expect(listSupportedPostmanRandomTokens()).toContain('$randomPrice');
+  });
+
+  it('translates replaceIn-style concatenated Postman templates', () => {
+    expect(translatePostmanTemplate('{{$timestamp}}{{$randomInt}}'))
+        .toBe('r:epochr:int');
+    expect(translatePostmanTemplate('{{$timestamp}}'))
+        .toBe('r:epoch');
+  });
+
+  it('parses unquoted Postman dynamic values in JSON bodies', () => {
+    const collection = {
+      item: [{
+        name: 'Create Order',
+        request: {
+          method: 'POST',
+          header: [{key: 'Content-Type', value: 'application/json'}],
+          url: {raw: 'https://test.mmt.dev/orders'},
+          body: {
+            mode: 'raw',
+            raw: '{"customer_id":"{{$timestamp}}","invoice_id":{{$timestamp}},"qty":{{$randomInt}}}',
+          },
+        },
+      }],
+    };
+    const api = postmanToAPI(collection)[0];
+    expect(api.body).toEqual({
+      customer_id: 'r:epoch',
+      invoice_id: 'r:epoch',
+      qty: 'r:int',
+    });
+    expect(parsePostmanRawJsonBody('{"invoice_id":{{$timestamp}}}'))
+        .toEqual({invoice_id: 'r:epoch'});
+  });
+
   it('converts Postman dynamic random variables to r: tokens', () => {
     const collection = {
       item: [
@@ -100,18 +144,17 @@ describe('postmanConvertor.postmanToAPI', () => {
     // URL replacements
     expect(api.url).toContain('uuid=r:uuid');
     expect(api.url).toContain('ip=r:ip');
-    // Body replacements
-    expect(typeof api.body).toBe('string');
-    const bodyStr = api.body as string;
-    expect(bodyStr).toContain('"id":"r:uuid"');
-    expect(bodyStr).toContain('"email":"r:email"');
-    expect(bodyStr).toContain('"v":"r:int"');
-    expect(bodyStr).toContain('"name":"r:full_name"');
-    expect(bodyStr).toContain('"username":"r:username"');
-    expect(bodyStr).toContain('"domain":"r:domain"');
-    expect(bodyStr).toContain('"agent":"r:user_agent"');
-    expect(bodyStr).toContain('"company":"r:company"');
-    expect(bodyStr).toContain('"sentence":"r:sentence"');
+    expect(api.body).toEqual({
+      id: 'r:uuid',
+      email: 'r:email',
+      v: 'r:int',
+      name: 'r:full_name',
+      username: 'r:username',
+      domain: 'r:domain',
+      agent: 'r:user_agent',
+      company: 'r:company',
+      sentence: 'r:sentence',
+    });
   });
 
   it('when examples exist, exposes url/headers/body as inputs and builds example overrides', () => {
