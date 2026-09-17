@@ -191,18 +191,36 @@ Parameterized forms:
 | `r:epoch_ms(1700000000000,1800000000000)` | Unix milliseconds in an explicit inclusive range |
 | `r:date_future(1,30)` | Date between 1 and 30 days in the future |
 | `r:date_past(1,30)` | Date between 1 and 30 days in the past |
+| `r:date_future(2d,30d)` | Date between 2 and 30 days ahead (duration syntax) |
+| `r:datetime_future(1d,7d)` | Local datetime between 1 and 7 days ahead |
+| `r:datetime_past(2d,14d)` | Local datetime between 2 and 14 days ago |
+| `r:utc_datetime_future(1d,7d)` | UTC datetime between 1 and 7 days ahead |
+| `r:utc_datetime_past(2d,14d)` | UTC datetime between 2 and 14 days ago |
+| `r:time_future(1h,6h)` | Local time between 1 and 6 hours ahead |
+| `r:utc_time_past(30m,2h)` | UTC time between 30 minutes and 2 hours ago |
+| `r:utc_date_future(7,30)` | UTC date between 7 and 30 days ahead |
+| `r:epoch_future(2d,30d)` | Unix seconds between 2 and 30 days ahead |
+| `r:epoch_past(1d,365d)` | Unix seconds between 1 day and 1 year ago |
 | `r:datetime(2026-01-01,2026-12-31)` | Local datetime between two absolute local dates/times |
 | `r:utc_datetime(2026-01-01T00:00:00Z,2026-12-31T23:59:59Z)` | UTC datetime between two absolute instants |
 | `r:datetime_now(1h1m)` | Local datetime within ±1 hour 1 minute of now |
+| `r:datetime_now(2h,1d)` | Local datetime from 2 hours ago through 1 day ahead |
 | `r:utc_datetime_now(1h1m)` | UTC datetime within ±1 hour 1 minute of now |
+| `r:utc_datetime_now(2h,1d)` | UTC datetime from 2 hours ago through 1 day ahead |
 | `r:epoch_now(1h1m)` | Unix seconds within ±1 hour 1 minute of now |
+| `r:epoch_now(2h,1d)` | Unix seconds from 2 hours ago through 1 day ahead |
 | `r:epoch_now_ms(1h1m)` | Unix milliseconds within ±1 hour 1 minute of now |
+| `r:epoch_now_ms(2h,1d)` | Unix milliseconds from 2 hours ago through 1 day ahead |
 
 Invalid arguments and arguments on non-parameterized tokens remain unresolved
 instead of silently producing a different value.
 
 Relative-to-now ranges accept combined `w`, `d`, `h`, `m`, `s`, and `ms`
-durations, for example `2d4h30m` or `1h1m`.
+durations, for example `2d4h30m` or `1h1m`. For `*_now` tokens:
+
+- **One argument** — symmetric range around now, e.g. `r:datetime_now(1h1m)` → ±1h1m
+- **Two arguments** — back then forward from now, e.g. `r:datetime_now(2h,1d)` → from 2 hours ago through 1 day ahead
+- **No arguments** — defaults to ±1 hour
 
 ### Network
 
@@ -263,12 +281,26 @@ durations, for example `2d4h30m` or `1h1m`.
 |-------|---------|---------|
 | `r:weekday` | Weekday name | `Wednesday` |
 | `r:month` | Month name | `March` |
+| `r:time` | Random local time `HH:MM:SS`; optional absolute from/to range | `08:30:12` |
+| `r:utc_time` | Random UTC time `HH:MM:SS`; optional absolute from/to range | `18:30:12` |
+| `r:date` | Random local date `YYYY-MM-DD`; optional absolute from/to range | `2027-04-14` |
+| `r:utc_date` | Random UTC date `YYYY-MM-DD`; optional absolute from/to range | `2027-04-14` |
 | `r:date_future` | Future date string (~1–365 days ahead) | `Mon Apr 14 2027 …` |
 | `r:date_past` | Past date string (~1 day–5 years back) | `Tue Jan 09 2021 …` |
 | `r:datetime` | Random local datetime; accepts an absolute local from/to range | `2027-04-14T08:30:12` |
 | `r:utc_datetime` | Random UTC datetime; accepts an absolute from/to range | `2027-04-14T08:30:12Z` |
-| `r:datetime_now` | Random local datetime around now; accepts a duration range | `2026-09-17T12:25:00` |
-| `r:utc_datetime_now` | Random UTC datetime around now; accepts a duration range | `2026-09-17T10:25:00Z` |
+| `r:datetime_future` | Random local datetime in the future; duration or day-count window | `2026-09-19T12:00:00` |
+| `r:datetime_past` | Random local datetime in the past; duration or day-count window | `2026-09-15T12:00:00` |
+| `r:utc_datetime_future` | Random UTC datetime in the future | `2026-09-19T12:00:00Z` |
+| `r:utc_datetime_past` | Random UTC datetime in the past | `2026-09-15T12:00:00Z` |
+| `r:time_future` | Random local time in the future | `13:00:00` |
+| `r:time_past` | Random local time in the past | `11:00:00` |
+| `r:utc_time_future` | Random UTC time in the future | `13:00:00` |
+| `r:utc_time_past` | Random UTC time in the past | `11:00:00` |
+| `r:utc_date_future` | Random UTC date in the future | `2026-09-24` |
+| `r:utc_date_past` | Random UTC date in the past | `2026-09-10` |
+| `r:datetime_now` | Random local datetime around now; one duration for ±range, or back then forward | `2026-09-17T12:25:00` |
+| `r:utc_datetime_now` | Random UTC datetime around now; one duration for ±range, or back then forward | `2026-09-17T10:25:00Z` |
 
 ### Epoch (random timestamps)
 
@@ -280,10 +312,12 @@ durations, for example `2d4h30m` or `1h1m`.
 | `r:epoch_future_ms` | Unix milliseconds | ~1–365 days in the future |
 | `r:epoch_past` | Unix seconds | ~1 day–5 years in the past |
 | `r:epoch_past_ms` | Unix milliseconds | ~1 day–5 years in the past |
-| `r:epoch_now` | Unix seconds within a duration around now | `r:epoch_now(1h1m)` |
-| `r:epoch_now_ms` | Unix milliseconds within a duration around now | `r:epoch_now_ms(1h1m)` |
+| `r:epoch_now` | Unix seconds around now; one duration for ±range, or back then forward | `r:epoch_now(2h,1d)` |
+| `r:epoch_now_ms` | Unix milliseconds around now; one duration for ±range, or back then forward | `r:epoch_now_ms(2h,1d)` |
 
-**Total:** 48 token names (`phone_number` is an alias for `phone`).
+Future/past random tokens accept **day counts** (`7`, `30`) or **combined durations** (`2d4h`, `1h30m`). One argument sets the maximum offset from now; two arguments set a min/max window.
+
+**Total:** 62 token names (`phone_number` is an alias for `phone`).
 
 ## Current tokens (`c:`)
 
@@ -300,6 +334,13 @@ Examples:
 - `c:utc_datetime(+1h1m)`
 - `c:epoch(-30m)`
 
+**Future/past aliases** use unsigned durations instead of signed offsets:
+
+- `c:datetime_future(1h)` — one hour ahead
+- `c:utc_datetime_past(2d)` — two days ago
+- `c:epoch_future(30m)` — 30 minutes ahead
+- `c:time_past(15m)` — 15 minutes ago
+
 Offsets apply to date/time, weekday, month, year, epoch, and UTC-offset tokens.
 They are intentionally rejected for `c:city`, `c:country`, and `c:timezone`.
 
@@ -308,6 +349,7 @@ They are intentionally rejected for `c:city`, `c:country`, and `c:timezone`.
 | `c:time` | Local time `HH:MM:SS` | `14:32:08` |
 | `c:date` | Local date `YYYY-MM-DD` | `2026-08-02` |
 | `c:datetime` | Local date and time `YYYY-MM-DDTHH:MM:SS` | `2026-08-02T14:32:08` |
+| `c:datetime_ms` | Local date and time with milliseconds | `2026-08-02T14:32:08.123` |
 | `c:utc_time` | UTC time `HH:MM:SS` | `18:32:08` |
 | `c:utc_date` | UTC date `YYYY-MM-DD` | `2026-08-02` |
 | `c:utc_datetime` | UTC ISO date and time | `2026-08-02T18:32:08Z` |
@@ -323,7 +365,9 @@ They are intentionally rejected for `c:city`, `c:country`, and `c:timezone`.
 | `c:city` | City inferred from time zone (best effort) | `New York` |
 | `c:country` | Country inferred from locale (best effort) | `United States` |
 
-**Total:** 17 generators.
+Future/past aliases (`c:datetime_future`, `c:utc_datetime_past`, `c:epoch_future`, `c:time_past`, and UTC variants) accept one unsigned duration argument.
+
+**Total:** 18 generators plus 20 future/past aliases.
 
 ## Name normalization
 

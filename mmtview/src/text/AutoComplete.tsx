@@ -62,6 +62,18 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 `Shifts c:${name} by a signed duration such as +1h1m or -1d2m1s.`,
         }));
     variablesSuggestions.push(...offsetCurrentSuggestions);
+    const aliasCurrentSuggestions = Object.entries(
+        Current.CURRENT_FUTURE_PAST_ALIASES).map(([name, alias]) => ({
+            label: `c:${name}(duration)`,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: ` c:${name}(\${1:1h})`,
+            insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: `Current ${alias.base} shifted ${alias.direction}`,
+            documentation:
+                `Shifts c:${alias.base} ${alias.direction} by an unsigned duration such as 1h or 2d4h.`,
+        }));
+    variablesSuggestions.push(...aliasCurrentSuggestions);
 
     loadEnvVariables((variables: { name: string; label: string; value: JSONValue }[]) => {
         variablesSuggestions.push(...variables.map(envVar => ({

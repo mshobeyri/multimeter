@@ -268,6 +268,35 @@ describe('Random API data generators', () => {
         .toBe('2026-01-02T00:00:00Z');
   });
 
+  test('supports formatted temporal tokens and duration-based future/past', () => {
+    jest.useFakeTimers();
+    try {
+      const now = new Date('2026-09-17T12:00:00.000Z').getTime();
+      jest.setSystemTime(now);
+      expect(Random.randomValueForToken('time')).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+      expect(Random.randomValueForToken('utc_time')).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+      expect(Random.randomValueForToken('date')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(Random.randomValueForToken('utc_date')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(Random.randomValueForToken('utc_datetime_future(2d,2d)'))
+          .toBe('2026-09-19T12:00:00Z');
+      expect(Random.randomValueForToken('utc_datetime_past(1d,1d)'))
+          .toBe('2026-09-16T12:00:00Z');
+      expect(Random.randomValueForToken('utc_time_future(1h,1h)'))
+          .toBe('13:00:00');
+      expect(Random.randomValueForToken('utc_date_future(7,7)'))
+          .toBe('2026-09-24');
+      expect(Random.randomValueForToken('epoch_future(2,2)'))
+          .toBe(Math.floor((now + 2 * 86400000) / 1000));
+      expect(Random.randomValueForToken('epoch_past(2d,2d4h)'))
+          .toBeGreaterThanOrEqual(
+              Math.floor((now - (2 * 86400000 + 4 * 3600000)) / 1000));
+      expect(Random.randomValueForToken('epoch_past(2d,2d4h)'))
+          .toBeLessThanOrEqual(Math.floor((now - 2 * 86400000) / 1000));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test('supports past/future day ranges and ranges around now', () => {
     jest.useFakeTimers();
     try {
@@ -300,6 +329,36 @@ describe('Random API data generators', () => {
       expect(epochAround).toBeLessThanOrEqual(now + 3661000);
       expect(epochMsAround).toBeGreaterThanOrEqual(now - 3660000);
       expect(epochMsAround).toBeLessThanOrEqual(now + 3660000);
+
+      const randomSpy = jest.spyOn(Math, 'random');
+      try {
+        randomSpy.mockReturnValue(0);
+        expect(new Date(
+            Random.randomValueForToken('datetime_now(2h,1d)')).getTime())
+            .toBe(now - 2 * 3600000);
+        randomSpy.mockReturnValue(0.999999999);
+        expect(new Date(
+            Random.randomValueForToken('datetime_now(2h,1d)')).getTime())
+            .toBe(now + 86400000);
+
+        randomSpy.mockReturnValue(0);
+        expect(new Date(
+            Random.randomValueForToken('utc_datetime_now(0s,30m)')).getTime())
+            .toBe(now);
+        randomSpy.mockReturnValue(0.999999999);
+        expect(new Date(
+            Random.randomValueForToken('utc_datetime_now(0s,30m)')).getTime())
+            .toBe(now + 30 * 60 * 1000);
+
+        randomSpy.mockReturnValue(0);
+        expect(Random.randomValueForToken('epoch_now(1h,2h)') * 1000)
+            .toBe(now - 3600000);
+        randomSpy.mockReturnValue(0.999999999);
+        expect(Random.randomValueForToken('epoch_now_ms(1h,2h)'))
+            .toBe(now + 2 * 3600000);
+      } finally {
+        randomSpy.mockRestore();
+      }
     } finally {
       jest.useRealTimers();
     }

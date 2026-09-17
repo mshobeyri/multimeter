@@ -1,4 +1,5 @@
 import {CITY_LIST, COLOR_PALETTE, COUNTRY_LIST, EMAIL_DOMAINS, FIRST_NAMES, LAST_NAMES, MONTHS, WEEKDAYS} from './RandomResources';
+import {parseRelativeAmountMs, resolveRelativeWindow, unsignedDurationMs} from './durationParse';
 
 // Internal helper to get random int in range [min, max]
 function randInt(min: number, max: number): number {
@@ -266,26 +267,84 @@ function parseLocalDateTime(value: string): number {
       Number(match[6] || 0)).getTime();
 }
 
-function relativeDurationMs(value: string): number|undefined {
-  const source = String(value || '').trim().toLowerCase();
-  if (!source ||
-      !/^(?:\d+(?:\.\d+)?(?:ms|s|m|h|d|w))+$/.test(source)) {
-    return undefined;
+function localDate(date: Date): string {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${
+      pad2(date.getDate())}`;
+}
+
+function utcDate(date: Date): string {
+  return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${
+      pad2(date.getUTCDate())}`;
+}
+
+function localTime(date: Date): string {
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${
+      pad2(date.getSeconds())}`;
+}
+
+function utcTime(date: Date): string {
+  return `${pad2(date.getUTCHours())}:${pad2(date.getUTCMinutes())}:${
+      pad2(date.getUTCSeconds())}`;
+}
+
+function randomFormattedBetween(
+    startMs: number, endMs: number,
+    formatter: (date: Date) => string): string {
+  return formatter(new Date(randomTimestampBetween(startMs, endMs)));
+}
+
+function randomRelativeFormatted(
+    direction: 'future'|'past',
+    formatter: (date: Date) => string,
+    minArg?: string, maxArg?: string,
+    defaults?: {minMs: number, maxMs: number}): string {
+  const {startMs, endMs} =
+      resolveRelativeWindow(minArg, maxArg, direction, defaults);
+  return randomFormattedBetween(startMs, endMs, formatter);
+}
+
+export function randomTime(start?: string, end?: string): string {
+  if (start !== undefined || end !== undefined) {
+    const startMs = parseLocalDateTime(String(start || ''));
+    const endMs = parseLocalDateTime(String(end || start || ''));
+    if (Number.isFinite(startMs) && Number.isFinite(endMs)) {
+      return localTime(new Date(randomTimestampBetween(startMs, endMs)));
+    }
   }
-  const units: Record<string, number> = {
-    ms: 1,
-    s: 1000,
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
-    d: 24 * 60 * 60 * 1000,
-    w: 7 * 24 * 60 * 60 * 1000,
-  };
-  let total = 0;
-  for (const match of source.matchAll(
-      /(\d+(?:\.\d+)?)(ms|s|m|h|d|w)/g)) {
-    total += Number(match[1]) * units[match[2]];
+  return localTime(new Date(randomISODate()));
+}
+
+export function randomUtcTime(start?: string, end?: string): string {
+  if (start !== undefined || end !== undefined) {
+    const startMs = Date.parse(String(start || ''));
+    const endMs = Date.parse(String(end || start || ''));
+    if (Number.isFinite(startMs) && Number.isFinite(endMs)) {
+      return utcTime(new Date(randomTimestampBetween(startMs, endMs)));
+    }
   }
-  return Number.isFinite(total) ? Math.round(total) : undefined;
+  return utcTime(new Date(randomISODate()));
+}
+
+export function randomDate(start?: string, end?: string): string {
+  if (start !== undefined || end !== undefined) {
+    const startMs = parseLocalDateTime(String(start || ''));
+    const endMs = parseLocalDateTime(String(end || start || ''));
+    if (Number.isFinite(startMs) && Number.isFinite(endMs)) {
+      return localDate(new Date(randomTimestampBetween(startMs, endMs)));
+    }
+  }
+  return localDate(new Date(randomISODate()));
+}
+
+export function randomUtcDate(start?: string, end?: string): string {
+  if (start !== undefined || end !== undefined) {
+    const startMs = Date.parse(String(start || ''));
+    const endMs = Date.parse(String(end || start || ''));
+    if (Number.isFinite(startMs) && Number.isFinite(endMs)) {
+      return utcDate(new Date(randomTimestampBetween(startMs, endMs)));
+    }
+  }
+  return utcDate(new Date(randomISODate()));
 }
 
 export function randomDateTime(start?: string, end?: string): string {
@@ -312,31 +371,39 @@ export function randomUtcDateTime(start?: string, end?: string): string {
   return utcDateTime(new Date(randomISODate()));
 }
 
-export function randomDateTimeNow(range = '1h'): string {
-  const offset = relativeDurationMs(range) ?? 60 * 60 * 1000;
+function resolveNowWindow(
+    back?: string, forward?: string): {startMs: number, endMs: number} {
   const now = Date.now();
-  return localDateTime(new Date(randomTimestampBetween(
-      now - offset, now + offset)));
+  if (forward === undefined) {
+    const offset = unsignedDurationMs(back ?? '1h') ?? 60 * 60 * 1000;
+    return {startMs: now - offset, endMs: now + offset};
+  }
+  const backMs = unsignedDurationMs(String(back ?? '0s') ?? '') ?? 0;
+  const forwardMs = unsignedDurationMs(forward);
+  if (forwardMs === undefined) {
+    return {startMs: now, endMs: now};
+  }
+  return {startMs: now - backMs, endMs: now + forwardMs};
 }
 
-export function randomUtcDateTimeNow(range = '1h'): string {
-  const offset = relativeDurationMs(range) ?? 60 * 60 * 1000;
-  const now = Date.now();
-  return utcDateTime(new Date(randomTimestampBetween(
-      now - offset, now + offset)));
+export function randomDateTimeNow(back = '1h', forward?: string): string {
+  const {startMs, endMs} = resolveNowWindow(back, forward);
+  return localDateTime(new Date(randomTimestampBetween(startMs, endMs)));
 }
 
-export function randomEpochNow(range = '1h'): number {
-  const offset = relativeDurationMs(range) ?? 60 * 60 * 1000;
-  const now = Date.now();
-  return Math.floor(randomTimestampBetween(
-      now - offset, now + offset) / 1000);
+export function randomUtcDateTimeNow(back = '1h', forward?: string): string {
+  const {startMs, endMs} = resolveNowWindow(back, forward);
+  return utcDateTime(new Date(randomTimestampBetween(startMs, endMs)));
 }
 
-export function randomEpochNowMs(range = '1h'): number {
-  const offset = relativeDurationMs(range) ?? 60 * 60 * 1000;
-  const now = Date.now();
-  return randomTimestampBetween(now - offset, now + offset);
+export function randomEpochNow(back = '1h', forward?: string): number {
+  const {startMs, endMs} = resolveNowWindow(back, forward);
+  return Math.floor(randomTimestampBetween(startMs, endMs) / 1000);
+}
+
+export function randomEpochNowMs(back = '1h', forward?: string): number {
+  const {startMs, endMs} = resolveNowWindow(back, forward);
+  return randomTimestampBetween(startMs, endMs);
 }
 
 export function randomWord(): string {
@@ -366,41 +433,80 @@ export function randomLongitude(): number {
 }
 
 /**
- * Random future date string within [minDaysAhead, maxDaysAhead]
- * (defaults 1..365).
+ * Random future date string within a relative window.
+ * Accepts day counts or combined durations such as `2d4h`.
  */
-export function randomDateFuture(
-    minOrMaxDaysAhead?: number, maxDaysAhead?: number): string {
-  let minDaysAhead = minOrMaxDaysAhead === undefined ||
-      maxDaysAhead === undefined ? 1 : minOrMaxDaysAhead;
-  maxDaysAhead = maxDaysAhead ??
-      minOrMaxDaysAhead ?? 365;
-  if (maxDaysAhead < minDaysAhead) {
-    [minDaysAhead, maxDaysAhead] = [maxDaysAhead, minDaysAhead];
-  }
-  const days = randInt(minDaysAhead, maxDaysAhead);
-  const msOffset =
-      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
-  return new Date(Date.now() + msOffset).toString();
+export function randomDateFuture(minArg?: string, maxArg?: string): string {
+  const {startMs, endMs} = resolveRelativeWindow(minArg, maxArg, 'future');
+  return new Date(randomTimestampBetween(startMs, endMs)).toString();
 }
 
 /**
- * Random past date string within [minDaysBack, maxDaysBack]
- * (defaults 1..(365*5)).
+ * Random past date string within a relative window.
+ * Accepts day counts or combined durations such as `2d4h`.
  */
-export function randomDatePast(
-    minOrMaxDaysBack?: number, maxDaysBack?: number): string {
-  let minDaysBack = minOrMaxDaysBack === undefined ||
-      maxDaysBack === undefined ? 1 : minOrMaxDaysBack;
-  maxDaysBack = maxDaysBack ??
-      minOrMaxDaysBack ?? 365 * 5;
-  if (maxDaysBack < minDaysBack) {
-    [minDaysBack, maxDaysBack] = [maxDaysBack, minDaysBack];
-  }
-  const days = randInt(minDaysBack, maxDaysBack);
-  const msOffset =
-      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
-  return new Date(Date.now() - msOffset).toString();
+export function randomDatePast(minArg?: string, maxArg?: string): string {
+  const {startMs, endMs} = resolveRelativeWindow(minArg, maxArg, 'past', {
+    minMs: 24 * 60 * 60 * 1000,
+    maxMs: 365 * 5 * 24 * 60 * 60 * 1000,
+  });
+  return new Date(randomTimestampBetween(startMs, endMs)).toString();
+}
+
+export function randomDateTimeFuture(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('future', localDateTime, minArg, maxArg);
+}
+
+export function randomDateTimePast(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('past', localDateTime, minArg, maxArg, {
+    minMs: 24 * 60 * 60 * 1000,
+    maxMs: 365 * 5 * 24 * 60 * 60 * 1000,
+  });
+}
+
+export function randomUtcDateTimeFuture(
+    minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('future', utcDateTime, minArg, maxArg);
+}
+
+export function randomUtcDateTimePast(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('past', utcDateTime, minArg, maxArg, {
+    minMs: 24 * 60 * 60 * 1000,
+    maxMs: 365 * 5 * 24 * 60 * 60 * 1000,
+  });
+}
+
+export function randomTimeFuture(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('future', localTime, minArg, maxArg);
+}
+
+export function randomTimePast(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('past', localTime, minArg, maxArg, {
+    minMs: 24 * 60 * 60 * 1000,
+    maxMs: 365 * 5 * 24 * 60 * 60 * 1000,
+  });
+}
+
+export function randomUtcTimeFuture(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('future', utcTime, minArg, maxArg);
+}
+
+export function randomUtcTimePast(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('past', utcTime, minArg, maxArg, {
+    minMs: 24 * 60 * 60 * 1000,
+    maxMs: 365 * 5 * 24 * 60 * 60 * 1000,
+  });
+}
+
+export function randomUtcDateFuture(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('future', utcDate, minArg, maxArg);
+}
+
+export function randomUtcDatePast(minArg?: string, maxArg?: string): string {
+  return randomRelativeFormatted('past', utcDate, minArg, maxArg, {
+    minMs: 24 * 60 * 60 * 1000,
+    maxMs: 365 * 5 * 24 * 60 * 60 * 1000,
+  });
 }
 
 /** Random weekday name. */
@@ -446,64 +552,30 @@ export function randomEpochMs(
   return Date.UTC(year, month, day, hour, minute, second, ms);
 }
 
-export function randomEpochFuture(
-    minOrMaxDaysAhead?: number, maxDaysAhead?: number): number {
-  let minDaysAhead = minOrMaxDaysAhead === undefined ||
-      maxDaysAhead === undefined ? 1 : minOrMaxDaysAhead;
-  maxDaysAhead = maxDaysAhead ??
-      minOrMaxDaysAhead ?? 365;
-  if (maxDaysAhead < minDaysAhead) {
-    [minDaysAhead, maxDaysAhead] = [maxDaysAhead, minDaysAhead];
-  }
-  const days = randInt(minDaysAhead, maxDaysAhead);
-  const msOffset =
-      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
-  return Math.floor((Date.now() + msOffset) / 1000);
+export function randomEpochFuture(minArg?: string, maxArg?: string): number {
+  const {startMs, endMs} = resolveRelativeWindow(minArg, maxArg, 'future');
+  return Math.floor(randomTimestampBetween(startMs, endMs) / 1000);
 }
 
-export function randomEpochFutureMs(
-    minOrMaxDaysAhead?: number, maxDaysAhead?: number): number {
-  let minDaysAhead = minOrMaxDaysAhead === undefined ||
-      maxDaysAhead === undefined ? 1 : minOrMaxDaysAhead;
-  maxDaysAhead = maxDaysAhead ??
-      minOrMaxDaysAhead ?? 365;
-  if (maxDaysAhead < minDaysAhead) {
-    [minDaysAhead, maxDaysAhead] = [maxDaysAhead, minDaysAhead];
-  }
-  const days = randInt(minDaysAhead, maxDaysAhead);
-  const msOffset =
-      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
-  return Date.now() + msOffset;
+export function randomEpochFutureMs(minArg?: string, maxArg?: string): number {
+  const {startMs, endMs} = resolveRelativeWindow(minArg, maxArg, 'future');
+  return randomTimestampBetween(startMs, endMs);
 }
 
-export function randomEpochPast(
-    minOrMaxDaysBack?: number, maxDaysBack?: number): number {
-  let minDaysBack = minOrMaxDaysBack === undefined ||
-      maxDaysBack === undefined ? 1 : minOrMaxDaysBack;
-  maxDaysBack = maxDaysBack ??
-      minOrMaxDaysBack ?? 365 * 5;
-  if (maxDaysBack < minDaysBack) {
-    [minDaysBack, maxDaysBack] = [maxDaysBack, minDaysBack];
-  }
-  const days = randInt(minDaysBack, maxDaysBack);
-  const msOffset =
-      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
-  return Math.floor((Date.now() - msOffset) / 1000);
+export function randomEpochPast(minArg?: string, maxArg?: string): number {
+  const {startMs, endMs} = resolveRelativeWindow(minArg, maxArg, 'past', {
+    minMs: 24 * 60 * 60 * 1000,
+    maxMs: 365 * 5 * 24 * 60 * 60 * 1000,
+  });
+  return Math.floor(randomTimestampBetween(startMs, endMs) / 1000);
 }
 
-export function randomEpochPastMs(
-    minOrMaxDaysBack?: number, maxDaysBack?: number): number {
-  let minDaysBack = minOrMaxDaysBack === undefined ||
-      maxDaysBack === undefined ? 1 : minOrMaxDaysBack;
-  maxDaysBack = maxDaysBack ??
-      minOrMaxDaysBack ?? 365 * 5;
-  if (maxDaysBack < minDaysBack) {
-    [minDaysBack, maxDaysBack] = [maxDaysBack, minDaysBack];
-  }
-  const days = randInt(minDaysBack, maxDaysBack);
-  const msOffset =
-      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
-  return Date.now() - msOffset;
+export function randomEpochPastMs(minArg?: string, maxArg?: string): number {
+  const {startMs, endMs} = resolveRelativeWindow(minArg, maxArg, 'past', {
+    minMs: 24 * 60 * 60 * 1000,
+    maxMs: 365 * 5 * 24 * 60 * 60 * 1000,
+  });
+  return randomTimestampBetween(startMs, endMs);
 }
 
 export type RandomTokenGenerator = (...args: any[]) => any;
@@ -530,10 +602,24 @@ export const RANDOM_TOKEN_MAP: Record<string, RandomTokenGenerator> = {
   job_title: randomJobTitle,
   postal_code: randomPostalCode,
   street_address: randomStreetAddress,
+  time: randomTime,
+  utc_time: randomUtcTime,
+  date: randomDate,
+  utc_date: randomUtcDate,
   datetime: randomDateTime,
   utc_datetime: randomUtcDateTime,
   datetime_now: randomDateTimeNow,
   utc_datetime_now: randomUtcDateTimeNow,
+  datetime_future: randomDateTimeFuture,
+  datetime_past: randomDateTimePast,
+  utc_datetime_future: randomUtcDateTimeFuture,
+  utc_datetime_past: randomUtcDateTimePast,
+  time_future: randomTimeFuture,
+  time_past: randomTimePast,
+  utc_time_future: randomUtcTimeFuture,
+  utc_time_past: randomUtcTimePast,
+  utc_date_future: randomUtcDateFuture,
+  utc_date_past: randomUtcDatePast,
   word: randomWord,
   sentence: randomSentence,
   paragraph: randomParagraph,
@@ -567,7 +653,8 @@ export interface RandomTokenParameterSpec {
   signature: string;
   snippet: string;
   description: string;
-  kind: 'number'|'integer'|'length'|'datetime-range'|'duration';
+  kind: 'number'|'integer'|'length'|'datetime-range'|'duration'|
+      'relative-duration';
 }
 
 export const RANDOM_TOKEN_PARAMETER_ARITY: Record<
@@ -607,35 +694,121 @@ export const RANDOM_TOKEN_PARAMETER_ARITY: Record<
     snippet: '${1:1700000000000},${2:1800000000000}',
     description: 'Unix-millisecond range', kind: 'integer',
   },
+  time: {
+    min: 2, max: 2, signature: 'from,to',
+    snippet: '${1:2026-01-01T00:00:00},${2:2026-12-31T23:59:59}',
+    description: 'absolute local date/time range', kind: 'datetime-range',
+  },
+  utc_time: {
+    min: 2, max: 2, signature: 'from,to',
+    snippet: '${1:2026-01-01T00:00:00Z},${2:2026-12-31T23:59:59Z}',
+    description: 'absolute UTC date/time range', kind: 'datetime-range',
+  },
+  date: {
+    min: 2, max: 2, signature: 'from,to',
+    snippet: '${1:2026-01-01},${2:2026-12-31}',
+    description: 'absolute local date range', kind: 'datetime-range',
+  },
+  utc_date: {
+    min: 2, max: 2, signature: 'from,to',
+    snippet: '${1:2026-01-01},${2:2026-12-31}',
+    description: 'absolute UTC date range', kind: 'datetime-range',
+  },
   date_future: {
-    min: 1, max: 2, signature: 'max_days|min_days,max_days',
-    snippet: '${1:1},${2:365}', description: 'days ahead of now',
-    kind: 'integer',
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'duration or day count ahead of now',
+    kind: 'relative-duration',
   },
   date_past: {
-    min: 1, max: 2, signature: 'max_days|min_days,max_days',
-    snippet: '${1:1},${2:365}', description: 'days before now',
-    kind: 'integer',
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'duration or day count before now',
+    kind: 'relative-duration',
+  },
+  datetime_future: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'local datetime ahead of now',
+    kind: 'relative-duration',
+  },
+  datetime_past: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'local datetime before now',
+    kind: 'relative-duration',
+  },
+  utc_datetime_future: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'UTC datetime ahead of now',
+    kind: 'relative-duration',
+  },
+  utc_datetime_past: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'UTC datetime before now',
+    kind: 'relative-duration',
+  },
+  time_future: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'local time ahead of now',
+    kind: 'relative-duration',
+  },
+  time_past: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'local time before now',
+    kind: 'relative-duration',
+  },
+  utc_time_future: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'UTC time ahead of now',
+    kind: 'relative-duration',
+  },
+  utc_time_past: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'UTC time before now',
+    kind: 'relative-duration',
+  },
+  utc_date_future: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'UTC date ahead of now',
+    kind: 'relative-duration',
+  },
+  utc_date_past: {
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'UTC date before now',
+    kind: 'relative-duration',
   },
   epoch_future: {
-    min: 1, max: 2, signature: 'max_days|min_days,max_days',
-    snippet: '${1:1},${2:365}', description: 'days ahead of now',
-    kind: 'integer',
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'duration or day count ahead of now',
+    kind: 'relative-duration',
   },
   epoch_future_ms: {
-    min: 1, max: 2, signature: 'max_days|min_days,max_days',
-    snippet: '${1:1},${2:365}', description: 'days ahead of now',
-    kind: 'integer',
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'duration or day count ahead of now',
+    kind: 'relative-duration',
   },
   epoch_past: {
-    min: 1, max: 2, signature: 'max_days|min_days,max_days',
-    snippet: '${1:1},${2:365}', description: 'days before now',
-    kind: 'integer',
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'duration or day count before now',
+    kind: 'relative-duration',
   },
   epoch_past_ms: {
-    min: 1, max: 2, signature: 'max_days|min_days,max_days',
-    snippet: '${1:1},${2:365}', description: 'days before now',
-    kind: 'integer',
+    min: 1, max: 2, signature: 'max|min,max',
+    snippet: '${1:1d}|${1:1d},${2:30d}',
+    description: 'duration or day count before now',
+    kind: 'relative-duration',
   },
   datetime: {
     min: 2, max: 2, signature: 'from,to',
@@ -648,23 +821,27 @@ export const RANDOM_TOKEN_PARAMETER_ARITY: Record<
     description: 'absolute UTC date/time range', kind: 'datetime-range',
   },
   datetime_now: {
-    min: 1, max: 1, signature: 'range',
-    snippet: '${1:1h1m}', description: 'symmetric duration around now',
+    min: 1, max: 2, signature: 'range|back,forward',
+    snippet: '${1:1h1m}|${1:2h},${2:1d}',
+    description: 'symmetric duration around now, or back then forward',
     kind: 'duration',
   },
   utc_datetime_now: {
-    min: 1, max: 1, signature: 'range',
-    snippet: '${1:1h1m}', description: 'symmetric UTC duration around now',
+    min: 1, max: 2, signature: 'range|back,forward',
+    snippet: '${1:1h1m}|${1:2h},${2:1d}',
+    description: 'symmetric UTC duration around now, or back then forward',
     kind: 'duration',
   },
   epoch_now: {
-    min: 1, max: 1, signature: 'range',
-    snippet: '${1:1h1m}', description: 'symmetric duration around now',
+    min: 1, max: 2, signature: 'range|back,forward',
+    snippet: '${1:1h1m}|${1:2h},${2:1d}',
+    description: 'symmetric duration around now, or back then forward',
     kind: 'duration',
   },
   epoch_now_ms: {
-    min: 1, max: 1, signature: 'range',
-    snippet: '${1:1h1m}', description: 'symmetric duration around now',
+    min: 1, max: 2, signature: 'range|back,forward',
+    snippet: '${1:1h1m}|${1:2h},${2:1d}',
+    description: 'symmetric duration around now, or back then forward',
     kind: 'duration',
   },
 };
@@ -703,11 +880,36 @@ export function randomValueForToken(spec: string): any|undefined {
     return generator(...rawArgs);
   }
   if (arity.kind === 'duration') {
-    if (rawArgs.length !== 1 ||
-        relativeDurationMs(rawArgs[0]) === undefined) {
-      return undefined;
+    if (rawArgs.length === 1) {
+      if (unsignedDurationMs(rawArgs[0]) === undefined) {
+        return undefined;
+      }
+      return generator(rawArgs[0]);
     }
-    return generator(rawArgs[0]);
+    if (rawArgs.length === 2) {
+      if (unsignedDurationMs(rawArgs[0]) === undefined ||
+          unsignedDurationMs(rawArgs[1]) === undefined) {
+        return undefined;
+      }
+      return generator(rawArgs[0], rawArgs[1]);
+    }
+    return undefined;
+  }
+  if (arity.kind === 'relative-duration') {
+    if (rawArgs.length === 1) {
+      if (parseRelativeAmountMs(rawArgs[0]) === undefined) {
+        return undefined;
+      }
+      return generator(rawArgs[0]);
+    }
+    if (rawArgs.length === 2) {
+      if (parseRelativeAmountMs(rawArgs[0]) === undefined ||
+          parseRelativeAmountMs(rawArgs[1]) === undefined) {
+        return undefined;
+      }
+      return generator(rawArgs[0], rawArgs[1]);
+    }
+    return undefined;
   }
   if (rawArgs.some(value => !/^-?\d+(?:\.\d+)?$/.test(value))) {
     return undefined;

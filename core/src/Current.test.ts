@@ -3,6 +3,7 @@ import {
   currentCountry,
   currentDate,
   currentDateTime,
+  currentDateTimeMs,
   currentDay,
   currentEpoch,
   currentEpochMs,
@@ -86,6 +87,39 @@ describe('Current tokens', () => {
     expect(currentUtcOffset()).toMatch(/^[+-]\d{2}:\d{2}$/);
     expect(currentWeekdayNumber()).toBeGreaterThanOrEqual(1);
     expect(currentWeekdayNumber()).toBeLessThanOrEqual(7);
+  });
+
+  test('datetime_ms returns local datetime with milliseconds', () => {
+    jest.useFakeTimers();
+    try {
+      const instant = new Date('2026-09-17T12:34:56.789Z');
+      jest.setSystemTime(instant);
+      expect(CURRENT_TOKEN_MAP.datetime_ms()).toBe(currentDateTimeMs(instant));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('future/past aliases apply unsigned duration offsets', () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2026-09-17T12:00:00.000Z'));
+      expect(currentValueForToken('datetime_future(1h)')).toBe(
+          currentDateTime(new Date('2026-09-17T13:00:00.000Z')));
+      expect(currentValueForToken('utc_datetime_past(2d)')).toBe(
+          '2026-09-15T12:00:00Z');
+      expect(currentValueForToken('epoch_future(30m)'))
+          .toBe(Math.floor(Date.parse('2026-09-17T12:30:00Z') / 1000));
+      expect(currentValueForToken('time_past(15m)')).toBe(
+          currentTime(new Date('2026-09-17T11:45:00.000Z')));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('rejects unsigned durations on signed-offset tokens', () => {
+    expect(currentValueForToken('date(1h)')).toBeUndefined();
+    expect(currentValueForToken('datetime_future(+1h)')).toBeUndefined();
   });
 
   test('applies signed combined-duration offsets to temporal tokens', () => {
