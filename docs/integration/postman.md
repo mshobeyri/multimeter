@@ -29,7 +29,7 @@ Multimeter turns collection requests into `type: api` files and optional tests a
 
 ## Postman-specific mapping
 
-- Dynamic variables (`{{$guid}}`, `{{$randomEmail}}`, `{{$randomInt}}`) → Multimeter `r:` tokens (`r:uuid`, `r:email`, `r:int`, …)
+- Dynamic variables (`{{$guid}}`, `{{$randomEmail}}`, `{{$randomInt}}`, names, network values, company data, and Lorem text) → matching Multimeter `r:` tokens
 - Collection and folder auth is inherited by requests; request-level `noauth` overrides it
 - Bearer, basic, API key, and OAuth2 client-credentials auth map directly
 - Interactive OAuth2 becomes a bearer `access_token` environment variable

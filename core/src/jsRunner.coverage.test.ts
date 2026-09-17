@@ -67,6 +67,8 @@ describe('jsRunner extra runtime paths', () => {
       js: `
         return {
           rnd: __mmt_random('uuid'),
+          bounded: __mmt_random('int(7,7)'),
+          sized: __mmt_random('string(9)'),
           missingR: __mmt_random('no-such'),
           cur: __mmt_current('year'),
           missingC: __mmt_current('no-such'),
@@ -84,6 +86,8 @@ describe('jsRunner extra runtime paths', () => {
       logger,
     });
     expect(typeof result.rnd).toBe('string');
+    expect(result.bounded).toBe(7);
+    expect(result.sized).toMatch(/^[A-Za-z]{9}$/);
     expect(result.missingR).toBe('r:no-such');
     expect(typeof result.cur).toBe('number');
     expect(result.missingC).toBe('c:no-such');

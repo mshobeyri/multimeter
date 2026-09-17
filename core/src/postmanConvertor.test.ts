@@ -86,7 +86,10 @@ describe('postmanConvertor.postmanToAPI', () => {
             method: 'POST',
             header: [ { key: 'Content-Type', value: 'application/json' } ],
             url: { raw: 'https://test.mmt.dev/echo?uuid={{$guid}}&ip={{$randomIP}}' },
-            body: { mode: 'raw', raw: '{"id":"{{$guid}}","email":"{{$randomEmail}}","v":"{{$randomInt}}","name":"{{$randomFullName}}"}' }
+            body: {
+              mode: 'raw',
+              raw: '{"id":"{{$guid}}","email":"{{$randomEmail}}","v":"{{$randomInt}}","name":"{{$randomFullName}}","username":"{{$randomUserName}}","domain":"{{$randomDomainName}}","agent":"{{$randomUserAgent}}","company":"{{$randomCompanyName}}","sentence":"{{$randomLoremSentence}}"}',
+            }
           }
         }
       ]
@@ -104,6 +107,11 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(bodyStr).toContain('"email":"r:email"');
     expect(bodyStr).toContain('"v":"r:int"');
     expect(bodyStr).toContain('"name":"r:full_name"');
+    expect(bodyStr).toContain('"username":"r:username"');
+    expect(bodyStr).toContain('"domain":"r:domain"');
+    expect(bodyStr).toContain('"agent":"r:user_agent"');
+    expect(bodyStr).toContain('"company":"r:company"');
+    expect(bodyStr).toContain('"sentence":"r:sentence"');
   });
 
   it('when examples exist, exposes url/headers/body as inputs and builds example overrides', () => {

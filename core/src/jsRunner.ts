@@ -51,12 +51,11 @@ const MAX_COMPILED_FUNCTION_CACHE_SIZE = 64;
 
 // Runtime helper to get random value by token name
 function mmtRandom(name: string): any {
-  const normalized = normalizeTokenName(name);
-  const fn = Random.RANDOM_TOKEN_MAP[normalized] || Random.RANDOM_TOKEN_MAP[name];
-  if (!fn) {
+  const value = Random.randomValueForToken(name);
+  if (value === undefined) {
     return `r:${name}`;  // Return original token if not found
   }
-  return fn();
+  return value;
 }
 
 // Runtime helper to get current value by token name

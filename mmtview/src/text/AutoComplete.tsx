@@ -24,6 +24,20 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: `Generates a random ${name} at runtime. Token form r:${name}.`
         }));
     variablesSuggestions.push(...randomTokenSuggestions);
+    const parameterizedRandomSuggestions = Object.entries(
+        Random.RANDOM_TOKEN_PARAMETER_ARITY).map(([name, arity]) => {
+            return {
+                label: `r:${name}(${arity.signature})`,
+                kind: monaco.languages.CompletionItemKind.Function,
+                insertText: ` r:${name}(${arity.snippet})`,
+                insertTextRules:
+                    monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: `Parameterized random ${name}`,
+                documentation:
+                    `Generates r:${name} using ${arity.description}.`,
+            };
+        });
+    variablesSuggestions.push(...parameterizedRandomSuggestions);
 
     // Dynamic current token suggestions sourced from Current.CURRENT_TOKEN_MAP
     const currentTokenSuggestions = Object.keys(Current.CURRENT_TOKEN_MAP)

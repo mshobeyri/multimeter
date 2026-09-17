@@ -164,6 +164,36 @@ Each name maps to a generator in `RANDOM_TOKEN_MAP`. Unless noted, values are **
 | `r:uuid` | UUID v4 string | `a1b2c3d4-e5f6-4789-a012-3456789abcde` |
 | `r:bool` | Boolean | `true` |
 | `r:int` | Integer `0`–`1000` | `742` |
+| `r:float` | Floating-point number `0`–`1000` | `42.75` |
+| `r:string` | Alphabetic string (16 characters) | `aZbYcXwVuTsRqPon` |
+| `r:alphanumeric` | Letters and digits (16 characters) | `aB3dE5gH7jK9mN2p` |
+
+Parameterized forms:
+
+| Token | Meaning |
+|-------|---------|
+| `r:int(1,100)` | Integer in the inclusive range 1–100 |
+| `r:int(100)` | Integer in the inclusive range 0–100 |
+| `r:float(1.5,9.5)` | Floating-point number in the range 1.5–9.5 |
+| `r:string(32)` | Alphabetic string with length 32 |
+| `r:alphanumeric(24)` | Alpha-numeric string with length 24 |
+| `r:password(20)` | Password string with length 20 |
+| `r:epoch(1700000000,1800000000)` | Unix seconds in an explicit inclusive range |
+| `r:epoch_ms(1700000000000,1800000000000)` | Unix milliseconds in an explicit inclusive range |
+| `r:date_future(1,30)` | Date between 1 and 30 days in the future |
+| `r:date_past(1,30)` | Date between 1 and 30 days in the past |
+| `r:datetime(2026-01-01,2026-12-31)` | Local datetime between two absolute local dates/times |
+| `r:utc_datetime(2026-01-01T00:00:00Z,2026-12-31T23:59:59Z)` | UTC datetime between two absolute instants |
+| `r:datetime_now(1h1m)` | Local datetime within ±1 hour 1 minute of now |
+| `r:utc_datetime_now(1h1m)` | UTC datetime within ±1 hour 1 minute of now |
+| `r:epoch_now(1h1m)` | Unix seconds within ±1 hour 1 minute of now |
+| `r:epoch_now_ms(1h1m)` | Unix milliseconds within ±1 hour 1 minute of now |
+
+Invalid arguments and arguments on non-parameterized tokens remain unresolved
+instead of silently producing a different value.
+
+Relative-to-now ranges accept combined `w`, `d`, `h`, `m`, `s`, and `ms`
+durations, for example `2d4h30m` or `1h1m`.
 
 ### Network
 
@@ -171,12 +201,19 @@ Each name maps to a generator in `RANDOM_TOKEN_MAP`. Unless noted, values are **
 |-------|---------|---------|
 | `r:ip` | IPv4 address | `203.0.113.42` |
 | `r:ipv6` | IPv6 address (8 groups) | `2001:0db8:85a3:0000:0000:8a2e:0370:7334` |
+| `r:mac` | MAC address | `02:42:ac:11:00:02` |
+| `r:domain` | Domain name | `example.com` |
+| `r:hostname` | Host name | `api-a1b2c3d4.example.com` |
+| `r:url` | HTTPS URL | `https://api-a1b2c3d4.example.com/x7y8z9` |
+| `r:user_agent` | Common HTTP user-agent string | `curl/8.7.1` |
 
 ### People and contact
 
 | Token | Returns | Example |
 |-------|---------|---------|
 | `r:email` | Email address | `jane.doe42@example.com` |
+| `r:username` | Name-based username | `jane.doe42` |
+| `r:password` | Password string (16 characters) | `aB3!dE5_fG7+hJ9` |
 | `r:phone` | E.164 phone number | `+14155550123` |
 | `r:phone_number` | Alias for `r:phone` | `+442071234567` |
 | `r:first_name` | First name | `Jane` |
@@ -191,6 +228,18 @@ Each name maps to a generator in `RANDOM_TOKEN_MAP`. Unless noted, values are **
 | `r:country` | Country name (curated list) | `Germany` |
 | `r:latitude` | Number, −90…90 | `48.8566` |
 | `r:longitude` | Number, −180…180 | `2.3522` |
+| `r:postal_code` | Five-digit postal code | `10115` |
+| `r:street_address` | Synthetic street address | `42 Miller Street` |
+
+### Business and text
+
+| Token | Returns | Example |
+|-------|---------|---------|
+| `r:company` | Synthetic company name | `Miller Technologies` |
+| `r:job_title` | Software/business job title | `Backend Engineer` |
+| `r:word` | Word from a technical vocabulary | `gateway` |
+| `r:sentence` | Synthetic sentence | `Request data flows through the gateway.` |
+| `r:paragraph` | Three to six synthetic sentences | `Request data ... Service response ...` |
 
 ### Color
 
@@ -207,22 +256,25 @@ Each name maps to a generator in `RANDOM_TOKEN_MAP`. Unless noted, values are **
 | `r:month` | Month name | `March` |
 | `r:date_future` | Future date string (~1–365 days ahead) | `Mon Apr 14 2027 …` |
 | `r:date_past` | Past date string (~1 day–5 years back) | `Tue Jan 09 2021 …` |
-| `r:date_recent` | Recent date string (~0–30 days back) | `Fri Jul 25 2025 …` |
+| `r:datetime` | Random local datetime; accepts an absolute local from/to range | `2027-04-14T08:30:12` |
+| `r:utc_datetime` | Random UTC datetime; accepts an absolute from/to range | `2027-04-14T08:30:12Z` |
+| `r:datetime_now` | Random local datetime around now; accepts a duration range | `2026-09-17T12:25:00` |
+| `r:utc_datetime_now` | Random UTC datetime around now; accepts a duration range | `2026-09-17T10:25:00Z` |
 
 ### Epoch (random timestamps)
 
 | Token | Returns | Range / meaning |
 |-------|---------|-----------------|
-| `r:epoch` | Unix seconds (integer) | Random between 2000 and 2035 |
-| `r:epoch_ms` | Unix milliseconds (integer) | Random between 2000 and 2035 |
+| `r:epoch` | Unix seconds (integer) | Defaults to 2000–2035; accepts explicit epoch range |
+| `r:epoch_ms` | Unix milliseconds (integer) | Defaults to 2000–2035; accepts explicit epoch range |
 | `r:epoch_future` | Unix seconds | ~1–365 days in the future |
 | `r:epoch_future_ms` | Unix milliseconds | ~1–365 days in the future |
 | `r:epoch_past` | Unix seconds | ~1 day–5 years in the past |
 | `r:epoch_past_ms` | Unix milliseconds | ~1 day–5 years in the past |
-| `r:epoch_recent` | Unix seconds | ~0–30 days in the past |
-| `r:epoch_recent_ms` | Unix milliseconds | ~0–30 days in the past |
+| `r:epoch_now` | Unix seconds within a duration around now | `r:epoch_now(1h1m)` |
+| `r:epoch_now_ms` | Unix milliseconds within a duration around now | `r:epoch_now_ms(1h1m)` |
 
-**Total:** 28 generators (`phone_number` is an alias for `phone`).
+**Total:** 48 token names (`phone_number` is an alias for `phone`).
 
 ## Current tokens (`c:`)
 
@@ -232,17 +284,23 @@ Each name maps to a generator in `CURRENT_TOKEN_MAP`. Values reflect **now** in 
 |-------|---------|---------|
 | `c:time` | Local time `HH:MM:SS` | `14:32:08` |
 | `c:date` | Local date `YYYY-MM-DD` | `2026-08-02` |
+| `c:datetime` | Local date and time `YYYY-MM-DDTHH:MM:SS` | `2026-08-02T14:32:08` |
 | `c:utc_time` | UTC time `HH:MM:SS` | `18:32:08` |
 | `c:utc_date` | UTC date `YYYY-MM-DD` | `2026-08-02` |
+| `c:utc_datetime` | UTC ISO date and time | `2026-08-02T18:32:08Z` |
+| `c:utc_datetime_ms` | UTC ISO date and time with milliseconds | `2026-08-02T18:32:08.123Z` |
 | `c:day` | Local weekday name | `Sunday` |
+| `c:weekday_number` | ISO weekday number (Monday=1, Sunday=7) | `7` |
 | `c:month` | Local month name | `August` |
 | `c:year` | Local year (number) | `2026` |
 | `c:epoch` | Unix seconds now (integer) | `1754165528` |
 | `c:epoch_ms` | Unix milliseconds now (integer) | `1754165528123` |
+| `c:timezone` | IANA runtime time zone | `Europe/Amsterdam` |
+| `c:utc_offset` | Local offset from UTC | `+02:00` |
 | `c:city` | City inferred from time zone (best effort) | `New York` |
 | `c:country` | Country inferred from locale (best effort) | `United States` |
 
-**Total:** 11 generators.
+**Total:** 17 generators.
 
 ## Name normalization
 

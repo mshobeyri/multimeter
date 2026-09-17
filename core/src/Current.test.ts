@@ -2,13 +2,19 @@ import {
   currentCity,
   currentCountry,
   currentDate,
+  currentDateTime,
   currentDay,
   currentEpoch,
   currentEpochMs,
   currentMonth,
   currentTime,
   currentUtcDate,
+  currentUtcDateTime,
+  currentUtcDateTimeMs,
+  currentUtcOffset,
   currentUtcTime,
+  currentTimezone,
+  currentWeekdayNumber,
   currentYear,
   CURRENT_TOKEN_MAP,
 } from './Current';
@@ -18,6 +24,12 @@ function within(now: number, target: number, windowMs: number): boolean {
 }
 
 describe('Current tokens', () => {
+  test('every registered current token returns a value', () => {
+    for (const generator of Object.values(CURRENT_TOKEN_MAP)) {
+      expect(generator()).not.toBeUndefined();
+    }
+  });
+
   test('currentEpochMs and currentEpoch reflect now', () => {
     const now = Date.now();
     const ms = currentEpochMs();
@@ -42,11 +54,37 @@ describe('Current tokens', () => {
       jest.setSystemTime(new Date('2026-09-16T23:45:12.000-07:00'));
       expect(currentUtcDate()).toBe('2026-09-17');
       expect(currentUtcTime()).toBe('06:45:12');
+      expect(currentUtcDateTime()).toBe('2026-09-17T06:45:12Z');
+      expect(currentUtcDateTimeMs()).toBe('2026-09-17T06:45:12.000Z');
       expect(CURRENT_TOKEN_MAP.utc_date()).toBe('2026-09-17');
       expect(CURRENT_TOKEN_MAP.utc_time()).toBe('06:45:12');
+      expect(CURRENT_TOKEN_MAP.utc_datetime()).toBe(
+          '2026-09-17T06:45:12Z');
+      expect(CURRENT_TOKEN_MAP.utc_datetime_ms()).toBe(
+          '2026-09-17T06:45:12.000Z');
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  test('local datetime combines local calendar date and time', () => {
+    jest.useFakeTimers();
+    try {
+      const instant = new Date('2026-09-17T06:45:12.000Z');
+      jest.setSystemTime(instant);
+      expect(currentDateTime()).toBe(
+          `${currentDate()}T${currentTime()}`);
+      expect(CURRENT_TOKEN_MAP.datetime()).toBe(currentDateTime());
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('timezone helpers return an offset and ISO weekday number', () => {
+    expect(currentTimezone().length).toBeGreaterThan(0);
+    expect(currentUtcOffset()).toMatch(/^[+-]\d{2}:\d{2}$/);
+    expect(currentWeekdayNumber()).toBeGreaterThanOrEqual(1);
+    expect(currentWeekdayNumber()).toBeLessThanOrEqual(7);
   });
 
   test('current city/country return strings (best-effort)', () => {

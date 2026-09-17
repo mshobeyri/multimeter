@@ -1,7 +1,7 @@
 import {APIData} from './APIData';
 import {JSONRecord} from './CommonData';
 import {normalizeTokenName} from './JSerHelper';
-import {RANDOM_TOKEN_MAP} from './Random';
+import {randomValueForToken} from './Random';
 import {CURRENT_TOKEN_MAP} from './Current';
 import {isOmitSentinel} from './omitKeyword';
 import {safeList} from './safer';
@@ -25,10 +25,15 @@ import {TestData} from './TestData';
 // ---------------------------------------------------------------------------
 
 export const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
+export const RANDOM_TOKEN_ARGUMENTS_RE =
+    '\\(\\s*[^(),\\s]+(?:\\s*,\\s*[^(),\\s]+)?\\s*\\)';
+export const RANDOM_TOKEN_SPEC_RE =
+    `${TOKEN_NAME_RE}(?:${RANDOM_TOKEN_ARGUMENTS_RE})?`;
 export const ACCESSOR_SEGMENT_RE =
     '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|:-?\\d*|[A-Za-z_][A-Za-z0-9_]*)\\])';
 export const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
-const DYNAMIC_KEY_RE = `[A-Za-z0-9_]+:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}`;
+const DYNAMIC_KEY_RE =
+    `(?:r:${RANDOM_TOKEN_SPEC_RE}|[A-Za-z0-9_]+:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}`;
 
 function replaceTokenForms(
     s: string, prefix: string,
@@ -40,7 +45,8 @@ function replaceTokenForms(
       includePlain?: boolean,
     } = {}): string {
   const source = String(s ?? '');
-  const capture = `(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})`;
+  const tokenSpec = prefix === 'r' ? RANDOM_TOKEN_SPEC_RE : TOKEN_NAME_RE;
+  const capture = `(${tokenSpec})(${ACCESSOR_PATH_RE})`;
   let out = source;
 
   if (options.includeAngles !== false) {
@@ -66,8 +72,13 @@ function replaceTokenForms(
   return out;
 }
 
-function splitTokenNameAccessor(raw: string): {name: string, accessor: string}|undefined {
-  const m = new RegExp(`^(${TOKEN_NAME_RE})(.*)$`).exec(String(raw ?? '').trim());
+function splitTokenNameAccessor(
+    raw: string, allowRandomArguments = false):
+    {name: string, accessor: string}|undefined {
+  const tokenSpec =
+      allowRandomArguments ? RANDOM_TOKEN_SPEC_RE : TOKEN_NAME_RE;
+  const m = new RegExp(`^(${tokenSpec})(${ACCESSOR_PATH_RE})$`)
+      .exec(String(raw ?? '').trim());
   if (!m || !m[1]) {
     return undefined;
   }
@@ -304,8 +315,8 @@ export function toTemplateValueJs(value: string): string {
 
   const fullEnvAngle = new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullEnvPlain = new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
-  const fullRandAngle = new RegExp(`^<<\\s*r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
-  const fullRandPlain = new RegExp(`^r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
+  const fullRandAngle = new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullRandPlain = new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
   const fullCurrAngle = new RegExp(`^<<\\s*c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullCurrPlain = new RegExp(`^c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullInputAngle = new RegExp(`^<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
@@ -381,16 +392,14 @@ const RANDOM_CACHE = new Map<string, any>();
 export function resetRandomTokenCache(): void { RANDOM_CACHE.clear(); }
 
 function generateRandomByName(name: string): any {
-  const normalized = normalizeTokenName(name);
-  const cacheKey = `r:${normalized}`;
+  const cacheKey = `r:${name.trim()}`;
   if (RANDOM_CACHE.has(cacheKey)) {
     return RANDOM_CACHE.get(cacheKey);
   }
-  const fn = RANDOM_TOKEN_MAP[normalized] || RANDOM_TOKEN_MAP[name];
-  if (!fn) {
+  const val = randomValueForToken(name);
+  if (val === undefined) {
     return undefined;
   }
-  const val = fn();
   RANDOM_CACHE.set(cacheKey, val);
   return val;
 }
@@ -481,8 +490,8 @@ function resolveDynamicTokenValue(
 export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any {
   if (typeof val === 'string') {
     const exactMatchers = [
-      {re: new RegExp(`^<<\\s*r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'r'},
-      {re: new RegExp(`^r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'r'},
+      {re: new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'r'},
+      {re: new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'r'},
       {re: new RegExp(`^<<\\s*c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'c'},
       {re: new RegExp(`^c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'c'},
       {re: new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'e'},
@@ -695,7 +704,8 @@ export function replaceAllRefs(
         (prefix === 'r' || prefix === 'c')) {
       return undefined;
     }
-    const parsed = splitTokenNameAccessor(fullKey.slice(idx + 1));
+    const parsed = splitTokenNameAccessor(
+        fullKey.slice(idx + 1), prefix === 'r');
     if (!parsed) {
       return undefined;
     }

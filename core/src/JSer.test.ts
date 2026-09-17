@@ -2386,8 +2386,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
   });
 
   it('keeps unresolved r: / c: tokens as runtime calls (not percent-encoded)', async () => {
-    // Known r:/c: names are baked by replaceAllRefs; unknown names must still
-    // become runtime interpolations instead of r%3A… / c%3A… literals.
+    // Dynamic names and parameterized generators must remain runtime calls
+    // instead of becoming r%3A… / c%3A… literals.
     const js = await toJs([
       'type: api',
       'method: post',
@@ -2396,10 +2396,14 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       'body:',
       '  rnd: r:customToken',
       '  now: c:customNow',
+      '  bounded: r:int(10,20)',
+      '  sized: r:string(12)',
       '  slice: <<r:customToken[0:2]>>',
     ]);
     expect(js).toContain("__mmt_random('customToken')");
     expect(js).toContain("__mmt_current('customNow')");
+    expect(js).toContain("__mmt_random('int(10,20)')");
+    expect(js).toContain("__mmt_random('string(12)')");
     expect(js).toContain('__mmt_access(__mmt_random(\'customToken\'), "[0:2]")');
     expect(js).not.toMatch(/r%3AcustomToken|c%3AcustomNow/i);
   });

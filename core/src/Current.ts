@@ -12,6 +12,12 @@ export function currentDate(): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+export function currentDateTime(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` +
+      `T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
+
 export function currentUtcTime(): string {
   const d = new Date();
   return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
@@ -20,6 +26,37 @@ export function currentUtcTime(): string {
 export function currentUtcDate(): string {
   const d = new Date();
   return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+}
+
+export function currentUtcDateTime(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}` +
+      `T${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}Z`;
+}
+
+export function currentUtcDateTimeMs(): string {
+  return new Date().toISOString();
+}
+
+export function currentTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+export function currentUtcOffset(): string {
+  const offsetMinutes = -new Date().getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const absolute = Math.abs(offsetMinutes);
+  return `${sign}${pad2(Math.floor(absolute / 60))}:${pad2(absolute % 60)}`;
+}
+
+/** ISO weekday number: Monday=1, Sunday=7. */
+export function currentWeekdayNumber(): number {
+  const day = new Date().getDay();
+  return day === 0 ? 7 : day;
 }
 
 export function currentDay(): string {
@@ -83,8 +120,14 @@ export function currentCountry(): string {
 export const CURRENT_TOKEN_MAP: Record<string, () => any> = {
   time: currentTime,
   date: currentDate,
+  datetime: currentDateTime,
   utc_time: currentUtcTime,
   utc_date: currentUtcDate,
+  utc_datetime: currentUtcDateTime,
+  utc_datetime_ms: currentUtcDateTimeMs,
+  timezone: currentTimezone,
+  utc_offset: currentUtcOffset,
+  weekday_number: currentWeekdayNumber,
   day: currentDay,
   month: currentMonth,
   year: currentYear,

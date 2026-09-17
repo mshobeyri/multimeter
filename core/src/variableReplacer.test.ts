@@ -498,6 +498,33 @@ describe('multiple template vars in one string', () => {
       random: 'id-<<r:uuid>>',
     });
   });
+
+  it('resolves parameterized random tokens and preserves invalid forms', () => {
+    const resolved = replaceAllRefs(
+      {
+        integer: 'r:int(7,7)',
+        text: '<<r:alphanumeric(12)>>',
+        invalid: 'r:uuid(2)',
+      },
+      {},
+      {},
+      {},
+    );
+    expect(resolved.integer).toBe(7);
+    expect(resolved.text).toMatch(/^[A-Za-z0-9]{12}$/);
+    expect(resolved.invalid).toBe('r:uuid(2)');
+    expect(toTemplateValueJs('r:int(1,10)'))
+        .toBe("__mmt_random('int(1,10)')");
+    expect(toTemplateValueJs('id-<<r:string(8)>>'))
+        .toContain("__mmt_random('string(8)')");
+    expect(toTemplateValueJs(
+        '<<r:datetime(2026-01-01,2026-12-31)>>'))
+        .toBe("__mmt_random('datetime(2026-01-01,2026-12-31)')");
+    expect(toTemplateValueJs('r:datetime_now(1h1m)'))
+        .toBe("__mmt_random('datetime_now(1h1m)')");
+    expect(toTemplateValueJs('r:utc_datetime_now(1h1m)'))
+        .toBe("__mmt_random('utc_datetime_now(1h1m)')");
+  });
 });
 
 describe('embedDynamicTokensAsJsInterpolations', () => {
