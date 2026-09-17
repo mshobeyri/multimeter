@@ -1,0 +1,3980 @@
+{
+	"info": {
+		"_postman_id": "5a443228-5006-479e-a50e-4a3b00b84c55",
+		"name": "Braintree GraphQL",
+		"description": "Basic set of operations using GraphQL.  Used for \"BT 301\" hands-on integration training.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Card - simple",
+			"item": [
+				{
+					"name": "Transaction Sale",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"//console.log(response.data.chargePaymentMethod.transaction.id);",
+									"//pm.environment.set(\"transaction-id\", response.data.chargePaymentMethod.transaction.id);",
+									"//pm.environment.set(\"legacy-transaction-id\", response.data.chargePaymentMethod.transaction.legacyId);"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation ChargePaymentMethod($input: ChargePaymentMethodInput!) {\n  chargePaymentMethod(input: $input) {\n    clientMutationId\n    transaction {\n      ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}\n",
+								"variables": "{\n  \"input\": {\n  \t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"tokencc_bf_6hfxp5_jbmg5n_dr2n7n_swh5hc_97y\",\n    \"transaction\": {\n      \"orderId\": \"{{order-id}}\",\n      \"amount\": 6.00,\n      \"shipping\": {\n        \"shippingAddress\": {\n          \"firstName\": \"{{shipping-given-name}}\",\n          \"lastName\": \"{{shipping-surname}}\",\n          \"streetAddress\": \"{{shipping-address-line-1}}\",\n          \"locality\": \"{{shipping-locality}}\",\n          \"region\": \"{{shipping-region}}\",\n          \"postalCode\": \"{{shipping-postal-code}}\",\n          \"countryCodeAlpha2\": \"{{shipping-country-code}}\"\n        }\n      },\n      \"riskData\": {\n        \"deviceData\": \"{\\\"device_session_id\\\":\\\"bf6ecfd3b976a3a12451742c29932aeb\\\",\\\"fraud_merchant_id\\\":\\\"600000\\\"}\"\t\n      },\n      \"channel\": \"{{channel}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Transaction Authorization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"transaction-id\", response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"legacy-transaction-id\", response.data.authorizePaymentMethod.transaction.legacyId);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation AuthorizePaymentMethod($input: AuthorizePaymentMethodInput!) {\n  authorizePaymentMethod(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"tokencc_bf_2rktnw_vts5f6_k498jr_nskzdb_vg3\",\n    \"transaction\": {\n    \t\"orderId\": \"{{order-id}}\",\n    \t\"amount\": 6.10,\n    \t\"shipping\": {\n        \t\"shippingAddress\": {\n\t\t\t\t\"firstName\": \"{{shipping-given-name}}\",\n\t\t\t\t\"lastName\": \"{{shipping-surname}}\",\n\t\t\t\t\"streetAddress\": \"{{shipping-address-line-1}}\",\n\t\t\t\t\"locality\": \"{{shipping-locality}}\",\n\t\t\t\t\"region\": \"{{shipping-region}}\",\n\t\t\t\t\"postalCode\": \"{{shipping-postal-code}}\",\n\t\t\t\t\"countryCodeAlpha2\": \"{{shipping-country-code}}\"\n        \t}\n    \t},\n\t\t\"riskData\": {\n\t\t\"deviceData\": \"{\\\"device_session_id\\\":\\\"bf6ecfd3b976a3a12451742c29932aeb\\\",\\\"fraud_merchant_id\\\":\\\"600000\\\"}\"\t\n\t\t},\n\t\t\"channel\": \"{{channel}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Capture",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CaptureTransaction($input: CaptureTransactionInput!) {\n  captureTransaction(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}\n",
+								"variables": "{\n  \"input\": {\n    \"transactionId\": \"dHJhbnNhY3Rpb25fNjl0bWJwODk\",\n    \"transaction\": {\n    \t\"orderId\": \"{{uuid}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Search using ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query Search($txnCriteria: TransactionSearchInput!) {\n  search {\n    transactions(input: $txnCriteria) {\n      edges {\n        node {\n            ...transactionFields\n            # Union\n            paymentMethodSnapshot {\n                    __typename\n                 ... on CreditCardDetails {\n                    brandCode\n                    last4\n                }\n                ... on PayPalTransactionDetails {\n                    payer {\n                        email\n                        payerId\n                    }\n                    payee {\n                        email\n                        firstName\n                        lastName\n                    }\n                }\n                ... on VenmoAccountDetails {\n                    username\n                    venmoUserId\n                }\n            }\n        }\n      }\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"txnCriteria\": {\n     \"id\": {\n       \"in\": [\"dHJhbnNhY3Rpb25fMTZ0czlyMDM\"]\n     }\n   }\n }"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Card - vault",
+			"item": [
+				{
+					"name": "Customer Create",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.createCustomer.customer.id);",
+									"pm.environment.set(\"customer-id\", response.data.createCustomer.customer.id);",
+									"pm.environment.set(\"legacy-customer-id\", response.data.createCustomer.customer.legacyId);",
+									"console.log(\"Done setting customer id into environment.\");"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CreateCustomer($input: CreateCustomerInput!) {\n  createCustomer(input: $input) {\n    clientMutationId\n    customer {\n        ...customerFields\n    }\n  }\n}\n\nfragment customerFields on Customer {\n    id\n    legacyId\n    firstName\n    lastName\n    company\n    createdAt\n}\n",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"customer\": {\n    \t\"firstName\": \"Antonia\",\n    \t\"lastName\": \"Stark\",\n    \t\"email\": \"astark@avengers.com\",\n    \t\"phoneNumber\": \"+31202402400\",\n    \t\"company\": \"BrainPal\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Customer Search using ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query Search($criteria: CustomerSearchInput!) {\n  search {\n    customers(input: $criteria) {\n      edges {\n        node {\n            ...customerFields\n            paymentMethods {\n                edges {\n                    node {\n                        ...paymentMethodFields\n                    }\n                }\n            }\n            transactions(first: 5) {\n                edges {\n                    node {\n                        ...transactionFields\n                    }\n                }\n            }\n        }\n      }\n    }\n  }\n}\n\nfragment customerFields on Customer {\n    id\n    legacyId\n    firstName\n    lastName\n    company\n    createdAt\n}\n\nfragment paymentMethodFields on PaymentMethod {\n    id\n    legacyId\n    usage\n    createdAt\n    # Union\n        details {\n        __typename\n        ... on CreditCardDetails {\n            brandCode\n            last4\n        }\n        ... on PayPalAccountDetails {\n            billingAgreementId\n            email\n            payerId\n            firstName\n            lastName\n        }\n        ... on VenmoAccountDetails {\n            username\n            venmoUserId\n        }\n    }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"criteria\": {\n     \"id\": {\n    \t\"in\": [\"Y3VzdG9tZXJfMTExNTU4Mjc5\"]\n     }\n   }\n }"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Payment Method Create",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation VaultPaymentMethod($input: VaultPaymentMethodInput!) {\n  vaultPaymentMethod(input: $input) {\n    clientMutationId\n    paymentMethod {\n        ...paymentMethodFields\n        customer {\n            ...customerFields\n        }\n    }\n  }\n}\n\nfragment paymentMethodFields on PaymentMethod {\n    id\n    legacyId\n    usage\n    createdAt\n    # Union\n        details {\n        __typename\n        ... on CreditCardDetails {\n            brandCode\n            last4\n        }\n        ... on PayPalAccountDetails {\n            billingAgreementId\n            email\n            payerId\n            firstName\n            lastName\n        }\n        ... on VenmoAccountDetails {\n            username\n            venmoUserId\n        }\n    }\n}\n\nfragment customerFields on Customer {\n    id\n    legacyId\n    firstName\n    lastName\n    company\n    createdAt\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"9ec2b6fa-236a-01b5-6a56-da0c40368ebe\",\n    \"customerId\": \"Y3VzdG9tZXJfMTExNTU4Mjc5\"\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Authorization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"transaction-id\", response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"legacy-transaction-id\", response.data.authorizePaymentMethod.transaction.legacyId);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation AuthorizePaymentMethod($input: AuthorizePaymentMethodInput!) {\n  authorizePaymentMethod(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"cGF5bWVudG1ldGhvZF9wcF9ncjZ3bWNy\",\n    \"transaction\": {\n    \t\"orderId\": \"{{uuid}}\",\n    \t\"amount\": 9.00,\n    \t\"shipping\": {\n        \t\"shippingAddress\": {\n\t\t\t\t\"firstName\": \"{{shipping-given-name}}\",\n\t\t\t\t\"lastName\": \"{{shipping-surname}}\",\n\t\t\t\t\"streetAddress\": \"{{shipping-address-line-1}}\",\n\t\t\t\t\"locality\": \"{{shipping-locality}}\",\n\t\t\t\t\"region\": \"{{shipping-region}}\",\n\t\t\t\t\"postalCode\": \"{{shipping-postal-code}}\",\n\t\t\t\t\"countryCodeAlpha2\": \"{{shipping-country-code}}\"\n        \t}\n    \t},\n\t\t\"riskData\": {\n\t\t\"deviceData\": \"{\\\"device_session_id\\\":\\\"bf6ecfd3b976a3a12451742c29932aeb\\\",\\\"fraud_merchant_id\\\":\\\"600000\\\"}\"\t\n\t\t},\n\t\t\"channel\": \"{{channel}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Capture",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CaptureTransaction($input: CaptureTransactionInput!) {\n  captureTransaction(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}\n",
+								"variables": "{\n  \"input\": {\n    \"transactionId\": \"dHJhbnNhY3Rpb25fMTZ0czlyMDM\",\n    \"transaction\": {\n    \t\"orderId\": \"{{uuid}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Card - multiple currency",
+			"item": [
+				{
+					"name": "Transaction Authorization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"transaction-id\", response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"legacy-transaction-id\", response.data.authorizePaymentMethod.transaction.legacyId);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation AuthorizePaymentMethod($input: AuthorizePaymentMethodInput!) {\n  authorizePaymentMethod(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"tokencc_bf_42cw4x_s4qcrf_znnfwk_7h495f_hd7\",\n    \"transaction\": {\n    \t\"orderId\": \"{{order-id}}\",\n    \t\"merchantAccountId\": \"LOB-EUR\",\n    \t\"amount\": 7.10,\n    \t\"shipping\": {\n        \t\"shippingAddress\": {\n\t\t\t\t\"firstName\": \"{{shipping-given-name}}\",\n\t\t\t\t\"lastName\": \"{{shipping-surname}}\",\n\t\t\t\t\"streetAddress\": \"{{shipping-address-line-1}}\",\n\t\t\t\t\"locality\": \"{{shipping-locality}}\",\n\t\t\t\t\"region\": \"{{shipping-region}}\",\n\t\t\t\t\"postalCode\": \"{{shipping-postal-code}}\",\n\t\t\t\t\"countryCodeAlpha2\": \"{{shipping-country-code}}\"\n        \t}\n    \t},\n\t\t\"riskData\": {\n\t\t\"deviceData\": \"{\\\"device_session_id\\\":\\\"bf6ecfd3b976a3a12451742c29932aeb\\\",\\\"fraud_merchant_id\\\":\\\"600000\\\"}\"\t\n\t\t},\n\t\t\"channel\": \"{{channel}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Capture",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CaptureTransaction($input: CaptureTransactionInput!) {\n  captureTransaction(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}\n",
+								"variables": "{\n  \"input\": {\n    \"transactionId\": \"dHJhbnNhY3Rpb25fOW5lODVtMmY\",\n    \"transaction\": {\n    \t\"orderId\": \"{{uuid}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PayPal - AS1",
+			"item": [
+				{
+					"name": "Transaction Authorization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"transaction-id\", response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"legacy-transaction-id\", response.data.authorizePaymentMethod.transaction.legacyId);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation AuthorizePaymentMethod($input: AuthorizePaymentMethodInput!) {\n  authorizePaymentMethod(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"cf4d384f-33d2-000e-5628-e9424fd5858f\",\n    \"transaction\": {\n    \t\"orderId\": \"{{order-id}}\",\n    \t\"amount\": 11.10,\n    \t\"shipping\": {\n        \t\"shippingAddress\": {\n\t\t\t\t\"firstName\": \"{{shipping-given-name}}\",\n\t\t\t\t\"lastName\": \"{{shipping-surname}}\",\n\t\t\t\t\"streetAddress\": \"{{shipping-address-line-1}}\",\n\t\t\t\t\"locality\": \"{{shipping-locality}}\",\n\t\t\t\t\"region\": \"{{shipping-region}}\",\n\t\t\t\t\"postalCode\": \"{{shipping-postal-code}}\",\n\t\t\t\t\"countryCodeAlpha2\": \"{{shipping-country-code}}\"\n        \t}\n    \t},\n\t\t\"riskData\": {\n\t\t\"deviceData\": \"{\\\"device_session_id\\\":\\\"bf6ecfd3b976a3a12451742c29932aeb\\\",\\\"fraud_merchant_id\\\":\\\"600000\\\"}\"\t\n\t\t},\n\t\t\"channel\": \"{{channel}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Capture",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CaptureTransaction($input: CaptureTransactionInput!) {\n  captureTransaction(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}\n",
+								"variables": "{\n  \"input\": {\n    \"transactionId\": \"dHJhbnNhY3Rpb25fcHZoZm50eWY\",\n    \"transaction\": {\n    \t\"orderId\": \"{{uuid}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Reverse",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"transaction-id\", response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"legacy-transaction-id\", response.data.authorizePaymentMethod.transaction.legacyId);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation ReverseTransaction($input: ReverseTransactionInput!) {\n  reverseTransaction(input: $input) {\n    clientMutationId\n    # Union\n    reversal {\n        __typename\n        ... on Refund {\n            ...refundFields\n        }\n        ... on Transaction {\n            ...transactionFields\n        }\n    }\n  }\n}\n\nfragment refundFields on Refund {\n    id\n    legacyId\n    createdAt\n    amount {\n        value\n        currencyIsoCode\n    }\n    orderId\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    refundedTransaction {\n        ...transactionFields\n    }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"transactionId\": \"dHJhbnNhY3Rpb25fMTNjdnIxMWI\"\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PayPal - AS2",
+			"item": [
+				{
+					"name": "Payment Method Create",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation VaultPaymentMethod($input: VaultPaymentMethodInput!) {\n  vaultPaymentMethod(input: $input) {\n    clientMutationId\n    paymentMethod {\n        ...paymentMethodFields\n        customer {\n            ...customerFields\n        }\n    }\n  }\n}\n\nfragment paymentMethodFields on PaymentMethod {\n    id\n    legacyId\n    usage\n    createdAt\n    # Union\n        details {\n        __typename\n        ... on CreditCardDetails {\n            brandCode\n            last4\n        }\n        ... on PayPalAccountDetails {\n            billingAgreementId\n            email\n            payerId\n            firstName\n            lastName\n        }\n        ... on VenmoAccountDetails {\n            username\n            venmoUserId\n        }\n    }\n}\n\nfragment customerFields on Customer {\n    id\n    legacyId\n    firstName\n    lastName\n    company\n    createdAt\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"cGF5bWVudG1ldGhvZF9wcF9keHJ6bjh3\"\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Payment Method Node Search using ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "{\n  node(id: \"cGF5bWVudG1ldGhvZF9wcF9keHJ6bjh3\") {\n    ... on PaymentMethod {\n        ...paymentMethodFields\n        customer {\n            ...customerFields\n        }\n    }\n  }\n}\n\nfragment paymentMethodFields on PaymentMethod {\n    id\n    legacyId\n    usage\n    createdAt\n    # Union\n        details {\n        __typename\n        ... on CreditCardDetails {\n            brandCode\n            last4\n        }\n        ... on PayPalAccountDetails {\n            billingAgreementId\n            email\n            payerId\n            firstName\n            lastName\n        }\n        ... on VenmoAccountDetails {\n            username\n            venmoUserId\n        }\n    }\n}\n\nfragment customerFields on Customer {\n    id\n    legacyId\n    firstName\n    lastName\n    company\n    createdAt\n    # transactions(first: 5) {\n    #     edges {\n    #         node {\n    #             ...transactionFields\n    #         }\n    #     }\n    # }\n}\n\n# fragment transactionFields on Transaction {\n#     id\n#     legacyId\n#     createdAt\n#     paymentMethod {\n#         id,\n#         legacyId\n#     }\n#     amount {\n#         value\n#         currencyIsoCode\n#     }\n#     merchantAccountId\n#     orderId\n#     purchaseOrderNumber\n#     status\n#     statusHistory {\n#         status\n#         timestamp\n#         amount {\n#             value\n#             currencyIsoCode\n#         }\n#     }\n#     source\n# }",
+								"variables": ""
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Transaction Authorization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"transaction-id\", response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"legacy-transaction-id\", response.data.authorizePaymentMethod.transaction.legacyId);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation AuthorizePaymentMethod($input: AuthorizePaymentMethodInput!) {\n  authorizePaymentMethod(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"cGF5bWVudG1ldGhvZF9wcF9tOWQ2d2pi\",\n    \"transaction\": {\n    \t\"orderId\": \"MY-ORDER-001a\",\n    \t\"amount\": 0.10,\n    \t\"shipping\": {\n        \t\"shippingAddress\": {\n\t\t\t\t\"firstName\": \"{{shipping-given-name}}\",\n\t\t\t\t\"lastName\": \"{{shipping-surname}}\",\n\t\t\t\t\"streetAddress\": \"{{shipping-address-line-1}}\",\n\t\t\t\t\"locality\": \"{{shipping-locality}}\",\n\t\t\t\t\"region\": \"{{shipping-region}}\",\n\t\t\t\t\"postalCode\": \"{{shipping-postal-code}}\",\n\t\t\t\t\"countryCodeAlpha2\": \"{{shipping-country-code}}\"\n        \t}\n    \t},\n\t\t\"riskData\": {\n\t\t\"deviceData\": \"{\\\"device_session_id\\\":\\\"bf6ecfd3b976a3a12451742c29932aeb\\\",\\\"fraud_merchant_id\\\":\\\"600000\\\"}\"\t\n\t\t},\n\t\t\"channel\": \"{{channel}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Capture",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CaptureTransaction($input: CaptureTransactionInput!) {\n  captureTransaction(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}\n",
+								"variables": "{\n  \"input\": {\n    \"transactionId\": \"dHJhbnNhY3Rpb25fODV3czd6MG4\",\n    \"transaction\": {\n    \t\"orderId\": \"{{uuid}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PayPal - BA",
+			"item": [
+				{
+					"name": "Ping",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"value": "2019-12-17",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query PingQuery {\n  ping\n}",
+								"variables": ""
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GraphQL ID lookup via Legacy ID",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "{\n  idFromLegacyId(legacyId: \"103930304\", type: CUSTOMER)\n}",
+								"variables": ""
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Customer Create",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.createCustomer.customer.id);",
+									"pm.environment.set(\"customer-id\", response.data.createCustomer.customer.id);",
+									"pm.environment.set(\"legacy-customer-id\", response.data.createCustomer.customer.legacyId);",
+									"console.log(\"Done setting customer id into environment.\");"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CreateCustomer($input: CreateCustomerInput!) {\n  createCustomer(input: $input) {\n    clientMutationId\n    customer {\n        id\n        legacyId\n        firstName\n        lastName\n        company\n        createdAt\n        transactions(first: 5) {\n            edges {\n                node {\n                    id\n                    legacyId\n                    createdAt\n                    amount {\n                        value\n                        currencyIsoCode\n                    }\n                }\n            }\n        }\n    }\n  }\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"customer\": {\n    \t\"firstName\": \"Bernie\",\n    \t\"lastName\": \"Banner\",\n    \t\"email\": \"bbanner@avengers.com\",\n    \t\"phoneNumber\": \"4155551212\",\n    \t\"company\": \"BrainPal\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Customer Search using ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query Search($criteria: CustomerSearchInput!) {\n  search {\n    customers(input: $criteria) {\n      edges {\n        node {\n            id\n            legacyId\n            firstName\n            lastName\n            company\n            createdAt\n            transactions(first: 5) {\n                edges {\n                    node {\n                        id\n                        legacyId\n                        amount {\n                            value\n                            currencyIsoCode\n                        }\n                        orderId\n                        status\n                        source\n                        createdAt\n                    }\n                }\n            }\n            paymentMethods {\n                edges {\n                    node {\n                        id,\n                        legacyId\n                        details {\n                            __typename\n                             ... on CreditCardDetails {\n                                brandCode\n                                last4\n                            }\n                            ... on PayPalAccountDetails {\n                                billingAgreementId\n                                email\n                                payerId\n                                firstName\n                                lastName\n                            }\n                            ... on VenmoAccountDetails {\n                                username\n                                venmoUserId\n                            }\n                        }\n                    }\n                }\n            }\n        }\n      }\n    }\n  }\n}",
+								"variables": "{\n  \"criteria\": {\n     \"id\": {\n    \t\"in\": [\"Y3VzdG9tZXJfMTAzOTMwMzA0\"]\n     }\n   }\n }"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Vault PP Billing Agreement",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation VaultPayPalBillingAgreement($input: VaultPayPalBillingAgreementInput!) {\n    vaultPayPalBillingAgreement(input: $input) {\n    clientMutationId\n    paymentMethod {\n        id\n        legacyId\n        usage\n        createdAt\n        customer {\n            id\n        }\n    }\n    }\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"billingAgreementId\": \"B-756772329J424245H\",\n    \"customerId\": \"Y3VzdG9tZXJfMTAzOTMwMzA0\",\n    \"merchantAccountId\": \"LOB-USD\"\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Payment Method Node Search using ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "{\n  node(id: \"cGF5bWVudG1ldGhvZF9wcF80Znk3M3Jt\") {\n    ... on PaymentMethod {\n        id\n        legacyId\n        usage\n        createdAt\n        # Union\n        details {\n            __typename\n             ... on CreditCardDetails {\n                brandCode\n                last4\n            }\n            ... on PayPalAccountDetails {\n                billingAgreementId\n                email\n                payerId\n                firstName\n                lastName\n            }\n            ... on VenmoAccountDetails {\n                username\n                venmoUserId\n            }\n        }\n        customer {\n            id\n            legacyId\n            firstName\n            lastName\n            company\n            transactions(first: 5) {\n                edges {\n                    node {\n                        id\n                        legacyId\n                        amount {\n                            value\n                            currencyIsoCode\n                        }\n                        orderId\n                        status\n                        source\n                        createdAt\n                    }\n                }\n            }\n        }\n    }\n  }\n}",
+								"variables": ""
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Transaction Authorization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"transaction-id\", response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"legacy-transaction-id\", response.data.authorizePaymentMethod.transaction.legacyId);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation AuthorizePaymentMethod($input: AuthorizePaymentMethodInput!) {\n  authorizePaymentMethod(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    status\n    id\n    legacyId\n    amount {\n        value\n        currencyIsoCode\n    }\n    orderId\n    status\n    source\n    createdAt\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"cGF5bWVudG1ldGhvZF9wcF80Znk3M3Jt\",\n    \"transaction\": {\n    \t\"orderId\": \"JAM102019_001\",\n    \t\"amount\": 7.00,\n    \t\"shipping\": {\n        \t\"shippingAddress\": {\n\t\t\t\t\"firstName\": \"{{shipping-given-name}}\",\n\t\t\t\t\"lastName\": \"{{shipping-surname}}\",\n\t\t\t\t\"streetAddress\": \"{{shipping-address-line-1}}\",\n\t\t\t\t\"locality\": \"{{shipping-locality}}\",\n\t\t\t\t\"region\": \"{{shipping-region}}\",\n\t\t\t\t\"postalCode\": \"{{shipping-postal-code}}\",\n\t\t\t\t\"countryCodeAlpha2\": \"{{shipping-country-code}}\"\n        \t}\n    \t},\n\t\t\"riskData\": {\n\t\t\"deviceData\": \"{\\\"device_session_id\\\":\\\"bf6ecfd3b976a3a12451742c29932aeb\\\",\\\"fraud_merchant_id\\\":\\\"600000\\\"}\"\t\n\t\t},\n\t\t\"channel\": \"{{channel}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Capture",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CaptureTransaction($input: CaptureTransactionInput!) {\n  captureTransaction(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    status\n    id\n    legacyId\n    amount {\n        value\n        currencyIsoCode\n    }\n    orderId\n    status\n    source\n    createdAt\n}\n",
+								"variables": "{\n  \"input\": {\n    \"transactionId\": \"dHJhbnNhY3Rpb25fOWNxNGtzOWE\",\n    \"transaction\": {\n    \t\"orderId\": \"{{uuid}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Search using ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query Search($txnCriteria: TransactionSearchInput!) {\n  search {\n    transactions(input: $txnCriteria) {\n      edges {\n        node {\n            id\n            legacyId\n            amount {\n                value\n                currencyIsoCode\n            }\n            orderId\n            status\n            source\n            createdAt\n            # Union\n            paymentMethodSnapshot {\n                    __typename\n                 ... on CreditCardDetails {\n                    brandCode\n                    last4\n                }\n                ... on PayPalTransactionDetails {\n                    payer {\n                        email\n                        payerId\n                    }\n                    payee {\n                        email\n                        firstName\n                        lastName\n                    }\n                }\n                ... on VenmoAccountDetails {\n                    username\n                    venmoUserId\n                }\n            }\n            statusHistory {\n                status\n                timestamp\n                amount {\n                    value\n                    currencyIsoCode\n                }\n            }\n        }\n      }\n    }\n  }\n}",
+								"variables": "{\n  \"txnCriteria\": {\n     \"id\": {\n       \"in\": [\"dHJhbnNhY3Rpb25fOWNxNGtzOWE\"]\n     }\n   }\n }"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "PayPal - multiple currency",
+			"item": [
+				{
+					"name": "Transaction Authorization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var response = JSON.parse(responseBody);",
+									"console.log(responseBody);",
+									"console.log(response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"transaction-id\", response.data.authorizePaymentMethod.transaction.id);",
+									"pm.environment.set(\"legacy-transaction-id\", response.data.authorizePaymentMethod.transaction.legacyId);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation AuthorizePaymentMethod($input: AuthorizePaymentMethodInput!) {\n  authorizePaymentMethod(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}",
+								"variables": "{\n  \"input\": {\n\t\"clientMutationId\": \"{{uuid}}\",\n    \"paymentMethodId\": \"3762b67f-9cc1-0033-7f32-1a6abc217d8a\",\n    \"transaction\": {\n    \t\"orderId\": \"{{order-id}}\",\n    \t\"merchantAccountId\": \"LOB-EUR\",\n    \t\"amount\": 12.00,\n    \t\"shipping\": {\n        \t\"shippingAddress\": {\n\t\t\t\t\"firstName\": \"{{shipping-given-name}}\",\n\t\t\t\t\"lastName\": \"{{shipping-surname}}\",\n\t\t\t\t\"streetAddress\": \"{{shipping-address-line-1}}\",\n\t\t\t\t\"locality\": \"{{shipping-locality}}\",\n\t\t\t\t\"region\": \"{{shipping-region}}\",\n\t\t\t\t\"postalCode\": \"{{shipping-postal-code}}\",\n\t\t\t\t\"countryCodeAlpha2\": \"{{shipping-country-code}}\"\n        \t}\n    \t},\n\t\t\"riskData\": {\n\t\t\"deviceData\": \"{\\\"device_session_id\\\":\\\"bf6ecfd3b976a3a12451742c29932aeb\\\",\\\"fraud_merchant_id\\\":\\\"600000\\\"}\"\t\n\t\t},\n\t\t\"channel\": \"{{channel}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transaction Capture",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CaptureTransaction($input: CaptureTransactionInput!) {\n  captureTransaction(input: $input) {\n    clientMutationId\n    transaction {\n        ...transactionFields\n    }\n  }\n}\n\nfragment transactionFields on Transaction {\n    id\n    legacyId\n    createdAt\n    paymentMethod {\n        id,\n        legacyId\n    }\n    amount {\n        value\n        currencyIsoCode\n    }\n    merchantAccountId\n    orderId\n    purchaseOrderNumber\n    status\n    statusHistory {\n        status\n        timestamp\n        amount {\n            value\n            currencyIsoCode\n        }\n    }\n    source\n}\n",
+								"variables": "{\n  \"input\": {\n    \"transactionId\": \"dHJhbnNhY3Rpb25fcjljNXRkNDE\",\n    \"transaction\": {\n    \t\"orderId\": \"{{uuid}}\"\n    }\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Misc",
+			"item": [
+				{
+					"name": "Client Token w/MerchantAccountId",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "mutation CreateClientToken ($input: CreateClientTokenInput) {\n    createClientToken(input: $input) {\n        clientToken\n    }\n}",
+								"variables": "{\n  \"input\": {\n  \t\"clientMutationId\": \"{{uuid}}\",\n  \t\"clientToken\": {\n  \t\t\"merchantAccountId\": \"LOB-EUR\"\n  \t}\n  }\n}"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Customer Search using CreateDate",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query Search($criteria: CustomerSearchInput!) {\n  search {\n    customers(input: $criteria) {\n      edges {\n        node {\n            id\n            legacyId\n            company\n            createdAt\n        }\n      }\n    }\n  }\n}",
+								"variables": "{\n  \"criteria\": {\n     \"createdAt\": {\n    \t\"greaterThanOrEqualTo\": \"2019-12-23T00:00:00+00:00\",\n    \t\"lessThanOrEqualTo\": \"2019-12-25T00:00:00+00:00\"\n     }\n   }\n }"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Transaction Search using Customer ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query Search($criteria: TransactionSearchInput!) {\n  search {\n    transactions(input: $criteria) {\n      edges {\n        node {\n            id\n            legacyId\n            amount {\n                value\n                currencyIsoCode\n            }\n            # Union\n            paymentMethodSnapshot {\n                    __typename\n                 ... on CreditCardDetails {\n                    brandCode\n                    last4\n                }\n                ... on PayPalTransactionDetails {\n                    payer {\n                        email\n                        payerId\n                    }\n                    payee {\n                        email\n                        firstName\n                        lastName\n                    }\n                }\n                ... on VenmoAccountDetails {\n                    username\n                    venmoUserId\n                }\n            }\n            orderId\n            status\n            source\n            createdAt\n        }\n      }\n    }\n  }\n}",
+								"variables": "{\n  \"criteria\": {\n     \"customer\": {\n    \t\"id\": {\n    \t\t\"is\": \"Y3VzdG9tZXJfODk0NDQzMTQx\"\n    \t}\n     }\n   }\n }"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Transaction Search using CreateDate",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query Search($txnCriteria: TransactionSearchInput!) {\n  search {\n    transactions(input: $txnCriteria) {\n      edges {\n        node {\n            id\n            legacyId\n            amount {\n                value\n                currencyIsoCode\n            }\n            # Union\n            paymentMethodSnapshot {\n                    __typename\n                 ... on CreditCardDetails {\n                    brandCode\n                    last4\n                }\n                ... on PayPalTransactionDetails {\n                    payer {\n                        email\n                        payerId\n                    }\n                    payee {\n                        email\n                        firstName\n                        lastName\n                    }\n                }\n                ... on VenmoAccountDetails {\n                    username\n                    venmoUserId\n                }\n            }\n            orderId\n            status\n            source\n            createdAt\n        }\n      }\n    }\n  }\n}",
+								"variables": "{\n  \"txnCriteria\": {\n     \"createdAt\": {\n    \t\"greaterThanOrEqualTo\": \"2019-12-23T00:00:00+00:00\",\n    \t\"lessThanOrEqualTo\": \"2019-12-25T00:00:00+00:00\"\n     }\n   }\n }"
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Transaction Search via Node",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "2019-12-17"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "{\n  node(id: \"{{transaction-id}}\") {\n    ... on Transaction {\n        id\n        amount {\n            value\n            currencyIsoCode\n        }\n        orderId\n        status\n        source\n        createdAt\n        # statusTransition {\n        #     details {\n        #         __typename\n        #     }\n        # }\n        customer {\n            id\n        }\n        # paymentMethodSnapshot\n        \n      paymentMethod {\n        details {\n          __typename\n        }\n      }\n    }\n  }\n}",
+								"variables": ""
+							}
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Compound Search (Transaction + Customer)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var today = new Date();",
+									"var day = today.getDate();",
+									"var month = today.getMonth() + 1;",
+									"var year = today.getFullYear();",
+									"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+									"",
+									"pm.environment.set(\"current-date\", formatted);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{public-key}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{private-key}}",
+									"type": "string"
+								},
+								{
+									"key": "showPassword",
+									"value": false,
+									"type": "boolean"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql",
+							"graphql": {
+								"query": "query Search($txInput: TransactionSearchInput!, $custInput: CustomerSearchInput!) {\n  search1: search {\n    transactions(input: $txInput) {\n      edges {\n        node {\n            id\n            legacyId\n            status\n            source\n            createdAt\n        }\n      }\n    }\n  }\n  \n  search2: search {\n    customers(input: $custInput) {\n      edges {\n        node {\n            id\n            legacyId\n            firstName\n            lastName\n            company\n            createdAt\n            transactions(first: 5) {\n                edges {\n                    node {\n                        id\n                        legacyId\n                        createdAt\n                        amount {\n                            value\n                            currencyIsoCode\n                        }\n                        status\n                        statusHistory {\n                            status\n                            timestamp\n                            amount {\n                                value\n                                currencyIsoCode\n                            }\n                        }\n                    }\n                }\n            }\n        }\n      }\n    }\n  }\n}",
+								"variables": "{\n  \"txInput\": {\n     \"id\": {\n       \"in\": [\"{{transaction-id}}\"]\n     }\n   },\n   \"custInput\": {\n     \"id\": {\n    \t\"in\": [\"Y3VzdG9tZXJfODk2OTcxMDEx\"]\n     }\n   }\n }"
+							}
+						},
+						"url": {
+							"raw": "{{host}}/graphql",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Charge Payment Method",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Braintree-Version",
+										"type": "text",
+										"value": "{{current-date}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "graphql"
+								},
+								"url": {
+									"raw": "{{endpoint}}/graphql",
+									"host": [
+										"{{endpoint}}"
+									],
+									"path": [
+										"graphql"
+									]
+								}
+							},
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Search and Lookup",
+			"item": []
+		},
+		{
+			"name": "Ping",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{public-key}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{private-key}}",
+							"type": "string"
+						},
+						{
+							"key": "showPassword",
+							"value": false,
+							"type": "boolean"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Braintree-Version",
+						"value": "2019-12-17",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query PingQuery {\n  ping\n}",
+						"variables": ""
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}/graphql",
+					"host": [
+						"{{endpoint}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Viewer",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{public-key}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{private-key}}",
+							"type": "string"
+						},
+						{
+							"key": "showPassword",
+							"value": false,
+							"type": "boolean"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Braintree-Version",
+						"type": "text",
+						"value": "2019-12-17"
+					},
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query Viewer {\n    viewer {\n        user {\n            id\n            email\n            status\n            name\n            roles {\n                id\n                name\n                isAccountAdmin\n                rights {\n                    name\n                }\n            }\n        }\n    }\n    \n}",
+						"variables": ""
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}/graphql",
+					"host": [
+						"{{endpoint}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Client Token",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{public-key}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{private-key}}",
+							"type": "string"
+						},
+						{
+							"key": "showPassword",
+							"value": false,
+							"type": "boolean"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Braintree-Version",
+						"type": "text",
+						"value": "2019-12-17"
+					},
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "mutation CreateClientToken {\n    createClientToken {\n        clientToken\n    }\n}",
+						"variables": ""
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}/graphql",
+					"host": [
+						"{{endpoint}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Transaction Introspection",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{public-key}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{private-key}}",
+							"type": "string"
+						},
+						{
+							"key": "showPassword",
+							"value": false,
+							"type": "boolean"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Braintree-Version",
+						"type": "text",
+						"value": "2019-12-17"
+					},
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "{\n  __type(name: \"Transaction\") {\n    name\n    fields {\n      name\n      type {\n        name\n        kind\n      }\n    }\n  }\n}",
+						"variables": ""
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}/graphql",
+					"host": [
+						"{{endpoint}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Node Possible Types",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{public-key}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{private-key}}",
+							"type": "string"
+						},
+						{
+							"key": "showPassword",
+							"value": false,
+							"type": "boolean"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Braintree-Version",
+						"type": "text",
+						"value": "2019-12-17"
+					},
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "{\n  __type(name: \"Node\") {\n    possibleTypes {\n      name\n      description\n    }\n  }\n}",
+						"variables": ""
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}/graphql",
+					"host": [
+						"{{endpoint}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Schema Types",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{public-key}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{private-key}}",
+							"type": "string"
+						},
+						{
+							"key": "showPassword",
+							"value": false,
+							"type": "boolean"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Braintree-Version",
+						"type": "text",
+						"value": "2019-12-17"
+					},
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "{\n  __schema {\n    types {\n        name\n        description\n    }\n  }\n}",
+						"variables": ""
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}/graphql",
+					"host": [
+						"{{endpoint}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GraphQL ID lookup via Legacy ID",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{public-key}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{private-key}}",
+							"type": "string"
+						},
+						{
+							"key": "showPassword",
+							"value": false,
+							"type": "boolean"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Braintree-Version",
+						"type": "text",
+						"value": "2019-12-17"
+					},
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "{\n  idFromLegacyId(legacyId: \"b7s6vjw\", type: PAYMENT_METHOD)\n}",
+						"variables": ""
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}/graphql",
+					"host": [
+						"{{endpoint}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "PayPal Transaction Details",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"var today = new Date();",
+							"var day = today.getDate();",
+							"var month = today.getMonth() + 1;",
+							"var year = today.getFullYear();",
+							"var formatted = year + \"-\" + (month < 10 ? \"0\" : \"\") + month + \"-\" + (day < 10 ? \"0\" : \"\") + day;",
+							"",
+							"pm.environment.set(\"current-date\", formatted);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "{{private-key}}",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "{{public-key}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Braintree-Version",
+						"type": "text",
+						"value": "{{current-date}}"
+					},
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query PaymentSearch($txnCriteria: PaymentSearchInput!) {\n  search {\n    payments(input: $txnCriteria) {\n      pageInfo {\n        hasNextPage\n        hasPreviousPage\n        startCursor\n      }\n      edges {\n        node {\n          __typename\n          ... on Transaction {\n            id\n            legacyId\n            createdAt\n            merchantAccountId\n            orderId\n            customFields {\n              name\n              value\n            }\n            paymentMethod {\n              legacyId\n              id\n            }\n            shipping {\n              shippingAmount\n              shippingAddress {\n                company\n                streetAddress\n                extendedAddress\n                fullName\n                locality\n                region\n                postalCode\n                countryCode\n              }\n              shipsFromPostalCode\n            }\n            customer {\n              legacyId\n              id\n            }\n            tax {\n              taxExempt\n            }\n            paymentMethodSnapshot {\n              __typename\n              ... on PayPalTransactionDetails {\n                transactionFee {\n                  value\n                  currencyIsoCode\n                }\n                payer {\n                  payerId\n                }\n              }\n              ... on CreditCardDetails {\n                uniqueNumberIdentifier\n                brandCode\n                bin\n                last4\n                expirationYear\n                expirationMonth\n                binData {\n                  countryOfIssuance\n                  issuingBank\n                  debit\n                  prepaid\n                }\n              }\n              ... on CustomActionsPaymentMethodDetails {\n                fields {\n                  name\n                  displayValue\n                }\n              }\n            }\n            amount {\n              currencyIsoCode\n              value\n            }\n            disbursementDetails {\n              date\n            }\n            statusHistory {\n              timestamp\n              __typename\n              ... on AuthorizedEvent {\n                processorResponse {\n                  legacyCode\n                  message\n                  authorizationId\n                  avsPostalCodeResponse\n                  avsPostalCodeResponse\n                  cvvResponse\n                }\n              }\n              ... on ProcessorDeclinedEvent {\n                processorResponse {\n                  legacyCode\n                  message\n                  authorizationId\n                  avsPostalCodeResponse\n                  avsPostalCodeResponse\n                  cvvResponse\n                }\n              }\n              ... on GatewayRejectedEvent {\n                gatewayRejectionReason\n              }\n              ... on SettledEvent {\n                processorResponse {\n                  legacyCode\n                  message\n                }\n              }\n              ... on SettlementDeclinedEvent {\n                processorResponse {\n                  legacyCode\n                  message\n                }\n              }\n            }\n          }\n          ... on Refund {\n            id\n            legacyId\n            createdAt\n            merchantAccountId\n            orderId\n            paymentMethod {\n              legacyId\n              id\n            }\n            customer {\n              legacyId\n              id\n            }\n            paymentMethodSnapshot {\n              __typename\n              ... on PayPalTransactionDetails {\n                transactionFee {\n                  value\n                  currencyIsoCode\n                }\n                payer {\n                  payerId\n                }\n              }\n              ... on CreditCardDetails {\n                uniqueNumberIdentifier\n                brandCode\n                bin\n                last4\n                expirationYear\n                expirationMonth\n                binData {\n                  countryOfIssuance\n                  issuingBank\n                  debit\n                  prepaid\n                }\n              }\n              ... on CustomActionsPaymentMethodDetails {\n                fields {\n                  name\n                  displayValue\n                }\n              }\n            }\n            amount {\n              currencyIsoCode\n              value\n            }\n            statusHistory {\n              __typename\n              ... on SettledEvent {\n                timestamp\n              }\n              ... on AuthorizedEvent {\n                processorResponse {\n                  legacyCode\n                  message\n                  authorizationId\n                  avsPostalCodeResponse\n                  avsPostalCodeResponse\n                  cvvResponse\n                }\n              }\n              ... on ProcessorDeclinedEvent {\n                processorResponse {\n                  legacyCode\n                  message\n                }\n              }\n              ... on GatewayRejectedEvent {\n                gatewayRejectionReason\n              }\n              ... on SettledEvent {\n                processorResponse {\n                  legacyCode\n                  message\n                }\n              }\n              ... on SettlementDeclinedEvent {\n                processorResponse {\n                  legacyCode\n                  message\n                }\n              }\n            }\n            refundedTransaction {\n              legacyId\n              id\n              createdAt\n            }\n          }\n        }\n      }\n    }\n  }\n}\n",
+						"variables": "{\n  \"txnCriteria\": {\n     \"createdAt\": {\n    \t\"greaterThanOrEqualTo\": \"2020-01-01T00:00:00+00:00\",\n    \t\"lessThanOrEqualTo\": \"2020-04-29T00:00:00+00:00\"\n     }\n   }\n }"
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}/graphql",
+					"host": [
+						"{{endpoint}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Charge Payment Method",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql"
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"_postman_previewlanguage": "Text",
+					"header": [],
+					"cookie": [],
+					"body": ""
+				},
+				{
+					"name": "Charge Payment Method (w/ Line Items & Custom Fields)",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Braintree-Version",
+								"type": "text",
+								"value": "{{current-date}}"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "graphql"
+						},
+						"url": {
+							"raw": "{{endpoint}}/graphql",
+							"host": [
+								"{{endpoint}}"
+							],
+							"path": [
+								"graphql"
+							]
+						}
+					},
+					"_postman_previewlanguage": "Text",
+					"header": [],
+					"cookie": [],
+					"body": ""
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const uuidv4 = function() {",
+					"    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+					"      var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+					"      return v.toString(16);",
+					"    });",
+					"}",
+					"",
+					"pm.environment.set(\"uuid\", uuidv4())",
+					"pm.environment.set(\"order-id\", uuidv4())"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
