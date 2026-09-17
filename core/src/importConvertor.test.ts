@@ -145,6 +145,39 @@ describe('importConvertor', () => {
     expect(parseYamlStrict(usersSuite!.content).items).toEqual(['../tests/users.mmt']);
   });
 
+  it('translates pm.variables.replaceIn pre-request scripts into setenv', () => {
+    const collection = {
+      info: {
+        name: 'ReplaceIn Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+      },
+      item: [{
+        name: 'Draft Invoice',
+        event: [{
+          listen: 'prerequest',
+          script: {
+            exec: [
+              'pm.collectionVariables.set("draft_invoice_number", pm.variables.replaceIn("{{$timestamp}}{{$randomInt}}"));',
+            ],
+          },
+        }],
+        request: {
+          method: 'POST',
+          url: {raw: 'https://example.com/invoices'},
+        },
+      }],
+    };
+
+    const result = convertToMmt(
+        JSON.stringify(collection),
+        {sourcePath: 'replace-in.postman_collection.json'});
+    const test = parseYamlStrict(
+        result.files.find(file => file.kind === 'test')!.content);
+    expect(test.steps[0].setenv.draft_invoice_number).toBe('r:epochr:int');
+    expect(result.warnings).not.toContain(
+        'Postman prerequest script on "Draft Invoice" needs manual review.');
+  });
+
   it('inherits Postman auth and translates supported collection scripts', () => {
     const collection = {
       info: {

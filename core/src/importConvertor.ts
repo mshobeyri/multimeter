@@ -6,7 +6,7 @@ import {safeStepIdFromAlias, slugToCamel, slugValue} from './identifierUtils';
 import {httpRequestCallExtras, httpRequestToAPI, isHttpFilePath, parseHttpDocument} from './httpParsePack';
 import {packYaml, parseYamlStrict} from './markupConvertor';
 import {buildOpenApiEnvFromSpec, openApiToAPI} from './openapiConvertor';
-import {postmanToAPI} from './postmanConvertor';
+import {postmanToAPI, translatePostmanTemplate} from './postmanConvertor';
 import {SuiteData} from './SuiteData';
 import {suiteToYaml} from './suiteParsePack';
 import {TestData, TestFlowStep} from './TestData';
@@ -772,6 +772,11 @@ function buildPostmanPreRequestSetEnv(
       setenv[match[2]] =
           match[3] === 'uuidv4()' ? 'r:uuid' : 'c:epoch_ms';
     }
+    const replaceInAssignments = script.matchAll(
+        /pm\.(?:environment|collectionVariables|variables)\.set\(\s*(['"])([^'"]+)\1\s*,\s*pm\.variables\.replaceIn\(\s*(['"])([\s\S]*?)\3\s*\)\s*\)/g);
+    for (const match of replaceInAssignments) {
+      setenv[match[2]] = translatePostmanTemplate(match[4]);
+    }
   }
   return Object.keys(setenv).length > 0 ? setenv : undefined;
 }
@@ -816,6 +821,7 @@ function hasUnsupportedPostmanScript(script: string): boolean {
       .replace(/pm\.expect\(\s*pm\.response\.json\(\)\.[A-Za-z_$][A-Za-z0-9_$]*\s*\)\.to\.(?:eql|equal)\(\s*(['"]).*?\1\s*\)/g, '')
       .replace(/pm\.(?:environment|collectionVariables)\.set\(\s*(['"])[^'"]+\1\s*,\s*pm\.response\.json\(\)\.[A-Za-z_$][A-Za-z0-9_$]*\s*\)/g, '')
       .replace(/pm\.(?:environment|collectionVariables|variables)\.set\(\s*(['"])[^'"]+\1\s*,\s*(?:uuidv4\(\)|Date\.now\(\))\s*\)/g, '')
+      .replace(/pm\.(?:environment|collectionVariables|variables)\.set\(\s*(['"])[^'"]+\1\s*,\s*pm\.variables\.replaceIn\(\s*(['"]).*?\2\s*\)\s*\)/g, '')
       .replace(/pm\.request\.headers\.(?:upsert|add)\(\s*\{\s*key\s*:\s*(['"]).*?\1\s*,\s*value\s*:\s*pm\.(?:variables|environment|collectionVariables)\.get\(\s*(['"]).*?\2\s*\)\s*\}\s*\)/g, '');
   return /\bpm\./.test(reduced);
 }
