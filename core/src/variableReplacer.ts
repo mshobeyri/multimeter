@@ -669,10 +669,19 @@ export function replaceInputRefsWithNone(obj: any, inputs: any, resolver?: Dynam
       inputs, resolver);
 }
 
+export interface ReplaceAllRefsOptions {
+  /**
+   * Resolve r:/c: immediately. UI previews use this for stable rendered
+   * values; code generators disable it so every execution gets fresh values.
+   */
+  resolveRuntimeTokens?: boolean;
+}
+
 // Replaces all references (inputs first, then environment vars)
 export function replaceAllRefs(
     iface: any, defaults: JSONRecord, inputs: JSONRecord,
-    envs: JSONRecord, visiting: Set<string> = new Set()): any {
+    envs: JSONRecord, visiting: Set<string> = new Set(),
+    options: ReplaceAllRefsOptions = {}): any {
   const mergedInputs = Object.assign({}, defaults, inputs);
 
   // Dynamic resolver for i:, e:, r:, c:
@@ -682,6 +691,10 @@ export function replaceAllRefs(
       return undefined;
     }
     const prefix = fullKey.slice(0, idx);
+    if (options.resolveRuntimeTokens === false &&
+        (prefix === 'r' || prefix === 'c')) {
+      return undefined;
+    }
     const parsed = splitTokenNameAccessor(fullKey.slice(idx + 1));
     if (!parsed) {
       return undefined;

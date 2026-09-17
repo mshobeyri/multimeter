@@ -1876,6 +1876,30 @@ describe('expect on call steps', () => {
     expect(js).toContain('equals_(result.echoed_message, `${message}`)');
   });
 
+  it('resolves current and random tokens in expected values at runtime', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectDynamic',
+      test: {
+        steps: [{
+          call: 'echo',
+          id: 'result',
+          expect: {
+            created_at: '=^ c:date',
+            request_id: '=^ req-<<r:uuid>>',
+          },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain(
+        "startsWith_(result.created_at, __mmt_current('date'))");
+    expect(js).toContain("__mmt_random('uuid')");
+    expect(js).not.toContain('`c:date`');
+  });
+
   it('uses id as result variable when call has id', async () => {
     const ctx: TestContext = {
       name: 'callExpectId',

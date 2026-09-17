@@ -581,7 +581,9 @@ const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[]
 
 const expectValueToJs = (value: ExpectValue): string => {
   const normalized = normalizeOmitToNull(value);
-  return typeof normalized === 'string' ? toTemplateWithVars(normalized) : JSON.stringify(normalized);
+  return typeof normalized === 'string'
+    ? toTemplateValueJs(normalized)
+    : JSON.stringify(normalized);
 };
 
 const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expected: ExpectValue): string => {

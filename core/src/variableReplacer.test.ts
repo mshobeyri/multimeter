@@ -478,6 +478,26 @@ describe('multiple template vars in one string', () => {
     );
     expect(result.val).toBe('X-Y-Z');
   });
+
+  it('can preserve random and current tokens for runtime code generation', () => {
+    const result = replaceAllRefs(
+      {
+        env: '<<e:HOST>>',
+        current: 'c:date',
+        random: 'id-<<r:uuid>>',
+      },
+      {},
+      {},
+      {HOST: 'example.com'},
+      new Set(),
+      {resolveRuntimeTokens: false},
+    );
+    expect(result).toEqual({
+      env: 'example.com',
+      current: 'c:date',
+      random: 'id-<<r:uuid>>',
+    });
+  });
 });
 
 describe('embedDynamicTokensAsJsInterpolations', () => {

@@ -111,4 +111,48 @@ describe('runner extra paths', () => {
     } as any);
     expect(result.docType).toBe('api');
   });
+
+  it('refreshes cached current tokens for every run', async () => {
+    jest.useFakeTimers();
+    try {
+      const runAt = async (isoDate: string): Promise<string> => {
+        jest.setSystemTime(new Date(isoDate));
+        let generated = '';
+        await runFile({
+          file: [
+            'type: test',
+            'inputs:',
+            '  stamp: c:date',
+            '  nonce: r:uuid',
+            'steps:',
+            '  - print: <<i:stamp>>-<<i:nonce>>',
+          ].join('\n'),
+          fileType: 'raw',
+          filePath: '/current-date.mmt',
+          fileLoader: async () => '',
+          jsRunner: async (context: {code?: string; js?: string}) => {
+            generated = context.code || context.js || '';
+            return {success: true, logs: [], errors: []};
+          },
+          logger: () => {},
+        } as any);
+        return generated;
+      };
+
+      const first = await runAt('2026-09-16T12:00:00Z');
+      const second = await runAt('2026-09-17T12:00:00Z');
+      expect(first).toContain('2026-09-16');
+      expect(second).toContain('2026-09-17');
+      expect(second).not.toContain('2026-09-16');
+      const firstUuid = first.match(
+          /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i)?.[0];
+      const secondUuid = second.match(
+          /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i)?.[0];
+      expect(firstUuid).toBeTruthy();
+      expect(secondUuid).toBeTruthy();
+      expect(secondUuid).not.toBe(firstUuid);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

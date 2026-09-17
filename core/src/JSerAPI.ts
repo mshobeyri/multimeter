@@ -32,7 +32,9 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       : [];
 
   let replaced =
-      replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
+      replaceAllRefs(
+          ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {}, new Set(),
+          {resolveRuntimeTokens: false});
   replaced = stripOmitFromRequest(replaced);
 
   const reqFormatForBody = requestFormat(replaced.format);

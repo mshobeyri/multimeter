@@ -15,6 +15,10 @@ import {yamlToTest} from './testParsePack';
 import {processDataImportsInYaml} from './dataImportProcessor';
 import {isBrunoFilePath} from './brunoParsePack';
 import {isHttpFilePath} from './httpParsePack';
+import {
+  resetCurrentTokenCache,
+  resetRandomTokenCache,
+} from './variableReplacer';
 
 export {generateTestJs, runGeneratedJs};
 
@@ -112,7 +116,11 @@ export async function prepareRunFromOptions(
 }
 
 export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
-  
+  // Dynamic token caches keep one value stable while a document is prepared,
+  // but must never leak values into a later run (for example across midnight).
+  resetCurrentTokenCache();
+  resetRandomTokenCache();
+
   const preLogs: Array<{level: LogLevel; message: string}> = [];
   const note = (level: LogLevel, message: string) => {
     preLogs.push({level, message});
