@@ -56,7 +56,11 @@ const toConditionJsExpr = (value: string): string => {
       return String(parsed);
     }
     if (typeof parsed === 'string') {
-      return JSON.stringify(parsed);
+      const templated = toTemplateValueJs(parsed);
+      if (templated.startsWith('`') && templated.endsWith('`') && !templated.includes('${')) {
+        return JSON.stringify(parsed);
+      }
+      return templated;
     }
     if (typeof parsed === 'object') {
       return JSON.stringify(parsed);
@@ -514,7 +518,7 @@ const judgeStepToJSfunc = (
 
   const reportCfg = normalizeReportConfig(step.report);
   const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
-  const title = step.title ? JSON.stringify(step.title) : 'undefined';
+  const title = step.title ? toTemplateValueJs(step.title) : 'undefined';
 
   const contextJs = judgeValueToJs(step.context ?? {});
   const expectJs = step.expect ? judgeValueToJs(step.expect) : 'undefined';
@@ -1031,10 +1035,9 @@ export const flowStepsToJsfunc = async (
                 stepJs = (step as any).js;
                 break;
               case 'print':
-                if (root) {
-                  stepJs = `console.log(\`${(step as any).print}\`);`;
-                } else {
-                  stepJs = `console.debug(\`${(step as any).print}\`);`;
+                {
+                  const printExpr = toTemplateValueJs(String((step as any).print ?? ''));
+                  stepJs = root ? `console.log(${printExpr});` : `console.debug(${printExpr});`;
                 }
                 break;
               case 'set':

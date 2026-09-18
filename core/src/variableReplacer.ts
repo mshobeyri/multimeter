@@ -363,6 +363,7 @@ export function toTemplateValueJs(value: string): string {
  */
 export const toTemplateWithEnvVars = (s: string): string => {
   let withEnv = replaceEnvTokensToJs(String(s ?? ''));
+  withEnv = replaceRandCurrentTokensToJs(withEnv);
   withEnv = withEnv.replace(
       /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
       '${envVariables.$1}');

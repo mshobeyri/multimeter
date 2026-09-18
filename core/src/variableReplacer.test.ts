@@ -86,6 +86,12 @@ describe('toTemplateWithEnvVars', () => {
     expect(toTemplateWithEnvVars(null as any)).toBe('``');
     expect(toTemplateWithEnvVars(undefined as any)).toBe('``');
   });
+
+  it('converts r: and c: tokens to runtime calls', () => {
+    expect(toTemplateWithEnvVars('now c:datetime')).toBe('`now ${mmtCurrent_(\'datetime\')}`');
+    expect(toTemplateWithEnvVars('id r:uuid')).toBe('`id ${mmtRandom_(\'uuid\')}`');
+    expect(toTemplateWithEnvVars('c:city')).toBe('`${mmtCurrent_(\'city\')}`');
+  });
 });
 
 describe('toTemplateValueJs', () => {
