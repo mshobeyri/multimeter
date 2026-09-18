@@ -66,7 +66,7 @@ steps:
     inputs:
       message: i:ddd
     expect:
-      status: =~ "200"
+      status: =S "200"
 `;
 
 describe('interdependent inputs across test call → API defaults', () => {

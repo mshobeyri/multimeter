@@ -23,6 +23,8 @@ function keySuggestionLabelsFor(
     "!#",
     ">%",
     "<%",
+    "=s~",
+    "!s~",
     "=^",
     "!^",
     "=$",
@@ -277,15 +279,19 @@ describe("API output expression autocomplete", () => {
 });
 
 describe("operator autocomplete wiring", () => {
-  it("offers =~ / !~ for operator: values and inline expect values", () => {
+  it("offers =S / !S and time =s~ / !s~ for operator: values and inline expect values", () => {
     const byParent = suggestionsByParent();
     const operatorInserts = byParent.operator.map((item: any) => item.insertText);
-    expect(operatorInserts).toContain(' "=~"');
-    expect(operatorInserts).toContain(' "!~"');
+    expect(operatorInserts).toContain(' "=S"');
+    expect(operatorInserts).toContain(' "!S"');
+    expect(operatorInserts).toContain(' "=s~"');
+    expect(operatorInserts).toContain(' "!s~"');
 
     const expectInserts = byParent["expect-value"].map((item: any) => item.insertText);
-    expect(expectInserts).toContain(" =~ ");
-    expect(expectInserts).toContain(" !~ ");
+    expect(expectInserts).toContain(" =S ");
+    expect(expectInserts).toContain(" !S ");
+    expect(expectInserts).toContain(" =1s~ ");
+    expect(expectInserts).toContain(' "!1s~" ');
   });
 
   it("offers the string and length compare operators too", () => {

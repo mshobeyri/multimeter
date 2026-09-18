@@ -220,8 +220,12 @@ describe('comparison codegen for quotes and omit', () => {
       '!$': 'notEndsWith_',
       '=*': 'matches_',
       '!*': 'notMatches_',
+      '=S': 'equalsAsString_',
+      '!S': 'notEqualsAsString_',
       '=~': 'equalsAsString_',
       '!~': 'notEqualsAsString_',
+      '=s~': 'timeEquals_',
+      '!s~': 'notTimeEquals_',
       '=#': 'lengthEquals_',
       '!#': 'notLengthEquals_',
       '<#': 'lengthLess_',
@@ -266,7 +270,7 @@ describe('runtime omit and quote-sensitive helpers', () => {
     expect(equals_('', '')).toBe(true);
   });
 
-  it('=~ / equalsAsString_ compares XML strings to YAML bools/numbers without changing JSON ==', () => {
+  it('=S / equalsAsString_ compares XML strings to YAML bools/numbers without changing JSON ==', () => {
     expect(equalsAsString_('true', true)).toBe(true);
     expect(equalsAsString_('false', false)).toBe(true);
     expect(equalsAsString_('42', 42)).toBe(true);

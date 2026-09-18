@@ -1,6 +1,7 @@
 import {parseCacheExpiryAtMs} from './JSerHelper';
 import {applyOmitToOutgoingRequest, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
-import {opsList} from './TestData';
+import {comparisonOperatorPattern, DEFAULT_TIME_VELOCITY} from './TestData';
+import {unsignedDurationMs} from './durationParse';
 import {wrapJsHelperModuleSource} from './jsModuleExport';
 import type {JudgeData, JudgeResult} from './JudgeData';
 import {
@@ -327,6 +328,97 @@ export function fuzzyMatch_(actual: any, expected: any, percent: any) {
 
 export function notFuzzyMatch_(actual: any, expected: any, percent: any) {
   return !fuzzyMatch_(actual, expected, percent);
+}
+
+const TIME_OF_DAY_RE = /^(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/;
+
+function timeOfDayMs_(value: string): number|undefined {
+  const match = TIME_OF_DAY_RE.exec(value);
+  if (!match) {
+    return undefined;
+  }
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3] || 0);
+  const millis = Number((match[4] || '0').padEnd(3, '0'));
+  if (hours > 23 || minutes > 59 || seconds > 59) {
+    return undefined;
+  }
+  return (((hours * 60) + minutes) * 60 + seconds) * 1000 + millis;
+}
+
+/** Convert a date, datetime, epoch, or `HH:mm[:ss]` value to milliseconds. */
+export function toEpochMs_(value: any): number|undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (value instanceof Date) {
+    const ms = value.getTime();
+    return Number.isFinite(ms) ? ms : undefined;
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      return undefined;
+    }
+    return value < 1e12 ? Math.round(value * 1000) : Math.round(value);
+  }
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const timeOfDay = timeOfDayMs_(trimmed);
+  if (timeOfDay !== undefined) {
+    return timeOfDay;
+  }
+  if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+    return toEpochMs_(Number(trimmed));
+  }
+  const parsed = Date.parse(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function timeVelocityMs_(velocity: any): number {
+  if (typeof velocity === 'number' && Number.isFinite(velocity) && velocity >= 0) {
+    return Math.round(velocity);
+  }
+  const parsed = unsignedDurationMs(String(velocity ?? ''));
+  if (parsed !== undefined) {
+    return parsed;
+  }
+  return unsignedDurationMs(DEFAULT_TIME_VELOCITY) ?? 1000;
+}
+
+export function timeDeltaMs_(actual: any, expected: any): number|undefined {
+  const actualKind = typeof actual === 'string' && timeOfDayMs_(actual.trim()) !== undefined;
+  const expectedKind = typeof expected === 'string' && timeOfDayMs_(String(expected).trim()) !== undefined;
+  if (actualKind !== expectedKind) {
+    return undefined;
+  }
+  const left = toEpochMs_(actual);
+  const right = toEpochMs_(expected);
+  if (left === undefined || right === undefined) {
+    return undefined;
+  }
+  return Math.abs(left - right);
+}
+
+export function timeEquals_(actual: any, expected: any, velocity: any) {
+  const delta = timeDeltaMs_(actual, expected);
+  if (delta === undefined) {
+    return false;
+  }
+  return delta <= timeVelocityMs_(velocity);
+}
+
+export function notTimeEquals_(actual: any, expected: any, velocity: any) {
+  const delta = timeDeltaMs_(actual, expected);
+  if (delta === undefined) {
+    return false;
+  }
+  return delta > timeVelocityMs_(velocity);
 }
 
 function extractComparisonOperator_(comparison: string): string | undefined {
@@ -938,20 +1030,13 @@ function displayValue(v: any): string {
   return String(normalized);
 }
 
-function escapeRegExp_(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 /** Extract comparison operator from a raw check string like `status == 201`. */
 function operatorFromComparison_(comparison: string): string {
   const trimmed = String(comparison ?? '').trim();
   if (!trimmed) {
     return '==';
   }
-  const pattern = [
-    '[<>](?:0|[1-9][0-9]?|100)%',
-    ...opsList.slice().sort((a, b) => b.length - a.length).map(escapeRegExp_),
-  ].join('|');
+  const pattern = comparisonOperatorPattern();
   const operatorRe = new RegExp(`(?:^|\\s)(${pattern})(?=\\s|$)`, 'g');
   let match: RegExpExecArray|null;
   while ((match = operatorRe.exec(trimmed))) {

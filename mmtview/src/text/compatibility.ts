@@ -156,11 +156,42 @@ function findApiSetenvLegacyOutputRefIssues(content: string, yamlDoc: any): Comp
   return issues;
 }
 
-export function findCompatibilityIssues(content: string, yamlDoc: any, docType: string | null): CompatibilityIssue[] {
-  if (!docType || !yamlDoc || yamlDoc.errors?.length) {
-    return [];
-  }
+const DEPRECATED_AS_STRING_RE = /[=!]~/g;
+
+/** Bare `=~` / `!~` are the old as-string operators. Time compare requires a duration (`=5s~`). */
+function findDeprecatedAsStringOperatorIssues(content: string): CompatibilityIssue[] {
   const issues: CompatibilityIssue[] = [];
+  DEPRECATED_AS_STRING_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = DEPRECATED_AS_STRING_RE.exec(content)) !== null) {
+    const token = match[0];
+    const replacement = token === '!~' ? '!S' : '=S';
+    const startOffset = match.index;
+    const endOffset = startOffset + token.length;
+    const line = offsetToLineNumber(content, startOffset);
+    const column = offsetToColumn(content, startOffset);
+    issues.push({
+      id: `deprecated-as-string:${startOffset}`,
+      message: `\`${token}\` is deprecated. Use \`${replacement}\` for as-string comparison`,
+      line,
+      column,
+      endColumn: column + token.length,
+      applyFix: {
+        kind: 'replaceRange',
+        startOffset,
+        endOffset,
+        text: replacement,
+      },
+    });
+  }
+  return issues;
+}
+
+export function findCompatibilityIssues(content: string, yamlDoc: any, docType: string | null): CompatibilityIssue[] {
+  const issues: CompatibilityIssue[] = findDeprecatedAsStringOperatorIssues(content);
+  if (!docType || !yamlDoc || yamlDoc.errors?.length) {
+    return issues;
+  }
   if (docType === 'suite') {
     const suiteIssue = findSuiteTestsDeprecatedIssue(content, yamlDoc);
     if (suiteIssue) {
@@ -204,7 +235,7 @@ export function getCompatibilityDecorations(
   docType: string | null,
   inlineClassName: string
 ): any[] {
-  if (!model || !yamlDoc) {
+  if (!model) {
     return [];
   }
   const issues = findCompatibilityIssues(content, yamlDoc, docType);

@@ -32,14 +32,16 @@ import {
   notLengthEquals_,
   notMatches_,
   notStartsWith_,
+  notTimeEquals_,
   notTrimEquals_,
   notTrimEqualsIgnoreCase_,
   startsWith_,
+  timeEquals_,
   trimEquals_,
   trimEqualsIgnoreCase_,
 } from './testHelper';
 import {parseExpectValue} from './JSerTestFlow';
-import {isFuzzyPercentOperator, isFuzzyPercentSelectOperator, DEFAULT_FUZZY_PERCENT, ExpectValue} from './TestData';
+import {isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isTimeAnyOperator, getTimeOperatorBase, getTimeOperatorVelocity, DEFAULT_FUZZY_PERCENT, ExpectValue} from './TestData';
 import {isOmitSentinel} from './omitKeyword';
 import {applyValueAccessor} from './variableReplacer';
 
@@ -64,6 +66,13 @@ export function evaluateComparison(
     return operator.startsWith('<')
         ? notFuzzyMatch_(actual, expected, percent)
         : fuzzyMatch_(actual, expected, percent);
+  }
+
+  if (isTimeAnyOperator(operator)) {
+    const velocity = getTimeOperatorVelocity(operator);
+    return getTimeOperatorBase(operator) === '!s~'
+        ? notTimeEquals_(actual, expected, velocity)
+        : timeEquals_(actual, expected, velocity);
   }
 
   switch (operator) {
@@ -103,8 +112,10 @@ export function evaluateComparison(
       return matches_(actual, expected);
     case '!*':
       return notMatches_(actual, expected);
+    case '=S':
     case '=~':
       return equalsAsString_(actual, expected);
+    case '!S':
     case '!~':
       return notEqualsAsString_(actual, expected);
     case '=^':

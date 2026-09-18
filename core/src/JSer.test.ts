@@ -1484,9 +1484,9 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('!C error')).toEqual({ operator: '!C', expected: 'error' });
   });
 
-  it('parses =~ (type-unsafe equal) operator prefix', () => {
-    expect(parseExpectValue('=~ true')).toEqual({ operator: '=~', expected: true });
-    expect(parseExpectValue('=~ "true"')).toEqual({ operator: '=~', expected: 'true' });
+  it('parses =S (as-string equal) operator prefix', () => {
+    expect(parseExpectValue('=S true')).toEqual({ operator: '=S', expected: true });
+    expect(parseExpectValue('=S "true"')).toEqual({ operator: '=S', expected: 'true' });
   });
 
   it('parses new regex, count, and fuzzy operators', () => {
@@ -1534,8 +1534,8 @@ describe('parseExpectValue', () => {
       ['!$', '!$ "suf"', 'suf'],
       ['=*', '=* "/ok/i"', '/ok/i'],
       ['!*', '!* "/fail/"', '/fail/'],
-      ['=~', '=~ "true"', 'true'],
-      ['!~', '!~ "false"', 'false'],
+      ['=S', '=S "true"', 'true'],
+      ['!S', '!S "false"', 'false'],
       ['=#', '=# "3"', '3'],
       ['!#', '!# "0"', '0'],
       ['<#', '<# "3"', '3'],
@@ -1545,6 +1545,10 @@ describe('parseExpectValue', () => {
       ['>%', '>% "John"', 'John'],
       ['<%', '<% "admin"', 'admin'],
       ['>80%', '>80% "John"', 'John'],
+      ['=~', '=~ "2026-01-01T00:00:00Z"', '2026-01-01T00:00:00Z'],
+      ['=s~', '=s~ "2026-01-01T00:00:00Z"', '2026-01-01T00:00:00Z'],
+      ['=5s~', '=5s~ "2026-01-01T00:00:00Z"', '2026-01-01T00:00:00Z'],
+      ['!1m~', '!1m~ "14:30:00"', '14:30:00'],
       ['<', '< "100"', '100'],
       ['>', '> "0"', '0'],
       ['<=', '<= "300"', '300'],
@@ -1571,6 +1575,17 @@ describe('conditionalStatementToJSfunc', () => {
         .toBe('fuzzyMatch_("name", "Jon", 80)');
     expect(conditionalStatementToJSfunc('name <% admin'))
         .toBe('notFuzzyMatch_("name", "admin", 80)');
+  });
+
+  it('emits time comparison helpers with velocity', () => {
+    expect(conditionalStatementToJSfunc('created =5s~ "2026-09-18T12:00:00Z"'))
+        .toBe('timeEquals_("created", "2026-09-18T12:00:00Z", "5s")');
+    expect(conditionalStatementToJSfunc('created =s~ "2026-09-18T12:00:00Z"'))
+        .toBe('timeEquals_("created", "2026-09-18T12:00:00Z", "1s")');
+    expect(conditionalStatementToJSfunc('created =~ "2026-09-18T12:00:00Z"'))
+        .toBe('equalsAsString_("created", "2026-09-18T12:00:00Z")');
+    expect(conditionalStatementToJSfunc('created !1m30s~ "14:30:00"'))
+        .toBe('notTimeEquals_("created", "14:30:00", "1m30s")');
   });
 
   it('combines comparisons with && and ||', () => {
@@ -2030,13 +2045,13 @@ describe('expect on call steps', () => {
     expect(js).toContain('equals_(_login_0.active, true)');
   });
 
-  it('generates type-unsafe equals for =~ / !~ expect operators', async () => {
+  it('generates as-string equals for =S / !S expect operators', async () => {
     const ctx: TestContext = {
       name: 'callExpectAsString',
       test: {
         steps: [{
           call: 'getXml',
-          expect: { active: '=~ true', code: '!~ 0' },
+          expect: { active: '=S true', code: '!S 0' },
         } as any],
       } as any,
       inputs: {},
@@ -3353,8 +3368,8 @@ describe('check/assert object form and unusual operators', () => {
     {op: '!C', helper: 'notContains_'},
     {op: '=*', helper: 'matches_'},
     {op: '!*', helper: 'notMatches_'},
-    {op: '=~', helper: 'equalsAsString_'},
-    {op: '!~', helper: 'notEqualsAsString_'},
+    {op: '=S', helper: 'equalsAsString_'},
+    {op: '!S', helper: 'notEqualsAsString_'},
     {op: '=^', helper: 'startsWith_'},
     {op: '!^', helper: 'notStartsWith_'},
     {op: '=$', helper: 'endsWith_'},
@@ -3382,6 +3397,15 @@ describe('check/assert object form and unusual operators', () => {
     expect(checkToJSfunc(
         {actual: '${name}', expected: 'John', operator: '<50%'} as any, false))
         .toContain('notFuzzyMatch_(');
+    expect(checkToJSfunc(
+        {actual: '${created}', expected: '2026-01-01T00:00:00Z', operator: '=5s~'} as any, false))
+        .toContain('timeEquals_(');
+    expect(checkToJSfunc(
+        {actual: '${created}', expected: '2026-01-01T00:00:00Z', operator: '!s~'} as any, false))
+        .toContain('notTimeEquals_(');
+    expect(checkToJSfunc(
+        {actual: '${created}', expected: '2026-01-01T00:00:00Z', operator: '!~'} as any, false))
+        .toContain('notEqualsAsString_(');
     expect(checkToJSfunc(
         {actual: '${name}', expected: 'John', operator: '>%'} as any, false))
         .toContain('fuzzyMatch_(');

@@ -883,15 +883,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     let doc: any = null;
     try {
       doc = parseYamlDoc(content);
-      if (doc.errors && doc.errors.length > 0) {
-        setCompatibilityProblems([]);
-        compatibilityDecorationsRef.current = editor.deltaDecorations(compatibilityDecorationsRef.current, []);
-        return;
-      }
     } catch {
-      setCompatibilityProblems([]);
-      compatibilityDecorationsRef.current = editor.deltaDecorations(compatibilityDecorationsRef.current, []);
-      return;
+      doc = null;
     }
 
     const problems = findCompatibilityProblems(content, doc, docType);
@@ -1235,6 +1228,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
               const fuzzyPercentMatch = afterQuote.match(/^([<>](?:0|[1-9][0-9]?|100)%)(?:\s|["']|$)/);
               if (fuzzyPercentMatch) {
                 const op = fuzzyPercentMatch[1];
+                matches.push({
+                  range: new monaco.Range(
+                    i + 1, opStartCol + 1,
+                    i + 1, opStartCol + op.length + 1
+                  ),
+                  options: { inlineClassName: EXPECT_OP_CLASS }
+                });
+                continue;
+              }
+
+              const timeMatch = afterQuote.match(/^([=!](?:\d+(?:\.\d+)?(?:ms|s|m|h|d|w))+~)(?:\s|["']|$)/);
+              if (timeMatch) {
+                const op = timeMatch[1];
                 matches.push({
                   range: new monaco.Range(
                     i + 1, opStartCol + 1,

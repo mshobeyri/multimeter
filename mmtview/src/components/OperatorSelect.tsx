@@ -1,5 +1,5 @@
-import React from "react";
-import { CheckOps, getFuzzyPercentOperatorBase, getFuzzyPercentOperatorValue, getOpOptionLabel, isFuzzyPercentAnyOperator, makeFuzzyPercentOperator, selectableOpsList } from "mmt-core/TestData";
+import React, { useEffect, useState } from "react";
+import { CheckOps, getFuzzyPercentOperatorBase, getFuzzyPercentOperatorValue, getOpOptionLabel, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentAnyOperator, isTimeAnyOperator, makeFuzzyPercentOperator, makeTimeOperator, normalizeTimeVelocity, selectableOpsList } from "mmt-core/TestData";
 import { safeList } from "mmt-core/safer";
 
 type OperatorSelectProps = {
@@ -11,12 +11,23 @@ type OperatorSelectProps = {
 
 const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, style, title }) => {
   const fuzzyBase = getFuzzyPercentOperatorBase(value);
-  const selectValue = (fuzzyBase || value) as CheckOps;
+  const timeBase = getTimeOperatorBase(value);
+  const selectValue = (fuzzyBase || timeBase || value) as CheckOps;
   const fuzzyPercent = getFuzzyPercentOperatorValue(value);
+  const timeVelocity = getTimeOperatorVelocity(value);
+  const [velocityText, setVelocityText] = useState(timeVelocity);
+
+  useEffect(() => {
+    setVelocityText(timeVelocity);
+  }, [timeVelocity]);
 
   const updateOperator = (nextValue: CheckOps) => {
     if (nextValue === '>%' || nextValue === '<%') {
       onChange(makeFuzzyPercentOperator(nextValue, fuzzyPercent));
+      return;
+    }
+    if (nextValue === '=s~' || nextValue === '!s~') {
+      onChange(makeTimeOperator(nextValue, timeVelocity));
       return;
     }
     onChange(nextValue);
@@ -25,6 +36,22 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, style,
   const updatePercent = (nextPercent: number) => {
     const base = fuzzyBase || '>%';
     onChange(makeFuzzyPercentOperator(base, nextPercent));
+  };
+
+  const updateVelocity = (nextVelocity: string) => {
+    setVelocityText(nextVelocity);
+    const normalized = normalizeTimeVelocity(nextVelocity);
+    if (!normalized) {
+      return;
+    }
+    onChange(makeTimeOperator(timeBase || '=s~', normalized));
+  };
+
+  const commitVelocity = () => {
+    const normalized = normalizeTimeVelocity(velocityText);
+    const next = normalized || timeVelocity;
+    setVelocityText(next);
+    onChange(makeTimeOperator(timeBase || '=s~', next));
   };
 
   return (
@@ -78,6 +105,17 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, style,
           onChange={e => updatePercent(Number(e.target.value))}
           title="Fuzzy match percentage"
           style={{ width: 68, flex: '0 0 auto' }}
+        />
+      )}
+      {isTimeAnyOperator(value) && (
+        <input
+          type="text"
+          value={velocityText}
+          onChange={e => updateVelocity(e.target.value)}
+          onBlur={commitVelocity}
+          title="Acceptable time difference (velocity)"
+          placeholder="1s"
+          style={{ width: 88, flex: '0 0 auto' }}
         />
       )}
     </div>

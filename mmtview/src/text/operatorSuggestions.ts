@@ -40,16 +40,18 @@ const OPERATOR_HELP: Record<string, OperatorHelp> = {
   "!$": { detail: "Not ends with", documentation: "Checks actual does not end with expected.", example: "file: !$ .tmp" },
   "=*": { detail: "Regex match", documentation: "Checks actual matches the expected regex.", example: "email: =* /@example\\.com$/" },
   "!*": { detail: "Regex not match", documentation: "Checks actual does not match the expected regex.", example: "name: !* /^admin/" },
-  "=~": {
-    detail: "Equal (type-unsafe)",
+  "=S": {
+    detail: "Equal (as string)",
     documentation: "Compares both sides as strings, so XML/text values match YAML booleans and numbers.",
-    example: "active: =~ true",
+    example: "active: =S true",
   },
-  "!~": {
-    detail: "Not equal (type-unsafe)",
+  "!S": {
+    detail: "Not equal (as string)",
     documentation: "Compares both sides as strings and passes when they differ.",
-    example: "code: !~ 0",
+    example: "code: !S 0",
   },
+  "=s~": { detail: "Times within", documentation: "Checks actual and expected parse as times and differ by at most the velocity (default 1s). Written as =5s~ — number before the unit, ~ at the end. A duration is required; bare =~ is the deprecated as-string operator. Supports ISO datetimes, epoch seconds/ms, and HH:mm[:ss].", example: "createdAt: =5s~ 2026-09-18T12:00:00Z" },
+  "!s~": { detail: "Times not within", documentation: "Checks actual and expected parse as times and differ by more than the velocity (default 1s).", example: 'createdAt: "!5s~ 2026-09-18T12:00:00Z"' },
   "=#": { detail: "Length/count equals", documentation: "Checks array/object item count, or string/number character length.", example: "users: =# 3" },
   "!#": { detail: "Length/count not equals", documentation: "Checks the length/count is not the expected value.", example: "users: !# 0" },
   "<#": { detail: "Length/count less than", documentation: "Checks the length/count is less than expected.", example: "errors: <# 3" },
@@ -70,6 +72,8 @@ const OPERATOR_HELP: Record<string, OperatorHelp> = {
 const FUZZY_OVERRIDES: Record<string, {label: string; quoted: string; inline: string}> = {
   ">%": { label: '>N% — fuzzy match at least percent', quoted: ' ">%"', inline: ' ">80%" ' },
   "<%": { label: '<N% — fuzzy match less than percent', quoted: ' "<%"', inline: ' <80% ' },
+  "=s~": { label: '=Ns~ — times within velocity', quoted: ' "=s~"', inline: ' =1s~ ' },
+  "!s~": { label: '!Ns~ — times not within velocity', quoted: ' "!s~"', inline: ' "!1s~" ' },
 };
 
 /**

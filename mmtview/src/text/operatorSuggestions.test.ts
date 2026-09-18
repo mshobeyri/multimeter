@@ -10,29 +10,31 @@ describe("operator autocomplete suggestions", () => {
     }
   });
 
-  it("includes the type-unsafe equality operators", () => {
+  it("includes the as-string equality operators", () => {
     const inline = buildOperatorSuggestions("inline");
-    const typeUnsafe = inline.find(item => item.filterText === "=~");
+    const typeUnsafe = inline.find(item => item.filterText === "=S");
     expect(typeUnsafe).toMatchObject({
-      insertText: " =~ ",
-      detail: "Equal (type-unsafe)",
+      insertText: " =S ",
+      detail: "Equal (as string)",
     });
-    expect(typeUnsafe?.label).toContain("=~");
+    expect(typeUnsafe?.label).toContain("=S");
     expect(typeUnsafe?.documentation).toContain("as strings");
 
-    const notEqual = inline.find(item => item.filterText === "!~");
-    expect(notEqual).toMatchObject({ insertText: " !~ " });
+    const notEqual = inline.find(item => item.filterText === "!S");
+    expect(notEqual).toMatchObject({ insertText: " !S " });
   });
 
   it("quotes operators for the object form and keeps fuzzy percent defaults", () => {
     const quoted = buildOperatorSuggestions("quoted");
     expect(quoted.find(item => item.filterText === "==")?.insertText).toBe(' "=="');
-    expect(quoted.find(item => item.filterText === "=~")?.insertText).toBe(' "=~"');
+    expect(quoted.find(item => item.filterText === "=S")?.insertText).toBe(' "=S"');
     expect(quoted.find(item => item.filterText === ">%")?.insertText).toBe(' ">%"');
 
     const inline = buildOperatorSuggestions("inline");
     expect(inline.find(item => item.filterText === ">%")?.insertText).toBe(' ">80%" ');
     expect(inline.find(item => item.filterText === "<%")?.insertText).toBe(" <80% ");
+    expect(quoted.find(item => item.filterText === "=s~")?.insertText).toBe(' "=s~"');
+    expect(inline.find(item => item.filterText === "=s~")?.insertText).toBe(" =1s~ ");
   });
 
   it("keeps the core operator order via sortText", () => {

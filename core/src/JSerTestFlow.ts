@@ -2,7 +2,7 @@ import {APIData} from './APIData';
 import {resolveApiHttpMethod} from './apiMethod';
 import {apiToJSfunc} from './JSerAPI';
 import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from './JSerHelper';
-import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from './TestData';
+import {Comparison, ComparisonObject, comparisonOperatorPattern, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, isTimeAnyOperator, normalizeReportConfig, ReportConfig, ReportLevel, ScalarExpectValue, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from './omitKeyword';
@@ -17,19 +17,10 @@ function randomName(): string {
 const toTemplateWithVars = toTemplateWithEnvVars;
 const DEFAULT_OUTPUT_KEY_SET = new Set(DEFAULT_OUTPUT_KEYS);
 
-const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const comparisonOperatorPattern = [
-  '[<>](?:0|[1-9][0-9]?|100)%',
-  ...opsList
-      .slice()
-      .sort((a, b) => b.length - a.length)
-      .map(escapeRegExp),
-].join('|');
-
 /** Parse a comparison string "actual operator expected" where either side may contain spaces. */
 export const parseComparisonParts = (comp: string): { actual: string; operator: string; expected: string } | null => {
   const trimmed = comp.trim();
-  const operatorRe = new RegExp(`(?:^|\\s)(${comparisonOperatorPattern})(?=\\s|$)`, 'g');
+  const operatorRe = new RegExp(`(?:^|\\s)(${comparisonOperatorPattern()})(?=\\s|$)`, 'g');
   let match: RegExpExecArray | null;
   while ((match = operatorRe.exec(trimmed))) {
     const operator = match[1];
@@ -104,6 +95,10 @@ const singleComparisonToJSfunc = (check: string): string => {
     const helper = operator.startsWith('<') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
     return `${helper}(${actualExpr}, ${expectedExpr}, ${percent})`;
   }
+  if (isTimeAnyOperator(operator)) {
+    const helper = getTimeOperatorBase(operator) === '!s~' ? 'notTimeEquals_' : 'timeEquals_';
+    return `${helper}(${actualExpr}, ${expectedExpr}, ${JSON.stringify(getTimeOperatorVelocity(operator))})`;
+  }
   switch (operator) {
     case '<':
       return `less_(${actualExpr}, ${expectedExpr})`;
@@ -141,8 +136,10 @@ const singleComparisonToJSfunc = (check: string): string => {
       return `matches_(${actualExpr}, ${expectedExpr})`;
     case '!*':
       return `notMatches_(${actualExpr}, ${expectedExpr})`;
+    case '=S':
     case '=~':
       return `equalsAsString_(${actualExpr}, ${expectedExpr})`;
+    case '!S':
     case '!~':
       return `notEqualsAsString_(${actualExpr}, ${expectedExpr})`;
     case '=^':
@@ -604,6 +601,10 @@ const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expec
     const helper = operator.startsWith('<') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
     return `${helper}(${actualExpr}, ${expectedExpr}, ${percent})`;
   }
+  if (isTimeAnyOperator(operator)) {
+    const helper = getTimeOperatorBase(operator) === '!s~' ? 'notTimeEquals_' : 'timeEquals_';
+    return `${helper}(${actualExpr}, ${expectedExpr}, ${JSON.stringify(getTimeOperatorVelocity(operator))})`;
+  }
   switch (operator) {
     case '<':
       return `less_(${actualExpr}, ${expectedExpr})`;
@@ -641,8 +642,10 @@ const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expec
       return `matches_(${actualExpr}, ${expectedExpr})`;
     case '!*':
       return `notMatches_(${actualExpr}, ${expectedExpr})`;
+    case '=S':
     case '=~':
       return `equalsAsString_(${actualExpr}, ${expectedExpr})`;
+    case '!S':
     case '!~':
       return `notEqualsAsString_(${actualExpr}, ${expectedExpr})`;
     case '=^':
