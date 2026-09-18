@@ -23,8 +23,11 @@ npx mmt-testlight run suite.mmt
 - Nest suites for smoke vs regression.
 - Use groups when children should run in parallel (same idea as `then` stages in tests).
 - Target a subtree from the Suite UI when debugging one area.
+- Restrict a run with `filter.only` / `filter.skip` (or CLI `--tag` / `--skip-tag`).
 
 ## Learn more
 
 - [Suite files](../files/suite/index.md)
+- [Tag filter](../files/suite/execution.md#tag-filter)
 - Example: [Basic Suite](/docs/examples/basic/04_basic_suite)
+- Example: [Suite tag filter](/docs/examples/intermediate/29_suite_tag_filter)

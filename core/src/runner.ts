@@ -137,7 +137,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     if (options.tagFilter) {
       try {
         const testDoc = yamlToTest(prepared.rawText);
-        if (decideTagRun('test', testDoc.tags, options.tagFilter, false) === 'skip') {
+        if (decideTagRun('test', testDoc.tags, options.tagFilter, options.tagParentSelected === true) === 'skip') {
           options.reporter && options.reporter({
             scope: 'suite-item',
             status: 'skipped',

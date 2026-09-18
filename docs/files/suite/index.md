@@ -74,3 +74,4 @@ items:
 
 - [Quick start](./quick-start.md) · [Edit Suite](./edit.md) · [Reports](./reports.md) · [Report overview](../report/index.md) · [Run a suite](../../tasks/run-suite.md)
 - [import](./import.md) · [items](./items.md) · [Execution](./execution.md) · [Exports](./exports.md) · [CLI](./cli.md) · [Reference](./reference.md)
+- Example: [Suite tag filter](../../../examples/intermediate/29_suite_tag_filter/README.md)

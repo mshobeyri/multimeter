@@ -1,0 +1,14 @@
+type: suite
+title: Suite tag filter — smoke
+description: Only tests and suites tagged smoke. Nested auth is selected, so untagged profile still runs.
+filter:
+  only:
+    - smoke
+items:
+  - tests/smoke_get.mmt
+  - tests/smoke_post.mmt
+  - tests/api_echo.mmt
+  - tests/flaky_echo.mmt
+  - tests/slow_status.mmt
+  - tests/untagged.mmt
+  - nested/auth.mmt

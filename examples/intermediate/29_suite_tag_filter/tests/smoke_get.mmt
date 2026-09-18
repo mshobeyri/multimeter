@@ -1,0 +1,12 @@
+type: test
+title: Smoke GET
+description: Tagged smoke and api — runs for only-smoke and only-api filters
+tags:
+  - smoke
+  - api
+steps:
+  - http: https://test.mmt.dev/json
+    title: Get JSON
+    method: get
+    expect:
+      status: 200

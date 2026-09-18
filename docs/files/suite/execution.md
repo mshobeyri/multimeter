@@ -102,3 +102,5 @@ items:
 - In VS Code, edit `filter:` in the {{btn:filter:Filter}} tab of [Edit Suite](./edit.md#filter). The suite panel lists the active filter above the tests.
 
 Skipped items are reported as skipped (not failed). A group that only contains skipped items is skipped; mixed passed + skipped still counts as passed.
+
+Runnable walkthrough: [Suite tag filter example](../../../examples/intermediate/29_suite_tag_filter/README.md).

@@ -1,0 +1,11 @@
+type: test
+title: Slow status
+description: Tagged slow so you can skip it with --skip-tag slow
+tags:
+  - slow
+steps:
+  - http: https://test.mmt.dev/json
+    title: Get JSON
+    method: get
+    expect:
+      status: 200

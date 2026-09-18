@@ -7,7 +7,7 @@ npm (`mmt-testlight`), Homebrew, and GitHub Release binaries all expose the same
   - Writes a JSON summary if `--out` is provided
   - Options:
     - `--example <name|#n>` — run a specific named example or numeric index (e.g., `--example happy-path` or `--example #1`)
-    - `--tag <tag>` — only run tests/suites with this tag (repeatable, OR)
+    - `--tag <tag>` — only run tests/suites with this tag (repeatable, OR). See [suite tag filter example](../../../examples/intermediate/29_suite_tag_filter/README.md)
     - `--skip-tag <tag>` — skip tests/suites with this tag (repeatable, OR)
 - print-js <file>
   - Print the generated executable JS for a test file

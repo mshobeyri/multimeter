@@ -1,0 +1,9 @@
+type: test
+title: Nested profile
+description: Untagged child. Runs when the parent auth suite is selected by only-smoke.
+steps:
+  - http: https://test.mmt.dev/json
+    title: Get JSON
+    method: get
+    expect:
+      status: 200

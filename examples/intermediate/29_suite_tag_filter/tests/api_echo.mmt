@@ -1,0 +1,14 @@
+type: test
+title: API echo
+description: Tagged api — skipped when the filter is only smoke
+tags:
+  - api
+steps:
+  - http: https://test.mmt.dev/echo
+    title: Post echo
+    method: post
+    body:
+      message: api
+    expect:
+      status: 200
+      body.body.message: api
