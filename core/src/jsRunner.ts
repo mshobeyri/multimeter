@@ -228,7 +228,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
               .filter(name => name !== 'report_' && name !== 'setenv_' &&
                              name !== 'checkAbort_' && name !== 'importJsModule_' &&
                              name !== 'check_' && name !== 'checkExpects_' &&
-                             name !== 'judge_')
+                             name !== 'judge_' &&
+                             name !== 'buildMultipartBodyFromParts_')
               .map(name => `const ${name} = mmtHelper["${name}"];`)
               .join('\n');
     const randomDecls =
@@ -263,6 +264,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `    throw new Error('Binary file loader not available');` +
       `  }` +
       `  return __binaryFileLoader(path);` +
+      `};\n` +
+      `const buildMultipartBodyFromParts_ = async (parts) => {` +
+      `  return mmtHelper.buildMultipartBodyFromParts_(parts, readBinaryFile_);` +
       `};\n` +
       `${code}`;
     let fn = compiledFunctionCache.get(functionBody);

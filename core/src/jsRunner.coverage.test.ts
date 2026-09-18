@@ -126,6 +126,23 @@ describe('jsRunner extra runtime paths', () => {
     expect(grpc.status).toBe(200);
   });
 
+  it('builds multipart bodies from text and file parts', async () => {
+    const built = await runJSCode({
+      js: `return buildMultipartBodyFromParts_([
+        { name: 'meta', value: 'hello' },
+        { name: 'file', file: './payload.bin' },
+      ]);`,
+      title: 'multipart',
+      runId: 'r6b',
+      logger,
+      binaryFileLoader: async () => Buffer.from('abc'),
+    });
+    expect(built.contentType).toMatch(/^multipart\/form-data; boundary=/);
+    expect(Buffer.isBuffer(built.body)).toBe(true);
+    expect(built.body.toString('utf8')).toContain('hello');
+    expect(built.body.toString('utf8')).toContain('abc');
+  });
+
   it('reads binary files and fails when loader is missing', async () => {
     const buf = await runJSCode({
       js: `return readBinaryFile_('a.bin');`,

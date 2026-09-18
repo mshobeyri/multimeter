@@ -1021,8 +1021,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "format: ",
-            detail: 'Data format [json, xml, xmle, text, urlencoded, binary] or { request, response }',
-            documentation: 'The format of the request and response data. A single value applies to both.\nOptions:\n\t- json, xml, xmle, text, urlencoded, binary\nOr split when they differ:\nformat:\n  request: json\n  response: xml\nExample: format: json',
+            detail: 'Data format [json, xml, xmle, text, urlencoded, binary, multipart] or { request, response }',
+            documentation: 'The format of the request and response data. A single value applies to both.\nOptions:\n\t- json, xml, xmle, text, urlencoded, binary, multipart\nOr split when they differ:\nformat:\n  request: json\n  response: xml\nExample: format: json',
         },
         {
             label: "url",
@@ -1322,6 +1322,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Binary file body',
             documentation: 'Send a file as the request body. Set body to a relative path.\nDefault Content-Type: application/octet-stream (override with headers).\nExample:\nformat: binary\nbody: ./payload.bin\n\nBinary responses are not supported yet (shown as text).',
             sortText: '1binary',
+        },
+        {
+            label: "multipart",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " multipart",
+            detail: 'Multipart form-data body',
+            documentation: 'multipart/form-data body with text and file parts.\nExample:\nformat: multipart\nbody:\n  - name: description\n    value: hello\n  - name: file\n    file: ./payload.bin',
+            sortText: '1multipart',
         },
     ];
     const formatSuggestion = [

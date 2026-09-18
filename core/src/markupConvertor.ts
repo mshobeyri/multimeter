@@ -161,6 +161,8 @@ function contentTypeForFormat(format: Format): string {
       return 'application/x-www-form-urlencoded';
     case 'binary':
       return 'application/octet-stream';
+    case 'multipart':
+      return 'multipart/form-data';
     case 'text':
     default:
       return 'text/plain';
@@ -260,6 +262,15 @@ function formatBody(
       // Body is a file path string; do not re-encode
       return typeof body === 'string' ? body.trim() : String(body);
     }
+    if (format === 'multipart') {
+      if (Array.isArray(body)) {
+        return JSON.stringify(body, null, pretty ? 2 : 0);
+      }
+      if (body && typeof body === 'object') {
+        return JSON.stringify(body, null, pretty ? 2 : 0);
+      }
+      return typeof body === 'string' ? body : String(body ?? '');
+    }
     if (format === 'text') {
       return typeof body === 'string' ?
           body :
@@ -313,6 +324,13 @@ function formattedBodyToYamlObject(
     if (format === 'binary') {
       // Keep the file path as a plain string for YAML round-trip
       return text;
+    }
+    if (format === 'multipart') {
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
     }
     if (format === 'text') {
       // Keep raw text (including XML pasted as text) — do not YAML-parse it.

@@ -176,6 +176,16 @@ describe('markupConvertor Windows CRLF bodies', () => {
   });
 });
 
+describe('markupConvertor multipart format', () => {
+  it('formats multipart parts as JSON for the editor', () => {
+    const parts = [{name: 'meta', value: 'hello'}];
+    expect(formatBody('multipart', parts, true)).toContain('"name": "meta"');
+    expect(formattedBodyToYamlObject('multipart', formatBody('multipart', parts, true)))
+        .toEqual(parts);
+    expect(contentTypeForFormat('multipart')).toBe('multipart/form-data');
+  });
+});
+
 describe('packBodyForYamlCompare', () => {
   it('keeps UI body when YAML body is already text', () => {
     expect(packBodyForYamlCompare('raw text', '<a>1</a>', 'xml')).toBe('<a>1</a>');

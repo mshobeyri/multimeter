@@ -3,6 +3,7 @@ import {resolveApiHttpMethod} from './apiMethod';
 import {JSONRecord, requestFormat} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
+import {MultipartPartSpec} from './multipartBody';
 import {stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
 import {
@@ -140,6 +141,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       resolveApiHttpMethod(replaced.method, replaced.body);
   const reqFormat = requestFormat(replaced.format);
   const isBinaryRequest = !isGraphQL && reqFormat === 'binary';
+  const isMultipartRequest = !isGraphQL && reqFormat === 'multipart';
   if (isGraphQL) {
     // Ensure Content-Type is set to application/json
     const hasContentType = Object.keys(replaced.headers || {}).some(
@@ -185,24 +187,43 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       ? replaced.body.trim()
       : (replaced.body == null ? '' : String(replaced.body));
   const binaryPathExpr = toTemplateWithEnvs(binaryPathSource);
+  const multipartPartsExpr = isMultipartRequest
+      ? multipartPartsToJs(replaced.body, toTemplateWithEnvs)
+      : '[]';
   const bodyExpr = isGraphQL && graphqlBodyExpr
       ? graphqlBodyExpr
       : isBinaryRequest
         ? '__binaryBody_'
-        : toTemplateWithEnvs(formattedBody);
+        : isMultipartRequest
+          ? '__multipartParts_'
+          : toTemplateWithEnvs(formattedBody);
 
   const binaryLoadLines = isBinaryRequest
       ? `  const __binaryPath_ = ${binaryPathExpr};
   const __binaryBody_ = await readBinaryFile_(__binaryPath_);
 `
       : '';
+  const multipartPrepLines = isMultipartRequest
+      ? `  const __multipartParts_ = ${multipartPartsExpr};
+`
+      : '';
+  const multipartBuildLines = isMultipartRequest
+      ? `  const __multipartBuilt_ = await buildMultipartBodyFromParts_(req_.body);
+  if (!req_.headers["Content-Type"] || String(req_.headers["Content-Type"]).toLowerCase().indexOf("boundary=") < 0) {
+    req_.headers["Content-Type"] = __multipartBuilt_.contentType;
+  }
+  req_.body = __multipartBuilt_.body;
+`
+      : '';
   const detailsRequestExpr = isBinaryRequest
       ? `{ ...req_, body: '<binary ' + __binaryBody_.length + ' bytes path=' + __binaryPath_ + '>' }`
-      : 'req_';
+      : isMultipartRequest
+        ? `{ ...req_, body: '<multipart ' + req_.body.length + ' bytes>' }`
+        : 'req_';
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const __resolvedUrl = ${toTemplateWithEnvs(String(replaced.url || ''))};
-${binaryLoadLines}  const req_ = {
+${binaryLoadLines}${multipartPrepLines}  const req_ = {
     url: __resolvedUrl,
     protocol: ${protocolExpr},
     method: '${effectiveMethod}',
@@ -213,7 +234,7 @@ ${binaryLoadLines}  const req_ = {
   };
 ${authCode}
   applyOmitToRequest_(req_, '${reqFormat}');
-  const res_ = await send_(req_);
+${multipartBuildLines}  const res_ = await send_(req_);
 
   const __extractSource_ = {
       type: 'auto',
@@ -372,6 +393,32 @@ ${authCode}
 
   return output_;
 };`;
+}
+
+function multipartPartsToJs(
+    parts: unknown,
+    toTpl: (s: string) => string,
+): string {
+  if (!Array.isArray(parts) || parts.length === 0) {
+    return '[]';
+  }
+  const entries = parts.map(raw => {
+    const part = raw as MultipartPartSpec;
+    const fields: string[] = [`name: ${JSON.stringify(String(part.name ?? ''))}`];
+    if (part.file != null && String(part.file).trim() !== '') {
+      fields.push(`file: ${toTpl(String(part.file).trim())}`);
+    } else if (part.value != null) {
+      fields.push(`value: ${toTpl(String(part.value))}`);
+    }
+    if (part.contentType != null && String(part.contentType).trim() !== '') {
+      fields.push(`contentType: ${JSON.stringify(String(part.contentType))}`);
+    }
+    if (part.filename != null && String(part.filename).trim() !== '') {
+      fields.push(`filename: ${JSON.stringify(String(part.filename))}`);
+    }
+    return `{ ${fields.join(', ')} }`;
+  });
+  return `[${entries.join(', ')}]`;
 }
 
 function authToJS(

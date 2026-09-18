@@ -531,6 +531,24 @@ describe('env token replacements in generated JS', () => {
        expect(js).toContain('${envVariables.QUX}');
      });
 
+  it('resolves r: and c: tokens in print and call titles', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'currentPrint',
+      test: {
+        steps: [
+          {call: 'echo', id: 'result', title: 'c:city', expect: {status: 200}} as any,
+          {print: 'c:datetime'} as any,
+          {print: 'now <<c:time>>'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain("mmtCurrent_('city')");
+    expect(js).toContain("console.log(mmtCurrent_('datetime'));");
+    expect(js).toContain("${mmtCurrent_('time')}");
+  });
+
   it('replaces tokens outside template literals as plain envVariables access',
      async () => {
        const ctx: TestContext = {
@@ -1586,6 +1604,8 @@ describe('conditionalStatementToJSfunc', () => {
         .toBe('equalsAsString_("created", "2026-09-18T12:00:00Z")');
     expect(conditionalStatementToJSfunc('created !1m30s~ "14:30:00"'))
         .toBe('notTimeEquals_("created", "14:30:00", "1m30s")');
+    expect(conditionalStatementToJSfunc('created =10s~ c:datetime'))
+        .toBe("timeEquals_(\"created\", mmtCurrent_('datetime'), \"10s\")");
   });
 
   it('combines comparisons with && and ||', () => {
@@ -2655,6 +2675,35 @@ describe('urlencoded tokens through multilevel imports', () => {
     expectUrlencodedTokenJs(bundle);
     // Call-site override still references env at the leaf test layer
     expect(bundle).toContain('envVariables.OVERRIDE_TOKEN');
+  });
+});
+
+describe('multipart request body (apiToJSfunc)', () => {
+  it('builds multipart body from text and file parts at runtime', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: multipart',
+      'url: https://example.com/upload',
+      'body:',
+      '  - name: description',
+      '    value: hello',
+      '  - name: file',
+      '    file: ./payload.bin',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'upload_multipart',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('buildMultipartBodyFromParts_');
+    expect(js).toContain('name: "description"');
+    expect(js).toContain('file: `./payload.bin`');
+    expect(js).toContain('__multipartBuilt_.contentType');
+    expect(js).toContain("applyOmitToRequest_(req_, 'multipart')");
+    expect(js).toContain('<multipart \' + req_.body.length + \' bytes>');
   });
 });
 

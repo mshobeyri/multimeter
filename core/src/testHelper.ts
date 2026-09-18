@@ -1,5 +1,6 @@
 import {parseCacheExpiryAtMs} from './JSerHelper';
 import {applyOmitToOutgoingRequest, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
+import {buildMultipartBodyFromParts} from './multipartBody';
 import {comparisonOperatorPattern, DEFAULT_TIME_VELOCITY} from './TestData';
 import {unsignedDurationMs} from './durationParse';
 import {wrapJsHelperModuleSource} from './jsModuleExport';
@@ -140,6 +141,13 @@ export function isNotOmitted_(value: any): boolean {
  */
 export function applyOmitToRequest_(req: any, format?: string): any {
   return applyOmitToOutgoingRequest(req, format);
+}
+
+export async function buildMultipartBodyFromParts_(
+    parts: unknown,
+    readBinaryFile: (path: string) => Promise<Buffer | Uint8Array>,
+) {
+  return buildMultipartBodyFromParts(parts, readBinaryFile);
 }
 
 /**

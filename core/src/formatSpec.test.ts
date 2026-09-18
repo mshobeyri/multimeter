@@ -105,4 +105,25 @@ describe('API format parse/pack', () => {
   it('packs matching binary request/response as scalar format: binary', () => {
     expect(packFormatSpec({request: 'binary', response: 'binary'})).toBe('binary');
   });
+
+  it('parses format: multipart with a parts body', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com/upload',
+      'method: post',
+      'format: multipart',
+      'body:',
+      '  - name: meta',
+      '    value: hello',
+      '  - name: file',
+      '    file: ./payload.bin',
+    ].join('\n');
+    const api = yamlToAPIStrict(yaml);
+    expect(api.format).toBe('multipart');
+    expect(Array.isArray(api.body)).toBe(true);
+    expect(requestFormat(api.format)).toBe('multipart');
+    const packed = apiToYaml(api);
+    expect(packed).toMatch(/format: multipart/);
+    expect(packed).toContain('name: meta');
+  });
 });
