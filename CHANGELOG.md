@@ -2,7 +2,9 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
-## [Unreleased]
+## [1.43.0-pre]
+
+Pre-release.
 
 ### Dynamic values
 
