@@ -1,0 +1,10 @@
+type: api
+title: POST binary body
+description: File path body loaded as raw bytes (application/octet-stream by default).
+outputs:
+  echoed_body: body[body]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: binary
+body: ./assets/payload.bin

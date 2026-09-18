@@ -1,0 +1,16 @@
+type: api
+title: POST expanded XML body
+description: YAML object converted to XML with explicit closing tags (format xmle).
+inputs:
+  name: ada
+outputs:
+  echoed_name: body[/<name>(.*?)</name>/]
+  has_expanded_meta: body[/<meta><\/meta>/]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: xmle
+body:
+  user:
+    name: i:name
+    meta: {}

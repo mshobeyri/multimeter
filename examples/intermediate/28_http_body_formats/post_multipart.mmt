@@ -1,0 +1,16 @@
+type: api
+title: POST multipart body
+description: multipart/form-data with a text field and a file part from ./assets/sample.txt.
+inputs:
+  description: hello from multipart
+outputs:
+  echoed_description: body[body][description]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: multipart
+body:
+  - name: description
+    value: i:description
+  - name: file
+    file: ./assets/sample.txt
