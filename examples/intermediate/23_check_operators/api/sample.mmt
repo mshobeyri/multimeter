@@ -16,6 +16,8 @@ outputs:
   expired_at: body.body.expired_at
   opened_at: body.body.opened_at
   closed_at: body.body.closed_at
+  sent_at: body.body.sent_at
+  sent_epoch: body.body.sent_epoch
 url: https://test.mmt.dev/echo
 method: post
 format: json
@@ -35,3 +37,5 @@ body:
   expired_at: "2026-09-18T13:00:00Z"
   opened_at: "14:30:00"
   closed_at: "14:30:03"
+  sent_at: c:utc_datetime
+  sent_epoch: c:epoch

@@ -22,6 +22,8 @@ steps:
       tags: =# 3
       created_at: =5s~ 2026-09-18T12:00:02Z
       updated_at: "!5s~ 2026-09-18T13:00:00Z"
+      sent_at: =5s~ c:utc_datetime
+      sent_epoch: =5s~ c:epoch
   - assert: ${res.status_code} == 200
   - assert: ${res.score} != 0
   - assert: ${res.role} !@ guest,user
@@ -47,6 +49,21 @@ steps:
       actual: ${res.message}
       operator: <50%
       expected: Hi Universe
+  - check:
+      title: Times within 5s
+      actual: ${res.created_at}
+      operator: =5s~
+      expected: ${res.updated_at}
+  - check:
+      title: Times not within 5s
+      actual: ${res.created_at}
+      operator: "!5s~"
+      expected: ${res.expired_at}
+  - check:
+      title: Sent just now
+      actual: ${res.sent_at}
+      operator: =5s~
+      expected: c:utc_datetime
   - check:
       title: Path starts with /api/
       actual: ${res.path}
