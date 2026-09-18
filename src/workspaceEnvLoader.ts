@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as YAML from 'yaml';
 import {CertificateSettings, DEFAULT_CERT_SETTINGS} from 'mmt-core/NetworkData';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
 import * as mmtcore from 'mmt-core';
 
 interface EnvOption {
@@ -15,6 +16,7 @@ interface EnvVariable {
   value: string | number | boolean;
   options: EnvOption[];
   source?: 'file' | 'manual' | 'runtime';
+  lastUpdate?: number;
 }
 
 interface EnvCaCertificate {
@@ -92,7 +94,9 @@ export async function loadWorkspaceEnvFile(
       if (force || !hasExistingEnv) {
         const envVariables = parseEnvVariables(yaml.variables);
         if (envVariables.length > 0) {
-          await context.workspaceState.update('multimeter.environment.storage', envVariables);
+          const stamped = applyEnvVarLastUpdates(
+              envVariables, asEnvVarList(existingEnvStorage));
+          await context.workspaceState.update('multimeter.environment.storage', stamped);
         }
       }
 

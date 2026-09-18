@@ -73,4 +73,6 @@ export interface EnvVariable {
   options: EnvOption[];
   /** Origin used for env-panel icons: file / manual / runtime (setenv). */
   source?: EnvVarSource;
+  /** Epoch ms when `value` last changed in workspace storage. */
+  lastUpdate?: number;
 }

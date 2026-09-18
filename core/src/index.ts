@@ -9,6 +9,7 @@ export * as EnvData from "./EnvData";
 export * as suiteParsePack from "./suiteParsePack";
 export * as loadtestParsePack from "./loadtestParsePack";
 export * as envParsePack from "./envParsePack";
+export * as envVarLastUpdate from "./envVarLastUpdate";
 export * as apiParsePack from "./apiParsePack";
 export * as curlConvertor from "./curlConvertor";
 export * as curlGenerator from "./curlGenerator";

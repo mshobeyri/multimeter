@@ -30,6 +30,7 @@ import {
   type CurlShellKind,
 } from 'mmt-core/curlGenerator';
 import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/NetworkData';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
 
 let curlTerminal: vscode.Terminal|null = null;
 
@@ -112,7 +113,12 @@ function buildCurlArtifacts(
 }
 
 async function handleUpdateWorkspaceState(message: any, mmtProvider: any) {
-  mmtProvider.context.workspaceState.update(message.name, message.value);
+  let value = message.value;
+  if (message.name === 'multimeter.environment.storage' && Array.isArray(value)) {
+    const previous = mmtProvider.context.workspaceState.get(message.name);
+    value = applyEnvVarLastUpdates(value, asEnvVarList(previous));
+  }
+  mmtProvider.context.workspaceState.update(message.name, value);
   await vscode.commands.executeCommand('multimeter.environment.refresh');
 }
 
