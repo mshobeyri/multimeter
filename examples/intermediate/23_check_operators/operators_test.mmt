@@ -20,6 +20,8 @@ steps:
       path: =* /users/
       message: >60% Hello world from MMT
       tags: =# 3
+      created_at: =5s~ 2026-09-18T12:00:02Z
+      updated_at: "!5s~ 2026-09-18T13:00:00Z"
   - assert: ${res.status_code} == 200
   - assert: ${res.score} != 0
   - assert: ${res.role} !@ guest,user
@@ -30,6 +32,9 @@ steps:
   - check: ${res.path} !$ /admin
   - check: ${res.message} !* /error/i
   - check: ${res.tags} !# 0
+  - check: ${res.created_at} =5s~ ${res.updated_at}
+  - check: ${res.created_at} !5s~ ${res.expired_at}
+  - check: ${res.opened_at} =5s~ ${res.closed_at}
   - check: ${res.role} =@ admin
   - check: ${res.name} <40% completely-different
   - check:

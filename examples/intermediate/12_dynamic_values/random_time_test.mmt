@@ -1,0 +1,24 @@
+type: test
+title: Random time
+description: "Calls an API that uses calendar and epoch r: tokens and checks times with =5s~"
+import:
+  randomTime: ./api/random_time.mmt
+steps:
+  - call: randomTime
+    id: result
+    expect:
+      request_method: POST
+      random_datetime: =^ 2026-
+      random_utc_datetime:
+        - =^ 2026-
+        - =$ Z
+      datetime_near_now: != null
+      utc_datetime_near_now: =$ Z
+      ranged_epoch:
+        - >= 1700000000
+        - <= 1800000000
+      epoch_near_now: != null
+      current_utc: =$ Z
+  - check: ${result.utc_datetime_near_now} =5s~ ${result.current_utc}
+  - check: ${result.datetime_near_now} =5s~ ${result.current_local}
+  - check: ${result.epoch_near_now} =5s~ ${result.current_epoch}

@@ -1,0 +1,22 @@
+type: test
+title: Current values
+description: "Calls an API that uses c: tokens and checks nearby times with =5s~"
+import:
+  currentValues: ./api/current.mmt
+steps:
+  - call: currentValues
+    id: result
+    expect:
+      request_method: POST
+      created_utc: =$ Z
+      created_utc_plus_2s: =$ Z
+      created_utc_plus_1h: =$ Z
+      created_local: != null
+      created_date: =^ 20
+      created_time: '=* ^[0-9]{2}:[0-9]{2}:[0-9]{2}$'
+      created_epoch: != null
+      timezone: != null
+      utc_offset: != null
+      year: >= 2026
+  - check: ${result.created_utc} =5s~ ${result.created_utc_plus_2s}
+  - check: ${result.created_utc} !5s~ ${result.created_utc_plus_1h}

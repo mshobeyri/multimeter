@@ -10,7 +10,7 @@ The single source of truth for token syntax and replacement is `core/src/variabl
 - [Random tokens (`r:`)](./random.md) — full generator reference
 - [Current tokens (`c:`)](./current.md) — clock and locale generators
 
-See also: [Environment](../../files/env/index.md) · [Inputs](../../files/api/inputs.md) · [Server tokens](../../files/server/tokens.md)
+See also: [Environment](../../files/env/index.md) · [Inputs](../../files/api/inputs.md) · [Server tokens](../../files/server/tokens.md) · [Example: Dynamic values](../../../examples/intermediate/12_dynamic_values/)
 
 ## Token prefixes
 

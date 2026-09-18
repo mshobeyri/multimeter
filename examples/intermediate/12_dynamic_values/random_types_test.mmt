@@ -1,0 +1,21 @@
+type: test
+title: Random types
+description: "Calls an API that uses primitive and identifier r: tokens"
+import:
+  randomTypes: ./api/random_types.mmt
+steps:
+  - call: randomTypes
+    id: result
+    expect:
+      request_method: POST
+      id: != null
+      lucky_number: != null
+      request_id: =^ req-
+      bounded_int:
+        - >= 10
+        - <= 20
+      random_float:
+        - >= 0
+        - <= 1
+      short_code: =# 12
+      password: =# 20

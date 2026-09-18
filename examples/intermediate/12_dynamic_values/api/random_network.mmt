@@ -1,0 +1,21 @@
+type: api
+title: Random network
+description: "Sends network r: tokens and extracts the echoed values"
+outputs:
+  domain: body.body.domain
+  random_url: body.body.random_url
+  mac: body.body.mac
+  user_agent: body.body.user_agent
+  ip: body.body.ip
+  hostname: body.body.hostname
+  request_method: body.method
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  domain: r:domain
+  random_url: r:url
+  mac: r:mac
+  user_agent: r:user_agent
+  ip: r:ip
+  hostname: r:hostname

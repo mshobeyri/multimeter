@@ -1,0 +1,20 @@
+type: test
+title: Random identity
+description: "Calls an API that uses people, place, business, and text r: tokens"
+import:
+  randomIdentity: ./api/random_identity.mmt
+steps:
+  - call: randomIdentity
+    id: result
+    expect:
+      request_method: POST
+      email: =C @
+      name: != null
+      username: =C .
+      company: != null
+      job_title: != null
+      postal_code: =* ^[0-9]{5}$
+      street_address: =$ Street
+      random_word: != null
+      random_sentence: =$ .
+      random_paragraph: =C .

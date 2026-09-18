@@ -1,0 +1,29 @@
+type: api
+title: Current values
+description: "Sends c: clock and locale tokens, including offsets, and extracts the echoed values"
+outputs:
+  created_utc: body.body.created_utc
+  created_utc_plus_2s: body.body.created_utc_plus_2s
+  created_utc_plus_1h: body.body.created_utc_plus_1h
+  created_local: body.body.created_local
+  created_date: body.body.created_date
+  created_time: body.body.created_time
+  created_epoch: body.body.created_epoch
+  timezone: body.body.timezone
+  utc_offset: body.body.utc_offset
+  year: body.body.year
+  request_method: body.method
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  created_utc: c:utc_datetime
+  created_utc_plus_2s: c:utc_datetime(+2s)
+  created_utc_plus_1h: c:utc_datetime(+1h)
+  created_local: c:datetime
+  created_date: c:date
+  created_time: c:time
+  created_epoch: c:epoch
+  timezone: c:timezone
+  utc_offset: c:utc_offset
+  year: c:year
