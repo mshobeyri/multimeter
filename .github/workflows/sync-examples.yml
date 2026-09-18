@@ -1,8 +1,12 @@
 # ──────────────────────────────────────────────────────────────────────
 # Sync examples + README + branding assets to mshobeyri/multimeter-examples
 # ──────────────────────────────────────────────────────────────────────
-# Source of truth: this repo (multimeter) on branch `main`.
-# Target: https://github.com/mshobeyri/multimeter-examples (default: master)
+# Source of truth: this repo (multimeter).
+# Target: https://github.com/mshobeyri/multimeter-examples
+#
+# Branch mapping:
+#   multimeter `main` → multimeter-examples `main`
+#   multimeter `dev`  → multimeter-examples `dev`
 #
 # Required secret on multimeter:
 #   EXAMPLES_REPO_TOKEN — PAT (classic: repo scope, or fine-grained:
@@ -13,7 +17,7 @@ name: Sync examples repo
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - 'examples/**'
       - 'README.md'
@@ -29,12 +33,15 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: sync-examples
+  group: sync-examples-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   sync:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    env:
+      TARGET_BRANCH: ${{ github.ref_name }}
     steps:
       - name: Checkout multimeter
         uses: actions/checkout@v6
@@ -54,9 +61,14 @@ jobs:
         env:
           TOKEN: ${{ secrets.EXAMPLES_REPO_TOKEN }}
         run: |
-          git clone --depth 1 \
-            "https://x-access-token:${TOKEN}@github.com/mshobeyri/multimeter-examples.git" \
-            /tmp/multimeter-examples
+          set -euo pipefail
+          REMOTE="https://x-access-token:${TOKEN}@github.com/mshobeyri/multimeter-examples.git"
+          if git ls-remote --heads "${REMOTE}" "${TARGET_BRANCH}" | grep -q "refs/heads/${TARGET_BRANCH}$"; then
+            git clone --depth 1 --branch "${TARGET_BRANCH}" "${REMOTE}" /tmp/multimeter-examples
+          else
+            git clone --depth 1 "${REMOTE}" /tmp/multimeter-examples
+            git -C /tmp/multimeter-examples checkout -B "${TARGET_BRANCH}"
+          fi
 
       - name: Sync content
         run: |
@@ -107,9 +119,9 @@ jobs:
           fi
 
           SHORT_SHA="${GITHUB_SHA::7}"
-          git commit -m "Sync from multimeter@${SHORT_SHA}"
+          git commit -m "Sync from multimeter@${SHORT_SHA} (${TARGET_BRANCH})"
 
           # Drop checkout's GITHUB_TOKEN extraheader so the PAT is what GitHub sees.
           git remote set-url origin \
             "https://x-access-token:${TOKEN}@github.com/mshobeyri/multimeter-examples.git"
-          git -c http.https://github.com/.extraheader= push origin HEAD:master
+          git -c http.https://github.com/.extraheader= push origin "HEAD:${TARGET_BRANCH}"
