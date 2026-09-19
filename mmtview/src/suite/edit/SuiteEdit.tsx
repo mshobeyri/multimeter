@@ -2,7 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { suiteToYaml, yamlToSuite } from 'mmt-core/suiteParsePack';
 import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
-import { SuiteData, SuiteYamlFilter } from 'mmt-core/SuiteData';
+import { SuiteData, SuiteEnvironment, SuiteYamlFilter } from 'mmt-core/SuiteData';
 import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
@@ -25,12 +25,6 @@ const SUITE_EDIT_TABS = [
   { id: 'environment' as const, label: 'Environment', icon: 'symbol-namespace' },
   { id: 'exports' as const, label: 'Exports', icon: 'export' },
 ];
-
-interface SuiteEnvironmentConfig {
-  preset?: string;
-  file?: string;
-  variables?: Record<string, unknown>;
-}
 
 interface SuiteFilterConfig {
   only: string[];
@@ -167,13 +161,13 @@ const updateSuiteContentWithFilter = (content: string, filter: SuiteFilterConfig
   });
 };
 
-const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | null => {
+const buildEnvironmentFromContent = (content: string): SuiteEnvironment | null => {
   const parsed = parseYaml(content);
   if (!parsed?.environment || typeof parsed.environment !== 'object') {
     return null;
   }
   const env = parsed.environment;
-  const result: SuiteEnvironmentConfig = {};
+  const result: SuiteEnvironment = {};
   if (typeof env.preset === 'string') {
     result.preset = env.preset;
   }
@@ -211,7 +205,7 @@ const updateSuiteContentWithImports = (content: string, imports: Record<string, 
   });
 };
 
-const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironmentConfig | null): string | null => {
+const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironment | null): string | null => {
   return rewriteSuiteYaml(content, (suite) => {
     if (!env || (env.preset === undefined && env.file === undefined &&
         (!env.variables || Object.keys(env.variables).length === 0))) {
@@ -262,7 +256,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [filter, setFilter] = useState<SuiteFilterConfig>(() => buildFilterFromContent(content));
   const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
-  const [environment, setEnvironment] = useState<SuiteEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
+  const [environment, setEnvironment] = useState<SuiteEnvironment | null>(() => buildEnvironmentFromContent(content));
   const [exports, setExports] = useState<string[]>(() => buildExportsFromContent(content));
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
   const [itemServerFiles, setItemServerFiles] = useState<string[]>([]);
@@ -428,7 +422,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   }, [servers, persistServers]);
 
   const persistEnvironment = useCallback(
-    (nextEnv: SuiteEnvironmentConfig | null) => {
+    (nextEnv: SuiteEnvironment | null) => {
       setEnvironment(nextEnv);
       const updated = updateSuiteContentWithEnvironment(content, nextEnv);
       if (updated) {

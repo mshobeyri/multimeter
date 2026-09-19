@@ -1,3 +1,5 @@
+export type CompareCell = boolean | string
+
 export interface CompareRow {
   feature: string
   other: string

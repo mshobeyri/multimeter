@@ -1,4 +1,5 @@
-import {runner, suiteBundle, runConfig, runFileCache, SuiteData} from 'mmt-core';
+import {runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
+import type {SuiteEnvironment} from 'mmt-core/SuiteData';
 import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
 import {LogLevel} from 'mmt-core/CommonData';
 import {findProjectRootSync} from 'mmt-core/fileHelper';
@@ -22,8 +23,6 @@ import {
   createWebviewRunReporter,
   resolveWebviewReportType,
 } from './webviewReporter';
-
-type SuiteEnvironment = SuiteData.SuiteEnvironment;
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});

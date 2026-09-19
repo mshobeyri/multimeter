@@ -1,3 +1,4 @@
+import type {FileLoader} from './JSerFileLoader';
 import {detectDocType, resolveRelativeTo} from './runCommon';
 import {SuiteEnvironment, SuiteYamlFilter} from './SuiteData';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
@@ -19,7 +20,7 @@ export type SuiteHierarchyNode =
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
 
-export type SuiteHierarchyFileLoader = (path: string) => Promise<string>;
+export type SuiteHierarchyFileLoader = FileLoader;
 
 function optionalTags(tags?: string[]): string[]|undefined {
   if (!Array.isArray(tags) || tags.length === 0) {

@@ -1,4 +1,5 @@
 import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
+import type {ReportFormat} from 'mmt-core/CommonData';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
@@ -9,7 +10,7 @@ import path from 'path';
 
 import {resolveUserPath, resolveUserPathPreferExisting} from './pathNormalize.cjs';
 
-export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
+export type {ReportFormat};
 
 const {mergeEnv, resolvePresetsEnv, normalizePresetNames} =
     ((mmtcore as any).runConfig || {}) as any;

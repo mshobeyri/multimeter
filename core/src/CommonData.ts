@@ -85,6 +85,10 @@ export type Parameter = { [key: string]: JSONValue };
 export type JSONRecord = Record<string, JSONValue>;
 
 export type LogLevel = 'trace' | 'debug' | 'error' | 'warn' | 'info' | 'log';
+/** How check/assert/debug steps write to the console. CLI `--quiet` sets `none`. */
+export type CheckLogMode = 'default' | 'failures-only' | 'none';
+/** Shared export/report formats for CLI, extension, and webview. */
+export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
 export function formatDuration(ms?: number): string {
   if (ms == null || ms < 0) {

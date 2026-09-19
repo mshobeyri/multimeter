@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { flushSync } from 'react-dom';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { formatDuration } from 'mmt-core/CommonData';
+import type { SuiteEnvironment } from 'mmt-core/SuiteData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
 import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
@@ -368,19 +369,13 @@ const buildServersFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
-interface SuiteEnvironmentConfig {
-    preset?: string;
-    file?: string;
-    variables?: Record<string, unknown>;
-}
-
-const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | null => {
+const buildEnvironmentFromContent = (content: string): SuiteEnvironment | null => {
     const parsed = parseYaml(content);
     if (!parsed?.environment || typeof parsed.environment !== 'object') {
         return null;
     }
     const env = parsed.environment;
-    const result: SuiteEnvironmentConfig = {};
+    const result: SuiteEnvironment = {};
     if (typeof env.preset === 'string') {
         result.preset = env.preset;
     }

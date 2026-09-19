@@ -1,11 +1,13 @@
-import {LogLevel} from './CommonData';
+import {CheckLogMode, LogLevel} from './CommonData';
 import {RunJSCodeContext} from './jsRunner';
 import type {LoadReportData} from './reportCollector';
 import {dirnamePath, joinPath, resolveRequestedAgainst} from './fileHelper';
 import parseYaml from './markupConvertor';
 import {processDataImportsInYaml} from './dataImportProcessor';
+import type {BinaryFileLoader, FileLoader} from './JSerFileLoader';
+import type {SuiteEnvironment} from './SuiteData';
 
-export type FileLoader = (path: string) => Promise<string>;
+export type {FileLoader, BinaryFileLoader} from './JSerFileLoader';
 
 export type TestStepStatus = 'passed'|'failed';
 export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending'|'invalid'|'skipped';
@@ -158,7 +160,7 @@ export interface RunFileOptions {
   manualEnvvars?: Record<string, any>;
   fileLoader: FileLoader;
   /** Load a relative path as raw bytes (format: binary request bodies). */
-  binaryFileLoader?: (path: string) => Promise<Buffer>;
+  binaryFileLoader?: BinaryFileLoader;
   jsRunner: (context: RunJSCodeContext) => Promise<any>;
   logger: (level: LogLevel, msg: string) => void;
   reporter: (message: RunReporterMessage) => void;
@@ -218,7 +220,7 @@ export interface RunFileOptions {
    * How check/assert/debug steps write to the console.
    * CLI `--quiet` sets `none`.
    */
-  checkLogMode?: 'default'|'failures-only'|'none';
+  checkLogMode?: CheckLogMode;
 
   /**
    * Optional stamp for the process-level file/JS cache. Compared at the start
@@ -360,12 +362,6 @@ export function resolvePresetsEnv(
     Object.assign(out, resolvePresetEnv(doc, name));
   }
   return out;
-}
-
-export interface SuiteEnvironment {
-  preset?: string;
-  file?: string;
-  variables?: Record<string, unknown>;
 }
 
 export interface MergeSuiteEnvParams {

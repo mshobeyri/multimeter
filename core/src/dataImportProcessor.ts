@@ -3,7 +3,9 @@ import {resolveRequestedAgainst} from './fileHelper';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {applyValueAccessor, ACCESSOR_PATH_RE, TOKEN_NAME_RE} from './variableReplacer';
 
-export type DataFileLoader = (path: string) => Promise<string>;
+import type {FileLoader} from './JSerFileLoader';
+
+export type DataFileLoader = FileLoader;
 export type SyncDataFileLoader = (path: string) => string;
 
 export interface ProcessDataImportsOptions {

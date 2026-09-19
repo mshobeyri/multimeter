@@ -1,10 +1,15 @@
 import { GraphQLConfig, GrpcConfig } from './APIData';
-import { FormatSpec } from './CommonData';
+import { Format, FormatSpec, GrpcStream, Protocol } from './CommonData';
+import type {EnvCertificates} from './EnvData';
+
+export type {EnvCertificates, EnvHttpSettings, EnvSetting} from './EnvData';
+/** YAML certificate block. Prefer EnvCertificates from EnvData. */
+export type EnvCertificateSettings = EnvCertificates;
 
 export interface Request {
   url?: string;
-  protocol?: "http" | "ws" | "graphql" | "grpc" | undefined;
-  format?: FormatSpec | undefined;
+  protocol?: Protocol;
+  format?: FormatSpec;
   method?: string;
   timeout?: number;
   headers?: Record<string, string> | undefined;
@@ -22,7 +27,7 @@ export interface GrpcRequest {
   method: string;
   metadata?: Record<string, string>;
   message?: object;
-  stream?: 'server' | 'client' | 'bidi';
+  stream?: GrpcStream;
 }
 
 export interface GrpcResponse {
@@ -34,7 +39,7 @@ export interface GrpcResponse {
 }
 
 export interface Response {
-  format?: "json" | "xml" | "xmle" | "text" | "urlencoded" | undefined;
+  format?: Format;
   headers?: Record<string, string> | undefined;
   cookies?: Record<string, string> | undefined;
   query?: Record<string, string> | undefined;
@@ -79,37 +84,6 @@ export interface ClientCertificate {
   keyData?: Buffer;
   pfxData?: Buffer;
   enabled: boolean;
-}
-
-// Certificate settings stored in env file (YAML format).
-// Note: Enable/disable flags are NOT stored in YAML.
-// They are stored in localStorage/workspaceState with sensible defaults.
-export interface EnvCertificateSettings {
-  server_ca?: string | {
-    path?: string;     // Legacy CA cert file path
-    paths?: string[];  // Legacy multiple CA cert file paths
-  };
-  clients?: Array<{
-    name?: string;
-    host?: string;
-    /** Path to the client certificate file (PEM/CRT). */
-    cert?: string;
-    /** Path to the private key file. */
-    key?: string;
-    /** Path to a PKCS#12 bundle (.pfx/.p12). */
-    pfx?: string;
-    passphrase_plain?: string;
-    passphrase_env?: string;
-  }>;
-}
-
-export interface EnvHttpSettings {
-  version?: string;
-  timeout?: number;
-}
-
-export interface EnvSetting {
-  http?: EnvHttpSettings;
 }
 
 export interface NetworkConfig {

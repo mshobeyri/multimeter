@@ -1,3 +1,5 @@
+import type {CheckLogMode} from './CommonData';
+import type {FileLoader} from './JSerFileLoader';
 import {parseCacheExpiryAtMs} from './JSerHelper';
 import {applyOmitToOutgoingRequest, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
 import {buildMultipartBodyFromParts} from './multipartBody';
@@ -466,8 +468,6 @@ export function notEndsWith_(a: any, b: any) {
   return !endsWith_(a, b);
 }
 
-type FileLoader = (path: string) => Promise<string>;
-
 let __mmtFileLoader: FileLoader|undefined;
 const __mmtJsModuleCache = new Map<string, any>();
 
@@ -613,7 +613,7 @@ declare const __mmtRunId: string|undefined;
 declare const __mmtId: string|undefined;
 
 type StepType = 'check'|'assert'|'debug';
-export type CheckLogMode = 'default'|'failures-only'|'none';
+export type {CheckLogMode} from './CommonData';
 
 const resolveReporter = () =>
     (typeof __mmtReportStep === 'function' ? __mmtReportStep : undefined);

@@ -1,13 +1,13 @@
 import { Check, FileCode, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import FadeIn from '../components/FadeIn'
+import type { CompareCell } from '../data/comparePages'
 
 type ToolKey = 'multimeter' | 'postman' | 'bruno' | 'restClient'
-type Cell = boolean | string
 
 interface FeatureRow {
   feature: string
-  values: Record<ToolKey, Cell>
+  values: Record<ToolKey, CompareCell>
 }
 
 const tools: Array<{ key: ToolKey; name: string; logo?: string; highlight?: boolean }> = [
@@ -104,7 +104,7 @@ const features: FeatureRow[] = [
   },
 ]
 
-function CellValue({ value }: { value: Cell }) {
+function CellValue({ value }: { value: CompareCell }) {
   if (typeof value === 'string') {
     return (
       <span className="inline-block max-w-[10rem] text-[13px] leading-snug text-slate-300">

@@ -260,6 +260,11 @@
       "require": "./dist/EnvData.js",
       "default": "./dist/EnvData.js"
     },
+    "./SuiteData": {
+      "types": "./dist/SuiteData.d.ts",
+      "require": "./dist/SuiteData.js",
+      "default": "./dist/SuiteData.js"
+    },
     "./envParsePack": {
       "types": "./dist/envParsePack.d.ts",
       "require": "./dist/envParsePack.js",
