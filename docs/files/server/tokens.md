@@ -34,8 +34,8 @@ Mock responses use the same dynamic tokens as APIs and tests. Values are resolve
 | Token | Example | Description |
 |-------|---------|-------------|
 | `e:var` / `<<e:var>>` | `email: e:admin_email` | Environment variable |
-| `r:name` / `<<r:name>>` | `id: r:uuid` | Random value (new per request) — [full list](../../features/dynamic-values.md#random-tokens-r) |
-| `c:name` / `<<c:name>>` | `created: c:date` | Current date/time — [full list](../../features/dynamic-values.md#current-tokens-c) |
+| `r:name` / `<<r:name>>` | `id: r:uuid` | Random value (new per request) — [full list](../../features/dynamic-values/random.md) |
+| `c:name` / `<<c:name>>` | `created: c:date` | Current date/time — [full list](../../features/dynamic-values/current.md) |
 
 `e:` tokens also work in response headers, `match` rules, path patterns, `port`, and `protocol`:
 
@@ -61,4 +61,4 @@ Set `mock_port` / `mock_protocol` (and other vars) in the Environment panel, a s
 
 While typing an incomplete token such as `protocol: e:`, YAML may temporarily parse it as a nested map — Multimeter treats that as a validation error instead of crashing the editor.
 
-See also: [Endpoints](./endpoints.md) · [Dynamic values](../../features/dynamic-values.md) · [Environment](../env/index.md)
+See also: [Endpoints](./endpoints.md) · [Dynamic values](../../features/dynamic-values/index.md) · [Environment](../env/index.md)

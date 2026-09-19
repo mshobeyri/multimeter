@@ -77,7 +77,7 @@ XML (detected from `Content-Type` or a leading `<`) uses the same path syntax as
 - The XML declaration (`<?xml …?>`), doctypes and comments are ignored; paths start at the root element: `body.root.id`.
 - Repeated elements are arrays: `body.root.tags.tag` returns all of them, `body.root.tags.tag.2` the third. Index `.0` also works when only one element is present.
 - Attributes are plain keys on their element: `body.root.nested.enabled`.
-- Element text is a string (`"true"`, `"42"`); empty elements return `""`. Compare with type-unsafe operators `=~` / `!~` when the expected value is a YAML boolean or number.
+- Element text is a string (`"true"`, `"42"`); empty elements return `""`. Compare with as-string operators `=S` / `!S` when the expected value is a YAML boolean or number.
 
 ```yaml
 outputs:

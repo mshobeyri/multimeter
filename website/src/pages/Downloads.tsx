@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ExternalLink, Download } from 'lucide-react'
+import { ExternalLink, Download, Check, Copy } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 import FAQ from '../components/FAQ'
 import Seo from '../components/Seo'
@@ -125,10 +125,60 @@ function ClaudeLogo({ size = 24 }: { size?: number }) {
   )
 }
 
+const MCP_PROMPT = `Add the Multimeter MCP server so you can scaffold, validate, format, and run .mmt files.
+Use npx -y mmt-mcp (name: multimeter). Do not invent .mmt syntax.
+Docs: https://mmt.dev/for-agents.html`
+
+const MCP_CURSOR_INSTALL =
+  'https://cursor.com/en/install-mcp?name=multimeter&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1tdC1tY3AiXX0%3D'
+
+const MCP_VSCODE_INSTALL =
+  'vscode:mcp/install?%7B%22name%22%3A%22multimeter%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mmt-mcp%22%5D%7D'
+
 function CodeBlock({ children }: { children: string }) {
   return (
     <div className="bg-surface border border-border rounded-lg px-4 py-2.5 font-mono text-sm text-slate-300 select-all whitespace-pre-wrap">
       {children}
+    </div>
+  )
+}
+
+function CopyBlock({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1600)
+    } catch {
+      // ignore clipboard failures
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-xs text-slate-500">{label}</p>
+        <button
+          type="button"
+          onClick={onCopy}
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+          aria-label={copied ? 'Copied' : 'Copy'}
+        >
+          {copied ? <Check size={14} /> : <Copy size={14} />}
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <div className="bg-surface border border-border rounded-lg px-4 py-2.5 font-mono text-sm text-slate-300 whitespace-pre-wrap">
+        {value}
+      </div>
     </div>
   )
 }
@@ -200,10 +250,9 @@ export default function Downloads() {
               MCP — <code className="text-accent font-normal">mmt-mcp</code>
             </h2>
             <p className="text-slate-400">
-              Point Cursor, Copilot, Claude, and other MCP clients at{' '}
-              <code className="text-accent">mmt-mcp</code> so they can scaffold,
-              validate, format, and run YAML <code className="text-accent">.mmt</code> files
-              instead of guessing syntax.{' '}
+              One local server for Cursor, VS Code, and Copilot:{' '}
+              <code className="text-accent">npx -y mmt-mcp</code>. Click to install,
+              or paste the prompt to your AI.{' '}
               <Link to="/docs/features/mcp" className="text-accent hover:underline">
                 MCP docs
               </Link>
@@ -215,81 +264,66 @@ export default function Downloads() {
         </div>
       </section>
 
-      {/* ── MCP client cards ── */}
+      {/* ── MCP install card ── */}
       <section className="pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6">
-
+        <div className="max-w-5xl mx-auto">
           <FadeIn delay={140}>
-            <div className="bg-surface-light border border-border rounded-2xl p-6 h-full flex flex-col">
-              <div className="flex items-center gap-3 mb-4">
+            <div className="bg-surface-light border border-border rounded-2xl p-6 sm:p-8">
+              <div className="flex flex-wrap items-center gap-3 mb-5">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-white">
-                    <CursorLogo size={24} />
+                  <div className="w-11 h-11 bg-white/5 rounded-xl flex items-center justify-center text-white">
+                    <CursorLogo size={22} />
                   </div>
-                  <div className="w-12 h-12 bg-[#D97757]/10 rounded-xl flex items-center justify-center text-[#D97757] -ml-2">
-                    <ClaudeLogo size={24} />
+                  <div className="w-11 h-11 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 -ml-2">
+                    <CopilotLogo size={20} />
+                  </div>
+                  <div className="w-11 h-11 bg-[#D97757]/10 rounded-xl flex items-center justify-center text-[#D97757] -ml-2">
+                    <ClaudeLogo size={20} />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Cursor &amp; Claude</h3>
-                  <p className="text-xs text-slate-500">.cursor/mcp.json and Claude MCP config</p>
+                  <h3 className="text-lg font-bold text-white">Add Multimeter MCP</h3>
+                  <p className="text-xs text-slate-500">
+                    Same local server: <code className="text-accent">npx -y mmt-mcp</code>
+                  </p>
                 </div>
               </div>
-              <div className="space-y-3 flex-1">
-                <p className="text-xs text-slate-500">Add this to either client:</p>
-                <CodeBlock>{`{
-  "mcpServers": {
-    "multimeter": {
-      "command": "npx",
-      "args": ["-y", "mmt-mcp"]
-    }
-  }
-}`}</CodeBlock>
+
+              <p className="text-sm text-slate-400 mb-6">
+                Copilot: install the extension, then enable{' '}
+                <strong className="text-white font-medium">Multimeter</strong> in agent MCP tools.
+                No extra <code className="text-accent">npx</code> install.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                <a
+                  href={MCP_CURSOR_INSTALL}
+                  className="flex items-center justify-center gap-2 border border-border hover:border-slate-500 text-slate-200 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                >
+                  <CursorLogo size={16} />
+                  Add to Cursor
+                </a>
+                <a
+                  href={MCP_VSCODE_INSTALL}
+                  className="flex items-center justify-center gap-2 border border-border hover:border-slate-500 text-slate-200 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                >
+                  <VSCodeLogo size={16} />
+                  Add to VS Code
+                </a>
+                <a
+                  href="https://www.npmjs.com/package/mmt-mcp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 border border-border hover:border-slate-500 text-slate-300 hover:text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                >
+                  <ExternalLink size={14} />
+                  View on npm
+                </a>
               </div>
-              <a
-                href="https://www.npmjs.com/package/mmt-mcp"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 mt-4 border border-border hover:border-slate-500 text-slate-300 hover:text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-              >
-                <ExternalLink size={14} />
-                View on npm
-              </a>
+
+              <CopyBlock label="Copy and paste this to your AI" value={MCP_PROMPT} />
             </div>
           </FadeIn>
-
-          <FadeIn delay={180}>
-            <div className="bg-surface-light border border-border rounded-2xl p-6 h-full flex flex-col">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400">
-                  <CopilotLogo size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Copilot</h3>
-                  <p className="text-xs text-slate-500">Bundled with the VS Code extension</p>
-                </div>
-              </div>
-              <div className="space-y-3 flex-1">
-                <p className="text-sm text-slate-400">
-                  After installing the extension, enable{' '}
-                  <strong className="text-white font-medium">Multimeter</strong> in Copilot agent MCP tools.
-                  No extra npm install.
-                </p>
-                <p className="text-xs text-slate-500">Wire it by hand with:</p>
-                <CodeBlock>npx -y mmt-mcp</CodeBlock>
-              </div>
-              <a
-                href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 mt-4 border border-border hover:border-slate-500 text-slate-300 hover:text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-              >
-                <ExternalLink size={14} />
-                Install Extension
-              </a>
-            </div>
-          </FadeIn>
-
         </div>
       </section>
 

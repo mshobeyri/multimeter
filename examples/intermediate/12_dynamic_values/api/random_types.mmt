@@ -1,0 +1,25 @@
+type: api
+title: Random types
+description: "Sends primitive and identifier r: tokens and extracts the echoed values"
+outputs:
+  id: body.body.id
+  lucky_number: body.body.lucky_number
+  active: body.body.active
+  request_id: body.body.request_id
+  bounded_int: body.body.bounded_int
+  random_float: body.body.random_float
+  short_code: body.body.short_code
+  password: body.body.password
+  request_method: body.method
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  id: r:uuid
+  lucky_number: r:int
+  active: r:bool
+  request_id: req-<<r:uuid>>
+  bounded_int: r:int(10,20)
+  random_float: r:float(0,1)
+  short_code: r:alphanumeric(12)
+  password: r:password(20)

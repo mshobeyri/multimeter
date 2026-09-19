@@ -1,0 +1,63 @@
+type: test
+title: HTTP body formats
+description: Exercise json, xml, xmle, text, urlencoded, binary, and multipart request bodies against the public echo server.
+import:
+  json: ./post_json.mmt
+  urlencoded: ./post_urlencoded.mmt
+  xml: ./post_xml.mmt
+  xmle: ./post_xmle.mmt
+  text: ./post_text.mmt
+  binary: ./post_binary.mmt
+  multipart: ./post_multipart.mmt
+steps:
+  - call: json
+    id: json_result
+    expect:
+      status_code: 200
+      echoed_message: hello from json
+
+  - call: urlencoded
+    id: urlencoded_result
+    expect:
+      status_code: 200
+      echoed_username: demo
+      echoed_role: admin
+
+  - call: xml
+    id: xml_result
+    inputs:
+      name: ada
+    expect:
+      status_code: 200
+      echoed_name: ada
+
+  - call: xmle
+    id: xmle_result
+    inputs:
+      name: ada
+    expect:
+      status_code: 200
+      echoed_name: ada
+      has_expanded_meta: <meta></meta>
+
+  - call: text
+    id: text_result
+    inputs:
+      message: hello from text
+    expect:
+      status_code: 200
+      echoed_body: hello from text
+
+  - call: binary
+    id: binary_result
+    expect:
+      status_code: 200
+      echoed_body: BIN
+
+  - call: multipart
+    id: multipart_result
+    inputs:
+      description: hello from multipart
+    expect:
+      status_code: 200
+      echoed_description: hello from multipart

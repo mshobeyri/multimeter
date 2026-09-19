@@ -2,6 +2,50 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.43.0-pre]
+
+Pre-release.
+
+### Dynamic values
+
+- Expand `r:` and `c:` generators: UTC date/time, signed offsets (`c:date(+7d)`), future/past aliases, and relative/absolute temporal ranges
+- Refresh random and current tokens on every execution and each API tester Send
+- Resolve `r:` and `c:` tokens in `print`, titles, and checks
+- Split dynamic values docs into overview, syntax, random, and current
+
+### HTTP and tests
+
+- Add `format: multipart` for form-data file uploads
+- Add `=5s~` / `!Ns~` time comparison (ISO, epoch, or clock times). Bare `=~` / `!~` stay as-string (`=S` / `!S`); the YAML editor strikes them through
+- Fix omit and quote parsing in `expect` values
+
+### Suites and mocks
+
+- Add suite tag filter (`filter.only` / `filter.skip`; CLI `--tag` / `--skip-tag`)
+- Run untagged children when a nested suite is selected by `only` tags
+- Add `examples/intermediate/29_suite_tag_filter` for only/skip tags, nested suite subtree, and CLI `--tag`
+- Start nested suite `servers:` when that nested suite runs
+- Validate invalid suite `then` separators in the YAML editor
+
+### Convertors
+
+- Expose OpenAPI path parameters as URL `inputs` (`<<i:name>>`)
+- Resolve Swagger 2 `host` / `basePath` / `schemes` into absolute OpenAPI server URLs
+- Improve Postman conversion: structured JSON bodies, richer `{{$random*}}` mapping, and `pm.variables.replaceIn` pre-request scripts → `setenv`
+- Show clickable import errors in the Code tab (keep generated JS and name the file that failed to parse)
+
+### CI, MCP, and install
+
+- Add Azure Pipelines task `Testlight@1` (Marketplace listing: Testlight - Multimeter CLI)
+- Move the GitHub Action into `mmtaction/` and publish it on stable tags only
+- Fix VS Code MCP server registration
+- Add `mmt-mcp` to Downloads for Cursor, Copilot, and Claude
+
+### Website
+
+- Align the homepage with Git-native Show HN positioning and refresh marketing layout
+- Feature the Git-native demo on the Demos page
+
 ## [1.42.4]
 
 Stable release of the 1.42.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.42.4` on `@latest`.

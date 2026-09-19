@@ -46,6 +46,8 @@ A YAML object body is encoded as `application/x-www-form-urlencoded`. Spaces bec
 
 Example body `{ q: hello world, email: a+b@example.com }` produces `q=hello+world&email=a%2Bb%40example.com`.
 
+Runnable examples for every format: [HTTP body formats example](../../../../examples/intermediate/28_http_body_formats/README.md).
+
 ### HTTP binary file body
 
 ```yaml

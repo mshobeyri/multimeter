@@ -32,7 +32,7 @@
 - -x, --example <name|#n>
   - Named example or numeric index (#1 is first)
 - -t, --tag <tag>
-  - Only run tests/suites that have this tag (repeatable; comma-separated OK; OR)
+  - Only run tests/suites that have this tag (repeatable; comma-separated OK; OR). Replaces the suite file’s `filter:`. Example: [Suite tag filter](../../../examples/intermediate/29_suite_tag_filter/README.md)
 - --skip-tag <tag>
   - Skip tests/suites that have this tag (repeatable; comma-separated OK; OR)
 - -L, --log-level <level>

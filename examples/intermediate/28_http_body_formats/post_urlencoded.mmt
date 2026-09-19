@@ -1,0 +1,16 @@
+type: api
+title: POST urlencoded body
+description: YAML object encoded as application/x-www-form-urlencoded.
+inputs:
+  username: demo
+  role: admin
+outputs:
+  echoed_username: body[body][username]
+  echoed_role: body[body][role]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: urlencoded
+body:
+  username: i:username
+  role: i:role

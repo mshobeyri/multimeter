@@ -1,4 +1,8 @@
-import { openApiToAPI, buildOpenApiEnvFromSpec } from './openapiConvertor';
+import {
+  openApiToAPI,
+  buildOpenApiEnvFromSpec,
+  buildSwagger2ServerUrl,
+} from './openapiConvertor';
 import { parseYamlStrict } from './markupConvertor';
 
 describe('openapiConvertor.openApiToAPI', () => {
@@ -64,7 +68,8 @@ describe('openapiConvertor.openApiToAPI', () => {
     const apis = openApiToAPI(spec);
     expect(apis.length).toBe(1);
     const api = apis[0];
-    expect(api.url).toBe('https://test.mmt.dev/user/42');
+    expect(api.url).toBe('https://test.mmt.dev/user/<<i:id>>');
+    expect(api.inputs).toEqual({id: '42'});
     expect(api.method).toBe('post');
     expect(api.format).toBe('json');
     expect(typeof api.body).toBe('string');
@@ -247,7 +252,8 @@ describe('openapiConvertor.openApiToAPI', () => {
       },
     };
     const api = openApiToAPI(spec)[0];
-    expect(api.url).toBe('https://test.mmt.dev/items/7');
+    expect(api.url).toBe('https://test.mmt.dev/items/<<i:id>>');
+    expect(api.inputs).toEqual({id: '7'});
     expect(api.headers).toEqual({'X-Trace': 'path'});
     expect(api.query).toEqual({verbose: 'yes'});
   });
@@ -339,6 +345,65 @@ describe('openapiConvertor.openApiToAPI', () => {
     };
     const api = openApiToAPI(spec)[0];
     expect(api.url).toBe('https://<<e:host>>/v1/items');
+  });
+
+  it('builds Swagger 2 server URLs from host, basePath, and schemes', () => {
+    expect(buildSwagger2ServerUrl({
+      swagger: '2.0',
+      host: 'api.bitbucket.org',
+      basePath: '/2.0',
+      schemes: ['https'],
+    })).toBe('https://api.bitbucket.org/2.0');
+    expect(buildSwagger2ServerUrl({
+      swagger: '2.0',
+      host: 'slack.com',
+      basePath: '/api',
+    })).toBe('https://slack.com/api');
+    expect(buildSwagger2ServerUrl({openapi: '3.0.0', host: 'ignored.com'}))
+        .toBe('');
+  });
+
+  it('converts Swagger 2 specs without servers[] using host and basePath', () => {
+    const spec = {
+      swagger: '2.0',
+      host: 'petstore.swagger.io',
+      basePath: '/v2',
+      schemes: ['https'],
+      paths: {
+        '/pet/{petId}': {
+          get: {
+            summary: 'Find pet by ID',
+            parameters: [{in: 'path', name: 'petId', type: 'integer'}],
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.url).toBe('https://petstore.swagger.io/v2/pet/<<i:pet_id>>');
+    expect(api.inputs).toEqual({pet_id: ''});
+  });
+
+  it('exposes OpenAPI path parameters as inputs with example defaults', () => {
+    const spec = {
+      openapi: '3.0.3',
+      servers: [{url: 'https://api.example.com/v1'}],
+      paths: {
+        '/items/{itemId}': {
+          get: {
+            summary: 'Get item',
+            parameters: [{
+              name: 'itemId',
+              in: 'path',
+              required: true,
+              schema: {type: 'string', example: 'abc-123'},
+            }],
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.url).toBe('https://api.example.com/v1/items/<<i:item_id>>');
+    expect(api.inputs).toEqual({item_id: 'abc-123'});
   });
 
   it('builds env file from OpenAPI server variables', () => {
@@ -437,7 +502,8 @@ describe('openapiConvertor.openApiToAPI', () => {
     };
     const apis = openApiToAPI(spec);
     const getUser = apis.find(a => a.title === 'Get user')!;
-    expect(getUser.url).toBe('/users/42');
+    expect(getUser.url).toBe('/users/<<i:id>>');
+    expect(getUser.inputs).toEqual({id: '42'});
     const xml = apis.find(a => a.url === '/xml')!;
     expect(xml.format).toBe('xml');
     expect(xml.headers?.['Content-Type']).toBe('application/xml');

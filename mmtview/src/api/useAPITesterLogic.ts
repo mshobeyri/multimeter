@@ -3,11 +3,8 @@ import { APIData } from "mmt-core/APIData";
 import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord } from "mmt-core/CommonData";
 import { safeList } from "mmt-core/safer";
-import { replaceAllRefs } from "mmt-core/variableReplacer";
-import { stripOmitFromRequest } from "mmt-core/omitKeyword";
-import { formatBody } from "mmt-core/markupConvertor";
-import { requestFormat, responseFormat } from "mmt-core/CommonData";
-import { applyAuthToRequest, apiToYaml } from "mmt-core/apiParsePack";
+import { responseFormat } from "mmt-core/CommonData";
+import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
 import { resolveSetenvValues } from "mmt-core/setenvResolve";
@@ -28,6 +25,7 @@ import {
   diffApiRefreshScopes,
   isDocOnlyRefresh,
 } from "./apiUiRefresh";
+import { resolveApiRequest } from "mmt-core/resolveApiRequest";
 
 /** Always prefer the right-panel API Tester request over file YAML. */
 function buildUiApiRawFile(api: APIData, requestData: Request | undefined): string {
@@ -151,6 +149,34 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     }
   }, [requestData?.query, updateField]);
 
+  const loadEnvParameters = useCallback(async (): Promise<JSONRecord> => {
+    const envVars = await new Promise<any[]>(resolve => {
+      const cleanup = loadEnvVariables(vars => {
+        cleanup();
+        resolve(vars);
+      });
+    });
+
+    return safeList(envVars).reduce((acc, envVar) => {
+      acc[envVar.name] = envVar.value;
+      return acc;
+    }, {} as JSONRecord);
+  }, []);
+
+  const resolveFreshRequestData = useCallback(async (
+    inputs?: JSONRecord,
+    options?: { refreshRuntimeTokens?: boolean }
+  ): Promise<Request> => {
+    const resolvedInputs = inputs ?? currentInputsRef.current;
+    const envParameters = await loadEnvParameters();
+    return resolveApiRequest(
+      api,
+      resolvedInputs,
+      envParameters,
+      { refreshRuntimeTokens: options?.refreshRuntimeTokens }
+    );
+  }, [api, loadEnvParameters]);
+
   const prepareRequestData = useCallback((
     inputs?: JSONRecord,
     options?: {
@@ -172,45 +198,26 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const respectTouched = options?.respectTouched ?? true;
 
-    (async () => {
-      const envVars = await new Promise<any[]>(resolve => {
-        const cleanup = loadEnvVariables(vars => {
-          cleanup();
-          resolve(vars);
-        });
-      });
-
-      const envParameters: JSONRecord = safeList(envVars).reduce((acc, envVar) => {
-        acc[envVar.name] = envVar.value;
-        return acc;
-      }, {} as JSONRecord);
-
-      let rface = replaceAllRefs(
-        api,
-        api?.inputs ?? {},
-        resolvedInputs,
-        envParameters
-      ) as Request & { auth?: any };
-      rface = stripOmitFromRequest(rface) as Request & { auth?: any };
-
-      if (rface.auth) {
-        const applied = applyAuthToRequest(rface.auth, rface.headers || {}, rface.query);
-        rface.headers = applied.headers;
-        if (applied.query) {
-          rface.query = applied.query;
-        }
-        delete rface.auth;
-      }
-
-      if (rface.body && typeof rface.body !== "string") {
-        rface.body = formatBody(requestFormat(rface.format), rface.body ?? "");
-      }
-
+    void (async () => {
+      const rface = await resolveFreshRequestData(resolvedInputs);
       setRequestData((prev) =>
         applyScopedRequestData(prev, rface, scopes, touchedFieldsRef.current, respectTouched)
       );
     })();
-  }, [api, resetTouchedFields]);
+  }, [resetTouchedFields, resolveFreshRequestData]);
+
+  const buildRequestForSend = useCallback(async (): Promise<Request> => {
+    const fresh = await resolveFreshRequestData(undefined, { refreshRuntimeTokens: true });
+    const merged = applyScopedRequestData(
+      requestDataRef.current,
+      fresh,
+      ["all"],
+      touchedFieldsRef.current,
+      true
+    );
+    setRequestData(merged);
+    return merged;
+  }, [resolveFreshRequestData]);
 
   // Rebuild request UI only for scopes that actually changed (url / body / headers / …).
   useEffect(() => {
@@ -345,60 +352,66 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   // UI request as rawFile. Glyphs omit rawFile and use the editor file only.
   // The extension posts multimeter.api.run.result so the Response panel and
   // finish log share the same network duration. WS still uses the live socket.
-  const runViaCore = useCallback((opts: { forSend: boolean }) => {
+  const runViaCore = useCallback((opts: {
+    forSend: boolean;
+    requestOverride?: Request;
+  }) => {
+    const req = opts.requestOverride ?? requestDataRef.current;
     if (opts.forSend) {
       setIsSending(true);
       sendPendingRef.current = true;
       const protocol = protocolResolver.getEffectiveProtocol(
-        requestData?.protocol as any, requestData?.url) || "http";
+        req?.protocol as any, req?.url) || "http";
       const methodRaw = resolveApiHttpMethod(
-        requestData?.method || apiRef.current?.method,
-        requestData?.body ?? apiRef.current?.body);
+        req?.method || apiRef.current?.method,
+        req?.body ?? apiRef.current?.body);
       const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
-      const url = requestData?.url ?? "";
+      const url = req?.url ?? "";
       pushHistory({
         type: "send",
         method: method.toUpperCase(),
         protocol,
         title: url,
-        cookies: requestData?.cookies,
-        headers: requestData?.headers,
-        query: requestData?.query,
-        content: method === "get" ? "" : toContentString(requestData?.body),
+        cookies: req?.cookies,
+        headers: req?.headers,
+        query: req?.query,
+        content: method === "get" ? "" : toContentString(req?.body),
       });
     }
     window.vscode?.postMessage({
       command: "runCurrentDocument",
       report: { type: "lifecycle" },
-      rawFile: buildUiApiRawFile(apiRef.current, requestData),
+      rawFile: buildUiApiRawFile(apiRef.current, req),
       inputs: {
         exampleIndex: selectedExampleIdx,
-        manualInputs: currentInputs,
+        manualInputs: currentInputsRef.current,
       },
     });
-  }, [requestData, selectedExampleIdx, currentInputs]);
+  }, [selectedExampleIdx]);
 
-  const handleRunInCore = useCallback(() => {
-    runViaCore({ forSend: false });
+  const handleRunInCore = useCallback(async () => {
+    const req = await buildRequestForSend();
+    runViaCore({ forSend: false, requestOverride: req });
     window.vscode?.postMessage({ command: "showLogOutputChannel" });
-  }, [runViaCore]);
+  }, [buildRequestForSend, runViaCore]);
 
   const handleSend = useCallback(async () => {
     setResponseData(undefined);
     setResponseRevision(prev => prev + 1);
 
+    const req = await buildRequestForSend();
     const protocol = protocolResolver.getEffectiveProtocol(
-      requestData?.protocol as any, requestData?.url);
+      req?.protocol as any, req?.url);
 
     if (protocol === "ws") {
-      const res = await network.send(requestData);
+      const res = await network.send(req);
       setResponseData(res);
       setResponseRevision(prev => prev + 1);
       return;
     }
 
-    runViaCore({ forSend: true });
-  }, [network, requestData, runViaCore]);
+    runViaCore({ forSend: true, requestOverride: req });
+  }, [network, buildRequestForSend, runViaCore]);
 
   const handleCancel = useCallback(async () => {
     const protocol = protocolResolver.getEffectiveProtocol(

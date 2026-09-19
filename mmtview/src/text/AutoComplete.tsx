@@ -24,6 +24,20 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: `Generates a random ${name} at runtime. Token form r:${name}.`
         }));
     variablesSuggestions.push(...randomTokenSuggestions);
+    const parameterizedRandomSuggestions = Object.entries(
+        Random.RANDOM_TOKEN_PARAMETER_ARITY).map(([name, arity]) => {
+            return {
+                label: `r:${name}(${arity.signature})`,
+                kind: monaco.languages.CompletionItemKind.Function,
+                insertText: ` r:${name}(${arity.snippet})`,
+                insertTextRules:
+                    monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: `Parameterized random ${name}`,
+                documentation:
+                    `Generates r:${name} using ${arity.description}.`,
+            };
+        });
+    variablesSuggestions.push(...parameterizedRandomSuggestions);
 
     // Dynamic current token suggestions sourced from Current.CURRENT_TOKEN_MAP
     const currentTokenSuggestions = Object.keys(Current.CURRENT_TOKEN_MAP)
@@ -36,6 +50,30 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: `Inserts current ${name} at runtime. Token form c:${name}.`
         }));
     variablesSuggestions.push(...currentTokenSuggestions);
+    const offsetCurrentSuggestions = Current.CURRENT_TOKEN_OFFSET_NAMES.map(
+        name => ({
+            label: `c:${name}(offset)`,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: ` c:${name}(\${1:+1h1m})`,
+            insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: `Current ${name} with signed offset`,
+            documentation:
+                `Shifts c:${name} by a signed duration such as +1h1m or -1d2m1s.`,
+        }));
+    variablesSuggestions.push(...offsetCurrentSuggestions);
+    const aliasCurrentSuggestions = Object.entries(
+        Current.CURRENT_FUTURE_PAST_ALIASES).map(([name, alias]) => ({
+            label: `c:${name}(duration)`,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: ` c:${name}(\${1:1h})`,
+            insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: `Current ${alias.base} shifted ${alias.direction}`,
+            documentation:
+                `Shifts c:${alias.base} ${alias.direction} by an unsigned duration such as 1h or 2d4h.`,
+        }));
+    variablesSuggestions.push(...aliasCurrentSuggestions);
 
     loadEnvVariables((variables: { name: string; label: string; value: JSONValue }[]) => {
         variablesSuggestions.push(...variables.map(envVar => ({
@@ -983,8 +1021,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "format: ",
-            detail: 'Data format [json, xml, xmle, text, urlencoded, binary] or { request, response }',
-            documentation: 'The format of the request and response data. A single value applies to both.\nOptions:\n\t- json, xml, xmle, text, urlencoded, binary\nOr split when they differ:\nformat:\n  request: json\n  response: xml\nExample: format: json',
+            detail: 'Data format [json, xml, xmle, text, urlencoded, binary, multipart] or { request, response }',
+            documentation: 'The format of the request and response data. A single value applies to both.\nOptions:\n\t- json, xml, xmle, text, urlencoded, binary, multipart\nOr split when they differ:\nformat:\n  request: json\n  response: xml\nExample: format: json',
         },
         {
             label: "url",
@@ -1284,6 +1322,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Binary file body',
             documentation: 'Send a file as the request body. Set body to a relative path.\nDefault Content-Type: application/octet-stream (override with headers).\nExample:\nformat: binary\nbody: ./payload.bin\n\nBinary responses are not supported yet (shown as text).',
             sortText: '1binary',
+        },
+        {
+            label: "multipart",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " multipart",
+            detail: 'Multipart form-data body',
+            documentation: 'multipart/form-data body with text and file parts.\nExample:\nformat: multipart\nbody:\n  - name: description\n    value: hello\n  - name: file\n    file: ./payload.bin',
+            sortText: '1multipart',
         },
     ];
     const formatSuggestion = [

@@ -13,26 +13,26 @@ class MmtTestlight < Formula
   desc "CLI runner for Multimeter .mmt API tests, suites, and documentation"
   homepage "https://github.com/mshobeyri/multimeter"
   license "Apache-2.0"
-  version "0.4.4"
+  version "1.42.4"
 
   # ── Platform binaries ──────────────────────────────────────────────
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-macos-arm64.tar.gz"
-      sha256 "d214f753c41e2a83e6529feae895f03c6566cf6335f1b86c7ef7220cb69c9b1f"
+      sha256 "85a44b77c0c5bb7c501aaa826724040fbb647a0b92950e280a83fe09c3f5848c"
     else
       url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-macos-x64.tar.gz"
-      sha256 "efade564c91738c6805bed03636c902639e509ab5e9e8a92a029857692f27d46"
+      sha256 "05b81da6a4b262afee401ef4b9c889b83b111d17a81c48c43994f9caaac76227"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-linux-arm64.tar.gz"
-      sha256 "7b8b94fcd2644373f512710f8ef682bfa45f930a1643baeee676fdb24806993d"
+      sha256 "e2523fc94e36f251fa1e366c1f5224c65e97d4ffca7b4c865988b109b2e52045"
     else
       url "https://github.com/mshobeyri/multimeter/releases/download/v#{version}/testlight-linux-x64.tar.gz"
-      sha256 "051c2250f3422f1414162f7ee1bec59448c3ca03bc5f7a32e9a4d9b64b5ebd15"
+      sha256 "2cff5fc8d9c14973d0fc3f93b318429b5b61e6cf9d11bd03ec21c33ca5b27f9a"
     end
   end
 

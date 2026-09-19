@@ -13,7 +13,9 @@ describe('evaluateComparison', () => {
     expect(evaluateComparison('Hi', '=i', 'hi')).toBe(true);
     expect(evaluateComparison('  hi  ', '=X', 'hi')).toBe(true);
     expect(evaluateComparison('  Hi  ', '=iX', 'hi')).toBe(true);
+    expect(evaluateComparison(true, '=S', 'true')).toBe(true);
     expect(evaluateComparison(true, '=~', 'true')).toBe(true);
+    expect(evaluateComparison(true, '!~', 'false')).toBe(true);
   });
 
   it('covers contains / starts / ends / regex', () => {

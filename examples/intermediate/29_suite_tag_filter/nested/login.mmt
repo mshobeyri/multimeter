@@ -1,0 +1,11 @@
+type: test
+title: Nested login
+description: Tagged smoke — child of the nested auth suite
+tags:
+  - smoke
+steps:
+  - http: https://test.mmt.dev/json
+    title: Get JSON
+    method: get
+    expect:
+      status: 200

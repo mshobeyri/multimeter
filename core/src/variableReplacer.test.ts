@@ -86,6 +86,12 @@ describe('toTemplateWithEnvVars', () => {
     expect(toTemplateWithEnvVars(null as any)).toBe('``');
     expect(toTemplateWithEnvVars(undefined as any)).toBe('``');
   });
+
+  it('converts r: and c: tokens to runtime calls', () => {
+    expect(toTemplateWithEnvVars('now c:datetime')).toBe('`now ${mmtCurrent_(\'datetime\')}`');
+    expect(toTemplateWithEnvVars('id r:uuid')).toBe('`id ${mmtRandom_(\'uuid\')}`');
+    expect(toTemplateWithEnvVars('c:city')).toBe('`${mmtCurrent_(\'city\')}`');
+  });
 });
 
 describe('toTemplateValueJs', () => {
@@ -98,11 +104,11 @@ describe('toTemplateValueJs', () => {
   });
 
   it('full <<r:VAR>> returns bare random call', () => {
-    expect(toTemplateValueJs('<<r:email>>')).toBe("__mmt_random('email')");
+    expect(toTemplateValueJs('<<r:email>>')).toBe("mmtRandom_('email')");
   });
 
   it('full <<c:VAR>> returns bare current call', () => {
-    expect(toTemplateValueJs('<<c:timestamp>>')).toBe("__mmt_current('timestamp')");
+    expect(toTemplateValueJs('<<c:timestamp>>')).toBe("mmtCurrent_('timestamp')");
   });
 
   it('two <<e:VAR>> tokens separated by underscore', () => {
@@ -112,12 +118,12 @@ describe('toTemplateValueJs', () => {
 
   it('supports env index access in full-token form', () => {
     expect(toTemplateValueJs('<<e:HOST[0]>>'))
-        .toBe('__mmt_access(envVariables.HOST, "[0]")');
+        .toBe('mmtAccess_(envVariables.HOST, "[0]")');
   });
 
   it('supports env slice access inside template values', () => {
     expect(toTemplateValueJs('https://<<e:HOST[0:3]>>/api'))
-        .toBe('`https://${__mmt_access(envVariables.HOST, "[0:3]")}/api`');
+        .toBe('`https://${mmtAccess_(envVariables.HOST, "[0:3]")}/api`');
   });
 
   it('mixed env and static text', () => {
@@ -127,7 +133,7 @@ describe('toTemplateValueJs', () => {
 
   it('mixed e: and r: tokens', () => {
     const result = toTemplateValueJs('<<e:host>>-<<r:email>>');
-    expect(result).toBe("`${envVariables.host}-${__mmt_random('email')}`");
+    expect(result).toBe("`${envVariables.host}-${mmtRandom_('email')}`");
   });
 
   it('full <<i:name>> returns bare input identifier', () => {
@@ -143,9 +149,9 @@ describe('toTemplateValueJs', () => {
 
   it('supports slice accessors on sibling i: refs', () => {
     expect(toTemplateValueJs('asd_<<i:message[0:4]>>'))
-        .toBe('`asd_${__mmt_access(message, "[0:4]")}`');
+        .toBe('`asd_${mmtAccess_(message, "[0:4]")}`');
     expect(toTemplateValueJs('<<i:message[1:2]>>'))
-        .toBe('__mmt_access(message, "[1:2]")');
+        .toBe('mmtAccess_(message, "[1:2]")');
   });
 
   it('full <<o:name>> returns outputs expression', () => {
@@ -155,9 +161,9 @@ describe('toTemplateValueJs', () => {
 
   it('supports nested accessors on o: refs', () => {
     expect(toTemplateValueJs('<<o:user.name>>'))
-        .toBe('__mmt_access(outputs.user, ".name")');
+        .toBe('mmtAccess_(outputs.user, ".name")');
     expect(toTemplateValueJs('id=<<o:user.name>>'))
-        .toBe('`id=${__mmt_access(outputs.user, ".name")}`');
+        .toBe('`id=${mmtAccess_(outputs.user, ".name")}`');
   });
 });
 
@@ -177,14 +183,14 @@ describe('replaceOutputTokens / rewriteOutputSetKey', () => {
     })).toEqual({
       print: 'token=${outputs.token}',
       check: '${outputs.token} == 1',
-      nested: {x: '${__mmt_access(outputs.user, ".name")}'},
+      nested: {x: '${mmtAccess_(outputs.user, ".name")}'},
     });
   });
 
   it('plain o: becomes outputs. for conditions', () => {
     expect(replaceOutputTokensPlain('o:token == 1')).toBe('outputs.token == 1');
     expect(replaceOutputTokensPlain('o:user.name')).toBe(
-        '__mmt_access(outputs.user, ".name")');
+        'mmtAccess_(outputs.user, ".name")');
   });
 });
 
@@ -345,8 +351,8 @@ describe('variableReplacer', () => {
     } as any;
     const out = replaceAllRefs(iface, defaults, {}, {} as any);
     expect(out).toEqual({
-      userInitial: '${__mmt_access(username, \'[0]\')}',
-      roleShort: '${__mmt_access(role, \'[0:3]\')}'
+      userInitial: '${mmtAccess_(username, \'[0]\')}',
+      roleShort: '${mmtAccess_(role, \'[0:3]\')}'
     });
   });
 
@@ -478,6 +484,66 @@ describe('multiple template vars in one string', () => {
     );
     expect(result.val).toBe('X-Y-Z');
   });
+
+  it('can preserve random and current tokens for runtime code generation', () => {
+    const result = replaceAllRefs(
+      {
+        env: '<<e:HOST>>',
+        current: 'c:date',
+        random: 'id-<<r:uuid>>',
+      },
+      {},
+      {},
+      {HOST: 'example.com'},
+      new Set(),
+      {resolveRuntimeTokens: false},
+    );
+    expect(result).toEqual({
+      env: 'example.com',
+      current: 'c:date',
+      random: 'id-<<r:uuid>>',
+    });
+  });
+
+  it('refreshRuntimeTokens clears r:/c: caches between resolves', () => {
+    const iface = {id: 'r:uuid'};
+    const first = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
+    const second = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
+    expect(first.id).not.toBe('r:uuid');
+    expect(second.id).not.toBe('r:uuid');
+    expect(first.id).not.toBe(second.id);
+  });
+
+  it('resolves parameterized random tokens and preserves invalid forms', () => {
+    const resolved = replaceAllRefs(
+      {
+        integer: 'r:int(7,7)',
+        text: '<<r:alphanumeric(12)>>',
+        invalid: 'r:uuid(2)',
+      },
+      {},
+      {},
+      {},
+    );
+    expect(resolved.integer).toBe(7);
+    expect(resolved.text).toMatch(/^[A-Za-z0-9]{12}$/);
+    expect(resolved.invalid).toBe('r:uuid(2)');
+    expect(toTemplateValueJs('r:int(1,10)'))
+        .toBe("mmtRandom_('int(1,10)')");
+    expect(toTemplateValueJs('id-<<r:string(8)>>'))
+        .toContain("mmtRandom_('string(8)')");
+    expect(toTemplateValueJs(
+        '<<r:datetime(2026-01-01,2026-12-31)>>'))
+        .toBe("mmtRandom_('datetime(2026-01-01,2026-12-31)')");
+    expect(toTemplateValueJs('r:datetime_now(1h1m)'))
+        .toBe("mmtRandom_('datetime_now(1h1m)')");
+    expect(toTemplateValueJs('r:utc_datetime_now(1h1m)'))
+        .toBe("mmtRandom_('utc_datetime_now(1h1m)')");
+    expect(toTemplateValueJs('c:utc_datetime(+1h1m)'))
+        .toBe("mmtCurrent_('utc_datetime(+1h1m)')");
+    expect(toTemplateValueJs('at-<<c:datetime(-1d2m1s)>>'))
+        .toContain("mmtCurrent_('datetime(-1d2m1s)')");
+  });
 });
 
 describe('embedDynamicTokensAsJsInterpolations', () => {
@@ -485,11 +551,11 @@ describe('embedDynamicTokensAsJsInterpolations', () => {
     expect(replaceDynamicTokensToJsInterpolations('e:HOST'))
         .toBe('${envVariables.HOST}');
     expect(replaceDynamicTokensToJsInterpolations('user=<<e:USER[0:2]>>'))
-        .toBe('user=${__mmt_access(envVariables.USER, "[0:2]")}');
+        .toBe('user=${mmtAccess_(envVariables.USER, "[0:2]")}');
     expect(replaceDynamicTokensToJsInterpolations('r:customToken'))
-        .toBe("${__mmt_random('customToken')}");
+        .toBe("${mmtRandom_('customToken')}");
     expect(replaceDynamicTokensToJsInterpolations('c:customNow'))
-        .toBe("${__mmt_current('customNow')}");
+        .toBe("${mmtCurrent_('customNow')}");
     expect(replaceDynamicTokensToJsInterpolations('<e:HOST> and e:{PORT}'))
         .toBe('${envVariables.HOST} and ${envVariables.PORT}');
   });
@@ -505,7 +571,7 @@ describe('embedDynamicTokensAsJsInterpolations', () => {
       a: '${envVariables.HOST}',
       b: 12,
       c: true,
-      d: ['${envVariables.X}', { nested: "${__mmt_random('custom')}" }],
+      d: ['${envVariables.X}', { nested: "${mmtRandom_('custom')}" }],
     });
   });
 

@@ -8,5 +8,6 @@ Committed specs used by `openapiConvertor.fixtures.test.ts` and `importConvertor
 | `petstore.swagger2.json` | https://petstore.swagger.io/v2/swagger.json | Swagger 2.0 JSON (classic Petstore) |
 | `convert-example.openapi.yaml` | `examples/intermediate/25_convert_to_mmt/openapi/source.openapi.yaml` | Small YAML OpenAPI 3 fixture |
 | `sample-bearer.openapi.json` | Hand-written | Minimal JSON spec for auth, path/query, and named examples |
+| `companies/` | Docker, Notion, PayPal, Bitbucket, Box, Twilio, GitLab, CircleCI, Slack, DigitalOcean | See `companies/README.md` — real company specs for convertor regression |
 
 Fixtures are pinned in-repo so unit tests do not depend on live network fetches.

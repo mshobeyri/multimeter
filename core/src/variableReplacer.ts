@@ -1,8 +1,7 @@
 import {APIData} from './APIData';
 import {JSONRecord} from './CommonData';
-import {normalizeTokenName} from './JSerHelper';
-import {RANDOM_TOKEN_MAP} from './Random';
-import {CURRENT_TOKEN_MAP} from './Current';
+import {randomValueForToken} from './Random';
+import {currentValueForToken} from './Current';
 import {isOmitSentinel} from './omitKeyword';
 import {safeList} from './safer';
 import {TestData} from './TestData';
@@ -25,10 +24,19 @@ import {TestData} from './TestData';
 // ---------------------------------------------------------------------------
 
 export const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
+export const RANDOM_TOKEN_ARGUMENTS_RE =
+    '\\(\\s*[^(),\\s]+(?:\\s*,\\s*[^(),\\s]+)?\\s*\\)';
+export const RANDOM_TOKEN_SPEC_RE =
+    `${TOKEN_NAME_RE}(?:${RANDOM_TOKEN_ARGUMENTS_RE})?`;
+export const CURRENT_TOKEN_ARGUMENTS_RE =
+    '\\([+-](?:\\d+(?:\\.\\d+)?(?:ms|s|m|h|d|w))+\\)';
+export const CURRENT_TOKEN_SPEC_RE =
+    `${TOKEN_NAME_RE}(?:${CURRENT_TOKEN_ARGUMENTS_RE})?`;
 export const ACCESSOR_SEGMENT_RE =
     '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|:-?\\d*|[A-Za-z_][A-Za-z0-9_]*)\\])';
 export const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
-const DYNAMIC_KEY_RE = `[A-Za-z0-9_]+:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}`;
+export const DYNAMIC_KEY_RE =
+    `(?:r:${RANDOM_TOKEN_SPEC_RE}|c:${CURRENT_TOKEN_SPEC_RE}|[A-Za-z0-9_]+:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}`;
 
 function replaceTokenForms(
     s: string, prefix: string,
@@ -40,7 +48,10 @@ function replaceTokenForms(
       includePlain?: boolean,
     } = {}): string {
   const source = String(s ?? '');
-  const capture = `(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})`;
+  const tokenSpec = prefix === 'r'
+    ? RANDOM_TOKEN_SPEC_RE
+    : (prefix === 'c' ? CURRENT_TOKEN_SPEC_RE : TOKEN_NAME_RE);
+  const capture = `(${tokenSpec})(${ACCESSOR_PATH_RE})`;
   let out = source;
 
   if (options.includeAngles !== false) {
@@ -66,8 +77,14 @@ function replaceTokenForms(
   return out;
 }
 
-function splitTokenNameAccessor(raw: string): {name: string, accessor: string}|undefined {
-  const m = new RegExp(`^(${TOKEN_NAME_RE})(.*)$`).exec(String(raw ?? '').trim());
+function splitTokenNameAccessor(
+    raw: string, parameterizedPrefix?: 'r'|'c'):
+    {name: string, accessor: string}|undefined {
+  const tokenSpec = parameterizedPrefix === 'r'
+    ? RANDOM_TOKEN_SPEC_RE
+    : (parameterizedPrefix === 'c' ? CURRENT_TOKEN_SPEC_RE : TOKEN_NAME_RE);
+  const m = new RegExp(`^(${tokenSpec})(${ACCESSOR_PATH_RE})$`)
+      .exec(String(raw ?? '').trim());
   if (!m || !m[1]) {
     return undefined;
   }
@@ -144,7 +161,7 @@ const toSingleQuotedJsString = (s: string): string =>
     `'${String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'`;
 
 const toJsAccessorExpression = (baseExpression: string, accessor = ''): string =>
-    accessor ? `__mmt_access(${baseExpression}, ${JSON.stringify(accessor)})` : baseExpression;
+    accessor ? `mmtAccess_(${baseExpression}, ${JSON.stringify(accessor)})` : baseExpression;
 
 /**
  * Normalize all env-token syntaxes to a JS expression rooted at `envVariables`.
@@ -186,18 +203,18 @@ export const replaceRandCurrentTokensToJs = (s: string): string => {
   let out = replaceTokenForms(
       s, 'r',
       (name, accessor) => '${' +
-          toJsAccessorExpression(`__mmt_random('${name}')`, accessor) + '}',
+          toJsAccessorExpression(`mmtRandom_('${name}')`, accessor) + '}',
       {includeSingleAngles: false, includeBraceForm: false});
   out = replaceTokenForms(
       out, 'c',
       (name, accessor) => '${' +
-          toJsAccessorExpression(`__mmt_current('${name}')`, accessor) + '}',
+          toJsAccessorExpression(`mmtCurrent_('${name}')`, accessor) + '}',
       {includeSingleAngles: false, includeBraceForm: false});
   return out;
 };
 
 /**
- * Replace `i:` token syntaxes with `${inputName}` / `__mmt_access(...)`
+ * Replace `i:` token syntaxes with `${inputName}` / `mmtAccess_(...)`
  * interpolations so API/test default params can reference sibling inputs
  * (e.g. `xx: asd_<<i:message>>` → `` `asd_${message}` ``).
  */
@@ -239,7 +256,7 @@ export function rewriteOutputSetKey(key: string): string|undefined {
   if (!m || !m[1]) {
     return undefined;
   }
-  // Assignment LHS must be a direct path (not __mmt_access).
+  // Assignment LHS must be a direct path (not mmtAccess_).
   return `outputs.${m[1]}${m[2] || ''}`;
 }
 
@@ -304,10 +321,10 @@ export function toTemplateValueJs(value: string): string {
 
   const fullEnvAngle = new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullEnvPlain = new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
-  const fullRandAngle = new RegExp(`^<<\\s*r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
-  const fullRandPlain = new RegExp(`^r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
-  const fullCurrAngle = new RegExp(`^<<\\s*c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
-  const fullCurrPlain = new RegExp(`^c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
+  const fullRandAngle = new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullRandPlain = new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
+  const fullCurrAngle = new RegExp(`^<<\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullCurrPlain = new RegExp(`^c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
   const fullInputAngle = new RegExp(`^<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullInputPlain = new RegExp(`^i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullOutputAngle = new RegExp(`^<<\\s*o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
@@ -319,11 +336,11 @@ export function toTemplateValueJs(value: string): string {
   }
   m = fullRandAngle.exec(s) || fullRandPlain.exec(s);
   if (m && m[1]) {
-    return toJsAccessorExpression(`__mmt_random('${m[1]}')`, m[2] || '');
+    return toJsAccessorExpression(`mmtRandom_('${m[1]}')`, m[2] || '');
   }
   m = fullCurrAngle.exec(s) || fullCurrPlain.exec(s);
   if (m && m[1]) {
-    return toJsAccessorExpression(`__mmt_current('${m[1]}')`, m[2] || '');
+    return toJsAccessorExpression(`mmtCurrent_('${m[1]}')`, m[2] || '');
   }
   m = fullInputAngle.exec(s) || fullInputPlain.exec(s);
   if (m && m[1]) {
@@ -346,6 +363,7 @@ export function toTemplateValueJs(value: string): string {
  */
 export const toTemplateWithEnvVars = (s: string): string => {
   let withEnv = replaceEnvTokensToJs(String(s ?? ''));
+  withEnv = replaceRandCurrentTokensToJs(withEnv);
   withEnv = withEnv.replace(
       /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
       '${envVariables.$1}');
@@ -381,16 +399,14 @@ const RANDOM_CACHE = new Map<string, any>();
 export function resetRandomTokenCache(): void { RANDOM_CACHE.clear(); }
 
 function generateRandomByName(name: string): any {
-  const normalized = normalizeTokenName(name);
-  const cacheKey = `r:${normalized}`;
+  const cacheKey = `r:${name.trim()}`;
   if (RANDOM_CACHE.has(cacheKey)) {
     return RANDOM_CACHE.get(cacheKey);
   }
-  const fn = RANDOM_TOKEN_MAP[normalized] || RANDOM_TOKEN_MAP[name];
-  if (!fn) {
+  const val = randomValueForToken(name);
+  if (val === undefined) {
     return undefined;
   }
-  const val = fn();
   RANDOM_CACHE.set(cacheKey, val);
   return val;
 }
@@ -400,16 +416,14 @@ const CURRENT_CACHE = new Map<string, any>();
 export function resetCurrentTokenCache(): void { CURRENT_CACHE.clear(); }
 
 function generateCurrentByName(name: string): any {
-  const normalized = normalizeTokenName(name);
-  const cacheKey = `current:${normalized}`;
+  const cacheKey = `current:${name.trim()}`;
   if (CURRENT_CACHE.has(cacheKey)) {
     return CURRENT_CACHE.get(cacheKey);
   }
-  const fn = CURRENT_TOKEN_MAP[normalized] || CURRENT_TOKEN_MAP[name];
-  if (!fn) {
+  const val = currentValueForToken(name);
+  if (val === undefined) {
     return undefined;
   }
-  const val = fn();
   CURRENT_CACHE.set(cacheKey, val);
   return val;
 }
@@ -455,7 +469,7 @@ function resolveDynamicTokenValue(
         if (!accessor) {
           return rawInputValue;
         }
-        return `\${__mmt_access(${placeholderMatch[1]}, ${toSingleQuotedJsString(accessor)})}`;
+        return `\${mmtAccess_(${placeholderMatch[1]}, ${toSingleQuotedJsString(accessor)})}`;
       }
       visiting.add(name);
       let resolved = resolveEmbeddedTokens(rawInputValue, envs);
@@ -481,10 +495,10 @@ function resolveDynamicTokenValue(
 export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any {
   if (typeof val === 'string') {
     const exactMatchers = [
-      {re: new RegExp(`^<<\\s*r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'r'},
-      {re: new RegExp(`^r:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'r'},
-      {re: new RegExp(`^<<\\s*c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'c'},
-      {re: new RegExp(`^c:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'c'},
+      {re: new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'r'},
+      {re: new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'r'},
+      {re: new RegExp(`^<<\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'c'},
+      {re: new RegExp(`^c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'c'},
       {re: new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'e'},
       {re: new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'e'},
     ];
@@ -669,10 +683,26 @@ export function replaceInputRefsWithNone(obj: any, inputs: any, resolver?: Dynam
       inputs, resolver);
 }
 
+export interface ReplaceAllRefsOptions {
+  /**
+   * Resolve r:/c: immediately. UI previews use this for stable rendered
+   * values; code generators disable it so every execution gets fresh values.
+   */
+  resolveRuntimeTokens?: boolean;
+  /** Clear r:/c: caches before resolving so each call gets fresh runtime values. */
+  refreshRuntimeTokens?: boolean;
+}
+
 // Replaces all references (inputs first, then environment vars)
 export function replaceAllRefs(
     iface: any, defaults: JSONRecord, inputs: JSONRecord,
-    envs: JSONRecord, visiting: Set<string> = new Set()): any {
+    envs: JSONRecord, visiting: Set<string> = new Set(),
+    options: ReplaceAllRefsOptions = {}): any {
+  if (options.refreshRuntimeTokens) {
+    resetRandomTokenCache();
+    resetCurrentTokenCache();
+  }
+
   const mergedInputs = Object.assign({}, defaults, inputs);
 
   // Dynamic resolver for i:, e:, r:, c:
@@ -682,7 +712,13 @@ export function replaceAllRefs(
       return undefined;
     }
     const prefix = fullKey.slice(0, idx);
-    const parsed = splitTokenNameAccessor(fullKey.slice(idx + 1));
+    if (options.resolveRuntimeTokens === false &&
+        (prefix === 'r' || prefix === 'c')) {
+      return undefined;
+    }
+    const parsed = splitTokenNameAccessor(
+        fullKey.slice(idx + 1),
+        prefix === 'r' || prefix === 'c' ? prefix : undefined);
     if (!parsed) {
       return undefined;
     }

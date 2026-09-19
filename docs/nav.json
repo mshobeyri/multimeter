@@ -660,7 +660,25 @@
       },
       {
         "title": "Dynamic values",
-        "path": "features/dynamic-values.md"
+        "path": "features/dynamic-values/index.md",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "features/dynamic-values/index.md"
+          },
+          {
+            "title": "Syntax and accessors",
+            "path": "features/dynamic-values/syntax.md"
+          },
+          {
+            "title": "Random tokens",
+            "path": "features/dynamic-values/random.md"
+          },
+          {
+            "title": "Current tokens",
+            "path": "features/dynamic-values/current.md"
+          }
+        ]
       },
       {
         "title": "Data-driven tests",

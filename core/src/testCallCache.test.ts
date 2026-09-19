@@ -70,7 +70,7 @@ steps:
       username: i:user
       password: i:pass
     expect:
-      status: =~ "200"
+      status: =S "200"
   - js: |
       outputs.token = auth.token
       outputs.user = auth.user
@@ -414,7 +414,7 @@ steps:
       username: i:user
       password: i:pass
     expect:
-      status: =~ "200"
+      status: =S "200"
   - js: |
       outputs.token = auth.token
       outputs.user = auth.user

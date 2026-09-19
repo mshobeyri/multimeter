@@ -66,11 +66,14 @@ describe('jsRunner extra runtime paths', () => {
     const result = await runJSCode({
       js: `
         return {
-          rnd: __mmt_random('uuid'),
-          missingR: __mmt_random('no-such'),
-          cur: __mmt_current('year'),
-          missingC: __mmt_current('no-such'),
-          access: __mmt_access({a: {b: 2}}, '.a.b'),
+          rnd: mmtRandom_('uuid'),
+          bounded: mmtRandom_('int(7,7)'),
+          sized: mmtRandom_('string(9)'),
+          missingR: mmtRandom_('no-such'),
+          cur: mmtCurrent_('year'),
+          shifted: mmtCurrent_('epoch(+1h)'),
+          missingC: mmtCurrent_('no-such'),
+          access: mmtAccess_({a: {b: 2}}, '.a.b'),
           extracted: extractOutputs_({
             type: 'json',
             body: '{"x":1}',
@@ -84,8 +87,12 @@ describe('jsRunner extra runtime paths', () => {
       logger,
     });
     expect(typeof result.rnd).toBe('string');
+    expect(result.bounded).toBe(7);
+    expect(result.sized).toMatch(/^[A-Za-z]{9}$/);
     expect(result.missingR).toBe('r:no-such');
     expect(typeof result.cur).toBe('number');
+    expect(result.shifted).toBeGreaterThan(
+        Math.floor(Date.now() / 1000) + 3500);
     expect(result.missingC).toBe('c:no-such');
     expect(result.access).toBe(2);
     expect(result.extracted.x).toBe(1);
@@ -117,6 +124,23 @@ describe('jsRunner extra runtime paths', () => {
       runKind: 'API',
     });
     expect(grpc.status).toBe(200);
+  });
+
+  it('builds multipart bodies from text and file parts', async () => {
+    const built = await runJSCode({
+      js: `return buildMultipartBodyFromParts_([
+        { name: 'meta', value: 'hello' },
+        { name: 'file', file: './payload.bin' },
+      ]);`,
+      title: 'multipart',
+      runId: 'r6b',
+      logger,
+      binaryFileLoader: async () => Buffer.from('abc'),
+    });
+    expect(built.contentType).toMatch(/^multipart\/form-data; boundary=/);
+    expect(Buffer.isBuffer(built.body)).toBe(true);
+    expect(built.body.toString('utf8')).toContain('hello');
+    expect(built.body.toString('utf8')).toContain('abc');
   });
 
   it('reads binary files and fails when loader is missing', async () => {

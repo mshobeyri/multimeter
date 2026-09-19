@@ -90,5 +90,6 @@ if git diff --cached --quiet; then
   exit 0
 fi
 git commit -m "mmt-testlight ${VERSION}"
-git push origin HEAD
+# Drop checkout's GITHUB_TOKEN extraheader so the tap PAT is what GitHub sees.
+git -c http.https://github.com/.extraheader= push origin HEAD
 echo "Published $TAP_REPO mmt-testlight ${VERSION}"

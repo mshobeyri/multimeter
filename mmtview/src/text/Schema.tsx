@@ -9,12 +9,13 @@ export const GeneralSchema = {
     }
 }
 
-/** Keep in sync with CheckOps via opsList (plus fuzzy percent pattern). */
+/** Keep in sync with CheckOps via opsList (plus fuzzy percent / time velocity). */
 const CheckOperatorSchema = {
     type: 'string',
     anyOf: [
         { enum: [...opsList] },
-        { pattern: '^[<>]([0-9]|[1-9][0-9]|100)%$' }
+        { pattern: '^[<>]([0-9]|[1-9][0-9]|100)%$' },
+        { pattern: '^[!=](\\d+(\\.\\d+)?(ms|s|m|h|d|w))+~$' }
     ]
 };
 
@@ -37,7 +38,7 @@ const dataRefOr = (...schemas: any[]) => ({
     ]
 });
 
-const FormatEnumSchema = { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary'] };
+const FormatEnumSchema = { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary', 'multipart'] };
 
 /** Scalar format or `{ request, response }` when they differ. */
 const FormatSpecSchema = {

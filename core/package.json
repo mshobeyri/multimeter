@@ -265,6 +265,11 @@
       "require": "./dist/envParsePack.js",
       "default": "./dist/envParsePack.js"
     },
+    "./envVarLastUpdate": {
+      "types": "./dist/envVarLastUpdate.d.ts",
+      "require": "./dist/envVarLastUpdate.js",
+      "default": "./dist/envVarLastUpdate.js"
+    },
     "./agentDocs": {
       "types": "./dist/agentDocs.d.ts",
       "require": "./dist/agentDocs.js",

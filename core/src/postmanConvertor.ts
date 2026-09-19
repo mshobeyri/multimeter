@@ -1,25 +1,56 @@
 import { APIData, AuthConfig } from './APIData';
+import {OMIT_SENTINEL} from './omitKeyword';
+import {RANDOM_TOKEN_MAP} from './Random';
 
 // Map Postman dynamic random variables to Multimeter random token names
 // Only include those we support in RANDOM_TOKEN_MAP.
 const POSTMAN_RANDOM_MAP: Record<string, string> = {
   '$guid': 'uuid',
   'timestamp': 'epoch',
+  '$timestamp': 'epoch',
   '$randomUUID': 'uuid',
   '$randomInt': 'int',
+  '$randomFloat': 'float',
   '$randomBoolean': 'bool',
+  '$randomAlphaNumeric': 'alphanumeric',
   '$randomColor': 'color',
+  '$randomHexColor': 'hex_color',
   '$randomEmail': 'email',
+  '$randomUserName': 'username',
+  '$randomPassword': 'password',
+  '$randomDomainName': 'domain',
+  '$randomUrl': 'url',
   '$randomIP': 'ip',
   '$randomIPv6': 'ipv6',
+  '$randomMACAddress': 'mac',
+  '$randomUserAgent': 'user_agent',
   '$randomPhoneNumber': 'phone',
   '$randomFirstName': 'first_name',
   '$randomLastName': 'last_name',
   '$randomFullName': 'full_name',
-  '$randomCountry': 'country'
+  '$randomCompanyName': 'company',
+  '$randomJobTitle': 'job_title',
+  '$randomZipCode': 'postal_code',
+  '$randomStreetAddress': 'street_address',
+  '$randomCity': 'city',
+  '$randomCountry': 'country',
+  '$randomLatitude': 'latitude',
+  '$randomLongitude': 'longitude',
+  '$randomWeekday': 'weekday',
+  '$randomMonth': 'month',
+  '$randomDateFuture': 'date_future',
+  '$randomDatePast': 'date_past',
+  '$randomLoremWord': 'word',
+  '$randomLoremSentence': 'sentence',
+  '$randomLoremParagraph': 'paragraph',
+  '$randomPrice': 'float',
+  '$randomFileName': 'string',
 };
 
-function replacePostmanVars(str: string): string {
+const POSTMAN_RANDOM_TOKEN_NAMES = new Set(Object.values(POSTMAN_RANDOM_MAP));
+
+/** Translate Postman `{{name}}` placeholders to MMT `r:` or `<<e:>>` tokens. */
+export function translatePostmanTemplate(str: string): string {
   return str.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_m, inner) => {
     const name = String(inner).trim();
     if (POSTMAN_RANDOM_MAP[name]) {
@@ -27,6 +58,83 @@ function replacePostmanVars(str: string): string {
     }
     return `<<e:${name}>>`;
   });
+}
+
+function replacePostmanVars(str: string): string {
+  return translatePostmanTemplate(str);
+}
+
+function reviveUnquotedMmtTokens(value: any): any {
+  if (typeof value === 'string') {
+    const match = /^__MMT_UNQUOTED_(.+?)__$/.exec(value);
+    if (match) {
+      return `r:${match[1]}`;
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(reviveUnquotedMmtTokens);
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      out[key] = reviveUnquotedMmtTokens(entry);
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Parse Postman raw JSON bodies, including unquoted `{{$random*}}` placeholders. */
+export function parsePostmanRawJsonBody(raw: string): string | object {
+  const source = String(raw || '');
+  if (!source.trim()) {
+    return source;
+  }
+  const unquotedPattern =
+      /:\s*(\{\{\s*\$([^}]+?)\s*\}\})(\s*[,}\]])/g;
+  let prepared = source.replace(
+      unquotedPattern,
+      (_match, _token, inner, suffix) => {
+        const key = `$${String(inner).trim()}`;
+        const mapped = POSTMAN_RANDOM_MAP[key];
+        if (mapped) {
+          return `: "__MMT_UNQUOTED_${mapped}__"${suffix}`;
+        }
+        return `: ${translatePostmanTemplate(`{{${inner}}}`)}${suffix}`;
+      });
+  prepared = translatePostmanTemplate(prepared);
+  try {
+    return reviveUnquotedMmtTokens(JSON.parse(prepared));
+  } catch {
+    return translatePostmanTemplate(source);
+  }
+}
+
+function convertPostmanRawBody(raw: string, headers: Record<string, string>): string | object {
+  const contentType = Object.entries(headers || {}).find(
+      ([key]) => key.toLowerCase() === 'content-type')?.[1] || '';
+  if (contentType.includes('json') || looksLikeJsonBody(raw)) {
+    return parsePostmanRawJsonBody(raw);
+  }
+  return translatePostmanTemplate(raw);
+}
+
+function looksLikeJsonBody(raw: string): boolean {
+  const trimmed = String(raw || '').trim();
+  return trimmed.startsWith('{') || trimmed.startsWith('[');
+}
+
+export function listSupportedPostmanRandomTokens(): string[] {
+  return Object.keys(POSTMAN_RANDOM_MAP).sort();
+}
+
+export function assertPostmanRandomMapIsSupported(): void {
+  for (const tokenName of POSTMAN_RANDOM_TOKEN_NAMES) {
+    if (!RANDOM_TOKEN_MAP[tokenName]) {
+      throw new Error(`Postman random map points to unsupported token: ${tokenName}`);
+    }
+  }
 }
 
 function transformRecordValues(obj: Record<string, string> | undefined): Record<string, string> | undefined {
@@ -54,7 +162,7 @@ function extractKeyValue(arr: any[] | string | Record<string, any> = []): Record
   }
   if (Array.isArray(arr)) {
     arr.forEach((item) => {
-      if (item && item.key && typeof item.value !== 'undefined') {
+      if (item && !item.disabled && item.key && typeof item.value !== 'undefined') {
         obj[item.key] = String(item.value);
       }
     });
@@ -77,7 +185,54 @@ function normalizePostmanRequest(request: any): any {
   return request || {};
 }
 
-function normalizePostmanUrl(url: any): string {
+function normalizeInputKey(value: string): string {
+  return String(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/__+/g, '_') || 'value';
+}
+
+function postmanVariables(postmanJson: any): Record<string, any> {
+  const variables: Record<string, any> = {};
+  for (const variable of postmanJson?.variable || []) {
+    if (variable?.key) {
+      variables[String(variable.key)] = variable.value ?? '';
+    }
+  }
+  return variables;
+}
+
+function urlVariableInputs(url: any): Record<string, any> {
+  const inputs: Record<string, any> = {};
+  for (const variable of url?.variable || []) {
+    if (!variable?.disabled && variable?.key) {
+      inputs[normalizeInputKey(variable.key)] =
+          typeof variable.value === 'string'
+          ? replacePostmanVars(variable.value)
+          : String(variable.value ?? '');
+    }
+  }
+  return inputs;
+}
+
+function replaceUrlPathVariables(value: string, url: any): string {
+  let result = value;
+  for (const variable of url?.variable || []) {
+    if (variable?.disabled || !variable?.key) {
+      continue;
+    }
+    const key = String(variable.key);
+    const inputKey = normalizeInputKey(key);
+    result = result.replace(
+        new RegExp(`/:${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=/|\\?|#|$)`, 'g'),
+        `/<<i:${inputKey}>>`);
+  }
+  return result;
+}
+
+function normalizePostmanUrl(
+    url: any, collectionVariables: Record<string, any> = {}): string {
   if (typeof url === 'string') {
     return replacePostmanVars(url);
   }
@@ -85,17 +240,36 @@ function normalizePostmanUrl(url: any): string {
     return '';
   }
   if (typeof url.raw === 'string' && url.raw.trim()) {
-    return replacePostmanVars(url.raw);
+    const raw = Array.isArray(url.query) && url.query.length > 0
+      ? url.raw.split(/[?#]/, 1)[0]
+      : url.raw;
+    return replacePostmanVars(replaceUrlPathVariables(raw, url));
   }
   const protocol = url.protocol || 'https';
   const host = Array.isArray(url.host) ? url.host.join('.') : String(url.host || '');
   const port = url.port ? `:${url.port}` : '';
-  const path = Array.isArray(url.path) ? url.path.join('/') : String(url.path || '').replace(/^\/+/, '');
-  const query = extractKeyValue(url.query);
-  const queryString = Object.keys(query).length > 0 ? '?' + new URLSearchParams(query).toString() : '';
-  const base = host ? `${protocol}://${host}${port}` : '';
-  const slash = base && path ? '/' : '';
-  return replacePostmanVars(`${base}${slash}${path}${queryString}`);
+  const rawPath = Array.isArray(url.path) ? url.path.join('/') : String(url.path || '').replace(/^\/+/, '');
+  const normalizedPath = replaceUrlPathVariables(`/${rawPath}`, url).replace(/^\/+/, '');
+  const hostVariable = /^\{\{\s*([^}]+?)\s*\}\}$/.exec(host);
+  const hostDefault = hostVariable ? collectionVariables[hostVariable[1].trim()] : undefined;
+  const hostContainsFullUrl =
+      typeof hostDefault === 'string' && /^[a-z][a-z0-9+.-]*:\/\//i.test(hostDefault.trim());
+  const base = host
+    ? (hostContainsFullUrl ? host.replace(/\/+$/, '') : `${protocol}://${host}${port}`)
+    : '';
+  const slash = base && normalizedPath ? '/' : '';
+  return replacePostmanVars(`${base}${slash}${normalizedPath}`);
+}
+
+function materializeUrlInputs(
+    url: string, inputs: Record<string, any>): string {
+  let result = url;
+  for (const [key, value] of Object.entries(inputs)) {
+    result = result.replace(
+        new RegExp(`<<i:${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}>>`, 'g'),
+        String(value ?? ''));
+  }
+  return result;
 }
 
 function normalizePostmanDescription(description: any): {description?: string; tags?: string[]} {
@@ -180,8 +354,41 @@ function mergeOutputs(target: Record<string, string> | undefined, next: Record<s
   return Object.keys(merged).length > 0 ? merged : undefined;
 }
 
-function flattenItems(items: any[]): any[] {
-  return items.flatMap((item) => (item && item.item ? flattenItems(item.item) : [item]));
+interface FlattenedPostmanItem {
+  item: any;
+  inheritedAuth?: any;
+  inheritedEvents: any[];
+}
+
+function flattenItems(
+    items: any[], inheritedAuth?: any,
+    inheritedEvents: any[] = []): FlattenedPostmanItem[] {
+  return items.flatMap((item) => {
+    if (item && item.item) {
+      return flattenItems(
+          item.item,
+          item.auth === undefined ? inheritedAuth : item.auth,
+          [...inheritedEvents, ...(item.event || [])]);
+    }
+    return [{item, inheritedAuth, inheritedEvents}];
+  });
+}
+
+function applyPreRequestHeaders(
+    headers: Record<string, string>, events: any[]): void {
+  for (const event of events) {
+    if (event?.listen !== 'prerequest') {
+      continue;
+    }
+    const exec = Array.isArray(event?.script?.exec)
+      ? event.script.exec.join('\n')
+      : String(event?.script?.exec || '');
+    const matches = exec.matchAll(
+        /pm\.request\.headers\.(?:upsert|add)\(\s*\{\s*key\s*:\s*(['"])(.*?)\1\s*,\s*value\s*:\s*pm\.(?:variables|environment|collectionVariables)\.get\(\s*(['"])(.*?)\3\s*\)\s*\}\s*\)/g);
+    for (const match of matches) {
+      headers[match[2]] = `<<e:${match[4]}>>`;
+    }
+  }
 }
 
 export function postmanToAPI(postmanJson: any): APIData[] {
@@ -189,32 +396,68 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     return [];
   }
 
-  const requests = flattenItems(postmanJson.item).filter((req: any) => req && typeof req === 'object');
+  const collectionVariables = postmanVariables(postmanJson);
+  const requests = flattenItems(
+      postmanJson.item, postmanJson.auth, postmanJson.event || [])
+      .filter(({item}) => item && typeof item === 'object');
 
-  return requests.map((req: any) => {
+  return requests.map(({
+    item: req,
+    inheritedAuth,
+    inheritedEvents,
+  }: FlattenedPostmanItem) => {
     const request = normalizePostmanRequest(req.request);
-    const url = normalizePostmanUrl(request.url);
+    const url = normalizePostmanUrl(request.url, collectionVariables);
     const descriptionInfo = normalizePostmanDescription(req.description || request.description);
 
     // Convert Postman headers array to object
-  const headers = transformRecordValues(extractKeyValue(request.header));
+  const headers = transformRecordValues(extractKeyValue(request.header)) || {};
+    applyPreRequestHeaders(
+        headers, [...inheritedEvents, ...(req.event || [])]);
 
     // Convert Postman query array to object
   const query = transformRecordValues(extractKeyValue(request.url?.query));
 
     let body: string | object | undefined = undefined;
+    let graphql: APIData['graphql'];
     if (request.body?.mode === 'raw') {
-      body = typeof request.body.raw === 'string' ? replacePostmanVars(request.body.raw) : request.body.raw;
+      body = typeof request.body.raw === 'string'
+        ? convertPostmanRawBody(request.body.raw, headers)
+        : request.body.raw;
     } else if (request.body?.mode === 'urlencoded') {
       body = transformRecordValues(extractKeyValue(request.body.urlencoded));
     } else if (request.body?.mode === 'formdata') {
       body = transformRecordValues(extractKeyValue(request.body.formdata));
+    } else if (request.body?.mode === 'graphql') {
+      const operation = request.body.graphql?.query;
+      if (typeof operation === 'string' && operation.trim()) {
+        let variables = request.body.graphql?.variables;
+        if (typeof variables === 'string') {
+          try {
+            variables = JSON.parse(replacePostmanVars(variables));
+          } catch {
+            variables = undefined;
+          }
+        }
+        graphql = {
+          operation: replacePostmanVars(operation),
+          ...(variables && typeof variables === 'object' ? {variables} : {}),
+        };
+      }
+    } else if (
+      request.body?.mode === 'file' &&
+      typeof request.body.file?.src === 'string' &&
+      request.body.file.src.trim()
+    ) {
+      body = replacePostmanVars(request.body.file.src);
     }
 
     // Determine format from body mode / content-type header
-    let format: 'json' | 'xml' | 'text' | 'urlencoded' = 'json';
+    let format: APIData['format'] = 'json';
     if (request.body?.mode === 'urlencoded') {
       format = 'urlencoded';
+    } else if (request.body?.mode === 'file') {
+      format = {request: 'binary', response: 'json'};
     } else {
       const contentType = (headers?.['content-type'] ?? headers?.['Content-Type']) as string | undefined;
       if (typeof contentType === 'string') {
@@ -231,13 +474,18 @@ export function postmanToAPI(postmanJson: any): APIData[] {
 
     // Determine protocol - only set explicitly for ws, http is the default
     // and can be inferred from URL
-    let protocol: 'http'|'ws'|undefined = undefined;
-    if (typeof url === 'string' && url.toLowerCase().startsWith('ws')) {
+    let protocol: 'http'|'ws'|'graphql'|undefined = undefined;
+    if (graphql) {
+      protocol = 'graphql';
+    } else if (typeof url === 'string' && url.toLowerCase().startsWith('ws')) {
       protocol = 'ws';
     }
 
     // Convert Postman auth to mmt auth field
-    const auth = convertPostmanAuth(request.auth);
+    const effectiveAuth =
+        request.auth === undefined ? inheritedAuth : request.auth;
+    const auth = convertPostmanAuth(effectiveAuth);
+    const pathInputs = urlVariableInputs(request.url);
 
     const apiData: APIData = {
       type: 'api',
@@ -247,11 +495,15 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       protocol,
       format,
       url,
-      method: (request.method || (url ? 'GET' : undefined))?.toLowerCase() as APIData['method'],
+      method: graphql
+        ? undefined
+        : (request.method || (url ? 'GET' : undefined))?.toLowerCase() as APIData['method'],
       headers,
       query,
       body,
       auth,
+      graphql,
+      ...(Object.keys(pathInputs).length > 0 ? {inputs: pathInputs} : {}),
     } as APIData;
 
     // Remove undefined/empty fields to keep the YAML clean
@@ -276,6 +528,12 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     if (!apiData.auth) {
       delete (apiData as any).auth;
     }
+    if (!apiData.graphql) {
+      delete (apiData as any).graphql;
+    }
+    if (!apiData.method) {
+      delete (apiData as any).method;
+    }
 
     // If Postman item has one or more saved examples with originalRequest,
     // expose url, headers, and body as inputs and create example overrides.
@@ -292,16 +550,12 @@ export function postmanToAPI(postmanJson: any): APIData[] {
 
       if (exampleRequests.length > 0) {
         // Helper: normalize names to safe input keys
-        const norm = (s: string) => String(s)
-            .toLowerCase()
-            .replace(/[^a-z0-9_]+/g, '_')
-            .replace(/^_+|_+$/g, '')
-            .replace(/__+/g, '_');
+        const norm = normalizeInputKey;
 
         const inputs: Record<string, any> = {};
 
         // URL as input
-        inputs['url'] = url || '';
+        inputs['url'] = materializeUrlInputs(url || '', pathInputs);
         apiData.url = '<<i:url>>';
 
         // Union header keys across base and all examples
@@ -318,7 +572,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
         const rebuiltHeaders: Record<string, string> = {};
         for (const hk of Array.from(headerKeys)) {
           const inputKey = `hdr_${norm(hk)}`;
-          const defVal = (baseHeaders as any)[hk] ?? '';
+          const defVal = Object.prototype.hasOwnProperty.call(baseHeaders, hk)
+            ? (baseHeaders as any)[hk]
+            : OMIT_SENTINEL;
           inputs[inputKey] = typeof defVal === 'string' ? replacePostmanVars(defVal) : String(defVal ?? '');
           rebuiltHeaders[hk] = `<<i:${inputKey}>>`;
         }
@@ -356,7 +612,10 @@ export function postmanToAPI(postmanJson: any): APIData[] {
             const rebuiltBody: Record<string, any> = {};
             for (const bk of Array.from(bodyKeys)) {
               const inputKey = `body_${norm(bk)}`;
-              const defVal = baseBody[bk] ?? '';
+              const defVal = Object.prototype.hasOwnProperty.call(
+                  baseBody, bk)
+                ? baseBody[bk]
+                : OMIT_SENTINEL;
               inputs[inputKey] = typeof defVal === 'string' ? defVal : String(defVal ?? '');
               rebuiltBody[bk] = `<<i:${inputKey}>>`;
             }
@@ -380,7 +639,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
           }
 
           // URL override
-          const exUrl = normalizePostmanUrl(or.url);
+          const exUrl = materializeUrlInputs(
+              normalizePostmanUrl(or.url, collectionVariables),
+              urlVariableInputs(or.url));
           if (typeof exUrl === 'string' && exUrl !== inputs['url']) {
             example.inputs!['url'] = exUrl;
           }
@@ -390,7 +651,10 @@ export function postmanToAPI(postmanJson: any): APIData[] {
             const exHeaders = transformRecordValues(extractKeyValue(or.header));
             for (const hk of Array.from(headerKeys)) {
               const inputKey = `hdr_${norm(hk)}`;
-              const exVal = (exHeaders as any)?.[hk] ?? '';
+              const exVal = Object.prototype.hasOwnProperty.call(
+                  exHeaders || {}, hk)
+                ? (exHeaders as any)[hk]
+                : OMIT_SENTINEL;
               const normExVal = typeof exVal === 'string' ? exVal : String(exVal ?? '');
               if (normExVal !== inputs[inputKey]) {
                 example.inputs![inputKey] = normExVal;
@@ -420,7 +684,10 @@ export function postmanToAPI(postmanJson: any): APIData[] {
             }
             for (const bk of Object.keys(apiData.body as any)) {
               const inputKey = `body_${norm(bk)}`;
-              const exVal = exBodyObj[bk] ?? '';
+              const exVal = Object.prototype.hasOwnProperty.call(
+                  exBodyObj, bk)
+                ? exBodyObj[bk]
+                : OMIT_SENTINEL;
               const normExVal = typeof exVal === 'string' ? exVal : String(exVal ?? '');
               if (normExVal !== inputs[inputKey]) {
                 example.inputs![inputKey] = normExVal;
@@ -480,17 +747,31 @@ function convertPostmanAuth(pmAuth: any): AuthConfig | undefined {
     }
     return '';
   };
+  const credential = (value: string, fallbackName: string): string => {
+    if (/^<[^<>]+>$/.test(value.trim())) {
+      return `<<e:${fallbackName}>>`;
+    }
+    return replacePostmanVars(value);
+  };
 
   switch (pmAuth.type) {
+    case 'noauth':
+      return 'none';
     case 'bearer': {
       const token = getField(pmAuth.bearer, 'token');
-      return token ? {type: 'bearer', token: replacePostmanVars(token)} : undefined;
+      return token
+        ? {type: 'bearer', token: credential(token, 'bearer_token')}
+        : undefined;
     }
     case 'basic': {
       const username = getField(pmAuth.basic, 'username');
       const password = getField(pmAuth.basic, 'password');
       return (username || password)
-          ? {type: 'basic', username: replacePostmanVars(username), password: replacePostmanVars(password)}
+          ? {
+            type: 'basic',
+            username: credential(username, 'username'),
+            password: credential(password, 'password'),
+          }
           : undefined;
     }
     case 'apikey': {
@@ -501,9 +782,17 @@ function convertPostmanAuth(pmAuth: any): AuthConfig | undefined {
         return undefined;
       }
       if (inField === 'query') {
-        return {type: 'api-key', query: key, value: replacePostmanVars(value)};
+        return {
+          type: 'api-key',
+          query: key,
+          value: credential(value, 'api_key'),
+        };
       }
-      return {type: 'api-key', header: key, value: replacePostmanVars(value)};
+      return {
+        type: 'api-key',
+        header: key,
+        value: credential(value, 'api_key'),
+      };
     }
     case 'oauth2': {
       const opts = pmAuth.oauth2;
@@ -512,7 +801,14 @@ function convertPostmanAuth(pmAuth: any): AuthConfig | undefined {
       }
       const grant = getField(opts, 'grant_type');
       if (grant !== 'client_credentials') {
-        return undefined;
+        const accessToken =
+            getField(opts, 'accessToken') || getField(opts, 'token');
+        return {
+          type: 'bearer',
+          token: accessToken
+            ? replacePostmanVars(accessToken)
+            : '<<e:access_token>>',
+        };
       }
       const tokenUrl = getField(opts, 'accessTokenUrl');
       const clientId = getField(opts, 'clientId');

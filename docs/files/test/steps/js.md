@@ -62,8 +62,8 @@ The following globals are available inside `js` `steps:`
 | `importJsModule_(path)` | Load a `.js` / `.cjs` / `.mjs` file at runtime (prefer `import:` for helpers loaded once per run) |
 | `readBinaryFile_(path)` | Read a binary file relative to the test file (when a binary file loader is available) |
 | `Random.*` | Random token helpers — e.g. `Random.randomUUID()`, `Random.randomInt()`, `Random.randomEmail()` |
-| `__mmt_random(name)` | Resolve a random token by name (e.g. `__mmt_random('uuid')`) |
-| `__mmt_current(name)` | Resolve a current token by name (e.g. `__mmt_current('date')`) |
+| `mmtRandom_(name)` | Resolve a random token by name (e.g. `mmtRandom_('uuid')`) |
+| `mmtCurrent_(name)` | Resolve a current token by name (e.g. `mmtCurrent_('date')`) |
 | `outputs` | Test `outputs` object (also `o:name` / `<<o:name>>`) |
 | step `id` vars | Call/http results hoisted as `let` (e.g. `doLogin` from `id: doLogin`) |
 | `equals_()`, `less_()`, `greater_()`, `contains_()`, `matches_()`, … | Comparison helpers matching [check operators](./check.md#operators) |

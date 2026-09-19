@@ -17,7 +17,7 @@ interface InterfaceEditorProps {
 }
 
 const protocolOptions: Protocol[] = ["http", "ws", "graphql", "grpc"];
-const formatOptions: Format[] = ["json", "xml", "xmle", "text", "urlencoded", "binary"];
+const formatOptions: Format[] = ["json", "xml", "xmle", "text", "urlencoded", "binary", "multipart"];
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;

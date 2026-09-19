@@ -12,7 +12,7 @@ The examples are grouped by complexity so new users can start simple and add pow
 
 ## Intermediate
 
-Use these when you are ready for reusable APIs, authentication, mock servers, richer environment variables, inputs and outputs, suites, imports, data-driven tests, environment presets, documentation options/ranges, control flow, comparison operators (`expect` / `check` / `assert`), helper JavaScript, additional protocol or file formats, converting a small OpenAPI / Postman / WSDL / HTTP / Bruno file to `.mmt`, and the `omit` keyword.
+Use these when you are ready for reusable APIs, authentication, mock servers, richer environment variables, inputs and outputs, suites, tag filters (`filter.only` / `filter.skip`), imports, data-driven tests, environment presets, documentation options/ranges, control flow, comparison operators (`expect` / `check` / `assert`), helper JavaScript, additional protocol or file formats, converting a small OpenAPI / Postman / WSDL / HTTP / Bruno file to `.mmt`, and the `omit` keyword.
 
 ## Professional
 

@@ -1,4 +1,4 @@
-import { opsList } from './TestData';
+import { opsList, TIME_OPERATOR_PATTERN } from './TestData';
 import { detectNewline, joinLines, splitNormalizedLines } from './textLines';
 
 /**
@@ -16,6 +16,8 @@ const YAML_UNSAFE_OPS = opsList
   .sort((a, b) => b.length - a.length);
 
 const FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
+const TIME_TILDE_OP_RE = new RegExp(`^${TIME_OPERATOR_PATTERN}(?:\\s|$)`);
+const EXACT_TIME_TILDE_OP_RE = new RegExp(`^${TIME_OPERATOR_PATTERN}$`);
 
 /**
  * Map key + value. Keys may include dots, underscores, hyphens, brackets
@@ -125,7 +127,7 @@ function needsBangOperatorQuoting(value: string): boolean {
   if (/^["']/.test(value)) {
     return false;
   }
-  if (FUZZY_PERCENT_OP_RE.test(value)) {
+  if (FUZZY_PERCENT_OP_RE.test(value) || TIME_TILDE_OP_RE.test(value)) {
     return true;
   }
   for (const op of YAML_BANG_UNSAFE_OPS) {
@@ -140,7 +142,7 @@ function canEmitUnquotedExactOperator(value: string): boolean {
   if (/^["']/.test(value)) {
     return false;
   }
-  if (EXACT_FUZZY_PERCENT_OP_RE.test(value)) {
+  if (EXACT_FUZZY_PERCENT_OP_RE.test(value) || EXACT_TIME_TILDE_OP_RE.test(value)) {
     return true;
   }
   return YAML_BANG_UNSAFE_OPS.some(op => op === value);
@@ -219,7 +221,7 @@ function needsOperatorQuoting(value: string): boolean {
   if (/^["']/.test(value)) {
     return false;
   }
-  if (FUZZY_PERCENT_OP_RE.test(value)) {
+  if (FUZZY_PERCENT_OP_RE.test(value) || TIME_TILDE_OP_RE.test(value)) {
     return true;
   }
   for (const op of YAML_UNSAFE_OPS) {
@@ -236,7 +238,7 @@ function needsExactOperatorQuoting(value: string): boolean {
   if (/^["']/.test(value)) {
     return false;
   }
-  if (EXACT_FUZZY_PERCENT_OP_RE.test(value)) {
+  if (EXACT_FUZZY_PERCENT_OP_RE.test(value) || EXACT_TIME_TILDE_OP_RE.test(value)) {
     return true;
   }
   for (const op of YAML_UNSAFE_OPS) {
@@ -264,6 +266,7 @@ function quoteOperatorFieldLine(line: string): string {
 const EXPR_FIELD_RE = /^((?:-\s+)?(?:condition|check|assert|if):\s+)(.*)$/;
 const COMPARISON_OPS = [...opsList].sort((a, b) => b.length - a.length);
 const FUZZY_PERCENT_LEADING_RE = /^(?:[<>](?:0|[1-9][0-9]?|100)%)/;
+const TIME_OPERATOR_LEADING_RE = new RegExp(`^(?:${TIME_OPERATOR_PATTERN}|[=!]~)(?:\\s|$)`);
 
 /**
  * Fold `condition: 'id:profile' == 200` into one YAML string.
@@ -326,7 +329,7 @@ function looksLikeTrailingComparison(raw: string): boolean {
   if (!t) {
     return false;
   }
-  if (FUZZY_PERCENT_LEADING_RE.test(t)) {
+  if (FUZZY_PERCENT_LEADING_RE.test(t) || TIME_OPERATOR_LEADING_RE.test(t)) {
     return true;
   }
   for (const op of COMPARISON_OPS) {

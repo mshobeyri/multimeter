@@ -14,9 +14,7 @@ import {
   testParsePack,
   mockParsePack,
   apiParsePack,
-  variableReplacer,
-  markupConvertor,
-  CommonData,
+  resolveApiRequest,
 } from 'mmt-core';
 import {
   getCachedSuiteHierarchy,
@@ -32,6 +30,7 @@ import {
   type CurlShellKind,
 } from 'mmt-core/curlGenerator';
 import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/NetworkData';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
 
 let curlTerminal: vscode.Terminal|null = null;
 
@@ -114,7 +113,12 @@ function buildCurlArtifacts(
 }
 
 async function handleUpdateWorkspaceState(message: any, mmtProvider: any) {
-  mmtProvider.context.workspaceState.update(message.name, message.value);
+  let value = message.value;
+  if (message.name === 'multimeter.environment.storage' && Array.isArray(value)) {
+    const previous = mmtProvider.context.workspaceState.get(message.name);
+    value = applyEnvVarLastUpdates(value, asEnvVarList(previous));
+  }
+  mmtProvider.context.workspaceState.update(message.name, value);
   await vscode.commands.executeCommand('multimeter.environment.refresh');
 }
 
@@ -256,25 +260,7 @@ function getCurlRequest(
     const api = apiParsePack.yamlToAPIStrict(rawText);
     const inputs = resolveCurlInputs(api, message?.inputs);
     const envVars = extractEnvVarsForCurl(mmtProvider);
-    const request = variableReplacer.replaceAllRefs(
-        api,
-        api.inputs ?? {},
-        inputs,
-        envVars) as Request & {auth?: any};
-    if (request.auth) {
-      const applied = apiParsePack.applyAuthToRequest(
-          request.auth, request.headers || {}, request.query);
-      request.headers = applied.headers;
-      if (applied.query) {
-        request.query = applied.query;
-      }
-      delete request.auth;
-    }
-    if (request.body && typeof request.body !== 'string') {
-      request.body = markupConvertor.formatBody(
-          CommonData.requestFormat(request.format), request.body ?? '');
-    }
-    return request;
+    return resolveApiRequest(api, inputs, envVars);
   } catch {
     return undefined;
   }

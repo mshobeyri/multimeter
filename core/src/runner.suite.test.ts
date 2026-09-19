@@ -560,6 +560,50 @@ describe('suite bundle runner nested suite', () => {
     expect(titles.some((t) => t.includes('ok'))).toBe(true);
   });
 
+  it('runs untagged children when a nested suite is selected by only-tags', async () => {
+    const runner = await import('./runner.js');
+    const {tagFilterFromLists} = await import('./suiteTagFilter.js');
+    const files: Record<string, string> = {
+      '/root/suite.mmt': ['type: suite', 'items:', '  - ./auth.mmt', '  - ./other.mmt'].join('\n'),
+      '/root/auth.mmt': [
+        'type: suite',
+        'tags: [smoke]',
+        'items:',
+        '  - ./login.mmt',
+        '  - ./profile.mmt',
+      ].join('\n'),
+      '/root/login.mmt': ['type: test', 'title: login', 'tags: [smoke]', 'steps:', '  - print: login'].join('\n'),
+      '/root/profile.mmt': ['type: test', 'title: profile', 'steps:', '  - print: profile'].join('\n'),
+      '/root/other.mmt': ['type: test', 'title: other', 'tags: [api]', 'steps:', '  - print: other'].join('\n'),
+    };
+    const fileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+    const titles: string[] = [];
+    const statuses: Array<{title?: string; status?: string}> = [];
+    await runner.runFile({
+      file: files['/root/suite.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      fileLoader,
+      tagFilter: tagFilterFromLists(['smoke']),
+      jsRunner: async ({title}: any) => {
+        titles.push(String(title));
+        return {success: true, logs: [], errors: []} as any;
+      },
+      logger: () => {},
+      reporter: (msg: any) => {
+        if (msg?.scope === 'suite-item' && msg.status && msg.status !== 'running') {
+          statuses.push({title: msg.title, status: msg.status});
+        }
+      },
+    } as any);
+    expect(titles).toEqual(expect.arrayContaining(['login', 'profile']));
+    expect(titles.some((t) => t.includes('other'))).toBe(false);
+    expect(statuses.some((s) => s.title === 'other' && s.status === 'skipped')).toBe(true);
+  });
+
   it('fails the suite when servers are listed but no server runner exists', async () => {
     const runner = await import('./runner.js');
     const logs: string[] = [];

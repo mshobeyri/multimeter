@@ -2,7 +2,7 @@
 
 `format` controls how Multimeter encodes the request body and decodes the response body.
 
-- Values: `json` | `xml` | `xmle` | `text` | `urlencoded` | `binary`
+- Values: `json` | `xml` | `xmle` | `text` | `urlencoded` | `binary` | `multipart`
 - Optional — defaults to `json`
 - Affects default `Content-Type` and body handling
 
@@ -28,6 +28,7 @@ format:
 | `text` | Raw text body |
 | `urlencoded` | Form fields as `application/x-www-form-urlencoded` |
 | `binary` | File path relative to the `.mmt` file |
+| `multipart` | Form parts array with text `value` and/or relative `file` paths |
 
 The `body` field shape depends on `format`. See [Request body](./body.md) and [HTTP bodies](../protocols/http-bodies.md).
 

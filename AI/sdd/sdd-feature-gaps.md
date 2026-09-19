@@ -29,7 +29,7 @@ Gap analysis comparing Multimeter against Postman, Insomnia, Bruno, Hoppscotch, 
 | # | Gap | Current State | Competitors |
 |---|-----|---------------|-------------|
 | 11 | **Server-Sent Events (SSE)** | WebSocket supported, SSE not. Growing usage in AI streaming APIs. | Insomnia supports SSE. |
-| 12 | **OpenAPI 2.0 (Swagger) import** | Only 3.x supported. Legacy specs still common. | All converters support both 2.0 and 3.x. |
+| 12 | **OpenAPI 2.0 (Swagger) import** | Swagger 2 specs convert with `host`/`basePath` URLs and path-parameter inputs; external `$ref` and advanced schema features still need manual work. | All converters support both 2.0 and 3.x. |
 | 13 | **SOAP / WSDL** | XML bodies work but no WSDL-driven generation. | SoapUI specializes here; Postman has basic support. |
 | 14 | **Scheduled / monitoring runs** | Relies on CI cron jobs. No built-in scheduler. | Postman Monitors; Insomnia has monitoring. |
 

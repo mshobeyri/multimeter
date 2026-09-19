@@ -53,26 +53,52 @@ import { useFormatAndOrder } from './useFormatAndOrder';
 import { REVEAL_YAML_EVENT } from './yamlEditorErrors';
 // formatting and ordering helper moved to `useFormatAndOrder`
 
-// Keep these viewer-side patterns in sync with `core/src/variableReplacer.ts`.
-const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
-const ACCESSOR_SEGMENT_RE =
-  '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|[A-Za-z_][A-Za-z0-9_]*)\\])';
-const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
+import {
+  ENV_BRACE_TOKEN_HIGHLIGHT_RE,
+  INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
+  INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE,
+  OUTPUT_KEY_TOKEN_HIGHLIGHT_RE,
+  PLAIN_TOKEN_HIGHLIGHT_RE,
+} from './tokenHighlightPatterns';
 
-const INLINE_TOKEN_HIGHLIGHT_RE = new RegExp(
-  `<<[ieorc]:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}>>|<e:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}>`,
-  'g'
-);
-const PLAIN_TOKEN_HIGHLIGHT_RE = new RegExp(
-  `:\\s(?:[ieorc]:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}|e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\})`,
-  'g'
-);
-// `o:name` (and nested accessors) used as a YAML key, e.g. `o:asd: 100` under set.
-const OUTPUT_KEY_TOKEN_HIGHLIGHT_RE = new RegExp(
-  `(?:^|[\\s,{])(o:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE})(?=\\s*:)`,
-  'gm'
-);
 const YAML_CONSTANT_HIGHLIGHT_RE = /(^|:\s+|-\s+)(omit|null)(?=\s*(?:#.*)?$|\s|,|\]|\})/gm;
+
+function pushHighlightRange(
+  matches: any[],
+  monaco: any,
+  model: any,
+  startOffset: number,
+  endOffset: number,
+  className: string
+): void {
+  const start = model.getPositionAt(startOffset);
+  const end = model.getPositionAt(endOffset);
+  matches.push({
+    range: new monaco.Range(
+      start.lineNumber,
+      start.column,
+      end.lineNumber,
+      end.column
+    ),
+    options: { inlineClassName: className }
+  });
+}
+
+function pushCapturedTokenHighlight(
+  matches: any[],
+  monaco: any,
+  model: any,
+  match: RegExpExecArray,
+  tokenGroupIndex: number,
+  className: string
+): void {
+  const token = match[tokenGroupIndex];
+  if (!token) {
+    return;
+  }
+  const tokenOffset = match.index + match[0].indexOf(token);
+  pushHighlightRange(matches, monaco, model, tokenOffset, tokenOffset + token.length, className);
+}
 
 interface YamlEditorPanelProps {
   content: string;
@@ -857,15 +883,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     let doc: any = null;
     try {
       doc = parseYamlDoc(content);
-      if (doc.errors && doc.errors.length > 0) {
-        setCompatibilityProblems([]);
-        compatibilityDecorationsRef.current = editor.deltaDecorations(compatibilityDecorationsRef.current, []);
-        return;
-      }
     } catch {
-      setCompatibilityProblems([]);
-      compatibilityDecorationsRef.current = editor.deltaDecorations(compatibilityDecorationsRef.current, []);
-      return;
+      doc = null;
     }
 
     const problems = findCompatibilityProblems(content, doc, docType);
@@ -1068,35 +1087,33 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     {
       const value = model.getValue();
       let match;
-      while ((match = INLINE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
-        const start = model.getPositionAt(match.index);
-        const end = model.getPositionAt(match.index + match[0].length);
-        matches.push({
-          range: new monaco.Range(
-            start.lineNumber,
-            start.column,
-            end.lineNumber,
-            end.column
-          ),
-          options: { inlineClassName: I_PREFIX_CLASS }
-        });
+      while ((match = INLINE_ANGLE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        pushHighlightRange(
+          matches, monaco, model, match.index, match.index + match[0].length, I_PREFIX_CLASS
+        );
+      }
+    }
+    {
+      const value = model.getValue();
+      let match;
+      while ((match = INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE.exec(value)) !== null) {
+        pushHighlightRange(
+          matches, monaco, model, match.index, match.index + match[0].length, I_PREFIX_CLASS
+        );
       }
     }
     {
       const value = model.getValue();
       let match;
       while ((match = PLAIN_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
-        const start = model.getPositionAt(match.index);
-        const end = model.getPositionAt(match.index + match[0].length);
-        matches.push({
-          range: new monaco.Range(
-            start.lineNumber,
-            start.column + 2,
-            end.lineNumber,
-            end.column
-          ),
-          options: { inlineClassName: I_PREFIX_CLASS }
-        });
+        pushCapturedTokenHighlight(matches, monaco, model, match, 1, I_PREFIX_CLASS);
+      }
+    }
+    {
+      const value = model.getValue();
+      let match;
+      while ((match = ENV_BRACE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        pushCapturedTokenHighlight(matches, monaco, model, match, 1, I_PREFIX_CLASS);
       }
     }
     {
@@ -1211,6 +1228,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
               const fuzzyPercentMatch = afterQuote.match(/^([<>](?:0|[1-9][0-9]?|100)%)(?:\s|["']|$)/);
               if (fuzzyPercentMatch) {
                 const op = fuzzyPercentMatch[1];
+                matches.push({
+                  range: new monaco.Range(
+                    i + 1, opStartCol + 1,
+                    i + 1, opStartCol + op.length + 1
+                  ),
+                  options: { inlineClassName: EXPECT_OP_CLASS }
+                });
+                continue;
+              }
+
+              const timeMatch = afterQuote.match(/^([=!](?:\d+(?:\.\d+)?(?:ms|s|m|h|d|w))+~)(?:\s|["']|$)/);
+              if (timeMatch) {
+                const op = timeMatch[1];
                 matches.push({
                   range: new monaco.Range(
                     i + 1, opStartCol + 1,

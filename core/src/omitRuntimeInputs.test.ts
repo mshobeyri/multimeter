@@ -49,7 +49,7 @@ steps:
     inputs:
       message: omit
     expect:
-      status: =~ "200"
+      status: =S "200"
 `;
 
 async function runEchoTest() {

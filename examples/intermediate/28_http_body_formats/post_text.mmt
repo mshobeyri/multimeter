@@ -1,0 +1,12 @@
+type: api
+title: POST text body
+description: Raw text body sent as text/plain.
+inputs:
+  message: hello from text
+outputs:
+  echoed_body: body[body]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: text
+body: i:message

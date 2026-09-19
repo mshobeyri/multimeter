@@ -20,7 +20,9 @@ Multimeter generates `type: api` files under `api/` with protocol, method, URL, 
 
 ## What Multimeter maps
 
-- Path, query, and header parameters → API `inputs` (including shared `#/components/parameters/...` refs)
+- Path parameters → `<<i:name>>` placeholders in the URL with example defaults in `inputs` (aligned with Postman path-variable conversion)
+- Query and header parameters → example values on the API (including shared `#/components/parameters/...` refs)
+- Swagger 2.0 `host`, `basePath`, and `schemes` → absolute URLs on generated APIs
 - Request/response schemas → body templates and `format` (including `#/components/schemas/...` and `#/components/requestBodies/...` refs in the same file)
 - **XML bodies** — when a spec defines `application/xml`, Multimeter generates XML body templates from the schema
 - Example payloads from the spec when available (inline `example` / `examples` on the operation or media type)

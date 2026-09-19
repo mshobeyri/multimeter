@@ -13,9 +13,10 @@ Write a single comparison string: `actual operator expected`. Combine clauses wi
 ```yaml
 - check: ${doLogin.status} == 200
 - check: ${profile.name} =* /John/i
-- check: ${xml.active} =~ true
+- check: ${xml.active} =S true
 - check: ${profile.name} >80% Jon
 - check: ${profile.roles} =# 2
+- check: ${createdAt} =5s~ ${updatedAt}
 - check: ${a.status} == 200 && ${a.token} != omit
 ```
 
@@ -67,10 +68,13 @@ Operators used by `check`, [assert](./assert.md), and call-level [`expect`](./ca
 | `=^`, `!^` | Starts with / does not start with |
 | `=$`, `!$` | Ends with / does not end with |
 | `=*`, `!*` | Regex match / does not match |
-| `=~`, `!~` | Equal / not equal, type-unsafe (as string) — use for XML/text outputs vs YAML `true` / `42` |
+| `=S`, `!S` | Equal / not equal as string — use for XML/text outputs vs YAML `true` / `42` |
 | `=#`, `!#` | String/number/list/object length equals / not equals |
 | `<#`, `<=#`, `>#`, `>=#` | Length/count comparisons |
 | `>N%`, `<N%` | Fuzzy match at least / less than N% similar (0–100, e.g. `>80%`). In the visual UI these appear as `>%` and `<%` with a separate percentage selector. |
+| `=Ns~`, `!Ns~` | Times within / not within velocity (e.g. `=5s~`, `!1m~`). A duration is required — bare `=~` is not a time operator. Combined durations work (`=1m30s~`, `=100ms~`). Both sides parse as ISO datetime, epoch seconds/ms, or `HH:mm[:ss]`. Quote clock times (`"14:30:00"`) so YAML does not treat them as numbers. In the visual UI these appear as `=s~` / `!s~` with a velocity field. |
+
+Legacy `=~` / `!~` still run as as-string compares (`=S` / `!S`) so old files keep working. The YAML editor strikes them through; click to replace with `=S` / `!S`.
 
 ### `omit`
 

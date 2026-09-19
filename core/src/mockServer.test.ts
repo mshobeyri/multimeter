@@ -76,7 +76,7 @@ describe('partialMatch', () => {
   it('uses expect equality (no string coercion)', () => {
     expect(partialMatch({count: 5 as any}, {count: '5'})).toBe(false);
     expect(partialMatch({count: 5 as any}, {count: 5})).toBe(true);
-    expect(partialMatch({count: '=~ 5'}, {count: 5})).toBe(true);
+    expect(partialMatch({count: '=S 5'}, {count: 5})).toBe(true);
   });
 
   it('supports dotted paths and operators', () => {
@@ -326,7 +326,7 @@ describe('findEndpoint match priority', () => {
     const eps: MockEndpoint[] = [
       {method: 'post', path: '/x', status: 200, body: 'default'},
       {method: 'post', path: '/x', match: {body: {n: 5}}, status: 200, body: 'num'},
-      {method: 'post', path: '/x', match: {body: {n: '=~ 5'}}, status: 200, body: 'as-string'},
+      {method: 'post', path: '/x', match: {body: {n: '=S 5'}}, status: 200, body: 'as-string'},
     ];
     expect(findEndpoint(eps, req('post', '/x', {body: {n: 5}}))!.endpoint.body).toBe('num');
     expect(findEndpoint(eps, req('post', '/x', {body: {n: '5'}}))!.endpoint.body).toBe('as-string');

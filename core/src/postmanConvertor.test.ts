@@ -1,4 +1,11 @@
-import { postmanToAPI } from './postmanConvertor';
+import {
+  assertPostmanRandomMapIsSupported,
+  listSupportedPostmanRandomTokens,
+  parsePostmanRawJsonBody,
+  postmanToAPI,
+  translatePostmanTemplate,
+} from './postmanConvertor';
+import {OMIT_SENTINEL} from './omitKeyword';
 
 describe('postmanConvertor.postmanToAPI', () => {
   it('returns empty array for invalid input', () => {
@@ -26,7 +33,7 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(api.method).toBe('get');
     expect(api.url).toBe('https://test.mmt.dev/echo');
     expect(api.format).toBe('json');
-    expect(api.body).toBe('{"hello":"world"}');
+    expect(api.body).toEqual({hello: 'world'});
     // Protocol is undefined for http URLs (inferred from URL)
     expect(api.protocol).toBeUndefined();
   });
@@ -76,6 +83,44 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(socket.body).toEqual({ meta: 'x' });
   });
 
+  it('maps every supported Postman random token to an existing r: generator', () => {
+    expect(() => assertPostmanRandomMapIsSupported()).not.toThrow();
+    expect(listSupportedPostmanRandomTokens()).toContain('$randomLoremWord');
+    expect(listSupportedPostmanRandomTokens()).toContain('$randomPrice');
+  });
+
+  it('translates replaceIn-style concatenated Postman templates', () => {
+    expect(translatePostmanTemplate('{{$timestamp}}{{$randomInt}}'))
+        .toBe('r:epochr:int');
+    expect(translatePostmanTemplate('{{$timestamp}}'))
+        .toBe('r:epoch');
+  });
+
+  it('parses unquoted Postman dynamic values in JSON bodies', () => {
+    const collection = {
+      item: [{
+        name: 'Create Order',
+        request: {
+          method: 'POST',
+          header: [{key: 'Content-Type', value: 'application/json'}],
+          url: {raw: 'https://test.mmt.dev/orders'},
+          body: {
+            mode: 'raw',
+            raw: '{"customer_id":"{{$timestamp}}","invoice_id":{{$timestamp}},"qty":{{$randomInt}}}',
+          },
+        },
+      }],
+    };
+    const api = postmanToAPI(collection)[0];
+    expect(api.body).toEqual({
+      customer_id: 'r:epoch',
+      invoice_id: 'r:epoch',
+      qty: 'r:int',
+    });
+    expect(parsePostmanRawJsonBody('{"invoice_id":{{$timestamp}}}'))
+        .toEqual({invoice_id: 'r:epoch'});
+  });
+
   it('converts Postman dynamic random variables to r: tokens', () => {
     const collection = {
       item: [
@@ -85,7 +130,10 @@ describe('postmanConvertor.postmanToAPI', () => {
             method: 'POST',
             header: [ { key: 'Content-Type', value: 'application/json' } ],
             url: { raw: 'https://test.mmt.dev/echo?uuid={{$guid}}&ip={{$randomIP}}' },
-            body: { mode: 'raw', raw: '{"id":"{{$guid}}","email":"{{$randomEmail}}","v":"{{$randomInt}}","name":"{{$randomFullName}}"}' }
+            body: {
+              mode: 'raw',
+              raw: '{"id":"{{$guid}}","email":"{{$randomEmail}}","v":"{{$randomInt}}","name":"{{$randomFullName}}","username":"{{$randomUserName}}","domain":"{{$randomDomainName}}","agent":"{{$randomUserAgent}}","company":"{{$randomCompanyName}}","sentence":"{{$randomLoremSentence}}"}',
+            }
           }
         }
       ]
@@ -96,13 +144,17 @@ describe('postmanConvertor.postmanToAPI', () => {
     // URL replacements
     expect(api.url).toContain('uuid=r:uuid');
     expect(api.url).toContain('ip=r:ip');
-    // Body replacements
-    expect(typeof api.body).toBe('string');
-    const bodyStr = api.body as string;
-    expect(bodyStr).toContain('"id":"r:uuid"');
-    expect(bodyStr).toContain('"email":"r:email"');
-    expect(bodyStr).toContain('"v":"r:int"');
-    expect(bodyStr).toContain('"name":"r:full_name"');
+    expect(api.body).toEqual({
+      id: 'r:uuid',
+      email: 'r:email',
+      v: 'r:int',
+      name: 'r:full_name',
+      username: 'r:username',
+      domain: 'r:domain',
+      agent: 'r:user_agent',
+      company: 'r:company',
+      sentence: 'r:sentence',
+    });
   });
 
   it('when examples exist, exposes url/headers/body as inputs and builds example overrides', () => {
@@ -152,8 +204,8 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(api.headers!['X-Extra']).toBe('<<i:hdr_x_extra>>');
     expect(api.inputs!['hdr_content_type']).toBe('application/json');
     expect(api.inputs!['hdr_x_env']).toBe('prod');
-    // new header default is empty
-    expect(api.inputs!['hdr_x_extra']).toBe('');
+    // A header that only exists in an example is omitted by default.
+    expect(api.inputs!['hdr_x_extra']).toBe(OMIT_SENTINEL);
     // body parameterized as single input
     expect(api.body).toBe('<<i:body>>');
     expect(typeof api.inputs!.body).toBe('string');
@@ -287,5 +339,166 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(apis.find(a => a.title === 'oauth-fail')!.auth).toBeUndefined();
     expect(apis.find(a => a.title === 'digest')!.auth).toBeUndefined();
     expect(apis.find(a => a.title === 'Basic empty')!.auth).toBeUndefined();
+  });
+
+  it('inherits collection and folder auth while honoring noauth overrides', () => {
+    const apis = postmanToAPI({
+      auth: {
+        type: 'bearer',
+        bearer: [{key: 'token', value: '{{collection_token}}'}],
+      },
+      event: [{
+        listen: 'prerequest',
+        script: {
+          exec: [
+            'pm.request.headers.upsert({key:"User-Agent",value:pm.variables.get("versionUserAgent")})',
+          ],
+        },
+      }],
+      item: [
+        {
+          name: 'Collection auth',
+          request: {url: 'https://example.com/collection'},
+        },
+        {
+          name: 'Basic folder',
+          auth: {
+            type: 'basic',
+            basic: [
+              {key: 'username', value: '{{user}}'},
+              {key: 'password', value: '{{password}}'},
+            ],
+          },
+          item: [
+            {
+              name: 'Folder auth',
+              request: {url: 'https://example.com/folder'},
+            },
+            {
+              name: 'No auth',
+              request: {
+                url: 'https://example.com/public',
+                auth: {type: 'noauth'},
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(apis[0].auth).toEqual({
+      type: 'bearer',
+      token: '<<e:collection_token>>',
+    });
+    expect(apis[0].headers?.['User-Agent']).toBe(
+        '<<e:versionUserAgent>>');
+    expect(apis[1].auth).toEqual({
+      type: 'basic',
+      username: '<<e:user>>',
+      password: '<<e:password>>',
+    });
+    expect(apis[2].auth).toBe('none');
+  });
+
+  it('filters disabled fields and maps composed URL path variables to inputs', () => {
+    const [api] = postmanToAPI({
+      variable: [{key: 'baseUrl', value: 'https://api.example.com/'}],
+      item: [{
+        name: 'Get account',
+        request: {
+          method: 'GET',
+          header: [
+            {key: 'Accept', value: 'application/json'},
+            {key: 'X-Debug', value: 'true', disabled: true},
+          ],
+          url: {
+            protocol: 'https',
+            host: ['{{baseUrl}}'],
+            path: ['v1', 'accounts', ':account'],
+            query: [
+              {key: 'active', value: 'true'},
+              {key: 'expand[]', value: 'owner', disabled: true},
+            ],
+            variable: [{key: 'account', value: 'acct_123'}],
+          },
+        },
+      }],
+    });
+
+    expect(api.url).toBe('<<e:baseUrl>>/v1/accounts/<<i:account>>');
+    expect(api.url).not.toContain('https://<<e:baseUrl>>');
+    expect(api.inputs).toEqual({account: 'acct_123'});
+    expect(api.query).toEqual({active: 'true'});
+    expect(api.headers).toEqual({Accept: 'application/json'});
+  });
+
+  it('maps interactive Postman OAuth2 to a supplied bearer access token', () => {
+    const [api] = postmanToAPI({
+      item: [{
+        name: 'OAuth API',
+        request: {
+          url: 'https://example.com/private',
+          auth: {
+            type: 'oauth2',
+            oauth2: [
+              {key: 'grant_type', value: 'authorization_code'},
+              {key: 'authUrl', value: 'https://example.com/authorize'},
+              {key: 'accessTokenUrl', value: 'https://example.com/token'},
+            ],
+          },
+        },
+      }],
+    });
+
+    expect(api.auth).toEqual({
+      type: 'bearer',
+      token: '<<e:access_token>>',
+    });
+  });
+
+  it('maps Postman GraphQL bodies to executable GraphQL API data', () => {
+    const [api] = postmanToAPI({
+      item: [{
+        name: 'Create charge',
+        request: {
+          method: 'POST',
+          url: {raw: 'https://payments.example.com/graphql'},
+          body: {
+            mode: 'graphql',
+            graphql: {
+              query: 'mutation Charge($id: ID!) { charge(id: $id) { id } }',
+              variables: '{"id":"{{payment_id}}"}',
+            },
+          },
+        },
+      }],
+    });
+
+    expect(api.protocol).toBe('graphql');
+    expect(api.method).toBeUndefined();
+    expect(api.body).toBeUndefined();
+    expect(api.graphql).toEqual({
+      operation: 'mutation Charge($id: ID!) { charge(id: $id) { id } }',
+      variables: {id: '<<e:payment_id>>'},
+    });
+  });
+
+  it('maps Postman file bodies with source paths to binary APIs', () => {
+    const [api] = postmanToAPI({
+      item: [{
+        name: 'Upload archive',
+        request: {
+          method: 'PUT',
+          url: 'https://example.com/archive',
+          body: {
+            mode: 'file',
+            file: {src: '{{fixture_dir}}/archive.tar'},
+          },
+        },
+      }],
+    });
+
+    expect(api.format).toEqual({request: 'binary', response: 'json'});
+    expect(api.body).toBe('<<e:fixture_dir>>/archive.tar');
   });
 });

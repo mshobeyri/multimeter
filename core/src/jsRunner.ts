@@ -1,6 +1,5 @@
 import {LogLevel} from './CommonData';
 import {GrpcRequest, GrpcResponse} from './NetworkData';
-import {normalizeTokenName} from './JSerHelper';
 import {applyValueAccessor} from './variableReplacer';
 // Import your send function from the network core
 import {send, setRunnerNetworkConfig, getRunnerNetworkConfig} from './networkCoreNode';
@@ -51,22 +50,20 @@ const MAX_COMPILED_FUNCTION_CACHE_SIZE = 64;
 
 // Runtime helper to get random value by token name
 function mmtRandom(name: string): any {
-  const normalized = normalizeTokenName(name);
-  const fn = Random.RANDOM_TOKEN_MAP[normalized] || Random.RANDOM_TOKEN_MAP[name];
-  if (!fn) {
+  const value = Random.randomValueForToken(name);
+  if (value === undefined) {
     return `r:${name}`;  // Return original token if not found
   }
-  return fn();
+  return value;
 }
 
 // Runtime helper to get current value by token name
 function mmtCurrent(name: string): any {
-  const normalized = normalizeTokenName(name);
-  const fn = Current.CURRENT_TOKEN_MAP[normalized] || Current.CURRENT_TOKEN_MAP[name];
-  if (!fn) {
+  const value = Current.currentValueForToken(name);
+  if (value === undefined) {
     return `c:${name}`;  // Return original token if not found
   }
-  return fn();
+  return value;
 }
 
 function mmtAccess(value: any, accessor: string): any {
@@ -231,7 +228,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
               .filter(name => name !== 'report_' && name !== 'setenv_' &&
                              name !== 'checkAbort_' && name !== 'importJsModule_' &&
                              name !== 'check_' && name !== 'checkExpects_' &&
-                             name !== 'judge_')
+                             name !== 'judge_' &&
+                             name !== 'buildMultipartBodyFromParts_')
               .map(name => `const ${name} = mmtHelper["${name}"];`)
               .join('\n');
     const randomDecls =
@@ -267,13 +265,16 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `  }` +
       `  return __binaryFileLoader(path);` +
       `};\n` +
+      `const buildMultipartBodyFromParts_ = async (parts) => {` +
+      `  return mmtHelper.buildMultipartBodyFromParts_(parts, readBinaryFile_);` +
+      `};\n` +
       `${code}`;
     let fn = compiledFunctionCache.get(functionBody);
     if (!fn) {
       fn = new Function(
         'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
-        '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
-        '__mmt_access', '__abortSignal', '__fileLoader', '__binaryFileLoader',
+        '__reporter', '__runId', '__id', 'mmtRandom_', 'mmtCurrent_',
+        'mmtAccess_', '__abortSignal', '__fileLoader', '__binaryFileLoader',
         '__checkLogMode',
         functionBody);
       if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {

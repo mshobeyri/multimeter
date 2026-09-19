@@ -12,6 +12,28 @@ export type OpenApiPrimaryServer = {
   variables: Record<string, {default?: string; enum?: string[]}>;
 };
 
+/** Build a concrete server URL from Swagger 2.0 `host`, `basePath`, and `schemes`. */
+export function buildSwagger2ServerUrl(spec: any): string {
+  if (!spec?.swagger) {
+    return '';
+  }
+  const host = String(spec?.host || '').trim().replace(/\/+$/, '');
+  if (!host) {
+    return '';
+  }
+  const schemes = Array.isArray(spec?.schemes) && spec.schemes.length > 0
+    ? spec.schemes
+    : ['https'];
+  const scheme = String(schemes[0] || 'https').replace(/:$/, '');
+  let basePath = String(spec?.basePath || '').trim();
+  if (basePath === '/') {
+    basePath = '';
+  } else if (basePath) {
+    basePath = `/${basePath.replace(/^\/+|\/+$/g, '')}`;
+  }
+  return `${scheme}://${host}${basePath}`;
+}
+
 /**
  * Read `servers[0]` into a URL template plus variable defs.
  * YAML often parses unquoted `{base_url}` as `{base_url: null}` — recover that here.
@@ -19,7 +41,8 @@ export type OpenApiPrimaryServer = {
 export function readOpenApiPrimaryServer(spec: any): OpenApiPrimaryServer {
   const server = spec?.servers?.[0];
   if (!server) {
-    return {urlTemplate: '', variables: {}};
+    const swagger2Url = spec?.swagger ? buildSwagger2ServerUrl(spec) : '';
+    return {urlTemplate: swagger2Url, variables: {}};
   }
 
   const variables: Record<string, {default?: string; enum?: string[]}> = {};
@@ -208,11 +231,14 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         }
       }
 
+      const pathInputs: Record<string, string> = {};
       let processedPath = p;
       parameters.forEach((param: any) => {
-        if (param.in === 'path') {
-          const example = readOpenApiExampleValue(param) || `{${param.name}}`;
-          processedPath = processedPath.replace(`{${param.name}}`, String(example));
+        if (param.in === 'path' && param.name) {
+          const inputKey = normalizeOpenApiInputKey(String(param.name));
+          pathInputs[inputKey] = readOpenApiExampleValue(param);
+          processedPath = processedPath.replace(
+              `{${param.name}}`, `<<i:${inputKey}>>`);
         }
       });
 
@@ -234,6 +260,7 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         query: Object.keys(query).length > 0 ? query : undefined,
         body,
         auth,
+        ...(Object.keys(pathInputs).length > 0 ? {inputs: pathInputs} : {}),
       } as APIData;
 
       if (!apiData.description) {
@@ -259,6 +286,15 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
   });
 
   return apis;
+}
+
+function normalizeOpenApiInputKey(value: string): string {
+  return String(value)
+      .replace(/([a-z])([A-Z])/g, '$1_$2')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/__+/g, '_') || 'value';
 }
 
 function readOpenApiExampleValue(value: any): string {

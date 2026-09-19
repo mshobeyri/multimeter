@@ -14,7 +14,7 @@ const VALID_API_ROOT_KEYS = new Set([
 
 const VALID_GRPC_STREAM_VALUES = new Set<string>(['server', 'client', 'bidi']);
 
-const VALID_FORMAT_VALUES = new Set<string>(['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary']);
+const VALID_FORMAT_VALUES = new Set<string>(['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary', 'multipart']);
 
 function parseFormatSpec(raw: any): FormatSpec {
   if (raw == null) {

@@ -159,9 +159,10 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
 - `=*` (regex match), `!*` (regex not match)
-- `=~` (equal as string / type-unsafe), `!~` (not equal as string) — for XML/text string outputs vs bare YAML booleans/numbers
+- `=S` (equal as string), `!S` (not equal as string) — for XML/text string outputs vs bare YAML booleans/numbers. Do not use `=~` / `!~`; those are deprecated aliases of `=S` / `!S`.
 - `=#` (string/number character length equals), `!#` (not equal)
 - `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
+- `=Ns~` (times within velocity), `!Ns~` (times not within), for example `=5s~`, `!1m~`, `=1m30s~`. A duration is required. Compare ISO datetimes, epoch seconds/ms, or `HH:mm[:ss]`.
 
 Example comparisons:
 

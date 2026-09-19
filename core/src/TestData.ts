@@ -1,6 +1,7 @@
 
 
 import {FormatSpec, Method, MMTFile, Protocol} from './CommonData';
+import {unsignedDurationMs} from './durationParse';
 
 export type Timestr = `${number}s`|`${number}m`|`${number}h`|'inf';
 export type Repeat = `${number}`|'inf';
@@ -270,22 +271,32 @@ export const addableFlowTypes = [
 ] as FlowType[];
 export type CheckOps =
     '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=C'|'!C'|'=^'|'!^'|'=$'|'!$'|
-    '=*'|'!*'|'=~'|'!~'|'=#'|'!#'|'<#'|'<=#'|'>#'|'>=#'|
+    '=*'|'!*'|'=S'|'!S'|'=#'|'!#'|'<#'|'<=#'|'>#'|'>=#'|
     '=i'|'!i'|'=X'|'!X'|'=iX'|'!iX'|
-    '>%'|'<%'|`>${number}%`|`<${number}%`;
+    '>%'|'<%'|`>${number}%`|`<${number}%`|
+    '=~'|'!~'|'=s~'|'!s~'|`=${string}~`|`!${string}~`;
 
 export const DEFAULT_FUZZY_PERCENT = 80;
+export const DEFAULT_TIME_VELOCITY = '1s';
+
+/** Combined duration used by `=5s~` / `=1m30s~`. */
+export const TIME_DURATION_PATTERN = '(?:\\d+(?:\\.\\d+)?(?:ms|s|m|h|d|w))+';
+/** Time operator with a velocity (`=5s~`). Bare `=~` is the deprecated as-string operator. */
+export const TIME_OPERATOR_WITH_DURATION_PATTERN = `[=!]${TIME_DURATION_PATTERN}~`;
+/** Time operator with optional velocity (`=s~` or `=5s~`). */
+export const TIME_OPERATOR_PATTERN = `[=!](?:s|${TIME_DURATION_PATTERN})~`;
+export const FUZZY_PERCENT_OPERATOR_PATTERN = '[<>](?:0|[1-9][0-9]?|100)%';
 
 export const opsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '<#', '<=#', '>#', '>=#',
-  '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%'
+  '!$', '=*', '!*', '=S', '!S', '=#', '!#', '<#', '<=#', '>#', '>=#',
+  '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%', '=s~', '!s~', '=~', '!~'
 ];
 
 export const selectableOpsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '<#', '<=#', '>#', '>=#',
-  '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%'
+  '!$', '=*', '!*', '=S', '!S', '=#', '!#', '<#', '<=#', '>#', '>=#',
+  '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%', '=s~', '!s~'
 ];
 
 export const opsNames = [
@@ -293,15 +304,30 @@ export const opsNames = [
   'equal', 'not equal', 'is in', 'is not in', 'contains', 'does not contain',
   'starts with', 'does not start with', 'ends with', 'does not end with',
   'matches regex', 'does not match regex',
-  'equal (type-unsafe)', 'not equal (type-unsafe)',
+  'equal (as string)', 'not equal (as string)',
   'length/count equals', 'length/count not equals',
   'length/count less than', 'length/count less or equal',
   'length/count greater than', 'length/count greater or equal',
   'equal (ignore case)', 'not equal (ignore case)',
   'equal (trim)', 'not equal (trim)',
   'equal (trim, ignore case)', 'not equal (trim, ignore case)',
-  'fuzzy match at least percent', 'fuzzy match less than percent'
+  'fuzzy match at least percent', 'fuzzy match less than percent',
+  'times within velocity', 'times not within velocity',
+  'equal (as string, deprecated)', 'not equal (as string, deprecated)'
 ];
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Alternation for parsing `actual OP expected`, longest/parameterized first. */
+export function comparisonOperatorPattern(): string {
+  return [
+    FUZZY_PERCENT_OPERATOR_PATTERN,
+    TIME_OPERATOR_WITH_DURATION_PATTERN,
+    ...opsList.slice().sort((a, b) => b.length - a.length).map(escapeRegExp),
+  ].join('|');
+}
 
 export function isFuzzyPercentOperator(op: string): op is `>${number}%`|`<${number}%` {
   return /^[<>](0|[1-9][0-9]?|100)%$/.test(op);
@@ -337,14 +363,72 @@ export function makeFuzzyPercentOperator(base: '>%'|'<%', percent: number): `>${
   return `${base[0]}${normalized}%` as `>${number}%`|`<${number}%`;
 }
 
+const TIME_OPERATOR_RE = new RegExp(`^${TIME_OPERATOR_PATTERN}$`);
+const TIME_OPERATOR_WITH_DURATION_RE = new RegExp(`^${TIME_OPERATOR_WITH_DURATION_PATTERN}$`);
+
+export function isTimeOperator(op: string): op is `=${string}~`|`!${string}~` {
+  return TIME_OPERATOR_WITH_DURATION_RE.test(op);
+}
+
+export function isTimeSelectOperator(op: string): op is '=s~'|'!s~' {
+  return op === '=s~' || op === '!s~';
+}
+
+export function isTimeAnyOperator(op: string): boolean {
+  return isTimeSelectOperator(op) || isTimeOperator(op);
+}
+
+export function getTimeOperatorBase(op: string): '=s~'|'!s~'|undefined {
+  if (op === '=s~' || (isTimeOperator(op) && op.startsWith('='))) {
+    return '=s~';
+  }
+  if (op === '!s~' || (isTimeOperator(op) && op.startsWith('!'))) {
+    return '!s~';
+  }
+  return undefined;
+}
+
+export function normalizeTimeVelocity(raw: string): string|undefined {
+  const trimmed = String(raw ?? '').trim().toLowerCase()
+      .replace(/^[!=]/, '')
+      .replace(/~$/, '');
+  if (!trimmed) {
+    return DEFAULT_TIME_VELOCITY;
+  }
+  if (unsignedDurationMs(trimmed) === undefined) {
+    return undefined;
+  }
+  return trimmed;
+}
+
+export function getTimeOperatorVelocity(op: string): string {
+  if (isTimeSelectOperator(op)) {
+    return DEFAULT_TIME_VELOCITY;
+  }
+  if (isTimeOperator(op)) {
+    return op.slice(1, -1);
+  }
+  return DEFAULT_TIME_VELOCITY;
+}
+
+export function makeTimeOperator(base: '=s~'|'!s~', velocity: string): `=${string}~`|`!${string}~` {
+  const normalized = normalizeTimeVelocity(velocity) ?? DEFAULT_TIME_VELOCITY;
+  return `${base[0]}${normalized}~` as `=${string}~`|`!${string}~`;
+}
+
 /** Longest-first so `<=` / `>=` / `!=` win over single-char prefixes. */
 const OPS_BY_LENGTH = [...opsList].sort((a, b) => b.length - a.length);
+const TIME_OPERATOR_PREFIX_RE = new RegExp(`^(${TIME_OPERATOR_PATTERN})(?:\\s+(.*)|$)`);
 
 export function splitCheckOperatorPrefix(value: string): { operator: string; expected: string } | undefined {
   const trimmed = String(value).trim();
   const fuzzyMatch = trimmed.match(/^([<>](?:0|[1-9][0-9]?|100)%)(?:\s+(.*)|$)/);
   if (fuzzyMatch) {
     return { operator: fuzzyMatch[1], expected: (fuzzyMatch[2] || '').trim() };
+  }
+  const timeMatch = trimmed.match(TIME_OPERATOR_PREFIX_RE);
+  if (timeMatch && TIME_OPERATOR_RE.test(timeMatch[1])) {
+    return { operator: timeMatch[1], expected: (timeMatch[2] || '').trim() };
   }
   for (const op of OPS_BY_LENGTH) {
     if (trimmed.startsWith(op + ' ') || trimmed === op) {
@@ -390,6 +474,10 @@ export function getOpOptionLabel(op: CheckOps): string {
   if (idx < 0 && isFuzzyPercentOperator(op)) {
     const prefix = op.startsWith('<') ? 'fuzzy match less than' : 'fuzzy match at least';
     return `${op} — ${prefix} ${op.slice(1)}`;
+  }
+  if (idx < 0 && isTimeOperator(op)) {
+    const prefix = op.startsWith('!') ? 'times not within' : 'times within';
+    return `${op} — ${prefix} ${getTimeOperatorVelocity(op)}`;
   }
   return idx >= 0 ? `${op} — ${opsNames[idx]}` : op;
 }

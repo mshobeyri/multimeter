@@ -1,0 +1,13 @@
+type: api
+title: POST JSON body
+description: Default JSON body — YAML object encoded as application/json.
+inputs:
+  message: hello from json
+outputs:
+  echoed_message: body[body][message]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  message: i:message

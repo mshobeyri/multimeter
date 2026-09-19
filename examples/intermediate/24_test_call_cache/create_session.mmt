@@ -21,7 +21,7 @@ steps:
       username: i:user
       password: i:pass
     expect:
-      status: =~ "200"
+      status: =S "200"
       token: != null
   - js: |
       outputs.token = auth.token

@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
 
 import {derivePresetSelections} from './envPresetMatch';
 
@@ -12,6 +13,8 @@ export interface EnvironmentVar {
   value: string|number|boolean;
   options: {label: string; value: string | number | boolean}[];
   source?: EnvVarSource;
+  /** Epoch ms when `value` last changed in workspace storage. */
+  lastUpdate?: number;
 }
 
 export default class EnvironmentPanel implements vscode.WebviewViewProvider {
@@ -59,8 +62,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
             environmentVars[idx].label = message.label;
             environmentVars[idx].source = parseEnvVarSource(message.source) ??
                 environmentVars[idx].source ?? 'file';
-            await this.context.workspaceState.update(
-                'multimeter.environment.storage', environmentVars);
+            await this.persistWorkspaceEnvironmentVars(environmentVars);
             await vscode.commands.executeCommand('multimeter.environment.refresh');
           }
           break;
@@ -103,8 +105,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
             source: 'manual'
           };
           environmentVars.push(newVar);
-          await this.context.workspaceState.update(
-              'multimeter.environment.storage', environmentVars);
+          await this.persistWorkspaceEnvironmentVars(environmentVars);
           await vscode.commands.executeCommand('multimeter.environment.refresh');
           this.refreshEnvironmentVars();
           break;
@@ -118,8 +119,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           const idx = environmentVars.findIndex(v => v.name === name);
           if (idx !== -1) {
             environmentVars.splice(idx, 1);
-            await this.context.workspaceState.update(
-                'multimeter.environment.storage', environmentVars);
+            await this.persistWorkspaceEnvironmentVars(environmentVars);
             await vscode.commands.executeCommand('multimeter.environment.refresh');
             this.refreshEnvironmentVars();
           }
@@ -163,6 +163,14 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
       presets,
       presetSelections,
     });
+  }
+
+  private async persistWorkspaceEnvironmentVars(environmentVars: EnvironmentVar[]) {
+    const stored = this.context.workspaceState.get(
+        'multimeter.environment.storage', []);
+    const stamped = applyEnvVarLastUpdates(environmentVars, asEnvVarList(stored));
+    await this.context.workspaceState.update(
+        'multimeter.environment.storage', stamped);
   }
 
   private getWorkspaceEnvironmentVars(): EnvironmentVar[] {
@@ -246,8 +254,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     }
 
     if (updated) {
-      await this.context.workspaceState.update(
-          'multimeter.environment.storage', environmentVars);
+      await this.persistWorkspaceEnvironmentVars(environmentVars);
       await vscode.commands.executeCommand('multimeter.environment.refresh');
     } else {
       // Vars already matched; still refresh so derived preset selection shows.
@@ -291,8 +298,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
       const environmentVars = this.getWorkspaceEnvironmentVars();
       const remaining = environmentVars.filter(
           v => resolveEnvVarSource(v) !== scope);
-      await this.context.workspaceState.update(
-          'multimeter.environment.storage', remaining);
+      await this.persistWorkspaceEnvironmentVars(remaining);
       vscode.window.showInformationMessage(
           scope === 'runtime' ? 'Runtime variables cleared' :
                                 'Manual variables cleared');
@@ -315,12 +321,16 @@ function normalizeEnvironmentVar(raw: any): EnvironmentVar {
   const source = parseEnvVarSource(raw?.source) ??
       (raw?.isManual === true ? 'manual' : undefined) ??
       inferLegacyEnvVarSource(raw);
+  const lastUpdate = typeof raw?.lastUpdate === 'number' && Number.isFinite(raw.lastUpdate) ?
+      raw.lastUpdate :
+      undefined;
   return {
     name: typeof raw?.name === 'string' ? raw.name : String(raw?.name ?? ''),
     label: typeof raw?.label === 'string' ? raw.label : String(raw?.label ?? ''),
     value: raw?.value,
     options: Array.isArray(raw?.options) ? raw.options : [],
     source,
+    ...(lastUpdate !== undefined ? {lastUpdate} : {}),
   };
 }
 

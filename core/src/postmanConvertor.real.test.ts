@@ -87,7 +87,7 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
   expect(createUser).toBeTruthy();
   expect(createUser!.headers!['X-Env']).toBe('<<e:envName>>');
   expect(createUser!.format).toBe('json');
-  expect(createUser!.body).toBe('{"name":"<<e:username>>","active":true}');
+  expect(createUser!.body).toEqual({name: '<<e:username>>', active: true});
 
     const getUser = apis.find(a => a.title === 'Get User');
     expect(getUser).toBeTruthy();

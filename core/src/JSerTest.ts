@@ -134,7 +134,9 @@ export const testToJsfunc = async(
   // (including interdependent input defaults) are supplied at the call site
   // via resolveInputsMap — overlaying raw YAML defaults here breaks
   // <<i:other>> composition when those defaults are still e:/i: tokens.
-  let replaced = replaceAllRefs(ctx.test, paramsAsObj, {}, ctx.envVars ?? {});
+  let replaced = replaceAllRefs(
+      ctx.test, paramsAsObj, {}, ctx.envVars ?? {}, new Set(),
+      {resolveRuntimeTokens: false});
   // Test-only: o:/<<o:…>> → ${outputs.…}. Do not run on APIs (doc annotations).
   replaced = replaceOutputTokenRefs(replaced);
 

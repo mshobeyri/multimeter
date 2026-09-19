@@ -1,0 +1,27 @@
+type: api
+title: Random time
+description: "Sends calendar and epoch r: tokens plus a current timestamp for proximity checks"
+outputs:
+  random_datetime: body.body.random_datetime
+  random_utc_datetime: body.body.random_utc_datetime
+  datetime_near_now: body.body.datetime_near_now
+  utc_datetime_near_now: body.body.utc_datetime_near_now
+  ranged_epoch: body.body.ranged_epoch
+  epoch_near_now: body.body.epoch_near_now
+  current_utc: body.body.current_utc
+  current_local: body.body.current_local
+  current_epoch: body.body.current_epoch
+  request_method: body.method
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  random_datetime: r:datetime(2026-01-01,2026-12-31)
+  random_utc_datetime: r:utc_datetime(2026-01-01T00:00:00Z,2026-12-31T23:59:59Z)
+  datetime_near_now: r:datetime_now(2s)
+  utc_datetime_near_now: r:utc_datetime_now(2s)
+  ranged_epoch: r:epoch(1700000000,1800000000)
+  epoch_near_now: r:epoch_now(2s)
+  current_utc: c:utc_datetime
+  current_local: c:datetime
+  current_epoch: c:epoch

@@ -112,4 +112,66 @@ describe('compatibility deprecations', () => {
     const problems = findCompatibilityProblems(content, doc, 'api');
     expect(problems).toHaveLength(0);
   });
+
+  it('warns on deprecated =~ as-string operator and click-fixes to =S', () => {
+    const content = [
+      'type: test',
+      'steps:',
+      '  - check: ${xml.active} =~ true',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const problems = findCompatibilityProblems(content, doc, 'test');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({
+      category: 'compatibility',
+      severity: 'warning',
+      message: expect.stringContaining('deprecated'),
+      applyFix: {kind: 'replaceRange', text: '=S'},
+    });
+    const issue = findCompatibilityIssueAtPosition(content, doc, 'test', problems[0].line, problems[0].column);
+    expect(issue).not.toBeNull();
+    const updated = applyCompatibilityFix(content, issue!.applyFix, issue!.line);
+    expect(updated).toContain('${xml.active} =S true');
+    expect(updated).not.toContain('=~');
+  });
+
+  it('warns on deprecated !~ and click-fixes to !S', () => {
+    const content = [
+      'type: test',
+      'steps:',
+      '  - check: ${code} !~ 0',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const problems = findCompatibilityProblems(content, doc, 'test');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].applyFix).toMatchObject({kind: 'replaceRange', text: '!S'});
+    const updated = applyCompatibilityFix(content, problems[0].applyFix, problems[0].line);
+    expect(updated).toContain('${code} !S 0');
+    expect(updated).not.toContain('!~');
+  });
+
+  it('still warns on =~ when the YAML document has parse errors', () => {
+    const content = [
+      'type: test',
+      'steps:',
+      '  - check: ${xml.active} =~ true',
+      '  - check: [',
+    ].join('\n');
+    const doc = parseDocument(content);
+    expect(doc.errors.length).toBeGreaterThan(0);
+    const problems = findCompatibilityProblems(content, doc, 'test');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].applyFix).toMatchObject({kind: 'replaceRange', text: '=S'});
+  });
+
+  it('does not treat =5s~ time operators as deprecated as-string', () => {
+    const content = [
+      'type: test',
+      'steps:',
+      '  - check: ${createdAt} =5s~ 2026-09-18T12:00:00Z',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const problems = findCompatibilityProblems(content, doc, 'test');
+    expect(problems).toHaveLength(0);
+  });
 });

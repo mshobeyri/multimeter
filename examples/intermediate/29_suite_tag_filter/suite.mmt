@@ -1,0 +1,11 @@
+type: suite
+title: Suite tag filter — all
+description: No filter. Every test and the nested auth suite run. Override with --tag / --skip-tag.
+items:
+  - tests/smoke_get.mmt
+  - tests/smoke_post.mmt
+  - tests/api_echo.mmt
+  - tests/flaky_echo.mmt
+  - tests/slow_status.mmt
+  - tests/untagged.mmt
+  - nested/auth.mmt

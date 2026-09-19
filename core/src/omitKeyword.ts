@@ -1,5 +1,6 @@
 import * as YAML from 'yaml';
 import {preserveMultilineDescriptionScalars} from './multilineDescriptionYaml';
+import {stripOmitFromMultipartParts} from './multipartBody';
 
 export const OMIT_KEYWORD = 'omit';
 export const OMIT_SENTINEL = '__MMT_OMIT__';
@@ -176,13 +177,16 @@ export function stripOmitFromBody(body: any, format?: string): any {
   if (body === null || body === undefined || isBinaryBody(body)) {
     return body;
   }
+  const kind = String(format || 'json').toLowerCase();
+  if (kind === 'multipart' && Array.isArray(body)) {
+    return stripOmitFromMultipartParts(body);
+  }
   if (typeof body !== 'string') {
     return stripOmitFromRequest(body);
   }
   if (!body.includes(OMIT_SENTINEL)) {
     return body;
   }
-  const kind = String(format || 'json').toLowerCase();
   if (kind === 'urlencoded') {
     return dropOmittedPairs(body);
   }

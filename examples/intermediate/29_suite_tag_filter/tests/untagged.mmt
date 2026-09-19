@@ -1,0 +1,9 @@
+type: test
+title: Untagged
+description: No tags — runs in a full suite, skipped when only-tags are set
+steps:
+  - http: https://test.mmt.dev/json
+    title: Get JSON
+    method: get
+    expect:
+      status: 200

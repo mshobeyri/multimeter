@@ -531,6 +531,24 @@ describe('env token replacements in generated JS', () => {
        expect(js).toContain('${envVariables.QUX}');
      });
 
+  it('resolves r: and c: tokens in print and call titles', async () => {
+    const js = await rootTestToJsfunc({
+      name: 'currentPrint',
+      test: {
+        steps: [
+          {call: 'echo', id: 'result', title: 'c:city', expect: {status: 200}} as any,
+          {print: 'c:datetime'} as any,
+          {print: 'now <<c:time>>'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain("mmtCurrent_('city')");
+    expect(js).toContain("console.log(mmtCurrent_('datetime'));");
+    expect(js).toContain("${mmtCurrent_('time')}");
+  });
+
   it('replaces tokens outside template literals as plain envVariables access',
      async () => {
        const ctx: TestContext = {
@@ -611,9 +629,9 @@ describe('env token replacements in generated JS', () => {
       'const b = `X=<<e:FOO[0]>> Y=<<e:BAR[0:2]>>`;'
     ].join('\n');
     const out = variableReplacer(input);
-    expect(out).toContain('const a = __mmt_access(envVariables.AAA, "[0:1]");');
-    expect(out).toContain('${__mmt_access(envVariables.FOO, "[0]")}');
-    expect(out).toContain('${__mmt_access(envVariables.BAR, "[0:2]")}');
+    expect(out).toContain('const a = mmtAccess_(envVariables.AAA, "[0:1]");');
+    expect(out).toContain('${mmtAccess_(envVariables.FOO, "[0]")}');
+    expect(out).toContain('${mmtAccess_(envVariables.BAR, "[0:2]")}');
   });
 });
 
@@ -1484,9 +1502,9 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('!C error')).toEqual({ operator: '!C', expected: 'error' });
   });
 
-  it('parses =~ (type-unsafe equal) operator prefix', () => {
-    expect(parseExpectValue('=~ true')).toEqual({ operator: '=~', expected: true });
-    expect(parseExpectValue('=~ "true"')).toEqual({ operator: '=~', expected: 'true' });
+  it('parses =S (as-string equal) operator prefix', () => {
+    expect(parseExpectValue('=S true')).toEqual({ operator: '=S', expected: true });
+    expect(parseExpectValue('=S "true"')).toEqual({ operator: '=S', expected: 'true' });
   });
 
   it('parses new regex, count, and fuzzy operators', () => {
@@ -1534,8 +1552,8 @@ describe('parseExpectValue', () => {
       ['!$', '!$ "suf"', 'suf'],
       ['=*', '=* "/ok/i"', '/ok/i'],
       ['!*', '!* "/fail/"', '/fail/'],
-      ['=~', '=~ "true"', 'true'],
-      ['!~', '!~ "false"', 'false'],
+      ['=S', '=S "true"', 'true'],
+      ['!S', '!S "false"', 'false'],
       ['=#', '=# "3"', '3'],
       ['!#', '!# "0"', '0'],
       ['<#', '<# "3"', '3'],
@@ -1545,6 +1563,10 @@ describe('parseExpectValue', () => {
       ['>%', '>% "John"', 'John'],
       ['<%', '<% "admin"', 'admin'],
       ['>80%', '>80% "John"', 'John'],
+      ['=~', '=~ "2026-01-01T00:00:00Z"', '2026-01-01T00:00:00Z'],
+      ['=s~', '=s~ "2026-01-01T00:00:00Z"', '2026-01-01T00:00:00Z'],
+      ['=5s~', '=5s~ "2026-01-01T00:00:00Z"', '2026-01-01T00:00:00Z'],
+      ['!1m~', '!1m~ "14:30:00"', '14:30:00'],
       ['<', '< "100"', '100'],
       ['>', '> "0"', '0'],
       ['<=', '<= "300"', '300'],
@@ -1571,6 +1593,19 @@ describe('conditionalStatementToJSfunc', () => {
         .toBe('fuzzyMatch_("name", "Jon", 80)');
     expect(conditionalStatementToJSfunc('name <% admin'))
         .toBe('notFuzzyMatch_("name", "admin", 80)');
+  });
+
+  it('emits time comparison helpers with velocity', () => {
+    expect(conditionalStatementToJSfunc('created =5s~ "2026-09-18T12:00:00Z"'))
+        .toBe('timeEquals_("created", "2026-09-18T12:00:00Z", "5s")');
+    expect(conditionalStatementToJSfunc('created =s~ "2026-09-18T12:00:00Z"'))
+        .toBe('timeEquals_("created", "2026-09-18T12:00:00Z", "1s")');
+    expect(conditionalStatementToJSfunc('created =~ "2026-09-18T12:00:00Z"'))
+        .toBe('equalsAsString_("created", "2026-09-18T12:00:00Z")');
+    expect(conditionalStatementToJSfunc('created !1m30s~ "14:30:00"'))
+        .toBe('notTimeEquals_("created", "14:30:00", "1m30s")');
+    expect(conditionalStatementToJSfunc('created =10s~ c:datetime'))
+        .toBe("timeEquals_(\"created\", mmtCurrent_('datetime'), \"10s\")");
   });
 
   it('combines comparisons with && and ||', () => {
@@ -1815,8 +1850,8 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
-    expect(js).toContain('__mmt_access((Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
-    expect(js).toContain('equals_(__mmt_access(');
+    expect(js).toContain('mmtAccess_((Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
+    expect(js).toContain('equals_(mmtAccess_(');
   });
 
   it('falls back to hidden default outputs for body and status at execution time', async () => {
@@ -1874,6 +1909,32 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('equals_(result.echoed_message, `${message}`)');
+  });
+
+  it('resolves current and random tokens in expected values at runtime', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectDynamic',
+      test: {
+        steps: [{
+          call: 'echo',
+          id: 'result',
+          expect: {
+            created_at: '=^ c:date',
+            request_id: '=^ req-<<r:uuid>>',
+            expires_at: '=^ c:utc_datetime(+1h)',
+          },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain(
+        "startsWith_(result.created_at, mmtCurrent_('date'))");
+    expect(js).toContain("mmtRandom_('uuid')");
+    expect(js).toContain("mmtCurrent_('utc_datetime(+1h)')");
+    expect(js).not.toContain('`c:date`');
   });
 
   it('uses id as result variable when call has id', async () => {
@@ -2004,13 +2065,13 @@ describe('expect on call steps', () => {
     expect(js).toContain('equals_(_login_0.active, true)');
   });
 
-  it('generates type-unsafe equals for =~ / !~ expect operators', async () => {
+  it('generates as-string equals for =S / !S expect operators', async () => {
     const ctx: TestContext = {
       name: 'callExpectAsString',
       test: {
         steps: [{
           call: 'getXml',
-          expect: { active: '=~ true', code: '!~ 0' },
+          expect: { active: '=S true', code: '!S 0' },
         } as any],
       } as any,
       inputs: {},
@@ -2168,20 +2229,20 @@ describe('restoreUrlEncodedJsPlaceholders', () => {
 
   it('restores spaces encoded as + inside accessor expressions', () => {
     const encoded = new URLSearchParams({
-      part: "${__mmt_access(xxx, '[1:2]')}",
+      part: "${mmtAccess_(xxx, '[1:2]')}",
     }).toString();
     expect(encoded).toContain('+'); // URLSearchParams uses + for spaces
     const out = restoreUrlEncodedJsPlaceholders(encoded);
-    expect(out).toContain("__mmt_access(xxx, '[1:2]')");
-    expect(out).not.toContain("__mmt_access(xxx,+'[1:2]')");
+    expect(out).toContain("mmtAccess_(xxx, '[1:2]')");
+    expect(out).not.toContain("mmtAccess_(xxx,+'[1:2]')");
   });
 
   it('restores env accessor expressions that use double-quoted accessors', () => {
     const encoded = new URLSearchParams({
-      short: '${__mmt_access(envVariables.USERNAME, "[0:3]")}',
+      short: '${mmtAccess_(envVariables.USERNAME, "[0:3]")}',
     }).toString();
     const out = restoreUrlEncodedJsPlaceholders(encoded);
-    expect(out).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(out).toContain('mmtAccess_(envVariables.USERNAME, "[0:3]")');
     expect(out).not.toContain(',+"[');
   });
 
@@ -2255,9 +2316,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       'body:',
       '  part: i:xxx[1:2]',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
-    expect(js).not.toContain("__mmt_access(xxx,+'[1:2]')");
-    expect(js).toContain("encodeURIComponent(String(__mmt_access(xxx, '[1:2]') ?? ''))");
+    expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
+    expect(js).not.toContain("mmtAccess_(xxx,+'[1:2]')");
+    expect(js).toContain("encodeURIComponent(String(mmtAccess_(xxx, '[1:2]') ?? ''))");
   });
 
   it('preserves index and property accessors on inputs', async () => {
@@ -2274,8 +2335,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  first: i:xxx[0]',
       '  name: <<i:user.name>>',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[0]')");
-    expect(js).toContain("__mmt_access(user, '.name')");
+    expect(js).toContain("mmtAccess_(xxx, '[0]')");
+    expect(js).toContain("mmtAccess_(user, '.name')");
     expect(js).not.toMatch(/,\+'/);
   });
 
@@ -2291,8 +2352,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  tail: i:xxx[1:]',
       '  head: i:xxx[:4]',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[1:]')");
-    expect(js).toContain("__mmt_access(xxx, '[:4]')");
+    expect(js).toContain("mmtAccess_(xxx, '[1:]')");
+    expect(js).toContain("mmtAccess_(xxx, '[:4]')");
     expect(js).not.toMatch(/,\+'/);
   });
 
@@ -2307,7 +2368,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  short: <<e:USERNAME[0:3]>>',
     ]);
     expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
-    expect(js).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(js).toContain('mmtAccess_(envVariables.USERNAME, "[0:3]")');
     expect(js).not.toMatch(/e%3AUSERNAME/i);
   });
 
@@ -2340,8 +2401,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  part: i:xxx[1:2]',
     ]);
     expect(js).toMatch(/xxx\s*=\s*envVariables\.TOKEN/);
-    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
-    expect(js).not.toContain("__mmt_access(xxx,+'[1:2]')");
+    expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
+    expect(js).not.toContain("mmtAccess_(xxx,+'[1:2]')");
   });
 
   it('interpolates multiple tokens mixed with static text in one field', async () => {
@@ -2357,13 +2418,13 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
     ]);
     expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
     expect(js).toContain("encodeURIComponent(String(id ?? ''))");
-    expect(js).toContain('__mmt_access(envVariables.TENANT, "[0]")');
+    expect(js).toContain('mmtAccess_(envVariables.TENANT, "[0]")');
     expect(js).not.toMatch(/%24%7B|e%3ATENANT/i);
   });
 
   it('keeps unresolved r: / c: tokens as runtime calls (not percent-encoded)', async () => {
-    // Known r:/c: names are baked by replaceAllRefs; unknown names must still
-    // become runtime interpolations instead of r%3A… / c%3A… literals.
+    // Dynamic names and parameterized generators must remain runtime calls
+    // instead of becoming r%3A… / c%3A… literals.
     const js = await toJs([
       'type: api',
       'method: post',
@@ -2372,12 +2433,43 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       'body:',
       '  rnd: r:customToken',
       '  now: c:customNow',
+      '  bounded: r:int(10,20)',
+      '  sized: r:string(12)',
       '  slice: <<r:customToken[0:2]>>',
     ]);
-    expect(js).toContain("__mmt_random('customToken')");
-    expect(js).toContain("__mmt_current('customNow')");
-    expect(js).toContain('__mmt_access(__mmt_random(\'customToken\'), "[0:2]")');
+    expect(js).toContain("mmtRandom_('customToken')");
+    expect(js).toContain("mmtCurrent_('customNow')");
+    expect(js).toContain("mmtRandom_('int(10,20)')");
+    expect(js).toContain("mmtRandom_('string(12)')");
+    expect(js).toContain('mmtAccess_(mmtRandom_(\'customToken\'), "[0:2]")');
     expect(js).not.toMatch(/r%3AcustomToken|c%3AcustomNow/i);
+  });
+
+  it('resolves standalone dynamic JSON body fields at request execution', async () => {
+    const js = await apiToJSfunc({
+      api: {
+        type: 'api',
+        url: 'https://example.com/echo',
+        method: 'post',
+        format: 'json',
+        body: {
+          id: 'r:uuid',
+          count: 'r:int(10,20)',
+          created: 'c:utc_datetime(+1h)',
+          label: 'item-<<r:alphanumeric(8)>>',
+        },
+      } as any,
+      name: 'dynamicBody',
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain("JSON.stringify(mmtRandom_('uuid'))");
+    expect(js).toContain("JSON.stringify(mmtRandom_('int(10,20)'))");
+    expect(js).toContain(
+        "JSON.stringify(mmtCurrent_('utc_datetime(+1h)'))");
+    expect(js).toContain("mmtRandom_('alphanumeric(8)')");
+    expect(js).not.toContain('"r:uuid"');
+    expect(js).not.toContain('"r:int(10,20)"');
   });
 
   it('still encodes static reserved characters in neighboring fields', async () => {
@@ -2410,9 +2502,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  part: i:xxx[1:2]',
       '  user: e:USERNAME',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
     expect(js).toContain('${envVariables.USERNAME}');
-    expect(js).not.toContain('encodeURIComponent(String(__mmt_access');
+    expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 
   it('does not break xml bodies that use input slices and env tokens', async () => {
@@ -2428,9 +2520,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '    part: i:xxx[1:2]',
       '    user: <<e:USERNAME>>',
     ]);
-    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
     expect(js).toContain('${envVariables.USERNAME}');
-    expect(js).not.toContain('encodeURIComponent(String(__mmt_access');
+    expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 });
 
@@ -2455,13 +2547,13 @@ describe('urlencoded tokens through multilevel imports', () => {
 
   function expectUrlencodedTokenJs(js: string) {
     expect(js).toMatch(/token\s*=\s*envVariables\.AUTH_TOKEN/);
-    expect(js).toContain("__mmt_access(token, '[1:2]')");
-    expect(js).not.toContain("__mmt_access(token,+'[1:2]')");
-    expect(js).toContain("encodeURIComponent(String(__mmt_access(token, '[1:2]') ?? ''))");
+    expect(js).toContain("mmtAccess_(token, '[1:2]')");
+    expect(js).not.toContain("mmtAccess_(token,+'[1:2]')");
+    expect(js).toContain("encodeURIComponent(String(mmtAccess_(token, '[1:2]') ?? ''))");
     expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
-    expect(js).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(js).toContain('mmtAccess_(envVariables.USERNAME, "[0:3]")');
     expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
-    expect(js).toContain("__mmt_access(token, '[0]')");
+    expect(js).toContain("mmtAccess_(token, '[0]')");
     expect(js).not.toMatch(/%24%7B|e%3AUSERNAME|e%3ATENANT|e%3AAUTH_TOKEN/i);
   }
 
@@ -2583,6 +2675,35 @@ describe('urlencoded tokens through multilevel imports', () => {
     expectUrlencodedTokenJs(bundle);
     // Call-site override still references env at the leaf test layer
     expect(bundle).toContain('envVariables.OVERRIDE_TOKEN');
+  });
+});
+
+describe('multipart request body (apiToJSfunc)', () => {
+  it('builds multipart body from text and file parts at runtime', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: multipart',
+      'url: https://example.com/upload',
+      'body:',
+      '  - name: description',
+      '    value: hello',
+      '  - name: file',
+      '    file: ./payload.bin',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'upload_multipart',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('buildMultipartBodyFromParts_');
+    expect(js).toContain('name: "description"');
+    expect(js).toContain('file: `./payload.bin`');
+    expect(js).toContain('__multipartBuilt_.contentType');
+    expect(js).toContain("applyOmitToRequest_(req_, 'multipart')");
+    expect(js).toContain('<multipart \' + req_.body.length + \' bytes>');
   });
 });
 
@@ -2768,7 +2889,7 @@ describe('input defaults with e: references', () => {
     expect(js).not.toMatch(/user\s*=\s*`e:USERNAME`/);
   });
 
-  it('resolves r: refs in API input defaults to __mmt_random call', async () => {
+  it('resolves r: refs in API input defaults to mmtRandom_ call', async () => {
     const apiYaml = [
       'type: api',
       'protocol: http',
@@ -2783,13 +2904,13 @@ describe('input defaults with e: references', () => {
     const ctx: APIContext =
         {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
     const js = await apiToJSfunc(ctx);
-    // The default value should call __mmt_random('uuid')
-    expect(js).toContain("__mmt_random('uuid')");
+    // The default value should call mmtRandom_('uuid')
+    expect(js).toContain("mmtRandom_('uuid')");
     // Should NOT contain literal 'r:uuid'
     expect(js).not.toMatch(/userId\s*=\s*`r:uuid`/);
   });
 
-  it('resolves c: refs in input defaults to __mmt_current call', async () => {
+  it('resolves c: refs in input defaults to mmtCurrent_ call', async () => {
     const apiYaml = [
       'type: api',
       'protocol: http',
@@ -2803,8 +2924,8 @@ describe('input defaults with e: references', () => {
     const ctx: APIContext =
         {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
     const js = await apiToJSfunc(ctx);
-    // The default value should call __mmt_current('epoch')
-    expect(js).toContain("__mmt_current('epoch')");
+    // The default value should call mmtCurrent_('epoch')
+    expect(js).toContain("mmtCurrent_('epoch')");
     expect(js).not.toMatch(/timestamp\s*=\s*`c:epoch`/);
   });
 });
@@ -3296,8 +3417,8 @@ describe('check/assert object form and unusual operators', () => {
     {op: '!C', helper: 'notContains_'},
     {op: '=*', helper: 'matches_'},
     {op: '!*', helper: 'notMatches_'},
-    {op: '=~', helper: 'equalsAsString_'},
-    {op: '!~', helper: 'notEqualsAsString_'},
+    {op: '=S', helper: 'equalsAsString_'},
+    {op: '!S', helper: 'notEqualsAsString_'},
     {op: '=^', helper: 'startsWith_'},
     {op: '!^', helper: 'notStartsWith_'},
     {op: '=$', helper: 'endsWith_'},
@@ -3325,6 +3446,15 @@ describe('check/assert object form and unusual operators', () => {
     expect(checkToJSfunc(
         {actual: '${name}', expected: 'John', operator: '<50%'} as any, false))
         .toContain('notFuzzyMatch_(');
+    expect(checkToJSfunc(
+        {actual: '${created}', expected: '2026-01-01T00:00:00Z', operator: '=5s~'} as any, false))
+        .toContain('timeEquals_(');
+    expect(checkToJSfunc(
+        {actual: '${created}', expected: '2026-01-01T00:00:00Z', operator: '!s~'} as any, false))
+        .toContain('notTimeEquals_(');
+    expect(checkToJSfunc(
+        {actual: '${created}', expected: '2026-01-01T00:00:00Z', operator: '!~'} as any, false))
+        .toContain('notEqualsAsString_(');
     expect(checkToJSfunc(
         {actual: '${name}', expected: 'John', operator: '>%'} as any, false))
         .toContain('fuzzyMatch_(');

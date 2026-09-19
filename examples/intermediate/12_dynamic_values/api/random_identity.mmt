@@ -1,0 +1,29 @@
+type: api
+title: Random identity
+description: "Sends people, place, business, and text r: tokens and extracts the echoed values"
+outputs:
+  email: body.body.email
+  name: body.body.name
+  username: body.body.username
+  company: body.body.company
+  job_title: body.body.job_title
+  postal_code: body.body.postal_code
+  street_address: body.body.street_address
+  random_word: body.body.random_word
+  random_sentence: body.body.random_sentence
+  random_paragraph: body.body.random_paragraph
+  request_method: body.method
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  email: r:email
+  name: r:first_name
+  username: r:username
+  company: r:company
+  job_title: r:job_title
+  postal_code: r:postal_code
+  street_address: r:street_address
+  random_word: r:word
+  random_sentence: r:sentence
+  random_paragraph: r:paragraph

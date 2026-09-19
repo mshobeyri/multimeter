@@ -7,7 +7,7 @@ Intermediate example that exercises every comparison operator against a live ech
 | File | Description |
 |---|---|
 | `api/sample.mmt` | POST echo API with a fixed JSON body and named outputs |
-| `operators_test.mmt` | Test covering numeric, string, membership, regex, length, and fuzzy operators |
+| `operators_test.mmt` | Test covering numeric, string, membership, regex, length, fuzzy, and time operators |
 
 ## How to use
 
@@ -28,4 +28,5 @@ npx testlight run examples/intermediate/23_check_operators/operators_test.mmt
 - **`check`** — log failures and continue.
 - **`assert`** — stop the flow on failure.
 - **Fuzzy operators** — `>N%` (at least N% similar) and `<N%` (less than N% similar); UI forms are `>%` / `<%` with a percent selector.
+- **Time operators** — `=5s~` / `!5s~` compare ISO datetimes, epoch values, or quoted `HH:mm[:ss]` times within a velocity. A duration is required. Compare two outputs (`${res.created_at} =5s~ ${res.updated_at}`), a literal (`=5s~ 2026-09-18T12:00:02Z`), or a current token (`=5s~ c:utc_datetime`). Quote operators that start with `!` (for example `"!5s~"`).
 - **YAML quoting** — operators that start with `>` (including `>80%` and `>%`) must be quoted in YAML.
