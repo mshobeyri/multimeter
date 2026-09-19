@@ -11,7 +11,7 @@ description: Golden smoke API for AI agents — minimal POST with outputs
 inputs:
   message: hello
 outputs:
-  echoed: body.message
+  echoed: body.body.message
 url: https://test.mmt.dev/echo
 method: post
 format: json
