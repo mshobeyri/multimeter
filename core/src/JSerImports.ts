@@ -14,6 +14,7 @@ import {yamlToJudgeStrict} from './judgeParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {yamlToTest, yamlToTestStrict} from './testParsePack';
 import {toTemplateValueJs} from './variableReplacer';
+import {bindCachedImportFn, CACHED_IMPORT_FN, getRunFileCache} from './runFileCache';
 
 /** Structured import/codegen error so the UI can open the offending file. */
 export class ImportCodeError extends Error {
@@ -226,26 +227,50 @@ const emitResolved = async(
         projectRoot,
         fileLoader: readFile,
       });
+      const cache = getRunFileCache();
+      const cached = cache.getImportJs(resolvedPath, processedContent);
+      if (cached) {
+        if (cached.title) {
+          tracker.setFileTitle(resolvedPath, cached.title);
+        }
+        if (cached.inputKeys) {
+          tracker.setInputKeys(resolvedPath, cached.inputKeys);
+        }
+        if (cached.outputKeys) {
+          tracker.setOutputKeys(resolvedPath, cached.outputKeys);
+        }
+        results.push(bindCachedImportFn(cached.js, publicName) + '\n');
+        continue;
+      }
       const api = yamlToAPIStrict(processedContent);
       if (api.title) { tracker.setFileTitle(resolvedPath, api.title); }
-      if (api.inputs && typeof api.inputs === 'object') {
-        tracker.setInputKeys(resolvedPath, Object.keys(api.inputs));
+      const inputKeys = api.inputs && typeof api.inputs === 'object' ?
+          Object.keys(api.inputs) :
+          undefined;
+      if (inputKeys) {
+        tracker.setInputKeys(resolvedPath, inputKeys);
       }
+      let outputKeys: string[]|undefined;
       if (api.outputs && typeof api.outputs === 'object') {
         const userKeys = Object.keys(api.outputs);
-        const allKeys = [...new Set([...DEFAULT_OUTPUT_KEYS, ...userKeys])];
-        tracker.setOutputKeys(resolvedPath, allKeys);
+        outputKeys = [...new Set([...DEFAULT_OUTPUT_KEYS, ...userKeys])];
       } else {
-        tracker.setOutputKeys(resolvedPath, [...DEFAULT_OUTPUT_KEYS]);
+        outputKeys = [...DEFAULT_OUTPUT_KEYS];
       }
-      results.push(
-          await apiToJSfunc({
-            api,
-            name: publicName,
-            inputs: {},
-            envVars: {},
-          }) +
-          '\n');
+      tracker.setOutputKeys(resolvedPath, outputKeys);
+      const js = await apiToJSfunc({
+        api,
+        name: CACHED_IMPORT_FN,
+        inputs: {},
+        envVars: {},
+      });
+      cache.setImportJs(resolvedPath, processedContent, {
+        js,
+        title: api.title,
+        inputKeys,
+        outputKeys,
+      });
+      results.push(bindCachedImportFn(js, publicName) + '\n');
     } else if (type === 'csv') {
       results.push(await csvToJSObj(content, publicName) + '\n');
     } else if (isDataImportPath(resolvedPath)) {

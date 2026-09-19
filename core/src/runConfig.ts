@@ -219,6 +219,12 @@ export interface RunFileOptions {
    * CLI `--quiet` sets `none`.
    */
   checkLogMode?: 'default'|'failures-only'|'none';
+
+  /**
+   * Optional stamp for the process-level file/JS cache. Compared at the start
+   * of the next top-level run; any change resets the cache.
+   */
+  fileStamp?: (path: string) => Promise<string>|string;
 }
 
 export interface MergeInputsParams {

@@ -43,6 +43,7 @@ export * as dataImportProcessor from "./dataImportProcessor";
 export * as Random from "./Random";
 export * as Current from "./Current";
 export * as runner from "./runner";
+export * as runFileCache from "./runFileCache";
 export * as apiRunResult from "./apiRunResult";
 export * as runConfig from "./runConfig";
 export * as suiteHierarchy from "./suiteHierarchy";

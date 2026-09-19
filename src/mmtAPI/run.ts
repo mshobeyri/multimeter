@@ -1,4 +1,4 @@
-import {runner, suiteBundle, runConfig, SuiteData} from 'mmt-core';
+import {runner, suiteBundle, runConfig, runFileCache, SuiteData} from 'mmt-core';
 import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
 import {LogLevel} from 'mmt-core/CommonData';
 import {findProjectRootSync} from 'mmt-core/fileHelper';
@@ -12,7 +12,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {readRelativeFileContent, readRelativeFileBinary} from './file';
-import {getCachedSuiteHierarchy} from './suiteHierarchyCache';
+import {getCachedSuiteHierarchy, stampFile} from './suiteHierarchyCache';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 import {onRunStarted, onRunFinished} from '../runStatusBar';
@@ -328,6 +328,7 @@ export async function handleRunCurrentDocument(
       manualInputs: message?.inputs?.manualInputs || {},
       envvar: envVars,
       manualEnvvars: {},
+      fileStamp: stampFile,
       fileLoader,
       binaryFileLoader,
       jsRunner: (ctx: any) => runJSCode({
@@ -515,6 +516,7 @@ export async function handleRunSuite(
         manualInputs: {},
         envvar: envVars,
         manualEnvvars: {},
+        fileStamp: stampFile,
         fileLoader,
         binaryFileLoader,
         jsRunner: (ctx: any) => runJSCode({
@@ -551,7 +553,9 @@ export async function handleRunSuite(
     }
 
     const bundleTarget = typeof target === 'string' && target ? target : undefined;
-    const fileLoader = createFileLoader(runFilePath);
+    const fileCache = runFileCache.getRunFileCache();
+    await fileCache.beginRun(stampFile);
+    const fileLoader = fileCache.wrap(createFileLoader(runFilePath));
     const binaryFileLoader = createBinaryFileLoader(runFilePath);
     const {tree: hierarchyTree, fromCache} = await getCachedSuiteHierarchy({
       suiteFilePath: runFilePath,
@@ -607,6 +611,7 @@ export async function handleRunSuite(
       manualInputs: {},
       envvar: mergedEnvVars,
       manualEnvvars: {},
+      fileStamp: stampFile,
       fileLoader,
       binaryFileLoader,
       jsRunner: (ctx: any) => runJSCode({

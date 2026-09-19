@@ -19,6 +19,7 @@ import {
   resetCurrentTokenCache,
   resetRandomTokenCache,
 } from './variableReplacer';
+import {getRunFileCache} from './runFileCache';
 
 export {generateTestJs, runGeneratedJs};
 
@@ -120,6 +121,14 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   // but must never leak values into a later run (for example across midnight).
   resetCurrentTokenCache();
   resetRandomTokenCache();
+
+  if (!options.__mmtIsSuiteBundleChildRun) {
+    const cache = getRunFileCache();
+    await cache.beginRun(options.fileStamp);
+    if (typeof options.fileLoader === 'function') {
+      options = {...options, fileLoader: cache.wrap(options.fileLoader)};
+    }
+  }
 
   const preLogs: Array<{level: LogLevel; message: string}> = [];
   const note = (level: LogLevel, message: string) => {

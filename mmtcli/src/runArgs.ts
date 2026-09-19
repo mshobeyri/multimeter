@@ -435,6 +435,15 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
       }
       return fs.readFileSync(rel, 'utf8');
     },
+    fileStamp: async (p: string) => {
+      const rel = resolveUserPath(p, dir, path);
+      try {
+        const st = fs.statSync(rel);
+        return `${st.size}:${st.mtimeMs}`;
+      } catch {
+        return 'missing';
+      }
+    },
     binaryFileLoader: async (p: string) => {
       const rel = resolveUserPath(p, dir, path);
       return fs.promises.readFile(rel);
