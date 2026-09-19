@@ -1,4 +1,5 @@
 import { APIData, AuthConfig } from './APIData';
+import {Format, packFormatSpec, requestFormat} from './CommonData';
 import {OMIT_SENTINEL} from './omitKeyword';
 import {RANDOM_TOKEN_MAP} from './Random';
 
@@ -62,6 +63,45 @@ export function translatePostmanTemplate(str: string): string {
 
 function replacePostmanVars(str: string): string {
   return translatePostmanTemplate(str);
+}
+
+function headerValue(
+    headers: Record<string, any>|undefined, name: string): string|undefined {
+  if (!headers) {
+    return undefined;
+  }
+  const key = Object.keys(headers).find(
+      (entry) => entry.toLowerCase() === name.toLowerCase());
+  const value = key ? headers[key] : undefined;
+  return typeof value === 'string' ? value : undefined;
+}
+
+function formatFromMediaType(value: string|undefined): Format|undefined {
+  if (!value) {
+    return undefined;
+  }
+  const lc = value.toLowerCase();
+  if (lc.includes('json')) {
+    return 'json';
+  }
+  if (lc.includes('xml') && !lc.includes('html')) {
+    return 'xml';
+  }
+  if (lc.includes('urlencoded')) {
+    return 'urlencoded';
+  }
+  if (lc.includes('multipart')) {
+    return 'multipart';
+  }
+  if (lc.includes('octet-stream') || lc.includes('protobuf') ||
+      lc.includes('application/pdf') || lc.startsWith('image/') ||
+      lc.startsWith('audio/') || lc.startsWith('video/')) {
+    return 'binary';
+  }
+  if (lc.includes('text') || lc.includes('html') || lc.includes('javascript')) {
+    return 'text';
+  }
+  return undefined;
 }
 
 function reviveUnquotedMmtTokens(value: any): any {
@@ -452,23 +492,33 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       body = replacePostmanVars(request.body.file.src);
     }
 
-    // Determine format from body mode / content-type header
+    // Determine format from body mode, Content-Type, and Accept
     let format: APIData['format'] = 'json';
     if (request.body?.mode === 'urlencoded') {
       format = 'urlencoded';
     } else if (request.body?.mode === 'file') {
       format = {request: 'binary', response: 'json'};
     } else {
-      const contentType = (headers?.['content-type'] ?? headers?.['Content-Type']) as string | undefined;
-      if (typeof contentType === 'string') {
-        const lc = contentType.toLowerCase();
-        if (lc.includes('xml')) {
-          format = 'xml';
-        } else if (lc.includes('urlencoded') || lc.includes('x-www-form-urlencoded')) {
-          format = 'urlencoded';
-        } else if (lc.includes('text')) {
-          format = 'text';
-        }
+      const contentType = headerValue(headers, 'content-type');
+      const fromContentType = formatFromMediaType(contentType);
+      if (fromContentType) {
+        format = fromContentType;
+      }
+    }
+    const acceptFormat = formatFromMediaType(headerValue(headers, 'accept'));
+    if (acceptFormat) {
+      if (!request.body) {
+        // `format: binary` means "load the request body from a file".
+        // Accept-only GETs must not become request-binary.
+        format = acceptFormat === 'binary' || acceptFormat === 'multipart' ?
+            packFormatSpec({request: 'json', response: acceptFormat}) ||
+                acceptFormat :
+            acceptFormat;
+      } else {
+        format = packFormatSpec({
+          request: requestFormat(format),
+          response: acceptFormat,
+        }) || acceptFormat;
       }
     }
 

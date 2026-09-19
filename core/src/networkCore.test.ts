@@ -131,10 +131,16 @@ describe('networkCore request timeout', () => {
     );
 
     expect((agent as any).options).toMatchObject({
-      keepAlive: false,
+      keepAlive: true,
       maxCachedSessions: 0,
     });
     expect((agent as any).options.secureOptions).toBeGreaterThan(0);
+    expect(createHttpsAgentWithCertificates(
+               'tls-agent.example.com',
+               '443',
+               'https:',
+               DEFAULT_NETWORK_CONFIG,
+               )).toBe(agent);
   });
 
   it('applies TLS compatibility defaults to HTTP/2 sessions', async () => {

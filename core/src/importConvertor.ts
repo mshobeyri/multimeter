@@ -343,7 +343,6 @@ function convertHttpToMmt(rawFile: string, options: ConvertToMmtOptions): Conver
     const step: TestFlowStep = {
       call: alias,
       id: stepId,
-      debug: true,
     };
     const {expect, setenv} = httpRequestCallExtras(request, stepId);
     if (expect && Object.keys(expect).length > 0) {
@@ -403,7 +402,6 @@ function convertBrunoToMmt(rawFile: string, options: ConvertToMmtOptions): Conve
     const step: TestFlowStep = {
       call: alias,
       id: safeStepIdFromAlias(alias),
-      debug: true,
     };
     if (inlineStep && 'expect' in inlineStep && inlineStep.expect && Object.keys(inlineStep.expect).length > 0) {
       step.expect = inlineStep.expect;
@@ -618,7 +616,6 @@ function buildPostmanTests(
       const step: any = {
         call: requestFile.alias,
         id: safeStepIdFromAlias(requestFile.alias),
-        debug: true,
       };
       const expect = buildPostmanExpect(requestFile.item, scriptMode, warnings);
       if (expect && Object.keys(expect).length > 0) {

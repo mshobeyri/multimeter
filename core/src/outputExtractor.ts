@@ -419,6 +419,37 @@ function sectionToText(
   }
 }
 
+function inferExtractBodyType(response: ResponseData): ResponseData['type'] {
+  const headersLower =
+      Object.fromEntries(Object.entries(response.headers || {})
+                             .map(([k, v]) => [k.toLowerCase(), v]));
+  const ct = headersLower['content-type'];
+  if (typeof ct === 'string') {
+    const lc = ct.toLowerCase();
+    if (lc.includes('json')) {
+      return 'json';
+    }
+    if (lc.includes('xml') && !lc.includes('html')) {
+      return 'xml';
+    }
+    return 'text';
+  }
+  const body = typeof response.body === 'string' ? response.body.trimStart() : '';
+  if (body.startsWith('<?xml')) {
+    return 'xml';
+  }
+  if (/^<[a-zA-Z!?]/.test(body)) {
+    if (/^<!DOCTYPE\s+html/i.test(body) || /^<html[\s>]/i.test(body)) {
+      return 'text';
+    }
+    return 'xml';
+  }
+  if (body.startsWith('{') || body.startsWith('[')) {
+    return 'json';
+  }
+  return 'text';
+}
+
 export function extractOutputs(
     response: ResponseData, outputsDef: Record<string, string>): JSONRecord {
   const result: JSONRecord = {};
@@ -432,34 +463,22 @@ export function extractOutputs(
   let bodyObject = response.body;
 
   if (response.type === 'auto') {
-    // Normalize header names once
-    const headersLower =
-        Object.fromEntries(Object.entries(response.headers || {})
-                               .map(([k, v]) => [k.toLowerCase(), v]));
-    const ct = headersLower['content-type'];
-    if (typeof ct === 'string') {
-      response.type = ct.includes('xml') ? 'xml' : 'json';
-    } else {
-      response.type = (response.body && response.body.startsWith &&
-                       response.body.startsWith('<')) ?
-          'xml' :
-          'json';
-    }
+    response.type = inferExtractBodyType(response);
   }
 
   if (response.type === 'xml' && typeof response.body === 'string') {
     try {
       const jsObj = xml2js(response.body, {compact: true});
       bodyObject = xmlBodyToExtractable(jsObj);
-    } catch (e) {
-      console.warn('Failed to parse XML:', e);
+    } catch {
+      console.warn('Failed to parse XML');
       bodyObject = {};
     }
   } else if (response.type === 'json' && typeof response.body === 'string') {
     try {
       bodyObject = JSON.parse(response.body);
-    } catch (e) {
-      console.warn('Failed to parse JSON:', e);
+    } catch {
+      console.warn('Failed to parse JSON');
       bodyObject = {};
     }
   }

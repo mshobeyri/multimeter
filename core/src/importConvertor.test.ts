@@ -442,8 +442,8 @@ describe('importConvertor', () => {
     expect(test.steps[0]).toMatchObject({
       call: 'listusers',
       id: 'iListusers',
-      debug: true,
     });
+    expect(test.steps[0].debug).toBeUndefined();
   });
 
   it('converts multi-request HTTP files into multiple APIs and one test', () => {
@@ -464,8 +464,10 @@ describe('importConvertor', () => {
     expect(result.files.filter(file => file.kind === 'test')).toHaveLength(1);
     const test = parseYamlStrict(result.files.find(file => file.kind === 'test')!.content);
     expect(test.steps).toHaveLength(2);
-    expect(test.steps[0]).toMatchObject({call: 'ping', id: 'iPing', debug: true});
-    expect(test.steps[1]).toMatchObject({call: 'echo', id: 'iEcho', debug: true});
+    expect(test.steps[0]).toMatchObject({call: 'ping', id: 'iPing'});
+    expect(test.steps[1]).toMatchObject({call: 'echo', id: 'iEcho'});
+    expect(test.steps[0].debug).toBeUndefined();
+    expect(test.steps[1].debug).toBeUndefined();
     expect(test.import.ping).toBe('../api/ping.mmt');
     expect(test.import.echo).toBe('../api/echo.mmt');
   });
@@ -491,7 +493,7 @@ describe('importConvertor', () => {
     expect(test.import.ping).toBe('../api/ping.mmt');
     expect(test.steps[0].call).toBe('ping');
     expect(test.steps[0].id).toBe('iPing');
-    expect(test.steps[0].debug).toBe(true);
+    expect(test.steps[0].debug).toBeUndefined();
   });
 
   it('prefixes conflicting Postman import aliases and step ids', () => {
@@ -551,7 +553,7 @@ tests {
     expect(test.import.createUser).toBe('../api/create-user.mmt');
     expect(test.steps[0].call).toBe('createUser');
     expect(test.steps[0].id).toBe('iCreateUser');
-    expect(test.steps[0].debug).toBe(true);
+    expect(test.steps[0].debug).toBeUndefined();
     expect(test.steps[0].expect.status).toBe('== 201');
   });
 

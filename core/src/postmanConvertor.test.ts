@@ -430,6 +430,32 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(api.inputs).toEqual({account: 'acct_123'});
     expect(api.query).toEqual({active: 'true'});
     expect(api.headers).toEqual({Accept: 'application/json'});
+    expect(api.format).toBe('json');
+  });
+
+  it('infers response format from Accept when there is no body', () => {
+    const apis = postmanToAPI({
+      item: [
+        {
+          name: 'Html',
+          request: {
+            method: 'GET',
+            header: [{key: 'Accept', value: 'text/html'}],
+            url: 'https://test.mmt.dev/html',
+          },
+        },
+        {
+          name: 'Bytes',
+          request: {
+            method: 'GET',
+            header: [{key: 'Accept', value: 'application/octet-stream'}],
+            url: 'https://test.mmt.dev/bytes/64',
+          },
+        },
+      ],
+    });
+    expect(apis[0].format).toBe('text');
+    expect(apis[1].format).toEqual({request: 'json', response: 'binary'});
   });
 
   it('maps interactive Postman OAuth2 to a supplied bearer access token', () => {

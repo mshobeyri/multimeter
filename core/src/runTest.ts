@@ -136,7 +136,7 @@ export async function executeTest(
       (options as any).id, options.fileLoader, setenvReporter,
       options.abortSignal, true,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
-      (options as any).__mmtIsSuiteBundleChildRun === true, undefined, undefined, 'Test',
+      (options as any).__mmtIsSuiteBundleChildRun === true, undefined, options.checkLogMode, 'Test',
       options.binaryFileLoader);
   if (forwardReporter) {
     if (result.outputs && typeof result.outputs === 'object' && Object.keys(result.outputs).length > 0) {

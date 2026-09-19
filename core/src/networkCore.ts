@@ -21,6 +21,29 @@ export type{ActiveConnection, ConnectionEvent, ConnectionEventListener} from './
 const httpAgentPool: Map<string, http.Agent> = new Map();
 const httpsAgentPool: Map<string, https.Agent> = new Map();
 
+function getHttpsAgentKey(
+    hostname: string, port: string|undefined, protocol: string|undefined,
+    config: NetworkConfig, opts?: {
+      skipCertificateValidation?: boolean;
+      fallbackClientCertId?: string;
+      forceTls12?: boolean;
+    }): string {
+  const skipValidation = opts?.skipCertificateValidation ?? false;
+  const clientId = opts?.fallbackClientCertId ||
+      findMatchingClientCertificate(config.clients, hostname, port, protocol)
+          ?.id ||
+      '';
+  return [
+    hostname,
+    port || '',
+    String(config.sslValidation),
+    String(skipValidation),
+    String(!!config.ca.enabled),
+    clientId,
+    opts?.forceTls12 ? 'tls12' : 'tls',
+  ].join(':');
+}
+
 // Track socket -> connection ID mapping
 const socketConnectionIds = new WeakMap<any, string>();
 const trackedSockets = new WeakSet<any>();
@@ -112,10 +135,15 @@ export function createHttpsAgentWithCertificates(
       forceTls12?: boolean;
     }): https.Agent {
   const skipValidation = opts?.skipCertificateValidation ?? false;
+  const agentKey = getHttpsAgentKey(hostname, port, protocol, config, opts);
+  const existingAgent = httpsAgentPool.get(agentKey);
+  if (existingAgent) {
+    return existingAgent;
+  }
   const rejectUnauthorized = skipValidation ? false : config.sslValidation;
   const agentOptions: https.AgentOptions = {
     rejectUnauthorized,
-    keepAlive: false,
+    keepAlive: true,
     keepAliveMsecs: 30000,
   };
   applyTlsCompatibilityOptions(agentOptions, {forceTls12: opts?.forceTls12});
@@ -155,6 +183,7 @@ export function createHttpsAgentWithCertificates(
     return socket;
   };
 
+  httpsAgentPool.set(agentKey, agent);
   return agent;
 }
 

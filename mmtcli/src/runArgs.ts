@@ -449,6 +449,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     },
     reporter: (_message: RunReporterMessage) => {},
     projectRoot: findProjectRootForCli(full),
+    checkLogMode: opts.quiet ? 'none' : 'default',
   };
 
   const onlyTags = Array.isArray(opts.tag) ? opts.tag as string[] : [];

@@ -384,6 +384,9 @@ describe('networkCore extra coverage', () => {
 
     const httpsAgent = createHttpsAgentWithCertificates(
         'secure.example', '443', 'https:', DEFAULT_NETWORK_CONFIG);
+    expect(createHttpsAgentWithCertificates(
+               'secure.example', '443', 'https:', DEFAULT_NETWORK_CONFIG))
+        .toBe(httpsAgent);
     const tlsSocket = (httpsAgent as any).createConnection({host: 'secure.example'});
     tlsSocket.emit('secureConnect');
     const tlsId = connectionTracker.getAll().find((c) => c.host.includes('secure'))?.id;

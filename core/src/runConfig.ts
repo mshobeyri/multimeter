@@ -213,6 +213,12 @@ export interface RunFileOptions {
    * except skip). Internal to suite bundle execution.
    */
   tagParentSelected?: boolean;
+
+  /**
+   * How check/assert/debug steps write to the console.
+   * CLI `--quiet` sets `none`.
+   */
+  checkLogMode?: 'default'|'failures-only'|'none';
 }
 
 export interface MergeInputsParams {
