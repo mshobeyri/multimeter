@@ -1,10 +1,6 @@
-export type SuiteTreeNode =
-  | { kind: 'group'; id: string; label: string; children: SuiteTreeNode[] }
-  | { kind: 'suite'; id: string; path: string; title?: string; children: SuiteTreeNode[]; servers?: string[]; serverItems?: Array<Extract<SuiteTreeNode, { kind: 'server' | 'missing' }>> }
-  | { kind: 'test'; id: string; path: string; title?: string }
-  | { kind: 'server'; id: string; path: string; title?: string }
-  | { kind: 'missing'; id: string; path: string }
-  | { kind: 'cycle'; id: string; path: string };
+import type {SuiteHierarchyNode} from 'mmt-core/SuiteData';
+
+export type SuiteTreeNode = SuiteHierarchyNode;
 
 /** Items shown under a suite: `servers:` first, then `items:`. */
 export function suiteTreeChildren(node: SuiteTreeNode | null | undefined): SuiteTreeNode[] {

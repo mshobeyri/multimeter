@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type {ExpectItemEvent} from 'mmt-core/runConfig';
+import type {TestStepResult} from 'mmt-core/reportCollector';
 import { StepStatus } from './types';
 import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
@@ -255,28 +257,14 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
   );
 };
 
-export interface ExpectReportItem {
-  comparison: string;
-  actual?: any;
-  expected?: any;
+export type ExpectReportItem = Omit<ExpectItemEvent, 'status'> & {
   status: StepStatus;
-  similarity?: number;
-  count?: number;
-  /** Soft vs hard section (judge expect / require). */
-  level?: 'expect' | 'require';
-}
+};
 
-export interface StepReportItem {
-  stepIndex: number;
-  stepType: 'check' | 'assert' | 'debug';
+export type StepReportItem = Omit<TestStepResult, 'status'|'expects'> & {
   status: StepStatus;
-  title?: string;
-  details?: string;
   expects: ExpectReportItem[];
-  timestamp: number;
-  /** True when the related call returned outputs from the in-run test call cache. */
-  cached?: boolean;
-}
+};
 
 interface TestStepReportPanelProps {
   isExpanded: boolean;

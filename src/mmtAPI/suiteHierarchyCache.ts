@@ -1,19 +1,10 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import {suiteHierarchy} from 'mmt-core';
+import type {FileLoader} from 'mmt-core/runConfig';
+import type {SuiteHierarchyTree} from 'mmt-core/SuiteData';
 
-export type SuiteHierarchyTree =
-    suiteHierarchy.SuiteHierarchyRootNode|{
-      kind: 'test';
-      id: string;
-      path: string;
-      title?: string;
-    }|{
-      kind: 'server';
-      id: string;
-      path: string;
-      title?: string;
-    };
+export type {SuiteHierarchyTree};
 
 type CacheEntry = {
   tree: SuiteHierarchyTree;
@@ -138,7 +129,7 @@ export async function getCachedSuiteHierarchy(params: {
   suiteFilePath: string;
   leafPrefix?: string;
   loadRootText: () => Promise<string>;
-  fileLoader: (path: string) => Promise<string>;
+  fileLoader: FileLoader;
 }): Promise<{tree: SuiteHierarchyTree; fromCache: boolean}> {
   const key = cacheKey(params.suiteFilePath, params.leafPrefix);
   const cached = await readCacheIfFresh(key);

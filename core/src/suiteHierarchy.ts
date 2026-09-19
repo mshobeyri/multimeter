@@ -1,6 +1,10 @@
 import type {FileLoader} from './JSerFileLoader';
 import {detectDocType, resolveRelativeTo} from './runCommon';
-import {SuiteEnvironment, SuiteYamlFilter} from './SuiteData';
+import {
+  SuiteHierarchyNode,
+  SuiteHierarchyRootNode,
+  SuiteServerItemNode,
+} from './SuiteData';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {createSuiteNodeId} from './suiteNodeId';
 import {yamlToTest} from './testParsePack';
@@ -8,17 +12,11 @@ import {brunoToTest, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, isHttpFilePath} from './httpParsePack';
 import {yamlToMock} from './mockParsePack';
 
-export type SuiteServerItemNode =
-  | Extract<SuiteHierarchyNode, {kind: 'server'}>
-  | Extract<SuiteHierarchyNode, {kind: 'missing'}>;
-
-export type SuiteHierarchyNode =
-  | {kind: 'group'; id: string; label: string; children: SuiteHierarchyNode[]}
-  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]; servers?: string[]; serverItems?: SuiteServerItemNode[]; tags?: string[]; filter?: SuiteYamlFilter}
-  | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
-  | {kind: 'server'; id: string; path: string; title?: string}
-  | {kind: 'missing'; id: string; path: string}
-  | {kind: 'cycle'; id: string; path: string};
+export type {
+  SuiteHierarchyNode,
+  SuiteHierarchyRootNode,
+  SuiteServerItemNode,
+} from './SuiteData';
 
 export type SuiteHierarchyFileLoader = FileLoader;
 
@@ -29,15 +27,6 @@ function optionalTags(tags?: string[]): string[]|undefined {
   const out = tags.map((t) => String(t).trim()).filter(Boolean);
   return out.length ? out : undefined;
 }
-
-export type SuiteHierarchyRootNode = Extract<SuiteHierarchyNode, {kind: 'suite'}> & {
-  /** Server file paths from the top-level `servers:` field. */
-  servers?: string[];
-  /** Environment configuration (root-only). */
-  environment?: SuiteEnvironment;
-  /** Export file paths (root-only). */
-  export?: string[];
-};
 
 export async function buildSuiteHierarchyFromSuiteFile(params: {
   suiteFilePath: string;

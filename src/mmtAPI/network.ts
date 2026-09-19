@@ -4,30 +4,10 @@ import * as crypto from 'crypto';
 import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 import {handleNetworkMessage as coreHandleNetworkMessage, NetworkMessage, PostMessage} from 'mmt-core/network';
 import {CertificateSettings, DEFAULT_CERT_SETTINGS, DEFAULT_NETWORK_CONFIG, EnvSetting, NetworkConfig, resolvePassphrase} from 'mmt-core/NetworkData';
+import type {EnvCaCertificate, EnvCertificates, EnvClientCertificate} from 'mmt-core/EnvData';
 import * as vscode from 'vscode';
 import * as YAML from 'yaml';
 import * as mmtcore from 'mmt-core';
-
-// Certificate YAML data stored in workspace (file paths only)
-interface StoredCaCertificate {
-  path?: string;
-  paths?: string[];  // Legacy multiple CA cert paths
-}
-
-interface StoredClientCertificate {
-  name: string;
-  host: string;
-  cert?: string;
-  key?: string;
-  pfx?: string;
-  passphrase_plain?: string;
-  passphrase_env?: string;
-}
-
-interface StoredCertificates {
-  server_ca?: string | StoredCaCertificate;
-  clients?: StoredClientCertificate[];
-}
 
 interface EnvVariableEntry {
   name: string;
@@ -36,7 +16,7 @@ interface EnvVariableEntry {
 
 interface ParsedEnvFile {
   envVars: Record<string, any>;
-  certificates: StoredCertificates;
+  certificates: EnvCertificates;
   setting?: EnvSetting;
 }
 
@@ -217,14 +197,14 @@ function getHttpVersion(setting: EnvSetting|undefined): string|undefined {
     undefined;
 }
 
-function hasStoredCertificatePaths(certs?: StoredCertificates): boolean {
+function hasStoredCertificatePaths(certs?: EnvCertificates): boolean {
   return Boolean(
       certs &&
       ((certs.server_ca && getCaPath(certs.server_ca)) ||
        (certs.clients && certs.clients.length > 0)));
 }
 
-function createDefaultCertificateSettings(certs?: StoredCertificates): CertificateSettings {
+function createDefaultCertificateSettings(certs?: EnvCertificates): CertificateSettings {
   const settings: CertificateSettings = {
     ...DEFAULT_CERT_SETTINGS,
     clientsEnabled: {},
@@ -238,13 +218,13 @@ function createDefaultCertificateSettings(certs?: StoredCertificates): Certifica
   return settings;
 }
 
-function parseCertificatesFromYaml(yaml: any): StoredCertificates {
+function parseCertificatesFromYaml(yaml: any): EnvCertificates {
   const certsObj = yaml && (yaml as any).certificates;
   if (!certsObj || typeof certsObj !== 'object') {
     return {};
   }
 
-  const result: StoredCertificates = {};
+  const result: EnvCertificates = {};
   const caObj = (certsObj as any).server_ca;
   if (caObj) {
     if (Array.isArray(caObj)) {
@@ -408,7 +388,7 @@ function resolveCertPath(certPath: string, baseFilePath?: string): string {
   return resolveCertFilePath(certPath);
 }
 
-function getCaPath(ca?: string | StoredCaCertificate): string {
+function getCaPath(ca?: string | EnvCaCertificate): string {
   if (!ca) {
     return '';
   }
@@ -422,7 +402,7 @@ function getCaPath(ca?: string | StoredCaCertificate): string {
 }
 
 // Generate key for client certificate enable/disable
-function clientKey(client: StoredClientCertificate): string {
+function clientKey(client: EnvClientCertificate): string {
   return `${client.name || ''}:${client.host || ''}`;
 }
 
@@ -439,7 +419,7 @@ function cloneCertificateMaterial(
 }
 
 function prepareCertificateMaterial(
-    storedCerts: StoredCertificates,
+    storedCerts: EnvCertificates,
     certSettings: CertificateSettings,
     envVars: Record<string, any>,
     resolvePath: (certPath: string) => string): PreparedCertificateMaterial {
@@ -557,9 +537,9 @@ export function getPreparedConfigFromStorage(
   };
   const parsedCerts = parsed?.certificates;
   const hasParsedCerts = hasStoredCertificatePaths(parsedCerts);
-  const storedCerts: StoredCertificates =
+  const storedCerts: EnvCertificates =
     hasParsedCerts
-      ? parsedCerts as StoredCertificates
+      ? parsedCerts as EnvCertificates
       : context.workspaceState.get('multimeter.certificates.storage', {});
   const certBaseFilePath = hasParsedCerts && envFileAbsPath ? envFileAbsPath : baseFilePath;
     const storedCertSettings = context.workspaceState.get<CertificateSettings | undefined>(
@@ -613,7 +593,7 @@ export function prepareNetworkConfigFromProjectFile(
 
   const config = vscode.workspace.getConfiguration('multimeter');
   const fallbackTimeout = DEFAULT_NETWORK_CONFIG.timeout;
-  const storedCerts: StoredCertificates = parsed?.certificates || {};
+  const storedCerts: EnvCertificates = parsed?.certificates || {};
 
   const projectDir = path.dirname(projectFilePath);
   const certPathOpts = {baseDir: projectDir};

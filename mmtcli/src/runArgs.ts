@@ -3,7 +3,7 @@ import type {ReportFormat} from 'mmt-core/CommonData';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
-import type {RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
+import type {BinaryFileLoader, FileLoader, RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
 import type {NetworkConfig, EnvCertificateSettings, EnvSetting} from 'mmt-core/NetworkData';
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
@@ -412,8 +412,8 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
   }
 
   const runFileOptions: RunFileOptions&{
-    fileLoader: (path: string) => Promise<string>;
-    binaryFileLoader?: (path: string) => Promise<Buffer>;
+    fileLoader: FileLoader;
+    binaryFileLoader?: BinaryFileLoader;
     jsRunner: (
         code: string, title: string,
         logger: (level: any, msg: string) => void) => Promise<void>;

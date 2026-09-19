@@ -6,6 +6,7 @@ import {Worker, isMainThread, parentPort, workerData} from 'worker_threads';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
 import {apiParsePack, docHtml, docParsePack, runner, testlightHelp} from 'mmt-core';
+import type {LogLevel} from 'mmt-core/CommonData';
 import path from 'path';
 import {createRequire} from 'module';
 
@@ -94,8 +95,6 @@ interface WorkerJsRunnerTask {
   logger: (level: LogLevel, message: string) => void;
   reporter?: (message: any) => void;
 }
-
-type LogLevel = 'error'|'warn'|'info'|'debug'|'trace'|'log';
 
 function toPlainWorkerContext(context: any): Record<string, any> {
   return {

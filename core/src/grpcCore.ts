@@ -10,6 +10,7 @@ import {
   GrpcResponse,
   NetworkConfig,
 } from './NetworkData';
+import type {FileLoader} from './JSerFileLoader';
 
 // gRPC status code → HTTP status code mapping
 const GRPC_TO_HTTP_STATUS: Record<number, number> = {
@@ -355,7 +356,7 @@ function findServiceClient(
 export async function sendGrpcRequest(
   req: GrpcRequest,
   config: NetworkConfig,
-  fileLoader: (path: string) => Promise<string>,
+  fileLoader: FileLoader,
   basePath?: string,
 ): Promise<GrpcResponse> {
   const start = Date.now();

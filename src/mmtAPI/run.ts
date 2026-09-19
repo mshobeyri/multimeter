@@ -1,4 +1,5 @@
 import {runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
+import type {FileLoader} from 'mmt-core/runConfig';
 import type {SuiteEnvironment} from 'mmt-core/SuiteData';
 import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
 import {LogLevel} from 'mmt-core/CommonData';
@@ -196,7 +197,7 @@ async function resolveSuiteEnvVars(params: {
   suiteFilePath: string;
   projectRoot?: string;
   baseEnvVars: Record<string, any>;
-  fileLoader: (path: string) => Promise<string>;
+  fileLoader: FileLoader;
 }): Promise<Record<string, any>> {
   const {suiteEnv, suiteFilePath, projectRoot, baseEnvVars} = params;
 
