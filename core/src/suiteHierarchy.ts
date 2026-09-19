@@ -33,8 +33,9 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
   suiteRawText: string;
   fileLoader: SuiteHierarchyFileLoader;
   leafPrefix?: string;
+  projectRoot?: string;
 }): Promise<SuiteHierarchyRootNode> {
-  const {suiteFilePath, suiteRawText, fileLoader, leafPrefix} = params;
+  const {suiteFilePath, suiteRawText, fileLoader, leafPrefix, projectRoot} = params;
 
   const convertSuiteToHierarchy = async (
     targetFilePath: string,
@@ -124,7 +125,7 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
       return null;
     }
 
-    const resolvedPath = resolveRelativeTo(trimmed, ownerFilePath) || trimmed;
+    const resolvedPath = resolveRelativeTo(trimmed, ownerFilePath, projectRoot) || trimmed;
 
     let raw = '';
     try {

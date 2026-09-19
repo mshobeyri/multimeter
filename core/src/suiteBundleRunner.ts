@@ -16,6 +16,10 @@ import {
 } from './suiteTagFilter';
 import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from './testHelper';
 
+function resolveSuitePath(targetPath: string, baseFilePath: string, options: RunFileOptions): string {
+  return resolveRelativeTo(targetPath, baseFilePath, options.projectRoot);
+}
+
 async function startListedServers(params: {
   servers: readonly string[];
   baseFilePath: string;
@@ -28,7 +32,7 @@ async function startListedServers(params: {
       suiteLogger('warn', 'Suite run cancelled before servers could start.');
       return false;
     }
-    const resolvedPath = resolveRelativeTo(serverPath, baseFilePath);
+    const resolvedPath = resolveSuitePath(serverPath, baseFilePath, options);
     const display = basename(resolvedPath || serverPath);
     if (!options.serverRunner) {
       suiteLogger('error', `Cannot start server '${display}': no server runner provided`);
@@ -151,7 +155,7 @@ function reportSkippedBundleNode(params: {
   const {node, bundle, options, nextIndex} = params;
   const currentIndex = nextIndex();
   const suiteRunNonce = typeof options.suiteRunId === 'string' ? options.suiteRunId : '';
-  const filePath = node.kind === 'group' ? bundle.rootSuitePath : resolveRelativeTo(node.path, bundle.rootSuitePath);
+  const filePath = node.kind === 'group' ? bundle.rootSuitePath : resolveSuitePath(node.path, bundle.rootSuitePath, options);
   const title = node.kind === 'group'
     ? (typeof node.label === 'string' && node.label.trim() ? node.label.trim() : node.id)
     : (typeof node.title === 'string' && node.title.trim() ? node.title.trim() : basename(filePath || node.path));
@@ -214,7 +218,7 @@ async function runSuiteBundleNode(params: {
   }
 
   const currentIndex = nextIndex();
-  const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
+  const childFilePath = resolveSuitePath(node.path, bundle.rootSuitePath, options);
   const nodeTitle =
       typeof (node as any).title === 'string' && (node as any).title.trim() ?
       (node as any).title.trim() :
@@ -245,12 +249,12 @@ async function runSuiteBundleNode(params: {
 
     childLogger('debug', `Running suite item: ${display}`);
     const childFileLoader = async (requestedPath: string) => {
-      const resolved = resolveRelativeTo(requestedPath, childFilePath);
+      const resolved = resolveSuitePath(requestedPath, childFilePath, options);
       return await baseFileLoader(resolved);
     };
     const childBinaryFileLoader = options.binaryFileLoader
       ? async (requestedPath: string) => {
-          const resolved = resolveRelativeTo(requestedPath, childFilePath);
+          const resolved = resolveSuitePath(requestedPath, childFilePath, options);
           return await options.binaryFileLoader!(resolved);
         }
       : undefined;
@@ -435,7 +439,7 @@ async function runSuiteGroup(params: {
         statuses: serverStatuses,
       };
     }
-    const nestedPath = resolveRelativeTo(child.path, bundle.rootSuitePath) || child.path;
+    const nestedPath = resolveSuitePath(child.path, bundle.rootSuitePath, options) || child.path;
     const started = await startListedServers({
       servers: child.servers,
       baseFilePath: nestedPath,
@@ -547,7 +551,7 @@ async function startServerNode(params: {
 }): Promise<{success: boolean}> {
   const {node, bundle, options, suiteLogger} = params;
 
-  const serverFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
+  const serverFilePath = resolveSuitePath(node.path, bundle.rootSuitePath, options);
   const display = basename(serverFilePath || node.path);
 
   if (!options.serverRunner) {
@@ -780,7 +784,7 @@ export async function executeSuiteBundle(params: {
           )
           : (typeof root.label === 'string' && root.label.trim() ? root.label.trim() : root.id);
         const targetFilePath = root.kind === 'suite'
-          ? resolveRelativeTo(root.path, bundle.rootSuitePath)
+          ? resolveSuitePath(root.path, bundle.rootSuitePath, effectiveOptions)
           : bundle.rootSuitePath;
         const targetEntry = root.kind === 'suite' ? root.path : root.label;
 

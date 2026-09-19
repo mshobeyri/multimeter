@@ -180,6 +180,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
         suiteFilePath: prepared.filePath,
         suiteRawText: prepared.rawText,
         fileLoader: options.fileLoader,
+        projectRoot: options.projectRoot,
       });
       bundle = createSuiteBundle({
         rootSuitePath: prepared.filePath,

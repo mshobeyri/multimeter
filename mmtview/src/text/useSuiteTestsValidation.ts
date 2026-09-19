@@ -19,7 +19,11 @@ function collectStringSequenceItems(
   const paths: string[] = [];
 
   for (const entry of seqItems) {
-    const value = entry?.value;
+    const value = typeof entry?.value === 'string'
+      ? entry.value
+      : typeof entry?.value?.value === 'string'
+        ? entry.value.value
+        : undefined;
     if (typeof value !== 'string') {
       continue;
     }
@@ -29,7 +33,11 @@ function collectStringSequenceItems(
     }
     paths.push(trimmed);
 
-    const offset = Array.isArray(entry?.range) && typeof entry.range[0] === 'number' ? entry.range[0] : undefined;
+    const offset = Array.isArray(entry?.range) && typeof entry.range[0] === 'number'
+      ? entry.range[0]
+      : Array.isArray(entry?.value?.range) && typeof entry.value.range[0] === 'number'
+        ? entry.value.range[0]
+        : undefined;
     if (typeof offset === 'number') {
       const pre = content.slice(0, offset);
       const line = pre.split('\n').length;

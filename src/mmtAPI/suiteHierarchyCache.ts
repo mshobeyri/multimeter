@@ -1,6 +1,8 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import {suiteHierarchy} from 'mmt-core';
+import {findProjectRootSync} from 'mmt-core/fileHelper';
 import type {FileLoader} from 'mmt-core/runConfig';
 import type {SuiteHierarchyTree} from 'mmt-core/SuiteData';
 
@@ -130,6 +132,7 @@ export async function getCachedSuiteHierarchy(params: {
   leafPrefix?: string;
   loadRootText: () => Promise<string>;
   fileLoader: FileLoader;
+  projectRoot?: string;
 }): Promise<{tree: SuiteHierarchyTree; fromCache: boolean}> {
   const key = cacheKey(params.suiteFilePath, params.leafPrefix);
   const cached = await readCacheIfFresh(key);
@@ -145,12 +148,16 @@ export async function getCachedSuiteHierarchy(params: {
     return params.fileLoader(requestedPath);
   };
 
+  const projectRoot = params.projectRoot ??
+      findProjectRootSync(params.suiteFilePath, fs.existsSync, path.dirname, path.join) ??
+      undefined;
   const suiteRawText = await params.loadRootText();
   const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
     suiteFilePath: params.suiteFilePath,
     suiteRawText,
     leafPrefix: params.leafPrefix,
     fileLoader: trackingLoader,
+    projectRoot,
   });
 
   const paths = Array.from(depPaths);

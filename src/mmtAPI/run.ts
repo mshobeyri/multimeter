@@ -557,8 +557,10 @@ export async function handleRunSuite(
     await fileCache.beginRun(stampFile);
     const fileLoader = fileCache.wrap(createFileLoader(runFilePath));
     const binaryFileLoader = createBinaryFileLoader(runFilePath);
+    const projectRootSuite = findProjectRoot(runFilePath);
     const {tree: hierarchyTree, fromCache} = await getCachedSuiteHierarchy({
       suiteFilePath: runFilePath,
+      projectRoot: projectRootSuite,
       loadRootText: async () => rawSuite,
       fileLoader: async (requestedPath: string) => {
         try {
@@ -587,7 +589,6 @@ export async function handleRunSuite(
     forwardLog('debug', `handleRunSuite: created bundle root=${runFilePath} target=${String(bundleTarget)}`);
 
     // Merge suite environment with VS Code local storage env vars
-    const projectRootSuite = findProjectRoot(runFilePath);
     const mergedEnvVars = await resolveSuiteEnvVars({
       suiteEnv: bundle.environment,
       suiteFilePath: runFilePath,

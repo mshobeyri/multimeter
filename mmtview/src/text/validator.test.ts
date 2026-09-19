@@ -11,6 +11,7 @@ import {
   findStageAfterProblems,
   findAuthProblems,
   extractSuiteTestLineInfo,
+  computeMissingSuiteFileMarkers,
   getUndefinedExpectKeyDecorations,
   offsetToLineNumber,
   computeDuplicateServerMarkers,
@@ -369,6 +370,44 @@ describe('suite file reference extraction', () => {
       {path: 'mocks/missing-server.mmt', line: 3, column: expect.any(Number)},
       {path: 'tests/login.mmt', line: 6, column: expect.any(Number)},
     ]);
+  });
+
+  it('extracts +/ project-root suite items on their own line', () => {
+    const content = [
+      'type: suite',
+      'title: Dynamic values',
+      'description: Runs the examples',
+      'items:',
+      '  - random_types_test.mmt',
+      '  - +/current_test.mmt',
+    ].join('\n');
+    const doc = parseYamlDoc(content);
+    const refs = extractSuiteTestLineInfo(doc, content);
+    expect(refs).toEqual([
+      {path: 'random_types_test.mmt', line: 5, column: expect.any(Number)},
+      {path: '+/current_test.mmt', line: 6, column: expect.any(Number)},
+    ]);
+  });
+
+  it('marks a missing +/ suite item on the item line, not line 1', () => {
+    const content = [
+      'type: suite',
+      'title: Dynamic values',
+      'description: Runs the examples',
+      'items:',
+      '  - random_types_test.mmt',
+      '  - +/current_test.mmt',
+    ].join('\n');
+    const monaco = {MarkerSeverity: {Warning: 4}};
+    const model = {
+      getLineCount: () => content.split('\n').length,
+      getLineMaxColumn: (line: number) => (content.split('\n')[line - 1]?.length ?? 0) + 1,
+    };
+    const {markers} = computeMissingSuiteFileMarkers(
+        monaco, model, content, parseYamlDoc(content), [{path: '+/current_test.mmt'}]);
+    expect(markers).toHaveLength(1);
+    expect(markers[0].startLineNumber).toBe(6);
+    expect(markers[0].message).toContain('+/current_test.mmt');
   });
 });
 

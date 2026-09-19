@@ -1,4 +1,4 @@
-import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
+import {findProjectRootSync, isProjectRootImport, resolveCertFilePath, resolveProjectRootImport} from 'mmt-core/fileHelper';
 import type {ReportFormat} from 'mmt-core/CommonData';
 import fs from 'fs';
 import yaml from 'js-yaml';
@@ -411,6 +411,13 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     envvar = {...baseEnv, ...suitePresetEnv, ...suiteVariables, ...manualEnvvars};
   }
 
+  const projectRoot = findProjectRootForCli(full);
+  const resolveCliFilePath = (requested: string): string => {
+    if (isProjectRootImport(requested) && projectRoot) {
+      return resolveProjectRootImport(requested, projectRoot);
+    }
+    return resolveUserPath(requested, dir, path);
+  };
   const runFileOptions: RunFileOptions&{
     fileLoader: FileLoader;
     binaryFileLoader?: BinaryFileLoader;
@@ -430,14 +437,14 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     envvar,
     manualEnvvars,
     fileLoader: async (p: string) => {
-      const rel = resolveUserPath(p, dir, path);
+      const rel = resolveCliFilePath(p);
       if (!fs.existsSync(rel)) {
         return '';
       }
       return fs.readFileSync(rel, 'utf8');
     },
     fileStamp: async (p: string) => {
-      const rel = resolveUserPath(p, dir, path);
+      const rel = resolveCliFilePath(p);
       try {
         const st = fs.statSync(rel);
         return `${st.size}:${st.mtimeMs}`;
@@ -446,7 +453,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
       }
     },
     binaryFileLoader: async (p: string) => {
-      const rel = resolveUserPath(p, dir, path);
+      const rel = resolveCliFilePath(p);
       return fs.promises.readFile(rel);
     },
     jsRunner: async () => {},
@@ -458,7 +465,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
       }
     },
     reporter: (_message: RunReporterMessage) => {},
-    projectRoot: findProjectRootForCli(full),
+    projectRoot,
     checkLogMode: opts.quiet ? 'none' : 'default',
   };
 

@@ -1,6 +1,7 @@
 import {APIData} from './APIData';
 import {CheckLogMode, LogLevel, Type} from './CommonData';
 import type {BinaryFileLoader, FileLoader} from './JSerFileLoader';
+import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
 import * as JSer from './JSer';
 import {RunJSCodeContext} from './jsRunner';
 import type {RunKind} from './runLog';
@@ -203,8 +204,15 @@ export async function runGeneratedJs(
 }
 
 export function resolveRelativeTo(
-    targetPath: string, baseFilePath: string): string {
+    targetPath: string, baseFilePath: string, projectRoot?: string): string {
   if (!targetPath) {
+    return targetPath;
+  }
+  // +/ is project-root, not a relative segment. Do not join it onto baseFilePath.
+  if (isProjectRootImport(targetPath)) {
+    if (projectRoot) {
+      return resolveProjectRootImport(targetPath, projectRoot);
+    }
     return targetPath;
   }
   if (targetPath.startsWith('/') || /^[A-Za-z]:[\\/]/.test(targetPath)) {
