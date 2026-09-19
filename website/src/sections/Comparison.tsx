@@ -59,6 +59,24 @@ const features: FeatureRow[] = [
     },
   },
   {
+    feature: 'Parallel runs',
+    values: {
+      multimeter: 'Tests and suites',
+      postman: 'No (Newman sequential)',
+      bruno: 'Sequential',
+      restClient: false,
+    },
+  },
+  {
+    feature: 'Sequential CLI speed',
+    values: {
+      multimeter: '~10% faster than Newman',
+      postman: 'Newman',
+      bruno: '—',
+      restClient: '—',
+    },
+  },
+  {
     feature: 'AI judges fuzzy replies',
     values: {
       multimeter: true,
