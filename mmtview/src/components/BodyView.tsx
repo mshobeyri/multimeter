@@ -33,9 +33,10 @@ export type BodyViewProps = {
     mode?: mode;
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
     refreshKey?: number;
+    disabled?: boolean;
 };
 
-const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable", onInspectPosition, refreshKey }) => {
+const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable", onInspectPosition, refreshKey, disabled = false }) => {
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
     const [canApply, setCanApply] = useState(false);
@@ -198,9 +199,10 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 fontSize={11}
                 onInspectPosition={onInspectPosition}
                 editorRef={editorRef}
+                readOnly={disabled}
             />
             <div className="bodyview-toolbar">
-                {((isJsonLikeBodyFormat(format) || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue) !== localValue) && (
+                {!disabled && ((isJsonLikeBodyFormat(format) || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue) !== localValue) && (
                     <button
                         className="bodyview-btn-icon"
                         title="Beautify"
@@ -212,7 +214,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                         <span className="codicon codicon-wand" />
                     </button>
                 )}
-                {mode === "appliable" && canApply && isValid && (
+                {!disabled && mode === "appliable" && canApply && isValid && (
                     <button
                         className="bodyview-btn bodyview-btn-apply"
                         style={{

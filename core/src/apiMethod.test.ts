@@ -1,4 +1,4 @@
-import {hasApiRequestBody, resolveApiHttpMethod} from './apiMethod';
+import {hasApiRequestBody, httpMethodAllowsRequestBody, resolveApiHttpMethod} from './apiMethod';
 
 describe('hasApiRequestBody', () => {
   test('returns false for absent or empty values', () => {
@@ -17,6 +17,18 @@ describe('hasApiRequestBody', () => {
     expect(hasApiRequestBody([1])).toBe(true);
     expect(hasApiRequestBody(0)).toBe(true);
     expect(hasApiRequestBody(false)).toBe(true);
+  });
+});
+
+describe('httpMethodAllowsRequestBody', () => {
+  test('is false only for GET', () => {
+    expect(httpMethodAllowsRequestBody('get')).toBe(false);
+    expect(httpMethodAllowsRequestBody('GET')).toBe(false);
+    expect(httpMethodAllowsRequestBody('  Get  ')).toBe(false);
+    expect(httpMethodAllowsRequestBody('post')).toBe(true);
+    expect(httpMethodAllowsRequestBody('head')).toBe(true);
+    expect(httpMethodAllowsRequestBody('')).toBe(true);
+    expect(httpMethodAllowsRequestBody(undefined)).toBe(true);
   });
 });
 

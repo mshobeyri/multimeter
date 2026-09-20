@@ -20,7 +20,7 @@ import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
 import { displayResponseBody } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
-import { resolveApiHttpMethod } from "mmt-core/apiMethod";
+import { httpMethodAllowsRequestBody, resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
 import {
   accentChromeCssVars,
@@ -148,6 +148,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
     ? methodOrProtocolValue.slice("protocol:".length)
     : methodOrProtocolValue.slice("method:".length);
+  const requestBodyDisabled = !isGraphQL && !isGrpc && effectiveProtocol !== "ws" &&
+    !httpMethodAllowsRequestBody(methodOrProtocolKey);
   const [themeTick, setThemeTick] = useState(0);
   useEffect(() => {
     const onTheme = () => setThemeTick((n) => n + 1);
@@ -425,7 +427,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           </div>
         ) : null}
         {shouldShowBody() && (
-          <div className="apitest-body-wrapper" data-mmt-coach="body">
+          <div
+            className={`apitest-body-wrapper${requestBodyDisabled ? " is-disabled" : ""}`}
+            data-mmt-coach="body"
+            title={requestBodyDisabled ? "GET requests have no request body" : undefined}
+          >
               {requestFormat(requestData?.format) === "binary" ? (
                 <FilePickerInput
                   value={typeof requestData?.body === "string" ? requestData.body : ""}
@@ -434,11 +440,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   placeholder="Relative path to binary file"
                   onChange={val => updateField("body", val)}
                   onEnterPressed={val => updateField("body", val)}
+                  disabled={requestBodyDisabled}
                 />
               ) : requestFormat(requestData?.format) === "multipart" ? (
                 <MultipartPartsEditor
                   value={requestData?.body}
                   onChange={parts => updateField("body", parts)}
+                  disabled={requestBodyDisabled}
                 />
               ) : (
                 <BodyView
@@ -448,7 +456,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   }
                   format={requestFormat(requestData?.format)}
                   mode="live"
-                  onChange={val => updateField("body", val)}
+                  disabled={requestBodyDisabled}
+                  onChange={requestBodyDisabled ? undefined : val => updateField("body", val)}
                 />
               )}
           </div>

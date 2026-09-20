@@ -10,6 +10,7 @@ import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
 import { APIData } from "mmt-core/APIData";
 import { protocolResolver } from "mmt-core";
+import { httpMethodAllowsRequestBody } from "mmt-core/apiMethod";
 import { FileContext } from "../fileContext";
 
 interface InterfaceEditorProps {
@@ -570,8 +571,8 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       ) : null}
 
-      {/* Only show body editor if method is not get and protocol is not graphql/grpc */}
-      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || (typeof data.method === "string" && data.method.toLowerCase() !== "get")) && (
+      {/* Hide body in edit when method is GET (tester disables it instead). */}
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || httpMethodAllowsRequestBody(data.method)) && (
         <>
           <div className="label api-body-label">
             <span>Body</span>
