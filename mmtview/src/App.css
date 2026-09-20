@@ -506,20 +506,29 @@ option {
   color: var(--vscode-input-foreground, #d4d4d4);
 }
 
-input,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
 textarea,
-input:focus,
-textarea:focus,
 tag {
   box-sizing: border-box;
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-input-foreground, #d4d4d4);
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
-  padding: 4px 8px;
+  padding: 5px 8px;
   outline: none;
   transition: border-color 0.2s;
-  height: 1.6rem;
+  min-height: 28px;
+  line-height: normal;
+  vertical-align: middle;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+tag {
+  height: 28px;
+}
+
+textarea {
+  height: auto;
 }
 
 select,
@@ -532,7 +541,7 @@ select:focus {
   outline: none;
   transition: border-color 0.2s;
   min-height: 28px;
-  height: auto;
+  height: 28px;
   padding: 5px 28px 5px 8px;
   line-height: normal;
   font-size: var(--vscode-font-size, 13px);
