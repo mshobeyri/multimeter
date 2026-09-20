@@ -5,6 +5,7 @@ import { Protocol, Method, Format, FormatSpec, requestFormat, responseFormat, pa
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
+import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
 import { APIData } from "mmt-core/APIData";
@@ -42,6 +43,9 @@ function getFormatLabel(format: Format): string {
   }
   if (format === "binary") {
     return "binary — file upload";
+  }
+  if (format === "multipart") {
+    return "multipart — form parts";
   }
   return format;
 }
@@ -571,7 +575,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         <>
           <div className="label api-body-label">
             <span>Body</span>
-            {reqFormat !== "binary" && (
+            {reqFormat !== "binary" && reqFormat !== "multipart" && (
               <label
                 className="api-body-yaml-encoded"
                 title="Store body as structured YAML instead of a text block"
@@ -594,6 +598,11 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 placeholder="Relative path to binary file"
                 onChange={path => onChange({ ...data, body: path })}
                 onEnterPressed={path => onChange({ ...data, body: path })}
+              />
+            ) : reqFormat === "multipart" ? (
+              <MultipartPartsEditor
+                value={data.body}
+                onChange={parts => onChange({ ...data, body: parts })}
               />
             ) : (
               <BodyView

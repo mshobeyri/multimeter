@@ -215,6 +215,11 @@
       "require": "./dist/omitKeyword.js",
       "default": "./dist/omitKeyword.js"
     },
+    "./multipartBody": {
+      "types": "./dist/multipartBody.d.ts",
+      "require": "./dist/multipartBody.js",
+      "default": "./dist/multipartBody.js"
+    },
     "./textLines": {
       "types": "./dist/textLines.d.ts",
       "require": "./dist/textLines.js",

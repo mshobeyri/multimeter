@@ -28,7 +28,7 @@ format:
 | `text` | Raw text body |
 | `urlencoded` | Form fields as `application/x-www-form-urlencoded` |
 | `binary` | File path relative to the `.mmt` file |
-| `multipart` | Form parts array with text `value` and/or relative `file` paths |
+| `multipart` | Form parts (`name` + text `value` or relative `file` path); visual editor uses a parts table |
 
 The `body` field shape depends on `format`. See [Request body](./body.md) and [HTTP bodies](../protocols/http-bodies.md).
 

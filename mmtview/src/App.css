@@ -1860,6 +1860,46 @@ select.method-select:focus-visible {
   overflow: hidden;
 }
 
+.multipart-parts-editor {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.multipart-parts-editor table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.multipart-parts-editor td {
+  padding: 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+}
+
+.multipart-parts-editor .multipart-part-name {
+  width: 28%;
+}
+
+.multipart-parts-editor .multipart-part-kind {
+  width: 92px;
+}
+
+.multipart-parts-editor .multipart-part-name input,
+.multipart-parts-editor .multipart-part-kind select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.apitest-body-wrapper .multipart-parts-editor {
+  position: relative;
+  height: auto;
+  overflow: auto;
+}
+
 .inner-box {
   position: relative;
   padding: 16px;

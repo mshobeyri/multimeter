@@ -6,7 +6,8 @@ import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
-import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
+import MultipartPartsEditor from "../components/MultipartPartsEditor";
+import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import ToggleButton from "../components/ToggleButton";
@@ -459,6 +460,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   onChange={val => updateField("body", val)}
                   onEnterPressed={val => updateField("body", val)}
                 />
+              ) : requestFormat(requestData?.format) === "multipart" ? (
+                <MultipartPartsEditor
+                  value={requestData?.body}
+                  onChange={parts => updateField("body", parts)}
+                />
               ) : (
                 <BodyView
                   value={typeof requestData?.body === "string"
@@ -467,15 +473,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   }
                   format={requestFormat(requestData?.format)}
                   mode="live"
-                  onChange={val => {
-                    const fmt = requestFormat(requestData?.format);
-                    if (fmt === "multipart") {
-                      const packed = formattedBodyToYamlObject("multipart", val);
-                      updateField("body", Array.isArray(packed) ? packed : val);
-                      return;
-                    }
-                    updateField("body", val);
-                  }}
+                  onChange={val => updateField("body", val)}
                 />
               )}
           </div>

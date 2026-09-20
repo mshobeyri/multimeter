@@ -63,7 +63,7 @@ body:
     file: ./assets/sample.txt
 ```
 
-`body` is a YAML list of parts. `value` is a text field; `file` is a path relative to the `.mmt` file. Multimeter sets `Content-Type: multipart/form-data; boundary=...` when a boundary is not already present.
+`body` is a YAML list of parts. `value` is a text field; `file` is a path relative to the `.mmt` file. In the visual editor this is a parts table, not a JSON array. Multimeter sets `Content-Type: multipart/form-data; boundary=...` when a boundary is not already present.
 
 ### HTTP binary file body
 

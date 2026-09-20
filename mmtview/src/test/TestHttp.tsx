@@ -10,6 +10,7 @@ import {
 import { Format, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
+import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import OperatorSelect from "../components/OperatorSelect";
 import { FileContext } from "../fileContext";
 
@@ -272,6 +273,11 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                     placeholder="Relative path to binary file"
                     onChange={path => emit({ body: path })}
                     onEnterPressed={path => emit({ body: path })}
+                  />
+                ) : requestFormat(step.format) === 'multipart' ? (
+                  <MultipartPartsEditor
+                    value={step.body}
+                    onChange={parts => emit({ body: parts })}
                   />
                 ) : (
                   <textarea
