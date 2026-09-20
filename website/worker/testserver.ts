@@ -377,11 +377,27 @@ async function parseBody(request: Request): Promise<unknown> {
   }
   if (contentType.includes('form')) {
     const fd = await request.formData();
-    const obj: Record<string, string> = {};
-    fd.forEach((v, k) => { obj[k] = v.toString(); });
+    const obj: Record<string, unknown> = {};
+    for (const [key, value] of fd.entries()) {
+      obj[key] = await serializeFormValue(value);
+    }
     return obj;
   }
   return await request.text();
+}
+
+/** String fields stay strings; File/Blob parts keep filename, type, size, and text content. */
+async function serializeFormValue(value: FormDataEntryValue): Promise<unknown> {
+  if (typeof value === 'string') {
+    return value;
+  }
+  const file = value as File;
+  return {
+    filename: file.name || undefined,
+    type: file.type || undefined,
+    size: file.size,
+    content: await file.text(),
+  };
 }
 
 function queryToObject(url: URL): Record<string, string> {

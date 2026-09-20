@@ -46,7 +46,7 @@ headers:                       # Optional. HTTP/WS headers to send with the requ
 	<Header-Name>: string        # Values can include tokens; header names are case-insensitive.
 cookies:                       # Optional. HTTP cookies to send.
 	<cookie_name>: string
-body: object | string | null   # Optional. Request body (HTTP) or initial WS message; type depends on format.
+body: object | array | string | null   # Optional. Request body (HTTP) or initial WS message; type depends on format.
 
 # Examples (optional)
 examples:                      # Optional. Example invocations for smoke tests / documentation.

@@ -12,6 +12,16 @@ describe('multipartBody', () => {
     ]);
   });
 
+  it('normalizes a JSON preview string from the body editor', () => {
+    expect(normalizeMultipartParts(JSON.stringify([
+      {name: 'meta', value: 'hello'},
+      {name: 'file', file: './upload.bin'},
+    ], null, 2))).toEqual([
+      {name: 'meta', value: 'hello'},
+      {name: 'file', file: './upload.bin', filename: 'upload.bin'},
+    ]);
+  });
+
   it('builds multipart/form-data with boundary and file part headers', () => {
     const built = buildMultipartBuffer([
       {name: 'meta', content: 'hello', contentType: 'text/plain; charset=utf-8'},

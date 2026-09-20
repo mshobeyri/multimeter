@@ -48,6 +48,23 @@ Example body `{ q: hello world, email: a+b@example.com }` produces `q=hello+worl
 
 Runnable examples for every format: [HTTP body formats example](../../../../examples/intermediate/28_http_body_formats/README.md).
 
+### HTTP POST multipart
+
+```yaml
+type: api
+protocol: http
+url: https://test.mmt.dev/echo
+method: post
+format: multipart
+body:
+  - name: description
+    value: hello from multipart
+  - name: file
+    file: ./assets/sample.txt
+```
+
+`body` is a YAML list of parts. `value` is a text field; `file` is a path relative to the `.mmt` file. Multimeter sets `Content-Type: multipart/form-data; boundary=...` when a boundary is not already present.
+
 ### HTTP binary file body
 
 ```yaml

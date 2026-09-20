@@ -10,6 +10,22 @@ import { useAccentChrome } from "../shared/useAccentChrome";
 
 export type mode = "appliable" | "live";
 
+const JSON_LIKE_BODY_FORMATS = new Set(["json", "multipart"]);
+
+function isJsonLikeBodyFormat(format: string): boolean {
+    return JSON_LIKE_BODY_FORMATS.has((format || "").toLowerCase());
+}
+
+function editorLanguageForBody(format: string): string {
+    if ((format || "").includes("xml")) {
+        return "xml";
+    }
+    if (isJsonLikeBodyFormat(format)) {
+        return "json";
+    }
+    return format;
+}
+
 export type BodyViewProps = {
     value: string;
     format: string;
@@ -113,7 +129,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
             setIsValid(true);
             return;
         }
-        if (format === "json") {
+        if (isJsonLikeBodyFormat(format)) {
             try {
                 JSON.parse(localValue);
             } catch (e: any) {
@@ -131,7 +147,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         setIsValid(valid);
         setErrorMsg(valid ? null : err);
 
-        if (isValid && valid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue) !== value) {
+        if (isValid && valid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue) !== value) {
             setCanApply(true);
         } else {
             setCanApply(false);
@@ -177,19 +193,19 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                     isUserEditingRef.current = true;
                     setLocalValue(nextValue);
                 }}
-                language={(format || "").includes("xml") ? "xml" : format}
+                language={editorLanguageForBody(format)}
                 showNumbers={false}
                 fontSize={11}
                 onInspectPosition={onInspectPosition}
                 editorRef={editorRef}
             />
             <div className="bodyview-toolbar">
-                {((format === "json" || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue) !== localValue) && (
+                {((isJsonLikeBodyFormat(format) || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue) !== localValue) && (
                     <button
                         className="bodyview-btn-icon"
                         title="Beautify"
                         onClick={() => {
-                            const beautified = beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue);
+                            const beautified = beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue);
                             setLocalValue(beautified);
                         }}
                     >
@@ -223,7 +239,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                             border: `1px solid ${errorChrome.border}`,
                             boxShadow: errorChrome.outline ? "none" : "0 2px 6px #0001",
                         }}
-                        title={errorMsg || (format === "json" ? "Invalid JSON" : (format || "").includes("xml") ? "Invalid XML" : "Invalid")}
+                        title={errorMsg || (isJsonLikeBodyFormat(format) ? "Invalid JSON" : (format || "").includes("xml") ? "Invalid XML" : "Invalid")}
                     >
                         <span className="codicon codicon-error" />
                     </span>

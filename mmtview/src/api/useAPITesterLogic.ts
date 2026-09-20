@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { APIData } from "mmt-core/APIData";
 import { Request, Response } from "mmt-core/NetworkData";
-import { JSONRecord } from "mmt-core/CommonData";
+import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { safeList } from "mmt-core/safer";
-import { responseFormat } from "mmt-core/CommonData";
+import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
@@ -28,6 +28,24 @@ import {
 import { resolveApiRequest } from "mmt-core/resolveApiRequest";
 
 /** Always prefer the right-panel API Tester request over file YAML. */
+function packUiRequestBody(api: APIData, requestData: Request): unknown {
+  const format = requestFormat(requestData.format ?? api.format);
+  const body = requestData.body;
+  if (format !== "multipart") {
+    return body;
+  }
+  if (Array.isArray(body)) {
+    return body;
+  }
+  if (typeof body === "string") {
+    const packed = formattedBodyToYamlObject("multipart", body);
+    if (Array.isArray(packed)) {
+      return packed;
+    }
+  }
+  return body;
+}
+
 function buildUiApiRawFile(api: APIData, requestData: Request | undefined): string {
   let merged = api;
   if (requestData) {
@@ -39,6 +57,7 @@ function buildUiApiRawFile(api: APIData, requestData: Request | undefined): stri
       }
     });
     merged = { ...api, ...overrides } as APIData;
+    merged.body = packUiRequestBody(api, requestData) as APIData["body"];
     // prepareRequestData already applied auth into headers/query.
     delete (merged as { auth?: unknown }).auth;
   }

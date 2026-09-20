@@ -369,7 +369,7 @@ function packBodyForYamlCompare(
 
 function beautify(format: Format, value: string): string {
   try {
-    if (format === 'json') {
+    if (format === 'json' || format === 'multipart') {
       return JSON.stringify(JSON.parse(value), null, 2);
     }
     if (isXmlFormat(format)) {

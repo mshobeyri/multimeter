@@ -5,10 +5,14 @@ inputs:
   description: hello from multipart
 outputs:
   echoed_description: body[body][description]
+  echoed_filename: body[body][file][filename]
+  echoed_file: body[body][file][content]
+  request_content_type: body[headers][content-type]
   status_code: status
 url: https://test.mmt.dev/echo
 method: post
 format: multipart
+# Each list item is one form part: `value` for text, `file` for a path relative to this .mmt file.
 body:
   - name: description
     value: i:description

@@ -42,8 +42,11 @@ export function resolveApiRequest(
     delete request.auth;
   }
 
-  if (request.body && typeof request.body !== 'string') {
-    request.body = formatBody(requestFormat(request.format), request.body ?? '');
+  const reqFormat = requestFormat(request.format);
+  // Multipart `body` is a parts array. The UI JSON-previews it, but Send must
+  // keep the array so the runner can build multipart/form-data.
+  if (request.body && typeof request.body !== 'string' && reqFormat !== 'multipart') {
+    request.body = formatBody(reqFormat, request.body ?? '');
   }
 
   return request;

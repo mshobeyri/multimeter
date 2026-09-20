@@ -2705,6 +2705,32 @@ describe('multipart request body (apiToJSfunc)', () => {
     expect(js).toContain("applyOmitToRequest_(req_, 'multipart')");
     expect(js).toContain('<multipart \' + req_.body.length + \' bytes>');
   });
+
+  it('builds multipart from the JSON array string the body editor uses', async () => {
+    const api = yamlToAPI([
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: multipart',
+      'url: https://example.com/upload',
+      'body:',
+      '  - name: description',
+      '    value: hello',
+    ].join('\n'));
+    api.body = JSON.stringify([
+      {name: 'description', value: 'hello'},
+      {name: 'file', file: './payload.bin'},
+    ], null, 2);
+    const js = await apiToJSfunc({
+      api,
+      name: 'upload_multipart_json',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('name: "description"');
+    expect(js).toContain('file: `./payload.bin`');
+    expect(js).toContain('buildMultipartBodyFromParts_');
+  });
 });
 
 describe('binary request body (apiToJSfunc)', () => {

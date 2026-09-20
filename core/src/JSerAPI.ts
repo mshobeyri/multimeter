@@ -3,7 +3,7 @@ import {resolveApiHttpMethod} from './apiMethod';
 import {JSONRecord, requestFormat} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
-import {MultipartPartSpec} from './multipartBody';
+import {coerceMultipartPartsInput, MultipartPartSpec} from './multipartBody';
 import {stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
 import {
@@ -399,10 +399,11 @@ function multipartPartsToJs(
     parts: unknown,
     toTpl: (s: string) => string,
 ): string {
-  if (!Array.isArray(parts) || parts.length === 0) {
+  const coerced = coerceMultipartPartsInput(parts);
+  if (!Array.isArray(coerced) || coerced.length === 0) {
     return '[]';
   }
-  const entries = parts.map(raw => {
+  const entries = coerced.map(raw => {
     const part = raw as MultipartPartSpec;
     const fields: string[] = [`name: ${JSON.stringify(String(part.name ?? ''))}`];
     if (part.file != null && String(part.file).trim() !== '') {

@@ -70,12 +70,29 @@ function generateBoundary(): string {
   return `mmt${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
 }
 
+/** Accept a parts array, or the JSON string the body editor shows for multipart. */
+export function coerceMultipartPartsInput(body: unknown): unknown {
+  if (typeof body !== 'string') {
+    return body;
+  }
+  const trimmed = body.trim();
+  if (!trimmed.startsWith('[')) {
+    return body;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return body;
+  }
+}
+
 export function normalizeMultipartParts(body: unknown): MultipartPartSpec[] {
-  if (!Array.isArray(body)) {
+  const input = coerceMultipartPartsInput(body);
+  if (!Array.isArray(input)) {
     throw new Error('Invalid multipart body: expected an array of parts');
   }
   const parts: MultipartPartSpec[] = [];
-  for (const raw of body) {
+  for (const raw of input) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
       throw new Error('Invalid multipart body: each part must be an object');
     }

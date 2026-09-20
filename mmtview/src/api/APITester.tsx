@@ -6,7 +6,7 @@ import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
-import { formatBody } from "mmt-core/markupConvertor";
+import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import ToggleButton from "../components/ToggleButton";
@@ -468,6 +468,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   format={requestFormat(requestData?.format)}
                   mode="live"
                   onChange={val => {
+                    const fmt = requestFormat(requestData?.format);
+                    if (fmt === "multipart") {
+                      const packed = formattedBodyToYamlObject("multipart", val);
+                      updateField("body", Array.isArray(packed) ? packed : val);
+                      return;
+                    }
                     updateField("body", val);
                   }}
                 />

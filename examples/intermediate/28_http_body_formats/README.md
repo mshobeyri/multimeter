@@ -54,4 +54,23 @@ npx testlight run examples/intermediate/28_http_body_formats/body_formats_test.m
 - **`binary`** — `body` is a relative file path; bytes load at send time.
 - **`multipart`** — `body` is a parts array mixing text fields and file paths.
 
+### How to tell multipart worked
+
+`post_multipart.mmt` sends two parts to `/echo`:
+
+1. Text field `description` (from `i:description`, default `hello from multipart`)
+2. File part `file` from `./assets/sample.txt`
+
+Open `post_multipart.mmt` and **Send**, or run `body_formats_test.mmt`. A passing run means:
+
+- HTTP **200**
+- `echoed_description` equals the input text
+- `request_content_type` contains `multipart/form-data` (the request was encoded as multipart, not JSON)
+- `echoed_filename` is `sample.txt` and `echoed_file` contains the file text
+
+```sh
+node mmtcli/dist/cli.js run examples/intermediate/28_http_body_formats/post_multipart.mmt
+node mmtcli/dist/cli.js run examples/intermediate/28_http_body_formats/body_formats_test.mmt
+```
+
 See also: [HTTP bodies](../../../docs/files/api/protocols/http-bodies.md) · [Request body](../../../docs/files/api/body/body.md)

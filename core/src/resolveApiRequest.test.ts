@@ -35,6 +35,24 @@ describe('resolveApiRequest', () => {
     expect(firstId).not.toBe(secondId);
   });
 
+  it('keeps multipart parts as an array instead of a JSON preview string', () => {
+    const request = resolveApiRequest({
+      type: 'api',
+      url: 'https://example.com/upload',
+      method: 'post',
+      format: 'multipart',
+      body: [
+        {name: 'meta', value: 'hello'},
+        {name: 'file', file: './payload.bin'},
+      ],
+    } as APIData, {}, {});
+    expect(Array.isArray(request.body)).toBe(true);
+    expect(request.body).toEqual([
+      {name: 'meta', value: 'hello'},
+      {name: 'file', file: './payload.bin'},
+    ]);
+  });
+
   it('applies auth into headers and removes auth block', () => {
     const authed = resolveApiRequest({
       type: 'api',
