@@ -1,7 +1,6 @@
 import React from "react";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
-import { ReportLevel, ReportConfig } from "mmt-core/TestData";
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
@@ -10,7 +9,8 @@ import {
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
 import FieldWithRemove from "../components/FieldWithRemove";
-import OperatorSelect from "../components/OperatorSelect";
+import CheckClauseList, { CheckClauseFieldSelect } from "../components/CheckClauseList";
+import ReportLevelFields from "../components/ReportLevelFields";
 
 /** A single row in the expect UI list */
 type ExpectRow = ExpectUiRow;
@@ -126,31 +126,6 @@ const TestCall: React.FC<TestCallProps> = ({
   const callReport = React.useMemo(() => {
     return local && typeof local === 'object' ? (local as any).report : undefined;
   }, [local]);
-
-  const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
-
-  // Parse current report value into internal/external
-  const isReportObjectForm = callReport && typeof callReport === 'object';
-  const reportInternalValue: ReportLevel = isReportObjectForm
-    ? (callReport as ReportConfig).internal ?? 'all'
-    : (typeof callReport === 'string' ? callReport as ReportLevel : 'all');
-  const reportExternalValue: ReportLevel = isReportObjectForm
-    ? (callReport as ReportConfig).external ?? 'fails'
-    : (typeof callReport === 'string' ? callReport as ReportLevel : 'fails');
-
-  const handleReportChange = (internal: ReportLevel, external: ReportLevel) => {
-    let rep: any;
-    if (internal === 'all' && external === 'fails') {
-      rep = undefined;
-    } else if (internal === external) {
-      rep = internal;
-    } else {
-      rep = { internal, external };
-    }
-    const next = buildCallObj({ report: rep });
-    setLocal(next);
-    scheduleEmit(next);
-  };
 
   /** Build the full call object from current state */
   const buildCallObj = (overrides?: {
@@ -491,156 +466,47 @@ const TestCall: React.FC<TestCallProps> = ({
             )}
           </div>
 
-          <div className="label">Expect</div>
-          <div className="field-pad">
-            {expectList.length ? (
-              <div className="field-stack is-loose">
-                {expectList.map((row, i) => {
-                  return (
-                    <div key={i} className="field-inline">
-                      <select
-                        value={row.field}
-                        onChange={(e) => handleExpectPartChange(i, 'field', e.target.value)}
-                        className="field-flex-2"
-                        title="Output field to check"
-                      >
-                        <option value="" disabled>-- field --</option>
-                        {availableOutputs.map(o => (
-                          <option key={o} value={o}>{o}</option>
-                        ))}
-                        {row.field && !availableOutputs.includes(row.field) && (
-                          <option key={row.field} value={row.field}>{row.field}</option>
-                        )}
-                      </select>
-                      <OperatorSelect
-                        value={row.op as any}
-                        onChange={(nextOp) => handleExpectPartChange(i, 'op', nextOp)}
-                        className="is-grow"
-                        title="Comparison operator"
-                      />
-                      <input
-                        type="text"
-                        value={row.expected}
-                        onChange={(e) => handleExpectPartChange(i, 'expected', e.target.value)}
-                        className="field-flex-2"
-                        placeholder="expected value"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveExpect(i)}
-                        className="action-button codicon codicon-close no-shrink"
-                        title="Remove expect"
-                        aria-label="Remove expect"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="muted">No expectations</div>
+          <CheckClauseList
+            kind="expect"
+            rows={expectList}
+            onPartChange={handleExpectPartChange}
+            onRemove={handleRemoveExpect}
+            onAdd={handleAddExpect}
+            renderField={(row, i) => (
+              <CheckClauseFieldSelect
+                value={row.field}
+                options={availableOutputs}
+                onChange={val => handleExpectPartChange(i, "field", val)}
+                title="Output field to check"
+              />
             )}
-            <div className="field-block">
-              <button
-                type="button"
-                onClick={handleAddExpect}
-                className="ghost-add"
-              >
-                + Add expect
-              </button>
-            </div>
-          </div>
+          />
 
-          <div className="label">Require</div>
-          <div className="field-pad">
-            {requireList.length ? (
-              <div className="field-stack is-loose">
-                {requireList.map((row, i) => {
-                  return (
-                    <div key={i} className="field-inline">
-                      <select
-                        value={row.field}
-                        onChange={(e) => handleRequirePartChange(i, 'field', e.target.value)}
-                        className="field-flex-2"
-                        title="Output field to require"
-                      >
-                        <option value="" disabled>-- field --</option>
-                        {availableOutputs.map(o => (
-                          <option key={o} value={o}>{o}</option>
-                        ))}
-                        {row.field && !availableOutputs.includes(row.field) && (
-                          <option key={row.field} value={row.field}>{row.field}</option>
-                        )}
-                      </select>
-                      <OperatorSelect
-                        value={row.op as any}
-                        onChange={(nextOp) => handleRequirePartChange(i, 'op', nextOp)}
-                        className="is-grow"
-                        title="Comparison operator"
-                      />
-                      <input
-                        type="text"
-                        value={row.expected}
-                        onChange={(e) => handleRequirePartChange(i, 'expected', e.target.value)}
-                        className="field-flex-2"
-                        placeholder="required value"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRequire(i)}
-                        className="action-button codicon codicon-close no-shrink"
-                        title="Remove require"
-                        aria-label="Remove require"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="muted">No requirements</div>
+          <CheckClauseList
+            kind="require"
+            rows={requireList}
+            onPartChange={handleRequirePartChange}
+            onRemove={handleRemoveRequire}
+            onAdd={handleAddRequire}
+            renderField={(row, i) => (
+              <CheckClauseFieldSelect
+                value={row.field}
+                options={availableOutputs}
+                onChange={val => handleRequirePartChange(i, "field", val)}
+                title="Output field to require"
+              />
             )}
-            <div className="field-block">
-              <button
-                type="button"
-                onClick={handleAddRequire}
-                className="ghost-add"
-              >
-                + Add require
-              </button>
-            </div>
-          </div>
+          />
 
           {(expectList.length > 0 || requireList.length > 0) && (
-            <>
-              <div className="label">Report</div>
-              <div className="report-row">
-                <div className="report-item">
-                  <label title="Report level when running this test directly">
-                    Internal:
-                  </label>
-                  <select
-                    value={reportInternalValue}
-                    onChange={e => handleReportChange(e.target.value as ReportLevel, reportExternalValue)}
-                  >
-                    {reportLevelOptions.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="report-item">
-                  <label title="Report level when this test is imported or added to a suite">
-                    External:
-                  </label>
-                  <select
-                    value={reportExternalValue}
-                    onChange={e => handleReportChange(reportInternalValue, e.target.value as ReportLevel)}
-                  >
-                    {reportLevelOptions.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </>
+            <ReportLevelFields
+              value={callReport}
+              onChange={(report) => {
+                const next = buildCallObj({ report });
+                setLocal(next);
+                scheduleEmit(next);
+              }}
+            />
           )}
         </>
       )}

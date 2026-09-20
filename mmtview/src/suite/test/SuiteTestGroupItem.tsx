@@ -3,6 +3,7 @@ import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TreeRunButton from '../../components/TreeRunButton';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
+import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
 
 export type SuiteTestGroupItemData = { type: 'group' | 'root' | 'import-group'; label: string };
 
@@ -75,13 +76,13 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
             }}
           >
             {statusIcon && (
-              <span className={`codicon ${statusIcon.icon}`} aria-hidden title={statusIcon.title} style={{ color: statusIcon.color }} />
+              <StatusGlyph
+                icon={statusIcon.icon}
+                color={statusIcon.color}
+                title={statusIcon.title}
+              />
             )}
-            {data.type === 'group' || data.type === 'import-group' ? (
-              <span className="codicon codicon-collection icon-fg" aria-hidden title="Group" />
-            ) : (
-              <span className="codicon codicon-layers icon-fg" aria-hidden title="Suite" />
-            )}
+            <SuiteKindIcon kind={data.type === 'group' || data.type === 'import-group' ? 'group' : 'root'} />
             <span>{data.label}</span>
           </div>
           {showRunButton && (

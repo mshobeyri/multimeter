@@ -1,5 +1,4 @@
 import React, { useContext } from "react";
-import { ReportConfig, ReportLevel } from "mmt-core/TestData";
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
@@ -11,7 +10,8 @@ import { FORMAT_VALUES, Format, requestFormat, responseFormat, packFormatSpec } 
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
-import OperatorSelect from "../components/OperatorSelect";
+import CheckClauseList, { CheckClauseFieldInput } from "../components/CheckClauseList";
+import ReportLevelFields from "../components/ReportLevelFields";
 import { FileContext } from "../fileContext";
 
 interface ExpectRow extends ExpectUiRow {}
@@ -25,7 +25,6 @@ interface TestHttpProps {
 const methodOptions = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'];
 const formatOptions: Format[] = FORMAT_VALUES;
 const responseFields = ['status', 'body.message', 'body', 'headers', 'cookies', 'duration'];
-const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 
 const parseTimeoutInput = (value: string): number | undefined => {
   if (!value.trim()) {
@@ -41,13 +40,6 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const expectList = React.useMemo(() => expectMapToUiRows(step.expect), [step.expect]);
   const requireList = React.useMemo(() => expectMapToUiRows(step.require), [step.require]);
   const callReport = step.report;
-  const isReportObjectForm = callReport && typeof callReport === 'object';
-  const reportInternalValue: ReportLevel = isReportObjectForm
-    ? (callReport as ReportConfig).internal ?? 'all'
-    : (typeof callReport === 'string' ? callReport as ReportLevel : 'all');
-  const reportExternalValue: ReportLevel = isReportObjectForm
-    ? (callReport as ReportConfig).external ?? 'fails'
-    : (typeof callReport === 'string' ? callReport as ReportLevel : 'fails');
 
   const emit = (
       patch: Record<string, any>,
@@ -100,18 +92,6 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
       delete next.report;
     }
     onChange(next);
-  };
-
-  const handleReportChange = (internal: ReportLevel, external: ReportLevel) => {
-    let report: any;
-    if (internal === 'all' && external === 'fails') {
-      report = undefined;
-    } else if (internal === external) {
-      report = internal;
-    } else {
-      report = { internal, external };
-    }
-    emit({}, undefined, undefined, report);
   };
 
   const handleAddExpect = () => {
@@ -283,150 +263,57 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             </>
           )}
 
-          <div className="label">Expect</div>
-          <div className="field-pad">
+          <CheckClauseList
+            kind="expect"
+            rows={expectList}
+            onPartChange={handleExpectPartChange}
+            onRemove={handleRemoveExpect}
+            onAdd={handleAddExpect}
+            renderField={(row, i) => (
+              <CheckClauseFieldInput
+                list="http-response-fields"
+                value={row.field}
+                onChange={val => handleExpectPartChange(i, "field", val)}
+                title="Response path to check"
+                placeholder="body.message"
+              />
+            )}
+          >
             <datalist id="http-response-fields">
               {responseFields.map(field => (
                 <option key={field} value={field} />
               ))}
             </datalist>
-            {expectList.length ? (
-              <div className="field-stack is-loose">
-                {expectList.map((row, i) => (
-                  <div key={i} className="field-inline">
-                    <input
-                      list="http-response-fields"
-                      value={row.field}
-                      onChange={e => handleExpectPartChange(i, 'field', e.target.value)}
-                      className="field-flex-2"
-                      title="Response path to check"
-                      placeholder="body.message"
-                    />
-                    <OperatorSelect
-                      value={row.op as any}
-                      onChange={nextOp => handleExpectPartChange(i, 'op', nextOp)}
-                      className="is-grow"
-                      title="Comparison operator"
-                    />
-                    <input
-                      type="text"
-                      value={row.expected}
-                      onChange={e => handleExpectPartChange(i, 'expected', e.target.value)}
-                      className="field-flex-2"
-                      placeholder="expected value"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveExpect(i)}
-                      className="action-button codicon codicon-close no-shrink"
-                      title="Remove expect"
-                      aria-label="Remove expect"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="muted">No expectations</div>
-            )}
-            <div className="field-block">
-              <button
-                type="button"
-                onClick={handleAddExpect}
-                className="ghost-add"
-              >
-                + Add expect
-              </button>
-            </div>
-          </div>
+          </CheckClauseList>
 
-          <div className="label">Require</div>
-          <div className="field-pad">
+          <CheckClauseList
+            kind="require"
+            rows={requireList}
+            onPartChange={handleRequirePartChange}
+            onRemove={handleRemoveRequire}
+            onAdd={handleAddRequire}
+            renderField={(row, i) => (
+              <CheckClauseFieldInput
+                list="http-require-response-fields"
+                value={row.field}
+                onChange={val => handleRequirePartChange(i, "field", val)}
+                title="Response path to require"
+                placeholder="status"
+              />
+            )}
+          >
             <datalist id="http-require-response-fields">
               {responseFields.map(field => (
                 <option key={field} value={field} />
               ))}
             </datalist>
-            {requireList.length ? (
-              <div className="field-stack is-loose">
-                {requireList.map((row, i) => (
-                  <div key={i} className="field-inline">
-                    <input
-                      list="http-require-response-fields"
-                      value={row.field}
-                      onChange={e => handleRequirePartChange(i, 'field', e.target.value)}
-                      className="field-flex-2"
-                      title="Response path to require"
-                      placeholder="status"
-                    />
-                    <OperatorSelect
-                      value={row.op as any}
-                      onChange={nextOp => handleRequirePartChange(i, 'op', nextOp)}
-                      className="is-grow"
-                      title="Comparison operator"
-                    />
-                    <input
-                      type="text"
-                      value={row.expected}
-                      onChange={e => handleRequirePartChange(i, 'expected', e.target.value)}
-                      className="field-flex-2"
-                      placeholder="required value"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveRequire(i)}
-                      className="action-button codicon codicon-close no-shrink"
-                      title="Remove require"
-                      aria-label="Remove require"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="muted">No requirements</div>
-            )}
-            <div className="field-block">
-              <button
-                type="button"
-                onClick={handleAddRequire}
-                className="ghost-add"
-              >
-                + Add require
-              </button>
-            </div>
-          </div>
+          </CheckClauseList>
 
           {(expectList.length > 0 || requireList.length > 0) && (
-            <>
-          <div className="label">Report</div>
-          <div className="report-row">
-            <div className="report-item">
-              <label title="Report level when running this test directly">
-                Internal:
-              </label>
-              <select
-                value={reportInternalValue}
-                onChange={e => handleReportChange(e.target.value as ReportLevel, reportExternalValue)}
-              >
-                {reportLevelOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-            <div className="report-item">
-              <label title="Report level when this test is imported or added to a suite">
-                External:
-              </label>
-              <select
-                value={reportExternalValue}
-                onChange={e => handleReportChange(reportInternalValue, e.target.value as ReportLevel)}
-              >
-                {reportLevelOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-            </>
+            <ReportLevelFields
+              value={callReport}
+              onChange={report => emit({}, undefined, undefined, report)}
+            />
           )}
         </>
       )}

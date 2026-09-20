@@ -6,6 +6,7 @@ import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem
 import { type MissingImportEntry } from "../text/validator";
 import { codiconForStepType } from "./stepPresentation";
 import TestFlowFlow from "./TestFlowFlow";
+import { TreeExpandButton, TreeFolderArrow } from "../components/TreeChevron";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -313,19 +314,12 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                 onDrop={handleDrop}
                 onSelectItems={() => { }}
                 renderItemArrow={({ item, context }) => (
-                    item.isFolder ? (
-                        <span
-                            {...context.arrowProps}
-                            className={['tree-arrow', 'is-tall', context.arrowProps?.className].filter(Boolean).join(' ')}
-                        >
-                            {context.isExpanded ? (
-                                <span className="codicon codicon-chevron-down tree-chevron" />
-                            ) : (
-                                <span className="codicon codicon-chevron-right tree-chevron" />
-                            )}
-                        </span>
-                    ) : (
-                        (() => {
+                    <TreeFolderArrow
+                        isFolder={!!item.isFolder}
+                        isExpanded={context.isExpanded}
+                        arrowProps={context.arrowProps}
+                        tall
+                        leaf={(() => {
                             let t: string | undefined;
                             try {
                                 const parsed = JSON.parse(item.data as string);
@@ -340,8 +334,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                     <span className={`codicon ${ico} test-flow-step-icon`} />
                                 </span>
                             );
-                        })()
-                    )
+                        })()}
+                    />
                 )}
                 renderItem={({ title, arrow, context, item, children }) => {
                     if (!title) return null;
@@ -524,30 +518,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                 {...context.itemContainerWithoutChildrenProps}
                             >
                                 {expandable && (
-                                    <button
-                                        className="action-button test-flow-expand"
-                                        type="button"
-                                        title={isOpen ? 'Collapse box' : 'Expand box'}
-                                        aria-label={isOpen ? 'Collapse box' : 'Expand box'}
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        onPointerUp={(e) => {
-                                            e.stopPropagation();
-                                            toggleOpen();
-                                        }}
-                                        onKeyDown={(e) => {
-                                            e.stopPropagation();
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                toggleOpen();
-                                            }
-                                        }}
-                                        draggable={false}
-                                        tabIndex={0}
-                                    >
-                                        <span
-                                            className={`codicon ${isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'} tree-chevron`}
-                                        />
-                                    </button>
+                                    <TreeExpandButton open={isOpen} onToggle={toggleOpen} />
                                 )}
                                 {!folderAndEditor && arrow}
                                 <NoTreeInterference>

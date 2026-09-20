@@ -11,6 +11,8 @@ import OverviewBoxes from '../shared/OverviewBoxes';
 import { statusIconFor } from '../shared/Common';
 import LoadTestReport, { LoadMetricsOverview } from '../loadtest/LoadTestReport';
 import PanelRunHeader from '../components/PanelRunHeader';
+import TreeChevron from '../components/TreeChevron';
+import { StatusGlyph } from '../components/StatusGlyph';
 
 interface ReportPanelProps {
   content: string;
@@ -236,22 +238,23 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
                   title={isExpanded ? 'Collapse' : 'Expand'}
                   onClick={() => setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }))}
                 >
-                  <span
-                    className={`codicon ${isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'} muted`}
-                  />
+                  <TreeChevron open={isExpanded} muted />
                 </button>
               )}
               {/* Status icon */}
               <span
-                className={`codicon ${statusIcon.icon}`}
-                style={{ color: statusIcon.color }}
-                title={statusIcon.title}
                 onClick={() => {
                   if (!isSuiteOnly) {
                     setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }));
                   }
                 }}
-              />
+              >
+                <StatusGlyph
+                  icon={statusIcon.icon}
+                  color={statusIcon.color}
+                  title={statusIcon.title}
+                />
+              </span>
               {/* Test name */}
               <span
                 className="report-selectable field-grow ellipsis is-clip"

@@ -5,6 +5,7 @@ import { FileContext } from '../../fileContext';
 import { SuiteGroup } from '../types';
 import { StepStatus } from '../../shared/types';
 import { isDuplicateSuiteServerPath } from '../../text/validator';
+import { StatusGlyph } from '../../components/StatusGlyph';
 
 export type SuiteEditFileItemData = { type: 'file'; path: string };
 
@@ -79,11 +80,10 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
             >
                 <div className="tree-arrow-slot">{arrow}</div>
                 <div className="tree-row-grow">
-                    <span
-                        className={`codicon ${statusIcon.icon}`}
-                        aria-hidden
+                    <StatusGlyph
+                        icon={statusIcon.icon}
+                        color={statusIcon.color}
                         title={statusIcon.title}
-                        style={{ color: statusIcon.color }}
                     />
                     <NoTreeInterference>
                         <FilePickerInput

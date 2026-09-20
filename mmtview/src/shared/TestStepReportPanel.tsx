@@ -8,6 +8,7 @@ import ReportStatusFilterButton from './ReportStatusFilterButton';
 import ReportExpandCollapseButton from './ReportExpandCollapseButton';
 import ReportEmptyFilterPlaceholder from './ReportEmptyFilterPlaceholder';
 import { ReportStatusFilter, filterStepReports } from './reportStatusFilter';
+import TreeChevron from '../components/TreeChevron';
 
 /** Parsed call result details extracted from the `_` field of an API call output. */
 interface CallResultDetails {
@@ -416,9 +417,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                   >
                     <span className="tree-view-box-row-arrow" aria-hidden>
                       {hasDetails ? (
-                        <span
-                          className={`codicon ${isDetailsExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'} report-chevron`}
-                        />
+                        <TreeChevron open={isDetailsExpanded} className="report-chevron" />
                       ) : null}
                     </span>
                     <StatusIconWithCache

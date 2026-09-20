@@ -1,6 +1,7 @@
 import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
+import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
 
 export type SuiteEditGroupItemData = { type: 'group' | 'root'; label: string };
 
@@ -41,13 +42,9 @@ const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
         {arrow}
         <div className="tree-row">
           {statusIcon && (
-            <span className={`codicon ${statusIcon.icon}`} aria-hidden style={{ color: statusIcon.color }} />
+            <StatusGlyph icon={statusIcon.icon} color={statusIcon.color} title={statusIcon.title} />
           )}
-          {isRoot ? (
-            <span className="codicon codicon-layers icon-fg" aria-hidden title="Suite" />
-          ) : (
-            <span className="codicon codicon-collection icon-fg" aria-hidden title="Group" />
-          )}
+          <SuiteKindIcon kind={isRoot ? 'root' : 'group'} />
           <span className="tree-label">{data.label}</span>
         </div>
       </div>

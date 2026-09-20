@@ -9,6 +9,7 @@ import {
     suiteFileLabelTitle,
 } from './suiteTreeLabelClick';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
+import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
 
 export type SuiteSuiteFileItemData = { type: 'suite'; path: string; id: string };
 
@@ -89,18 +90,6 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                         title={isMissing ? data.path : suiteFileLabelTitle(data.path)}
                         role={isMissing ? undefined : 'button'}
                         tabIndex={isMissing ? undefined : 0}
-                        onMouseEnter={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            (e.currentTarget as any).style.opacity = '0.8';
-                        }}
-                        onMouseLeave={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            (e.currentTarget as any).style.opacity = '1';
-                        }}
                         onClick={(e) => activateLabel(e, isOpenFileModifier(e))}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -108,13 +97,12 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             }
                         }}
                     >
-                        <span
-                            className={`codicon ${statusIcon.icon}`}
-                            aria-hidden
+                        <StatusGlyph
+                            icon={statusIcon.icon}
+                            color={statusIcon.color}
                             title={statusIcon.title}
-                            style={{ color: statusIcon.color }}
                         />
-                        <span className="codicon codicon-layers icon-fg" aria-hidden title="Suite" />
+                        <SuiteKindIcon kind="suite" />
                         {labelPath}
                     </div>
                     {onRun && !isMissing && (

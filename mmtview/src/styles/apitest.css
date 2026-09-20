@@ -501,6 +501,10 @@
   cursor: pointer;
 }
 
+.tree-view-box-row-label-link:hover {
+  opacity: 0.8;
+}
+
 .mmt-line-error {
   text-decoration: underline wavy;
   text-decoration-color: var(--vscode-errorForeground, #f85149);

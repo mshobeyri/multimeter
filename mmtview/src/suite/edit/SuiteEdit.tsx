@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { suiteToYaml, yamlToSuite } from 'mmt-core/suiteParsePack';
 import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
@@ -14,6 +14,7 @@ import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../tex
 import { FileContext } from '../../fileContext';
 import TabBar from '../../components/TabBar';
 import PrimaryButton from '../../components/PrimaryButton';
+import PopupMenu, { usePopupMenu } from '../../components/PopupMenu';
 
 type SuiteEditTab = 'overview' | 'items' | 'filter' | 'servers' | 'environment' | 'exports';
 
@@ -261,10 +262,14 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
   const [itemServerFiles, setItemServerFiles] = useState<string[]>([]);
 
-  const addButtonRef = useRef<HTMLButtonElement | null>(null);
-  const addMenuRef = useRef<HTMLDivElement | null>(null);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
+  const {
+    open: addMenuOpen,
+    position: addMenuPos,
+    triggerRef: addButtonRef,
+    menuRef: addMenuRef,
+    toggle: toggleAddMenu,
+    close: closeAddMenu,
+  } = usePopupMenu({ width: 220, offsetY: 6 });
 
   useEffect(() => {
     setOverview(buildOverviewFromContent(content));
@@ -309,67 +314,12 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     }
   }, [content, setContent]);
 
-  const openAddMenuAtButton = useCallback(() => {
-    const btn = addButtonRef.current;
-    if (!btn) {
-      setAddMenuPos(null);
-      return;
-    }
-    const rect = btn.getBoundingClientRect();
-    const menuWidth = 220;
-    const margin = 8;
-    const maxLeft = typeof window !== 'undefined' ? window.innerWidth - menuWidth - margin : margin;
-    const preferred = rect.right - menuWidth;
-    const left = Math.max(margin, Math.min(maxLeft, preferred));
-    const top = rect.bottom + 6;
-    setAddMenuPos({ left, top });
-  }, []);
-
-  useEffect(() => {
-    if (!addMenuOpen) {
-      setAddMenuPos(null);
-      return;
-    }
-    if (typeof document === 'undefined' || typeof window === 'undefined') {
-      return;
-    }
-    openAddMenuAtButton();
-    const handlePointerDown = (event: MouseEvent) => {
-      if (addButtonRef.current?.contains(event.target as Node)) {
-        return;
-      }
-      if (addMenuRef.current?.contains(event.target as Node)) {
-        return;
-      }
-      setAddMenuOpen(false);
-    };
-    const handleResize = () => setAddMenuOpen(false);
-    document.addEventListener('mousedown', handlePointerDown, true);
-    window.addEventListener('resize', handleResize);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown, true);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [addMenuOpen, openAddMenuAtButton]);
-
-  const toggleAddMenu = useCallback(() => {
-    setAddMenuOpen(prev => {
-      const next = !prev;
-      if (next) {
-        openAddMenuAtButton();
-      } else {
-        setAddMenuPos(null);
-      }
-      return next;
-    });
-  }, [openAddMenuAtButton]);
-
   const handleAddGroup = useCallback(() => {
     const placeholder = createPlaceholderEntry();
     const nextGroups = [...groups, { label: `Group ${groups.length + 1}`, entries: [placeholder] }];
     persistGroups(nextGroups);
-    setAddMenuOpen(false);
-  }, [groups, persistGroups]);
+    closeAddMenu();
+  }, [closeAddMenu, groups, persistGroups]);
 
   const handleAddTestFile = useCallback(() => {
     const placeholder = createPlaceholderEntry();
@@ -381,8 +331,8 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       nextGroups = groups.map((group, idx) => idx === targetIdx ? { ...group, entries: [...group.entries, placeholder] } : group);
     }
     persistGroups(nextGroups);
-    setAddMenuOpen(false);
-  }, [groups, persistGroups]);
+    closeAddMenu();
+  }, [closeAddMenu, groups, persistGroups]);
 
   const persistFilter = useCallback(
     (nextFilter: SuiteFilterConfig) => {
@@ -408,7 +358,6 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
 
   const handleAddServer = useCallback(() => {
     persistServers([...servers, 'server path']);
-    setAddMenuOpen(false);
   }, [servers, persistServers]);
 
   const handleRemoveServer = useCallback((index: number) => {
@@ -535,7 +484,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     <div className="pt-8">
       <div className="actions-end">
         <PrimaryButton
-          ref={addButtonRef as any}
+          ref={addButtonRef}
           icon="add"
           onPointerDown={(event) => event.stopPropagation()}
           onPointerUp={(event) => {
@@ -547,31 +496,29 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           Add item
         </PrimaryButton>
         {addMenuOpen && addMenuPos && (
-          <div
-            ref={addMenuRef}
+          <PopupMenu
+            position={addMenuPos}
+            menuRef={addMenuRef}
             className="popup-menu is-wide"
-            style={{ left: addMenuPos.left, top: addMenuPos.top }}
-            onPointerDown={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              className="action-button menu-item"
-              onClick={() => handleAddGroup()}
-              title="Insert a group separator (then)"
-            >
-              <span className="codicon codicon-list-tree icon-sm" aria-hidden />
-              <span>Add group (then)</span>
-            </button>
-            <button
-              className="action-button menu-item"
-              onClick={() => handleAddTestFile()}
-              title="Add a test file entry"
-            >
-              <span className="codicon codicon-symbol-file icon-sm" aria-hidden />
-              <span>Add test file</span>
-            </button>
-          </div>
+            itemClassName="menu-item"
+            onClose={closeAddMenu}
+            items={[
+              {
+                label: "Add group (then)",
+                icon: "codicon-list-tree",
+                iconClass: "icon-sm",
+                title: "Insert a group separator (then)",
+                onClick: handleAddGroup,
+              },
+              {
+                label: "Add test file",
+                icon: "codicon-symbol-file",
+                iconClass: "icon-sm",
+                title: "Add a test file entry",
+                onClick: handleAddTestFile,
+              },
+            ]}
+          />
         )}
       </div>
       {noItems ? (

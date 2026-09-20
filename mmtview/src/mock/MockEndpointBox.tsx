@@ -1,6 +1,6 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import { MockEndpoint } from "mmt-core/MockData";
+import { KebabMenu } from "../components/PopupMenu";
 import KSVEditor from "../components/KSVEditor";
 import { METHOD_PROTOCOL_COLORS, methodTextColor as sharedMethodTextColor } from '../shared/themeAccent';
 
@@ -122,73 +122,18 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
 
   /* ─── Context menu (kebab) ─── */
   const Actions = () => {
-    const btnRef = React.useRef<HTMLButtonElement | null>(null);
-    const menuRef = React.useRef<HTMLDivElement | null>(null);
-    const [menuPos, setMenuPos] = React.useState<{ left: number; top: number } | null>(null);
-    const [openMenu, setOpenMenu] = React.useState(false);
-
-    const openAtButton = () => {
-      const el = btnRef.current;
-      if (!el) { return; }
-      const rect = el.getBoundingClientRect();
-      setMenuPos({ left: Math.max(8, rect.right - 160), top: rect.bottom + 4 });
-    };
-
-    React.useEffect(() => {
-      if (!openMenu) { return; }
-      const handleClickOutside = (event: MouseEvent) => {
-        const target = event.target;
-        if (!target) { return; }
-        if (menuRef.current?.contains(target as Node)) { return; }
-        if (btnRef.current?.contains(target as Node)) { return; }
-        setOpenMenu(false);
-      };
-      const handleScrollOrResize = () => setOpenMenu(false);
-      document.addEventListener('mousedown', handleClickOutside, true);
-      window.addEventListener('scroll', handleScrollOrResize, true);
-      window.addEventListener('resize', handleScrollOrResize, true);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside, true);
-        window.removeEventListener('scroll', handleScrollOrResize, true);
-        window.removeEventListener('resize', handleScrollOrResize, true);
-      };
-    }, [openMenu]);
-
-    const menu = openMenu && menuPos ? (
-      <div
-        ref={menuRef}
-        className="popup-menu"
-        style={{ left: menuPos.left, top: menuPos.top }}
-        onClick={e => e.stopPropagation()}
-      >
-        <button type="button" role="menuitem" className="action-button menu-item"
-          onPointerDown={e => e.stopPropagation()}
-          onPointerUp={e => { e.stopPropagation(); setOpenMenu(false); onDuplicate?.(); }}
-        >
-          <span className="codicon codicon-copy" /> Duplicate
-        </button>
-        <button type="button" role="menuitem" className="action-button menu-item"
-          onPointerDown={e => e.stopPropagation()}
-          onPointerUp={e => { e.stopPropagation(); setOpenMenu(false); onRemove?.(); }}
-        >
-          <span className="codicon codicon-trash" /> Remove
-        </button>
-      </div>
-    ) : null;
-
+    if (!onDuplicate && !onRemove) {
+      return null;
+    }
     return (
-      <div className="actions-trail">
-        {(onDuplicate || onRemove) && (
-          <button ref={btnRef} className="action-button" type="button"
-            onPointerDown={e => e.stopPropagation()}
-            onPointerUp={e => { e.stopPropagation(); setOpenMenu(v => { if (!v) { openAtButton(); } return !v; }); }}
-            draggable={false} tabIndex={0} aria-haspopup="menu" aria-expanded={openMenu} title="More actions"
-          >
-            <span className="codicon codicon-kebab-vertical" />
-          </button>
-        )}
-        {menu && ReactDOM.createPortal(menu, document.body)}
-      </div>
+      <KebabMenu
+        className="actions-trail"
+        itemClassName="menu-item"
+        items={[
+          ...(onDuplicate ? [{ label: "Duplicate", icon: "codicon-copy", onClick: onDuplicate }] : []),
+          ...(onRemove ? [{ label: "Remove", icon: "codicon-trash", onClick: onRemove }] : []),
+        ]}
+      />
     );
   };
 

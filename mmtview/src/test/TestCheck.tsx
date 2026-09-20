@@ -1,8 +1,9 @@
 import React from "react";
-import { CheckOps, ReportLevel, ReportConfig } from "mmt-core/TestData";
+import { CheckOps } from "mmt-core/TestData";
 import OperatorSelect from "../components/OperatorSelect";
+import ReportLevelFields, { type ReportValue } from "../components/ReportLevelFields";
 
-export type ReportValue = ReportLevel | ReportConfig | undefined;
+export type { ReportValue };
 
 export interface TestCheckValue {
   actual: string;
@@ -12,8 +13,6 @@ export interface TestCheckValue {
   details: string;
   report?: ReportValue;
 }
-
-const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 
 interface TestCheckProps {
   value: TestCheckValue;
@@ -26,27 +25,6 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
 
   const update = (patch: Partial<TestCheckValue>) => {
     onChange({ actual, op, expected, title, details, report, ...patch });
-  };
-
-  // Parse current report value
-  const isObjectForm = report && typeof report === 'object';
-  const internalValue: ReportLevel = isObjectForm 
-    ? (report as ReportConfig).internal ?? 'all' 
-    : (typeof report === 'string' ? report : 'all');
-  const externalValue: ReportLevel = isObjectForm 
-    ? (report as ReportConfig).external ?? 'fails' 
-    : (typeof report === 'string' ? report : 'fails');
-
-  const updateReport = (internal: ReportLevel, external: ReportLevel) => {
-    // If both are defaults, set to undefined
-    if (internal === 'all' && external === 'fails') {
-      update({ report: undefined });
-    } else if (internal === external) {
-      // Shorthand if both are the same
-      update({ report: internal });
-    } else {
-      update({ report: { internal, external } });
-    }
   };
 
   return (
@@ -90,43 +68,11 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
               onChange={e => update({ details: e.target.value })}
             />
           </div>
-          <div className="label">Report</div>
-          <div className="report-row">
-            <div className="report-item">
-              <label 
-                htmlFor="mmt-report-internal"
-                title="Report level when running this test directly"
-              >
-                Internal:
-              </label>
-              <select
-                id="mmt-report-internal"
-                value={internalValue}
-                onChange={e => updateReport(e.target.value as ReportLevel, externalValue)}
-              >
-                {reportLevelOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-            <div className="report-item">
-              <label 
-                htmlFor="mmt-report-external"
-                title="Report level when this test is imported or added to a suite"
-              >
-                External:
-              </label>
-              <select
-                id="mmt-report-external"
-                value={externalValue}
-                onChange={e => updateReport(internalValue, e.target.value as ReportLevel)}
-              >
-                {reportLevelOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <ReportLevelFields
+            value={report}
+            onChange={next => update({ report: next })}
+            ids={{ internal: "mmt-report-internal", external: "mmt-report-external" }}
+          />
         </>
       )}
     </div>

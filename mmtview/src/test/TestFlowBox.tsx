@@ -1,6 +1,6 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import { FlowType, CheckOps } from "mmt-core/TestData";
+import { KebabMenu } from "../components/PopupMenu";
 import { formatLogicalCondition, parseComparisonParts, parseLogicalCondition, type LogicalJoin } from "mmt-core/JSerTestFlow";
 import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
@@ -81,98 +81,15 @@ interface TestFlowBoxProps {
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, expanded, importValidation }) => {
   const { type, stepData, testData } = data;
 
-  const Actions = () => {
-    const btnRef = React.useRef<HTMLButtonElement | null>(null);
-    const menuRef = React.useRef<HTMLDivElement | null>(null);
-    const [menuPos, setMenuPos] = React.useState<{ left: number; top: number } | null>(null);
-    const [openMenu, setOpenMenu] = React.useState(false);
-
-    const openAtButton = () => {
-      const el = btnRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      setMenuPos({ left: Math.max(8, rect.right - 160), top: rect.bottom + 4 });
-    };
-
-    React.useEffect(() => {
-      if (!openMenu) return;
-
-      const handleClickOutside = (event: MouseEvent) => {
-        const target = event.target;
-        if (!target) return;
-        if (menuRef.current?.contains(target as Node)) return;
-        if (btnRef.current?.contains(target as Node)) return;
-        setOpenMenu(false);
-      };
-
-      const handleScrollOrResize = () => {
-        setOpenMenu(false);
-      };
-
-      document.addEventListener('mousedown', handleClickOutside, true);
-      window.addEventListener('scroll', handleScrollOrResize, true);
-      window.addEventListener('resize', handleScrollOrResize, true);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside, true);
-        window.removeEventListener('scroll', handleScrollOrResize, true);
-        window.removeEventListener('resize', handleScrollOrResize, true);
-      };
-    }, [openMenu]);
-
-    const menu = openMenu && menuPos ? (
-      <div
-        ref={menuRef}
-        className="test-flow-add-menu"
-        role="menu"
-        style={{ left: menuPos.left, top: menuPos.top }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          role="menuitem"
-          className="action-button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(false); onDuplicate?.(); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(false); onDuplicate?.(); } }}
-        >
-          <span className={`codicon codicon-copy`} ></span>
-          Duplicate
-        </button>
-        <button
-          type="button"
-          role="menuitem"
-          className="action-button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(false); onRemove?.(); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(false); onRemove?.(); } }}
-        >
-          <span className={`codicon codicon-trash`}></span>
-          Remove
-        </button>
-      </div>
-    ) : null;
-
-    return (
-      <>
-        <button
-          ref={btnRef}
-          className="action-button"
-          type="button"
-          onPointerDown={(e) => { e.stopPropagation(); /* avoid tree drag */ }}
-          onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(v => { const next = !v; if (!v) openAtButton(); return next; }); }}
-          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(v => { const next = !v; if (!v) openAtButton(); return next; }); } }}
-          draggable={false}
-          tabIndex={0}
-          aria-haspopup="menu"
-          aria-expanded={openMenu}
-          title="More actions"
-        >
-          <span className="codicon codicon-kebab-vertical" />
-        </button>
-        {menu && ReactDOM.createPortal(menu, document.body)}
-      </>
-    );
-  };
+  const Actions = () => (
+    <KebabMenu
+      menuClassName="test-flow-add-menu"
+      items={[
+        { label: "Duplicate", icon: "codicon-copy", onClick: () => onDuplicate?.() },
+        { label: "Remove", icon: "codicon-trash", onClick: () => onRemove?.() },
+      ]}
+    />
+  );
   type FlowTypeWithCsv = FlowType | 'data' | 'else';
   const renderInner = () => {
     switch (type as FlowTypeWithCsv) {

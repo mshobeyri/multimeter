@@ -4,6 +4,7 @@ import MockEndpointBox, { methodTextColor } from "./MockEndpointBox";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { patchMockYaml } from "./mockYaml";
 import PrimaryButton from "../components/PrimaryButton";
+import { TreeExpandButton } from "../components/TreeChevron";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -388,29 +389,12 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                 {...context.itemContainerWithoutChildrenProps}
               >
                 <div className="tree-item-bar">
-                  <button
-                    className="action-button"
-                    type="button"
-                    title={isOpen ? 'Collapse box' : 'Expand box'}
-                    aria-label={isOpen ? 'Collapse box' : 'Expand box'}
-                    onPointerDown={e => e.stopPropagation()}
-                    onPointerUp={e => {
-                      e.stopPropagation();
+                  <TreeExpandButton
+                    open={isOpen}
+                    onToggle={() => {
                       setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }));
                     }}
-                    draggable={false}
-                    tabIndex={0}
-                    style={{
-                      display: 'inline-flex',
-                      width: 24,
-                      minWidth: 24,
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span
-                      className={`codicon ${isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'} tree-chevron`}
-                    />
-                  </button>
+                  />
                   {arrow}
                 </div>
                 <NoTreeInterference>
@@ -471,29 +455,10 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
 
       <div className={`tree-view-box mock-fallback-editor field-block is-tight${fallbackOpen ? ' active' : ''}`}>
         <div className="tree-item-bar">
-          <button
-            className="action-button"
-            type="button"
-            title={fallbackOpen ? 'Collapse box' : 'Expand box'}
-            aria-label={fallbackOpen ? 'Collapse box' : 'Expand box'}
-            onPointerDown={e => e.stopPropagation()}
-            onPointerUp={e => {
-              e.stopPropagation();
-              setFallbackOpen(value => !value);
-            }}
-            draggable={false}
-            tabIndex={0}
-            style={{
-              display: 'inline-flex',
-              width: 24,
-              minWidth: 24,
-              justifyContent: 'center',
-            }}
-          >
-            <span
-              className={`codicon ${fallbackOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'} tree-chevron`}
-            />
-          </button>
+          <TreeExpandButton
+            open={fallbackOpen}
+            onToggle={() => setFallbackOpen(value => !value)}
+          />
           <span className="tree-icon-slot" aria-hidden>
             <span className="codicon codicon-circle-slash icon-sm desc-fg" />
           </span>

@@ -6,6 +6,7 @@ import { StepStatus } from '../../shared/types';
 import SuiteEditFileItem from './SuiteEditFileItem';
 import SuiteEditGroupItem from './SuiteEditGroupItem';
 import { aggregateStatuses } from '../../shared/Common';
+import { TreeFolderArrow } from '../../components/TreeChevron';
 
 export type SuiteEditTreeItemData =
     | { type: 'root'; label: string }
@@ -241,22 +242,13 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
             onCollapseItem={onCollapseItem}
             onDrop={canEdit ? handleDrop : undefined}
             onSelectItems={() => { }}
-            renderItemArrow={({ item, context }) =>
-                item.isFolder ? (
-                    <span
-                        {...context.arrowProps}
-                        className={['tree-arrow', context.arrowProps?.className].filter(Boolean).join(' ')}
-                    >
-                        {context.isExpanded ? (
-                            <span className="codicon codicon-chevron-down tree-chevron" />
-                        ) : (
-                            <span className="codicon codicon-chevron-right tree-chevron" />
-                        )}
-                    </span>
-                ) : (
-                    <span className="tree-arrow-spacer" />
-                )
-            }
+            renderItemArrow={({ item, context }) => (
+                <TreeFolderArrow
+                    isFolder={!!item.isFolder}
+                    isExpanded={context.isExpanded}
+                    arrowProps={context.arrowProps}
+                />
+            )}
             renderItem={renderItem}
             renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
             renderItemsContainer={({ children, containerProps }) => (

@@ -1,6 +1,6 @@
 import React from 'react';
-import { ReportLevel, ReportConfig } from 'mmt-core/TestData';
 import { JSONRecord } from 'mmt-core/CommonData';
+import ReportLevelFields from '../components/ReportLevelFields';
 import {
   buildJudgeEvalBlock,
   flattenJudgeChecksForUi,
@@ -84,27 +84,6 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
   };
 
   const report = local && typeof local === 'object' ? local.report : undefined;
-  const isReportObject = report && typeof report === 'object';
-  const reportInternal: ReportLevel = isReportObject
-      ? (report as ReportConfig).internal ?? 'all'
-      : (typeof report === 'string' ? report as ReportLevel : 'all');
-  const reportExternal: ReportLevel = isReportObject
-      ? (report as ReportConfig).external ?? 'fails'
-      : (typeof report === 'string' ? report as ReportLevel : 'fails');
-
-  const setReport = (internal: ReportLevel, external: ReportLevel) => {
-    let rep: any;
-    if (internal === 'all' && external === 'fails') {
-      rep = undefined;
-    } else if (internal === external) {
-      rep = internal;
-    } else {
-      rep = { internal, external };
-    }
-    emit(buildObj({ report: rep }));
-  };
-
-  const reportLevels: ReportLevel[] = ['all', 'fails', 'none'];
 
   return (
     <div className="mmt-fill">
@@ -187,27 +166,11 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
         placeholder="Add criterion..."
       />
 
-      <div className="label">Report</div>
-      <div className="report-row">
-        <label className="report-item">
-          internal
-          <select
-            value={reportInternal}
-            onChange={(e) => setReport(e.target.value as ReportLevel, reportExternal)}
-          >
-            {reportLevels.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </label>
-        <label className="report-item">
-          external
-          <select
-            value={reportExternal}
-            onChange={(e) => setReport(reportInternal, e.target.value as ReportLevel)}
-          >
-            {reportLevels.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </label>
-      </div>
+      <ReportLevelFields
+        value={report}
+        onChange={(rep) => emit(buildObj({ report: rep }))}
+        labels="plain"
+      />
         </>
       )}
     </div>
