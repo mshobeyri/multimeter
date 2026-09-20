@@ -423,7 +423,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
     }, [stepReports, runState, runStartedAt, runDurationMs]);
 
     return (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+        <div className="panel-page">
             <div className="run-action-bar">
                 <RunStopToggle
                     preparing={isPreparing}
@@ -450,9 +450,9 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                     <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
             </div>
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
+            <div className="panel-scroll is-x-clip">
             {hasInputs && (
-                <div style={{ marginBottom: 12 }}>
+                <div className="field-control">
                     <VEditor
                         label="Inputs"
                         value={currentInputs}
@@ -467,7 +467,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                 </div>
             )}
             {hasOutputs && (
-                <div style={{ marginBottom: 12 }}>
+                <div className="field-control">
                     <VEditor
                         label="Outputs"
                         value={outputs}

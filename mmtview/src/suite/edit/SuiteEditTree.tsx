@@ -243,26 +243,36 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
             onSelectItems={() => { }}
             renderItemArrow={({ item, context }) =>
                 item.isFolder ? (
-                    <span {...context.arrowProps} style={{ display: 'inline-flex', lineHeight: 0, alignItems: 'center', justifyContent: 'center' }}>
+                    <span
+                        {...context.arrowProps}
+                        className={['tree-arrow', context.arrowProps?.className].filter(Boolean).join(' ')}
+                    >
                         {context.isExpanded ? (
-                            <span className="codicon codicon-chevron-down" style={{ fontSize: 16 }} />
+                            <span className="codicon codicon-chevron-down tree-chevron" />
                         ) : (
-                            <span className="codicon codicon-chevron-right" style={{ fontSize: 16 }} />
+                            <span className="codicon codicon-chevron-right tree-chevron" />
                         )}
                     </span>
                 ) : (
-                    <span style={{ display: 'inline-block', width: 24, height: 24 }} />
+                    <span className="tree-arrow-spacer" />
                 )
             }
             renderItem={renderItem}
             renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
             renderItemsContainer={({ children, containerProps }) => (
-                <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}>
+                <ul
+                    {...containerProps}
+                    className={['tree-list', containerProps.className].filter(Boolean).join(' ')}
+                    style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}
+                >
                     {children}
                 </ul>
             )}
             renderDragBetweenLine={({ lineProps }) => (
-                <div {...lineProps} style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }} />
+                <div
+                    {...lineProps}
+                    className={['tree-drop-line', lineProps.className].filter(Boolean).join(' ')}
+                />
             )}
         >
             <Tree treeId="suite-edit-tree" rootItem="suite-root" treeLabel="Suite structure" />

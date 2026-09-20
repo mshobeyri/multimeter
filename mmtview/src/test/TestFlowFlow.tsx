@@ -109,14 +109,6 @@ const TestFlowFlow: React.FC<TestFlowFlowProps> = ({
             className="action-button"
             type="button"
             role="menuitem"
-            style={{
-              width: '100%',
-              justifyContent: 'flex-start',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              opacity: stageDisabled ? 0.5 : 1,
-            }}
             onPointerUp={() => {
               if (stageDisabled) {
                 return;
@@ -129,8 +121,7 @@ const TestFlowFlow: React.FC<TestFlowFlowProps> = ({
             title={stageDisabled ? 'Enable Multistage to add a stage' : `Add ${type}`}
           >
             <span
-              className={`codicon codicon-${codiconForStepType(type)}`}
-              style={{ fontSize: 14, opacity: 0.85 }}
+              className={`codicon codicon-${codiconForStepType(type)} test-flow-menu-icon`}
               aria-hidden
             />
             <span>{type}</span>

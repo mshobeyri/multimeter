@@ -13,9 +13,9 @@ const TestFlowCSV: React.FC<Props> = ({ value, imports, onChange }) => {
   const cur = (value && typeof value === 'object' && typeof (value as any).data === 'string') ? (value as any).data : '';
   return (
     <select
+      className="mmt-fill"
       value={cur}
       onChange={(e) => onChange({ data: e.target.value })}
-      style={{ width: '100%' }}
     >
       <option value="">select a csv import</option>
       {aliases.map(a => <option key={a} value={a}>{a}</option>)}

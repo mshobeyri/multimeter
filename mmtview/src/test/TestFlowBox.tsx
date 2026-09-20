@@ -122,14 +122,15 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     const menu = openMenu && menuPos ? (
       <div
         ref={menuRef}
-        style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
+        className="test-flow-add-menu"
+        role="menu"
+        style={{ left: menuPos.left, top: menuPos.top }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           role="menuitem"
           className="action-button"
-          style={{ width: '100%', justifyContent: 'flex-start' }}
           onPointerDown={(e) => e.stopPropagation()}
           onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(false); onDuplicate?.(); }}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(false); onDuplicate?.(); } }}
@@ -141,7 +142,6 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           type="button"
           role="menuitem"
           className="action-button"
-          style={{ width: '100%', justifyContent: 'flex-start' }}
           onPointerDown={(e) => e.stopPropagation()}
           onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(false); onRemove?.(); }}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(false); onRemove?.(); } }}
@@ -153,7 +153,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     ) : null;
 
     return (
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', pointerEvents: 'auto', gap: 0 }}>
+      <>
         <button
           ref={btnRef}
           className="action-button"
@@ -170,7 +170,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           <span className="codicon codicon-kebab-vertical" />
         </button>
         {menu && ReactDOM.createPortal(menu, document.body)}
-      </div>
+      </>
     );
   };
   type FlowTypeWithCsv = FlowType | 'data' | 'else';
@@ -231,7 +231,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
                 [type]: e.target.value,
               })}
               placeholder="(actual == expected && other != 0 | actual == expected || other == 1)"
-              style={{ width: '100%' }}
+              className="mmt-fill"
             />
           );
         }
@@ -250,7 +250,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       }
       case 'else':
         return (
-          <div style={{ opacity: 0.85, fontWeight: 600, padding: '2px 0' }}>
+          <div className="test-flow-else">
             else
           </div>
         );
@@ -300,35 +300,27 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder={type === 'for' ? '(i = 0; i < 5; i++ | key in obj | item of list)' : (type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2ms | 3m | 4h)')}
             value={stepData[type] || ''}
             onChange={e => onChange({ ...stepData, [type]: e.target.value })}
-            style={{ width: '100%' }}
+            className="mmt-fill"
           />
         );
       case 'js':
         return (
           <textarea
+            className="test-flow-js"
             placeholder="JavaScript code"
             value={stepData[type] || ''}
             onChange={e => onChange({ js: e.target.value })}
-            style={{
-              width: '100%',
-              height: expanded ? 400 : 24,
-              resize: 'none',
-              overflow: 'auto'
-            }}
+            style={{ height: expanded ? 400 : 24 }}
           />
         );
       case 'print':
         return (
           <textarea
+            className="test-flow-js"
             placeholder="Message to print"
             value={stepData[type] || ''}
             onChange={e => onChange({ print: e.target.value })}
-            style={{
-              width: '100%',
-              height: expanded ? 400 : 24,
-              resize: 'none',
-              overflow: 'auto'
-            }}
+            style={{ height: expanded ? 400 : 24 }}
           />
         );
       case 'set':
@@ -345,7 +337,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'setenv': {
         const current = (stepData && typeof stepData === 'object') ? (stepData as any).setenv : undefined;
         return (
-          <div style={{ width: '100%' }}>
+          <div className="mmt-fill">
             {expanded && (
               <KSVEditor
                 label=""
@@ -359,7 +351,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
               />
             )}
             {!expanded && (
-              <div style={{ fontSize: 12, opacity: 0.8, padding: '6px 0 0 0' }}>
+              <div className="test-flow-setenv-count">
                 {(current && typeof current === 'object') ? `${Object.keys(current).length} item(s)` : '0 item(s)'}
               </div>
             )}
@@ -375,7 +367,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="mock server file (e.g. mock/server.mmt)"
             value={stepData[type] || ''}
             onChange={e => onChange({ [type]: e.target.value })}
-            style={{ width: '100%' }}
+            className="mmt-fill"
           />
         );
       case 'stage': {
@@ -390,31 +382,29 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           onChange(next);
         };
         return (
-          <div style={{ width: '100%' }}>
+          <div className="mmt-fill">
             <input
+              className="mmt-fill"
               placeholder="id"
               value={idVal}
               onChange={e => updateStage({ id: e.target.value })}
-              style={{ width: '100%' }}
             />
             {expanded && (
               <>
                 <div className="label">Condition</div>
-                <div style={{ padding: '5px' }}>
+                <div className="field-pad">
                   <input
                     placeholder="e.g. e:RUN_PREP == true"
                     value={condVal}
                     onChange={e => updateStage({ condition: e.target.value })}
-                    style={{ width: '100%' }}
                   />
                 </div>
                 <div className="label">Depends on</div>
-                <div style={{ padding: '5px' }}>
+                <div className="field-pad">
                   <input
                     placeholder="comma-separated stage ids"
                     value={depsStr}
                     onChange={e => updateStage({ after: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                    style={{ width: '100%' }}
                   />
                 </div>
               </>
@@ -427,40 +417,15 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     }
   };
 
-  const containerStyle: React.CSSProperties | undefined =
-    (type === 'set' || type === 'var' || type === 'const' || type === 'let')
-      ? { gap: 8, width: '100%' }
-      : undefined;
-
-  // Fixed label column sized to the longest common step title ("assert")
-  // so the type stays visible when the expanded editor (e.g. http) takes width.
-  const typeLabelStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    height: 28,
-    flex: '0 0 4em',
-    width: '4em',
-    minWidth: '4em',
-    whiteSpace: 'nowrap',
-  };
-
   return (
-    <div className="test-flow-box-items" style={containerStyle}>
-      <span style={typeLabelStyle}>
+    <div className="test-flow-box-items">
+      <span className="test-flow-type-label">
         {type}
       </span>
-      <div
-        style={{
-          flex: '1 1 auto',
-          minWidth: 0,
-          overflow: 'hidden'
-        }}
-      >
+      <div className="test-flow-box-body">
         {renderInner()}
       </div>
-      <div
-        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', height: 28, pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
-      >
+      <div className="test-flow-box-actions">
         {type !== 'else' ? <Actions /> : null}
       </div>
     </div>

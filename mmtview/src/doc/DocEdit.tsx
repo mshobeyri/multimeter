@@ -36,7 +36,7 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
 
       <div className="panel-form-row">
         <div className="label">Logo</div>
-        <div style={{ width: '100%' }}>
+        <div className="mmt-fill">
           <FilePickerInput
             value={doc.logo || ''}
             onChange={val => update({ logo: val })}
@@ -110,8 +110,8 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
 
       <div className="panel-form-row">
         <div className="label">HTML Options</div>
-        <div className="inner-box">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <div className="inner-box field-stack is-gap">
+          <div className="field-inline is-gap">
             <input
               type="checkbox"
               checked={!!(doc.html?.triable)}
@@ -123,16 +123,16 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
             />
             <label htmlFor="tryit-toggle">Enable &ldquo;Try It&rdquo; buttons</label>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ whiteSpace: 'nowrap' }}>CORS Proxy:</span>
+          <div className="field-inline is-gap">
+            <span className="field-label-col">CORS Proxy:</span>
             <input
+              className="field-grow"
               value={doc.html?.cors_proxy || ''}
               onChange={e => {
                 const html = { ...(doc.html || {}), cors_proxy: e.target.value };
                 update({ html });
               }}
               placeholder="https://corsproxy.io/?"
-              style={{ flex: 1 }}
             />
           </div>
         </div>

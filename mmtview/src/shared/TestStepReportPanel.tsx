@@ -47,8 +47,8 @@ function formatStructuredValue(value: any, pretty?: boolean): string {
 const HeadersBlock: React.FC<{ label: string; headers?: Record<string, any> }> = ({ label, headers }) => {
   if (!headers || Object.keys(headers).length === 0) { return null; }
   return (
-    <div className="report-headers-block" style={{ marginTop: 6 }}>
-      <span style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', opacity: 0.7 }}>{label}</span>
+    <div className="report-headers-block">
+      <span className="highlighted-body-label">{label}</span>
       <div className="report-headers-content">
         <table className="report-headers-table">
           <tbody>
@@ -129,14 +129,9 @@ function parseCallDetails(details: string | undefined): CallResultDetails | null
 
 /** Section title label rendered above a separator line. */
 const SectionTitle: React.FC<{ label: string; first?: boolean }> = ({ label, first }) => (
-  <div style={{ marginTop: first ? 4 : 10 }}>
-    <span style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', opacity: 0.7 }}>{label}</span>
-    <hr style={{
-      border: 'none',
-      borderTop: '1px solid var(--vscode-editorWidget-border, #444)',
-      margin: '2px 0 4px 0',
-      opacity: 0.5,
-    }} />
+  <div className={`report-section${first ? ' is-first' : ''}`}>
+    <span className="highlighted-body-label">{label}</span>
+    <hr className="report-section-rule" />
   </div>
 );
 
@@ -146,25 +141,20 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
   const showStepIo = callDetails.stepKind !== 'http';
 
   return (
-    <div className="report-selectable" style={{ marginTop: 6, display: 'flex', flexDirection: 'column' }}>
+    <div className="report-selectable report-stack">
       {/* Status code */}
       {callDetails.statusCode !== undefined && (() => {
         const first = sectionIdx++ === 0;
         return (
           <div>
             <SectionTitle label="Status Code" first={first} />
-            <div style={{
-              padding: '2px 12px', borderRadius: 4,
-              background: 'var(--vscode-editor-background, #1e1e1e)',
-              fontFamily: 'var(--vscode-editor-font-family, monospace)',
-              fontSize: 'var(--vscode-editor-font-size, 12px)',
-            }}>
+            <div className="report-mono">
               <span style={{ color: callDetails.statusCode >= 200 && callDetails.statusCode < 300 ? '#23d18b' : callDetails.statusCode >= 400 ? '#f85149' : undefined }}>
                 {callDetails.statusCode}
               </span>
               {callDetails.response?.statusText ? ` ${callDetails.response.statusText}` : ''}
               {callDetails.response?.duration !== undefined && (
-                <span style={{ opacity: 0.6, marginLeft: 8 }}>{callDetails.response.duration}ms</span>
+                <span className="report-duration">{callDetails.response.duration}ms</span>
               )}
             </div>
           </div>
@@ -177,16 +167,11 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
         return (
           <div>
             <SectionTitle label="Inputs" first={first} />
-            <div style={{
-              padding: '2px 12px', borderRadius: 4,
-              background: 'var(--vscode-editor-background, #1e1e1e)',
-              fontFamily: 'var(--vscode-editor-font-family, monospace)',
-              fontSize: 'var(--vscode-editor-font-size, 12px)',
-            }}>
+            <div className="report-mono">
               {Object.entries(callDetails.request.query).map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', gap: 4 }}>
-                  <span style={{ opacity: 0.7 }}>{k}:</span>
-                  <span style={{ wordBreak: 'break-all' }}>{formatStructuredValue(v)}</span>
+                <div key={k} className="field-inline">
+                  <span className="muted">{k}:</span>
+                  <span className="break-all">{formatStructuredValue(v)}</span>
                 </div>
               ))}
             </div>
@@ -200,16 +185,11 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
         return (
           <div>
             <SectionTitle label="Outputs" first={first} />
-            <div style={{
-              padding: '2px 12px', borderRadius: 4,
-              background: 'var(--vscode-editor-background, #1e1e1e)',
-              fontFamily: 'var(--vscode-editor-font-family, monospace)',
-              fontSize: 'var(--vscode-editor-font-size, 12px)',
-            }}>
+            <div className="report-mono">
               {Object.entries(callDetails.outputs).map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', gap: 4 }}>
-                  <span style={{ opacity: 0.7 }}>{k}:</span>
-                  <span style={{ wordBreak: 'break-all' }}>{formatStructuredValue(v)}</span>
+                <div key={k} className="field-inline">
+                  <span className="muted">{k}:</span>
+                  <span className="break-all">{formatStructuredValue(v)}</span>
                 </div>
               ))}
             </div>
@@ -223,14 +203,10 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
         return (
           <div>
             <SectionTitle label="Request" first={first} />
-            <div style={{ paddingLeft: 12 }}>
-              <div style={{
-                padding: '2px 0', borderRadius: 4,
-                fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                fontSize: 'var(--vscode-editor-font-size, 12px)',
-              }}>
+            <div className="report-indent">
+              <div className="report-mono is-bare">
                 {callDetails.request.method && callDetails.request.url && (
-                  <div style={{ wordBreak: 'break-all' }}><span style={{ fontWeight: 600 }}>{callDetails.request.method.toUpperCase()}</span> {callDetails.request.url}</div>
+                  <div className="break-all"><span className="report-method">{callDetails.request.method.toUpperCase()}</span> {callDetails.request.url}</div>
                 )}
               </div>
               <HeadersBlock label="Headers" headers={callDetails.request.headers} />
@@ -246,7 +222,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
         return (
           <div>
             <SectionTitle label="Response" first={first} />
-            <div style={{ paddingLeft: 12 }}>
+            <div className="report-indent">
               <HeadersBlock label="Headers" headers={callDetails.response.headers} />
               <BodyBlock label="Body" body={callDetails.response.body} headers={callDetails.response.headers} />
             </div>
@@ -370,7 +346,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
   ) : null;
 
   return (
-    <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', marginTop: showStatusFilter ? 0 : 8 }}>
+    <div className={showStatusFilter ? 'mmt-fill' : 'mmt-fill field-block'}>
       {showStatusFilter && (
         <div className="report-section-header">
           {showHeader ? <div className="label">Report</div> : <span />}
@@ -378,20 +354,9 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
         </div>
       )}
 
-      <div
-        style={{
-          minHeight: 160,
-          border: '1px solid var(--vscode-editorWidget-border, #2a2a2a)',
-          borderRadius: 6,
-          padding: 12,
-          background: 'transparent',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          overflowX: 'hidden',
-        }}
-      >
+      <div className="report-steps">
         {stepReports.length === 0 ? (
-          <div style={{ opacity: 0.7 }}>
+          <div className="muted">
             {runState === 'running' ? 'Waiting for checks and asserts to report…' : 'No check/assert results yet.'}
           </div>
         ) : visibleReports.length === 0 ? (
@@ -400,7 +365,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
             onShowAll={() => setStatusFilter('all')}
           />
         ) : (
-          <div className="report-selectable" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="report-selectable report-step-list">
             {visibleReports.map((report, reportIdx) => {
               const isDebug = report.stepType === 'debug';
               // Stable key: timestamp remounts wipe selection / collapse details.
@@ -439,11 +404,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
               return (
                 <div
                   key={reportKey}
-                  style={{
-                    border: '1px solid var(--vscode-editorWidget-border, #2a2a2a)',
-                    backgroundColor: 'transparent',
-                    borderRadius: 6,
-                  }}
+                  className="report-step"
                 >
                   <div
                     role={hasDetails ? 'button' : undefined}
@@ -451,19 +412,12 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     title={hasDetails ? (isDetailsExpanded ? 'Hide details' : 'Show details') : undefined}
                     onClick={onHeaderActivate}
                     onKeyDown={onHeaderActivate}
-                    style={{
-                      padding: '8px 12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      cursor: hasDetails ? 'pointer' : 'default',
-                    }}
+                    className={`report-step-head${hasDetails ? ' is-clickable' : ''}`}
                   >
                     <span className="tree-view-box-row-arrow" aria-hidden>
                       {hasDetails ? (
                         <span
-                          className={`codicon ${isDetailsExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
-                          style={{ fontSize: 16, lineHeight: 1, display: 'inline-flex' }}
+                          className={`codicon ${isDetailsExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'} report-chevron`}
                         />
                       ) : null}
                     </span>
@@ -471,21 +425,18 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                       status={isDebug ? 'debug' : report.status}
                       cached={report.cached === true}
                     />
-                    <span
-                      className="report-selectable"
-                      style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
-                    >
+                    <span className="report-selectable field-grow ellipsis">
                       {report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}
                     </span>
                     {showTimestamps && (
-                      <span style={{ opacity: 0.7, fontSize: 12, flexShrink: 0 }}>
+                      <span className="report-step-time">
                         {new Date(report.timestamp).toLocaleTimeString()}
                       </span>
                     )}
                   </div>
                   {isDetailsExpanded && (
                     <div
-                      style={{ margin: '0 12px 8px', paddingLeft: 32 }}
+                      className="report-step-body"
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
                       onDoubleClick={(e) => e.stopPropagation()}
@@ -503,32 +454,29 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                                   label={sectionLabel}
                                   first={first}
                                 />
-                                <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div className="report-expect-list">
                                   {items.map((item, idx) => {
                                     const itemMeta = isDebug ? statusIconFor('debug') : statusIconFor(item.status);
                                     const showActualDetails = !isDebug && (typeof item.similarity === 'number' || typeof item.count === 'number') && item.actual !== undefined && item.expected !== undefined;
                                     const showFailureDetails = !isDebug && item.status === 'failed' && item.actual !== undefined && item.expected !== undefined;
                                     return (
-                                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 4 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div key={idx} className="report-expect">
+                                        <div className="tree-row">
                                           <span
-                                            className={`codicon ${itemMeta.icon}`}
-                                            style={{ color: itemMeta.color, fontSize: 12 }}
+                                            className={`codicon ${itemMeta.icon} report-expect-icon`}
+                                            style={{ color: itemMeta.color }}
                                             aria-label={itemMeta.title}
                                           ></span>
-                                          <span style={{
-                                            fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                                            fontSize: 'var(--vscode-editor-font-size, 12px)',
-                                          }}>{item.comparison}</span>
+                                          <span className="report-expect-text">{item.comparison}</span>
                                         </div>
                                         {(showActualDetails || showFailureDetails) && (
                                           <>
-                                            <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
+                                            <span className="report-expect-meta">got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
                                             {typeof item.similarity === 'number' && (
-                                              <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>similarity: {item.similarity}%</span>
+                                              <span className="report-expect-meta">similarity: {item.similarity}%</span>
                                             )}
                                             {typeof item.count === 'number' && (
-                                              <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>count: {item.count}</span>
+                                              <span className="report-expect-meta">count: {item.count}</span>
                                             )}
                                           </>
                                         )}
@@ -554,18 +502,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                           <StructuredDetails callDetails={callDetails} />
                         ) : (
                           report.details && report.details.trim().length > 0 && (
-                            <pre
-                              className="report-selectable"
-                              style={{
-                                margin: '6px 0 0 0',
-                                opacity: 0.85,
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                                fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                                fontSize: 'var(--vscode-editor-font-size, 12px)',
-                                cursor: 'text',
-                              }}
-                            >
+                            <pre className="report-selectable report-details-pre">
                               {unescapeCommon(String(report.details))}
                             </pre>
                           )

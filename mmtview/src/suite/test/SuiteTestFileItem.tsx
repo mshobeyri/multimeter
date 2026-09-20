@@ -120,10 +120,9 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                         />
                         )}
                         <span
-                            className={`codicon ${isServer ? 'codicon-server-environment' : 'codicon-beaker'}`}
+                            className={`codicon ${isServer ? 'codicon-server-environment' : 'codicon-beaker'} icon-fg`}
                             aria-hidden
                             title={isServer ? 'Mock server' : 'Test'}
-                            style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }}
                         />
                         <span
                             className={duplicateServer ? 'mmt-line-error' : undefined}
@@ -144,8 +143,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
             </div>
             {shouldShowReports && (
                 <div
-                    className="report-selectable"
-                    style={{ paddingBottom: 8 }}
+                    className="report-selectable pad-b-8"
                     // Capture mousedown/pointer so the suite tree does not steal focus/selection,
                     // but do NOT stop click in capture — that blocks the details circle button
                     // (same pitfall as TestFlow's NoTreeInterference).

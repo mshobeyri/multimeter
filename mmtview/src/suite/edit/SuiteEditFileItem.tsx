@@ -57,7 +57,7 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
             onKeyDown={stopTreeEvent}
             onKeyUp={stopTreeEvent}
             onInputCapture={stopTreeEvent}
-            style={{ flex: 1, minWidth: 0 }}
+            className="field-grow"
         >
             {children}
         </div>
@@ -74,12 +74,11 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
     return (
         <div {...context.itemContainerWithChildrenProps}>
             <div
-                className="tree-view-box"
+                className="tree-view-box is-row"
                 {...context.itemContainerWithoutChildrenProps}
-                style={{ display: 'flex' }}
             >
-                <div style={{ width: 24, minWidth: 24, display: 'inline-flex', alignItems: 'center' }}>{arrow}</div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <div className="tree-arrow-slot">{arrow}</div>
+                <div className="tree-row-grow">
                     <span
                         className={`codicon ${statusIcon.icon}`}
                         aria-hidden
@@ -105,17 +104,7 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
                     title="Drag to reorder"
                     onMouseDownCapture={(e) => e.stopPropagation()}
                     onPointerDownCapture={(e) => e.stopPropagation()}
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 24,
-                        minWidth: 24,
-                        height: 24,
-                        opacity: 0.7,
-                        cursor: 'grab',
-                        userSelect: 'none',
-                    }}
+                    className={['tree-grip', context.interactiveElementProps?.className].filter(Boolean).join(' ')}
                 >
                     <span className="codicon codicon-gripper" aria-hidden />
                 </span>

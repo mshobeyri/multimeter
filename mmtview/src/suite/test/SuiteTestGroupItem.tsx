@@ -78,9 +78,9 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
               <span className={`codicon ${statusIcon.icon}`} aria-hidden title={statusIcon.title} style={{ color: statusIcon.color }} />
             )}
             {data.type === 'group' || data.type === 'import-group' ? (
-              <span className="codicon codicon-collection" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+              <span className="codicon codicon-collection icon-fg" aria-hidden title="Group" />
             ) : (
-              <span className="codicon codicon-layers" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+              <span className="codicon codicon-layers icon-fg" aria-hidden title="Suite" />
             )}
             <span>{data.label}</span>
           </div>

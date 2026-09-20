@@ -14,10 +14,7 @@ function setTransparentDragImage(dt: DataTransfer | null | undefined) {
     try {
         const el = document.createElement('div');
         el.setAttribute('aria-hidden', 'true');
-        Object.assign(el.style, {
-            position: 'fixed', top: '-10000px', left: '-10000px',
-            width: '1px', height: '1px', opacity: '0', pointerEvents: 'none',
-        } as Partial<CSSStyleDeclaration>);
+        el.className = 'drag-preview-ghost';
         document.body.appendChild(el);
         dragPreviewEl = el;
         dt.setDragImage(el, 0, 0);
@@ -319,18 +316,12 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     item.isFolder ? (
                         <span
                             {...context.arrowProps}
-                            style={{
-                                display: "inline-flex",
-                                lineHeight: 0,
-                                alignItems: "center",
-                                justifyContent: "center",
-                                height: 28,
-                            }}
+                            className={['tree-arrow', 'is-tall', context.arrowProps?.className].filter(Boolean).join(' ')}
                         >
                             {context.isExpanded ? (
-                                <span className="codicon codicon-chevron-down" style={{ fontSize: "16px" }} />
+                                <span className="codicon codicon-chevron-down tree-chevron" />
                             ) : (
-                                <span className="codicon codicon-chevron-right" style={{ fontSize: "16px" }} />
+                                <span className="codicon codicon-chevron-right tree-chevron" />
                             )}
                         </span>
                     ) : (
@@ -343,17 +334,10 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                             const ico = `codicon-${codiconForStepType(t)}`;
                             return (
                                 <span
-                                    style={{
-                                        display: "inline-flex",
-                                        lineHeight: 0,
-                                        alignItems: "center",
-                                        width: 16,
-                                        height: 28,
-                                        justifyContent: 'center'
-                                    }}
+                                    className="test-flow-leaf-icon"
                                     aria-hidden
                                 >
-                                    <span className={`codicon ${ico}`} style={{ fontSize: "14px", opacity: 0.8 }} />
+                                    <span className={`codicon ${ico} test-flow-step-icon`} />
                                 </span>
                             );
                         })()
@@ -382,7 +366,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                             onKeyDown={stopAll}
                             onKeyUp={stopAll}
                             onInputCapture={stopAll}
-                            style={{ flex: 1, minWidth: 0 }}
+                            className="field-grow"
                         >
                             {children}
                         </div>
@@ -541,7 +525,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                             >
                                 {expandable && (
                                     <button
-                                        className="action-button"
+                                        className="action-button test-flow-expand"
                                         type="button"
                                         title={isOpen ? 'Collapse box' : 'Expand box'}
                                         aria-label={isOpen ? 'Collapse box' : 'Expand box'}
@@ -559,25 +543,15 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                         }}
                                         draggable={false}
                                         tabIndex={0}
-                                        style={{
-                                            display: 'inline-flex',
-                                            lineHeight: 0,
-                                            alignItems: 'center',
-                                            width: 24,
-                                            minWidth: 24,
-                                            height: 28,
-                                            justifyContent: 'center',
-                                        }}
                                     >
                                         <span
-                                            className={`codicon ${isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
-                                            style={{ fontSize: 16 }}
+                                            className={`codicon ${isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'} tree-chevron`}
                                         />
                                     </button>
                                 )}
                                 {!folderAndEditor && arrow}
                                 <NoTreeInterference>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div className="field-grow">
                                         <TestFlowBox
                                             data={{
                                                 type: itemParsed.type as FlowType,
@@ -617,17 +591,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                     title="Drag to reorder"
                                     onMouseDownCapture={(e) => e.stopPropagation()}
                                     onPointerDownCapture={(e) => e.stopPropagation()}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: 24,
-                                        minWidth: 24,
-                                        height: 28,
-                                        opacity: 0.7,
-                                        cursor: 'grab',
-                                        userSelect: 'none',
-                                    }}
+                                    className={['tree-grip', 'is-flow', context.interactiveElementProps?.className].filter(Boolean).join(' ')}
                                 >
                                     <span className="codicon codicon-gripper" aria-hidden />
                                 </span>
@@ -637,9 +601,20 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     );
                 }}
                 renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
-                renderItemsContainer={({ children, containerProps }) => <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}>{children}</ul>}
+                renderItemsContainer={({ children, containerProps }) => (
+                    <ul
+                        {...containerProps}
+                        className={['tree-list', containerProps.className].filter(Boolean).join(' ')}
+                        style={containerProps.style}
+                    >
+                        {children}
+                    </ul>
+                )}
                 renderDragBetweenLine={({ lineProps }) => (
-                    <div {...lineProps} style={{ background: "var(--vscode-focusBorder, #264f78)", height: "1px" }} />
+                    <div
+                        {...lineProps}
+                        className={['tree-drop-line', lineProps.className].filter(Boolean).join(' ')}
+                    />
                 )}
             >
                 <Tree treeId="tree-1" rootItem="root" treeLabel="Tree Example" />

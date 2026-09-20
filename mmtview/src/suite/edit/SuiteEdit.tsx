@@ -532,85 +532,50 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const testsTabContent = (
-    <div style={{ paddingTop: 8 }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginBottom: 8,
-          alignItems: 'center',
-          position: 'relative',
-          gap: 8,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 8 }}>
-          <PrimaryButton
-            ref={addButtonRef as any}
-            icon="add"
-            onPointerDown={(event) => event.stopPropagation()}
-            onPointerUp={(event) => {
-              event.stopPropagation();
-              toggleAddMenu();
-            }}
-            title="Add suite item"
-          >
-            Add item
-          </PrimaryButton>
-        </div>
+    <div className="pt-8">
+      <div className="actions-end">
+        <PrimaryButton
+          ref={addButtonRef as any}
+          icon="add"
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => {
+            event.stopPropagation();
+            toggleAddMenu();
+          }}
+          title="Add suite item"
+        >
+          Add item
+        </PrimaryButton>
         {addMenuOpen && addMenuPos && (
           <div
             ref={addMenuRef}
-            style={{
-              position: 'fixed',
-              left: addMenuPos.left,
-              top: addMenuPos.top,
-              zIndex: 1000,
-              background: 'var(--vscode-editorWidget-background,#232323)',
-              border: '1px solid var(--vscode-editorWidget-border,#333)',
-              borderRadius: 4,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-              minWidth: 220,
-              padding: 4,
-            }}
+            className="popup-menu is-wide"
+            style={{ left: addMenuPos.left, top: addMenuPos.top }}
             onPointerDown={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           >
             <button
-              className="action-button"
-              style={{
-                width: '100%',
-                justifyContent: 'flex-start',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
+              className="action-button menu-item"
               onClick={() => handleAddGroup()}
               title="Insert a group separator (then)"
             >
-              <span className="codicon codicon-list-tree" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+              <span className="codicon codicon-list-tree icon-sm" aria-hidden />
               <span>Add group (then)</span>
             </button>
             <button
-              className="action-button"
-              style={{
-                width: '100%',
-                justifyContent: 'flex-start',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
+              className="action-button menu-item"
               onClick={() => handleAddTestFile()}
               title="Add a test file entry"
             >
-              <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+              <span className="codicon codicon-symbol-file icon-sm" aria-hidden />
               <span>Add test file</span>
             </button>
           </div>
         )}
       </div>
       {noItems ? (
-        <div style={{ opacity: 0.8 }}>No suite items found under `items:`</div>
+        <div className="muted">No suite items found under `items:`</div>
       ) : (
         tree
       )}
@@ -626,7 +591,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
         onChange={persistOverview}
         tagSuggestions={['suite', 'regression', 'smoke', 'user', 'admin']}
       />
-      <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 8 }}>
+      <div className="edit-tab-pad">
         <KSVEditor
           label="Import"
           value={imports}
@@ -643,42 +608,42 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const filterTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div className="label" style={{ marginBottom: 6 }}>Only tags</div>
-      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+    <div className="edit-section">
+      <div className="label is-field">Only tags</div>
+      <div className="field-inset">
         <SearchableTagInput
           tags={filter.only}
           onChange={(tags) => persistFilter({ ...filter, only: tags })}
           placeholder="only"
         />
       </div>
-      <div className="label" style={{ marginBottom: 6 }}>Skip tags</div>
-      <div style={{ paddingLeft: 4 }}>
+      <div className="label is-field">Skip tags</div>
+      <div className="field-inset">
         <SearchableTagInput
           tags={filter.skip}
           onChange={(tags) => persistFilter({ ...filter, skip: tags })}
           placeholder="skip"
         />
       </div>
-      <div style={{ marginTop: 12, opacity: 0.7, fontSize: '0.9em' }}>
+      <div className="hint-text is-block">
         <div>Only: run just the tests and suites tagged with one of these. Empty runs everything.</div>
-        <div style={{ marginTop: 4 }}>Skip: never run tests and suites carrying one of these tags.</div>
-        <div style={{ marginTop: 4 }}>Filters match <code>tags:</code> on test and suite files. A tagged suite runs its whole subtree.</div>
+        <div className="field-block is-tight">Skip: never run tests and suites carrying one of these tags.</div>
+        <div className="field-block is-tight">Filters match <code>tags:</code> on test and suite files. A tagged suite runs its whole subtree.</div>
       </div>
     </div>
   );
 
   const serversTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+    <div className="edit-section">
+      <div className="actions-end">
         <PrimaryButton icon="add" onClick={handleAddServer} title="Add server file">
           Add server
         </PrimaryButton>
       </div>
       {servers.length === 0 ? (
-        <div style={{ opacity: 0.8 }}>No servers configured. Add a mock server file to run before the suite.</div>
+        <div className="muted">No servers configured. Add a mock server file to run before the suite.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="field-stack">
           {servers.map((s, i) => (
             <FilePickerInput
               key={i}
@@ -698,20 +663,19 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const environmentTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div className="label" style={{ marginBottom: 6 }}>Preset</div>
-      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+    <div className="edit-section">
+      <div className="label is-field">Preset</div>
+      <div className="field-inset">
         <input
           type="text"
-          className="vscode-input"
+          className="vscode-input mmt-fill"
           value={environment?.preset || ''}
           onChange={(e) => handleEnvPresetChange(e.target.value)}
           placeholder="preset name (from multimeter.mmt or env file)"
-          style={{ width: '100%' }}
         />
       </div>
-      <div className="label" style={{ marginBottom: 6 }}>Environment File</div>
-      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+      <div className="label is-field">Environment File</div>
+      <div className="field-inset">
         <FilePickerInput
           value={environment?.file || ''}
           onChange={handleEnvFileChange}
@@ -721,8 +685,8 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           placeholder="path to env.mmt file"
         />
       </div>
-      <div className="label" style={{ marginBottom: 6 }}>Variables</div>
-      <div style={{ paddingLeft: 4 }}>
+      <div className="label is-field">Variables</div>
+      <div className="field-inset">
         <KSVEditor
           label=""
           value={environment?.variables as Record<string, string> || {}}
@@ -735,16 +699,16 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const exportsTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+    <div className="edit-section">
+      <div className="actions-end">
         <PrimaryButton icon="add" onClick={handleAddExport} title="Add export path">
           Add export
         </PrimaryButton>
       </div>
       {exports.length === 0 ? (
-        <div style={{ opacity: 0.8 }}>No exports configured. Add paths to generate reports after suite completion.</div>
+        <div className="muted">No exports configured. Add paths to generate reports after suite completion.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="field-stack">
           {exports.map((ex, i) => (
             <FilePickerInput
               key={i}
@@ -758,22 +722,22 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           ))}
         </div>
       )}
-      <div style={{ marginTop: 12, opacity: 0.7, fontSize: '0.9em' }}>
+      <div className="hint-text is-block">
         <div>Supported formats: <code>.html</code>, <code>.xml</code> (JUnit), <code>.md</code>, <code>.mmt</code></div>
-        <div style={{ marginTop: 4 }}>Paths are relative to the suite file. Use <code>+/</code> prefix for project root.</div>
+        <div className="field-block is-tight">Paths are relative to the suite file. Use <code>+/</code> prefix for project root.</div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <div className="panel-page is-clip">
       <TabBar
         tabs={SUITE_EDIT_TABS}
         value={activeTab}
         onChange={setActiveTab}
-        style={{ flexShrink: 0 }}
+        className="no-shrink"
       />
-      <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+      <div className="test-flow-tree panel-scroll">
         {activeTab === 'overview' && overviewTabContent}
         {activeTab === 'items' && testsTabContent}
         {activeTab === 'filter' && filterTabContent}

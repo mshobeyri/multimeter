@@ -39,16 +39,16 @@ const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
     <div {...context.itemContainerWithChildrenProps}>
       <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps}>
         {arrow}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="tree-row">
           {statusIcon && (
             <span className={`codicon ${statusIcon.icon}`} aria-hidden style={{ color: statusIcon.color }} />
           )}
           {isRoot ? (
-            <span className="codicon codicon-layers" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+            <span className="codicon codicon-layers icon-fg" aria-hidden title="Suite" />
           ) : (
-            <span className="codicon codicon-collection" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+            <span className="codicon codicon-collection icon-fg" aria-hidden title="Group" />
           )}
-          <span style={{ fontFamily: 'var(--vscode-editor-font-family)' }}>{data.label}</span>
+          <span className="tree-label">{data.label}</span>
         </div>
       </div>
       {children}

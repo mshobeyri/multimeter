@@ -22,7 +22,7 @@ const MockOverview: React.FC<MockOverviewProps> = ({ data, updateField }) => {
         }}
         tagSuggestions={["users", "auth", "demo", "mock", "api"]}
       />
-      <div style={{ paddingLeft: 16, paddingRight: 16 }}>
+      <div className="edit-tab-pad">
         <KSVEditor
           label="Import"
           value={data.import}

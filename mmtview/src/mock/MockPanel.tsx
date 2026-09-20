@@ -209,9 +209,9 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                     <div className="field-block is-tight">
                       <div className="mock-ep-row mock-ep-row--fallback">
                         <span className="mock-ep-icon" aria-hidden>
-                          <span className="codicon codicon-circle-slash" style={{ color: "var(--vscode-descriptionForeground)" }} />
+                          <span className="codicon codicon-circle-slash desc-fg" />
                         </span>
-                        <span className="mock-ep-method mock-ep-method--fallback" style={{ color: "var(--vscode-descriptionForeground)" }}>FALLBACK</span>
+                        <span className="mock-ep-method mock-ep-method--fallback desc-fg">FALLBACK</span>
                         <span className="mock-ep-path">/?</span>
                         <span className="mock-ep-tags" />
                         <span className="mock-ep-right">

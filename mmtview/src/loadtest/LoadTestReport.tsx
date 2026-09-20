@@ -54,14 +54,6 @@ interface LoadTestReportProps {
   config?: LoadTestReportData['config'] | null;
 }
 
-const cardStyle: React.CSSProperties = {
-  borderRadius: 10,
-  background: 'var(--vscode-editor-background, rgba(40,40,40,0.8))',
-  border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.1))',
-  padding: 12,
-  minWidth: 0,
-};
-
 function formatNumber(value: number | undefined, fractionDigits = 0): string {
   return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(fractionDigits) : '-';
 }
@@ -133,22 +125,22 @@ const LoadLineChart: React.FC<{
   const tooltipLeft = hoverIndex != null ? `${(xFor(hoverIndex) / width) * 100}%` : '0%';
 
   return (
-    <div style={{ ...cardStyle, marginBottom: 12, position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', marginBottom: 8 }}>
+    <div className="stat-card is-relative">
+      <div className="chart-head">
         <div>
-          <div className="label" style={{ marginBottom: 2 }}>{title}</div>
+          <div className="label">{title}</div>
         </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <div className="chart-legend">
           {series.map(item => (
-            <span key={item.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
-              <span style={{ width: 9, height: 9, borderRadius: 99, background: item.color }} />
+            <span key={item.key} className="chart-legend-item">
+              <span className="chart-swatch" style={{ background: item.color }} />
               {item.label}
             </span>
           ))}
         </div>
       </div>
       {points.length === 0 ? (
-        <div style={{ opacity: 0.75, padding: '26px 0' }}>Run the load test to collect chart data.</div>
+        <div className="chart-empty">Run the load test to collect chart data.</div>
       ) : (
         <svg width="100%" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}>
           <rect x={left} y={top} width={innerWidth} height={innerHeight} fill="transparent" stroke="var(--vscode-widget-border, rgba(255,255,255,0.12))" />
@@ -200,23 +192,8 @@ const LoadLineChart: React.FC<{
         </svg>
       )}
       {hoverPoint && (
-        <div style={{
-          position: 'absolute',
-          left: tooltipLeft,
-          top: 44,
-          transform: 'translateX(-50%)',
-          zIndex: 5,
-          pointerEvents: 'none',
-          minWidth: 170,
-          padding: '8px 10px',
-          borderRadius: 6,
-          background: 'var(--vscode-editorWidget-background, #252526)',
-          border: '1px solid var(--vscode-editorWidget-border, #454545)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
-          fontSize: 11,
-          lineHeight: 1.45,
-        }}>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>{timeLabel(hoverPoint.timestamp || '')}</div>
+        <div className="chart-tip" style={{ left: tooltipLeft }}>
+          <div className="chart-tip-title">{timeLabel(hoverPoint.timestamp || '')}</div>
           <div>Threads: {formatNumber(hoverPoint.active_threads)}</div>
           <div>Failures: {formatNumber(hoverPoint.errors)}</div>
           <div>Requests/sec: {formatNumber(hoverPoint.throughput, 2)}</div>
@@ -258,12 +235,12 @@ export const LoadMetricsOverview: React.FC<{ load: LoadTestReportData | null; st
   }
 
   return (
-    <div style={{ ...cardStyle, marginBottom: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+    <div className="stat-card is-spaced">
+      <div className="stat-grid is-wide">
         {rows.map(([label, value]) => (
-          <div key={label} style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 10, opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
-            <div style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{value}</div>
+          <div key={label}>
+            <div className="stat-label">{label}</div>
+            <div className="stat-value">{value}</div>
           </div>
         ))}
       </div>
@@ -285,8 +262,8 @@ const LoadTestReport: React.FC<LoadTestReportProps> = ({ load }) => {
   const responseTimeValues = points.map(p => Number(p.response_time || 0));
 
   return (
-    <div style={{ marginTop: 4 }}>
-      <div className="label" style={{ marginBottom: 8 }}>Report</div>
+    <div className="field-block is-tight">
+      <div className="label is-spaced">Report</div>
       <LoadLineChart
         title="Requests per second and Response time over time"
         points={points}

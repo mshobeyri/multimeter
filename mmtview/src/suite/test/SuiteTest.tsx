@@ -258,8 +258,8 @@ const LoadOverviewBoxes: React.FC<{
         : (rampup ? `Ramp-up ${rampup}` : undefined);
     return (
         <div>
-            <div className="label" style={{ marginBottom: 6 }}>Overview</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 14 }}>
+            <div className="label is-field">Overview</div>
+            <div className="stat-grid">
                 <LoadOverviewCard
                     label="Passed"
                     value={formatLoadPercent(summary.success_rate)}
@@ -1164,7 +1164,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     );
 
     return (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+        <div className="panel-page">
             <div className="run-action-bar">
                 <RunStopToggle
                     preparing={suiteRunState === 'pending'}
@@ -1182,9 +1182,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
             </div>
-        <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
+        <div className="panel-scroll">
             <div className="test-flow-tree">
-                {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div> : (
+                {noItems ? <div className="muted">{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div> : (
                     <>
                         {mode === 'loadtest'
                             ? <>
@@ -1198,15 +1198,15 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             : overviewStats && <OverviewBoxes stats={overviewStats} />}
                         {loadConfig && (
                             <>
-                                <div className="label" style={{ marginBottom: 6 }}>Load</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                <div className="label is-field">Load</div>
+                                <div className="meta-block">
                                     {mode === 'loadtest' && groups[0]?.entries[0]?.path && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-beaker" style={{ fontSize: 14 }} aria-hidden />
+                                        <div className="meta-row">
+                                            <span className="codicon codicon-beaker meta-icon" aria-hidden />
                                             <span>Test: </span>
                                             <span
                                                 title="Ctrl/Cmd+click to open test file"
-                                                style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                                                className="link-path"
                                                 onClick={(event) => {
                                                     if (event.ctrlKey || event.metaKey) {
                                                         window.vscode?.postMessage({ command: 'openRelativeFile', filename: groups[0]?.entries[0]?.path });
@@ -1218,20 +1218,20 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                         </div>
                                     )}
                                     {loadConfig.threads != null && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-dashboard" style={{ fontSize: 14 }} aria-hidden />
+                                        <div className="meta-row">
+                                            <span className="codicon codicon-dashboard meta-icon" aria-hidden />
                                             <span>Threads: <code>{loadConfig.threads}</code></span>
                                         </div>
                                     )}
                                     {loadConfig.repeat != null && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-sync" style={{ fontSize: 14 }} aria-hidden />
+                                        <div className="meta-row">
+                                            <span className="codicon codicon-sync meta-icon" aria-hidden />
                                             <span>Repeat: <code>{String(loadConfig.repeat)}</code></span>
                                         </div>
                                     )}
                                     {loadConfig.rampup && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-graph-line" style={{ fontSize: 14 }} aria-hidden />
+                                        <div className="meta-row">
+                                            <span className="codicon codicon-graph-line meta-icon" aria-hidden />
                                             <span>Ramp-up: <code>{loadConfig.rampup}</code></span>
                                         </div>
                                     )}
@@ -1240,29 +1240,29 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         )}
                         {environment && (
                             <>
-                                <div className="label" style={{ marginBottom: 6 }}>Environment</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                <div className="label is-field">Environment</div>
+                                <div className="meta-block">
                                     {environment.preset && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-symbol-namespace" style={{ fontSize: 14 }} aria-hidden />
+                                        <div className="meta-row">
+                                            <span className="codicon codicon-symbol-namespace meta-icon" aria-hidden />
                                             <span>Preset: <code>{environment.preset}</code></span>
                                         </div>
                                     )}
                                     {environment.file && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-file" style={{ fontSize: 14 }} aria-hidden />
+                                        <div className="meta-row">
+                                            <span className="codicon codicon-file meta-icon" aria-hidden />
                                             <span>File: <code>{environment.file}</code></span>
                                         </div>
                                     )}
                                     {environment.variables && Object.keys(environment.variables).length > 0 && (
-                                        <div style={{ padding: '2px 0', opacity: 0.9 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                                <span className="codicon codicon-symbol-variable" style={{ fontSize: 14 }} aria-hidden />
+                                        <div>
+                                            <div className="meta-row">
+                                                <span className="codicon codicon-symbol-variable meta-icon" aria-hidden />
                                                 <span>Variables:</span>
                                             </div>
-                                            <div style={{ paddingLeft: 20 }}>
+                                            <div className="meta-kv">
                                                 {Object.entries(environment.variables).map(([key, val]) => (
-                                                    <div key={key} style={{ padding: '1px 0', fontSize: '0.9em' }}>
+                                                    <div key={key} className="meta-kv-line">
                                                         <code>{key}</code>: <code>{JSON.stringify(val)}</code>
                                                     </div>
                                                 ))}
@@ -1274,13 +1274,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         )}
                         {servers.length > 0 && (
                             <>
-                                <div className="label" style={{ marginBottom: 6 }}>Servers</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                <div className="label is-field">Servers</div>
+                                <div className="meta-block">
                                     {servers.map((s, i) => {
                                         const name = s.includes('/') ? s.slice(s.lastIndexOf('/') + 1) : s;
                                         return (
-                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                                <span className="codicon codicon-server-environment" style={{ fontSize: 14 }} aria-hidden />
+                                            <div key={i} className="meta-row">
+                                                <span className="codicon codicon-server-environment meta-icon" aria-hidden />
                                                 <span
                                                     className={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'mmt-line-error' : undefined}
                                                     title={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'This mock server is listed more than once in this suite' : s}
@@ -1295,17 +1295,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         )}
                         {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
                             <>
-                                <div className="label" style={{ marginBottom: 6 }}>Filter</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                <div className="label is-field">Filter</div>
+                                <div className="meta-block">
                                     {tagFilter.only.length > 0 && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-filter" style={{ fontSize: 14 }} aria-hidden />
+                                        <div className="meta-row">
+                                            <span className="codicon codicon-filter meta-icon" aria-hidden />
                                             <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
                                         </div>
                                     )}
                                     {tagFilter.skip.length > 0 && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-skip" style={{ fontSize: 14 }} aria-hidden />
+                                        <div className="meta-row">
+                                            <span className="codicon codicon-skip meta-icon" aria-hidden />
                                             <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
                                         </div>
                                     )}
@@ -1314,11 +1314,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         )}
                         {suiteExports.length > 0 && (
                             <>
-                                <div className="label" style={{ marginBottom: 6 }}>Exports</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                <div className="label is-field">Exports</div>
+                                <div className="meta-block">
                                     {suiteExports.map((ex, i) => (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-export" style={{ fontSize: 14 }} aria-hidden />
+                                        <div key={i} className="meta-row">
+                                            <span className="codicon codicon-export meta-icon" aria-hidden />
                                             <span><code>{ex}</code></span>
                                         </div>
                                     ))}

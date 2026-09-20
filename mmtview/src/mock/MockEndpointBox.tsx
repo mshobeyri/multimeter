@@ -157,23 +157,17 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
     const menu = openMenu && menuPos ? (
       <div
         ref={menuRef}
-        style={{
-          position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 1000,
-          background: 'var(--vscode-editorWidget-background,#232323)',
-          border: '1px solid var(--vscode-editorWidget-border,#333)',
-          borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200,
-        }}
+        className="popup-menu"
+        style={{ left: menuPos.left, top: menuPos.top }}
         onClick={e => e.stopPropagation()}
       >
-        <button type="button" role="menuitem" className="action-button"
-          style={{ width: '100%', justifyContent: 'flex-start' }}
+        <button type="button" role="menuitem" className="action-button menu-item"
           onPointerDown={e => e.stopPropagation()}
           onPointerUp={e => { e.stopPropagation(); setOpenMenu(false); onDuplicate?.(); }}
         >
           <span className="codicon codicon-copy" /> Duplicate
         </button>
-        <button type="button" role="menuitem" className="action-button"
-          style={{ width: '100%', justifyContent: 'flex-start' }}
+        <button type="button" role="menuitem" className="action-button menu-item"
           onPointerDown={e => e.stopPropagation()}
           onPointerUp={e => { e.stopPropagation(); setOpenMenu(false); onRemove?.(); }}
         >
@@ -183,7 +177,7 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
     ) : null;
 
     return (
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 0 }}>
+      <div className="actions-trail">
         {(onDuplicate || onRemove) && (
           <button ref={btnRef} className="action-button" type="button"
             onPointerDown={e => e.stopPropagation()}
@@ -200,28 +194,31 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
 
   /* ─── Collapsed summary row ─── */
   const summary = (
-    <div className="test-flow-box-items" style={{ alignItems: 'center' }}>
-      <span style={{ flex: `0 1 ${isFallback ? 76 : 60}px`, maxWidth: isFallback ? 76 : 60, minWidth: 0, fontWeight: 700, fontSize: 12, color: isFallback ? 'var(--vscode-descriptionForeground)' : methodTextColor(method) }}>
+    <div className="test-flow-box-items is-center">
+      <span
+        className={`mock-ep-method-w${isFallback ? ' is-fallback' : ''}`}
+        style={isFallback ? undefined : { color: methodTextColor(method) }}
+      >
         {summaryLabel}
       </span>
-      <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 12, fontFamily: 'var(--vscode-editor-font-family, monospace)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div className="mock-ep-mid">
+        <span className="mock-ep-path-text">
           {summaryPath}
         </span>
         {local.name && (
-          <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, backgroundColor: 'var(--vscode-badge-background)', color: 'var(--vscode-badge-foreground)', whiteSpace: 'nowrap' }}>
+          <span className="mock-badge">
             {local.name}
           </span>
         )}
       </div>
-      {!isFallback && local.match && <span style={{ fontSize: 10, fontStyle: 'italic', color: 'var(--vscode-descriptionForeground)' }}>match</span>}
+      {!isFallback && local.match && <span className="mock-flag">match</span>}
       {!isFallback && local.reflect ? (
-        <span style={{ fontSize: 10, fontStyle: 'italic', color: 'var(--vscode-descriptionForeground)' }}>reflect</span>
+        <span className="mock-flag">reflect</span>
       ) : (
-        <span style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12, minWidth: 28, textAlign: 'right' }}>{local.status ?? 200}</span>
+        <span className="mock-status">{local.status ?? 200}</span>
       )}
       {local.format && (
-        <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)', minWidth: 28, textAlign: 'right' }}>{local.format}</span>
+        <span className="mock-format">{local.format}</span>
       )}
       <Actions />
     </div>
@@ -233,17 +230,17 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
 
   /* ─── Expanded editor ─── */
   return (
-    <div style={{ width: '100%' }}>
+    <div className="mmt-fill">
       {summary}
-      <div style={{ padding: '8px 0 4px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="mock-form-stack">
         {/* Method */}
         {!isFallback && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Method</span>
+          <div className="mock-form-row">
+            <span className="mock-form-label">Method</span>
             <select
               value={method}
               onChange={e => commitWith({ method: e.target.value as any })}
-              style={{ flex: 1, padding: '4px 6px' }}
+              className="mock-form-control"
             >
               {METHODS.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
             </select>
@@ -251,36 +248,36 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         )}
         {/* Path */}
         {!isFallback && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Path</span>
+          <div className="mock-form-row">
+            <span className="mock-form-label">Path</span>
             <input
               value={local.path || ''}
               onChange={e => setField({ path: e.target.value })}
               {...blurOrEnter}
               placeholder="/path/:param"
-              style={{ flex: 1, width: '100%' }}
+              className="mock-form-control"
             />
           </div>
         )}
         {/* Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Status</span>
+        <div className="mock-form-row">
+          <span className="mock-form-label">Status</span>
           <input
             type="number"
             value={local.status ?? 200}
             onChange={e => setField({ status: parseInt(e.target.value, 10) || 200 })}
             {...blurOrEnter}
             min={100} max={599}
-            style={{ flex: 1, width: '100%' }}
+            className="mock-form-control"
           />
         </div>
         {/* Format */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Format</span>
+        <div className="mock-form-row">
+          <span className="mock-form-label">Format</span>
           <select
             value={local.format || ''}
             onChange={e => commitWith({ format: (e.target.value || undefined) as any })}
-            style={{ flex: 1, padding: '4px 6px' }}
+            className="mock-form-control"
           >
             <option value="">auto</option>
             {FORMATS.map(f => <option key={f} value={f}>{getFormatLabel(f)}</option>)}
@@ -288,21 +285,21 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         </div>
         {/* Name */}
         {!isFallback && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Name</span>
+          <div className="mock-form-row">
+            <span className="mock-form-label">Name</span>
             <input
               value={local.name || ''}
               onChange={e => setField({ name: e.target.value || undefined })}
               {...blurOrEnter}
               placeholder="optional"
-              style={{ flex: 1, width: '100%' }}
+              className="mock-form-control"
             />
           </div>
         )}
         {/* Delay */}
         {!isFallback && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Delay</span>
+          <div className="mock-form-row">
+            <span className="mock-form-label">Delay</span>
             <input
               type="number"
               value={local.delay ?? ''}
@@ -310,15 +307,15 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
               {...blurOrEnter}
               min={0}
               placeholder="inherited"
-              style={{ flex: 1, width: '100%' }}
+              className="mock-form-control"
             />
-            <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)' }}>ms</span>
+            <span className="unit-suffix">ms</span>
           </div>
         )}
         {/* Reflect */}
         {!isFallback && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Reflect</span>
+          <div className="mock-form-row">
+            <span className="mock-form-label">Reflect</span>
             <input
               type="checkbox"
               checked={!!local.reflect}
@@ -327,26 +324,23 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           </div>
         )}
         {/* Body */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0, paddingTop: 4 }}>Body</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="mock-form-row is-top">
+          <span className="mock-form-label is-area">Body</span>
+          <div className="field-grow">
             <textarea
               value={localBody}
               onChange={e => updateLocalBody(e.target.value)}
               onBlur={() => commit()}
               onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) { (e.target as HTMLElement).blur(); } }}
               placeholder="Response body"
-              style={{
-                width: '100%', height: 120, resize: 'vertical', overflow: 'auto',
-                fontFamily: 'var(--vscode-editor-font-family, monospace)', fontSize: 12,
-              }}
+              className="mock-body"
             />
           </div>
         </div>
         {/* Headers */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0, height: 30, lineHeight: '30px' }}>Headers</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="mock-form-row is-top">
+          <span className="mock-form-label is-headers">Headers</span>
+          <div className="field-grow">
             <KSVEditor
               label=""
               value={local.headers}
