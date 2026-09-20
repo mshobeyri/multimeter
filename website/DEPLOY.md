@@ -139,8 +139,11 @@ curl https://test.mmt.dev/status/201
 # Delay
 curl https://test.mmt.dev/delay/2000
 
-# JSON sample
+# JSON sample (pretty-printed)
 curl https://test.mmt.dev/json
+
+# Compact JSON (single line, Content-Type: application/json)
+curl -sD - https://test.mmt.dev/json-compact
 
 # Basic auth
 curl -u user:pass https://test.mmt.dev/auth/basic
@@ -162,7 +165,8 @@ curl https://test.mmt.dev/
 | `/ip` | GET | Return client IP address |
 | `/method/:method` | ANY | 200 if method matches, 405 otherwise |
 | `/redirect/:n` | GET | Redirect n times (max 20), then 200 |
-| `/json` | GET | Sample JSON response |
+| `/json` | GET | Sample JSON response (pretty-printed) |
+| `/json-compact` | GET | Same JSON, compact (no whitespace), `Content-Type: application/json` |
 | `/xml` | GET | Sample XML response |
 | `/html` | GET | Sample HTML response |
 | `/bytes/:n` | GET | Random bytes (max 100KB) |

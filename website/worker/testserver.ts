@@ -13,7 +13,8 @@
  *   GET  /ip                   → return client IP
  *   ANY  /method/:method       → 200 if request method matches, 405 otherwise
  *   GET  /redirect/:n          → redirect n times (max 20), then return 200
- *   GET  /json                 → sample JSON response
+ *   GET  /json                 → sample JSON response (pretty-printed)
+ *   GET  /json-compact         → same JSON, compact (no whitespace)
  *   GET  /xml                  → sample XML response
  *   GET  /html                 → sample HTML response
  *   GET  /bytes/:n             → n random bytes (max 100KB)
@@ -71,6 +72,7 @@ function matchRoute(path: string): Handler | null {
   if (p === '/headers') { return handleHeaders; }
   if (p === '/ip') { return handleIp; }
   if (p === '/json') { return handleJson; }
+  if (p === '/json-compact') { return handleJsonCompact; }
   if (p === '/xml') { return handleXml; }
   if (p === '/html') { return handleHtml; }
   if (p === '/cookies') { return handleCookies; }
@@ -189,22 +191,28 @@ function handleRedirect(url: URL, n: number): Response {
   });
 }
 
+const SAMPLE_JSON = {
+  id: 1,
+  name: 'Multimeter',
+  description: 'API testing tool',
+  version: '1.0.0',
+  tags: ['api', 'testing', 'automation'],
+  nested: {
+    enabled: true,
+    count: 42,
+    items: [
+      { key: 'alpha', value: 1 },
+      { key: 'beta', value: 2 },
+    ],
+  },
+};
+
 function handleJson(): Response {
-  return jsonResponse({
-    id: 1,
-    name: 'Multimeter',
-    description: 'API testing tool',
-    version: '1.0.0',
-    tags: ['api', 'testing', 'automation'],
-    nested: {
-      enabled: true,
-      count: 42,
-      items: [
-        { key: 'alpha', value: 1 },
-        { key: 'beta', value: 2 },
-      ],
-    },
-  });
+  return jsonResponse(SAMPLE_JSON);
+}
+
+function handleJsonCompact(): Response {
+  return jsonResponse(SAMPLE_JSON, 200, {}, { compact: true });
 }
 
 function handleXml(): Response {
@@ -357,8 +365,10 @@ function jsonResponse(
   data: unknown,
   status = 200,
   extraHeaders: Record<string, string> = {},
+  options: { compact?: boolean } = {},
 ): Response {
-  return new Response(JSON.stringify(data, null, 2), {
+  const body = options.compact ? JSON.stringify(data) : JSON.stringify(data, null, 2);
+  return new Response(body, {
     status,
     headers: {
       'Content-Type': 'application/json',
@@ -470,7 +480,8 @@ function endpointList(): string[] {
     'GET  /ip                   → return client IP address',
     'ANY  /method/:method       → 200 if request method matches, 405 otherwise',
     'GET  /redirect/:n          → redirect n times (max 20), then 200',
-    'GET  /json                 → sample JSON response',
+    'GET  /json                 → sample JSON response (pretty-printed)',
+    'GET  /json-compact         → sample JSON response (compact, application/json)',
     'GET  /xml                  → sample XML response',
     'GET  /html                 → sample HTML response',
     'GET  /bytes/:n             → n random bytes (max 100KB)',
