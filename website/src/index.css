@@ -70,9 +70,9 @@ body {
   align-items: center;
 }
 
-/* Site navbar: plain CSS only — never Tailwind `hidden` + breakpoint utilities.
-   Those clipped / failed to repaint in Chrome on this site (deploy looked "stuck").
-   Open state is `.site-nav.is-open`; panel stays mounted so toggles only flip display. */
+/* Site navbar layout only — show/hide of desktop vs mobile chrome is done in
+   React via matchMedia (see Navbar.tsx). Do not add display:none breakpoints
+   or Tailwind `hidden md:flex` here; Chrome has failed those on this site. */
 .site-nav-bar {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -82,10 +82,6 @@ body {
 
 .site-nav-brand {
   justify-self: start;
-}
-
-.site-nav-desktop {
-  display: none;
 }
 
 .site-nav-toggle {
@@ -100,35 +96,19 @@ body {
 }
 
 .site-nav-mobile {
-  display: none;
-}
-
-.site-nav.is-open .site-nav-mobile {
   display: block;
 }
 
-/* 1024px: enough width for logo + 7 links + GitHub + Install CTA */
-@media (min-width: 1024px) {
-  .site-nav-bar {
-    grid-template-columns: 1fr auto 1fr;
-  }
+.site-nav[data-mode='desktop'] .site-nav-bar {
+  grid-template-columns: 1fr auto 1fr;
+}
 
-  .site-nav-desktop {
-    display: flex;
-  }
+.site-nav[data-mode='desktop'] .site-nav-links {
+  justify-self: center;
+}
 
-  .site-nav-links {
-    justify-self: center;
-  }
-
-  .site-nav-actions {
-    justify-self: end;
-  }
-
-  .site-nav-toggle,
-  .site-nav.is-open .site-nav-mobile {
-    display: none;
-  }
+.site-nav[data-mode='desktop'] .site-nav-actions {
+  justify-self: end;
 }
 
 @media (max-width: 1023px) {
