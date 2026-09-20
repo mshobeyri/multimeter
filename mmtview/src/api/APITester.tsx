@@ -383,7 +383,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       </div>
 
       <div className="apitest-tabs-row">
-        <div className="tab-bar" style={{ gap: 8 }}>
+        <div className="tab-bar is-gap">
           {TAB_OPTIONS
             .filter(tab => {
               // Hide body/params/cookies for graphql/grpc protocols
@@ -446,7 +446,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             outputs={api.outputs}
           />
         ) : shouldShowDoc() ? (
-          <div style={{ padding: "12px", color: "var(--vscode-disabledForeground, #666)", fontSize: "12px" }}>
+          <div className="apitest-empty">
             No description available.
           </div>
         ) : null}
@@ -521,8 +521,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
         {shouldShowGrpc() && (
           <>
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <div style={{ flex: 1 }}>
+            <div className="field-inline is-gap is-spaced">
+              <div className="field-grow">
                 <div className="label">Service</div>
                 <input
                   type="text"
@@ -531,10 +531,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   onChange={e => {
                     updateField("grpc", { ...requestData?.grpc, ...api.grpc, service: e.target.value });
                   }}
-                  style={{ width: "100%" }}
+                  className="mmt-fill"
                 />
               </div>
-              <div style={{ flex: 1 }}>
+              <div className="field-grow">
                 <div className="label">Method</div>
                 <input
                   type="text"
@@ -543,7 +543,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   onChange={e => {
                     updateField("grpc", { ...requestData?.grpc, ...api.grpc, method: e.target.value });
                   }}
-                  style={{ width: "100%" }}
+                  className="mmt-fill"
                 />
               </div>
             </div>
@@ -560,16 +560,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
         {shouldShowInputs() && (
           <>
-            <div style={{ paddingBottom: 20, width: "100%" }}>
+            <div className="apitest-example">
               <div className="label">Example</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="field-inline is-gap">
                 <select
                   value={selectedExampleIdx ?? ""}
                   onChange={e => {
                     const newIdx = Number(e.target.value);
                     handleExampleChange(newIdx);
                   }}
-                  style={{ flex: 1, minWidth: 0 }}
+                  className="field-grow"
                 >
                   <option value={-1}>Defaults</option>
                   {examples
@@ -582,11 +582,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 </select>
                 <button
                   type="button"
-                  className="button-icon"
+                  className="button-icon no-shrink"
                   onClick={handleAddAsExample}
                   title="Add as example"
                   aria-label="Add as example"
-                  style={{ flexShrink: 0 }}
                 >
                   <span className="codicon codicon-add" aria-hidden />
                 </button>

@@ -686,7 +686,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         <ul
           {...containerProps}
           className={['tree-list', containerProps.className].filter(Boolean).join(' ')}
-          style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}
+          style={containerProps.style}
         >
           {children}
         </ul>

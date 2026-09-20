@@ -303,6 +303,34 @@ select.is-invalid {
   margin-bottom: 12px;
 }
 
+.label.is-flush {
+  padding-top: 0;
+}
+
+.label.is-follow {
+  padding-top: 8px;
+}
+
+.field-stack.is-compact {
+  gap: 3px;
+}
+
+.param-key {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.param-warn {
+  font-size: 10px;
+  color: #ffe066;
+}
+
+.row-spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .field-pad-lg {
   padding: 8px;
   width: 100%;
@@ -450,6 +478,45 @@ select.is-invalid {
 .op-select.is-grow {
   flex: 1;
   min-width: 0;
+}
+
+.op-select-face {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.op-select-face select {
+  width: 100%;
+  color: transparent;
+  background-color: transparent;
+}
+
+.op-select-face option {
+  color: var(--vscode-foreground);
+}
+
+.op-select-value {
+  position: absolute;
+  left: 8px;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vscode-foreground);
+}
+
+.op-select-percent {
+  width: 68px;
+  flex: 0 0 auto;
+}
+
+.op-select-velocity {
+  width: 88px;
+  flex: 0 0 auto;
 }
 
 .ghost-add {

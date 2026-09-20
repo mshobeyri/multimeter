@@ -91,7 +91,6 @@ const HighlightedBody: React.FC<HighlightedBodyProps> = ({
   return (
     <div
       className="highlighted-body"
-      style={{ marginTop: 6 }}
       onMouseDown={stopSelectGesture}
       onClick={stopSelectGesture}
       onDoubleClick={stopSelectGesture}

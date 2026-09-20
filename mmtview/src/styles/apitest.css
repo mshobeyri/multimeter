@@ -150,6 +150,17 @@
   padding: 0 0 8px;
 }
 
+.apitest-empty {
+  padding: 12px;
+  color: var(--vscode-disabledForeground, #666);
+  font-size: 12px;
+}
+
+.apitest-example {
+  width: 100%;
+  padding-bottom: 20px;
+}
+
 .apitest-tab-count {
   margin-left: 3px;
   color: var(--vscode-descriptionForeground, #858585);

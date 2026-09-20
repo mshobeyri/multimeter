@@ -356,6 +356,10 @@ span.vertical.disabled:active {
   font-size: 14px;
 }
 
+.highlighted-body {
+  margin-top: 6px;
+}
+
 .highlighted-body,
 .highlighted-body-pre,
 .report-selectable,
@@ -921,6 +925,10 @@ button:focus {
   flex-wrap: wrap;
 }
 
+.tab-bar.is-gap {
+  gap: 8px;
+}
+
 .tab-button {
   padding: 8px 12px;
   border: none;
@@ -1066,6 +1074,37 @@ button:focus {
 }
 
 /* Doc preview in Interface editor */
+.doc-preview {
+  padding: 8px 12px;
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.6;
+  color: var(--vscode-editor-foreground, #ccc);
+}
+
+.doc-preview-body {
+  padding-left: 12px;
+}
+
+.doc-preview-ref {
+  margin-bottom: 6px;
+  font-size: 11px;
+  padding-left: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.desc-ref {
+  color: var(--vscode-textLink-foreground, #3794ff);
+  background: rgba(14, 99, 156, 0.15);
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.flowchart-title-icon {
+  margin-right: 6px;
+}
+
 .doc-preview p { margin: 4px 0; }
 .doc-preview h4 { font-size: var(--vscode-font-size, 13px); margin: 8px 0 4px; font-weight: 600; }
 .doc-preview h3 { font-size: 14px; margin: 8px 0 4px; font-weight: 600; }
@@ -1392,6 +1431,10 @@ button:focus {
 
 .tree-grip.is-flow {
   height: 28px;
+}
+
+.tree-grip.is-offset {
+  margin-top: 4px;
 }
 
 .tree-item-bar {
@@ -1733,6 +1776,17 @@ button:focus {
 .popup-menu.is-wide {
   min-width: 220px;
   padding: 4px;
+}
+
+.popup-menu.is-anchored {
+  left: auto;
+  right: 0;
+  top: 100%;
+  margin-top: 6px;
+}
+
+.mock-add-method {
+  font-weight: 600;
 }
 
 .menu-item {

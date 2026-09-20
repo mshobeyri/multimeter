@@ -305,12 +305,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
         </PrimaryButton>
         {addMenuOpen && (
           <div
-            style={{
-              position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 1000,
-              background: 'var(--vscode-editorWidget-background,#232323)',
-              border: '1px solid var(--vscode-editorWidget-border,#333)',
-              borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200,
-            }}
+            className="popup-menu is-anchored"
             onPointerDown={e => e.stopPropagation()}
             onMouseDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
@@ -318,12 +313,11 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
             {METHODS_TO_ADD.map(m => (
               <button
                 key={m}
-                className="action-button"
-                style={{ width: '100%', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
+                className="action-button menu-item"
                 onPointerUp={() => { setAddMenuOpen(false); addEndpoint(m); }}
               >
                 <span className={`codicon ${methodIconFor(m)} icon-sm`} style={{ color: methodTextColor(m) }} aria-hidden />
-                <span style={{ fontWeight: 600 }}>{m.toUpperCase()}</span>
+                <span className="mock-add-method">{m.toUpperCase()}</span>
               </button>
             ))}
           </div>
@@ -423,8 +417,8 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                   title="Drag to reorder"
                   onMouseDownCapture={(e) => e.stopPropagation()}
                   onPointerDownCapture={(e) => e.stopPropagation()}
-                  className={['tree-grip', context.interactiveElementProps?.className].filter(Boolean).join(' ')}
-                  style={{ ...(context.interactiveElementProps?.style || {}), marginTop: 4 }}
+                  className={['tree-grip', 'is-offset', context.interactiveElementProps?.className].filter(Boolean).join(' ')}
+                  style={context.interactiveElementProps?.style}
                 >
                   <span className="codicon codicon-gripper" aria-hidden />
                 </span>
@@ -437,8 +431,8 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
         renderItemsContainer={({ children, containerProps }) => (
           <ul
             {...containerProps}
-            className={['tree-list', containerProps.className].filter(Boolean).join(' ')}
-            style={{ ...(containerProps.style || {}) }}
+          className={['tree-list', containerProps.className].filter(Boolean).join(' ')}
+          style={containerProps.style}
           >
             {children}
           </ul>

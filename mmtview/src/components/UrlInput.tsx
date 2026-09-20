@@ -68,10 +68,9 @@ const UrlInput: React.FC<UrlInputProps> = ({
 
   return (
     <input
-      className={className}
+      className={["mmt-fill", className].filter(Boolean).join(" ")}
       value={inputValue}
       onChange={handleChange}
-      style={{ width: "100%" }}
     />
   );
 };

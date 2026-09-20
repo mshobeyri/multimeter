@@ -182,13 +182,13 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="col-fill">
       <PanelEditHeader
         onBack={onBack}
         backTitle="Back"
         title={
           <>
-            <span className="codicon codicon-type-hierarchy-sub" aria-hidden style={{ marginRight: 6 }} />
+            <span className="codicon codicon-type-hierarchy-sub flowchart-title-icon" aria-hidden />
             {title || 'Flow chart'}
           </>
         }
@@ -203,7 +203,7 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
           </button>
         }
       />
-      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+      <div className="col-fill-body">
         <ReactFlowProvider>
           <ReactFlow
             key={refreshVersion}

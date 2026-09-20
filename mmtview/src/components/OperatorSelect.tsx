@@ -57,15 +57,10 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, classN
 
   return (
     <div className={["op-select", className].filter(Boolean).join(" ")} style={style}>
-      <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+      <div className="op-select-face">
         <select
           value={selectValue}
           onChange={e => updateOperator(e.target.value as CheckOps)}
-          style={{
-            width: "100%",
-            color: "transparent",
-            backgroundColor: "transparent",
-          }}
           title={title}
         >
           {safeList(selectableOpsList).map((relation) => (
@@ -73,26 +68,12 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, classN
               key={relation}
               value={relation}
               title={getOpOptionLabel(relation)}
-              style={{ color: "var(--vscode-foreground)" }}
             >
               {getOpOptionLabel(relation)}
             </option>
           ))}
         </select>
-        <span
-          style={{
-            position: "absolute",
-            left: 8,
-            right: 24,
-            top: "50%",
-            transform: "translateY(-50%)",
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            color: "var(--vscode-foreground)",
-          }}
-        >
+        <span className="op-select-value">
           {selectValue}
         </span>
       </div>
@@ -105,7 +86,7 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, classN
           value={fuzzyPercent}
           onChange={e => updatePercent(Number(e.target.value))}
           title="Fuzzy match percentage"
-          style={{ width: 68, flex: '0 0 auto' }}
+          className="op-select-percent"
         />
       )}
       {isTimeAnyOperator(value) && (
@@ -116,7 +97,7 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, classN
           onBlur={commitVelocity}
           title="Acceptable time difference (velocity)"
           placeholder="1s"
-          style={{ width: 88, flex: '0 0 auto' }}
+          className="op-select-velocity"
         />
       )}
     </div>

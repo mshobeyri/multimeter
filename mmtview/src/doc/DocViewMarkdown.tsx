@@ -139,7 +139,7 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
   
 
   return (
-    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div className="col-fill">
       <div className="run-action-bar">
         <PrimaryButton icon="open-preview" onClick={handleOpenPreview}>
           Show Preview
@@ -150,18 +150,7 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
           </PrimaryButton>
         </HideWhenYamlError>
       </div>
-      <pre
-        style={{
-          flex: 1,
-          margin: 0,
-          padding: 8,
-          minHeight: 0,
-          overflow: 'auto',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          overflowWrap: 'anywhere'
-        }}
-      >{md}</pre>
+      <pre className="doc-md-pre">{md}</pre>
     </div>
   );
 };

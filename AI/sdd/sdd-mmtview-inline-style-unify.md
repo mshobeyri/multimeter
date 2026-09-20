@@ -30,6 +30,7 @@ Replace repeated static `style={{ }}` in `mmtview/src` with shared `App.css` cla
 - [x] Remaining editors: SearchableTagInput static chrome, DescriptionEditor, DocOverview/Edit, EnvironmentView, TestFlow/TestFlowBox static chrome, TestTest, ViewSelector
 - [x] Split `App.css` by feature (`styles/`) so `App.tsx` imports the pieces; `res/` untouched
 - [x] Extract remaining copy-pasted JSX into shared React components (`ReportLevelFields`, `CheckClauseList`, `TreeChevron`/`TreeFolderArrow`/`TreeExpandButton`, `PopupMenu`/`KebabMenu`, `StatusGlyph`/`SuiteKindIcon`)
+- [x] Extract leftover static chrome (warnings, params, API tester, operator overlay, fill hosts, doc/flowchart shells, panel crash)
 
 ## Success
 

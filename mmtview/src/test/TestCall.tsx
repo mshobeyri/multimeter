@@ -427,12 +427,11 @@ const TestCall: React.FC<TestCallProps> = ({
                   const problemMessage = hasProblem ? validationProblems.inputProblems.find(p => p.inputKey === k)?.message : undefined;
                   const valueForInput = typeof inputs[k] === 'string' ? inputs[k] as string : JSON.stringify(inputs[k]);
                   return (
-                    <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <div style={{ fontSize: '12px', opacity: 0.85 }}>{k}
+                    <div key={k} className="field-stack is-compact">
+                      <div className="param-key">{k}
                         {hasProblem && problemMessage && (
                           <span
-                            className="action-button codicon codicon-warning"
-                            style={{ fontSize: "10px", color: "yellow"}}
+                            className="action-button codicon codicon-warning param-warn"
                             title={problemMessage}
                             aria-label={problemMessage}
                           />

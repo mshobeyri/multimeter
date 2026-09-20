@@ -103,61 +103,38 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs, baseP
   if (!descHtml && !inputsHtml && !outputsHtml) { return null; }
 
   const refLabel = ref ? description.trim() : '';
-  const contentPadding = { paddingLeft: 12 };
-
   return (
     <div
       className="doc-preview"
-      style={{
-        padding: "8px 12px",
-        fontSize: "var(--vscode-font-size, 13px)",
-        lineHeight: 1.6,
-        color: "var(--vscode-editor-foreground, #ccc)",
-      }}
       onClick={handleClick}
     >
       {descHtml && (
         <>
-          <div className="label" style={{ paddingTop: 0 }}>Description</div>
+          <div className="label is-flush">Description</div>
           {ref && (
-            <div
-              style={{
-                marginBottom: 6,
-                fontSize: 11,
-                paddingLeft: 12,
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-              }}
-            >
+            <div className="doc-preview-ref">
               <a
                 className="desc-ref"
                 href={resolvedRefHref}
                 title={refLabel}
-                style={{
-                  color: 'var(--vscode-textLink-foreground, #3794ff)',
-                  background: 'rgba(14, 99, 156, 0.15)',
-                  padding: '1px 5px',
-                  borderRadius: 4,
-                  textDecoration: 'none',
-                  cursor: 'pointer',
-                }}
               >
                 {refLabel}
               </a>
             </div>
           )}
-          <div style={contentPadding} dangerouslySetInnerHTML={{ __html: descHtml }} />
+          <div className="doc-preview-body" dangerouslySetInnerHTML={{ __html: descHtml }} />
         </>
       )}
       {inputsHtml && (
         <>
-          <div className="label" style={{ paddingTop: 8 }}>Inputs</div>
-          <div style={contentPadding} dangerouslySetInnerHTML={{ __html: inputsHtml }} />
+          <div className="label is-follow">Inputs</div>
+          <div className="doc-preview-body" dangerouslySetInnerHTML={{ __html: inputsHtml }} />
         </>
       )}
       {outputsHtml && (
         <>
-          <div className="label" style={{ paddingTop: 8 }}>Outputs</div>
-          <div style={contentPadding} dangerouslySetInnerHTML={{ __html: outputsHtml }} />
+          <div className="label is-follow">Outputs</div>
+          <div className="doc-preview-body" dangerouslySetInnerHTML={{ __html: outputsHtml }} />
         </>
       )}
     </div>

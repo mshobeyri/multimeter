@@ -803,3 +803,17 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.doc-elements-api-header {
+  cursor: pointer;
+}
+
+.doc-elements-api-title {
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+.doc-elements-api-chevron {
+  margin-left: 8px;
+  color: #888;
+}
