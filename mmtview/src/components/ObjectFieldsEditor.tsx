@@ -56,17 +56,9 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
 
     return (
         <div>
-            <div style={{ marginBottom: 8, fontWeight: 500 }}>Fields</div>
+            <div className="object-fields-title">Fields</div>
             {safeList(orderedFields).map(([name, type]) => (
-                <div
-                    key={name}
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: 4,
-                        width: "100%",
-                    }}
-                >
+                <div key={name} className="object-field-row">
                     {editingField === name ? (
                         <input
                             type="text"
@@ -75,11 +67,7 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
                             autoFocus
                             onChange={e => handleLiveEdit(name, e.target.value)}
                             onBlur={() => setEditingField(null)}
-                            style={{
-                                width: "40%",
-                                verticalAlign: "top",
-                                padding: "6px 8px",
-                            }}
+                            className="object-field-name"
                         />
                     ) : (
                         <input
@@ -87,19 +75,10 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
                             value={name}
                             readOnly
                             onFocus={() => startEditing(name)}
-                            style={{
-                                width: "40%",
-                                verticalAlign: "top",
-                                padding: "6px 8px",
-                            }}
+                            className="object-field-name"
                         />
                     )}
-                    <div style={{
-                        marginLeft: 8,
-                        width: "60%",
-                        display: "flex",
-                        alignItems: "center",
-                    }}>
+                    <div className="object-field-type">
                         <ValidatableSelect
                             value={type}
                             options={typeOptions.filter(opt => opt !== "object" && opt !== "object[]")}
@@ -109,20 +88,9 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
                         />
                         <button
                             onClick={() => handleRemove(name)}
-                            style={{
-                                width: 28,
-                                height: 28,
-                                marginLeft: 4,
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: "16px",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                            }}
+                            className="field-button"
                             title="Remove field"
-                        ><span className="codicon codicon-trash" style={{ fontSize: "16px" }}></span></button>
+                        ><span className="codicon codicon-trash"></span></button>
                     </div>
                 </div>
             ))}

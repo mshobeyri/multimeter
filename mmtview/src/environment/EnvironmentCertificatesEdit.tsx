@@ -120,7 +120,7 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
     <div>
       <div className="inner-box">
         <div className="label">Server CA Certificate</div>
-        <div style={{ padding: "5px" }}>
+        <div className="field-pad">
           <FilePickerInput
             value={caPath}
             onChange={(path) => handleCaPathChange(path)}
@@ -144,8 +144,8 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
           const envEnabled = passphraseMode === "env";
           const plainEnabled = passphraseMode === "plain";
           return (
-            <div key={idx} className="inner-box" style={{ margin: "5px" }}>
-              <div className="label" style={{ marginBottom: "8px" }}>Client</div>
+            <div key={idx} className="inner-box is-nested">
+              <div className="label is-spaced">Client</div>
               <FieldWithRemove
                 value={client.name}
                 onChange={(v: string) => handleClientChange(idx, { name: v })}
@@ -153,34 +153,32 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
                 placeholder="Certificate name"
               />
 
-              <div style={{ marginTop: "8px" }}>
-                <div className="label" style={{ fontSize: "12px" }}>Host Pattern</div>
+              <div className="field-block">
+                <div className="label label-sm">Host Pattern</div>
                 <input
                   type="text"
-                  className="input-field"
+                  className="input-field mmt-fill"
                   value={client.host}
                   onChange={(e) => handleClientChange(idx, { host: e.target.value })}
                   placeholder="e.g., *.api.example.com"
-                  style={{ width: "100%", boxSizing: "border-box" }}
                 />
               </div>
 
-              <div style={{ marginTop: "8px" }}>
-                <div className="label" style={{ fontSize: "12px" }}>Certificate</div>
+              <div className="field-block">
+                <div className="label label-sm">Certificate</div>
                 <select
-                  className="input-field"
+                  className="input-field mmt-fill"
                   value={materialMode}
                   onChange={(e) => handleClientMaterialMode(idx, e.target.value as ClientCertMaterialMode)}
                   aria-label="Client certificate format"
-                  style={{ width: "100%", boxSizing: "border-box" }}
                 >
                   <option value="pem">Cert + Key</option>
                   <option value="pfx">PFX / P12</option>
                 </select>
               </div>
 
-              <div style={{ marginTop: "8px" }}>
-                <div className={pemEnabled ? "label" : "label label-disabled"} style={{ fontSize: "12px" }}>CRT File</div>
+              <div className="field-block">
+                <div className={pemEnabled ? "label label-sm" : "label label-sm label-disabled"}>CRT File</div>
                 <FilePickerInput
                   value={client.cert || ""}
                   onChange={(v) => handleClientChange(idx, { cert: v || undefined })}
@@ -192,8 +190,8 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
                 />
               </div>
 
-              <div style={{ marginTop: "8px" }}>
-                <div className={pemEnabled ? "label" : "label label-disabled"} style={{ fontSize: "12px" }}>KEY File</div>
+              <div className="field-block">
+                <div className={pemEnabled ? "label label-sm" : "label label-sm label-disabled"}>KEY File</div>
                 <FilePickerInput
                   value={client.key || ""}
                   onChange={(v) => handleClientChange(idx, { key: v || undefined })}
@@ -205,8 +203,8 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
                 />
               </div>
 
-              <div style={{ marginTop: "8px" }}>
-                <div className={pfxEnabled ? "label" : "label label-disabled"} style={{ fontSize: "12px" }}>PFX / P12 File</div>
+              <div className="field-block">
+                <div className={pfxEnabled ? "label label-sm" : "label label-sm label-disabled"}>PFX / P12 File</div>
                 <FilePickerInput
                   value={client.pfx || ""}
                   onChange={(v) => handleClientChange(idx, { pfx: v || undefined })}
@@ -218,43 +216,40 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
                 />
               </div>
 
-              <div style={{ marginTop: "8px" }}>
-                <div className="label" style={{ fontSize: "12px" }}>Passphrase</div>
+              <div className="field-block">
+                <div className="label label-sm">Passphrase</div>
                 <select
-                  className="input-field"
+                  className="input-field mmt-fill"
                   value={passphraseMode}
                   onChange={(e) => handleClientPassphraseMode(idx, e.target.value as ClientCertPassphraseMode)}
                   aria-label="Passphrase source"
-                  style={{ width: "100%", boxSizing: "border-box" }}
                 >
                   <option value="env">Env var</option>
                   <option value="plain">Plain</option>
                 </select>
               </div>
 
-              <div style={{ marginTop: "8px" }}>
-                <div className={envEnabled ? "label" : "label label-disabled"} style={{ fontSize: "12px" }}>Passphrase env</div>
+              <div className="field-block">
+                <div className={envEnabled ? "label label-sm" : "label label-sm label-disabled"}>Passphrase env</div>
                 <input
                   type="text"
-                  className="input-field"
+                  className="input-field mmt-fill"
                   value={client.passphrase_env || ""}
                   onChange={(e) => handleClientChange(idx, { passphrase_env: e.target.value || undefined })}
                   placeholder="e.g., CERT_PASSPHRASE"
                   disabled={!envEnabled}
-                  style={{ width: "100%", boxSizing: "border-box" }}
                 />
               </div>
 
-              <div style={{ marginTop: "8px" }}>
-                <div className={plainEnabled ? "label" : "label label-disabled"} style={{ fontSize: "12px" }}>Passphrase plain</div>
+              <div className="field-block">
+                <div className={plainEnabled ? "label label-sm" : "label label-sm label-disabled"}>Passphrase plain</div>
                 <input
                   type="password"
-                  className="input-field"
+                  className="input-field mmt-fill"
                   value={client.passphrase_plain || ""}
                   onChange={(e) => handleClientChange(idx, { passphrase_plain: e.target.value || undefined })}
                   placeholder="Leave empty if not encrypted"
                   disabled={!plainEnabled}
-                  style={{ width: "100%", boxSizing: "border-box" }}
                 />
               </div>
             </div>
@@ -264,7 +259,7 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
         <PrimaryButton
           icon="add"
           onClick={handleAddClient}
-          style={{ margin: "12px 5px 5px" }}
+          className="is-inset"
         >
           Add Client Certificate
         </PrimaryButton>

@@ -50,54 +50,52 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
   };
 
   return (
-    <div style={{ width: '100%' }}>
-      <div style={{ display: "flex", verticalAlign: "center", gap: 4, width: '100%' }}>
+    <div className="mmt-fill">
+      <div className="field-inline">
         <input
           value={actual}
           placeholder="actual"
-          style={{ width: '100%' }}
+          className="mmt-fill"
           onChange={e => update({ actual: e.target.value })}
         />
         <OperatorSelect
           value={op}
           onChange={nextOp => update({ op: nextOp })}
-          style={{ width: 190, flex: '0 0 auto' }}
+          className="is-fixed"
           title="Comparison operator"
         />
         <input
           value={expected}
           placeholder="expected"
-          style={{ width: '100%' }}
+          className="mmt-fill"
           onChange={e => update({ expected: e.target.value })}
         />
       </div>
       {expanded && (
         <>
           <div className="label">Title</div>
-          <div style={{ padding: '5px' }}>
+          <div className="field-pad">
             <input
               value={title}
               placeholder="Title (shown inline)"
-              style={{ width: '100%' }}
               onChange={e => update({ title: e.target.value })}
             />
           </div>
           <div className="label">Details</div>
-          <div style={{ padding: '5px' }}>
+          <div className="field-pad">
             <textarea
               value={details}
               placeholder="Details (shown in the details panel)"
-              style={{ width: '100%', height: 60, resize: 'vertical' }}
+              className="field-details"
               onChange={e => update({ details: e.target.value })}
             />
           </div>
           <div className="label">Report</div>
-          <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div className="report-row">
+            <div className="report-item">
               <label 
                 htmlFor="mmt-report-internal"
                 title="Report level when running this test directly"
-                style={{ userSelect: 'none', fontSize: 12 }}
               >
                 Internal:
               </label>
@@ -105,18 +103,16 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
                 id="mmt-report-internal"
                 value={internalValue}
                 onChange={e => updateReport(e.target.value as ReportLevel, externalValue)}
-                style={{ fontSize: 12 }}
               >
                 {reportLevelOptions.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div className="report-item">
               <label 
                 htmlFor="mmt-report-external"
                 title="Report level when this test is imported or added to a suite"
-                style={{ userSelect: 'none', fontSize: 12 }}
               >
                 External:
               </label>
@@ -124,7 +120,6 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
                 id="mmt-report-external"
                 value={externalValue}
                 onChange={e => updateReport(internalValue, e.target.value as ReportLevel)}
-                style={{ fontSize: 12 }}
               >
                 {reportLevelOptions.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>

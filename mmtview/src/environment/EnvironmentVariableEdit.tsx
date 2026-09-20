@@ -83,9 +83,9 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
     return (
         <div>
             {safeList(boards).map((board, idx) => (
-                <div className="inner-box">
+                <div key={idx} className="inner-box">
                     <div className="label">Name</div>
-                    <div style={{ padding: "5px" }}>
+                    <div className="field-pad">
                         <FieldWithRemove
                             value={board.name}
                             onChange={v => handleBoardChange(idx, { name: v })}
@@ -94,7 +94,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                         />
                     </div>
                     <div className="label">Type</div>
-                    <div style={{ padding: "5px" }}>
+                    <div className="field-pad">
                         <ValidatableSelect
                             value={board.type}
                             options={safeList(typeOptions).map(opt => opt.value)}

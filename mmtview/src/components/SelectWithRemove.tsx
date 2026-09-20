@@ -20,19 +20,11 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
   disabled = false,
   removable = true,
 }) => (
-  <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
+  <div className={`select-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
       disabled={disabled}
-      style={{
-        width: removable ? "calc(100% - 32px)" : "100%",
-        verticalAlign: "top",
-        marginRight: removable ? 4 : 0,
-        background: disabled ? "#eee" : undefined,
-        color: disabled ? "#aaa" : undefined,
-        cursor: disabled ? "not-allowed" : undefined,
-      }}
     >
       <option value="" disabled>
         {placeholder || "Select..."}
@@ -48,23 +40,9 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
         onClick={onRemovePressed}
         title="Remove field"
         disabled={disabled}
-        style={{
-          width: 28,
-          height: 24,
-          background: "transparent",
-          border: "none",
-          cursor: disabled ? "not-allowed" : "pointer",
-          fontWeight: "bold",
-          fontSize: "14px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 0,
-          zIndex: 1,
-          opacity: disabled ? 0.5 : 1,
-        }}
+        className="field-button"
       >
-        <span className="codicon codicon-close action-button" style={{ fontSize: "16px", }}></span>
+        <span className="codicon codicon-close action-button"></span>
       </button>
     )}
   </div>

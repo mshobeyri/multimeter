@@ -102,9 +102,9 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
     return (
         <div>
             {safeList(boards).map((board, boardIdx) => (
-                <div key={boardIdx} className="inner-box" style={{ paddingTop: "30px" }}>
+                <div key={boardIdx} className="inner-box is-preset">
                     <span className="label">Preset</span>
-                    <div style={{ padding: "5px" }}>
+                    <div className="field-pad">
                         <FieldWithRemove
                             value={board.name}
                             onChange={v => handleBoardChange(boardIdx, { name: v })}
@@ -112,11 +112,11 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                             placeholder="Preset name (e.g. runner)"
                         />
                     </div>
-                    <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
+                    <div className="horizontal-line is-section" />
                     {safeList(board.values).map((v, envIdx) => (
-                        <div className="inner-box">
+                        <div key={envIdx} className="inner-box">
                             <div className="label">Name</div>
-                            <div style={{ padding: "5px" }}>
+                            <div className="field-pad">
                                 <FieldWithRemove
                                     value={v.env}
                                     onChange={envName => handleEnvChange(boardIdx, envIdx, { env: envName })}

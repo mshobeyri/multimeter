@@ -59,13 +59,10 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
     .map(v => v.name);
 
   return (
-    <div className="inner-box" >
-      <div
-        className="VariableEditor"
-        style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
-      >
+    <div className="inner-box">
+      <div className="mmt-fill">
         <div className="label">Name</div>
-        <div style={{ padding: "8px" }}>
+        <div className="field-pad-lg">
           <FieldWithRemove
             value={variable.name || ""}
             onChange={v => updateField({ name: v })}
@@ -74,7 +71,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           />
         </div>
         <div className="label">Type</div>
-        <div style={{ padding: "8px" }}>
+        <div className="field-pad-lg">
           <ValidatableSelect
             value={variable.type || ""}
             options={[
@@ -90,7 +87,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           variable[opt as keyof Variable] !== undefined ? (
             <div key={opt}>
               <div className="label">{opt}</div>
-              <div style={{ padding: "8px", position: "relative" }}>
+              <div className="field-pad-lg is-relative">
                 <FieldWithRemove
                   value={variable[opt as keyof Variable] as string || ""}
                   onChange={v => updateField({ [opt]: v })}
@@ -117,13 +114,13 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
 
         <div className="label">Optional fields</div>
         {(availableOptionals.length > 0 || (variable.type === "object" || variable.type === "object[]")) && (
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={addType}
               onChange={e => {
                 if (e.target.value) handleAdd(e.target.value);
               }}
-              style={{ width: "40%" }}
+              className="select-narrow"
             >
               <option value="">optionals...</option>
               {safeList(availableOptionals).map(opt => (

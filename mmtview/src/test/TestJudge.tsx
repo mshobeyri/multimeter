@@ -107,11 +107,11 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
   const reportLevels: ReportLevel[] = ['all', 'fails', 'none'];
 
   return (
-    <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+    <div className="mmt-fill">
       <select
         value={aliases.includes(currentAlias) ? currentAlias : ''}
         onChange={(e) => emit(buildObj({ judge: e.target.value }))}
-        style={{ width: '100%' }}
+        className="mmt-fill"
       >
         <option value="">{aliases.length ? 'select judge' : 'no judge imports'}</option>
         {aliases.map((a) => (
@@ -122,25 +122,23 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
       {expanded && (
         <>
       <div className="label">Id</div>
-      <div style={{ padding: '5px' }}>
+      <div className="field-pad">
         <input
           type="text"
           value={currentId}
           onChange={(e) => emit(buildObj({ id: e.target.value }))}
           disabled={!currentAlias}
-          style={{ width: '100%' }}
           placeholder="id"
         />
       </div>
 
       <div className="label">Title</div>
-      <div style={{ padding: '5px' }}>
+      <div className="field-pad">
         <input
           type="text"
           value={currentTitle}
           onChange={(e) => emit(buildObj({ title: e.target.value }))}
           disabled={!currentAlias}
-          style={{ width: '100%' }}
           placeholder="title"
         />
       </div>
@@ -153,8 +151,8 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
         valuePlaceholder={`\${reply}`}
       />
 
-      <div className="label" style={{ marginBottom: 0 }}>Expect metrics (soft)</div>
-      <div style={{ padding: '4px 5px 0', fontSize: 11, opacity: 0.7 }}>
+      <div className="label is-tight">Expect metrics (soft)</div>
+      <div className="field-hint">
         Soft fail: report and continue. Metric names are free-form (threshold 0..1).
       </div>
       <KVEditor
@@ -171,8 +169,8 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
         placeholder="Add criterion..."
       />
 
-      <div className="label" style={{ marginBottom: 0 }}>Require metrics (hard)</div>
-      <div style={{ padding: '4px 5px 0', fontSize: 11, opacity: 0.7 }}>
+      <div className="label is-tight">Require metrics (hard)</div>
+      <div className="field-hint">
         Hard fail stops the test. Prefer lower thresholds than expect when using the same metric.
       </div>
       <KVEditor
@@ -190,8 +188,8 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
       />
 
       <div className="label">Report</div>
-      <div style={{ display: 'flex', gap: 8, padding: '5px', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+      <div className="report-row">
+        <label className="report-item">
           internal
           <select
             value={reportInternal}
@@ -200,7 +198,7 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
             {reportLevels.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+        <label className="report-item">
           external
           <select
             value={reportExternal}

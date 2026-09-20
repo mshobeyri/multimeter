@@ -291,35 +291,34 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
               ))}
             </datalist>
             {expectList.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="field-stack is-loose">
                 {expectList.map((row, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <div key={i} className="field-inline">
                     <input
                       list="http-response-fields"
                       value={row.field}
                       onChange={e => handleExpectPartChange(i, 'field', e.target.value)}
-                      style={{ flex: 2, minWidth: 0 }}
+                      className="field-flex-2"
                       title="Response path to check"
                       placeholder="body.message"
                     />
                     <OperatorSelect
                       value={row.op as any}
                       onChange={nextOp => handleExpectPartChange(i, 'op', nextOp)}
-                      style={{ flex: 1, minWidth: 0 }}
+                      className="is-grow"
                       title="Comparison operator"
                     />
                     <input
                       type="text"
                       value={row.expected}
                       onChange={e => handleExpectPartChange(i, 'expected', e.target.value)}
-                      style={{ flex: 2, minWidth: 0 }}
+                      className="field-flex-2"
                       placeholder="expected value"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveExpect(i)}
-                      className="action-button codicon codicon-close"
-                      style={{ flexShrink: 0 }}
+                      className="action-button codicon codicon-close no-shrink"
                       title="Remove expect"
                       aria-label="Remove expect"
                     />
@@ -327,19 +326,13 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                 ))}
               </div>
             ) : (
-              <div style={{ opacity: 0.7 }}>No expectations</div>
+              <div className="muted">No expectations</div>
             )}
-            <div style={{ marginTop: 8 }}>
+            <div className="field-block">
               <button
                 type="button"
                 onClick={handleAddExpect}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
+                className="ghost-add"
               >
                 + Add expect
               </button>
@@ -354,35 +347,34 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
               ))}
             </datalist>
             {requireList.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="field-stack is-loose">
                 {requireList.map((row, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <div key={i} className="field-inline">
                     <input
                       list="http-require-response-fields"
                       value={row.field}
                       onChange={e => handleRequirePartChange(i, 'field', e.target.value)}
-                      style={{ flex: 2, minWidth: 0 }}
+                      className="field-flex-2"
                       title="Response path to require"
                       placeholder="status"
                     />
                     <OperatorSelect
                       value={row.op as any}
                       onChange={nextOp => handleRequirePartChange(i, 'op', nextOp)}
-                      style={{ flex: 1, minWidth: 0 }}
+                      className="is-grow"
                       title="Comparison operator"
                     />
                     <input
                       type="text"
                       value={row.expected}
                       onChange={e => handleRequirePartChange(i, 'expected', e.target.value)}
-                      style={{ flex: 2, minWidth: 0 }}
+                      className="field-flex-2"
                       placeholder="required value"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveRequire(i)}
-                      className="action-button codicon codicon-close"
-                      style={{ flexShrink: 0 }}
+                      className="action-button codicon codicon-close no-shrink"
                       title="Remove require"
                       aria-label="Remove require"
                     />
@@ -390,19 +382,13 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                 ))}
               </div>
             ) : (
-              <div style={{ opacity: 0.7 }}>No requirements</div>
+              <div className="muted">No requirements</div>
             )}
-            <div style={{ marginTop: 8 }}>
+            <div className="field-block">
               <button
                 type="button"
                 onClick={handleAddRequire}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
+                className="ghost-add"
               >
                 + Add require
               </button>
@@ -412,29 +398,27 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           {(expectList.length > 0 || requireList.length > 0) && (
             <>
           <div className="label">Report</div>
-          <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <label title="Report level when running this test directly" style={{ userSelect: 'none', fontSize: 12 }}>
+          <div className="report-row">
+            <div className="report-item">
+              <label title="Report level when running this test directly">
                 Internal:
               </label>
               <select
                 value={reportInternalValue}
                 onChange={e => handleReportChange(e.target.value as ReportLevel, reportExternalValue)}
-                style={{ fontSize: 12 }}
               >
                 {reportLevelOptions.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <label title="Report level when this test is imported or added to a suite" style={{ userSelect: 'none', fontSize: 12 }}>
+            <div className="report-item">
+              <label title="Report level when this test is imported or added to a suite">
                 External:
               </label>
               <select
                 value={reportExternalValue}
                 onChange={e => handleReportChange(reportInternalValue, e.target.value as ReportLevel)}
-                style={{ fontSize: 12 }}
               >
                 {reportLevelOptions.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>

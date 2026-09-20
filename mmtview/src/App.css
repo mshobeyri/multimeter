@@ -858,6 +858,10 @@ button:focus {
   flex-shrink: 0;
 }
 
+.horizontal-line.is-section {
+  margin: 12px 0;
+}
+
 /* Doc preview in Interface editor */
 .doc-preview p { margin: 4px 0; }
 .doc-preview h4 { font-size: var(--vscode-font-size, 13px); margin: 8px 0 4px; font-weight: 600; }
@@ -993,6 +997,12 @@ button:focus {
   margin-top: 4px;
 }
 
+.field-inline.is-wrap {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .field-stack {
   display: flex;
   flex-direction: column;
@@ -1073,6 +1083,224 @@ button:focus {
 
 .list-editor {
   margin-right: 10px;
+}
+
+.is-invalid {
+  color: var(--vscode-errorForeground, #f14c4c);
+  border-color: var(--vscode-errorForeground, #f14c4c);
+}
+
+select.is-invalid {
+  box-shadow: 0 0 0 1px var(--vscode-errorForeground, #f14c4c);
+}
+
+.select-with-remove {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.select-with-remove select {
+  width: 100%;
+  vertical-align: top;
+}
+
+.select-with-remove.has-remove select {
+  width: calc(100% - 32px);
+  margin-right: 4px;
+}
+
+.select-with-remove.is-disabled select {
+  background: var(--vscode-input-background, #eee);
+  color: var(--vscode-disabledForeground, #aaa);
+  cursor: not-allowed;
+}
+
+.field-picker-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 2px;
+  z-index: 20;
+  min-width: 120px;
+  max-width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--vscode-dropdown-background, #3c3c3c);
+  border: 1px solid var(--vscode-dropdown-border, #454545);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.field-picker-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-dropdown-foreground, #cccccc);
+  cursor: pointer;
+}
+
+.field-picker-item.is-selected {
+  background: var(--vscode-list-activeSelectionBackground, #094771);
+}
+
+.object-fields-title {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.object-field-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.object-field-name {
+  width: 40%;
+  vertical-align: top;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+.object-field-type {
+  margin-left: 8px;
+  width: 60%;
+  display: flex;
+  align-items: center;
+}
+
+.field-grid {
+  padding: 5px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.label-sm {
+  font-size: 12px;
+}
+
+.label.is-tight {
+  margin-bottom: 0;
+}
+
+.label.is-spaced {
+  margin-bottom: 8px;
+}
+
+.field-pad-lg {
+  padding: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.field-pad-lg.is-relative {
+  position: relative;
+}
+
+.field-block {
+  margin-top: 8px;
+}
+
+.field-hint {
+  padding: 4px 5px 0;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.field-details {
+  width: 100%;
+  height: 60px;
+  min-height: 60px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.field-pad > textarea.field-details {
+  min-height: 60px;
+  height: 60px;
+}
+
+.field-stack.is-loose {
+  gap: 10px;
+}
+
+.field-flex-2 {
+  flex: 2;
+  min-width: 0;
+}
+
+.no-shrink {
+  flex-shrink: 0;
+}
+
+.muted {
+  opacity: 0.7;
+}
+
+.select-narrow {
+  width: 40%;
+}
+
+.inner-box.is-preset {
+  padding-top: 30px;
+}
+
+.inner-box.is-nested {
+  margin: 5px;
+}
+
+.primary-button.is-inset {
+  margin: 12px 5px 5px;
+}
+
+.report-row {
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.report-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  user-select: none;
+}
+
+.report-item select {
+  font-size: 12px;
+}
+
+.op-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.op-select.is-fixed {
+  width: 190px;
+  flex: 0 0 auto;
+}
+
+.op-select.is-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.ghost-add {
+  padding: 4px 8px;
+  border-radius: var(--mmt-control-radius);
+  border: 1px dashed var(--vscode-editorWidget-border, #555);
+  background: transparent;
+  cursor: pointer;
 }
 
 

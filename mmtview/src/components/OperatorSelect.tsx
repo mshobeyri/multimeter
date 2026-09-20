@@ -5,11 +5,12 @@ import { safeList } from "mmt-core/safer";
 type OperatorSelectProps = {
   value: CheckOps;
   onChange: (value: CheckOps) => void;
+  className?: string;
   style?: React.CSSProperties;
   title?: string;
 };
 
-const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, style, title }) => {
+const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, className, style, title }) => {
   const fuzzyBase = getFuzzyPercentOperatorBase(value);
   const timeBase = getTimeOperatorBase(value);
   const selectValue = (fuzzyBase || timeBase || value) as CheckOps;
@@ -55,7 +56,7 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, style,
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, ...style }}>
+    <div className={["op-select", className].filter(Boolean).join(" ")} style={style}>
       <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
         <select
           value={selectValue}

@@ -44,14 +44,14 @@ const EditableSelect: React.FC<EditableSelectProps> = ({
         }
       }}
       placeholder={placeholder}
-      style={{ width: "100%" }}
+      className="mmt-fill"
     />
   ) : (
     <select
       value={options.includes(value) ? value : ""}
       onChange={e => onChange(e.target.value)}
       onDoubleClick={() => setEditing(true)}
-      style={{ width: "100%" }}
+      className="mmt-fill"
     >
       {placeholder && (
         <option value="" disabled>
