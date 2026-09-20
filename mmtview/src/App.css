@@ -989,6 +989,124 @@ button:focus {
   padding: 0 16px 8px;
 }
 
+.edit-section {
+  padding: 8px 16px 0;
+}
+
+.label.is-field {
+  margin-bottom: 6px;
+}
+
+.field-control {
+  width: 100%;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.field-inset {
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+
+.hint-text {
+  opacity: 0.7;
+  font-size: 0.9em;
+}
+
+.hint-text.is-block {
+  margin-top: 12px;
+}
+
+.actions-end {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.unit-suffix {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.token-hint {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: -8px;
+  margin-bottom: 12px;
+}
+
+.delay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.combo-table {
+  background: transparent;
+  border-radius: 6px;
+  padding: 16px;
+  min-width: 200px;
+  margin-bottom: 16px;
+}
+
+.combo-table table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.combo-table col:first-child {
+  width: 40%;
+}
+
+.combo-table col:last-child {
+  width: 60%;
+}
+
+.combo-table .combo-name {
+  padding: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combo-table .combo-value {
+  padding: 8px;
+}
+
+.if-join {
+  width: 64px;
+  flex: 0 0 auto;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size, 13px);
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: var(--mmt-control-radius, 4px);
+  padding: 2px 4px;
+}
+
+.if-remove {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+}
+
+.if-add {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.field-inline.is-flush {
+  gap: 0;
+  width: 100%;
+}
+
 .empty-hint {
   font-size: 12px;
   color: var(--vscode-descriptionForeground);

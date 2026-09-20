@@ -300,8 +300,8 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   }, [exports, persistExports]);
 
   const testTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div className="label" style={{ marginBottom: 6 }}>Test File</div>
+    <div className="edit-section">
+      <div className="label is-field">Test File</div>
       <FilePickerInput
         value={test}
         onChange={persistTest}
@@ -311,11 +311,11 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
         placeholder="path to one test.mmt file"
       />
       {missingFiles.has(test) && (
-        <div style={{ marginTop: 8, color: 'var(--vscode-errorForeground)' }}>
+        <div className="import-missing field-block">
           Referenced file was not found.
         </div>
       )}
-      <div style={{ marginTop: 12, opacity: 0.7, fontSize: '0.9em' }}>
+      <div className="hint-text is-block">
         Load tests run exactly one <code>type: test</code> file.
       </div>
     </div>
@@ -332,7 +332,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   );
 
   const importsTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
+    <div className="edit-section">
       <KSVEditor
         label="Import"
         value={imports}
@@ -348,57 +348,53 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   );
 
   const loadTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div className="label" style={{ marginBottom: 6 }}>Threads</div>
+    <div className="edit-section">
+      <div className="label is-field">Threads</div>
       <input
         type="number"
         min={1}
-        className="vscode-input"
+        className="vscode-input field-control"
         value={load.threads ?? ''}
         onChange={(e) => handleThreadsChange(e.target.value)}
         placeholder="1"
-        style={{ width: '100%', marginBottom: 12 }}
       />
-      <div className="label" style={{ marginBottom: 6 }}>Repeat</div>
+      <div className="label is-field">Repeat</div>
       <input
         type="text"
         required
-        className="vscode-input"
+        className="vscode-input field-control"
         value={load.repeat ?? ''}
         onChange={(e) => handleRepeatChange(e.target.value)}
         placeholder="1m or 1000"
-        style={{ width: '100%', marginBottom: 12 }}
       />
-      <div className="label" style={{ marginBottom: 6 }}>Ramp-up</div>
+      <div className="label is-field">Ramp-up</div>
       <input
         type="text"
-        className="vscode-input"
+        className="vscode-input field-control"
         value={load.rampup ?? ''}
         onChange={(e) => handleRampupChange(e.target.value)}
         placeholder="0s"
-        style={{ width: '100%', marginBottom: 12 }}
       />
-      <div style={{ opacity: 0.7, fontSize: '0.9em' }}>
+      <div className="hint-text">
         Threads defaults to 1. Repeat is required and can be a duration or total iteration count. Ramp-up defaults to 0s.
       </div>
     </div>
   );
 
   const environmentTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div className="label" style={{ marginBottom: 6 }}>Preset</div>
-      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+    <div className="edit-section">
+      <div className="label is-field">Preset</div>
+      <div className="field-inset">
         <input
           type="text"
-          className="vscode-input"
+          className="vscode-input mmt-fill"
           value={environment?.preset || ''}
           onChange={(e) => handleEnvPresetChange(e.target.value)}
           placeholder="preset name (from multimeter.mmt or env file)"
-          style={{ width: '100%' }}
         />
       </div>
-      <div className="label" style={{ marginBottom: 6 }}>Environment File</div>
-      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+      <div className="label is-field">Environment File</div>
+      <div className="field-inset">
         <FilePickerInput
           value={environment?.file || ''}
           onChange={handleEnvFileChange}
@@ -408,8 +404,8 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
           placeholder="path to env.mmt file"
         />
       </div>
-      <div className="label" style={{ marginBottom: 6 }}>Variables</div>
-      <div style={{ paddingLeft: 4 }}>
+      <div className="label is-field">Variables</div>
+      <div className="field-inset">
         <KSVEditor
           label=""
           value={environment?.variables as Record<string, string> || {}}
@@ -422,16 +418,16 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   );
 
   const exportsTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+    <div className="edit-section">
+      <div className="actions-end">
         <PrimaryButton icon="add" onClick={handleAddExport} title="Add export path">
           Add export
         </PrimaryButton>
       </div>
       {exports.length === 0 ? (
-        <div style={{ opacity: 0.8 }}>No exports configured. Add paths to generate reports after load test completion.</div>
+        <div className="muted">No exports configured. Add paths to generate reports after load test completion.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="field-stack">
           {exports.map((ex, i) => (
             <FilePickerInput
               key={i}
@@ -445,22 +441,22 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
           ))}
         </div>
       )}
-      <div style={{ marginTop: 12, opacity: 0.7, fontSize: '0.9em' }}>
+      <div className="hint-text is-block">
         <div>Supported formats: <code>.html</code>, <code>.xml</code> (JUnit), <code>.md</code>, <code>.mmt</code></div>
-        <div style={{ marginTop: 4 }}>Paths are relative to the loadtest file. Use <code>+/</code> prefix for project root.</div>
+        <div className="field-block is-tight">Paths are relative to the loadtest file. Use <code>+/</code> prefix for project root.</div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <div className="panel-page is-clip">
       <TabBar
         tabs={LOADTEST_EDIT_TABS}
         value={activeTab}
         onChange={setActiveTab}
-        style={{ flexShrink: 0 }}
+        className="no-shrink"
       />
-      <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+      <div className="test-flow-tree panel-scroll">
         {activeTab === 'overview' && overviewTabContent}
         {activeTab === 'imports' && importsTabContent}
         {activeTab === 'test' && testTabContent}

@@ -20,30 +20,21 @@ interface ComboTableProps {
 }
 
 const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholder }) => (
-  <div
-    style={{
-      background: "transparent",
-      borderRadius: "6px",
-      padding: "16px",
-      minWidth: 200,
-      marginBottom: "16px"
-    }}
-  >
-    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+  <div className="combo-table">
+    <table>
       <colgroup>
-        <col style={{ width: "40%" }} />
-        <col style={{ width: "60%" }} />
+        <col />
+        <col />
       </colgroup>
       <tbody>
         {safeList(pairs).map(pair => (
           <tr key={pair.name}>
-            <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <td className="combo-name">
               {pair.name}
             </td>
-            <td style={{ padding: "8px" }}>
+            <td className="combo-value">
               <select
-                className="flat-select"
-                style={{ width: "100%" }}
+                className="flat-select mmt-fill"
                 value={pair.value?.label ?? ""}
                 onChange={e => {
                   const label = e.target.value;
