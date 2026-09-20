@@ -70,6 +70,61 @@ body {
   align-items: center;
 }
 
+/* Site navbar: use plain media queries instead of Tailwind hidden+breakpoint. */
+.site-nav-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-nav-brand {
+  justify-self: start;
+}
+
+.site-nav-desktop {
+  display: none;
+}
+
+.site-nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  background: transparent;
+  border: 0;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+.site-nav-mobile {
+  display: block;
+}
+
+/* 1024px: enough width for logo + 7 links + GitHub + Install CTA */
+@media (min-width: 1024px) {
+  .site-nav-bar {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .site-nav-desktop {
+    display: flex;
+  }
+
+  .site-nav-links {
+    justify-self: center;
+  }
+
+  .site-nav-actions {
+    justify-self: end;
+  }
+
+  .site-nav-toggle,
+  .site-nav-mobile {
+    display: none;
+  }
+}
+
 @media (max-width: 1023px) {
   .docs-layout-row {
     flex-direction: column;
