@@ -13,6 +13,12 @@ const navLinks = [
   { name: 'Compare', href: '/compare' },
 ]
 
+/**
+ * Mobile nav uses plain CSS media queries + a class toggle.
+ * Do NOT use Tailwind `hidden md:flex` / `md:hidden` here — Chrome has clipped
+ * that pattern on this site before (see index.css site-nav / hero-activity-bar notes).
+ * Keep the portal + high z-index so the bar stays above page chrome after deploys.
+ */
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
@@ -43,14 +49,16 @@ export default function Navbar() {
     }
   }, [isOpen])
 
+  const closeMenu = () => setIsOpen(false)
+
   const nav = (
     <nav
       aria-label="Site"
       style={{ zIndex: 9999 }}
-      className="site-nav fixed top-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-b border-border"
+      className={`site-nav fixed top-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-b border-border${isOpen ? ' is-open' : ''}`}
     >
       <div className="site-nav-bar h-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="site-nav-brand flex items-center gap-3 shrink-0">
+        <Link to="/" className="site-nav-brand flex items-center gap-3 shrink-0" onClick={closeMenu}>
           <img src="/logo.svg" alt="" className="w-8 h-8" />
           <span className="text-xl font-bold text-white">Multimeter</span>
         </Link>
@@ -99,43 +107,42 @@ export default function Navbar() {
         </button>
       </div>
 
-      {isOpen ? (
-        <div
-          id="site-nav-mobile-panel"
-          className="site-nav-mobile bg-surface-light border-b border-border"
-        >
-          <div className="px-4 py-4 space-y-3 max-w-7xl mx-auto">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.href}
-                className="block text-slate-300 hover:text-white"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.name}
-              </Link>
-            ))}
-            <hr className="border-border" />
-            <a
-              href="https://github.com/mshobeyri/multimeter"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-slate-300 hover:text-white"
+      {/* Always mounted; visibility via .site-nav.is-open — avoids Chrome paint stalls on remount. */}
+      <div
+        id="site-nav-mobile-panel"
+        className="site-nav-mobile bg-surface-light border-b border-border"
+      >
+        <div className="px-4 py-4 space-y-3 max-w-7xl mx-auto">
+          {navLinks.map((link) => (
+            <Link
+              key={link.name}
+              to={link.href}
+              className="block text-slate-300 hover:text-white"
+              onClick={closeMenu}
             >
-              <Github size={18} />
-              GitHub
-            </a>
-            <a
-              href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block bg-primary hover:bg-primary-dark text-white text-center px-4 py-2 rounded-lg font-medium"
-            >
-              Install Extension
-            </a>
-          </div>
+              {link.name}
+            </Link>
+          ))}
+          <hr className="border-border" />
+          <a
+            href="https://github.com/mshobeyri/multimeter"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-slate-300 hover:text-white"
+          >
+            <Github size={18} />
+            GitHub
+          </a>
+          <a
+            href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block bg-primary hover:bg-primary-dark text-white text-center px-4 py-2 rounded-lg font-medium"
+          >
+            Install Extension
+          </a>
         </div>
-      ) : null}
+      </div>
     </nav>
   )
 
