@@ -2733,6 +2733,50 @@ describe('multipart request body (apiToJSfunc)', () => {
   });
 });
 
+describe('html request body (apiToJSfunc)', () => {
+  it('sets text/html Content-Type and keeps the raw body', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: html',
+      'url: https://example.com/page',
+      'body: |',
+      '  <html><body>hello</body></html>',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'html_page',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('"Content-Type": `text/html`');
+    expect(js).toContain('<html><body>hello</body></html>');
+  });
+});
+
+describe('none request body (apiToJSfunc)', () => {
+  it('omits the request body when format is none', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: none',
+      'url: https://example.com/ping',
+      'body:',
+      '  ignored: true',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'ping_none',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('body: undefined');
+    expect(js).not.toContain('"Content-Type"');
+  });
+});
+
 describe('binary request body (apiToJSfunc)', () => {
   it('loads bytes via readBinaryFile_ and sets octet-stream Content-Type', async () => {
     const apiYaml = [

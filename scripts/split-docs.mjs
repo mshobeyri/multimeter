@@ -159,7 +159,7 @@ Write request definitions in \`.mmt\` files with \`type: api\`.
 
 **Supported**
 - Protocols: [HTTP](../../protocols/http.md), [WebSocket](../../protocols/websocket.md), [GraphQL](../../protocols/graphql.md), [gRPC](../../protocols/grpc.md)
-- Formats: \`json\`, \`xml\`, \`xmle\`, \`text\`, \`urlencoded\`, \`binary\`
+- Formats: \`none\`, \`json\`, \`xml\`, \`xmle\`, \`text\`, \`html\`, \`urlencoded\`, \`binary\`, \`multipart\`
 - Methods: \`get\`, \`post\`, \`put\`, \`delete\`, \`patch\`, \`head\`, \`options\`, \`trace\`
 
 ## Request

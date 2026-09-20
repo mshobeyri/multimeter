@@ -200,6 +200,9 @@ const inferFormat = (headers: Record<string, string>, body?: string): TestFlowHt
   if (contentType.includes('json')) {
     return 'json';
   }
+  if (contentType.includes('html')) {
+    return 'html';
+  }
   if (contentType.includes('xml')) {
     return 'xml';
   }

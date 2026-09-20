@@ -454,7 +454,7 @@ describe('postmanConvertor.postmanToAPI', () => {
         },
       ],
     });
-    expect(apis[0].format).toBe('text');
+    expect(apis[0].format).toBe('html');
     expect(apis[1].format).toEqual({request: 'json', response: 'binary'});
   });
 

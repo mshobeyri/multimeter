@@ -2,6 +2,18 @@
 
 POST and body format variants for [HTTP](./http.md) APIs.
 
+### HTTP no body
+
+```yaml
+type: api
+protocol: http
+url: https://test.mmt.dev/echo
+method: post
+format: none
+```
+
+`format: none` sends the request without a body and does not set `Content-Type`. This is Postman’s **none**.
+
 ### HTTP POST JSON or XML
 
 ```yaml
@@ -63,7 +75,7 @@ body:
     file: ./assets/sample.txt
 ```
 
-`body` is a YAML list of parts. `value` is a text field; `file` is a path relative to the `.mmt` file. In the visual editor this is a parts table, not a JSON array. Multimeter sets `Content-Type: multipart/form-data; boundary=...` when a boundary is not already present.
+`body` is a YAML list of parts. `value` is a text field; `file` is a path relative to the `.mmt` file. In the visual editor this is a parts table, not a JSON array. This is Postman’s **form-data**. Multimeter sets `Content-Type: multipart/form-data; boundary=...` when a boundary is not already present.
 
 ### HTTP binary file body
 

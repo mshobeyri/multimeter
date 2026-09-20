@@ -27,7 +27,7 @@ format: binary
 body: ./payload.bin
 ```
 
-Use `xml` for self-closing empty tags and `xmle` for expanded XML. Use `urlencoded` for form bodies (`key=value&...`). With `binary`, Multimeter reads the file at send time; the path stays a string in YAML.
+Use `none` to send no request body. Use `xml` for self-closing empty tags and `xmle` for expanded XML. Use `urlencoded` for form bodies (`key=value&...`). With `binary`, Multimeter reads the file at send time; the path stays a string in YAML.
 
 With `multipart`, `body` is a **list of parts**. Each part has `name` plus either `value` (text) or `file` (path relative to the `.mmt` file). The visual editor shows a parts table (name, Text or File, value or path) instead of a JSON array:
 

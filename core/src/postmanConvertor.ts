@@ -98,7 +98,10 @@ function formatFromMediaType(value: string|undefined): Format|undefined {
       lc.startsWith('audio/') || lc.startsWith('video/')) {
     return 'binary';
   }
-  if (lc.includes('text') || lc.includes('html') || lc.includes('javascript')) {
+  if (lc.includes('html')) {
+    return 'html';
+  }
+  if (lc.includes('text') || lc.includes('javascript')) {
     return 'text';
   }
   return undefined;

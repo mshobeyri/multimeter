@@ -176,6 +176,24 @@ describe('markupConvertor Windows CRLF bodies', () => {
   });
 });
 
+describe('markupConvertor none format', () => {
+  it('keeps body text and has no content type', () => {
+    expect(formatBody('none', 'keep me', false)).toBe('keep me');
+    expect(formattedBodyToYamlObject('none', 'keep me')).toBe('keep me');
+    expect(contentTypeForFormat('none')).toBe('');
+  });
+});
+
+describe('markupConvertor html format', () => {
+  it('keeps HTML as raw text and uses text/html', () => {
+    const html = '<html><body>hello</body></html>';
+    expect(formatBody('html', html, false)).toBe(html);
+    expect(formattedBodyToYamlObject('html', html)).toBe(html);
+    expect(contentTypeForFormat('html')).toBe('text/html');
+    expect(beautifyWithContentType('text/html', html)).toBe(html);
+  });
+});
+
 describe('markupConvertor multipart format', () => {
   it('formats multipart parts as JSON for the editor', () => {
     const parts = [{name: 'meta', value: 'hello'}];

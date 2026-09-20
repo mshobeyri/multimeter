@@ -7,7 +7,7 @@ import {
   type ExpectUiRow,
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
-import { Format, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
+import { FORMAT_VALUES, Format, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
@@ -23,7 +23,7 @@ interface TestHttpProps {
 }
 
 const methodOptions = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'];
-const formatOptions: Format[] = ['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary', 'multipart'];
+const formatOptions: Format[] = FORMAT_VALUES;
 const responseFields = ['status', 'body.message', 'body', 'headers', 'cookies', 'duration'];
 const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 
@@ -261,7 +261,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             onChange={query => emit({ query })}
           />
 
-          {selectedMethod !== 'get' && (
+          {selectedMethod !== 'get' && requestFormat(step.format) !== 'none' && (
             <>
               <div className="label">Body</div>
               <div style={{ padding: "5px" }}>

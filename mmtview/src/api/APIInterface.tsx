@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useEffect, useState, useContext } from "react";
 import KSVEditor from "../components/KSVEditor";
 import UrlInput from "../components/UrlInput";
-import { Protocol, Method, Format, FormatSpec, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
+import { Protocol, Method, Format, FormatSpec, FORMAT_VALUES, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
@@ -19,7 +19,7 @@ interface InterfaceEditorProps {
 }
 
 const protocolOptions: Protocol[] = ["http", "ws", "graphql", "grpc"];
-const formatOptions: Format[] = ["json", "xml", "xmle", "text", "urlencoded", "binary", "multipart"];
+const formatOptions: Format[] = FORMAT_VALUES;
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;
@@ -33,11 +33,17 @@ function parseTimeoutInput(value: string): number | undefined {
 }
 
 function getFormatLabel(format: Format): string {
+  if (format === "none") {
+    return "none — no body";
+  }
   if (format === "xml") {
     return "xml — self-closing";
   }
   if (format === "xmle") {
     return "xmle — expanded";
+  }
+  if (format === "html") {
+    return "html — HTML body";
   }
   if (format === "urlencoded") {
     return "urlencoded — form body";
@@ -46,7 +52,7 @@ function getFormatLabel(format: Format): string {
     return "binary — file upload";
   }
   if (format === "multipart") {
-    return "multipart — form parts";
+    return "multipart — form-data parts";
   }
   return format;
 }
@@ -572,7 +578,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       ) : null}
 
       {/* Hide body in edit when method is GET (tester disables it instead). */}
-      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || httpMethodAllowsRequestBody(data.method)) && (
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && reqFormat !== "none" && (effectiveProtocol === "ws" || !data.method || httpMethodAllowsRequestBody(data.method)) && (
         <>
           <div className="label api-body-label">
             <span>Body</span>

@@ -266,7 +266,7 @@ const collectVariables = (document: BrunoDocument): Record<string, string> => {
 
 const inferFormat = (formatHint: string | undefined, headers: Record<string, string>, body?: string): TestFlowHttp['format'] => {
   const hint = String(formatHint || '').toLowerCase();
-  if (hint === 'json' || hint === 'xml' || hint === 'xmle' || hint === 'text' || hint === 'urlencoded') {
+  if (hint === 'json' || hint === 'xml' || hint === 'xmle' || hint === 'text' || hint === 'html' || hint === 'urlencoded') {
     return hint;
   }
   if (hint === 'form-urlencoded' || hint === 'form_urlencoded' || hint === 'form') {
@@ -276,6 +276,9 @@ const inferFormat = (formatHint: string | undefined, headers: Record<string, str
   const contentType = contentTypeKey ? headers[contentTypeKey].toLowerCase() : '';
   if (contentType.includes('json')) {
     return 'json';
+  }
+  if (contentType.includes('html')) {
+    return 'html';
   }
   if (contentType.includes('xml')) {
     return 'xml';

@@ -163,6 +163,10 @@ function contentTypeForFormat(format: Format): string {
       return 'application/octet-stream';
     case 'multipart':
       return 'multipart/form-data';
+    case 'none':
+      return '';
+    case 'html':
+      return 'text/html';
     case 'text':
     default:
       return 'text/plain';
@@ -271,7 +275,7 @@ function formatBody(
       }
       return typeof body === 'string' ? body : String(body ?? '');
     }
-    if (format === 'text') {
+    if (format === 'text' || format === 'html' || format === 'none') {
       return typeof body === 'string' ?
           body :
           JSON.stringify(body, null, pretty ? 2 : 0);
@@ -332,7 +336,7 @@ function formattedBodyToYamlObject(
         return text;
       }
     }
-    if (format === 'text') {
+    if (format === 'text' || format === 'html' || format === 'none') {
       // Keep raw text (including XML pasted as text) — do not YAML-parse it.
       return text;
     }
@@ -389,6 +393,9 @@ function beautify(format: Format, value: string): string {
 function beautifyWithContentType(contentType: string, value: string): string {
   const trimmedValue = value.trimStart();
   const ct = (contentType || '').toLowerCase();
+  if (ct.includes('html')) {
+    return value;
+  }
   if (ct.includes('json') || trimmedValue.startsWith('{') ||
       trimmedValue.startsWith('[')) {
     return beautify('json', value);

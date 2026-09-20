@@ -17,10 +17,17 @@ function isJsonLikeBodyFormat(format: string): boolean {
 }
 
 function editorLanguageForBody(format: string): string {
-    if ((format || "").includes("xml")) {
+    const normalized = (format || "").toLowerCase();
+    if (normalized === "none" || normalized === "text") {
+        return "plaintext";
+    }
+    if (normalized === "html") {
+        return "html";
+    }
+    if (normalized.includes("xml")) {
         return "xml";
     }
-    if (isJsonLikeBodyFormat(format)) {
+    if (isJsonLikeBodyFormat(normalized)) {
         return "json";
     }
     return format;

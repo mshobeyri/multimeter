@@ -140,6 +140,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const effectiveMethod = isGraphQL ? 'post' :
       resolveApiHttpMethod(replaced.method, replaced.body);
   const reqFormat = requestFormat(replaced.format);
+  const isNoneRequest = !isGraphQL && reqFormat === 'none';
   const isBinaryRequest = !isGraphQL && reqFormat === 'binary';
   const isMultipartRequest = !isGraphQL && reqFormat === 'multipart';
   if (isGraphQL) {
@@ -153,8 +154,8 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
     }
-  } else if (reqFormat === 'urlencoded' || reqFormat === 'binary') {
-    // Form and binary bodies are not detectable from shape alone (unlike JSON/XML)
+  } else if (reqFormat === 'urlencoded' || reqFormat === 'binary' || reqFormat === 'html') {
+    // Form, binary, and HTML are not detectable from shape alone (HTML looks like XML)
     const hasContentType = Object.keys(replaced.headers || {}).some(
         k => k.toLowerCase() === 'content-type');
     if (!hasContentType) {
@@ -192,11 +193,13 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       : '[]';
   const bodyExpr = isGraphQL && graphqlBodyExpr
       ? graphqlBodyExpr
-      : isBinaryRequest
-        ? '__binaryBody_'
-        : isMultipartRequest
-          ? '__multipartParts_'
-          : toTemplateWithEnvs(formattedBody);
+      : isNoneRequest
+        ? 'undefined'
+        : isBinaryRequest
+          ? '__binaryBody_'
+          : isMultipartRequest
+            ? '__multipartParts_'
+            : toTemplateWithEnvs(formattedBody);
 
   const binaryLoadLines = isBinaryRequest
       ? `  const __binaryPath_ = ${binaryPathExpr};

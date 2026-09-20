@@ -12,6 +12,10 @@ describe('FormatSpec helpers', () => {
     expect(normalizeFormat('xml')).toEqual({request: 'xml', response: 'xml'});
     expect(requestFormat('urlencoded')).toBe('urlencoded');
     expect(responseFormat('urlencoded')).toBe('urlencoded');
+    expect(normalizeFormat('none')).toEqual({request: 'none', response: 'none'});
+    expect(requestFormat('none')).toBe('none');
+    expect(normalizeFormat('html')).toEqual({request: 'html', response: 'html'});
+    expect(requestFormat('html')).toBe('html');
   });
 
   it('supports split request/response formats', () => {
@@ -104,6 +108,18 @@ describe('API format parse/pack', () => {
 
   it('packs matching binary request/response as scalar format: binary', () => {
     expect(packFormatSpec({request: 'binary', response: 'binary'})).toBe('binary');
+  });
+
+  it('parses format: none', () => {
+    const api = yamlToAPIStrict([
+      'type: api',
+      'url: https://example.com/ping',
+      'method: post',
+      'format: none',
+    ].join('\n'));
+    expect(api.format).toBe('none');
+    expect(requestFormat(api.format)).toBe('none');
+    expect(apiToYaml(api)).toMatch(/format: none/);
   });
 
   it('parses format: multipart with a parts body', () => {

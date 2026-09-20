@@ -1,7 +1,7 @@
 export type Type = "env" | "api" | "test" | "suite" | "loadtest" | "doc" | "csv" | "server" | "report" | "judge" | null;
 
 export type Protocol = "http" | "ws" | "graphql" | "grpc";
-export type Format = "json" | "xml" | "xmle" | "text" | "urlencoded" | "binary" | "multipart";
+export type Format = "none" | "json" | "xml" | "xmle" | "text" | "html" | "urlencoded" | "binary" | "multipart";
 /** Split request vs response body formats. */
 export interface FormatConfig {
   request?: Format;
@@ -15,7 +15,7 @@ export type FormatSpec = Format | FormatConfig;
 export type Method = "get" | "post" | "put" | "delete" | "patch" | "head" | "options" | "trace";
 export type GrpcStream = "server" | "client" | "bidi";
 
-export const FORMAT_VALUES: Format[] = ["json", "xml", "xmle", "text", "urlencoded", "binary", "multipart"];
+export const FORMAT_VALUES: Format[] = ["none", "json", "xml", "xmle", "text", "html", "urlencoded", "binary", "multipart"];
 
 function isFormatValue(value: unknown): value is Format {
   return typeof value === "string" && (FORMAT_VALUES as string[]).includes(value);

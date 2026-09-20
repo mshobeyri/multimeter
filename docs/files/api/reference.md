@@ -9,7 +9,7 @@
 - `url:` string (can contain query string)
 - `protocol:` `http` | `ws` | `graphql`
 - `method:` HTTP verbs (HTTP only)
-- `format:` `json` | `xml` | `xmle` | `text` | `urlencoded` | `binary` | `{ request, response }`
+- `format:` `none` | `json` | `xml` | `xmle` | `text` | `html` | `urlencoded` | `binary` | `multipart` | `{ request, response }`
 - `headers:` record<string, string>
 - `query:` record<string, string>
 - `cookies:` record<string, string>

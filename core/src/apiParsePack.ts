@@ -1,6 +1,6 @@
 
 import {APIData, AuthConfig, GraphQLConfig, GrpcConfig} from './APIData';
-import {Format, FormatSpec, GrpcStream, packFormatSpec} from './CommonData';
+import {FORMAT_VALUES, Format, FormatSpec, GrpcStream, packFormatSpec} from './CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
 import {coerceYamlString} from './yamlIncompleteScalar';
@@ -14,7 +14,7 @@ const VALID_API_ROOT_KEYS = new Set([
 
 const VALID_GRPC_STREAM_VALUES = new Set<string>(['server', 'client', 'bidi']);
 
-const VALID_FORMAT_VALUES = new Set<string>(['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary', 'multipart']);
+const VALID_FORMAT_VALUES = new Set<string>(FORMAT_VALUES);
 
 function parseFormatSpec(raw: any): FormatSpec {
   if (raw == null) {

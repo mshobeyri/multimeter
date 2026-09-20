@@ -1795,7 +1795,12 @@ select.method-select:focus-visible {
   white-space: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: none;
   cursor: text;
+}
+
+.method-url-bar-url::-webkit-scrollbar {
+  display: none;
 }
 
 .method-select.method-badge {
@@ -1854,6 +1859,126 @@ select.method-select:focus-visible {
 
 .apitest-tabs-row {
   padding: 0 0 8px;
+}
+
+.apitest-tab-count {
+  margin-left: 3px;
+  color: var(--vscode-descriptionForeground, #858585);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: super;
+}
+
+.apitest-body-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.apitest-section > .apitest-body-pane {
+  flex: 1 1 auto;
+  min-height: 150px;
+}
+
+.apitest-body-format-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  flex-shrink: 0;
+  padding: 2px 6px 8px;
+}
+
+.apitest-body-format-raw-select {
+  position: relative;
+}
+
+.apitest-body-format-raw-trigger,
+.apitest-body-format-raw-trigger:hover,
+.apitest-body-format-raw-trigger:focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.apitest-body-format-raw-trigger .codicon {
+  font-size: 12px;
+}
+
+.apitest-body-format-raw-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 112px;
+  padding: 4px 0;
+  border: 1px solid var(--vscode-editorWidget-border, #454545);
+  border-radius: var(--mmt-control-radius);
+  background: var(--vscode-dropdown-background, var(--vscode-editor-background, #1e1e1e));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.apitest-body-format-raw-option {
+  display: block;
+  width: 100%;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-dropdown-foreground, var(--vscode-foreground, #cccccc));
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.apitest-body-format-raw-option:hover,
+.apitest-body-format-raw-option.is-selected {
+  background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.apitest-body-format-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground, #858585);
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.apitest-body-format-chip::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.apitest-body-format-chip:hover {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.apitest-body-format-chip.is-selected {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.apitest-body-format-chip.is-selected::before {
+  box-shadow: inset 0 0 0 2.5px var(--vscode-editor-background, #1e1e1e);
+  background: currentColor;
 }
 
 .apitest-fixed-header .tab-bar {
