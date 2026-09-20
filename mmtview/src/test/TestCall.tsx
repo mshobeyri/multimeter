@@ -414,7 +414,7 @@ const TestCall: React.FC<TestCallProps> = ({
       </select>
 
       <div className="label">Id</div>
-      <div style={{ padding: "5px" }}>
+      <div className="field-pad">
         <input
           type="text"
           value={currentId}
@@ -436,7 +436,7 @@ const TestCall: React.FC<TestCallProps> = ({
       </div>
 
       <div className="label">Title</div>
-      <div style={{ padding: "5px" }}>
+      <div className="field-pad">
         <input
           type="text"
           value={currentTitle}
@@ -450,7 +450,7 @@ const TestCall: React.FC<TestCallProps> = ({
       {currentAlias && (
         <>
           <div className="label">Parameters</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             {keys.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {keys.map(k => {
@@ -504,7 +504,7 @@ const TestCall: React.FC<TestCallProps> = ({
           </div>
 
           <div className="label">Expect</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             {expectList.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {expectList.map((row, i) => {
@@ -570,7 +570,7 @@ const TestCall: React.FC<TestCallProps> = ({
           </div>
 
           <div className="label">Require</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             {requireList.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {requireList.map((row, i) => {

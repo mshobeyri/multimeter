@@ -922,8 +922,157 @@ button:focus {
 }
 
 .panel-form-row input,
-.panel-form-row textarea {
+.panel-form-row textarea,
+.panel-form-row select {
   width: 100%;
+  box-sizing: border-box;
+}
+
+/* Common replacements for the old `style={{ width: 100%; padding: 5px }}` copies. */
+.mmt-fill {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.field-pad {
+  padding: 5px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.field-pad.is-relative {
+  position: relative;
+}
+
+.field-pad > input,
+.field-pad > select,
+.field-pad > textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field-pad > textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.field-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.field-table td {
+  width: 50%;
+  padding: 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+}
+
+.field-table input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-inline.is-spaced {
+  margin-bottom: 4px;
+}
+
+.field-inline.is-inset {
+  margin-top: 4px;
+}
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.field-stack > input,
+.field-stack > select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-narrow {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+}
+
+.file-overview {
+  padding: 8px 16px 0;
+}
+
+.import-missing {
+  padding: 4px 5px;
+  color: var(--vscode-errorForeground, #f14c4c);
+  font-size: 12px;
+}
+
+.field-with-remove {
+  position: relative;
+  width: 100%;
+}
+
+.field-with-remove > input {
+  width: 100%;
+  vertical-align: top;
+}
+
+.field-with-remove.is-disabled > input {
+  cursor: not-allowed;
+}
+
+.field-with-remove .field-button {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+}
+
+.field-with-remove.has-remove .field-button.is-copy {
+  right: 28px;
+}
+
+.field-with-remove .action-button {
+  font-size: 16px;
+}
+
+.list-editor {
+  margin-right: 10px;
 }
 
 

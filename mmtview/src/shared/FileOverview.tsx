@@ -18,20 +18,19 @@ const FileOverview: React.FC<FileOverviewProps> = ({
   tagSuggestions = [],
 }) => {
   return (
-    <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div className="label">Title</div>
-      <div style={{ padding: '5px 0' }}>
+    <div className="panel-form file-overview">
+      <div className="panel-form-row">
+        <div className="label">Title</div>
         <input
           className="vscode-input"
           value={title || ''}
           onChange={(e) => onChange({ title: e.target.value || undefined })}
           placeholder="title"
-          style={{ width: '100%', boxSizing: 'border-box' }}
         />
       </div>
 
-      <div className="label">Tags</div>
-      <div style={{ padding: '5px 0' }}>
+      <div className="panel-form-row">
+        <div className="label">Tags</div>
         <SearchableTagInput
           tags={tags || []}
           onChange={(nextTags) => onChange({ tags: nextTags.length > 0 ? nextTags : undefined })}
@@ -39,8 +38,8 @@ const FileOverview: React.FC<FileOverviewProps> = ({
         />
       </div>
 
-      <div className="label">Description</div>
-      <div style={{ padding: '5px 0', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+      <div className="panel-form-row">
+        <div className="label">Description</div>
         <DescriptionEditor
           value={description || ''}
           onChange={(value) => onChange({ description: value || undefined })}

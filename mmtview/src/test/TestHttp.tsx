@@ -153,46 +153,42 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const selectedMethod = String(step.method || 'get').toLowerCase();
 
   return (
-    <div style={{ width: '100%', borderCollapse: "collapse", tableLayout: "fixed" }}>
-      <div>
+    <div className="mmt-fill">
+      <div className="field-pad">
         <input
           type="text"
           value={step.http || ''}
           onChange={e => emit({ http: e.target.value })}
-          style={{ width: '100%' }}
           placeholder="URL"
         />
       </div>
       {expanded && (
         <>
           <div className="label">Id</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="text"
               value={step.id || ''}
               onChange={e => emit({ id: e.target.value })}
-              style={{ width: '100%' }}
               placeholder="Optional id to capture response"
             />
           </div>
 
           <div className="label">Title</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="text"
               value={step.title || ''}
               onChange={e => emit({ title: e.target.value })}
-              style={{ width: '100%' }}
               placeholder="Optional display title"
             />
           </div>
 
           <div className="label">Method</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={selectedMethod}
               onChange={e => emit({ method: e.target.value })}
-              style={{ width: '100%' }}
             >
               {methodOptions.map(method => (
                 <option key={method} value={method}>{method}</option>
@@ -201,20 +197,19 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           </div>
 
           <div className="label">Timeout (ms)</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="number"
               min={0}
               step={100}
               value={step.timeout ?? ''}
               onChange={e => emit({ timeout: parseTimeoutInput(e.target.value) })}
-              style={{ width: '100%' }}
               placeholder="Default network timeout"
             />
           </div>
 
           <div className="label">Request format</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={requestFormat(step.format)}
               onChange={e => emit({
@@ -223,7 +218,6 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                   response: responseFormat(step.format),
                 }),
               })}
-              style={{ width: '100%' }}
             >
               {formatOptions.map(format => (
                 <option key={format} value={format}>{format}</option>
@@ -232,7 +226,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           </div>
 
           <div className="label">Response format</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={responseFormat(step.format)}
               onChange={e => emit({
@@ -241,7 +235,6 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                   response: e.target.value as Format,
                 }),
               })}
-              style={{ width: '100%' }}
             >
               {formatOptions.map(format => (
                 <option key={format} value={format}>{format}</option>
@@ -264,7 +257,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           {selectedMethod !== 'get' && requestFormat(step.format) !== 'none' && (
             <>
               <div className="label">Body</div>
-              <div style={{ padding: "5px" }}>
+              <div className="field-pad">
                 {requestFormat(step.format) === 'binary' ? (
                   <FilePickerInput
                     value={typeof step.body === 'string' ? step.body : ''}
@@ -283,7 +276,6 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                   <textarea
                     value={typeof step.body === 'string' ? step.body : JSON.stringify(step.body || '', null, 2)}
                     onChange={e => emit({ body: e.target.value })}
-                    style={{ width: '100%', minHeight: 120, resize: 'vertical' }}
                     placeholder="Request body"
                   />
                 )}
@@ -292,7 +284,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           )}
 
           <div className="label">Expect</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <datalist id="http-response-fields">
               {responseFields.map(field => (
                 <option key={field} value={field} />
@@ -355,7 +347,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           </div>
 
           <div className="label">Require</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <datalist id="http-require-response-fields">
               {responseFields.map(field => (
                 <option key={field} value={field} />

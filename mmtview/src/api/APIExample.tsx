@@ -15,24 +15,18 @@ interface APIExampleProps {
 }
 
 const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, onChange, onRemove }) => {
-  // Helper to update fields
   const handleFieldsChange = (kv: JSONRecord) => {
-    const newFields = { ...kv };
-    onChange({ ...data, inputs: newFields });
-    apiInputs = newFields;
+    onChange({ ...data, inputs: { ...kv } });
   };
 
   const handleOutputsChange = (kv: JSONRecord) => {
-    const newFields = { ...kv };
-    onChange({ ...data, outputs: newFields });
+    onChange({ ...data, outputs: { ...kv } });
   };
 
   return (
-    <div style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-
-
-      <div className="label">Name</div>
-      <div style={{ padding: "5px" }}>
+    <div className="panel-form">
+      <div className="panel-form-row">
+        <div className="label">Name</div>
         <FieldWithRemove
           value={data.name ?? ""}
           onChange={v => onChange({ ...data, name: v })}
@@ -41,8 +35,8 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
         />
       </div>
 
-      <div className="label">Description</div>
-      <div style={{ padding: "5px", width: "100%" }}>
+      <div className="panel-form-row">
+        <div className="label">Description</div>
         <DescriptionEditor
           value={data.description || ""}
           onChange={value => onChange({ ...data, description: value })}
@@ -57,14 +51,12 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
           keyOptions={Object.keys(apiInputs)}
         />
       ) : (
-        <>
+        <div className="panel-form-row">
           <div className="label">Inputs</div>
-          <div style={{ padding: "5px" }}>
-            <div className="error-panel">
-              You need to define inputs first
-            </div>
+          <div className="error-panel">
+            You need to define inputs first
           </div>
-        </>
+        </div>
       )}
 
       {isNonEmptyObject(apiOutputs) ? (
@@ -75,14 +67,12 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
           keyOptions={Object.keys(apiOutputs)}
         />
       ) : (
-        <>
+        <div className="panel-form-row">
           <div className="label">Outputs</div>
-          <div style={{ padding: "5px" }}>
-            <div className="info-panel">
-              Define outputs in the API to guide expected values
-            </div>
+          <div className="info-panel">
+            Define outputs in the API to guide expected values
           </div>
-        </>
+        </div>
       )}
     </div>
   );

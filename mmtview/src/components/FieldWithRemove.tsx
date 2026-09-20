@@ -23,17 +23,12 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   const paddingRight = buttonCount > 0 ? 12 + buttonCount * 24 : 36;
 
   return (
-    <div style={{ position: "relative", width: "100%" }}>
+    <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
       <input
         type="text"
         value={value}
         placeholder={placeholder}
-        style={{
-          width: "100%",
-          verticalAlign: "top",
-          cursor: disabled ? "not-allowed" : undefined,
-          paddingRight,
-        }}
+        style={{ paddingRight }}
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
       />
@@ -41,20 +36,18 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
         <button
           onClick={() => navigator.clipboard.writeText(value).catch(() => {})}
           title="Copy value"
-          style={{ position: 'absolute', right: removable ? 28 : 4, top: '50%', transform: 'translateY(-50%)' }}
-          className="field-button"
+          className="field-button is-copy"
         >
-          <span className="action-button codicon codicon-copy" style={{ fontSize: "16px" }}></span>
+          <span className="action-button codicon codicon-copy" />
         </button>
       )}
       {removable && <button
         onClick={onRemovePressed}
         title="Remove field"
         disabled={disabled}
-        style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)' }}
         className="field-button"
       >
-        <span className="action-button codicon codicon-close" style={{ fontSize: "16px" }}></span>
+        <span className="action-button codicon codicon-close" />
       </button>}
     </div>
   );

@@ -89,29 +89,28 @@ const KVEditor: React.FC<KVEditorProps> = ({
   };
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
+    <div className="mmt-fill">
       <div
         className={disabled ? "label label-disabled" : "label"}
       >
         {label}
       </div>
-      <table style={{ width: "100%", maxWidth: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-        <tbody style={{ width: "100%" }}>
+      <table className="field-table">
+        <tbody>
           {safeList(entries)
             .filter(([k], index) => !(deactivated && k === "" && index === entries.length - 1))
             .map(([k, v], index) => (
 
-              <tr style={{ width: "100%" }} key={index}>
-                <td style={{ width: "50%", padding: "5px", verticalAlign: "top", boxSizing: "border-box" }}>
+              <tr key={index}>
+                <td>
                   <input
                     value={k}
                     onChange={e => handleKeyChange(index, e.target.value)}
                     placeholder={keyPlaceholder}
-                    style={{ width: "100%", boxSizing: "border-box" }}
                     disabled={disabled || keysDisabled}
                   />
                 </td>
-                <td style={{ width: "50%", padding: "5px", verticalAlign: "top", boxSizing: "border-box" }}>
+                <td>
                   {k.trim() !== "" && (
                     <FieldWithRemove
                       value={v}

@@ -55,9 +55,9 @@ const LEditor: React.FC<LEditorProps> = ({
 
     return (<>
         <div className={disabled ? "label label-disabled" : "label"}>{label}</div>
-        <div style={{ padding: "0", marginRight: "10px" }}>
+        <div className="list-editor">
             {safeList(value).map((val, idx) => (
-                <div key={idx} style={{ width: "100%", padding: "5px" }}>
+                <div key={idx} className="field-pad">
                     <FilePickerInput
                         value={val}
                         onChange={(v) => handleChange(idx, v)}
@@ -72,7 +72,7 @@ const LEditor: React.FC<LEditorProps> = ({
                     />
                 </div>
             ))}
-            <div style={{ width: "100%", padding: "5px" }}>
+            <div className="field-pad">
                 <FilePickerInput
                     ref={inputRef}
                     value={newValue}
