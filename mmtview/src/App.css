@@ -7,6 +7,12 @@ button,
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
 }
 
+/* Current VS Code control radius (inputs/buttons). Follow the theme token
+   when present so vstheme / 2026 size tokens still apply. */
+:root {
+  --mmt-control-radius: var(--vscode-cornerRadius-small, 4px);
+}
+
 /* Right UI panel: match section titles (VS Code UI font), not the editor monospace. */
 .mmt-ui-panel {
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
@@ -233,7 +239,7 @@ span.vertical.disabled:active {
   /* Default: no ring. Visible border only when --mmt-button-border is set
      (PrimaryButton resolves theme button.border vs button.background). */
   border: 1px solid var(--mmt-button-border, transparent);
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   font-size: var(--vscode-font-size, 13px);
   font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
   cursor: pointer;
@@ -259,7 +265,7 @@ span.vertical.disabled:active {
   width: 100%;
   height: 250px;
   overflow: auto;
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   transition: border-color 0.2s;
 }
 
@@ -513,7 +519,7 @@ tag {
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-input-foreground, #d4d4d4);
   border: 1px solid var(--vscode-input-border, #3c3c3c);
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   padding: 5px 8px;
   outline: none;
   transition: border-color 0.2s;
@@ -537,7 +543,7 @@ select:focus {
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-input-foreground, #d4d4d4);
   border: 1px solid var(--vscode-input-border, #3c3c3c);
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   outline: none;
   transition: border-color 0.2s;
   min-height: 28px;
@@ -577,7 +583,7 @@ button {
   background-color: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #ffffff);
   border: 1px solid var(--vscode-button-border, transparent);
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   padding: 4px 12px;
   font-size: var(--vscode-font-size, 13px);
   /* Use VS Code font size */
@@ -1316,41 +1322,31 @@ button:focus {
   opacity: 1;
 }
 
-.apitest-method-cluster {
-  display: flex;
-  align-items: stretch;
-  flex-shrink: 0;
-}
-
-.apitest-method-cluster .api-selector-trigger {
-  width: 26px;
-  height: 26px;
+.api-selector--method .api-selector-trigger {
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border-width: 1px;
-  border-style: solid;
-  border-color: var(--mmt-accent-border, var(--mmt-accent-fill, transparent));
-  border-right: 1px solid color-mix(in oklab, var(--mmt-accent-on-fill, #fff) 38%, transparent);
-  border-radius: 2px 0 0 2px;
-  color: var(--mmt-accent-on-fill, var(--vscode-button-foreground, #fff));
-  background-color: var(
-    --mmt-accent-fill,
-    color-mix(
-      in oklab,
-      var(--mmt-accent, #888) 52%,
-      var(--vscode-editor-background, #1e1e1e)
-    )
-  );
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: var(--mmt-control-radius);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground, #cccccc));
+  background-color: var(--vscode-button-secondaryBackground, #3a3d41);
 }
 
-.apitest-method-cluster .api-selector-trigger:hover,
-.apitest-method-cluster .api-selector-trigger.is-open {
-  background-color: var(--mmt-accent-fill);
+.api-selector--method .api-selector-trigger:hover,
+.api-selector--method .api-selector-trigger.is-open,
+.api-selector--method .api-selector-trigger:focus {
+  background-color: var(--vscode-button-secondaryHoverBackground, #45494e);
+  border-color: var(--vscode-button-border, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground, #cccccc));
 }
 
-.apitest-method-cluster select.method-select,
-.apitest-method-cluster select.method-select:focus,
-.apitest-method-cluster select.method-select:focus-visible {
-  border-radius: 0 2px 2px 0;
+.apitest-url-row-actions {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+  flex-shrink: 0;
 }
 
 .source-view-switch {
@@ -1670,7 +1666,7 @@ select.method-select:focus-visible {
   min-height: 26px;
   height: 26px;
   padding: 0 4px;
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   font-size: var(--vscode-font-size, 13px);
   font-family: var(--vscode-font-family, inherit);
   font-weight: 600;
@@ -1713,6 +1709,93 @@ select.method-select:focus,
 select.method-select:focus-visible {
   border-color: var(--mmt-accent-border, var(--mmt-accent-fill));
   outline: none;
+}
+
+/* Custom method + URL control (not a native input — those keep their own border). */
+.method-url-bar {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  min-height: 28px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: var(--mmt-control-radius);
+  background-color: var(--vscode-input-background, #1e1e1e);
+}
+
+.method-url-bar:focus-within {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.method-url-bar-method {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 84px;
+  min-width: 84px;
+  max-width: 84px;
+  padding: 0;
+  color: var(--mmt-accent-on-fill, var(--vscode-button-foreground, #fff));
+  background-color: var(
+    --mmt-accent-fill,
+    color-mix(
+      in oklab,
+      var(--mmt-accent, #888) 52%,
+      var(--vscode-editor-background, #1e1e1e)
+    )
+  );
+  font-weight: 600;
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  line-height: 1;
+  user-select: none;
+}
+
+.method-url-bar select.method-url-bar-select,
+.method-url-bar select.method-url-bar-select:hover,
+.method-url-bar select.method-url-bar-select:focus,
+.method-url-bar select.method-url-bar-select:focus-visible {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  color: transparent;
+}
+
+.method-url-bar-url {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--vscode-input-foreground, #d4d4d4);
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 26px;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: text;
 }
 
 .method-select.method-badge {
@@ -1759,7 +1842,14 @@ select.method-select:focus-visible {
 }
 
 .apitest-url-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   padding: 0 0 8px;
+}
+
+.apitest-url-row > .api-selector {
+  flex-shrink: 0;
 }
 
 .apitest-tabs-row {

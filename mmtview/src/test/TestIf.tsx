@@ -25,7 +25,7 @@ const joinSelectStyle: React.CSSProperties = {
   background: "var(--vscode-input-background)",
   color: "var(--vscode-input-foreground)",
   border: "1px solid var(--vscode-input-border, transparent)",
-  borderRadius: 2,
+  borderRadius: "var(--mmt-control-radius, 4px)",
   padding: "2px 4px",
 };
 

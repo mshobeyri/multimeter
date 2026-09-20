@@ -11,7 +11,7 @@ import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import ToggleButton from "../components/ToggleButton";
-import UrlInput from "../components/UrlInput";
+import MethodUrlBar from "../components/MethodUrlBar";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
 import VEditor from "../components/VEditor";
@@ -81,15 +81,6 @@ function outputValuesMatch(actual: unknown, expected: unknown): boolean {
   }
   return String(actual) === String(expected);
 }
-
-const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
-const OTHER_PROTOCOLS: Protocol[] = ["ws", "graphql", "grpc"];
-
-const PROTOCOL_LABELS: Record<string, string> = {
-  ws: "WS",
-  graphql: "GraphQL",
-  grpc: "gRPC",
-};
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
   const { mmtFilePath } = useContext(FileContext);
@@ -357,34 +348,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     <div className={`apitest-root${selector ? " apitest-root--source" : ""}`}>
       {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
-      <div className="apitest-url-row" style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
-        <div className="apitest-method-cluster" style={methodChromeVars as React.CSSProperties}>
-          {selector}
-          <select
-          className="method-select"
-          value={methodOrProtocolValue}
-          onChange={e => handleMethodOrProtocolChange(e.target.value)}
-          title="HTTP method or protocol (temporary override)"
-        >
-          {HTTP_METHODS.map(m => (
-            <option key={m} value={`method:${m}`}>{m.toUpperCase()}</option>
-          ))}
-          <option disabled value="__sep__">────────</option>
-          {OTHER_PROTOCOLS.map(p => (
-            <option key={p} value={`protocol:${p}`}>{PROTOCOL_LABELS[p] || p}</option>
-          ))}
-        </select>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <UrlInput
-            url={requestData?.url ?? ""}
-            query={requestData?.query || {}}
-            onUrlChange={handleUrlChange}
-            onQueryChange={handleQueryChange}
-          />
-        </div>
+      <div className="apitest-url-row" style={methodChromeVars as React.CSSProperties}>
+        {selector}
+        <MethodUrlBar
+          methodValue={methodOrProtocolValue}
+          onMethodChange={handleMethodOrProtocolChange}
+          url={requestData?.url ?? ""}
+          query={requestData?.query || {}}
+          onUrlChange={handleUrlChange}
+          onQueryChange={handleQueryChange}
+        />
         {rightOfUrlButton && (
-          <div style={{ display: "flex", alignItems: "flex-start", paddingTop: 2 }}>
+          <div className="apitest-url-row-actions">
             {rightOfUrlButton}
           </div>
         )}
