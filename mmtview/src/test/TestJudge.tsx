@@ -13,9 +13,10 @@ interface TestJudgeProps {
   value: any;
   imports?: Record<string, string>;
   onChange: (value: any) => void;
+  expanded?: boolean;
 }
 
-const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
+const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expanded }) => {
   const [local, setLocal] = React.useState<any>(typeof value === 'object' && value ? value : null);
   const emitTimerRef = React.useRef<number | null>(null);
   const localRef = React.useRef<any>(local);
@@ -118,6 +119,8 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
         ))}
       </select>
 
+      {expanded && (
+        <>
       <div className="label">Id</div>
       <div style={{ padding: '5px' }}>
         <input
@@ -207,6 +210,8 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
           </select>
         </label>
       </div>
+        </>
+      )}
     </div>
   );
 };

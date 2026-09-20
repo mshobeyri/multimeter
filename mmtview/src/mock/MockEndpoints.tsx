@@ -389,7 +389,6 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
               <div
                 className={`tree-view-box${isOpen ? ' active' : ''}`}
                 {...context.itemContainerWithoutChildrenProps}
-                style={{ alignItems: 'flex-start' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
                   <button
@@ -466,7 +465,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
         <Tree treeId="mock-tree" rootItem="root" treeLabel="Mock Endpoints" />
       </ControlledTreeEnvironment>
 
-      <div className={`tree-view-box mock-fallback-editor${fallbackOpen ? ' active' : ''}`} style={{ alignItems: 'flex-start', marginTop: 4 }}>
+      <div className={`tree-view-box mock-fallback-editor${fallbackOpen ? ' active' : ''}`} style={{ marginTop: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
           <button
             className="action-button"

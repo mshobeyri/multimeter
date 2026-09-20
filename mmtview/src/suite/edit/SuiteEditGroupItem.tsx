@@ -37,9 +37,9 @@ const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
 
   return (
     <div {...context.itemContainerWithChildrenProps}>
-      <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{ alignItems: 'flex-start' }}>
+      <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps}>
         {arrow}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {statusIcon && (
             <span className={`codicon ${statusIcon.icon}`} aria-hidden style={{ color: statusIcon.color }} />
           )}

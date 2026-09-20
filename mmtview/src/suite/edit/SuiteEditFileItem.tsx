@@ -76,9 +76,9 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
             <div
                 className="tree-view-box"
                 {...context.itemContainerWithoutChildrenProps}
-                style={{ paddingTop: 10, display: 'flex' }}
+                style={{ display: 'flex' }}
             >
-                <div style={{ width: 24, minWidth: 24, display: 'inline-flex', alignItems: 'flex-start' }}>{arrow}</div>
+                <div style={{ width: 24, minWidth: 24, display: 'inline-flex', alignItems: 'center' }}>{arrow}</div>
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span
                         className={`codicon ${statusIcon.icon}`}

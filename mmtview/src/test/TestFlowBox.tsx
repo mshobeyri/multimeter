@@ -153,7 +153,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     ) : null;
 
     return (
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 0 }}>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', pointerEvents: 'auto', gap: 0 }}>
         <button
           ref={btnRef}
           className="action-button"
@@ -198,6 +198,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         return (
           <TestJudge
             value={stepData}
+            expanded={expanded}
             imports={typeof testData?.import === 'object' ? testData.import as Record<string, string> : undefined}
             onChange={judgeObj => onChange({ ...judgeObj })}
           />
@@ -221,11 +222,25 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'if': {
         const raw = (stepData && typeof stepData[type] === 'string') ? (stepData[type] as string) : '';
         const parsed = parseIfForUi(raw);
+        if (!expanded && parsed.second) {
+          return (
+            <input
+              value={raw}
+              onChange={e => onChange({
+                ...stepData,
+                [type]: e.target.value,
+              })}
+              placeholder="(actual == expected && other != 0 | actual == expected || other == 1)"
+              style={{ width: '100%' }}
+            />
+          );
+        }
         return (
           <TestIf
             first={parsed.first}
             join={parsed.join}
             second={parsed.second}
+            expanded={expanded}
             onChange={(val) => onChange({
               ...stepData,
               [type]: formatIfForUi(val),
@@ -420,7 +435,9 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
   // Fixed label column sized to the longest common step title ("assert")
   // so the type stays visible when the expanded editor (e.g. http) takes width.
   const typeLabelStyle: React.CSSProperties = {
-    paddingTop: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    height: 28,
     flex: '0 0 4em',
     width: '4em',
     minWidth: '4em',
@@ -442,7 +459,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         {renderInner()}
       </div>
       <div
-        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
+        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', height: 28, pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
       >
         {type !== 'else' ? <Actions /> : null}
       </div>

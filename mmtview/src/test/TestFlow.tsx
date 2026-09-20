@@ -39,6 +39,16 @@ interface TestFlowProps {
 const collectFolderIds = (items: Record<string, any>, includeEmpty = true): string[] =>
     Object.values(items)
         .filter((it: any) => it?.isFolder && (includeEmpty || (it.children?.length > 0)))
+        .filter((it: any) => {
+            try {
+                const parsed = JSON.parse(it.data);
+                // Expandable folders share one opener; start collapsed so editor
+                // and nested steps stay in sync.
+                return !isExpandable(parsed?.type);
+            } catch {
+                return true;
+            }
+        })
         .map((it: any) => String(it.index));
 
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation }) => {
@@ -311,9 +321,10 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                             {...context.arrowProps}
                             style={{
                                 display: "inline-flex",
-                                paddingTop: 8,
                                 lineHeight: 0,
-                                alignSelf: "flex-start"
+                                alignItems: "center",
+                                justifyContent: "center",
+                                height: 28,
                             }}
                         >
                             {context.isExpanded ? (
@@ -334,10 +345,10 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                 <span
                                     style={{
                                         display: "inline-flex",
-                                        paddingTop: 8,
                                         lineHeight: 0,
-                                        alignSelf: "flex-start",
+                                        alignItems: "center",
                                         width: 16,
+                                        height: 28,
                                         justifyContent: 'center'
                                     }}
                                     aria-hidden
@@ -471,7 +482,22 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     };
 
                     const expandable = isExpandable(itemParsed.type);
-                    const isOpen = !!openEditors[String(item.index)];
+                    const folderAndEditor = expandable && !!item.isFolder;
+                    const itemKey = String(item.index);
+                    const isOpen = folderAndEditor
+                        ? expandedItems.includes(itemKey)
+                        : !!openEditors[itemKey];
+                    const toggleOpen = () => {
+                        if (folderAndEditor) {
+                            setExpandedItems(prev => (
+                                prev.includes(itemKey)
+                                    ? prev.filter(id => id !== itemKey)
+                                    : [...prev, itemKey]
+                            ));
+                            return;
+                        }
+                        setOpenEditors(prev => ({ ...prev, [itemKey]: !prev[itemKey] }));
+                    };
                     const isFlowRoot = itemParsed.type === 'flow' || itemParsed.type === 'root';
 
                     if (isFlowRoot) {
@@ -495,7 +521,11 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                             onDragStart={(e) => {
                                 // Close active state when starting a drag for this item
                                 const key = String(item.index);
-                                setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
+                                if (folderAndEditor) {
+                                    setExpandedItems(prev => prev.filter(id => id !== key));
+                                } else {
+                                    setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
+                                }
                                 setTransparentDragImage(e.dataTransfer);
                             }}
                             onDragEnd={() => {
@@ -518,24 +548,24 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                         onPointerDown={(e) => e.stopPropagation()}
                                         onPointerUp={(e) => {
                                             e.stopPropagation();
-                                            setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }));
+                                            toggleOpen();
                                         }}
                                         onKeyDown={(e) => {
                                             e.stopPropagation();
                                             if (e.key === 'Enter' || e.key === ' ') {
                                                 e.preventDefault();
-                                                setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }));
+                                                toggleOpen();
                                             }
                                         }}
                                         draggable={false}
                                         tabIndex={0}
                                         style={{
                                             display: 'inline-flex',
-                                            paddingTop: 8,
                                             lineHeight: 0,
-                                            alignSelf: 'flex-start',
+                                            alignItems: 'center',
                                             width: 24,
                                             minWidth: 24,
+                                            height: 28,
                                             justifyContent: 'center',
                                         }}
                                     >
@@ -545,7 +575,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                         />
                                     </button>
                                 )}
-                                {arrow}
+                                {!folderAndEditor && arrow}
                                 <NoTreeInterference>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <TestFlowBox
@@ -593,8 +623,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                         justifyContent: 'center',
                                         width: 24,
                                         minWidth: 24,
-                                        height: 24,
-                                        marginTop: 4,
+                                        height: 28,
                                         opacity: 0.7,
                                         cursor: 'grab',
                                         userSelect: 'none',
@@ -715,7 +744,7 @@ const isTypeFolder = (type: FlowType | unknown): boolean => {
 }
 
 const isExpandable = (type: FlowType | unknown): boolean => {
-    return type === "print" || type === "js" || type === "call" || type === "http" || type === "check" || type === "assert" || type === "judge" || type === 'setenv' || type === 'stage';
+    return type === "print" || type === "js" || type === "call" || type === "http" || type === "check" || type === "assert" || type === "judge" || type === 'setenv' || type === 'stage' || type === 'if';
 }
 
 export default TestFlow;

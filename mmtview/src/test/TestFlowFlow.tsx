@@ -147,7 +147,7 @@ const TestFlowFlow: React.FC<TestFlowFlowProps> = ({
     >
       {arrow}
       <div className="test-flow-box-items">
-        <span className="test-flow-root-title">flow</span>
+        <span className="test-flow-root-title">{multiStage ? 'stages' : 'steps'}</span>
         <div
           className="test-flow-root-actions"
           onMouseDownCapture={stopTree}

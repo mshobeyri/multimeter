@@ -14,6 +14,7 @@ interface TestIfProps {
   join?: LogicalJoin;
   second?: IfClause;
   onChange: (val: { first: IfClause; join?: LogicalJoin; second?: IfClause }) => void;
+  expanded?: boolean;
 }
 
 const joinSelectStyle: React.CSSProperties = {
@@ -40,6 +41,7 @@ const TestIf: React.FC<TestIfProps> = ({
   join,
   second,
   onChange,
+  expanded,
 }) => {
   const hasSecond = !!second;
 
@@ -72,7 +74,7 @@ const TestIf: React.FC<TestIfProps> = ({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
       {renderClause(first, next => onChange({ first: next, join, second }))}
-      {hasSecond ? (
+      {expanded && (hasSecond ? (
         <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%" }}>
           <select
             value={join || "&&"}
@@ -123,7 +125,7 @@ const TestIf: React.FC<TestIfProps> = ({
           <span className="codicon codicon-add" aria-hidden />
           && / ||
         </button>
-      )}
+      ))}
     </div>
   );
 };
