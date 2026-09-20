@@ -897,6 +897,10 @@ button:focus {
   height: 100%;
 }
 
+.panel.is-clip {
+  overflow: hidden;
+}
+
 .panel-box {
   position: relative;
   background: var(--vscode-editor-background, #232323);
@@ -907,6 +911,129 @@ button:focus {
   margin-bottom: 16px;
   width: 100%;
   box-sizing: border-box;
+}
+
+.panel-box.is-fill {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.panel-box.is-fill.is-flush {
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.panel-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.panel-page.is-clip {
+  overflow: hidden;
+}
+
+.panel-page.is-full {
+  height: 100%;
+}
+
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.panel-scroll.is-padded {
+  padding: 0 12px 12px;
+}
+
+.panel-scroll.is-inset {
+  padding: 12px;
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.panel-error {
+  color: var(--vscode-errorForeground, #f55);
+  padding: 16px;
+}
+
+.panel-muted {
+  padding: 16px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.panel-blurb {
+  opacity: 0.85;
+  white-space: pre-wrap;
+  margin-bottom: 12px;
+}
+
+.panel-end-spacer {
+  height: 50px;
+  flex-shrink: 0;
+}
+
+.edit-tab-pad {
+  padding: 0 16px 8px;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  padding: 12px 0;
+}
+
+.chip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.veditor-row {
+  margin-bottom: 8px;
+  padding-left: 20px;
+}
+
+.veditor-key-row {
+  margin-bottom: 2px;
+}
+
+.veditor-key {
+  font-weight: 500;
+}
+
+.veditor-type {
+  font-size: 8px;
+  color: var(--vscode-descriptionForeground, #888);
+  margin-left: 4px;
+}
+
+.match-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.match-icon.is-pass {
+  color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.match-icon.is-fail {
+  color: var(--vscode-testing-iconFailed, #f14c4c);
 }
 
 .panel-form {
@@ -976,6 +1103,14 @@ button:focus {
   padding: 5px;
   vertical-align: top;
   box-sizing: border-box;
+}
+
+.field-table.is-flush {
+  margin-top: 0;
+}
+
+.field-table.is-flush td {
+  padding: 0;
 }
 
 .field-table input {
@@ -1191,6 +1326,19 @@ select.is-invalid {
   margin-bottom: 8px;
 }
 
+.label.is-gap {
+  margin-bottom: 10px;
+}
+
+.label.is-block {
+  margin-bottom: 12px;
+}
+
+.label.is-section {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
 .field-pad-lg {
   padding: 8px;
   width: 100%;
@@ -1205,6 +1353,10 @@ select.is-invalid {
 
 .field-block {
   margin-top: 8px;
+}
+
+.field-block.is-tight {
+  margin-top: 4px;
 }
 
 .field-hint {
@@ -1377,6 +1529,11 @@ select.is-invalid {
   margin-bottom: 16px;
 }
 
+.environment-table .w-20 { width: 20%; }
+.environment-table .w-25 { width: 25%; }
+.environment-table .w-30 { width: 30%; }
+.environment-table .w-50 { width: 50%; }
+
 /* API tester layout */
 .apitest-panel-wrapper {
   flex: 1;
@@ -1392,6 +1549,7 @@ select.is-invalid {
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  flex: 1;
 }
 
 .api-swipe-track {

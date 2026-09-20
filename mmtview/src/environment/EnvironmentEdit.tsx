@@ -52,16 +52,16 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, 
 
   if (!envData) {
     return (
-      <div style={{ color: "#f55", padding: 16 }}>
+      <div className="panel-error">
         Invalid YAML or no environment data found.
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 0 }}>
+    <div>
       {tab === "overview" && (
-        <div style={{ padding: "0 16px 8px" }}>
+        <div className="edit-tab-pad">
           <KSVEditor
             label="Import"
             value={envData.import}

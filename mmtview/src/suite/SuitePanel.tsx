@@ -37,14 +37,14 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-box is-fill">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track api-swipe-track--three"
             style={{ transform: pageTranslate(page) }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden', flexDirection: 'column' }}>
+              <div className="panel-page is-clip">
                 <PanelRunHeader
                   icon="layers"
                   title={suiteTitle}

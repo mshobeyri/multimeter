@@ -103,10 +103,8 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
 
   if (parsed.error) {
     return (
-      <div style={{ padding: 16 }}>
-        <div style={{ color: 'var(--vscode-errorForeground)', marginBottom: 8 }}>
-          {parsed.error}
-        </div>
+      <div className="panel-error">
+        {parsed.error}
       </div>
     );
   }
@@ -161,7 +159,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
+      <div className="panel-box is-fill">
         <PanelRunHeader
           icon="file-text"
           iconTitle={suiteName}
@@ -177,7 +175,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
           <ExportReportButton disabled={false} onExport={handleExportReport} />
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div className="panel-scroll">
       <OverviewBoxes stats={overviewStats} />
       {isLoadReport && results.load && (
         <LoadMetricsOverview

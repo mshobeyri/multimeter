@@ -290,12 +290,9 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
   };
 
   return (
-    <div className="panel" style={{ overflow: 'hidden' }}>
-      <div
-        className="panel-box"
-        style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, marginBottom: 0, overflow: 'hidden' }}
-      >
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+    <div className="panel is-clip">
+      <div className="panel-box is-fill is-flush">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track"
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
@@ -343,7 +340,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
                 <TabBar tabs={API_EDIT_TABS} value={tab} onChange={setTab} />
               </PanelEditHeader>
 
-              <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+              <div className="panel-scroll">
                 {tab === 'overview' && <APIOverview api={api} update={update} />}
 
                 {tab === 'interface' && (
@@ -354,13 +351,10 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
                 )}
 
                 {tab === 'examples' && (
-                  <table
-                    className="APIEditor"
-                    style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginTop: 0 }}
-                  >
+                  <table className="field-table is-flush">
                     <tbody>
                       <tr>
-                        <td colSpan={2} style={{ padding: 0 }}>
+                        <td colSpan={2}>
                           {safeList(api.examples)
                             .filter((ex) => ex != null)
                             .map((example, idx) => (

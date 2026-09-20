@@ -92,15 +92,15 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-box is-fill">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track"
             style={{ transform: page === 'view' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             {/* ── View page (HTML / Markdown preview + Edit button) ── */}
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <div className="panel-page is-full">
                 <PanelRunHeader
                   leading={
                     <TabBar
@@ -118,7 +118,7 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
                       />
                   }
                 />
-                <div style={{ flex: 1, minHeight: 0, display: 'flex', width: '100%', minWidth: 0 }}>
+                <div className="panel-body">
                   {viewTab === "html" && <DocViewHTML doc={doc} />}
                   {viewTab === "md" && <DocViewMarkdown doc={doc} />}
                 </div>
@@ -135,7 +135,7 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
                 <TabBar tabs={DOC_EDIT_TABS} value={tab} onChange={setTab} />
               </PanelEditHeader>
 
-              <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+              <div className="panel-scroll">
                 {tab === "overview" && (
                   <DocOverview doc={doc} update={update} />
                 )}

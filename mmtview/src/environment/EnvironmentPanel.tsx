@@ -342,14 +342,14 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-box is-fill">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track"
             style={{ transform: page === 'environment' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <div className="panel-page">
                 <PanelRunHeader
                   icon="server-environment"
                   title="Environment"
@@ -369,7 +369,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                     Clear
                   </PrimaryButton>
                 </div>
-                <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                <div className="panel-scroll">
                   <EnvironmentEnv
                     variables={variables}
                     currentVariables={workspaceVars}
@@ -390,7 +390,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
               >
                 <TabBar tabs={ENV_EDIT_TABS} value={editTab} onChange={setEditTab} />
               </PanelEditHeader>
-              <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+              <div className="panel-scroll">
                 <EnvironmentEdit content={content} setContent={setContent} tab={editTab} />
               </div>
             </div>

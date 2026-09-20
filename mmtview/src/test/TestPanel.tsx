@@ -265,16 +265,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-box is-fill">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track api-swipe-track--three"
             style={{ transform: pageTranslate(page) }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div
-                style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: 'column' }}
-              >
+              <div className="panel-page is-clip">
                 <PanelRunHeader
                   icon="beaker"
                   title={test.title || 'Test'}
@@ -311,7 +309,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                     </>
                   }
                 />
-                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div className="panel-page">
                   <TestTest
                     testData={test}
                     onInputsModificationChange={handleInputsModificationChange}
@@ -330,7 +328,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                 <TabBar tabs={TEST_EDIT_TABS} value={tab} onChange={setTab} />
               </PanelEditHeader>
 
-              <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+              <div className="panel-scroll">
                 {!isReadOnly && tab === "overview" && (
                   <TestOverview
                     test={test}

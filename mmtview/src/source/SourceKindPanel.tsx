@@ -84,7 +84,7 @@ const SourceKindPanel: React.FC<SourceKindPanelProps> = ({
   if (apis.length === 0) {
     return (
       <div className="panel">
-        <div className="panel-box" style={{ padding: 16 }}>
+        <div className="panel-box">
           {emptyMessage}
         </div>
       </div>
@@ -106,7 +106,7 @@ const SourceKindPanel: React.FC<SourceKindPanelProps> = ({
   if (!selected) {
     return (
       <div className="panel">
-        <div className="panel-box" style={{ padding: 16 }}>
+        <div className="panel-box">
           {emptyMessage}
         </div>
       </div>

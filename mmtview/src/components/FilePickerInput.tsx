@@ -88,7 +88,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
   if (removable) { rightPadding += 28; }
 
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
       <input
         ref={ref}
         type="text"
@@ -105,11 +105,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
             onEnterPressed && onEnterPressed(value);
           }
         }}
-        style={{
-          width: '100%',
-          verticalAlign: 'top',
-          paddingRight: rightPadding
-        }}
+        style={{ paddingRight: rightPadding }}
         className={['file-picker-input', invalid ? 'mmt-line-error' : ''].filter(Boolean).join(' ')}
         title={value}
       />
@@ -124,9 +120,9 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           }
           aria-label="Open file picker"
           className="field-button"
-          style={{ position: 'absolute', right: removable ? 32 : 4, top: '50%', transform: 'translateY(-50%)' }}
+          style={{ right: removable ? 32 : 4 }}
         >
-          <span className="action-button codicon codicon-folder-opened" style={{ fontSize: '16px' }} />
+          <span className="action-button codicon codicon-folder-opened" />
         </button>
       )}
       {removable && (
@@ -136,9 +132,8 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           title="Remove"
           aria-label="Remove"
           className="field-button"
-          style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)' }}
         >
-          <span className="action-button codicon codicon-close" style={{ fontSize: '16px' }} />
+          <span className="action-button codicon codicon-close" />
         </button>
       )}
     </div>

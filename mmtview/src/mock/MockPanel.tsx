@@ -108,7 +108,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
   if (!mockData) {
     return (
-      <div style={{ padding: 16, color: "var(--vscode-descriptionForeground)" }}>
+      <div className="panel-muted">
         Invalid or incomplete server definition. Ensure the file has <code>type: server</code>, <code>port</code>, and <code>endpoints</code>.
       </div>
     );
@@ -129,15 +129,15 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-box is-fill">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track"
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             {/* ── Run page ── */}
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: "column" }}>
+              <div className="panel-page is-clip">
                 <PanelRunHeader
                   icon="server"
                   title={mockData.title || 'Server'}
@@ -159,10 +159,10 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                     stopLabel="Stop mock"
                   />
                 </div>
-                <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                <div className="panel-scroll">
                   {/* Info chips */}
-                  <div className="label" style={{ marginBottom: 8 }}>Configuration</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                  <div className="label is-spaced">Configuration</div>
+                  <div className="chip-row">
                     <span className="mock-info-chip mock-info-chip--url">{baseUrl}</span>
                     <span className="mock-info-chip">{String(protocol).toUpperCase()}</span>
                     {mockData.cors && <span className="mock-info-chip">CORS</span>}
@@ -199,14 +199,14 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   })}
 
                   {endpointCount === 0 && (
-                    <div style={{ fontSize: 12, color: "var(--vscode-descriptionForeground)", fontStyle: "italic", padding: "12px 0" }}>
+                    <div className="empty-hint">
                       No endpoints defined.
                     </div>
                   )}
 
                   {/* Fallback */}
                   {mockData.fallback && (
-                    <div style={{ marginTop: 4 }}>
+                    <div className="field-block is-tight">
                       <div className="mock-ep-row mock-ep-row--fallback">
                         <span className="mock-ep-icon" aria-hidden>
                           <span className="codicon codicon-circle-slash" style={{ color: "var(--vscode-descriptionForeground)" }} />
@@ -224,7 +224,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
                   {/* Proxy */}
                   {mockData.proxy && (
-                    <div style={{ marginTop: 4 }}>
+                    <div className="field-block is-tight">
                       <div className="label">Proxy</div>
                       <div className="mock-proxy-row">{resolveEnvTokenValues(mockData.proxy, envParams)}</div>
                     </div>
@@ -243,7 +243,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                 <TabBar tabs={MOCK_EDIT_TABS} value={tab} onChange={setTab} />
               </PanelEditHeader>
 
-              <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+              <div className="panel-scroll">
                 {tab === 'overview' && (
                   <MockOverview data={mockData} updateField={updateField} />
                 )}

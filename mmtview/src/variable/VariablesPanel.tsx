@@ -61,7 +61,7 @@ const VariablesPanel: React.FC<VariablesProps> = ({ content, setContent }) => {
         variablesData={variablesData}
         setVariablesData={setVariablesData}
       />
-      <div style={{ height: 50, flexShrink: 0 }} />
+      <div className="panel-end-spacer" />
     </div>
   );
 };
