@@ -1,0 +1,660 @@
+/* Shared form, tree, and field utilities. */
+
+/* Common replacements for the old `style={{ width: 100%; padding: 5px }}` copies. */
+.mmt-fill {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.field-pad {
+  padding: 5px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.field-pad.is-relative {
+  position: relative;
+}
+
+.field-pad > input,
+.field-pad > select,
+.field-pad > textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field-pad > textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.field-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.field-table td {
+  width: 50%;
+  padding: 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+}
+
+.field-table.is-flush {
+  margin-top: 0;
+}
+
+.field-table.is-flush td {
+  padding: 0;
+}
+
+.field-table input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-inline.is-spaced {
+  margin-bottom: 4px;
+}
+
+.field-inline.is-inset {
+  margin-top: 4px;
+}
+
+.field-inline.is-wrap {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.field-inline.is-gap {
+  gap: 8px;
+}
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.field-stack > input,
+.field-stack > select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-narrow {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.field-label-col {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.field-label-col.is-quarter {
+  width: 25%;
+}
+
+.field-col-30 {
+  width: 30%;
+  box-sizing: border-box;
+}
+
+.field-col-35 {
+  width: 35%;
+  box-sizing: border-box;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+}
+
+.file-overview {
+  padding: 8px 16px 0;
+}
+
+.import-missing {
+  padding: 4px 5px;
+  color: var(--vscode-errorForeground, #f14c4c);
+  font-size: 12px;
+}
+
+.field-with-remove {
+  position: relative;
+  width: 100%;
+}
+
+.field-with-remove > input {
+  width: 100%;
+  vertical-align: top;
+}
+
+.field-with-remove.is-disabled > input {
+  cursor: not-allowed;
+}
+
+.field-with-remove .field-button {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+}
+
+.field-with-remove.has-remove .field-button.is-copy {
+  right: 28px;
+}
+
+.field-with-remove .action-button {
+  font-size: 16px;
+}
+
+.list-editor {
+  margin-right: 10px;
+}
+
+.is-invalid {
+  color: var(--vscode-errorForeground, #f14c4c);
+  border-color: var(--vscode-errorForeground, #f14c4c);
+}
+
+select.is-invalid {
+  box-shadow: 0 0 0 1px var(--vscode-errorForeground, #f14c4c);
+}
+
+.select-with-remove {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.select-with-remove select {
+  width: 100%;
+  vertical-align: top;
+}
+
+.select-with-remove.has-remove select {
+  width: calc(100% - 32px);
+  margin-right: 4px;
+}
+
+.select-with-remove.is-disabled select {
+  background: var(--vscode-input-background, #eee);
+  color: var(--vscode-disabledForeground, #aaa);
+  cursor: not-allowed;
+}
+
+.field-picker-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 2px;
+  z-index: 20;
+  min-width: 120px;
+  max-width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--vscode-dropdown-background, #3c3c3c);
+  border: 1px solid var(--vscode-dropdown-border, #454545);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.field-picker-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-dropdown-foreground, #cccccc);
+  cursor: pointer;
+}
+
+.field-picker-item.is-selected {
+  background: var(--vscode-list-activeSelectionBackground, #094771);
+}
+
+.object-fields-title {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.object-field-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.object-field-name {
+  width: 40%;
+  vertical-align: top;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+.object-field-type {
+  margin-left: 8px;
+  width: 60%;
+  display: flex;
+  align-items: center;
+}
+
+.field-grid {
+  padding: 5px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.label-sm {
+  font-size: 12px;
+}
+
+.label.is-tight {
+  margin-bottom: 0;
+}
+
+.label.is-spaced {
+  margin-bottom: 8px;
+}
+
+.label.is-gap {
+  margin-bottom: 10px;
+}
+
+.label.is-block {
+  margin-bottom: 12px;
+}
+
+.label.is-section {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+.field-pad-lg {
+  padding: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.field-pad-lg.is-relative {
+  position: relative;
+}
+
+.field-pad-lg.is-clip {
+  overflow: hidden;
+}
+
+.field-block {
+  margin-top: 8px;
+}
+
+.field-block.is-tight {
+  margin-top: 4px;
+}
+
+.field-hint {
+  padding: 4px 5px 0;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.field-details {
+  width: 100%;
+  height: 60px;
+  min-height: 60px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.field-pad > textarea.field-details {
+  min-height: 60px;
+  height: 60px;
+}
+
+.description-editor {
+  resize: none;
+  overflow: hidden;
+}
+
+.field-stack.is-loose {
+  gap: 10px;
+}
+
+.field-stack.is-gap {
+  gap: 8px;
+  margin-top: 0;
+}
+
+.field-flex-2 {
+  flex: 2;
+  min-width: 0;
+}
+
+.no-shrink {
+  flex-shrink: 0;
+}
+
+.pad-b-8 {
+  padding-bottom: 8px;
+}
+
+.muted {
+  opacity: 0.7;
+}
+
+.panel-heading {
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.break-all {
+  word-break: break-all;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.ellipsis.is-clip {
+  white-space: nowrap;
+}
+
+.select-narrow {
+  width: 40%;
+}
+
+.inner-box.is-preset {
+  padding-top: 30px;
+}
+
+.inner-box.is-nested {
+  margin: 5px;
+}
+
+.primary-button.is-inset {
+  margin: 12px 5px 5px;
+}
+
+.report-row {
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.report-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  user-select: none;
+}
+
+.report-item select {
+  font-size: 12px;
+}
+
+.op-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.op-select.is-fixed {
+  width: 190px;
+  flex: 0 0 auto;
+}
+
+.op-select.is-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.ghost-add {
+  padding: 4px 8px;
+  border-radius: var(--mmt-control-radius);
+  border: 1px dashed var(--vscode-editorWidget-border, #555);
+  background: transparent;
+  cursor: pointer;
+}
+
+
+.doc-services {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.doc-service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.doc-services > button {
+  align-self: flex-start;
+}
+
+.environment-table-wrapper {
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.environment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.environment-table thead {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.environment-table th,
+.environment-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--vscode-editorWidget-border, #333);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.environment-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.environment-table-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.environment-table-value {
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
+  color: var(--vscode-symbolIcon-stringForeground, var(--vscode-foreground, #d4d4d4));
+  overflow-wrap: anywhere;
+}
+
+.environment-table-empty {
+  text-align: center;
+  padding: 16px;
+  border: 1px dashed var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  color: var(--vscode-descriptionForeground, #888);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.environment-table .w-20 { width: 20%; }
+.environment-table .w-25 { width: 25%; }
+.environment-table .w-30 { width: 30%; }
+.environment-table .w-50 { width: 50%; }
+
+.view-selector {
+  position: relative;
+  z-index: 1000;
+  background: transparent;
+}
+
+.view-selector-btn {
+  z-index: 1000;
+  color: var(--vscode-foreground, #d4d4d4);
+  background: transparent;
+}
+
+.view-selector-btn .codicon,
+.view-selector-label {
+  font-size: 12px;
+}
+
+.view-selector-menu {
+  color: var(--vscode-foreground, #d4d4d4);
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1000;
+  background: var(--vscode-menu-background, #1e1e1e);
+  border: 0;
+  padding: 4px 0;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.view-selector-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  width: 100%;
+  border: none;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: left;
+  z-index: 1000;
+  color: var(--vscode-menu-foreground, #d4d4d4);
+  background: none;
+}
+
+.view-selector-item.is-selected {
+  color: var(--vscode-menu-selectionForeground, #094771);
+  background: var(--vscode-menu-selectionBackground, #094771);
+}
+
+.view-selector-item .codicon {
+  z-index: 1000;
+  font-size: 10px;
+}
+
+.tag-input {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: var(--mmt-control-radius, 4px);
+  padding: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  background: var(--vscode-input-background, #1e1e1e);
+  color: var(--vscode-editorWidget-foreground, #d4d4d4);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+}
+
+.tag-input .tag {
+  border-radius: var(--mmt-control-radius, 4px);
+  padding: 2px 8px;
+  margin-right: 2px;
+  display: flex;
+  align-items: center;
+  background: var(--vscode-editorWidget-background, #232323);
+  color: var(--vscode-editorWidget-foreground, #d4d4d4);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+}
+
+.tag-input .tag-remove {
+  margin-left: 4px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground, #c00);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.tag-input-field {
+  border: none;
+  outline: none;
+  flex: 1;
+  min-width: 80px;
+  background: transparent;
+  color: var(--vscode-input-foreground, #d4d4d4);
+}
+
+.tag-suggest {
+  position: absolute;
+  background: var(--vscode-editorWidget-background, #232323);
+  color: var(--vscode-editorWidget-foreground, #d4d4d4);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: var(--mmt-control-radius, 4px);
+  margin-top: 32px;
+  z-index: 10;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tag-suggest-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  background: transparent;
+}

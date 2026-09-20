@@ -23,12 +23,12 @@ Replace repeated static `style={{ }}` in `mmtview/src` with shared `App.css` cla
 
 ## Remaining
 
-- [ ] Suite trees (edit + test rows, arrows, drop lines)
-- [ ] SuiteEdit / SuiteTest leftover form and overview chrome
-- [ ] Mock endpoint list + endpoint box form rows
-- [ ] Reports: TestStepReportPanel, ReportPanel leftover, LoadTestReport, OverviewBoxes
-- [ ] Remaining editors: SearchableTagInput static chrome, DescriptionEditor, DocOverview/Edit, EnvironmentView, TestFlow/TestFlowBox static chrome, TestTest, ViewSelector
-- [ ] Split `App.css` by feature (`styles/`) so `App.tsx` imports the pieces; `res/` untouched
+- [x] Suite trees (edit + test rows, arrows, drop lines)
+- [x] SuiteEdit / SuiteTest leftover form and overview chrome
+- [x] Mock endpoint list + endpoint box form rows
+- [x] Reports: TestStepReportPanel, ReportPanel leftover, LoadTestReport, OverviewBoxes
+- [x] Remaining editors: SearchableTagInput static chrome, DescriptionEditor, DocOverview/Edit, EnvironmentView, TestFlow/TestFlowBox static chrome, TestTest, ViewSelector
+- [x] Split `App.css` by feature (`styles/`) so `App.tsx` imports the pieces; `res/` untouched
 
 ## Success
 

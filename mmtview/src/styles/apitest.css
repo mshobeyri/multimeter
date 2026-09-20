@@ -1,0 +1,936 @@
+/* API tester, MethodUrlBar, and Monaco internals. */
+
+/* Custom method + URL control (not a native input — those keep their own border). */
+.method-url-bar {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  min-height: 28px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: var(--mmt-control-radius);
+  background-color: var(--vscode-input-background, #1e1e1e);
+}
+
+.method-url-bar:focus-within {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.method-url-bar-method {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 84px;
+  min-width: 84px;
+  max-width: 84px;
+  padding: 0;
+  color: var(--mmt-accent-on-fill, var(--vscode-button-foreground, #fff));
+  background-color: var(
+    --mmt-accent-fill,
+    color-mix(
+      in oklab,
+      var(--mmt-accent, #888) 52%,
+      var(--vscode-editor-background, #1e1e1e)
+    )
+  );
+  font-weight: 600;
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  line-height: 1;
+  user-select: none;
+}
+
+.method-url-bar select.method-url-bar-select,
+.method-url-bar select.method-url-bar-select:hover,
+.method-url-bar select.method-url-bar-select:focus,
+.method-url-bar select.method-url-bar-select:focus-visible {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  color: transparent;
+}
+
+.method-url-bar-url {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--vscode-input-foreground, #d4d4d4);
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 26px;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  cursor: text;
+}
+
+.method-url-bar-url::-webkit-scrollbar {
+  display: none;
+}
+
+.method-select.method-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+/*
+ * API tester padding: match test-type .panel-box inset (16px).
+ * Apply on .apitest-root / edit page so the run view is never flush when
+ * panel-box padding is cleared for the API swipe layout.
+ */
+.panel-box:has(.apitest-root) {
+  padding: 0;
+}
+
+.panel-box:has(.api-selector--header) {
+  padding-top: 0;
+}
+
+.api-swipe-page--edit {
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.apitest-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  padding-bottom: 0;
+  box-sizing: border-box;
+  min-height: 0;
+  min-width: 0;
+  gap: 0;
+  overflow-x: hidden;
+}
+
+.apitest-root--source {
+  padding-top: 8px;
+}
+
+.apitest-url-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 0 0 8px;
+}
+
+.apitest-url-row > .api-selector {
+  flex-shrink: 0;
+}
+
+.apitest-tabs-row {
+  padding: 0 0 8px;
+}
+
+.apitest-tab-count {
+  margin-left: 3px;
+  color: var(--vscode-descriptionForeground, #858585);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: super;
+}
+
+.apitest-body-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.apitest-section > .apitest-body-pane {
+  flex: 1 1 auto;
+  min-height: 150px;
+}
+
+.apitest-body-format-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  flex-shrink: 0;
+  padding: 2px 6px 8px;
+}
+
+.apitest-body-format-raw-select {
+  position: relative;
+}
+
+.apitest-body-format-raw-trigger,
+.apitest-body-format-raw-trigger:hover,
+.apitest-body-format-raw-trigger:focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.apitest-body-format-raw-trigger .codicon {
+  font-size: 12px;
+}
+
+.apitest-body-format-raw-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 112px;
+  padding: 4px 0;
+  border: 1px solid var(--vscode-editorWidget-border, #454545);
+  border-radius: var(--mmt-control-radius);
+  background: var(--vscode-dropdown-background, var(--vscode-editor-background, #1e1e1e));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.apitest-body-format-raw-option {
+  display: block;
+  width: 100%;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-dropdown-foreground, var(--vscode-foreground, #cccccc));
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.apitest-body-format-raw-option:hover,
+.apitest-body-format-raw-option.is-selected {
+  background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.apitest-body-format-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground, #858585);
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.apitest-body-format-chip::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.apitest-body-format-chip:hover {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.apitest-body-format-chip.is-selected {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.apitest-body-format-chip.is-selected::before {
+  box-shadow: inset 0 0 0 2.5px var(--vscode-editor-background, #1e1e1e);
+  background: currentColor;
+}
+
+.apitest-fixed-header .tab-bar {
+  margin-bottom: 0;
+}
+
+.apitest-fixed-header {
+  flex-shrink: 0;
+}
+
+/* Content area between fixed header and fixed toolbar.
+   Uses flex:1 to fill available height.  Overflow is hidden
+   here because request / response sections scroll independently. */
+.apitest-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+.apitest-section {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Section children keep their natural height so the section scrolls
+   when combined content exceeds the available space. */
+.apitest-section > * {
+  flex-shrink: 0;
+}
+
+.apitest-send-row {
+  flex-shrink: 0;
+  position: relative;
+  height: 46px;
+}
+
+.apitest-send-row .horizontal-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  margin: 0;
+  transform: translateY(-50%);
+}
+
+.apitest-send-controls {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translate(-10px, -50%);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  z-index: 5;
+}
+
+.apitest-toolbar {
+  flex-shrink: 0;
+  background: var(--vscode-editor-background, #232323);
+  padding: 0;
+  z-index: 5;
+  overflow: visible;
+}
+
+.apitest-toolbar-inner {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  min-height: 32px;
+}
+
+/* Body wrapper: grows to fill section, minimum 150px triggers scroll.
+   Position:relative so the bodyview can be position:absolute inside.
+   Use the same 5px inset as edit-mode field blocks. */
+.apitest-body-wrapper {
+  flex: 1;
+  min-height: 150px;
+  padding: 5px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.apitest-body-wrapper.is-disabled {
+  opacity: 0.55;
+}
+
+/* Bodyview inside api tester: absolute-fill so Monaco gets real pixel
+   dimensions regardless of flex chain. */
+.apitest-body-wrapper .bodyview {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  height: auto;
+  width: auto;
+  overflow: hidden;
+}
+
+.multipart-parts-editor {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.multipart-parts-editor table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.multipart-parts-editor td {
+  padding: 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+}
+
+.multipart-parts-editor .multipart-part-name {
+  width: 28%;
+}
+
+.multipart-parts-editor .multipart-part-kind {
+  width: 92px;
+}
+
+.multipart-parts-editor .multipart-part-name input,
+.multipart-parts-editor .multipart-part-kind select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.apitest-body-wrapper .multipart-parts-editor {
+  position: relative;
+  height: auto;
+  overflow: auto;
+}
+
+.inner-box {
+  position: relative;
+  padding: 16px;
+  background: var(--vscode-editor-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  color: var(--vscode-editor-foreground, #fff);
+  user-select: none;
+  transition: background 0.35s;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+.tree-view-box {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  height: auto;
+  min-height: 48px;
+  max-height: 48px;
+  background: var(--vscode-editor-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  color: var(--vscode-editor-foreground, #fff);
+  user-select: none;
+  transition: background 0.35s, max-height 0.25s ease;
+  margin-bottom: 8px;
+  /* 9px vertical + 28px control + 2px border = 48px, so the header
+     stays put when the box expands (flex-start in both states). */
+  padding: 9px 8px;
+  gap: 8px;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+
+.tree-view-box.active {
+  max-height: none;
+  overflow: visible;
+}
+
+.tree-view-box.tree-view-box-row {
+  align-items: center;
+  padding: 8px;
+}
+
+.tree-view-box-row-arrow {
+  width: 24px;
+  min-width: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tree-view-box-row-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tree-view-box-row-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-view-box-row-label-link {
+  cursor: pointer;
+}
+
+.mmt-line-error {
+  text-decoration: underline wavy;
+  text-decoration-color: var(--vscode-errorForeground, #f85149);
+  text-underline-offset: 3px;
+}
+
+.tree-view-box-row .codicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.test-flow-box-items {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.test-flow-box-items > span {
+  display: flex;
+  align-items: center;
+  height: 28px;
+}
+
+.test-flow-type-label {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  flex: 0 0 4em;
+  width: 4em;
+  min-width: 4em;
+  white-space: nowrap;
+}
+
+.test-flow-box-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.test-flow-box-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  pointer-events: auto;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.test-flow-else {
+  opacity: 0.85;
+  font-weight: 600;
+  padding: 2px 0;
+}
+
+.test-flow-setenv-count {
+  font-size: 12px;
+  opacity: 0.8;
+  padding: 6px 0 0;
+}
+
+.test-flow-js {
+  width: 100%;
+  resize: none;
+  overflow: auto;
+}
+
+.test-flow-expand {
+  display: inline-flex;
+  line-height: 0;
+  align-items: center;
+  width: 24px;
+  min-width: 24px;
+  height: 28px;
+  justify-content: center;
+}
+
+.test-flow-leaf-icon {
+  display: inline-flex;
+  line-height: 0;
+  align-items: center;
+  width: 16px;
+  height: 28px;
+  justify-content: center;
+}
+
+.test-flow-step-icon {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.run-action-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.judge-auto-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--vscode-foreground);
+  font-size: var(--vscode-font-size, 13px);
+  user-select: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.run-action-bar .button-icon,
+.run-action-bar .primary-button {
+  opacity: 1;
+}
+
+.report-section-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+.report-section-header .label {
+  margin: 0;
+  margin-bottom: 0;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.report-section-header-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.report-status-filter {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.report-status-filter select {
+  position: absolute;
+  inset: 0;
+  width: 20px;
+  max-width: 20px;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.report-status-filter-icon {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--vscode-foreground, #ccc);
+  opacity: 0.75;
+}
+
+.report-status-filter-icon.is-active {
+  opacity: 1;
+  color: var(--vscode-focusBorder, #007fd4);
+}
+
+.report-status-filter-icon.is-disabled {
+  opacity: 0.4;
+}
+
+.report-header-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-button.report-header-more-btn {
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  min-width: 20px;
+  max-width: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-header-more-icon {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--vscode-foreground, #ccc);
+  opacity: 0.75;
+}
+
+.report-header-more-btn:hover .report-header-more-icon {
+  opacity: 1;
+}
+
+.report-header-more-icon.is-disabled {
+  opacity: 0.4;
+}
+
+.report-empty-filter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  margin: 0;
+  padding: 28px 20px;
+  box-sizing: border-box;
+  text-align: center;
+  border: 1px dashed var(--vscode-editorWidget-border, #444);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground, #999);
+}
+
+.report-empty-filter-icon {
+  font-size: 22px;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.report-empty-filter-message {
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.4;
+  max-width: 28em;
+}
+
+.report-empty-filter-link {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  cursor: pointer;
+  font: inherit;
+  font-size: calc(var(--vscode-font-size, 13px) * 2 / 3);
+  text-decoration: none;
+}
+
+.report-empty-filter-link:hover {
+  color: var(--vscode-textLink-activeForeground, #3794ff);
+  text-decoration: underline;
+}
+
+.report-empty-filter-link:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.test-flow-tree {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.drag-preview-ghost {
+  position: fixed;
+  top: -10000px;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.test-flow-tree>div>ul {
+  margin: 0;
+  padding-left: 0;
+}
+
+.test-flow-tree li {
+  list-style: none;
+}
+
+/* Update error panel */
+.error-panel {
+  color: var(--vscode-foreground, #d4d4d4);
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+  border: 1px dashed var(--vscode-border, #444);
+  border-radius: 4px;
+  background-color: var(--vscode-editorWidget-background, #232323);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  /* Use VS Code font size */
+}
+
+/* Common response metric badge (status, duration, etc.) */
+.response-badge {
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 12px;
+  line-height: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  box-sizing: border-box;
+  user-select: none;
+  min-width: 25px;
+}
+
+.response-badge--clickable {
+  cursor: pointer;
+}
+
+.response-badge-tooltip {
+  position: fixed;
+  z-index: 10000;
+  max-width: min(420px, 70vw);
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  color: var(--vscode-editorHoverWidget-foreground, #cccccc);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+  pointer-events: none;
+}
+
+/* Toolbar buttons used in API tester response header / edit toggles */
+.toolbar-button {
+  background: transparent;
+  color: var(--vscode-foreground, #ccc);
+  border: 1px solid transparent;
+  border-color: var(--vscode-button-border, var(--vscode-input-border, transparent));
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+  gap: 4px;
+}
+
+.toolbar-button:focus {
+  outline: none;
+}
+
+.toolbar-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-button-icon {
+  font-size: 8px;
+}
+
+.toolbar-button--text {
+  width: auto;
+  height: auto;
+  min-height: 20px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family, inherit);
+  line-height: 1.2;
+}
+
+.toolbar-button--text .toolbar-button-icon {
+  font-size: 12px;
+}
+
+.toolbar-button-label {
+  white-space: nowrap;
+}
+
+.toolbar-button--toggle-active {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  border-color: var(--vscode-button-border, var(--vscode-button-background, #0e639c));
+}
+
+.toolbar-button--toggle-active:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.monaco-editor .suggest-widget .details,
+.monaco-editor .suggest-widget .details .header,
+.monaco-editor .suggest-widget .details .header .title,
+.monaco-editor .suggest-widget .details .header .type {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
