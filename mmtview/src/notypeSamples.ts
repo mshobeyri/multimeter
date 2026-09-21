@@ -1,6 +1,7 @@
 import type { MmtFileType } from "mmt-core/mmtFileType";
 
 export type NotypeSampleType = MmtFileType;
+export type NotypeStarterType = Exclude<NotypeSampleType, "report">;
 
 export interface NotypeSample {
   type: NotypeSampleType;
@@ -52,104 +53,38 @@ export const notypeHelpLinks: Record<NotypeSampleType, { docsUrl: string; demoUr
   },
 };
 
-/** First gallery sample per type — used when picking a type from the icon row. */
-export function notypeStarterContent(type: NotypeSampleType): string {
-  const sample = notypeSamples.find(entry => entry.type === type);
-  return sample?.content ?? `type: ${type}\n`;
-}
-
-export const notypeSamples: NotypeSample[] = [
-  {
-    type: "api",
-    title: "HTTP GET request",
-    description: "Call an endpoint.",
-    content: `type: api
+/** Minimal starters for the type icon row. */
+export const notypeStarterByType: Record<NotypeStarterType, string> = {
+  api: `type: api
 url: https://test.mmt.dev
 method: get
 `,
-  },
-  {
-    type: "api",
-    title: "HTTP POST JSON request",
-    description: "Send a JSON payload to server.",
-    content: `type: api
-url: https://test.mmt.dev/echo
-method: post
-format: json
-body:
-  message: hello
-`,
-  },
-  {
-    type: "env",
-    title: "Environment variables",
-    description: "Store shared values.",
-    content: `type: env
-variables:
-  base_url: https://test.mmt.dev
-  api_key: your-api-key-here
-`,
-  },
-  {
-    type: "test",
-    title: "HTTP status check test",
-    description: "Send a request and assert the status code.",
-    content: `type: test
+  test: `type: test
 steps:
   - http: https://test.mmt.dev
     expect:
       status: 200
 `,
-  },
-  {
-    type: "test",
-    title: "HTTP POST and verify",
-    description: "Send a POST request and check echoed fields.",
-    content: `type: test
-steps:
-  - http: https://test.mmt.dev/echo
-    method: post
-    body:
-      message: hello
-    expect:
-      status: 200
-      body.body.message: hello
+  env: `type: env
+variables:
+  base_url: https://test.mmt.dev
+  api_key: your-api-key-here
 `,
-  },
-  {
-    type: "suite",
-    title: "Basic suite",
-    description: "Run multiple test files together.",
-    content: `type: suite
+  suite: `type: suite
 items:
   - path/to/first_test.mmt
   - path/to/second_test.mmt
 `,
-  },
-  {
-    type: "loadtest",
-    title: "Load test",
-    description: "Run a test file with multiple workers.",
-    content: `type: loadtest
+  loadtest: `type: loadtest
 threads: 5
 repeat: 30s
 test: ./my_test.mmt
 `,
-  },
-  {
-    type: "doc",
-    title: "API documentation",
-    description: "Generate docs from API files in the project.",
-    content: `type: doc
+  doc: `type: doc
 sources:
   - api
 `,
-  },
-  {
-    type: "server",
-    title: "Mock Server",
-    description: "Serve canned responses for local development.",
-    content: `type: server
+  server: `type: server
 port: 9099
 cors: true
 endpoints:
@@ -160,11 +95,160 @@ endpoints:
     body:
       message: hello
 `,
+  judge: `type: judge
+engine: ollama
+model: qwen2.5-coder:7b
+url: http://127.0.0.1:11434
+options:
+  temperature: 0
+  timeout: 120s
+`,
+};
+
+export function notypeStarterContent(type: NotypeSampleType): string {
+  if (type in notypeStarterByType) {
+    return notypeStarterByType[type as NotypeStarterType];
+  }
+  return `type: ${type}\n`;
+}
+
+/** Gallery cards — one step beyond the icon starters. */
+export const notypeSamples: NotypeSample[] = [
+  {
+    type: "api",
+    title: "GET with inputs",
+    description: "Pass inputs into the request URL.",
+    content: `type: api
+inputs:
+  status: 200
+url: https://test.mmt.dev/status/<<i:status>>
+method: get
+`,
+  },
+  {
+    type: "api",
+    title: "POST with inputs and outputs",
+    description: "Send dynamic body fields and extract response values.",
+    content: `type: api
+inputs:
+  message: hello
+outputs:
+  echoed: body[body][message]
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  message: i:message
+`,
+  },
+  {
+    type: "env",
+    title: "Environment with presets",
+    description: "Switch variable sets with named presets.",
+    content: `type: env
+variables:
+  base_url:
+    local: http://localhost:8080
+    remote: https://test.mmt.dev
+  api_key: your-api-key-here
+presets:
+  runner:
+    dev:
+      base_url: local
+    prod:
+      base_url: remote
+`,
+  },
+  {
+    type: "test",
+    title: "Status and body check",
+    description: "Assert status code and a field in the JSON body.",
+    content: `type: test
+steps:
+  - http: https://test.mmt.dev/status/200
+    expect:
+      status: 200
+      body.status: 200
+`,
+  },
+  {
+    type: "test",
+    title: "POST echo with tags",
+    description: "Verify echoed JSON and tag the test for suite filters.",
+    content: `type: test
+tags:
+  - smoke
+steps:
+  - http: https://test.mmt.dev/echo
+    method: post
+    format: json
+    body:
+      message: hello
+    expect:
+      status: 200
+      body.body.message: hello
+`,
+  },
+  {
+    type: "suite",
+    title: "Suite with tag filter",
+    description: "Run only tests tagged smoke.",
+    content: `type: suite
+filter:
+  only:
+    - smoke
+items:
+  - path/to/smoke_test.mmt
+  - path/to/api_test.mmt
+`,
+  },
+  {
+    type: "loadtest",
+    title: "Load test with ramp-up",
+    description: "Gradually increase workers before the run.",
+    content: `type: loadtest
+threads: 5
+repeat: 30s
+rampup: 2s
+test: ./my_test.mmt
+`,
+  },
+  {
+    type: "doc",
+    title: "Multi-source documentation",
+    description: "Generate docs from API and test folders.",
+    content: `type: doc
+sources:
+  - api
+  - tests
+`,
+  },
+  {
+    type: "server",
+    title: "Mock server with GET and POST",
+    description: "Serve static and echo responses on one port.",
+    content: `type: server
+port: 9099
+cors: true
+endpoints:
+  - method: get
+    path: /hello
+    status: 200
+    format: json
+    body:
+      message: hello
+  - method: post
+    path: /echo
+    status: 200
+    format: json
+    body:
+      message: hello
+`,
   },
   {
     type: "judge",
-    title: "AI Judge (Ollama)",
-    description: "Local LLM judge for non-deterministic responses.",
+    title: "AI Judge with options",
+    description: "Local Ollama judge with temperature and timeout.",
     content: `type: judge
 engine: ollama
 model: qwen2.5-coder:7b
@@ -172,6 +256,7 @@ url: http://127.0.0.1:11434
 options:
   temperature: 0
   timeout: 120s
+  max_tokens: 512
 `,
   },
   {

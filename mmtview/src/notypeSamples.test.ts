@@ -1,16 +1,20 @@
-import { notypeSamples, notypeStarterContent } from "./notypeSamples";
+import { notypeSamples, notypeStarterByType, notypeStarterContent } from "./notypeSamples";
 
 describe("notypeStarterContent", () => {
-  it("returns the first gallery sample for each creatable type", () => {
-    for (const type of ["api", "test", "suite", "env", "loadtest", "doc", "server", "judge"] as const) {
-      const expected = notypeSamples.find(sample => sample.type === type)?.content;
-      expect(notypeStarterContent(type)).toBe(expected);
+  it("returns dedicated icon starters for each creatable type", () => {
+    for (const type of Object.keys(notypeStarterByType) as Array<keyof typeof notypeStarterByType>) {
+      expect(notypeStarterContent(type)).toBe(notypeStarterByType[type]);
       expect(notypeStarterContent(type)).toContain(`type: ${type}`);
     }
   });
 
-  it("includes more than just the type line for api and test", () => {
-    expect(notypeStarterContent("api").split("\n").length).toBeGreaterThan(2);
-    expect(notypeStarterContent("test").split("\n").length).toBeGreaterThan(2);
+  it("keeps icon starters simpler than gallery samples for api and test", () => {
+    const apiGallery = notypeSamples.filter(sample => sample.type === "api").map(sample => sample.content);
+    const testGallery = notypeSamples.filter(sample => sample.type === "test").map(sample => sample.content);
+
+    expect(apiGallery).not.toContain(notypeStarterByType.api);
+    expect(testGallery).not.toContain(notypeStarterByType.test);
+    expect(notypeStarterByType.api).not.toContain("inputs:");
+    expect(notypeStarterByType.test).not.toContain("tags:");
   });
 });

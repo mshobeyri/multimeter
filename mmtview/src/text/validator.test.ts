@@ -10,6 +10,7 @@ import {
   findMultilineDescriptionProblems,
   findStageAfterProblems,
   findAuthProblems,
+  findReportUnknownRootKeyProblems,
   extractSuiteTestLineInfo,
   computeMissingSuiteFileMarkers,
   getUndefinedExpectKeyDecorations,
@@ -758,5 +759,49 @@ describe('findAuthProblems', () => {
     const content = 'type: test\nauth:\n  type: bearer\n';
     const doc = buildDoc(content);
     expect(findAuthProblems(content, doc, 'test')).toHaveLength(0);
+  });
+});
+
+describe('findReportUnknownRootKeyProblems', () => {
+  function buildDoc(content: string) {
+    return parseYamlDoc(content);
+  }
+
+  it('flags root steps on report files', () => {
+    const content = [
+      'type: report',
+      'kind: functional',
+      'name: example.mmt',
+      'overview:',
+      '  checks: 1',
+      'checks:',
+      '  - name: status == 200',
+      '    type: check',
+      '    result: passed',
+      'steps:',
+      '  - name: POST echo',
+      '    type: http',
+      '    result: passed',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const problems = findReportUnknownRootKeyProblems(doc, content, 'report');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('steps');
+  });
+
+  it('allows overview and checks on report files', () => {
+    const content = [
+      'type: report',
+      'kind: functional',
+      'name: example.mmt',
+      'overview:',
+      '  checks: 1',
+      'checks:',
+      '  - name: status == 200',
+      '    type: check',
+      '    result: passed',
+    ].join('\n');
+    const doc = buildDoc(content);
+    expect(findReportUnknownRootKeyProblems(doc, content, 'report')).toHaveLength(0);
   });
 });

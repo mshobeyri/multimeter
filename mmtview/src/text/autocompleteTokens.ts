@@ -8,7 +8,7 @@ export interface TokenCompletionMatch {
 }
 
 const ANGLE_PREFIX = /<<((?:i|e|r|c|o):)([\w-]*)$/;
-const BARE_PREFIX = /(^|[\s"'`])((?:i|e|r|c|o):)([\w-]*)$/;
+const BARE_PREFIX = /(^|[\s"'`/=&])((?:i|e|r|c|o):)([\w-]*)$/;
 const ANGLE_OPEN = /<<([\w-]*)$/;
 
 function asPrefix(raw: string): TokenPrefix | null {
@@ -48,4 +48,39 @@ export function matchTokenCompletion(tokenSource: string): TokenCompletionMatch 
     };
   }
   return null;
+}
+
+/** True when the token sits inside other text and needs `<<i:name>>` form. */
+export function needsBraceTokenForm(lineContent: string, replaceFrom: number): boolean {
+  const before = lineContent.slice(0, replaceFrom);
+  if (before.endsWith('<<')) {
+    return true;
+  }
+  const colon = lineContent.indexOf(':');
+  if (colon < 0) {
+    return false;
+  }
+  let valueContentStart = colon + 1;
+  while (valueContentStart < lineContent.length && lineContent[valueContentStart] === ' ') {
+    valueContentStart++;
+  }
+  const beforeInValue = lineContent.slice(valueContentStart, replaceFrom);
+  return beforeInValue.trim().length > 0;
+}
+
+export function formatTokenInsertText(
+  prefix: TokenPrefix,
+  name: string,
+  lineContent: string,
+  tokenMatch: TokenCompletionMatch,
+): string {
+  const token = `${prefix}:${name}`;
+  const before = lineContent.slice(0, tokenMatch.replaceFrom);
+  if (before.endsWith('<<')) {
+    return `${token}>>`;
+  }
+  if (needsBraceTokenForm(lineContent, tokenMatch.replaceFrom)) {
+    return `<<${token}>>`;
+  }
+  return token;
 }

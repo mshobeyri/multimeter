@@ -292,11 +292,21 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
     case "report":
       return [
         "type",
+        "kind",
         "name",
+        "overview",
+        "checks",
+        "cancelled",
+        "test",
+        "config",
+        "latency",
+        "http",
+        "thresholds",
+        "errors",
+        "snapshots",
         "timestamp",
         "duration",
         "summary",
-        "cancelled",
         "suites",
       ];
     default:
@@ -779,6 +789,28 @@ function detectServerEndpointOrderingIssue(doc: any, content: string): OrderingI
   return null;
 }
 
+const VALID_REPORT_ROOT_KEYS = new Set(getCanonicalOrder('report') ?? []);
+
+export function findReportUnknownRootKeyProblems(
+  yamlDoc: any,
+  content: string,
+  docType: string | null,
+): ProblemEntry[] {
+  if (docType !== 'report' || !yamlDoc || !content.trim()) {
+    return [];
+  }
+  return extractRootKeyInfo(yamlDoc, content)
+    .filter(entry => !VALID_REPORT_ROOT_KEYS.has(entry.key))
+    .map(entry => ({
+      message: entry.key === 'steps'
+        ? 'Report files do not have a root "steps" field. Use "checks" (nested step entries live under test rows).'
+        : `Unknown report field "${entry.key}". Reports use overview and checks — see docs/files/report/reference.md.`,
+      severity: 'warning' as const,
+      line: entry.line,
+      column: 1,
+    }));
+}
+
 export function computeOrderingMarkers(
   monaco: any,
   model: any,
@@ -790,6 +822,8 @@ export function computeOrderingMarkers(
   if (!expectedOrder || !content.trim() || !model || !yamlDoc) {
     return { markers: [], problems: [] };
   }
+
+  const reportKeyProblems = findReportUnknownRootKeyProblems(yamlDoc, content, docType);
 
   // Check root-level key ordering first
   const issue = detectOrderingIssue(yamlDoc, content, expectedOrder);
@@ -806,24 +840,37 @@ export function computeOrderingMarkers(
 
   const effectiveIssue = issue || stepIssue || endpointIssue;
 
-  const markers = effectiveIssue
-    ? [
-        {
-          startLineNumber: effectiveIssue.line,
-          startColumn: 1,
-          endLineNumber: effectiveIssue.line,
-          endColumn: model.getLineMaxColumn(effectiveIssue.line),
-          message: effectiveIssue.message,
-          severity: monaco.MarkerSeverity.Warning,
-        },
-      ]
-    : [];
+  const markers = [
+    ...reportKeyProblems.map(problem => ({
+      startLineNumber: problem.line ?? 1,
+      startColumn: 1,
+      endLineNumber: problem.line ?? 1,
+      endColumn: model.getLineMaxColumn(problem.line ?? 1),
+      message: problem.message,
+      severity: monaco.MarkerSeverity.Warning,
+    })),
+    ...(effectiveIssue
+      ? [
+          {
+            startLineNumber: effectiveIssue.line,
+            startColumn: 1,
+            endLineNumber: effectiveIssue.line,
+            endColumn: model.getLineMaxColumn(effectiveIssue.line),
+            message: effectiveIssue.message,
+            severity: monaco.MarkerSeverity.Warning,
+          },
+        ]
+      : []),
+  ];
 
   return {
     markers,
-    problems: effectiveIssue
-      ? [{ message: effectiveIssue.message, severity: "warning" as const, line: effectiveIssue.line, column: 1 }]
-      : [],
+    problems: [
+      ...reportKeyProblems,
+      ...(effectiveIssue
+        ? [{ message: effectiveIssue.message, severity: "warning" as const, line: effectiveIssue.line, column: 1 }]
+        : []),
+    ],
   };
 }
 
