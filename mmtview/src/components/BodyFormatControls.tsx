@@ -4,11 +4,17 @@ import { Format } from "mmt-core/CommonData";
 export type BodyFormatTopLevel = "none" | "multipart" | "raw" | "binary";
 
 export const BODY_FORMAT_TOP_LEVEL: BodyFormatTopLevel[] = ["none", "multipart", "raw", "binary"];
-export const RAW_FORMATS: Format[] = ["json", "xml", "xmle", "text", "html", "urlencoded"];
-export const DEFAULT_RAW_FORMAT: Format = "json";
+export const RESPONSE_BODY_FORMAT_TOP_LEVEL: Exclude<BodyFormatTopLevel, "none">[] = [
+  "multipart",
+  "raw",
+  "binary",
+];
+export const RAW_FORMATS = ["json", "xml", "xmle", "text", "html", "urlencoded"] as const satisfies readonly Format[];
+export type RawBodyFormat = typeof RAW_FORMATS[number];
+export const DEFAULT_RAW_FORMAT: RawBodyFormat = "json";
 
-export function isRawFormat(format: Format): boolean {
-  return RAW_FORMATS.includes(format);
+export function isRawFormat(format: Format): format is RawBodyFormat {
+  return (RAW_FORMATS as readonly Format[]).includes(format);
 }
 
 export function topLevelForFormat(format: Format): BodyFormatTopLevel {
@@ -47,8 +53,8 @@ export function RawFormatSelect({
   value,
   onChange,
 }: {
-  value: Format;
-  onChange: (format: Format) => void;
+  value: RawBodyFormat;
+  onChange: (format: RawBodyFormat) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);

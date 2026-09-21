@@ -40,6 +40,14 @@ const dataRefOr = (...schemas: any[]) => ({
 
 const FormatEnumSchema = { type: 'string', enum: ['none', 'json', 'xml', 'xmle', 'text', 'html', 'urlencoded', 'binary', 'multipart'] };
 const AutoFormatEnumSchema = { type: 'string', enum: [...FormatEnumSchema.enum, 'auto'] };
+const ResponseFormatEnumSchema = {
+  type: 'string',
+  enum: FormatEnumSchema.enum.filter((value: string) => value !== 'none'),
+};
+const AutoResponseFormatEnumSchema = {
+  type: 'string',
+  enum: [...ResponseFormatEnumSchema.enum, 'auto'],
+};
 
 /** Scalar format or `{ request, response }` when they differ. */
 const FormatSpecSchema = {
@@ -49,7 +57,7 @@ const FormatSpecSchema = {
             type: 'object',
             properties: {
                 request: AutoFormatEnumSchema,
-                response: AutoFormatEnumSchema,
+                response: AutoResponseFormatEnumSchema,
             },
             additionalProperties: false,
         },

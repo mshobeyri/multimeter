@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Format, ResponseFormat } from "mmt-core/CommonData";
+import { ResponseFormat } from "mmt-core/CommonData";
 import { ResponseViewMode } from "../api/responseBodyDisplay";
 import {
-  BODY_FORMAT_TOP_LEVEL,
   DEFAULT_RAW_FORMAT,
   FormatChip,
   RawFormatSelect,
+  type RawBodyFormat,
+  RESPONSE_BODY_FORMAT_TOP_LEVEL,
   isRawFormat,
   topLevelForFormat,
   type BodyFormatTopLevel,
@@ -27,19 +28,26 @@ const ResponseBodyBar: React.FC<ResponseBodyBarProps> = ({
   onViewChange,
 }) => {
   const rawSelected = type !== "auto" && isRawFormat(type);
-  const [lastRawFormat, setLastRawFormat] = useState<Format>(
-    rawSelected ? type : DEFAULT_RAW_FORMAT
-  );
+  const [lastRawFormat, setLastRawFormat] = useState<RawBodyFormat>(() => {
+    if (type !== "auto" && isRawFormat(type)) {
+      return type;
+    }
+    return DEFAULT_RAW_FORMAT;
+  });
 
   useEffect(() => {
-    if (rawSelected) {
+    if (type !== "auto" && isRawFormat(type)) {
       setLastRawFormat(type);
     }
-  }, [rawSelected, type]);
+  }, [type]);
 
-  const selectTopLevel = (level: BodyFormatTopLevel) => {
+  const selectTopLevel = (level: Exclude<BodyFormatTopLevel, "none">) => {
     if (level === "raw") {
-      onTypeChange(rawSelected ? type : lastRawFormat);
+      if (rawSelected) {
+        onTypeChange(type);
+      } else {
+        onTypeChange(lastRawFormat);
+      }
       return;
     }
     onTypeChange(level);
@@ -53,7 +61,7 @@ const ResponseBodyBar: React.FC<ResponseBodyBarProps> = ({
           selected={type === "auto"}
           onClick={() => onTypeChange("auto")}
         />
-        {BODY_FORMAT_TOP_LEVEL.map(level => (
+        {RESPONSE_BODY_FORMAT_TOP_LEVEL.map(level => (
           <FormatChip
             key={level}
             label={level}

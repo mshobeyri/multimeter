@@ -5,7 +5,7 @@ export type Format = "none" | "json" | "xml" | "xmle" | "text" | "html" | "urlen
 /** Request/response format when set to `auto` (see formatResolve.ts). */
 export type RequestFormat = Format | "auto";
 /** Response display/parsing format; `auto` detects from Content-Type, then request format. */
-export type ResponseFormat = Format | "auto";
+export type ResponseFormat = Exclude<Format, "none"> | "auto";
 /** Split request vs response body formats. */
 export interface FormatConfig {
   request?: RequestFormat;
@@ -22,7 +22,14 @@ export type GrpcStream = "server" | "client" | "bidi";
 
 export const FORMAT_VALUES: Format[] = ["none", "json", "xml", "xmle", "text", "html", "urlencoded", "binary", "multipart"];
 export const REQUEST_FORMAT_VALUES: RequestFormat[] = [...FORMAT_VALUES, "auto"];
-export const RESPONSE_FORMAT_VALUES: ResponseFormat[] = [...FORMAT_VALUES, "auto"];
+const RESPONSE_BODY_FORMATS: Exclude<Format, "none">[] = [
+  "json", "xml", "xmle", "text", "html", "urlencoded", "binary", "multipart",
+];
+export const RESPONSE_FORMAT_VALUES: ResponseFormat[] = [...RESPONSE_BODY_FORMATS, "auto"];
+
+export function toResponseFormat(format: Format): ResponseFormat {
+  return format === "none" ? "auto" : format;
+}
 
 function isFormatValue(value: unknown): value is Format {
   return typeof value === "string" && (FORMAT_VALUES as string[]).includes(value);
@@ -35,7 +42,20 @@ function isRequestFormatValue(value: unknown): value is RequestFormat {
 
 function isResponseFormatValue(value: unknown): value is ResponseFormat {
   return typeof value === "string" &&
-      (value === "auto" || (FORMAT_VALUES as string[]).includes(value));
+      (RESPONSE_FORMAT_VALUES as string[]).includes(value);
+}
+
+function coerceResponseFormat(rawResponse: unknown, request: RequestFormat): ResponseFormat {
+  if (rawResponse === undefined || rawResponse === null || rawResponse === "none") {
+    return "auto";
+  }
+  if (isResponseFormatValue(rawResponse)) {
+    return rawResponse;
+  }
+  if (request !== "none" && request !== "auto" && isResponseFormatValue(request)) {
+    return request;
+  }
+  return "auto";
 }
 
 /**
@@ -53,6 +73,9 @@ export function normalizeFormat(format?: FormatSpec | null | Record<string, unkn
     if (format === "auto") {
       return { request: "auto", response: "auto" };
     }
+    if (format === "none") {
+      return { request: "none", response: "auto" };
+    }
     const value = isFormatValue(format) ? format : "json";
     return { request: value, response: value };
   }
@@ -62,9 +85,7 @@ export function normalizeFormat(format?: FormatSpec | null | Record<string, unkn
     const request = isRequestFormatValue(rawRequest)
       ? rawRequest
       : (isFormatValue(rawResponse) ? rawResponse : "auto");
-    const response = isResponseFormatValue(rawResponse)
-      ? rawResponse
-      : (rawResponse === undefined ? "auto" : request);
+    const response = coerceResponseFormat(rawResponse, request);
     return { request, response };
   }
   return { request: "auto", response: "auto" };
@@ -84,6 +105,9 @@ export function packFormatSpec(format?: FormatSpec | null): FormatSpec | undefin
     return undefined;
   }
   const { request, response } = normalizeFormat(format);
+  if (request === "none" && response === "auto") {
+    return "none";
+  }
   if (request === "auto" || response === "auto") {
     return { request, response };
   }

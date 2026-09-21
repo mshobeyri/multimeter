@@ -1,5 +1,5 @@
 import { APIData, AuthConfig } from './APIData';
-import {Format, packFormatSpec, requestFormat} from './CommonData';
+import {Format, packFormatSpec, requestFormat, toResponseFormat} from './CommonData';
 import {OMIT_SENTINEL} from './omitKeyword';
 import {RANDOM_TOKEN_MAP} from './Random';
 
@@ -520,7 +520,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       } else {
         format = packFormatSpec({
           request: requestFormat(format),
-          response: acceptFormat,
+          response: toResponseFormat(acceptFormat),
         }) || acceptFormat;
       }
     }

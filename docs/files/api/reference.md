@@ -9,7 +9,7 @@
 - `url:` string (can contain query string)
 - `protocol:` `http` | `ws` | `graphql`
 - `method:` HTTP verbs (HTTP only)
-- `format:` `none` | `json` | `xml` | `xmle` | `text` | `html` | `urlencoded` | `binary` | `multipart` | `{ request, response }`
+- `format:` `none` | `json` | `xml` | `xmle` | `text` | `html` | `urlencoded` | `binary` | `multipart` | `{ request, response }` — scalar `none` means no request body (response defaults to `auto`); `response` accepts `auto` and the same values except `none`
 - `headers:` record<string, string>
 - `query:` record<string, string>
 - `cookies:` record<string, string>

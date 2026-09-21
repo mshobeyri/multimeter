@@ -6,7 +6,9 @@ import {
   FormatSpec,
   GrpcStream,
   packFormatSpec,
+  REQUEST_FORMAT_VALUES,
   RequestFormat,
+  RESPONSE_FORMAT_VALUES,
   ResponseFormat,
 } from './CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
@@ -23,8 +25,8 @@ const VALID_API_ROOT_KEYS = new Set([
 const VALID_GRPC_STREAM_VALUES = new Set<string>(['server', 'client', 'bidi']);
 
 const VALID_FORMAT_VALUES = new Set<string>(FORMAT_VALUES);
-const VALID_REQUEST_FORMAT_VALUES = new Set<string>([...FORMAT_VALUES, 'auto']);
-const VALID_RESPONSE_FORMAT_VALUES = new Set<string>([...FORMAT_VALUES, 'auto']);
+const VALID_REQUEST_FORMAT_VALUES = new Set<string>(REQUEST_FORMAT_VALUES);
+const VALID_RESPONSE_FORMAT_VALUES = new Set<string>(RESPONSE_FORMAT_VALUES);
 
 function parseFormatSpec(raw: any): FormatSpec | undefined {
   if (raw == null) {
