@@ -5,6 +5,7 @@
 export function areSuiteTreeRowPropsEqual<T extends {
   item?: { index?: unknown; isFolder?: boolean };
   context?: { isExpanded?: boolean };
+  depth?: number;
   status?: unknown;
   displayPath?: string;
   stepReports?: unknown;
@@ -16,6 +17,9 @@ export function areSuiteTreeRowPropsEqual<T extends {
   duplicateServer?: boolean;
 }>(prev: T, next: T): boolean {
   if (prev.item?.index !== next.item?.index) {
+    return false;
+  }
+  if (prev.depth !== next.depth) {
     return false;
   }
   if (prev.status !== next.status) {

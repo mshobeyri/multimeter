@@ -4,12 +4,14 @@ import { StepStatus } from '../../shared/types';
 import TreeRunButton from '../../components/TreeRunButton';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
 import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
+import { TreeDepthContainer } from '../../components/TreeChevron';
 
 export type SuiteTestGroupItemData = { type: 'group' | 'root' | 'import-group'; label: string };
 
 interface SuiteTestGroupItemProps {
   item: TreeItem<any>;
   context: any;
+  depth: number;
   arrow: React.ReactNode;
   children: React.ReactNode;
   status: StepStatus;
@@ -26,6 +28,7 @@ interface SuiteTestGroupItemProps {
 const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
   item,
   context,
+  depth,
   arrow,
   children,
   status,
@@ -50,7 +53,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
       : null;
 
   return (
-    <div {...context.itemContainerWithChildrenProps}>
+    <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
       <div
         className="tree-view-box tree-view-box-row"
         {...context.itemContainerWithoutChildrenProps}
@@ -96,7 +99,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
         </div>
       </div>
       {children}
-    </div>
+    </TreeDepthContainer>
   );
 };
 

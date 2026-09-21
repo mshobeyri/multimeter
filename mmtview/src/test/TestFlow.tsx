@@ -6,7 +6,13 @@ import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem
 import { type MissingImportEntry } from "../text/validator";
 import { codiconForStepType } from "./stepPresentation";
 import TestFlowFlow from "./TestFlowFlow";
-import { TreeExpandButton, TreeFolderArrow } from "../components/TreeChevron";
+import {
+    TREE_DEPTH_OFFSET,
+    TreeDepthContainer,
+    TreeExpandButton,
+    TreeFolderArrow,
+    treeDragBetweenLineStyle,
+} from "../components/TreeChevron";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -33,9 +39,6 @@ interface TestFlowProps {
     update?: (patch: { steps?: any[]; stages?: any[] }) => void;
     importValidation?: ImportValidationInfo;
 }
-
-/** Matches react-complex-tree depth spacing for nested flow steps. */
-const TEST_FLOW_DEPTH_OFFSET = 16;
 
 const collectFolderIds = (items: Record<string, any>, includeEmpty = true): string[] =>
     Object.values(items)
@@ -346,7 +349,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
             <ControlledTreeEnvironment
                 items={shortTree.items}
                 getItemTitle={item => item.data}
-                renderDepthOffset={TEST_FLOW_DEPTH_OFFSET}
+                renderDepthOffset={TREE_DEPTH_OFFSET}
                 canSearch={false}
                 canSearchByStartingTyping={false}
                 viewState={{
@@ -387,11 +390,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                 )}
                 renderItem={({ title, arrow, context, item, children, depth }) => {
                     if (!title) return null;
-                    const depthMargin = Math.max(0, depth - 1) * TEST_FLOW_DEPTH_OFFSET;
-                    const containerProps = context.itemContainerWithChildrenProps as React.HTMLAttributes<HTMLDivElement>;
-                    const depthStyle: React.CSSProperties | undefined = depthMargin > 0
-                        ? { ...(containerProps.style || {}), marginLeft: depthMargin }
-                        : containerProps.style;
                     let itemParsed = { type: "unknown", data: { stepData: title } };
                     try {
                         itemParsed = JSON.parse(title as string);
@@ -524,7 +522,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
 
                     if (isFlowRoot) {
                         return (
-                            <div {...containerProps} style={depthStyle}>
+                            <TreeDepthContainer context={context} depth={depth}>
                                 <TestFlowFlow
                                     arrow={arrow}
                                     multiStage={multiStage}
@@ -533,14 +531,16 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                     itemContainerWithoutChildrenProps={context.itemContainerWithoutChildrenProps}
                                 />
                                 {children}
-                            </div>
+                            </TreeDepthContainer>
                         );
                     }
 
                     return (
+                        <TreeDepthContainer
+                            context={context}
+                            depth={depth}
+                        >
                         <div
-                            {...containerProps}
-                            style={depthStyle}
                             onDragStart={(e) => {
                                 // Close active state when starting a drag for this item
                                 const key = String(item.index);
@@ -610,6 +610,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                             </div>
                             {children}
                         </div>
+                        </TreeDepthContainer>
                     );
                 }}
                 renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
@@ -625,10 +626,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                 renderDragBetweenLine={({ lineProps, draggingPosition }) => (
                     <div
                         {...lineProps}
-                        style={{
-                            ...(lineProps.style || {}),
-                            left: `${Math.max(0, draggingPosition.depth - 1) * TEST_FLOW_DEPTH_OFFSET}px`,
-                        }}
+                        style={treeDragBetweenLineStyle(lineProps.style, draggingPosition.depth)}
                         className={['tree-drop-line', lineProps.className].filter(Boolean).join(' ')}
                     />
                 )}

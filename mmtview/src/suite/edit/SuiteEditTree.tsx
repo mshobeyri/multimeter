@@ -6,7 +6,7 @@ import { StepStatus } from '../../shared/types';
 import SuiteEditFileItem from './SuiteEditFileItem';
 import SuiteEditGroupItem from './SuiteEditGroupItem';
 import { aggregateStatuses } from '../../shared/Common';
-import { TreeFolderArrow } from '../../components/TreeChevron';
+import { TREE_DEPTH_OFFSET, TreeFolderArrow, treeDragBetweenLineStyle } from '../../components/TreeChevron';
 
 export type SuiteEditTreeItemData =
     | { type: 'root'; label: string }
@@ -188,13 +188,14 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
         persistGroups(nextGroups);
     }, [groups, entryById, entryPositions, groupIdToIndex, persistGroups]);
 
-    const renderItem = ({ item, context, arrow, children }: any) => {
+    const renderItem = ({ item, context, arrow, children, depth }: any) => {
         const data = item.data as SuiteEditTreeItemData;
         if (data.type === 'group' || data.type === 'root') {
             return (
                 <SuiteEditGroupItem
                     item={item}
                     context={context}
+                    depth={depth}
                     arrow={arrow}
                     children={children}
                     getGroupStatus={getGroupStatus}
@@ -208,6 +209,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
             <SuiteEditFileItem
                 item={item as any}
                 context={context}
+                depth={depth}
                 arrow={arrow}
                 children={children}
                 missingFiles={missingFiles}
@@ -222,6 +224,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
     return (
         <ControlledTreeEnvironment
             items={items}
+            renderDepthOffset={TREE_DEPTH_OFFSET}
             getItemTitle={(item) => {
                 const data = item.data as SuiteEditTreeItemData;
                 if (data?.type === 'file') {
@@ -260,9 +263,10 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
                     {children}
                 </ul>
             )}
-            renderDragBetweenLine={({ lineProps }) => (
+            renderDragBetweenLine={({ lineProps, draggingPosition }) => (
                 <div
                     {...lineProps}
+                    style={treeDragBetweenLineStyle(lineProps.style, draggingPosition.depth, 0)}
                     className={['tree-drop-line', lineProps.className].filter(Boolean).join(' ')}
                 />
             )}

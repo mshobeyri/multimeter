@@ -11,7 +11,7 @@ import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { ownRunStatus } from './suiteRunStatus';
 import { ReportStatusFilter, filterTreeItemsByStatus } from '../../shared/reportStatusFilter';
 import ReportEmptyFilterPlaceholder from '../../shared/ReportEmptyFilterPlaceholder';
-import { TreeFolderArrow } from '../../components/TreeChevron';
+import { TREE_DEPTH_OFFSET, TreeFolderArrow, treeDragBetweenLineStyle } from '../../components/TreeChevron';
 
 const EMPTY_STEP_REPORTS: StepReportItem[] = [];
 
@@ -452,7 +452,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     return typeof bundleId === 'string' && bundleId ? [bundleId] : [];
   }, [groups, treeData.items]);
 
-  const renderItem = useCallback(({ item, context, arrow, children }: any) => {
+  const renderItem = useCallback(({ item, context, arrow, children, depth }: any) => {
     const data = item.data as SuiteTestTreeItemData;
 
     // Prefer the explicit parentPath recorded in the tree node data.
@@ -491,6 +491,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         <SuiteTestGroupItem
           item={item}
           context={context}
+          depth={depth}
           arrow={arrow}
           children={children}
           status={getGroupStatus(itemId)}
@@ -526,6 +527,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         <SuiteSuiteFileItem
           item={item as any}
           context={context}
+          depth={depth}
           arrow={arrow}
           children={children}
           missingFiles={missingFiles}
@@ -556,6 +558,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
       <SuiteTestFileItem
         item={item as any}
         context={context}
+        depth={depth}
         arrow={arrow}
         children={children}
         missingFiles={missingFiles}
@@ -595,6 +598,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
       ) : (
     <ControlledTreeEnvironment
       items={visibleItems}
+      renderDepthOffset={TREE_DEPTH_OFFSET}
       getItemTitle={(item) => {
         const data = item.data as SuiteTestTreeItemData;
         // Show the id in the accessible/title string for all node kinds.
@@ -636,9 +640,10 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           {children}
         </ul>
       )}
-      renderDragBetweenLine={({ lineProps }) => (
+      renderDragBetweenLine={({ lineProps, draggingPosition }) => (
         <div
           {...lineProps}
+          style={treeDragBetweenLineStyle(lineProps.style, draggingPosition.depth, 0)}
           className={['tree-drop-line', lineProps.className].filter(Boolean).join(' ')}
         />
       )}

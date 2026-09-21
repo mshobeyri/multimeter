@@ -1331,7 +1331,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         ) : (
                             <>
                                 <div className="report-section-header">
-                                    <div className="label">Tests</div>
+                                    <div className="label">Items</div>
                                     <div className="report-section-header-actions">
                                         <ReportStatusFilterButton
                                             value={statusFilter}

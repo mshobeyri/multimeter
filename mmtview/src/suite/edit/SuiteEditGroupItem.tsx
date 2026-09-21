@@ -2,12 +2,14 @@ import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
+import { TreeDepthContainer } from '../../components/TreeChevron';
 
 export type SuiteEditGroupItemData = { type: 'group' | 'root'; label: string };
 
 interface SuiteEditGroupItemProps {
   item: TreeItem<any>;
   context: any;
+  depth: number;
   arrow: React.ReactNode;
   children: React.ReactNode;
   getGroupStatus: (itemId: string) => StepStatus;
@@ -18,6 +20,7 @@ interface SuiteEditGroupItemProps {
 const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
   item,
   context,
+  depth,
   arrow,
   children,
   getGroupStatus,
@@ -37,7 +40,7 @@ const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
       : null;
 
   return (
-    <div {...context.itemContainerWithChildrenProps}>
+    <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
       <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps}>
         {arrow}
         <div className="tree-row">
@@ -49,7 +52,7 @@ const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
         </div>
       </div>
       {children}
-    </div>
+    </TreeDepthContainer>
   );
 };
 

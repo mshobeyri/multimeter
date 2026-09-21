@@ -11,12 +11,14 @@ import {
 } from './suiteTreeLabelClick';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
 import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
+import { TreeDepthContainer } from '../../components/TreeChevron';
 
 export type SuiteTestFileItemData = { type: 'test' | 'server'; path: string; id: string }
 
 interface SuiteTestFileItemProps {
     item: TreeItem<any>;
     context: any;
+    depth: number;
     arrow: React.ReactNode;
     children: React.ReactNode;
     missingFiles: Set<string>;
@@ -36,6 +38,7 @@ interface SuiteTestFileItemProps {
 const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     item,
     context,
+    depth,
     arrow,
     children,
     missingFiles,
@@ -81,7 +84,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     };
 
     return (
-        <div {...context.itemContainerWithChildrenProps}>
+        <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
             <div
                 className="tree-view-box tree-view-box-row"
                 {...context.itemContainerWithoutChildrenProps}
@@ -150,7 +153,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                     />
                 </div>
             )}
-        </div>
+        </TreeDepthContainer>
     );
 };
 

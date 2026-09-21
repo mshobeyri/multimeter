@@ -6,12 +6,14 @@ import { SuiteGroup } from '../types';
 import { StepStatus } from '../../shared/types';
 import { isDuplicateSuiteServerPath } from '../../text/validator';
 import { StatusGlyph } from '../../components/StatusGlyph';
+import { TreeDepthContainer } from '../../components/TreeChevron';
 
 export type SuiteEditFileItemData = { type: 'file'; path: string };
 
 interface SuiteEditFileItemProps {
     item: TreeItem<any>;
     context: any;
+    depth: number;
     arrow: React.ReactNode;
     children: React.ReactNode;
     missingFiles: Set<string>;
@@ -24,6 +26,7 @@ interface SuiteEditFileItemProps {
 const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
     item,
     context,
+    depth,
     arrow,
     children,
     missingFiles,
@@ -73,7 +76,7 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
     };
 
     return (
-        <div {...context.itemContainerWithChildrenProps}>
+        <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
             <div
                 className="tree-view-box is-row"
                 {...context.itemContainerWithoutChildrenProps}
@@ -111,7 +114,7 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
 
             </div>
             {children}
-        </div>
+        </TreeDepthContainer>
     );
 };
 
