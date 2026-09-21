@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useMemo } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
-import { Format, JSONRecord, Method, Protocol, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { FORMAT_VALUES, Format, JSONRecord, Method, Protocol, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
@@ -10,16 +10,23 @@ import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
-import ToggleButton from "../components/ToggleButton";
 import MethodUrlBar from "../components/MethodUrlBar";
 import BodyFormatBar from "../components/BodyFormatBar";
+import ResponseBodyBar from "../components/ResponseBodyBar";
+import HtmlPreview from "../components/HtmlPreview";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
 import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
 import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
-import { displayResponseBody } from "./responseBodyDisplay";
+import {
+  displayResponseBody,
+  resolveResponseViewType,
+  responseTypeSupportsPreview,
+  type ResponseTypeChoice,
+  type ResponseViewMode,
+} from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
 import { httpMethodAllowsRequestBody, resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
@@ -102,7 +109,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     currentInputs,
     setCurrentInputs,
     autoFormatBody,
-    setAutoFormatBody,
     outputs,
     updateField,
     handleUrlChange,
@@ -158,6 +164,33 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     : methodOrProtocolValue.slice("method:".length);
   const currentRequestFormat = requestFormat(requestData?.format ?? api.format);
   const currentResponseFormat = responseFormat(requestData?.format ?? api.format);
+  const [responseViewType, setResponseViewTypeState] = useState<ResponseTypeChoice>(() => {
+    const saved = localStorage.getItem("apitest-response-view-type");
+    if (saved === "auto" || (FORMAT_VALUES as string[]).includes(saved || "")) {
+      return saved as ResponseTypeChoice;
+    }
+    return "auto";
+  });
+  const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
+    const saved = localStorage.getItem("apitest-response-view-mode");
+    if (saved === "raw" || saved === "pretty" || saved === "preview") {
+      return saved;
+    }
+    return autoFormatBody ? "pretty" : "raw";
+  });
+  const resolvedResponseType = resolveResponseViewType(responseViewType, responseData);
+  const previewAvailable = responseTypeSupportsPreview(responseViewType, resolvedResponseType);
+  const responseView = responseViewMode === "preview" && !previewAvailable
+    ? "raw"
+    : responseViewMode;
+  const setResponseViewType = (type: ResponseTypeChoice) => {
+    setResponseViewTypeState(type);
+    localStorage.setItem("apitest-response-view-type", type);
+  };
+  const setResponseViewMode = (view: ResponseViewMode) => {
+    setResponseViewModeState(view);
+    localStorage.setItem("apitest-response-view-mode", view);
+  };
   const requestBodyDisabled = !isGraphQL && !isGrpc && effectiveProtocol !== "ws" &&
     (!httpMethodAllowsRequestBody(methodOrProtocolKey) || currentRequestFormat === "none");
   const [themeTick, setThemeTick] = useState(0);
@@ -653,20 +686,28 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
         {(shouldShowResponse() || shouldShowGraphql() || shouldShowGrpc()) && (
           <div className="apitest-body-pane">
-            {shouldShowBody() && (
-              <BodyFormatBar
-                value={currentResponseFormat}
-                onChange={format => setBodyFormat("response", format)}
+            <ResponseBodyBar
+              type={responseViewType}
+              view={responseView}
+              previewAvailable={previewAvailable}
+              onTypeChange={setResponseViewType}
+              onViewChange={setResponseViewMode}
+            />
+          <div className="apitest-body-wrapper">
+            {responseView === "preview" ? (
+              <HtmlPreview
+                html={displayResponseBody(responseData, { type: responseViewType, view: "preview" })}
+                baseUrl={requestData?.url}
+              />
+            ) : (
+              <BodyView
+                value={displayResponseBody(responseData, { type: responseViewType, view: responseView })}
+                format={resolvedResponseType}
+                mode="live"
+                onInspectPosition={handleAddOutputVariable}
+                refreshKey={responseRevision}
               />
             )}
-          <div className="apitest-body-wrapper">
-            <BodyView
-              value={displayResponseBody(responseData, autoFormatBody)}
-              format={currentResponseFormat}
-              mode="live"
-              onInspectPosition={handleAddOutputVariable}
-              refreshKey={responseRevision}
-            />
           </div>
           </div>
         )}
@@ -712,21 +753,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           >
             <span className="codicon codicon-history toolbar-button-icon"></span>
           </button>
-          <ToggleButton
-            active={autoFormatBody}
-            icon="sparkle-filled"
-            title={`Auto-format (beautify) body ${autoFormatBody ? "on" : "off"}`}
-            onClick={() => {
-              const next = !autoFormatBody;
-              setAutoFormatBody(next);
-              window.vscode?.postMessage({
-                command: "updateConfig",
-                section: "multimeter",
-                key: "body.auto.format",
-                value: next,
-              });
-            }}
-          />
         </div>
       </div>
     </div>
