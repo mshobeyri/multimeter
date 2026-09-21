@@ -1,3 +1,4 @@
+import {httpMethodAllowsRequestBody} from './apiMethod';
 import {isBinaryBodyPayload} from './binaryBody';
 import {Format, RequestFormat, ResponseFormat} from './CommonData';
 
@@ -90,13 +91,18 @@ function sniffFormatFromBody(raw: string): Format {
 
 /**
  * Resolve request format: explicit value wins; `auto` uses Content-Type, else `json`.
+ * Body-less methods (GET) resolve `auto` to `none`.
  */
 export function resolveRequestFormat(
     declared: RequestFormat,
     headers?: Record<string, string>,
+    method?: string,
 ): Format {
   if (declared !== 'auto') {
     return declared;
+  }
+  if (method !== undefined && !httpMethodAllowsRequestBody(method)) {
+    return 'none';
   }
   return formatFromContentType(headerContentType(headers)) ?? 'json';
 }

@@ -43,6 +43,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const reqFormatForBody = resolveRequestFormat(
       declaredReqFormat,
       replaced.headers || {},
+      replaced.method,
   );
   // Convert leftover dynamic tokens to JS interpolations before formatBody.
   // urlencoded needs this because URLSearchParams encodes `${...}`; JSON needs

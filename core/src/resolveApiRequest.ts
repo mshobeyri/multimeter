@@ -30,7 +30,10 @@ export function resolveApiRequest(
       inputs,
       envParameters,
       new Set(),
-      {refreshRuntimeTokens: options.refreshRuntimeTokens}) as Request & {auth?: unknown};
+      {
+        refreshRuntimeTokens: options.refreshRuntimeTokens,
+        resolveRuntimeTokens: options.preserveStructuredBody ? false : undefined,
+      }) as Request & {auth?: unknown};
   request = stripOmitFromRequest(request) as Request & {auth?: unknown};
 
   if (request.auth) {
@@ -48,6 +51,7 @@ export function resolveApiRequest(
   const reqFormat = resolveRequestFormat(
       requestFormat(request.format),
       request.headers,
+      request.method,
   );
   // Multipart `body` is a parts array. The UI JSON-previews it, but Send must
   // keep the array so the runner can build multipart/form-data.

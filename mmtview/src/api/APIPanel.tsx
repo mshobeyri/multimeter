@@ -99,7 +99,11 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
     return packBodyForYamlCompare(
       api.body,
       raw,
-      resolveRequestFormat(requestFormat(api.format), testRequestData?.headers as Record<string, string> | undefined),
+      resolveRequestFormat(
+          requestFormat(api.format),
+          testRequestData?.headers as Record<string, string> | undefined,
+          (testRequestData?.method as string | undefined) ?? api.method,
+      ),
     );
   }, [api.body, api.format, testRequestData]);
 

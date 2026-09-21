@@ -165,6 +165,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const resolvedRequestFormat = resolveRequestFormat(
     currentRequestFormat,
     requestData?.headers,
+    methodOrProtocolValue.startsWith("method:") ? methodOrProtocolKey : undefined,
   );
   const bodyYamlEncoded = api.body != null && typeof api.body !== "string";
   const canonicalRequestBody = bodyYamlEncoded && !touchedFields.has("body")

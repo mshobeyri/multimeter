@@ -82,7 +82,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
 
   const reqFormat = requestFormat(data.format);
   const resFormat = responseFormat(data.format);
-  const resolvedReqFormat = resolveRequestFormat(reqFormat, data.headers);
+  const resolvedReqFormat = resolveRequestFormat(reqFormat, data.headers, data.method);
 
   // State for formatted body
   const [formattedBody, setFormattedBody] = useState<string>(

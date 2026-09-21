@@ -33,6 +33,7 @@ function packUiRequestBody(api: APIData, requestData: Request): unknown {
   const format = resolveRequestFormat(
     requestFormat(requestData.format ?? api.format),
     requestData.headers,
+    requestData.method ?? api.method,
   );
   const body = requestData.body;
   if (format !== "multipart") {
@@ -245,6 +246,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     const reqFormat = resolveRequestFormat(
       requestFormat(merged.format ?? apiRef.current.format),
       merged.headers,
+      merged.method ?? apiRef.current.method,
     );
     if (merged.body != null && typeof merged.body !== "string" && reqFormat !== "multipart") {
       return {
@@ -357,6 +359,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     const reqFmt = resolveRequestFormat(
       requestFormat(requestData?.format ?? apiRef.current.format),
       requestData?.headers,
+      requestData?.method ?? apiRef.current.method,
     );
     const resolved = declared === "auto"
       ? resolveResponseViewType("auto", responseData, reqFmt, requestData?.headers)

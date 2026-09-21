@@ -20,6 +20,12 @@ describe('formatResolve', () => {
     expect(resolveRequestFormat('auto')).toBe('json');
   });
 
+  it('resolves request auto to none for GET', () => {
+    expect(resolveRequestFormat('auto', {'Content-Type': 'application/json'}, 'get')).toBe('none');
+    expect(resolveRequestFormat('auto', {}, 'GET')).toBe('none');
+    expect(resolveRequestFormat('auto', {}, 'post')).toBe('json');
+  });
+
   it('resolves response auto from response headers, request format, then sniff', () => {
     expect(resolveResponseFormat('xml')).toBe('xml');
     expect(resolveResponseFormat('auto', {
