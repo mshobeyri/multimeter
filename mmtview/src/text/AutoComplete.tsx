@@ -1348,6 +1348,17 @@ export const KeySuggestionsByParent = (monaco: any) => {
             sortText: '1multipart',
         },
     ];
+    const formatResponseValueSuggestion = [
+        {
+            label: "auto",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " auto",
+            detail: 'Detect response format automatically',
+            documentation: 'Default response format. Uses the response Content-Type when present, otherwise the request format, then body sniffing.\nExample:\nformat:\n  request: json\n  response: auto',
+            sortText: '0auto',
+        },
+        ...formatValueSuggestion,
+    ];
     const formatSuggestion = [
         ...formatValueSuggestion,
         {
@@ -1355,10 +1366,10 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Snippet,
             // Monaco snippet placeholders intentionally use ${n:default} in a normal string.
             // eslint-disable-next-line no-template-curly-in-string
-            insertText: "\n\trequest: ${1:json}\n\tresponse: ${2:json}",
+            insertText: "\n\trequest: ${1:json}\n\tresponse: ${2:auto}",
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Split request and response formats',
-            documentation: 'Use different formats for request body vs response body.\nExample:\nformat:\n  request: json\n  response: xml\n\nThen set each value to none, json, xml, xmle, text, html, urlencoded, binary, or multipart.',
+            documentation: 'Use different formats for request body vs response body.\nExample:\nformat:\n  request: json\n  response: auto\n\nResponse also accepts none, json, xml, xmle, text, html, urlencoded, binary, or multipart.',
             sortText: '0split',
         },
     ];
@@ -1375,7 +1386,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "response: ",
             detail: 'Response body format',
-            documentation: 'Format used for the response body.\nValues: none, json, xml, xmle, text, html, urlencoded, binary, multipart\nExample:\nformat:\n  request: json\n  response: xml',
+            documentation: 'Format used for the response body.\nValues: auto (default), none, json, xml, xmle, text, html, urlencoded, binary, multipart\nExample:\nformat:\n  request: json\n  response: auto',
         },
     ];
     const methodSuggestions = [
@@ -2079,6 +2090,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         'auth-type': authTypeSuggestions,
         format: formatSuggestion,
         'format-value': formatValueSuggestion,
+        'format-response-value': formatResponseValueSuggestion,
         'format-keys': formatKeySuggestions,
         graphql: graphqlSuggestions,
         grpc: grpcSuggestions,

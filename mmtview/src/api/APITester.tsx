@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useMemo } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
-import { FORMAT_VALUES, Format, JSONRecord, Method, Protocol, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { Format, JSONRecord, Method, Protocol, ResponseFormat, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
@@ -24,7 +24,6 @@ import {
   displayResponseBody,
   resolveResponseViewType,
   responseTypeSupportsPreview,
-  type ResponseTypeChoice,
   type ResponseViewMode,
 } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
@@ -164,13 +163,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     : methodOrProtocolValue.slice("method:".length);
   const currentRequestFormat = requestFormat(requestData?.format ?? api.format);
   const currentResponseFormat = responseFormat(requestData?.format ?? api.format);
-  const [responseViewType, setResponseViewTypeState] = useState<ResponseTypeChoice>(() => {
-    const saved = localStorage.getItem("apitest-response-view-type");
-    if (saved === "auto" || (FORMAT_VALUES as string[]).includes(saved || "")) {
-      return saved as ResponseTypeChoice;
-    }
-    return "auto";
-  });
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
     if (saved === "raw" || saved === "pretty" || saved === "preview") {
@@ -178,15 +170,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     }
     return autoFormatBody ? "pretty" : "raw";
   });
-  const resolvedResponseType = resolveResponseViewType(responseViewType, responseData);
-  const previewAvailable = responseTypeSupportsPreview(responseViewType, resolvedResponseType);
+  const resolvedResponseType = resolveResponseViewType(
+    currentResponseFormat,
+    responseData,
+    currentRequestFormat,
+  );
+  const previewAvailable = responseTypeSupportsPreview(currentResponseFormat, resolvedResponseType);
   const responseView = responseViewMode === "preview" && !previewAvailable
     ? "raw"
     : responseViewMode;
-  const setResponseViewType = (type: ResponseTypeChoice) => {
-    setResponseViewTypeState(type);
-    localStorage.setItem("apitest-response-view-type", type);
-  };
   const setResponseViewMode = (view: ResponseViewMode) => {
     setResponseViewModeState(view);
     localStorage.setItem("apitest-response-view-mode", view);
@@ -297,9 +289,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
-  const setBodyFormat = (side: "request" | "response", format: Format) => {
-    const request = side === "request" ? format : currentRequestFormat;
-    const response = side === "response" ? format : currentResponseFormat;
+  const setBodyFormat = (side: "request" | "response", format: Format | ResponseFormat) => {
+    const request = side === "request" ? format as Format : currentRequestFormat;
+    const response = side === "response" ? format as ResponseFormat : currentResponseFormat;
     updateField("format", packFormatSpec({ request, response }) ?? format);
   };
 
@@ -687,21 +679,29 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         {(shouldShowResponse() || shouldShowGraphql() || shouldShowGrpc()) && (
           <div className="apitest-body-pane">
             <ResponseBodyBar
-              type={responseViewType}
+              type={currentResponseFormat}
               view={responseView}
               previewAvailable={previewAvailable}
-              onTypeChange={setResponseViewType}
+              onTypeChange={type => setBodyFormat("response", type)}
               onViewChange={setResponseViewMode}
             />
           <div className="apitest-body-wrapper">
             {responseView === "preview" ? (
               <HtmlPreview
-                html={displayResponseBody(responseData, { type: responseViewType, view: "preview" })}
+                html={displayResponseBody(responseData, {
+                  type: currentResponseFormat,
+                  view: "preview",
+                  requestFormat: currentRequestFormat,
+                })}
                 baseUrl={requestData?.url}
               />
             ) : (
               <BodyView
-                value={displayResponseBody(responseData, { type: responseViewType, view: responseView })}
+                value={displayResponseBody(responseData, {
+                  type: currentResponseFormat,
+                  view: responseView,
+                  requestFormat: currentRequestFormat,
+                })}
                 format={resolvedResponseType}
                 mode="live"
                 onInspectPosition={handleAddOutputVariable}

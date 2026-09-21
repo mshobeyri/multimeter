@@ -13,7 +13,7 @@ import { useNetwork } from "../components/network/Network";
 import { pushHistory } from "../vsAPI";
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
-import { responseBodyToRawString } from "./responseBodyDisplay";
+import { resolveResponseViewType, responseBodyToRawString } from "./responseBodyDisplay";
 import {
   cacheBodyAutoFormat,
   readCachedBodyAutoFormat,
@@ -336,9 +336,13 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
 
-    const fmt = responseFormat(requestData?.format);
+    const declared = responseFormat(requestData?.format ?? apiRef.current.format);
+    const reqFmt = requestFormat(requestData?.format ?? apiRef.current.format);
+    const resolved = declared === "auto"
+      ? resolveResponseViewType("auto", responseData, reqFmt)
+      : declared;
     const contentType: "json" | "xml" =
-      fmt.includes("xml") || bodyText.trim().startsWith("<")
+      resolved.includes("xml") || bodyText.trim().startsWith("<")
         ? "xml"
         : "json";
     const path = extractPathAtPosition(bodyText || "", contentType, pos.line, pos.column);
@@ -365,7 +369,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
 
     existing[key] = expr;
     onUpdateApi?.({ outputs: existing });
-  }, [onUpdateApi, requestData?.format]);
+  }, [onUpdateApi, requestData?.format, responseData]);
 
   // HTTP/GraphQL/gRPC Send / Run in Core from the right panel: always send the
   // UI request as rawFile. Glyphs omit rawFile and use the editor file only.

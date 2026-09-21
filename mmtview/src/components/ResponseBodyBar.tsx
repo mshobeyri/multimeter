@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Format } from "mmt-core/CommonData";
-import {
-  ResponseTypeChoice,
-  ResponseViewMode,
-} from "../api/responseBodyDisplay";
+import { Format, ResponseFormat } from "mmt-core/CommonData";
+import { ResponseViewMode } from "../api/responseBodyDisplay";
 import {
   BODY_FORMAT_TOP_LEVEL,
   DEFAULT_RAW_FORMAT,
@@ -15,10 +12,10 @@ import {
 } from "./BodyFormatControls";
 
 type ResponseBodyBarProps = {
-  type: ResponseTypeChoice;
+  type: ResponseFormat;
   view: ResponseViewMode;
   previewAvailable: boolean;
-  onTypeChange: (type: ResponseTypeChoice) => void;
+  onTypeChange: (type: ResponseFormat) => void;
   onViewChange: (view: ResponseViewMode) => void;
 };
 

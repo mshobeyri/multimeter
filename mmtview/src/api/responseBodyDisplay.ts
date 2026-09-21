@@ -1,8 +1,8 @@
-import { Format } from "mmt-core/CommonData";
+import { Format, ResponseFormat } from "mmt-core/CommonData";
 import { beautify, beautifyWithContentType } from "mmt-core/markupConvertor";
 import type { Response } from "mmt-core/NetworkData";
 
-export type ResponseTypeChoice = "auto" | Format;
+export type ResponseTypeChoice = ResponseFormat;
 export type ResponseViewMode = "raw" | "pretty" | "preview";
 
 const PRETTY_FORMATS = new Set<Format>(["json", "xml", "xmle", "urlencoded"]);
@@ -37,12 +37,11 @@ function headerContentType(headers?: Record<string, string>): string {
   return "";
 }
 
-/** Infer a display Format from Content-Type and/or body text. */
-export function detectResponseFormat(response: Response | undefined | null): Format {
-  if (!response) {
-    return "text";
+function formatFromContentType(contentType: string): Format | undefined {
+  const ct = contentType.toLowerCase();
+  if (!ct) {
+    return undefined;
   }
-  const ct = headerContentType(response.headers).toLowerCase();
   if (ct.includes("json")) {
     return "json";
   }
@@ -61,8 +60,13 @@ export function detectResponseFormat(response: Response | undefined | null): For
   if (ct.includes("octet-stream")) {
     return "binary";
   }
+  if (ct.includes("text/plain")) {
+    return "text";
+  }
+  return undefined;
+}
 
-  const raw = responseBodyToRawString(response.body);
+function sniffFormatFromBody(raw: string): Format {
   const trimmed = raw.trimStart();
   if (!trimmed) {
     return "text";
@@ -87,14 +91,35 @@ export function detectResponseFormat(response: Response | undefined | null): For
   return "text";
 }
 
+/**
+ * Infer display format: response Content-Type, else request format, else body sniff.
+ */
+export function detectResponseFormat(
+  response: Response | undefined | null,
+  requestFormatHint?: Format,
+): Format {
+  if (!response) {
+    return requestFormatHint && requestFormatHint !== "none" ? requestFormatHint : "text";
+  }
+  const fromHeader = formatFromContentType(headerContentType(response.headers));
+  if (fromHeader) {
+    return fromHeader;
+  }
+  if (requestFormatHint && requestFormatHint !== "none") {
+    return requestFormatHint;
+  }
+  return sniffFormatFromBody(responseBodyToRawString(response.body));
+}
+
 export function resolveResponseViewType(
   type: ResponseTypeChoice,
   response: Response | undefined | null,
+  requestFormatHint?: Format,
 ): Format {
   if (type !== "auto") {
     return type;
   }
-  return detectResponseFormat(response);
+  return detectResponseFormat(response, requestFormatHint);
 }
 
 export function responseTypeSupportsPretty(type: ResponseTypeChoice): boolean {
@@ -114,7 +139,7 @@ export function responseTypeSupportsPreview(
  */
 export function displayResponseBody(
   response: Response | undefined | null,
-  options: { type: ResponseTypeChoice; view: ResponseViewMode },
+  options: { type: ResponseTypeChoice; view: ResponseViewMode; requestFormat?: Format },
 ): string {
   if (!response) {
     return "";
@@ -124,7 +149,15 @@ export function displayResponseBody(
     return raw;
   }
   if (options.type === "auto") {
-    return beautifyWithContentType(headerContentType(response.headers), raw);
+    const ct = headerContentType(response.headers);
+    if (ct) {
+      return beautifyWithContentType(ct, raw);
+    }
+    const hinted = options.requestFormat;
+    if (hinted && hinted !== "none" && PRETTY_FORMATS.has(hinted)) {
+      return beautify(hinted, raw);
+    }
+    return beautifyWithContentType("", raw);
   }
   return beautify(options.type, raw);
 }

@@ -18,7 +18,7 @@ describe('responseBodyDisplay', () => {
     const raw = '{"a":1}';
     expect(displayResponseBody(
       { body: raw, headers: { 'Content-Type': 'application/json' } } as any,
-      { type: 'auto', view: 'raw' },
+      { type: 'auto', view: 'raw', requestFormat: 'json' },
     )).toBe(raw);
   });
 
@@ -26,7 +26,7 @@ describe('responseBodyDisplay', () => {
     const raw = '{"a":1,"b":2}';
     const shown = displayResponseBody(
       { body: raw, headers: { 'Content-Type': 'application/json' } } as any,
-      { type: 'auto', view: 'pretty' },
+      { type: 'auto', view: 'pretty', requestFormat: 'json' },
     );
     expect(shown).toBe('{\n  "a": 1,\n  "b": 2\n}');
   });
@@ -34,7 +34,7 @@ describe('responseBodyDisplay', () => {
   it('beautifies object bodies from compact JSON when view is pretty', () => {
     const shown = displayResponseBody(
       { body: { hello: 'world' }, headers: { 'content-type': 'application/json' } } as any,
-      { type: 'auto', view: 'pretty' },
+      { type: 'auto', view: 'pretty', requestFormat: 'json' },
     );
     expect(shown).toContain('\n');
     expect(shown).toContain('"hello": "world"');
@@ -44,7 +44,7 @@ describe('responseBodyDisplay', () => {
     const html = '<html><body>hi</body></html>';
     expect(displayResponseBody(
       { body: html, headers: { 'Content-Type': 'text/html' } } as any,
-      { type: 'auto', view: 'preview' },
+      { type: 'auto', view: 'preview', requestFormat: 'json' },
     )).toBe(html);
   });
 
@@ -56,22 +56,37 @@ describe('responseBodyDisplay', () => {
     expect(detectResponseFormat({
       body: '<!DOCTYPE html><html></html>',
       headers: {},
-    } as any)).toBe('html');
+    } as any, 'json')).toBe('json');
     expect(detectResponseFormat({
       body: '<note>hi</note>',
       headers: {},
-    } as any)).toBe('xml');
+    } as any, 'html')).toBe('html');
+  });
+
+  it('falls back to request format when response Content-Type is missing', () => {
+    expect(detectResponseFormat({
+      body: 'plain text',
+      headers: {},
+    } as any, 'html')).toBe('html');
+    expect(detectResponseFormat({
+      body: '{"a":1}',
+      headers: {},
+    } as any, 'json')).toBe('json');
+    expect(resolveResponseViewType('auto', {
+      body: '{"a":1}',
+      headers: {},
+    } as any, 'json')).toBe('json');
   });
 
   it('resolves auto to the detected format', () => {
     expect(resolveResponseViewType('auto', {
       body: '{"a":1}',
       headers: { 'content-type': 'application/json' },
-    } as any)).toBe('json');
+    } as any, 'html')).toBe('json');
     expect(resolveResponseViewType('xml', {
       body: '{"a":1}',
       headers: { 'content-type': 'application/json' },
-    } as any)).toBe('xml');
+    } as any, 'json')).toBe('xml');
   });
 
   it('supports pretty for auto and structured types only', () => {

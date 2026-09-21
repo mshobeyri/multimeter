@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useEffect, useState, useContext } from "react";
 import KSVEditor from "../components/KSVEditor";
 import UrlInput from "../components/UrlInput";
-import { Protocol, Method, Format, FormatSpec, FORMAT_VALUES, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
+import { Protocol, Method, Format, FormatSpec, FORMAT_VALUES, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
@@ -57,8 +57,15 @@ function getFormatLabel(format: Format): string {
   return format;
 }
 
-function setFormats(nextRequest: Format, nextResponse: Format): FormatSpec {
+function setFormats(nextRequest: Format, nextResponse: ResponseFormat): FormatSpec {
   return packFormatSpec({ request: nextRequest, response: nextResponse }) || nextRequest;
+}
+
+function getResponseFormatLabel(format: ResponseFormat): string {
+  if (format === "auto") {
+    return "auto — detect from Content-Type, else request format";
+  }
+  return getFormatLabel(format);
 }
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
@@ -206,12 +213,12 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
               value={resFormat}
               onChange={e => onChange({
                 ...data,
-                format: setFormats(reqFormat, e.target.value as Format),
+                format: setFormats(reqFormat, e.target.value as ResponseFormat),
               })}
             >
               <option key="" value="" disabled>Select format...</option>
-              {safeList(formatOptions).map(opt => (
-                <option key={opt} value={opt}>{getFormatLabel(opt)}</option>
+              {safeList(RESPONSE_FORMAT_VALUES).map(opt => (
+                <option key={opt} value={opt}>{getResponseFormatLabel(opt)}</option>
               ))}
             </select>
           </div>

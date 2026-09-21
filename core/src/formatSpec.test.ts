@@ -25,6 +25,30 @@ describe('FormatSpec helpers', () => {
     });
   });
 
+  it('defaults response to auto when omitted from split format', () => {
+    expect(normalizeFormat({request: 'json'})).toEqual({
+      request: 'json',
+      response: 'auto',
+    });
+    expect(responseFormat(undefined)).toBe('auto');
+    expect(responseFormat({request: 'json'})).toBe('auto');
+  });
+
+  it('accepts auto as response format and packs split specs', () => {
+    expect(normalizeFormat({request: 'json', response: 'auto'})).toEqual({
+      request: 'json',
+      response: 'auto',
+    });
+    expect(packFormatSpec({request: 'json', response: 'auto'})).toEqual({
+      request: 'json',
+      response: 'auto',
+    });
+    expect(normalizeFormat('auto' as any)).toEqual({
+      request: 'json',
+      response: 'auto',
+    });
+  });
+
   it('accepts respond as an alias for response', () => {
     expect(normalizeFormat({request: 'json', respond: 'text'} as any)).toEqual({
       request: 'json',
@@ -39,9 +63,9 @@ describe('FormatSpec helpers', () => {
       response: 'json',
     });
     expect(packFormatSpec(undefined)).toBeUndefined();
-    expect(normalizeFormat(null)).toEqual({request: 'json', response: 'json'});
+    expect(normalizeFormat(null)).toEqual({request: 'json', response: 'auto'});
     expect(normalizeFormat('nope' as any)).toEqual({request: 'json', response: 'json'});
-    expect(normalizeFormat(['xml'] as any)).toEqual({request: 'json', response: 'json'});
+    expect(normalizeFormat(['xml'] as any)).toEqual({request: 'json', response: 'auto'});
   });
 
   it('formats durations across units', () => {
@@ -60,6 +84,25 @@ describe('FormatSpec helpers', () => {
 });
 
 describe('API format parse/pack', () => {
+  it('round-trips response auto in split format objects', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com/echo',
+      'method: post',
+      'format:',
+      '  request: json',
+      '  response: auto',
+    ].join('\n');
+
+    const api = yamlToAPIStrict(yaml);
+    expect(api.format).toEqual({request: 'json', response: 'auto'});
+    expect(responseFormat(api.format)).toBe('auto');
+
+    const packed = apiToYaml(api);
+    expect(packed).toContain('request: json');
+    expect(packed).toContain('response: auto');
+  });
+
   it('round-trips split format objects', () => {
     const yaml = [
       'type: api',

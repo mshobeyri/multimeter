@@ -6,7 +6,7 @@ import {
   type ExpectUiRow,
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
-import { FORMAT_VALUES, Format, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
+import { FORMAT_VALUES, Format, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
@@ -212,11 +212,11 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
               onChange={e => emit({
                 format: packFormatSpec({
                   request: requestFormat(step.format),
-                  response: e.target.value as Format,
+                  response: e.target.value as ResponseFormat,
                 }),
               })}
             >
-              {formatOptions.map(format => (
+              {RESPONSE_FORMAT_VALUES.map(format => (
                 <option key={format} value={format}>{format}</option>
               ))}
             </select>

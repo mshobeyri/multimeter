@@ -2,23 +2,32 @@ export type Type = "env" | "api" | "test" | "suite" | "loadtest" | "doc" | "csv"
 
 export type Protocol = "http" | "ws" | "graphql" | "grpc";
 export type Format = "none" | "json" | "xml" | "xmle" | "text" | "html" | "urlencoded" | "binary" | "multipart";
+/** Response display/parsing format; `auto` detects from Content-Type, then request format. */
+export type ResponseFormat = Format | "auto";
 /** Split request vs response body formats. */
 export interface FormatConfig {
   request?: Format;
-  response?: Format;
+  response?: ResponseFormat;
 }
 /**
  * Body format: a single value applies to both request and response,
  * or `{ request, response }` when they differ.
  */
-export type FormatSpec = Format | FormatConfig;
+/** Scalar request format, shorthand `auto` (response auto), or split `{ request, response }`. */
+export type FormatSpec = Format | "auto" | FormatConfig;
 export type Method = "get" | "post" | "put" | "delete" | "patch" | "head" | "options" | "trace";
 export type GrpcStream = "server" | "client" | "bidi";
 
 export const FORMAT_VALUES: Format[] = ["none", "json", "xml", "xmle", "text", "html", "urlencoded", "binary", "multipart"];
+export const RESPONSE_FORMAT_VALUES: ResponseFormat[] = [...FORMAT_VALUES, "auto"];
 
 function isFormatValue(value: unknown): value is Format {
   return typeof value === "string" && (FORMAT_VALUES as string[]).includes(value);
+}
+
+function isResponseFormatValue(value: unknown): value is ResponseFormat {
+  return typeof value === "string" &&
+      (value === "auto" || (FORMAT_VALUES as string[]).includes(value));
 }
 
 /**
@@ -27,12 +36,15 @@ function isFormatValue(value: unknown): value is Format {
  */
 export function normalizeFormat(format?: FormatSpec | null | Record<string, unknown>): {
   request: Format;
-  response: Format;
+  response: ResponseFormat;
 } {
   if (format == null) {
-    return { request: "json", response: "json" };
+    return { request: "json", response: "auto" };
   }
   if (typeof format === "string") {
+    if (format === "auto") {
+      return { request: "json", response: "auto" };
+    }
     const value = isFormatValue(format) ? format : "json";
     return { request: value, response: value };
   }
@@ -42,17 +54,19 @@ export function normalizeFormat(format?: FormatSpec | null | Record<string, unkn
     const request = isFormatValue(rawRequest)
       ? rawRequest
       : (isFormatValue(rawResponse) ? rawResponse : "json");
-    const response = isFormatValue(rawResponse) ? rawResponse : request;
+    const response = isResponseFormatValue(rawResponse)
+      ? rawResponse
+      : (rawResponse === undefined ? "auto" : request);
     return { request, response };
   }
-  return { request: "json", response: "json" };
+  return { request: "json", response: "auto" };
 }
 
 export function requestFormat(format?: FormatSpec | null | Record<string, unknown>): Format {
   return normalizeFormat(format).request;
 }
 
-export function responseFormat(format?: FormatSpec | null | Record<string, unknown>): Format {
+export function responseFormat(format?: FormatSpec | null | Record<string, unknown>): ResponseFormat {
   return normalizeFormat(format).response;
 }
 
@@ -62,6 +76,9 @@ export function packFormatSpec(format?: FormatSpec | null): FormatSpec | undefin
     return undefined;
   }
   const { request, response } = normalizeFormat(format);
+  if (response === "auto") {
+    return { request, response };
+  }
   if (request === response) {
     return request;
   }
