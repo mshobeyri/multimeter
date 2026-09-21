@@ -45,6 +45,11 @@
       "require": "./dist/CommonData.js",
       "default": "./dist/CommonData.js"
     },
+    "./formatResolve": {
+      "types": "./dist/formatResolve.d.ts",
+      "require": "./dist/formatResolve.js",
+      "default": "./dist/formatResolve.js"
+    },
     "./NetworkData": {
       "types": "./dist/NetworkData.d.ts",
       "require": "./dist/NetworkData.js",

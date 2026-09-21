@@ -1,5 +1,6 @@
 import {APIData} from './APIData';
 import {JSONRecord, requestFormat} from './CommonData';
+import {resolveRequestFormat} from './formatResolve';
 import {Request} from './NetworkData';
 import {applyAuthToRequest} from './apiParsePack';
 import {formatBody} from './markupConvertor';
@@ -42,7 +43,10 @@ export function resolveApiRequest(
     delete request.auth;
   }
 
-  const reqFormat = requestFormat(request.format);
+  const reqFormat = resolveRequestFormat(
+      requestFormat(request.format),
+      request.headers,
+  );
   // Multipart `body` is a parts array. The UI JSON-previews it, but Send must
   // keep the array so the runner can build multipart/form-data.
   if (request.body && typeof request.body !== 'string' && reqFormat !== 'multipart') {

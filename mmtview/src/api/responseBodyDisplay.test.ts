@@ -75,7 +75,11 @@ describe('responseBodyDisplay', () => {
     expect(resolveResponseViewType('auto', {
       body: '{"a":1}',
       headers: {},
-    } as any, 'json')).toBe('json');
+    } as any, 'json', {})).toBe('json');
+    expect(resolveResponseViewType('auto', {
+      body: '{"a":1}',
+      headers: {},
+    } as any, 'auto', {'Content-Type': 'application/json'})).toBe('json');
   });
 
   it('resolves auto to the detected format', () => {

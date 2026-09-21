@@ -2,9 +2,9 @@
 
 `format` controls how Multimeter encodes the request body and decodes the response body.
 
-- Request values: `none` | `json` | `xml` | `xmle` | `text` | `html` | `urlencoded` | `binary` | `multipart`
-- Response values: same list plus `auto` (default for response)
-- Optional — request defaults to `json`, response defaults to `auto`
+- Values: `none` | `json` | `xml` | `xmle` | `text` | `html` | `urlencoded` | `binary` | `multipart` | `auto`
+- Optional — request and response both default to `auto` when omitted
+- Explicit `format: json` still pins both sides to json
 - Affects default `Content-Type` and body handling
 
 Use a single value when request and response share a `format:`
@@ -21,7 +21,9 @@ format:
   response: xml
 ```
 
-`response: auto` (the default when omitted) detects the display format from the response `Content-Type` header. When that header is missing, Multimeter falls back to the request format, then body sniffing — similar to Postman’s **Auto** response view.
+**Request `auto`** (default when omitted) uses the request `Content-Type` header; when that header is missing, Multimeter assumes `json`.
+
+**Response `auto`** (default when omitted) uses the response `Content-Type` header; when that header is missing, Multimeter falls back to the resolved request format, then body sniffing — similar to Postman’s **Auto** response view.
 
 | Format | Typical use |
 |---|---|

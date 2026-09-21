@@ -25,26 +25,39 @@ describe('FormatSpec helpers', () => {
     });
   });
 
-  it('defaults response to auto when omitted from split format', () => {
+  it('defaults request and response to auto when omitted', () => {
     expect(normalizeFormat({request: 'json'})).toEqual({
       request: 'json',
       response: 'auto',
     });
+    expect(normalizeFormat({})).toEqual({
+      request: 'auto',
+      response: 'auto',
+    });
+    expect(requestFormat(undefined)).toBe('auto');
     expect(responseFormat(undefined)).toBe('auto');
     expect(responseFormat({request: 'json'})).toBe('auto');
   });
 
-  it('accepts auto as response format and packs split specs', () => {
+  it('accepts auto as request/response format and packs split specs', () => {
     expect(normalizeFormat({request: 'json', response: 'auto'})).toEqual({
       request: 'json',
+      response: 'auto',
+    });
+    expect(normalizeFormat({request: 'auto', response: 'auto'})).toEqual({
+      request: 'auto',
       response: 'auto',
     });
     expect(packFormatSpec({request: 'json', response: 'auto'})).toEqual({
       request: 'json',
       response: 'auto',
     });
-    expect(normalizeFormat('auto' as any)).toEqual({
-      request: 'json',
+    expect(packFormatSpec({request: 'auto', response: 'auto'})).toEqual({
+      request: 'auto',
+      response: 'auto',
+    });
+    expect(normalizeFormat('auto')).toEqual({
+      request: 'auto',
       response: 'auto',
     });
   });
@@ -63,9 +76,9 @@ describe('FormatSpec helpers', () => {
       response: 'json',
     });
     expect(packFormatSpec(undefined)).toBeUndefined();
-    expect(normalizeFormat(null)).toEqual({request: 'json', response: 'auto'});
+    expect(normalizeFormat(null)).toEqual({request: 'auto', response: 'auto'});
     expect(normalizeFormat('nope' as any)).toEqual({request: 'json', response: 'json'});
-    expect(normalizeFormat(['xml'] as any)).toEqual({request: 'json', response: 'auto'});
+    expect(normalizeFormat(['xml'] as any)).toEqual({request: 'auto', response: 'auto'});
   });
 
   it('formats durations across units', () => {

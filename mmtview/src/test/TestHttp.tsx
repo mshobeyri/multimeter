@@ -6,7 +6,7 @@ import {
   type ExpectUiRow,
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
-import { FORMAT_VALUES, Format, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
+import { REQUEST_FORMAT_VALUES, RequestFormat, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
@@ -23,7 +23,6 @@ interface TestHttpProps {
 }
 
 const methodOptions = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'];
-const formatOptions: Format[] = FORMAT_VALUES;
 const responseFields = ['status', 'body.message', 'body', 'headers', 'cookies', 'duration'];
 
 const parseTimeoutInput = (value: string): number | undefined => {
@@ -194,12 +193,12 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
               value={requestFormat(step.format)}
               onChange={e => emit({
                 format: packFormatSpec({
-                  request: e.target.value as Format,
+                  request: e.target.value as RequestFormat,
                   response: responseFormat(step.format),
                 }),
               })}
             >
-              {formatOptions.map(format => (
+              {REQUEST_FORMAT_VALUES.map(format => (
                 <option key={format} value={format}>{format}</option>
               ))}
             </select>

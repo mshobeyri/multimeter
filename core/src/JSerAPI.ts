@@ -1,6 +1,7 @@
 import {APIData, AuthConfig} from './APIData';
 import {resolveApiHttpMethod} from './apiMethod';
 import {JSONRecord, requestFormat} from './CommonData';
+import {resolveRequestFormat} from './formatResolve';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
 import {coerceMultipartPartsInput, MultipartPartSpec} from './multipartBody';
@@ -38,7 +39,11 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
           {resolveRuntimeTokens: false});
   replaced = stripOmitFromRequest(replaced);
 
-  const reqFormatForBody = requestFormat(replaced.format);
+  const declaredReqFormat = requestFormat(replaced.format);
+  const reqFormatForBody = resolveRequestFormat(
+      declaredReqFormat,
+      replaced.headers || {},
+  );
   // Convert leftover dynamic tokens to JS interpolations before formatBody.
   // urlencoded needs this because URLSearchParams encodes `${...}`; JSON needs
   // it so standalone `r:` / `c:` fields become runtime calls instead of
@@ -139,7 +144,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   // GraphQL: override method, headers, and body
   const effectiveMethod = isGraphQL ? 'post' :
       resolveApiHttpMethod(replaced.method, replaced.body);
-  const reqFormat = requestFormat(replaced.format);
+  const reqFormat = reqFormatForBody;
   const isNoneRequest = !isGraphQL && reqFormat === 'none';
   const isBinaryRequest = !isGraphQL && reqFormat === 'binary';
   const isMultipartRequest = !isGraphQL && reqFormat === 'multipart';
@@ -236,7 +241,10 @@ ${binaryLoadLines}${multipartPrepLines}  const req_ = {
     body: ${bodyExpr}
   };
 ${authCode}
-  applyOmitToRequest_(req_, '${reqFormat}');
+  ${declaredReqFormat === 'auto'
+      ? `const __reqFormat_ = resolveRequestFormat_('auto', req_.headers, req_.body);
+  applyOmitToRequest_(req_, __reqFormat_);`
+      : `applyOmitToRequest_(req_, '${declaredReqFormat}');`}
 ${multipartBuildLines}  const res_ = await send_(req_);
 
   const __extractSource_ = {

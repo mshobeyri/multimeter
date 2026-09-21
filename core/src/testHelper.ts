@@ -145,6 +145,8 @@ export function applyOmitToRequest_(req: any, format?: string): any {
   return applyOmitToOutgoingRequest(req, format);
 }
 
+export {resolveRequestFormat as resolveRequestFormat_} from './formatResolve';
+
 export async function buildMultipartBodyFromParts_(
     parts: unknown,
     readBinaryFile: (path: string) => Promise<Buffer | Uint8Array>,

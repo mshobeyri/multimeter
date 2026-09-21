@@ -1021,6 +1021,7 @@ export function registerYamlAutocomplete(monaco: any) {
                         && parentContext === 'format';
                     const effectiveKey = isReportLevelKey ? 'report-level'
                         : isAuthTypeKey ? 'auth-type'
+                        : isFormatSideKey && key === 'request' ? 'format-value'
                         : isFormatSideKey && (key === 'response' || key === 'respond') ? 'format-response-value'
                         : isFormatSideKey ? 'format-value'
                         : key;

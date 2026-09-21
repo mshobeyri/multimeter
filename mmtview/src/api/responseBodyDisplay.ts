@@ -1,4 +1,5 @@
-import { Format, ResponseFormat } from "mmt-core/CommonData";
+import { Format, RequestFormat, ResponseFormat } from "mmt-core/CommonData";
+import { resolveRequestFormat, resolveResponseFormat } from "mmt-core/formatResolve";
 import { beautify, beautifyWithContentType } from "mmt-core/markupConvertor";
 import type { Response } from "mmt-core/NetworkData";
 
@@ -37,89 +38,31 @@ function headerContentType(headers?: Record<string, string>): string {
   return "";
 }
 
-function formatFromContentType(contentType: string): Format | undefined {
-  const ct = contentType.toLowerCase();
-  if (!ct) {
-    return undefined;
-  }
-  if (ct.includes("json")) {
-    return "json";
-  }
-  if (ct.includes("html")) {
-    return "html";
-  }
-  if (ct.includes("xml")) {
-    return "xml";
-  }
-  if (ct.includes("urlencoded") || ct.includes("x-www-form-urlencoded")) {
-    return "urlencoded";
-  }
-  if (ct.includes("multipart")) {
-    return "multipart";
-  }
-  if (ct.includes("octet-stream")) {
-    return "binary";
-  }
-  if (ct.includes("text/plain")) {
-    return "text";
-  }
-  return undefined;
-}
-
-function sniffFormatFromBody(raw: string): Format {
-  const trimmed = raw.trimStart();
-  if (!trimmed) {
-    return "text";
-  }
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    try {
-      JSON.parse(raw);
-      return "json";
-    } catch {
-      // fall through
-    }
-  }
-  if (/^<!DOCTYPE\s+html/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
-    return "html";
-  }
-  if (trimmed.startsWith("<")) {
-    return "xml";
-  }
-  if (/^[^=&\s]+=/.test(trimmed) && trimmed.includes("=") && !trimmed.includes("\n")) {
-    return "urlencoded";
-  }
-  return "text";
-}
-
-/**
- * Infer display format: response Content-Type, else request format, else body sniff.
- */
 export function detectResponseFormat(
   response: Response | undefined | null,
-  requestFormatHint?: Format,
+  resolvedRequestFormat?: Format,
 ): Format {
-  if (!response) {
-    return requestFormatHint && requestFormatHint !== "none" ? requestFormatHint : "text";
-  }
-  const fromHeader = formatFromContentType(headerContentType(response.headers));
-  if (fromHeader) {
-    return fromHeader;
-  }
-  if (requestFormatHint && requestFormatHint !== "none") {
-    return requestFormatHint;
-  }
-  return sniffFormatFromBody(responseBodyToRawString(response.body));
+  return resolveResponseFormat("auto", {
+    responseHeaders: response?.headers,
+    requestFormat: resolvedRequestFormat,
+    body: response?.body,
+  });
 }
 
 export function resolveResponseViewType(
   type: ResponseTypeChoice,
   response: Response | undefined | null,
-  requestFormatHint?: Format,
+  requestFormatHint?: RequestFormat | Format,
+  requestHeaders?: Record<string, string>,
 ): Format {
-  if (type !== "auto") {
-    return type;
-  }
-  return detectResponseFormat(response, requestFormatHint);
+  const resolvedRequest = requestFormatHint === "auto"
+    ? resolveRequestFormat("auto", requestHeaders)
+    : requestFormatHint;
+  return resolveResponseFormat(type, {
+    responseHeaders: response?.headers,
+    requestFormat: resolvedRequest,
+    body: response?.body,
+  });
 }
 
 export function responseTypeSupportsPretty(type: ResponseTypeChoice): boolean {
@@ -133,13 +76,9 @@ export function responseTypeSupportsPreview(
   return type === "html" || (type === "auto" && resolved === "html");
 }
 
-/**
- * Body text for the Response panel. Pretty beautifies structured types;
- * raw and preview return the stored string.
- */
 export function displayResponseBody(
   response: Response | undefined | null,
-  options: { type: ResponseTypeChoice; view: ResponseViewMode; requestFormat?: Format },
+  options: { type: ResponseTypeChoice; view: ResponseViewMode; requestFormat?: RequestFormat; requestHeaders?: Record<string, string> },
 ): string {
   if (!response) {
     return "";
@@ -153,9 +92,11 @@ export function displayResponseBody(
     if (ct) {
       return beautifyWithContentType(ct, raw);
     }
-    const hinted = options.requestFormat;
-    if (hinted && hinted !== "none" && PRETTY_FORMATS.has(hinted)) {
-      return beautify(hinted, raw);
+    const resolvedRequest = options.requestFormat === "auto"
+      ? resolveRequestFormat("auto", options.requestHeaders)
+      : options.requestFormat;
+    if (resolvedRequest && resolvedRequest !== "none" && PRETTY_FORMATS.has(resolvedRequest)) {
+      return beautify(resolvedRequest, raw);
     }
     return beautifyWithContentType("", raw);
   }

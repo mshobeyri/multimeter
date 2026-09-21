@@ -1348,25 +1348,33 @@ export const KeySuggestionsByParent = (monaco: any) => {
             sortText: '1multipart',
         },
     ];
-    const formatResponseValueSuggestion = [
+    const formatAutoValueSuggestion = [
         {
             label: "auto",
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " auto",
-            detail: 'Detect response format automatically',
-            documentation: 'Default response format. Uses the response Content-Type when present, otherwise the request format, then body sniffing.\nExample:\nformat:\n  request: json\n  response: auto',
+            detail: 'Detect format automatically',
+            documentation: 'Default format. Request auto uses Content-Type, else json. Response auto uses response Content-Type, else request format, then body sniffing.',
             sortText: '0auto',
         },
+    ];
+    const formatRequestValueSuggestion = [
+        ...formatAutoValueSuggestion,
+        ...formatValueSuggestion,
+    ];
+    const formatResponseValueSuggestion = [
+        ...formatAutoValueSuggestion,
         ...formatValueSuggestion,
     ];
     const formatSuggestion = [
+        ...formatAutoValueSuggestion,
         ...formatValueSuggestion,
         {
             label: "request/response",
             kind: monaco.languages.CompletionItemKind.Snippet,
             // Monaco snippet placeholders intentionally use ${n:default} in a normal string.
             // eslint-disable-next-line no-template-curly-in-string
-            insertText: "\n\trequest: ${1:json}\n\tresponse: ${2:auto}",
+            insertText: "\n\trequest: ${1:auto}\n\tresponse: ${2:auto}",
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Split request and response formats',
             documentation: 'Use different formats for request body vs response body.\nExample:\nformat:\n  request: json\n  response: auto\n\nResponse also accepts none, json, xml, xmle, text, html, urlencoded, binary, or multipart.',
@@ -2089,7 +2097,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         auth: authSuggestions,
         'auth-type': authTypeSuggestions,
         format: formatSuggestion,
-        'format-value': formatValueSuggestion,
+        'format-value': formatRequestValueSuggestion,
         'format-response-value': formatResponseValueSuggestion,
         'format-keys': formatKeySuggestions,
         graphql: graphqlSuggestions,

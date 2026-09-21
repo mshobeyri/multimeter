@@ -1,7 +1,8 @@
 import React, { useState, useContext, useEffect, useMemo } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
-import { Format, JSONRecord, Method, Protocol, ResponseFormat, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
@@ -163,6 +164,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     : methodOrProtocolValue.slice("method:".length);
   const currentRequestFormat = requestFormat(requestData?.format ?? api.format);
   const currentResponseFormat = responseFormat(requestData?.format ?? api.format);
+  const resolvedRequestFormat = resolveRequestFormat(
+    currentRequestFormat,
+    requestData?.headers,
+  );
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
     if (saved === "raw" || saved === "pretty" || saved === "preview") {
@@ -174,6 +179,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     currentResponseFormat,
     responseData,
     currentRequestFormat,
+    requestData?.headers,
   );
   const previewAvailable = responseTypeSupportsPreview(currentResponseFormat, resolvedResponseType);
   const responseView = responseViewMode === "preview" && !previewAvailable
@@ -184,7 +190,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     localStorage.setItem("apitest-response-view-mode", view);
   };
   const requestBodyDisabled = !isGraphQL && !isGrpc && effectiveProtocol !== "ws" &&
-    (!httpMethodAllowsRequestBody(methodOrProtocolKey) || currentRequestFormat === "none");
+    (!httpMethodAllowsRequestBody(methodOrProtocolKey) || resolvedRequestFormat === "none");
   const [themeTick, setThemeTick] = useState(0);
   useEffect(() => {
     const onTheme = () => setThemeTick((n) => n + 1);
@@ -289,8 +295,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
-  const setBodyFormat = (side: "request" | "response", format: Format | ResponseFormat) => {
-    const request = side === "request" ? format as Format : currentRequestFormat;
+  const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
+    const request = side === "request" ? format as RequestFormat : currentRequestFormat;
     const response = side === "response" ? format as ResponseFormat : currentResponseFormat;
     updateField("format", packFormatSpec({ request, response }) ?? format);
   };
@@ -485,10 +491,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             className={`apitest-body-wrapper${requestBodyDisabled ? " is-disabled" : ""}`}
             data-mmt-coach="body"
             title={requestBodyDisabled
-              ? (currentRequestFormat === "none" ? "No request body" : "GET requests have no request body")
+              ? (resolvedRequestFormat === "none" ? "No request body" : "GET requests have no request body")
               : undefined}
           >
-              {currentRequestFormat === "binary" ? (
+              {resolvedRequestFormat === "binary" ? (
                 <FilePickerInput
                   value={typeof requestData?.body === "string" ? requestData.body : ""}
                   basePath={mmtFilePath}
@@ -498,7 +504,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   onEnterPressed={val => updateField("body", val)}
                   disabled={requestBodyDisabled}
                 />
-              ) : currentRequestFormat === "multipart" ? (
+              ) : resolvedRequestFormat === "multipart" ? (
                 <MultipartPartsEditor
                   value={requestData?.body}
                   onChange={parts => updateField("body", parts)}
@@ -508,9 +514,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 <BodyView
                   value={typeof requestData?.body === "string"
                     ? requestData?.body
-                    : formatBody(currentRequestFormat, requestData?.body || {})
+                    : formatBody(resolvedRequestFormat, requestData?.body || {})
                   }
-                  format={currentRequestFormat}
+                  format={resolvedRequestFormat}
                   mode="live"
                   disabled={requestBodyDisabled}
                   onChange={requestBodyDisabled ? undefined : val => updateField("body", val)}
@@ -692,6 +698,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   type: currentResponseFormat,
                   view: "preview",
                   requestFormat: currentRequestFormat,
+                  requestHeaders: requestData?.headers,
                 })}
                 baseUrl={requestData?.url}
               />
@@ -701,6 +708,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   type: currentResponseFormat,
                   view: responseView,
                   requestFormat: currentRequestFormat,
+                  requestHeaders: requestData?.headers,
                 })}
                 format={resolvedResponseType}
                 mode="live"

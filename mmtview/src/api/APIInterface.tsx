@@ -1,7 +1,8 @@
 import React, { useCallback, useRef, useEffect, useState, useContext } from "react";
 import KSVEditor from "../components/KSVEditor";
 import UrlInput from "../components/UrlInput";
-import { Protocol, Method, Format, FormatSpec, FORMAT_VALUES, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
+import { Protocol, Method, Format, FormatSpec, REQUEST_FORMAT_VALUES, RESPONSE_FORMAT_VALUES, RequestFormat, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
@@ -19,7 +20,6 @@ interface InterfaceEditorProps {
 }
 
 const protocolOptions: Protocol[] = ["http", "ws", "graphql", "grpc"];
-const formatOptions: Format[] = FORMAT_VALUES;
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;
@@ -57,8 +57,15 @@ function getFormatLabel(format: Format): string {
   return format;
 }
 
-function setFormats(nextRequest: Format, nextResponse: ResponseFormat): FormatSpec {
+function setFormats(nextRequest: RequestFormat, nextResponse: ResponseFormat): FormatSpec {
   return packFormatSpec({ request: nextRequest, response: nextResponse }) || nextRequest;
+}
+
+function getRequestFormatLabel(format: RequestFormat): string {
+  if (format === "auto") {
+    return "auto — detect from Content-Type, else json";
+  }
+  return getFormatLabel(format);
 }
 
 function getResponseFormatLabel(format: ResponseFormat): string {
@@ -75,20 +82,21 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
 
   const reqFormat = requestFormat(data.format);
   const resFormat = responseFormat(data.format);
+  const resolvedReqFormat = resolveRequestFormat(reqFormat, data.headers);
 
   // State for formatted body
   const [formattedBody, setFormattedBody] = useState<string>(
-    formatBody(reqFormat, data.body || "")
+    formatBody(resolvedReqFormat, data.body || "")
   );
 
   // Update formattedBody when body or format changes
   useEffect(() => {
     if (data.body) {
-      setFormattedBody(formatBody(reqFormat, data.body || ""));
+      setFormattedBody(formatBody(resolvedReqFormat, data.body || ""));
     } else {
       setFormattedBody("");
     }
-  }, [data.body, reqFormat]);
+  }, [data.body, resolvedReqFormat]);
 
   /** Structured YAML body (object) vs plain text string in the file. */
   const bodyYamlEncoded =
@@ -103,9 +111,9 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
     const asText =
       typeof data.body === "string"
         ? data.body
-        : formatBody(reqFormat, data.body ?? "");
+        : formatBody(resolvedReqFormat, data.body ?? "");
     if (enabled) {
-      const packed = formattedBodyToYamlObject(reqFormat, asText);
+      const packed = formattedBodyToYamlObject(resolvedReqFormat, asText);
       if (packed === null || packed === undefined) {
         return;
       }
@@ -113,12 +121,12 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       return;
     }
     onChange({ ...data, body: asText });
-  }, [bodyYamlEncoded, data, onChange, reqFormat]);
+  }, [bodyYamlEncoded, data, onChange, resolvedReqFormat]);
 
   const applyBodyEdit = useCallback((val: string) => {
     setFormattedBody(val);
     if (bodyYamlEncoded) {
-      const packed = formattedBodyToYamlObject(reqFormat, val);
+      const packed = formattedBodyToYamlObject(resolvedReqFormat, val);
       if (packed === null || packed === undefined) {
         return;
       }
@@ -126,7 +134,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       return;
     }
     onChange({ ...data, body: val });
-  }, [bodyYamlEncoded, data, onChange, reqFormat]);
+  }, [bodyYamlEncoded, data, onChange, resolvedReqFormat]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
@@ -198,12 +206,12 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
               value={reqFormat}
               onChange={e => onChange({
                 ...data,
-                format: setFormats(e.target.value as Format, resFormat),
+                format: setFormats(e.target.value as RequestFormat, resFormat),
               })}
             >
               <option key="" value="" disabled>Select format...</option>
-              {safeList(formatOptions).map(opt => (
-                <option key={opt} value={opt}>{getFormatLabel(opt)}</option>
+              {safeList(REQUEST_FORMAT_VALUES).map(opt => (
+                <option key={opt} value={opt}>{getRequestFormatLabel(opt)}</option>
               ))}
             </select>
           </div>
@@ -570,11 +578,11 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       ) : null}
 
       {/* Hide body in edit when method is GET (tester disables it instead). */}
-      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && reqFormat !== "none" && (effectiveProtocol === "ws" || !data.method || httpMethodAllowsRequestBody(data.method)) && (
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && resolvedReqFormat !== "none" && (effectiveProtocol === "ws" || !data.method || httpMethodAllowsRequestBody(data.method)) && (
         <>
           <div className="label api-body-label">
             <span>Body</span>
-            {reqFormat !== "binary" && reqFormat !== "multipart" && (
+            {resolvedReqFormat !== "binary" && resolvedReqFormat !== "multipart" && (
               <label
                 className="api-body-yaml-encoded"
                 title="Store body as structured YAML instead of a text block"
@@ -589,7 +597,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             )}
           </div>
           <div className="field-pad is-relative">
-            {reqFormat === "binary" ? (
+            {resolvedReqFormat === "binary" ? (
               <FilePickerInput
                 value={typeof data.body === "string" ? data.body : ""}
                 basePath={mmtFilePath}
@@ -598,7 +606,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 onChange={path => onChange({ ...data, body: path })}
                 onEnterPressed={path => onChange({ ...data, body: path })}
               />
-            ) : reqFormat === "multipart" ? (
+            ) : resolvedReqFormat === "multipart" ? (
               <MultipartPartsEditor
                 value={data.body}
                 onChange={parts => onChange({ ...data, body: parts })}
@@ -606,7 +614,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             ) : (
               <BodyView
                 value={formattedBody === null ? "" : formattedBody}
-                format={reqFormat}
+                format={resolvedReqFormat}
                 mode="appliable"
                 onChange={applyBodyEdit}
               />

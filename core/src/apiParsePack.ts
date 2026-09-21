@@ -6,6 +6,7 @@ import {
   FormatSpec,
   GrpcStream,
   packFormatSpec,
+  RequestFormat,
   ResponseFormat,
 } from './CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
@@ -22,33 +23,36 @@ const VALID_API_ROOT_KEYS = new Set([
 const VALID_GRPC_STREAM_VALUES = new Set<string>(['server', 'client', 'bidi']);
 
 const VALID_FORMAT_VALUES = new Set<string>(FORMAT_VALUES);
+const VALID_REQUEST_FORMAT_VALUES = new Set<string>([...FORMAT_VALUES, 'auto']);
 const VALID_RESPONSE_FORMAT_VALUES = new Set<string>([...FORMAT_VALUES, 'auto']);
 
-function parseFormatSpec(raw: any): FormatSpec {
+function parseFormatSpec(raw: any): FormatSpec | undefined {
   if (raw == null) {
-    return 'json';
+    return undefined;
   }
   if (typeof raw === 'string') {
     if (raw === 'auto') {
-      return {request: 'json', response: 'auto'};
+      return {request: 'auto', response: 'auto'};
     }
     return VALID_FORMAT_VALUES.has(raw) ? raw as Format : 'json';
   }
   if (typeof raw === 'object' && !Array.isArray(raw)) {
-    const request = VALID_FORMAT_VALUES.has(raw.request) ? raw.request as Format : undefined;
+    const request = VALID_REQUEST_FORMAT_VALUES.has(raw.request) ?
+        raw.request as RequestFormat :
+        undefined;
     const responseRaw = raw.response ?? raw.respond;
     const response = VALID_RESPONSE_FORMAT_VALUES.has(responseRaw) ?
         responseRaw as ResponseFormat :
         undefined;
     if (!request && !response) {
-      return 'json';
+      return undefined;
     }
     return packFormatSpec({
-      request: request ?? 'json',
+      request: request ?? 'auto',
       response: response ?? 'auto',
-    }) || 'json';
+    });
   }
-  return 'json';
+  return undefined;
 }
 
 function parseGraphQLConfig(raw: any): GraphQLConfig | undefined {

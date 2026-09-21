@@ -11,6 +11,7 @@ import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import { requestFormat } from "mmt-core/CommonData";
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { packBodyForYamlCompare } from "mmt-core/markupConvertor";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
@@ -95,7 +96,11 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
     if (field !== "body") {
       return raw;
     }
-    return packBodyForYamlCompare(api.body, raw, requestFormat(api.format));
+    return packBodyForYamlCompare(
+      api.body,
+      raw,
+      resolveRequestFormat(requestFormat(api.format), testRequestData?.headers as Record<string, string> | undefined),
+    );
   }, [api.body, api.format, testRequestData]);
 
   const modifiedApi = useMemo<APIData>(() => {

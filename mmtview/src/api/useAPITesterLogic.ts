@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { APIData } from "mmt-core/APIData";
 import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
 import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
@@ -29,7 +30,10 @@ import { resolveApiRequest } from "mmt-core/resolveApiRequest";
 
 /** Always prefer the right-panel API Tester request over file YAML. */
 function packUiRequestBody(api: APIData, requestData: Request): unknown {
-  const format = requestFormat(requestData.format ?? api.format);
+  const format = resolveRequestFormat(
+    requestFormat(requestData.format ?? api.format),
+    requestData.headers,
+  );
   const body = requestData.body;
   if (format !== "multipart") {
     return body;
@@ -337,9 +341,12 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     const bodyText = pos.text ?? "";
 
     const declared = responseFormat(requestData?.format ?? apiRef.current.format);
-    const reqFmt = requestFormat(requestData?.format ?? apiRef.current.format);
+    const reqFmt = resolveRequestFormat(
+      requestFormat(requestData?.format ?? apiRef.current.format),
+      requestData?.headers,
+    );
     const resolved = declared === "auto"
-      ? resolveResponseViewType("auto", responseData, reqFmt)
+      ? resolveResponseViewType("auto", responseData, reqFmt, requestData?.headers)
       : declared;
     const contentType: "json" | "xml" =
       resolved.includes("xml") || bodyText.trim().startsWith("<")
@@ -369,7 +376,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
 
     existing[key] = expr;
     onUpdateApi?.({ outputs: existing });
-  }, [onUpdateApi, requestData?.format, responseData]);
+  }, [onUpdateApi, requestData?.format, requestData?.headers, responseData]);
 
   // HTTP/GraphQL/gRPC Send / Run in Core from the right panel: always send the
   // UI request as rawFile. Glyphs omit rawFile and use the editor file only.
