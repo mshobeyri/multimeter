@@ -5,7 +5,7 @@ import { StepStatus } from './types';
 import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
 import ReportStatusFilterButton from './ReportStatusFilterButton';
-import ReportExpandCollapseButton from './ReportExpandCollapseButton';
+import ReportCollapseButton from './ReportCollapseButton';
 import ReportEmptyFilterPlaceholder from './ReportEmptyFilterPlaceholder';
 import { ReportStatusFilter, filterStepReports } from './reportStatusFilter';
 import TreeChevron from '../components/TreeChevron';
@@ -285,37 +285,9 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     [stepReports, statusFilter]
   );
 
-  const detailKeys = useMemo(() => {
-    return visibleReports
-      .map((report, reportIdx) => {
-        const reportKey = `${report.stepType}-${report.stepIndex}-${reportIdx}`;
-        const callDetails = parseCallDetails(report.details);
-        const hasDetails = Boolean(
-          report.expects.length > 0 ||
-          callDetails ||
-          (report.details && report.details.trim().length > 0)
-        );
-        return hasDetails ? reportKey : null;
-      })
-      .filter((key): key is string => Boolean(key));
-  }, [visibleReports]);
-
-  const expandAllDetails = useCallback(() => {
-    setExpandedDetails((prev) => {
-      const next = { ...prev };
-      for (const key of detailKeys) {
-        next[key] = true;
-      }
-      return next;
-    });
-  }, [detailKeys]);
-
   const collapseAllDetails = useCallback(() => {
     setExpandedDetails({});
   }, []);
-
-  const hasExpandableDetails = detailKeys.length > 0;
-  const allDetailsCollapsed = hasExpandableDetails && detailKeys.every((key) => !expandedDetails[key]);
 
   const unescapeCommon = useCallback((s: string): string => {
     if (!s) {
@@ -337,11 +309,10 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
         onChange={setStatusFilter}
         disabled={stepReports.length === 0}
       />
-      <ReportExpandCollapseButton
-        allCollapsed={allDetailsCollapsed}
-        onExpandAll={expandAllDetails}
+      <ReportCollapseButton
         onCollapseAll={collapseAllDetails}
-        disabled={detailKeys.length === 0}
+        disabled={stepReports.length === 0}
+        title="Collapse all step details"
       />
     </div>
   ) : null;

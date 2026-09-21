@@ -460,20 +460,9 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     };
 
                     const expandable = isExpandable(itemParsed.type);
-                    const folderAndEditor = expandable && !!item.isFolder;
                     const itemKey = String(item.index);
-                    const isOpen = folderAndEditor
-                        ? expandedItems.includes(itemKey)
-                        : !!openEditors[itemKey];
+                    const isOpen = !!openEditors[itemKey];
                     const toggleOpen = () => {
-                        if (folderAndEditor) {
-                            setExpandedItems(prev => (
-                                prev.includes(itemKey)
-                                    ? prev.filter(id => id !== itemKey)
-                                    : [...prev, itemKey]
-                            ));
-                            return;
-                        }
                         setOpenEditors(prev => ({ ...prev, [itemKey]: !prev[itemKey] }));
                     };
                     const isFlowRoot = itemParsed.type === 'flow' || itemParsed.type === 'root';
@@ -499,11 +488,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                             onDragStart={(e) => {
                                 // Close active state when starting a drag for this item
                                 const key = String(item.index);
-                                if (folderAndEditor) {
-                                    setExpandedItems(prev => prev.filter(id => id !== key));
-                                } else {
-                                    setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
-                                }
+                                setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
                                 setTransparentDragImage(e.dataTransfer);
                             }}
                             onDragEnd={() => {
@@ -520,7 +505,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                 {expandable && (
                                     <TreeExpandButton open={isOpen} onToggle={toggleOpen} />
                                 )}
-                                {!folderAndEditor && arrow}
+                                {arrow}
                                 <NoTreeInterference>
                                     <div className="field-grow">
                                         <TestFlowBox

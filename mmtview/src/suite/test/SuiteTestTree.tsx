@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useState } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
@@ -16,7 +16,6 @@ import { TreeFolderArrow } from '../../components/TreeChevron';
 const EMPTY_STEP_REPORTS: StepReportItem[] = [];
 
 export type SuiteTestTreeHandle = {
-  expandAll: () => void;
   collapseAll: () => void;
 };
 
@@ -78,7 +77,6 @@ interface SuiteTestTreeProps {
   /** Bundle ids of mock servers listed twice in the same suite file. */
   duplicateServerIds?: Set<string>;
   onStatusFilterChange?: (next: ReportStatusFilter) => void;
-  onAllCollapsedChange?: (allCollapsed: boolean) => void;
 
   onRunTargets: (target: string) => void | Promise<void>;
   /** Logs-only core run (no UI panel updates). */
@@ -195,92 +193,17 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   statusFilter = 'all',
   duplicateServerIds,
   onStatusFilterChange,
-  onAllCollapsedChange,
   onRunTargets,
   onRunTargetsInCore,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
-  const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root', ...base.groupIds]);
-
-  const expandAll = useCallback(() => {
-    setExpandedItems(collectSuiteExpandableIds(groups, hierarchyByEntryId));
-  }, [groups, hierarchyByEntryId]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
 
   const collapseAll = useCallback(() => {
     setExpandedItems(['suite-root']);
   }, []);
 
-  useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
-
-  const expandableIds = useMemo(
-    () => collectSuiteExpandableIds(groups, hierarchyByEntryId),
-    [groups, hierarchyByEntryId]
-  );
-
-  const allCollapsed = useMemo(() => {
-    const targets = expandableIds.filter((id) => id !== 'suite-root' && !/^group-\d+$/.test(id));
-    if (targets.length === 0) {
-      return false;
-    }
-    return targets.every((id) => !expandedItems.includes(id));
-  }, [expandableIds, expandedItems]);
-
-  useLayoutEffect(() => {
-    onAllCollapsedChange?.(allCollapsed);
-  }, [allCollapsed, onAllCollapsedChange]);
-
-  // Expand base group nodes by default — one-time on mount.
-  useEffect(() => {
-    setExpandedItems((prev) => {
-      const next = new Set(prev);
-      base.groupIds.forEach((id) => next.add(id));
-      return Array.from(next);
-    });
-  }, [base.groupIds]);
-
-  // Auto-expand imported suite entries and their nested group/suite nodes
-  // when a hierarchy is attached for an entry path.
-  useEffect(() => {
-    const idsToAdd = new Set<string>();
-    for (const group of groups) {
-      for (const entry of group.entries) {
-        const root = (hierarchyByEntryId as any)?.[entry.id];
-        if (!root || typeof root !== 'object' || root.kind !== 'suite') {
-          continue;
-        }
-        // ensure the entry itself is expanded so imported children are visible
-        idsToAdd.add(entry.id);
-
-        // recursively collect UI ids (parent::child) for suite/group nodes
-        // so auto-expand works with UI-scoped ids rather than core bundle ids.
-        const collect = (parentId: string, nodes: any[]) => {
-          for (let idx = 0; idx < (nodes || []).length; idx++) {
-            const n = nodes[idx];
-            if (!n || typeof n !== 'object') {
-              continue;
-            }
-            const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
-            const uiId = `${parentId}::${baseId}`;
-            if (n.kind === 'group' || n.kind === 'suite') {
-              idsToAdd.add(uiId);
-              const kids = n.kind === 'suite' ? suiteTreeChildren(n) : (n.children || []);
-              if (Array.isArray(kids) && kids.length) {
-                collect(uiId, kids);
-              }
-            }
-          }
-        };
-        collect(entry.id, suiteTreeChildren(root));
-      }
-    }
-    if (idsToAdd.size) {
-      setExpandedItems((prev) => {
-        const next = new Set(prev);
-        idsToAdd.forEach((id) => next.add(id));
-        return Array.from(next);
-      });
-    }
-  }, [hierarchyByEntryId, groups]);
+  useImperativeHandle(ref, () => ({ collapseAll }), [collapseAll]);
 
   const treeData = useMemo(() => {
     const items: Record<string, TreeItem<SuiteTestTreeItemData>> = { ...base.items };
