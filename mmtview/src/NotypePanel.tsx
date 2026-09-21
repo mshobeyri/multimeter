@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import parseYaml from "mmt-core/markupConvertor";
 import { typeOptions } from "mmt-core/CommonData";
+import { isMmtFileType } from "mmt-core/mmtFileType";
 import {
   mmtFileTypeColor,
   mmtFileTypeIcon,
@@ -10,6 +10,7 @@ import MultimeterLogo from "./components/MultimeterLogo";
 import {
   notypeHelpLinks,
   notypeSamples,
+  notypeStarterContent,
   type NotypeSampleType,
 } from "./notypeSamples";
 import { maxItemsPerRow, packTypeRows } from "./notypeTypeRows";
@@ -40,21 +41,10 @@ const NOTYPE_CTAS = [
 
 const NotypePanel: React.FC<NotypePanelProps> = ({ content, setContent }) => {
   const handleTypeChange = (type: string) => {
-    if (!type) {
+    if (!isMmtFileType(type)) {
       return;
     }
-    let parsed: any = {};
-    try {
-      parsed = parseYaml(content) || {};
-    } catch { }
-    parsed.type = type;
-    const yamlStr =
-      `type: ${type}\n` +
-      Object.entries(parsed)
-        .filter(([k]) => k !== "type")
-        .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
-        .join("\n");
-    setContent(yamlStr);
+    setContent(notypeStarterContent(type));
   };
 
   return (

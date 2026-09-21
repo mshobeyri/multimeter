@@ -52,14 +52,19 @@ export const notypeHelpLinks: Record<NotypeSampleType, { docsUrl: string; demoUr
   },
 };
 
+/** First gallery sample per type — used when picking a type from the icon row. */
+export function notypeStarterContent(type: NotypeSampleType): string {
+  const sample = notypeSamples.find(entry => entry.type === type);
+  return sample?.content ?? `type: ${type}\n`;
+}
+
 export const notypeSamples: NotypeSample[] = [
   {
     type: "api",
     title: "HTTP GET request",
     description: "Call an endpoint.",
     content: `type: api
-title: Simple GET request
-url: https://test.mmt.dev  # change to your API URL
+url: https://test.mmt.dev
 method: get
 `,
   },
@@ -68,7 +73,6 @@ method: get
     title: "HTTP POST JSON request",
     description: "Send a JSON payload to server.",
     content: `type: api
-title: POST JSON body
 url: https://test.mmt.dev/echo
 method: post
 format: json
@@ -82,7 +86,7 @@ body:
     description: "Store shared values.",
     content: `type: env
 variables:
-  base_url: https://test.mmt.dev  # your API base URL
+  base_url: https://test.mmt.dev
   api_key: your-api-key-here
 `,
   },
@@ -91,10 +95,8 @@ variables:
     title: "HTTP status check test",
     description: "Send a request and assert the status code.",
     content: `type: test
-title: HTTP status check
 steps:
   - http: https://test.mmt.dev
-    title: Check status
     expect:
       status: 200
 `,
@@ -104,10 +106,8 @@ steps:
     title: "HTTP POST and verify",
     description: "Send a POST request and check echoed fields.",
     content: `type: test
-title: POST and verify body
 steps:
   - http: https://test.mmt.dev/echo
-    title: Post echo
     method: post
     body:
       message: hello
@@ -121,9 +121,8 @@ steps:
     title: "Basic suite",
     description: "Run multiple test files together.",
     content: `type: suite
-title: My test suite
 items:
-  - path/to/first_test.mmt  # add your test files here
+  - path/to/first_test.mmt
   - path/to/second_test.mmt
 `,
   },
@@ -132,10 +131,9 @@ items:
     title: "Load test",
     description: "Run a test file with multiple workers.",
     content: `type: loadtest
-title: Basic load test
 threads: 5
 repeat: 30s
-test: ./my_test.mmt  # path to your test file
+test: ./my_test.mmt
 `,
   },
   {
@@ -143,9 +141,8 @@ test: ./my_test.mmt  # path to your test file
     title: "API documentation",
     description: "Generate docs from API files in the project.",
     content: `type: doc
-title: API Documentation
 sources:
-  - api # Pass the folder contains your api .mmt files
+  - api
 `,
   },
   {
@@ -153,7 +150,6 @@ sources:
     title: "Mock Server",
     description: "Serve canned responses for local development.",
     content: `type: server
-title: Server
 port: 9099
 cors: true
 endpoints:
@@ -170,7 +166,6 @@ endpoints:
     title: "AI Judge (Ollama)",
     description: "Local LLM judge for non-deterministic responses.",
     content: `type: judge
-title: Local quality judge
 engine: ollama
 model: qwen2.5-coder:7b
 url: http://127.0.0.1:11434
