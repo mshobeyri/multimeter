@@ -130,6 +130,21 @@ describe('responseBodyDisplay', () => {
     expect(shown).toContain('<p>hi</p>');
   });
 
+  it('pretty-prints malformed HTML responses without throwing', () => {
+    const raw = '<!doctype html><html><head><meta charset=UTF-8></head><body><div>ok</div></body></html>';
+    expect(() => displayResponseBody(
+      { body: raw, headers: { 'Content-Type': 'text/html' } } as any,
+      { type: 'auto', view: 'pretty', requestFormat: 'json' },
+    )).not.toThrow();
+    const shown = displayResponseBody(
+      { body: raw, headers: { 'Content-Type': 'text/html' } } as any,
+      { type: 'auto', view: 'pretty', requestFormat: 'json' },
+    );
+    expect(shown).toContain('\n');
+    expect(shown).toContain('<div>');
+    expect(shown).toContain('ok');
+  });
+
   it('shows preview for html or previewable binary images', () => {
     const payload = encodeBinaryBody(Uint8Array.from([0x89, 0x50, 0x4E, 0x47]), 'image/png');
     expect(responseTypeSupportsPreview('html', 'html')).toBe(true);
