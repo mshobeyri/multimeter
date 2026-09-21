@@ -183,6 +183,164 @@ export function collectSuiteExpandableIds(
   return Array.from(ids);
 }
 
+/** Build the full react-complex-tree item map once per groups/hierarchy change. */
+export function buildSuiteTestTreeItems(
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+  baseItems: Record<string, TreeItem<SuiteTestTreeItemData>>,
+): Record<string, TreeItem<SuiteTestTreeItemData>> {
+  const items: Record<string, TreeItem<SuiteTestTreeItemData>> = { ...baseItems };
+
+  // Resolve each top-level suite entry to either a suite or a test.
+  for (let gi = 0; gi < groups.length; gi++) {
+    const group = groups[gi];
+    for (let ei = 0; ei < group.entries.length; ei++) {
+      const entry = group.entries[ei];
+      const entryItem = items[entry.id];
+      if (!entryItem) {
+        continue;
+      }
+      const hierarchy = hierarchyByEntryId[entry.id] as any;
+      const isSuite = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'suite';
+      const entryId = entry.id;
+
+      if (!isSuite) {
+        const isServer = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'server';
+        items[entry.id] = {
+          ...entryItem,
+          isFolder: !isServer,
+          children: [],
+          data: {
+            type: isServer ? 'server' : 'test',
+            path: entry.path,
+            id: entryId,
+            title: (hierarchy as any)?.title,
+            parentPath: '',
+          },
+        };
+        continue;
+      }
+
+      items[entry.id] = {
+        ...entryItem,
+        isFolder: true,
+        children: [],
+        data: { type: 'suite', path: entry.path, id: entryId, title: (hierarchy as any)?.title, parentPath: '' },
+      };
+    }
+  }
+
+  const pushHierarchy = (
+    ownerPath: string,
+    parent: string,
+    nodes: SuiteTreeNode[],
+    outChildren: string[],
+  ) => {
+    for (let idx = 0; idx < (nodes || []).length; idx++) {
+      const n = (nodes as any)[idx];
+      if (!n) {
+        continue;
+      }
+
+      const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
+      const uiId = `${parent}::${baseId}`;
+
+      if (n.kind === 'group') {
+        if (Array.isArray(nodes) && nodes.length === 1) {
+          pushHierarchy(ownerPath, parent, n.children, outChildren);
+          continue;
+        }
+
+        const gid = uiId;
+        const childIds2: string[] = [];
+        items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label, id: baseId } };
+        pushHierarchy(ownerPath, gid, n.children, childIds2);
+        outChildren.push(gid);
+        continue;
+      }
+
+      if (n.kind === 'test' || n.kind === 'server') {
+        const path = n.path;
+        const itemId = uiId;
+        items[itemId] = {
+          index: itemId,
+          isFolder: n.kind === 'test',
+          children: [],
+          data: {
+            type: n.kind === 'server' ? 'server' : 'test',
+            path,
+            id: baseId,
+            title: (n as any).title,
+            parentPath: ownerPath,
+          },
+        };
+        outChildren.push(itemId);
+        continue;
+      }
+
+      if (n.kind === 'suite') {
+        const path = n.path;
+        const itemId = uiId;
+        const childIdsForSuite: string[] = [];
+        items[itemId] = {
+          index: itemId,
+          isFolder: true,
+          children: childIdsForSuite,
+          data: { type: 'suite', path, id: baseId, title: (n as any).title, parentPath: ownerPath },
+        };
+        pushHierarchy(path, itemId, suiteTreeChildren(n), childIdsForSuite);
+        outChildren.push(itemId);
+        continue;
+      }
+
+      if (n.kind === 'missing') {
+        const path = n.path;
+        const itemId = uiId;
+        items[itemId] = {
+          index: itemId,
+          isFolder: false,
+          children: [],
+          data: { type: 'test', path, id: baseId, parentPath: ownerPath },
+        };
+        outChildren.push(itemId);
+        continue;
+      }
+
+      if (n.kind === 'cycle') {
+        continue;
+      }
+    }
+  };
+
+  groups.forEach((group) => {
+    group.entries.forEach((entry) => {
+      const item = items[entry.id];
+      if (!item) {
+        return;
+      }
+
+      const hierarchy = hierarchyByEntryId[entry.id];
+      const root = hierarchy as any;
+      if (!root || typeof root !== 'object' || root.kind !== 'suite') {
+        return;
+      }
+
+      const hierarchyChildren: string[] = [];
+      pushHierarchy(entry.path, entry.id, suiteTreeChildren(root), hierarchyChildren);
+
+      if (hierarchyChildren.length) {
+        items[entry.id] = {
+          ...items[entry.id],
+          children: [...(items[entry.id].children || []), ...hierarchyChildren],
+          isFolder: true,
+        };
+      }
+    });
+  });
+
+  return items;
+}
+
 const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(function SuiteTestTree({
   groups,
   hierarchyByEntryId,
@@ -205,146 +363,10 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
 
   useImperativeHandle(ref, () => ({ collapseAll }), [collapseAll]);
 
-  const treeData = useMemo(() => {
-    const items: Record<string, TreeItem<SuiteTestTreeItemData>> = { ...base.items };
-
-    // Resolve each top-level suite entry to either a suite or a test.
-    for (let gi = 0; gi < groups.length; gi++) {
-      const group = groups[gi];
-      for (let ei = 0; ei < group.entries.length; ei++) {
-        const entry = group.entries[ei];
-        const entryItem = items[entry.id];
-        if (!entryItem) {
-          continue;
-        }
-        const hierarchy = hierarchyByEntryId[entry.id] as any;
-        const isSuite = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'suite';
-        const entryId = entry.id;
-
-        if (!isSuite) {
-          const isServer = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'server';
-          items[entry.id] = {
-            ...entryItem,
-            isFolder: !isServer,
-            children: [],
-            data: {
-              type: isServer ? 'server' : 'test',
-              path: entry.path,
-              id: entryId,
-              title: (hierarchy as any)?.title,
-              parentPath: '',
-            },
-          };
-          continue;
-        }
-
-        // Top-level imported suite entry. Its children should be displayed relative to this suite file.
-        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, id: entryId, title: (hierarchy as any)?.title, parentPath: '' } };
-      }
-    }
-
-    groups.forEach((group) => {
-      group.entries.forEach((entry) => {
-        const item = items[entry.id];
-        if (!item) {
-          return;
-        }
-
-        const hierarchy = hierarchyByEntryId[entry.id];
-        const root = hierarchy as any;
-        if (!root || typeof root !== 'object' || root.kind !== 'suite') {
-          return;
-        }
-
-        const isExpanded = expandedItems.includes(entry.id);
-        if (!isExpanded) {
-          return;
-        }
-
-        const hierarchyChildren: string[] = [];
-
-        const pushHierarchy = (ownerPath: string, parent: string, nodes: SuiteTreeNode[], outChildren: string[]) => {
-          for (let idx = 0; idx < (nodes || []).length; idx++) {
-            const n = (nodes as any)[idx];
-            if (!n) continue;
-
-            const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
-            const uiId = `${parent}::${baseId}`;
-
-            if (n.kind === 'group') {
-              // If the suite's children array contains exactly one group, flatten
-              // that group into the parent UI node so the UI doesn't show an
-              // unnecessary single group level for imported suites.
-              if (Array.isArray(nodes) && nodes.length === 1) {
-                // recurse into the single group's children directly under parent
-                pushHierarchy(ownerPath, parent, n.children, outChildren);
-                continue;
-              }
-
-              const gid = uiId;
-              const childIds2: string[] = [];
-              items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label, id: baseId } };
-              // recurse and populate childIds2
-              pushHierarchy(ownerPath, gid, n.children, childIds2);
-              outChildren.push(gid);
-              continue;
-            }
-
-            if (n.kind === 'test' || n.kind === 'server') {
-              const path = n.path;
-              const itemId = uiId;
-              items[itemId] = {
-                index: itemId,
-                isFolder: n.kind === 'test',
-                children: [],
-                data: {
-                  type: n.kind === 'server' ? 'server' : 'test',
-                  path,
-                  id: baseId,
-                  title: (n as any).title,
-                  parentPath: ownerPath,
-                },
-              };
-              outChildren.push(itemId);
-              continue;
-            }
-
-            if (n.kind === 'suite') {
-              const path = n.path;
-              const itemId = uiId;
-              const childIdsForSuite: string[] = [];
-              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId, title: (n as any).title, parentPath: ownerPath } };
-              pushHierarchy(path, itemId, suiteTreeChildren(n), childIdsForSuite);
-              outChildren.push(itemId);
-              continue;
-            }
-
-            if (n.kind === 'missing') {
-              const path = n.path;
-              const itemId = uiId;
-              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: baseId, parentPath: ownerPath } };
-              outChildren.push(itemId);
-              continue;
-            }
-
-            if (n.kind === 'cycle') {
-              // ignore cycles in UI
-              continue;
-            }
-          }
-        };
-
-        pushHierarchy(entry.path, entry.id, suiteTreeChildren(root), hierarchyChildren);
-
-        // Only show imported children when expanded.
-        if (hierarchyChildren.length) {
-          items[entry.id] = { ...items[entry.id], children: [...(items[entry.id].children || []), ...hierarchyChildren], isFolder: true };
-        }
-      });
-    });
-
-    return { items };
-  }, [base.items, expandedItems, groups, hierarchyByEntryId]);
+  const treeData = useMemo(
+    () => ({ items: buildSuiteTestTreeItems(groups, hierarchyByEntryId, base.items) }),
+    [base.items, groups, hierarchyByEntryId],
+  );
 
   const visibleItems = useMemo(() => {
     if (statusFilter === 'all') {
