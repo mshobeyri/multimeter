@@ -12,10 +12,10 @@ export interface FormatConfig {
   response?: ResponseFormat;
 }
 /**
- * Body format: a single value applies to both request and response,
- * or `{ request, response }` when they differ.
+ * Body format: a scalar pins the request format; response defaults to `auto`
+ * unless `{ request, response }` sets response explicitly.
  */
-/** Scalar request format, shorthand `auto` (response auto), or split `{ request, response }`. */
+/** Scalar request format, shorthand `auto`, or split `{ request, response }`. */
 export type FormatSpec = Format | "auto" | FormatConfig;
 export type Method = "get" | "post" | "put" | "delete" | "patch" | "head" | "options" | "trace";
 export type GrpcStream = "server" | "client" | "bidi";
@@ -77,7 +77,7 @@ export function normalizeFormat(format?: FormatSpec | null | Record<string, unkn
       return { request: "none", response: "auto" };
     }
     const value = isFormatValue(format) ? format : "json";
-    return { request: value, response: value };
+    return { request: value, response: "auto" };
   }
   if (typeof format === "object" && !Array.isArray(format)) {
     const rawRequest = (format as any).request;
@@ -99,7 +99,7 @@ export function responseFormat(format?: FormatSpec | null | Record<string, unkno
   return normalizeFormat(format).response;
 }
 
-/** Compact for YAML: scalar when request === response, else `{ request, response }`. */
+/** Compact for YAML: scalar when response is auto (or both match), else split. */
 export function packFormatSpec(format?: FormatSpec | null): FormatSpec | undefined {
   if (format == null) {
     return undefined;
@@ -107,6 +107,12 @@ export function packFormatSpec(format?: FormatSpec | null): FormatSpec | undefin
   const { request, response } = normalizeFormat(format);
   if (request === "none" && response === "auto") {
     return "none";
+  }
+  if (response === "auto" && request !== "auto") {
+    return request;
+  }
+  if (request === "auto" && response === "auto") {
+    return "auto";
   }
   if (request === "auto" || response === "auto") {
     return { request, response };

@@ -1022,7 +1022,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "format: ",
             detail: 'Data format [none, json, xml, xmle, text, html, urlencoded, binary, multipart] or { request, response }',
-            documentation: 'The format of the request and response data. A single scalar applies to both, except `none` (no request body; response uses auto).\nOptions:\n\t- none, json, xml, xmle, text, html, urlencoded, binary, multipart\nOr split when they differ:\nformat:\n  request: json\n  response: auto\nExample: format: json',
+            documentation: 'Request/response body format. A scalar pins the request; response defaults to auto.\nOptions:\n\t- none, json, xml, xmle, text, html, urlencoded, binary, multipart\nSplit when response should differ:\nformat:\n  request: json\n  response: xml\nExample: format: json',
         },
         {
             label: "url",

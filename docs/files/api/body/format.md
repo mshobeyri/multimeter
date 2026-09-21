@@ -3,17 +3,17 @@
 `format` controls how Multimeter encodes the request body and decodes the response body.
 
 - Values: `none` | `json` | `xml` | `xmle` | `text` | `html` | `urlencoded` | `binary` | `multipart` | `auto`
-- Optional — request and response both default to `auto` when omitted
-- Explicit `format: json` still pins both sides to json
+- Optional — both sides default to `auto` when omitted
+- Explicit `format: json` pins the request to json; response stays `auto`
 - Affects default `Content-Type` and body handling
 
-Use a single value when request and response share a `format:`
+Use a single value to pin the **request** format; response stays `auto` unless you set it explicitly:
 
 ```yaml
 format: json
 ```
 
-Split request and response when they differ:
+Split request and response when the response format should differ from `auto`:
 
 ```yaml
 format:
