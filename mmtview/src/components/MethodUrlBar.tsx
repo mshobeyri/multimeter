@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Method, Protocol } from "mmt-core/CommonData";
 import { buildQueryString, parseQueryString } from "./UrlInput";
 
@@ -45,19 +45,24 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   onUrlChange,
   onQueryChange,
 }) => {
-  const urlRef = useRef<HTMLDivElement>(null);
-  const focusedRef = useRef(false);
   const urlValue = url + buildQueryString(query);
+  const [inputValue, setInputValue] = useState(urlValue);
+  const isUserInput = useRef(false);
 
   useEffect(() => {
-    const el = urlRef.current;
-    if (!el || focusedRef.current) {
-      return;
+    if (!isUserInput.current && urlValue !== inputValue) {
+      setInputValue(urlValue);
     }
-    if ((el.textContent || "") !== urlValue) {
-      el.textContent = urlValue;
-    }
+    isUserInput.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlValue]);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setInputValue(value);
+    isUserInput.current = true;
+    emitUrl(value, onUrlChange, onQueryChange);
+  };
 
   return (
     <div className="method-url-bar">
@@ -81,34 +86,18 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
           ))}
         </select>
       </div>
-      <div
-        ref={urlRef}
+      <input
+        type="text"
         className="method-url-bar-url"
-        contentEditable
-        suppressContentEditableWarning
-        role="textbox"
+        value={inputValue}
+        onChange={handleChange}
         spellCheck={false}
         aria-label="Request URL"
-        onFocus={() => {
-          focusedRef.current = true;
-        }}
-        onBlur={event => {
-          focusedRef.current = false;
-          emitUrl(event.currentTarget.textContent || "", onUrlChange, onQueryChange);
-        }}
-        onInput={event => {
-          emitUrl(event.currentTarget.textContent || "", onUrlChange, onQueryChange);
-        }}
         onKeyDown={event => {
           if (event.key === "Enter") {
             event.preventDefault();
             event.currentTarget.blur();
           }
-        }}
-        onPaste={event => {
-          event.preventDefault();
-          const text = event.clipboardData.getData("text/plain").replace(/[\r\n]+/g, "");
-          document.execCommand("insertText", false, text);
         }}
       />
     </div>

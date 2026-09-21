@@ -68,12 +68,17 @@
   color: transparent;
 }
 
-.method-url-bar-url {
+.method-url-bar input.method-url-bar-url {
   flex: 1;
   min-width: 0;
+  width: auto;
+  max-width: none;
+  height: auto;
+  min-height: 0;
   margin: 0;
   padding: 0 10px;
   border: 0;
+  border-radius: 0;
   outline: none;
   background: transparent;
   box-shadow: none;
@@ -86,6 +91,8 @@
   overflow-y: hidden;
   scrollbar-width: none;
   cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .method-url-bar-url::-webkit-scrollbar {
