@@ -12,7 +12,7 @@ export type ResponseTypeChoice = ResponseFormat;
 export type ResponseViewMode = "raw" | "pretty" | "preview";
 export type ResponsePreviewKind = "html" | "image";
 
-const PRETTY_FORMATS = new Set<Format>(["json", "xml", "xmle", "urlencoded"]);
+const PRETTY_FORMATS = new Set<Format>(["json", "xml", "xmle", "urlencoded", "html"]);
 
 /** Serialize a response/request body for storage without pretty-printing. */
 export function responseBodyToRawString(body: unknown): string {

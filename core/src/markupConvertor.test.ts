@@ -206,12 +206,14 @@ describe('markupConvertor none format', () => {
 });
 
 describe('markupConvertor html format', () => {
-  it('keeps HTML as raw text and uses text/html', () => {
+  it('pretty-prints HTML and uses text/html', () => {
     const html = '<html><body>hello</body></html>';
     expect(formatBody('html', html, false)).toBe(html);
+    expect(formatBody('html', html, true)).toContain('\n');
     expect(formattedBodyToYamlObject('html', html)).toBe(html);
     expect(contentTypeForFormat('html')).toBe('text/html');
-    expect(beautifyWithContentType('text/html', html)).toBe(html);
+    expect(beautifyWithContentType('text/html', html)).toContain('\n');
+    expect(beautify('html', html)).toContain('<body>hello</body>');
   });
 });
 

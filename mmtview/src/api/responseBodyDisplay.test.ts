@@ -111,12 +111,23 @@ describe('responseBodyDisplay', () => {
     } as any, 'json')).toBe('xml');
   });
 
-  it('supports pretty for auto only when the resolved type is structured', () => {
+  it('supports pretty for structured and html types only', () => {
     expect(responseTypeSupportsPretty('auto', 'json')).toBe(true);
     expect(responseTypeSupportsPretty('json', 'json')).toBe(true);
-    expect(responseTypeSupportsPretty('auto', 'html')).toBe(false);
+    expect(responseTypeSupportsPretty('auto', 'html')).toBe(true);
+    expect(responseTypeSupportsPretty('html', 'html')).toBe(true);
     expect(responseTypeSupportsPretty('auto', 'binary')).toBe(false);
     expect(responseTypeSupportsPretty('text', 'text')).toBe(false);
+  });
+
+  it('beautifies HTML on display when view is pretty', () => {
+    const raw = '<html><body><p>hi</p></body></html>';
+    const shown = displayResponseBody(
+      { body: raw, headers: { 'Content-Type': 'text/html' } } as any,
+      { type: 'auto', view: 'pretty', requestFormat: 'json' },
+    );
+    expect(shown).toContain('\n');
+    expect(shown).toContain('<p>hi</p>');
   });
 
   it('shows preview for html or previewable binary images', () => {

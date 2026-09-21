@@ -351,7 +351,13 @@ function formatBody(
       }
       return typeof body === 'string' ? body : String(body ?? '');
     }
-    if (format === 'text' || format === 'html' || format === 'none') {
+    if (format === 'html') {
+      if (typeof body !== 'string') {
+        return JSON.stringify(body, null, pretty ? 2 : 0);
+      }
+      return pretty ? formatXmlBody(body, true, true) : body;
+    }
+    if (format === 'text' || format === 'none') {
       return typeof body === 'string' ?
           body :
           JSON.stringify(body, null, pretty ? 2 : 0);
@@ -458,6 +464,9 @@ function beautify(format: Format, value: string): string {
     if (format === 'urlencoded') {
       return objectToUrlEncoded(parseUrlEncodedBody(value));
     }
+    if (format === 'html') {
+      return formatXmlBody(value, true, true);
+    }
     // Add YAML or other formats as needed
   } catch {
     // If invalid, return as is
@@ -470,7 +479,7 @@ function beautifyWithContentType(contentType: string, value: string): string {
   const trimmedValue = value.trimStart();
   const ct = (contentType || '').toLowerCase();
   if (ct.includes('html')) {
-    return value;
+    return formatXmlBody(value, true, true);
   }
   if (ct.includes('json') || trimmedValue.startsWith('{') ||
       trimmedValue.startsWith('[')) {
