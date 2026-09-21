@@ -167,11 +167,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     requestData?.headers,
     methodOrProtocolValue.startsWith("method:") ? methodOrProtocolKey : undefined,
   );
+  /** YAML object/array in the file — edits round-trip through formattedBodyToYamlObject. */
   const bodyYamlEncoded = api.body != null && typeof api.body !== "string";
-  const canonicalRequestBody = bodyYamlEncoded && !touchedFields.has("body")
-    ? api.body
-    : (requestData?.body ?? api.body ?? "");
-  const requestBodyDisplay = formatBody(resolvedRequestFormat, canonicalRequestBody ?? "");
+  // Preview from the resolved working copy (requestData). Fall back to api.body
+  // while the first resolve is in flight. Touched body still lives in requestData
+  // and is what buildRequestForSend sends via mergeTouched.
+  const requestBodyDisplay = formatBody(
+    resolvedRequestFormat,
+    requestData?.body ?? api.body ?? "",
+  );
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
     if (saved === "raw" || saved === "pretty" || saved === "preview") {

@@ -1,4 +1,5 @@
 import {APIData} from './APIData';
+import {formatBody} from './markupConvertor';
 import {resolveApiRequest} from './resolveApiRequest';
 
 describe('resolveApiRequest', () => {
@@ -51,6 +52,20 @@ describe('resolveApiRequest', () => {
       {name: 'meta', value: 'hello'},
       {name: 'file', file: './payload.bin'},
     ]);
+  });
+
+  it('resolves i: tokens in structured urlencoded bodies for UI preview', () => {
+    const urlencodedApi = {
+      type: 'api',
+      url: 'https://example.com/echo',
+      method: 'post',
+      format: 'urlencoded',
+      inputs: {username: 'demo', role: 'admin'},
+      body: {username: 'i:username', role: 'i:role'},
+    } as APIData;
+    const preview = resolveApiRequest(urlencodedApi, {}, {}, {preserveStructuredBody: true});
+    expect(preview.body).toEqual({username: 'demo', role: 'admin'});
+    expect(formatBody('urlencoded', preview.body, false)).toBe('username=demo&role=admin');
   });
 
   it('can preserve structured bodies for UI format preview', () => {
