@@ -14,8 +14,7 @@ import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
 import BodyFormatBar from "../components/BodyFormatBar";
 import ResponseBodyBar from "../components/ResponseBodyBar";
-import BinaryImagePreview from "../components/BinaryImagePreview";
-import HtmlPreview from "../components/HtmlPreview";
+import ResponseBodyContent from "../components/ResponseBodyContent";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
 import VEditor from "../components/VEditor";
@@ -23,12 +22,7 @@ import { FileContext } from "../fileContext";
 import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
 import {
-  displayResponseBody,
-  resolveResponsePreviewImageUrl,
-  resolveResponsePreviewKind,
-  resolveResponseViewType,
-  responseTypeSupportsPretty,
-  responseTypeSupportsPreview,
+  resolveResponseDisplayState,
   type ResponseViewMode,
 } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
@@ -184,27 +178,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     }
     return autoFormatBody ? "pretty" : "raw";
   });
-  const resolvedResponseType = resolveResponseViewType(
-    currentResponseFormat,
-    responseData,
-    currentRequestFormat,
-    requestData?.headers,
+  const responseDisplay = useMemo(
+    () => resolveResponseDisplayState(responseData, {
+      type: currentResponseFormat,
+      view: responseViewMode,
+      requestFormat: currentRequestFormat,
+      requestHeaders: requestData?.headers,
+    }),
+    [
+      responseData,
+      currentResponseFormat,
+      responseViewMode,
+      currentRequestFormat,
+      requestData?.headers,
+    ],
   );
-  const previewAvailable = responseTypeSupportsPreview(
-    currentResponseFormat,
-    resolvedResponseType,
-    responseData?.body,
-  );
-  const prettyAvailable = responseTypeSupportsPretty(currentResponseFormat, resolvedResponseType);
-  const previewKind = resolveResponsePreviewKind(
-    currentResponseFormat,
-    resolvedResponseType,
-    responseData?.body,
-  );
-  const previewImageUrl = resolveResponsePreviewImageUrl(responseData?.body);
-  const responseView = responseViewMode === "preview" && !previewAvailable
-    ? "raw"
-    : (responseViewMode === "pretty" && !prettyAvailable ? "raw" : responseViewMode);
   const setResponseViewMode = (view: ResponseViewMode) => {
     setResponseViewModeState(view);
     localStorage.setItem("apitest-response-view-mode", view);
@@ -715,39 +703,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           <div className="apitest-body-pane">
             <ResponseBodyBar
               type={currentResponseFormat}
-              view={responseView}
-              prettyAvailable={prettyAvailable}
-              previewAvailable={previewAvailable}
+              view={responseDisplay.effectiveView}
+              prettyAvailable={responseDisplay.prettyAvailable}
+              previewAvailable={responseDisplay.previewAvailable}
               onTypeChange={type => setBodyFormat("response", type)}
               onViewChange={setResponseViewMode}
             />
           <div className="apitest-body-wrapper">
-            {responseView === "preview" && previewKind === "html" ? (
-              <HtmlPreview
-                html={displayResponseBody(responseData, {
-                  type: currentResponseFormat,
-                  view: "preview",
-                  requestFormat: currentRequestFormat,
-                  requestHeaders: requestData?.headers,
-                })}
-                baseUrl={requestData?.url}
-              />
-            ) : responseView === "preview" && previewKind === "image" && previewImageUrl ? (
-              <BinaryImagePreview dataUrl={previewImageUrl} />
-            ) : (
-              <BodyView
-                value={displayResponseBody(responseData, {
-                  type: currentResponseFormat,
-                  view: responseView,
-                  requestFormat: currentRequestFormat,
-                  requestHeaders: requestData?.headers,
-                })}
-                format={resolvedResponseType}
-                mode="live"
-                onInspectPosition={handleAddOutputVariable}
-                refreshKey={responseRevision}
-              />
-            )}
+            <ResponseBodyContent
+              display={responseDisplay}
+              refreshKey={responseRevision}
+              requestUrl={requestData?.url}
+              onInspectPosition={handleAddOutputVariable}
+            />
           </div>
           </div>
         )}

@@ -1,9 +1,9 @@
+import {encodeBinaryBody} from './binaryBody';
 import {
-  encodeBinaryBody,
-} from 'mmt-core/binaryBody';
-import {
+  coerceResponseView,
   detectResponseFormat,
   displayResponseBody,
+  resolveResponseDisplayState,
   resolveResponsePreviewImageUrl,
   resolveResponsePreviewKind,
   resolveResponseViewType,
@@ -14,7 +14,7 @@ import {
 
 describe('responseBodyDisplay', () => {
   it('serializes objects compactly without pretty-print', () => {
-    expect(responseBodyToRawString({ a: 1, b: [2] })).toBe('{"a":1,"b":[2]}');
+    expect(responseBodyToRawString({a: 1, b: [2]})).toBe('{"a":1,"b":[2]}');
     expect(responseBodyToRawString('already')).toBe('already');
     expect(responseBodyToRawString(null)).toBe('');
   });
@@ -27,24 +27,24 @@ describe('responseBodyDisplay', () => {
   it('returns raw body when view is raw', () => {
     const raw = '{"a":1}';
     expect(displayResponseBody(
-      { body: raw, headers: { 'Content-Type': 'application/json' } } as any,
-      { type: 'auto', view: 'raw', requestFormat: 'json' },
+        {body: raw, headers: {'Content-Type': 'application/json'}} as any,
+        {type: 'auto', view: 'raw', requestFormat: 'json'},
     )).toBe(raw);
   });
 
   it('beautifies JSON on display when view is pretty', () => {
     const raw = '{"a":1,"b":2}';
     const shown = displayResponseBody(
-      { body: raw, headers: { 'Content-Type': 'application/json' } } as any,
-      { type: 'auto', view: 'pretty', requestFormat: 'json' },
+        {body: raw, headers: {'Content-Type': 'application/json'}} as any,
+        {type: 'auto', view: 'pretty', requestFormat: 'json'},
     );
     expect(shown).toBe('{\n  "a": 1,\n  "b": 2\n}');
   });
 
   it('beautifies object bodies from compact JSON when view is pretty', () => {
     const shown = displayResponseBody(
-      { body: { hello: 'world' }, headers: { 'content-type': 'application/json' } } as any,
-      { type: 'auto', view: 'pretty', requestFormat: 'json' },
+        {body: {hello: 'world'}, headers: {'content-type': 'application/json'}} as any,
+        {type: 'auto', view: 'pretty', requestFormat: 'json'},
     );
     expect(shown).toContain('\n');
     expect(shown).toContain('"hello": "world"');
@@ -53,15 +53,15 @@ describe('responseBodyDisplay', () => {
   it('returns stored string for preview', () => {
     const html = '<html><body>hi</body></html>';
     expect(displayResponseBody(
-      { body: html, headers: { 'Content-Type': 'text/html' } } as any,
-      { type: 'auto', view: 'preview', requestFormat: 'json' },
+        {body: html, headers: {'Content-Type': 'text/html'}} as any,
+        {type: 'auto', view: 'preview', requestFormat: 'json'},
     )).toBe(html);
   });
 
   it('detects html from content-type and doctype', () => {
     expect(detectResponseFormat({
       body: '<div/>',
-      headers: { 'Content-Type': 'text/html' },
+      headers: {'Content-Type': 'text/html'},
     } as any)).toBe('html');
     expect(detectResponseFormat({
       body: '<!DOCTYPE html><html></html>',
@@ -103,11 +103,11 @@ describe('responseBodyDisplay', () => {
   it('resolves auto to the detected format', () => {
     expect(resolveResponseViewType('auto', {
       body: '{"a":1}',
-      headers: { 'content-type': 'application/json' },
+      headers: {'content-type': 'application/json'},
     } as any, 'html')).toBe('json');
     expect(resolveResponseViewType('xml', {
       body: '{"a":1}',
-      headers: { 'content-type': 'application/json' },
+      headers: {'content-type': 'application/json'},
     } as any, 'json')).toBe('xml');
   });
 
@@ -120,11 +120,17 @@ describe('responseBodyDisplay', () => {
     expect(responseTypeSupportsPretty('text', 'text')).toBe(false);
   });
 
+  it('coerces unavailable views back to raw', () => {
+    expect(coerceResponseView('pretty', false, true)).toBe('raw');
+    expect(coerceResponseView('preview', true, false)).toBe('raw');
+    expect(coerceResponseView('pretty', true, false)).toBe('pretty');
+  });
+
   it('beautifies HTML on display when view is pretty', () => {
     const raw = '<html><body><p>hi</p></body></html>';
     const shown = displayResponseBody(
-      { body: raw, headers: { 'Content-Type': 'text/html' } } as any,
-      { type: 'auto', view: 'pretty', requestFormat: 'json' },
+        {body: raw, headers: {'Content-Type': 'text/html'}} as any,
+        {type: 'auto', view: 'pretty', requestFormat: 'json'},
     );
     expect(shown).toContain('\n');
     expect(shown).toContain('<p>hi</p>');
@@ -133,12 +139,12 @@ describe('responseBodyDisplay', () => {
   it('pretty-prints malformed HTML responses without throwing', () => {
     const raw = '<!doctype html><html><head><meta charset=UTF-8></head><body><div>ok</div></body></html>';
     expect(() => displayResponseBody(
-      { body: raw, headers: { 'Content-Type': 'text/html' } } as any,
-      { type: 'auto', view: 'pretty', requestFormat: 'json' },
+        {body: raw, headers: {'Content-Type': 'text/html'}} as any,
+        {type: 'auto', view: 'pretty', requestFormat: 'json'},
     )).not.toThrow();
     const shown = displayResponseBody(
-      { body: raw, headers: { 'Content-Type': 'text/html' } } as any,
-      { type: 'auto', view: 'pretty', requestFormat: 'json' },
+        {body: raw, headers: {'Content-Type': 'text/html'}} as any,
+        {type: 'auto', view: 'pretty', requestFormat: 'json'},
     );
     expect(shown).toContain('\n');
     expect(shown).toContain('<div>');
@@ -154,5 +160,20 @@ describe('responseBodyDisplay', () => {
     expect(responseTypeSupportsPreview('binary', 'binary', payload)).toBe(true);
     expect(resolveResponsePreviewKind('auto', 'binary', payload)).toBe('image');
     expect(resolveResponsePreviewImageUrl(payload)).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('resolves display state for the response panel', () => {
+    const html = '<html><body>hi</body></html>';
+    const state = resolveResponseDisplayState(
+        {body: html, headers: {'Content-Type': 'text/html'}} as any,
+        {type: 'auto', view: 'pretty', requestFormat: 'json'},
+    );
+    expect(state.resolvedType).toBe('html');
+    expect(state.prettyAvailable).toBe(true);
+    expect(state.previewAvailable).toBe(true);
+    expect(state.previewKind).toBe('html');
+    expect(state.effectiveView).toBe('pretty');
+    expect(state.displayText).toContain('\n');
+    expect(state.previewHtml).toBe(html);
   });
 });

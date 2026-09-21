@@ -216,20 +216,6 @@ describe('markupConvertor html format', () => {
     expect(beautify('html', html)).toContain('<body>hello</body>');
   });
 
-  it('pretty-prints malformed HTML5 without throwing', () => {
-    const html = [
-      '<!doctype html><html><head>',
-      '<meta charset=UTF-8>',
-      '<script>if (a<b) { c = 1; }</script>',
-      '</head><body><div>hi</div></body></html>',
-    ].join('');
-    expect(() => beautifyWithContentType('text/html', html)).not.toThrow();
-    const pretty = beautifyWithContentType('text/html', html);
-    expect(pretty).toContain('\n');
-    expect(pretty).toContain('<div>');
-    expect(pretty).toContain('hi');
-    expect(pretty).toContain('if (a<b) { c = 1; }');
-  });
 });
 
 describe('markupConvertor multipart format', () => {

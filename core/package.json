@@ -50,6 +50,16 @@
       "require": "./dist/binaryBody.js",
       "default": "./dist/binaryBody.js"
     },
+    "./htmlFormat": {
+      "types": "./dist/htmlFormat.d.ts",
+      "require": "./dist/htmlFormat.js",
+      "default": "./dist/htmlFormat.js"
+    },
+    "./responseBodyDisplay": {
+      "types": "./dist/responseBodyDisplay.d.ts",
+      "require": "./dist/responseBodyDisplay.js",
+      "default": "./dist/responseBodyDisplay.js"
+    },
     "./formatResolve": {
       "types": "./dist/formatResolve.d.ts",
       "require": "./dist/formatResolve.js",
