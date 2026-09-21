@@ -119,7 +119,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
             }
             return value;
         });
-    }, [value, refreshKey]);
+    }, [value, refreshKey, format]);
 
     useEffect(() => {
         if (mode === "live" && onChange && isUserEditingRef.current) {

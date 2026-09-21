@@ -53,6 +53,15 @@ describe('resolveApiRequest', () => {
     ]);
   });
 
+  it('can preserve structured bodies for UI format preview', () => {
+    const request = resolveApiRequest(api, {}, {}, {preserveStructuredBody: true});
+    expect(request.body).toEqual({
+      id: 'r:uuid',
+      count: 'r:int(10,20)',
+      created: 'c:date',
+    });
+  });
+
   it('applies auth into headers and removes auth block', () => {
     const authed = resolveApiRequest({
       type: 'api',

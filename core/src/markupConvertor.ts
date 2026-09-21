@@ -225,13 +225,86 @@ function parseUrlEncodedBody(body: string): Record<string, string> {
   return result;
 }
 
+/** Parse YAML/JSON/XML text or pass structured objects through for format conversion. */
+function coerceBodyToStructuredObject(body: string|object): string|object {
+  if (typeof body !== 'string') {
+    return body;
+  }
+  const normalized = normalizeNewlines(body);
+  const trimmed = normalized.trimStart();
+  if (!trimmed) {
+    return '';
+  }
+  if (trimmed.startsWith('<')) {
+    return body;
+  }
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(normalized);
+    } catch {
+      // fall through
+    }
+  }
+  try {
+    const parsed = YAML.parse(normalized);
+    if (parsed !== null && typeof parsed === 'object') {
+      return parsed;
+    }
+  } catch {
+    // fall through
+  }
+  return normalized;
+}
+
 function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean): string {
-  const xmlObj = typeof body === 'string' ? xml2js(body, {compact: true}) : body;
+  const coerced = coerceBodyToStructuredObject(body);
+  if (coerced === '') {
+    return '';
+  }
+  const xmlObj = typeof coerced === 'string' ? xml2js(coerced, {compact: true}) : coerced;
   return js2xml(xmlObj, {
     compact: true,
     spaces: pretty ? 2 : 0,
     fullTagEmptyElement: expanded
   });
+}
+
+/** Normalize JSON/YAML/XML text or xml-js objects into a plain JSON object. */
+function normalizeBodyToJsonObject(body: string|object): unknown {
+  if (body === null || body === undefined) {
+    return body;
+  }
+  if (typeof body === 'object') {
+    return flattenXmlObj(body);
+  }
+  const normalized = normalizeNewlines(body);
+  if (normalized.trim() === '') {
+    return '';
+  }
+  const coerced = coerceBodyToStructuredObject(normalized);
+  if (coerced === '') {
+    return '';
+  }
+  if (typeof coerced === 'object') {
+    return flattenXmlObj(coerced);
+  }
+  const trimmed = coerced.trimStart();
+  if (trimmed.startsWith('<')) {
+    try {
+      return flattenXmlObj(xml2js(coerced, {compact: true}));
+    } catch {
+      return coerced;
+    }
+  }
+  try {
+    return JSON.parse(coerced);
+  } catch {
+    try {
+      return YAML.parse(coerced);
+    } catch {
+      return coerced;
+    }
+  }
 }
 
 function formatBody(
@@ -249,10 +322,13 @@ function formatBody(
   }
   try {
     if (format === 'json') {
-      const obj = typeof body === 'string' ? YAML.parse(body) : body;
-      // If YAML.parse produced null (e.g., empty input), keep it empty
-      if (obj === null || obj === undefined) {
+      const obj = normalizeBodyToJsonObject(body);
+      // If parsing produced null (e.g., empty input), keep it empty
+      if (obj === null || obj === undefined || obj === '') {
         return '';
+      }
+      if (typeof obj === 'string') {
+        return obj;
       }
       return pretty ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);
     }
@@ -315,7 +391,7 @@ function formattedBodyToYamlObject(
     // Windows Monaco bodies use CRLF; keep LF in the data model / YAML.
     const text = normalizeNewlines(body);
     if (format === 'json') {
-      return JSON.parse(text);
+      return normalizeBodyToJsonObject(text);
     }
     if (isXmlFormat(format)) {
       // Convert XML to JS object, then try to normalize it

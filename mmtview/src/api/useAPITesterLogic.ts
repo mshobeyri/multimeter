@@ -4,7 +4,7 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
-import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
+import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
@@ -196,7 +196,10 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       api,
       resolvedInputs,
       envParameters,
-      { refreshRuntimeTokens: options?.refreshRuntimeTokens }
+      {
+        refreshRuntimeTokens: options?.refreshRuntimeTokens,
+        preserveStructuredBody: true,
+      }
     );
   }, [api, loadEnvParameters]);
 
@@ -239,6 +242,16 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       true
     );
     setRequestData(merged);
+    const reqFormat = resolveRequestFormat(
+      requestFormat(merged.format ?? apiRef.current.format),
+      merged.headers,
+    );
+    if (merged.body != null && typeof merged.body !== "string" && reqFormat !== "multipart") {
+      return {
+        ...merged,
+        body: formatBody(reqFormat, merged.body, false),
+      };
+    }
     return merged;
   }, [resolveFreshRequestData]);
 

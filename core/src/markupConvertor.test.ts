@@ -13,6 +13,27 @@ describe('markupConvertor XML formats', () => {
     expect(xml).toContain('<empty/>');
   });
 
+  it('converts YAML/JSON object strings to XML when format is xml', () => {
+    const jsonText = '{\n  "user": {\n    "name": "John"\n  }\n}';
+    const xml = formatBody('xml', jsonText, true);
+    expect(xml).toContain('<user>');
+    expect(xml).toContain('<name>John</name>');
+  });
+
+  it('previews json and xml from the same YAML object without rewriting it', () => {
+    const original = {user: {name: 'John'}};
+    const asJson = formatBody('json', original, true);
+    const asXml = formatBody('xml', original, true);
+    expect(asXml).toContain('<name>John</name>');
+    expect(formatBody('json', original, true)).toBe(asJson);
+  });
+
+  it('converts XML text back to JSON when format is json', () => {
+    const xml = '<user><name>John</name></user>';
+    const json = formatBody('json', xml, true);
+    expect(JSON.parse(json)).toEqual({user: {name: 'John'}});
+  });
+
   it('supports xmle expanded XML format for empty elements', () => {
     const xml = formatBody('xmle', {
       root: {

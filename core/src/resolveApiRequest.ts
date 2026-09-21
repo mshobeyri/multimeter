@@ -10,6 +10,8 @@ import {replaceAllRefs} from './variableReplacer';
 export interface ResolveApiRequestOptions {
   /** Clear r:/c: caches so each resolve gets fresh runtime values. */
   refreshRuntimeTokens?: boolean;
+  /** Keep YAML/JSON object bodies structured for UI format switching. */
+  preserveStructuredBody?: boolean;
 }
 
 /**
@@ -49,7 +51,8 @@ export function resolveApiRequest(
   );
   // Multipart `body` is a parts array. The UI JSON-previews it, but Send must
   // keep the array so the runner can build multipart/form-data.
-  if (request.body && typeof request.body !== 'string' && reqFormat !== 'multipart') {
+  if (!options.preserveStructuredBody &&
+      request.body && typeof request.body !== 'string' && reqFormat !== 'multipart') {
     request.body = formatBody(reqFormat, request.body ?? '');
   }
 

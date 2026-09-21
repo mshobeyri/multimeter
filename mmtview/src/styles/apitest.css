@@ -479,6 +479,22 @@
   min-width: 0;
 }
 
+.inner-box input,
+.inner-box textarea,
+.inner-box select,
+.inner-box [contenteditable="true"],
+.tree-view-box input,
+.tree-view-box textarea,
+.tree-view-box select,
+.tree-view-box [contenteditable="true"],
+.field-table input,
+.field-table textarea,
+.field-with-remove input,
+.field-with-remove textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .tree-view-box {
   position: relative;
   display: flex;

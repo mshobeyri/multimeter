@@ -8,7 +8,7 @@ import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
-import { formatBody } from "mmt-core/markupConvertor";
+import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
@@ -168,6 +168,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     currentRequestFormat,
     requestData?.headers,
   );
+  const bodyYamlEncoded = api.body != null && typeof api.body !== "string";
+  const canonicalRequestBody = bodyYamlEncoded && !touchedFields.has("body")
+    ? api.body
+    : (requestData?.body ?? api.body ?? "");
+  const requestBodyDisplay = formatBody(resolvedRequestFormat, canonicalRequestBody ?? "");
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
     if (saved === "raw" || saved === "pretty" || saved === "preview") {
@@ -299,6 +304,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     const request = side === "request" ? format as RequestFormat : currentRequestFormat;
     const response = side === "response" ? format as ResponseFormat : currentResponseFormat;
     updateField("format", packFormatSpec({ request, response }) ?? format);
+  };
+
+  const handleRequestBodyChange = (value: string) => {
+    if (bodyYamlEncoded) {
+      const packed = formattedBodyToYamlObject(resolvedRequestFormat, value);
+      if (packed === null || packed === undefined) {
+        return;
+      }
+      updateField("body", packed);
+      return;
+    }
+    updateField("body", value);
   };
 
   const inputConstraints = useMemo(
@@ -512,14 +529,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 />
               ) : (
                 <BodyView
-                  value={typeof requestData?.body === "string"
-                    ? requestData?.body
-                    : formatBody(resolvedRequestFormat, requestData?.body || {})
-                  }
+                  value={requestBodyDisplay}
                   format={resolvedRequestFormat}
                   mode="live"
                   disabled={requestBodyDisabled}
-                  onChange={requestBodyDisabled ? undefined : val => updateField("body", val)}
+                  onChange={requestBodyDisabled ? undefined : handleRequestBodyChange}
                 />
               )}
           </div>
