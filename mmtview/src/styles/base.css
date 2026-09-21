@@ -21,6 +21,23 @@ button,
 .mmt-ui-panel {
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   font-size: var(--vscode-font-size, 13px);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mmt-ui-panel input,
+.mmt-ui-panel textarea,
+.mmt-ui-panel select,
+.mmt-ui-panel [contenteditable="true"],
+.mmt-ui-panel .doc-preview,
+.mmt-ui-panel .doc-preview-body,
+.mmt-ui-panel .report-selectable,
+.mmt-ui-panel .highlighted-body,
+.mmt-ui-panel .highlighted-body-pre,
+.mmt-ui-panel .report-headers-content,
+.mmt-ui-panel .report-headers-table {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .mmt-ui-panel input,
@@ -1015,6 +1032,8 @@ button:focus {
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   letter-spacing: 0.01em;
   padding: 8px 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .label {
@@ -1028,6 +1047,8 @@ button:focus {
   padding-top: 15px;
   text-align: left;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .label.api-body-label {

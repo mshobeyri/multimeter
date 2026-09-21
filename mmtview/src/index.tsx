@@ -8,7 +8,7 @@ document.addEventListener("contextmenu", event => {
     // Allow native Copy/Select All on report/history body text and form fields.
     if (
       target.closest(
-        "pre, textarea, input, [contenteditable=\"true\"], .highlighted-body, .highlighted-body-pre, .report-selectable, .report-headers-content"
+        "pre, textarea, input, [contenteditable=\"true\"], .highlighted-body, .highlighted-body-pre, .report-selectable, .report-headers-content, .doc-preview, .doc-preview-body"
       )
     ) {
       return;

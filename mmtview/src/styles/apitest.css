@@ -247,8 +247,13 @@
 }
 
 .apitest-body-format-raw-option:hover,
+.apitest-body-format-raw-option:focus,
 .apitest-body-format-raw-option.is-selected {
   background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.apitest-body-format-raw-option:focus-visible {
+  outline: none;
 }
 
 .apitest-body-format-chip {
@@ -262,6 +267,19 @@
   font-size: 12px;
   line-height: 16px;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.apitest-body-format-chip:hover,
+.apitest-body-format-chip:focus,
+.apitest-body-format-chip:focus-visible,
+.apitest-body-format-chip:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none;
+  outline: none;
+  box-shadow: none;
 }
 
 .apitest-body-format-chip::before {
