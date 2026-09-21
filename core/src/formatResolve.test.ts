@@ -9,6 +9,7 @@ describe('formatResolve', () => {
     expect(formatFromContentType('application/json; charset=utf-8')).toBe('json');
     expect(formatFromContentType('text/html')).toBe('html');
     expect(formatFromContentType('multipart/form-data; boundary=x')).toBe('multipart');
+    expect(formatFromContentType('image/png')).toBe('binary');
     expect(formatFromContentType('')).toBeUndefined();
   });
 

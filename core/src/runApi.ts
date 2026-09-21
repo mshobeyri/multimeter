@@ -525,6 +525,10 @@ export function createApiLogHelpers(): ApiLogHelpers {
     if (body === null || body === undefined || body === '') {
       return '';
     }
+    if (body && typeof body === 'object' && (body as {__mmtBinary?: boolean}).__mmtBinary === true &&
+        typeof (body as {byteLength?: number}).byteLength === 'number') {
+      return `<binary ${(body as {byteLength: number}).byteLength} bytes>`;
+    }
     if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) {
       return `<binary ${body.length} bytes>`;
     }

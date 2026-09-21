@@ -45,6 +45,11 @@
       "require": "./dist/CommonData.js",
       "default": "./dist/CommonData.js"
     },
+    "./binaryBody": {
+      "types": "./dist/binaryBody.d.ts",
+      "require": "./dist/binaryBody.js",
+      "default": "./dist/binaryBody.js"
+    },
     "./formatResolve": {
       "types": "./dist/formatResolve.d.ts",
       "require": "./dist/formatResolve.js",

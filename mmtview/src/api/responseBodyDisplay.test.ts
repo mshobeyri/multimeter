@@ -1,6 +1,11 @@
 import {
+  encodeBinaryBody,
+} from 'mmt-core/binaryBody';
+import {
   detectResponseFormat,
   displayResponseBody,
+  resolveResponsePreviewImageUrl,
+  resolveResponsePreviewKind,
   resolveResponseViewType,
   responseBodyToRawString,
   responseTypeSupportsPreview,
@@ -12,6 +17,11 @@ describe('responseBodyDisplay', () => {
     expect(responseBodyToRawString({ a: 1, b: [2] })).toBe('{"a":1,"b":[2]}');
     expect(responseBodyToRawString('already')).toBe('already');
     expect(responseBodyToRawString(null)).toBe('');
+  });
+
+  it('serializes binary payloads as base64 for raw view', () => {
+    const payload = encodeBinaryBody(Uint8Array.from([0x89, 0x50, 0x4E, 0x47]), 'image/png');
+    expect(responseBodyToRawString(payload)).toBe(payload.base64);
   });
 
   it('returns raw body when view is raw', () => {
@@ -63,6 +73,14 @@ describe('responseBodyDisplay', () => {
     } as any, 'html')).toBe('html');
   });
 
+  it('detects binary payloads without relying on content sniffing', () => {
+    const payload = encodeBinaryBody(Uint8Array.from([0x89, 0x50, 0x4E, 0x47]), 'image/png');
+    expect(detectResponseFormat({
+      body: payload,
+      headers: {},
+    } as any)).toBe('binary');
+  });
+
   it('falls back to request format when response Content-Type is missing', () => {
     expect(detectResponseFormat({
       body: 'plain text',
@@ -93,17 +111,22 @@ describe('responseBodyDisplay', () => {
     } as any, 'json')).toBe('xml');
   });
 
-  it('supports pretty for auto and structured types only', () => {
-    expect(responseTypeSupportsPretty('auto')).toBe(true);
-    expect(responseTypeSupportsPretty('json')).toBe(true);
-    expect(responseTypeSupportsPretty('html')).toBe(false);
-    expect(responseTypeSupportsPretty('text')).toBe(false);
+  it('supports pretty for auto only when the resolved type is structured', () => {
+    expect(responseTypeSupportsPretty('auto', 'json')).toBe(true);
+    expect(responseTypeSupportsPretty('json', 'json')).toBe(true);
+    expect(responseTypeSupportsPretty('auto', 'html')).toBe(false);
+    expect(responseTypeSupportsPretty('auto', 'binary')).toBe(false);
+    expect(responseTypeSupportsPretty('text', 'text')).toBe(false);
   });
 
-  it('shows preview only for html or auto that resolves to html', () => {
+  it('shows preview for html or previewable binary images', () => {
+    const payload = encodeBinaryBody(Uint8Array.from([0x89, 0x50, 0x4E, 0x47]), 'image/png');
     expect(responseTypeSupportsPreview('html', 'html')).toBe(true);
     expect(responseTypeSupportsPreview('auto', 'html')).toBe(true);
     expect(responseTypeSupportsPreview('auto', 'json')).toBe(false);
-    expect(responseTypeSupportsPreview('json', 'html')).toBe(false);
+    expect(responseTypeSupportsPreview('auto', 'binary', payload)).toBe(true);
+    expect(responseTypeSupportsPreview('binary', 'binary', payload)).toBe(true);
+    expect(resolveResponsePreviewKind('auto', 'binary', payload)).toBe('image');
+    expect(resolveResponsePreviewImageUrl(payload)).toMatch(/^data:image\/png;base64,/);
   });
 });

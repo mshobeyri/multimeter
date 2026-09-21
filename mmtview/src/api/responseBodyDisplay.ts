@@ -1,3 +1,8 @@
+import {
+  binaryBodyDataUrl,
+  binaryBodyRawText,
+  isBinaryBodyPayload,
+} from "mmt-core/binaryBody";
 import { Format, RequestFormat, ResponseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat, resolveResponseFormat } from "mmt-core/formatResolve";
 import { beautify, beautifyWithContentType } from "mmt-core/markupConvertor";
@@ -5,11 +10,15 @@ import type { Response } from "mmt-core/NetworkData";
 
 export type ResponseTypeChoice = ResponseFormat;
 export type ResponseViewMode = "raw" | "pretty" | "preview";
+export type ResponsePreviewKind = "html" | "image";
 
 const PRETTY_FORMATS = new Set<Format>(["json", "xml", "xmle", "urlencoded"]);
 
 /** Serialize a response/request body for storage without pretty-printing. */
 export function responseBodyToRawString(body: unknown): string {
+  if (isBinaryBodyPayload(body)) {
+    return binaryBodyRawText(body);
+  }
   if (body === null || body === undefined) {
     return "";
   }
@@ -65,15 +74,52 @@ export function resolveResponseViewType(
   });
 }
 
-export function responseTypeSupportsPretty(type: ResponseTypeChoice): boolean {
-  return type === "auto" || PRETTY_FORMATS.has(type);
+export function responseTypeSupportsPretty(
+  type: ResponseTypeChoice,
+  resolved: Format,
+): boolean {
+  if (type === "auto") {
+    return PRETTY_FORMATS.has(resolved);
+  }
+  return PRETTY_FORMATS.has(type);
 }
 
 export function responseTypeSupportsPreview(
   type: ResponseTypeChoice,
   resolved: Format,
+  body?: unknown,
 ): boolean {
-  return type === "html" || (type === "auto" && resolved === "html");
+  if (type === "html" || (type === "auto" && resolved === "html")) {
+    return true;
+  }
+  if (isBinaryBodyPayload(body) && body.previewMime?.startsWith("image/")) {
+    return type === "binary" || (type === "auto" && resolved === "binary");
+  }
+  return false;
+}
+
+export function resolveResponsePreviewKind(
+  type: ResponseTypeChoice,
+  resolved: Format,
+  body?: unknown,
+): ResponsePreviewKind | undefined {
+  if (!responseTypeSupportsPreview(type, resolved, body)) {
+    return undefined;
+  }
+  if (type === "html" || (type === "auto" && resolved === "html")) {
+    return "html";
+  }
+  if (isBinaryBodyPayload(body) && body.previewMime?.startsWith("image/")) {
+    return "image";
+  }
+  return undefined;
+}
+
+export function resolveResponsePreviewImageUrl(body: unknown): string | undefined {
+  if (!isBinaryBodyPayload(body)) {
+    return undefined;
+  }
+  return binaryBodyDataUrl(body);
 }
 
 export function displayResponseBody(
@@ -84,7 +130,12 @@ export function displayResponseBody(
     return "";
   }
   const raw = responseBodyToRawString(response.body);
-  if (!raw || options.view !== "pretty" || !responseTypeSupportsPretty(options.type)) {
+  if (!raw || options.view !== "pretty" || !responseTypeSupportsPretty(options.type, resolveResponseViewType(
+    options.type,
+    response,
+    options.requestFormat,
+    options.requestHeaders,
+  ))) {
     return raw;
   }
   if (options.type === "auto") {

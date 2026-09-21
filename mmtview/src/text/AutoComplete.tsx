@@ -1336,7 +1336,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " binary",
             detail: 'Binary file body',
-            documentation: 'Send a file as the request body. Set body to a relative path.\nDefault Content-Type: application/octet-stream (override with headers).\nExample:\nformat: binary\nbody: ./payload.bin\n\nBinary responses are not supported yet (shown as text).',
+            documentation: 'Send a file as the request body. Set body to a relative path.\nDefault Content-Type: application/octet-stream (override with headers).\nExample:\nformat: binary\nbody: ./payload.bin\n\nBinary/image responses are preserved as base64 and can use raw + preview when the image type is detected.',
             sortText: '1binary',
         },
         {

@@ -15,6 +15,7 @@ import {
 type ResponseBodyBarProps = {
   type: ResponseFormat;
   view: ResponseViewMode;
+  prettyAvailable: boolean;
   previewAvailable: boolean;
   onTypeChange: (type: ResponseFormat) => void;
   onViewChange: (view: ResponseViewMode) => void;
@@ -23,6 +24,7 @@ type ResponseBodyBarProps = {
 const ResponseBodyBar: React.FC<ResponseBodyBarProps> = ({
   type,
   view,
+  prettyAvailable,
   previewAvailable,
   onTypeChange,
   onViewChange,
@@ -82,11 +84,13 @@ const ResponseBodyBar: React.FC<ResponseBodyBarProps> = ({
       </div>
       <span className="apitest-body-format-divider" aria-hidden />
       <div className="apitest-body-format-bar-group">
-        <FormatChip
-          label="pretty"
-          selected={view === "pretty"}
-          onClick={() => onViewChange("pretty")}
-        />
+        {prettyAvailable ? (
+          <FormatChip
+            label="pretty"
+            selected={view === "pretty"}
+            onClick={() => onViewChange("pretty")}
+          />
+        ) : null}
         <FormatChip
           label="raw"
           selected={view === "raw"}

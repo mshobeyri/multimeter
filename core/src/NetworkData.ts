@@ -1,4 +1,5 @@
 import { GraphQLConfig, GrpcConfig } from './APIData';
+import {BinaryBodyPayload} from './binaryBody';
 import { Format, FormatSpec, GrpcStream, Protocol } from './CommonData';
 import type {EnvCertificates} from './EnvData';
 
@@ -107,7 +108,7 @@ export interface HttpRequest {
 }
 
 export interface HttpResponse {
-  body: string;
+  body: string | BinaryBodyPayload;
   headers: Record<string, string>;
   status: number;
   statusText: string;

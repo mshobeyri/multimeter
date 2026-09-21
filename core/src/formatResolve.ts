@@ -1,3 +1,4 @@
+import {isBinaryBodyPayload} from './binaryBody';
 import {Format, RequestFormat, ResponseFormat} from './CommonData';
 
 export function headerContentType(headers?: Record<string, string>): string {
@@ -32,6 +33,9 @@ export function formatFromContentType(contentType: string): Format | undefined {
   }
   if (ct.includes('multipart')) {
     return 'multipart';
+  }
+  if (ct.startsWith('image/')) {
+    return 'binary';
   }
   if (ct.includes('octet-stream')) {
     return 'binary';
@@ -110,6 +114,9 @@ export function resolveResponseFormat(
 ): Format {
   if (declared !== 'auto') {
     return declared;
+  }
+  if (isBinaryBodyPayload(options.body)) {
+    return 'binary';
   }
   const fromHeader = formatFromContentType(headerContentType(options.responseHeaders));
   if (fromHeader) {

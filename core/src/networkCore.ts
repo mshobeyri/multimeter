@@ -9,6 +9,7 @@ import * as http2 from 'http2';
 import * as https from 'https';
 import WebSocket from 'ws';
 
+import {BinaryBodyPayload, normalizeHttpResponseBody} from './binaryBody';
 import {connectionTracker} from './connectionTracker';
 import {resolveApiHttpMethod} from './apiMethod';
 import {DEFAULT_NETWORK_CONFIG, findMatchingClientCertificate, HttpRequest, HttpResponse, NetworkConfig, Request, Response,} from './NetworkData';
@@ -391,9 +392,10 @@ function sendHttp2Request(
       clearTimeout(timer);
       settle(() => {
         const status = Number(responseHeaders[':status'] || 0);
+        const headers = normalizeHttp2ResponseHeaders(responseHeaders);
         resolve({
-          body: Buffer.concat(chunks).toString('utf8'),
-          headers: normalizeHttp2ResponseHeaders(responseHeaders),
+          body: normalizeHttpResponseBody(Buffer.concat(chunks), headers),
+          headers,
           status,
           statusText: http.STATUS_CODES[status] || '',
           duration: Date.now() - start,
@@ -482,7 +484,7 @@ function sendNativeHttpsRequest(
           }
         }
         resolve({
-          body: Buffer.concat(chunks).toString('utf8'),
+          body: normalizeHttpResponseBody(Buffer.concat(chunks), headersOut),
           headers: headersOut,
           status: res.statusCode || 0,
           statusText: res.statusMessage || '',
@@ -651,8 +653,8 @@ export async function sendHttpRequest(
     withCredentials: true,
     headers: reqHeaders,
     timeout: requestTimeout,
-    responseType: 'text' as const,
-    transformResponse: [(data: string) => data],
+    responseType: 'arraybuffer' as const,
+    transformResponse: [(data: ArrayBuffer) => data],
   };
   const executeRequest =
       (skipValidation = false, fallbackClientCertId?: string,
@@ -677,9 +679,10 @@ export async function sendHttpRequest(
   const start = Date.now();
   const toSuccess = (response: any, warning?: string): HttpResponse => {
     const duration = Date.now() - start;
+    const headers = normalizeAxiosHeaders(response.headers);
     return {
-      body: response.data,
-      headers: normalizeAxiosHeaders(response.headers),
+      body: normalizeHttpResponseBody(response.data, headers),
+      headers,
       status: response.status,
       statusText: response.statusText,
       duration,
@@ -690,9 +693,13 @@ export async function sendHttpRequest(
   const toError = (err: any, warning?: string): HttpResponse => {
     const duration = Date.now() - start;
     if (err?.response) {
+      const headers = normalizeAxiosHeaders(err.response.headers);
       return {
-        body: err.response.data,
-        headers: normalizeAxiosHeaders(err.response.headers),
+        body: normalizeHttpResponseBody(
+            err.response.data ?? err.response.body ?? err.response.text,
+            headers,
+        ),
+        headers,
         status: err.response.status,
         statusText: err.response.statusText,
         duration,
@@ -803,16 +810,17 @@ function toNetworkError(
   };
 }
 
-function extractBodyFromError(err: any): string {
+function extractBodyFromError(err: any): string | BinaryBodyPayload {
   if (!err) {
     return '';
   }
   try {
     // axios-style response
     if (err.response) {
+      const headers = normalizeAxiosHeaders(err.response.headers || {});
       const d = err.response.data ?? err.response.body ?? err.response.text;
-      if (typeof d === 'string') {
-        return d;
+      if (typeof d === 'string' || d instanceof ArrayBuffer || d instanceof Uint8Array) {
+        return normalizeHttpResponseBody(d, headers);
       }
       try {
         return JSON.stringify(d);
@@ -837,7 +845,14 @@ function extractBodyFromError(err: any): string {
         try {
           const bufs = state.buffer.map((b: any) => b.data).filter(Boolean);
           if (bufs.length > 0) {
-            return Buffer.concat(bufs).toString('utf8');
+            const headers: Record<string, string> = {};
+            const rawHeaders = reqRes.headers || {};
+            for (const [key, value] of Object.entries(rawHeaders)) {
+              if (value !== undefined) {
+                headers[key] = Array.isArray(value) ? value.join(', ') : String(value);
+              }
+            }
+            return normalizeHttpResponseBody(Buffer.concat(bufs), headers);
           }
         } catch {
           // ignore

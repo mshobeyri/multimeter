@@ -14,6 +14,7 @@ import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
 import BodyFormatBar from "../components/BodyFormatBar";
 import ResponseBodyBar from "../components/ResponseBodyBar";
+import BinaryImagePreview from "../components/BinaryImagePreview";
 import HtmlPreview from "../components/HtmlPreview";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
@@ -23,7 +24,10 @@ import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
 import {
   displayResponseBody,
+  resolveResponsePreviewImageUrl,
+  resolveResponsePreviewKind,
   resolveResponseViewType,
+  responseTypeSupportsPretty,
   responseTypeSupportsPreview,
   type ResponseViewMode,
 } from "./responseBodyDisplay";
@@ -186,10 +190,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     currentRequestFormat,
     requestData?.headers,
   );
-  const previewAvailable = responseTypeSupportsPreview(currentResponseFormat, resolvedResponseType);
+  const previewAvailable = responseTypeSupportsPreview(
+    currentResponseFormat,
+    resolvedResponseType,
+    responseData?.body,
+  );
+  const prettyAvailable = responseTypeSupportsPretty(currentResponseFormat, resolvedResponseType);
+  const previewKind = resolveResponsePreviewKind(
+    currentResponseFormat,
+    resolvedResponseType,
+    responseData?.body,
+  );
+  const previewImageUrl = resolveResponsePreviewImageUrl(responseData?.body);
   const responseView = responseViewMode === "preview" && !previewAvailable
     ? "raw"
-    : responseViewMode;
+    : (responseViewMode === "pretty" && !prettyAvailable ? "raw" : responseViewMode);
   const setResponseViewMode = (view: ResponseViewMode) => {
     setResponseViewModeState(view);
     localStorage.setItem("apitest-response-view-mode", view);
@@ -701,12 +716,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             <ResponseBodyBar
               type={currentResponseFormat}
               view={responseView}
+              prettyAvailable={prettyAvailable}
               previewAvailable={previewAvailable}
               onTypeChange={type => setBodyFormat("response", type)}
               onViewChange={setResponseViewMode}
             />
           <div className="apitest-body-wrapper">
-            {responseView === "preview" ? (
+            {responseView === "preview" && previewKind === "html" ? (
               <HtmlPreview
                 html={displayResponseBody(responseData, {
                   type: currentResponseFormat,
@@ -716,6 +732,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 })}
                 baseUrl={requestData?.url}
               />
+            ) : responseView === "preview" && previewKind === "image" && previewImageUrl ? (
+              <BinaryImagePreview dataUrl={previewImageUrl} />
             ) : (
               <BodyView
                 value={displayResponseBody(responseData, {
