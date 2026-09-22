@@ -40,6 +40,20 @@ describe('suiteRunDataStore', () => {
     });
   });
 
+  it('counts skipped parents once when descendants are also marked skipped', () => {
+    const store = createSuiteRunDataStore();
+    store.patchRunState({
+      'suite-node:0': 'skipped',
+      'suite-node:0.0': 'skipped',
+      'suite-node:0.1': 'skipped',
+      'suite-node:1': 'skipped',
+    });
+
+    expect(store.getOverview()).toMatchObject({
+      skipped: 2,
+    });
+  });
+
   it('resets overview and tree data together', () => {
     const store = createSuiteRunDataStore();
     store.appendReports({ 'suite-node:0': [sampleReport()] });

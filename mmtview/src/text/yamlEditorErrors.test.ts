@@ -39,4 +39,17 @@ describe('collectYamlEditorErrors', () => {
     expect(collectYamlEditorErrors('')).toEqual([]);
     expect(collectYamlEditorErrors('   \n')).toEqual([]);
   });
+
+  it('returns ordering errors for out-of-order suite keys', () => {
+    const content = [
+      'type: suite',
+      'items:',
+      '  - ./tests/login.mmt',
+      'filter:',
+      '  only: [smoke]',
+      '',
+    ].join('\n');
+    const errors = collectYamlEditorErrors(content);
+    expect(errors.some((error) => error.message.includes("'filter' should appear before 'items'"))).toBe(true);
+  });
 });

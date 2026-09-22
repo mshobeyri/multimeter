@@ -31,7 +31,7 @@ import ReportCollapseButton from '../../shared/ReportCollapseButton';
 import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
-import { HideWhenYamlError } from '../../api/YamlErrorWarning';
+import YamlErrorWarning, { HideWhenYamlError } from '../../api/YamlErrorWarning';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
 import { runInCoreMenuItem } from '../../components/ContextMenuHost';
 import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
@@ -48,6 +48,36 @@ import { spillExcessReports } from '../../shared/reportSpillRunner';
 function basename(p: string): string {
     const parts = p.replace(/\\/g, '/').split('/');
     return parts[parts.length - 1] || p;
+}
+
+function countSuiteRunnableItems(
+    groups: SuiteGroup[],
+    hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): number {
+    let count = 0;
+    const walk = (node: SuiteTreeNode): void => {
+        if (node.kind === 'test' || node.kind === 'suite') {
+            count += 1;
+        }
+        if (node.kind === 'group' || node.kind === 'suite') {
+            for (const child of suiteTreeChildren(node)) {
+                if (child.kind !== 'server') {
+                    walk(child);
+                }
+            }
+        }
+    };
+    for (const group of groups) {
+        for (const entry of group.entries) {
+            const hierarchy = hierarchyByEntryId[entry.id];
+            if (hierarchy) {
+                walk(hierarchy);
+            } else {
+                count += 1;
+            }
+        }
+    }
+    return count;
 }
 
 /** Build a map from node id to display path by combining group entries and hierarchy trees. */
@@ -1293,21 +1323,22 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             durationSub: formatOverviewRelativeTime(loadRunSummary?.config?.started_at || suiteRunStartedAt),
             };
         }
-        const { passed, failed, skipped, fileCount } = runOverview;
+        const { passed, failed, skipped } = runOverview;
         const executed = passed + failed;
         if (executed === 0 && skipped === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
             return null;
         }
         const duration = suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined;
+        const testCount = countSuiteRunnableItems(groups, hierarchyByEntryId);
         return {
             passed,
             failed,
             total: executed,
             duration,
-            totalSub: skipped > 0 ? `${skipped} skipped` : `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
+            totalSub: `${testCount} test file${testCount !== 1 ? 's' : ''}`,
                     durationSub: formatOverviewRelativeTime(suiteRunStartedAt),
         };
-    }, [runOverview, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
+    }, [runOverview, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary, groups, hierarchyByEntryId]);
 
     const tree = (
         <SuiteTestTreePanel
@@ -1438,25 +1469,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     </div>
                 </>
             )}
-            {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
-                <>
-                    <div className="label is-field">Filter</div>
-                    <div className="meta-block">
-                        {tagFilter.only.length > 0 && (
-                            <div className="meta-row">
-                                <span className="codicon codicon-filter meta-icon" aria-hidden />
-                                <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
-                            </div>
-                        )}
-                        {tagFilter.skip.length > 0 && (
-                            <div className="meta-row">
-                                <span className="codicon codicon-skip meta-icon" aria-hidden />
-                                <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
-                            </div>
-                        )}
-                    </div>
-                </>
-            )}
             {suiteExports.length > 0 && (
                 <>
                     <div className="label is-field">Exports</div>
@@ -1470,6 +1482,32 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     </div>
                 </>
             )}
+        </>
+    ) : null;
+
+    const filterMeta = (tagFilter.only.length > 0 || tagFilter.skip.length > 0) ? (
+        <>
+            <div className="label is-field">Filter</div>
+            <div className="meta-block">
+                {tagFilter.only.length > 0 && (
+                    <div className="meta-row">
+                        <span className="codicon codicon-filter meta-icon" aria-hidden />
+                        <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
+                    </div>
+                )}
+                {tagFilter.skip.length > 0 && (
+                    <div className="meta-row">
+                        <span className="codicon codicon-diff-ignored meta-icon" aria-hidden />
+                        <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
+                    </div>
+                )}
+                {runOverview.hasRunState && runOverview.skipped > 0 && (
+                    <div className="meta-row">
+                        <span className="codicon codicon-skip meta-icon" aria-hidden />
+                        <span>Total: {runOverview.skipped} skipped</span>
+                    </div>
+                )}
+            </div>
         </>
     ) : null;
 
@@ -1488,6 +1526,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     runTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
                     runContextMenuItems={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
                 />
+                <YamlErrorWarning />
                 <HideWhenYamlError>
                     <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
@@ -1525,6 +1564,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                 <div className="panel-scroll is-x-clip">
                                     <div className="test-flow-tree">{tree}</div>
                                 </div>
+                                {filterMeta && <div className="panel-view-fixed">{filterMeta}</div>}
                             </>
                         )}
                     </>

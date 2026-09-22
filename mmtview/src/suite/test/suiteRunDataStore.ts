@@ -22,10 +22,23 @@ const EMPTY_OVERVIEW: SuiteRunOverview = {
   hasRunState: false,
 };
 
+function isSkippedDescendant(nodeId: string, ancestorId: string): boolean {
+  if (nodeId === ancestorId) {
+    return false;
+  }
+  return nodeId.startsWith(`${ancestorId}.`);
+}
+
 function countSkipped(runStateById: Record<string, StepStatus>): number {
+  const skippedIds = Object.entries(runStateById)
+    .filter(([, status]) => status === 'skipped')
+    .map(([id]) => id);
   let skipped = 0;
-  for (const status of Object.values(runStateById)) {
-    if (status === 'skipped') {
+  for (const id of skippedIds) {
+    const hasSkippedAncestor = skippedIds.some(
+      (other) => other !== id && isSkippedDescendant(id, other),
+    );
+    if (!hasSkippedAncestor) {
       skipped += 1;
     }
   }
