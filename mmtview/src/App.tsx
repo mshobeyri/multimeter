@@ -23,6 +23,7 @@ import PanelErrorBoundary from "./shared/PanelErrorBoundary";
 import { ensureThemeSync } from "./text/Theme";
 import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
 import { collectYamlEditorErrors } from "./text/yamlEditorErrors";
+import { cacheReportSpillBytes } from "./shared/reportSpillConfig";
 import YamlErrorWarning from "./api/YamlErrorWarning";
 import SpecApiPanel from "./spec/SpecApiPanel";
 import {
@@ -373,6 +374,11 @@ const App: React.FC = () => {
       if (message.command === "config") {
         if (typeof message.bodyAutoFormat === "boolean") {
           cacheBodyAutoFormat(message.bodyAutoFormat);
+        }
+        if (typeof message.reportSpillBytes === "number" && message.reportSpillBytes >= 0) {
+          cacheReportSpillBytes(message.reportSpillBytes);
+        }
+        if (typeof message.bodyAutoFormat === "boolean" || typeof message.reportSpillBytes === "number") {
           window.dispatchEvent(new CustomEvent("multimeter.config", { detail: message }));
         }
         const size = Number(message.editorFontSize);

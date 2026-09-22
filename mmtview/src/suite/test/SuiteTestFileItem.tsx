@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
@@ -25,6 +25,9 @@ interface SuiteTestFileItemProps {
     statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     status: StepStatus;
     stepReports: StepReportItem[];
+    reportSpilled?: boolean;
+    reportLoading?: boolean;
+    onRequestReports?: () => void;
 
     onRun?: () => void;
     onRunInCore?: () => void;
@@ -45,6 +48,9 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     statusIconFor,
     status,
     stepReports,
+    reportSpilled = false,
+    reportLoading = false,
+    onRequestReports,
     onRun,
     onRunInCore,
     runButtonTitle = 'Run',
@@ -71,6 +77,12 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
 
     // Show reports when the node is expanded (chevron or label click).
     const shouldShowReports = !isServer && context?.isExpanded;
+
+    useEffect(() => {
+        if (shouldShowReports && reportSpilled && onRequestReports) {
+            onRequestReports();
+        }
+    }, [shouldShowReports, reportSpilled, onRequestReports]);
 
     const activateLabel = (event: React.MouseEvent | React.KeyboardEvent, openFile: boolean) => {
         handleSuiteFileLabelActivate({
@@ -140,17 +152,23 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                     onClick={(e) => e.stopPropagation()}
                     onDoubleClick={(e) => e.stopPropagation()}
                 >
-                    <TestStepReportPanel
-                        isExpanded={true}
-                        stepReports={stepReports}
-                        runState={
-                            runState === 'running' || runState === 'passed' || runState === 'failed' ||
-                            runState === 'invalid'
-                                ? runState
-                                : 'failed'
-                        }
-                        showHeader={false}
-                    />
+                    {reportLoading ? (
+                        <div className="meta-row pad-l-8" style={{ opacity: 0.7 }}>
+                            Loading report…
+                        </div>
+                    ) : (
+                        <TestStepReportPanel
+                            isExpanded={true}
+                            stepReports={stepReports}
+                            runState={
+                                runState === 'running' || runState === 'passed' || runState === 'failed' ||
+                                runState === 'invalid'
+                                    ? runState
+                                    : 'failed'
+                            }
+                            showHeader={false}
+                        />
+                    )}
                 </div>
             )}
         </TreeDepthContainer>

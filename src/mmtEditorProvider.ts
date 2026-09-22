@@ -60,9 +60,26 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       const editorFontSize = config.get<number>('editor.fontSize');
       const defaultPanel = config.get<string>('editor.defaultPanel') || 'yaml-ui';
       const collapseDescription = !!config.get<boolean>('editor.collapseDescription');
-      return {command: 'config', bodyAutoFormat, editorFontSize, defaultPanel, collapseDescription};
+      const reportSpillBytes = config.get<number>('suite.reportSpillBytes');
+      return {
+        command: 'config',
+        bodyAutoFormat,
+        editorFontSize,
+        defaultPanel,
+        collapseDescription,
+        reportSpillBytes: typeof reportSpillBytes === 'number' && reportSpillBytes >= 0 ?
+            reportSpillBytes :
+            2097152,
+      };
     } catch {
-      return {command: 'config', bodyAutoFormat: false, editorFontSize: 12, defaultPanel: 'yaml-ui', collapseDescription: false};
+      return {
+        command: 'config',
+        bodyAutoFormat: false,
+        editorFontSize: 12,
+        defaultPanel: 'yaml-ui',
+        collapseDescription: false,
+        reportSpillBytes: 2097152,
+      };
     }
   }
 

@@ -15,6 +15,8 @@ export function areSuiteTreeRowPropsEqual<T extends {
   canShowStatusIcon?: boolean;
   showRunButton?: boolean;
   duplicateServer?: boolean;
+  reportSpilled?: boolean;
+  reportLoading?: boolean;
 }>(prev: T, next: T): boolean {
   if (prev.item?.index !== next.item?.index) {
     return false;
@@ -47,6 +49,12 @@ export function areSuiteTreeRowPropsEqual<T extends {
     return false;
   }
   if (prev.duplicateServer !== next.duplicateServer) {
+    return false;
+  }
+  if (prev.reportSpilled !== next.reportSpilled) {
+    return false;
+  }
+  if (prev.reportLoading !== next.reportLoading) {
     return false;
   }
   if (prev.item?.isFolder || next.item?.isFolder) {

@@ -71,6 +71,9 @@ interface SuiteTestTreeProps {
   statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
 
   reportsById: Record<string, StepReportItem[]>;
+  spilledReportIds?: Set<string>;
+  loadingReportIds?: Set<string>;
+  onRequestReports?: (nodeId: string) => void;
   runStateById: Record<string, StepStatus>;
   /** View-only status filter; does not change run data or exports. */
   statusFilter?: ReportStatusFilter;
@@ -366,6 +369,9 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   missingFiles,
   statusIconFor,
   reportsById,
+  spilledReportIds,
+  loadingReportIds,
+  onRequestReports,
   runStateById,
   statusFilter = 'all',
   duplicateServerIds,
@@ -592,6 +598,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     const stepReports = showReports
       ? (reportsById[testLeafId!] || EMPTY_STEP_REPORTS)
       : EMPTY_STEP_REPORTS;
+    const reportSpilled = Boolean(testLeafId && spilledReportIds?.has(testLeafId));
+    const reportLoading = Boolean(testLeafId && loadingReportIds?.has(testLeafId));
 
     return (
       <SuiteTestFileItem
@@ -604,6 +612,13 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         statusIconFor={statusIconFor as any}
         status={status}
         stepReports={stepReports}
+        reportSpilled={reportSpilled}
+        reportLoading={reportLoading}
+        onRequestReports={
+          reportSpilled && testLeafId && onRequestReports
+            ? () => onRequestReports(testLeafId)
+            : undefined
+        }
         onRun={data.type !== 'server' && canRunLeaf ? () => onRunTargets(testLeafId!) : undefined}
         onRunInCore={
           data.type !== 'server' && canRunLeaf && onRunTargetsInCore
@@ -623,6 +638,9 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     onRunTargets,
     onRunTargetsInCore,
     reportsById,
+    spilledReportIds,
+    loadingReportIds,
+    onRequestReports,
     runStateById,
     duplicateServerIds,
     statusIconFor,
