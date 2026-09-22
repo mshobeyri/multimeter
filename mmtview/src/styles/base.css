@@ -534,6 +534,8 @@ span.vertical.disabled:active {
   align-items: center;
   gap: 8px;
   cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .report-step-head.is-clickable {

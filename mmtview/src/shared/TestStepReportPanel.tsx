@@ -397,7 +397,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                       status={isDebug ? 'debug' : report.status}
                       cached={report.cached === true}
                     />
-                    <span className="report-selectable field-grow ellipsis">
+                    <span className="field-grow ellipsis">
                       {report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}
                     </span>
                     {showTimestamps && (
