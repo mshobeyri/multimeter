@@ -9,17 +9,16 @@ import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import { SuiteEntry, SuiteGroup } from '../types';
-import { SuiteTestTree } from './';
 import type { SuiteTestTreeHandle } from './SuiteTestTree';
+import SuiteTestTreePanel from './SuiteTestTreePanel';
+import { createSuiteRunDataStore, useSuiteRunOverview } from './suiteRunDataStore';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
-import { resetLeafStateMap } from './leafStateReset';
 import {
     buildFullSuitePendingState,
     buildTargetPendingState,
     isUnderSuiteTarget,
-    mergePendingRunState,
 } from './suiteRunStatus';
 import {
     fingerprintHierarchyByEntryId,
@@ -37,11 +36,7 @@ import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestRepo
 import { runInCoreMenuItem } from '../../components/ContextMenuHost';
 import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
 import RunStopToggle from '../../components/RunStopToggle';
-import {
-    computeReportStats,
-    expandedTreeItemsToReportNodeIds,
-    type ReportStepStats,
-} from '../../shared/reportSpillLogic';
+import { expandedTreeItemsToReportNodeIds } from '../../shared/reportSpillLogic';
 import {
     deleteSpilledReportsForFile,
     getSpilledReports,
@@ -492,15 +487,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const ignoredSuiteRunIdsRef = useRef<Set<string>>(new Set());
     const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
     const [loadRunSummary, setLoadRunSummary] = useState<LoadRunSummary | null>(null);
-    const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
-    const [spilledReportIds, setSpilledReportIds] = useState<Set<string>>(() => new Set());
-    const [reportStatsById, setReportStatsById] = useState<Record<string, ReportStepStats>>({});
-    const [loadingReportIds, setLoadingReportIds] = useState<Set<string>>(() => new Set());
-    const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
-    const spilledReportIdsRef = useRef<Set<string>>(new Set());
-    const reportStatsByIdRef = useRef<Record<string, ReportStepStats>>({});
-    spilledReportIdsRef.current = spilledReportIds;
-    reportStatsByIdRef.current = reportStatsById;
+    const runDataStoreRef = useRef(createSuiteRunDataStore());
+    const runDataStore = runDataStoreRef.current;
+    const runOverview = useSuiteRunOverview(runDataStore);
     const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
     const suiteTreeRef = useRef<SuiteTestTreeHandle>(null);
     const suiteRunStartTimeRef = useRef<number | null>(null);
@@ -535,27 +524,23 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [trimIgnoredSuiteRuns]);
 
     const clearReportSpillState = useCallback(async () => {
-        setSpilledReportIds(new Set());
-        setReportStatsById({});
-        setLoadingReportIds(new Set());
+        runDataStore.clearSpillState();
         if (mmtFilePath) {
             await deleteSpilledReportsForFile(mmtFilePath);
         }
-    }, [mmtFilePath]);
+    }, [mmtFilePath, runDataStore]);
 
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
-            setLeafReportsById({});
-            setLeafRunStateById({});
+            runDataStore.resetAll();
             void clearReportSpillState();
             return;
         }
         if (!Array.isArray(mode) || mode.length === 0) {
             return;
         }
-        setLeafReportsById(prev => resetLeafStateMap(prev, mode));
-        setLeafRunStateById(prev => resetLeafStateMap(prev, mode));
-    }, [clearReportSpillState]);
+        runDataStore.resetPartial(mode);
+    }, [clearReportSpillState, runDataStore]);
 
     useEffect(() => {
         lastRunIdByEntryIdRef.current = lastRunIdByEntryId;
@@ -644,67 +629,41 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return next;
         });
 
-        const runStateIds = Object.keys(runStatePatches);
-        if (runStateIds.length > 0) {
-            setLeafRunStateById(prev => {
-                const next = { ...prev };
-                runStateIds.forEach((id) => {
-                    next[id] = runStatePatches[id];
-                });
-                return next;
-            });
+        if (Object.keys(runStatePatches).length > 0) {
+            runDataStore.patchRunState(runStatePatches);
         }
 
         const reportIds = Object.keys(reportPatches);
         if (reportIds.length > 0) {
-            setLeafReportsById((prev) => {
-                const next = { ...prev };
-                const nextStats = { ...reportStatsByIdRef.current };
-                reportIds.forEach((id) => {
-                    next[id] = [...(next[id] || []), ...reportPatches[id]];
-                    if (!spilledReportIdsRef.current.has(id)) {
-                        nextStats[id] = computeReportStats(next[id]);
+            const next = runDataStore.appendReports(reportPatches);
+            const fileKey = mmtFilePath || '';
+            const suiteRunId = suiteRunIdRef.current || '';
+            if (fileKey && suiteRunId) {
+                const protectNodeIds = new Set(expandedReportNodeIdsRef.current);
+                void (async () => {
+                    const spilled = await spillExcessReports({
+                        reports: next,
+                        spilled: runDataStore.getSpilledReportIds(),
+                        stats: runDataStore.getReportStatsById(),
+                        fileKey,
+                        suiteRunId,
+                        protectNodeIds,
+                    });
+                    if (!spilled.didSpill) {
+                        return;
                     }
-                });
-                setReportStatsById(nextStats);
-                reportStatsByIdRef.current = nextStats;
-
-                const fileKey = mmtFilePath || '';
-                const suiteRunId = suiteRunIdRef.current || '';
-                if (fileKey && suiteRunId) {
-                    const protectNodeIds = new Set(expandedReportNodeIdsRef.current);
-                    void (async () => {
-                        const spilled = await spillExcessReports({
-                            reports: next,
-                            spilled: spilledReportIdsRef.current,
-                            stats: nextStats,
-                            fileKey,
-                            suiteRunId,
-                            protectNodeIds,
-                        });
-                        if (!spilled.didSpill) {
+                    const clearedIds: string[] = [];
+                    spilled.spilled.forEach((id) => {
+                        if (protectNodeIds.has(id) || expandedReportNodeIdsRef.current.has(id)) {
                             return;
                         }
-                        spilledReportIdsRef.current = spilled.spilled;
-                        reportStatsByIdRef.current = spilled.stats;
-                        setLeafReportsById((current) => {
-                            const merged = { ...current };
-                            spilled.spilled.forEach((id) => {
-                                if (protectNodeIds.has(id) || expandedReportNodeIdsRef.current.has(id)) {
-                                    return;
-                                }
-                                merged[id] = [];
-                            });
-                            return merged;
-                        });
-                        setSpilledReportIds(spilled.spilled);
-                        setReportStatsById(spilled.stats);
-                    })();
-                }
-                return next;
-            });
+                        clearedIds.push(id);
+                    });
+                    runDataStore.applySpill(spilled.spilled, spilled.stats, clearedIds);
+                })();
+            }
         }
-    }, [mmtFilePath]);
+    }, [mmtFilePath, runDataStore]);
 
     const handleExpandedItemsChange = useCallback((
         expandedItems: string[],
@@ -719,39 +678,23 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (!fileKey || !suiteRunId || !nodeId) {
             return;
         }
-        if (!spilledReportIdsRef.current.has(nodeId)) {
+        if (!runDataStore.getSpilledReportIds().has(nodeId)) {
             return;
         }
-        if (loadingReportIds.has(nodeId)) {
+        if (runDataStore.getLoadingReportIds().has(nodeId)) {
             return;
         }
-        setLoadingReportIds((prev) => new Set(prev).add(nodeId));
+        runDataStore.setLoadingReport(nodeId, true);
         try {
             const reports = await getSpilledReports(fileKey, suiteRunId, nodeId);
             if (!reports) {
                 return;
             }
-            setLeafReportsById((prev) => {
-                const inline = prev[nodeId] || [];
-                if (!inline.length) {
-                    return { ...prev, [nodeId]: reports };
-                }
-                return { ...prev, [nodeId]: [...reports, ...inline] };
-            });
-            setSpilledReportIds((prev) => {
-                const next = new Set(prev);
-                next.delete(nodeId);
-                spilledReportIdsRef.current = next;
-                return next;
-            });
+            runDataStore.mergeLoadedReports(nodeId, reports);
         } finally {
-            setLoadingReportIds((prev) => {
-                const next = new Set(prev);
-                next.delete(nodeId);
-                return next;
-            });
+            runDataStore.setLoadingReport(nodeId, false);
         }
-    }, [loadingReportIds, mmtFilePath]);
+    }, [mmtFilePath, runDataStore]);
 
     useEffect(() => {
         const fileKey = mmtFilePath || '';
@@ -1048,14 +991,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 const hint = pendingLeafResetRef.current;
                 pendingLeafResetRef.current = null;
                 if (hint === 'all') {
-                    setLeafReportsById({});
-                    setSpilledReportIds(new Set());
-                    setReportStatsById({});
-                    setLoadingReportIds(new Set());
-                    spilledReportIdsRef.current = new Set();
-                    reportStatsByIdRef.current = {};
+                    runDataStore.resetReportsAndSpill();
                 } else if (Array.isArray(hint) && hint.length) {
-                    setLeafReportsById((prev) => resetLeafStateMap(prev, hint));
+                    runDataStore.resetPartial(hint);
                 } else {
                     resetLeafState('all');
                 }
@@ -1073,7 +1011,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 const cancelled = Boolean((message as any).cancelled);
                 flushReportQueue();
                 // Clear stuck "running" on own nodes only (no child→parent rollup).
-                setLeafRunStateById((prev) => {
+                runDataStore.replaceRunState((prev) => {
                     const next = { ...prev };
                     let changed = false;
                     Object.keys(next).forEach((id) => {
@@ -1094,17 +1032,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 } else if (mode === 'loadtest' && typeof (message as any).success === 'boolean') {
                     setSuiteRunState((message as any).success ? 'passed' : 'failed');
                 } else {
-                    setLeafRunStateById((prev) => {
-                        const vals = Object.values(prev);
-                        const hasFailed = vals.some(v => v === 'failed');
-                        const hasInvalid = vals.some(v => v === 'invalid');
-                        setSuiteRunState(
-                            hasFailed ? 'failed' :
-                            hasInvalid ? 'invalid' :
-                            vals.some(v => v === 'skipped') && !vals.some(v => v === 'passed' || v === 'running') ? 'skipped' :
-                            'passed');
-                        return prev;
-                    });
+                    const vals = Object.values(runDataStore.getRunStateById());
+                    const hasFailed = vals.some(v => v === 'failed');
+                    const hasInvalid = vals.some(v => v === 'invalid');
+                    setSuiteRunState(
+                        hasFailed ? 'failed' :
+                        hasInvalid ? 'invalid' :
+                        vals.some(v => v === 'skipped') && !vals.some(v => v === 'passed' || v === 'running') ? 'skipped' :
+                        'passed');
                 }
                 if (suiteRunStartTimeRef.current) {
                     setSuiteRunDurationMs(Date.now() - suiteRunStartTimeRef.current);
@@ -1125,7 +1060,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     return;
                 }
                 setSuiteRunState('cancelled');
-                setLeafRunStateById((prev) => {
+                runDataStore.replaceRunState((prev) => {
                     const next: typeof prev = { ...prev };
                     Object.keys(next).forEach((k) => {
                         if (next[k] === 'running' || next[k] === 'pending') {
@@ -1173,7 +1108,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns]);
+    }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns, runDataStore]);
 
     useEffect(() => {
         if (allPaths.length === 0) {
@@ -1197,10 +1132,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         const startedAt = Date.now();
         flushSync(() => {
-            setLeafReportsById({});
-            setSpilledReportIds(new Set());
-            setReportStatsById({});
-            setLoadingReportIds(new Set());
+            runDataStore.resetReportsAndSpill();
             setSuiteRunDurationMs(0);
             beginSuiteRun(nextSuiteRunId);
             suiteRunStartTimeRef.current = startedAt;
@@ -1208,19 +1140,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             pendingLeafResetRef.current = 'all';
             partialRunTargetRef.current = null;
             // Use whatever hierarchy is already loaded; refresh pending icons in the background.
-            setLeafRunStateById(buildFullSuitePendingState(groups, hierarchy));
+            runDataStore.setRunState(buildFullSuitePendingState(groups, hierarchy));
             setSuiteRunState('running');
         });
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
         if (!allEntriesHaveHierarchy(hierarchy)) {
             void ensureHierarchyFresh().then((fresh) => {
-                setLeafRunStateById((prev) => mergePendingRunState(
-                    prev,
-                    buildFullSuitePendingState(groups, fresh),
-                ));
+                runDataStore.mergeRunState(buildFullSuitePendingState(groups, fresh));
             });
         }
-    }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, clearReportSpillState, suiteRunState]);
+    }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, clearReportSpillState, runDataStore, suiteRunState]);
 
     const onRunTargets = useCallback((target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
@@ -1241,11 +1170,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 pendingLeafResetRef.current = [effectiveTarget];
                 partialRunTargetRef.current = effectiveTarget;
                 const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchy);
-                setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
-                setLeafRunStateById((prev) => ({
-                    ...resetLeafStateMap(prev, [effectiveTarget]),
-                    ...pendingMap,
-                }));
+                runDataStore.resetPartial([effectiveTarget]);
+                runDataStore.patchRunState(pendingMap);
                 beginSuiteRun(nextSuiteRunId);
                 suiteRunStartTimeRef.current = startedAt;
                 setSuiteRunStartedAt(startedAt);
@@ -1261,17 +1187,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         startPartialRun(previousHierarchy);
         if (!allEntriesHaveHierarchy(previousHierarchy)) {
             void ensureHierarchyFresh().then((fresh) => {
-                setLeafRunStateById((prev) => mergePendingRunState(
-                    prev,
-                    buildTargetPendingState(
-                        remapSuiteTargetId(requestedTarget, previousHierarchy, fresh),
-                        groups,
-                        fresh,
-                    ),
+                runDataStore.mergeRunState(buildTargetPendingState(
+                    remapSuiteTargetId(requestedTarget, previousHierarchy, fresh),
+                    groups,
+                    fresh,
                 ));
             });
         }
-    }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, suiteRunState]);
+    }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, runDataStore, suiteRunState]);
 
     const onRunSuiteInCore = useCallback(() => {
         window.vscode?.postMessage({
@@ -1316,8 +1239,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
     const handleExportReport = useCallback(async (format: ReportFormat) => {
         const leafReportsForExport = await materializeSpilledReports(
-            leafReportsById,
-            spilledReportIds,
+            runDataStore.getReportsById(),
+            runDataStore.getSpilledReportIds(),
             mmtFilePath || '',
             suiteRunIdRef.current,
         );
@@ -1327,7 +1250,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             data: {
                 type: mode === 'loadtest' ? 'loadtest' : 'suite',
                 leafReportsById: leafReportsForExport,
-                leafRunStateById,
+                leafRunStateById: runDataStore.getRunStateById(),
                 suiteRunState,
                 startedAt: suiteRunStartedAt,
                 durationMs: suiteRunDurationMs,
@@ -1339,14 +1262,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     : undefined,
             },
         });
-    }, [leafReportsById, spilledReportIds, leafRunStateById, suiteRunState, suiteRunStartedAt, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
+    }, [runDataStore, suiteRunState, suiteRunStartedAt, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
 
-    const hasSuiteReportData = useMemo(() => {
-        if (Object.keys(reportStatsById).length > 0 || spilledReportIds.size > 0) {
-            return true;
-        }
-        return Object.values(leafReportsById).some((reports) => reports.length > 0);
-    }, [leafReportsById, reportStatsById, spilledReportIds]);
+    const hasSuiteReportData = runOverview.hasReportData;
 
     const suiteExportDisabled =
         suiteRunState === 'pending' ||
@@ -1375,48 +1293,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             durationSub: formatOverviewRelativeTime(loadRunSummary?.config?.started_at || suiteRunStartedAt),
             };
         }
-        let passed = 0;
-        let failed = 0;
-        let skipped = 0;
-        let fileCount = 0;
-        const countedStats = new Set<string>();
-        for (const [id, reports] of Object.entries(leafReportsById)) {
-            if (spilledReportIds.has(id)) {
-                const stats = reportStatsById[id];
-                if (stats) {
-                    passed += stats.passed;
-                    failed += stats.failed;
-                    fileCount += 1;
-                    countedStats.add(id);
-                }
-                continue;
-            }
-            if (reports.length > 0) {
-                fileCount += 1;
-            }
-            for (const report of reports) {
-                if (report.status === 'failed') {
-                    failed += 1;
-                } else {
-                    passed += 1;
-                }
-            }
-        }
-        for (const [id, stats] of Object.entries(reportStatsById)) {
-            if (countedStats.has(id)) {
-                continue;
-            }
-            if (!leafReportsById[id]?.length && stats.stepCount > 0) {
-                passed += stats.passed;
-                failed += stats.failed;
-                fileCount += 1;
-            }
-        }
-        for (const status of Object.values(leafRunStateById)) {
-            if (status === 'skipped') {
-                skipped += 1;
-            }
-        }
+        const { passed, failed, skipped, fileCount } = runOverview;
         const total = passed + failed + skipped;
         if (total === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
             return null;
@@ -1431,20 +1308,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             totalSub: skipped > 0 ? `${skipped} skipped` : `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
                     durationSub: formatOverviewRelativeTime(suiteRunStartedAt),
         };
-    }, [leafReportsById, leafRunStateById, spilledReportIds, reportStatsById, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
+    }, [runOverview, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
 
     const tree = (
-        <SuiteTestTree
+        <SuiteTestTreePanel
             ref={suiteTreeRef}
+            store={runDataStore}
             groups={groups}
             hierarchyByEntryId={hierarchyByEntryId}
             missingFiles={effectiveMissingFiles}
             statusIconFor={statusIconFor}
-            reportsById={leafReportsById}
-            spilledReportIds={spilledReportIds}
-            loadingReportIds={loadingReportIds}
-            onRequestReports={loadReportsForNode}
-            runStateById={leafRunStateById}
             duplicateServerIds={duplicateServerIds}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
@@ -1453,6 +1326,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             onRequestHierarchy={loadHierarchyForEntry}
             suiteStructureKey={suiteStructureKey}
             onExpandedItemsChange={handleExpandedItemsChange}
+            onRequestReports={loadReportsForNode}
         />
     );
 
@@ -1642,7 +1516,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                         <ReportStatusFilterButton
                                             value={statusFilter}
                                             onChange={setStatusFilter}
-                                            disabled={Object.keys(leafRunStateById).length === 0}
+                                            disabled={!runOverview.hasRunState}
                                         />
                                         <ReportCollapseButton
                                             onCollapseAll={() => suiteTreeRef.current?.collapseAll()}
