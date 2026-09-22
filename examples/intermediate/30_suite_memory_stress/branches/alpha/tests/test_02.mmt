@@ -1,0 +1,340 @@
+type: test
+title: "test_02"
+description: "Stress test 2 — many HTTP calls and verbose checks to inflate suite run reports"
+steps:
+  - http: https://test.mmt.dev/json
+    id: s1
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.1 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s1.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.1 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s1.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.1 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s1.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.1 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s2
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.2 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s2.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.2 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s2.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.2 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s2.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.2 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s3
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.3 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s3.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.3 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s3.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.3 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s3.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.3 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s4
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.4 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s4.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.4 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s4.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.4 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s4.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.4 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s5
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.5 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s5.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.5 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s5.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.5 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s5.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.5 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s6
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.6 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s6.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.6 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s6.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.6 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s6.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.6 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s7
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.7 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s7.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.7 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s7.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.7 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s7.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.7 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s8
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.8 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s8.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.8 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s8.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.8 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s8.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.8 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s9
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.9 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s9.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.9 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s9.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.9 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s9.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.9 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s10
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.10 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s10.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.10 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s10.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.10 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s10.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.10 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s11
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.11 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s11.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.11 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s11.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.11 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s11.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.11 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s12
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.12 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s12.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.12 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s12.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.12 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s12.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.12 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s13
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.13 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s13.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.13 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s13.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.13 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s13.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.13 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s14
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.14 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s14.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.14 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s14.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.14 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s14.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.14 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s15
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.15 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s15.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.15 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s15.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.15 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s15.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.15 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s16
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.16 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s16.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.16 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s16.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.16 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s16.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.16 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s17
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.17 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s17.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.17 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s17.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.17 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s17.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.17 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s18
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.18 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s18.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.18 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s18.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.18 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s18.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.18 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s19
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.19 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s19.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.19 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s19.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.19 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s19.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.19 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s20
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.20 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s20.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.20 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s20.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.20 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s20.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.20 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s21
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.21 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s21.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.21 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s21.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.21 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s21.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.21 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s22
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.22 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s22.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.22 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s22.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.22 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s22.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.22 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s23
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.23 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s23.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.23 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s23.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.23 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s23.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.23 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s24
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.24 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s24.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.24 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s24.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.24 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s24.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.24 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s25
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.25 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s25.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.25 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s25.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.25 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s25.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.25 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s26
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.26 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s26.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.26 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s26.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.26 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s26.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.26 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s27
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.27 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s27.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.27 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s27.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.27 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s27.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.27 — GET json baseline — response headers must be present for report detail panels and spill reload"
+  - http: https://test.mmt.dev/json
+    id: s28
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.28 — GET json baseline"
+    method: get
+    expect:
+      status: 200
+  - check: ${s28.status} == 200
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.28 — GET json baseline — status code must remain 200 after suite routing and spill reload"
+  - check: ${s28.body} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.28 — GET json baseline — response message body must be non-empty for report detail panels"
+  - check: ${s28.headers} != ""
+    title: "Memory stress probe — verify JSON payload fields, response headers, and timing metadata for suite report spill testing. Segment 2.28 — GET json baseline — response headers must be present for report detail panels and spill reload"
