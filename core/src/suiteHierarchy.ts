@@ -7,7 +7,7 @@ import {
 } from './SuiteData';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {createSuiteNodeId} from './suiteNodeId';
-import {yamlToTest} from './testParsePack';
+import {peekTestMetaFromYaml} from './testParsePack';
 import {brunoToTest, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, isHttpFilePath} from './httpParsePack';
 import {yamlToMock} from './mockParsePack';
@@ -143,12 +143,23 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
       let title: string | undefined;
       let tags: string[] | undefined;
       try {
-        const testDoc = isHttpFilePath(resolvedPath) ? httpToTest(raw, resolvedPath) :
-          isBrunoFilePath(resolvedPath) ? brunoToTest(raw, resolvedPath) : yamlToTest(raw);
-        if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
-          title = testDoc.title.trim();
+        if (isHttpFilePath(resolvedPath)) {
+          const testDoc = httpToTest(raw, resolvedPath);
+          if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
+            title = testDoc.title.trim();
+          }
+          tags = optionalTags(testDoc?.tags);
+        } else if (isBrunoFilePath(resolvedPath)) {
+          const testDoc = brunoToTest(raw, resolvedPath);
+          if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
+            title = testDoc.title.trim();
+          }
+          tags = optionalTags(testDoc?.tags);
+        } else {
+          const meta = peekTestMetaFromYaml(raw);
+          title = meta.title;
+          tags = optionalTags(meta.tags);
         }
-        tags = optionalTags(testDoc?.tags);
       } catch {
         // ignore
       }

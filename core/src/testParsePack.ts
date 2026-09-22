@@ -212,6 +212,33 @@ function normalizeTestFlowStages(stages: unknown): any[] | undefined {
   });
 }
 
+export type TestYamlMeta = {
+  title?: string;
+  tags?: string[];
+};
+
+/** Read test title/tags for suite hierarchy without normalizing steps. */
+export function peekTestMetaFromYaml(yamlContent: string): TestYamlMeta {
+  try {
+    const doc = parseYaml(quoteExpectOperators(yamlContent)) as any;
+    if (!doc || typeof doc !== 'object') {
+      return {};
+    }
+    const title = typeof doc.title === 'string' && doc.title.trim() ?
+        doc.title.trim() :
+        undefined;
+    const tags = Array.isArray(doc.tags) ?
+        doc.tags.map((t: unknown) => String(t).trim()).filter(Boolean) :
+        undefined;
+    return {
+      title,
+      tags: tags?.length ? tags : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export function yamlToTest(yamlContent: string): TestData {
   try {
     const doc = parseYaml(quoteExpectOperators(yamlContent)) as any;

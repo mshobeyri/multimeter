@@ -820,16 +820,32 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         return result;
     }, [groups]);
 
+    const allEntriesHaveHierarchy = useCallback((
+        hierarchyByEntryId: Record<string, SuiteTreeNode>,
+    ): boolean => {
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                if (!entry?.id || !hierarchyByEntryId[entry.id]) {
+                    return false;
+                }
+            }
+        }
+        return groups.some((group) => group.entries.length > 0);
+    }, [groups]);
+
     /** Rebuild hierarchy from current YAML; update UI only when structure changed. */
     const ensureHierarchyFresh = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
-        const next = await fetchHierarchyByEntryId();
         const previous = hierarchyByEntryIdRef.current;
+        if (allEntriesHaveHierarchy(previous)) {
+            return previous;
+        }
+        const next = await fetchHierarchyByEntryId();
         if (fingerprintHierarchyByEntryId(next) !== fingerprintHierarchyByEntryId(previous)) {
             hierarchyByEntryIdRef.current = next;
             setHierarchyByEntryId(next);
         }
         return next;
-    }, [fetchHierarchyByEntryId]);
+    }, [allEntriesHaveHierarchy, fetchHierarchyByEntryId]);
 
     const loadingHierarchyRef = useRef<Set<string>>(new Set());
     const prefetchGenerationRef = useRef(0);
@@ -1142,40 +1158,41 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
     }, [allPaths]);
 
-    const onRunSuite = useCallback(async () => {
+    const onRunSuite = useCallback(() => {
         if (suiteRunState === 'pending' || suiteRunState === 'running') {
             return;
         }
-        // Show Starting… before hierarchy fetch / pending-state work.
+        void clearReportSpillState();
+        const hierarchy = hierarchyByEntryIdRef.current;
+        const nextSuiteRunId = `suite-ui:${Date.now()}`;
+        const startedAt = Date.now();
         flushSync(() => {
-            setSuiteRunState('pending');
             setLeafReportsById({});
             setSpilledReportIds(new Set());
             setReportStatsById({});
             setLoadingReportIds(new Set());
             setSuiteRunDurationMs(0);
-        });
-        void clearReportSpillState();
-        try {
-            const hierarchy = await ensureHierarchyFresh();
-            const nextSuiteRunId = `suite-ui:${Date.now()}`;
-            const startedAt = Date.now();
             beginSuiteRun(nextSuiteRunId);
             suiteRunStartTimeRef.current = startedAt;
             setSuiteRunStartedAt(startedAt);
             pendingLeafResetRef.current = 'all';
             partialRunTargetRef.current = null;
-            // Mark every known runnable node pending until its own suite-item arrives.
+            // Use whatever hierarchy is already loaded; refresh pending icons in the background.
             setLeafRunStateById(buildFullSuitePendingState(groups, hierarchy));
             setSuiteRunState('running');
-            window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-        } catch (error) {
-            setSuiteRunState('default');
-            throw error;
+        });
+        window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
+        if (!allEntriesHaveHierarchy(hierarchy)) {
+            void ensureHierarchyFresh().then((fresh) => {
+                setLeafRunStateById((prev) => ({
+                    ...prev,
+                    ...buildFullSuitePendingState(groups, fresh),
+                }));
+            });
         }
-    }, [groups, ensureHierarchyFresh, beginSuiteRun, clearReportSpillState, suiteRunState]);
+    }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, clearReportSpillState, suiteRunState]);
 
-    const onRunTargets = useCallback(async (target: string) => {
+    const onRunTargets = useCallback((target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
         if (!requestedTarget) {
             return;
@@ -1184,54 +1201,66 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return;
         }
 
-        flushSync(() => {
-            setSuiteRunState('pending');
-            setSuiteRunDurationMs(0);
-        });
-        try {
-            const previousHierarchy = hierarchyByEntryIdRef.current;
-            const hierarchy = await ensureHierarchyFresh();
+        const previousHierarchy = hierarchyByEntryIdRef.current;
+        const startPartialRun = (hierarchy: Record<string, SuiteTreeNode>) => {
             const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, hierarchy);
-
-            pendingLeafResetRef.current = [effectiveTarget];
-            // Prefix allowlist: target + descendants (suite-node:1.1 → suite-node:1.1.*).
-            partialRunTargetRef.current = effectiveTarget;
-            const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchy);
-            setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
-            setLeafRunStateById((prev) => ({
-                ...resetLeafStateMap(prev, [effectiveTarget]),
-                ...pendingMap,
-            }));
-
             const nextSuiteRunId = `suite-ui:${Date.now()}`;
             const startedAt = Date.now();
-            beginSuiteRun(nextSuiteRunId);
-            suiteRunStartTimeRef.current = startedAt;
-            setSuiteRunStartedAt(startedAt);
-            setSuiteRunState('running');
-            window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
-        } catch (error) {
-            setSuiteRunState('default');
-            throw error;
-        }
-    }, [groups, ensureHierarchyFresh, beginSuiteRun, suiteRunState]);
+            flushSync(() => {
+                setSuiteRunDurationMs(0);
+                pendingLeafResetRef.current = [effectiveTarget];
+                partialRunTargetRef.current = effectiveTarget;
+                const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchy);
+                setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
+                setLeafRunStateById((prev) => ({
+                    ...resetLeafStateMap(prev, [effectiveTarget]),
+                    ...pendingMap,
+                }));
+                beginSuiteRun(nextSuiteRunId);
+                suiteRunStartTimeRef.current = startedAt;
+                setSuiteRunStartedAt(startedAt);
+                setSuiteRunState('running');
+            });
+            window.vscode?.postMessage({
+                command: 'runSuite',
+                suiteRunId: nextSuiteRunId,
+                target: effectiveTarget,
+            });
+        };
 
-    const onRunSuiteInCore = useCallback(async () => {
-        await ensureHierarchyFresh();
+        startPartialRun(previousHierarchy);
+        if (!allEntriesHaveHierarchy(previousHierarchy)) {
+            void ensureHierarchyFresh().then((fresh) => {
+                setLeafRunStateById((prev) => ({
+                    ...prev,
+                    ...buildTargetPendingState(
+                        remapSuiteTargetId(requestedTarget, previousHierarchy, fresh),
+                        groups,
+                        fresh,
+                    ),
+                }));
+            });
+        }
+    }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, suiteRunState]);
+
+    const onRunSuiteInCore = useCallback(() => {
         window.vscode?.postMessage({
             command: 'runSuite',
             suiteRunId: `suite-logs:${Date.now()}`,
             report: { type: 'lifecycle' },
         });
-    }, [ensureHierarchyFresh]);
+        if (!allEntriesHaveHierarchy(hierarchyByEntryIdRef.current)) {
+            void ensureHierarchyFresh();
+        }
+    }, [allEntriesHaveHierarchy, ensureHierarchyFresh]);
 
-    const onRunTargetsInCore = useCallback(async (target: string) => {
+    const onRunTargetsInCore = useCallback((target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
         if (!requestedTarget) {
             return;
         }
         const previousHierarchy = hierarchyByEntryIdRef.current;
-        const hierarchy = await ensureHierarchyFresh();
+        const hierarchy = previousHierarchy;
         const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, hierarchy);
         window.vscode?.postMessage({
             command: 'runSuite',
@@ -1239,7 +1268,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             target: effectiveTarget,
             report: { type: 'lifecycle' },
         });
-    }, [ensureHierarchyFresh]);
+        if (!allEntriesHaveHierarchy(previousHierarchy)) {
+            void ensureHierarchyFresh();
+        }
+    }, [allEntriesHaveHierarchy, ensureHierarchyFresh]);
 
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {

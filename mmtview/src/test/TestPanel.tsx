@@ -303,6 +303,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                 <div className="panel-page">
                   <TestTest
                     testData={test}
+                    runYaml={hasUiOverrides ? modifiedYaml : appliedContent}
                     onInputsModificationChange={handleInputsModificationChange}
                     onInputsReset={handleInputsReset}
                   />
