@@ -4,11 +4,20 @@ Large nested suite for testing suite panel performance, report spill to IndexedD
 
 ## Layout
 
-- **Stage 1** (parallel): `branches/alpha` and `branches/beta` — 6 tests each
-- **Stage 2** (parallel): `branches/gamma` — two nested suites (`shallow/` and `deep/`)
-- **Stage 3**: `leaf/` — 8 tests
+Root `suite.mmt` wraps several explicit suite-in-suite envelopes (no circular references):
 
-Each test hits `https://test.mmt.dev/json` many times with long step titles so suite run reports grow quickly (~35 tests, ~80+ steps per test).
+```
+suite.mmt
+  └── envelopes/layer_1 → layer_2 → layer_3
+        └── bundles/core
+              ├── bundles/stage_one → branches/alpha + branches/beta (parallel)
+              ├── then
+              ├── bundles/gamma_wrap → branches/gamma → shallow + deep
+              ├── then
+              └── envelopes/leaf_wrap → nested/leaf_shell → leaf/
+```
+
+Each test hits `https://test.mmt.dev/json` many times. Every HTTP and check step uses `report: all` so suite runs emit full pass reports (not just failures). Long step titles inflate report size (~29 tests, ~80+ step reports per test).
 
 ## Run
 

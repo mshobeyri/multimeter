@@ -37,12 +37,16 @@ function buildTestFile(name, index, stepCount = 24) {
     lines.push('    method: get');
     lines.push('    expect:');
     lines.push('      status: 200');
+    lines.push('    report: all');
     lines.push(`  - check: \${${stepId}.status} == 200`);
     lines.push(`    title: ${yamlQuote(`${label} — status code must remain 200 after suite routing and spill reload`)}`);
+    lines.push('    report: all');
     lines.push(`  - check: \${${stepId}.body} != ""`);
     lines.push(`    title: ${yamlQuote(`${label} — response message body must be non-empty for report detail panels`)}`);
+    lines.push('    report: all');
     lines.push(`  - check: \${${stepId}.headers} != ""`);
     lines.push(`    title: ${yamlQuote(`${label} — response headers must be present for report detail panels and spill reload`)}`);
+    lines.push('    report: all');
   }
 
   lines.push('');
@@ -133,22 +137,76 @@ function main() {
     items: deltaTests.map((f) => `tests/${f}`),
   });
 
-  const alphaRel = rel(root, path.join(root, 'branches', 'alpha', 'suite.mmt'));
-  const betaRel = rel(root, path.join(root, 'branches', 'beta', 'suite.mmt'));
-  const gammaRel = rel(root, path.join(root, 'branches', 'gamma', 'suite.mmt'));
-  const leafRel = rel(root, path.join(root, 'leaf', 'suite.mmt'));
+  // Explicit suite-in-suite wrappers (no circular references).
+  const stageOneDir = path.join(root, 'bundles', 'stage_one');
+  writeSuite(stageOneDir, 'suite.mmt', {
+    title: 'Stage one bundle',
+    description: 'Wraps alpha and beta branches for an extra suite nesting level',
+    items: [
+      rel(stageOneDir, path.join(root, 'branches', 'alpha', 'suite.mmt')),
+      rel(stageOneDir, path.join(root, 'branches', 'beta', 'suite.mmt')),
+    ],
+  });
+
+  const gammaWrapDir = path.join(root, 'bundles', 'gamma_wrap');
+  writeSuite(gammaWrapDir, 'suite.mmt', {
+    title: 'Gamma wrapper',
+    description: 'Extra suite shell around the gamma branch',
+    items: [rel(gammaWrapDir, path.join(root, 'branches', 'gamma', 'suite.mmt'))],
+  });
+
+  const leafShellDir = path.join(root, 'nested', 'leaf_shell');
+  writeSuite(leafShellDir, 'suite.mmt', {
+    title: 'Leaf shell',
+    description: 'One more suite layer before the leaf suite',
+    items: [rel(leafShellDir, path.join(root, 'leaf', 'suite.mmt'))],
+  });
+
+  const leafWrapDir = path.join(root, 'envelopes', 'leaf_wrap');
+  writeSuite(leafWrapDir, 'suite.mmt', {
+    title: 'Leaf envelope',
+    description: 'Envelope around the leaf shell suite',
+    items: [rel(leafWrapDir, path.join(root, 'nested', 'leaf_shell', 'suite.mmt'))],
+  });
+
+  const coreDir = path.join(root, 'bundles', 'core');
+  writeSuite(coreDir, 'suite.mmt', {
+    title: 'Core bundle',
+    description: 'Sequential stages with branch bundles, gamma wrapper, and leaf envelope',
+    items: [
+      rel(coreDir, path.join(stageOneDir, 'suite.mmt')),
+      'then',
+      rel(coreDir, path.join(gammaWrapDir, 'suite.mmt')),
+      'then',
+      rel(coreDir, path.join(leafWrapDir, 'suite.mmt')),
+    ],
+  });
+
+  const layer3Dir = path.join(root, 'envelopes', 'layer_3');
+  writeSuite(layer3Dir, 'suite.mmt', {
+    title: 'Envelope layer 3',
+    description: 'Outermost explicit nesting layer before the core bundle',
+    items: [rel(layer3Dir, path.join(coreDir, 'suite.mmt'))],
+  });
+
+  const layer2Dir = path.join(root, 'envelopes', 'layer_2');
+  writeSuite(layer2Dir, 'suite.mmt', {
+    title: 'Envelope layer 2',
+    description: 'Second explicit nesting envelope',
+    items: [rel(layer2Dir, path.join(layer3Dir, 'suite.mmt'))],
+  });
+
+  const layer1Dir = path.join(root, 'envelopes', 'layer_1');
+  writeSuite(layer1Dir, 'suite.mmt', {
+    title: 'Envelope layer 1',
+    description: 'First explicit nesting envelope under the root suite',
+    items: [rel(layer1Dir, path.join(layer2Dir, 'suite.mmt'))],
+  });
 
   writeSuite(root, 'suite.mmt', {
     title: 'Suite memory stress',
     description: 'Large nested suite for report spill and UI memory testing against test.mmt.dev',
-    items: [
-      alphaRel,
-      betaRel,
-      'then',
-      gammaRel,
-      'then',
-      leafRel,
-    ],
+    items: [rel(root, path.join(layer1Dir, 'suite.mmt'))],
   });
 
   console.log(`Generated ${testIndex} stress tests under ${root}`);
