@@ -2,6 +2,28 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.43.2-pre]
+
+Pre-release.
+
+### Suites and reports
+
+- Spill large suite reports to IndexedDB when over the memory threshold
+- Keep suite tree expansions stable during report spill runs
+- Decouple suite report state from panel re-renders; lazy-render step details on expand
+- Start suite and test runs without blocking on hierarchy or YAML serialize
+- Improve suite open performance with lazy hierarchy loading
+- Exclude skipped items from the suite overview pass rate
+- Show skipped count under **Filter** as **Total: N skipped**; overview **Total** stays executed steps with a test-file subtitle
+- Show YAML format warnings in the suite run bar; canonical `filter:` order is after `tags:`
+- Show direct child range labels on suite group rows
+- Make report step titles non-selectable
+
+### Examples and docs
+
+- Add nested suite memory stress example for report spill testing
+- Update suite docs for overview totals, tag filter layout, and YAML key order
+
 ## [1.43.1-pre]
 
 Pre-release.
