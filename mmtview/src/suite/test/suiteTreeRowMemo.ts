@@ -3,7 +3,7 @@
  * on every parent render (`onRun`, `context` object, `arrow`).
  */
 export function areSuiteTreeRowPropsEqual<T extends {
-  item?: { index?: unknown; isFolder?: boolean };
+  item?: { index?: unknown; isFolder?: boolean; data?: { childrenRangeLabel?: string } };
   context?: { isExpanded?: boolean };
   depth?: number;
   status?: unknown;
@@ -19,6 +19,11 @@ export function areSuiteTreeRowPropsEqual<T extends {
   reportLoading?: boolean;
 }>(prev: T, next: T): boolean {
   if (prev.item?.index !== next.item?.index) {
+    return false;
+  }
+  const prevRange = (prev.item?.data as { childrenRangeLabel?: string } | undefined)?.childrenRangeLabel;
+  const nextRange = (next.item?.data as { childrenRangeLabel?: string } | undefined)?.childrenRangeLabel;
+  if (prevRange !== nextRange) {
     return false;
   }
   if (prev.depth !== next.depth) {

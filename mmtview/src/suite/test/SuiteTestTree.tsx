@@ -12,34 +12,12 @@ import { ownRunStatus } from './suiteRunStatus';
 import { ReportStatusFilter, filterTreeItemsByStatus } from '../../shared/reportStatusFilter';
 import ReportEmptyFilterPlaceholder from '../../shared/ReportEmptyFilterPlaceholder';
 import { TREE_DEPTH_OFFSET, TreeFolderArrow, treeDragBetweenLineStyle } from '../../components/TreeChevron';
+import { applyGroupChildrenRangeLabels, suiteTreeItemDisplayName } from './suiteTreeGroupRangeLabel';
 
 const EMPTY_STEP_REPORTS: StepReportItem[] = [];
 
 export type SuiteTestTreeHandle = {
   collapseAll: () => void;
-};
-
-const relativeToParentDir = (childPath: string, parentPath: string): string => {
-  if (!childPath || !parentPath) {
-    return childPath;
-  }
-  const normalize = (p: string) => p.replace(/\\/g, '/');
-  const child = normalize(childPath);
-  const parent = normalize(parentPath);
-
-  const parentDir = parent.includes('/') ? parent.slice(0, parent.lastIndexOf('/') + 1) : '';
-  if (parentDir && child.startsWith(parentDir)) {
-    return child.slice(parentDir.length);
-  }
-
-  // If we can't compute a clean relative label, fall back.
-  return childPath;
-};
-
-const basename = (p: string): string => {
-  const s = (p || '').replace(/\\/g, '/');
-  const idx = s.lastIndexOf('/');
-  return idx >= 0 ? s.slice(idx + 1) : s;
 };
 
 /** True when bundleId is the entry itself or a descendant under that entry's id prefix. */
@@ -59,7 +37,7 @@ const owningEntryIdFromTreeIndex = (itemIndex: string): string => {
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
-  | { type: 'group'; label: string; id?: string }
+  | { type: 'group'; label: string; id?: string; childrenRangeLabel?: string }
   | { type: 'test'; path: string; id: string; title?: string; parentPath?: string }
   | { type: 'server'; path: string; id: string; title?: string; parentPath?: string }
   | { type: 'suite'; path: string; id: string; title?: string; parentPath?: string };
@@ -390,7 +368,7 @@ export function buildSuiteTestTreeItems(
     });
   });
 
-  return items;
+  return applyGroupChildrenRangeLabels(items);
 }
 
 const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(function SuiteTestTree({
@@ -591,29 +569,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     // This keeps relative label behavior stable even when the UI id doesn't
     // map 1:1 to a suite path (e.g. top-level suite entries).
     const isFileRow = data && (data.type === 'test' || data.type === 'suite' || data.type === 'server');
-    const parentPath = isFileRow ? (data as any).parentPath : undefined;
-    const rawPath = isFileRow ? (data as any).path : undefined;
-    const displayPath = (() => {
-      if (!rawPath || typeof rawPath !== 'string') {
-        return undefined;
-      }
-
-      // Prefer YAML title when present.
-      const title = isFileRow ? (data as any).title : undefined;
-      if (typeof title === 'string' && title.trim()) {
-        return title.trim();
-      }
-
-      // Imported items: show the exact string as written in the parent suite list.
-      // If we cannot compute a friendly label, fall back to just the filename.
-      if (typeof parentPath === 'string' && parentPath) {
-        const rel = relativeToParentDir(rawPath, parentPath);
-        return rel && rel !== rawPath ? rel : basename(rawPath);
-      }
-
-      // Top-level suite entries: show filename only (avoids long noisy paths).
-      return basename(rawPath);
-    })();
+    const displayPath = isFileRow ? suiteTreeItemDisplayName(data) : undefined;
 
     if (data.type === 'group' || data.type === 'root') {
       const itemId = String(item.index);

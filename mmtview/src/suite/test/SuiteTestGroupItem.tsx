@@ -6,7 +6,11 @@ import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
 import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
 import { TreeDepthContainer } from '../../components/TreeChevron';
 
-export type SuiteTestGroupItemData = { type: 'group' | 'root' | 'import-group'; label: string };
+export type SuiteTestGroupItemData = {
+  type: 'group' | 'root' | 'import-group';
+  label: string;
+  childrenRangeLabel?: string;
+};
 
 interface SuiteTestGroupItemProps {
   item: TreeItem<any>;
@@ -86,7 +90,12 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
               />
             )}
             <SuiteKindIcon kind={data.type === 'group' || data.type === 'import-group' ? 'group' : 'root'} />
-            <span>{data.label}</span>
+            <span className="tree-group-label">{data.label}</span>
+            {data.type === 'group' && data.childrenRangeLabel ? (
+              <span className="tree-group-children-range" title={data.childrenRangeLabel}>
+                {data.childrenRangeLabel}
+              </span>
+            ) : null}
           </div>
           {showRunButton && (
             <TreeRunButton

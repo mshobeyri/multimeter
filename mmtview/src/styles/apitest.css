@@ -615,6 +615,21 @@
   opacity: 0.8;
 }
 
+.tree-group-label {
+  flex-shrink: 0;
+}
+
+.tree-group-children-range {
+  margin-left: 4px;
+  opacity: 0.55;
+  font-size: 0.92em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .mmt-line-error {
   text-decoration: underline wavy;
   text-decoration-color: var(--vscode-errorForeground, #f85149);
