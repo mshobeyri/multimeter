@@ -450,51 +450,54 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                     <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
             </div>
-            <div className="panel-scroll is-x-clip">
-            {hasInputs && (
-                <div className="field-control">
-                    <VEditor
-                        label="Inputs"
-                        value={currentInputs}
-                        onChange={(data) => {
-                            markDirtyKeysFromEdit(data);
-                            applyInputs(data);
-                        }}
-                        keyOptions={inputKeys}
-                        inputConstraints={inputConstraints}
-                        deletable={false}
-                    />
+            <div className="panel-view-stack">
+                <div className="panel-view-fixed">
+                    {hasInputs && (
+                        <div className="field-control">
+                            <VEditor
+                                label="Inputs"
+                                value={currentInputs}
+                                onChange={(data) => {
+                                    markDirtyKeysFromEdit(data);
+                                    applyInputs(data);
+                                }}
+                                keyOptions={inputKeys}
+                                inputConstraints={inputConstraints}
+                                deletable={false}
+                            />
+                        </div>
+                    )}
+                    {hasOutputs && (
+                        <div className="field-control">
+                            <VEditor
+                                label="Outputs"
+                                value={outputs}
+                                onChange={() => {}}
+                                keyOptions={outputKeys}
+                                deletable={false}
+                                copyable={true}
+                            />
+                        </div>
+                    )}
+                    {overviewStats && <OverviewBoxes stats={overviewStats} />}
                 </div>
-            )}
-            {hasOutputs && (
-                <div className="field-control">
-                    <VEditor
-                        label="Outputs"
-                        value={outputs}
-                        onChange={() => {}}
-                        keyOptions={outputKeys}
-                        deletable={false}
-                        copyable={true}
-                    />
-                </div>
-            )}
-            {overviewStats && <OverviewBoxes stats={overviewStats} />}
-            <TestStepReportPanel
-                isExpanded={true}
-                stepReports={stepReports}
-                runState={
-                    runState === 'pending' || runState === 'running'
-                        ? runState
-                        : runState === 'passed'
-                            ? 'passed'
-                            : runState === 'failed'
-                                ? 'failed'
-                                : 'default'
-                }
-                onRun={handleRun}
-                runButtonLabel="Run test"
-                showHeader={Boolean(hasInputs || hasOutputs || overviewStats || stepReports.length > 0)}
-            />
+                <TestStepReportPanel
+                    isExpanded={true}
+                    scrollBody
+                    stepReports={stepReports}
+                    runState={
+                        runState === 'pending' || runState === 'running'
+                            ? runState
+                            : runState === 'passed'
+                                ? 'passed'
+                                : runState === 'failed'
+                                    ? 'failed'
+                                    : 'default'
+                    }
+                    onRun={handleRun}
+                    runButtonLabel="Run test"
+                    showHeader={Boolean(hasInputs || hasOutputs || overviewStats || stepReports.length > 0)}
+                />
             </div>
         </div>
     );

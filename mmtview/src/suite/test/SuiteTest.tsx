@@ -1161,6 +1161,150 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         />
     );
 
+    const fixedMeta = !noItems ? (
+        <>
+            {mode === 'loadtest'
+                ? <>
+                    <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} isRunning={suiteRunState === 'running'} />
+                    <LoadMetricsOverview
+                        load={loadRunSummary}
+                        startedAt={loadRunSummary?.config?.started_at ?? suiteRunStartedAt ?? undefined}
+                        endedAt={loadRunSummary?.config?.finished_at ?? (suiteRunState !== 'running' && suiteRunStartedAt != null && suiteRunDurationMs != null ? suiteRunStartedAt + suiteRunDurationMs : undefined)}
+                    />
+                </>
+                : overviewStats && <OverviewBoxes stats={overviewStats} />}
+            {loadConfig && (
+                <>
+                    <div className="label is-field">Load</div>
+                    <div className="meta-block">
+                        {mode === 'loadtest' && groups[0]?.entries[0]?.path && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-beaker meta-icon" aria-hidden />
+                                <span>Test: </span>
+                                <span
+                                    title="Ctrl/Cmd+click to open test file"
+                                    className="link-path"
+                                    onClick={(event) => {
+                                        if (event.ctrlKey || event.metaKey) {
+                                            window.vscode?.postMessage({ command: 'openRelativeFile', filename: groups[0]?.entries[0]?.path });
+                                        }
+                                    }}
+                                >
+                                    <code>{groups[0].entries[0].path}</code>
+                                </span>
+                            </div>
+                        )}
+                        {loadConfig.threads != null && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-dashboard meta-icon" aria-hidden />
+                                <span>Threads: <code>{loadConfig.threads}</code></span>
+                            </div>
+                        )}
+                        {loadConfig.repeat != null && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-sync meta-icon" aria-hidden />
+                                <span>Repeat: <code>{String(loadConfig.repeat)}</code></span>
+                            </div>
+                        )}
+                        {loadConfig.rampup && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-graph-line meta-icon" aria-hidden />
+                                <span>Ramp-up: <code>{loadConfig.rampup}</code></span>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+            {environment && (
+                <>
+                    <div className="label is-field">Environment</div>
+                    <div className="meta-block">
+                        {environment.preset && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-symbol-namespace meta-icon" aria-hidden />
+                                <span>Preset: <code>{environment.preset}</code></span>
+                            </div>
+                        )}
+                        {environment.file && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-file meta-icon" aria-hidden />
+                                <span>File: <code>{environment.file}</code></span>
+                            </div>
+                        )}
+                        {environment.variables && Object.keys(environment.variables).length > 0 && (
+                            <div>
+                                <div className="meta-row">
+                                    <span className="codicon codicon-symbol-variable meta-icon" aria-hidden />
+                                    <span>Variables:</span>
+                                </div>
+                                <div className="meta-kv">
+                                    {Object.entries(environment.variables).map(([key, val]) => (
+                                        <div key={key} className="meta-kv-line">
+                                            <code>{key}</code>: <code>{JSON.stringify(val)}</code>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+            {servers.length > 0 && (
+                <>
+                    <div className="label is-field">Servers</div>
+                    <div className="meta-block">
+                        {servers.map((s, i) => {
+                            const name = s.includes('/') ? s.slice(s.lastIndexOf('/') + 1) : s;
+                            return (
+                                <div key={i} className="meta-row">
+                                    <span className="codicon codicon-server-environment meta-icon" aria-hidden />
+                                    <span
+                                        className={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'mmt-line-error' : undefined}
+                                        title={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'This mock server is listed more than once in this suite' : s}
+                                    >
+                                        {name}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
+            {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
+                <>
+                    <div className="label is-field">Filter</div>
+                    <div className="meta-block">
+                        {tagFilter.only.length > 0 && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-filter meta-icon" aria-hidden />
+                                <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
+                            </div>
+                        )}
+                        {tagFilter.skip.length > 0 && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-skip meta-icon" aria-hidden />
+                                <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+            {suiteExports.length > 0 && (
+                <>
+                    <div className="label is-field">Exports</div>
+                    <div className="meta-block">
+                        {suiteExports.map((ex, i) => (
+                            <div key={i} className="meta-row">
+                                <span className="codicon codicon-export meta-icon" aria-hidden />
+                                <span><code>{ex}</code></span>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+        </>
+    ) : null;
+
     return (
         <div className="panel-page">
             <div className="run-action-bar">
@@ -1180,154 +1324,21 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
             </div>
-        <div className="panel-scroll">
-            <div className="test-flow-tree">
-                {noItems ? <div className="muted">{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div> : (
+            <div className="panel-view-stack">
+                {noItems ? (
+                    <div className="panel-scroll">
+                        <div className="muted">{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div>
+                    </div>
+                ) : (
                     <>
-                        {mode === 'loadtest'
-                            ? <>
-                                <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} isRunning={suiteRunState === 'running'} />
-                                <LoadMetricsOverview
-                                    load={loadRunSummary}
-                                    startedAt={loadRunSummary?.config?.started_at ?? suiteRunStartedAt ?? undefined}
-                                    endedAt={loadRunSummary?.config?.finished_at ?? (suiteRunState !== 'running' && suiteRunStartedAt != null && suiteRunDurationMs != null ? suiteRunStartedAt + suiteRunDurationMs : undefined)}
-                                />
-                            </>
-                            : overviewStats && <OverviewBoxes stats={overviewStats} />}
-                        {loadConfig && (
-                            <>
-                                <div className="label is-field">Load</div>
-                                <div className="meta-block">
-                                    {mode === 'loadtest' && groups[0]?.entries[0]?.path && (
-                                        <div className="meta-row">
-                                            <span className="codicon codicon-beaker meta-icon" aria-hidden />
-                                            <span>Test: </span>
-                                            <span
-                                                title="Ctrl/Cmd+click to open test file"
-                                                className="link-path"
-                                                onClick={(event) => {
-                                                    if (event.ctrlKey || event.metaKey) {
-                                                        window.vscode?.postMessage({ command: 'openRelativeFile', filename: groups[0]?.entries[0]?.path });
-                                                    }
-                                                }}
-                                            >
-                                                <code>{groups[0].entries[0].path}</code>
-                                            </span>
-                                        </div>
-                                    )}
-                                    {loadConfig.threads != null && (
-                                        <div className="meta-row">
-                                            <span className="codicon codicon-dashboard meta-icon" aria-hidden />
-                                            <span>Threads: <code>{loadConfig.threads}</code></span>
-                                        </div>
-                                    )}
-                                    {loadConfig.repeat != null && (
-                                        <div className="meta-row">
-                                            <span className="codicon codicon-sync meta-icon" aria-hidden />
-                                            <span>Repeat: <code>{String(loadConfig.repeat)}</code></span>
-                                        </div>
-                                    )}
-                                    {loadConfig.rampup && (
-                                        <div className="meta-row">
-                                            <span className="codicon codicon-graph-line meta-icon" aria-hidden />
-                                            <span>Ramp-up: <code>{loadConfig.rampup}</code></span>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        {environment && (
-                            <>
-                                <div className="label is-field">Environment</div>
-                                <div className="meta-block">
-                                    {environment.preset && (
-                                        <div className="meta-row">
-                                            <span className="codicon codicon-symbol-namespace meta-icon" aria-hidden />
-                                            <span>Preset: <code>{environment.preset}</code></span>
-                                        </div>
-                                    )}
-                                    {environment.file && (
-                                        <div className="meta-row">
-                                            <span className="codicon codicon-file meta-icon" aria-hidden />
-                                            <span>File: <code>{environment.file}</code></span>
-                                        </div>
-                                    )}
-                                    {environment.variables && Object.keys(environment.variables).length > 0 && (
-                                        <div>
-                                            <div className="meta-row">
-                                                <span className="codicon codicon-symbol-variable meta-icon" aria-hidden />
-                                                <span>Variables:</span>
-                                            </div>
-                                            <div className="meta-kv">
-                                                {Object.entries(environment.variables).map(([key, val]) => (
-                                                    <div key={key} className="meta-kv-line">
-                                                        <code>{key}</code>: <code>{JSON.stringify(val)}</code>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        {servers.length > 0 && (
-                            <>
-                                <div className="label is-field">Servers</div>
-                                <div className="meta-block">
-                                    {servers.map((s, i) => {
-                                        const name = s.includes('/') ? s.slice(s.lastIndexOf('/') + 1) : s;
-                                        return (
-                                            <div key={i} className="meta-row">
-                                                <span className="codicon codicon-server-environment meta-icon" aria-hidden />
-                                                <span
-                                                    className={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'mmt-line-error' : undefined}
-                                                    title={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'This mock server is listed more than once in this suite' : s}
-                                                >
-                                                    {name}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </>
-                        )}
-                        {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
-                            <>
-                                <div className="label is-field">Filter</div>
-                                <div className="meta-block">
-                                    {tagFilter.only.length > 0 && (
-                                        <div className="meta-row">
-                                            <span className="codicon codicon-filter meta-icon" aria-hidden />
-                                            <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
-                                        </div>
-                                    )}
-                                    {tagFilter.skip.length > 0 && (
-                                        <div className="meta-row">
-                                            <span className="codicon codicon-skip meta-icon" aria-hidden />
-                                            <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        {suiteExports.length > 0 && (
-                            <>
-                                <div className="label is-field">Exports</div>
-                                <div className="meta-block">
-                                    {suiteExports.map((ex, i) => (
-                                        <div key={i} className="meta-row">
-                                            <span className="codicon codicon-export meta-icon" aria-hidden />
-                                            <span><code>{ex}</code></span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                        {fixedMeta && <div className="panel-view-fixed">{fixedMeta}</div>}
                         {mode === 'loadtest' ? (
-                            <LoadTestReport
-                                load={loadRunSummary}
-                                config={loadConfig || undefined}
-                            />
+                            <div className="panel-scroll is-x-clip">
+                                <LoadTestReport
+                                    load={loadRunSummary}
+                                    config={loadConfig || undefined}
+                                />
+                            </div>
                         ) : (
                             <>
                                 <div className="report-section-header">
@@ -1343,12 +1354,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                         />
                                     </div>
                                 </div>
-                                {tree}
+                                <div className="panel-scroll is-x-clip">
+                                    <div className="test-flow-tree">{tree}</div>
+                                </div>
                             </>
                         )}
                     </>
                 )}
-            </div>
             </div>
         </div>
     );

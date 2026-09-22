@@ -1209,6 +1209,7 @@ button:focus {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .panel-scroll.is-padded {

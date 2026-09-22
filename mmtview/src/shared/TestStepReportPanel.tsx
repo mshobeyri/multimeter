@@ -255,6 +255,8 @@ interface TestStepReportPanelProps {
   showTimestamps?: boolean;
   /** When true (default with showHeader), show All/Passed/Failed view filter. */
   showStatusFilter?: boolean;
+  /** When true, keep the header fixed and scroll report steps only. */
+  scrollBody?: boolean;
 }
 
 const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
@@ -265,6 +267,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     showHeader = true,
     showTimestamps = true,
     showStatusFilter = showHeader,
+    scrollBody = false,
   } = props;
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
@@ -317,15 +320,14 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     </div>
   ) : null;
 
-  return (
-    <div className={showStatusFilter ? 'mmt-fill' : 'mmt-fill field-block'}>
-      {showStatusFilter && (
-        <div className="report-section-header">
-          {showHeader ? <div className="label">Report</div> : <span />}
-          {filterControl}
-        </div>
-      )}
+  const header = showStatusFilter ? (
+    <div className="report-section-header">
+      {showHeader ? <div className="label">Report</div> : <span />}
+      {filterControl}
+    </div>
+  ) : null;
 
+  const reportSteps = (
       <div className="report-steps">
         {stepReports.length === 0 ? (
           <div className="muted">
@@ -485,6 +487,23 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
           </div>
         )}
       </div>
+  );
+
+  if (scrollBody) {
+    return (
+      <div className="panel-view-stack mmt-fill">
+        {header}
+        <div className="panel-scroll is-x-clip">
+          {reportSteps}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={showStatusFilter ? 'mmt-fill' : 'mmt-fill field-block'}>
+      {header}
+      {reportSteps}
     </div>
   );
 };

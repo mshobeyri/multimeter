@@ -721,6 +721,17 @@
   padding-bottom: 8px;
 }
 
+.panel-view-stack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-view-fixed {
+  flex-shrink: 0;
+}
+
 .judge-auto-refresh {
   display: inline-flex;
   align-items: center;
@@ -741,6 +752,7 @@
 .report-section-header {
   position: relative;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
