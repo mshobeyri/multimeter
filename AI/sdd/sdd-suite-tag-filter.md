@@ -14,7 +14,7 @@ Two complementary filters:
 - **Only** — run **only** nodes that have at least one of the given tags (and their selected descendants). Everything else is skipped. This is a restriction, not an extra set of files to add on top of a full run.
 - **Skip** — do not run any test or suite that has at least one of the given tags.
 
-Skipped nodes are not executed. They appear in the suite tree and reports with a **skip** status icon. The overview **Total** box shows the skipped test count as its subtitle.
+Skipped nodes are not executed. They appear in the suite tree and reports with a **skip** status icon. The runner **Filter** block (below **Items**) shows **Total: N skipped** after a run when tag filtering skipped items.
 
 Filtering is declared on the suite file (`filter:`, edited in the **Filter** tab of Edit Suite) and can be replaced per invocation by CLI flags and CI action inputs. Core applies one tag-filter pass while walking the suite bundle so CLI, extension, Testlight, and reports stay aligned.
 
@@ -29,7 +29,7 @@ Requirements from product:
 - Skip any test or suite in the hierarchy that has a given tag.
 - Or run only tests/suites that have a given tag.
 - Skipped items use a skip icon as status.
-- Show skipped count as the subtitle under Total.
+- Show skipped count as **Total: N skipped** under the runner **Filter** block (not under overview Total).
 
 Do **not** name the “run only these tags” list `include`. Include reads as “also run these,” while the behavior is “do not run the rest.”
 
@@ -188,14 +188,20 @@ Do not start, run, or cache a skipped test. Do not emit check/assert steps for i
 
 ---
 
-### 4. Overview: skipped under Total
+### 4. Overview vs filter summary (implemented)
 
-On the suite (and exported HTML/MMT) overview boxes:
+**Overview boxes** (same step semantics as test runner):
 
-- **Total** remains the count of runnable test files in the executed tree (or checks — keep current Total meaning for pass/fail boxes).
-- **Total subtitle** (`totalSub`) shows skipped test-file count: `N skipped` (e.g. `3 skipped`). When none skipped, keep the current subtitle (`N tests`).
+- **Passed** / **Failed** — check/assert step counts; pass/fail rate uses `passed + failed` only (skipped items do not reduce pass rate).
+- **Total** — executed step count (`passed + failed`).
+- **Total subtitle** — `N test file(s)` in the suite tree (runnable tests + nested suites), not skipped count.
 
-Skipped files are included in Total so pass+fail+skip is reconcilable. Passed/failed counts stay execution results only.
+**Runner Filter block** (when `filter:` is configured, below **Items**):
+
+- Read-only **Only:** / **Skip:** tag lists.
+- After a run: **Total: N skipped** when `N > 0` (top-level skipped items; do not double-count descendants of a skipped parent).
+
+Exported HTML/MMT reports keep their own overview fields; this section describes the VS Code suite panel only.
 
 ---
 
@@ -270,7 +276,7 @@ Edit Suite gets a **Filter** tab (`codicon-filter`), between **Items** and **Ser
 - **Only tags** and **Skip tags** chip inputs (same widget as file `tags:`), writing `filter.only` / `filter.skip` back to the suite YAML.
 - Empty only = no only-filter (run all, then apply skip). Empty skip = no skip filter. Both empty removes `filter:`.
 
-On the runner side of the panel, the active `filter:` is listed read-only above the tests, the same way `environment:` and `servers:` are shown. During/after a run, skipped rows use the skip icon immediately (no “running” flash).
+On the runner side of the panel, the active `filter:` is listed read-only **below the Items tree** (Environment and Servers stay in the fixed header above Items). During/after a run, skipped rows use the skip icon immediately (no “running” flash). Misordered YAML keys (including `filter:` after `items:`) surface **YAML ERROR** in the run bar.
 
 ---
 
@@ -306,7 +312,8 @@ Keep core free of VS Code; inject nothing extra beyond options already passed in
 | Surface | Change |
 |---------|--------|
 | Suite tree | Skip icon + tooltip `Skipped (tag)` when possible |
-| OverviewBoxes | `totalSub` = `N skipped` when `N > 0` |
+| OverviewBoxes | **Total** = executed steps; `totalSub` = `N test file(s)` |
+| Filter block | **Total: N skipped** after a run when tag filter skipped items |
 | Report status filter | option `skipped` / “Skipped” |
 | MMT report YAML | real `skipped` counts; `result: skipped` |
 | HTML / Markdown / JUnit | same |
@@ -318,7 +325,7 @@ Keep core free of VS Code; inject nothing extra beyond options already passed in
 
 1. Core `TagFilter` + tags on hierarchy nodes + skipped status on suite-item reporter; unit tests for only/skip/descend.
 2. CLI flags + `filter:` parse on suite YAML.
-3. VS Code Edit Suite Filter tab + runner filter section + skip icon + overview subtitle.
+3. VS Code Edit Suite Filter tab + runner filter section (below Items) + skip icon + **Total: N skipped** row.
 4. Reports (MMT/JUnit/HTML/MD) skipped counts and results.
 5. GitHub Action / Azure inputs + user docs.
 
@@ -332,5 +339,5 @@ These are the defaults encoded in this SDD. Change them before implementation if
 2. **Tags inside one `only:` or `skip:` list are OR.** AND is only between nested `filter.only` layers. Alternative: require every tag in a single `only:` list.
 3. **CLI/CI overrides replace** the **run-root** `filter:` lists rather than merge. Nested running suites still AND only / OR skip. VS Code has no per-run override: it edits `filter:` in the Filter tab.
 4. **All-skipped suite is success.** Alternative: fail or warn-only.
-5. **Total subtitle switches to `N skipped`** when any test is skipped, instead of always showing both (`5 tests · 3 skipped`).
+5. **Skipped count lives in the Filter block** (`Total: N skipped`), not in overview **Total** subtitle (subtitle stays `N test file(s)`). Alternative: show skipped under overview Total.
 6. **Nested `filter:` merges only when that nested suite actually runs**, not when it is a container walk. Alternative: always AND/OR as soon as the walker enters the file.

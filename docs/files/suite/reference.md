@@ -3,7 +3,7 @@
 - `title:` string
 - `description:` string (supports Markdown)
 - `tags:` string[]
-- `filter:` object (or a list, treated as `only`)
+- `filter:` object (or a list, treated as `only`) — canonical position: after `tags:`, before `import:` / `environment:` / `items:`
   - `only:` string[] — run only tests/suites that have at least one of these tags (OR). Empty = all.
   - `skip:` string[] — do not run tests/suites that have any of these tags (OR). Empty = none.
   - Combined: `run iff matches only && !matches skip`. Nested running suites AND `only` lists and OR `skip` lists.
