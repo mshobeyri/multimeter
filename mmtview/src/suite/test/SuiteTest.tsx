@@ -1294,17 +1294,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             };
         }
         const { passed, failed, skipped, fileCount } = runOverview;
-        const total = passed + failed + skipped;
-        if (total === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
+        const executed = passed + failed;
+        if (executed === 0 && skipped === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
             return null;
         }
         const duration = suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined;
         return {
             passed,
             failed,
-            total,
+            total: executed,
             duration,
-            failedSub: total > 0 ? `${((failed / total) * 100).toFixed(1)}%` : '-',
             totalSub: skipped > 0 ? `${skipped} skipped` : `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
                     durationSub: formatOverviewRelativeTime(suiteRunStartedAt),
         };

@@ -36,8 +36,9 @@ const OverviewBoxes: React.FC<{ stats: OverviewStats }> = ({ stats }) => {
   }, []);
 
   const { passed, failed, total, duration, failedSub, totalSub, durationSub } = stats;
-  const passRate = total > 0 ? ((passed / total) * 100).toFixed(1) + '%' : '-';
-  const failRate = total > 0 ? ((failed / total) * 100).toFixed(1) + '%' : '-';
+  const executed = passed + failed;
+  const passRate = executed > 0 ? ((passed / executed) * 100).toFixed(1) + '%' : '-';
+  const failRate = executed > 0 ? ((failed / executed) * 100).toFixed(1) + '%' : '-';
 
   return (
     <div ref={containerRef}>
