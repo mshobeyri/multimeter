@@ -35,6 +35,12 @@ const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) =>
   useEffect(() => {
     setFlowchartState(null);
   }, [mmtFilePath]);
+
+  useEffect(() => {
+    if (page !== 'flow') {
+      setFlowchartState(null);
+    }
+  }, [page]);
   const loadTestTitle = useMemo(() => {
     const parsed = parseYaml(content);
     return (parsed && typeof parsed.title === 'string') ? parsed.title : 'Load Test';
@@ -69,7 +75,12 @@ const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) =>
                     </>
                   }
                 />
-                <SuiteTest content={content} mode="loadtest" onFlowchartStateChange={setFlowchartState} />
+                <SuiteTest
+                  content={content}
+                  mode="loadtest"
+                  flowchartActive={page === 'flow'}
+                  onFlowchartStateChange={setFlowchartState}
+                />
               </div>
             </div>
 

@@ -1,4 +1,18 @@
-import { buildSuiteTestTreeItems, collectSuiteExpandableIds } from './SuiteTestTree';
+import { buildDefaultExpandedSuiteIds, buildSuiteTestTreeItems, collectSuiteExpandableIds } from './SuiteTestTree';
+
+describe('buildDefaultExpandedSuiteIds', () => {
+  it('opens root for a single group suite', () => {
+    expect(buildDefaultExpandedSuiteIds([{ label: 'G', entries: [{ id: '1', path: 'a.mmt' }] }]))
+      .toEqual(['suite-root']);
+  });
+
+  it('opens root and every group folder for multi-group suites', () => {
+    expect(buildDefaultExpandedSuiteIds([
+      { label: 'G1', entries: [{ id: '1', path: 'a.mmt' }] },
+      { label: 'G2', entries: [{ id: '2', path: 'b.mmt' }] },
+    ])).toEqual(['suite-root', 'group-1', 'group-2']);
+  });
+});
 
 describe('buildSuiteTestTreeItems', () => {
   it('includes nested hierarchy without expand state', () => {

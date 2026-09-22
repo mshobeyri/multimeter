@@ -35,6 +35,12 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
   useEffect(() => {
     setFlowchartState(null);
   }, [mmtFilePath]);
+
+  useEffect(() => {
+    if (page !== 'flow') {
+      setFlowchartState(null);
+    }
+  }, [page]);
   const suiteTitle = useMemo(() => {
     const parsed = parseYaml(content);
     return (parsed && typeof parsed.title === 'string') ? parsed.title : 'Suite';
@@ -71,6 +77,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
                 />
                 <SuiteTest
                   content={content}
+                  flowchartActive={page === 'flow'}
                   onFlowchartStateChange={setFlowchartState}
                 />
               </div>

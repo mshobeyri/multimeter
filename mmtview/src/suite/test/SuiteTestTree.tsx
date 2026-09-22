@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
@@ -83,6 +83,8 @@ interface SuiteTestTreeProps {
   onRunTargetsInCore?: (target: string) => void | Promise<void>;
   /** Load hierarchy for a top-level entry when the user expands it. */
   onRequestHierarchy?: (entryId: string) => void;
+  /** When this key changes, expanded folders reset to the suite defaults. */
+  suiteStructureKey?: string;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -135,6 +137,17 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
 
   return { items, allPaths, groupIds };
 };
+
+/** Default expanded ids: root open, and every YAML group folder open. */
+export function buildDefaultExpandedSuiteIds(groups: SuiteGroup[]): string[] {
+  const ids: string[] = ['suite-root'];
+  if (groups.length > 1) {
+    for (let idx = 0; idx < groups.length; idx++) {
+      ids.push(`group-${idx + 1}`);
+    }
+  }
+  return ids;
+}
 
 /** Collect every expandable tree id (groups, entries, nested suite/group/test nodes). */
 export function collectSuiteExpandableIds(
@@ -360,8 +373,10 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   onRunTargets,
   onRunTargetsInCore,
   onRequestHierarchy,
+  suiteStructureKey,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
+  const defaultExpandedItems = useMemo(() => buildDefaultExpandedSuiteIds(groups), [groups]);
   const topLevelEntryIds = useMemo(() => {
     const ids = new Set<string>();
     groups.forEach((group) => {
@@ -371,11 +386,15 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     });
     return ids;
   }, [groups]);
-  const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
+  const [expandedItems, setExpandedItems] = useState<string[]>(defaultExpandedItems);
+
+  useEffect(() => {
+    setExpandedItems(defaultExpandedItems);
+  }, [suiteStructureKey, defaultExpandedItems]);
 
   const collapseAll = useCallback(() => {
-    setExpandedItems(['suite-root']);
-  }, []);
+    setExpandedItems(defaultExpandedItems);
+  }, [defaultExpandedItems]);
 
   useImperativeHandle(ref, () => ({ collapseAll }), [collapseAll]);
 

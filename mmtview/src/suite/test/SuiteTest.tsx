@@ -104,6 +104,7 @@ interface SuiteTestProps {
     content: string;
     mode?: 'suite' | 'loadtest';
     onFlowchartStateChange?: (state: SuiteFlowchartState) => void;
+    flowchartActive?: boolean;
 }
 
 export interface SuiteFlowchartState {
@@ -448,7 +449,7 @@ const findSuiteEntryById = (groups: SuiteGroup[], entryId: string): SuiteEntry |
     return undefined;
 };
 
-const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowchartStateChange }) => {
+const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowchartStateChange, flowchartActive = false }) => {
     const { mmtFilePath } = useContext(FileContext);
     const suiteDoc = useMemo(() => parseSuiteYamlDoc(content), [content]);
     const groups = useMemo(() => buildSuiteGroupsFromDoc(suiteDoc, mode), [suiteDoc, mode]);
@@ -461,6 +462,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         typeof suiteDoc?.title === 'string' ? suiteDoc.title : undefined
     ), [suiteDoc]);
     const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
+    const suiteStructureKey = useMemo(
+        () => groups.map((group, groupIndex) =>
+            `${groupIndex}:${group.entries.map((entry) => `${entry.id}\0${entry.path}`).join('|')}`
+        ).join(';;'),
+        [groups],
+    );
     const canRun = allPaths.length > 0;
     const noItems = groups.every(group => group.entries.length === 0);
 
@@ -688,8 +695,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [missingFiles, hierarchyMissingPaths]);
 
     useEffect(() => {
+        if (!flowchartActive) {
+            return;
+        }
         onFlowchartStateChange?.({ groups, hierarchyByEntryId, missingFiles: effectiveMissingFiles, noItems });
-    }, [groups, hierarchyByEntryId, effectiveMissingFiles, noItems, onFlowchartStateChange]);
+    }, [flowchartActive, groups, hierarchyByEntryId, effectiveMissingFiles, noItems, onFlowchartStateChange]);
 
     const fetchHierarchyByEntryId = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
         const result: Record<string, SuiteTreeNode> = {};
@@ -727,6 +737,26 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [fetchHierarchyByEntryId]);
 
     const loadingHierarchyRef = useRef<Set<string>>(new Set());
+    const prefetchGenerationRef = useRef(0);
+
+    const mergeHierarchyByEntryId = useCallback((incoming: Record<string, SuiteTreeNode>) => {
+        setHierarchyByEntryId((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            for (const [entryId, tree] of Object.entries(incoming)) {
+                if (!tree || typeof tree !== 'object' || next[entryId]) {
+                    continue;
+                }
+                next[entryId] = tree;
+                changed = true;
+            }
+            if (!changed) {
+                return prev;
+            }
+            hierarchyByEntryIdRef.current = next;
+            return next;
+        });
+    }, []);
 
     const loadHierarchyForEntry = useCallback(async (entryId: string) => {
         if (hierarchyByEntryIdRef.current[entryId] || loadingHierarchyRef.current.has(entryId)) {
@@ -762,7 +792,30 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         setHierarchyByEntryId({});
         hierarchyByEntryIdRef.current = {};
         loadingHierarchyRef.current.clear();
-    }, [content]);
+        prefetchGenerationRef.current += 1;
+    }, [suiteStructureKey]);
+
+    /** After first paint, prefetch all entry hierarchies in parallel (non-blocking). */
+    useEffect(() => {
+        if (noItems) {
+            return;
+        }
+        const generation = prefetchGenerationRef.current;
+        let cancelled = false;
+        const timer = window.setTimeout(() => {
+            void (async () => {
+                const result = await fetchHierarchyByEntryId();
+                if (cancelled || generation !== prefetchGenerationRef.current) {
+                    return;
+                }
+                mergeHierarchyByEntryId(result);
+            })();
+        }, 0);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [fetchHierarchyByEntryId, mergeHierarchyByEntryId, noItems, suiteStructureKey]);
 
     useEffect(() => {
         setSuiteRunId(null);
@@ -1193,6 +1246,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             onRunTargets={onRunTargets}
             onRunTargetsInCore={onRunTargetsInCore}
             onRequestHierarchy={loadHierarchyForEntry}
+            suiteStructureKey={suiteStructureKey}
         />
     );
 
