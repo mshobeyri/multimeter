@@ -9,7 +9,6 @@ import TestFlowFlow from "./TestFlowFlow";
 import {
     TREE_DEPTH_OFFSET,
     TreeDepthContainer,
-    TreeExpandButton,
     TreeFolderArrow,
     treeDragBetweenLineStyle,
 } from "../components/TreeChevron";
@@ -134,25 +133,14 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
         }
     };
 
-    const syncEditorWithTreeExpand = (item: any, open: boolean) => {
-        try {
-            const parsed = JSON.parse(item.data);
-            if (isFolderWithUnifiedExpand(parsed?.type)) {
-                setOpenEditors(prev => ({ ...prev, [String(item.index)]: open }));
-            }
-        } catch { }
-    };
-
     const handleExpand = (item: any, treeId: string) => {
         if (treeId !== 'tree-1') return;
         setExpandedItems(prev => (prev.includes(item.index) ? prev : [...prev, item.index]));
-        syncEditorWithTreeExpand(item, true);
     };
 
     const handleCollapse = (item: any, treeId: string) => {
         if (treeId !== 'tree-1') return;
         setExpandedItems(prev => prev.filter(i => i !== item.index));
-        syncEditorWithTreeExpand(item, false);
     };
 
     const handleDrop = (
@@ -384,30 +372,28 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                 canReorderItems={true}
                 onDrop={handleDrop}
                 onSelectItems={() => { }}
-                renderItemArrow={({ item, context }) => (
-                    <TreeFolderArrow
-                        isFolder={!!item.isFolder}
-                        isExpanded={context.isExpanded}
-                        arrowProps={context.arrowProps}
-                        tall
-                        leaf={(() => {
-                            let t: string | undefined;
-                            try {
-                                const parsed = JSON.parse(item.data as string);
-                                t = parsed?.type;
-                            } catch { }
-                            const ico = `codicon-${codiconForStepType(t)}`;
-                            return (
-                                <span
-                                    className="test-flow-leaf-icon"
-                                    aria-hidden
-                                >
+                renderItemArrow={({ item, context }) => {
+                    let stepType: string | undefined;
+                    try {
+                        const parsed = JSON.parse(item.data as string);
+                        stepType = parsed?.type;
+                    } catch { }
+                    const showTreeChevron = !!item.isFolder && isNestedFlowFolder(stepType);
+                    const ico = `codicon-${codiconForStepType(stepType)}`;
+                    return (
+                        <TreeFolderArrow
+                            isFolder={showTreeChevron}
+                            isExpanded={context.isExpanded}
+                            arrowProps={context.arrowProps}
+                            tall
+                            leaf={(
+                                <span className="test-flow-leaf-icon" aria-hidden>
                                     <span className={`codicon ${ico} test-flow-step-icon`} />
                                 </span>
-                            );
-                        })()}
-                    />
-                )}
+                            )}
+                        />
+                    );
+                }}
                 renderItem={({ title, arrow, context, item, children, depth }) => {
                     if (!title) return null;
                     let itemParsed = { type: "unknown", data: { stepData: title } };
@@ -531,10 +517,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     };
 
                     const expandable = isExpandable(itemParsed.type);
-                    const folderExpandable = isFolderWithUnifiedExpand(itemParsed.type);
                     const itemKey = String(item.index);
-                    const isTreeExpanded = expandedItems.includes(itemKey);
-                    const isOpen = folderExpandable ? isTreeExpanded : !!openEditors[itemKey];
+                    const isOpen = !!openEditors[itemKey];
                     const toggleOpen = () => {
                         setOpenEditors(prev => ({ ...prev, [itemKey]: !prev[itemKey] }));
                     };
@@ -571,9 +555,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                 className={`tree-view-box${(expandable && isOpen && !isFlowDragging) ? ' active' : ''}`}
                                 {...context.itemContainerWithoutChildrenProps}
                             >
-                                {expandable && !folderExpandable && (
-                                    <TreeExpandButton open={isOpen} onToggle={toggleOpen} />
-                                )}
                                 {arrow}
                                 <NoTreeInterference>
                                     <div className="field-grow">
@@ -584,6 +565,11 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                                 testData,
                                             }}
                                             importValidation={importValidation}
+                                            expandable={expandable}
+                                            expanded={isOpen}
+                                            onToggleExpanded={toggleOpen}
+                                            onDuplicate={() => doDuplicate(String(item.index))}
+                                            onRemove={() => doRemove(String(item.index))}
                                             onChange={(newStepData) => {
                                                 setShortTree(prev => {
                                                     const itemsCopy = { ...prev.items } as Record<string, any>;
@@ -605,9 +591,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                                     return { items: itemsCopy };
                                                 });
                                             }}
-                                            expanded={isOpen}
-                                            onDuplicate={() => doDuplicate(String(item.index))}
-                                            onRemove={() => doRemove(String(item.index))}
                                         />
                                     </div>
                                 </NoTreeInterference>
@@ -748,13 +731,11 @@ const isTypeFolder = (type: FlowType | unknown): boolean => {
     return type === "stage" || type === "stages" || type === "steps" || type === "if" || type === "else" || type === "for" || type === "repeat";
 };
 
+/** Tree chevron: only steps that contain nested child steps. */
+const isNestedFlowFolder = (type: FlowType | unknown): boolean => isTypeFolder(type);
+
 const isExpandable = (type: FlowType | unknown): boolean => {
     return type === "print" || type === "js" || type === "call" || type === "http" || type === "check" || type === "assert" || type === "judge" || type === 'setenv' || type === 'stage' || type === 'if';
-};
-
-/** Folder steps with inline editors use one tree chevron for box + nested items. */
-const isFolderWithUnifiedExpand = (type: FlowType | unknown): boolean => {
-    return isTypeFolder(type) && isExpandable(type);
 };
 
 export default TestFlow;

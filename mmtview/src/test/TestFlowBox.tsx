@@ -80,9 +80,11 @@ function formatIfForUi(val: { first: IfClause; join?: LogicalJoin; second?: IfCl
 interface TestFlowBoxProps {
   data: any,
   onChange: (value: any) => void;
+  expandable?: boolean;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
   onDuplicate?: () => void;
   onRemove?: () => void;
-  expanded?: boolean;
   importValidation?: {
     missingImports: MissingImportEntry[];
     inputsByAlias: Record<string, string[]>;
@@ -90,18 +92,18 @@ interface TestFlowBoxProps {
   };
 }
 
-const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, expanded, importValidation }) => {
+const TestFlowBox: React.FC<TestFlowBoxProps> = ({
+  data,
+  onChange,
+  expandable,
+  expanded,
+  onToggleExpanded,
+  onDuplicate,
+  onRemove,
+  importValidation,
+}) => {
   const { type, stepData, testData } = data;
 
-  const Actions = () => (
-    <KebabMenu
-      menuClassName="test-flow-add-menu"
-      items={[
-        { label: "Duplicate", icon: "codicon-copy", onClick: () => onDuplicate?.() },
-        { label: "Remove", icon: "codicon-trash", onClick: () => onRemove?.() },
-      ]}
-    />
-  );
   type FlowTypeWithCsv = FlowType | 'data' | 'else';
   const renderInner = () => {
     switch (type as FlowTypeWithCsv) {
@@ -363,7 +365,40 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         {renderInner()}
       </div>
       <div className="test-flow-box-actions">
-        {type !== 'else' ? <Actions /> : null}
+        {expandable && (
+          <button
+            className={["action-button", "test-flow-expand", expanded ? "is-pressed" : undefined].filter(Boolean).join(" ")}
+            type="button"
+            title={expanded ? "Collapse" : "Expand"}
+            aria-label={expanded ? "Collapse" : "Expand"}
+            aria-pressed={!!expanded}
+            draggable={false}
+            tabIndex={0}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              onToggleExpanded?.();
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggleExpanded?.();
+              }
+            }}
+          >
+            <span className="codicon codicon-settings" aria-hidden />
+          </button>
+        )}
+        {type !== 'else' ? (
+          <KebabMenu
+            menuClassName="test-flow-add-menu"
+            items={[
+              { label: "Duplicate", icon: "codicon-copy", onClick: () => onDuplicate?.() },
+              { label: "Remove", icon: "codicon-trash", onClick: () => onRemove?.() },
+            ]}
+          />
+        ) : null}
       </div>
     </div>
   );
