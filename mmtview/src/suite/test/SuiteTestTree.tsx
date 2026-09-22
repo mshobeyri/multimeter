@@ -81,6 +81,8 @@ interface SuiteTestTreeProps {
   onRunTargets: (target: string) => void | Promise<void>;
   /** Logs-only core run (no UI panel updates). */
   onRunTargetsInCore?: (target: string) => void | Promise<void>;
+  /** Load hierarchy for a top-level entry when the user expands it. */
+  onRequestHierarchy?: (entryId: string) => void;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -102,8 +104,7 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
         index: id,
         isFolder: true,
         children: [],
-        // Top-level suite entries are unknown until importTree resolves docType.
-        // They can later become either a suite or a test.
+        // Top-level entries start as suite folders; hierarchy load resolves test vs suite.
         data: { type: 'suite', path: entry.path, id },
       };
     });
@@ -201,11 +202,16 @@ export function buildSuiteTestTreeItems(
         continue;
       }
       const hierarchy = hierarchyByEntryId[entry.id] as any;
-      const isSuite = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'suite';
       const entryId = entry.id;
 
+      if (!hierarchy || typeof hierarchy !== 'object') {
+        continue;
+      }
+
+      const isSuite = hierarchy.kind === 'suite';
+
       if (!isSuite) {
-        const isServer = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'server';
+        const isServer = hierarchy.kind === 'server';
         items[entry.id] = {
           ...entryItem,
           isFolder: !isServer,
@@ -353,8 +359,18 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   onStatusFilterChange,
   onRunTargets,
   onRunTargetsInCore,
+  onRequestHierarchy,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
+  const topLevelEntryIds = useMemo(() => {
+    const ids = new Set<string>();
+    groups.forEach((group) => {
+      group.entries.forEach((entry) => {
+        ids.add(entry.id);
+      });
+    });
+    return ids;
+  }, [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
 
   const collapseAll = useCallback(() => {
@@ -415,9 +431,13 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
 
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
-      setExpandedItems((prev) => (prev.includes(String(item.index)) ? prev : [...prev, String(item.index)]));
+      const itemId = String(item.index);
+      setExpandedItems((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]));
+      if (onRequestHierarchy && topLevelEntryIds.has(itemId) && !hierarchyByEntryId[itemId]) {
+        onRequestHierarchy(itemId);
+      }
     },
-    []
+    [hierarchyByEntryId, onRequestHierarchy, topLevelEntryIds],
   );
 
   const handleCollapse = useCallback(

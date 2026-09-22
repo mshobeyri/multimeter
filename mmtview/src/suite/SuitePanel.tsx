@@ -72,28 +72,34 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <PanelEditHeader
-                title="Edit Suite"
-                onBack={() => setPage('test')}
-                backTitle="Back to Test"
-              />
+              {page === 'edit' && (
+                <>
+                  <PanelEditHeader
+                    title="Edit Suite"
+                    onBack={() => setPage('test')}
+                    backTitle="Back to Test"
+                  />
 
-              <SuiteEdit content={content} setContent={setContent} />
+                  <SuiteEdit content={content} setContent={setContent} />
+                </>
+              )}
             </div>
 
             <div className="api-swipe-page api-swipe-page--flow">
-              <FlowchartView
-                source={{
-                  kind: 'suite',
-                  rootTitle: suiteTitle,
-                  rootPath: mmtFilePath,
-                  groups: flowchartState?.groups ?? [],
-                  hierarchyByEntryId: flowchartState?.hierarchyByEntryId ?? {},
-                  missingFiles: flowchartState?.missingFiles ?? EMPTY_MISSING_FILES,
-                }}
-                onBack={() => setPage('test')}
-                title={suiteTitle || 'Suite'}
-              />
+              {page === 'flow' && (
+                <FlowchartView
+                  source={{
+                    kind: 'suite',
+                    rootTitle: suiteTitle,
+                    rootPath: mmtFilePath,
+                    groups: flowchartState?.groups ?? [],
+                    hierarchyByEntryId: flowchartState?.hierarchyByEntryId ?? {},
+                    missingFiles: flowchartState?.missingFiles ?? EMPTY_MISSING_FILES,
+                  }}
+                  onBack={() => setPage('test')}
+                  title={suiteTitle || 'Suite'}
+                />
+              )}
             </div>
           </div>
         </div>

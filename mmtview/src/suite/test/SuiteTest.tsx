@@ -12,7 +12,6 @@ import { SuiteEntry, SuiteGroup } from '../types';
 import { SuiteTestTree } from './';
 import type { SuiteTestTreeHandle } from './SuiteTestTree';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
-import { useSuiteImportTree } from './useSuiteImportTree';
 import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
 import { resetLeafStateMap } from './leafStateReset';
@@ -305,15 +304,28 @@ const LoadOverviewBoxes: React.FC<{
     );
 };
 
-const buildSuiteGroupsFromContent = (content: string, mode: 'suite' | 'loadtest' = 'suite'): SuiteGroup[] => {
-    const parsed = parseYaml(content);
+type SuiteYamlDoc = Record<string, unknown> | null;
+
+const parseSuiteYamlDoc = (content: string): SuiteYamlDoc => {
+    try {
+        const parsed = parseYaml(content);
+        return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+    } catch {
+        return null;
+    }
+};
+
+const buildSuiteGroupsFromDoc = (parsed: SuiteYamlDoc, mode: 'suite' | 'loadtest' = 'suite'): SuiteGroup[] => {
     if (mode === 'loadtest') {
         const test = typeof parsed?.test === 'string' ? parsed.test.trim() : '';
         return test ? [{ label: 'Test', entries: [{ id: 'loadtest-test-0', path: test }] }] : [];
     }
-    const items: string[] = Array.isArray(parsed?.items)
+    if (!parsed) {
+        return [];
+    }
+    const items: string[] = Array.isArray(parsed.items)
         ? parsed.items.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
-        : (Array.isArray(parsed?.tests)
+        : (Array.isArray(parsed.tests)
             ? parsed.tests.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
             : []);
 
@@ -359,9 +371,8 @@ const buildSuiteGroupsFromContent = (content: string, mode: 'suite' | 'loadtest'
     });
 };
 
-const buildServersFromContent = (content: string): string[] => {
-    const parsed = parseYaml(content);
-    if (!Array.isArray(parsed?.servers)) {
+const buildServersFromDoc = (parsed: SuiteYamlDoc): string[] => {
+    if (!parsed || !Array.isArray(parsed.servers)) {
         return [];
     }
     return parsed.servers
@@ -369,12 +380,11 @@ const buildServersFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
-const buildEnvironmentFromContent = (content: string): SuiteEnvironment | null => {
-    const parsed = parseYaml(content);
+const buildEnvironmentFromDoc = (parsed: SuiteYamlDoc): SuiteEnvironment | null => {
     if (!parsed?.environment || typeof parsed.environment !== 'object') {
         return null;
     }
-    const env = parsed.environment;
+    const env = parsed.environment as Record<string, unknown>;
     const result: SuiteEnvironment = {};
     if (typeof env.preset === 'string') {
         result.preset = env.preset;
@@ -383,14 +393,13 @@ const buildEnvironmentFromContent = (content: string): SuiteEnvironment | null =
         result.file = env.file;
     }
     if (env.variables && typeof env.variables === 'object') {
-        result.variables = env.variables;
+        result.variables = env.variables as Record<string, unknown>;
     }
     return Object.keys(result).length > 0 ? result : null;
 };
 
-const buildExportsFromContent = (content: string): string[] => {
-    const parsed = parseYaml(content);
-    if (!Array.isArray(parsed?.export)) {
+const buildExportsFromDoc = (parsed: SuiteYamlDoc): string[] => {
+    if (!parsed || !Array.isArray(parsed.export)) {
         return [];
     }
     return parsed.export
@@ -398,8 +407,7 @@ const buildExportsFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
-const buildFilterFromContent = (content: string): { only: string[]; skip: string[] } => {
-    const parsed = parseYaml(content);
+const buildFilterFromDoc = (parsed: SuiteYamlDoc): { only: string[]; skip: string[] } => {
     const filter = parseSuiteYamlFilter(parsed?.filter);
     return {
         only: filter?.only ?? [],
@@ -407,8 +415,7 @@ const buildFilterFromContent = (content: string): { only: string[]; skip: string
     };
 };
 
-const buildLoadTestConfigFromContent = (content: string): LoadTestConfig | null => {
-    const parsed = parseYaml(content);
+const buildLoadTestConfigFromDoc = (parsed: SuiteYamlDoc): LoadTestConfig | null => {
     if (!parsed || typeof parsed !== 'object') {
         return null;
     }
@@ -431,27 +438,31 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     return allPaths;
 };
 
+const findSuiteEntryById = (groups: SuiteGroup[], entryId: string): SuiteEntry | undefined => {
+    for (const group of groups) {
+        const match = group.entries.find((entry) => entry.id === entryId);
+        if (match) {
+            return match;
+        }
+    }
+    return undefined;
+};
+
 const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowchartStateChange }) => {
     const { mmtFilePath } = useContext(FileContext);
-    const groups = useMemo(() => buildSuiteGroupsFromContent(content, mode), [content, mode]);
-    const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromContent(content), [content, mode]);
-    const environment = useMemo(() => buildEnvironmentFromContent(content), [content]);
-    const suiteExports = useMemo(() => buildExportsFromContent(content), [content]);
-    const tagFilter = useMemo(() => buildFilterFromContent(content), [content]);
-    const loadConfig = useMemo(() => mode === 'loadtest' ? buildLoadTestConfigFromContent(content) : null, [content, mode]);
-    const suiteTitle = useMemo(() => {
-        try {
-            const parsed = parseYaml(content);
-            return typeof parsed?.title === 'string' ? parsed.title : undefined;
-        } catch {
-            return undefined;
-        }
-    }, [content]);
+    const suiteDoc = useMemo(() => parseSuiteYamlDoc(content), [content]);
+    const groups = useMemo(() => buildSuiteGroupsFromDoc(suiteDoc, mode), [suiteDoc, mode]);
+    const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromDoc(suiteDoc), [suiteDoc, mode]);
+    const environment = useMemo(() => buildEnvironmentFromDoc(suiteDoc), [suiteDoc]);
+    const suiteExports = useMemo(() => buildExportsFromDoc(suiteDoc), [suiteDoc]);
+    const tagFilter = useMemo(() => buildFilterFromDoc(suiteDoc), [suiteDoc]);
+    const loadConfig = useMemo(() => mode === 'loadtest' ? buildLoadTestConfigFromDoc(suiteDoc) : null, [suiteDoc, mode]);
+    const suiteTitle = useMemo(() => (
+        typeof suiteDoc?.title === 'string' ? suiteDoc.title : undefined
+    ), [suiteDoc]);
     const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
     const canRun = allPaths.length > 0;
     const noItems = groups.every(group => group.entries.length === 0);
-
-    useSuiteImportTree(allPaths, true);
 
     const [lastRunIdByEntryId, setLastRunIdByEntryId] = useState<Record<string, string>>({});
     const lastRunIdByEntryIdRef = useRef<Record<string, string>>({});
@@ -715,25 +726,43 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         return next;
     }, [fetchHierarchyByEntryId]);
 
+    const loadingHierarchyRef = useRef<Set<string>>(new Set());
+
+    const loadHierarchyForEntry = useCallback(async (entryId: string) => {
+        if (hierarchyByEntryIdRef.current[entryId] || loadingHierarchyRef.current.has(entryId)) {
+            return;
+        }
+        const entry = findSuiteEntryById(groups, entryId);
+        if (!entry) {
+            return;
+        }
+        loadingHierarchyRef.current.add(entryId);
+        try {
+            const res = await getSuiteHierarchy(entry.path, entry.id);
+            const tree = res?.tree;
+            if (!tree || typeof tree !== 'object') {
+                return;
+            }
+            setHierarchyByEntryId((prev) => {
+                if (prev[entryId]) {
+                    return prev;
+                }
+                const next = { ...prev, [entryId]: tree };
+                hierarchyByEntryIdRef.current = next;
+                return next;
+            });
+        } catch {
+            // Ignore; tree keeps the placeholder folder.
+        } finally {
+            loadingHierarchyRef.current.delete(entryId);
+        }
+    }, [groups]);
+
     useEffect(() => {
-        let cancelled = false;
-        const run = async () => {
-            const result = await fetchHierarchyByEntryId();
-            if (cancelled) {
-                return;
-            }
-            const previous = hierarchyByEntryIdRef.current;
-            if (fingerprintHierarchyByEntryId(result) === fingerprintHierarchyByEntryId(previous)) {
-                return;
-            }
-            hierarchyByEntryIdRef.current = result;
-            setHierarchyByEntryId(result);
-        };
-        run();
-        return () => {
-            cancelled = true;
-        };
-    }, [fetchHierarchyByEntryId]);
+        setHierarchyByEntryId({});
+        hierarchyByEntryIdRef.current = {};
+        loadingHierarchyRef.current.clear();
+    }, [content]);
 
     useEffect(() => {
         setSuiteRunId(null);
@@ -948,11 +977,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns]);
 
     useEffect(() => {
-        if (allPaths.length > 0) {
-            window.vscode?.postMessage({ command: 'validateFilesExist', files: allPaths });
-        } else {
+        if (allPaths.length === 0) {
             setMissingFiles(new Set());
+            return;
         }
+        const timer = window.setTimeout(() => {
+            window.vscode?.postMessage({ command: 'validateFilesExist', files: allPaths });
+        }, 0);
+        return () => {
+            window.clearTimeout(timer);
+        };
     }, [allPaths]);
 
     const onRunSuite = useCallback(async () => {
@@ -1158,6 +1192,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             onStatusFilterChange={setStatusFilter}
             onRunTargets={onRunTargets}
             onRunTargetsInCore={onRunTargetsInCore}
+            onRequestHierarchy={loadHierarchyForEntry}
         />
     );
 
