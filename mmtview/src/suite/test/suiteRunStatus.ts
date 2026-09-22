@@ -86,6 +86,21 @@ function omitServerRunStatus(
  * Prime pending icons for a full suite run: top-level groups/entries plus every
  * known hierarchy descendant so the tree shows what will run before suite-item events arrive.
  */
+/** Add pending icons for newly discovered nodes without clobbering active run states. */
+export function mergePendingRunState(
+  prev: Record<string, StepStatus>,
+  pending: Record<string, StepStatus>,
+): Record<string, StepStatus> {
+  const next = { ...prev };
+  for (const [id, status] of Object.entries(pending)) {
+    const current = next[id];
+    if (current === undefined || current === 'default' || current === 'pending') {
+      next[id] = status;
+    }
+  }
+  return next;
+}
+
 export function buildFullSuitePendingState(
   groups: SuiteGroup[],
   hierarchyByEntryId: Record<string, SuiteTreeNode>,

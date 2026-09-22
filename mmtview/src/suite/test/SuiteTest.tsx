@@ -19,6 +19,7 @@ import {
     buildFullSuitePendingState,
     buildTargetPendingState,
     isUnderSuiteTarget,
+    mergePendingRunState,
 } from './suiteRunStatus';
 import {
     fingerprintHierarchyByEntryId,
@@ -36,7 +37,11 @@ import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestRepo
 import { runInCoreMenuItem } from '../../components/ContextMenuHost';
 import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
 import RunStopToggle from '../../components/RunStopToggle';
-import { computeReportStats, type ReportStepStats } from '../../shared/reportSpillLogic';
+import {
+    computeReportStats,
+    expandedTreeItemsToReportNodeIds,
+    type ReportStepStats,
+} from '../../shared/reportSpillLogic';
 import {
     deleteSpilledReportsForFile,
     getSpilledReports,
@@ -507,6 +512,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const reportQueueRef = useRef<any[]>([]);
     const reportFlushTimerRef = useRef<number | null>(null);
     const durationTimerRef = useRef<number | null>(null);
+    const expandedReportNodeIdsRef = useRef<Set<string>>(new Set());
 
     const trimIgnoredSuiteRuns = useCallback(() => {
         if (ignoredSuiteRunIdsRef.current.size <= 10) {
@@ -666,6 +672,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 const fileKey = mmtFilePath || '';
                 const suiteRunId = suiteRunIdRef.current || '';
                 if (fileKey && suiteRunId) {
+                    const protectNodeIds = new Set(expandedReportNodeIdsRef.current);
                     void (async () => {
                         const spilled = await spillExcessReports({
                             reports: next,
@@ -673,13 +680,23 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             stats: nextStats,
                             fileKey,
                             suiteRunId,
+                            protectNodeIds,
                         });
                         if (!spilled.didSpill) {
                             return;
                         }
                         spilledReportIdsRef.current = spilled.spilled;
                         reportStatsByIdRef.current = spilled.stats;
-                        setLeafReportsById(spilled.reports);
+                        setLeafReportsById((current) => {
+                            const merged = { ...current };
+                            spilled.spilled.forEach((id) => {
+                                if (protectNodeIds.has(id) || expandedReportNodeIdsRef.current.has(id)) {
+                                    return;
+                                }
+                                merged[id] = [];
+                            });
+                            return merged;
+                        });
                         setSpilledReportIds(spilled.spilled);
                         setReportStatsById(spilled.stats);
                     })();
@@ -688,6 +705,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             });
         }
     }, [mmtFilePath]);
+
+    const handleExpandedItemsChange = useCallback((
+        expandedItems: string[],
+        items?: Record<string, { data?: { type?: string; id?: string } }>,
+    ) => {
+        expandedReportNodeIdsRef.current = expandedTreeItemsToReportNodeIds(expandedItems, items);
+    }, []);
 
     const loadReportsForNode = useCallback(async (nodeId: string) => {
         const fileKey = mmtFilePath || '';
@@ -707,7 +731,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             if (!reports) {
                 return;
             }
-            setLeafReportsById((prev) => ({ ...prev, [nodeId]: reports }));
+            setLeafReportsById((prev) => {
+                const inline = prev[nodeId] || [];
+                if (!inline.length) {
+                    return { ...prev, [nodeId]: reports };
+                }
+                return { ...prev, [nodeId]: [...reports, ...inline] };
+            });
             setSpilledReportIds((prev) => {
                 const next = new Set(prev);
                 next.delete(nodeId);
@@ -1184,10 +1214,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
         if (!allEntriesHaveHierarchy(hierarchy)) {
             void ensureHierarchyFresh().then((fresh) => {
-                setLeafRunStateById((prev) => ({
-                    ...prev,
-                    ...buildFullSuitePendingState(groups, fresh),
-                }));
+                setLeafRunStateById((prev) => mergePendingRunState(
+                    prev,
+                    buildFullSuitePendingState(groups, fresh),
+                ));
             });
         }
     }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, clearReportSpillState, suiteRunState]);
@@ -1231,14 +1261,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         startPartialRun(previousHierarchy);
         if (!allEntriesHaveHierarchy(previousHierarchy)) {
             void ensureHierarchyFresh().then((fresh) => {
-                setLeafRunStateById((prev) => ({
-                    ...prev,
-                    ...buildTargetPendingState(
+                setLeafRunStateById((prev) => mergePendingRunState(
+                    prev,
+                    buildTargetPendingState(
                         remapSuiteTargetId(requestedTarget, previousHierarchy, fresh),
                         groups,
                         fresh,
                     ),
-                }));
+                ));
             });
         }
     }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, suiteRunState]);
@@ -1422,6 +1452,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             onRunTargetsInCore={onRunTargetsInCore}
             onRequestHierarchy={loadHierarchyForEntry}
             suiteStructureKey={suiteStructureKey}
+            onExpandedItemsChange={handleExpandedItemsChange}
         />
     );
 

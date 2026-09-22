@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
@@ -88,6 +88,10 @@ interface SuiteTestTreeProps {
   onRequestHierarchy?: (entryId: string) => void;
   /** When this key changes, expanded folders reset to the suite defaults. */
   suiteStructureKey?: string;
+  onExpandedItemsChange?: (
+    expandedItems: string[],
+    items: Record<string, TreeItem<SuiteTestTreeItemData>>,
+  ) => void;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -150,6 +154,32 @@ export function buildDefaultExpandedSuiteIds(groups: SuiteGroup[]): string[] {
     }
   }
   return ids;
+}
+
+/** Keep user-expanded rows when the tree gains items; drop ids that no longer exist. */
+export function reconcileExpandedSuiteItems(
+  prev: readonly string[],
+  validItemIds: ReadonlySet<string>,
+  defaultExpandedItems: readonly string[],
+  options?: { mergeDefaults?: boolean },
+): string[] {
+  const next: string[] = [];
+  const seen = new Set<string>();
+  for (const id of prev) {
+    if (validItemIds.has(id) && !seen.has(id)) {
+      next.push(id);
+      seen.add(id);
+    }
+  }
+  if (options?.mergeDefaults !== false) {
+    for (const id of defaultExpandedItems) {
+      if (validItemIds.has(id) && !seen.has(id)) {
+        next.push(id);
+        seen.add(id);
+      }
+    }
+  }
+  return next.length > 0 ? next : [...defaultExpandedItems];
 }
 
 /** Collect every expandable tree id (groups, entries, nested suite/group/test nodes). */
@@ -380,6 +410,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   onRunTargetsInCore,
   onRequestHierarchy,
   suiteStructureKey,
+  onExpandedItemsChange,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const defaultExpandedItems = useMemo(() => buildDefaultExpandedSuiteIds(groups), [groups]);
@@ -393,14 +424,31 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     return ids;
   }, [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(defaultExpandedItems);
+  const onExpandedItemsChangeRef = useRef(onExpandedItemsChange);
+  onExpandedItemsChangeRef.current = onExpandedItemsChange;
+  const treeItemsRef = useRef<Record<string, TreeItem<SuiteTestTreeItemData>>>({});
+  const suiteStructureKeyRef = useRef<string | undefined>(undefined);
+
+  const syncExpandedItems = useCallback((
+    next: string[],
+    items: Record<string, TreeItem<SuiteTestTreeItemData>> = treeItemsRef.current,
+  ) => {
+    onExpandedItemsChangeRef.current?.(next, items);
+  }, []);
 
   useEffect(() => {
+    if (suiteStructureKeyRef.current === suiteStructureKey) {
+      return;
+    }
+    suiteStructureKeyRef.current = suiteStructureKey;
     setExpandedItems(defaultExpandedItems);
-  }, [suiteStructureKey, defaultExpandedItems]);
+    syncExpandedItems(defaultExpandedItems);
+  }, [suiteStructureKey, defaultExpandedItems, syncExpandedItems]);
 
   const collapseAll = useCallback(() => {
     setExpandedItems(defaultExpandedItems);
-  }, [defaultExpandedItems]);
+    syncExpandedItems(defaultExpandedItems);
+  }, [defaultExpandedItems, syncExpandedItems]);
 
   useImperativeHandle(ref, () => ({ collapseAll }), [collapseAll]);
 
@@ -408,6 +456,32 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     () => ({ items: buildSuiteTestTreeItems(groups, hierarchyByEntryId, base.items) }),
     [base.items, groups, hierarchyByEntryId],
   );
+  treeItemsRef.current = treeData.items;
+
+  useEffect(() => {
+    const validItemIds = new Set(Object.keys(treeData.items));
+    setExpandedItems((prev) => {
+      const next = reconcileExpandedSuiteItems(prev, validItemIds, defaultExpandedItems, {
+        mergeDefaults: false,
+      });
+      if (next.length === prev.length && next.every((id, index) => id === prev[index])) {
+        return prev;
+      }
+      syncExpandedItems(next, treeData.items);
+      return next;
+    });
+  }, [treeData.items, defaultExpandedItems, syncExpandedItems]);
+
+  const reportsByIdRef = useRef(reportsById);
+  const runStateByIdRef = useRef(runStateById);
+  const spilledReportIdsRef = useRef(spilledReportIds);
+  const loadingReportIdsRef = useRef(loadingReportIds);
+  const onRequestReportsRef = useRef(onRequestReports);
+  reportsByIdRef.current = reportsById;
+  runStateByIdRef.current = runStateById;
+  spilledReportIdsRef.current = spilledReportIds;
+  loadingReportIdsRef.current = loadingReportIds;
+  onRequestReportsRef.current = onRequestReports;
 
   const visibleItems = useMemo(() => {
     if (statusFilter === 'all') {
@@ -457,30 +531,38 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
       const itemId = String(item.index);
-      setExpandedItems((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]));
+      setExpandedItems((prev) => {
+        const next = prev.includes(itemId) ? prev : [...prev, itemId];
+        syncExpandedItems(next);
+        return next;
+      });
       if (onRequestHierarchy && topLevelEntryIds.has(itemId) && !hierarchyByEntryId[itemId]) {
         onRequestHierarchy(itemId);
       }
     },
-    [hierarchyByEntryId, onRequestHierarchy, topLevelEntryIds],
+    [hierarchyByEntryId, onRequestHierarchy, syncExpandedItems, topLevelEntryIds],
   );
 
   const handleCollapse = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
-      setExpandedItems((prev) => prev.filter((id) => id !== String(item.index)));
+      setExpandedItems((prev) => {
+        const next = prev.filter((id) => id !== String(item.index));
+        syncExpandedItems(next);
+        return next;
+      });
     },
-    []
+    [syncExpandedItems]
   );
 
   // Icon status is own-id only: never roll up children into parents.
   const getGroupStatus = useCallback((groupItemId: string): StepStatus => {
     const match = /^group-(\d+)$/.exec(groupItemId);
     if (match) {
-      return ownRunStatus(runStateById, createSuiteNodeId([Number(match[1]) - 1]));
+      return ownRunStatus(runStateByIdRef.current, createSuiteNodeId([Number(match[1]) - 1]));
     }
     const bundleId = (treeData.items[groupItemId]?.data as any)?.id;
-    return ownRunStatus(runStateById, typeof bundleId === 'string' ? bundleId : undefined);
-  }, [runStateById, treeData.items]);
+    return ownRunStatus(runStateByIdRef.current, typeof bundleId === 'string' ? bundleId : undefined);
+  }, [treeData.items]);
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
     const match = /^group-(\d+)$/.exec(groupItemId);
@@ -498,6 +580,11 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   }, [groups, treeData.items]);
 
   const renderItem = useCallback(({ item, context, arrow, children, depth }: any) => {
+    const reportsById = reportsByIdRef.current;
+    const runStateById = runStateByIdRef.current;
+    const spilledReportIds = spilledReportIdsRef.current;
+    const loadingReportIds = loadingReportIdsRef.current;
+    const onRequestReports = onRequestReportsRef.current;
     const data = item.data as SuiteTestTreeItemData;
 
     // Prefer the explicit parentPath recorded in the tree node data.
@@ -637,11 +724,6 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     missingFiles,
     onRunTargets,
     onRunTargetsInCore,
-    reportsById,
-    spilledReportIds,
-    loadingReportIds,
-    onRequestReports,
-    runStateById,
     duplicateServerIds,
     statusIconFor,
   ]);

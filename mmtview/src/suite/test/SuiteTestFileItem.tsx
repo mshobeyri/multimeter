@@ -79,10 +79,16 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     const shouldShowReports = !isServer && context?.isExpanded;
 
     useEffect(() => {
-        if (shouldShowReports && reportSpilled && onRequestReports) {
+        if (
+            shouldShowReports &&
+            reportSpilled &&
+            !reportLoading &&
+            stepReports.length === 0 &&
+            onRequestReports
+        ) {
             onRequestReports();
         }
-    }, [shouldShowReports, reportSpilled, onRequestReports]);
+    }, [shouldShowReports, reportSpilled, reportLoading, stepReports.length, onRequestReports]);
 
     const activateLabel = (event: React.MouseEvent | React.KeyboardEvent, openFile: boolean) => {
         handleSuiteFileLabelActivate({

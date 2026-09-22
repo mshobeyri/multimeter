@@ -1,4 +1,9 @@
-import { buildDefaultExpandedSuiteIds, buildSuiteTestTreeItems, collectSuiteExpandableIds } from './SuiteTestTree';
+import {
+  buildDefaultExpandedSuiteIds,
+  buildSuiteTestTreeItems,
+  collectSuiteExpandableIds,
+  reconcileExpandedSuiteItems,
+} from './SuiteTestTree';
 
 describe('buildDefaultExpandedSuiteIds', () => {
   it('opens root for a single group suite', () => {
@@ -48,6 +53,29 @@ describe('buildSuiteTestTreeItems', () => {
     const items = buildSuiteTestTreeItems(groups as any, hierarchyByEntryId, baseItems);
     expect(items['1::1.0']).toBeDefined();
     expect(items['1'].children).toContain('1::1.0');
+  });
+});
+
+describe('reconcileExpandedSuiteItems', () => {
+  it('preserves user expansions when the tree grows without merging defaults', () => {
+    const valid = new Set(['suite-root', '1', '1::1.0']);
+    const next = reconcileExpandedSuiteItems(
+      ['suite-root', '1::1.0'],
+      valid,
+      ['suite-root'],
+      { mergeDefaults: false },
+    );
+    expect(next).toEqual(['suite-root', '1::1.0']);
+  });
+
+  it('falls back to defaults when nothing valid remains', () => {
+    const next = reconcileExpandedSuiteItems(
+      ['missing-id'],
+      new Set(['suite-root']),
+      ['suite-root'],
+      { mergeDefaults: false },
+    );
+    expect(next).toEqual(['suite-root']);
   });
 });
 

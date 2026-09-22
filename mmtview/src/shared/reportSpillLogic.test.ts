@@ -1,7 +1,9 @@
 import {
+  bundleIdFromExpandedTreeItem,
   computeReportStats,
   estimateReportBytes,
   estimateReportsMapBytes,
+  expandedTreeItemsToReportNodeIds,
   pickReportNodeToSpill,
 } from './reportSpillLogic';
 import type { StepReportItem } from './TestStepReportPanel';
@@ -31,6 +33,7 @@ describe('reportSpillLogic', () => {
     };
     expect(pickReportNodeToSpill(map, new Set())).toBe('large');
     expect(pickReportNodeToSpill(map, new Set(['large']))).toBe('small');
+    expect(pickReportNodeToSpill(map, new Set(), new Set(['large']))).toBe('small');
   });
 
   it('estimates total map bytes', () => {
@@ -39,5 +42,23 @@ describe('reportSpillLogic', () => {
       b: [sample('b', 'world')],
     });
     expect(total).toBeGreaterThan(estimateReportBytes([sample('a', 'hello')]));
+  });
+
+  it('maps deeply nested expanded tree ids to bundle node ids', () => {
+    expect(bundleIdFromExpandedTreeItem('suite-node:0::suite-node:0.1::suite-node:0.1.2'))
+      .toBe('suite-node:0.1.2');
+    expect(bundleIdFromExpandedTreeItem('suite-node:0')).toBe('suite-node:0');
+  });
+
+  it('prefers test item data id when resolving expanded report nodes', () => {
+    const ids = expandedTreeItemsToReportNodeIds(
+      ['entry::suite-node:0.1::suite-node:0.1.2'],
+      {
+        'entry::suite-node:0.1::suite-node:0.1.2': {
+          data: { type: 'test', id: 'suite-node:0.1.2' },
+        },
+      },
+    );
+    expect(ids).toEqual(new Set(['suite-node:0.1.2']));
   });
 });

@@ -38,14 +38,45 @@ export function estimateReportsMapBytes(map: Record<string, StepReportItem[]>): 
   return total;
 }
 
+/** Map react-complex-tree expanded item id → suite bundle node id used in reportsById. */
+export function bundleIdFromExpandedTreeItem(expandedItemId: string): string {
+  if (!expandedItemId) {
+    return '';
+  }
+  const sep = expandedItemId.lastIndexOf('::');
+  return sep >= 0 ? expandedItemId.slice(sep + 2) : expandedItemId;
+}
+
+type ExpandedTreeItemLookup = Record<string, { data?: { type?: string; id?: string } }>;
+
+export function expandedTreeItemsToReportNodeIds(
+  expandedItems: readonly string[],
+  items?: ExpandedTreeItemLookup,
+): Set<string> {
+  const out = new Set<string>();
+  for (const itemId of expandedItems) {
+    const data = items?.[itemId]?.data;
+    if (data?.type === 'test' && typeof data.id === 'string' && data.id) {
+      out.add(data.id);
+      continue;
+    }
+    const nodeId = bundleIdFromExpandedTreeItem(itemId);
+    if (nodeId) {
+      out.add(nodeId);
+    }
+  }
+  return out;
+}
+
 export function pickReportNodeToSpill(
   map: Record<string, StepReportItem[]>,
   alreadySpilled: Set<string>,
+  protectNodeIds?: Set<string>,
 ): string | undefined {
   let bestId: string | undefined;
   let bestSize = 0;
   for (const [id, reports] of Object.entries(map)) {
-    if (alreadySpilled.has(id) || !reports.length) {
+    if (alreadySpilled.has(id) || protectNodeIds?.has(id) || !reports.length) {
       continue;
     }
     const size = estimateReportBytes(reports);

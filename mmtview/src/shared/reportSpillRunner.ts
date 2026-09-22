@@ -14,6 +14,8 @@ export async function spillExcessReports(options: {
   stats: Record<string, ReportStepStats>;
   fileKey: string;
   suiteRunId: string;
+  /** Expanded/open report rows stay in memory until the user collapses them. */
+  protectNodeIds?: Set<string>;
 }): Promise<{
   reports: Record<string, StepReportItem[]>;
   spilled: Set<string>;
@@ -32,7 +34,7 @@ export async function spillExcessReports(options: {
   let didSpill = false;
 
   while (bytes > thresholdBytes) {
-    const nodeId = pickReportNodeToSpill(nextReports, nextSpilled);
+    const nodeId = pickReportNodeToSpill(nextReports, nextSpilled, options.protectNodeIds);
     if (!nodeId) {
       break;
     }
