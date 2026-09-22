@@ -243,6 +243,180 @@ export type StepReportItem = Omit<TestStepResult, 'status'|'expects'> & {
   expects: ExpectReportItem[];
 };
 
+/** Cheap check for expandable step content; avoids JSON parsing collapsed rows. */
+export function reportStepHasDetails(report: StepReportItem): boolean {
+  return report.expects.length > 0 || Boolean(report.details && report.details.trim().length > 0);
+}
+
+function unescapeCommonText(s: string): string {
+  if (!s) {
+    return s;
+  }
+  return s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+}
+
+const ReportStepDetailsBody: React.FC<{
+  report: StepReportItem;
+  isDebug: boolean;
+}> = ({ report, isDebug }) => {
+  const callDetails = useMemo(() => parseCallDetails(report.details), [report.details]);
+  const hasExpects = report.expects.length > 0;
+
+  return (
+    <div
+      className="report-step-body"
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
+      {hasExpects && (() => {
+        const softItems = report.expects.filter(i => i.level !== 'require');
+        const hardItems = report.expects.filter(i => i.level === 'require');
+        const renderItems = (items: ExpectReportItem[], sectionLabel: string, first: boolean) => {
+          if (items.length === 0) {
+            return null;
+          }
+          return (
+            <div>
+              <SectionTitle
+                label={sectionLabel}
+                first={first}
+              />
+              <div className="report-expect-list">
+                {items.map((item, idx) => {
+                  const itemMeta = isDebug ? statusIconFor('debug') : statusIconFor(item.status);
+                  const showActualDetails = !isDebug && (typeof item.similarity === 'number' || typeof item.count === 'number') && item.actual !== undefined && item.expected !== undefined;
+                  const showFailureDetails = !isDebug && item.status === 'failed' && item.actual !== undefined && item.expected !== undefined;
+                  return (
+                    <div key={idx} className="report-expect">
+                      <div className="tree-row">
+                        <span
+                          className={`codicon ${itemMeta.icon} report-expect-icon`}
+                          style={{ color: itemMeta.color }}
+                          aria-label={itemMeta.title}
+                        ></span>
+                        <span className="report-expect-text">{item.comparison}</span>
+                      </div>
+                      {(showActualDetails || showFailureDetails) && (
+                        <>
+                          <span className="report-expect-meta">got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
+                          {typeof item.similarity === 'number' && (
+                            <span className="report-expect-meta">similarity: {item.similarity}%</span>
+                          )}
+                          {typeof item.count === 'number' && (
+                            <span className="report-expect-meta">count: {item.count}</span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        };
+        const softLabel = isDebug
+          ? 'Debug'
+          : (softItems.length === 1 ? 'Expect' : 'Expects');
+        const hardLabel = hardItems.length === 1 ? 'Require' : 'Requires';
+        return (
+          <div>
+            {renderItems(softItems, softLabel, true)}
+            {renderItems(hardItems, hardLabel, softItems.length === 0)}
+          </div>
+        );
+      })()}
+      {callDetails ? (
+        <StructuredDetails callDetails={callDetails} />
+      ) : (
+        report.details && report.details.trim().length > 0 && (
+          <pre className="report-selectable report-details-pre">
+            {unescapeCommonText(String(report.details))}
+          </pre>
+        )
+      )}
+    </div>
+  );
+};
+
+type ReportStepRowProps = {
+  report: StepReportItem;
+  reportKey: string;
+  showTimestamps: boolean;
+  isDetailsExpanded: boolean;
+  onToggleDetails: (reportKey: string) => void;
+};
+
+const ReportStepRow: React.FC<ReportStepRowProps> = ({
+  report,
+  reportKey,
+  showTimestamps,
+  isDetailsExpanded,
+  onToggleDetails,
+}) => {
+  const isDebug = report.stepType === 'debug';
+  const hasDetails = reportStepHasDetails(report);
+  const onHeaderActivate = (event: React.MouseEvent | React.KeyboardEvent) => {
+    if (!hasDetails) {
+      return;
+    }
+    if ('key' in event) {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      event.preventDefault();
+    } else {
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.toString().trim()) {
+        return;
+      }
+    }
+    onToggleDetails(reportKey);
+  };
+
+  return (
+    <div className="report-step">
+      <div
+        role={hasDetails ? 'button' : undefined}
+        tabIndex={hasDetails ? 0 : undefined}
+        title={hasDetails ? (isDetailsExpanded ? 'Hide details' : 'Show details') : undefined}
+        onClick={onHeaderActivate}
+        onKeyDown={onHeaderActivate}
+        className={`report-step-head${hasDetails ? ' is-clickable' : ''}`}
+      >
+        <span className="tree-view-box-row-arrow" aria-hidden>
+          {hasDetails ? (
+            <TreeChevron open={isDetailsExpanded} className="report-chevron" />
+          ) : null}
+        </span>
+        <StatusIconWithCache
+          status={isDebug ? 'debug' : report.status}
+          cached={report.cached === true}
+        />
+        <span className="field-grow ellipsis">
+          {report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}
+        </span>
+        {showTimestamps && (
+          <span className="report-step-time">
+            {new Date(report.timestamp).toLocaleTimeString()}
+          </span>
+        )}
+      </div>
+      {isDetailsExpanded && (
+        <ReportStepDetailsBody report={report} isDebug={isDebug} />
+      )}
+    </div>
+  );
+};
+
+const ReportStepRowMemo = React.memo(ReportStepRow, (prev, next) => {
+  return prev.report === next.report &&
+    prev.reportKey === next.reportKey &&
+    prev.showTimestamps === next.showTimestamps &&
+    prev.isDetailsExpanded === next.isDetailsExpanded &&
+    prev.onToggleDetails === next.onToggleDetails;
+});
+
 interface TestStepReportPanelProps {
   isExpanded: boolean;
   onToggleExpanded?: (next: boolean) => void;
@@ -292,14 +466,9 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     setExpandedDetails({});
   }, []);
 
-  const unescapeCommon = useCallback((s: string): string => {
-    if (!s) {
-      return s;
-    }
-    return s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+  const toggleDetails = useCallback((reportKey: string) => {
+    setExpandedDetails((prev) => ({ ...prev, [reportKey]: !prev[reportKey] }));
   }, []);
-
-
 
   if (!isExpanded) {
     return null;
@@ -341,147 +510,17 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
         ) : (
           <div className="report-selectable report-step-list">
             {visibleReports.map((report, reportIdx) => {
-              const isDebug = report.stepType === 'debug';
               // Stable key: timestamp remounts wipe selection / collapse details.
               const reportKey = `${report.stepType}-${report.stepIndex}-${reportIdx}`;
-              const callDetails = parseCallDetails(report.details);
-              const hasExpects = report.expects.length > 0;
-              const hasDetails = Boolean(
-                hasExpects ||
-                callDetails ||
-                (report.details && report.details.trim().length > 0)
-              );
-              const isDetailsExpanded = Boolean(expandedDetails[reportKey]);
-              const toggleDetails = () => {
-                if (!hasDetails) {
-                  return;
-                }
-                setExpandedDetails((prev) => ({ ...prev, [reportKey]: !isDetailsExpanded }));
-              };
-              const onHeaderActivate = (event: React.MouseEvent | React.KeyboardEvent) => {
-                if (!hasDetails) {
-                  return;
-                }
-                if ('key' in event) {
-                  if (event.key !== 'Enter' && event.key !== ' ') {
-                    return;
-                  }
-                  event.preventDefault();
-                } else {
-                  const sel = window.getSelection();
-                  if (sel && !sel.isCollapsed && sel.toString().trim()) {
-                    return;
-                  }
-                }
-                toggleDetails();
-              };
               return (
-                <div
+                <ReportStepRowMemo
                   key={reportKey}
-                  className="report-step"
-                >
-                  <div
-                    role={hasDetails ? 'button' : undefined}
-                    tabIndex={hasDetails ? 0 : undefined}
-                    title={hasDetails ? (isDetailsExpanded ? 'Hide details' : 'Show details') : undefined}
-                    onClick={onHeaderActivate}
-                    onKeyDown={onHeaderActivate}
-                    className={`report-step-head${hasDetails ? ' is-clickable' : ''}`}
-                  >
-                    <span className="tree-view-box-row-arrow" aria-hidden>
-                      {hasDetails ? (
-                        <TreeChevron open={isDetailsExpanded} className="report-chevron" />
-                      ) : null}
-                    </span>
-                    <StatusIconWithCache
-                      status={isDebug ? 'debug' : report.status}
-                      cached={report.cached === true}
-                    />
-                    <span className="field-grow ellipsis">
-                      {report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}
-                    </span>
-                    {showTimestamps && (
-                      <span className="report-step-time">
-                        {new Date(report.timestamp).toLocaleTimeString()}
-                      </span>
-                    )}
-                  </div>
-                  {isDetailsExpanded && (
-                    <div
-                      className="report-step-body"
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                      onDoubleClick={(e) => e.stopPropagation()}
-                    >
-                        {hasExpects && (() => {
-                          const softItems = report.expects.filter(i => i.level !== 'require');
-                          const hardItems = report.expects.filter(i => i.level === 'require');
-                          const renderItems = (items: ExpectReportItem[], sectionLabel: string, first: boolean) => {
-                            if (items.length === 0) {
-                              return null;
-                            }
-                            return (
-                              <div>
-                                <SectionTitle
-                                  label={sectionLabel}
-                                  first={first}
-                                />
-                                <div className="report-expect-list">
-                                  {items.map((item, idx) => {
-                                    const itemMeta = isDebug ? statusIconFor('debug') : statusIconFor(item.status);
-                                    const showActualDetails = !isDebug && (typeof item.similarity === 'number' || typeof item.count === 'number') && item.actual !== undefined && item.expected !== undefined;
-                                    const showFailureDetails = !isDebug && item.status === 'failed' && item.actual !== undefined && item.expected !== undefined;
-                                    return (
-                                      <div key={idx} className="report-expect">
-                                        <div className="tree-row">
-                                          <span
-                                            className={`codicon ${itemMeta.icon} report-expect-icon`}
-                                            style={{ color: itemMeta.color }}
-                                            aria-label={itemMeta.title}
-                                          ></span>
-                                          <span className="report-expect-text">{item.comparison}</span>
-                                        </div>
-                                        {(showActualDetails || showFailureDetails) && (
-                                          <>
-                                            <span className="report-expect-meta">got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
-                                            {typeof item.similarity === 'number' && (
-                                              <span className="report-expect-meta">similarity: {item.similarity}%</span>
-                                            )}
-                                            {typeof item.count === 'number' && (
-                                              <span className="report-expect-meta">count: {item.count}</span>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          };
-                          const softLabel = isDebug
-                            ? 'Debug'
-                            : (softItems.length === 1 ? 'Expect' : 'Expects');
-                          const hardLabel = hardItems.length === 1 ? 'Require' : 'Requires';
-                          return (
-                            <div>
-                              {renderItems(softItems, softLabel, true)}
-                              {renderItems(hardItems, hardLabel, softItems.length === 0)}
-                            </div>
-                          );
-                        })()}
-                        {callDetails ? (
-                          <StructuredDetails callDetails={callDetails} />
-                        ) : (
-                          report.details && report.details.trim().length > 0 && (
-                            <pre className="report-selectable report-details-pre">
-                              {unescapeCommon(String(report.details))}
-                            </pre>
-                          )
-                        )}
-                      </div>
-                    )}
-                </div>
+                  report={report}
+                  reportKey={reportKey}
+                  showTimestamps={showTimestamps}
+                  isDetailsExpanded={Boolean(expandedDetails[reportKey])}
+                  onToggleDetails={toggleDetails}
+                />
               );
             })}
           </div>
