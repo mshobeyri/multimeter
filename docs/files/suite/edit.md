@@ -39,7 +39,7 @@ Two tag inputs write `filter.only` and `filter.skip` on the suite file:
 - **Only tags** — run just the tests and suites whose `tags:` include one of them. Empty runs everything.
 - **Skip tags** — never run tests and suites carrying one of them. Skip wins over only.
 
-Tags are matched against `tags:` on test and suite files, so a tagged suite selects its whole subtree. Filtered-out items appear with a skip icon in the runner. See [Tag filter](./execution.md#tag-filter) and the [suite tag filter example](../../../examples/intermediate/29_suite_tag_filter/README.md).
+Tags are matched against `tags:` on test and suite files, so a tagged suite selects its whole subtree. Filtered-out items appear with a skip icon in the runner. After a run, the suite panel shows the active filter **below Items** (with **Total: N skipped** when applicable). See [Tag filter](./execution.md#tag-filter) and the [suite tag filter example](../../../examples/intermediate/29_suite_tag_filter/README.md).
 
 ### Servers
 
