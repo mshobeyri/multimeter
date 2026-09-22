@@ -33,8 +33,8 @@ See also: [Flow chart](../../features/flow-chart.md)
 | `environment` | Preset, env file, and inline variables when `environment:` is configured |
 | `servers` | Mock server files listed in `servers:` |
 | **Exports** | Report export paths from `export:` |
+| `filter` | When `filter:` is set: only/skip tags and, after a run, **Total: N skipped** — see [Tag filter](./execution.md#tag-filter) |
 | **Items** | Item tree grouped by execution stage — expand a test to see step reports — see [Reports](./reports.md#items-tree) |
-| `filter` | When `filter:` is set: only/skip tags and, after a run, **Total: N skipped** — below **Items** — see [Tag filter](./execution.md#tag-filter) |
 
 ### Item tree
 

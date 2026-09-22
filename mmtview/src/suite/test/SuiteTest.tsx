@@ -1469,6 +1469,31 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     </div>
                 </>
             )}
+            {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
+                <>
+                    <div className="label is-field">Filter</div>
+                    <div className="meta-block">
+                        {tagFilter.only.length > 0 && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-filter meta-icon" aria-hidden />
+                                <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
+                            </div>
+                        )}
+                        {tagFilter.skip.length > 0 && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-diff-ignored meta-icon" aria-hidden />
+                                <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
+                            </div>
+                        )}
+                        {runOverview.hasRunState && runOverview.skipped > 0 && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-skip meta-icon" aria-hidden />
+                                <span>Total: {runOverview.skipped} skipped</span>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
             {suiteExports.length > 0 && (
                 <>
                     <div className="label is-field">Exports</div>
@@ -1482,32 +1507,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     </div>
                 </>
             )}
-        </>
-    ) : null;
-
-    const filterMeta = (tagFilter.only.length > 0 || tagFilter.skip.length > 0) ? (
-        <>
-            <div className="label is-field">Filter</div>
-            <div className="meta-block">
-                {tagFilter.only.length > 0 && (
-                    <div className="meta-row">
-                        <span className="codicon codicon-filter meta-icon" aria-hidden />
-                        <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
-                    </div>
-                )}
-                {tagFilter.skip.length > 0 && (
-                    <div className="meta-row">
-                        <span className="codicon codicon-diff-ignored meta-icon" aria-hidden />
-                        <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
-                    </div>
-                )}
-                {runOverview.hasRunState && runOverview.skipped > 0 && (
-                    <div className="meta-row">
-                        <span className="codicon codicon-skip meta-icon" aria-hidden />
-                        <span>Total: {runOverview.skipped} skipped</span>
-                    </div>
-                )}
-            </div>
         </>
     ) : null;
 
@@ -1564,7 +1563,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                                 <div className="panel-scroll is-x-clip">
                                     <div className="test-flow-tree">{tree}</div>
                                 </div>
-                                {filterMeta && <div className="panel-view-fixed">{filterMeta}</div>}
                             </>
                         )}
                     </>

@@ -33,7 +33,7 @@ Each item row also shows:
 
 ## Tag filter (runner)
 
-When the suite file has `filter.only` and/or `filter.skip`, a read-only **Filter** block appears **below the Items tree** (not in the fixed header area with Environment and Servers):
+When the suite file has `filter.only` and/or `filter.skip`, a read-only **Filter** block appears with Environment and Servers (above **Items**):
 
 | Row | Meaning |
 |---|---|

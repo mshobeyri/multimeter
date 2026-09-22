@@ -99,7 +99,7 @@ items:
 - Nested **running** suites merge: `only` lists AND (each list is still OR), `skip` lists OR.
 - `filter:` on a nested suite is ignored while walking into it to find matching children; it applies when that suite itself is selected to run.
 - CLI: `testlight run suite.mmt --tag smoke --skip-tag flaky` (repeatable; comma-separated is OK). CLI tags replace the `filter:` of the file you run.
-- In VS Code, edit `filter:` in the {{btn:filter:Filter}} tab of [Edit Suite](./edit.md#filter). The suite panel lists the active filter **below the Items tree** when `filter:` is configured.
+- In VS Code, edit `filter:` in the {{btn:filter:Filter}} tab of [Edit Suite](./edit.md#filter). The suite panel lists the active filter above **Items** when `filter:` is configured.
 - Put `filter:` before `items:` in YAML (canonical order). Out-of-order keys show **YAML ERROR** in the run bar; use **Format Document** (Shift+Alt+F) to fix.
 
 Skipped items are reported as skipped (not failed). A group that only contains skipped items is skipped; mixed passed + skipped still counts as passed.

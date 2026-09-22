@@ -196,7 +196,7 @@ Do not start, run, or cache a skipped test. Do not emit check/assert steps for i
 - **Total** — executed step count (`passed + failed`).
 - **Total subtitle** — `N test file(s)` in the suite tree (runnable tests + nested suites), not skipped count.
 
-**Runner Filter block** (when `filter:` is configured, below **Items**):
+**Runner Filter block** (when `filter:` is configured, above **Items**):
 
 - Read-only **Only:** / **Skip:** tag lists.
 - After a run: **Total: N skipped** when `N > 0` (top-level skipped items; do not double-count descendants of a skipped parent).
@@ -276,7 +276,7 @@ Edit Suite gets a **Filter** tab (`codicon-filter`), between **Items** and **Ser
 - **Only tags** and **Skip tags** chip inputs (same widget as file `tags:`), writing `filter.only` / `filter.skip` back to the suite YAML.
 - Empty only = no only-filter (run all, then apply skip). Empty skip = no skip filter. Both empty removes `filter:`.
 
-On the runner side of the panel, the active `filter:` is listed read-only **below the Items tree** (Environment and Servers stay in the fixed header above Items). During/after a run, skipped rows use the skip icon immediately (no “running” flash). Misordered YAML keys (including `filter:` after `items:`) surface **YAML ERROR** in the run bar.
+On the runner side of the panel, the active `filter:` is listed read-only above **Items**, the same way `environment:` and `servers:` are shown. During/after a run, skipped rows use the skip icon immediately (no “running” flash). Misordered YAML keys (including `filter:` after `items:`) surface **YAML ERROR** in the run bar.
 
 ---
 
@@ -325,7 +325,7 @@ Keep core free of VS Code; inject nothing extra beyond options already passed in
 
 1. Core `TagFilter` + tags on hierarchy nodes + skipped status on suite-item reporter; unit tests for only/skip/descend.
 2. CLI flags + `filter:` parse on suite YAML.
-3. VS Code Edit Suite Filter tab + runner filter section (below Items) + skip icon + **Total: N skipped** row.
+3. VS Code Edit Suite Filter tab + runner filter section (above Items) + skip icon + **Total: N skipped** row.
 4. Reports (MMT/JUnit/HTML/MD) skipped counts and results.
 5. GitHub Action / Azure inputs + user docs.
 
