@@ -869,7 +869,7 @@ export const TestSchema = {
                     // if step
                     {
                         type: 'object',
-                        required: ['if', 'steps'],
+                        required: ['if'],
                         properties: {
                             if: { type: 'string' },
                             steps: { $ref: '#/properties/steps' },
@@ -880,7 +880,7 @@ export const TestSchema = {
                     // for step
                     {
                         type: 'object',
-                        required: ['for', 'steps'],
+                        required: ['for'],
                         properties: {
                             for: { type: 'string' },
                             steps: { $ref: '#/properties/steps' }
@@ -890,7 +890,7 @@ export const TestSchema = {
                     // repeat step
                     {
                         type: 'object',
-                        required: ['repeat', 'steps'],
+                        required: ['repeat'],
                         properties: {
                             repeat: { type: ['integer', 'string', 'boolean', 'object', 'array', 'null'] },
                             steps: { $ref: '#/properties/steps' }

@@ -1,4 +1,5 @@
 import YAML, {isMap, isPair, isScalar, isSeq, Pair, YAMLMap} from 'yaml';
+import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
 import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
 import {JUDGE_KEY_ORDER} from './judgeParsePack';
 import {
@@ -231,6 +232,7 @@ export function formatMmtYamlAst(content: string, docType: string): string {
   const rootOrder = ROOT_KEY_ORDER[docType];
   if (doc.contents) {
     visit(doc.contents, 'root', rootOrder);
+    forceBlockStyleForStepSequences(doc.contents);
   }
 
   const formatted = doc.toString({

@@ -9,6 +9,7 @@ import {isOmitSentinel} from './omitKeyword';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 import {normalizeNewlines} from './textLines';
 import {mergeYamlValue} from './yamlAstMerge';
+import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
 
 /**
  * Quote YAML-unsafe expect/debug operators (`!=`, `!*`, `>`, …) before parsing.
@@ -110,12 +111,14 @@ function packYaml(obj: any, originalYaml?: string): string {
           doc.contents = merged as typeof doc.contents;
         }
         applyKeywordScalarStyles(doc.contents, obj);
+        forceBlockStyleForStepSequences(doc.contents);
         return stringifyYamlDocument(doc);
       }
     }
     const doc = new YAML.Document();
     doc.contents = doc.createNode(normalized);
     applyKeywordScalarStyles(doc.contents, obj);
+    forceBlockStyleForStepSequences(doc.contents);
     return stringifyYamlDocument(doc);
   } catch (e) {
     return '';

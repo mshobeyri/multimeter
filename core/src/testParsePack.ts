@@ -108,9 +108,13 @@ function reorderStep(step: any): any {
 
   let ordered = order ? reorderKeys(step, order) : {...step};
 
-  // Recursively reorder nested steps
+  // Recursively reorder nested steps; omit empty lists so YAML stays block-style.
   if (Array.isArray(ordered.steps)) {
-    ordered.steps = reorderSteps(ordered.steps);
+    if (ordered.steps.length > 0) {
+      ordered.steps = reorderSteps(ordered.steps);
+    } else if (stepType === 'if' || stepType === 'for' || stepType === 'repeat' || stepType === 'stage') {
+      delete ordered.steps;
+    }
   }
   if (Array.isArray(ordered.else)) {
     ordered.else = reorderSteps(ordered.else);

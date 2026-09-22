@@ -65,9 +65,28 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
     // Toggle "active" mode per item for inline editors of expandable types
     const [openEditors, setOpenEditors] = React.useState<Record<string, boolean>>({});
 
+    const treeRootRef = React.useRef<HTMLDivElement>(null);
+    const [isFlowDragging, setIsFlowDragging] = React.useState(false);
+
+    const beginFlowDrag = () => {
+        treeRootRef.current?.classList.add('test-flow-tree--dragging');
+        setIsFlowDragging(true);
+        setOpenEditors({});
+    };
+
+    const endFlowDrag = () => {
+        treeRootRef.current?.classList.remove('test-flow-tree--dragging');
+        setIsFlowDragging(false);
+        if (dragPreviewEl && dragPreviewEl.parentNode) {
+            (dragPreviewEl.parentNode as Node).removeChild(dragPreviewEl);
+        }
+        dragPreviewEl = null;
+    };
+
     const expandedInitializedRef = React.useRef(false);
     React.useEffect(() => {
         try {
+            setMultiStage(Array.isArray(testData.stages));
             const newTree = testDataToShortTree(testData);
             setShortTree(newTree);
             setExpandedItems(prev => {
@@ -102,14 +121,12 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
         setMultiStage(checked);
         try {
             if (checked) {
-                // Convert all top-level steps into a single stage containing them
-                const steps = Array.isArray(testData.steps) ? (testData.steps as any[]) : [];
+                const steps = treeItemsToFlow(shortTree.items, 'flow');
                 const singleStage = { id: 'stage_1', steps };
                 update && update({ stages: [singleStage], steps: undefined });
             } else {
-                // Flatten stages back to steps by taking their steps arrays in order
-                const stages = Array.isArray(testData.stages) ? (testData.stages as any[]) : [];
-                const steps = stages.flatMap((st: any) => Array.isArray(st?.steps) ? st.steps : []);
+                const stagesFlow = treeItemsToFlow(shortTree.items, 'flow');
+                const steps = flattenStagesToSteps(stagesFlow);
                 update && update({ steps, stages: undefined });
             }
         } catch (e) {
@@ -249,8 +266,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
             case 'check': return { check: '1 == 1' };
             case 'assert': return { assert: '1 == 1' };
             case 'if': return { if: '1 != 1', steps: [] };
-            case 'for': return { for: '' };
-            case 'repeat': return { repeat: '2' };
+            case 'for': return { for: '', steps: [] };
+            case 'repeat': return { repeat: 2, steps: [] };
             case 'delay': return { delay: '1s' };
             case 'run': return { run: '' };
             case 'judge': return {
@@ -269,14 +286,17 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
     const addItemOfType = (type: FlowType) => {
         const itemsCopy = { ...shortTree.items } as Record<string, any>;
 
-        const makeNode = (key: string, stepObj: any) => ({
-            index: key,
-            isFolder: false,
-            canMove: true,
-            children: [],
-            data: JSON.stringify({ type: getTestFlowStepType(stepObj), data: { stepData: stepObj } }),
-            canRename: true,
-        });
+        const makeNode = (key: string, stepObj: any) => {
+            const stepType = getTestFlowStepType(stepObj);
+            return {
+                index: key,
+                isFolder: isTypeFolder(stepType),
+                canMove: true,
+                children: [],
+                data: JSON.stringify({ type: stepType, data: { stepData: stepObj } }),
+                canRename: true,
+            };
+        };
 
         const uniqueKey = (base: string) => {
             let k = `${base}_${Date.now().toString(36)}`;
@@ -345,7 +365,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
     };
 
     return (
-        <div className="test-flow-tree">
+        <div className="test-flow-tree" ref={treeRootRef}>
             <ControlledTreeEnvironment
                 items={shortTree.items}
                 getItemTitle={item => item.data}
@@ -542,20 +562,13 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                         >
                         <div
                             onDragStart={(e) => {
-                                // Close active state when starting a drag for this item
-                                const key = String(item.index);
-                                setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
+                                beginFlowDrag();
                                 setTransparentDragImage(e.dataTransfer);
                             }}
-                            onDragEnd={() => {
-                                if (dragPreviewEl && dragPreviewEl.parentNode) {
-                                    (dragPreviewEl.parentNode as Node).removeChild(dragPreviewEl);
-                                }
-                                dragPreviewEl = null;
-                            }}
+                            onDragEnd={endFlowDrag}
                         >
                             <div
-                                className={`tree-view-box${(expandable && isOpen) ? ' active' : ''}`}
+                                className={`tree-view-box${(expandable && isOpen && !isFlowDragging) ? ' active' : ''}`}
                                 {...context.itemContainerWithoutChildrenProps}
                             >
                                 {expandable && !folderExpandable && (
@@ -602,7 +615,10 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                     {...context.interactiveElementProps}
                                     title="Drag to reorder"
                                     onMouseDownCapture={(e) => e.stopPropagation()}
-                                    onPointerDownCapture={(e) => e.stopPropagation()}
+                                    onPointerDownCapture={(e) => {
+                                        e.stopPropagation();
+                                        beginFlowDrag();
+                                    }}
                                     className={['tree-grip', 'is-flow', context.interactiveElementProps?.className].filter(Boolean).join(' ')}
                                 >
                                     <span className="codicon codicon-gripper" aria-hidden />
@@ -743,6 +759,18 @@ const isFolderWithUnifiedExpand = (type: FlowType | unknown): boolean => {
 
 export default TestFlow;
 
+/** Flatten multistage flow into a single steps list (stage wrappers removed). */
+export function flattenStagesToSteps(stages: TestFlowSteps | unknown[]): TestFlowSteps {
+    if (!Array.isArray(stages)) {
+        return [] as TestFlowSteps;
+    }
+    return stages.flatMap((stage) => (
+        Array.isArray((stage as { steps?: unknown[] })?.steps)
+            ? (stage as { steps: TestFlowSteps }).steps
+            : []
+    ));
+}
+
 export function treeItemsToFlow(items: Record<string, any>, rootKey: string): TestFlowSteps {
     const root = items[rootKey];
     if (!root) return [] as TestFlowSteps;
@@ -792,6 +820,13 @@ function buildStepFromTree(items: Record<string, any>, key: string): any {
             }
         }
         return result;
+    }
+
+    if (type === 'for' || type === 'repeat' || type === 'stage') {
+        return {
+            ...base,
+            steps: kids.map((k) => buildStepFromTree(items, k)),
+        };
     }
 
     if (kids.length > 0) {

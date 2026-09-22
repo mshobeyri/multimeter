@@ -909,6 +909,12 @@
   overflow-x: hidden;
 }
 
+/* react-complex-tree assumes uniform row height; collapse expanded boxes while dragging. */
+.test-flow-tree--dragging .tree-view-box {
+  max-height: 48px !important;
+  overflow: hidden !important;
+}
+
 .drag-preview-ghost {
   position: fixed;
   top: -10000px;

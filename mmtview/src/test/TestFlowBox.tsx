@@ -49,6 +49,18 @@ function parseIfForUi(raw: string): { first: IfClause; join?: LogicalJoin; secon
   return { first, join, second: clauseFromRaw(rest) };
 }
 
+/** Counts become numbers; durations like 1s stay strings. */
+export function coerceRepeatOrDelayValue(raw: string): string | number {
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    return '';
+  }
+  if (/^\d+$/.test(trimmed)) {
+    return Number(trimmed);
+  }
+  return trimmed;
+}
+
 function formatIfForUi(val: { first: IfClause; join?: LogicalJoin; second?: IfClause }): string {
   const clauses = [
     { actual: val.first.actual, operator: val.first.op, expected: val.first.expected },
@@ -210,13 +222,21 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         );
       }
       case 'for':
+        return (
+          <input
+            placeholder="(i = 0; i < 5; i++ | key in obj | item of list)"
+            value={stepData.for || ''}
+            onChange={e => onChange({ ...stepData, for: e.target.value })}
+            className="mmt-fill"
+          />
+        );
       case 'repeat':
       case 'delay':
         return (
           <input
-            placeholder={type === 'for' ? '(i = 0; i < 5; i++ | key in obj | item of list)' : (type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2ms | 3m | 4h)')}
-            value={stepData[type] || ''}
-            onChange={e => onChange({ ...stepData, [type]: e.target.value })}
+            placeholder={type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2s | 3m | 4h)'}
+            value={stepData[type] != null ? String(stepData[type]) : ''}
+            onChange={e => onChange({ ...stepData, [type]: coerceRepeatOrDelayValue(e.target.value) })}
             className="mmt-fill"
           />
         );
