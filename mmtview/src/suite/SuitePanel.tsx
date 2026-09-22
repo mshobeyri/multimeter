@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import 'react-complex-tree/lib/style.css';
 import SuiteEdit from './edit/SuiteEdit';
 import SuiteTest, { SuiteFlowchartState } from './test/SuiteTest';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { FlowchartView } from '../flowchart';
 import { FileContext } from '../fileContext';
+import { usePanelPage } from '../usePanelPage';
 import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
 import PanelEditHeader from '../components/PanelEditHeader';
 
@@ -27,9 +28,13 @@ function pageTranslate(page: SuitePage): string {
 }
 
 const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
-  const [page, setPage] = useState<SuitePage>('test');
+  const [page, setPage] = usePanelPage<SuitePage>('test');
   const [flowchartState, setFlowchartState] = useState<SuiteFlowchartState | null>(null);
   const { mmtFilePath } = React.useContext(FileContext);
+
+  useEffect(() => {
+    setFlowchartState(null);
+  }, [mmtFilePath]);
   const suiteTitle = useMemo(() => {
     const parsed = parseYaml(content);
     return (parsed && typeof parsed.title === 'string') ? parsed.title : 'Suite';
@@ -73,7 +78,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
 
             <div className="api-swipe-page api-swipe-page--edit">
               {page === 'edit' && (
-                <>
+                <React.Fragment key={mmtFilePath}>
                   <PanelEditHeader
                     title="Edit Suite"
                     onBack={() => setPage('test')}
@@ -81,13 +86,14 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
                   />
 
                   <SuiteEdit content={content} setContent={setContent} />
-                </>
+                </React.Fragment>
               )}
             </div>
 
             <div className="api-swipe-page api-swipe-page--flow">
               {page === 'flow' && (
                 <FlowchartView
+                  key={mmtFilePath}
                   source={{
                     kind: 'suite',
                     rootTitle: suiteTitle,

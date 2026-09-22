@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useContext, useEffect, useCallback, useState } from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
 import { parseYaml } from "mmt-core/markupConvertor";
@@ -13,14 +13,13 @@ import TabBar from "../components/TabBar";
 import RunStopToggle from "../components/RunStopToggle";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
 import PanelEditHeader from "../components/PanelEditHeader";
+import { usePanelPage } from "../usePanelPage";
+import { FileContext } from "../fileContext";
 
 interface MockPanelProps {
   content: string;
   setContent: (value: string) => void;
 }
-
-const LAST_MOCK_PAGE_KEY = "mmtview:mock:lastPage";
-const LAST_MOCK_TAB_KEY = "mmtview:mock:lastTab";
 
 const MOCK_EDIT_TABS = [
   { id: "overview" as const, label: "Overview", icon: "search" },
@@ -31,19 +30,14 @@ const MOCK_EDIT_TABS = [
 const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   const [mockData, setMockData] = useState<MockData | null>(null);
   const [running, setRunning] = useState(false);
-  const [page, setPage] = useState<'test' | 'edit'>(
-    () => (localStorage.getItem(LAST_MOCK_PAGE_KEY) as 'test' | 'edit') || 'test'
-  );
-  const [tab, setTab] = useState<'overview' | 'server' | 'endpoints'>(
-    () => {
-      const savedTab = localStorage.getItem(LAST_MOCK_TAB_KEY);
-      return savedTab === 'server' || savedTab === 'endpoints' || savedTab === 'overview' ? savedTab : 'overview';
-    }
-  );
+  const [page, setPage] = usePanelPage<'test' | 'edit'>('test');
+  const [tab, setTab] = useState<'overview' | 'server' | 'endpoints'>('overview');
+  const { mmtFilePath } = useContext(FileContext);
   const [envParams, setEnvParams] = useState<Record<string, any>>({});
 
-  useEffect(() => { localStorage.setItem(LAST_MOCK_PAGE_KEY, page); }, [page]);
-  useEffect(() => { localStorage.setItem(LAST_MOCK_TAB_KEY, tab); }, [tab]);
+  useEffect(() => {
+    setTab('overview');
+  }, [mmtFilePath]);
 
   useEffect(() => {
     const cleanup = loadEnvVariables((envVars) => {
@@ -235,25 +229,29 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
             {/* ── Edit page (tabs: Overview / Server / Endpoints) ── */}
             <div className="api-swipe-page api-swipe-page--edit">
-              <PanelEditHeader
-                title="Edit Mock"
-                onBack={() => setPage('test')}
-                backTitle="Back to Mock"
-              >
-                <TabBar tabs={MOCK_EDIT_TABS} value={tab} onChange={setTab} />
-              </PanelEditHeader>
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
+                  <PanelEditHeader
+                    title="Edit Mock"
+                    onBack={() => setPage('test')}
+                    backTitle="Back to Mock"
+                  >
+                    <TabBar tabs={MOCK_EDIT_TABS} value={tab} onChange={setTab} />
+                  </PanelEditHeader>
 
-              <div className="panel-scroll">
-                {tab === 'overview' && (
-                  <MockOverview data={mockData} updateField={updateField} />
-                )}
-                {tab === 'server' && (
-                  <MockServerSettings data={mockData} updateField={updateField} content={content} setContent={setContent} />
-                )}
-                {tab === 'endpoints' && (
-                  <MockEndpoints content={content} setContent={setContent} mockData={mockData} />
-                )}
-              </div>
+                  <div className="panel-scroll">
+                    {tab === 'overview' && (
+                      <MockOverview data={mockData} updateField={updateField} />
+                    )}
+                    {tab === 'server' && (
+                      <MockServerSettings data={mockData} updateField={updateField} content={content} setContent={setContent} />
+                    )}
+                    {tab === 'endpoints' && (
+                      <MockEndpoints content={content} setContent={setContent} mockData={mockData} />
+                    )}
+                  </div>
+                </React.Fragment>
+              )}
             </div>
           </div>
         </div>

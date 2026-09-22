@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import SuiteTest, { SuiteFlowchartState } from '../suite/test/SuiteTest';
 import LoadTestEdit from './LoadTestEdit';
 import { FlowchartView } from '../flowchart';
 import { FileContext } from '../fileContext';
+import { usePanelPage } from '../usePanelPage';
 import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
 import PanelEditHeader from '../components/PanelEditHeader';
 
@@ -27,9 +28,13 @@ function pageTranslate(page: LoadTestPage): string {
 }
 
 const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) => {
-  const [page, setPage] = useState<LoadTestPage>('test');
+  const [page, setPage] = usePanelPage<LoadTestPage>('test');
   const [flowchartState, setFlowchartState] = useState<SuiteFlowchartState | null>(null);
   const { mmtFilePath } = React.useContext(FileContext);
+
+  useEffect(() => {
+    setFlowchartState(null);
+  }, [mmtFilePath]);
   const loadTestTitle = useMemo(() => {
     const parsed = parseYaml(content);
     return (parsed && typeof parsed.title === 'string') ? parsed.title : 'Load Test';
@@ -69,28 +74,35 @@ const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) =>
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <PanelEditHeader
-                title="Edit Load Test"
-                onBack={() => setPage('test')}
-                backTitle="Back to Load Test"
-              />
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
+                  <PanelEditHeader
+                    title="Edit Load Test"
+                    onBack={() => setPage('test')}
+                    backTitle="Back to Load Test"
+                  />
 
-              <LoadTestEdit content={content} setContent={setContent} />
+                  <LoadTestEdit content={content} setContent={setContent} />
+                </React.Fragment>
+              )}
             </div>
 
             <div className="api-swipe-page api-swipe-page--flow">
-              <FlowchartView
-                source={{
-                  kind: 'suite',
-                  rootTitle: loadTestTitle,
-                  rootPath: mmtFilePath,
-                  groups: flowchartState?.groups ?? [],
-                  hierarchyByEntryId: flowchartState?.hierarchyByEntryId ?? {},
-                  missingFiles: flowchartState?.missingFiles ?? NO_MISSING_FILES,
-                }}
-                onBack={() => setPage('test')}
-                title={loadTestTitle || 'Load Test'}
-              />
+              {page === 'flow' && (
+                <FlowchartView
+                  key={mmtFilePath}
+                  source={{
+                    kind: 'suite',
+                    rootTitle: loadTestTitle,
+                    rootPath: mmtFilePath,
+                    groups: flowchartState?.groups ?? [],
+                    hierarchyByEntryId: flowchartState?.hierarchyByEntryId ?? {},
+                    missingFiles: flowchartState?.missingFiles ?? NO_MISSING_FILES,
+                  }}
+                  onBack={() => setPage('test')}
+                  title={loadTestTitle || 'Load Test'}
+                />
+              )}
             </div>
           </div>
         </div>

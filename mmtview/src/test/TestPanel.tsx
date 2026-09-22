@@ -8,6 +8,7 @@ import TestCode from "./TestCode";
 import { useImportValidation } from "../text/useImportValidation";
 import TestTest from "./TestTest";
 import { FileContext } from "../fileContext";
+import { usePanelPage } from "../usePanelPage";
 import { FlowchartView } from "../flowchart";
 import UnsavedChangesWarning from "../api/UnsavedChangesWarning";
 import { showYamlUiConflictDialog } from "../vsAPI";
@@ -24,8 +25,6 @@ interface TestPanelProps {
   headerLeading?: React.ReactNode;
 }
 
-const LAST_TAB_KEY = "mmtview:lastTab";
-const LAST_TEST_PAGE_KEY = "mmtview:test:lastPage";
 type TestPage = "test" | "edit" | "flow";
 
 const TEST_EDIT_TABS = [
@@ -100,13 +99,13 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
 
   const hasUiOverrides = dirtyInputKeys.size > 0;
 
-  const [page, setPage] = useState<TestPage>(
-    () => (localStorage.getItem(LAST_TEST_PAGE_KEY) as TestPage) || "test"
-  );
-  const [tab, setTab] = useState<"overview" | "flow" | "code">(
-    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code") || "overview"
-  );
+  const [page, setPage] = usePanelPage<TestPage>("test");
+  const [tab, setTab] = useState<"overview" | "flow" | "code">("overview");
   const { mmtFilePath } = React.useContext(FileContext);
+
+  useEffect(() => {
+    setTab("overview");
+  }, [mmtFilePath]);
 
   const isTestModified = page === "test" && hasUiOverrides;
 
@@ -235,14 +234,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
   const { missingImports, inputsByAlias, outputsByAlias } = useImportValidation(importsMap);
 
   useEffect(() => {
-    localStorage.setItem(LAST_TAB_KEY, tab);
-  }, [tab]);
-
-  useEffect(() => {
-    localStorage.setItem(LAST_TEST_PAGE_KEY, page);
-  }, [page]);
-
-  useEffect(() => {
     if (isReadOnly && page === 'edit') {
       setPage('test');
     }
@@ -320,51 +311,58 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <PanelEditHeader
-                title="Edit Test"
-                onBack={() => setPage('test')}
-                backTitle="Back to Test"
-              >
-                <TabBar tabs={TEST_EDIT_TABS} value={tab} onChange={setTab} />
-              </PanelEditHeader>
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
+                  <PanelEditHeader
+                    title="Edit Test"
+                    onBack={() => setPage('test')}
+                    backTitle="Back to Test"
+                  >
+                    <TabBar tabs={TEST_EDIT_TABS} value={tab} onChange={setTab} />
+                  </PanelEditHeader>
 
-              <div className="panel-scroll">
-                {!isReadOnly && tab === "overview" && (
-                  <TestOverview
-                    test={test}
-                    update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
-                    missingImports={missingImports}
-                />
+                  <div className="panel-scroll">
+                    {!isReadOnly && tab === "overview" && (
+                      <TestOverview
+                        test={test}
+                        update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
+                        missingImports={missingImports}
+                      />
+                    )}
+                    {!isReadOnly && tab === "flow" && (
+                      <TestFlow
+                        testData={test}
+                        importValidation={{ missingImports, inputsByAlias, outputsByAlias }}
+                        update={(patch) => {
+                          setTest(prev => {
+                            const next = { ...prev } as any;
+                            if (patch.stages) {
+                              next.stages = patch.stages;
+                              delete next.steps;
+                            } else if (patch.steps) {
+                              next.steps = patch.steps;
+                              delete next.stages;
+                            }
+                            return next;
+                          });
+                        }}
+                      />
+                    )}
+                    {!isReadOnly && tab === "code" && <TestCode testData={test} />}
+                  </div>
+                </React.Fragment>
               )}
-              {!isReadOnly && tab === "flow" && (
-                <TestFlow
-                  testData={test}
-                  importValidation={{ missingImports, inputsByAlias, outputsByAlias }}
-                  update={(patch) => {
-                    setTest(prev => {
-                      const next = { ...prev } as any;
-                      if (patch.stages) {
-                        next.stages = patch.stages;
-                        delete next.steps;
-                      } else if (patch.steps) {
-                        next.steps = patch.steps;
-                        delete next.stages;
-                      }
-                      return next;
-                    });
-                  }}
-                />
-              )}
-                {!isReadOnly && tab === "code" && <TestCode testData={test} />}
-              </div>
             </div>
 
             <div className="api-swipe-page api-swipe-page--flow">
-              <FlowchartView
-                source={{ kind: 'test', test, filePath: mmtFilePath }}
-                onBack={() => setPage('test')}
-                title={test.title || 'Test'}
-              />
+              {page === 'flow' && (
+                <FlowchartView
+                  key={mmtFilePath}
+                  source={{ kind: 'test', test, filePath: mmtFilePath }}
+                  onBack={() => setPage('test')}
+                  title={test.title || 'Test'}
+                />
+              )}
             </div>
           </div>
         </div>

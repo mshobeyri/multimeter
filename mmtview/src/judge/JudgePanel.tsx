@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AuthConfig } from 'mmt-core/APIData';
 import { JudgeData, JudgeEngineId } from 'mmt-core/JudgeData';
 import { yamlToJudge } from 'mmt-core/judgeParsePack';
@@ -24,14 +24,14 @@ import {
   isDefaultJudgeUrl,
 } from './judgeEngineDefaults';
 import { JudgeModelCombo, JudgeUrlField } from './judgeEngineFields';
+import { usePanelPage } from '../usePanelPage';
+import { FileContext } from '../fileContext';
 
 interface JudgePanelProps {
   content: string;
   setContent: (value: string) => void;
 }
 
-const LAST_JUDGE_PAGE_KEY = 'mmtview:judge:lastPage';
-const LAST_JUDGE_TAB_KEY = 'mmtview:judge:lastTab';
 const LAST_JUDGE_AUTO_REFRESH_KEY = 'mmtview:judge:autoRefresh';
 
 function readAutoRefreshPref(): boolean {
@@ -203,24 +203,17 @@ function modelsEmptyLabel(probe: JudgeProbeResult): string {
 }
 
 const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
-  const [page, setPage] = useState<'view' | 'edit'>(
-      () => (localStorage.getItem(LAST_JUDGE_PAGE_KEY) as 'view' | 'edit') || 'view');
-  const [tab, setTab] = useState<'overview' | 'engine'>(() => {
-    const saved = localStorage.getItem(LAST_JUDGE_TAB_KEY);
-    return saved === 'engine' || saved === 'overview' ? saved : 'overview';
-  });
+  const [page, setPage] = usePanelPage<'view' | 'edit'>('view');
+  const [tab, setTab] = useState<'overview' | 'engine'>('overview');
+  const { mmtFilePath } = useContext(FileContext);
+
+  useEffect(() => {
+    setTab('overview');
+  }, [mmtFilePath]);
   const [envParams, setEnvParams] = useState<Record<string, any>>({});
   const [probe, setProbe] = useState<JudgeProbeResult>({ state: 'idle', models: [] });
   const [autoRefresh, setAutoRefresh] = useState<boolean>(readAutoRefreshPref);
   const probeRequestRef = useRef<string | undefined>(undefined);
-
-  useEffect(() => {
-    localStorage.setItem(LAST_JUDGE_PAGE_KEY, page);
-  }, [page]);
-
-  useEffect(() => {
-    localStorage.setItem(LAST_JUDGE_TAB_KEY, tab);
-  }, [tab]);
 
   useEffect(() => {
     localStorage.setItem(LAST_JUDGE_AUTO_REFRESH_KEY, autoRefresh ? '1' : '0');
@@ -430,6 +423,8 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
               <PanelEditHeader
                 title="Edit judge"
                 onBack={() => setPage('view')}
@@ -700,6 +695,8 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                     </>
                   )}
                 </div>
+                </React.Fragment>
+              )}
             </div>
           </div>
         </div>

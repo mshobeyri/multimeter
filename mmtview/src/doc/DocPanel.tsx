@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { DocData } from 'mmt-core/DocData';
 import { docToYaml, yamlToDoc } from 'mmt-core/docParsePack';
@@ -9,11 +9,8 @@ import DocViewMarkdown from './DocViewMarkdown';
 import TabBar from '../components/TabBar';
 import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
 import PanelEditHeader from '../components/PanelEditHeader';
-
-
-const LAST_DOC_TAB_KEY = "mmtview:doc:lastTab";
-const LAST_DOC_PAGE_KEY = "mmtview:doc:lastPage";
-const LAST_DOC_VIEW_TAB_KEY = "mmtview:doc:lastViewTab";
+import { usePanelPage } from '../usePanelPage';
+import { FileContext } from '../fileContext';
 
 const DOC_VIEW_TABS = [
   { id: "html" as const, label: "HTML", icon: "code" },
@@ -58,33 +55,15 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
     setContent(newYaml);
   }, [setContent]);
 
-  const [page, setPage] = useState<"view" | "edit">(
-    () => (localStorage.getItem(LAST_DOC_PAGE_KEY) as "view" | "edit") || "view"
-  );
-  const [viewTab, setViewTab] = useState<"html" | "md">(
-    () => {
-      const saved = localStorage.getItem(LAST_DOC_VIEW_TAB_KEY);
-      return (saved === "html" || saved === "md") ? saved : "html";
-    }
-  );
-  const [tab, setTab] = useState<"overview" | "source">(
-    () => {
-      const saved = localStorage.getItem(LAST_DOC_TAB_KEY);
-      return (saved === "overview" || saved === "source") ? saved : "overview";
-    }
-  );
+  const [page, setPage] = usePanelPage<"view" | "edit">("view");
+  const [viewTab, setViewTab] = useState<"html" | "md">("html");
+  const [tab, setTab] = useState<"overview" | "source">("overview");
+  const { mmtFilePath } = useContext(FileContext);
 
   useEffect(() => {
-    localStorage.setItem(LAST_DOC_PAGE_KEY, page);
-  }, [page]);
-
-  useEffect(() => {
-    localStorage.setItem(LAST_DOC_VIEW_TAB_KEY, viewTab);
-  }, [viewTab]);
-
-  useEffect(() => {
-    localStorage.setItem(LAST_DOC_TAB_KEY, tab);
-  }, [tab]);
+    setViewTab("html");
+    setTab("overview");
+  }, [mmtFilePath]);
 
   const update = (patch: Partial<DocData>) => {
     setDoc(prev => ({ ...prev, ...patch }));
@@ -127,23 +106,27 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
 
             {/* ── Edit page (tabs: Overview / Source / HTML / Markdown) ── */}
             <div className="api-swipe-page api-swipe-page--edit">
-              <PanelEditHeader
-                title="Edit Doc"
-                onBack={() => setPage('view')}
-                backTitle="Back to View"
-              >
-                <TabBar tabs={DOC_EDIT_TABS} value={tab} onChange={setTab} />
-              </PanelEditHeader>
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
+                  <PanelEditHeader
+                    title="Edit Doc"
+                    onBack={() => setPage('view')}
+                    backTitle="Back to View"
+                  >
+                    <TabBar tabs={DOC_EDIT_TABS} value={tab} onChange={setTab} />
+                  </PanelEditHeader>
 
-              <div className="panel-scroll">
-                {tab === "overview" && (
-                  <DocOverview doc={doc} update={update} />
-                )}
+                  <div className="panel-scroll">
+                    {tab === "overview" && (
+                      <DocOverview doc={doc} update={update} />
+                    )}
 
-                {tab === "source" && (
-                  <DocSource doc={doc} update={update} />
-                )}
-              </div>
+                    {tab === "source" && (
+                      <DocSource doc={doc} update={update} />
+                    )}
+                  </div>
+                </React.Fragment>
+              )}
             </div>
           </div>
         </div>
