@@ -2,6 +2,44 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.43.1-pre]
+
+Pre-release.
+
+### API tester
+
+- Add **auto** as the default request/response body format; scalar format pins apply to the request only
+- Add Postman-style body format bar with pretty/raw/preview modes
+- Preserve binary response bytes and show image preview in the response panel
+- Fix HTML pretty-print for real-world pages
+- Fix URL bar paste/selection with a native input; disable GET request bodies in the tester
+- Add unified method URL bar and shared VS Code control radius
+
+### HTTP and multipart
+
+- Add multipart parts editor and send multipart from the tester
+- Allow list bodies in the tester
+
+### Suites and performance
+
+- Cache suite file reads and imported API JS; reuse keep-alive for converted runs
+- Build suite report tree items once per hierarchy change
+- Resolve `+/` suite item paths and show missing-file markers in the tree
+- Flatten suite tree indent to a single 16px step; rename section header to **Items**
+
+### Test flow editor
+
+- Use one chevron for nested folders (`if`, `for`, `stage`, …); settings icon expands inline editors; kebab keeps duplicate/remove
+- Fix multistage toggle flattening all stage steps; keep block YAML for step lists
+- Fix drag/drop line alignment when boxes are expanded
+- Pin run buttons and section headers (Overview, Report, Items) while lists scroll; reserve scrollbar gutter to avoid width jump
+
+### UI and website
+
+- Extract shared CSS into feature modules; shared report, tree, and menu components
+- Fix mobile hamburger nav and gallery starter samples
+- Update download page
+
 ## [1.43.0-pre]
 
 Pre-release.
