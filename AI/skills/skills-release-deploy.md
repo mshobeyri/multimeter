@@ -27,14 +27,14 @@ git tag v1.42.3 && git push origin v1.42.3       # or v1.42.3-pre
 
 Whenever the user asks to **release**, **pre-release**, or **create a version**, always pack a local VS Code VSIX after versions are set (`pack` or `pack-pre-release`). Do not wait to be asked. The VSIX is gitignored (`multimeter-X.Y.Z.vsix` at repo root).
 
-CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build → GitHub Release**, then Docker, npm, Homebrew (stable only), and the GitHub Action. A failed build or GitHub Release stops the rest. Missing publish secrets fail the job. VS Code Marketplace is **not** published from CI (local VSIX only).
+CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build → GitHub Release**, then Docker, npm, Homebrew (stable only), and the GitHub Action. A failed build or GitHub Release stops the rest. Missing publish secrets fail the job. VS Code Marketplace and Open VSX are **not** published from CI (local VSIX only).
 
-| Tag | npm | Docker | GitHub | Homebrew | Action |
-|---|---|---|---|---|---|
-| `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` |
-| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | skipped |
+| Tag | npm | Docker | GitHub | Homebrew | Action | Marketplace | Open VSX |
+|---|---|---|---|---|---|---|---|
+| `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` | manual | **manual** (same VSIX) |
+| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | skipped | manual `--pre-release` | **skip** |
 
-Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace stays manual (`VSCE_PAT`).
+Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace stays manual (`VSCE_PAT`). Open VSX stays manual (`OVSX_PAT` from [open-vsx.org tokens](https://open-vsx.org/user-settings/tokens)).
 
 Do not put versions in comments, READMEs, the GitHub Action default, or website copy. Do not bump lockfiles or `.cursor-plugin/plugin.json` as part of a release. `mmtmcp/server.json` is set by `scripts/sync-versions.mjs` to the MCP npm version.
 
@@ -50,6 +50,29 @@ npm run pack-pre-release  # same version, --pre-release flag
 ## Binaries
 
 `@yao-pkg/pkg` SEA, Node 22, `--compress Brotli -c package.json` (enhanced SEA; simple `pkg file.js --sea` cannot compress), bundle via `mmtcli/esbuild.mjs --pkg`. Host Node ≥ 22. From `mmtcli`: `npm exec --no -- pkg` (not `npx pkg`). Windows icon: `scripts/apply-windows-icon.mjs` after pack. Layout: `bin/<platform>/testlight`.
+
+## Marketplace & Open VSX (manual)
+
+Do this after the **stable** tag is out and the local VSIX exists (`multimeter-X.Y.Z.vsix`). Same file for both stores. **Open VSX is stable only** — never publish a pre-release VSIX there.
+
+```bash
+# VS Code Marketplace (stable)
+npx vsce publish --readme-path EXTENSION.md --allow-package-all-secrets --allow-package-env-file
+# or: npm run publish
+
+# Open VSX (stable only) — token from https://open-vsx.org/user-settings/tokens
+npx --yes ovsx publish "./multimeter-${VERSION}.vsix" -p "$OVSX_PAT"
+```
+
+Then confirm the version on the publisher page (must match `package.json` / Marketplace):
+
+https://open-vsx.org/user-settings/extensions/mshobeyri/multimeter
+
+Public listing: https://open-vsx.org/extension/mshobeyri/multimeter
+
+`package.json` `homepage` must stay `https://mmt.dev` so the Open VSX listing and Cursor verification point at the site, not GitHub. After publish, confirm the listing homepage is `https://mmt.dev`.
+
+If the version is stale, re-publish the same VSIX. Do not create a second Open VSX namespace.
 
 ## Other channels
 
