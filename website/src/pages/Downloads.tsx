@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ExternalLink, Download, Check, Copy } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
@@ -101,6 +101,45 @@ function DockerLogo({ size = 28 }: { size?: number }) {
   )
 }
 
+function OpenVSXLogo({ size = 28 }: { size?: number }) {
+  return <img src="/icons/openvsx.svg" width={size} height={size} alt="Open VSX" />
+}
+
+function VSCodiumLogo({ size = 20 }: { size?: number }) {
+  return <img src="/icons/vscodium.svg" width={size} height={size} alt="" />
+}
+
+function GitpodLogo({ size = 20 }: { size?: number }) {
+  return <img src="/icons/gitpod.svg" width={size} height={size} alt="" />
+}
+
+function TheiaLogo({ size = 20 }: { size?: number }) {
+  return <img src="/icons/theia.svg" width={size} height={size} alt="" />
+}
+
+function EditorChip({
+  label,
+  children,
+  light,
+}: {
+  label: string
+  children: ReactNode
+  light?: boolean
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-slate-400" title={label}>
+      <span
+        className={`w-6 h-6 rounded-md flex items-center justify-center ${
+          light ? 'bg-white p-0.5' : 'bg-white/5 text-white'
+        }`}
+      >
+        {children}
+      </span>
+      {label}
+    </span>
+  )
+}
+
 function CursorLogo({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -124,6 +163,11 @@ function ClaudeLogo({ size = 24 }: { size?: number }) {
     </svg>
   )
 }
+
+const VSCODE_MARKETPLACE =
+  'https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter'
+
+const OPEN_VSX_LISTING = 'https://open-vsx.org/extension/mshobeyri/multimeter'
 
 const MCP_PROMPT = `Add the Multimeter MCP server so you can scaffold, validate, format, and run .mmt files.
 Use npx -y mmt-mcp (name: multimeter). Do not invent .mmt syntax.
@@ -191,7 +235,7 @@ export default function Downloads() {
     <div className="pt-24">
       <Seo
         title="Downloads — Multimeter"
-        description="Install the Multimeter VS Code extension, mmt-mcp for Cursor Copilot and Claude, and the testlight CLI."
+        description="Install the Multimeter editor extension for VS Code and Cursor, mmt-mcp for agents, and the testlight CLI."
         path="/downloads"
       />
       {/* Hero */}
@@ -201,41 +245,97 @@ export default function Downloads() {
             Get <span className="gradient-text">Multimeter</span>
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Install the VS Code extension, MCP for agents, or the CLI for CI/CD pipelines
+            Install the editor extension (VS Code or Cursor), MCP for agents, or the CLI for CI/CD pipelines
           </p>
         </FadeIn>
       </section>
 
-      {/* ── VS Code Extension ── */}
-      <section className="pb-12 px-4 sm:px-6 lg:px-8">
+      {/* ── Extensions heading ── */}
+      <section className="pb-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <FadeIn delay={100}>
-            <div className="bg-surface-light border border-border rounded-2xl p-8 flex flex-col md:flex-row md:items-center gap-6">
-              <div className="w-16 h-16 bg-[#007ACC]/10 rounded-xl flex items-center justify-center shrink-0">
-                <VSCodeLogo size={32} />
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Extensions
+            </h2>
+            <p className="text-slate-400">
+              The full Multimeter experience — custom editor, UI panels, mock server,
+              environment manager, test history, and more. Same extension on both registries.{' '}
+              <Link to="/docs/install" className="text-accent hover:underline">
+                Install docs
+              </Link>
+              {vscodeVersion && (
+                <span className="text-slate-500 ml-2">v{vscodeVersion}</span>
+              )}
+            </p>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ── Extension cards ── */}
+      <section className="pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FadeIn delay={110}>
+            <div className="bg-surface-light border border-border rounded-2xl p-6 h-full flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-[#007ACC]/10 rounded-xl flex items-center justify-center">
+                  <VSCodeLogo size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">VS Code</h3>
+                  <p className="text-xs text-slate-500">Microsoft Marketplace</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  VS Code Extension
-                </h2>
-                <p className="text-slate-400">
-                  The full Multimeter experience — custom editor, UI panels, mock server,
-                  environment manager, test history, AI assistant, and more.
-                </p>
-                {vscodeVersion && (
-                  <p className="text-sm text-slate-500 mt-2">
-                    Latest: <span className="text-white font-medium">{vscodeVersion}</span>
-                  </p>
-                )}
-              </div>
+              <p className="text-sm text-slate-400 flex-1">
+                Official Visual Studio Code. Search <strong className="text-white font-medium">Multimeter</strong> in Extensions, or install from the Marketplace.
+              </p>
               <a
-                href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"
+                href={VSCODE_MARKETPLACE}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-xl font-semibold transition-colors shrink-0"
+                className="flex items-center justify-center gap-2 mt-4 bg-primary hover:bg-primary-dark text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
               >
-                <ExternalLink size={16} />
-                Install Extension
+                <ExternalLink size={14} />
+                VS Code Marketplace
+              </a>
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={130}>
+            <div className="bg-surface-light border border-border rounded-2xl p-6 h-full flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-[#874D9E]/15 rounded-xl flex items-center justify-center">
+                  <OpenVSXLogo size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Open VSX</h3>
+                  <p className="text-xs text-slate-500">Cursor and other VS Code–compatible editors</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-400">
+                The same <code className="text-accent">mshobeyri.multimeter</code> extension for editors that cannot use the Microsoft Marketplace.
+              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-4 flex-1">
+                <EditorChip label="Cursor">
+                  <CursorLogo size={14} />
+                </EditorChip>
+                <EditorChip label="VSCodium">
+                  <VSCodiumLogo size={14} />
+                </EditorChip>
+                <EditorChip label="Gitpod">
+                  <GitpodLogo size={14} />
+                </EditorChip>
+                <EditorChip label="Theia" light>
+                  <TheiaLogo size={14} />
+                </EditorChip>
+              </div>
+              <a
+                href={OPEN_VSX_LISTING}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 mt-4 border border-border hover:border-slate-500 text-slate-200 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              >
+                <ExternalLink size={14} />
+                Open VSX
               </a>
             </div>
           </FadeIn>

@@ -2,9 +2,9 @@
 
 Get Multimeter on your machine, then optionally add the CLI for terminals and CI.
 
-## VS Code extension
+## VS Code and Cursor
 
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter), or search for **Multimeter** in the Extensions view.
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) or [Open VSX](https://open-vsx.org/extension/mshobeyri/multimeter) (Cursor and other Open VSX editors), or search for **Multimeter** in the Extensions view.
 
 After install:
 

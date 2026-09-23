@@ -33,6 +33,7 @@ const footerLinks: Record<string, FooterLink[]> = {
     { name: 'GitHub', href: 'https://github.com/mshobeyri/multimeter', external: true },
     { name: 'YouTube (@mmt_dev)', href: 'https://www.youtube.com/@mmt_dev', external: true },
     { name: 'VS Code Marketplace', href: 'https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter', external: true },
+    { name: 'Open VSX', href: 'https://open-vsx.org/extension/mshobeyri/multimeter', external: true },
     { name: 'Report Issue', href: 'https://github.com/mshobeyri/multimeter/issues', external: true },
     { name: 'Request Feature', href: 'https://github.com/mshobeyri/multimeter/issues/new', external: true },
   ],

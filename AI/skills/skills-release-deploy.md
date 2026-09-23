@@ -70,6 +70,8 @@ https://open-vsx.org/user-settings/extensions/mshobeyri/multimeter
 
 Public listing: https://open-vsx.org/extension/mshobeyri/multimeter
 
+`package.json` `homepage` must stay `https://mmt.dev` so the Open VSX listing and Cursor verification point at the site, not GitHub. After publish, confirm the listing homepage is `https://mmt.dev`.
+
 If the version is stale, re-publish the same VSIX. Do not create a second Open VSX namespace.
 
 ## Other channels
