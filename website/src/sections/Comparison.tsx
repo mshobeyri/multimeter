@@ -28,6 +28,15 @@ const features: FeatureRow[] = [
     },
   },
   {
+    feature: 'Editor UI',
+    values: {
+      multimeter: 'VS Code visual editor',
+      postman: 'Desktop / web app',
+      bruno: 'Desktop app',
+      restClient: '.http text',
+    },
+  },
+  {
     feature: 'VS Code native',
     values: { multimeter: true, postman: false, bruno: false, restClient: false },
   },

@@ -14,7 +14,7 @@ export const DEFINITION =
   'Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter.';
 
 export const CANONICAL_BLURB =
-  `${DEFINITION} Tests are YAML .mmt files in Git. The CLI is testlight (npm mmt-testlight). The MCP server is mmt-mcp for Cursor, GitHub Copilot, and Claude. Git-native alternative to Postman. Judge API answers with AI (semantic similarity or open-ended checks) in the same test flow — also an alternative to Promptfoo. Apache License 2.0. No account required.`;
+  `${DEFINITION} Tests are YAML .mmt files in Git, with a visual editor in VS Code. The CLI is testlight (npm mmt-testlight). The MCP server is mmt-mcp for Cursor, GitHub Copilot, and Claude. Git-native alternative to Postman. Judge API answers with AI (semantic similarity or open-ended checks) in the same test flow — also an alternative to Promptfoo. Apache License 2.0. No account required.`;
 
 export const FEATURE_LIST = [
   'Git-native YAML .mmt files',
@@ -48,13 +48,13 @@ export const MARKETING = [
     path: '/compare/postman',
     title: 'Multimeter vs Postman — Git-native API testing in VS Code',
     description: 'Keep API tests in Git, run them in VS Code and CI, with no cloud account.',
-    body: 'Postman stores collections in the cloud. Multimeter stores requests, tests, mocks, and docs as YAML .mmt files in your repo. The same files run locally and in CI via testlight.',
+    body: 'Postman stores collections in the cloud. Multimeter stores requests, tests, mocks, and docs as YAML .mmt files in your repo, with a visual editor in VS Code. The same files run locally and in CI via testlight.',
   },
   {
     path: '/compare/bruno',
     title: 'Multimeter vs Bruno — Git-native API testing in VS Code',
     description: 'Both keep API work in Git. Multimeter adds test flows, suites, mocks, docs, and a VS Code editor.',
-    body: 'Bruno keeps collections in Git. Multimeter does too, then adds multi-step tests, suites, mock servers, generated docs, AI judges, and testlight for CI — still in VS Code.',
+    body: 'Bruno keeps collections in Git. Multimeter does too, with a visual editor in VS Code, then adds multi-step tests, suites, mock servers, generated docs, AI judges, and testlight for CI.',
   },
   {
     path: '/compare/promptfoo',

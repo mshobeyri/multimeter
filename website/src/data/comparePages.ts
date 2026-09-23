@@ -24,7 +24,7 @@ export const comparePages: ComparePageData[] = [
     description:
       'Compare Multimeter and Postman. Keep API tests in Git, run them in VS Code and CI, with no cloud account or collection lock-in.',
     intro:
-      'Postman is the default API client for many teams. It is powerful, and it is also a cloud product: collections, environments, and monitors live on their platform. Multimeter is a VS Code extension and CLI. Requests, tests, mocks, and docs are YAML files in your repo — the same files locally and in CI.',
+      'Postman is the default API client for many teams. It is powerful, and it is also a cloud product: collections, environments, and monitors live on their platform. Multimeter is a VS Code extension and CLI with a visual editor for requests, tests, suites, and reports. Those definitions are YAML files in your repo — the same files locally and in CI.',
     switchReasons: [
       'No Postman account, workspace, or cloud sync',
       'Tests are reviewable in pull requests like application code',
@@ -35,6 +35,7 @@ export const comparePages: ComparePageData[] = [
     rows: [
       { feature: 'Price', other: 'Freemium / per-user plans', multimeter: 'Free (Apache 2.0)' },
       { feature: 'Where it runs', other: 'Standalone app + cloud', multimeter: 'VS Code + CLI' },
+      { feature: 'Editor UI', other: 'Desktop / web app', multimeter: 'VS Code visual editor' },
       { feature: 'Storage', other: 'Cloud collections (JSON export)', multimeter: 'Git-native YAML (.mmt)' },
       { feature: 'CI', other: 'Newman + extra setup', multimeter: 'testlight / GitHub Action' },
       { feature: 'Parallel runs', other: 'No — Newman is sequential', multimeter: 'Yes — suite groups and test stages' },
@@ -77,7 +78,7 @@ export const comparePages: ComparePageData[] = [
     description:
       'Compare Multimeter and Bruno. Both keep API work in Git. Multimeter adds test flows, suites, mocks, docs, reports, and a VS Code editor.',
     intro:
-      'Bruno proved that API collections belong in Git, not in a cloud workspace. Multimeter keeps that model and extends it: you still start with a single request, then add tests, suites, mock servers, generated docs, and CI reports without switching tools. Editing happens in VS Code, not a separate desktop app.',
+      'Bruno proved that API collections belong in Git, not in a cloud workspace. Multimeter keeps that model and extends it: you still start with a single request in a visual VS Code editor, then add tests, suites, mock servers, generated docs, and CI reports without switching tools.',
     switchReasons: [
       'Stay in VS Code instead of a second API app',
       'Multi-step tests, suites, and parallel groups without scripting everything',
@@ -87,6 +88,7 @@ export const comparePages: ComparePageData[] = [
     rows: [
       { feature: 'Price', other: 'Free core / paid extras', multimeter: 'Free (Apache 2.0)' },
       { feature: 'Where it runs', other: 'Standalone app', multimeter: 'VS Code + CLI' },
+      { feature: 'Editor UI', other: 'Standalone desktop app', multimeter: 'VS Code visual editor' },
       { feature: 'Storage', other: 'Git-native .bru files', multimeter: 'Git-native YAML (.mmt)' },
       { feature: 'Test orchestration', other: 'Sequential runner', multimeter: 'Steps, stages, suites, parallel groups' },
       { feature: 'Mock server', other: 'No', multimeter: 'Built-in' },
@@ -112,6 +114,7 @@ export const comparePages: ComparePageData[] = [
     rows: [
       { feature: 'Price', other: 'Free / paid plans', multimeter: 'Free (Apache 2.0)' },
       { feature: 'Where it runs', other: 'VS Code', multimeter: 'VS Code + CLI' },
+      { feature: 'Editor UI', other: 'VS Code request GUI', multimeter: 'VS Code visual editor' },
       { feature: 'Storage', other: 'Extension collection / Git (paid tiers)', multimeter: 'Git-native YAML (.mmt)' },
       { feature: 'CI', other: 'Not the same local runner', multimeter: 'testlight / GitHub Action' },
       { feature: 'Suites and flows', other: 'Limited', multimeter: 'Tests, suites, parallel groups' },
@@ -137,6 +140,7 @@ export const comparePages: ComparePageData[] = [
     rows: [
       { feature: 'Price', other: 'Free', multimeter: 'Free (Apache 2.0)' },
       { feature: 'Where it runs', other: 'VS Code', multimeter: 'VS Code + CLI' },
+      { feature: 'Editor UI', other: '.http text editor', multimeter: 'VS Code visual editor' },
       { feature: 'Storage', other: '.http / .rest files', multimeter: '.mmt YAML, plus .http support' },
       { feature: 'CI', other: 'No first-class runner', multimeter: 'testlight / GitHub Action' },
       { feature: 'Assertions', other: 'Minimal', multimeter: 'assert, check, 12+ operators' },

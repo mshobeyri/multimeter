@@ -3,7 +3,7 @@
 Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter.
 
 - Files: YAML `.mmt` (`type: api | test | env | suite | server | loadtest | doc | report | judge`)
-- Editor: VS Code / Cursor extension `mshobeyri.multimeter`
+- Editor: VS Code / Cursor extension `mshobeyri.multimeter` (visual UI)
 - CLI: `testlight` from npm package `mmt-testlight`
 - CI: GitHub Action `mshobeyri/testlight-action@v1`
 - MCP: `mmt-mcp` (`npx -y mmt-mcp`) plus a server bundled in the extension
