@@ -63,10 +63,12 @@ The editor title bar (top right of the `.mmt` tab) has three layout buttons:
 | Control | What it does |
 |---|---|
 | {{btn:layout-sidebar-left:Hide YAML}} | Show only the UI pane |
-| {{btn:layout-sidebar-right:Hide UI}} | Show only the YAML pane |
 | {{btn:layout-centered:Show both}} | Show YAML and UI side by side |
+| {{btn:layout-sidebar-right:Hide UI}} | Show only the YAML pane |
 
 The default is both. Change that with `multimeter.editor.defaultPanel` (`yaml-ui`, `yaml`, or `ui`).
+
+To open the file in the default text editor, use the **MMT Editor** dropdown on the tab, **Open With...**, or **MMT: Open as Text** from the Command Palette.
 
 ## Next steps
 
