@@ -2,6 +2,15 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.43.3]
+
+Stable release of the 1.43.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.43.3` on `@latest`.
+
+- API tester: auto body format, pretty/raw/preview, multipart, image preview
+- Suite tag filter (`filter.only` / `filter.skip`, CLI `--tag` / `--skip-tag`)
+- Faster suite open and run; spill large reports; skipped items excluded from pass rate
+- Dynamic `r:` / `c:` values; Azure Pipelines `Testlight@1`; `mmt-mcp` on Downloads
+
 ## [1.43.2-pre]
 
 Pre-release.
