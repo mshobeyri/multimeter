@@ -545,27 +545,22 @@
         {
           "command": "multimeter.mmt.show.ui",
           "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation"
-        },
-        {
-          "command": "multimeter.mmt.show.yaml",
-          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "multimeter.mmt.show.full",
           "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
-          "command": "multimeter.mmt.show.as.text",
-          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.httpEditor || activeCustomEditorId == mmt.brunoEditor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation"
+          "command": "multimeter.mmt.show.yaml",
+          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
+          "group": "navigation@3"
         },
         {
           "command": "multimeter.mmt.show.as.mmt",
           "when": "(resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno || resourceExtname == .json || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .xml || resourceExtname == .wsdl) && activeCustomEditorId != mmt.editor && activeCustomEditorId != mmt.httpEditor && activeCustomEditorId != mmt.brunoEditor && activeCustomEditorId != mmt.specEditor",
-          "group": "navigation"
+          "group": "navigation@4"
         }
       ],
       "explorer/context": [
