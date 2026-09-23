@@ -27,12 +27,12 @@ git tag v1.42.3 && git push origin v1.42.3       # or v1.42.3-pre
 
 Whenever the user asks to **release**, **pre-release**, or **create a version**, always pack a local VS Code VSIX after versions are set (`pack` or `pack-pre-release`). Do not wait to be asked. The VSIX is gitignored (`multimeter-X.Y.Z.vsix` at repo root).
 
-CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build → GitHub Release**, then Docker, npm, Homebrew (stable only), and the GitHub Action. A failed build or GitHub Release stops the rest. Missing publish secrets fail the job. VS Code Marketplace and Open VSX are **not** published from CI (local VSIX only).
+CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build → GitHub Release**, then Docker, npm, Homebrew (stable only), and the GitHub Action. A failed build or GitHub Release stops the rest. Missing publish secrets fail the job. VS Code Marketplace, Open VSX, and the official MCP Registry are **not** published from CI.
 
-| Tag | npm | Docker | GitHub | Homebrew | Action | Marketplace | Open VSX |
-|---|---|---|---|---|---|---|---|
-| `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` | manual | **manual** (same VSIX) |
-| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | skipped | manual `--pre-release` | **skip** |
+| Tag | npm | Docker | GitHub | Homebrew | Action | Marketplace | Open VSX | MCP Registry |
+|---|---|---|---|---|---|---|---|---|
+| `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` | manual | **manual** (same VSIX) | **manual** (`mcp-publisher`) |
+| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | skipped | manual `--pre-release` | **skip** | **skip** |
 
 Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace stays manual (`VSCE_PAT`). Open VSX stays manual (`OVSX_PAT` from [open-vsx.org tokens](https://open-vsx.org/user-settings/tokens)).
 
@@ -74,10 +74,32 @@ Public listing: https://open-vsx.org/extension/mshobeyri/multimeter
 
 If the version is stale, re-publish the same VSIX. Do not create a second Open VSX namespace.
 
+## Official MCP Registry (manual, stable only)
+
+Do this after the **stable** tag is out and npm `mmt-mcp@X.Y.Z` is on `@latest`. PulseMCP, Glama, and other indexes ingest this record. **Skip pre-releases** — do not publish `X.Y.Z-pre` here.
+
+`mmtmcp/server.json` is already synced to the MCP npm version. Publish that file:
+
+```bash
+# once per machine if needed
+brew install mcp-publisher
+mcp-publisher login github
+
+# from repo root, after npm latest is live
+cd mmtmcp
+mcp-publisher publish
+```
+
+Then confirm the latest record is `X.Y.Z` (same as `mmtmcp/package.json` / `mmtmcp/server.json`):
+
+https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.mshobeyri/multimeter
+
+Namespace stays `io.github.mshobeyri/multimeter`. Do not create a second name.
+
 ## Other channels
 
 - **Homebrew**: CI updates tap `mshobeyri/homebrew-multimeter` after a **stable** GitHub Release (`scripts/publish-homebrew.sh`).
 - **Action**: `mmtaction/` ↔ `mshobeyri/testlight-action`. Default install is `mmt-testlight@latest`. This repo’s workflows do not consume that Action; customers do (`uses: mshobeyri/testlight-action@v1`).
 - **Azure task**: `mmtazure/` packs an Azure Pipelines task (`Testlight@1`) with the same YAML inputs. Not published from CI yet.
-- **MCP Registry**: `server.json` version tracks npm `mmt-mcp`. Publishing that file to the official MCP Registry is still separate from the npm job.
+- **MCP Registry**: `server.json` version tracks npm `mmt-mcp`. After a **stable** npm publish, run `mcp-publisher publish` from `mmtmcp/` (see above). Not published from CI.
 - **Cursor plugin**: set `.cursor-plugin/plugin.json` when publishing that plugin.
