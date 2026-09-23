@@ -7,6 +7,7 @@ import {
   NetworkConfig,
   GrpcRequest,
 } from './NetworkData';
+import type {FileLoader} from './JSerFileLoader';
 import {sendGrpcRequest} from './grpcCore';
 
 // Map wsId to connection tracker ID
@@ -79,7 +80,7 @@ export interface ClientCertificate {
 export type PostMessage = (msg: any) => void;
 
 export interface NetworkHandlerOptions {
-  fileLoader?: (path: string) => Promise<string>;
+  fileLoader?: FileLoader;
   basePath?: string;
   getConfig?: () => NetworkConfig;
 }

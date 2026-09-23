@@ -46,7 +46,7 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
 
   return (
     <div className="panel-box">
-      <h2 style={{ marginTop: 0, marginBottom: 24 }}>Variables</h2>
+      <h2 className="panel-heading">Variables</h2>
       {safeList(variablesArray).map((variable, idx) => (
         <div key={idx}>
           <VariableEditor

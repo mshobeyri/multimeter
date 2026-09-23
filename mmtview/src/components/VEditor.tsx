@@ -72,11 +72,8 @@ const VEditor: React.FC<VEditorProps> = ({
   };
 
   return (
-    <div style={{ width: "100%" }}>
-      <div
-        className={disabled ? "label label-disabled" : "label"}
-        style={{ marginBottom: "10px" }}
-      >
+    <div className="mmt-fill">
+      <div className={disabled ? "label label-disabled is-gap" : "label is-gap"}>
         {label}
       </div>
       <div>
@@ -129,41 +126,31 @@ const VEditor: React.FC<VEditorProps> = ({
           );
 
           return (
-            <div key={key} style={{ marginBottom: 8, paddingLeft: 20 }}>
-              <div style={{ marginBottom: 2 }}>
-                <span style={{ fontWeight: 500 }}>{key}</span>
+            <div key={key} className="veditor-row">
+              <div className="veditor-key-row">
+                <span className="veditor-key">{key}</span>
                 {hasValue && (
-                  <span style={{ fontSize: "8px", color: "#888", marginLeft: "4px" }}>
+                  <span className="veditor-type">
                     ({typeLabel})
                   </span>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="field-inline">
+                <div className="field-grow">
                   {fieldControl}
                 </div>
                 {fieldMatch === "match" && (
                   <span
-                    className="codicon codicon-check"
+                    className="codicon codicon-check match-icon is-pass"
                     title="Matches example output"
                     aria-label="Matches example output"
-                    style={{
-                      flexShrink: 0,
-                      fontSize: "14px",
-                      color: "var(--vscode-testing-iconPassed, #73c991)",
-                    }}
                   />
                 )}
                 {fieldMatch === "mismatch" && (
                   <span
-                    className="codicon codicon-close"
+                    className="codicon codicon-close match-icon is-fail"
                     title="Does not match example output"
                     aria-label="Does not match example output"
-                    style={{
-                      flexShrink: 0,
-                      fontSize: "14px",
-                      color: "var(--vscode-testing-iconFailed, #f14c4c)",
-                    }}
                   />
                 )}
               </div>

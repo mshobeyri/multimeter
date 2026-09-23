@@ -17,6 +17,12 @@ export function hasApiRequestBody(body: unknown): boolean {
   return true;
 }
 
+/** GET has no request body in the UI (HEAD/OPTIONS still allow one). */
+export function httpMethodAllowsRequestBody(method: string | undefined | null): boolean {
+  const trimmed = typeof method === 'string' ? method.trim().toLowerCase() : '';
+  return trimmed !== 'get';
+}
+
 /**
  * Resolve the HTTP method for an API or test HTTP step.
  * Explicit `method` wins; otherwise POST when a body is present, GET otherwise.

@@ -138,13 +138,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
 
     return (
         <div className="test-code-panel">
-            <div style={{
-                marginBottom: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                gap: 8
-            }}>
+            <div className="run-action-bar">
                 <button
                     onClick={handleRun}
                     disabled={!jsCode || !!error}

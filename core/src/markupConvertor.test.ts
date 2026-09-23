@@ -13,6 +13,27 @@ describe('markupConvertor XML formats', () => {
     expect(xml).toContain('<empty/>');
   });
 
+  it('converts YAML/JSON object strings to XML when format is xml', () => {
+    const jsonText = '{\n  "user": {\n    "name": "John"\n  }\n}';
+    const xml = formatBody('xml', jsonText, true);
+    expect(xml).toContain('<user>');
+    expect(xml).toContain('<name>John</name>');
+  });
+
+  it('previews json and xml from the same YAML object without rewriting it', () => {
+    const original = {user: {name: 'John'}};
+    const asJson = formatBody('json', original, true);
+    const asXml = formatBody('xml', original, true);
+    expect(asXml).toContain('<name>John</name>');
+    expect(formatBody('json', original, true)).toBe(asJson);
+  });
+
+  it('converts XML text back to JSON when format is json', () => {
+    const xml = '<user><name>John</name></user>';
+    const json = formatBody('json', xml, true);
+    expect(JSON.parse(json)).toEqual({user: {name: 'John'}});
+  });
+
   it('supports xmle expanded XML format for empty elements', () => {
     const xml = formatBody('xmle', {
       root: {
@@ -174,6 +195,27 @@ describe('markupConvertor Windows CRLF bodies', () => {
   it('formatBody normalizes CRLF before formatting text', () => {
     expect(formatBody('text', 'a\r\nb\rc', false)).toBe('a\nb\nc');
   });
+});
+
+describe('markupConvertor none format', () => {
+  it('keeps body text and has no content type', () => {
+    expect(formatBody('none', 'keep me', false)).toBe('keep me');
+    expect(formattedBodyToYamlObject('none', 'keep me')).toBe('keep me');
+    expect(contentTypeForFormat('none')).toBe('');
+  });
+});
+
+describe('markupConvertor html format', () => {
+  it('pretty-prints HTML and uses text/html', () => {
+    const html = '<html><body>hello</body></html>';
+    expect(formatBody('html', html, false)).toBe(html);
+    expect(formatBody('html', html, true)).toContain('\n');
+    expect(formattedBodyToYamlObject('html', html)).toBe(html);
+    expect(contentTypeForFormat('html')).toBe('text/html');
+    expect(beautifyWithContentType('text/html', html)).toContain('\n');
+    expect(beautify('html', html)).toContain('<body>hello</body>');
+  });
+
 });
 
 describe('markupConvertor multipart format', () => {

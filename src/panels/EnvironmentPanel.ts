@@ -2,20 +2,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
+import type {EnvVariable, EnvVarSource} from 'mmt-core/EnvData';
 
 import {derivePresetSelections} from './envPresetMatch';
 
-export type EnvVarSource = 'file' | 'manual' | 'runtime';
-
-export interface EnvironmentVar {
-  name: string;
-  label: string;
-  value: string|number|boolean;
-  options: {label: string; value: string | number | boolean}[];
-  source?: EnvVarSource;
-  /** Epoch ms when `value` last changed in workspace storage. */
-  lastUpdate?: number;
-}
+export type {EnvVarSource} from 'mmt-core/EnvData';
 
 export default class EnvironmentPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = 'multimeter.environment';
@@ -97,7 +88,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
                 `Environment variable "${name}" already exists.`);
             break;
           }
-          const newVar: EnvironmentVar = {
+          const newVar: EnvVariable = {
             name,
             label: 'Manual',
             value: message.value ?? '',
@@ -165,7 +156,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     });
   }
 
-  private async persistWorkspaceEnvironmentVars(environmentVars: EnvironmentVar[]) {
+  private async persistWorkspaceEnvironmentVars(environmentVars: EnvVariable[]) {
     const stored = this.context.workspaceState.get(
         'multimeter.environment.storage', []);
     const stamped = applyEnvVarLastUpdates(environmentVars, asEnvVarList(stored));
@@ -173,10 +164,10 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
         'multimeter.environment.storage', stamped);
   }
 
-  private getWorkspaceEnvironmentVars(): EnvironmentVar[] {
+  private getWorkspaceEnvironmentVars(): EnvVariable[] {
     try {
       // Preserve storage order: env-file vars first (YAML order), then manual adds.
-      const storedVars = this.context.workspaceState.get<EnvironmentVar[]|Record<string, any>>(
+      const storedVars = this.context.workspaceState.get<EnvVariable[]|Record<string, any>>(
           'multimeter.environment.storage', []);
 
       const raw = Array.isArray(storedVars) ?
@@ -317,7 +308,7 @@ function parseEnvVarSource(value: unknown): EnvVarSource|undefined {
   return undefined;
 }
 
-function normalizeEnvironmentVar(raw: any): EnvironmentVar {
+function normalizeEnvironmentVar(raw: any): EnvVariable {
   const source = parseEnvVarSource(raw?.source) ??
       (raw?.isManual === true ? 'manual' : undefined) ??
       inferLegacyEnvVarSource(raw);
@@ -344,6 +335,6 @@ function inferLegacyEnvVarSource(envVar: any): EnvVarSource {
   return 'file';
 }
 
-function resolveEnvVarSource(envVar: EnvironmentVar): EnvVarSource {
+function resolveEnvVarSource(envVar: EnvVariable): EnvVarSource {
   return parseEnvVarSource(envVar.source) ?? inferLegacyEnvVarSource(envVar);
 }

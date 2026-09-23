@@ -1,25 +1,24 @@
+import type {FileLoader} from './JSerFileLoader';
 import {detectDocType, resolveRelativeTo} from './runCommon';
-import {SuiteEnvironment, SuiteYamlFilter} from './SuiteData';
+import {
+  SuiteHierarchyNode,
+  SuiteHierarchyRootNode,
+  SuiteServerItemNode,
+} from './SuiteData';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {createSuiteNodeId} from './suiteNodeId';
-import {yamlToTest} from './testParsePack';
+import {peekTestMetaFromYaml} from './testParsePack';
 import {brunoToTest, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, isHttpFilePath} from './httpParsePack';
 import {yamlToMock} from './mockParsePack';
 
-export type SuiteServerItemNode =
-  | Extract<SuiteHierarchyNode, {kind: 'server'}>
-  | Extract<SuiteHierarchyNode, {kind: 'missing'}>;
+export type {
+  SuiteHierarchyNode,
+  SuiteHierarchyRootNode,
+  SuiteServerItemNode,
+} from './SuiteData';
 
-export type SuiteHierarchyNode =
-  | {kind: 'group'; id: string; label: string; children: SuiteHierarchyNode[]}
-  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]; servers?: string[]; serverItems?: SuiteServerItemNode[]; tags?: string[]; filter?: SuiteYamlFilter}
-  | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
-  | {kind: 'server'; id: string; path: string; title?: string}
-  | {kind: 'missing'; id: string; path: string}
-  | {kind: 'cycle'; id: string; path: string};
-
-export type SuiteHierarchyFileLoader = (path: string) => Promise<string>;
+export type SuiteHierarchyFileLoader = FileLoader;
 
 function optionalTags(tags?: string[]): string[]|undefined {
   if (!Array.isArray(tags) || tags.length === 0) {
@@ -29,22 +28,14 @@ function optionalTags(tags?: string[]): string[]|undefined {
   return out.length ? out : undefined;
 }
 
-export type SuiteHierarchyRootNode = Extract<SuiteHierarchyNode, {kind: 'suite'}> & {
-  /** Server file paths from the top-level `servers:` field. */
-  servers?: string[];
-  /** Environment configuration (root-only). */
-  environment?: SuiteEnvironment;
-  /** Export file paths (root-only). */
-  export?: string[];
-};
-
 export async function buildSuiteHierarchyFromSuiteFile(params: {
   suiteFilePath: string;
   suiteRawText: string;
   fileLoader: SuiteHierarchyFileLoader;
   leafPrefix?: string;
+  projectRoot?: string;
 }): Promise<SuiteHierarchyRootNode> {
-  const {suiteFilePath, suiteRawText, fileLoader, leafPrefix} = params;
+  const {suiteFilePath, suiteRawText, fileLoader, leafPrefix, projectRoot} = params;
 
   const convertSuiteToHierarchy = async (
     targetFilePath: string,
@@ -134,7 +125,7 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
       return null;
     }
 
-    const resolvedPath = resolveRelativeTo(trimmed, ownerFilePath) || trimmed;
+    const resolvedPath = resolveRelativeTo(trimmed, ownerFilePath, projectRoot) || trimmed;
 
     let raw = '';
     try {
@@ -152,12 +143,23 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
       let title: string | undefined;
       let tags: string[] | undefined;
       try {
-        const testDoc = isHttpFilePath(resolvedPath) ? httpToTest(raw, resolvedPath) :
-          isBrunoFilePath(resolvedPath) ? brunoToTest(raw, resolvedPath) : yamlToTest(raw);
-        if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
-          title = testDoc.title.trim();
+        if (isHttpFilePath(resolvedPath)) {
+          const testDoc = httpToTest(raw, resolvedPath);
+          if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
+            title = testDoc.title.trim();
+          }
+          tags = optionalTags(testDoc?.tags);
+        } else if (isBrunoFilePath(resolvedPath)) {
+          const testDoc = brunoToTest(raw, resolvedPath);
+          if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
+            title = testDoc.title.trim();
+          }
+          tags = optionalTags(testDoc?.tags);
+        } else {
+          const meta = peekTestMetaFromYaml(raw);
+          title = meta.title;
+          tags = optionalTags(meta.tags);
         }
-        tags = optionalTags(testDoc?.tags);
       } catch {
         // ignore
       }

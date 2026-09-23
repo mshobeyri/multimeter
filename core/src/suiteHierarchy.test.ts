@@ -230,4 +230,43 @@ describe('suiteHierarchy (core)', () => {
       title: undefined,
     });
   });
+
+  test('resolves +/ suite and test items from project root', async () => {
+    const files: Record<string, string> = {
+      '/project/suites/collection.mmt': [
+        'type: suite',
+        'items:',
+        '  - +/suites/auth.mmt',
+      ].join('\n'),
+      '/project/suites/auth.mmt': [
+        'type: suite',
+        'title: Auth',
+        'items:',
+        '  - +/tests/auth.mmt',
+      ].join('\n'),
+      '/project/tests/auth.mmt': [
+        'type: test',
+        'title: Auth test',
+      ].join('\n'),
+    };
+    const fileLoader = async (p: string) => files[p] ?? '';
+
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/project/suites/collection.mmt',
+      suiteRawText: files['/project/suites/collection.mmt'],
+      fileLoader,
+      projectRoot: '/project',
+    });
+
+    const nested = (tree.children[0] as any).children[0];
+    expect(nested.kind).toBe('suite');
+    expect(nested.path).toBe('/project/suites/auth.mmt');
+    expect(nested.title).toBe('Auth');
+    expect(nested.children[0].children[0]).toEqual({
+      kind: 'test',
+      id: 'suite-node:0.0.0.0',
+      path: '/project/tests/auth.mmt',
+      title: 'Auth test',
+    });
+  });
 });

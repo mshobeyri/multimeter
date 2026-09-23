@@ -1,5 +1,6 @@
 import {dataImportProcessor, markupConvertor, outputExtractor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
+import type {ReportFormat} from 'mmt-core/CommonData';
 import {findProjectRootSync, isProjectRootImport} from 'mmt-core/fileHelper';
 import {splitNormalizedLines} from 'mmt-core/textLines';
 import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
@@ -713,8 +714,6 @@ export async function handleExportMarkdown(message: any) {
     await showExportedNotification(`Exported to ${path.basename(uri.fsPath)}`, uri);
   }
 }
-
-type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
 const reportSerializers: Record<ReportFormat, (r: CollectedResults) => string> = {
   junit: generateJunitXml,

@@ -145,7 +145,7 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
   };
 
   return (
-    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div className="col-fill">
       <div className="run-action-bar">
         <HideWhenYamlError>
           <PrimaryButton icon="export" onClick={handleExport}>
@@ -153,7 +153,7 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
           </PrimaryButton>
         </HideWhenYamlError>
       </div>
-      <iframe ref={iframeRef} style={{ flex: 1, width: '100%', minHeight: 0, border: '1px solid var(--panel-border)' }} title="Documentation Preview" />
+      <iframe ref={iframeRef} className="doc-html-frame" title="Documentation Preview" />
     </div>
   );
 };

@@ -425,4 +425,91 @@ describe('validateYamlContent API method requirements', () => {
 
     expect(errors.some(error => String(error.message).includes(".steps[0].expect['body.items']"))).toBe(false);
   });
+
+  it('accepts a JSON array as an API body', () => {
+    const errors = validateYamlContent([
+      'type: api',
+      'url: https://example.com/items',
+      'method: post',
+      'format: json',
+      'body:',
+      '  - id: 1',
+      '  - id: 2',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('/body'))).toBe(false);
+    expect(errors.some(error => /must be (object|string)/i.test(String(error.message)))).toBe(false);
+  });
+
+  it('accepts a multipart parts list as an API body', () => {
+    const errors = validateYamlContent([
+      'type: api',
+      'url: https://example.com/upload',
+      'method: post',
+      'format: multipart',
+      'body:',
+      '  - name: description',
+      '    value: hello',
+      '  - name: file',
+      '    file: ./assets/sample.txt',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('/body'))).toBe(false);
+    expect(errors.length).toBe(0);
+  });
+
+  it('accepts a JSON array as an inline HTTP step body', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: HTTP list body',
+      'steps:',
+      '  - http: https://example.com/items',
+      '    method: post',
+      '    format: json',
+      '    body:',
+      '      - a',
+      '      - b',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('/steps/0/body'))).toBe(false);
+    expect(errors.some(error => /must be (object|string)/i.test(String(error.message)))).toBe(false);
+  });
+
+  it('accepts numeric query and header values', () => {
+    const errors = validateYamlContent([
+      'type: api',
+      'url: https://example.com/search',
+      'method: get',
+      'query:',
+      '  page: 1',
+      '  limit: 20',
+      'headers:',
+      '  X-Count: 3',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('/query'))).toBe(false);
+    expect(errors.some(error => String(error.message).includes('/headers'))).toBe(false);
+    expect(errors.some(error => /must be string/i.test(String(error.message)))).toBe(false);
+  });
+
+  it('accepts websocket mock endpoint messages and list bodies', () => {
+    const errors = validateYamlContent([
+      'type: server',
+      'port: 8080',
+      'protocol: ws',
+      'endpoints:',
+      '  - path: /socket',
+      '    body:',
+      '      - event: connected',
+      '    messages:',
+      '      - match:',
+      '          type: ping',
+      '        body:',
+      '          type: pong',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('Invalid property "messages"'))).toBe(false);
+    expect(errors.some(error => String(error.message).includes('/endpoints/0/body'))).toBe(false);
+    expect(errors.length).toBe(0);
+  });
 });

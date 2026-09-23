@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { APIData } from "mmt-core/APIData";
 import { Request, Response } from "mmt-core/NetworkData";
-import { JSONRecord } from "mmt-core/CommonData";
+import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
-import { responseFormat } from "mmt-core/CommonData";
+import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
@@ -13,7 +14,7 @@ import { useNetwork } from "../components/network/Network";
 import { pushHistory } from "../vsAPI";
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
-import { responseBodyToRawString } from "./responseBodyDisplay";
+import { resolveResponseViewType, responseBodyToRawString } from "./responseBodyDisplay";
 import {
   cacheBodyAutoFormat,
   readCachedBodyAutoFormat,
@@ -28,6 +29,28 @@ import {
 import { resolveApiRequest } from "mmt-core/resolveApiRequest";
 
 /** Always prefer the right-panel API Tester request over file YAML. */
+function packUiRequestBody(api: APIData, requestData: Request): unknown {
+  const format = resolveRequestFormat(
+    requestFormat(requestData.format ?? api.format),
+    requestData.headers,
+    requestData.method ?? api.method,
+  );
+  const body = requestData.body;
+  if (format !== "multipart") {
+    return body;
+  }
+  if (Array.isArray(body)) {
+    return body;
+  }
+  if (typeof body === "string") {
+    const packed = formattedBodyToYamlObject("multipart", body);
+    if (Array.isArray(packed)) {
+      return packed;
+    }
+  }
+  return body;
+}
+
 function buildUiApiRawFile(api: APIData, requestData: Request | undefined): string {
   let merged = api;
   if (requestData) {
@@ -39,6 +62,7 @@ function buildUiApiRawFile(api: APIData, requestData: Request | undefined): stri
       }
     });
     merged = { ...api, ...overrides } as APIData;
+    merged.body = packUiRequestBody(api, requestData) as APIData["body"];
     // prepareRequestData already applied auth into headers/query.
     delete (merged as { auth?: unknown }).auth;
   }
@@ -173,7 +197,10 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       api,
       resolvedInputs,
       envParameters,
-      { refreshRuntimeTokens: options?.refreshRuntimeTokens }
+      {
+        refreshRuntimeTokens: options?.refreshRuntimeTokens,
+        preserveStructuredBody: true,
+      }
     );
   }, [api, loadEnvParameters]);
 
@@ -216,6 +243,17 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       true
     );
     setRequestData(merged);
+    const reqFormat = resolveRequestFormat(
+      requestFormat(merged.format ?? apiRef.current.format),
+      merged.headers,
+      merged.method ?? apiRef.current.method,
+    );
+    if (merged.body != null && typeof merged.body !== "string" && reqFormat !== "multipart") {
+      return {
+        ...merged,
+        body: formatBody(reqFormat, merged.body, false),
+      };
+    }
     return merged;
   }, [resolveFreshRequestData]);
 
@@ -317,9 +355,17 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
 
-    const fmt = responseFormat(requestData?.format);
+    const declared = responseFormat(requestData?.format ?? apiRef.current.format);
+    const reqFmt = resolveRequestFormat(
+      requestFormat(requestData?.format ?? apiRef.current.format),
+      requestData?.headers,
+      requestData?.method ?? apiRef.current.method,
+    );
+    const resolved = declared === "auto"
+      ? resolveResponseViewType("auto", responseData, reqFmt, requestData?.headers)
+      : declared;
     const contentType: "json" | "xml" =
-      fmt.includes("xml") || bodyText.trim().startsWith("<")
+      resolved.includes("xml") || bodyText.trim().startsWith("<")
         ? "xml"
         : "json";
     const path = extractPathAtPosition(bodyText || "", contentType, pos.line, pos.column);
@@ -346,7 +392,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
 
     existing[key] = expr;
     onUpdateApi?.({ outputs: existing });
-  }, [onUpdateApi, requestData?.format]);
+  }, [onUpdateApi, requestData?.format, requestData?.headers, responseData]);
 
   // HTTP/GraphQL/gRPC Send / Run in Core from the right panel: always send the
   // UI request as rawFile. Glyphs omit rawFile and use the editor file only.

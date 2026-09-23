@@ -71,7 +71,7 @@ const YamlErrorWarning: React.FC = () => {
           </p>
           {canRestore && (
             <div className="unsaved-changes-popup-yaml-header">
-              <div style={{display: 'flex', gap: 4, marginLeft: 'auto'}}>
+              <div className="unsaved-changes-popup-actions">
                 <button
                   className="button-icon"
                   onClick={() => {

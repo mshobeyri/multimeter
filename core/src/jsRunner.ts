@@ -1,4 +1,5 @@
-import {LogLevel} from './CommonData';
+import {CheckLogMode, LogLevel} from './CommonData';
+import type {BinaryFileLoader, FileLoader} from './JSerFileLoader';
 import {GrpcRequest, GrpcResponse} from './NetworkData';
 import {applyValueAccessor} from './variableReplacer';
 // Import your send function from the network core
@@ -22,9 +23,9 @@ export interface RunJSCodeContext {
   js: string;
   title: string;
   logger: (level: LogLevel, message: string) => void;
-  fileLoader?: (path: string) => Promise<string>;
+  fileLoader?: FileLoader;
   /** Load a relative path as raw bytes (for format: binary request bodies). */
-  binaryFileLoader?: (path: string) => Promise<Buffer>;
+  binaryFileLoader?: BinaryFileLoader;
   reporter?: (message: any) => void;
   id?: string;
   abortSignal?: AbortSignal;
@@ -37,7 +38,7 @@ export interface RunJSCodeContext {
   /** True when this JS execution can safely be delegated to an external worker. */
   workerEligible?: boolean;
   /** Controls check/assert console logging without changing report events. */
-  checkLogMode?: 'default'|'failures-only'|'none';
+  checkLogMode?: CheckLogMode;
   /** Prefix for the finished/failed log line (Test / API / Suite). */
   runKind?: RunKind;
 }

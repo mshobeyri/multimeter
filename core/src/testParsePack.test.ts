@@ -1,8 +1,25 @@
-import { yamlToTest, testToYaml, getTestFlowStepType, quoteExpectOperators, yamlToTestStrict, validateTestData } from './testParsePack';
+import { yamlToTest, testToYaml, peekTestMetaFromYaml, getTestFlowStepType, quoteExpectOperators, yamlToTestStrict, validateTestData } from './testParsePack';
 import parseYaml from './markupConvertor';
 import { TestData, TestFlowStep } from './TestData';
 
 describe('testParsePack', () => {
+  it('peekTestMetaFromYaml reads title and tags without normalizing steps', () => {
+    const yaml = `
+type: test
+title: Heavy test
+tags:
+  - smoke
+steps:
+  - http: https://example.com
+    method: get
+  - check: r:status == 200
+`;
+    expect(peekTestMetaFromYaml(yaml)).toEqual({
+      title: 'Heavy test',
+      tags: ['smoke'],
+    });
+  });
+
   it('yamlToTest parses minimal and migrates legacy flow to steps', () => {
     const yaml = `
 type: test

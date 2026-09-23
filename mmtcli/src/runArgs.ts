@@ -1,15 +1,16 @@
-import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
+import {findProjectRootSync, isProjectRootImport, resolveCertFilePath, resolveProjectRootImport} from 'mmt-core/fileHelper';
+import type {ReportFormat} from 'mmt-core/CommonData';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
-import type {RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
+import type {BinaryFileLoader, FileLoader, RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
 import type {NetworkConfig, EnvCertificateSettings, EnvSetting} from 'mmt-core/NetworkData';
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
 
 import {resolveUserPath, resolveUserPathPreferExisting} from './pathNormalize.cjs';
 
-export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
+export type {ReportFormat};
 
 const {mergeEnv, resolvePresetsEnv, normalizePresetNames} =
     ((mmtcore as any).runConfig || {}) as any;
@@ -410,9 +411,16 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     envvar = {...baseEnv, ...suitePresetEnv, ...suiteVariables, ...manualEnvvars};
   }
 
+  const projectRoot = findProjectRootForCli(full);
+  const resolveCliFilePath = (requested: string): string => {
+    if (isProjectRootImport(requested) && projectRoot) {
+      return resolveProjectRootImport(requested, projectRoot);
+    }
+    return resolveUserPath(requested, dir, path);
+  };
   const runFileOptions: RunFileOptions&{
-    fileLoader: (path: string) => Promise<string>;
-    binaryFileLoader?: (path: string) => Promise<Buffer>;
+    fileLoader: FileLoader;
+    binaryFileLoader?: BinaryFileLoader;
     jsRunner: (
         code: string, title: string,
         logger: (level: any, msg: string) => void) => Promise<void>;
@@ -429,14 +437,23 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     envvar,
     manualEnvvars,
     fileLoader: async (p: string) => {
-      const rel = resolveUserPath(p, dir, path);
+      const rel = resolveCliFilePath(p);
       if (!fs.existsSync(rel)) {
         return '';
       }
       return fs.readFileSync(rel, 'utf8');
     },
+    fileStamp: async (p: string) => {
+      const rel = resolveCliFilePath(p);
+      try {
+        const st = fs.statSync(rel);
+        return `${st.size}:${st.mtimeMs}`;
+      } catch {
+        return 'missing';
+      }
+    },
     binaryFileLoader: async (p: string) => {
-      const rel = resolveUserPath(p, dir, path);
+      const rel = resolveCliFilePath(p);
       return fs.promises.readFile(rel);
     },
     jsRunner: async () => {},
@@ -448,7 +465,8 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
       }
     },
     reporter: (_message: RunReporterMessage) => {},
-    projectRoot: findProjectRootForCli(full),
+    projectRoot,
+    checkLogMode: opts.quiet ? 'none' : 'default',
   };
 
   const onlyTags = Array.isArray(opts.tag) ? opts.tag as string[] : [];

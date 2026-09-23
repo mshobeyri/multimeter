@@ -1,6 +1,6 @@
 import React from 'react';
-import { ReportLevel, ReportConfig } from 'mmt-core/TestData';
 import { JSONRecord } from 'mmt-core/CommonData';
+import ReportLevelFields from '../components/ReportLevelFields';
 import {
   buildJudgeEvalBlock,
   flattenJudgeChecksForUi,
@@ -13,9 +13,10 @@ interface TestJudgeProps {
   value: any;
   imports?: Record<string, string>;
   onChange: (value: any) => void;
+  expanded?: boolean;
 }
 
-const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
+const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expanded }) => {
   const [local, setLocal] = React.useState<any>(typeof value === 'object' && value ? value : null);
   const emitTimerRef = React.useRef<number | null>(null);
   const localRef = React.useRef<any>(local);
@@ -83,34 +84,13 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
   };
 
   const report = local && typeof local === 'object' ? local.report : undefined;
-  const isReportObject = report && typeof report === 'object';
-  const reportInternal: ReportLevel = isReportObject
-      ? (report as ReportConfig).internal ?? 'all'
-      : (typeof report === 'string' ? report as ReportLevel : 'all');
-  const reportExternal: ReportLevel = isReportObject
-      ? (report as ReportConfig).external ?? 'fails'
-      : (typeof report === 'string' ? report as ReportLevel : 'fails');
-
-  const setReport = (internal: ReportLevel, external: ReportLevel) => {
-    let rep: any;
-    if (internal === 'all' && external === 'fails') {
-      rep = undefined;
-    } else if (internal === external) {
-      rep = internal;
-    } else {
-      rep = { internal, external };
-    }
-    emit(buildObj({ report: rep }));
-  };
-
-  const reportLevels: ReportLevel[] = ['all', 'fails', 'none'];
 
   return (
-    <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+    <div className="mmt-fill">
       <select
         value={aliases.includes(currentAlias) ? currentAlias : ''}
         onChange={(e) => emit(buildObj({ judge: e.target.value }))}
-        style={{ width: '100%' }}
+        className="mmt-fill"
       >
         <option value="">{aliases.length ? 'select judge' : 'no judge imports'}</option>
         {aliases.map((a) => (
@@ -118,26 +98,26 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
         ))}
       </select>
 
+      {expanded && (
+        <>
       <div className="label">Id</div>
-      <div style={{ padding: '5px' }}>
+      <div className="field-pad">
         <input
           type="text"
           value={currentId}
           onChange={(e) => emit(buildObj({ id: e.target.value }))}
           disabled={!currentAlias}
-          style={{ width: '100%' }}
           placeholder="id"
         />
       </div>
 
       <div className="label">Title</div>
-      <div style={{ padding: '5px' }}>
+      <div className="field-pad">
         <input
           type="text"
           value={currentTitle}
           onChange={(e) => emit(buildObj({ title: e.target.value }))}
           disabled={!currentAlias}
-          style={{ width: '100%' }}
           placeholder="title"
         />
       </div>
@@ -150,8 +130,8 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
         valuePlaceholder={`\${reply}`}
       />
 
-      <div className="label" style={{ marginBottom: 0 }}>Expect metrics (soft)</div>
-      <div style={{ padding: '4px 5px 0', fontSize: 11, opacity: 0.7 }}>
+      <div className="label is-tight">Expect metrics (soft)</div>
+      <div className="field-hint">
         Soft fail: report and continue. Metric names are free-form (threshold 0..1).
       </div>
       <KVEditor
@@ -168,8 +148,8 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
         placeholder="Add criterion..."
       />
 
-      <div className="label" style={{ marginBottom: 0 }}>Require metrics (hard)</div>
-      <div style={{ padding: '4px 5px 0', fontSize: 11, opacity: 0.7 }}>
+      <div className="label is-tight">Require metrics (hard)</div>
+      <div className="field-hint">
         Hard fail stops the test. Prefer lower thresholds than expect when using the same metric.
       </div>
       <KVEditor
@@ -186,27 +166,13 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange }) => {
         placeholder="Add criterion..."
       />
 
-      <div className="label">Report</div>
-      <div style={{ display: 'flex', gap: 8, padding: '5px', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-          internal
-          <select
-            value={reportInternal}
-            onChange={(e) => setReport(e.target.value as ReportLevel, reportExternal)}
-          >
-            {reportLevels.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-          external
-          <select
-            value={reportExternal}
-            onChange={(e) => setReport(reportInternal, e.target.value as ReportLevel)}
-          >
-            {reportLevels.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </label>
-      </div>
+      <ReportLevelFields
+        value={report}
+        onChange={(rep) => emit(buildObj({ report: rep }))}
+        labels="plain"
+      />
+        </>
+      )}
     </div>
   );
 };

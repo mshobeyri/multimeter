@@ -1,5 +1,4 @@
 import React, { useContext } from "react";
-import { ReportConfig, ReportLevel } from "mmt-core/TestData";
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
@@ -7,10 +6,12 @@ import {
   type ExpectUiRow,
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
-import { Format, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
+import { REQUEST_FORMAT_VALUES, RequestFormat, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
-import OperatorSelect from "../components/OperatorSelect";
+import MultipartPartsEditor from "../components/MultipartPartsEditor";
+import CheckClauseList, { CheckClauseFieldInput } from "../components/CheckClauseList";
+import ReportLevelFields from "../components/ReportLevelFields";
 import { FileContext } from "../fileContext";
 
 interface ExpectRow extends ExpectUiRow {}
@@ -22,9 +23,7 @@ interface TestHttpProps {
 }
 
 const methodOptions = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'];
-const formatOptions: Format[] = ['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary', 'multipart'];
 const responseFields = ['status', 'body.message', 'body', 'headers', 'cookies', 'duration'];
-const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 
 const parseTimeoutInput = (value: string): number | undefined => {
   if (!value.trim()) {
@@ -40,13 +39,6 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const expectList = React.useMemo(() => expectMapToUiRows(step.expect), [step.expect]);
   const requireList = React.useMemo(() => expectMapToUiRows(step.require), [step.require]);
   const callReport = step.report;
-  const isReportObjectForm = callReport && typeof callReport === 'object';
-  const reportInternalValue: ReportLevel = isReportObjectForm
-    ? (callReport as ReportConfig).internal ?? 'all'
-    : (typeof callReport === 'string' ? callReport as ReportLevel : 'all');
-  const reportExternalValue: ReportLevel = isReportObjectForm
-    ? (callReport as ReportConfig).external ?? 'fails'
-    : (typeof callReport === 'string' ? callReport as ReportLevel : 'fails');
 
   const emit = (
       patch: Record<string, any>,
@@ -101,18 +93,6 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     onChange(next);
   };
 
-  const handleReportChange = (internal: ReportLevel, external: ReportLevel) => {
-    let report: any;
-    if (internal === 'all' && external === 'fails') {
-      report = undefined;
-    } else if (internal === external) {
-      report = internal;
-    } else {
-      report = { internal, external };
-    }
-    emit({}, undefined, undefined, report);
-  };
-
   const handleAddExpect = () => {
     const defaultField = expectList.length > 0
       ? expectList[expectList.length - 1].field
@@ -152,46 +132,42 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const selectedMethod = String(step.method || 'get').toLowerCase();
 
   return (
-    <div style={{ width: '100%', borderCollapse: "collapse", tableLayout: "fixed" }}>
-      <div>
+    <div className="mmt-fill">
+      <div className="field-pad">
         <input
           type="text"
           value={step.http || ''}
           onChange={e => emit({ http: e.target.value })}
-          style={{ width: '100%' }}
           placeholder="URL"
         />
       </div>
       {expanded && (
         <>
           <div className="label">Id</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="text"
               value={step.id || ''}
               onChange={e => emit({ id: e.target.value })}
-              style={{ width: '100%' }}
               placeholder="Optional id to capture response"
             />
           </div>
 
           <div className="label">Title</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="text"
               value={step.title || ''}
               onChange={e => emit({ title: e.target.value })}
-              style={{ width: '100%' }}
               placeholder="Optional display title"
             />
           </div>
 
           <div className="label">Method</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={selectedMethod}
               onChange={e => emit({ method: e.target.value })}
-              style={{ width: '100%' }}
             >
               {methodOptions.map(method => (
                 <option key={method} value={method}>{method}</option>
@@ -200,49 +176,46 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           </div>
 
           <div className="label">Timeout (ms)</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="number"
               min={0}
               step={100}
               value={step.timeout ?? ''}
               onChange={e => emit({ timeout: parseTimeoutInput(e.target.value) })}
-              style={{ width: '100%' }}
               placeholder="Default network timeout"
             />
           </div>
 
           <div className="label">Request format</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={requestFormat(step.format)}
               onChange={e => emit({
                 format: packFormatSpec({
-                  request: e.target.value as Format,
+                  request: e.target.value as RequestFormat,
                   response: responseFormat(step.format),
                 }),
               })}
-              style={{ width: '100%' }}
             >
-              {formatOptions.map(format => (
+              {REQUEST_FORMAT_VALUES.map(format => (
                 <option key={format} value={format}>{format}</option>
               ))}
             </select>
           </div>
 
           <div className="label">Response format</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={responseFormat(step.format)}
               onChange={e => emit({
                 format: packFormatSpec({
                   request: requestFormat(step.format),
-                  response: e.target.value as Format,
+                  response: e.target.value as ResponseFormat,
                 }),
               })}
-              style={{ width: '100%' }}
             >
-              {formatOptions.map(format => (
+              {RESPONSE_FORMAT_VALUES.map(format => (
                 <option key={format} value={format}>{format}</option>
               ))}
             </select>
@@ -260,10 +233,10 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             onChange={query => emit({ query })}
           />
 
-          {selectedMethod !== 'get' && (
+          {selectedMethod !== 'get' && requestFormat(step.format) !== 'none' && (
             <>
               <div className="label">Body</div>
-              <div style={{ padding: "5px" }}>
+              <div className="field-pad">
                 {requestFormat(step.format) === 'binary' ? (
                   <FilePickerInput
                     value={typeof step.body === 'string' ? step.body : ''}
@@ -273,11 +246,15 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                     onChange={path => emit({ body: path })}
                     onEnterPressed={path => emit({ body: path })}
                   />
+                ) : requestFormat(step.format) === 'multipart' ? (
+                  <MultipartPartsEditor
+                    value={step.body}
+                    onChange={parts => emit({ body: parts })}
+                  />
                 ) : (
                   <textarea
                     value={typeof step.body === 'string' ? step.body : JSON.stringify(step.body || '', null, 2)}
                     onChange={e => emit({ body: e.target.value })}
-                    style={{ width: '100%', minHeight: 120, resize: 'vertical' }}
                     placeholder="Request body"
                   />
                 )}
@@ -285,166 +262,57 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             </>
           )}
 
-          <div className="label">Expect</div>
-          <div style={{ padding: "5px" }}>
+          <CheckClauseList
+            kind="expect"
+            rows={expectList}
+            onPartChange={handleExpectPartChange}
+            onRemove={handleRemoveExpect}
+            onAdd={handleAddExpect}
+            renderField={(row, i) => (
+              <CheckClauseFieldInput
+                list="http-response-fields"
+                value={row.field}
+                onChange={val => handleExpectPartChange(i, "field", val)}
+                title="Response path to check"
+                placeholder="body.message"
+              />
+            )}
+          >
             <datalist id="http-response-fields">
               {responseFields.map(field => (
                 <option key={field} value={field} />
               ))}
             </datalist>
-            {expectList.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {expectList.map((row, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <input
-                      list="http-response-fields"
-                      value={row.field}
-                      onChange={e => handleExpectPartChange(i, 'field', e.target.value)}
-                      style={{ flex: 2, minWidth: 0 }}
-                      title="Response path to check"
-                      placeholder="body.message"
-                    />
-                    <OperatorSelect
-                      value={row.op as any}
-                      onChange={nextOp => handleExpectPartChange(i, 'op', nextOp)}
-                      style={{ flex: 1, minWidth: 0 }}
-                      title="Comparison operator"
-                    />
-                    <input
-                      type="text"
-                      value={row.expected}
-                      onChange={e => handleExpectPartChange(i, 'expected', e.target.value)}
-                      style={{ flex: 2, minWidth: 0 }}
-                      placeholder="expected value"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveExpect(i)}
-                      className="action-button codicon codicon-close"
-                      style={{ flexShrink: 0 }}
-                      title="Remove expect"
-                      aria-label="Remove expect"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ opacity: 0.7 }}>No expectations</div>
-            )}
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={handleAddExpect}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                + Add expect
-              </button>
-            </div>
-          </div>
+          </CheckClauseList>
 
-          <div className="label">Require</div>
-          <div style={{ padding: "5px" }}>
+          <CheckClauseList
+            kind="require"
+            rows={requireList}
+            onPartChange={handleRequirePartChange}
+            onRemove={handleRemoveRequire}
+            onAdd={handleAddRequire}
+            renderField={(row, i) => (
+              <CheckClauseFieldInput
+                list="http-require-response-fields"
+                value={row.field}
+                onChange={val => handleRequirePartChange(i, "field", val)}
+                title="Response path to require"
+                placeholder="status"
+              />
+            )}
+          >
             <datalist id="http-require-response-fields">
               {responseFields.map(field => (
                 <option key={field} value={field} />
               ))}
             </datalist>
-            {requireList.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {requireList.map((row, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <input
-                      list="http-require-response-fields"
-                      value={row.field}
-                      onChange={e => handleRequirePartChange(i, 'field', e.target.value)}
-                      style={{ flex: 2, minWidth: 0 }}
-                      title="Response path to require"
-                      placeholder="status"
-                    />
-                    <OperatorSelect
-                      value={row.op as any}
-                      onChange={nextOp => handleRequirePartChange(i, 'op', nextOp)}
-                      style={{ flex: 1, minWidth: 0 }}
-                      title="Comparison operator"
-                    />
-                    <input
-                      type="text"
-                      value={row.expected}
-                      onChange={e => handleRequirePartChange(i, 'expected', e.target.value)}
-                      style={{ flex: 2, minWidth: 0 }}
-                      placeholder="required value"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveRequire(i)}
-                      className="action-button codicon codicon-close"
-                      style={{ flexShrink: 0 }}
-                      title="Remove require"
-                      aria-label="Remove require"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ opacity: 0.7 }}>No requirements</div>
-            )}
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={handleAddRequire}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                + Add require
-              </button>
-            </div>
-          </div>
+          </CheckClauseList>
 
           {(expectList.length > 0 || requireList.length > 0) && (
-            <>
-          <div className="label">Report</div>
-          <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <label title="Report level when running this test directly" style={{ userSelect: 'none', fontSize: 12 }}>
-                Internal:
-              </label>
-              <select
-                value={reportInternalValue}
-                onChange={e => handleReportChange(e.target.value as ReportLevel, reportExternalValue)}
-                style={{ fontSize: 12 }}
-              >
-                {reportLevelOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <label title="Report level when this test is imported or added to a suite" style={{ userSelect: 'none', fontSize: 12 }}>
-                External:
-              </label>
-              <select
-                value={reportExternalValue}
-                onChange={e => handleReportChange(reportInternalValue, e.target.value as ReportLevel)}
-                style={{ fontSize: 12 }}
-              >
-                {reportLevelOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-            </>
+            <ReportLevelFields
+              value={callReport}
+              onChange={report => emit({}, undefined, undefined, report)}
+            />
           )}
         </>
       )}

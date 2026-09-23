@@ -4,7 +4,6 @@ import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {logRunFinished} from './runLog';
 import {classifySuiteItemStatus} from './suiteItemStatus';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
-import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
 import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from './testHelper';
 
 const stableIdForSuiteItem = (params: {
@@ -90,7 +89,7 @@ export async function executeSuite(
         overallSuccess = false;
         break;
       }
-      const resolvedPath = resolveRelativeTo(serverPath, prepared.filePath);
+      const resolvedPath = resolveRelativeTo(serverPath, prepared.filePath, options.projectRoot);
       const display = basename(resolvedPath || serverPath);
       if (!options.serverRunner) {
         suiteLogger('error', `Cannot start server '${display}': no server runner provided`);
@@ -133,7 +132,7 @@ export async function executeSuite(
       if (options.abortSignal?.aborted) {
         return {
           entry,
-          filePath: resolveRelativeTo(entry, prepared.filePath),
+          filePath: resolveRelativeTo(entry, prepared.filePath, options.projectRoot),
           docType: null,
           success: false,
           status: 'failed' as SuiteStepStatus,
@@ -144,9 +143,7 @@ export async function executeSuite(
           threw: false,
         };
       }
-      const childFilePath = isProjectRootImport(entry) && options.projectRoot
-        ? resolveProjectRootImport(entry, options.projectRoot)
-        : resolveRelativeTo(entry, prepared.filePath);
+      const childFilePath = resolveRelativeTo(entry, prepared.filePath, options.projectRoot);
       const display = basename(childFilePath || entry);
       const runId = `suite:${sanitizeIdentifier(prepared.filePath)}:${gi}:${entryIndex}:${sanitizeIdentifier(childFilePath || entry)}`;
       // Buffer logs per item when running in parallel so output is grouped.
@@ -202,9 +199,7 @@ export async function executeSuite(
         childLogger('debug', `Running suite item: ${display}`);
 
         const childFileLoader = async (requestedPath: string) => {
-          const resolved = isProjectRootImport(requestedPath) && options.projectRoot
-            ? resolveProjectRootImport(requestedPath, options.projectRoot)
-            : resolveRelativeTo(requestedPath, childFilePath);
+          const resolved = resolveRelativeTo(requestedPath, childFilePath, options.projectRoot);
           return await fileLoader(resolved);
         };
 

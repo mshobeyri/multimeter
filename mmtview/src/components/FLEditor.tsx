@@ -51,9 +51,9 @@ const FLEditor: React.FC<FLEditorProps> = ({
 
     return (<>
         <div className={disabled ? "label label-disabled" : "label"}>{label}</div>
-        <div style={{ padding: "0", marginRight: "10px" }}>
+        <div className="list-editor">
             {safeList(value).map((val, idx) => (
-                <div key={idx} style={{ width: "100%", padding: "5px" }}>
+                <div key={idx} className="field-pad">
                     <FilePickerInput
                         value={val}
                         basePath={fileCtx?.mmtFilePath}
@@ -66,7 +66,7 @@ const FLEditor: React.FC<FLEditorProps> = ({
                     />
                 </div>
             ))}
-            <div style={{ width: "100%", padding: "5px" }}>
+            <div className="field-pad">
                 <FilePickerInput
                     ref={inputRef}
                     filters={[{ name: 'MMT files', extensions: ['mmt'] }]}

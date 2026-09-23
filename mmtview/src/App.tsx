@@ -23,6 +23,7 @@ import PanelErrorBoundary from "./shared/PanelErrorBoundary";
 import { ensureThemeSync } from "./text/Theme";
 import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
 import { collectYamlEditorErrors } from "./text/yamlEditorErrors";
+import { cacheReportSpillBytes } from "./shared/reportSpillConfig";
 import YamlErrorWarning from "./api/YamlErrorWarning";
 import SpecApiPanel from "./spec/SpecApiPanel";
 import {
@@ -373,6 +374,11 @@ const App: React.FC = () => {
       if (message.command === "config") {
         if (typeof message.bodyAutoFormat === "boolean") {
           cacheBodyAutoFormat(message.bodyAutoFormat);
+        }
+        if (typeof message.reportSpillBytes === "number" && message.reportSpillBytes >= 0) {
+          cacheReportSpillBytes(message.reportSpillBytes);
+        }
+        if (typeof message.bodyAutoFormat === "boolean" || typeof message.reportSpillBytes === "number") {
           window.dispatchEvent(new CustomEvent("multimeter.config", { detail: message }));
         }
         const size = Number(message.editorFontSize);
@@ -525,7 +531,7 @@ const App: React.FC = () => {
 
   return (
     <FileContext.Provider value={{ mmtFilePath, projectRoot, yamlErrors, yamlStale, restoreValidYaml, collectionFiles, collectionName }}>
-      <div ref={splitHostRef} style={{ height: "100%", width: "100%", overflow: "hidden" }}>
+      <div ref={splitHostRef} className="split-host">
         <SplitPane
           split="vertical"
           size={panelSize}
@@ -548,17 +554,9 @@ const App: React.FC = () => {
           maxSize={isSplitMode ? Math.max(layoutWidth - minPanelSize, minPanelSize) : layoutWidth}
           pane1Style={pane1Style}
           pane2Style={pane2Style}
-          style={{
-            height: "100%",
-            width: "100%",
-            overflow: "hidden",
-            backgroundColor: "var(--vscode-editor-background)",
-            color: "var(--vscode-editor-foreground)",
-            fontFamily: "var(--vscode-editor-font-family, sans-serif)",
-            fontSize: "var(--vscode-editor-font-size, 14px)",
-          }}
+          className="mmt-split"
         >
-          <div data-mmt-coach="yaml" style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
+          <div data-mmt-coach="yaml" className="pane-clip">
             <YamlEditorPanel
               content={content}
               setContent={yamlSetContent}
@@ -570,8 +568,7 @@ const App: React.FC = () => {
             />
           </div>
           <div
-            className={["mmt-ui-panel", yamlErrors.length > 0 ? "mmt-yaml-error" : undefined].filter(Boolean).join(" ") || undefined}
-            style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}
+            className={["mmt-ui-panel", "pane-clip", yamlErrors.length > 0 ? "mmt-yaml-error" : undefined].filter(Boolean).join(" ") || undefined}
           >
             {yamlErrors.length > 0 && !docType && (
               <div className="yaml-error-fallback">
@@ -579,14 +576,8 @@ const App: React.FC = () => {
               </div>
             )}
             <div
-              style={{
-                width: "100%",
-                height: "100%",
-                maxWidth: 1200,
-                minWidth: isSplitMode ? 450 : 0,
-                margin: "0 auto",
-                overflow: "auto",
-              }}
+              className="ui-pane-inner"
+              style={isSplitMode ? { minWidth: 450 } : undefined}
             >
               <PanelErrorBoundary resetKey={`${docType || "none"}::${validContent}`}>
                 {docType === "env" && (

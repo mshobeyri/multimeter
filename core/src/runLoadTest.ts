@@ -99,7 +99,7 @@ async function executeLoadTestBody(
   const envVars = prepared.envVarsUsed || options.envvar || {};
   const displayName = prepared.title || prepared.baseName;
   const identifier = sanitizeIdentifier(displayName);
-  const childFilePath = resolveRelativeTo(loadtest.test, prepared.filePath);
+  const childFilePath = resolveRelativeTo(loadtest.test, prepared.filePath, options.projectRoot);
   const childDisplayName = basename(childFilePath || loadtest.test);
   const threads = Math.max(1, Math.floor(loadtest.threads || 1));
   const repeatIterations = parsePositiveInteger(loadtest.repeat);
@@ -294,7 +294,7 @@ async function executeLoadTestBody(
   }
 
   const childFileLoader = async (requestedPath: string) => {
-    const resolved = resolveRelativeTo(requestedPath, childFilePath);
+    const resolved = resolveRelativeTo(requestedPath, childFilePath, options.projectRoot);
     return await options.fileLoader(resolved);
   };
 
@@ -366,7 +366,7 @@ async function executeLoadTestBody(
     try {
       const childBinaryFileLoader = options.binaryFileLoader
         ? async (requestedPath: string) => {
-            const resolved = resolveRelativeTo(requestedPath, childFilePath);
+            const resolved = resolveRelativeTo(requestedPath, childFilePath, options.projectRoot);
             return await options.binaryFileLoader!(resolved);
           }
         : undefined;

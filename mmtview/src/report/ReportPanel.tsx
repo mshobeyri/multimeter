@@ -11,6 +11,8 @@ import OverviewBoxes from '../shared/OverviewBoxes';
 import { statusIconFor } from '../shared/Common';
 import LoadTestReport, { LoadMetricsOverview } from '../loadtest/LoadTestReport';
 import PanelRunHeader from '../components/PanelRunHeader';
+import TreeChevron from '../components/TreeChevron';
+import { StatusGlyph } from '../components/StatusGlyph';
 
 interface ReportPanelProps {
   content: string;
@@ -103,10 +105,8 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
 
   if (parsed.error) {
     return (
-      <div style={{ padding: 16 }}>
-        <div style={{ color: 'var(--vscode-errorForeground)', marginBottom: 8 }}>
-          {parsed.error}
-        </div>
+      <div className="panel-error">
+        {parsed.error}
       </div>
     );
   }
@@ -161,7 +161,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
+      <div className="panel-box is-fill">
         <PanelRunHeader
           icon="file-text"
           iconTitle={suiteName}
@@ -177,7 +177,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
           <ExportReportButton disabled={false} onExport={handleExportReport} />
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div className="panel-scroll">
       <OverviewBoxes stats={overviewStats} />
       {isLoadReport && results.load && (
         <LoadMetricsOverview
@@ -187,18 +187,12 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         />
       )}
       {overviewDetails.length > 0 && !isLoadReport && (
-        <div style={{
-          borderRadius: 10,
-          background: 'var(--vscode-editor-background, rgba(40,40,40,0.8))',
-          border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.1))',
-          padding: 12,
-          margin: '-6px 0 12px',
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+        <div className="stat-card is-nudge">
+          <div className="stat-grid is-wide">
             {overviewDetails.map(([label, value]) => (
               <div key={label}>
-                <div style={{ fontSize: 10, opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
-                <div style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{value}</div>
+                <div className="stat-label">{label}</div>
+                <div className="stat-value">{value}</div>
               </div>
             ))}
           </div>
@@ -212,7 +206,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
       {!isLoadReport && (
         <>
           {/* Report section */}
-          <div className="label" style={{ marginBottom: 10 }}>Report</div>
+          <div className="label is-gap">Report</div>
 
           {results.testRuns.map((run, i) => {
         const reports = mapToStepReports(run);
@@ -225,76 +219,45 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         const isSuiteOnly = (run as any).docType === 'suite' && reports.length === 0;
 
         return (
-          <div key={run.id || run.runId || i} style={{ marginBottom: 4 }}>
+          <div key={run.id || run.runId || i} className="report-tree-item">
             {/* Tree item header — expand only via chevron so text selection is not cleared */}
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 4px',
-                cursor: isSuiteOnly ? 'default' : 'pointer',
-                borderRadius: 4,
-                background: 'transparent',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = 'var(--vscode-list-hoverBackground, rgba(255,255,255,0.05))';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = 'transparent';
-              }}
+              className={`report-tree-head${isSuiteOnly ? '' : ' is-clickable'}`}
             >
               {/* Expand/collapse arrow */}
               {isSuiteOnly ? (
                 <span
-                  className="codicon codicon-layers"
-                  style={{ width: 16, opacity: 0.75 }}
+                  className="codicon codicon-layers report-suite-icon"
                   title="Suite"
                 />
               ) : (
                 <button
                   type="button"
-                  className="action-button"
+                  className="action-button report-tree-toggle"
                   aria-label={isExpanded ? 'Collapse' : 'Expand'}
                   title={isExpanded ? 'Collapse' : 'Expand'}
                   onClick={() => setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }))}
-                  style={{
-                    padding: 0,
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    width: 16,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
                 >
-                  <span
-                    className={`codicon ${isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
-                    style={{ opacity: 0.7 }}
-                  />
+                  <TreeChevron open={isExpanded} muted />
                 </button>
               )}
               {/* Status icon */}
               <span
-                className={`codicon ${statusIcon.icon}`}
-                style={{ color: statusIcon.color }}
-                title={statusIcon.title}
                 onClick={() => {
                   if (!isSuiteOnly) {
                     setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }));
                   }
                 }}
-              />
+              >
+                <StatusGlyph
+                  icon={statusIcon.icon}
+                  color={statusIcon.color}
+                  title={statusIcon.title}
+                />
+              </span>
               {/* Test name */}
               <span
-                className="report-selectable"
-                style={{
-                  flex: 1,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
+                className="report-selectable field-grow ellipsis is-clip"
                 title={name}
                 onClick={() => {
                   if (isSuiteOnly) {
@@ -310,11 +273,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
                 {name}
               </span>
               {/* Summary badge */}
-              <span style={{
-                fontSize: '0.85em',
-                opacity: 0.7,
-                whiteSpace: 'nowrap',
-              }}>
+              <span className="report-tree-badge">
                 {isSuiteOnly ? state : failedCount > 0 ? `${failedCount} failed` : `${passedCount} passed`}
               </span>
             </div>
@@ -322,8 +281,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
             {/* Expanded content - check/assert results */}
             {isExpanded && !isSuiteOnly && (
               <div
-                className="report-selectable"
-                style={{ marginLeft: 24, paddingBottom: 8 }}
+                className="report-selectable report-tree-body pad-b-8"
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
@@ -342,7 +300,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
       })}
 
           {results.testRuns.length === 0 && (
-            <div style={{ opacity: 0.7, fontStyle: 'italic' }}>
+            <div className="muted italic">
               No test results in this report.
             </div>
           )}

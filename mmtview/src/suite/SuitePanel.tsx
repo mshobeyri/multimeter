@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import 'react-complex-tree/lib/style.css';
 import SuiteEdit from './edit/SuiteEdit';
 import SuiteTest, { SuiteFlowchartState } from './test/SuiteTest';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { FlowchartView } from '../flowchart';
 import { FileContext } from '../fileContext';
+import { usePanelPage } from '../usePanelPage';
 import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
 import PanelEditHeader from '../components/PanelEditHeader';
 
@@ -27,9 +28,19 @@ function pageTranslate(page: SuitePage): string {
 }
 
 const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
-  const [page, setPage] = useState<SuitePage>('test');
+  const [page, setPage] = usePanelPage<SuitePage>('test');
   const [flowchartState, setFlowchartState] = useState<SuiteFlowchartState | null>(null);
   const { mmtFilePath } = React.useContext(FileContext);
+
+  useEffect(() => {
+    setFlowchartState(null);
+  }, [mmtFilePath]);
+
+  useEffect(() => {
+    if (page !== 'flow') {
+      setFlowchartState(null);
+    }
+  }, [page]);
   const suiteTitle = useMemo(() => {
     const parsed = parseYaml(content);
     return (parsed && typeof parsed.title === 'string') ? parsed.title : 'Suite';
@@ -37,14 +48,14 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-box is-fill">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track api-swipe-track--three"
             style={{ transform: pageTranslate(page) }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden', flexDirection: 'column' }}>
+              <div className="panel-page is-clip">
                 <PanelRunHeader
                   icon="layers"
                   title={suiteTitle}
@@ -66,34 +77,42 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
                 />
                 <SuiteTest
                   content={content}
+                  flowchartActive={page === 'flow'}
                   onFlowchartStateChange={setFlowchartState}
                 />
               </div>
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <PanelEditHeader
-                title="Edit Suite"
-                onBack={() => setPage('test')}
-                backTitle="Back to Test"
-              />
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
+                  <PanelEditHeader
+                    title="Edit Suite"
+                    onBack={() => setPage('test')}
+                    backTitle="Back to Test"
+                  />
 
-              <SuiteEdit content={content} setContent={setContent} />
+                  <SuiteEdit content={content} setContent={setContent} />
+                </React.Fragment>
+              )}
             </div>
 
             <div className="api-swipe-page api-swipe-page--flow">
-              <FlowchartView
-                source={{
-                  kind: 'suite',
-                  rootTitle: suiteTitle,
-                  rootPath: mmtFilePath,
-                  groups: flowchartState?.groups ?? [],
-                  hierarchyByEntryId: flowchartState?.hierarchyByEntryId ?? {},
-                  missingFiles: flowchartState?.missingFiles ?? EMPTY_MISSING_FILES,
-                }}
-                onBack={() => setPage('test')}
-                title={suiteTitle || 'Suite'}
-              />
+              {page === 'flow' && (
+                <FlowchartView
+                  key={mmtFilePath}
+                  source={{
+                    kind: 'suite',
+                    rootTitle: suiteTitle,
+                    rootPath: mmtFilePath,
+                    groups: flowchartState?.groups ?? [],
+                    hierarchyByEntryId: flowchartState?.hierarchyByEntryId ?? {},
+                    missingFiles: flowchartState?.missingFiles ?? EMPTY_MISSING_FILES,
+                  }}
+                  onBack={() => setPage('test')}
+                  title={suiteTitle || 'Suite'}
+                />
+              )}
             </div>
           </div>
         </div>

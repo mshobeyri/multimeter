@@ -9,12 +9,15 @@ import {
     suiteFileLabelTitle,
 } from './suiteTreeLabelClick';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
+import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
+import { TreeDepthContainer } from '../../components/TreeChevron';
 
 export type SuiteSuiteFileItemData = { type: 'suite'; path: string; id: string };
 
 interface SuiteSuiteFileItemProps {
     item: TreeItem<any>;
     context: any;
+    depth: number;
     arrow: React.ReactNode;
     children: React.ReactNode;
     missingFiles: Set<string>;
@@ -32,6 +35,7 @@ interface SuiteSuiteFileItemProps {
 const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     item,
     context,
+    depth,
     arrow,
     children,
     missingFiles,
@@ -80,7 +84,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     };
 
     return (
-        <div {...context.itemContainerWithChildrenProps}>
+        <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
             <div className="tree-view-box tree-view-box-row" {...context.itemContainerWithoutChildrenProps}>
                 <div className="tree-view-box-row-arrow">{arrow}</div>
                 <div className="tree-view-box-row-main">
@@ -89,18 +93,6 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                         title={isMissing ? data.path : suiteFileLabelTitle(data.path)}
                         role={isMissing ? undefined : 'button'}
                         tabIndex={isMissing ? undefined : 0}
-                        onMouseEnter={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            (e.currentTarget as any).style.opacity = '0.8';
-                        }}
-                        onMouseLeave={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            (e.currentTarget as any).style.opacity = '1';
-                        }}
                         onClick={(e) => activateLabel(e, isOpenFileModifier(e))}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -108,13 +100,12 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             }
                         }}
                     >
-                        <span
-                            className={`codicon ${statusIcon.icon}`}
-                            aria-hidden
+                        <StatusGlyph
+                            icon={statusIcon.icon}
+                            color={statusIcon.color}
                             title={statusIcon.title}
-                            style={{ color: statusIcon.color }}
                         />
-                        <span className="codicon codicon-layers" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+                        <SuiteKindIcon kind="suite" />
                         {labelPath}
                     </div>
                     {onRun && !isMissing && (
@@ -128,7 +119,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                 </div>
             </div>
             {children}
-        </div>
+        </TreeDepthContainer>
     );
 };
 

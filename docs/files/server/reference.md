@@ -20,7 +20,7 @@
   - `status:` number (default `404`)
   - `format:` `json` | `xml` | `xmle` | `text` | `urlencoded`
   - `headers:` record&lt;string, string&gt;
-  - `body:` string or object
+  - `body:` string, object, or array
 
 ## HTTP endpoint (`protocol:` `http` | `https`)
 - `method:` HTTP verb | env token — required unless `reflect: true`
@@ -34,14 +34,14 @@
 - `status:` number (100–599; default `200`)
 - `format:` `json` | `xml` | `xmle` | `text` | `urlencoded`
 - `headers:` record&lt;string, string&gt;
-- `body:` string or object (supports `${url.*}`, `${body.*}`, `${header.*}`, `${query.*}`, `e:`, `r:`, `c:` — see [Tokens](./tokens.md))
+- `body:` string, object, or array (supports `${url.*}`, `${body.*}`, `${header.*}`, `${query.*}`, `e:`, `r:`, `c:` — see [Tokens](./tokens.md))
 - `delay:` number (per-endpoint delay in ms)
 - `reflect:` boolean (echo the request back as the response)
 
 ## WebSocket endpoint (`protocol:` `ws`)
 - `path:` string — required
 - `reflect:` boolean
-- `body:` string or object (initial/connect response)
+- `body:` string, object, or array (initial/connect response)
 - `format:` `json` | `xml` | `xmle` | `text` | `urlencoded`
 - `messages:` array of { `match?`, `body?`, `format?`, `delay?` } (reply rules for incoming messages)
 

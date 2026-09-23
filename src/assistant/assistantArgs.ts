@@ -3,18 +3,19 @@ import * as runConfig from 'mmt-core/runConfig';
 const {normalizePresetNames, resolveEnvFromDoc, mergeEnv} = runConfig;
 import {findProjectRootSync, isProjectRootImport, resolveProjectRootImport} from 'mmt-core/fileHelper';
 
-import type {RunFileOptions} from 'mmt-core/runConfig';
+import type {FileLoader, RunFileOptions} from 'mmt-core/runConfig';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
 import {logToOutput} from '../mmtAPI/run';
+import {stampFile} from '../mmtAPI/suiteHierarchyCache';
 
 type AnyOpts = Record<string, any>;
 
 export interface ParsedAssistantRun {
   runFileOptions: RunFileOptions&{
-    fileLoader: (path: string) => Promise<string>;
+    fileLoader: FileLoader;
     jsRunner: (context: RunJSCodeContext) => Promise<void>;
   };
   outFile?: string;
@@ -247,6 +248,15 @@ export async function parseAssistantRunArgs(
       } catch {
         return '';
       }
+    },
+    fileStamp: async (p: string) => {
+      let abs: string;
+      if (isProjectRootImport(p) && detectedProjectRoot) {
+        abs = resolveProjectRootImport(p, detectedProjectRoot);
+      } else {
+        abs = path.isAbsolute(p) ? p : path.join(dir, p);
+      }
+      return stampFile(abs);
     },
     binaryFileLoader: async (p: string) => {
       let abs: string;

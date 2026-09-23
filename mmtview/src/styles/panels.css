@@ -1,0 +1,744 @@
+/* Swipe panels, headers, and method-select chrome. */
+
+/* API tester layout */
+.apitest-panel-wrapper {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+/* API panel: two-page swipe layout (Test <-> Edit) */
+.api-swipe-root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+
+.api-swipe-track {
+  width: 200%;
+  height: 100%;
+  display: flex;
+  transition: transform 180ms ease;
+  min-width: 0;
+}
+
+.api-swipe-track--three {
+  width: 300%;
+}
+
+.api-swipe-page {
+  flex: 0 0 50%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.api-swipe-track--three .api-swipe-page {
+  flex-basis: 33.333333%;
+}
+
+.api-swipe-page--test {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.api-swipe-page--edit {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.api-swipe-page--flow {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.apitest-panel-wrapper {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+/* Top status bar: one rectangle on the panel; yellow unsaved, red YAML error. */
+.mmt-yaml-error {
+  position: relative;
+}
+
+.panel-box:has(.unsaved-warning-btn) {
+  --mmt-status-bar: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+}
+
+.panel-box:has(.yaml-error-btn) {
+  --mmt-status-bar: var(--vscode-errorForeground, #f14c4c);
+}
+
+.panel-box:has(.unsaved-warning-btn)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--mmt-status-bar);
+  /* Match .action-button rest opacity; hover brightens only the button. */
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 6;
+  border-radius: 4px 4px 0 0;
+}
+
+.unsaved-warning-btn {
+  --mmt-status-accent: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+  color: var(--mmt-status-accent) !important;
+  white-space: nowrap;
+}
+
+.yaml-error-btn {
+  --mmt-status-accent: var(--vscode-errorForeground, #f14c4c);
+}
+
+.panel-run-header {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Nested TabBar (e.g. Doc HTML/Markdown) shares the header border — no second line */
+.panel-run-header > .tab-bar {
+  border-bottom: none;
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.panel-run-header > .tab-bar .tab-button {
+  /* Sit active underline on the parent .tab-bar border */
+  margin-bottom: -1px;
+}
+
+.panel-run-header-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.panel-run-header-title {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.panel-run-header-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-run-header-subtitle {
+  opacity: 0.7;
+  font-size: 0.85em;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.panel-run-header-actions {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.api-edit-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.api-edit-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-bottom: 16px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.api-edit-header-row-status {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.api-edit-title {
+  /* Use same font as tab items */
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-size: calc(var(--vscode-font-size, 13px) * 2);
+  font-weight: 600;
+  color: var(--vscode-foreground, #d4d4d4);
+  line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-edit-header-row .action-button {
+  font-size: calc(var(--vscode-font-size, 13px) * 2);
+  line-height: 1;
+  padding: 6px 10px;
+}
+
+.api-edit-header-row .action-button .codicon {
+  font-size: calc(var(--vscode-font-size, 13px) * 2);
+}
+
+.api-edit-header-row .action-button.yaml-error-btn,
+.api-edit-header-row .action-button.unsaved-warning-btn {
+  font-size: var(--vscode-font-size, 13px);
+  padding: 4px 10px;
+}
+
+.api-edit-header-row .action-button.yaml-error-btn .codicon,
+.api-edit-header-row .action-button.unsaved-warning-btn .codicon {
+  font-size: 16px;
+}
+
+.panel-edit-header-trailing {
+  margin-left: auto;
+}
+
+/* Edit launcher: use default styling (no underline, inherit color) */
+.api-edit-launcher .api-edit-launcher-text,
+.api-edit-launcher .codicon {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.api-edit-launcher .api-edit-launcher-text {
+  color: inherit;
+}
+
+.api-edit-launcher.is-icon-only {
+  padding: 4px 6px;
+}
+
+.api-selector {
+  position: relative;
+}
+
+.api-selector-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground, #d4d4d4);
+  padding: 4px 6px;
+}
+
+.api-selector--header .api-selector-trigger {
+  opacity: 0.8;
+}
+
+.api-selector--header .api-selector-trigger:hover,
+.api-selector--header .api-selector-trigger.is-open {
+  opacity: 1;
+}
+
+.api-selector--method .api-selector-trigger {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: var(--mmt-control-radius);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground, #cccccc));
+  background-color: var(--vscode-button-secondaryBackground, #3a3d41);
+}
+
+.api-selector--method .api-selector-trigger:hover,
+.api-selector--method .api-selector-trigger.is-open,
+.api-selector--method .api-selector-trigger:focus {
+  background-color: var(--vscode-button-secondaryHoverBackground, #45494e);
+  border-color: var(--vscode-button-border, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground, #cccccc));
+}
+
+.apitest-url-row-actions {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.source-view-switch {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.source-view-switch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  opacity: 0.55;
+  font-size: var(--vscode-font-size, 13px);
+}
+
+.api-selector .source-view-switch-btn {
+  padding: 4px 6px;
+  min-width: 28px;
+}
+
+.source-view-switch-btn .codicon {
+  font-size: 14px;
+}
+
+.source-view-switch-btn.is-active {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.panel-run-header-start .api-selector {
+  flex: 0 0 auto;
+}
+
+.panel-run-header-start .api-selector-trigger {
+  padding: 4px 6px;
+}
+
+.panel-run-header-start .source-header-divider {
+  width: 1px;
+  height: 16px;
+  flex-shrink: 0;
+  background: var(--vscode-widget-border, #454545);
+}
+
+.api-selector .api-edit-launcher-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-selector-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1000;
+  background: var(--vscode-editorWidget-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  min-width: 280px;
+  max-width: min(420px, 80vw);
+  max-height: min(360px, 70vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.api-selector-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.api-selector-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  text-align: left;
+}
+
+.api-selector-save {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-icon-foreground, #c5c5c5);
+  cursor: pointer;
+}
+
+.api-selector-row:hover .api-selector-save,
+.api-selector-row:focus-within .api-selector-save {
+  display: flex;
+}
+
+.api-selector-save:hover {
+  background: var(--vscode-toolbar-hoverBackground, #333);
+}
+
+.api-selector-item:hover,
+.api-selector-item.is-selected {
+  background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.api-selector-method {
+  flex: 0 0 auto;
+  min-width: 4.5em;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.api-selector-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-selector-item.is-child {
+  padding-left: 28px;
+}
+
+.api-selector-example-icon {
+  min-width: 4.5em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.api-selector-example-icon .codicon {
+  font-size: 14px;
+}
+
+/* Warning / error chip popup anchor */
+.unsaved-changes-anchor {
+  position: relative;
+}
+
+.yaml-error-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.yaml-error-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  color: var(--vscode-foreground, #d4d4d4);
+  cursor: pointer;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: calc(var(--vscode-font-size, 13px) - 1px);
+  line-height: 1.4;
+  padding: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.yaml-error-item:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.yaml-error-fallback {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 8;
+}
+
+/* Popup that explains unsaved test-mode changes */
+.unsaved-changes-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 200;
+  background: var(--vscode-notifications-background, #252526);
+  border: 1px solid var(--vscode-notifications-border, #303031);
+  border-radius: 6px;
+  padding: 12px;
+  width: 480px;
+  max-width: calc(100vw - 24px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unsaved-changes-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: var(--vscode-font-size, 13px);
+}
+
+.unsaved-changes-popup-header > span:nth-child(2) {
+  flex: 1;
+}
+
+.unsaved-changes-popup-icon {
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+  flex-shrink: 0;
+}
+
+.yaml-error-popup .unsaved-changes-popup-icon {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.unsaved-changes-popup-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: var(--vscode-foreground, #d4d4d4);
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.unsaved-changes-popup-close:hover {
+  opacity: 1;
+}
+
+.unsaved-changes-popup-desc {
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-descriptionForeground, #858585);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.unsaved-changes-popup-yaml-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: calc(var(--vscode-font-size, 13px) - 1px);
+  color: var(--vscode-descriptionForeground, #858585);
+}
+
+.unsaved-changes-popup-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.unsaved-changes-popup-yaml {
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  padding: 8px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: calc(var(--vscode-font-size, 13px) - 1px);
+  overflow: auto;
+  max-height: 220px;
+  white-space: pre;
+  margin: 0;
+  color: var(--vscode-editor-foreground, #d4d4d4);
+}
+
+.unsaved-changes-popup-diff {
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  overflow: hidden;
+  min-height: 240px;
+}
+
+
+/* Must beat global `select` / `select:focus` rules (padding, height, font).
+   Method select uses the same fill chrome as Send (see themeAccent fill/onFill). */
+select.method-select,
+select.method-select:focus,
+select.method-select:focus-visible {
+  flex-shrink: 0;
+  flex-grow: 0;
+  min-height: 26px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: var(--mmt-control-radius);
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, inherit);
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: center;
+  text-align-last: center;
+  width: 84px;
+  max-width: 84px;
+  box-sizing: border-box;
+  line-height: 24px;
+  box-shadow: none;
+  background-image: none;
+  transition: background-color 80ms ease, border-color 80ms ease, color 80ms ease;
+  vertical-align: middle;
+  color: var(--mmt-accent-on-fill, var(--vscode-button-foreground, #fff));
+  background-color: var(
+    --mmt-accent-fill,
+    color-mix(
+      in oklab,
+      var(--mmt-accent, #888) 52%,
+      var(--vscode-editor-background, #1e1e1e)
+    )
+  );
+  /* 1px like VS Code buttons; --mmt-accent-border equals softFill when the
+     theme has no distinct button.border (invisible ring). */
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--mmt-accent-border, var(--mmt-accent-fill, transparent));
+}
+
+select.method-select:hover {
+  background-color: var(--mmt-accent-fill);
+  border-color: var(--mmt-accent-border, var(--mmt-accent-fill));
+}
+
+select.method-select:focus,
+select.method-select:focus-visible {
+  border-color: var(--mmt-accent-border, var(--mmt-accent-fill));
+  outline: none;
+}
+
+.split-host,
+.mmt-split {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.mmt-split {
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-editor-font-family, sans-serif);
+  font-size: var(--vscode-editor-font-size, 14px);
+}
+
+.pane-clip {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ui-pane-inner {
+  width: 100%;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  overflow: auto;
+}
+
+.yaml-host {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.col-fill {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.col-fill-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.doc-md-pre {
+  flex: 1;
+  margin: 0;
+  padding: 8px;
+  min-height: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.doc-html-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 1px solid var(--panel-border);
+}
+
+.panel-crash {
+  padding: 16px;
+  color: var(--vscode-editor-foreground, #ccc);
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.panel-crash-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.panel-crash-body {
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+.panel-crash-pre {
+  margin: 0 0 12px 0;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(127, 127, 127, 0.14);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  opacity: 0.9;
+}

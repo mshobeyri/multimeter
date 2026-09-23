@@ -1,25 +1,32 @@
 import React, { useState, useContext, useEffect, useMemo } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
-import { JSONRecord, Method, Protocol, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
-import { formatBody } from "mmt-core/markupConvertor";
+import MultipartPartsEditor from "../components/MultipartPartsEditor";
+import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
-import ToggleButton from "../components/ToggleButton";
-import UrlInput from "../components/UrlInput";
+import MethodUrlBar from "../components/MethodUrlBar";
+import BodyFormatBar from "../components/BodyFormatBar";
+import ResponseBodyBar from "../components/ResponseBodyBar";
+import ResponseBodyContent from "../components/ResponseBodyContent";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
 import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
 import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
-import { displayResponseBody } from "./responseBodyDisplay";
+import {
+  resolveResponseDisplayState,
+  type ResponseViewMode,
+} from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
-import { resolveApiHttpMethod } from "mmt-core/apiMethod";
+import { httpMethodAllowsRequestBody, resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
 import {
   accentChromeCssVars,
@@ -37,6 +44,13 @@ interface APITestProps {
 }
 
 type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc";
+
+function countNamedEntries(record?: Record<string, unknown> | null): number {
+  if (!record) {
+    return 0;
+  }
+  return Object.keys(record).filter(key => key.trim().length > 0).length;
+}
 
 const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> = [
   { key: "inout", label: "In / Out" },
@@ -81,15 +95,6 @@ function outputValuesMatch(actual: unknown, expected: unknown): boolean {
   return String(actual) === String(expected);
 }
 
-const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
-const OTHER_PROTOCOLS: Protocol[] = ["ws", "graphql", "grpc"];
-
-const PROTOCOL_LABELS: Record<string, string> = {
-  ws: "WS",
-  graphql: "GraphQL",
-  grpc: "gRPC",
-};
-
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
   const { mmtFilePath } = useContext(FileContext);
   const {
@@ -102,7 +107,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     currentInputs,
     setCurrentInputs,
     autoFormatBody,
-    setAutoFormatBody,
     outputs,
     updateField,
     handleUrlChange,
@@ -156,6 +160,50 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
     ? methodOrProtocolValue.slice("protocol:".length)
     : methodOrProtocolValue.slice("method:".length);
+  const currentRequestFormat = requestFormat(requestData?.format ?? api.format);
+  const currentResponseFormat = responseFormat(requestData?.format ?? api.format);
+  const resolvedRequestFormat = resolveRequestFormat(
+    currentRequestFormat,
+    requestData?.headers,
+    methodOrProtocolValue.startsWith("method:") ? methodOrProtocolKey : undefined,
+  );
+  /** YAML object/array in the file — edits round-trip through formattedBodyToYamlObject. */
+  const bodyYamlEncoded = api.body != null && typeof api.body !== "string";
+  // Preview from the resolved working copy (requestData). Fall back to api.body
+  // while the first resolve is in flight. Touched body still lives in requestData
+  // and is what buildRequestForSend sends via mergeTouched.
+  const requestBodyDisplay = formatBody(
+    resolvedRequestFormat,
+    requestData?.body ?? api.body ?? "",
+  );
+  const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
+    const saved = localStorage.getItem("apitest-response-view-mode");
+    if (saved === "raw" || saved === "pretty" || saved === "preview") {
+      return saved;
+    }
+    return autoFormatBody ? "pretty" : "raw";
+  });
+  const responseDisplay = useMemo(
+    () => resolveResponseDisplayState(responseData, {
+      type: currentResponseFormat,
+      view: responseViewMode,
+      requestFormat: currentRequestFormat,
+      requestHeaders: requestData?.headers,
+    }),
+    [
+      responseData,
+      currentResponseFormat,
+      responseViewMode,
+      currentRequestFormat,
+      requestData?.headers,
+    ],
+  );
+  const setResponseViewMode = (view: ResponseViewMode) => {
+    setResponseViewModeState(view);
+    localStorage.setItem("apitest-response-view-mode", view);
+  };
+  const requestBodyDisabled = !isGraphQL && !isGrpc && effectiveProtocol !== "ws" &&
+    (!httpMethodAllowsRequestBody(methodOrProtocolKey) || resolvedRequestFormat === "none");
   const [themeTick, setThemeTick] = useState(0);
   useEffect(() => {
     const onTheme = () => setThemeTick((n) => n + 1);
@@ -260,6 +308,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
+  const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
+    const request = side === "request" ? format as RequestFormat : currentRequestFormat;
+    const response = side === "response" ? format as ResponseFormat : currentResponseFormat;
+    updateField("format", packFormatSpec({ request, response }) ?? format);
+  };
+
+  const handleRequestBodyChange = (value: string) => {
+    if (bodyYamlEncoded) {
+      const packed = formattedBodyToYamlObject(resolvedRequestFormat, value);
+      if (packed === null || packed === undefined) {
+        return;
+      }
+      updateField("body", packed);
+      return;
+    }
+    updateField("body", value);
+  };
 
   const inputConstraints = useMemo(
     () => extractInputConstraintsFromDescription(api.description || ""),
@@ -356,41 +421,25 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     <div className={`apitest-root${selector ? " apitest-root--source" : ""}`}>
       {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
-      <div className="apitest-url-row" style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
-        <div className="apitest-method-cluster" style={methodChromeVars as React.CSSProperties}>
-          {selector}
-          <select
-          className="method-select"
-          value={methodOrProtocolValue}
-          onChange={e => handleMethodOrProtocolChange(e.target.value)}
-          title="HTTP method or protocol (temporary override)"
-        >
-          {HTTP_METHODS.map(m => (
-            <option key={m} value={`method:${m}`}>{m.toUpperCase()}</option>
-          ))}
-          <option disabled value="__sep__">────────</option>
-          {OTHER_PROTOCOLS.map(p => (
-            <option key={p} value={`protocol:${p}`}>{PROTOCOL_LABELS[p] || p}</option>
-          ))}
-        </select>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <UrlInput
-            url={requestData?.url ?? ""}
-            query={requestData?.query || {}}
-            onUrlChange={handleUrlChange}
-            onQueryChange={handleQueryChange}
-          />
-        </div>
+      <div className="apitest-url-row" style={methodChromeVars as React.CSSProperties}>
+        {selector}
+        <MethodUrlBar
+          methodValue={methodOrProtocolValue}
+          onMethodChange={handleMethodOrProtocolChange}
+          url={requestData?.url ?? ""}
+          query={requestData?.query || {}}
+          onUrlChange={handleUrlChange}
+          onQueryChange={handleQueryChange}
+        />
         {rightOfUrlButton && (
-          <div style={{ display: "flex", alignItems: "flex-start", paddingTop: 2 }}>
+          <div className="apitest-url-row-actions">
             {rightOfUrlButton}
           </div>
         )}
       </div>
 
       <div className="apitest-tabs-row">
-        <div className="tab-bar" style={{ gap: 8 }}>
+        <div className="tab-bar is-gap">
           {TAB_OPTIONS
             .filter(tab => {
               // Hide body/params/cookies for graphql/grpc protocols
@@ -404,15 +453,24 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               }
               return true;
             })
-            .map(tab => (
+            .map(tab => {
+              const active = editorTab === tab.key;
+              const count = tab.key === "headers"
+                ? countNamedEntries(requestData?.headers || api.headers)
+                : tab.key === "cookies"
+                  ? countNamedEntries(requestData?.cookies || api.cookies)
+                  : 0;
+              return (
             <button
               key={tab.key}
-              className={`tab-button-small ${editorTab === tab.key ? "active" : ""}`}
+              className={`tab-button-small ${active ? "active" : ""}`}
               onClick={() => setEditorTab(tab.key)}
             >
               {tab.label}
+              {count > 0 ? <span className="apitest-tab-count">{count}</span> : null}
             </button>
-          ))}
+              );
+            })}
         </div>
       </div>
       </div>
@@ -444,13 +502,24 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             outputs={api.outputs}
           />
         ) : shouldShowDoc() ? (
-          <div style={{ padding: "12px", color: "var(--vscode-disabledForeground, #666)", fontSize: "12px" }}>
+          <div className="apitest-empty">
             No description available.
           </div>
         ) : null}
         {shouldShowBody() && (
-          <div className="apitest-body-wrapper" data-mmt-coach="body">
-              {requestFormat(requestData?.format) === "binary" ? (
+          <div className="apitest-body-pane">
+            <BodyFormatBar
+              value={currentRequestFormat}
+              onChange={format => setBodyFormat("request", format)}
+            />
+          <div
+            className={`apitest-body-wrapper${requestBodyDisabled ? " is-disabled" : ""}`}
+            data-mmt-coach="body"
+            title={requestBodyDisabled
+              ? (resolvedRequestFormat === "none" ? "No request body" : "GET requests have no request body")
+              : undefined}
+          >
+              {resolvedRequestFormat === "binary" ? (
                 <FilePickerInput
                   value={typeof requestData?.body === "string" ? requestData.body : ""}
                   basePath={mmtFilePath}
@@ -458,20 +527,24 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   placeholder="Relative path to binary file"
                   onChange={val => updateField("body", val)}
                   onEnterPressed={val => updateField("body", val)}
+                  disabled={requestBodyDisabled}
+                />
+              ) : resolvedRequestFormat === "multipart" ? (
+                <MultipartPartsEditor
+                  value={requestData?.body}
+                  onChange={parts => updateField("body", parts)}
+                  disabled={requestBodyDisabled}
                 />
               ) : (
                 <BodyView
-                  value={typeof requestData?.body === "string"
-                    ? requestData?.body
-                    : formatBody(requestFormat(requestData?.format), requestData?.body || {})
-                  }
-                  format={requestFormat(requestData?.format)}
+                  value={requestBodyDisplay}
+                  format={resolvedRequestFormat}
                   mode="live"
-                  onChange={val => {
-                    updateField("body", val);
-                  }}
+                  disabled={requestBodyDisabled}
+                  onChange={requestBodyDisabled ? undefined : handleRequestBodyChange}
                 />
               )}
+          </div>
           </div>
         )}
 
@@ -501,8 +574,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
         {shouldShowGrpc() && (
           <>
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <div style={{ flex: 1 }}>
+            <div className="field-inline is-gap is-spaced">
+              <div className="field-grow">
                 <div className="label">Service</div>
                 <input
                   type="text"
@@ -511,10 +584,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   onChange={e => {
                     updateField("grpc", { ...requestData?.grpc, ...api.grpc, service: e.target.value });
                   }}
-                  style={{ width: "100%" }}
+                  className="mmt-fill"
                 />
               </div>
-              <div style={{ flex: 1 }}>
+              <div className="field-grow">
                 <div className="label">Method</div>
                 <input
                   type="text"
@@ -523,7 +596,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   onChange={e => {
                     updateField("grpc", { ...requestData?.grpc, ...api.grpc, method: e.target.value });
                   }}
-                  style={{ width: "100%" }}
+                  className="mmt-fill"
                 />
               </div>
             </div>
@@ -540,16 +613,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
         {shouldShowInputs() && (
           <>
-            <div style={{ paddingBottom: 20, width: "100%" }}>
+            <div className="apitest-example">
               <div className="label">Example</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="field-inline is-gap">
                 <select
                   value={selectedExampleIdx ?? ""}
                   onChange={e => {
                     const newIdx = Number(e.target.value);
                     handleExampleChange(newIdx);
                   }}
-                  style={{ flex: 1, minWidth: 0 }}
+                  className="field-grow"
                 >
                   <option value={-1}>Defaults</option>
                   {examples
@@ -562,11 +635,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 </select>
                 <button
                   type="button"
-                  className="button-icon"
+                  className="button-icon no-shrink"
                   onClick={handleAddAsExample}
                   title="Add as example"
                   aria-label="Add as example"
-                  style={{ flexShrink: 0 }}
                 >
                   <span className="codicon codicon-add" aria-hidden />
                 </button>
@@ -633,14 +705,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         )}
 
         {(shouldShowResponse() || shouldShowGraphql() || shouldShowGrpc()) && (
-          <div className="apitest-body-wrapper">
-            <BodyView
-              value={displayResponseBody(responseData, autoFormatBody)}
-              format={responseFormat(requestData?.format)}
-              mode="live"
-              onInspectPosition={handleAddOutputVariable}
-              refreshKey={responseRevision}
+          <div className="apitest-body-pane">
+            <ResponseBodyBar
+              type={currentResponseFormat}
+              view={responseDisplay.effectiveView}
+              prettyAvailable={responseDisplay.prettyAvailable}
+              previewAvailable={responseDisplay.previewAvailable}
+              onTypeChange={type => setBodyFormat("response", type)}
+              onViewChange={setResponseViewMode}
             />
+          <div className="apitest-body-wrapper">
+            <ResponseBodyContent
+              display={responseDisplay}
+              refreshKey={responseRevision}
+              requestUrl={requestData?.url}
+              onInspectPosition={handleAddOutputVariable}
+            />
+          </div>
           </div>
         )}
 
@@ -685,21 +766,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           >
             <span className="codicon codicon-history toolbar-button-icon"></span>
           </button>
-          <ToggleButton
-            active={autoFormatBody}
-            icon="sparkle-filled"
-            title={`Auto-format (beautify) body ${autoFormatBody ? "on" : "off"}`}
-            onClick={() => {
-              const next = !autoFormatBody;
-              setAutoFormatBody(next);
-              window.vscode?.postMessage({
-                command: "updateConfig",
-                section: "multimeter",
-                key: "body.auto.format",
-                value: next,
-              });
-            }}
-          />
         </div>
       </div>
     </div>

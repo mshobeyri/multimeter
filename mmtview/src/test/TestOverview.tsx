@@ -12,26 +12,25 @@ interface TestOverviewProps {
 }
 
 const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImports = [] }) => (
-  <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
-    <div className="label">Title</div>
-    <div style={{ padding: "5px", boxSizing: "border-box" }}>
+  <div className="panel-form">
+    <div className="panel-form-row">
+      <div className="label">Title</div>
       <input
         value={test.title || ""}
         onChange={e => update({ title: e.target.value })}
         placeholder="title"
-        style={{ width: "100%", boxSizing: "border-box" }}
       />
     </div>
-    <div className="label">Tags</div>
-    <div style={{ padding: "5px", boxSizing: "border-box" }}>
+    <div className="panel-form-row">
+      <div className="label">Tags</div>
       <SearchableTagInput
         tags={test.tags || []}
         onChange={tags => update({ tags })}
         suggestions={["security", "sessionless", "test", "user", "admin"]}
       />
     </div>
-    <div className="label">Description</div>
-    <div style={{ padding: "5px", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
+    <div className="panel-form-row">
+      <div className="label">Description</div>
       <DescriptionEditor
         value={test.description || ""}
         onChange={value => update({ description: value })}
@@ -52,7 +51,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       ]}
     />
     {missingImports.length > 0 && (
-      <div style={{ padding: "4px 5px", color: "var(--vscode-errorForeground, #f14c4c)", fontSize: 12 }}>
+      <div className="import-missing">
         {missingImports.map(entry => (
           <div key={`${entry.alias}-${entry.path}`}>
             {entry.alias}: {entry.path} was not found.
@@ -78,8 +77,8 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       keyPlaceholder="name"
       valuePlaceholder="value"
     />
-    <div className="label">Cache</div>
-    <div style={{ padding: "5px", boxSizing: "border-box" }}>
+    <div className="panel-form-row">
+      <div className="label">Cache</div>
       <input
         value={test.cache != null ? String(test.cache) : ""}
         onChange={e => {
@@ -97,7 +96,6 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
         }}
         placeholder="5m (optional; duration, epoch, or date/time)"
         title="When this test is imported and called again with the same title and inputs in one run, reuse outputs until expiry"
-        style={{ width: "100%", boxSizing: "border-box" }}
       />
     </div>
   </div>

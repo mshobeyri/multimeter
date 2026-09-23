@@ -3,12 +3,19 @@ import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TreeRunButton from '../../components/TreeRunButton';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
+import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
+import { TreeDepthContainer } from '../../components/TreeChevron';
 
-export type SuiteTestGroupItemData = { type: 'group' | 'root' | 'import-group'; label: string };
+export type SuiteTestGroupItemData = {
+  type: 'group' | 'root' | 'import-group';
+  label: string;
+  childrenRangeLabel?: string;
+};
 
 interface SuiteTestGroupItemProps {
   item: TreeItem<any>;
   context: any;
+  depth: number;
   arrow: React.ReactNode;
   children: React.ReactNode;
   status: StepStatus;
@@ -25,6 +32,7 @@ interface SuiteTestGroupItemProps {
 const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
   item,
   context,
+  depth,
   arrow,
   children,
   status,
@@ -49,7 +57,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
       : null;
 
   return (
-    <div {...context.itemContainerWithChildrenProps}>
+    <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
       <div
         className="tree-view-box tree-view-box-row"
         {...context.itemContainerWithoutChildrenProps}
@@ -75,14 +83,19 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
             }}
           >
             {statusIcon && (
-              <span className={`codicon ${statusIcon.icon}`} aria-hidden title={statusIcon.title} style={{ color: statusIcon.color }} />
+              <StatusGlyph
+                icon={statusIcon.icon}
+                color={statusIcon.color}
+                title={statusIcon.title}
+              />
             )}
-            {data.type === 'group' || data.type === 'import-group' ? (
-              <span className="codicon codicon-collection" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
-            ) : (
-              <span className="codicon codicon-layers" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
-            )}
-            <span>{data.label}</span>
+            <SuiteKindIcon kind={data.type === 'group' || data.type === 'import-group' ? 'group' : 'root'} />
+            <span className="tree-group-label">{data.label}</span>
+            {data.type === 'group' && data.childrenRangeLabel ? (
+              <span className="tree-group-children-range" title={data.childrenRangeLabel}>
+                {data.childrenRangeLabel}
+              </span>
+            ) : null}
           </div>
           {showRunButton && (
             <TreeRunButton
@@ -95,7 +108,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
         </div>
       </div>
       {children}
-    </div>
+    </TreeDepthContainer>
   );
 };
 

@@ -38,51 +38,13 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
   };
 
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        maxWidth: "100%",
-        minWidth: 0,
-        boxSizing: "border-box",
-        borderRadius: 2,
-        padding: 4,
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: 4,
-        background: "var(--vscode-input-background, #1e1e1e)",
-        color: "var(--vscode-editorWidget-foreground, #d4d4d4)",
-        border: "1px solid var(--vscode-input-border, #3c3c3c)",
-      }}
-    >
+    <div className="tag-input">
       {safeList(tags).map((tag) => (
-        <span
-          key={tag}
-          className="tag"
-          style={{
-            borderRadius: 2,
-            padding: "2px 8px",
-            marginRight: 2,
-            display: "flex",
-            alignItems: "center",
-            background: "var(--vscode-editorWidget-background, #232323)",
-            color: "var(--vscode-editorWidget-foreground, #d4d4d4)",
-            border: "1px solid var(--vscode-input-border, #3c3c3c)",
-          }}
-        >
+        <span key={tag} className="tag">
           {tag}
           <button
             onClick={() => removeTag(tag)}
-            style={{
-              marginLeft: 4,
-              background: "transparent",
-              border: "none",
-              color: "var(--vscode-foreground, #c00)",
-              cursor: "pointer",
-              fontSize: 14,
-              lineHeight: 1,
-            }}
+            className="tag-remove"
             aria-label={`Remove ${tag}`}
           >
             ×
@@ -106,38 +68,15 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
         }}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
         placeholder={placeholder}
-        style={{
-          border: "none",
-          outline: "none",
-          flex: 1,
-          minWidth: 80,
-          background: "transparent",
-          color: "var(--vscode-input-foreground, #d4d4d4)",
-        }}
+        className="tag-input-field"
       />
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            background: "var(--vscode-editorWidget-background, #232323)",
-            color: "var(--vscode-editorWidget-foreground, #d4d4d4)",
-            border: "1px solid var(--vscode-input-border, #3c3c3c)",
-            borderRadius: 2,
-            marginTop: 32,
-            zIndex: 10,
-            minWidth: 120,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          }}
-        >
+        <div className="tag-suggest">
           {safeList(filteredSuggestions).map(s => (
             <div
               key={s}
               onMouseDown={() => addTag(s)}
-              style={{
-                padding: "6px 12px",
-                cursor: "pointer",
-                background: "transparent",
-              }}
+              className="tag-suggest-item"
             >
               {s}
             </div>

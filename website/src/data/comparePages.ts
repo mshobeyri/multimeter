@@ -1,3 +1,5 @@
+export type CompareCell = boolean | string
+
 export interface CompareRow {
   feature: string
   other: string
@@ -28,12 +30,15 @@ export const comparePages: ComparePageData[] = [
       'Tests are reviewable in pull requests like application code',
       'Local runs and CI use the same .mmt files via testlight',
       'Mocks, suites, and generated docs stay in Git instead of a separate product',
+      'Parallel test and suite groups — Newman runs one collection sequentially',
     ],
     rows: [
       { feature: 'Price', other: 'Freemium / per-user plans', multimeter: 'Free (Apache 2.0)' },
       { feature: 'Where it runs', other: 'Standalone app + cloud', multimeter: 'VS Code + CLI' },
       { feature: 'Storage', other: 'Cloud collections (JSON export)', multimeter: 'Git-native YAML (.mmt)' },
       { feature: 'CI', other: 'Newman + extra setup', multimeter: 'testlight / GitHub Action' },
+      { feature: 'Parallel runs', other: 'No — Newman is sequential', multimeter: 'Yes — suite groups and test stages' },
+      { feature: 'Sequential CLI speed', other: 'Newman', multimeter: '~10% faster wall clock' },
       { feature: 'Mock server', other: 'Cloud (paid)', multimeter: 'Built-in, local YAML' },
       { feature: 'API docs', other: 'Limited / paid', multimeter: 'HTML and Markdown from the same files' },
       { feature: 'Load testing', other: 'Limited', multimeter: 'Built-in (beta)' },

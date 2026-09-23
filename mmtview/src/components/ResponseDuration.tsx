@@ -11,7 +11,6 @@ const ResponseDuration: React.FC<ResponseDurationProps> = ({ duration, className
   return (
     <div
       className={`response-badge ${className || ''}`.trim()}
-      style={{ minWidth: '20px' }}
       title={`Duration: ${ms}ms`}
     >
       {ms}ms

@@ -8,16 +8,53 @@ import {
 import {apiToYaml, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 
 describe('FormatSpec helpers', () => {
-  it('treats a scalar format as both request and response', () => {
-    expect(normalizeFormat('xml')).toEqual({request: 'xml', response: 'xml'});
+  it('treats a scalar format as request-only; response defaults to auto', () => {
+    expect(normalizeFormat('xml')).toEqual({request: 'xml', response: 'auto'});
     expect(requestFormat('urlencoded')).toBe('urlencoded');
-    expect(responseFormat('urlencoded')).toBe('urlencoded');
+    expect(responseFormat('urlencoded')).toBe('auto');
+    expect(normalizeFormat('none')).toEqual({request: 'none', response: 'auto'});
+    expect(requestFormat('none')).toBe('none');
+    expect(responseFormat('none')).toBe('auto');
+    expect(normalizeFormat('html')).toEqual({request: 'html', response: 'auto'});
+    expect(requestFormat('html')).toBe('html');
+    expect(responseFormat('html')).toBe('auto');
   });
 
   it('supports split request/response formats', () => {
     expect(normalizeFormat({request: 'json', response: 'xml'})).toEqual({
       request: 'json',
       response: 'xml',
+    });
+  });
+
+  it('defaults request and response to auto when omitted', () => {
+    expect(normalizeFormat({request: 'json'})).toEqual({
+      request: 'json',
+      response: 'auto',
+    });
+    expect(normalizeFormat({})).toEqual({
+      request: 'auto',
+      response: 'auto',
+    });
+    expect(requestFormat(undefined)).toBe('auto');
+    expect(responseFormat(undefined)).toBe('auto');
+    expect(responseFormat({request: 'json'})).toBe('auto');
+  });
+
+  it('accepts auto as request/response format and packs split specs', () => {
+    expect(normalizeFormat({request: 'json', response: 'auto'})).toEqual({
+      request: 'json',
+      response: 'auto',
+    });
+    expect(normalizeFormat({request: 'auto', response: 'auto'})).toEqual({
+      request: 'auto',
+      response: 'auto',
+    });
+    expect(packFormatSpec({request: 'json', response: 'auto'})).toBe('json');
+    expect(packFormatSpec({request: 'auto', response: 'auto'})).toBe('auto');
+    expect(normalizeFormat('auto')).toEqual({
+      request: 'auto',
+      response: 'auto',
     });
   });
 
@@ -28,6 +65,17 @@ describe('FormatSpec helpers', () => {
     });
   });
 
+  it('coerces response none to auto', () => {
+    expect(normalizeFormat({request: 'json', response: 'none'})).toEqual({
+      request: 'json',
+      response: 'auto',
+    });
+    expect(normalizeFormat({request: 'none', response: 'none'})).toEqual({
+      request: 'none',
+      response: 'auto',
+    });
+  });
+
   it('packs matching formats back to a scalar', () => {
     expect(packFormatSpec({request: 'json', response: 'json'})).toBe('json');
     expect(packFormatSpec({request: 'xml', response: 'json'})).toEqual({
@@ -35,9 +83,9 @@ describe('FormatSpec helpers', () => {
       response: 'json',
     });
     expect(packFormatSpec(undefined)).toBeUndefined();
-    expect(normalizeFormat(null)).toEqual({request: 'json', response: 'json'});
-    expect(normalizeFormat('nope' as any)).toEqual({request: 'json', response: 'json'});
-    expect(normalizeFormat(['xml'] as any)).toEqual({request: 'json', response: 'json'});
+    expect(normalizeFormat(null)).toEqual({request: 'auto', response: 'auto'});
+    expect(normalizeFormat('nope' as any)).toEqual({request: 'json', response: 'auto'});
+    expect(normalizeFormat(['xml'] as any)).toEqual({request: 'auto', response: 'auto'});
   });
 
   it('formats durations across units', () => {
@@ -56,6 +104,26 @@ describe('FormatSpec helpers', () => {
 });
 
 describe('API format parse/pack', () => {
+  it('round-trips response auto as scalar format', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com/echo',
+      'method: post',
+      'format:',
+      '  request: json',
+      '  response: auto',
+    ].join('\n');
+
+    const api = yamlToAPIStrict(yaml);
+    expect(api.format).toBe('json');
+    expect(requestFormat(api.format)).toBe('json');
+    expect(responseFormat(api.format)).toBe('auto');
+
+    const packed = apiToYaml(api);
+    expect(packed).toMatch(/format: json/);
+    expect(packed).not.toContain('response: auto');
+  });
+
   it('round-trips split format objects', () => {
     const yaml = [
       'type: api',
@@ -104,6 +172,33 @@ describe('API format parse/pack', () => {
 
   it('packs matching binary request/response as scalar format: binary', () => {
     expect(packFormatSpec({request: 'binary', response: 'binary'})).toBe('binary');
+  });
+
+  it('parses format: none', () => {
+    const api = yamlToAPIStrict([
+      'type: api',
+      'url: https://example.com/ping',
+      'method: post',
+      'format: none',
+    ].join('\n'));
+    expect(api.format).toBe('none');
+    expect(requestFormat(api.format)).toBe('none');
+    expect(responseFormat(api.format)).toBe('auto');
+    expect(packFormatSpec({request: 'none', response: 'auto'})).toBe('none');
+    expect(apiToYaml(api)).toMatch(/format: none/);
+  });
+
+  it('drops legacy response none when parsing split format objects', () => {
+    const api = yamlToAPIStrict([
+      'type: api',
+      'url: https://example.com/ping',
+      'method: post',
+      'format:',
+      '  request: json',
+      '  response: none',
+    ].join('\n'));
+    expect(api.format).toBe('json');
+    expect(responseFormat(api.format)).toBe('auto');
   });
 
   it('parses format: multipart with a parts body', () => {

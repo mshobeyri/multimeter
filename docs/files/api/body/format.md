@@ -2,17 +2,18 @@
 
 `format` controls how Multimeter encodes the request body and decodes the response body.
 
-- Values: `json` | `xml` | `xmle` | `text` | `urlencoded` | `binary` | `multipart`
-- Optional — defaults to `json`
+- Values: `none` | `json` | `xml` | `xmle` | `text` | `html` | `urlencoded` | `binary` | `multipart` | `auto`
+- Optional — both sides default to `auto` when omitted
+- Explicit `format: json` pins the request to json; response stays `auto`
 - Affects default `Content-Type` and body handling
 
-Use a single value when request and response share a `format:`
+Use a single value to pin the **request** format; response stays `auto` unless you set it explicitly:
 
 ```yaml
 format: json
 ```
 
-Split request and response when they differ:
+Split request and response when the response format should differ from `auto`:
 
 ```yaml
 format:
@@ -20,15 +21,21 @@ format:
   response: xml
 ```
 
+**Request `auto`** (default when omitted) uses the request `Content-Type` header; when that header is missing, Multimeter assumes `json`.
+
+**Response `auto`** (default when omitted) uses the response `Content-Type` header; when that header is missing, Multimeter falls back to the resolved request format, then body sniffing — similar to Postman’s **Auto** response view.
+
 | Format | Typical use |
 |---|---|
+| `none` | No request body (Postman **none**) |
 | `json` | JSON APIs (default) |
 | `xml` | XML with self-closing empty tags (`<meta/>`) |
 | `xmle` | Expanded XML with explicit closing tags (`<meta></meta>`) |
 | `text` | Raw text body |
+| `html` | Raw HTML body (highlighting + `text/html`) |
 | `urlencoded` | Form fields as `application/x-www-form-urlencoded` |
 | `binary` | File path relative to the `.mmt` file |
-| `multipart` | Form parts array with text `value` and/or relative `file` paths |
+| `multipart` | Form parts (`name` + text `value` or relative `file` path); Postman **form-data** (`multipart/form-data`) |
 
 The `body` field shape depends on `format`. See [Request body](./body.md) and [HTTP bodies](../protocols/http-bodies.md).
 

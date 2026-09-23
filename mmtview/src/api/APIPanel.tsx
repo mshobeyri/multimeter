@@ -1,5 +1,5 @@
 import { yamlToAPI, apiToYaml } from "mmt-core/apiParsePack";
-import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import React, { useContext, useEffect, useState, useRef, useMemo, useCallback } from "react";
 import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
@@ -11,17 +11,17 @@ import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import { requestFormat } from "mmt-core/CommonData";
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { packBodyForYamlCompare } from "mmt-core/markupConvertor";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
+import { usePanelPage } from "../usePanelPage";
+import { FileContext } from "../fileContext";
 import { showYamlUiConflictDialog } from "../vsAPI";
 import TabBar from "../components/TabBar";
 import PrimaryButton from "../components/PrimaryButton";
 import PanelEditHeader from "../components/PanelEditHeader";
 import { HeaderAction } from "../components/PanelRunHeader";
-
-const LAST_API_TAB_KEY = "mmtview:api:lastTab";
-const LAST_API_PAGE_KEY = "mmtview:api:lastPage";
 
 const API_EDIT_TABS = [
   { id: "overview" as const, label: "Overview", icon: "search" },
@@ -50,12 +50,13 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
   const resolvedContent = useResolvedYamlContent(appliedContent);
   const api = useMemo<APIData>(() => yamlToAPI(resolvedContent), [resolvedContent]);
 
-  const [page, setPage] = useState<"test" | "edit">(
-    () => readOnly ? "test" : ((localStorage.getItem(LAST_API_PAGE_KEY) as "test" | "edit") || "test")
-  );
-  const [tab, setTab] = useState<"overview" | "interface" | "examples">(
-    () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples") || "overview"
-  );
+  const [page, setPage] = usePanelPage<"test" | "edit">("test");
+  const [tab, setTab] = useState<"overview" | "interface" | "examples">("overview");
+  const { mmtFilePath } = useContext(FileContext);
+
+  useEffect(() => {
+    setTab("overview");
+  }, [mmtFilePath]);
 
   // Test-mode override tracking. We don't snapshot the API on entry; instead
   // we ask the tester which fields the user has touched and compare those
@@ -95,7 +96,15 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
     if (field !== "body") {
       return raw;
     }
-    return packBodyForYamlCompare(api.body, raw, requestFormat(api.format));
+    return packBodyForYamlCompare(
+      api.body,
+      raw,
+      resolveRequestFormat(
+          requestFormat(api.format),
+          testRequestData?.headers as Record<string, string> | undefined,
+          (testRequestData?.method as string | undefined) ?? api.method,
+      ),
+    );
   }, [api.body, api.format, testRequestData]);
 
   const modifiedApi = useMemo<APIData>(() => {
@@ -252,17 +261,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
     }
   }, [readOnly, page]);
 
-  useEffect(() => {
-    if (readOnly) {
-      return;
-    }
-    localStorage.setItem(LAST_API_PAGE_KEY, page);
-  }, [page, readOnly]);
-
-  useEffect(() => {
-    localStorage.setItem(LAST_API_TAB_KEY, tab);
-  }, [tab]);
-
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => {
     setAPI({ ...api, ...patch });
@@ -290,12 +288,9 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
   };
 
   return (
-    <div className="panel" style={{ overflow: 'hidden' }}>
-      <div
-        className="panel-box"
-        style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, marginBottom: 0, overflow: 'hidden' }}
-      >
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+    <div className="panel is-clip">
+      <div className="panel-box is-fill is-flush">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track"
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
@@ -335,54 +330,55 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <PanelEditHeader
-                title="Edit API"
-                onBack={() => setPage('test')}
-                backTitle="Back to Test"
-              >
-                <TabBar tabs={API_EDIT_TABS} value={tab} onChange={setTab} />
-              </PanelEditHeader>
-
-              <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-                {tab === 'overview' && <APIOverview api={api} update={update} />}
-
-                {tab === 'interface' && (
-                  <InterfaceEditor
-                    data={api}
-                    onChange={(updated) => updateInterface(updated)}
-                  />
-                )}
-
-                {tab === 'examples' && (
-                  <table
-                    className="APIEditor"
-                    style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginTop: 0 }}
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
+                  <PanelEditHeader
+                    title="Edit API"
+                    onBack={() => setPage('test')}
+                    backTitle="Back to Test"
                   >
-                    <tbody>
-                      <tr>
-                        <td colSpan={2} style={{ padding: 0 }}>
-                          {safeList(api.examples)
-                            .filter((ex) => ex != null)
-                            .map((example, idx) => (
-                              <div key={idx} className="inner-box">
-                                <APIExample
-                                  data={example}
-                                  apiInputs={api.inputs}
-                                  apiOutputs={api.outputs}
-                                  onChange={(updated) => updateExample(idx, updated)}
-                                  onRemove={() => removeExample(idx)}
-                                />
-                              </div>
-                            ))}
-                          <PrimaryButton icon="add" onClick={addExample}>
-                            Add Example
-                          </PrimaryButton>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                )}
-              </div>
+                    <TabBar tabs={API_EDIT_TABS} value={tab} onChange={setTab} />
+                  </PanelEditHeader>
+
+                  <div className="panel-scroll">
+                    {tab === 'overview' && <APIOverview api={api} update={update} />}
+
+                    {tab === 'interface' && (
+                      <InterfaceEditor
+                        data={api}
+                        onChange={(updated) => updateInterface(updated)}
+                      />
+                    )}
+
+                    {tab === 'examples' && (
+                      <table className="field-table is-flush">
+                        <tbody>
+                          <tr>
+                            <td colSpan={2}>
+                              {safeList(api.examples)
+                                .filter((ex) => ex != null)
+                                .map((example, idx) => (
+                                  <div key={idx} className="inner-box">
+                                    <APIExample
+                                      data={example}
+                                      apiInputs={api.inputs}
+                                      apiOutputs={api.outputs}
+                                      onChange={(updated) => updateExample(idx, updated)}
+                                      onRemove={() => removeExample(idx)}
+                                    />
+                                  </div>
+                                ))}
+                              <PrimaryButton icon="add" onClick={addExample}>
+                                Add Example
+                              </PrimaryButton>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </React.Fragment>
+              )}
             </div>
           </div>
         </div>

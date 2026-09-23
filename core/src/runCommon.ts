@@ -1,10 +1,13 @@
 import {APIData} from './APIData';
-import {LogLevel, Type} from './CommonData';
+import {CheckLogMode, LogLevel, Type} from './CommonData';
+import type {BinaryFileLoader, FileLoader} from './JSerFileLoader';
+import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
 import * as JSer from './JSer';
 import {RunJSCodeContext} from './jsRunner';
 import type {RunKind} from './runLog';
 import type {CollectedResults, LoadReportData} from './reportCollector';
 import {RunResult, TestStepReporterEvent} from './runConfig';
+import type {SuiteEnvironment} from './SuiteData';
 import {isAssertionFailedError, isTestAbortError} from './testHelper';
 
 export interface SuiteExportSpec {
@@ -20,7 +23,7 @@ export interface LoadTestPreparedConfig {
   threads?: number;
   repeat?: string | number;
   rampup?: string;
-  environment?: import('./SuiteData').SuiteEnvironment;
+  environment?: SuiteEnvironment;
   export?: string[];
 }
 
@@ -90,16 +93,16 @@ export async function runGeneratedJs(
     jsRunner: (context: RunJSCodeContext) => Promise<any>,
     stepReporter?: (event: TestStepReporterEvent) => void,
   id?: string,
-  fileLoader?: (path: string) => Promise<string>,
+  fileLoader?: FileLoader,
   reporter?: (event: Record<string, any>) => void,
   abortSignal?: AbortSignal,
   traceSend?: boolean,
   basePath?: string,
   skipSyntaxValidation?: boolean,
   workerEligible?: boolean,
-  checkLogMode?: 'default'|'failures-only'|'none',
+  checkLogMode?: CheckLogMode,
   runKind: RunKind = 'Test',
-  binaryFileLoader?: (path: string) => Promise<Buffer>): Promise<RunResult> {
+  binaryFileLoader?: BinaryFileLoader): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -201,8 +204,15 @@ export async function runGeneratedJs(
 }
 
 export function resolveRelativeTo(
-    targetPath: string, baseFilePath: string): string {
+    targetPath: string, baseFilePath: string, projectRoot?: string): string {
   if (!targetPath) {
+    return targetPath;
+  }
+  // +/ is project-root, not a relative segment. Do not join it onto baseFilePath.
+  if (isProjectRootImport(targetPath)) {
+    if (projectRoot) {
+      return resolveProjectRootImport(targetPath, projectRoot);
+    }
     return targetPath;
   }
   if (targetPath.startsWith('/') || /^[A-Za-z]:[\\/]/.test(targetPath)) {

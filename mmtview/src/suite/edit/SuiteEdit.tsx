@@ -1,8 +1,8 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { suiteToYaml, yamlToSuite } from 'mmt-core/suiteParsePack';
 import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
-import { SuiteData, SuiteYamlFilter } from 'mmt-core/SuiteData';
+import { SuiteData, SuiteEnvironment, SuiteYamlFilter } from 'mmt-core/SuiteData';
 import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
@@ -14,6 +14,7 @@ import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../tex
 import { FileContext } from '../../fileContext';
 import TabBar from '../../components/TabBar';
 import PrimaryButton from '../../components/PrimaryButton';
+import PopupMenu, { usePopupMenu } from '../../components/PopupMenu';
 
 type SuiteEditTab = 'overview' | 'items' | 'filter' | 'servers' | 'environment' | 'exports';
 
@@ -25,12 +26,6 @@ const SUITE_EDIT_TABS = [
   { id: 'environment' as const, label: 'Environment', icon: 'symbol-namespace' },
   { id: 'exports' as const, label: 'Exports', icon: 'export' },
 ];
-
-interface SuiteEnvironmentConfig {
-  preset?: string;
-  file?: string;
-  variables?: Record<string, unknown>;
-}
 
 interface SuiteFilterConfig {
   only: string[];
@@ -167,13 +162,13 @@ const updateSuiteContentWithFilter = (content: string, filter: SuiteFilterConfig
   });
 };
 
-const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | null => {
+const buildEnvironmentFromContent = (content: string): SuiteEnvironment | null => {
   const parsed = parseYaml(content);
   if (!parsed?.environment || typeof parsed.environment !== 'object') {
     return null;
   }
   const env = parsed.environment;
-  const result: SuiteEnvironmentConfig = {};
+  const result: SuiteEnvironment = {};
   if (typeof env.preset === 'string') {
     result.preset = env.preset;
   }
@@ -211,7 +206,7 @@ const updateSuiteContentWithImports = (content: string, imports: Record<string, 
   });
 };
 
-const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironmentConfig | null): string | null => {
+const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironment | null): string | null => {
   return rewriteSuiteYaml(content, (suite) => {
     if (!env || (env.preset === undefined && env.file === undefined &&
         (!env.variables || Object.keys(env.variables).length === 0))) {
@@ -262,15 +257,19 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [filter, setFilter] = useState<SuiteFilterConfig>(() => buildFilterFromContent(content));
   const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
-  const [environment, setEnvironment] = useState<SuiteEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
+  const [environment, setEnvironment] = useState<SuiteEnvironment | null>(() => buildEnvironmentFromContent(content));
   const [exports, setExports] = useState<string[]>(() => buildExportsFromContent(content));
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
   const [itemServerFiles, setItemServerFiles] = useState<string[]>([]);
 
-  const addButtonRef = useRef<HTMLButtonElement | null>(null);
-  const addMenuRef = useRef<HTMLDivElement | null>(null);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
+  const {
+    open: addMenuOpen,
+    position: addMenuPos,
+    triggerRef: addButtonRef,
+    menuRef: addMenuRef,
+    toggle: toggleAddMenu,
+    close: closeAddMenu,
+  } = usePopupMenu({ width: 220, offsetY: 6 });
 
   useEffect(() => {
     setOverview(buildOverviewFromContent(content));
@@ -315,67 +314,12 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     }
   }, [content, setContent]);
 
-  const openAddMenuAtButton = useCallback(() => {
-    const btn = addButtonRef.current;
-    if (!btn) {
-      setAddMenuPos(null);
-      return;
-    }
-    const rect = btn.getBoundingClientRect();
-    const menuWidth = 220;
-    const margin = 8;
-    const maxLeft = typeof window !== 'undefined' ? window.innerWidth - menuWidth - margin : margin;
-    const preferred = rect.right - menuWidth;
-    const left = Math.max(margin, Math.min(maxLeft, preferred));
-    const top = rect.bottom + 6;
-    setAddMenuPos({ left, top });
-  }, []);
-
-  useEffect(() => {
-    if (!addMenuOpen) {
-      setAddMenuPos(null);
-      return;
-    }
-    if (typeof document === 'undefined' || typeof window === 'undefined') {
-      return;
-    }
-    openAddMenuAtButton();
-    const handlePointerDown = (event: MouseEvent) => {
-      if (addButtonRef.current?.contains(event.target as Node)) {
-        return;
-      }
-      if (addMenuRef.current?.contains(event.target as Node)) {
-        return;
-      }
-      setAddMenuOpen(false);
-    };
-    const handleResize = () => setAddMenuOpen(false);
-    document.addEventListener('mousedown', handlePointerDown, true);
-    window.addEventListener('resize', handleResize);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown, true);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [addMenuOpen, openAddMenuAtButton]);
-
-  const toggleAddMenu = useCallback(() => {
-    setAddMenuOpen(prev => {
-      const next = !prev;
-      if (next) {
-        openAddMenuAtButton();
-      } else {
-        setAddMenuPos(null);
-      }
-      return next;
-    });
-  }, [openAddMenuAtButton]);
-
   const handleAddGroup = useCallback(() => {
     const placeholder = createPlaceholderEntry();
     const nextGroups = [...groups, { label: `Group ${groups.length + 1}`, entries: [placeholder] }];
     persistGroups(nextGroups);
-    setAddMenuOpen(false);
-  }, [groups, persistGroups]);
+    closeAddMenu();
+  }, [closeAddMenu, groups, persistGroups]);
 
   const handleAddTestFile = useCallback(() => {
     const placeholder = createPlaceholderEntry();
@@ -387,8 +331,8 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       nextGroups = groups.map((group, idx) => idx === targetIdx ? { ...group, entries: [...group.entries, placeholder] } : group);
     }
     persistGroups(nextGroups);
-    setAddMenuOpen(false);
-  }, [groups, persistGroups]);
+    closeAddMenu();
+  }, [closeAddMenu, groups, persistGroups]);
 
   const persistFilter = useCallback(
     (nextFilter: SuiteFilterConfig) => {
@@ -414,7 +358,6 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
 
   const handleAddServer = useCallback(() => {
     persistServers([...servers, 'server path']);
-    setAddMenuOpen(false);
   }, [servers, persistServers]);
 
   const handleRemoveServer = useCallback((index: number) => {
@@ -428,7 +371,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   }, [servers, persistServers]);
 
   const persistEnvironment = useCallback(
-    (nextEnv: SuiteEnvironmentConfig | null) => {
+    (nextEnv: SuiteEnvironment | null) => {
       setEnvironment(nextEnv);
       const updated = updateSuiteContentWithEnvironment(content, nextEnv);
       if (updated) {
@@ -538,85 +481,48 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const testsTabContent = (
-    <div style={{ paddingTop: 8 }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginBottom: 8,
-          alignItems: 'center',
-          position: 'relative',
-          gap: 8,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 8 }}>
-          <PrimaryButton
-            ref={addButtonRef as any}
-            icon="add"
-            onPointerDown={(event) => event.stopPropagation()}
-            onPointerUp={(event) => {
-              event.stopPropagation();
-              toggleAddMenu();
-            }}
-            title="Add suite item"
-          >
-            Add item
-          </PrimaryButton>
-        </div>
+    <div className="pt-8">
+      <div className="actions-end">
+        <PrimaryButton
+          ref={addButtonRef}
+          icon="add"
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => {
+            event.stopPropagation();
+            toggleAddMenu();
+          }}
+          title="Add suite item"
+        >
+          Add item
+        </PrimaryButton>
         {addMenuOpen && addMenuPos && (
-          <div
-            ref={addMenuRef}
-            style={{
-              position: 'fixed',
-              left: addMenuPos.left,
-              top: addMenuPos.top,
-              zIndex: 1000,
-              background: 'var(--vscode-editorWidget-background,#232323)',
-              border: '1px solid var(--vscode-editorWidget-border,#333)',
-              borderRadius: 4,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-              minWidth: 220,
-              padding: 4,
-            }}
-            onPointerDown={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              className="action-button"
-              style={{
-                width: '100%',
-                justifyContent: 'flex-start',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-              onClick={() => handleAddGroup()}
-              title="Insert a group separator (then)"
-            >
-              <span className="codicon codicon-list-tree" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-              <span>Add group (then)</span>
-            </button>
-            <button
-              className="action-button"
-              style={{
-                width: '100%',
-                justifyContent: 'flex-start',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-              onClick={() => handleAddTestFile()}
-              title="Add a test file entry"
-            >
-              <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-              <span>Add test file</span>
-            </button>
-          </div>
+          <PopupMenu
+            position={addMenuPos}
+            menuRef={addMenuRef}
+            className="popup-menu is-wide"
+            itemClassName="menu-item"
+            onClose={closeAddMenu}
+            items={[
+              {
+                label: "Add group (then)",
+                icon: "codicon-list-tree",
+                iconClass: "icon-sm",
+                title: "Insert a group separator (then)",
+                onClick: handleAddGroup,
+              },
+              {
+                label: "Add test file",
+                icon: "codicon-symbol-file",
+                iconClass: "icon-sm",
+                title: "Add a test file entry",
+                onClick: handleAddTestFile,
+              },
+            ]}
+          />
         )}
       </div>
       {noItems ? (
-        <div style={{ opacity: 0.8 }}>No suite items found under `items:`</div>
+        <div className="muted">No suite items found under `items:`</div>
       ) : (
         tree
       )}
@@ -632,7 +538,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
         onChange={persistOverview}
         tagSuggestions={['suite', 'regression', 'smoke', 'user', 'admin']}
       />
-      <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 8 }}>
+      <div className="edit-tab-pad">
         <KSVEditor
           label="Import"
           value={imports}
@@ -649,42 +555,42 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const filterTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div className="label" style={{ marginBottom: 6 }}>Only tags</div>
-      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+    <div className="edit-section">
+      <div className="label is-field">Only tags</div>
+      <div className="field-inset">
         <SearchableTagInput
           tags={filter.only}
           onChange={(tags) => persistFilter({ ...filter, only: tags })}
           placeholder="only"
         />
       </div>
-      <div className="label" style={{ marginBottom: 6 }}>Skip tags</div>
-      <div style={{ paddingLeft: 4 }}>
+      <div className="label is-field">Skip tags</div>
+      <div className="field-inset">
         <SearchableTagInput
           tags={filter.skip}
           onChange={(tags) => persistFilter({ ...filter, skip: tags })}
           placeholder="skip"
         />
       </div>
-      <div style={{ marginTop: 12, opacity: 0.7, fontSize: '0.9em' }}>
+      <div className="hint-text is-block">
         <div>Only: run just the tests and suites tagged with one of these. Empty runs everything.</div>
-        <div style={{ marginTop: 4 }}>Skip: never run tests and suites carrying one of these tags.</div>
-        <div style={{ marginTop: 4 }}>Filters match <code>tags:</code> on test and suite files. A tagged suite runs its whole subtree.</div>
+        <div className="field-block is-tight">Skip: never run tests and suites carrying one of these tags.</div>
+        <div className="field-block is-tight">Filters match <code>tags:</code> on test and suite files. A tagged suite runs its whole subtree.</div>
       </div>
     </div>
   );
 
   const serversTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+    <div className="edit-section">
+      <div className="actions-end">
         <PrimaryButton icon="add" onClick={handleAddServer} title="Add server file">
           Add server
         </PrimaryButton>
       </div>
       {servers.length === 0 ? (
-        <div style={{ opacity: 0.8 }}>No servers configured. Add a mock server file to run before the suite.</div>
+        <div className="muted">No servers configured. Add a mock server file to run before the suite.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="field-stack">
           {servers.map((s, i) => (
             <FilePickerInput
               key={i}
@@ -704,20 +610,19 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const environmentTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div className="label" style={{ marginBottom: 6 }}>Preset</div>
-      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+    <div className="edit-section">
+      <div className="label is-field">Preset</div>
+      <div className="field-inset">
         <input
           type="text"
-          className="vscode-input"
+          className="vscode-input mmt-fill"
           value={environment?.preset || ''}
           onChange={(e) => handleEnvPresetChange(e.target.value)}
           placeholder="preset name (from multimeter.mmt or env file)"
-          style={{ width: '100%' }}
         />
       </div>
-      <div className="label" style={{ marginBottom: 6 }}>Environment File</div>
-      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+      <div className="label is-field">Environment File</div>
+      <div className="field-inset">
         <FilePickerInput
           value={environment?.file || ''}
           onChange={handleEnvFileChange}
@@ -727,8 +632,8 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           placeholder="path to env.mmt file"
         />
       </div>
-      <div className="label" style={{ marginBottom: 6 }}>Variables</div>
-      <div style={{ paddingLeft: 4 }}>
+      <div className="label is-field">Variables</div>
+      <div className="field-inset">
         <KSVEditor
           label=""
           value={environment?.variables as Record<string, string> || {}}
@@ -741,16 +646,16 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const exportsTabContent = (
-    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+    <div className="edit-section">
+      <div className="actions-end">
         <PrimaryButton icon="add" onClick={handleAddExport} title="Add export path">
           Add export
         </PrimaryButton>
       </div>
       {exports.length === 0 ? (
-        <div style={{ opacity: 0.8 }}>No exports configured. Add paths to generate reports after suite completion.</div>
+        <div className="muted">No exports configured. Add paths to generate reports after suite completion.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="field-stack">
           {exports.map((ex, i) => (
             <FilePickerInput
               key={i}
@@ -764,22 +669,22 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           ))}
         </div>
       )}
-      <div style={{ marginTop: 12, opacity: 0.7, fontSize: '0.9em' }}>
+      <div className="hint-text is-block">
         <div>Supported formats: <code>.html</code>, <code>.xml</code> (JUnit), <code>.md</code>, <code>.mmt</code></div>
-        <div style={{ marginTop: 4 }}>Paths are relative to the suite file. Use <code>+/</code> prefix for project root.</div>
+        <div className="field-block is-tight">Paths are relative to the suite file. Use <code>+/</code> prefix for project root.</div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <div className="panel-page is-clip">
       <TabBar
         tabs={SUITE_EDIT_TABS}
         value={activeTab}
         onChange={setActiveTab}
-        style={{ flexShrink: 0 }}
+        className="no-shrink"
       />
-      <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+      <div className="test-flow-tree panel-scroll">
         {activeTab === 'overview' && overviewTabContent}
         {activeTab === 'items' && testsTabContent}
         {activeTab === 'filter' && filterTabContent}

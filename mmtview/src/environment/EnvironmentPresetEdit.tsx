@@ -3,6 +3,7 @@ import FieldWithRemove from "../components/FieldWithRemove";
 import KSVEditor from "../components/KSVEditor";
 import { safeList } from "mmt-core/safer";
 import PrimaryButton from "../components/PrimaryButton";
+import type {EnvPresets} from "./EnvironmentData";
 
 interface PresetBoard {
     name: string; // e.g. "runner"
@@ -13,8 +14,8 @@ interface PresetBoard {
 }
 
 interface EnvironmentPresetEditProps {
-    presets: Record<string, Record<string, Record<string, string>>>;
-    onChange: (presets: Record<string, Record<string, Record<string, string>>>) => void;
+    presets: EnvPresets;
+    onChange: (presets: EnvPresets) => void;
 }
 
 const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, onChange }) => {
@@ -23,14 +24,16 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
         name,
         values: Object.entries(envs || {}).map(([env, kv]) => ({
             env,
-            kv: { ...kv }
+            kv: Object.fromEntries(
+                Object.entries(kv || {}).map(([key, value]) => [key, value == null ? '' : String(value)]),
+            ),
         }))
     }));
 
     const handleBoardChange = (idx: number, patch: Partial<PresetBoard>) => {
         const updated = safeList(boards).map((b, i) => (i === idx ? { ...b, ...patch } : b));
         // Convert boards back to presets object
-        const newPresets: Record<string, Record<string, Record<string, string>>> = {};
+        const newPresets: EnvPresets = {};
         updated.forEach(b => {
             if (!b.name) return;
             newPresets[b.name] = {};
@@ -44,7 +47,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
 
     const handleRemoveBoard = (idx: number) => {
         const updated = boards.filter((_, i) => i !== idx);
-        const newPresets: Record<string, Record<string, Record<string, string>>> = {};
+        const newPresets: EnvPresets = {};
         updated.forEach(b => {
             if (!b.name) return;
             newPresets[b.name] = {};
@@ -99,9 +102,9 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
     return (
         <div>
             {safeList(boards).map((board, boardIdx) => (
-                <div key={boardIdx} className="inner-box" style={{ paddingTop: "30px" }}>
+                <div key={boardIdx} className="inner-box is-preset">
                     <span className="label">Preset</span>
-                    <div style={{ padding: "5px" }}>
+                    <div className="field-pad">
                         <FieldWithRemove
                             value={board.name}
                             onChange={v => handleBoardChange(boardIdx, { name: v })}
@@ -109,11 +112,11 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                             placeholder="Preset name (e.g. runner)"
                         />
                     </div>
-                    <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
+                    <div className="horizontal-line is-section" />
                     {safeList(board.values).map((v, envIdx) => (
-                        <div className="inner-box">
+                        <div key={envIdx} className="inner-box">
                             <div className="label">Name</div>
-                            <div style={{ padding: "5px" }}>
+                            <div className="field-pad">
                                 <FieldWithRemove
                                     value={v.env}
                                     onChange={envName => handleEnvChange(boardIdx, envIdx, { env: envName })}

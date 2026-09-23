@@ -127,6 +127,10 @@ export const CREATE_API_LOG_HELPERS_SOURCE = `function createApiLogHelpers() {
         if (body === null || body === undefined || body === '') {
             return '';
         }
+        if (body && typeof body === 'object' && body.__mmtBinary === true &&
+            typeof body.byteLength === 'number') {
+            return \`<binary \${body.byteLength} bytes>\`;
+        }
         if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) {
             return \`<binary \${body.length} bytes>\`;
         }

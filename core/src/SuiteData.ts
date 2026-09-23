@@ -27,3 +27,37 @@ export interface SuiteData {
   /** Export file paths to generate after suite completion (root-only) */
   export?: string[];
 }
+
+export type SuiteServerItemNode =
+  | Extract<SuiteHierarchyNode, {kind: 'server'}>
+  | Extract<SuiteHierarchyNode, {kind: 'missing'}>;
+
+/** Resolved suite/test/server tree used by UI, cache, and bundle. */
+export type SuiteHierarchyNode =
+  | {kind: 'group'; id: string; label: string; children: SuiteHierarchyNode[]}
+  | {
+    kind: 'suite';
+    id: string;
+    path: string;
+    title?: string;
+    children: SuiteHierarchyNode[];
+    servers?: string[];
+    serverItems?: SuiteServerItemNode[];
+    tags?: string[];
+    filter?: SuiteYamlFilter;
+  }
+  | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
+  | {kind: 'server'; id: string; path: string; title?: string}
+  | {kind: 'missing'; id: string; path: string}
+  | {kind: 'cycle'; id: string; path: string};
+
+export type SuiteHierarchyRootNode = Extract<SuiteHierarchyNode, {kind: 'suite'}> & {
+  servers?: string[];
+  environment?: SuiteEnvironment;
+  export?: string[];
+};
+
+/** Cached tree: a suite root, or a single test/server leaf. */
+export type SuiteHierarchyTree =
+  | SuiteHierarchyRootNode
+  | Extract<SuiteHierarchyNode, {kind: 'test'|'server'}>;

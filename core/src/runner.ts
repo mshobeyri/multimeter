@@ -19,6 +19,7 @@ import {
   resetCurrentTokenCache,
   resetRandomTokenCache,
 } from './variableReplacer';
+import {getRunFileCache} from './runFileCache';
 
 export {generateTestJs, runGeneratedJs};
 
@@ -121,6 +122,14 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   resetCurrentTokenCache();
   resetRandomTokenCache();
 
+  if (!options.__mmtIsSuiteBundleChildRun) {
+    const cache = getRunFileCache();
+    await cache.beginRun(options.fileStamp);
+    if (typeof options.fileLoader === 'function') {
+      options = {...options, fileLoader: cache.wrap(options.fileLoader)};
+    }
+  }
+
   const preLogs: Array<{level: LogLevel; message: string}> = [];
   const note = (level: LogLevel, message: string) => {
     preLogs.push({level, message});
@@ -171,6 +180,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
         suiteFilePath: prepared.filePath,
         suiteRawText: prepared.rawText,
         fileLoader: options.fileLoader,
+        projectRoot: options.projectRoot,
       });
       bundle = createSuiteBundle({
         rootSuitePath: prepared.filePath,

@@ -525,6 +525,10 @@ export function createApiLogHelpers(): ApiLogHelpers {
     if (body === null || body === undefined || body === '') {
       return '';
     }
+    if (body && typeof body === 'object' && (body as {__mmtBinary?: boolean}).__mmtBinary === true &&
+        typeof (body as {byteLength?: number}).byteLength === 'number') {
+      return `<binary ${(body as {byteLength: number}).byteLength} bytes>`;
+    }
     if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) {
       return `<binary ${body.length} bytes>`;
     }
@@ -698,7 +702,7 @@ export async function executeApi(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
       (options as any).id, fileLoader, undefined, undefined, undefined,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
-      undefined, undefined, undefined, 'API', options.binaryFileLoader);
+      undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

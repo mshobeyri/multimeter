@@ -5,7 +5,12 @@ import { applyValueAccessor } from 'mmt-core/variableReplacer';
 import { dataImportProcessor } from 'mmt-core';
 import { detectAutocompleteDocType } from './autocompleteDocType';
 import { completionRange, withRange, wordCompletionRange } from './autocompleteRange';
-import { matchTokenCompletion, type TokenPrefix } from './autocompleteTokens';
+import {
+    formatTokenInsertText,
+    matchTokenCompletion,
+    type TokenCompletionMatch,
+    type TokenPrefix,
+} from './autocompleteTokens';
 import { parseYamlSectionKeys, parseYamlSectionMap } from './autocompleteYamlSection';
 import { findCallStepBlock } from './autocompleteCallStep';
 import { matchTestStepLine } from './testStepTypes';
@@ -134,26 +139,32 @@ export function registerYamlAutocomplete(monaco: any) {
         return parseYamlSectionKeys(String(model?.getValue?.() ?? ''), 'outputs');
     };
 
-    const getInputTokenSuggestions = (model: any): any[] => {
+    const getInputTokenSuggestions = (model: any, lineContent: string, tokenMatch: TokenCompletionMatch): any[] => {
         const names = getInputsKeysFromModel(model);
-        return names.map((name) => ({
-            label: 'i:' + name,
-            kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: 'i:' + name,
-            documentation: `Input token i:${name} (from this file's inputs:)`,
-            detail: `Input: ${name}`,
-        }));
+        return names.map((name) => {
+            const insertText = formatTokenInsertText('i', name, lineContent, tokenMatch);
+            return {
+                label: 'i:' + name,
+                kind: monaco.languages.CompletionItemKind.Variable,
+                insertText,
+                documentation: `Input token ${insertText} (from this file's inputs:)`,
+                detail: `Input: ${name}`,
+            };
+        });
     };
 
-    const getOutputTokenSuggestions = (model: any): any[] => {
+    const getOutputTokenSuggestions = (model: any, lineContent: string, tokenMatch: TokenCompletionMatch): any[] => {
         const names = getOutputsKeysFromModel(model);
-        return names.map((name) => ({
-            label: 'o:' + name,
-            kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: 'o:' + name,
-            documentation: `Output token o:${name} (from this file's outputs:)`,
-            detail: `Output: ${name}`,
-        }));
+        return names.map((name) => {
+            const insertText = formatTokenInsertText('o', name, lineContent, tokenMatch);
+            return {
+                label: 'o:' + name,
+                kind: monaco.languages.CompletionItemKind.Variable,
+                insertText,
+                documentation: `Output token ${insertText} (from this file's outputs:)`,
+                detail: `Output: ${name}`,
+            };
+        });
     };
 
     // --- Import-aware autocomplete helpers ---
@@ -609,9 +620,9 @@ export function registerYamlAutocomplete(monaco: any) {
                             sortText: `0${item.prefix}`,
                         }));
                 } else if (tokenMatch.prefix === 'i') {
-                    suggestionList = getInputTokenSuggestions(model);
+                    suggestionList = getInputTokenSuggestions(model, lineContent, tokenMatch);
                 } else if (tokenMatch.prefix === 'o') {
-                    suggestionList = getOutputTokenSuggestions(model);
+                    suggestionList = getOutputTokenSuggestions(model, lineContent, tokenMatch);
                 } else {
                     const general = keySuggestionsByParent.general || [];
                     suggestionList = general
@@ -1021,6 +1032,8 @@ export function registerYamlAutocomplete(monaco: any) {
                         && parentContext === 'format';
                     const effectiveKey = isReportLevelKey ? 'report-level'
                         : isAuthTypeKey ? 'auth-type'
+                        : isFormatSideKey && key === 'request' ? 'format-value'
+                        : isFormatSideKey && (key === 'response' || key === 'respond') ? 'format-response-value'
                         : isFormatSideKey ? 'format-value'
                         : key;
                     const suggestionList = getValueSuggestions(effectiveKey);

@@ -28,8 +28,8 @@ const DocSource: React.FC<DocSourceProps> = ({ doc, update }) => {
         <div className="label">Services</div>
         {services.map((svc, idx) => (
           <div key={`service-${idx}`} className="inner-box doc-service-card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div className="label" style={{ paddingTop: 0 }}>Name</div>
+            <div className="row-spread">
+              <div className="label is-flush">Name</div>
             </div>
             <FieldWithRemove
               value={svc?.name || ''}

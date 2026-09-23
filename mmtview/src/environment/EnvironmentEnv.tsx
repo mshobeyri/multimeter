@@ -110,16 +110,16 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
 
     return (
         <div>
-            <div className="label" style={{ marginBottom: "12px" }}>Variables</div>
+            <div className="label is-block">Variables</div>
             {hasVariables ? (
                 <div className="environment-table-wrapper">
                     <table className="environment-table">
                         <thead>
                             <tr>
-                                <th style={{ width: "25%" }}>Name</th>
-                                <th style={{ width: "30%" }}>Label</th>
-                                <th style={{ width: "25%" }}>Value</th>
-                                <th style={{ width: "20%" }}>Current</th>
+                                <th className="w-25">Name</th>
+                                <th className="w-30">Label</th>
+                                <th className="w-25">Value</th>
+                                <th className="w-20">Current</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -134,8 +134,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                         <td className="environment-table-name">{pair.name}</td>
                                         <td>
                                             <select
-                                                className="flat-select"
-                                                style={{ width: "100%" }}
+                                                className="flat-select mmt-fill"
                                                 value={selectValue}
                                                 onChange={event => handleSelectChange(pair.name, event.target.value)}
                                             >
@@ -164,14 +163,14 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                 <div className="environment-table-empty">No variables defined.</div>
             )}
 
-            <div className="label" style={{ marginTop: "16px", marginBottom: "12px" }}>Presets</div>
+            <div className="label is-section">Presets</div>
             {safeList(presets).length > 0 ? (
                 <div className="environment-table-wrapper">
                     <table className="environment-table">
                         <thead>
                             <tr>
-                                <th style={{ width: "50%" }}>Preset</th>
-                                <th style={{ width: "50%" }}>Value</th>
+                                <th className="w-50">Preset</th>
+                                <th className="w-50">Value</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -183,8 +182,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                         <td className="environment-table-name">{pair.name}</td>
                                         <td>
                                             <select
-                                                className="flat-select"
-                                                style={{ width: "100%" }}
+                                                className="flat-select mmt-fill"
                                                 value={selectValue}
                                                 onChange={e => handlePresetsChange(pair.name, e.target.value)}
                                             >
@@ -207,14 +205,14 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
             )}
 
             {/* Certificates section */}
-            <div style={{ marginTop: "12px" }}>
-                <div className="label" style={{ marginBottom: "12px" }}>Certificates</div>
+            <div className="field-block">
+                <div className="label is-block">Certificates</div>
                 <div className="environment-table-wrapper">
                     <table className="environment-table">
                         <thead>
                             <tr>
-                                <th style={{ width: "50%" }}>Setting</th>
-                                <th style={{ width: "50%" }}>Enabled</th>
+                                <th className="w-50">Setting</th>
+                                <th className="w-50">Enabled</th>
                             </tr>
                         </thead>
                         <tbody>

@@ -227,6 +227,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "title",
         "description",
         "tags",
+        "filter",
         "import",
         "environment",
         "servers",
@@ -292,11 +293,21 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
     case "report":
       return [
         "type",
+        "kind",
         "name",
+        "overview",
+        "checks",
+        "cancelled",
+        "test",
+        "config",
+        "latency",
+        "http",
+        "thresholds",
+        "errors",
+        "snapshots",
         "timestamp",
         "duration",
         "summary",
-        "cancelled",
         "suites",
       ];
     default:
@@ -733,7 +744,8 @@ export function computeMissingImportMarkers(
   const lineInfo = extractImportLineInfo(yamlDoc, content);
   const markers = missingImports.map(({ alias, path }) => {
     const info = lineInfo.find((entry) => entry.alias === alias) || lineInfo.find((entry) => entry.path === path);
-    const targetLine = info?.line || 1;
+    const scanned = (!info || info.line <= 1) && path ? findLineContainingSuiteRef(content, path) : undefined;
+    const targetLine = (info && info.line > 1 ? info.line : scanned?.line) ?? 1;
     const lineNumber = Math.min(Math.max(targetLine, 1), model.getLineCount());
     return {
       startLineNumber: lineNumber,
@@ -778,6 +790,28 @@ function detectServerEndpointOrderingIssue(doc: any, content: string): OrderingI
   return null;
 }
 
+const VALID_REPORT_ROOT_KEYS = new Set(getCanonicalOrder('report') ?? []);
+
+export function findReportUnknownRootKeyProblems(
+  yamlDoc: any,
+  content: string,
+  docType: string | null,
+): ProblemEntry[] {
+  if (docType !== 'report' || !yamlDoc || !content.trim()) {
+    return [];
+  }
+  return extractRootKeyInfo(yamlDoc, content)
+    .filter(entry => !VALID_REPORT_ROOT_KEYS.has(entry.key))
+    .map(entry => ({
+      message: entry.key === 'steps'
+        ? 'Report files do not have a root "steps" field. Use "checks" (nested step entries live under test rows).'
+        : `Unknown report field "${entry.key}". Reports use overview and checks — see docs/files/report/reference.md.`,
+      severity: 'warning' as const,
+      line: entry.line,
+      column: 1,
+    }));
+}
+
 export function computeOrderingMarkers(
   monaco: any,
   model: any,
@@ -789,6 +823,8 @@ export function computeOrderingMarkers(
   if (!expectedOrder || !content.trim() || !model || !yamlDoc) {
     return { markers: [], problems: [] };
   }
+
+  const reportKeyProblems = findReportUnknownRootKeyProblems(yamlDoc, content, docType);
 
   // Check root-level key ordering first
   const issue = detectOrderingIssue(yamlDoc, content, expectedOrder);
@@ -805,24 +841,37 @@ export function computeOrderingMarkers(
 
   const effectiveIssue = issue || stepIssue || endpointIssue;
 
-  const markers = effectiveIssue
-    ? [
-        {
-          startLineNumber: effectiveIssue.line,
-          startColumn: 1,
-          endLineNumber: effectiveIssue.line,
-          endColumn: model.getLineMaxColumn(effectiveIssue.line),
-          message: effectiveIssue.message,
-          severity: monaco.MarkerSeverity.Warning,
-        },
-      ]
-    : [];
+  const markers = [
+    ...reportKeyProblems.map(problem => ({
+      startLineNumber: problem.line ?? 1,
+      startColumn: 1,
+      endLineNumber: problem.line ?? 1,
+      endColumn: model.getLineMaxColumn(problem.line ?? 1),
+      message: problem.message,
+      severity: monaco.MarkerSeverity.Warning,
+    })),
+    ...(effectiveIssue
+      ? [
+          {
+            startLineNumber: effectiveIssue.line,
+            startColumn: 1,
+            endLineNumber: effectiveIssue.line,
+            endColumn: model.getLineMaxColumn(effectiveIssue.line),
+            message: effectiveIssue.message,
+            severity: monaco.MarkerSeverity.Warning,
+          },
+        ]
+      : []),
+  ];
 
   return {
     markers,
-    problems: effectiveIssue
-      ? [{ message: effectiveIssue.message, severity: "warning" as const, line: effectiveIssue.line, column: 1 }]
-      : [],
+    problems: [
+      ...reportKeyProblems,
+      ...(effectiveIssue
+        ? [{ message: effectiveIssue.message, severity: "warning" as const, line: effectiveIssue.line, column: 1 }]
+        : []),
+    ],
   };
 }
 
@@ -1008,6 +1057,28 @@ function columnFromOffset(content: string, offset: number): number {
   return lastNl >= 0 ? offset - lastNl : offset + 1;
 }
 
+function scalarStringValue(node: any): string | undefined {
+  if (typeof node === "string") {
+    const trimmed = node.trim();
+    return trimmed || undefined;
+  }
+  if (typeof node?.value === "string") {
+    const trimmed = node.value.trim();
+    return trimmed || undefined;
+  }
+  return undefined;
+}
+
+function nodeStartOffset(node: any): number | undefined {
+  if (Array.isArray(node?.range) && typeof node.range[0] === "number") {
+    return node.range[0];
+  }
+  if (Array.isArray(node?.value?.range) && typeof node.value.range[0] === "number") {
+    return node.value.range[0];
+  }
+  return undefined;
+}
+
 function extractStringSequenceLineInfo(
   doc: any,
   content: string,
@@ -1022,14 +1093,11 @@ function extractStringSequenceLineInfo(
   const seqItems: any[] = Array.isArray(pair.value.items) ? pair.value.items : [];
   return seqItems
     .map((item) => {
-      const path = typeof item?.value === "string" ? item.value : undefined;
+      const path = scalarStringValue(item) ?? scalarStringValue(item?.value);
       if (!path || (options?.skipThen && path === 'then')) {
         return null;
       }
-      const offset =
-        Array.isArray(item?.range) && typeof item.range[0] === "number"
-          ? item.range[0]
-          : undefined;
+      const offset = nodeStartOffset(item);
       const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
       const column = typeof offset === "number" ? columnFromOffset(content, offset) : 1;
       return { path, line, column } as SuiteTestLineInfo;
@@ -1066,20 +1134,21 @@ export function computeMissingSuiteFileMarkers(
   model: any,
   content: string,
   yamlDoc: any,
-  missingSuiteFiles: { path: string }[]
+  missingSuiteFiles: { path: string; line?: number; column?: number }[]
 ): { markers: any[]; problems: ProblemEntry[] } {
   if (!model || !yamlDoc || !missingSuiteFiles.length) {
     return { markers: [], problems: [] };
   }
 
   const lineInfo = extractSuiteTestLineInfo(yamlDoc, content);
-  const markers = missingSuiteFiles.map(({ path }) => {
-    const info = lineInfo.find((entry) => entry.path === path);
-    const targetLine = info?.line || 1;
-    const lineNumber = Math.min(Math.max(targetLine, 1), model.getLineCount());
+  const markers = missingSuiteFiles.map((missing) => {
+    const { path } = missing;
+    const position = resolveSuiteRefPosition(content, path, lineInfo, missing);
+    const lineNumber = Math.min(Math.max(position.line, 1), model.getLineCount());
+    const startColumn = Math.max(position.column, 1);
     return {
       startLineNumber: lineNumber,
-      startColumn: 1,
+      startColumn,
       endLineNumber: lineNumber,
       endColumn: model.getLineMaxColumn(lineNumber),
       message: `Referenced file "${path}" was not found.`,
@@ -1101,6 +1170,68 @@ export function computeMissingSuiteFileMarkers(
 /** `./mock.mmt` and `mock.mmt` point at the same file. */
 export function normalizeSuiteRefPath(path: string): string {
   return path.trim().replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function suiteRefMatchKeys(path: string): string[] {
+  const normalized = normalizeSuiteRefPath(path);
+  if (!normalized) {
+    return [];
+  }
+  const keys = [normalized];
+  if (normalized.startsWith("+/")) {
+    keys.push(normalized.slice(2));
+  } else {
+    keys.push(`+/${normalized}`);
+  }
+  return keys.filter(Boolean);
+}
+
+function sameSuiteRefPath(a: string, b: string): boolean {
+  const left = new Set(suiteRefMatchKeys(a));
+  return suiteRefMatchKeys(b).some((key) => left.has(key));
+}
+
+function findLineContainingSuiteRef(content: string, path: string): {line: number; column: number} | undefined {
+  const candidates = suiteRefMatchKeys(path).sort((a, b) => b.length - a.length);
+  if (!candidates.length) {
+    return undefined;
+  }
+  const lines = content.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    for (const candidate of candidates) {
+      const index = raw.indexOf(candidate);
+      if (index < 0) {
+        continue;
+      }
+      return {line: i + 1, column: index + 1};
+    }
+  }
+  return undefined;
+}
+
+function resolveSuiteRefPosition(
+  content: string,
+  path: string,
+  lineInfo: SuiteTestLineInfo[],
+  provided?: {line?: number; column?: number},
+): {line: number; column: number} {
+  if (typeof provided?.line === "number" && provided.line > 1) {
+    return {line: provided.line, column: provided.column && provided.column > 0 ? provided.column : 1};
+  }
+  const info = lineInfo.find((entry) => entry.path === path)
+    || lineInfo.find((entry) => sameSuiteRefPath(entry.path, path));
+  if (info && info.line > 1) {
+    return {line: info.line, column: info.column > 0 ? info.column : 1};
+  }
+  const scanned = findLineContainingSuiteRef(content, path);
+  if (scanned) {
+    return scanned;
+  }
+  if (typeof provided?.line === "number" && provided.line > 0) {
+    return {line: provided.line, column: provided.column && provided.column > 0 ? provided.column : 1};
+  }
+  return {line: info?.line && info.line > 0 ? info.line : 1, column: 1};
 }
 
 /**

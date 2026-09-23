@@ -4,8 +4,6 @@ import { TestData } from 'mmt-core/TestData';
 import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraints';
-import { testToYaml } from 'mmt-core/testParsePack';
-
 import { FileContext } from '../fileContext';
 import { HideWhenYamlError } from '../api/YamlErrorWarning';
 import { setEnvironmentVariables } from '../environment/environmentUtils';
@@ -29,11 +27,13 @@ import {
 
 interface TestTestProps {
     testData: TestData;
+    /** YAML sent to the runner; avoids re-serializing large tests on every Run click. */
+    runYaml: string;
     onInputsModificationChange?: (currentInputs: JSONRecord, dirtyKeys: Set<string>) => void;
     onInputsReset?: (reset: () => void) => void;
 }
 
-const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsModificationChange }) => {
+const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, onInputsModificationChange }) => {
     const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
     const [runState, setRunState] = useState<StepStatus>('default');
@@ -54,13 +54,15 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
     const [runDurationMs, setRunDurationMs] = useState<number | null>(null);
     const testDataRef = useRef(testData);
     testDataRef.current = testData;
+    const runYamlRef = useRef(runYaml);
+    runYamlRef.current = runYaml;
 
     /** Right-panel runs always prefer UI test data; glyphs omit rawFile. */
     const postRunCurrentDocument = useCallback((opts?: { reportLifecycle?: boolean }) => {
         window.vscode?.postMessage({
             command: 'runCurrentDocument',
             ...(opts?.reportLifecycle ? { report: { type: 'lifecycle' } } : {}),
-            rawFile: testToYaml(testDataRef.current),
+            rawFile: runYamlRef.current,
             inputs: {
                 manualInputs: currentInputsRef.current,
             },
@@ -230,16 +232,14 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
         latestRunIdRef.current = null;
         const startedAt = Date.now();
         runStartTimeRef.current = startedAt;
-        // Paint "Starting…" before heavy yaml serialize blocks the click handler.
         flushSync(() => {
             setStepReports([]);
             setOutputs({});
-            setRunState('pending');
             setRunStartedAt(startedAt);
             setRunDurationMs(null);
+            setRunState('running');
         });
         postRunCurrentDocument();
-        setRunState('running');
     }, [runState, trimIgnoredRuns, postRunCurrentDocument]);
 
     const handleStop = useCallback(() => {
@@ -423,7 +423,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
     }, [stepReports, runState, runStartedAt, runDurationMs]);
 
     return (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+        <div className="panel-page">
             <div className="run-action-bar">
                 <RunStopToggle
                     preparing={isPreparing}
@@ -440,61 +440,63 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
                         flushSync(() => {
                             setStepReports([]);
                             setOutputs({});
-                            setRunState('pending');
+                            setRunState('running');
                         });
                         postRunCurrentDocument({ reportLifecycle: true });
-                        setRunState('running');
                     })]}
                 />
                 <HideWhenYamlError>
                     <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
             </div>
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
-            {hasInputs && (
-                <div style={{ marginBottom: 12 }}>
-                    <VEditor
-                        label="Inputs"
-                        value={currentInputs}
-                        onChange={(data) => {
-                            markDirtyKeysFromEdit(data);
-                            applyInputs(data);
-                        }}
-                        keyOptions={inputKeys}
-                        inputConstraints={inputConstraints}
-                        deletable={false}
-                    />
+            <div className="panel-view-stack">
+                <div className="panel-view-fixed">
+                    {hasInputs && (
+                        <div className="field-control">
+                            <VEditor
+                                label="Inputs"
+                                value={currentInputs}
+                                onChange={(data) => {
+                                    markDirtyKeysFromEdit(data);
+                                    applyInputs(data);
+                                }}
+                                keyOptions={inputKeys}
+                                inputConstraints={inputConstraints}
+                                deletable={false}
+                            />
+                        </div>
+                    )}
+                    {hasOutputs && (
+                        <div className="field-control">
+                            <VEditor
+                                label="Outputs"
+                                value={outputs}
+                                onChange={() => {}}
+                                keyOptions={outputKeys}
+                                deletable={false}
+                                copyable={true}
+                            />
+                        </div>
+                    )}
+                    {overviewStats && <OverviewBoxes stats={overviewStats} />}
                 </div>
-            )}
-            {hasOutputs && (
-                <div style={{ marginBottom: 12 }}>
-                    <VEditor
-                        label="Outputs"
-                        value={outputs}
-                        onChange={() => {}}
-                        keyOptions={outputKeys}
-                        deletable={false}
-                        copyable={true}
-                    />
-                </div>
-            )}
-            {overviewStats && <OverviewBoxes stats={overviewStats} />}
-            <TestStepReportPanel
-                isExpanded={true}
-                stepReports={stepReports}
-                runState={
-                    runState === 'pending' || runState === 'running'
-                        ? runState
-                        : runState === 'passed'
-                            ? 'passed'
-                            : runState === 'failed'
-                                ? 'failed'
-                                : 'default'
-                }
-                onRun={handleRun}
-                runButtonLabel="Run test"
-                showHeader={Boolean(hasInputs || hasOutputs || overviewStats || stepReports.length > 0)}
-            />
+                <TestStepReportPanel
+                    isExpanded={true}
+                    scrollBody
+                    stepReports={stepReports}
+                    runState={
+                        runState === 'pending' || runState === 'running'
+                            ? runState
+                            : runState === 'passed'
+                                ? 'passed'
+                                : runState === 'failed'
+                                    ? 'failed'
+                                    : 'default'
+                    }
+                    onRun={handleRun}
+                    runButtonLabel="Run test"
+                    showHeader={Boolean(hasInputs || hasOutputs || overviewStats || stepReports.length > 0)}
+                />
             </div>
         </div>
     );

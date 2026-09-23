@@ -2,12 +2,11 @@
 
 import {FormatSpec, Method, MMTFile, Protocol} from './CommonData';
 import {unsignedDurationMs} from './durationParse';
+import type {JudgeChecksMap} from './JudgeData';
 
 export type Timestr = `${number}s`|`${number}m`|`${number}h`|'inf';
 export type Repeat = `${number}`|'inf';
-export type Parameter = {
-  [key: string]: string
-};
+export type {JudgeChecksMap} from './JudgeData';
 /** Report level for check/assert: 'all' (report pass+fail), 'fails' (fail only), 'none' (silent) */
 export type ReportLevel = 'all' | 'fails' | 'none';
 
@@ -142,8 +141,6 @@ export interface TestFlowCheck extends TestFlowBase {
 export interface TestFlowAssert extends TestFlowBase {
   assert: Comparison;
 }
-
-export type JudgeChecksMap = Record<string, number|{threshold?: number; [key: string]: unknown}>;
 
 /**
  * Soft/hard evaluation block under a judge step.

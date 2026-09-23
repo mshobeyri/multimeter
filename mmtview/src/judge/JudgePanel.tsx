@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AuthConfig } from 'mmt-core/APIData';
 import { JudgeData, JudgeEngineId } from 'mmt-core/JudgeData';
 import { yamlToJudge } from 'mmt-core/judgeParsePack';
@@ -24,14 +24,14 @@ import {
   isDefaultJudgeUrl,
 } from './judgeEngineDefaults';
 import { JudgeModelCombo, JudgeUrlField } from './judgeEngineFields';
+import { usePanelPage } from '../usePanelPage';
+import { FileContext } from '../fileContext';
 
 interface JudgePanelProps {
   content: string;
   setContent: (value: string) => void;
 }
 
-const LAST_JUDGE_PAGE_KEY = 'mmtview:judge:lastPage';
-const LAST_JUDGE_TAB_KEY = 'mmtview:judge:lastTab';
 const LAST_JUDGE_AUTO_REFRESH_KEY = 'mmtview:judge:autoRefresh';
 
 function readAutoRefreshPref(): boolean {
@@ -203,24 +203,17 @@ function modelsEmptyLabel(probe: JudgeProbeResult): string {
 }
 
 const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
-  const [page, setPage] = useState<'view' | 'edit'>(
-      () => (localStorage.getItem(LAST_JUDGE_PAGE_KEY) as 'view' | 'edit') || 'view');
-  const [tab, setTab] = useState<'overview' | 'engine'>(() => {
-    const saved = localStorage.getItem(LAST_JUDGE_TAB_KEY);
-    return saved === 'engine' || saved === 'overview' ? saved : 'overview';
-  });
+  const [page, setPage] = usePanelPage<'view' | 'edit'>('view');
+  const [tab, setTab] = useState<'overview' | 'engine'>('overview');
+  const { mmtFilePath } = useContext(FileContext);
+
+  useEffect(() => {
+    setTab('overview');
+  }, [mmtFilePath]);
   const [envParams, setEnvParams] = useState<Record<string, any>>({});
   const [probe, setProbe] = useState<JudgeProbeResult>({ state: 'idle', models: [] });
   const [autoRefresh, setAutoRefresh] = useState<boolean>(readAutoRefreshPref);
   const probeRequestRef = useRef<string | undefined>(undefined);
-
-  useEffect(() => {
-    localStorage.setItem(LAST_JUDGE_PAGE_KEY, page);
-  }, [page]);
-
-  useEffect(() => {
-    localStorage.setItem(LAST_JUDGE_TAB_KEY, tab);
-  }, [tab]);
 
   useEffect(() => {
     localStorage.setItem(LAST_JUDGE_AUTO_REFRESH_KEY, autoRefresh ? '1' : '0');
@@ -298,7 +291,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
 
   if (!judge || judge.type !== 'judge') {
     return (
-      <div style={{ padding: 16, color: 'var(--vscode-descriptionForeground)' }}>
+      <div className="panel-muted">
         Invalid or incomplete judge definition. Ensure the file has{' '}
         <code>type: judge</code>, <code>engine</code>, <code>model</code>, and <code>url</code>.
       </div>
@@ -352,14 +345,14 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
 
   return (
     <div className="panel" style={chromeVars as React.CSSProperties}>
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-box is-fill">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track"
             style={{ transform: page === 'view' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', flexDirection: 'column' }}>
+              <div className="panel-page is-clip">
                 <PanelRunHeader
                   title={judge.title || 'Judge'}
                   icon="law"
@@ -398,21 +391,21 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                 </div>
 
                 <HideWhenYamlError>
-                  <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '0 12px 12px' }}>
+                  <div className="panel-scroll is-padded">
                     {judge.description ? (
-                      <div style={{ opacity: 0.85, whiteSpace: 'pre-wrap', marginBottom: 12 }}>
+                      <div className="panel-blurb">
                         {judge.description}
                       </div>
                     ) : null}
 
-                    <div className="label" style={{ marginBottom: 8 }}>Configuration</div>
+                    <div className="label is-spaced">Configuration</div>
                     <SettingsTable
                       columns={CONFIG_COLUMNS}
                       rows={configRows}
                       emptyLabel="No judge configuration."
                     />
 
-                    <div className="label" style={{ marginTop: 16, marginBottom: 8 }}>
+                    <div className="label is-section">
                       Available models
                       {probe.models.length ? ` (${probe.models.length})` : ''}
                     </div>
@@ -430,6 +423,8 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
               <PanelEditHeader
                 title="Edit judge"
                 onBack={() => setPage('view')}
@@ -438,13 +433,13 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                 <TabBar tabs={JUDGE_EDIT_TABS} value={tab} onChange={setTab} />
               </PanelEditHeader>
 
-              <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 12 }}>
+              <div className="panel-scroll is-inset">
                   {tab === 'overview' && (
                     <>
                       <div className="label">Title</div>
-                      <div style={{ padding: 5 }}>
+                      <div className="field-pad">
                         <input
-                          style={{ width: '100%', boxSizing: 'border-box' }}
+                          className="mmt-fill"
                           value={judge.title || ''}
                           onChange={(e) => update({ title: e.target.value })}
                           placeholder="title"
@@ -452,7 +447,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                       </div>
 
                       <div className="label">Tags</div>
-                      <div style={{ padding: 5 }}>
+                      <div className="field-pad">
                         <SearchableTagInput
                           tags={safeList(judge.tags)}
                           onChange={(tags) => update({ tags })}
@@ -461,7 +456,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                       </div>
 
                       <div className="label">Description</div>
-                      <div style={{ padding: 5 }}>
+                      <div className="field-pad">
                         <DescriptionEditor
                           value={judge.description || ''}
                           onChange={(value) => update({ description: value })}
@@ -473,9 +468,9 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                   {tab === 'engine' && (
                     <>
                       <div className="label">Engine</div>
-                      <div style={{ padding: 5 }}>
+                      <div className="field-pad">
                         <select
-                          style={{ width: '100%', boxSizing: 'border-box' }}
+                          className="mmt-fill"
                           value={engineId}
                           onChange={(e) => {
                             const nextEngine = e.target.value as JudgeEngineId;
@@ -496,7 +491,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                       </div>
 
                       <div className="label">URL</div>
-                      <div style={{ padding: 5 }}>
+                      <div className="field-pad">
                         <JudgeUrlField
                           value={urlRaw}
                           defaultUrl={defaultUrlForEngine(engineId)}
@@ -508,7 +503,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                       </div>
 
                       <div className="label">Model</div>
-                      <div style={{ padding: 5 }}>
+                      <div className="field-pad">
                         <JudgeModelCombo
                           value={judge.model || ''}
                           models={probe.models}
@@ -525,12 +520,12 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                       </div>
 
                       <div className="label">Auth</div>
-                      <div style={{ padding: 5, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ fontSize: 11, opacity: 0.7 }}>
+                      <div className="field-pad field-stack is-loose">
+                        <div className="field-hint">
                           {ENGINE_AUTH_HINT[engineId] || 'Optional auth for cloud engines'}
                         </div>
                         <select
-                          style={{ width: '100%', boxSizing: 'border-box' }}
+                          className="mmt-fill"
                           value={authTypeValue(auth)}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -559,7 +554,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
 
                         {auth && auth !== 'none' && auth.type === 'bearer' && (
                           <input
-                            style={{ width: '100%', boxSizing: 'border-box' }}
+                            className="mmt-fill"
                             value={auth.token || ''}
                             onChange={(e) => update({
                               auth: { type: 'bearer', token: e.target.value },
@@ -571,7 +566,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                         {auth && auth !== 'none' && auth.type === 'basic' && (
                           <>
                             <input
-                              style={{ width: '100%', boxSizing: 'border-box' }}
+                              className="mmt-fill"
                               value={auth.username || ''}
                               onChange={(e) => update({
                                 auth: {
@@ -583,7 +578,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                               placeholder="username"
                             />
                             <input
-                              style={{ width: '100%', boxSizing: 'border-box' }}
+                              className="mmt-fill"
                               value={auth.password || ''}
                               onChange={(e) => update({
                                 auth: {
@@ -600,7 +595,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                         {auth && auth !== 'none' && auth.type === 'api-key' && (
                           <>
                             <input
-                              style={{ width: '100%', boxSizing: 'border-box' }}
+                              className="mmt-fill"
                               value={auth.header || auth.query || ''}
                               onChange={(e) => {
                                 const current = auth as {
@@ -627,7 +622,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                               placeholder="header or query name"
                             />
                             <input
-                              style={{ width: '100%', boxSizing: 'border-box' }}
+                              className="mmt-fill"
                               value={auth.value || ''}
                               onChange={(e) => {
                                 const current = auth as {
@@ -658,9 +653,9 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                       </div>
 
                       <div className="label">Temperature</div>
-                      <div style={{ padding: 5 }}>
+                      <div className="field-pad">
                         <input
-                          style={{ width: '100%', boxSizing: 'border-box' }}
+                          className="mmt-fill"
                           value={temperature == null ? '' : String(temperature)}
                           onChange={(e) => {
                             const raw = e.target.value.trim();
@@ -678,9 +673,9 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                       </div>
 
                       <div className="label">Timeout</div>
-                      <div style={{ padding: 5 }}>
+                      <div className="field-pad">
                         <input
-                          style={{ width: '100%', boxSizing: 'border-box' }}
+                          className="mmt-fill"
                           value={timeout == null ? '' : String(timeout)}
                           onChange={(e) => {
                             const raw = e.target.value.trim();
@@ -700,6 +695,8 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                     </>
                   )}
                 </div>
+                </React.Fragment>
+              )}
             </div>
           </div>
         </div>

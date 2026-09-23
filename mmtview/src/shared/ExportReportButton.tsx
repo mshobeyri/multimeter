@@ -1,7 +1,8 @@
 import React, { useCallback, useRef } from 'react';
+import type {ReportFormat} from 'mmt-core/CommonData';
 import { PrimaryButtonFace } from '../components/PrimaryButton';
 
-export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
+export type {ReportFormat};
 
 interface ExportReportButtonProps {
   disabled?: boolean;

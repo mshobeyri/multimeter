@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useContext, useEffect, useCallback, useState } from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
 import { parseYaml } from "mmt-core/markupConvertor";
@@ -13,14 +13,13 @@ import TabBar from "../components/TabBar";
 import RunStopToggle from "../components/RunStopToggle";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
 import PanelEditHeader from "../components/PanelEditHeader";
+import { usePanelPage } from "../usePanelPage";
+import { FileContext } from "../fileContext";
 
 interface MockPanelProps {
   content: string;
   setContent: (value: string) => void;
 }
-
-const LAST_MOCK_PAGE_KEY = "mmtview:mock:lastPage";
-const LAST_MOCK_TAB_KEY = "mmtview:mock:lastTab";
 
 const MOCK_EDIT_TABS = [
   { id: "overview" as const, label: "Overview", icon: "search" },
@@ -31,19 +30,14 @@ const MOCK_EDIT_TABS = [
 const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   const [mockData, setMockData] = useState<MockData | null>(null);
   const [running, setRunning] = useState(false);
-  const [page, setPage] = useState<'test' | 'edit'>(
-    () => (localStorage.getItem(LAST_MOCK_PAGE_KEY) as 'test' | 'edit') || 'test'
-  );
-  const [tab, setTab] = useState<'overview' | 'server' | 'endpoints'>(
-    () => {
-      const savedTab = localStorage.getItem(LAST_MOCK_TAB_KEY);
-      return savedTab === 'server' || savedTab === 'endpoints' || savedTab === 'overview' ? savedTab : 'overview';
-    }
-  );
+  const [page, setPage] = usePanelPage<'test' | 'edit'>('test');
+  const [tab, setTab] = useState<'overview' | 'server' | 'endpoints'>('overview');
+  const { mmtFilePath } = useContext(FileContext);
   const [envParams, setEnvParams] = useState<Record<string, any>>({});
 
-  useEffect(() => { localStorage.setItem(LAST_MOCK_PAGE_KEY, page); }, [page]);
-  useEffect(() => { localStorage.setItem(LAST_MOCK_TAB_KEY, tab); }, [tab]);
+  useEffect(() => {
+    setTab('overview');
+  }, [mmtFilePath]);
 
   useEffect(() => {
     const cleanup = loadEnvVariables((envVars) => {
@@ -108,7 +102,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
   if (!mockData) {
     return (
-      <div style={{ padding: 16, color: "var(--vscode-descriptionForeground)" }}>
+      <div className="panel-muted">
         Invalid or incomplete server definition. Ensure the file has <code>type: server</code>, <code>port</code>, and <code>endpoints</code>.
       </div>
     );
@@ -129,15 +123,15 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
-        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-box is-fill">
+        <div className="api-swipe-root">
           <div
             className="api-swipe-track"
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             {/* ── Run page ── */}
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: "column" }}>
+              <div className="panel-page is-clip">
                 <PanelRunHeader
                   icon="server"
                   title={mockData.title || 'Server'}
@@ -159,10 +153,10 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                     stopLabel="Stop mock"
                   />
                 </div>
-                <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                <div className="panel-scroll">
                   {/* Info chips */}
-                  <div className="label" style={{ marginBottom: 8 }}>Configuration</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                  <div className="label is-spaced">Configuration</div>
+                  <div className="chip-row">
                     <span className="mock-info-chip mock-info-chip--url">{baseUrl}</span>
                     <span className="mock-info-chip">{String(protocol).toUpperCase()}</span>
                     {mockData.cors && <span className="mock-info-chip">CORS</span>}
@@ -199,19 +193,19 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   })}
 
                   {endpointCount === 0 && (
-                    <div style={{ fontSize: 12, color: "var(--vscode-descriptionForeground)", fontStyle: "italic", padding: "12px 0" }}>
+                    <div className="empty-hint">
                       No endpoints defined.
                     </div>
                   )}
 
                   {/* Fallback */}
                   {mockData.fallback && (
-                    <div style={{ marginTop: 4 }}>
+                    <div className="field-block is-tight">
                       <div className="mock-ep-row mock-ep-row--fallback">
                         <span className="mock-ep-icon" aria-hidden>
-                          <span className="codicon codicon-circle-slash" style={{ color: "var(--vscode-descriptionForeground)" }} />
+                          <span className="codicon codicon-circle-slash desc-fg" />
                         </span>
-                        <span className="mock-ep-method mock-ep-method--fallback" style={{ color: "var(--vscode-descriptionForeground)" }}>FALLBACK</span>
+                        <span className="mock-ep-method mock-ep-method--fallback desc-fg">FALLBACK</span>
                         <span className="mock-ep-path">/?</span>
                         <span className="mock-ep-tags" />
                         <span className="mock-ep-right">
@@ -224,7 +218,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
                   {/* Proxy */}
                   {mockData.proxy && (
-                    <div style={{ marginTop: 4 }}>
+                    <div className="field-block is-tight">
                       <div className="label">Proxy</div>
                       <div className="mock-proxy-row">{resolveEnvTokenValues(mockData.proxy, envParams)}</div>
                     </div>
@@ -235,25 +229,29 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
             {/* ── Edit page (tabs: Overview / Server / Endpoints) ── */}
             <div className="api-swipe-page api-swipe-page--edit">
-              <PanelEditHeader
-                title="Edit Mock"
-                onBack={() => setPage('test')}
-                backTitle="Back to Mock"
-              >
-                <TabBar tabs={MOCK_EDIT_TABS} value={tab} onChange={setTab} />
-              </PanelEditHeader>
+              {page === 'edit' && (
+                <React.Fragment key={mmtFilePath}>
+                  <PanelEditHeader
+                    title="Edit Mock"
+                    onBack={() => setPage('test')}
+                    backTitle="Back to Mock"
+                  >
+                    <TabBar tabs={MOCK_EDIT_TABS} value={tab} onChange={setTab} />
+                  </PanelEditHeader>
 
-              <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-                {tab === 'overview' && (
-                  <MockOverview data={mockData} updateField={updateField} />
-                )}
-                {tab === 'server' && (
-                  <MockServerSettings data={mockData} updateField={updateField} content={content} setContent={setContent} />
-                )}
-                {tab === 'endpoints' && (
-                  <MockEndpoints content={content} setContent={setContent} mockData={mockData} />
-                )}
-              </div>
+                  <div className="panel-scroll">
+                    {tab === 'overview' && (
+                      <MockOverview data={mockData} updateField={updateField} />
+                    )}
+                    {tab === 'server' && (
+                      <MockServerSettings data={mockData} updateField={updateField} content={content} setContent={setContent} />
+                    )}
+                    {tab === 'endpoints' && (
+                      <MockEndpoints content={content} setContent={setContent} mockData={mockData} />
+                    )}
+                  </div>
+                </React.Fragment>
+              )}
             </div>
           </div>
         </div>

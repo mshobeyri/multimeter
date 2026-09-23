@@ -3,8 +3,9 @@
  * on every parent render (`onRun`, `context` object, `arrow`).
  */
 export function areSuiteTreeRowPropsEqual<T extends {
-  item?: { index?: unknown; isFolder?: boolean };
+  item?: { index?: unknown; isFolder?: boolean; data?: { childrenRangeLabel?: string } };
   context?: { isExpanded?: boolean };
+  depth?: number;
   status?: unknown;
   displayPath?: string;
   stepReports?: unknown;
@@ -14,8 +15,18 @@ export function areSuiteTreeRowPropsEqual<T extends {
   canShowStatusIcon?: boolean;
   showRunButton?: boolean;
   duplicateServer?: boolean;
+  reportSpilled?: boolean;
+  reportLoading?: boolean;
 }>(prev: T, next: T): boolean {
   if (prev.item?.index !== next.item?.index) {
+    return false;
+  }
+  const prevRange = (prev.item?.data as { childrenRangeLabel?: string } | undefined)?.childrenRangeLabel;
+  const nextRange = (next.item?.data as { childrenRangeLabel?: string } | undefined)?.childrenRangeLabel;
+  if (prevRange !== nextRange) {
+    return false;
+  }
+  if (prev.depth !== next.depth) {
     return false;
   }
   if (prev.status !== next.status) {
@@ -43,6 +54,12 @@ export function areSuiteTreeRowPropsEqual<T extends {
     return false;
   }
   if (prev.duplicateServer !== next.duplicateServer) {
+    return false;
+  }
+  if (prev.reportSpilled !== next.reportSpilled) {
+    return false;
+  }
+  if (prev.reportLoading !== next.reportLoading) {
     return false;
   }
   if (prev.item?.isFolder || next.item?.isFolder) {

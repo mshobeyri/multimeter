@@ -47,24 +47,24 @@ const TestFlowVar: React.FC<TestFlowVarProps> = ({ type, stepData, onChange }) =
   };
 
   return (
-    <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-      <select value={currentType} onChange={handleKindChange} style={{ width: '30%' }}>
+    <div className="field-inline is-gap mmt-fill">
+      <select className="field-col-30" value={currentType} onChange={handleKindChange}>
         <option value="set">set</option>
         <option value="var">var</option>
         <option value="const">const</option>
         <option value="let">let</option>
       </select>
       <input
+        className="field-col-35"
         placeholder="property (e.g., outputs.name)"
         value={key}
         onChange={handleKeyChange}
-        style={{ width: '35%' }}
       />
       <input
+        className="field-col-35"
         placeholder="value (e.g., user_info.name or 'text')"
         value={val}
         onChange={handleValChange}
-        style={{ width: '35%' }}
       />
     </div>
   );

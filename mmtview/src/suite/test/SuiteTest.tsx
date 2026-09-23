@@ -2,19 +2,19 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { flushSync } from 'react-dom';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { formatDuration } from 'mmt-core/CommonData';
+import type { SuiteEnvironment } from 'mmt-core/SuiteData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
 import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import { SuiteEntry, SuiteGroup } from '../types';
-import { SuiteTestTree } from './';
 import type { SuiteTestTreeHandle } from './SuiteTestTree';
+import SuiteTestTreePanel from './SuiteTestTreePanel';
+import { createSuiteRunDataStore, useSuiteRunOverview } from './suiteRunDataStore';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
-import { useSuiteImportTree } from './useSuiteImportTree';
 import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
-import { resetLeafStateMap } from './leafStateReset';
 import {
     buildFullSuitePendingState,
     buildTargetPendingState,
@@ -27,20 +27,57 @@ import {
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import ReportStatusFilterButton from '../../shared/ReportStatusFilterButton';
-import ReportExpandCollapseButton from '../../shared/ReportExpandCollapseButton';
+import ReportCollapseButton from '../../shared/ReportCollapseButton';
 import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
-import { HideWhenYamlError } from '../../api/YamlErrorWarning';
+import YamlErrorWarning, { HideWhenYamlError } from '../../api/YamlErrorWarning';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
 import { runInCoreMenuItem } from '../../components/ContextMenuHost';
 import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
 import RunStopToggle from '../../components/RunStopToggle';
+import { expandedTreeItemsToReportNodeIds } from '../../shared/reportSpillLogic';
+import {
+    deleteSpilledReportsForFile,
+    getSpilledReports,
+    materializeSpilledReports,
+} from '../../shared/reportSpillStore';
+import { spillExcessReports } from '../../shared/reportSpillRunner';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
     const parts = p.replace(/\\/g, '/').split('/');
     return parts[parts.length - 1] || p;
+}
+
+function countSuiteRunnableItems(
+    groups: SuiteGroup[],
+    hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): number {
+    let count = 0;
+    const walk = (node: SuiteTreeNode): void => {
+        if (node.kind === 'test' || node.kind === 'suite') {
+            count += 1;
+        }
+        if (node.kind === 'group' || node.kind === 'suite') {
+            for (const child of suiteTreeChildren(node)) {
+                if (child.kind !== 'server') {
+                    walk(child);
+                }
+            }
+        }
+    };
+    for (const group of groups) {
+        for (const entry of group.entries) {
+            const hierarchy = hierarchyByEntryId[entry.id];
+            if (hierarchy) {
+                walk(hierarchy);
+            } else {
+                count += 1;
+            }
+        }
+    }
+    return count;
 }
 
 /** Build a map from node id to display path by combining group entries and hierarchy trees. */
@@ -104,6 +141,7 @@ interface SuiteTestProps {
     content: string;
     mode?: 'suite' | 'loadtest';
     onFlowchartStateChange?: (state: SuiteFlowchartState) => void;
+    flowchartActive?: boolean;
 }
 
 export interface SuiteFlowchartState {
@@ -257,8 +295,8 @@ const LoadOverviewBoxes: React.FC<{
         : (rampup ? `Ramp-up ${rampup}` : undefined);
     return (
         <div>
-            <div className="label" style={{ marginBottom: 6 }}>Overview</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 14 }}>
+            <div className="label is-field">Overview</div>
+            <div className="stat-grid">
                 <LoadOverviewCard
                     label="Passed"
                     value={formatLoadPercent(summary.success_rate)}
@@ -304,15 +342,28 @@ const LoadOverviewBoxes: React.FC<{
     );
 };
 
-const buildSuiteGroupsFromContent = (content: string, mode: 'suite' | 'loadtest' = 'suite'): SuiteGroup[] => {
-    const parsed = parseYaml(content);
+type SuiteYamlDoc = Record<string, unknown> | null;
+
+const parseSuiteYamlDoc = (content: string): SuiteYamlDoc => {
+    try {
+        const parsed = parseYaml(content);
+        return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+    } catch {
+        return null;
+    }
+};
+
+const buildSuiteGroupsFromDoc = (parsed: SuiteYamlDoc, mode: 'suite' | 'loadtest' = 'suite'): SuiteGroup[] => {
     if (mode === 'loadtest') {
         const test = typeof parsed?.test === 'string' ? parsed.test.trim() : '';
         return test ? [{ label: 'Test', entries: [{ id: 'loadtest-test-0', path: test }] }] : [];
     }
-    const items: string[] = Array.isArray(parsed?.items)
+    if (!parsed) {
+        return [];
+    }
+    const items: string[] = Array.isArray(parsed.items)
         ? parsed.items.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
-        : (Array.isArray(parsed?.tests)
+        : (Array.isArray(parsed.tests)
             ? parsed.tests.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
             : []);
 
@@ -358,9 +409,8 @@ const buildSuiteGroupsFromContent = (content: string, mode: 'suite' | 'loadtest'
     });
 };
 
-const buildServersFromContent = (content: string): string[] => {
-    const parsed = parseYaml(content);
-    if (!Array.isArray(parsed?.servers)) {
+const buildServersFromDoc = (parsed: SuiteYamlDoc): string[] => {
+    if (!parsed || !Array.isArray(parsed.servers)) {
         return [];
     }
     return parsed.servers
@@ -368,19 +418,12 @@ const buildServersFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
-interface SuiteEnvironmentConfig {
-    preset?: string;
-    file?: string;
-    variables?: Record<string, unknown>;
-}
-
-const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | null => {
-    const parsed = parseYaml(content);
+const buildEnvironmentFromDoc = (parsed: SuiteYamlDoc): SuiteEnvironment | null => {
     if (!parsed?.environment || typeof parsed.environment !== 'object') {
         return null;
     }
-    const env = parsed.environment;
-    const result: SuiteEnvironmentConfig = {};
+    const env = parsed.environment as Record<string, unknown>;
+    const result: SuiteEnvironment = {};
     if (typeof env.preset === 'string') {
         result.preset = env.preset;
     }
@@ -388,14 +431,13 @@ const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | 
         result.file = env.file;
     }
     if (env.variables && typeof env.variables === 'object') {
-        result.variables = env.variables;
+        result.variables = env.variables as Record<string, unknown>;
     }
     return Object.keys(result).length > 0 ? result : null;
 };
 
-const buildExportsFromContent = (content: string): string[] => {
-    const parsed = parseYaml(content);
-    if (!Array.isArray(parsed?.export)) {
+const buildExportsFromDoc = (parsed: SuiteYamlDoc): string[] => {
+    if (!parsed || !Array.isArray(parsed.export)) {
         return [];
     }
     return parsed.export
@@ -403,8 +445,7 @@ const buildExportsFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
-const buildFilterFromContent = (content: string): { only: string[]; skip: string[] } => {
-    const parsed = parseYaml(content);
+const buildFilterFromDoc = (parsed: SuiteYamlDoc): { only: string[]; skip: string[] } => {
     const filter = parseSuiteYamlFilter(parsed?.filter);
     return {
         only: filter?.only ?? [],
@@ -412,8 +453,7 @@ const buildFilterFromContent = (content: string): { only: string[]; skip: string
     };
 };
 
-const buildLoadTestConfigFromContent = (content: string): LoadTestConfig | null => {
-    const parsed = parseYaml(content);
+const buildLoadTestConfigFromDoc = (parsed: SuiteYamlDoc): LoadTestConfig | null => {
     if (!parsed || typeof parsed !== 'object') {
         return null;
     }
@@ -436,27 +476,37 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     return allPaths;
 };
 
-const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowchartStateChange }) => {
-    const { mmtFilePath } = useContext(FileContext);
-    const groups = useMemo(() => buildSuiteGroupsFromContent(content, mode), [content, mode]);
-    const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromContent(content), [content, mode]);
-    const environment = useMemo(() => buildEnvironmentFromContent(content), [content]);
-    const suiteExports = useMemo(() => buildExportsFromContent(content), [content]);
-    const tagFilter = useMemo(() => buildFilterFromContent(content), [content]);
-    const loadConfig = useMemo(() => mode === 'loadtest' ? buildLoadTestConfigFromContent(content) : null, [content, mode]);
-    const suiteTitle = useMemo(() => {
-        try {
-            const parsed = parseYaml(content);
-            return typeof parsed?.title === 'string' ? parsed.title : undefined;
-        } catch {
-            return undefined;
+const findSuiteEntryById = (groups: SuiteGroup[], entryId: string): SuiteEntry | undefined => {
+    for (const group of groups) {
+        const match = group.entries.find((entry) => entry.id === entryId);
+        if (match) {
+            return match;
         }
-    }, [content]);
+    }
+    return undefined;
+};
+
+const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowchartStateChange, flowchartActive = false }) => {
+    const { mmtFilePath } = useContext(FileContext);
+    const suiteDoc = useMemo(() => parseSuiteYamlDoc(content), [content]);
+    const groups = useMemo(() => buildSuiteGroupsFromDoc(suiteDoc, mode), [suiteDoc, mode]);
+    const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromDoc(suiteDoc), [suiteDoc, mode]);
+    const environment = useMemo(() => buildEnvironmentFromDoc(suiteDoc), [suiteDoc]);
+    const suiteExports = useMemo(() => buildExportsFromDoc(suiteDoc), [suiteDoc]);
+    const tagFilter = useMemo(() => buildFilterFromDoc(suiteDoc), [suiteDoc]);
+    const loadConfig = useMemo(() => mode === 'loadtest' ? buildLoadTestConfigFromDoc(suiteDoc) : null, [suiteDoc, mode]);
+    const suiteTitle = useMemo(() => (
+        typeof suiteDoc?.title === 'string' ? suiteDoc.title : undefined
+    ), [suiteDoc]);
     const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
+    const suiteStructureKey = useMemo(
+        () => groups.map((group, groupIndex) =>
+            `${groupIndex}:${group.entries.map((entry) => `${entry.id}\0${entry.path}`).join('|')}`
+        ).join(';;'),
+        [groups],
+    );
     const canRun = allPaths.length > 0;
     const noItems = groups.every(group => group.entries.length === 0);
-
-    useSuiteImportTree(allPaths, true);
 
     const [lastRunIdByEntryId, setLastRunIdByEntryId] = useState<Record<string, string>>({});
     const lastRunIdByEntryIdRef = useRef<Record<string, string>>({});
@@ -467,10 +517,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const ignoredSuiteRunIdsRef = useRef<Set<string>>(new Set());
     const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
     const [loadRunSummary, setLoadRunSummary] = useState<LoadRunSummary | null>(null);
-    const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
-    const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
+    const runDataStoreRef = useRef(createSuiteRunDataStore());
+    const runDataStore = runDataStoreRef.current;
+    const runOverview = useSuiteRunOverview(runDataStore);
     const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
-    const [allTreeCollapsed, setAllTreeCollapsed] = useState(true);
     const suiteTreeRef = useRef<SuiteTestTreeHandle>(null);
     const suiteRunStartTimeRef = useRef<number | null>(null);
     const [suiteRunStartedAt, setSuiteRunStartedAt] = useState<number | null>(null);
@@ -481,6 +531,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const reportQueueRef = useRef<any[]>([]);
     const reportFlushTimerRef = useRef<number | null>(null);
     const durationTimerRef = useRef<number | null>(null);
+    const expandedReportNodeIdsRef = useRef<Set<string>>(new Set());
 
     const trimIgnoredSuiteRuns = useCallback(() => {
         if (ignoredSuiteRunIdsRef.current.size <= 10) {
@@ -502,18 +553,24 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         reportQueueRef.current = [];
     }, [trimIgnoredSuiteRuns]);
 
+    const clearReportSpillState = useCallback(async () => {
+        runDataStore.clearSpillState();
+        if (mmtFilePath) {
+            await deleteSpilledReportsForFile(mmtFilePath);
+        }
+    }, [mmtFilePath, runDataStore]);
+
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
-            setLeafReportsById({});
-            setLeafRunStateById({});
+            runDataStore.resetAll();
+            void clearReportSpillState();
             return;
         }
         if (!Array.isArray(mode) || mode.length === 0) {
             return;
         }
-        setLeafReportsById(prev => resetLeafStateMap(prev, mode));
-        setLeafRunStateById(prev => resetLeafStateMap(prev, mode));
-    }, [setLeafReportsById, setLeafRunStateById]);
+        runDataStore.resetPartial(mode);
+    }, [clearReportSpillState, runDataStore]);
 
     useEffect(() => {
         lastRunIdByEntryIdRef.current = lastRunIdByEntryId;
@@ -602,28 +659,81 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return next;
         });
 
-        const runStateIds = Object.keys(runStatePatches);
-        if (runStateIds.length > 0) {
-            setLeafRunStateById(prev => {
-                const next = { ...prev };
-                runStateIds.forEach((id) => {
-                    next[id] = runStatePatches[id];
-                });
-                return next;
-            });
+        if (Object.keys(runStatePatches).length > 0) {
+            runDataStore.patchRunState(runStatePatches);
         }
 
         const reportIds = Object.keys(reportPatches);
         if (reportIds.length > 0) {
-            setLeafReportsById(prev => {
-                const next = { ...prev };
-                reportIds.forEach((id) => {
-                    next[id] = [...(next[id] || []), ...reportPatches[id]];
-                });
-                return next;
-            });
+            const next = runDataStore.appendReports(reportPatches);
+            const fileKey = mmtFilePath || '';
+            const suiteRunId = suiteRunIdRef.current || '';
+            if (fileKey && suiteRunId) {
+                const protectNodeIds = new Set(expandedReportNodeIdsRef.current);
+                void (async () => {
+                    const spilled = await spillExcessReports({
+                        reports: next,
+                        spilled: runDataStore.getSpilledReportIds(),
+                        stats: runDataStore.getReportStatsById(),
+                        fileKey,
+                        suiteRunId,
+                        protectNodeIds,
+                    });
+                    if (!spilled.didSpill) {
+                        return;
+                    }
+                    const clearedIds: string[] = [];
+                    spilled.spilled.forEach((id) => {
+                        if (protectNodeIds.has(id) || expandedReportNodeIdsRef.current.has(id)) {
+                            return;
+                        }
+                        clearedIds.push(id);
+                    });
+                    runDataStore.applySpill(spilled.spilled, spilled.stats, clearedIds);
+                })();
+            }
         }
+    }, [mmtFilePath, runDataStore]);
+
+    const handleExpandedItemsChange = useCallback((
+        expandedItems: string[],
+        items?: Record<string, { data?: { type?: string; id?: string } }>,
+    ) => {
+        expandedReportNodeIdsRef.current = expandedTreeItemsToReportNodeIds(expandedItems, items);
     }, []);
+
+    const loadReportsForNode = useCallback(async (nodeId: string) => {
+        const fileKey = mmtFilePath || '';
+        const suiteRunId = suiteRunIdRef.current || '';
+        if (!fileKey || !suiteRunId || !nodeId) {
+            return;
+        }
+        if (!runDataStore.getSpilledReportIds().has(nodeId)) {
+            return;
+        }
+        if (runDataStore.getLoadingReportIds().has(nodeId)) {
+            return;
+        }
+        runDataStore.setLoadingReport(nodeId, true);
+        try {
+            const reports = await getSpilledReports(fileKey, suiteRunId, nodeId);
+            if (!reports) {
+                return;
+            }
+            runDataStore.mergeLoadedReports(nodeId, reports);
+        } finally {
+            runDataStore.setLoadingReport(nodeId, false);
+        }
+    }, [mmtFilePath, runDataStore]);
+
+    useEffect(() => {
+        const fileKey = mmtFilePath || '';
+        return () => {
+            if (fileKey) {
+                void deleteSpilledReportsForFile(fileKey);
+            }
+        };
+    }, [mmtFilePath]);
 
     const [hierarchyByEntryId, setHierarchyByEntryId] = useState<Record<string, SuiteTreeNode>>({});
     const duplicateServerPathKeys = useMemo(() => {
@@ -683,8 +793,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [missingFiles, hierarchyMissingPaths]);
 
     useEffect(() => {
+        if (!flowchartActive) {
+            return;
+        }
         onFlowchartStateChange?.({ groups, hierarchyByEntryId, missingFiles: effectiveMissingFiles, noItems });
-    }, [groups, hierarchyByEntryId, effectiveMissingFiles, noItems, onFlowchartStateChange]);
+    }, [flowchartActive, groups, hierarchyByEntryId, effectiveMissingFiles, noItems, onFlowchartStateChange]);
 
     const fetchHierarchyByEntryId = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
         const result: Record<string, SuiteTreeNode> = {};
@@ -710,36 +823,113 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         return result;
     }, [groups]);
 
+    const allEntriesHaveHierarchy = useCallback((
+        hierarchyByEntryId: Record<string, SuiteTreeNode>,
+    ): boolean => {
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                if (!entry?.id || !hierarchyByEntryId[entry.id]) {
+                    return false;
+                }
+            }
+        }
+        return groups.some((group) => group.entries.length > 0);
+    }, [groups]);
+
     /** Rebuild hierarchy from current YAML; update UI only when structure changed. */
     const ensureHierarchyFresh = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
-        const next = await fetchHierarchyByEntryId();
         const previous = hierarchyByEntryIdRef.current;
+        if (allEntriesHaveHierarchy(previous)) {
+            return previous;
+        }
+        const next = await fetchHierarchyByEntryId();
         if (fingerprintHierarchyByEntryId(next) !== fingerprintHierarchyByEntryId(previous)) {
             hierarchyByEntryIdRef.current = next;
             setHierarchyByEntryId(next);
         }
         return next;
-    }, [fetchHierarchyByEntryId]);
+    }, [allEntriesHaveHierarchy, fetchHierarchyByEntryId]);
+
+    const loadingHierarchyRef = useRef<Set<string>>(new Set());
+    const prefetchGenerationRef = useRef(0);
+
+    const mergeHierarchyByEntryId = useCallback((incoming: Record<string, SuiteTreeNode>) => {
+        setHierarchyByEntryId((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            for (const [entryId, tree] of Object.entries(incoming)) {
+                if (!tree || typeof tree !== 'object' || next[entryId]) {
+                    continue;
+                }
+                next[entryId] = tree;
+                changed = true;
+            }
+            if (!changed) {
+                return prev;
+            }
+            hierarchyByEntryIdRef.current = next;
+            return next;
+        });
+    }, []);
+
+    const loadHierarchyForEntry = useCallback(async (entryId: string) => {
+        if (hierarchyByEntryIdRef.current[entryId] || loadingHierarchyRef.current.has(entryId)) {
+            return;
+        }
+        const entry = findSuiteEntryById(groups, entryId);
+        if (!entry) {
+            return;
+        }
+        loadingHierarchyRef.current.add(entryId);
+        try {
+            const res = await getSuiteHierarchy(entry.path, entry.id);
+            const tree = res?.tree;
+            if (!tree || typeof tree !== 'object') {
+                return;
+            }
+            setHierarchyByEntryId((prev) => {
+                if (prev[entryId]) {
+                    return prev;
+                }
+                const next = { ...prev, [entryId]: tree };
+                hierarchyByEntryIdRef.current = next;
+                return next;
+            });
+        } catch {
+            // Ignore; tree keeps the placeholder folder.
+        } finally {
+            loadingHierarchyRef.current.delete(entryId);
+        }
+    }, [groups]);
 
     useEffect(() => {
+        setHierarchyByEntryId({});
+        hierarchyByEntryIdRef.current = {};
+        loadingHierarchyRef.current.clear();
+        prefetchGenerationRef.current += 1;
+    }, [suiteStructureKey]);
+
+    /** After first paint, prefetch all entry hierarchies in parallel (non-blocking). */
+    useEffect(() => {
+        if (noItems) {
+            return;
+        }
+        const generation = prefetchGenerationRef.current;
         let cancelled = false;
-        const run = async () => {
-            const result = await fetchHierarchyByEntryId();
-            if (cancelled) {
-                return;
-            }
-            const previous = hierarchyByEntryIdRef.current;
-            if (fingerprintHierarchyByEntryId(result) === fingerprintHierarchyByEntryId(previous)) {
-                return;
-            }
-            hierarchyByEntryIdRef.current = result;
-            setHierarchyByEntryId(result);
-        };
-        run();
+        const timer = window.setTimeout(() => {
+            void (async () => {
+                const result = await fetchHierarchyByEntryId();
+                if (cancelled || generation !== prefetchGenerationRef.current) {
+                    return;
+                }
+                mergeHierarchyByEntryId(result);
+            })();
+        }, 0);
         return () => {
             cancelled = true;
+            window.clearTimeout(timer);
         };
-    }, [fetchHierarchyByEntryId]);
+    }, [fetchHierarchyByEntryId, mergeHierarchyByEntryId, noItems, suiteStructureKey]);
 
     useEffect(() => {
         setSuiteRunId(null);
@@ -831,9 +1021,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 const hint = pendingLeafResetRef.current;
                 pendingLeafResetRef.current = null;
                 if (hint === 'all') {
-                    setLeafReportsById({});
+                    runDataStore.resetReportsAndSpill();
                 } else if (Array.isArray(hint) && hint.length) {
-                    setLeafReportsById((prev) => resetLeafStateMap(prev, hint));
+                    runDataStore.resetPartial(hint);
                 } else {
                     resetLeafState('all');
                 }
@@ -851,7 +1041,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 const cancelled = Boolean((message as any).cancelled);
                 flushReportQueue();
                 // Clear stuck "running" on own nodes only (no child→parent rollup).
-                setLeafRunStateById((prev) => {
+                runDataStore.replaceRunState((prev) => {
                     const next = { ...prev };
                     let changed = false;
                     Object.keys(next).forEach((id) => {
@@ -872,17 +1062,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 } else if (mode === 'loadtest' && typeof (message as any).success === 'boolean') {
                     setSuiteRunState((message as any).success ? 'passed' : 'failed');
                 } else {
-                    setLeafRunStateById((prev) => {
-                        const vals = Object.values(prev);
-                        const hasFailed = vals.some(v => v === 'failed');
-                        const hasInvalid = vals.some(v => v === 'invalid');
-                        setSuiteRunState(
-                            hasFailed ? 'failed' :
-                            hasInvalid ? 'invalid' :
-                            vals.some(v => v === 'skipped') && !vals.some(v => v === 'passed' || v === 'running') ? 'skipped' :
-                            'passed');
-                        return prev;
-                    });
+                    const vals = Object.values(runDataStore.getRunStateById());
+                    const hasFailed = vals.some(v => v === 'failed');
+                    const hasInvalid = vals.some(v => v === 'invalid');
+                    setSuiteRunState(
+                        hasFailed ? 'failed' :
+                        hasInvalid ? 'invalid' :
+                        vals.some(v => v === 'skipped') && !vals.some(v => v === 'passed' || v === 'running') ? 'skipped' :
+                        'passed');
                 }
                 if (suiteRunStartTimeRef.current) {
                     setSuiteRunDurationMs(Date.now() - suiteRunStartTimeRef.current);
@@ -903,7 +1090,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     return;
                 }
                 setSuiteRunState('cancelled');
-                setLeafRunStateById((prev) => {
+                runDataStore.replaceRunState((prev) => {
                     const next: typeof prev = { ...prev };
                     Object.keys(next).forEach((k) => {
                         if (next[k] === 'running' || next[k] === 'pending') {
@@ -951,46 +1138,50 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns]);
+    }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns, runDataStore]);
 
     useEffect(() => {
-        if (allPaths.length > 0) {
-            window.vscode?.postMessage({ command: 'validateFilesExist', files: allPaths });
-        } else {
+        if (allPaths.length === 0) {
             setMissingFiles(new Set());
+            return;
         }
+        const timer = window.setTimeout(() => {
+            window.vscode?.postMessage({ command: 'validateFilesExist', files: allPaths });
+        }, 0);
+        return () => {
+            window.clearTimeout(timer);
+        };
     }, [allPaths]);
 
-    const onRunSuite = useCallback(async () => {
+    const onRunSuite = useCallback(() => {
         if (suiteRunState === 'pending' || suiteRunState === 'running') {
             return;
         }
-        // Show Starting… before hierarchy fetch / pending-state work.
+        void clearReportSpillState();
+        const hierarchy = hierarchyByEntryIdRef.current;
+        const nextSuiteRunId = `suite-ui:${Date.now()}`;
+        const startedAt = Date.now();
         flushSync(() => {
-            setSuiteRunState('pending');
-            setLeafReportsById({});
+            runDataStore.resetReportsAndSpill();
             setSuiteRunDurationMs(0);
-        });
-        try {
-            const hierarchy = await ensureHierarchyFresh();
-            const nextSuiteRunId = `suite-ui:${Date.now()}`;
-            const startedAt = Date.now();
             beginSuiteRun(nextSuiteRunId);
             suiteRunStartTimeRef.current = startedAt;
             setSuiteRunStartedAt(startedAt);
             pendingLeafResetRef.current = 'all';
             partialRunTargetRef.current = null;
-            // Mark every known runnable node pending until its own suite-item arrives.
-            setLeafRunStateById(buildFullSuitePendingState(groups, hierarchy));
+            // Use whatever hierarchy is already loaded; refresh pending icons in the background.
+            runDataStore.setRunState(buildFullSuitePendingState(groups, hierarchy));
             setSuiteRunState('running');
-            window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-        } catch (error) {
-            setSuiteRunState('default');
-            throw error;
+        });
+        window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
+        if (!allEntriesHaveHierarchy(hierarchy)) {
+            void ensureHierarchyFresh().then((fresh) => {
+                runDataStore.mergeRunState(buildFullSuitePendingState(groups, fresh));
+            });
         }
-    }, [groups, ensureHierarchyFresh, beginSuiteRun, suiteRunState]);
+    }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, clearReportSpillState, runDataStore, suiteRunState]);
 
-    const onRunTargets = useCallback(async (target: string) => {
+    const onRunTargets = useCallback((target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
         if (!requestedTarget) {
             return;
@@ -999,54 +1190,60 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return;
         }
 
-        flushSync(() => {
-            setSuiteRunState('pending');
-            setSuiteRunDurationMs(0);
-        });
-        try {
-            const previousHierarchy = hierarchyByEntryIdRef.current;
-            const hierarchy = await ensureHierarchyFresh();
+        const previousHierarchy = hierarchyByEntryIdRef.current;
+        const startPartialRun = (hierarchy: Record<string, SuiteTreeNode>) => {
             const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, hierarchy);
-
-            pendingLeafResetRef.current = [effectiveTarget];
-            // Prefix allowlist: target + descendants (suite-node:1.1 → suite-node:1.1.*).
-            partialRunTargetRef.current = effectiveTarget;
-            const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchy);
-            setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
-            setLeafRunStateById((prev) => ({
-                ...resetLeafStateMap(prev, [effectiveTarget]),
-                ...pendingMap,
-            }));
-
             const nextSuiteRunId = `suite-ui:${Date.now()}`;
             const startedAt = Date.now();
-            beginSuiteRun(nextSuiteRunId);
-            suiteRunStartTimeRef.current = startedAt;
-            setSuiteRunStartedAt(startedAt);
-            setSuiteRunState('running');
-            window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
-        } catch (error) {
-            setSuiteRunState('default');
-            throw error;
-        }
-    }, [groups, ensureHierarchyFresh, beginSuiteRun, suiteRunState]);
+            flushSync(() => {
+                setSuiteRunDurationMs(0);
+                pendingLeafResetRef.current = [effectiveTarget];
+                partialRunTargetRef.current = effectiveTarget;
+                const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchy);
+                runDataStore.resetPartial([effectiveTarget]);
+                runDataStore.patchRunState(pendingMap);
+                beginSuiteRun(nextSuiteRunId);
+                suiteRunStartTimeRef.current = startedAt;
+                setSuiteRunStartedAt(startedAt);
+                setSuiteRunState('running');
+            });
+            window.vscode?.postMessage({
+                command: 'runSuite',
+                suiteRunId: nextSuiteRunId,
+                target: effectiveTarget,
+            });
+        };
 
-    const onRunSuiteInCore = useCallback(async () => {
-        await ensureHierarchyFresh();
+        startPartialRun(previousHierarchy);
+        if (!allEntriesHaveHierarchy(previousHierarchy)) {
+            void ensureHierarchyFresh().then((fresh) => {
+                runDataStore.mergeRunState(buildTargetPendingState(
+                    remapSuiteTargetId(requestedTarget, previousHierarchy, fresh),
+                    groups,
+                    fresh,
+                ));
+            });
+        }
+    }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, runDataStore, suiteRunState]);
+
+    const onRunSuiteInCore = useCallback(() => {
         window.vscode?.postMessage({
             command: 'runSuite',
             suiteRunId: `suite-logs:${Date.now()}`,
             report: { type: 'lifecycle' },
         });
-    }, [ensureHierarchyFresh]);
+        if (!allEntriesHaveHierarchy(hierarchyByEntryIdRef.current)) {
+            void ensureHierarchyFresh();
+        }
+    }, [allEntriesHaveHierarchy, ensureHierarchyFresh]);
 
-    const onRunTargetsInCore = useCallback(async (target: string) => {
+    const onRunTargetsInCore = useCallback((target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
         if (!requestedTarget) {
             return;
         }
         const previousHierarchy = hierarchyByEntryIdRef.current;
-        const hierarchy = await ensureHierarchyFresh();
+        const hierarchy = previousHierarchy;
         const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, hierarchy);
         window.vscode?.postMessage({
             command: 'runSuite',
@@ -1054,7 +1251,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             target: effectiveTarget,
             report: { type: 'lifecycle' },
         });
-    }, [ensureHierarchyFresh]);
+        if (!allEntriesHaveHierarchy(previousHierarchy)) {
+            void ensureHierarchyFresh();
+        }
+    }, [allEntriesHaveHierarchy, ensureHierarchyFresh]);
 
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {
@@ -1067,14 +1267,20 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         return buildDisplayNamesFromHierarchy(groups, hierarchyByEntryId);
     }, [groups, hierarchyByEntryId]);
 
-    const handleExportReport = useCallback((format: ReportFormat) => {
+    const handleExportReport = useCallback(async (format: ReportFormat) => {
+        const leafReportsForExport = await materializeSpilledReports(
+            runDataStore.getReportsById(),
+            runDataStore.getSpilledReportIds(),
+            mmtFilePath || '',
+            suiteRunIdRef.current,
+        );
         window.vscode?.postMessage({
             command: 'exportReport',
             format,
             data: {
                 type: mode === 'loadtest' ? 'loadtest' : 'suite',
-                leafReportsById,
-                leafRunStateById,
+                leafReportsById: leafReportsForExport,
+                leafRunStateById: runDataStore.getRunStateById(),
                 suiteRunState,
                 startedAt: suiteRunStartedAt,
                 durationMs: suiteRunDurationMs,
@@ -1086,12 +1292,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     : undefined,
             },
         });
-    }, [leafReportsById, leafRunStateById, suiteRunState, suiteRunStartedAt, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
+    }, [runDataStore, suiteRunState, suiteRunStartedAt, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
+
+    const hasSuiteReportData = runOverview.hasReportData;
 
     const suiteExportDisabled =
         suiteRunState === 'pending' ||
         suiteRunState === 'running' ||
-        (mode === 'loadtest' ? !loadRunSummary : Object.keys(leafReportsById).length === 0);
+        (mode === 'loadtest' ? !loadRunSummary : !hasSuiteReportData);
     const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
     const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
 
@@ -1115,61 +1323,195 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                             durationSub: formatOverviewRelativeTime(loadRunSummary?.config?.started_at || suiteRunStartedAt),
             };
         }
-        let passed = 0;
-        let failed = 0;
-        let skipped = 0;
-        let fileCount = 0;
-        for (const reports of Object.values(leafReportsById)) {
-            fileCount += 1;
-            for (const report of reports) {
-                if (report.status === 'failed') {
-                    failed += 1;
-                } else {
-                    passed += 1;
-                }
-            }
-        }
-        for (const status of Object.values(leafRunStateById)) {
-            if (status === 'skipped') {
-                skipped += 1;
-            }
-        }
-        const total = passed + failed + skipped;
-        if (total === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
+        const { passed, failed, skipped } = runOverview;
+        const executed = passed + failed;
+        if (executed === 0 && skipped === 0 && (suiteRunState === 'default' || suiteRunState === 'pending')) {
             return null;
         }
         const duration = suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined;
+        const testCount = countSuiteRunnableItems(groups, hierarchyByEntryId);
         return {
             passed,
             failed,
-            total,
+            total: executed,
             duration,
-            failedSub: total > 0 ? `${((failed / total) * 100).toFixed(1)}%` : '-',
-            totalSub: skipped > 0 ? `${skipped} skipped` : `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
+            totalSub: `${testCount} test file${testCount !== 1 ? 's' : ''}`,
                     durationSub: formatOverviewRelativeTime(suiteRunStartedAt),
         };
-    }, [leafReportsById, leafRunStateById, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
+    }, [runOverview, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary, groups, hierarchyByEntryId]);
 
     const tree = (
-        <SuiteTestTree
+        <SuiteTestTreePanel
             ref={suiteTreeRef}
+            store={runDataStore}
             groups={groups}
             hierarchyByEntryId={hierarchyByEntryId}
             missingFiles={effectiveMissingFiles}
             statusIconFor={statusIconFor}
-            reportsById={leafReportsById}
-            runStateById={leafRunStateById}
             duplicateServerIds={duplicateServerIds}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
-            onAllCollapsedChange={setAllTreeCollapsed}
             onRunTargets={onRunTargets}
             onRunTargetsInCore={onRunTargetsInCore}
+            onRequestHierarchy={loadHierarchyForEntry}
+            suiteStructureKey={suiteStructureKey}
+            onExpandedItemsChange={handleExpandedItemsChange}
+            onRequestReports={loadReportsForNode}
         />
     );
 
+    const fixedMeta = !noItems ? (
+        <>
+            {mode === 'loadtest'
+                ? <>
+                    <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} isRunning={suiteRunState === 'running'} />
+                    <LoadMetricsOverview
+                        load={loadRunSummary}
+                        startedAt={loadRunSummary?.config?.started_at ?? suiteRunStartedAt ?? undefined}
+                        endedAt={loadRunSummary?.config?.finished_at ?? (suiteRunState !== 'running' && suiteRunStartedAt != null && suiteRunDurationMs != null ? suiteRunStartedAt + suiteRunDurationMs : undefined)}
+                    />
+                </>
+                : overviewStats && <OverviewBoxes stats={overviewStats} />}
+            {loadConfig && (
+                <>
+                    <div className="label is-field">Load</div>
+                    <div className="meta-block">
+                        {mode === 'loadtest' && groups[0]?.entries[0]?.path && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-beaker meta-icon" aria-hidden />
+                                <span>Test: </span>
+                                <span
+                                    title="Ctrl/Cmd+click to open test file"
+                                    className="link-path"
+                                    onClick={(event) => {
+                                        if (event.ctrlKey || event.metaKey) {
+                                            window.vscode?.postMessage({ command: 'openRelativeFile', filename: groups[0]?.entries[0]?.path });
+                                        }
+                                    }}
+                                >
+                                    <code>{groups[0].entries[0].path}</code>
+                                </span>
+                            </div>
+                        )}
+                        {loadConfig.threads != null && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-dashboard meta-icon" aria-hidden />
+                                <span>Threads: <code>{loadConfig.threads}</code></span>
+                            </div>
+                        )}
+                        {loadConfig.repeat != null && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-sync meta-icon" aria-hidden />
+                                <span>Repeat: <code>{String(loadConfig.repeat)}</code></span>
+                            </div>
+                        )}
+                        {loadConfig.rampup && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-graph-line meta-icon" aria-hidden />
+                                <span>Ramp-up: <code>{loadConfig.rampup}</code></span>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+            {environment && (
+                <>
+                    <div className="label is-field">Environment</div>
+                    <div className="meta-block">
+                        {environment.preset && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-symbol-namespace meta-icon" aria-hidden />
+                                <span>Preset: <code>{environment.preset}</code></span>
+                            </div>
+                        )}
+                        {environment.file && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-file meta-icon" aria-hidden />
+                                <span>File: <code>{environment.file}</code></span>
+                            </div>
+                        )}
+                        {environment.variables && Object.keys(environment.variables).length > 0 && (
+                            <div>
+                                <div className="meta-row">
+                                    <span className="codicon codicon-symbol-variable meta-icon" aria-hidden />
+                                    <span>Variables:</span>
+                                </div>
+                                <div className="meta-kv">
+                                    {Object.entries(environment.variables).map(([key, val]) => (
+                                        <div key={key} className="meta-kv-line">
+                                            <code>{key}</code>: <code>{JSON.stringify(val)}</code>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+            {servers.length > 0 && (
+                <>
+                    <div className="label is-field">Servers</div>
+                    <div className="meta-block">
+                        {servers.map((s, i) => {
+                            const name = s.includes('/') ? s.slice(s.lastIndexOf('/') + 1) : s;
+                            return (
+                                <div key={i} className="meta-row">
+                                    <span className="codicon codicon-server-environment meta-icon" aria-hidden />
+                                    <span
+                                        className={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'mmt-line-error' : undefined}
+                                        title={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'This mock server is listed more than once in this suite' : s}
+                                    >
+                                        {name}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
+            {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
+                <>
+                    <div className="label is-field">Filter</div>
+                    <div className="meta-block">
+                        {tagFilter.only.length > 0 && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-filter meta-icon" aria-hidden />
+                                <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
+                            </div>
+                        )}
+                        {tagFilter.skip.length > 0 && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-diff-ignored meta-icon" aria-hidden />
+                                <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
+                            </div>
+                        )}
+                        {runOverview.hasRunState && runOverview.skipped > 0 && (
+                            <div className="meta-row">
+                                <span className="codicon codicon-skip meta-icon" aria-hidden />
+                                <span>Total: {runOverview.skipped} skipped</span>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+            {suiteExports.length > 0 && (
+                <>
+                    <div className="label is-field">Exports</div>
+                    <div className="meta-block">
+                        {suiteExports.map((ex, i) => (
+                            <div key={i} className="meta-row">
+                                <span className="codicon codicon-export meta-icon" aria-hidden />
+                                <span><code>{ex}</code></span>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+        </>
+    ) : null;
+
     return (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+        <div className="panel-page">
             <div className="run-action-bar">
                 <RunStopToggle
                     preparing={suiteRunState === 'pending'}
@@ -1183,181 +1525,48 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     runTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
                     runContextMenuItems={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
                 />
+                <YamlErrorWarning />
                 <HideWhenYamlError>
                     <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                 </HideWhenYamlError>
             </div>
-        <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
-            <div className="test-flow-tree">
-                {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div> : (
+            <div className="panel-view-stack">
+                {noItems ? (
+                    <div className="panel-scroll">
+                        <div className="muted">{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div>
+                    </div>
+                ) : (
                     <>
-                        {mode === 'loadtest'
-                            ? <>
-                                <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} isRunning={suiteRunState === 'running'} />
-                                <LoadMetricsOverview
-                                    load={loadRunSummary}
-                                    startedAt={loadRunSummary?.config?.started_at ?? suiteRunStartedAt ?? undefined}
-                                    endedAt={loadRunSummary?.config?.finished_at ?? (suiteRunState !== 'running' && suiteRunStartedAt != null && suiteRunDurationMs != null ? suiteRunStartedAt + suiteRunDurationMs : undefined)}
-                                />
-                            </>
-                            : overviewStats && <OverviewBoxes stats={overviewStats} />}
-                        {loadConfig && (
-                            <>
-                                <div className="label" style={{ marginBottom: 6 }}>Load</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
-                                    {mode === 'loadtest' && groups[0]?.entries[0]?.path && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-beaker" style={{ fontSize: 14 }} aria-hidden />
-                                            <span>Test: </span>
-                                            <span
-                                                title="Ctrl/Cmd+click to open test file"
-                                                style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
-                                                onClick={(event) => {
-                                                    if (event.ctrlKey || event.metaKey) {
-                                                        window.vscode?.postMessage({ command: 'openRelativeFile', filename: groups[0]?.entries[0]?.path });
-                                                    }
-                                                }}
-                                            >
-                                                <code>{groups[0].entries[0].path}</code>
-                                            </span>
-                                        </div>
-                                    )}
-                                    {loadConfig.threads != null && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-dashboard" style={{ fontSize: 14 }} aria-hidden />
-                                            <span>Threads: <code>{loadConfig.threads}</code></span>
-                                        </div>
-                                    )}
-                                    {loadConfig.repeat != null && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-sync" style={{ fontSize: 14 }} aria-hidden />
-                                            <span>Repeat: <code>{String(loadConfig.repeat)}</code></span>
-                                        </div>
-                                    )}
-                                    {loadConfig.rampup && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-graph-line" style={{ fontSize: 14 }} aria-hidden />
-                                            <span>Ramp-up: <code>{loadConfig.rampup}</code></span>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        {environment && (
-                            <>
-                                <div className="label" style={{ marginBottom: 6 }}>Environment</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
-                                    {environment.preset && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-symbol-namespace" style={{ fontSize: 14 }} aria-hidden />
-                                            <span>Preset: <code>{environment.preset}</code></span>
-                                        </div>
-                                    )}
-                                    {environment.file && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-file" style={{ fontSize: 14 }} aria-hidden />
-                                            <span>File: <code>{environment.file}</code></span>
-                                        </div>
-                                    )}
-                                    {environment.variables && Object.keys(environment.variables).length > 0 && (
-                                        <div style={{ padding: '2px 0', opacity: 0.9 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                                <span className="codicon codicon-symbol-variable" style={{ fontSize: 14 }} aria-hidden />
-                                                <span>Variables:</span>
-                                            </div>
-                                            <div style={{ paddingLeft: 20 }}>
-                                                {Object.entries(environment.variables).map(([key, val]) => (
-                                                    <div key={key} style={{ padding: '1px 0', fontSize: '0.9em' }}>
-                                                        <code>{key}</code>: <code>{JSON.stringify(val)}</code>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        {servers.length > 0 && (
-                            <>
-                                <div className="label" style={{ marginBottom: 6 }}>Servers</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
-                                    {servers.map((s, i) => {
-                                        const name = s.includes('/') ? s.slice(s.lastIndexOf('/') + 1) : s;
-                                        return (
-                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                                <span className="codicon codicon-server-environment" style={{ fontSize: 14 }} aria-hidden />
-                                                <span
-                                                    className={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'mmt-line-error' : undefined}
-                                                    title={isDuplicateSuiteServerPath(s, duplicateServerPathKeys) ? 'This mock server is listed more than once in this suite' : s}
-                                                >
-                                                    {name}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </>
-                        )}
-                        {(tagFilter.only.length > 0 || tagFilter.skip.length > 0) && (
-                            <>
-                                <div className="label" style={{ marginBottom: 6 }}>Filter</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
-                                    {tagFilter.only.length > 0 && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-filter" style={{ fontSize: 14 }} aria-hidden />
-                                            <span>Only: <code>{tagFilter.only.join(', ')}</code></span>
-                                        </div>
-                                    )}
-                                    {tagFilter.skip.length > 0 && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-skip" style={{ fontSize: 14 }} aria-hidden />
-                                            <span>Skip: <code>{tagFilter.skip.join(', ')}</code></span>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        {suiteExports.length > 0 && (
-                            <>
-                                <div className="label" style={{ marginBottom: 6 }}>Exports</div>
-                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
-                                    {suiteExports.map((ex, i) => (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
-                                            <span className="codicon codicon-export" style={{ fontSize: 14 }} aria-hidden />
-                                            <span><code>{ex}</code></span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                        {fixedMeta && <div className="panel-view-fixed">{fixedMeta}</div>}
                         {mode === 'loadtest' ? (
-                            <LoadTestReport
-                                load={loadRunSummary}
-                                config={loadConfig || undefined}
-                            />
+                            <div className="panel-scroll is-x-clip">
+                                <LoadTestReport
+                                    load={loadRunSummary}
+                                    config={loadConfig || undefined}
+                                />
+                            </div>
                         ) : (
                             <>
                                 <div className="report-section-header">
-                                    <div className="label">Tests</div>
+                                    <div className="label">Items</div>
                                     <div className="report-section-header-actions">
                                         <ReportStatusFilterButton
                                             value={statusFilter}
                                             onChange={setStatusFilter}
-                                            disabled={Object.keys(leafRunStateById).length === 0}
+                                            disabled={!runOverview.hasRunState}
                                         />
-                                        <ReportExpandCollapseButton
-                                            allCollapsed={allTreeCollapsed}
-                                            onExpandAll={() => suiteTreeRef.current?.expandAll()}
+                                        <ReportCollapseButton
                                             onCollapseAll={() => suiteTreeRef.current?.collapseAll()}
                                         />
                                     </div>
                                 </div>
-                                {tree}
+                                <div className="panel-scroll is-x-clip">
+                                    <div className="test-flow-tree">{tree}</div>
+                                </div>
                             </>
                         )}
                     </>
                 )}
-            </div>
             </div>
         </div>
     );

@@ -1,9 +1,10 @@
 import {APIData, AuthConfig} from './APIData';
 import {resolveApiHttpMethod} from './apiMethod';
 import {JSONRecord, requestFormat} from './CommonData';
+import {resolveRequestFormat} from './formatResolve';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
-import {MultipartPartSpec} from './multipartBody';
+import {coerceMultipartPartsInput, MultipartPartSpec} from './multipartBody';
 import {stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
 import {
@@ -38,7 +39,12 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
           {resolveRuntimeTokens: false});
   replaced = stripOmitFromRequest(replaced);
 
-  const reqFormatForBody = requestFormat(replaced.format);
+  const declaredReqFormat = requestFormat(replaced.format);
+  const reqFormatForBody = resolveRequestFormat(
+      declaredReqFormat,
+      replaced.headers || {},
+      replaced.method,
+  );
   // Convert leftover dynamic tokens to JS interpolations before formatBody.
   // urlencoded needs this because URLSearchParams encodes `${...}`; JSON needs
   // it so standalone `r:` / `c:` fields become runtime calls instead of
@@ -139,7 +145,8 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   // GraphQL: override method, headers, and body
   const effectiveMethod = isGraphQL ? 'post' :
       resolveApiHttpMethod(replaced.method, replaced.body);
-  const reqFormat = requestFormat(replaced.format);
+  const reqFormat = reqFormatForBody;
+  const isNoneRequest = !isGraphQL && reqFormat === 'none';
   const isBinaryRequest = !isGraphQL && reqFormat === 'binary';
   const isMultipartRequest = !isGraphQL && reqFormat === 'multipart';
   if (isGraphQL) {
@@ -153,8 +160,8 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
     }
-  } else if (reqFormat === 'urlencoded' || reqFormat === 'binary') {
-    // Form and binary bodies are not detectable from shape alone (unlike JSON/XML)
+  } else if (reqFormat === 'urlencoded' || reqFormat === 'binary' || reqFormat === 'html') {
+    // Form, binary, and HTML are not detectable from shape alone (HTML looks like XML)
     const hasContentType = Object.keys(replaced.headers || {}).some(
         k => k.toLowerCase() === 'content-type');
     if (!hasContentType) {
@@ -192,11 +199,13 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       : '[]';
   const bodyExpr = isGraphQL && graphqlBodyExpr
       ? graphqlBodyExpr
-      : isBinaryRequest
-        ? '__binaryBody_'
-        : isMultipartRequest
-          ? '__multipartParts_'
-          : toTemplateWithEnvs(formattedBody);
+      : isNoneRequest
+        ? 'undefined'
+        : isBinaryRequest
+          ? '__binaryBody_'
+          : isMultipartRequest
+            ? '__multipartParts_'
+            : toTemplateWithEnvs(formattedBody);
 
   const binaryLoadLines = isBinaryRequest
       ? `  const __binaryPath_ = ${binaryPathExpr};
@@ -233,7 +242,10 @@ ${binaryLoadLines}${multipartPrepLines}  const req_ = {
     body: ${bodyExpr}
   };
 ${authCode}
-  applyOmitToRequest_(req_, '${reqFormat}');
+  ${declaredReqFormat === 'auto'
+      ? `const __reqFormat_ = resolveRequestFormat_('auto', req_.headers, req_.body);
+  applyOmitToRequest_(req_, __reqFormat_);`
+      : `applyOmitToRequest_(req_, '${declaredReqFormat}');`}
 ${multipartBuildLines}  const res_ = await send_(req_);
 
   const __extractSource_ = {
@@ -399,10 +411,11 @@ function multipartPartsToJs(
     parts: unknown,
     toTpl: (s: string) => string,
 ): string {
-  if (!Array.isArray(parts) || parts.length === 0) {
+  const coerced = coerceMultipartPartsInput(parts);
+  if (!Array.isArray(coerced) || coerced.length === 0) {
     return '[]';
   }
-  const entries = parts.map(raw => {
+  const entries = coerced.map(raw => {
     const part = raw as MultipartPartSpec;
     const fields: string[] = [`name: ${JSON.stringify(String(part.name ?? ''))}`];
     if (part.file != null && String(part.file).trim() !== '') {

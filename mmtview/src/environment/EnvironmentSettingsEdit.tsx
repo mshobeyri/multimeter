@@ -41,14 +41,13 @@ const EnvironmentSettingsEdit: React.FC<EnvironmentSettingsEditProps> = ({
     <div>
       <div className="inner-box">
         <div className="label">HTTP Settings</div>
-        <div style={{ padding: "5px", display: "grid", gridTemplateColumns: "1fr", gap: "8px" }}>
+        <div className="field-grid">
           <div>
-            <div className="label" style={{ fontSize: "12px" }}>HTTP Version</div>
+            <div className="label label-sm">HTTP Version</div>
             <select
-              className="input-field"
+              className="input-field mmt-fill"
               value={http.version ?? "auto"}
               onChange={(e) => updateHttp({ version: e.target.value || undefined })}
-              style={{ width: "100%", boxSizing: "border-box" }}
             >
               <option value="auto">auto</option>
               <option value="1">1</option>
@@ -57,15 +56,14 @@ const EnvironmentSettingsEdit: React.FC<EnvironmentSettingsEditProps> = ({
             </select>
           </div>
           <div>
-            <div className="label" style={{ fontSize: "12px" }}>Timeout (ms)</div>
+            <div className="label label-sm">Timeout (ms)</div>
             <input
               type="number"
               min={0}
-              className="input-field"
+              className="input-field mmt-fill"
               value={http.timeout ?? ""}
               onChange={(e) => updateHttp({ timeout: parseNumberInput(e.target.value) })}
               placeholder="30000"
-              style={{ width: "100%", boxSizing: "border-box" }}
             />
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import { FlowType, CheckOps } from "mmt-core/TestData";
+import { KebabMenu } from "../components/PopupMenu";
 import { formatLogicalCondition, parseComparisonParts, parseLogicalCondition, type LogicalJoin } from "mmt-core/JSerTestFlow";
 import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
@@ -49,6 +49,18 @@ function parseIfForUi(raw: string): { first: IfClause; join?: LogicalJoin; secon
   return { first, join, second: clauseFromRaw(rest) };
 }
 
+/** Counts become numbers; durations like 1s stay strings. */
+export function coerceRepeatOrDelayValue(raw: string): string | number {
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    return '';
+  }
+  if (/^\d+$/.test(trimmed)) {
+    return Number(trimmed);
+  }
+  return trimmed;
+}
+
 function formatIfForUi(val: { first: IfClause; join?: LogicalJoin; second?: IfClause }): string {
   const clauses = [
     { actual: val.first.actual, operator: val.first.op, expected: val.first.expected },
@@ -68,9 +80,11 @@ function formatIfForUi(val: { first: IfClause; join?: LogicalJoin; second?: IfCl
 interface TestFlowBoxProps {
   data: any,
   onChange: (value: any) => void;
+  expandable?: boolean;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
   onDuplicate?: () => void;
   onRemove?: () => void;
-  expanded?: boolean;
   importValidation?: {
     missingImports: MissingImportEntry[];
     inputsByAlias: Record<string, string[]>;
@@ -78,101 +92,18 @@ interface TestFlowBoxProps {
   };
 }
 
-const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, expanded, importValidation }) => {
+const TestFlowBox: React.FC<TestFlowBoxProps> = ({
+  data,
+  onChange,
+  expandable,
+  expanded,
+  onToggleExpanded,
+  onDuplicate,
+  onRemove,
+  importValidation,
+}) => {
   const { type, stepData, testData } = data;
 
-  const Actions = () => {
-    const btnRef = React.useRef<HTMLButtonElement | null>(null);
-    const menuRef = React.useRef<HTMLDivElement | null>(null);
-    const [menuPos, setMenuPos] = React.useState<{ left: number; top: number } | null>(null);
-    const [openMenu, setOpenMenu] = React.useState(false);
-
-    const openAtButton = () => {
-      const el = btnRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      setMenuPos({ left: Math.max(8, rect.right - 160), top: rect.bottom + 4 });
-    };
-
-    React.useEffect(() => {
-      if (!openMenu) return;
-
-      const handleClickOutside = (event: MouseEvent) => {
-        const target = event.target;
-        if (!target) return;
-        if (menuRef.current?.contains(target as Node)) return;
-        if (btnRef.current?.contains(target as Node)) return;
-        setOpenMenu(false);
-      };
-
-      const handleScrollOrResize = () => {
-        setOpenMenu(false);
-      };
-
-      document.addEventListener('mousedown', handleClickOutside, true);
-      window.addEventListener('scroll', handleScrollOrResize, true);
-      window.addEventListener('resize', handleScrollOrResize, true);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside, true);
-        window.removeEventListener('scroll', handleScrollOrResize, true);
-        window.removeEventListener('resize', handleScrollOrResize, true);
-      };
-    }, [openMenu]);
-
-    const menu = openMenu && menuPos ? (
-      <div
-        ref={menuRef}
-        style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          role="menuitem"
-          className="action-button"
-          style={{ width: '100%', justifyContent: 'flex-start' }}
-          onPointerDown={(e) => e.stopPropagation()}
-          onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(false); onDuplicate?.(); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(false); onDuplicate?.(); } }}
-        >
-          <span className={`codicon codicon-copy`} ></span>
-          Duplicate
-        </button>
-        <button
-          type="button"
-          role="menuitem"
-          className="action-button"
-          style={{ width: '100%', justifyContent: 'flex-start' }}
-          onPointerDown={(e) => e.stopPropagation()}
-          onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(false); onRemove?.(); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(false); onRemove?.(); } }}
-        >
-          <span className={`codicon codicon-trash`}></span>
-          Remove
-        </button>
-      </div>
-    ) : null;
-
-    return (
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 0 }}>
-        <button
-          ref={btnRef}
-          className="action-button"
-          type="button"
-          onPointerDown={(e) => { e.stopPropagation(); /* avoid tree drag */ }}
-          onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(v => { const next = !v; if (!v) openAtButton(); return next; }); }}
-          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(v => { const next = !v; if (!v) openAtButton(); return next; }); } }}
-          draggable={false}
-          tabIndex={0}
-          aria-haspopup="menu"
-          aria-expanded={openMenu}
-          title="More actions"
-        >
-          <span className="codicon codicon-kebab-vertical" />
-        </button>
-        {menu && ReactDOM.createPortal(menu, document.body)}
-      </div>
-    );
-  };
   type FlowTypeWithCsv = FlowType | 'data' | 'else';
   const renderInner = () => {
     switch (type as FlowTypeWithCsv) {
@@ -198,6 +129,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         return (
           <TestJudge
             value={stepData}
+            expanded={expanded}
             imports={typeof testData?.import === 'object' ? testData.import as Record<string, string> : undefined}
             onChange={judgeObj => onChange({ ...judgeObj })}
           />
@@ -221,11 +153,25 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'if': {
         const raw = (stepData && typeof stepData[type] === 'string') ? (stepData[type] as string) : '';
         const parsed = parseIfForUi(raw);
+        if (!expanded && parsed.second) {
+          return (
+            <input
+              value={raw}
+              onChange={e => onChange({
+                ...stepData,
+                [type]: e.target.value,
+              })}
+              placeholder="(actual == expected && other != 0 | actual == expected || other == 1)"
+              className="mmt-fill"
+            />
+          );
+        }
         return (
           <TestIf
             first={parsed.first}
             join={parsed.join}
             second={parsed.second}
+            expanded={expanded}
             onChange={(val) => onChange({
               ...stepData,
               [type]: formatIfForUi(val),
@@ -235,7 +181,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       }
       case 'else':
         return (
-          <div style={{ opacity: 0.85, fontWeight: 600, padding: '2px 0' }}>
+          <div className="test-flow-else">
             else
           </div>
         );
@@ -278,42 +224,42 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         );
       }
       case 'for':
+        return (
+          <input
+            placeholder="(i = 0; i < 5; i++ | key in obj | item of list)"
+            value={stepData.for || ''}
+            onChange={e => onChange({ ...stepData, for: e.target.value })}
+            className="mmt-fill"
+          />
+        );
       case 'repeat':
       case 'delay':
         return (
           <input
-            placeholder={type === 'for' ? '(i = 0; i < 5; i++ | key in obj | item of list)' : (type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2ms | 3m | 4h)')}
-            value={stepData[type] || ''}
-            onChange={e => onChange({ ...stepData, [type]: e.target.value })}
-            style={{ width: '100%' }}
+            placeholder={type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2s | 3m | 4h)'}
+            value={stepData[type] != null ? String(stepData[type]) : ''}
+            onChange={e => onChange({ ...stepData, [type]: coerceRepeatOrDelayValue(e.target.value) })}
+            className="mmt-fill"
           />
         );
       case 'js':
         return (
           <textarea
+            className="test-flow-js"
             placeholder="JavaScript code"
             value={stepData[type] || ''}
             onChange={e => onChange({ js: e.target.value })}
-            style={{
-              width: '100%',
-              height: expanded ? 400 : 24,
-              resize: 'none',
-              overflow: 'auto'
-            }}
+            style={{ height: expanded ? 400 : 24 }}
           />
         );
       case 'print':
         return (
           <textarea
+            className="test-flow-js"
             placeholder="Message to print"
             value={stepData[type] || ''}
             onChange={e => onChange({ print: e.target.value })}
-            style={{
-              width: '100%',
-              height: expanded ? 400 : 24,
-              resize: 'none',
-              overflow: 'auto'
-            }}
+            style={{ height: expanded ? 400 : 24 }}
           />
         );
       case 'set':
@@ -330,7 +276,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'setenv': {
         const current = (stepData && typeof stepData === 'object') ? (stepData as any).setenv : undefined;
         return (
-          <div style={{ width: '100%' }}>
+          <div className="mmt-fill">
             {expanded && (
               <KSVEditor
                 label=""
@@ -344,7 +290,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
               />
             )}
             {!expanded && (
-              <div style={{ fontSize: 12, opacity: 0.8, padding: '6px 0 0 0' }}>
+              <div className="test-flow-setenv-count">
                 {(current && typeof current === 'object') ? `${Object.keys(current).length} item(s)` : '0 item(s)'}
               </div>
             )}
@@ -360,7 +306,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="mock server file (e.g. mock/server.mmt)"
             value={stepData[type] || ''}
             onChange={e => onChange({ [type]: e.target.value })}
-            style={{ width: '100%' }}
+            className="mmt-fill"
           />
         );
       case 'stage': {
@@ -375,31 +321,29 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           onChange(next);
         };
         return (
-          <div style={{ width: '100%' }}>
+          <div className="mmt-fill">
             <input
+              className="mmt-fill"
               placeholder="id"
               value={idVal}
               onChange={e => updateStage({ id: e.target.value })}
-              style={{ width: '100%' }}
             />
             {expanded && (
               <>
                 <div className="label">Condition</div>
-                <div style={{ padding: '5px' }}>
+                <div className="field-pad">
                   <input
                     placeholder="e.g. e:RUN_PREP == true"
                     value={condVal}
                     onChange={e => updateStage({ condition: e.target.value })}
-                    style={{ width: '100%' }}
                   />
                 </div>
                 <div className="label">Depends on</div>
-                <div style={{ padding: '5px' }}>
+                <div className="field-pad">
                   <input
                     placeholder="comma-separated stage ids"
                     value={depsStr}
                     onChange={e => updateStage({ after: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                    style={{ width: '100%' }}
                   />
                 </div>
               </>
@@ -412,39 +356,49 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     }
   };
 
-  const containerStyle: React.CSSProperties | undefined =
-    (type === 'set' || type === 'var' || type === 'const' || type === 'let')
-      ? { gap: 8, width: '100%' }
-      : undefined;
-
-  // Fixed label column sized to the longest common step title ("assert")
-  // so the type stays visible when the expanded editor (e.g. http) takes width.
-  const typeLabelStyle: React.CSSProperties = {
-    paddingTop: '6px',
-    flex: '0 0 4em',
-    width: '4em',
-    minWidth: '4em',
-    whiteSpace: 'nowrap',
-  };
-
   return (
-    <div className="test-flow-box-items" style={containerStyle}>
-      <span style={typeLabelStyle}>
+    <div className="test-flow-box-items">
+      <span className="test-flow-type-label">
         {type}
       </span>
-      <div
-        style={{
-          flex: '1 1 auto',
-          minWidth: 0,
-          overflow: 'hidden'
-        }}
-      >
+      <div className="test-flow-box-body">
         {renderInner()}
       </div>
-      <div
-        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
-      >
-        {type !== 'else' ? <Actions /> : null}
+      <div className="test-flow-box-actions">
+        {expandable && (
+          <button
+            className={["action-button", "test-flow-expand", expanded ? "is-pressed" : undefined].filter(Boolean).join(" ")}
+            type="button"
+            title={expanded ? "Collapse" : "Expand"}
+            aria-label={expanded ? "Collapse" : "Expand"}
+            aria-pressed={!!expanded}
+            draggable={false}
+            tabIndex={0}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              onToggleExpanded?.();
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggleExpanded?.();
+              }
+            }}
+          >
+            <span className="codicon codicon-settings" aria-hidden />
+          </button>
+        )}
+        {type !== 'else' ? (
+          <KebabMenu
+            menuClassName="test-flow-add-menu"
+            items={[
+              { label: "Duplicate", icon: "codicon-copy", onClick: () => onDuplicate?.() },
+              { label: "Remove", icon: "codicon-trash", onClick: () => onRemove?.() },
+            ]}
+          />
+        ) : null}
       </div>
     </div>
   );

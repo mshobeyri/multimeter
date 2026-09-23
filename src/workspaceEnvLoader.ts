@@ -3,41 +3,8 @@ import * as path from 'path';
 import * as YAML from 'yaml';
 import {CertificateSettings, DEFAULT_CERT_SETTINGS} from 'mmt-core/NetworkData';
 import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
+import type {EnvCertificates, EnvOption, EnvVariable} from 'mmt-core/EnvData';
 import * as mmtcore from 'mmt-core';
-
-interface EnvOption {
-  label: string;
-  value: string | number | boolean;
-}
-
-interface EnvVariable {
-  name: string;
-  label: string;
-  value: string | number | boolean;
-  options: EnvOption[];
-  source?: 'file' | 'manual' | 'runtime';
-  lastUpdate?: number;
-}
-
-interface EnvCaCertificate {
-  path?: string;
-  paths?: string[];
-}
-
-interface EnvClientCertificate {
-  name: string;
-  host: string;
-  cert?: string;
-  key?: string;
-  pfx?: string;
-  passphrase_plain?: string;
-  passphrase_env?: string;
-}
-
-interface EnvCertificates {
-  server_ca?: EnvCaCertificate;
-  clients?: EnvClientCertificate[];
-}
 
 /**
  * Load the workspace environment file (multimeter.mmt by default)
@@ -234,7 +201,7 @@ function parseEnvVariables(variablesObj: Record<string, any> | undefined): EnvVa
       // Object map (named choices)
       const options: EnvOption[] = Object.entries(value).map(([label, val]) => ({
         label,
-        value: val as string | number | boolean
+        value: val as EnvOption['value']
       }));
       const firstOption = options[0];
       envVariables.push({
@@ -249,8 +216,8 @@ function parseEnvVariables(variablesObj: Record<string, any> | undefined): EnvVa
       envVariables.push({
         name,
         label: name,
-        value: value as string | number | boolean,
-        options: [{label: String(value), value: value as string | number | boolean}],
+        value,
+        options: [{label: String(value), value}],
         source: 'file'
       });
     }
@@ -293,9 +260,7 @@ function initCertificateSettings(certs: EnvCertificates): CertificateSettings {
   const settings: CertificateSettings = {...DEFAULT_CERT_SETTINGS};
 
   // Enable CA if paths are defined
-  if (certs.server_ca && (
-      certs.server_ca.path ||
-      (certs.server_ca.paths && certs.server_ca.paths.length > 0))) {
+  if (caHasPath(certs.server_ca)) {
     settings.caEnabled = true;
   }
 
@@ -308,4 +273,14 @@ function initCertificateSettings(certs: EnvCertificates): CertificateSettings {
   }
 
   return settings;
+}
+
+function caHasPath(ca: EnvCertificates['server_ca']): boolean {
+  if (!ca) {
+    return false;
+  }
+  if (typeof ca === 'string') {
+    return ca.length > 0;
+  }
+  return !!(ca.path || (ca.paths && ca.paths.length > 0));
 }

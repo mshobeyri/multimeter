@@ -1,5 +1,6 @@
 import {APIData} from './APIData';
 import {JSONRecord, requestFormat} from './CommonData';
+import {resolveRequestFormat} from './formatResolve';
 import {Request} from './NetworkData';
 import {applyAuthToRequest} from './apiParsePack';
 import {formatBody} from './markupConvertor';
@@ -9,6 +10,8 @@ import {replaceAllRefs} from './variableReplacer';
 export interface ResolveApiRequestOptions {
   /** Clear r:/c: caches so each resolve gets fresh runtime values. */
   refreshRuntimeTokens?: boolean;
+  /** Keep YAML/JSON object bodies structured for UI format switching. */
+  preserveStructuredBody?: boolean;
 }
 
 /**
@@ -27,7 +30,10 @@ export function resolveApiRequest(
       inputs,
       envParameters,
       new Set(),
-      {refreshRuntimeTokens: options.refreshRuntimeTokens}) as Request & {auth?: unknown};
+      {
+        refreshRuntimeTokens: options.refreshRuntimeTokens,
+        resolveRuntimeTokens: options.preserveStructuredBody ? false : undefined,
+      }) as Request & {auth?: unknown};
   request = stripOmitFromRequest(request) as Request & {auth?: unknown};
 
   if (request.auth) {
@@ -42,8 +48,16 @@ export function resolveApiRequest(
     delete request.auth;
   }
 
-  if (request.body && typeof request.body !== 'string') {
-    request.body = formatBody(requestFormat(request.format), request.body ?? '');
+  const reqFormat = resolveRequestFormat(
+      requestFormat(request.format),
+      request.headers,
+      request.method,
+  );
+  // Multipart `body` is a parts array. The UI JSON-previews it, but Send must
+  // keep the array so the runner can build multipart/form-data.
+  if (!options.preserveStructuredBody &&
+      request.body && typeof request.body !== 'string' && reqFormat !== 'multipart') {
+    request.body = formatBody(reqFormat, request.body ?? '');
   }
 
   return request;

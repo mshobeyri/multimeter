@@ -18,6 +18,7 @@ interface TextEditorProps {
   onToggleRunButton?: () => void;
   onPasteTextTransform?: (text: string) => string | null | undefined;
   showGlyphMargin?: boolean;
+  readOnly?: boolean;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -165,6 +166,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onToggleRunButton,
   onPasteTextTransform,
   showGlyphMargin = false,
+  readOnly = false,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -533,6 +535,8 @@ const TextEditor: React.FC<TextEditorProps> = ({
         automaticLayout: true,
         lineNumbers: showNumbers ? "on" : "off",
         glyphMargin: showGlyphMargin,
+        readOnly,
+        domReadOnly: readOnly,
         lineDecorationsWidth: 0,
         scrollbar: {
           horizontal: "auto",

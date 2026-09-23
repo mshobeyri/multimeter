@@ -10,7 +10,9 @@ import {
   findMultilineDescriptionProblems,
   findStageAfterProblems,
   findAuthProblems,
+  findReportUnknownRootKeyProblems,
   extractSuiteTestLineInfo,
+  computeMissingSuiteFileMarkers,
   getUndefinedExpectKeyDecorations,
   offsetToLineNumber,
   computeDuplicateServerMarkers,
@@ -370,6 +372,44 @@ describe('suite file reference extraction', () => {
       {path: 'tests/login.mmt', line: 6, column: expect.any(Number)},
     ]);
   });
+
+  it('extracts +/ project-root suite items on their own line', () => {
+    const content = [
+      'type: suite',
+      'title: Dynamic values',
+      'description: Runs the examples',
+      'items:',
+      '  - random_types_test.mmt',
+      '  - +/current_test.mmt',
+    ].join('\n');
+    const doc = parseYamlDoc(content);
+    const refs = extractSuiteTestLineInfo(doc, content);
+    expect(refs).toEqual([
+      {path: 'random_types_test.mmt', line: 5, column: expect.any(Number)},
+      {path: '+/current_test.mmt', line: 6, column: expect.any(Number)},
+    ]);
+  });
+
+  it('marks a missing +/ suite item on the item line, not line 1', () => {
+    const content = [
+      'type: suite',
+      'title: Dynamic values',
+      'description: Runs the examples',
+      'items:',
+      '  - random_types_test.mmt',
+      '  - +/current_test.mmt',
+    ].join('\n');
+    const monaco = {MarkerSeverity: {Warning: 4}};
+    const model = {
+      getLineCount: () => content.split('\n').length,
+      getLineMaxColumn: (line: number) => (content.split('\n')[line - 1]?.length ?? 0) + 1,
+    };
+    const {markers} = computeMissingSuiteFileMarkers(
+        monaco, model, content, parseYamlDoc(content), [{path: '+/current_test.mmt'}]);
+    expect(markers).toHaveLength(1);
+    expect(markers[0].startLineNumber).toBe(6);
+    expect(markers[0].message).toContain('+/current_test.mmt');
+  });
 });
 
 describe('computeDuplicateServerMarkers', () => {
@@ -719,5 +759,49 @@ describe('findAuthProblems', () => {
     const content = 'type: test\nauth:\n  type: bearer\n';
     const doc = buildDoc(content);
     expect(findAuthProblems(content, doc, 'test')).toHaveLength(0);
+  });
+});
+
+describe('findReportUnknownRootKeyProblems', () => {
+  function buildDoc(content: string) {
+    return parseYamlDoc(content);
+  }
+
+  it('flags root steps on report files', () => {
+    const content = [
+      'type: report',
+      'kind: functional',
+      'name: example.mmt',
+      'overview:',
+      '  checks: 1',
+      'checks:',
+      '  - name: status == 200',
+      '    type: check',
+      '    result: passed',
+      'steps:',
+      '  - name: POST echo',
+      '    type: http',
+      '    result: passed',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const problems = findReportUnknownRootKeyProblems(doc, content, 'report');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('steps');
+  });
+
+  it('allows overview and checks on report files', () => {
+    const content = [
+      'type: report',
+      'kind: functional',
+      'name: example.mmt',
+      'overview:',
+      '  checks: 1',
+      'checks:',
+      '  - name: status == 200',
+      '    type: check',
+      '    result: passed',
+    ].join('\n');
+    const doc = buildDoc(content);
+    expect(findReportUnknownRootKeyProblems(doc, content, 'report')).toHaveLength(0);
   });
 });

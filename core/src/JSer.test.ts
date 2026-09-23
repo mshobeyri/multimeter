@@ -2705,6 +2705,76 @@ describe('multipart request body (apiToJSfunc)', () => {
     expect(js).toContain("applyOmitToRequest_(req_, 'multipart')");
     expect(js).toContain('<multipart \' + req_.body.length + \' bytes>');
   });
+
+  it('builds multipart from the JSON array string the body editor uses', async () => {
+    const api = yamlToAPI([
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: multipart',
+      'url: https://example.com/upload',
+      'body:',
+      '  - name: description',
+      '    value: hello',
+    ].join('\n'));
+    api.body = JSON.stringify([
+      {name: 'description', value: 'hello'},
+      {name: 'file', file: './payload.bin'},
+    ], null, 2);
+    const js = await apiToJSfunc({
+      api,
+      name: 'upload_multipart_json',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('name: "description"');
+    expect(js).toContain('file: `./payload.bin`');
+    expect(js).toContain('buildMultipartBodyFromParts_');
+  });
+});
+
+describe('html request body (apiToJSfunc)', () => {
+  it('sets text/html Content-Type and keeps the raw body', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: html',
+      'url: https://example.com/page',
+      'body: |',
+      '  <html><body>hello</body></html>',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'html_page',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('"Content-Type": `text/html`');
+    expect(js).toContain('<html><body>hello</body></html>');
+  });
+});
+
+describe('none request body (apiToJSfunc)', () => {
+  it('omits the request body when format is none', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: none',
+      'url: https://example.com/ping',
+      'body:',
+      '  ignored: true',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'ping_none',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('body: undefined');
+    expect(js).not.toContain('"Content-Type"');
+  });
 });
 
 describe('binary request body (apiToJSfunc)', () => {

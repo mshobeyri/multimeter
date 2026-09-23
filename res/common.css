@@ -29,6 +29,7 @@
   --input-height: 28px;
   --input-padding-vertical: 4px;
   --input-padding-horizontal: 8px;
+  --mmt-control-radius: var(--vscode-cornerRadius-small, 4px);
 
   /* Spacing */
   --spacing-xs: 2px;
@@ -106,7 +107,7 @@ select,
   background-color: var(--input-background);
   color: var(--input-foreground);
   border: 1px solid var(--input-border);
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   outline: none;
   box-sizing: border-box;
   width: 100%;
@@ -155,7 +156,7 @@ textarea {
   background-color: var(--input-background);
   color: var(--input-foreground);
   border: 1px solid var(--input-border);
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   outline: none;
   padding: var(--input-padding-vertical) var(--input-padding-horizontal);
   resize: vertical;
@@ -176,7 +177,7 @@ textarea:focus {
   background-color: var(--button-background);
   color: var(--button-foreground);
   border: 1px solid var(--mmt-button-border, var(--button-border));
-  border-radius: 2px;
+  border-radius: var(--mmt-control-radius);
   cursor: pointer;
   outline: none;
   justify-content: center;

@@ -1,5 +1,6 @@
-// File loader type and default implementation
+// File loader types and default implementation
 export type FileLoader = (path: string) => Promise<string>;
+export type BinaryFileLoader = (path: string) => Promise<Buffer>;
 declare let window: any;
 export let readFile: FileLoader = async (path: string) => {
   if (typeof window === 'undefined' && typeof require !== 'undefined') {

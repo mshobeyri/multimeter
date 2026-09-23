@@ -1,6 +1,6 @@
 import {parseYamlDoc} from 'mmt-core/markupConvertor';
 import {validateYamlContent} from './Validate';
-import {findAuthProblems, findStageAfterProblems} from './validator';
+import {detectOrderingIssue, findAuthProblems, findStageAfterProblems, getCanonicalOrder} from './validator';
 
 export const REVEAL_YAML_EVENT = 'mmt-reveal-yaml-error';
 
@@ -83,6 +83,18 @@ export function collectYamlEditorErrors(content: string): YamlEditorError[] {
             message: problem.message,
             line: problem.line,
             column: problem.column,
+          });
+        }
+      }
+
+      const expectedOrder = getCanonicalOrder(docType);
+      if (expectedOrder) {
+        const orderingIssue = detectOrderingIssue(doc, content, expectedOrder);
+        if (orderingIssue) {
+          errors.push({
+            message: orderingIssue.message,
+            line: orderingIssue.line,
+            column: 1,
           });
         }
       }

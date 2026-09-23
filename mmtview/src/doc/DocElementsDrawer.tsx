@@ -57,7 +57,6 @@ const DocElementsDrawer: React.FC<DocElementsDrawerProps> = ({ apis, docTitle, d
                 <div key={apiKey} className="doc-elements-api">
                   <div
                     className="doc-elements-api-header"
-                    style={{ cursor: 'pointer' }}
                     onClick={() => setOpenApi(o => ({ ...o, [apiKey]: !o[apiKey] }))}
                   >
                     <span
@@ -75,10 +74,10 @@ const DocElementsDrawer: React.FC<DocElementsDrawerProps> = ({ apis, docTitle, d
                     >
                       {proto || "GET"}
                     </span>
-                    <span className="doc-elements-api-title" style={{ marginLeft: 8, fontWeight: 600 }}>
+                    <span className="doc-elements-api-title">
                       {api.title || api.url}
                     </span>
-                    <span style={{ marginLeft: 8, color: '#888' }}>{openApi[apiKey] ? "▼" : "▶"}</span>
+                    <span className="doc-elements-api-chevron">{openApi[apiKey] ? "▼" : "▶"}</span>
                   </div>
                   {openApi[apiKey] && (
                     <>

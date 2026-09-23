@@ -6,6 +6,7 @@ import { StepStatus } from '../../shared/types';
 import SuiteEditFileItem from './SuiteEditFileItem';
 import SuiteEditGroupItem from './SuiteEditGroupItem';
 import { aggregateStatuses } from '../../shared/Common';
+import { TREE_DEPTH_OFFSET, TreeFolderArrow, treeDragBetweenLineStyle } from '../../components/TreeChevron';
 
 export type SuiteEditTreeItemData =
     | { type: 'root'; label: string }
@@ -187,13 +188,14 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
         persistGroups(nextGroups);
     }, [groups, entryById, entryPositions, groupIdToIndex, persistGroups]);
 
-    const renderItem = ({ item, context, arrow, children }: any) => {
+    const renderItem = ({ item, context, arrow, children, depth }: any) => {
         const data = item.data as SuiteEditTreeItemData;
         if (data.type === 'group' || data.type === 'root') {
             return (
                 <SuiteEditGroupItem
                     item={item}
                     context={context}
+                    depth={depth}
                     arrow={arrow}
                     children={children}
                     getGroupStatus={getGroupStatus}
@@ -207,6 +209,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
             <SuiteEditFileItem
                 item={item as any}
                 context={context}
+                depth={depth}
                 arrow={arrow}
                 children={children}
                 missingFiles={missingFiles}
@@ -221,6 +224,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
     return (
         <ControlledTreeEnvironment
             items={items}
+            renderDepthOffset={TREE_DEPTH_OFFSET}
             getItemTitle={(item) => {
                 const data = item.data as SuiteEditTreeItemData;
                 if (data?.type === 'file') {
@@ -241,28 +245,30 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
             onCollapseItem={onCollapseItem}
             onDrop={canEdit ? handleDrop : undefined}
             onSelectItems={() => { }}
-            renderItemArrow={({ item, context }) =>
-                item.isFolder ? (
-                    <span {...context.arrowProps} style={{ display: 'inline-flex', paddingTop: 8, lineHeight: 0, alignSelf: 'flex-start' }}>
-                        {context.isExpanded ? (
-                            <span className="codicon codicon-chevron-down" style={{ fontSize: 16 }} />
-                        ) : (
-                            <span className="codicon codicon-chevron-right" style={{ fontSize: 16 }} />
-                        )}
-                    </span>
-                ) : (
-                    <span style={{ display: 'inline-block', width: 24, height: 24 }} />
-                )
-            }
+            renderItemArrow={({ item, context }) => (
+                <TreeFolderArrow
+                    isFolder={!!item.isFolder}
+                    isExpanded={context.isExpanded}
+                    arrowProps={context.arrowProps}
+                />
+            )}
             renderItem={renderItem}
             renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
             renderItemsContainer={({ children, containerProps }) => (
-                <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}>
+                <ul
+                    {...containerProps}
+                    className={['tree-list', containerProps.className].filter(Boolean).join(' ')}
+                    style={containerProps.style}
+                >
                     {children}
                 </ul>
             )}
-            renderDragBetweenLine={({ lineProps }) => (
-                <div {...lineProps} style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }} />
+            renderDragBetweenLine={({ lineProps, draggingPosition }) => (
+                <div
+                    {...lineProps}
+                    style={treeDragBetweenLineStyle(lineProps.style, draggingPosition.depth, 0)}
+                    className={['tree-drop-line', lineProps.className].filter(Boolean).join(' ')}
+                />
             )}
         >
             <Tree treeId="suite-edit-tree" rootItem="suite-root" treeLabel="Suite structure" />

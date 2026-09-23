@@ -65,7 +65,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
             The UI is temporary. It contains the following unsaved changes.
           </p>
           <div className="unsaved-changes-popup-yaml-header">
-            <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+            <div className="unsaved-changes-popup-actions">
               <button
                 className="button-icon"
                 onClick={() => { onSave(); setOpen(false); }}

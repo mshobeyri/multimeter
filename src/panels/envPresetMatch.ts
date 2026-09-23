@@ -1,18 +1,13 @@
+import type {EnvPresets, EnvVariable} from 'mmt-core/EnvData';
+
 /**
  * Derive which preset option is "selected" from current environment variable
  * values — so the UI stays in sync when vars are edited manually.
  */
+export type EnvVarSnapshot = Pick<EnvVariable, 'name'> &
+    Partial<Pick<EnvVariable, 'label'|'value'|'options'>>;
 
-export type EnvVarSnapshot = {
-  name: string;
-  label?: string;
-  value?: string|number|boolean;
-  options?: Array<{label: string; value: string|number|boolean}>;
-};
-
-/** presets[presetName][optionName][variableName] = desired label or value */
-export type PresetGroups =
-    Record<string, Record<string, Record<string, unknown>>>;
+export type PresetGroups = EnvPresets;
 
 function valuesEqual(a: unknown, b: unknown): boolean {
   if (a === b) {

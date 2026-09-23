@@ -1,12 +1,15 @@
 import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
+import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
+import { TreeDepthContainer } from '../../components/TreeChevron';
 
 export type SuiteEditGroupItemData = { type: 'group' | 'root'; label: string };
 
 interface SuiteEditGroupItemProps {
   item: TreeItem<any>;
   context: any;
+  depth: number;
   arrow: React.ReactNode;
   children: React.ReactNode;
   getGroupStatus: (itemId: string) => StepStatus;
@@ -17,6 +20,7 @@ interface SuiteEditGroupItemProps {
 const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
   item,
   context,
+  depth,
   arrow,
   children,
   getGroupStatus,
@@ -36,23 +40,19 @@ const SuiteEditGroupItem: React.FC<SuiteEditGroupItemProps> = ({
       : null;
 
   return (
-    <div {...context.itemContainerWithChildrenProps}>
-      <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{ alignItems: 'flex-start' }}>
+    <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
+      <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps}>
         {arrow}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8 }}>
+        <div className="tree-row">
           {statusIcon && (
-            <span className={`codicon ${statusIcon.icon}`} aria-hidden style={{ color: statusIcon.color }} />
+            <StatusGlyph icon={statusIcon.icon} color={statusIcon.color} title={statusIcon.title} />
           )}
-          {isRoot ? (
-            <span className="codicon codicon-layers" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
-          ) : (
-            <span className="codicon codicon-collection" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
-          )}
-          <span style={{ fontFamily: 'var(--vscode-editor-font-family)' }}>{data.label}</span>
+          <SuiteKindIcon kind={isRoot ? 'root' : 'group'} />
+          <span className="tree-label">{data.label}</span>
         </div>
       </div>
       {children}
-    </div>
+    </TreeDepthContainer>
   );
 };
 

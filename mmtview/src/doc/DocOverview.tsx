@@ -34,7 +34,7 @@ const DocOverview: React.FC<DocOverviewProps> = ({ doc, update }) => {
 
       <div className="panel-form-row">
         <div className="label">Logo</div>
-        <div style={{ width: '100%' }}>
+        <div className="mmt-fill">
           <FilePickerInput
             value={doc.logo || ''}
             onChange={val => update({ logo: val })}
@@ -63,31 +63,31 @@ const DocOverview: React.FC<DocOverviewProps> = ({ doc, update }) => {
 
       <div className="panel-form-row">
         <div className="label">HTML Options</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ whiteSpace: 'nowrap', width: '25%', flexShrink: 0 }}>Triable:</span>
+        <div className="field-stack is-gap mmt-fill">
+          <div className="field-inline is-gap">
+            <span className="field-label-col is-quarter">Triable:</span>
             <select
+              className="field-grow"
               value={doc.html?.triable ? "enabled" : "disabled"}
               onChange={e => {
                 const html = { ...(doc.html || {}), triable: e.target.value === "enabled" };
                 update({ html });
               }}
-              style={{ flex: 1 }}
             >
               <option value="disabled">Disabled</option>
               <option value="enabled">Enabled</option>
             </select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ whiteSpace: 'nowrap', width: '25%', flexShrink: 0 }}>CORS Proxy:</span>
+          <div className="field-inline is-gap">
+            <span className="field-label-col is-quarter">CORS Proxy:</span>
             <input
+              className="field-grow"
               value={doc.html?.cors_proxy || ''}
               onChange={e => {
                 const html = { ...(doc.html || {}), cors_proxy: e.target.value };
                 update({ html });
               }}
               placeholder="https://corsproxy.io/?"
-              style={{ flex: 1 }}
             />
           </div>
         </div>

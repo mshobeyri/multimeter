@@ -14,45 +14,6 @@ export interface OverviewStats {
   durationSub?: string;
 }
 
-const boxStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  padding: '10px 12px',
-  borderRadius: 10,
-  background: 'var(--vscode-editor-background, rgba(40,40,40,0.8))',
-  border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.1))',
-  minWidth: 0,
-};
-
-const iconBoxBase: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: 9,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 9,
-  fontWeight: 500,
-  textTransform: 'uppercase',
-  letterSpacing: 0.5,
-  opacity: 0.6,
-};
-
-const valueStyle: React.CSSProperties = {
-  fontSize: 18,
-  fontWeight: 700,
-  lineHeight: 1.2,
-};
-
-const subStyle: React.CSSProperties = {
-  fontSize: 9,
-};
-
 const OverviewBoxes: React.FC<{ stats: OverviewStats }> = ({ stats }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [boxCols, setBoxCols] = useState(4);
@@ -75,79 +36,86 @@ const OverviewBoxes: React.FC<{ stats: OverviewStats }> = ({ stats }) => {
   }, []);
 
   const { passed, failed, total, duration, failedSub, totalSub, durationSub } = stats;
-  const passRate = total > 0 ? ((passed / total) * 100).toFixed(1) + '%' : '-';
-  const failRate = total > 0 ? ((failed / total) * 100).toFixed(1) + '%' : '-';
+  const executed = passed + failed;
+  const passRate = executed > 0 ? ((passed / executed) * 100).toFixed(1) + '%' : '-';
+  const failRate = executed > 0 ? ((failed / executed) * 100).toFixed(1) + '%' : '-';
 
   return (
     <div ref={containerRef}>
-      <div className="label" style={{ marginBottom: 6 }}>Overview</div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${boxCols}, 1fr)`,
-        gap: 8,
-        marginBottom: 14,
-      }}>
+      <div className="label is-field">Overview</div>
+      <div
+        className="stat-grid"
+        style={{ gridTemplateColumns: `repeat(${boxCols}, 1fr)` }}
+      >
         {/* Passed */}
-        <div style={boxStyle}>
-          <div style={{
-            ...iconBoxBase,
-            background: 'rgba(63, 185, 80, 0.15)',
-            color: 'var(--vscode-testing-iconPassed, #3fb950)',
-          }}>
+        <div className="overview-box">
+          <div
+            className="overview-icon"
+            style={{
+              background: 'rgba(63, 185, 80, 0.15)',
+              color: 'var(--vscode-testing-iconPassed, #3fb950)',
+            }}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <span style={labelStyle}>Passed</span>
-            <span style={{ ...valueStyle, color: 'var(--vscode-testing-iconPassed, #3fb950)' }}>{passed}</span>
-            <span style={{ ...subStyle, color: 'var(--vscode-testing-iconPassed, #3fb950)' }}>{passRate}</span>
+          <div className="overview-copy">
+            <span className="overview-label">Passed</span>
+            <span className="overview-value" style={{ color: 'var(--vscode-testing-iconPassed, #3fb950)' }}>{passed}</span>
+            <span className="overview-sub" style={{ color: 'var(--vscode-testing-iconPassed, #3fb950)' }}>{passRate}</span>
           </div>
         </div>
 
         {/* Failed */}
-        <div style={boxStyle}>
-          <div style={{
-            ...iconBoxBase,
-            background: 'rgba(248, 81, 73, 0.15)',
-            color: 'var(--vscode-testing-iconFailed, #f85149)',
-          }}>
+        <div className="overview-box">
+          <div
+            className="overview-icon"
+            style={{
+              background: 'rgba(248, 81, 73, 0.15)',
+              color: 'var(--vscode-testing-iconFailed, #f85149)',
+            }}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <span style={labelStyle}>Failed</span>
-            <span style={{ ...valueStyle, color: 'var(--vscode-testing-iconFailed, #f85149)' }}>{failed}</span>
-            <span style={{ ...subStyle, color: 'var(--vscode-testing-iconFailed, #f85149)' }}>{failedSub || failRate}</span>
+          <div className="overview-copy">
+            <span className="overview-label">Failed</span>
+            <span className="overview-value" style={{ color: 'var(--vscode-testing-iconFailed, #f85149)' }}>{failed}</span>
+            <span className="overview-sub" style={{ color: 'var(--vscode-testing-iconFailed, #f85149)' }}>{failedSub || failRate}</span>
           </div>
         </div>
 
         {/* Total */}
-        <div style={boxStyle}>
-          <div style={{
-            ...iconBoxBase,
-            background: 'rgba(88, 166, 255, 0.15)',
-            color: 'var(--vscode-textLink-foreground, #58a6ff)',
-          }}>
+        <div className="overview-box">
+          <div
+            className="overview-icon"
+            style={{
+              background: 'rgba(88, 166, 255, 0.15)',
+              color: 'var(--vscode-textLink-foreground, #58a6ff)',
+            }}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="8" y1="9" x2="16" y2="9"></line><line x1="8" y1="13" x2="14" y2="13"></line><line x1="8" y1="17" x2="12" y2="17"></line></svg>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <span style={labelStyle}>Total</span>
-            <span style={{ ...valueStyle, color: 'var(--vscode-textLink-foreground, #58a6ff)' }}>{total}</span>
-            {totalSub && <span style={{ ...subStyle, color: 'var(--vscode-textLink-foreground, #58a6ff)' }}>{totalSub}</span>}
+          <div className="overview-copy">
+            <span className="overview-label">Total</span>
+            <span className="overview-value" style={{ color: 'var(--vscode-textLink-foreground, #58a6ff)' }}>{total}</span>
+            {totalSub && <span className="overview-sub" style={{ color: 'var(--vscode-textLink-foreground, #58a6ff)' }}>{totalSub}</span>}
           </div>
         </div>
 
         {/* Duration */}
-        <div style={boxStyle}>
-          <div style={{
-            ...iconBoxBase,
-            background: 'rgba(139, 148, 158, 0.15)',
-            color: 'var(--vscode-descriptionForeground, #8b949e)',
-          }}>
+        <div className="overview-box">
+          <div
+            className="overview-icon"
+            style={{
+              background: 'rgba(139, 148, 158, 0.15)',
+              color: 'var(--vscode-descriptionForeground, #8b949e)',
+            }}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <span style={labelStyle}>Duration</span>
-            <span style={{ ...valueStyle, color: 'var(--vscode-descriptionForeground, #8b949e)' }}>{duration || '-'}</span>
-            {durationSub && <span style={{ ...subStyle, color: 'var(--vscode-descriptionForeground, #8b949e)' }}>{durationSub}</span>}
+          <div className="overview-copy">
+            <span className="overview-label">Duration</span>
+            <span className="overview-value" style={{ color: 'var(--vscode-descriptionForeground, #8b949e)' }}>{duration || '-'}</span>
+            {durationSub && <span className="overview-sub" style={{ color: 'var(--vscode-descriptionForeground, #8b949e)' }}>{durationSub}</span>}
           </div>
         </div>
       </div>

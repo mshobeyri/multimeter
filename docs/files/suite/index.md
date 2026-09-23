@@ -23,17 +23,18 @@ See also: [Flow chart](../../features/flow-chart.md)
 | {{btn:play:Run suite}} | Runs all suite items. While running, turns into **Stop suite** |
 | Right-click Run suite | Context menu: **Run in Core** |
 | {{btn:export:Export}} | Export the run report (HTML, MMT, Markdown, or JUnit XML). Disabled until a run completes |
+| **YAML ERROR** | Shown when the suite YAML has parse, schema, or formatting (key-order) problems — click to jump to the issue |
 
 ### Before and after a run
 
 | Section | What you see |
 |---|---|
+| **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards (after a run) — see [Reports](./reports.md) |
 | `environment` | Preset, env file, and inline variables when `environment:` is configured |
 | `servers` | Mock server files listed in `servers:` |
-| `filter` | Only/skip tags from `filter:` — see [Tag filter](./execution.md#tag-filter) |
 | **Exports** | Report export paths from `export:` |
-| **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards (after a run) — see [Reports](./reports.md) |
-| **Tests** | Item tree grouped by execution stage — expand a test to see step reports — see [Reports](./reports.md#tests-tree) |
+| `filter` | When `filter:` is set: only/skip tags and, after a run, **Total: N skipped** — see [Tag filter](./execution.md#tag-filter) |
+| **Items** | Item tree grouped by execution stage — expand a test to see step reports — see [Reports](./reports.md#items-tree) |
 
 ### Item tree
 

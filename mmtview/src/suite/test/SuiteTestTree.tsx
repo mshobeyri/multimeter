@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
@@ -11,35 +11,13 @@ import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { ownRunStatus } from './suiteRunStatus';
 import { ReportStatusFilter, filterTreeItemsByStatus } from '../../shared/reportStatusFilter';
 import ReportEmptyFilterPlaceholder from '../../shared/ReportEmptyFilterPlaceholder';
+import { TREE_DEPTH_OFFSET, TreeFolderArrow, treeDragBetweenLineStyle } from '../../components/TreeChevron';
+import { applyGroupChildrenRangeLabels, suiteTreeItemDisplayName } from './suiteTreeGroupRangeLabel';
 
 const EMPTY_STEP_REPORTS: StepReportItem[] = [];
 
 export type SuiteTestTreeHandle = {
-  expandAll: () => void;
   collapseAll: () => void;
-};
-
-const relativeToParentDir = (childPath: string, parentPath: string): string => {
-  if (!childPath || !parentPath) {
-    return childPath;
-  }
-  const normalize = (p: string) => p.replace(/\\/g, '/');
-  const child = normalize(childPath);
-  const parent = normalize(parentPath);
-
-  const parentDir = parent.includes('/') ? parent.slice(0, parent.lastIndexOf('/') + 1) : '';
-  if (parentDir && child.startsWith(parentDir)) {
-    return child.slice(parentDir.length);
-  }
-
-  // If we can't compute a clean relative label, fall back.
-  return childPath;
-};
-
-const basename = (p: string): string => {
-  const s = (p || '').replace(/\\/g, '/');
-  const idx = s.lastIndexOf('/');
-  return idx >= 0 ? s.slice(idx + 1) : s;
 };
 
 /** True when bundleId is the entry itself or a descendant under that entry's id prefix. */
@@ -59,7 +37,7 @@ const owningEntryIdFromTreeIndex = (itemIndex: string): string => {
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
-  | { type: 'group'; label: string; id?: string }
+  | { type: 'group'; label: string; id?: string; childrenRangeLabel?: string }
   | { type: 'test'; path: string; id: string; title?: string; parentPath?: string }
   | { type: 'server'; path: string; id: string; title?: string; parentPath?: string }
   | { type: 'suite'; path: string; id: string; title?: string; parentPath?: string };
@@ -71,17 +49,27 @@ interface SuiteTestTreeProps {
   statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
 
   reportsById: Record<string, StepReportItem[]>;
+  spilledReportIds?: Set<string>;
+  loadingReportIds?: Set<string>;
+  onRequestReports?: (nodeId: string) => void;
   runStateById: Record<string, StepStatus>;
   /** View-only status filter; does not change run data or exports. */
   statusFilter?: ReportStatusFilter;
   /** Bundle ids of mock servers listed twice in the same suite file. */
   duplicateServerIds?: Set<string>;
   onStatusFilterChange?: (next: ReportStatusFilter) => void;
-  onAllCollapsedChange?: (allCollapsed: boolean) => void;
 
   onRunTargets: (target: string) => void | Promise<void>;
   /** Logs-only core run (no UI panel updates). */
   onRunTargetsInCore?: (target: string) => void | Promise<void>;
+  /** Load hierarchy for a top-level entry when the user expands it. */
+  onRequestHierarchy?: (entryId: string) => void;
+  /** When this key changes, expanded folders reset to the suite defaults. */
+  suiteStructureKey?: string;
+  onExpandedItemsChange?: (
+    expandedItems: string[],
+    items: Record<string, TreeItem<SuiteTestTreeItemData>>,
+  ) => void;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -103,8 +91,7 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
         index: id,
         isFolder: true,
         children: [],
-        // Top-level suite entries are unknown until importTree resolves docType.
-        // They can later become either a suite or a test.
+        // Top-level entries start as suite folders; hierarchy load resolves test vs suite.
         data: { type: 'suite', path: entry.path, id },
       };
     });
@@ -135,6 +122,43 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
 
   return { items, allPaths, groupIds };
 };
+
+/** Default expanded ids: root open, and every YAML group folder open. */
+export function buildDefaultExpandedSuiteIds(groups: SuiteGroup[]): string[] {
+  const ids: string[] = ['suite-root'];
+  if (groups.length > 1) {
+    for (let idx = 0; idx < groups.length; idx++) {
+      ids.push(`group-${idx + 1}`);
+    }
+  }
+  return ids;
+}
+
+/** Keep user-expanded rows when the tree gains items; drop ids that no longer exist. */
+export function reconcileExpandedSuiteItems(
+  prev: readonly string[],
+  validItemIds: ReadonlySet<string>,
+  defaultExpandedItems: readonly string[],
+  options?: { mergeDefaults?: boolean },
+): string[] {
+  const next: string[] = [];
+  const seen = new Set<string>();
+  for (const id of prev) {
+    if (validItemIds.has(id) && !seen.has(id)) {
+      next.push(id);
+      seen.add(id);
+    }
+  }
+  if (options?.mergeDefaults !== false) {
+    for (const id of defaultExpandedItems) {
+      if (validItemIds.has(id) && !seen.has(id)) {
+        next.push(id);
+        seen.add(id);
+      }
+    }
+  }
+  return next.length > 0 ? next : [...defaultExpandedItems];
+}
 
 /** Collect every expandable tree id (groups, entries, nested suite/group/test nodes). */
 export function collectSuiteExpandableIds(
@@ -184,243 +208,258 @@ export function collectSuiteExpandableIds(
   return Array.from(ids);
 }
 
+/** Build the full react-complex-tree item map once per groups/hierarchy change. */
+export function buildSuiteTestTreeItems(
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+  baseItems: Record<string, TreeItem<SuiteTestTreeItemData>>,
+): Record<string, TreeItem<SuiteTestTreeItemData>> {
+  const items: Record<string, TreeItem<SuiteTestTreeItemData>> = { ...baseItems };
+
+  // Resolve each top-level suite entry to either a suite or a test.
+  for (let gi = 0; gi < groups.length; gi++) {
+    const group = groups[gi];
+    for (let ei = 0; ei < group.entries.length; ei++) {
+      const entry = group.entries[ei];
+      const entryItem = items[entry.id];
+      if (!entryItem) {
+        continue;
+      }
+      const hierarchy = hierarchyByEntryId[entry.id] as any;
+      const entryId = entry.id;
+
+      if (!hierarchy || typeof hierarchy !== 'object') {
+        continue;
+      }
+
+      const isSuite = hierarchy.kind === 'suite';
+
+      if (!isSuite) {
+        const isServer = hierarchy.kind === 'server';
+        items[entry.id] = {
+          ...entryItem,
+          isFolder: !isServer,
+          children: [],
+          data: {
+            type: isServer ? 'server' : 'test',
+            path: entry.path,
+            id: entryId,
+            title: (hierarchy as any)?.title,
+            parentPath: '',
+          },
+        };
+        continue;
+      }
+
+      items[entry.id] = {
+        ...entryItem,
+        isFolder: true,
+        children: [],
+        data: { type: 'suite', path: entry.path, id: entryId, title: (hierarchy as any)?.title, parentPath: '' },
+      };
+    }
+  }
+
+  const pushHierarchy = (
+    ownerPath: string,
+    parent: string,
+    nodes: SuiteTreeNode[],
+    outChildren: string[],
+  ) => {
+    for (let idx = 0; idx < (nodes || []).length; idx++) {
+      const n = (nodes as any)[idx];
+      if (!n) {
+        continue;
+      }
+
+      const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
+      const uiId = `${parent}::${baseId}`;
+
+      if (n.kind === 'group') {
+        if (Array.isArray(nodes) && nodes.length === 1) {
+          pushHierarchy(ownerPath, parent, n.children, outChildren);
+          continue;
+        }
+
+        const gid = uiId;
+        const childIds2: string[] = [];
+        items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label, id: baseId } };
+        pushHierarchy(ownerPath, gid, n.children, childIds2);
+        outChildren.push(gid);
+        continue;
+      }
+
+      if (n.kind === 'test' || n.kind === 'server') {
+        const path = n.path;
+        const itemId = uiId;
+        items[itemId] = {
+          index: itemId,
+          isFolder: n.kind === 'test',
+          children: [],
+          data: {
+            type: n.kind === 'server' ? 'server' : 'test',
+            path,
+            id: baseId,
+            title: (n as any).title,
+            parentPath: ownerPath,
+          },
+        };
+        outChildren.push(itemId);
+        continue;
+      }
+
+      if (n.kind === 'suite') {
+        const path = n.path;
+        const itemId = uiId;
+        const childIdsForSuite: string[] = [];
+        items[itemId] = {
+          index: itemId,
+          isFolder: true,
+          children: childIdsForSuite,
+          data: { type: 'suite', path, id: baseId, title: (n as any).title, parentPath: ownerPath },
+        };
+        pushHierarchy(path, itemId, suiteTreeChildren(n), childIdsForSuite);
+        outChildren.push(itemId);
+        continue;
+      }
+
+      if (n.kind === 'missing') {
+        const path = n.path;
+        const itemId = uiId;
+        items[itemId] = {
+          index: itemId,
+          isFolder: false,
+          children: [],
+          data: { type: 'test', path, id: baseId, parentPath: ownerPath },
+        };
+        outChildren.push(itemId);
+        continue;
+      }
+
+      if (n.kind === 'cycle') {
+        continue;
+      }
+    }
+  };
+
+  groups.forEach((group) => {
+    group.entries.forEach((entry) => {
+      const item = items[entry.id];
+      if (!item) {
+        return;
+      }
+
+      const hierarchy = hierarchyByEntryId[entry.id];
+      const root = hierarchy as any;
+      if (!root || typeof root !== 'object' || root.kind !== 'suite') {
+        return;
+      }
+
+      const hierarchyChildren: string[] = [];
+      pushHierarchy(entry.path, entry.id, suiteTreeChildren(root), hierarchyChildren);
+
+      if (hierarchyChildren.length) {
+        items[entry.id] = {
+          ...items[entry.id],
+          children: [...(items[entry.id].children || []), ...hierarchyChildren],
+          isFolder: true,
+        };
+      }
+    });
+  });
+
+  return applyGroupChildrenRangeLabels(items);
+}
+
 const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(function SuiteTestTree({
   groups,
   hierarchyByEntryId,
   missingFiles,
   statusIconFor,
   reportsById,
+  spilledReportIds,
+  loadingReportIds,
+  onRequestReports,
   runStateById,
   statusFilter = 'all',
   duplicateServerIds,
   onStatusFilterChange,
-  onAllCollapsedChange,
   onRunTargets,
   onRunTargetsInCore,
+  onRequestHierarchy,
+  suiteStructureKey,
+  onExpandedItemsChange,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
-  const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root', ...base.groupIds]);
-
-  const expandAll = useCallback(() => {
-    setExpandedItems(collectSuiteExpandableIds(groups, hierarchyByEntryId));
-  }, [groups, hierarchyByEntryId]);
-
-  const collapseAll = useCallback(() => {
-    setExpandedItems(['suite-root']);
-  }, []);
-
-  useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
-
-  const expandableIds = useMemo(
-    () => collectSuiteExpandableIds(groups, hierarchyByEntryId),
-    [groups, hierarchyByEntryId]
-  );
-
-  const allCollapsed = useMemo(() => {
-    const targets = expandableIds.filter((id) => id !== 'suite-root' && !/^group-\d+$/.test(id));
-    if (targets.length === 0) {
-      return false;
-    }
-    return targets.every((id) => !expandedItems.includes(id));
-  }, [expandableIds, expandedItems]);
-
-  useLayoutEffect(() => {
-    onAllCollapsedChange?.(allCollapsed);
-  }, [allCollapsed, onAllCollapsedChange]);
-
-  // Expand base group nodes by default — one-time on mount.
-  useEffect(() => {
-    setExpandedItems((prev) => {
-      const next = new Set(prev);
-      base.groupIds.forEach((id) => next.add(id));
-      return Array.from(next);
-    });
-  }, [base.groupIds]);
-
-  // Auto-expand imported suite entries and their nested group/suite nodes
-  // when a hierarchy is attached for an entry path.
-  useEffect(() => {
-    const idsToAdd = new Set<string>();
-    for (const group of groups) {
-      for (const entry of group.entries) {
-        const root = (hierarchyByEntryId as any)?.[entry.id];
-        if (!root || typeof root !== 'object' || root.kind !== 'suite') {
-          continue;
-        }
-        // ensure the entry itself is expanded so imported children are visible
-        idsToAdd.add(entry.id);
-
-        // recursively collect UI ids (parent::child) for suite/group nodes
-        // so auto-expand works with UI-scoped ids rather than core bundle ids.
-        const collect = (parentId: string, nodes: any[]) => {
-          for (let idx = 0; idx < (nodes || []).length; idx++) {
-            const n = nodes[idx];
-            if (!n || typeof n !== 'object') {
-              continue;
-            }
-            const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
-            const uiId = `${parentId}::${baseId}`;
-            if (n.kind === 'group' || n.kind === 'suite') {
-              idsToAdd.add(uiId);
-              const kids = n.kind === 'suite' ? suiteTreeChildren(n) : (n.children || []);
-              if (Array.isArray(kids) && kids.length) {
-                collect(uiId, kids);
-              }
-            }
-          }
-        };
-        collect(entry.id, suiteTreeChildren(root));
-      }
-    }
-    if (idsToAdd.size) {
-      setExpandedItems((prev) => {
-        const next = new Set(prev);
-        idsToAdd.forEach((id) => next.add(id));
-        return Array.from(next);
-      });
-    }
-  }, [hierarchyByEntryId, groups]);
-
-  const treeData = useMemo(() => {
-    const items: Record<string, TreeItem<SuiteTestTreeItemData>> = { ...base.items };
-
-    // Resolve each top-level suite entry to either a suite or a test.
-    for (let gi = 0; gi < groups.length; gi++) {
-      const group = groups[gi];
-      for (let ei = 0; ei < group.entries.length; ei++) {
-        const entry = group.entries[ei];
-        const entryItem = items[entry.id];
-        if (!entryItem) {
-          continue;
-        }
-        const hierarchy = hierarchyByEntryId[entry.id] as any;
-        const isSuite = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'suite';
-        const entryId = entry.id;
-
-        if (!isSuite) {
-          const isServer = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'server';
-          items[entry.id] = {
-            ...entryItem,
-            isFolder: !isServer,
-            children: [],
-            data: {
-              type: isServer ? 'server' : 'test',
-              path: entry.path,
-              id: entryId,
-              title: (hierarchy as any)?.title,
-              parentPath: '',
-            },
-          };
-          continue;
-        }
-
-        // Top-level imported suite entry. Its children should be displayed relative to this suite file.
-        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, id: entryId, title: (hierarchy as any)?.title, parentPath: '' } };
-      }
-    }
-
+  const defaultExpandedItems = useMemo(() => buildDefaultExpandedSuiteIds(groups), [groups]);
+  const topLevelEntryIds = useMemo(() => {
+    const ids = new Set<string>();
     groups.forEach((group) => {
       group.entries.forEach((entry) => {
-        const item = items[entry.id];
-        if (!item) {
-          return;
-        }
-
-        const hierarchy = hierarchyByEntryId[entry.id];
-        const root = hierarchy as any;
-        if (!root || typeof root !== 'object' || root.kind !== 'suite') {
-          return;
-        }
-
-        const isExpanded = expandedItems.includes(entry.id);
-        if (!isExpanded) {
-          return;
-        }
-
-        const hierarchyChildren: string[] = [];
-
-        const pushHierarchy = (ownerPath: string, parent: string, nodes: SuiteTreeNode[], outChildren: string[]) => {
-          for (let idx = 0; idx < (nodes || []).length; idx++) {
-            const n = (nodes as any)[idx];
-            if (!n) continue;
-
-            const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
-            const uiId = `${parent}::${baseId}`;
-
-            if (n.kind === 'group') {
-              // If the suite's children array contains exactly one group, flatten
-              // that group into the parent UI node so the UI doesn't show an
-              // unnecessary single group level for imported suites.
-              if (Array.isArray(nodes) && nodes.length === 1) {
-                // recurse into the single group's children directly under parent
-                pushHierarchy(ownerPath, parent, n.children, outChildren);
-                continue;
-              }
-
-              const gid = uiId;
-              const childIds2: string[] = [];
-              items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label, id: baseId } };
-              // recurse and populate childIds2
-              pushHierarchy(ownerPath, gid, n.children, childIds2);
-              outChildren.push(gid);
-              continue;
-            }
-
-            if (n.kind === 'test' || n.kind === 'server') {
-              const path = n.path;
-              const itemId = uiId;
-              items[itemId] = {
-                index: itemId,
-                isFolder: n.kind === 'test',
-                children: [],
-                data: {
-                  type: n.kind === 'server' ? 'server' : 'test',
-                  path,
-                  id: baseId,
-                  title: (n as any).title,
-                  parentPath: ownerPath,
-                },
-              };
-              outChildren.push(itemId);
-              continue;
-            }
-
-            if (n.kind === 'suite') {
-              const path = n.path;
-              const itemId = uiId;
-              const childIdsForSuite: string[] = [];
-              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId, title: (n as any).title, parentPath: ownerPath } };
-              pushHierarchy(path, itemId, suiteTreeChildren(n), childIdsForSuite);
-              outChildren.push(itemId);
-              continue;
-            }
-
-            if (n.kind === 'missing') {
-              const path = n.path;
-              const itemId = uiId;
-              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: baseId, parentPath: ownerPath } };
-              outChildren.push(itemId);
-              continue;
-            }
-
-            if (n.kind === 'cycle') {
-              // ignore cycles in UI
-              continue;
-            }
-          }
-        };
-
-        pushHierarchy(entry.path, entry.id, suiteTreeChildren(root), hierarchyChildren);
-
-        // Only show imported children when expanded.
-        if (hierarchyChildren.length) {
-          items[entry.id] = { ...items[entry.id], children: [...(items[entry.id].children || []), ...hierarchyChildren], isFolder: true };
-        }
+        ids.add(entry.id);
       });
     });
+    return ids;
+  }, [groups]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(defaultExpandedItems);
+  const onExpandedItemsChangeRef = useRef(onExpandedItemsChange);
+  onExpandedItemsChangeRef.current = onExpandedItemsChange;
+  const treeItemsRef = useRef<Record<string, TreeItem<SuiteTestTreeItemData>>>({});
+  const suiteStructureKeyRef = useRef<string | undefined>(undefined);
 
-    return { items };
-  }, [base.items, expandedItems, groups, hierarchyByEntryId]);
+  const syncExpandedItems = useCallback((
+    next: string[],
+    items: Record<string, TreeItem<SuiteTestTreeItemData>> = treeItemsRef.current,
+  ) => {
+    onExpandedItemsChangeRef.current?.(next, items);
+  }, []);
+
+  useEffect(() => {
+    if (suiteStructureKeyRef.current === suiteStructureKey) {
+      return;
+    }
+    suiteStructureKeyRef.current = suiteStructureKey;
+    setExpandedItems(defaultExpandedItems);
+    syncExpandedItems(defaultExpandedItems);
+  }, [suiteStructureKey, defaultExpandedItems, syncExpandedItems]);
+
+  const collapseAll = useCallback(() => {
+    setExpandedItems(defaultExpandedItems);
+    syncExpandedItems(defaultExpandedItems);
+  }, [defaultExpandedItems, syncExpandedItems]);
+
+  useImperativeHandle(ref, () => ({ collapseAll }), [collapseAll]);
+
+  const treeData = useMemo(
+    () => ({ items: buildSuiteTestTreeItems(groups, hierarchyByEntryId, base.items) }),
+    [base.items, groups, hierarchyByEntryId],
+  );
+  treeItemsRef.current = treeData.items;
+
+  useEffect(() => {
+    const validItemIds = new Set(Object.keys(treeData.items));
+    setExpandedItems((prev) => {
+      const next = reconcileExpandedSuiteItems(prev, validItemIds, defaultExpandedItems, {
+        mergeDefaults: false,
+      });
+      if (next.length === prev.length && next.every((id, index) => id === prev[index])) {
+        return prev;
+      }
+      syncExpandedItems(next, treeData.items);
+      return next;
+    });
+  }, [treeData.items, defaultExpandedItems, syncExpandedItems]);
+
+  const reportsByIdRef = useRef(reportsById);
+  const runStateByIdRef = useRef(runStateById);
+  const spilledReportIdsRef = useRef(spilledReportIds);
+  const loadingReportIdsRef = useRef(loadingReportIds);
+  const onRequestReportsRef = useRef(onRequestReports);
+  reportsByIdRef.current = reportsById;
+  runStateByIdRef.current = runStateById;
+  spilledReportIdsRef.current = spilledReportIds;
+  loadingReportIdsRef.current = loadingReportIds;
+  onRequestReportsRef.current = onRequestReports;
 
   const visibleItems = useMemo(() => {
     if (statusFilter === 'all') {
@@ -469,27 +508,39 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
 
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
-      setExpandedItems((prev) => (prev.includes(String(item.index)) ? prev : [...prev, String(item.index)]));
+      const itemId = String(item.index);
+      setExpandedItems((prev) => {
+        const next = prev.includes(itemId) ? prev : [...prev, itemId];
+        syncExpandedItems(next);
+        return next;
+      });
+      if (onRequestHierarchy && topLevelEntryIds.has(itemId) && !hierarchyByEntryId[itemId]) {
+        onRequestHierarchy(itemId);
+      }
     },
-    []
+    [hierarchyByEntryId, onRequestHierarchy, syncExpandedItems, topLevelEntryIds],
   );
 
   const handleCollapse = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
-      setExpandedItems((prev) => prev.filter((id) => id !== String(item.index)));
+      setExpandedItems((prev) => {
+        const next = prev.filter((id) => id !== String(item.index));
+        syncExpandedItems(next);
+        return next;
+      });
     },
-    []
+    [syncExpandedItems]
   );
 
   // Icon status is own-id only: never roll up children into parents.
   const getGroupStatus = useCallback((groupItemId: string): StepStatus => {
     const match = /^group-(\d+)$/.exec(groupItemId);
     if (match) {
-      return ownRunStatus(runStateById, createSuiteNodeId([Number(match[1]) - 1]));
+      return ownRunStatus(runStateByIdRef.current, createSuiteNodeId([Number(match[1]) - 1]));
     }
     const bundleId = (treeData.items[groupItemId]?.data as any)?.id;
-    return ownRunStatus(runStateById, typeof bundleId === 'string' ? bundleId : undefined);
-  }, [runStateById, treeData.items]);
+    return ownRunStatus(runStateByIdRef.current, typeof bundleId === 'string' ? bundleId : undefined);
+  }, [treeData.items]);
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
     const match = /^group-(\d+)$/.exec(groupItemId);
@@ -506,36 +557,19 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     return typeof bundleId === 'string' && bundleId ? [bundleId] : [];
   }, [groups, treeData.items]);
 
-  const renderItem = useCallback(({ item, context, arrow, children }: any) => {
+  const renderItem = useCallback(({ item, context, arrow, children, depth }: any) => {
+    const reportsById = reportsByIdRef.current;
+    const runStateById = runStateByIdRef.current;
+    const spilledReportIds = spilledReportIdsRef.current;
+    const loadingReportIds = loadingReportIdsRef.current;
+    const onRequestReports = onRequestReportsRef.current;
     const data = item.data as SuiteTestTreeItemData;
 
     // Prefer the explicit parentPath recorded in the tree node data.
     // This keeps relative label behavior stable even when the UI id doesn't
     // map 1:1 to a suite path (e.g. top-level suite entries).
     const isFileRow = data && (data.type === 'test' || data.type === 'suite' || data.type === 'server');
-    const parentPath = isFileRow ? (data as any).parentPath : undefined;
-    const rawPath = isFileRow ? (data as any).path : undefined;
-    const displayPath = (() => {
-      if (!rawPath || typeof rawPath !== 'string') {
-        return undefined;
-      }
-
-      // Prefer YAML title when present.
-      const title = isFileRow ? (data as any).title : undefined;
-      if (typeof title === 'string' && title.trim()) {
-        return title.trim();
-      }
-
-      // Imported items: show the exact string as written in the parent suite list.
-      // If we cannot compute a friendly label, fall back to just the filename.
-      if (typeof parentPath === 'string' && parentPath) {
-        const rel = relativeToParentDir(rawPath, parentPath);
-        return rel && rel !== rawPath ? rel : basename(rawPath);
-      }
-
-      // Top-level suite entries: show filename only (avoids long noisy paths).
-      return basename(rawPath);
-    })();
+    const displayPath = isFileRow ? suiteTreeItemDisplayName(data) : undefined;
 
     if (data.type === 'group' || data.type === 'root') {
       const itemId = String(item.index);
@@ -545,6 +579,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         <SuiteTestGroupItem
           item={item}
           context={context}
+          depth={depth}
           arrow={arrow}
           children={children}
           status={getGroupStatus(itemId)}
@@ -580,6 +615,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         <SuiteSuiteFileItem
           item={item as any}
           context={context}
+          depth={depth}
           arrow={arrow}
           children={children}
           missingFiles={missingFiles}
@@ -605,17 +641,27 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     const stepReports = showReports
       ? (reportsById[testLeafId!] || EMPTY_STEP_REPORTS)
       : EMPTY_STEP_REPORTS;
+    const reportSpilled = Boolean(testLeafId && spilledReportIds?.has(testLeafId));
+    const reportLoading = Boolean(testLeafId && loadingReportIds?.has(testLeafId));
 
     return (
       <SuiteTestFileItem
         item={item as any}
         context={context}
+        depth={depth}
         arrow={arrow}
         children={children}
         missingFiles={missingFiles}
         statusIconFor={statusIconFor as any}
         status={status}
         stepReports={stepReports}
+        reportSpilled={reportSpilled}
+        reportLoading={reportLoading}
+        onRequestReports={
+          reportSpilled && testLeafId && onRequestReports
+            ? () => onRequestReports(testLeafId)
+            : undefined
+        }
         onRun={data.type !== 'server' && canRunLeaf ? () => onRunTargets(testLeafId!) : undefined}
         onRunInCore={
           data.type !== 'server' && canRunLeaf && onRunTargetsInCore
@@ -634,8 +680,6 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     missingFiles,
     onRunTargets,
     onRunTargetsInCore,
-    reportsById,
-    runStateById,
     duplicateServerIds,
     statusIconFor,
   ]);
@@ -649,6 +693,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
       ) : (
     <ControlledTreeEnvironment
       items={visibleItems}
+      renderDepthOffset={TREE_DEPTH_OFFSET}
       getItemTitle={(item) => {
         const data = item.data as SuiteTestTreeItemData;
         // Show the id in the accessible/title string for all node kinds.
@@ -672,28 +717,30 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
       onCollapseItem={handleCollapse}
       onDrop={undefined}
       onSelectItems={() => { }}
-      renderItemArrow={({ item, context }) =>
-        item.isFolder ? (
-          <span {...context.arrowProps} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
-            {context.isExpanded ? (
-              <span className="codicon codicon-chevron-down" style={{ fontSize: 16 }} />
-            ) : (
-              <span className="codicon codicon-chevron-right" style={{ fontSize: 16 }} />
-            )}
-          </span>
-        ) : (
-          <span style={{ display: 'inline-block', width: 24, height: 24 }} />
-        )
-      }
+      renderItemArrow={({ item, context }) => (
+        <TreeFolderArrow
+          isFolder={!!item.isFolder}
+          isExpanded={context.isExpanded}
+          arrowProps={context.arrowProps}
+        />
+      )}
       renderItem={renderItem}
       renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
       renderItemsContainer={({ children, containerProps }) => (
-        <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}>
+        <ul
+          {...containerProps}
+          className={['tree-list', containerProps.className].filter(Boolean).join(' ')}
+          style={containerProps.style}
+        >
           {children}
         </ul>
       )}
-      renderDragBetweenLine={({ lineProps }) => (
-        <div {...lineProps} style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }} />
+      renderDragBetweenLine={({ lineProps, draggingPosition }) => (
+        <div
+          {...lineProps}
+          style={treeDragBetweenLineStyle(lineProps.style, draggingPosition.depth, 0)}
+          className={['tree-drop-line', lineProps.className].filter(Boolean).join(' ')}
+        />
       )}
     >
       <Tree treeId="suite-test-tree" rootItem="suite-root" treeLabel="Suite structure" />

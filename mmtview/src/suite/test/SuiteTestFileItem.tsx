@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
@@ -10,18 +10,24 @@ import {
     suiteFileLabelTitle,
 } from './suiteTreeLabelClick';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
+import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
+import { TreeDepthContainer } from '../../components/TreeChevron';
 
 export type SuiteTestFileItemData = { type: 'test' | 'server'; path: string; id: string }
 
 interface SuiteTestFileItemProps {
     item: TreeItem<any>;
     context: any;
+    depth: number;
     arrow: React.ReactNode;
     children: React.ReactNode;
     missingFiles: Set<string>;
     statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     status: StepStatus;
     stepReports: StepReportItem[];
+    reportSpilled?: boolean;
+    reportLoading?: boolean;
+    onRequestReports?: () => void;
 
     onRun?: () => void;
     onRunInCore?: () => void;
@@ -35,12 +41,16 @@ interface SuiteTestFileItemProps {
 const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     item,
     context,
+    depth,
     arrow,
     children,
     missingFiles,
     statusIconFor,
     status,
     stepReports,
+    reportSpilled = false,
+    reportLoading = false,
+    onRequestReports,
     onRun,
     onRunInCore,
     runButtonTitle = 'Run',
@@ -68,6 +78,18 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     // Show reports when the node is expanded (chevron or label click).
     const shouldShowReports = !isServer && context?.isExpanded;
 
+    useEffect(() => {
+        if (
+            shouldShowReports &&
+            reportSpilled &&
+            !reportLoading &&
+            stepReports.length === 0 &&
+            onRequestReports
+        ) {
+            onRequestReports();
+        }
+    }, [shouldShowReports, reportSpilled, reportLoading, stepReports.length, onRequestReports]);
+
     const activateLabel = (event: React.MouseEvent | React.KeyboardEvent, openFile: boolean) => {
         handleSuiteFileLabelActivate({
             event,
@@ -80,7 +102,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     };
 
     return (
-        <div {...context.itemContainerWithChildrenProps}>
+        <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
             <div
                 className="tree-view-box tree-view-box-row"
                 {...context.itemContainerWithoutChildrenProps}
@@ -92,18 +114,6 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                         title={isMissing ? data.path : suiteFileLabelTitle(data.path)}
                         role={isMissing ? undefined : 'button'}
                         tabIndex={isMissing ? undefined : 0}
-                        onMouseEnter={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            (e.currentTarget as any).style.opacity = '0.8';
-                        }}
-                        onMouseLeave={(e) => {
-                            if (isMissing) {
-                                return;
-                            }
-                            (e.currentTarget as any).style.opacity = '1';
-                        }}
                         onClick={(e) => activateLabel(e, isOpenFileModifier(e))}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -112,19 +122,13 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                         }}
                     >
                         {statusIcon && (
-                        <span
-                            className={`codicon ${statusIcon.icon}`}
-                            aria-hidden
+                          <StatusGlyph
+                            icon={statusIcon.icon}
+                            color={statusIcon.color}
                             title={statusIcon.title}
-                            style={{ color: statusIcon.color }}
-                        />
+                          />
                         )}
-                        <span
-                            className={`codicon ${isServer ? 'codicon-server-environment' : 'codicon-beaker'}`}
-                            aria-hidden
-                            title={isServer ? 'Mock server' : 'Test'}
-                            style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }}
-                        />
+                        <SuiteKindIcon kind={isServer ? 'server' : 'test'} />
                         <span
                             className={duplicateServer ? 'mmt-line-error' : undefined}
                             title={duplicateServer ? 'This mock server is listed more than once in this suite' : undefined}
@@ -144,8 +148,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
             </div>
             {shouldShowReports && (
                 <div
-                    className="report-selectable"
-                    style={{ paddingBottom: 8 }}
+                    className="report-selectable pad-b-8"
                     // Capture mousedown/pointer so the suite tree does not steal focus/selection,
                     // but do NOT stop click in capture — that blocks the details circle button
                     // (same pitfall as TestFlow's NoTreeInterference).
@@ -155,20 +158,26 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                     onClick={(e) => e.stopPropagation()}
                     onDoubleClick={(e) => e.stopPropagation()}
                 >
-                    <TestStepReportPanel
-                        isExpanded={true}
-                        stepReports={stepReports}
-                        runState={
-                            runState === 'running' || runState === 'passed' || runState === 'failed' ||
-                            runState === 'invalid'
-                                ? runState
-                                : 'failed'
-                        }
-                        showHeader={false}
-                    />
+                    {reportLoading ? (
+                        <div className="meta-row pad-l-8" style={{ opacity: 0.7 }}>
+                            Loading report…
+                        </div>
+                    ) : (
+                        <TestStepReportPanel
+                            isExpanded={true}
+                            stepReports={stepReports}
+                            runState={
+                                runState === 'running' || runState === 'passed' || runState === 'failed' ||
+                                runState === 'invalid'
+                                    ? runState
+                                    : 'failed'
+                            }
+                            showHeader={false}
+                        />
+                    )}
                 </div>
             )}
-        </div>
+        </TreeDepthContainer>
     );
 };
 

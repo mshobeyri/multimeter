@@ -19,10 +19,10 @@ export const statusIconFor = (status: StepStatus) => {
         return { icon: 'codicon-warning', color: '#f8b449', title: 'Error' };
     }
     if (status === 'pending') {
-        return { icon: 'codicon-compass', color: '#7c847e', title: 'Pending' };
+        return { icon: 'codicon-clockface', color: '#6d8974', title: 'Pending' };
     }
     if (status === 'skipped') {
-        return { icon: 'codicon-skip', color: 'var(--vscode-descriptionForeground, #7c847e)', title: 'Skipped' };
+        return { icon: 'codicon-skip', color: '#7c847e', title: 'Skipped' };
     }
     if (status === 'debug') {
         return { icon: 'codicon-debug', color: '#8973ea', title: 'Debug' };

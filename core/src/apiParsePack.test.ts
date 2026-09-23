@@ -307,7 +307,7 @@ describe('yamlToAPIStrict and auth failures', () => {
     expect(yamlToAPI('type: api\nurl: https://x\nformat: yaml').format).toBe('json');
     expect(yamlToAPI('type: api\nurl: https://x\nformat:\n  request: xml\n  response: text').format)
         .toEqual({request: 'xml', response: 'text'});
-    expect(yamlToAPI('type: api\nurl: https://x\nformat:\n  request: nope').format).toBe('json');
+    expect(yamlToAPI('type: api\nurl: https://x\nformat:\n  request: nope').format).toBeUndefined();
     const packed = apiToYaml({
       type: 'api',
       url: 'https://x',

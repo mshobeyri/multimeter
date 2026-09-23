@@ -180,6 +180,28 @@ describe('outputExtractor', () => {
     expect(res.sid).toBe('S-77');
   });
 
+  it('does not treat HTML or binary Content-Type as JSON', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const html = extractOutputs({
+      type: 'auto',
+      body: '<!DOCTYPE html><html><body>Hi</body></html>',
+      headers: {'Content-Type': 'text/html; charset=utf-8'},
+      cookies: {},
+    }, {body: 'body'});
+    expect(html.body).toContain('<!DOCTYPE html>');
+    expect(warn).not.toHaveBeenCalled();
+
+    const bytes = extractOutputs({
+      type: 'auto',
+      body: 'not-json',
+      headers: {'Content-Type': 'application/octet-stream'},
+      cookies: {},
+    }, {body: 'body'});
+    expect(bytes.body).toBe('not-json');
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it('auto-detects XML and flattens to extract values', () => {
     const response: ResponseData = {
       type: 'auto',

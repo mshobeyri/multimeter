@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman.",
-	"version": "1.43.0",
+	"version": "1.43.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -189,6 +189,12 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically open the Multimeter log panel when running a test, API, or suite from the editor"
+        },
+        "multimeter.suite.reportSpillBytes": {
+          "type": "number",
+          "default": 2097152,
+          "minimum": 0,
+          "description": "When in-memory suite run reports exceed this many bytes, step details move to internal browser storage and load only when a report row is expanded. Set to 0 to disable."
         }
       }
     },

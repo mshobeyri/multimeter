@@ -16,23 +16,18 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
   const [showPreview, setShowPreview] = useState(false);
 
   return (
-    <div
-      className="APIOverview"
-      style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}
-    >
-      <div className="label">Title</div>
-
-      <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "5px" }}>
+    <div className="panel-form APIOverview">
+      <div className="panel-form-row">
+        <div className="label">Title</div>
         <input
-          style={{ width: "100%", boxSizing: "border-box" }}
           value={api.title || ""}
           onChange={e => update({ title: e.target.value })}
           placeholder="title"
         />
       </div>
 
-      <div className="label">Tags</div>
-      <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "5px" }}>
+      <div className="panel-form-row">
+        <div className="label">Tags</div>
         <SearchableTagInput
           tags={safeList(api.tags)}
           onChange={tags => update({ tags })}
@@ -40,33 +35,30 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         />
       </div>
 
-      <div className="label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span>Description</span>
-        <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 400, cursor: "pointer", userSelect: "none" }}>
-          <input
-            type="checkbox"
-            checked={showPreview}
-            onChange={e => setShowPreview(e.target.checked)}
-            style={{ margin: 0, cursor: "pointer" }}
-          />
-          Preview
-        </label>
-      </div>
-      <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "5px" }}>
+      <div className="panel-form-row">
+        <div className="label label-row">
+          <span>Description</span>
+          <label className="label-action">
+            <input
+              type="checkbox"
+              checked={showPreview}
+              onChange={e => setShowPreview(e.target.checked)}
+            />
+            Preview
+          </label>
+        </div>
         <DescriptionEditor
           value={api.description || ""}
           onChange={value => update({ description: value })}
         />
-      </div>
-      {showPreview && api.description && (
-        <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "0 5px" }}>
+        {showPreview && api.description ? (
           <MdViewer
             description={api.description}
             inputs={api.inputs}
             outputs={api.outputs}
           />
-        </div>
-      )}
+        ) : null}
+      </div>
 
       <KSVEditor
         label="Import"
@@ -108,7 +100,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         keyPlaceholder="name"
         valuePlaceholder="body.path or regex"
       />
-    </div >
+    </div>
   );
 };
 

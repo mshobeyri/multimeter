@@ -43,7 +43,7 @@ describe('networkCore request timeout', () => {
     mockedAxios.request.mockReset();
     http2.connect.mockClear();
     mockedAxios.request.mockResolvedValue({
-      data: '',
+      data: new TextEncoder().encode('').buffer,
       headers: {},
       status: 200,
       statusText: 'OK',
@@ -106,6 +106,31 @@ describe('networkCore request timeout', () => {
     );
   });
 
+  it('preserves binary image responses as structured payloads', async () => {
+    const pngBytes = Uint8Array.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    mockedAxios.request.mockResolvedValueOnce({
+      data: pngBytes.buffer,
+      headers: {'content-type': 'image/png'},
+      status: 200,
+      statusText: 'OK',
+    });
+
+    const response = await sendHttpRequest(
+        {url: 'https://example.com/logo.png', method: 'get'},
+        DEFAULT_NETWORK_CONFIG,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(expect.objectContaining({
+      __mmtBinary: true,
+      byteLength: 8,
+      previewMime: 'image/png',
+    }));
+    expect(mockedAxios.request).toHaveBeenCalledWith(
+        expect.objectContaining({responseType: 'arraybuffer'}),
+    );
+  });
+
   it('uses the basic HTTP/2 transport when configured', async () => {
     const response = await sendHttpRequest(
         {url: 'https://example.com/users', method: 'get'},
@@ -131,10 +156,16 @@ describe('networkCore request timeout', () => {
     );
 
     expect((agent as any).options).toMatchObject({
-      keepAlive: false,
+      keepAlive: true,
       maxCachedSessions: 0,
     });
     expect((agent as any).options.secureOptions).toBeGreaterThan(0);
+    expect(createHttpsAgentWithCertificates(
+               'tls-agent.example.com',
+               '443',
+               'https:',
+               DEFAULT_NETWORK_CONFIG,
+               )).toBe(agent);
   });
 
   it('applies TLS compatibility defaults to HTTP/2 sessions', async () => {
@@ -194,7 +225,7 @@ describe('networkCore request timeout', () => {
             {code: 'ERR_SSL_TLSV1_ALERT_CERTIFICATE_REQUIRED'},
         ))
         .mockResolvedValueOnce({
-          data: 'ok',
+          data: new TextEncoder().encode('ok').buffer,
           headers: {},
           status: 200,
           statusText: 'OK',
@@ -233,7 +264,7 @@ describe('networkCore request timeout', () => {
             {code: 'ERR_SSL_TLSV1_ALERT_CERTIFICATE_REQUIRED'},
         ))
         .mockResolvedValueOnce({
-          data: 'ok',
+          data: new TextEncoder().encode('ok').buffer,
           headers: {},
           status: 200,
           statusText: 'OK',

@@ -38,7 +38,16 @@ const dataRefOr = (...schemas: any[]) => ({
     ]
 });
 
-const FormatEnumSchema = { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary', 'multipart'] };
+const FormatEnumSchema = { type: 'string', enum: ['none', 'json', 'xml', 'xmle', 'text', 'html', 'urlencoded', 'binary', 'multipart'] };
+const AutoFormatEnumSchema = { type: 'string', enum: [...FormatEnumSchema.enum, 'auto'] };
+const ResponseFormatEnumSchema = {
+  type: 'string',
+  enum: FormatEnumSchema.enum.filter((value: string) => value !== 'none'),
+};
+const AutoResponseFormatEnumSchema = {
+  type: 'string',
+  enum: [...ResponseFormatEnumSchema.enum, 'auto'],
+};
 
 /** Scalar format or `{ request, response }` when they differ. */
 const FormatSpecSchema = {
@@ -47,12 +56,39 @@ const FormatSpecSchema = {
         {
             type: 'object',
             properties: {
-                request: FormatEnumSchema,
-                response: FormatEnumSchema,
+                request: AutoFormatEnumSchema,
+                response: AutoResponseFormatEnumSchema,
             },
             additionalProperties: false,
         },
     ],
+};
+
+/**
+ * Request/response payload. JSON Schema `object` does not include arrays, but
+ * runtime bodies do: JSON lists, multipart parts lists, raw strings, scalars, null.
+ */
+const BodySchema = {
+    anyOf: [
+        { type: 'string' },
+        { type: 'number' },
+        { type: 'boolean' },
+        { type: 'object', additionalProperties: true },
+        { type: 'array' },
+        { type: 'null' }
+    ]
+};
+
+/** Header/query/cookie values. YAML leaves unquoted numbers and bools as scalars. */
+const StringMapSchema = {
+    type: 'object',
+    additionalProperties: {
+        anyOf: [
+            { type: 'string' },
+            { type: 'number' },
+            { type: 'boolean' }
+        ]
+    }
 };
 
 export const SuiteSchema = {
@@ -211,15 +247,10 @@ export const APISchema = {
         timeout: dataRefOr({ type: 'number', minimum: 0 }),
         format: dataRefOr(FormatSpecSchema),
         url: { type: 'string' },
-        headers: { type: 'object', additionalProperties: { type: 'string' } },
-        query: { type: 'object', additionalProperties: { type: 'string' } },
-        cookies: { type: 'object', additionalProperties: { type: 'string' } },
-        body: {
-            anyOf: [
-                { type: 'string' },
-                { type: 'object', additionalProperties: true }
-            ]
-        },
+        headers: StringMapSchema,
+        query: StringMapSchema,
+        cookies: StringMapSchema,
+        body: BodySchema,
         graphql: {
             type: 'object',
             properties: {
@@ -669,15 +700,9 @@ export const TestSchema = {
                             },
                             timeout: { type: 'number', minimum: 0 },
                             format: FormatSpecSchema,
-                            headers: { type: 'object', additionalProperties: { type: 'string' } },
-                            query: { type: 'object', additionalProperties: { type: 'string' } },
-                            body: {
-                                anyOf: [
-                                    { type: 'string' },
-                                    { type: 'object', additionalProperties: true },
-                                    { type: 'null' }
-                                ]
-                            },
+                            headers: StringMapSchema,
+                            query: StringMapSchema,
+                            body: BodySchema,
                             outputs: {
                                 type: 'object',
                                 additionalProperties: { type: 'string' }
@@ -844,7 +869,7 @@ export const TestSchema = {
                     // if step
                     {
                         type: 'object',
-                        required: ['if', 'steps'],
+                        required: ['if'],
                         properties: {
                             if: { type: 'string' },
                             steps: { $ref: '#/properties/steps' },
@@ -855,7 +880,7 @@ export const TestSchema = {
                     // for step
                     {
                         type: 'object',
-                        required: ['for', 'steps'],
+                        required: ['for'],
                         properties: {
                             for: { type: 'string' },
                             steps: { $ref: '#/properties/steps' }
@@ -865,7 +890,7 @@ export const TestSchema = {
                     // repeat step
                     {
                         type: 'object',
-                        required: ['repeat', 'steps'],
+                        required: ['repeat'],
                         properties: {
                             repeat: { type: ['integer', 'string', 'boolean', 'object', 'array', 'null'] },
                             steps: { $ref: '#/properties/steps' }
@@ -1193,31 +1218,44 @@ export const MockSchema = {
         },
         cors: { type: 'boolean' },
         delay: { type: 'number', minimum: 0 },
-        headers: { type: 'object', additionalProperties: { type: 'string' } },
+        headers: StringMapSchema,
         endpoints: {
             type: 'array',
             items: {
                 type: 'object',
                 required: ['path'],
                 properties: {
-                    method: { type: 'string', enum: ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'] },
+                    method: { type: 'string', enum: ['get', 'post', 'put', 'delete', 'patch', 'head', 'options', 'trace'] },
                     path: { type: 'string' },
                     name: { type: 'string' },
                     match: {
                         type: 'object',
                         properties: {
-                            body: { type: 'object' },
-                            headers: { type: 'object', additionalProperties: { type: 'string' } },
-                            query: { type: 'object', additionalProperties: { type: 'string' } }
+                            body: { type: 'object', additionalProperties: true },
+                            headers: StringMapSchema,
+                            query: StringMapSchema
                         },
                         additionalProperties: false
                     },
                     status: { type: 'number', minimum: 100, maximum: 599 },
                     format: FormatEnumSchema,
-                    headers: { type: 'object', additionalProperties: { type: 'string' } },
-                    body: {},
+                    headers: StringMapSchema,
+                    body: BodySchema,
                     delay: { type: 'number', minimum: 0 },
-                    reflect: { type: 'boolean' }
+                    reflect: { type: 'boolean' },
+                    messages: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                match: { type: 'object', additionalProperties: true },
+                                body: BodySchema,
+                                format: FormatEnumSchema,
+                                delay: { type: 'number', minimum: 0 }
+                            },
+                            additionalProperties: false
+                        }
+                    }
                 },
                 additionalProperties: false
             }
@@ -1228,8 +1266,8 @@ export const MockSchema = {
             properties: {
                 status: { type: 'number' },
                 format: FormatEnumSchema,
-                headers: { type: 'object', additionalProperties: { type: 'string' } },
-                body: {}
+                headers: StringMapSchema,
+                body: BodySchema
             },
             additionalProperties: false
         }

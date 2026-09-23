@@ -1,7 +1,6 @@
 import React from "react";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
-import { ReportLevel, ReportConfig } from "mmt-core/TestData";
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
@@ -10,7 +9,8 @@ import {
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
 import FieldWithRemove from "../components/FieldWithRemove";
-import OperatorSelect from "../components/OperatorSelect";
+import CheckClauseList, { CheckClauseFieldSelect } from "../components/CheckClauseList";
+import ReportLevelFields from "../components/ReportLevelFields";
 
 /** A single row in the expect UI list */
 type ExpectRow = ExpectUiRow;
@@ -126,31 +126,6 @@ const TestCall: React.FC<TestCallProps> = ({
   const callReport = React.useMemo(() => {
     return local && typeof local === 'object' ? (local as any).report : undefined;
   }, [local]);
-
-  const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
-
-  // Parse current report value into internal/external
-  const isReportObjectForm = callReport && typeof callReport === 'object';
-  const reportInternalValue: ReportLevel = isReportObjectForm
-    ? (callReport as ReportConfig).internal ?? 'all'
-    : (typeof callReport === 'string' ? callReport as ReportLevel : 'all');
-  const reportExternalValue: ReportLevel = isReportObjectForm
-    ? (callReport as ReportConfig).external ?? 'fails'
-    : (typeof callReport === 'string' ? callReport as ReportLevel : 'fails');
-
-  const handleReportChange = (internal: ReportLevel, external: ReportLevel) => {
-    let rep: any;
-    if (internal === 'all' && external === 'fails') {
-      rep = undefined;
-    } else if (internal === external) {
-      rep = internal;
-    } else {
-      rep = { internal, external };
-    }
-    const next = buildCallObj({ report: rep });
-    setLocal(next);
-    scheduleEmit(next);
-  };
 
   /** Build the full call object from current state */
   const buildCallObj = (overrides?: {
@@ -396,15 +371,11 @@ const TestCall: React.FC<TestCallProps> = ({
   const aliasErrorTitle = aliasHasProblem ? aliasProblems.map(p => p.message).join('\n') : undefined;
 
   return (
-    <div style={{ width: '100%', borderCollapse: "collapse", tableLayout: "fixed" }}>
+    <div className="mmt-fill">
       <select
         value={currentAlias}
         onChange={handleChange}
-        style={{
-          width: '100%',
-          borderColor: aliasHasProblem ? 'var(--vscode-errorForeground, #f14c4c)' : undefined,
-          boxShadow: aliasHasProblem ? '0 0 0 1px var(--vscode-errorForeground, #f14c4c)' : undefined,
-        }}
+        className={`mmt-fill${aliasHasProblem ? " is-invalid" : ""}`}
         title={aliasErrorTitle}
       >
         <option value="">{placeholder}</option>
@@ -414,7 +385,7 @@ const TestCall: React.FC<TestCallProps> = ({
       </select>
 
       <div className="label">Id</div>
-      <div style={{ padding: "5px" }}>
+      <div className="field-pad">
         <input
           type="text"
           value={currentId}
@@ -430,19 +401,17 @@ const TestCall: React.FC<TestCallProps> = ({
             }
           }}
           disabled={!currentAlias}
-          style={{ width: '100%' }}
           placeholder="Optional id to capture call result"
         />
       </div>
 
       <div className="label">Title</div>
-      <div style={{ padding: "5px" }}>
+      <div className="field-pad">
         <input
           type="text"
           value={currentTitle}
           onChange={handleTitleChange}
           disabled={!currentAlias}
-          style={{ width: '100%' }}
           placeholder="Optional display title"
         />
       </div>
@@ -450,20 +419,19 @@ const TestCall: React.FC<TestCallProps> = ({
       {currentAlias && (
         <>
           <div className="label">Parameters</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             {keys.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="field-stack is-loose">
                 {keys.map(k => {
                   const hasProblem = invalidInputKeys.has(k);
                   const problemMessage = hasProblem ? validationProblems.inputProblems.find(p => p.inputKey === k)?.message : undefined;
                   const valueForInput = typeof inputs[k] === 'string' ? inputs[k] as string : JSON.stringify(inputs[k]);
                   return (
-                    <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <div style={{ fontSize: '12px', opacity: 0.85 }}>{k}
+                    <div key={k} className="field-stack is-compact">
+                      <div className="param-key">{k}
                         {hasProblem && problemMessage && (
                           <span
-                            className="action-button codicon codicon-warning"
-                            style={{ fontSize: "10px", color: "yellow"}}
+                            className="action-button codicon codicon-warning param-warn"
                             title={problemMessage}
                             aria-label={problemMessage}
                           />
@@ -479,22 +447,16 @@ const TestCall: React.FC<TestCallProps> = ({
                 })}
               </div>
             ) : (
-              <div style={{ opacity: 0.7 }}>No parameters</div>
+              <div className="muted">No parameters</div>
             )}
             {missingInputKeys.length > 0 && (
-              <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div className="field-inline is-wrap">
                 {missingInputKeys.map((key) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => handleAddInput(key)}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: 4,
-                      border: '1px dashed var(--vscode-editorWidget-border, #555)',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                    }}
+                    className="ghost-add"
                   >
                     + {key}
                   </button>
@@ -503,178 +465,47 @@ const TestCall: React.FC<TestCallProps> = ({
             )}
           </div>
 
-          <div className="label">Expect</div>
-          <div style={{ padding: "5px" }}>
-            {expectList.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {expectList.map((row, i) => {
-                  return (
-                    <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                      <select
-                        value={row.field}
-                        onChange={(e) => handleExpectPartChange(i, 'field', e.target.value)}
-                        style={{ flex: 2, minWidth: 0 }}
-                        title="Output field to check"
-                      >
-                        <option value="" disabled>-- field --</option>
-                        {availableOutputs.map(o => (
-                          <option key={o} value={o}>{o}</option>
-                        ))}
-                        {row.field && !availableOutputs.includes(row.field) && (
-                          <option key={row.field} value={row.field}>{row.field}</option>
-                        )}
-                      </select>
-                      <OperatorSelect
-                        value={row.op as any}
-                        onChange={(nextOp) => handleExpectPartChange(i, 'op', nextOp)}
-                        style={{ flex: 1, minWidth: 0 }}
-                        title="Comparison operator"
-                      />
-                      <input
-                        type="text"
-                        value={row.expected}
-                        onChange={(e) => handleExpectPartChange(i, 'expected', e.target.value)}
-                        style={{ flex: 2, minWidth: 0 }}
-                        placeholder="expected value"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveExpect(i)}
-                        className="action-button codicon codicon-close"
-                        style={{ flexShrink: 0 }}
-                        title="Remove expect"
-                        aria-label="Remove expect"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ opacity: 0.7 }}>No expectations</div>
+          <CheckClauseList
+            kind="expect"
+            rows={expectList}
+            onPartChange={handleExpectPartChange}
+            onRemove={handleRemoveExpect}
+            onAdd={handleAddExpect}
+            renderField={(row, i) => (
+              <CheckClauseFieldSelect
+                value={row.field}
+                options={availableOutputs}
+                onChange={val => handleExpectPartChange(i, "field", val)}
+                title="Output field to check"
+              />
             )}
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={handleAddExpect}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                + Add expect
-              </button>
-            </div>
-          </div>
+          />
 
-          <div className="label">Require</div>
-          <div style={{ padding: "5px" }}>
-            {requireList.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {requireList.map((row, i) => {
-                  return (
-                    <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                      <select
-                        value={row.field}
-                        onChange={(e) => handleRequirePartChange(i, 'field', e.target.value)}
-                        style={{ flex: 2, minWidth: 0 }}
-                        title="Output field to require"
-                      >
-                        <option value="" disabled>-- field --</option>
-                        {availableOutputs.map(o => (
-                          <option key={o} value={o}>{o}</option>
-                        ))}
-                        {row.field && !availableOutputs.includes(row.field) && (
-                          <option key={row.field} value={row.field}>{row.field}</option>
-                        )}
-                      </select>
-                      <OperatorSelect
-                        value={row.op as any}
-                        onChange={(nextOp) => handleRequirePartChange(i, 'op', nextOp)}
-                        style={{ flex: 1, minWidth: 0 }}
-                        title="Comparison operator"
-                      />
-                      <input
-                        type="text"
-                        value={row.expected}
-                        onChange={(e) => handleRequirePartChange(i, 'expected', e.target.value)}
-                        style={{ flex: 2, minWidth: 0 }}
-                        placeholder="required value"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRequire(i)}
-                        className="action-button codicon codicon-close"
-                        style={{ flexShrink: 0 }}
-                        title="Remove require"
-                        aria-label="Remove require"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ opacity: 0.7 }}>No requirements</div>
+          <CheckClauseList
+            kind="require"
+            rows={requireList}
+            onPartChange={handleRequirePartChange}
+            onRemove={handleRemoveRequire}
+            onAdd={handleAddRequire}
+            renderField={(row, i) => (
+              <CheckClauseFieldSelect
+                value={row.field}
+                options={availableOutputs}
+                onChange={val => handleRequirePartChange(i, "field", val)}
+                title="Output field to require"
+              />
             )}
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={handleAddRequire}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                + Add require
-              </button>
-            </div>
-          </div>
+          />
 
           {(expectList.length > 0 || requireList.length > 0) && (
-            <>
-              <div className="label">Report</div>
-              <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <label
-                    title="Report level when running this test directly"
-                    style={{ userSelect: 'none', fontSize: 12 }}
-                  >
-                    Internal:
-                  </label>
-                  <select
-                    value={reportInternalValue}
-                    onChange={e => handleReportChange(e.target.value as ReportLevel, reportExternalValue)}
-                    style={{ fontSize: 12 }}
-                  >
-                    {reportLevelOptions.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <label
-                    title="Report level when this test is imported or added to a suite"
-                    style={{ userSelect: 'none', fontSize: 12 }}
-                  >
-                    External:
-                  </label>
-                  <select
-                    value={reportExternalValue}
-                    onChange={e => handleReportChange(reportInternalValue, e.target.value as ReportLevel)}
-                    style={{ fontSize: 12 }}
-                  >
-                    {reportLevelOptions.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </>
+            <ReportLevelFields
+              value={callReport}
+              onChange={(report) => {
+                const next = buildCallObj({ report });
+                setLocal(next);
+                scheduleEmit(next);
+              }}
+            />
           )}
         </>
       )}

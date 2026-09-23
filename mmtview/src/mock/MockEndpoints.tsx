@@ -4,6 +4,7 @@ import MockEndpointBox, { methodTextColor } from "./MockEndpointBox";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { patchMockYaml } from "./mockYaml";
 import PrimaryButton from "../components/PrimaryButton";
+import { TreeExpandButton } from "../components/TreeChevron";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -282,16 +283,16 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
       onKeyDown={stopAll}
       onKeyUp={stopAll}
       onInputCapture={stopAll}
-      style={{ flex: 1, minWidth: 0 }}
+      className="field-grow"
     >
       {children}
     </div>
   );
 
   return (
-    <div className="test-flow-tree" style={{ padding: '0 16px 16px', boxSizing: 'border-box' }}>
+    <div className="test-flow-tree tree-pad">
       {/* Endpoints header */}
-      <div className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', overflow: 'visible' }}>
+      <div className="label is-spread">
         <span>Endpoints</span>
         <PrimaryButton
           ref={addBtnRef}
@@ -304,12 +305,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
         </PrimaryButton>
         {addMenuOpen && (
           <div
-            style={{
-              position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 1000,
-              background: 'var(--vscode-editorWidget-background,#232323)',
-              border: '1px solid var(--vscode-editorWidget-border,#333)',
-              borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200,
-            }}
+            className="popup-menu is-anchored"
             onPointerDown={e => e.stopPropagation()}
             onMouseDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
@@ -317,12 +313,11 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
             {METHODS_TO_ADD.map(m => (
               <button
                 key={m}
-                className="action-button"
-                style={{ width: '100%', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
+                className="action-button menu-item"
                 onPointerUp={() => { setAddMenuOpen(false); addEndpoint(m); }}
               >
-                <span className={`codicon ${methodIconFor(m)}`} style={{ fontSize: 14, opacity: 0.85, color: methodTextColor(m) }} aria-hidden />
-                <span style={{ fontWeight: 600 }}>{m.toUpperCase()}</span>
+                <span className={`codicon ${methodIconFor(m)} icon-sm`} style={{ color: methodTextColor(m) }} aria-hidden />
+                <span className="mock-add-method">{m.toUpperCase()}</span>
               </button>
             ))}
           </div>
@@ -355,11 +350,8 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
           const method = String(typeof ep?.method === 'string' ? ep.method : 'get').toLowerCase();
           const ico = methodIconFor(method);
           return (
-            <span
-              style={{ display: 'inline-flex', alignSelf: 'center', width: 16, justifyContent: 'center' }}
-              aria-hidden
-            >
-              <span className={`codicon ${ico}`} style={{ fontSize: 14, opacity: 0.8, color: methodTextColor(method) }} />
+            <span className="tree-icon-slot" aria-hidden>
+              <span className={`codicon ${ico} icon-sm`} style={{ color: methodTextColor(method) }} />
             </span>
           );
         }}
@@ -389,37 +381,18 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
               <div
                 className={`tree-view-box${isOpen ? ' active' : ''}`}
                 {...context.itemContainerWithoutChildrenProps}
-                style={{ alignItems: 'flex-start' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
-                  <button
-                    className="action-button"
-                    type="button"
-                    title={isOpen ? 'Collapse box' : 'Expand box'}
-                    aria-label={isOpen ? 'Collapse box' : 'Expand box'}
-                    onPointerDown={e => e.stopPropagation()}
-                    onPointerUp={e => {
-                      e.stopPropagation();
+                <div className="tree-item-bar">
+                  <TreeExpandButton
+                    open={isOpen}
+                    onToggle={() => {
                       setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }));
                     }}
-                    draggable={false}
-                    tabIndex={0}
-                    style={{
-                      display: 'inline-flex',
-                      width: 24,
-                      minWidth: 24,
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span
-                      className={`codicon ${isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
-                      style={{ fontSize: 16 }}
-                    />
-                  </button>
+                  />
                   {arrow}
                 </div>
                 <NoTreeInterference>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="field-grow">
                     <MockEndpointBox
                       endpoint={ep}
                       onChange={newEp => {
@@ -444,11 +417,8 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                   title="Drag to reorder"
                   onMouseDownCapture={(e) => e.stopPropagation()}
                   onPointerDownCapture={(e) => e.stopPropagation()}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    width: 24, minWidth: 24, height: 24, marginTop: 4,
-                    opacity: 0.7, cursor: 'grab', userSelect: 'none',
-                  }}
+                  className={['tree-grip', 'is-offset', context.interactiveElementProps?.className].filter(Boolean).join(' ')}
+                  style={context.interactiveElementProps?.style}
                 >
                   <span className="codicon codicon-gripper" aria-hidden />
                 </span>
@@ -458,46 +428,37 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
           );
         }}
         renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
-        renderItemsContainer={({ children, containerProps }) => <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, padding: 0, listStyle: 'none' }}>{children}</ul>}
+        renderItemsContainer={({ children, containerProps }) => (
+          <ul
+            {...containerProps}
+          className={['tree-list', containerProps.className].filter(Boolean).join(' ')}
+          style={containerProps.style}
+          >
+            {children}
+          </ul>
+        )}
         renderDragBetweenLine={({ lineProps }) => (
-          <div {...lineProps} style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }} />
+          <div
+            {...lineProps}
+            className={['tree-drop-line', lineProps.className].filter(Boolean).join(' ')}
+          />
         )}
       >
         <Tree treeId="mock-tree" rootItem="root" treeLabel="Mock Endpoints" />
       </ControlledTreeEnvironment>
 
-      <div className={`tree-view-box mock-fallback-editor${fallbackOpen ? ' active' : ''}`} style={{ alignItems: 'flex-start', marginTop: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
-          <button
-            className="action-button"
-            type="button"
-            title={fallbackOpen ? 'Collapse box' : 'Expand box'}
-            aria-label={fallbackOpen ? 'Collapse box' : 'Expand box'}
-            onPointerDown={e => e.stopPropagation()}
-            onPointerUp={e => {
-              e.stopPropagation();
-              setFallbackOpen(value => !value);
-            }}
-            draggable={false}
-            tabIndex={0}
-            style={{
-              display: 'inline-flex',
-              width: 24,
-              minWidth: 24,
-              justifyContent: 'center',
-            }}
-          >
-            <span
-              className={`codicon ${fallbackOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
-              style={{ fontSize: 16 }}
-            />
-          </button>
-          <span style={{ display: 'inline-flex', alignSelf: 'center', width: 16, justifyContent: 'center' }} aria-hidden>
-            <span className="codicon codicon-circle-slash" style={{ fontSize: 14, opacity: 0.8, color: 'var(--vscode-descriptionForeground)' }} />
+      <div className={`tree-view-box mock-fallback-editor field-block is-tight${fallbackOpen ? ' active' : ''}`}>
+        <div className="tree-item-bar">
+          <TreeExpandButton
+            open={fallbackOpen}
+            onToggle={() => setFallbackOpen(value => !value)}
+          />
+          <span className="tree-icon-slot" aria-hidden>
+            <span className="codicon codicon-circle-slash icon-sm desc-fg" />
           </span>
         </div>
         <NoTreeInterference>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="field-grow">
             <MockEndpointBox
               endpoint={{
                 path: '/?',

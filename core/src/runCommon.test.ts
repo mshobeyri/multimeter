@@ -1,4 +1,4 @@
-import {runGeneratedJs, validateJsSyntax} from './runCommon';
+import {resolveRelativeTo, runGeneratedJs, validateJsSyntax} from './runCommon';
 import {AssertionFailedError} from './testHelper';
 
 describe('validateJsSyntax', () => {
@@ -176,5 +176,24 @@ describe('runGeneratedJs', () => {
     expect(result.success).toBe(false);
     expect(result.threw).toBe(true);
     expect(result.errors).toContain('Error running API: envVariables is not defined');
+  });
+});
+
+describe('resolveRelativeTo', () => {
+  it('resolves +/ against projectRoot instead of the owner file', () => {
+    expect(resolveRelativeTo('+/suites/auth.mmt', '/project/suites/collection.mmt', '/project'))
+        .toBe('/project/suites/auth.mmt');
+    expect(resolveRelativeTo('+/tests/auth.mmt', '/project/suites/auth.mmt', '/project'))
+        .toBe('/project/tests/auth.mmt');
+  });
+
+  it('leaves +/ unchanged when projectRoot is missing', () => {
+    expect(resolveRelativeTo('+/suites/auth.mmt', '/project/suites/collection.mmt'))
+        .toBe('+/suites/auth.mmt');
+  });
+
+  it('still resolves ordinary relative suite items', () => {
+    expect(resolveRelativeTo('../tests/auth.mmt', '/project/suites/auth.mmt'))
+        .toBe('/project/tests/auth.mmt');
   });
 });

@@ -45,6 +45,26 @@
       "require": "./dist/CommonData.js",
       "default": "./dist/CommonData.js"
     },
+    "./binaryBody": {
+      "types": "./dist/binaryBody.d.ts",
+      "require": "./dist/binaryBody.js",
+      "default": "./dist/binaryBody.js"
+    },
+    "./htmlFormat": {
+      "types": "./dist/htmlFormat.d.ts",
+      "require": "./dist/htmlFormat.js",
+      "default": "./dist/htmlFormat.js"
+    },
+    "./responseBodyDisplay": {
+      "types": "./dist/responseBodyDisplay.d.ts",
+      "require": "./dist/responseBodyDisplay.js",
+      "default": "./dist/responseBodyDisplay.js"
+    },
+    "./formatResolve": {
+      "types": "./dist/formatResolve.d.ts",
+      "require": "./dist/formatResolve.js",
+      "default": "./dist/formatResolve.js"
+    },
     "./NetworkData": {
       "types": "./dist/NetworkData.d.ts",
       "require": "./dist/NetworkData.js",
@@ -215,6 +235,11 @@
       "require": "./dist/omitKeyword.js",
       "default": "./dist/omitKeyword.js"
     },
+    "./multipartBody": {
+      "types": "./dist/multipartBody.d.ts",
+      "require": "./dist/multipartBody.js",
+      "default": "./dist/multipartBody.js"
+    },
     "./textLines": {
       "types": "./dist/textLines.d.ts",
       "require": "./dist/textLines.js",
@@ -259,6 +284,11 @@
       "types": "./dist/EnvData.d.ts",
       "require": "./dist/EnvData.js",
       "default": "./dist/EnvData.js"
+    },
+    "./SuiteData": {
+      "types": "./dist/SuiteData.d.ts",
+      "require": "./dist/SuiteData.js",
+      "default": "./dist/SuiteData.js"
     },
     "./envParsePack": {
       "types": "./dist/envParsePack.d.ts",

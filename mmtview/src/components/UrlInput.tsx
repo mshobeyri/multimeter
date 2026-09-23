@@ -6,9 +6,10 @@ interface UrlInputProps {
   query: Record<string, string>;
   onUrlChange: (url: string) => void;
   onQueryChange: (query: Record<string, string>) => void;
+  className?: string;
 }
 
-function parseQueryString(qs: string): Record<string, string> {
+export function parseQueryString(qs: string): Record<string, string> {
   const result: Record<string, string> = {};
   if (!qs) return result;
   const clean = qs.startsWith("?") ? qs.slice(1) : qs;
@@ -20,7 +21,7 @@ function parseQueryString(qs: string): Record<string, string> {
   return result;
 }
 
-function buildQueryString(query: Record<string, string> = {}) {
+export function buildQueryString(query: Record<string, string> = {}) {
   const entries = Object.entries(query).filter(([k]) => k);
   if (entries.length === 0) return "";
   return (
@@ -38,7 +39,8 @@ const UrlInput: React.FC<UrlInputProps> = ({
   url,
   query,
   onUrlChange,
-  onQueryChange
+  onQueryChange,
+  className,
 }) => {
   const [inputValue, setInputValue] = useState(url + buildQueryString(query));
   const isUserInput = useRef(false);
@@ -66,9 +68,9 @@ const UrlInput: React.FC<UrlInputProps> = ({
 
   return (
     <input
+      className={["mmt-fill", className].filter(Boolean).join(" ")}
       value={inputValue}
       onChange={handleChange}
-      style={{ width: "100%" }}
     />
   );
 };

@@ -1,14 +1,17 @@
 import React, { useCallback, useRef, useEffect, useState, useContext } from "react";
 import KSVEditor from "../components/KSVEditor";
 import UrlInput from "../components/UrlInput";
-import { Protocol, Method, Format, FormatSpec, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
+import { Protocol, Method, Format, FormatSpec, REQUEST_FORMAT_VALUES, RESPONSE_FORMAT_VALUES, RequestFormat, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
+import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
 import { APIData } from "mmt-core/APIData";
 import { protocolResolver } from "mmt-core";
+import { httpMethodAllowsRequestBody } from "mmt-core/apiMethod";
 import { FileContext } from "../fileContext";
 
 interface InterfaceEditorProps {
@@ -17,7 +20,6 @@ interface InterfaceEditorProps {
 }
 
 const protocolOptions: Protocol[] = ["http", "ws", "graphql", "grpc"];
-const formatOptions: Format[] = ["json", "xml", "xmle", "text", "urlencoded", "binary", "multipart"];
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;
@@ -31,11 +33,17 @@ function parseTimeoutInput(value: string): number | undefined {
 }
 
 function getFormatLabel(format: Format): string {
+  if (format === "none") {
+    return "none — no body";
+  }
   if (format === "xml") {
     return "xml — self-closing";
   }
   if (format === "xmle") {
     return "xmle — expanded";
+  }
+  if (format === "html") {
+    return "html — HTML body";
   }
   if (format === "urlencoded") {
     return "urlencoded — form body";
@@ -43,11 +51,28 @@ function getFormatLabel(format: Format): string {
   if (format === "binary") {
     return "binary — file upload";
   }
+  if (format === "multipart") {
+    return "multipart — form-data parts";
+  }
   return format;
 }
 
-function setFormats(nextRequest: Format, nextResponse: Format): FormatSpec {
+function setFormats(nextRequest: RequestFormat, nextResponse: ResponseFormat): FormatSpec {
   return packFormatSpec({ request: nextRequest, response: nextResponse }) || nextRequest;
+}
+
+function getRequestFormatLabel(format: RequestFormat): string {
+  if (format === "auto") {
+    return "auto — detect from Content-Type, else json";
+  }
+  return getFormatLabel(format);
+}
+
+function getResponseFormatLabel(format: ResponseFormat): string {
+  if (format === "auto") {
+    return "auto — detect from Content-Type, else request format";
+  }
+  return getFormatLabel(format);
 }
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
@@ -57,20 +82,21 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
 
   const reqFormat = requestFormat(data.format);
   const resFormat = responseFormat(data.format);
+  const resolvedReqFormat = resolveRequestFormat(reqFormat, data.headers, data.method);
 
   // State for formatted body
   const [formattedBody, setFormattedBody] = useState<string>(
-    formatBody(reqFormat, data.body || "")
+    formatBody(resolvedReqFormat, data.body || "")
   );
 
   // Update formattedBody when body or format changes
   useEffect(() => {
     if (data.body) {
-      setFormattedBody(formatBody(reqFormat, data.body || ""));
+      setFormattedBody(formatBody(resolvedReqFormat, data.body || ""));
     } else {
       setFormattedBody("");
     }
-  }, [data.body, reqFormat]);
+  }, [data.body, resolvedReqFormat]);
 
   /** Structured YAML body (object) vs plain text string in the file. */
   const bodyYamlEncoded =
@@ -85,9 +111,9 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
     const asText =
       typeof data.body === "string"
         ? data.body
-        : formatBody(reqFormat, data.body ?? "");
+        : formatBody(resolvedReqFormat, data.body ?? "");
     if (enabled) {
-      const packed = formattedBodyToYamlObject(reqFormat, asText);
+      const packed = formattedBodyToYamlObject(resolvedReqFormat, asText);
       if (packed === null || packed === undefined) {
         return;
       }
@@ -95,12 +121,12 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       return;
     }
     onChange({ ...data, body: asText });
-  }, [bodyYamlEncoded, data, onChange, reqFormat]);
+  }, [bodyYamlEncoded, data, onChange, resolvedReqFormat]);
 
   const applyBodyEdit = useCallback((val: string) => {
     setFormattedBody(val);
     if (bodyYamlEncoded) {
-      const packed = formattedBodyToYamlObject(reqFormat, val);
+      const packed = formattedBodyToYamlObject(resolvedReqFormat, val);
       if (packed === null || packed === undefined) {
         return;
       }
@@ -108,7 +134,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       return;
     }
     onChange({ ...data, body: val });
-  }, [bodyYamlEncoded, data, onChange, reqFormat]);
+  }, [bodyYamlEncoded, data, onChange, resolvedReqFormat]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
@@ -158,13 +184,12 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(data.protocol as any, data.url);
 
   return (
-    <div style={{ width: "100%" }}>
+    <div className="mmt-fill">
       <div className="label">Protocol</div>
-      <div style={{ padding: "5px" }}>
+      <div className="field-pad">
         <select
           value={data.protocol || ""}
           onChange={e => onChange({ ...data, protocol: e.target.value as Protocol || undefined })}
-          style={{ width: "100%" }}
         >
           <option key="" value="">(auto - inferred from URL)</option>
           {safeList(protocolOptions).map(opt => (
@@ -176,34 +201,32 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (
         <>
           <div className="label">Request format</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={reqFormat}
               onChange={e => onChange({
                 ...data,
-                format: setFormats(e.target.value as Format, resFormat),
+                format: setFormats(e.target.value as RequestFormat, resFormat),
               })}
-              style={{ width: "100%" }}
             >
               <option key="" value="" disabled>Select format...</option>
-              {safeList(formatOptions).map(opt => (
-                <option key={opt} value={opt}>{getFormatLabel(opt)}</option>
+              {safeList(REQUEST_FORMAT_VALUES).map(opt => (
+                <option key={opt} value={opt}>{getRequestFormatLabel(opt)}</option>
               ))}
             </select>
           </div>
           <div className="label">Response format</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={resFormat}
               onChange={e => onChange({
                 ...data,
-                format: setFormats(reqFormat, e.target.value as Format),
+                format: setFormats(reqFormat, e.target.value as ResponseFormat),
               })}
-              style={{ width: "100%" }}
             >
               <option key="" value="" disabled>Select format...</option>
-              {safeList(formatOptions).map(opt => (
-                <option key={opt} value={opt}>{getFormatLabel(opt)}</option>
+              {safeList(RESPONSE_FORMAT_VALUES).map(opt => (
+                <option key={opt} value={opt}>{getResponseFormatLabel(opt)}</option>
               ))}
             </select>
           </div>
@@ -211,7 +234,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       )}
 
       <div className="label">URL</div>
-      <div style={{ padding: "5px" }}>
+      <div className="field-pad">
         <UrlInput
           url={url}
           query={data.query || {}}
@@ -223,7 +246,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "http" || data.method) ? (
         <>
           <div className={effectiveProtocol !== "http" ? "label label-disabled" : "label"}>Method</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={data.method || ""}
               onChange={e => {
@@ -236,7 +259,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                   onChange(next);
                 }
               }}
-              style={{ width: "100%" }}
               disabled={effectiveProtocol !== "http"}
             >
               <option key="" value="">(auto - post when body set, else get)</option>
@@ -246,7 +268,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             </select>
           </div>
           <div className={effectiveProtocol !== "http" ? "label label-disabled" : "label"}>Timeout (ms)</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="number"
               min={0}
@@ -262,7 +284,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                   onChange({ ...data, timeout });
                 }
               }}
-              style={{ width: "100%" }}
               disabled={effectiveProtocol !== "http"}
               placeholder="Default network timeout"
             />
@@ -282,7 +303,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       {effectiveProtocol === "graphql" && (
         <>
           <div className="label">Operation</div>
-          <div style={{ padding: "5px", position: "relative" }}>
+          <div className="field-pad is-relative">
             <BodyView
               value={data.graphql?.operation || ""}
               format="graphql"
@@ -293,7 +314,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             />
           </div>
           <div className="label">Variables</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <BodyView
               value={data.graphql?.variables ? JSON.stringify(data.graphql.variables, null, 2) : ""}
               format="json"
@@ -309,7 +330,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             />
           </div>
           <div className="label">Operation Name</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="text"
               placeholder="(optional)"
@@ -318,7 +339,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 const operationName = e.target.value || undefined;
                 onChange({ ...data, graphql: { ...data.graphql, operation: data.graphql?.operation || "", operationName } });
               }}
-              style={{ width: "100%" }}
             />
           </div>
         </>
@@ -328,7 +348,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       {effectiveProtocol === "grpc" && (
         <>
           <div className="label">Proto File</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="text"
               placeholder="./path/to/service.proto"
@@ -337,11 +357,10 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 const proto = e.target.value || undefined;
                 onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: data.grpc?.method || "", proto } });
               }}
-              style={{ width: "100%" }}
             />
           </div>
           <div className="label">Service</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="text"
               placeholder="package.ServiceName"
@@ -349,11 +368,10 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
               onChange={e => {
                 onChange({ ...data, grpc: { ...data.grpc, method: data.grpc?.method || "", service: e.target.value } });
               }}
-              style={{ width: "100%" }}
             />
           </div>
           <div className="label">Method</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <input
               type="text"
               placeholder="MethodName"
@@ -361,18 +379,16 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
               onChange={e => {
                 onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: e.target.value } });
               }}
-              style={{ width: "100%" }}
             />
           </div>
           <div className="label">Stream</div>
-          <div style={{ padding: "5px" }}>
+          <div className="field-pad">
             <select
               value={data.grpc?.stream || ""}
               onChange={e => {
                 const stream = e.target.value || undefined;
                 onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: data.grpc?.method || "", stream } as any });
               }}
-              style={{ width: "100%" }}
             >
               <option value="">(unary - no streaming)</option>
               <option value="server">Server streaming</option>
@@ -393,7 +409,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
 
       {/* Auth section */}
       <div className="label">Auth</div>
-      <div style={{ padding: "5px" }}>
+      <div className="field-pad">
         <select
           value={!data.auth ? '' : data.auth === 'none' ? 'none' : data.auth.type}
           onChange={e => {
@@ -413,7 +429,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
               onChange({ ...data, auth: { type: 'oauth2', grant: 'client_credentials', token_url: '', client_id: '', client_secret: '' } });
             }
           }}
-          style={{ width: "100%" }}
         >
           <option value="">(none)</option>
           {authTypeOptions.map(opt => (
@@ -422,40 +437,40 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         </select>
 
         {data.auth && data.auth !== 'none' && data.auth.type === 'bearer' && (
-          <div style={{ marginTop: 4 }}>
+          <div className="field-stack">
             <input
               type="text"
               placeholder="Token"
               value={data.auth.token}
               onChange={e => onChange({ ...data, auth: { ...data.auth as any, token: e.target.value } })}
-              style={{ width: "100%" }}
             />
           </div>
         )}
 
         {data.auth && data.auth !== 'none' && data.auth.type === 'basic' && (
-          <div style={{ marginTop: 4, display: 'flex', gap: 4 }}>
+          <div className="field-inline is-inset">
             <input
+              className="field-grow"
               type="text"
               placeholder="Username"
               value={data.auth.username}
               onChange={e => onChange({ ...data, auth: { ...data.auth as any, username: e.target.value } })}
-              style={{ flex: 1 }}
             />
             <input
+              className="field-grow"
               type="password"
               placeholder="Password"
               value={data.auth.password}
               onChange={e => onChange({ ...data, auth: { ...data.auth as any, password: e.target.value } })}
-              style={{ flex: 1 }}
             />
           </div>
         )}
 
         {data.auth && data.auth !== 'none' && data.auth.type === 'api-key' && (
-          <div style={{ marginTop: 4 }}>
-            <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+          <div className="field-stack">
+            <div className="field-inline">
               <select
+                className="field-narrow"
                 value={data.auth.header != null ? 'header' : 'query'}
                 onChange={e => {
                   const placement = e.target.value as 'header' | 'query';
@@ -467,13 +482,13 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                     onChange({ ...data, auth: { type: 'api-key', query: name, value: current.value } });
                   }
                 }}
-                style={{ width: 90 }}
               >
                 {apiKeyPlacementOptions.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
               <input
+                className="field-grow"
                 type="text"
                 placeholder="Key name"
                 value={data.auth.header ?? data.auth.query ?? ''}
@@ -485,7 +500,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                     onChange({ ...data, auth: { type: 'api-key', query: e.target.value, value: current.value } });
                   }
                 }}
-                style={{ flex: 1 }}
               />
             </div>
             <input
@@ -493,34 +507,32 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
               placeholder="Value"
               value={data.auth.value}
               onChange={e => onChange({ ...data, auth: { ...data.auth as any, value: e.target.value } })}
-              style={{ width: "100%" }}
             />
           </div>
         )}
 
         {data.auth && data.auth !== 'none' && data.auth.type === 'oauth2' && (
-          <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="field-stack">
             <input
               type="text"
               placeholder="Token URL"
               value={data.auth.token_url}
               onChange={e => onChange({ ...data, auth: { ...data.auth as any, token_url: e.target.value } })}
-              style={{ width: "100%" }}
             />
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div className="field-inline">
               <input
+                className="field-grow"
                 type="text"
                 placeholder="Client ID"
                 value={data.auth.client_id}
                 onChange={e => onChange({ ...data, auth: { ...data.auth as any, client_id: e.target.value } })}
-                style={{ flex: 1 }}
               />
               <input
+                className="field-grow"
                 type="password"
                 placeholder="Client Secret"
                 value={data.auth.client_secret}
                 onChange={e => onChange({ ...data, auth: { ...data.auth as any, client_secret: e.target.value } })}
-                style={{ flex: 1 }}
               />
             </div>
             <input
@@ -531,7 +543,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 const scope = e.target.value || undefined;
                 onChange({ ...data, auth: { ...data.auth as any, scope } });
               }}
-              style={{ width: "100%" }}
             />
           </div>
         )}
@@ -566,12 +577,12 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       ) : null}
 
-      {/* Only show body editor if method is not get and protocol is not graphql/grpc */}
-      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || (typeof data.method === "string" && data.method.toLowerCase() !== "get")) && (
+      {/* Hide body in edit when method is GET (tester disables it instead). */}
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && resolvedReqFormat !== "none" && (effectiveProtocol === "ws" || !data.method || httpMethodAllowsRequestBody(data.method)) && (
         <>
           <div className="label api-body-label">
             <span>Body</span>
-            {reqFormat !== "binary" && (
+            {resolvedReqFormat !== "binary" && resolvedReqFormat !== "multipart" && (
               <label
                 className="api-body-yaml-encoded"
                 title="Store body as structured YAML instead of a text block"
@@ -585,8 +596,8 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
               </label>
             )}
           </div>
-          <div style={{ padding: "5px", position: "relative" }}>
-            {reqFormat === "binary" ? (
+          <div className="field-pad is-relative">
+            {resolvedReqFormat === "binary" ? (
               <FilePickerInput
                 value={typeof data.body === "string" ? data.body : ""}
                 basePath={mmtFilePath}
@@ -595,10 +606,15 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 onChange={path => onChange({ ...data, body: path })}
                 onEnterPressed={path => onChange({ ...data, body: path })}
               />
+            ) : resolvedReqFormat === "multipart" ? (
+              <MultipartPartsEditor
+                value={data.body}
+                onChange={parts => onChange({ ...data, body: parts })}
+              />
             ) : (
               <BodyView
                 value={formattedBody === null ? "" : formattedBody}
-                format={reqFormat}
+                format={resolvedReqFormat}
                 mode="appliable"
                 onChange={applyBodyEdit}
               />

@@ -22,11 +22,7 @@ const ValidatableSelect: React.FC<ValidatableSelectProps> = ({
     <select
       value={showPlaceholder && !value ? "" : value}
       onChange={e => onChange(e.target.value)}
-      style={{
-        width: "100%",
-        color: isValid ? undefined : "red",
-        borderColor: isValid ? undefined : "red"
-      }}
+      className={`mmt-fill${isValid ? "" : " is-invalid"}`}
     >
       {showPlaceholder && (
         <option value="" disabled>
@@ -34,7 +30,7 @@ const ValidatableSelect: React.FC<ValidatableSelectProps> = ({
         </option>
       )}
       {!isValid && value && (
-        <option value={value} disabled style={{ color: "red" }}>
+        <option value={value} disabled className="is-invalid">
           {value} (invalid)
         </option>
       )}

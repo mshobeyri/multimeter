@@ -46,21 +46,14 @@ const EnvironmentView: React.FC<EnvironmentViewProps> = ({
   }));
 
   return (
-    <div style={{ padding: 8, overflow: "hidden", width: "100%" }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        alignItems: "center",
-        marginBottom: "12px"
-      }}>
-        <div style={{ display: "flex", gap: "8px" }}>
-          {onClearCache && (
-            <button onClick={handleClearCache} className="action-button">
-              <span className="codicon codicon-clear-all" style={{ fontSize: "16px" }}></span>
-              Clear environments
-            </button>
-          )}
-        </div>
+    <div className="field-pad-lg is-clip">
+      <div className="actions-end">
+        {onClearCache && (
+          <button onClick={handleClearCache} className="action-button">
+            <span className="codicon codicon-clear-all tree-chevron"></span>
+            Clear environments
+          </button>
+        )}
       </div>
 
       <SettingsTable

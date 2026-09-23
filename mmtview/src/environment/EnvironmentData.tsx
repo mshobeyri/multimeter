@@ -1,78 +1,29 @@
+import type {CertificateSettings as NetworkCertificateSettings} from 'mmt-core/NetworkData';
+import type {EnvData} from 'mmt-core/EnvData';
 
-import { JSONValue } from "mmt-core/CommonData";
+export type {
+  EnvCaCertificate,
+  EnvCertificates,
+  EnvClientCertificate,
+  EnvHttpSettings,
+  EnvOption,
+  EnvPresetGroup,
+  EnvPresetMapping,
+  EnvPresets,
+  EnvPresetValue,
+  EnvSetting,
+  EnvVariable,
+  EnvVarSource,
+} from 'mmt-core/EnvData';
 
-export interface EnvClientCertificate {
-  name: string;
-  host: string;
-  cert?: string;
-  key?: string;
-  pfx?: string;
-  passphrase_plain?: string;
-  passphrase_env?: string;
-}
-
-// Server CA certificate in env file (YAML uses snake_case)
-export interface EnvCaCertificate {
-  path?: string;
-  paths?: string[];  // Legacy multiple CA cert file paths
-}
-
-// Certificate settings section in env file
-// Note: Boolean flags are NOT stored in YAML - they go to localStorage
-export interface EnvCertificates {
-  server_ca?: string | EnvCaCertificate;
-  clients?: EnvClientCertificate[];
-}
-
-export interface EnvHttpSettings {
-  version?: string;
-  timeout?: number;
-}
-
-export interface EnvSetting {
-  http?: EnvHttpSettings;
-}
-
-// Certificate boolean settings stored in localStorage (not YAML)
-export interface CertificateSettings {
-  caEnabled: boolean;
-  clientsEnabled: Record<string, boolean>;  // keyed by client name+host
-}
-
-export type EnvironmentData = {
+/** UI document shape for the env editor. */
+export type EnvironmentData = Omit<EnvData, 'type'|'variables'> & {
   type: string;
-  import?: {
-    [alias: string]: string;
-  };
   variables: {
-    [name: string]: | { [label: string]: string | undefined } | string[];
+    [name: string]: {[label: string]: string|undefined}|string[];
   };
-  presets?: {
-    [presetName: string]: {
-      [envName: string]: {
-        [variableName: string]: string;
-      };
-    };
-  };
-  setting?: EnvSetting;
-  certificates?: EnvCertificates;
 };
 
-export interface EnvOption {
-  label: string;
-  value: JSONValue;
-}
-
-/** Where an environment variable came from (for panel icons). */
-export type EnvVarSource = 'file' | 'manual' | 'runtime';
-
-export interface EnvVariable {
-  name: string;
-  label: string;
-  value: JSONValue;
-  options: EnvOption[];
-  /** Origin used for env-panel icons: file / manual / runtime (setenv). */
-  source?: EnvVarSource;
-  /** Epoch ms when `value` last changed in workspace storage. */
-  lastUpdate?: number;
-}
+/** Env-panel subset of NetworkData.CertificateSettings. */
+export type CertificateSettings =
+    Pick<NetworkCertificateSettings, 'caEnabled'|'clientsEnabled'>;

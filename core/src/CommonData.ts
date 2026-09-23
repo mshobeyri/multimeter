@@ -1,24 +1,61 @@
 export type Type = "env" | "api" | "test" | "suite" | "loadtest" | "doc" | "csv" | "server" | "report" | "judge" | null;
 
 export type Protocol = "http" | "ws" | "graphql" | "grpc";
-export type Format = "json" | "xml" | "xmle" | "text" | "urlencoded" | "binary" | "multipart";
+export type Format = "none" | "json" | "xml" | "xmle" | "text" | "html" | "urlencoded" | "binary" | "multipart";
+/** Request/response format when set to `auto` (see formatResolve.ts). */
+export type RequestFormat = Format | "auto";
+/** Response display/parsing format; `auto` detects from Content-Type, then request format. */
+export type ResponseFormat = Exclude<Format, "none"> | "auto";
 /** Split request vs response body formats. */
 export interface FormatConfig {
-  request?: Format;
-  response?: Format;
+  request?: RequestFormat;
+  response?: ResponseFormat;
 }
 /**
- * Body format: a single value applies to both request and response,
- * or `{ request, response }` when they differ.
+ * Body format: a scalar pins the request format; response defaults to `auto`
+ * unless `{ request, response }` sets response explicitly.
  */
-export type FormatSpec = Format | FormatConfig;
+/** Scalar request format, shorthand `auto`, or split `{ request, response }`. */
+export type FormatSpec = Format | "auto" | FormatConfig;
 export type Method = "get" | "post" | "put" | "delete" | "patch" | "head" | "options" | "trace";
 export type GrpcStream = "server" | "client" | "bidi";
 
-export const FORMAT_VALUES: Format[] = ["json", "xml", "xmle", "text", "urlencoded", "binary", "multipart"];
+export const FORMAT_VALUES: Format[] = ["none", "json", "xml", "xmle", "text", "html", "urlencoded", "binary", "multipart"];
+export const REQUEST_FORMAT_VALUES: RequestFormat[] = [...FORMAT_VALUES, "auto"];
+const RESPONSE_BODY_FORMATS: Exclude<Format, "none">[] = [
+  "json", "xml", "xmle", "text", "html", "urlencoded", "binary", "multipart",
+];
+export const RESPONSE_FORMAT_VALUES: ResponseFormat[] = [...RESPONSE_BODY_FORMATS, "auto"];
+
+export function toResponseFormat(format: Format): ResponseFormat {
+  return format === "none" ? "auto" : format;
+}
 
 function isFormatValue(value: unknown): value is Format {
   return typeof value === "string" && (FORMAT_VALUES as string[]).includes(value);
+}
+
+function isRequestFormatValue(value: unknown): value is RequestFormat {
+  return typeof value === "string" &&
+      (value === "auto" || (FORMAT_VALUES as string[]).includes(value));
+}
+
+function isResponseFormatValue(value: unknown): value is ResponseFormat {
+  return typeof value === "string" &&
+      (RESPONSE_FORMAT_VALUES as string[]).includes(value);
+}
+
+function coerceResponseFormat(rawResponse: unknown, request: RequestFormat): ResponseFormat {
+  if (rawResponse === undefined || rawResponse === null || rawResponse === "none") {
+    return "auto";
+  }
+  if (isResponseFormatValue(rawResponse)) {
+    return rawResponse;
+  }
+  if (request !== "none" && request !== "auto" && isResponseFormatValue(request)) {
+    return request;
+  }
+  return "auto";
 }
 
 /**
@@ -26,42 +63,60 @@ function isFormatValue(value: unknown): value is Format {
  * Accepts `response` or legacy alias `respond`.
  */
 export function normalizeFormat(format?: FormatSpec | null | Record<string, unknown>): {
-  request: Format;
-  response: Format;
+  request: RequestFormat;
+  response: ResponseFormat;
 } {
   if (format == null) {
-    return { request: "json", response: "json" };
+    return { request: "auto", response: "auto" };
   }
   if (typeof format === "string") {
+    if (format === "auto") {
+      return { request: "auto", response: "auto" };
+    }
+    if (format === "none") {
+      return { request: "none", response: "auto" };
+    }
     const value = isFormatValue(format) ? format : "json";
-    return { request: value, response: value };
+    return { request: value, response: "auto" };
   }
   if (typeof format === "object" && !Array.isArray(format)) {
     const rawRequest = (format as any).request;
     const rawResponse = (format as any).response ?? (format as any).respond;
-    const request = isFormatValue(rawRequest)
+    const request = isRequestFormatValue(rawRequest)
       ? rawRequest
-      : (isFormatValue(rawResponse) ? rawResponse : "json");
-    const response = isFormatValue(rawResponse) ? rawResponse : request;
+      : (isFormatValue(rawResponse) ? rawResponse : "auto");
+    const response = coerceResponseFormat(rawResponse, request);
     return { request, response };
   }
-  return { request: "json", response: "json" };
+  return { request: "auto", response: "auto" };
 }
 
-export function requestFormat(format?: FormatSpec | null | Record<string, unknown>): Format {
+export function requestFormat(format?: FormatSpec | null | Record<string, unknown>): RequestFormat {
   return normalizeFormat(format).request;
 }
 
-export function responseFormat(format?: FormatSpec | null | Record<string, unknown>): Format {
+export function responseFormat(format?: FormatSpec | null | Record<string, unknown>): ResponseFormat {
   return normalizeFormat(format).response;
 }
 
-/** Compact for YAML: scalar when request === response, else `{ request, response }`. */
+/** Compact for YAML: scalar when response is auto (or both match), else split. */
 export function packFormatSpec(format?: FormatSpec | null): FormatSpec | undefined {
   if (format == null) {
     return undefined;
   }
   const { request, response } = normalizeFormat(format);
+  if (request === "none" && response === "auto") {
+    return "none";
+  }
+  if (response === "auto" && request !== "auto") {
+    return request;
+  }
+  if (request === "auto" && response === "auto") {
+    return "auto";
+  }
+  if (request === "auto" || response === "auto") {
+    return { request, response };
+  }
   if (request === response) {
     return request;
   }
@@ -85,6 +140,10 @@ export type Parameter = { [key: string]: JSONValue };
 export type JSONRecord = Record<string, JSONValue>;
 
 export type LogLevel = 'trace' | 'debug' | 'error' | 'warn' | 'info' | 'log';
+/** How check/assert/debug steps write to the console. CLI `--quiet` sets `none`. */
+export type CheckLogMode = 'default' | 'failures-only' | 'none';
+/** Shared export/report formats for CLI, extension, and webview. */
+export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
 export function formatDuration(ms?: number): string {
   if (ms == null || ms < 0) {

@@ -7,13 +7,14 @@ import type {
   SuiteRunFinishedEvent,
   TestOutputsReporterEvent,
   LoadTestSummaryEvent,
+  TestStepStatus,
 } from './runConfig';
 
 export interface ExpectItemResult {
   comparison: string;
   actual?: any;
   expected?: any;
-  status: 'passed' | 'failed';
+  status: TestStepStatus;
   similarity?: number;
   count?: number;
 }
@@ -21,7 +22,7 @@ export interface ExpectItemResult {
 export interface TestStepResult {
   stepIndex: number;
   stepType: 'check' | 'assert' | 'debug';
-  status: 'passed' | 'failed';
+  status: TestStepStatus;
   title?: string;
   details?: string;
   expects: ExpectItemResult[];

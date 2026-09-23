@@ -102,10 +102,10 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
 
   return (
     <div className="mock-edit-tab-content">
-      <div className="label" style={{ marginBottom: 6 }}>Port</div>
+      <div className="label is-field">Port</div>
       <input
         type="text"
-        className="vscode-input"
+        className="vscode-input field-control"
         value={data.port ?? ''}
         onChange={e => {
           const raw = e.target.value.trim();
@@ -120,37 +120,34 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
           updateField('port', raw);
         }}
         placeholder="8080 or e:MOCK_PORT"
-        style={{ width: '100%', marginBottom: 12 }}
       />
 
-      <div className="label" style={{ marginBottom: 6 }}>Protocol</div>
+      <div className="label is-field">Protocol</div>
       <select
-        className="vscode-input"
+        className="vscode-input field-control"
         value={PROTOCOLS.includes(protocolValue as any) ? protocolValue : 'http'}
         onChange={e => updateProtocol(e.target.value)}
-        style={{ width: '100%', marginBottom: 12 }}
       >
         {PROTOCOLS.map(protocol => <option key={protocol} value={protocol}>{protocol.toUpperCase()}</option>)}
       </select>
       {typeof data.protocol === 'string' && !PROTOCOLS.includes(data.protocol as any) && (
-        <div style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', marginTop: -8, marginBottom: 12 }}>
+        <div className="token-hint">
           Using env token <code>{data.protocol}</code> from YAML
         </div>
       )}
 
-      <div className="label" style={{ marginBottom: 6 }}>Connection</div>
+      <div className="label is-field">Connection</div>
       <select
-        className="vscode-input"
+        className="vscode-input field-control"
         value={connectionMode}
         onChange={e => updateConnectionMode(e.target.value as MockConnectionMode)}
-        style={{ width: '100%', marginBottom: 12 }}
       >
         {CONNECTION_MODES.map(mode => <option key={mode} value={mode}>{mode === 'mtls' ? 'mTLS' : mode.toUpperCase()}</option>)}
       </select>
 
       {showTlsFiles && (
         <div className="mock-server-cert-fields">
-          <div className="label" style={{ marginBottom: 6 }}>Server Certificate File</div>
+          <div className="label is-field">Server Certificate File</div>
           <FilePickerInput
             value={connection?.cert || ''}
             onChange={value => updateConnectionField('cert', value)}
@@ -161,7 +158,7 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
             placeholder="./certs/server.crt"
           />
 
-          <div className="label" style={{ marginBottom: 6 }}>Server Key File</div>
+          <div className="label is-field">Server Key File</div>
           <FilePickerInput
             value={connection?.key || ''}
             onChange={value => updateConnectionField('key', value)}
@@ -174,7 +171,7 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
 
           {connectionMode === 'mtls' && (
             <>
-              <div className="label" style={{ marginBottom: 6 }}>Client CA File</div>
+              <div className="label is-field">Client CA File</div>
               <FilePickerInput
                 value={connection?.client_ca || ''}
                 onChange={value => updateConnectionField('client_ca', value)}
@@ -189,18 +186,17 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
         </div>
       )}
 
-      <div className="label" style={{ marginBottom: 6 }}>Delay</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div className="label is-field">Delay</div>
+      <div className="delay-row">
         <input
           type="number"
-          className="vscode-input"
+          className="vscode-input field-grow"
           value={data.delay || ''}
           onChange={e => updateField('delay', parseInt(e.target.value, 10) || undefined)}
           min={0}
           placeholder="0"
-          style={{ flex: 1, width: '100%' }}
         />
-        <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>ms</span>
+        <span className="unit-suffix">ms</span>
       </div>
 
       <label className="mock-server-checkbox-row">
@@ -223,14 +219,13 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
         valuePlaceholder="value"
       />
 
-      <div className="label" style={{ marginBottom: 6 }}>Proxy</div>
+      <div className="label is-field">Proxy</div>
       <input
         type="text"
-        className="vscode-input"
+        className="vscode-input mmt-fill"
         value={data.proxy || ''}
         onChange={e => updateField('proxy', e.target.value || undefined)}
         placeholder="Forward unmatched requests to URL"
-        style={{ width: '100%' }}
       />
     </div>
   );
