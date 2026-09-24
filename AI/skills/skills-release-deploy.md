@@ -25,16 +25,18 @@ npm run pack              # stable local VSIX
 git tag v1.42.3 && git push origin v1.42.3       # or v1.42.3-pre
 ```
 
-Whenever the user asks to **release**, **pre-release**, or **create a version**, always pack a local VS Code VSIX after versions are set (`pack` or `pack-pre-release`). Do not wait to be asked. The VSIX is gitignored (`multimeter-X.Y.Z.vsix` at repo root).
+Pushing `vX.Y.Z-pre` also starts Azure Pipelines (`azure-pipelines.yml`): pack + `vsce publish --pre-release` to publisher `mshobeyri`. Do not run `vsce publish` locally for a pre-release unless that Azure job failed. Stable Marketplace publish stays manual.
 
-CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build → GitHub Release**, then Docker, npm, Homebrew (stable only), and the GitHub Action. A failed build or GitHub Release stops the rest. Missing publish secrets fail the job. VS Code Marketplace, Open VSX, and the official MCP Registry are **not** published from CI.
+Whenever the user asks to **release**, **pre-release**, or **create a version**, always pack a local VS Code VSIX after versions are set (`pack` or `pack-pre-release`). Do not wait to be asked. The VSIX is gitignored (`multimeter-X.Y.Z.vsix` at repo root). After a pre-release tag, confirm the Azure DevOps run for `azure-pipelines.yml` published the extension.
+
+CI (`.github/workflows/release-testlight.yml`) publishes from the tag: **build → GitHub Release**, then Docker, npm, Homebrew (stable only), and the GitHub Action. A failed build or GitHub Release stops the rest. Missing publish secrets fail the job. Open VSX and the official MCP Registry are **not** published from CI. VS Code Marketplace **pre-releases** use Azure Pipelines (`azure-pipelines.yml`); stable Marketplace is still manual.
 
 | Tag | npm | Docker | GitHub | Homebrew | Action | Marketplace | Open VSX | MCP Registry |
 |---|---|---|---|---|---|---|---|---|
-| `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` | manual | **manual** (same VSIX) | **manual** (`mcp-publisher`) |
-| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | skipped | manual `--pre-release` | **skip** | **skip** |
+| `vX.Y.Z` | `@latest` | `:latest` | latest + `@v1` | tap `mmt-testlight` | `@vX.Y.Z` + `@v1` | **manual** | **manual** (same VSIX) | **manual** (`mcp-publisher`) |
+| `vX.Y.Z-pre` | `@pre` | `:pre` | prerelease | skipped | skipped | **Azure Pipelines** `--pre-release` | **skip** | **skip** |
 
-Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace stays manual (`VSCE_PAT`). Open VSX stays manual (`OVSX_PAT` from [open-vsx.org tokens](https://open-vsx.org/user-settings/tokens)).
+Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN` (stable Homebrew; Action token is a fallback). Marketplace PAT `VSCE_PAT` lives on the Azure DevOps pipeline (org `mehrdadshobeyri`, project `multimeter`), not in GitHub. Open VSX stays manual (`OVSX_PAT` from [open-vsx.org tokens](https://open-vsx.org/user-settings/tokens)).
 
 Do not put versions in comments, READMEs, the GitHub Action default, or website copy. Do not bump lockfiles or `.cursor-plugin/plugin.json` as part of a release. `mmtmcp/server.json` is set by `scripts/sync-versions.mjs` to the MCP npm version.
 
@@ -51,9 +53,11 @@ npm run pack-pre-release  # same version, --pre-release flag
 
 `@yao-pkg/pkg` SEA, Node 22, `--compress Brotli -c package.json` (enhanced SEA; simple `pkg file.js --sea` cannot compress), bundle via `mmtcli/esbuild.mjs --pkg`. Host Node ≥ 22. From `mmtcli`: `npm exec --no -- pkg` (not `npx pkg`). Windows icon: `scripts/apply-windows-icon.mjs` after pack. Layout: `bin/<platform>/testlight`.
 
-## Marketplace & Open VSX (manual)
+## Marketplace & Open VSX
 
-Do this after the **stable** tag is out and the local VSIX exists (`multimeter-X.Y.Z.vsix`). Same file for both stores. **Open VSX is stable only** — never publish a pre-release VSIX there.
+**Pre-release (`vX.Y.Z-pre`):** Azure Pipelines file `azure-pipelines.yml` (DevOps org `mehrdadshobeyri`, project `multimeter`). Trigger is that tag only. It packs, then `vsce publish --pre-release --packagePath` using pipeline secret `VSCE_PAT`. Manual runs on a branch pack only. Tag `v1.44.0-pre` is excluded. Do not `vsce publish` a pre-release from the laptop unless Azure failed.
+
+**Stable (`vX.Y.Z`):** still manual, after the tag is out and the local VSIX exists (`multimeter-X.Y.Z.vsix`). Same file for Marketplace and Open VSX. **Open VSX is stable only** — never publish a pre-release VSIX there.
 
 ```bash
 # VS Code Marketplace (stable)
