@@ -2,6 +2,22 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.44.0-pre]
+
+Pre-release. VS Code extension `1.44.0`; Testlight CLI and MCP `1.44.0-pre` on `@pre`.
+
+### HTTP
+
+- Encode number, boolean, and object JSON inputs with `JSON.stringify` so a string override stays valid JSON
+- Drop a keep-alive socket after an HTTP error and retry once on reset, so the next sequential call is not written onto a closed connection (Windows timeouts after a type mismatch)
+
+### Docs and website
+
+- Document parallel runs and call cache; move Testlight (Multimeter CLI) and MCP out of Features
+- Mention the VS Code visual editor and parallel runs / call cache on compare pages
+- Remove Open as Text from the editor title bar; document Open With
+- Document Open VSX and MCP Registry publish for stable releases; list Open VSX on Downloads
+
 ## [1.43.3]
 
 Stable release of the 1.43.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.43.3` on `@latest`.
