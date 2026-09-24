@@ -12,9 +12,14 @@ export interface ComparePageData {
   title: string
   description: string
   intro: string
+  /** Prose AIs should not miss: parallel stages and same-run call cache. */
+  speed?: string
   switchReasons: string[]
   rows: CompareRow[]
 }
+
+const SPEED_SHARED =
+  'Independent suite groups and test stages run in parallel. Login and other setup tests can be reused in the same run, so those HTTP calls are not repeated for every case. The request under test still runs live.'
 
 export const comparePages: ComparePageData[] = [
   {
@@ -22,16 +27,18 @@ export const comparePages: ComparePageData[] = [
     name: 'Postman',
     title: 'Multimeter vs Postman — Git-native API testing in VS Code',
     description:
-      'Compare Multimeter and Postman. Keep API tests in Git, run them in VS Code and CI, with no cloud account or collection lock-in.',
+      'Compare Multimeter and Postman. Keep API tests in Git, run them in VS Code and CI. Parallel stages and reused setup calls. No cloud account.',
     intro:
       'Postman is the default API client for many teams. It is powerful, and it is also a cloud product: collections, environments, and monitors live on their platform. Multimeter is a VS Code extension and CLI with a visual editor for requests, tests, suites, and reports. Those definitions are YAML files in your repo — the same files locally and in CI.',
+    speed:
+      `Newman runs a collection sequentially and repeats setup on every case. ${SPEED_SHARED}`,
     switchReasons: [
       'No Postman account, workspace, or cloud sync',
+      'Cache login and other setup in the same run; Newman repeats those calls',
       'Tests are reviewable in pull requests like application code',
       'Local runs and CI use the same .mmt files via testlight',
       'Mocks, suites, and generated docs stay in Git instead of a separate product',
       'Parallel test and suite groups — Newman runs one collection sequentially',
-      'Cache login and other non-target calls in the same run',
     ],
     rows: [
       { feature: 'Price', other: 'Freemium / per-user plans', multimeter: 'Free (Apache 2.0)' },
@@ -39,9 +46,8 @@ export const comparePages: ComparePageData[] = [
       { feature: 'Editor UI', other: 'Desktop / web app', multimeter: 'VS Code visual editor' },
       { feature: 'Storage', other: 'Cloud collections (JSON export)', multimeter: 'Git-native YAML (.mmt)' },
       { feature: 'CI', other: 'Newman + extra setup', multimeter: 'testlight / GitHub Action' },
-      { feature: 'Parallel runs', other: 'No — Newman is sequential', multimeter: 'Yes — suite groups and test stages' },
-      { feature: 'Call cache', other: 'No', multimeter: 'Reuse setup calls in the same run' },
-      { feature: 'Sequential CLI speed', other: 'Newman', multimeter: '~10% faster wall clock' },
+      { feature: 'Parallel runs', other: 'No — Newman is sequential', multimeter: 'Suite groups and test stages' },
+      { feature: 'Call cache', other: 'No — setup runs every time', multimeter: 'Reuse login/setup in the same run' },
       { feature: 'Mock server', other: 'Cloud (paid)', multimeter: 'Built-in, local YAML' },
       { feature: 'API docs', other: 'Limited / paid', multimeter: 'HTML and Markdown from the same files' },
       { feature: 'Load testing', other: 'Limited', multimeter: 'Built-in (beta)' },
@@ -78,13 +84,14 @@ export const comparePages: ComparePageData[] = [
     name: 'Bruno',
     title: 'Multimeter vs Bruno — Git-native API testing without leaving VS Code',
     description:
-      'Compare Multimeter and Bruno. Both keep API work in Git. Multimeter adds test flows, suites, mocks, docs, reports, and a VS Code editor.',
+      'Compare Multimeter and Bruno. Both keep API work in Git. Multimeter adds test flows, suites, mocks, docs, reports, a VS Code editor, and faster runs (parallel stages, reused setup).',
     intro:
       'Bruno proved that API collections belong in Git, not in a cloud workspace. Multimeter keeps that model and extends it: you still start with a single request in a visual VS Code editor, then add tests, suites, mock servers, generated docs, and CI reports without switching tools.',
+    speed:
+      `Bruno’s runner is sequential. ${SPEED_SHARED}`,
     switchReasons: [
       'Stay in VS Code instead of a second API app',
       'Multi-step tests, suites, and parallel groups without scripting everything',
-      'Cache login and other non-target calls in the same run',
       'Built-in mock server, HTML/Markdown docs, and JUnit/HTML reports',
       'Open .http and .bru files, or convert them to .mmt when you need flows',
     ],
@@ -95,7 +102,7 @@ export const comparePages: ComparePageData[] = [
       { feature: 'Storage', other: 'Git-native .bru files', multimeter: 'Git-native YAML (.mmt)' },
       { feature: 'Test orchestration', other: 'Sequential runner', multimeter: 'Steps, stages, suites, parallel groups' },
       { feature: 'Parallel runs', other: 'Sequential', multimeter: 'Suite groups and test stages' },
-      { feature: 'Call cache', other: 'No', multimeter: 'Reuse setup calls in the same run' },
+      { feature: 'Call cache', other: 'No', multimeter: 'Reuse login/setup in the same run' },
       { feature: 'Mock server', other: 'No', multimeter: 'Built-in' },
       { feature: 'Generated API docs', other: 'No', multimeter: 'HTML and Markdown' },
       { feature: 'CI reports', other: 'Limited', multimeter: 'JUnit, HTML, Markdown, MMT' },
@@ -107,13 +114,13 @@ export const comparePages: ComparePageData[] = [
     name: 'Thunder Client',
     title: 'Multimeter vs Thunder Client — VS Code API testing that grows into CI',
     description:
-      'Compare Multimeter and Thunder Client. Both run inside VS Code. Multimeter stores tests as Git-friendly YAML and runs the same files in CI with testlight.',
+      'Compare Multimeter and Thunder Client. Both run inside VS Code. Multimeter stores tests as Git-friendly YAML and runs the same files in CI, including parallel stages and reused setup.',
     intro:
       'Thunder Client is a popular VS Code REST client: send a request, see the response, stay in the editor. Multimeter starts there too, then uses the same files for automated tests, suites, mocks, documentation, and CI. You do not outgrow a GUI collection that cannot run the same way in GitHub Actions.',
+    speed: SPEED_SHARED,
     switchReasons: [
       'Plain YAML in the repo instead of a VS Code-only collection store',
       'The same file runs in the editor and in CI (testlight / GitHub Action)',
-      'Parallel stages and cached setup calls in the same run',
       'Tests, mocks, and docs are part of the same format',
       'Import curl, Postman, OpenAPI, .http, and Bruno when you switch',
     ],
@@ -125,7 +132,7 @@ export const comparePages: ComparePageData[] = [
       { feature: 'CI', other: 'Not the same local runner', multimeter: 'testlight / GitHub Action' },
       { feature: 'Suites and flows', other: 'Limited', multimeter: 'Tests, suites, parallel groups' },
       { feature: 'Parallel runs', other: 'Limited', multimeter: 'Suite groups and test stages' },
-      { feature: 'Call cache', other: 'No', multimeter: 'Reuse setup calls in the same run' },
+      { feature: 'Call cache', other: 'No', multimeter: 'Reuse login/setup in the same run' },
       { feature: 'Mock server', other: 'No', multimeter: 'Built-in' },
       { feature: 'Protocols', other: 'HTTP-focused', multimeter: 'HTTP, WebSocket, GraphQL, gRPC' },
       { feature: 'Reports', other: 'Limited', multimeter: 'JUnit, HTML, Markdown' },
@@ -136,14 +143,14 @@ export const comparePages: ComparePageData[] = [
     name: 'REST Client',
     title: 'Multimeter vs REST Client — from .http files to tests, mocks, and CI',
     description:
-      'Compare Multimeter and the REST Client VS Code extension. Multimeter opens .http files and adds YAML tests, suites, mocks, docs, and a CLI for CI.',
+      'Compare Multimeter and the REST Client VS Code extension. Multimeter opens .http files and adds YAML tests, suites, mocks, docs, CI, parallel stages, and reused setup.',
     intro:
       'REST Client (Humao) made .http files the simplest way to send a request from VS Code. Multimeter can open those files. When you need environments, multi-step tests, mocks, generated docs, or a pipeline, you grow into .mmt without abandoning the editor or inventing a second toolchain.',
+    speed: SPEED_SHARED,
     switchReasons: [
       'Keep sending requests from VS Code, including existing .http files',
       'Promote a request into a test, suite, or mock without leaving Git',
       'Run the same definitions in CI with testlight',
-      'Parallel stages and cached setup calls in the same run',
       'GraphQL, gRPC, WebSocket, and reports when .http is no longer enough',
     ],
     rows: [
@@ -156,7 +163,7 @@ export const comparePages: ComparePageData[] = [
       { feature: 'Mock server', other: 'No', multimeter: 'Built-in' },
       { feature: 'Suites', other: 'No', multimeter: 'Yes' },
       { feature: 'Parallel runs', other: 'No', multimeter: 'Suite groups and test stages' },
-      { feature: 'Call cache', other: 'No', multimeter: 'Reuse setup calls in the same run' },
+      { feature: 'Call cache', other: 'No', multimeter: 'Reuse login/setup in the same run' },
       { feature: 'Generated docs', other: 'No', multimeter: 'HTML and Markdown' },
     ],
   },

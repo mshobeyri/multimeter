@@ -617,44 +617,6 @@
         ]
       },
       {
-        "title": "Testlight",
-        "path": "features/testlight/index.md",
-        "children": [
-          {
-            "title": "Overview",
-            "path": "features/testlight/index.md"
-          },
-          {
-            "title": "Install",
-            "path": "features/testlight/install.md"
-          },
-          {
-            "title": "Commands",
-            "path": "features/testlight/commands.md"
-          },
-          {
-            "title": "Options",
-            "path": "features/testlight/options.md"
-          },
-          {
-            "title": "Environment priority",
-            "path": "features/testlight/environment-priority.md"
-          },
-          {
-            "title": "Examples",
-            "path": "features/testlight/examples.md"
-          },
-          {
-            "title": "Tips",
-            "path": "features/testlight/tips.md"
-          },
-          {
-            "title": "See also",
-            "path": "features/testlight/see-also.md"
-          }
-        ]
-      },
-      {
         "title": "Flow chart",
         "path": "features/flow-chart.md"
       },
@@ -679,6 +641,14 @@
             "path": "features/dynamic-values/current.md"
           }
         ]
+      },
+      {
+        "title": "Parallel runs",
+        "path": "features/parallel-runs.md"
+      },
+      {
+        "title": "Call cache",
+        "path": "features/call-cache.md"
       },
       {
         "title": "Data-driven tests",
@@ -729,6 +699,43 @@
             "path": "features/certificates/supported-certificate-formats.md"
           }
         ]
+      }
+    ]
+  },
+  {
+    "title": "Multimeter CLI (Testlight)",
+    "items": [
+      {
+        "title": "Overview",
+        "path": "features/testlight/index.md"
+      },
+      {
+        "title": "Install",
+        "path": "features/testlight/install.md"
+      },
+      {
+        "title": "Commands",
+        "path": "features/testlight/commands.md"
+      },
+      {
+        "title": "Options",
+        "path": "features/testlight/options.md"
+      },
+      {
+        "title": "Environment priority",
+        "path": "features/testlight/environment-priority.md"
+      },
+      {
+        "title": "Examples",
+        "path": "features/testlight/examples.md"
+      },
+      {
+        "title": "Tips",
+        "path": "features/testlight/tips.md"
+      },
+      {
+        "title": "See also",
+        "path": "features/testlight/see-also.md"
       },
       {
         "title": "MCP",

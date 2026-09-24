@@ -85,6 +85,8 @@ https://mmt.dev/raw/docs/files/api/index.md
 https://mmt.dev/raw/docs/files/test/index.md
 https://mmt.dev/raw/docs/files/test/steps/index.md
 https://mmt.dev/raw/docs/features/testlight/install.md
+https://mmt.dev/raw/docs/features/parallel-runs.md
+https://mmt.dev/raw/docs/features/call-cache.md
 https://mmt.dev/raw/docs/files/judge/index.md
 https://mmt.dev/raw/docs/features/mcp/index.md
 https://mmt.dev/raw/docs/features/mcp/mcp-tools.md

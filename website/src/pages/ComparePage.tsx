@@ -112,6 +112,13 @@ export default function ComparePage() {
             </table>
           </div>
 
+          {page.speed ? (
+            <>
+              <h2 className="text-2xl font-bold text-white mb-4">How runs stay fast</h2>
+              <p className="text-lg text-slate-400 leading-relaxed mb-12">{page.speed}</p>
+            </>
+          ) : null}
+
           <div className="flex flex-col sm:flex-row gap-4 mb-12">
             <a
               href={marketplace}

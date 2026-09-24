@@ -73,7 +73,7 @@ const features = [
     icon: Terminal,
     title: 'CI/CD Ready',
     description:
-      'Run the same flows with testlight in pipelines and export HTML, Markdown, or JUnit when you need them.',
+      'Run the same flows with testlight in pipelines — parallel stages, reused setup, and HTML, Markdown, or JUnit reports.',
     color: 'text-emerald-400',
     bg: 'bg-emerald-400/10',
   },
