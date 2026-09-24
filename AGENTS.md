@@ -94,7 +94,7 @@ Stable Marketplace, Open VSX, and the official MCP Registry are not published fr
 
 Never ship a VSIX whose version contains a hyphen.
 
-Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN`.
+Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN`. Marketplace pre-release: Azure DevOps pipeline secret `VSCE_PAT`.
 
 ## Build, test, and packaging
 - From repo root:
