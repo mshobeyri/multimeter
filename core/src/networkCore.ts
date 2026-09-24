@@ -125,7 +125,47 @@ function trackSocketForAgent(
 
   socket.once('end', () => {
     connectionTracker.close(connId, 'server');
+    // The peer finished this connection. If no request is writing on it,
+    // drop it so the agent cannot hand the closed socket to the next call.
+    if (!socket._httpMessage) {
+      destroySocketQuietly(socket);
+    }
   });
+}
+
+function destroySocketQuietly(socket: any): void {
+  if (!socket || socket.destroyed) {
+    return;
+  }
+  try {
+    socket.removeAllListeners('error');
+    socket.on('error', () => {});
+    socket.destroy();
+  } catch {
+    // Best-effort. The HTTP result is already decided.
+  }
+}
+
+function requestSocket(source: any): any {
+  return source?.request?.socket
+      || source?.response?.request?.socket
+      || source?.socket;
+}
+
+function dropKeepAliveSocket(source: any): void {
+  destroySocketQuietly(requestSocket(source));
+}
+
+function isDeadKeepAliveError(err: any): boolean {
+  if (!err || err.response) {
+    return false;
+  }
+  const code = err.code || err.cause?.code;
+  if (code === 'ECONNRESET' || code === 'EPIPE') {
+    return true;
+  }
+  const message = typeof err.message === 'string' ? err.message.toLowerCase() : '';
+  return message.includes('socket hang up') || message.includes('econnreset');
 }
 
 export function createHttpsAgentWithCertificates(
@@ -692,6 +732,12 @@ export async function sendHttpRequest(
   };
   const toError = (err: any, warning?: string): HttpResponse => {
     const duration = Date.now() - start;
+    if (err?.response && Number(err.response.status) >= 400) {
+      // An error response often makes the server FIN the keep-alive socket.
+      // Destroy it before the next sequential call, or that call is written
+      // onto the closed connection and waits until timeout.
+      dropKeepAliveSocket(err);
+    }
     if (err?.response) {
       const headers = normalizeAxiosHeaders(err.response.headers);
       return {
@@ -744,8 +790,18 @@ export async function sendHttpRequest(
     const response = await executeRequest(false);
     return toSuccess(response);
   } catch (err: any) {
-    if (canRetrySelfSigned && isSelfSignedTlsError(err)) {
-      const warning = formatSelfSignedWarning(err);
+    let responseErr = err;
+    if (isDeadKeepAliveError(err)) {
+      dropKeepAliveSocket(err);
+      try {
+        const retryResponse = await executeRequest(false);
+        return toSuccess(retryResponse);
+      } catch (retryErr: any) {
+        responseErr = retryErr;
+      }
+    }
+    if (canRetrySelfSigned && isSelfSignedTlsError(responseErr)) {
+      const warning = formatSelfSignedWarning(responseErr);
       try {
         const retryResponse = await executeRequest(true);
         return toSuccess(retryResponse, warning);
@@ -754,7 +810,7 @@ export async function sendHttpRequest(
       }
     }
     if (parsedUrl.protocol === 'https:' &&
-        isClientCertificateRequiredTlsError(err)) {
+        isClientCertificateRequiredTlsError(responseErr)) {
       const retryClient = getCertificateRequiredRetryClient(
           config, hostname, parsedUrl.port, parsedUrl.protocol);
       if (retryClient) {
@@ -772,7 +828,7 @@ export async function sendHttpRequest(
       }
     }
     if (parsedUrl.protocol === 'https:' &&
-        isClientCertificateRequiredHttpResponse(err)) {
+        isClientCertificateRequiredHttpResponse(responseErr)) {
       const retryClient = getCertificateRequiredRetryClient(
           config, hostname, parsedUrl.port, parsedUrl.protocol);
       if (retryClient) {
@@ -791,7 +847,7 @@ export async function sendHttpRequest(
         }
       }
     }
-    return toError(err);
+    return toError(responseErr);
   }
 }
 

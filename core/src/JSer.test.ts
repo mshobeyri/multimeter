@@ -2216,6 +2216,79 @@ describe('body inputs numeric/boolean templating', () => {
     // username remains a string at runtime
     expect(js).toContain('\"user\":\"${username}\"');
   });
+
+  it('encodes a string override of a number input as JSON', async () => {
+    const apiYaml = [
+      'type: api',
+      'method: post',
+      'format: json',
+      'url: https://example.com/echo',
+      'inputs:',
+      '  xxx: 10',
+      '  flag: true',
+      '  label: hello',
+      '  meta:',
+      '    a: 1',
+      'body:',
+      '  xxx: i:xxx',
+      '  flag: i:flag',
+      '  label: i:label',
+      '  meta: i:meta',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'echo_api',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('${JSON.stringify(xxx)}');
+    expect(js).toContain('${JSON.stringify(flag)}');
+    expect(js).toContain('${JSON.stringify(meta)}');
+    expect(js).toContain('"${label}"');
+    expect(js).not.toContain('"xxx":${xxx}');
+
+    const match = js.match(/body:\s*(`(?:\\`|[^`])*`)/);
+    expect(match).toBeTruthy();
+    const render = (values: Record<string, unknown>) => {
+      const names = Object.keys(values);
+      const fn = new Function(...names, `return ${match![1]};`);
+      return JSON.parse(fn(...names.map(name => values[name])));
+    };
+
+    expect(render({
+      xxx: 'asdasd',
+      flag: 'nope',
+      label: 12,
+      meta: {a: 1},
+    })).toEqual({
+      xxx: 'asdasd',
+      flag: 'nope',
+      label: '12',
+      meta: {a: 1},
+    });
+    expect(render({
+      xxx: 'a"b\\c',
+      flag: false,
+      label: 'hi',
+      meta: {a: 2},
+    })).toEqual({
+      xxx: 'a"b\\c',
+      flag: false,
+      label: 'hi',
+      meta: {a: 2},
+    });
+    expect(render({
+      xxx: 12,
+      flag: true,
+      label: 'hello',
+      meta: {a: 1},
+    })).toEqual({
+      xxx: 12,
+      flag: true,
+      label: 'hello',
+      meta: {a: 1},
+    });
+  });
 });
 
 describe('restoreUrlEncodedJsPlaceholders', () => {

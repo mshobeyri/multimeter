@@ -75,9 +75,17 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       }
       const entries = Object.entries(ctx.api.inputs ?? {});
       for (const [name, value] of entries) {
-        // Replace "${name}" -> ${JSON.stringify(name)}
+        // A whole-field "${name}" follows the input default's JSON type.
+        // Strings stay quoted interpolations. Numbers, booleans, null, and
+        // objects go through JSON.stringify so a string override is still
+        // valid JSON. A raw ${name} splice turns {"xxx":${xxx}} into
+        // {"xxx":asdasd}, which makes the server close the connection and
+        // the next keep-alive call hang.
         const quoted = new RegExp(`\"\\$\\{${name}\\}\"`, 'g');
-        if (typeof value === 'string') {
+        if (reqFormat === 'json' && typeof value !== 'string') {
+          formattedBody = (formattedBody as string).replace(
+              quoted, () => '${JSON.stringify(' + name + ')}');
+        } else if (typeof value === 'string') {
           formattedBody =
               (formattedBody as string).replace(quoted, '"${' + name + '}"');
         } else {
