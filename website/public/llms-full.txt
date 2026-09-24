@@ -71,8 +71,8 @@ testlight run path/to/test.mmt
 
 ## Compare
 
-- vs Postman: Git YAML, no cloud account, same files in CI — https://mmt.dev/compare/postman
-- vs Bruno: stays in VS Code; adds suites, mocks, docs, reports — https://mmt.dev/compare/bruno
+- vs Postman: Git YAML, no cloud account, same files in CI; parallel runs and same-run call cache — https://mmt.dev/compare/postman
+- vs Bruno: stays in VS Code; adds suites, mocks, docs, reports, parallel runs, call cache — https://mmt.dev/compare/bruno
 - vs Promptfoo: AI judges live in the API test, not a separate eval stack — https://mmt.dev/compare/promptfoo
 - vs Thunder Client: Git-friendly YAML instead of a VS Code-only collection — https://mmt.dev/compare/thunder-client
 

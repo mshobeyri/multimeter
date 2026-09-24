@@ -77,6 +77,15 @@ const features: FeatureRow[] = [
     },
   },
   {
+    feature: 'Call cache',
+    values: {
+      multimeter: 'Reuse setup in a run',
+      postman: false,
+      bruno: false,
+      restClient: false,
+    },
+  },
+  {
     feature: 'Sequential CLI speed',
     values: {
       multimeter: '~10% faster than Newman',

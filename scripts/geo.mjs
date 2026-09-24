@@ -48,13 +48,13 @@ export const MARKETING = [
     path: '/compare/postman',
     title: 'Multimeter vs Postman — Git-native API testing in VS Code',
     description: 'Keep API tests in Git, run them in VS Code and CI, with no cloud account.',
-    body: 'Postman stores collections in the cloud. Multimeter stores requests, tests, mocks, and docs as YAML .mmt files in your repo, with a visual editor in VS Code. The same files run locally and in CI via testlight.',
+    body: 'Postman stores collections in the cloud. Multimeter stores requests, tests, mocks, and docs as YAML .mmt files in your repo, with a visual editor in VS Code. The same files run locally and in CI via testlight. Suite groups and test stages can run in parallel, and call cache reuses login and other setup in the same run.',
   },
   {
     path: '/compare/bruno',
     title: 'Multimeter vs Bruno — Git-native API testing in VS Code',
     description: 'Both keep API work in Git. Multimeter adds test flows, suites, mocks, docs, and a VS Code editor.',
-    body: 'Bruno keeps collections in Git. Multimeter does too, with a visual editor in VS Code, then adds multi-step tests, suites, mock servers, generated docs, AI judges, and testlight for CI.',
+    body: 'Bruno keeps collections in Git. Multimeter does too, with a visual editor in VS Code, then adds multi-step tests, suites, mock servers, generated docs, AI judges, and testlight for CI. Parallel stages and same-run call cache skip repeated setup requests.',
   },
   {
     path: '/compare/promptfoo',
