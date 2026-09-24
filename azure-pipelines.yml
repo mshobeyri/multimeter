@@ -1,12 +1,20 @@
-# VS Code Marketplace pack pipeline (no publish).
+# VS Code Marketplace pipeline for publisher mshobeyri.
 # This is not the customer Testlight task sample in mmtazure/azure-pipelines.yml.
 #
-# Manual only. Packs a VSIX and optionally verifies VSCE_PAT against publisher
-# mshobeyri. Does not run `vsce publish`.
+# Manual run on a branch: pack + verify-pat + VSIX artifact. No publish.
+# Tag vX.Y.Z-pre (except v1.44.0-pre): pack, then vsce publish --pre-release.
+# Stable tags (vX.Y.Z) do not use this pipeline.
 
-name: vscode-marketplace-pack-$(Date:yyyyMMdd)$(Rev:.r)
+name: vscode-marketplace-$(Date:yyyyMMdd)$(Rev:.r)
 
-trigger: none
+trigger:
+  branches:
+    exclude:
+      - '*'
+  tags:
+    include:
+      - 'v*-pre'
+
 pr: none
 
 pool:
@@ -15,64 +23,76 @@ pool:
 variables:
   publisher: mshobeyri
 
-steps:
-  - checkout: self
-    fetchDepth: 1
+jobs:
+  - job: pack
+    timeoutInMinutes: 90
+    steps:
+      - checkout: self
+        fetchDepth: 1
 
-  - task: NodeTool@0
-    displayName: Use Node 22
-    inputs:
-      versionSpec: '22.x'
+      - task: NodeTool@0
+        displayName: Use Node 22
+        inputs:
+          versionSpec: '22.x'
 
-  - script: |
-      set -euo pipefail
-      npm ci
-      npm ci --prefix mmtcli
-      npm ci --prefix mmtmcp
-      npm install -g @vscode/vsce
-    displayName: Install dependencies and vsce
+      - script: |
+          set -euo pipefail
+          npm ci
+          npm ci --prefix mmtcli
+          npm ci --prefix mmtmcp
+          npm install -g @vscode/vsce
+        displayName: Install dependencies and vsce
 
-  - script: node scripts/sync-versions.mjs --check
-    displayName: Check package versions match
+      - script: node scripts/sync-versions.mjs --check
+        displayName: Check package versions match
 
-  - script: |
-      set -euo pipefail
-      CLI_VERSION="$(node -p "require('./mmtcli/package.json').version")"
-      if [[ "$CLI_VERSION" == *-pre ]]; then
-        echo "Packing pre-release VSIX for CLI $CLI_VERSION"
-        npm run pack-pre-release
-      else
-        echo "Packing stable VSIX for CLI $CLI_VERSION"
-        npm run pack
-      fi
-      ls -lh multimeter-*.vsix
-    displayName: Pack VSIX (no publish)
+      - script: |
+          set -euo pipefail
+          CLI_VERSION="$(node -p "require('./mmtcli/package.json').version")"
+          if [[ "$CLI_VERSION" == *-pre ]]; then
+            echo "Packing pre-release VSIX for CLI $CLI_VERSION"
+            npm run pack-pre-release
+          else
+            echo "Packing stable VSIX for CLI $CLI_VERSION"
+            npm run pack
+          fi
+          ls -lh multimeter-*.vsix
+        displayName: Pack VSIX
 
-  - script: |
-      set -euo pipefail
-      if [[ -z "${VSCE_PAT:-}" ]]; then
-        echo "VSCE_PAT is not set. Skipping verify-pat. Add a secret pipeline variable named VSCE_PAT to test Marketplace auth."
-        exit 0
-      fi
-      vsce verify-pat "$(publisher)"
-    displayName: Verify Marketplace PAT (no publish)
-    env:
-      VSCE_PAT: $(VSCE_PAT)
+      - script: |
+          set -euo pipefail
+          if [[ -z "${VSCE_PAT:-}" ]]; then
+            echo "VSCE_PAT is not set. Skipping verify-pat."
+            exit 0
+          fi
+          vsce verify-pat "$(publisher)"
+        displayName: Verify Marketplace PAT
+        env:
+          VSCE_PAT: $(VSCE_PAT)
 
-  - script: |
-      set -euo pipefail
-      echo "Publish is intentionally omitted from this pipeline."
-      echo "VSIX is attached as a pipeline artifact for inspection."
-    displayName: Confirm no Marketplace publish
+      - script: |
+          set -euo pipefail
+          mkdir -p "$(Build.ArtifactStagingDirectory)"
+          cp -v multimeter-*.vsix "$(Build.ArtifactStagingDirectory)/"
+        displayName: Stage VSIX
 
-  - script: |
-      set -euo pipefail
-      mkdir -p "$(Build.ArtifactStagingDirectory)"
-      cp -v multimeter-*.vsix "$(Build.ArtifactStagingDirectory)/"
-    displayName: Stage VSIX
+      - task: PublishPipelineArtifact@1
+        displayName: Attach VSIX artifact
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)
+          artifact: vsix
 
-  - task: PublishPipelineArtifact@1
-    displayName: Attach VSIX artifact
-    inputs:
-      targetPath: $(Build.ArtifactStagingDirectory)
-      artifact: vsix
+      - script: |
+          set -euo pipefail
+          BRANCH="$(Build.SourceBranch)"
+          echo "Source branch: $BRANCH"
+          VSIX="$(ls -1 multimeter-*.vsix | head -n 1)"
+          echo "Publishing $VSIX to Marketplace as pre-release (publisher $(publisher))"
+          vsce publish --pre-release \
+            --packagePath "$VSIX" \
+            --allow-package-all-secrets \
+            --allow-package-env-file
+        displayName: Publish pre-release to Marketplace
+        condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'), endsWith(variables['Build.SourceBranch'], '-pre'), ne(variables['Build.SourceBranch'], 'refs/tags/v1.44.0-pre'))
+        env:
+          VSCE_PAT: $(VSCE_PAT)
