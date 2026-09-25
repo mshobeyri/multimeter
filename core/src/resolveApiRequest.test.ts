@@ -68,13 +68,16 @@ describe('resolveApiRequest', () => {
     expect(formatBody('urlencoded', preview.body, false)).toBe('username=demo&role=admin');
   });
 
-  it('can preserve structured bodies for UI format preview', () => {
+  it('preserves structured bodies while resolving all tokens for UI preview', () => {
     const request = resolveApiRequest(api, {}, {}, {preserveStructuredBody: true});
-    expect(request.body).toEqual({
-      id: 'r:uuid',
-      count: 'r:int(10,20)',
-      created: 'c:date',
-    });
+    expect(typeof request.body).toBe('object');
+    expect(Array.isArray(request.body)).toBe(false);
+    const body = request.body as Record<string, unknown>;
+    expect(body.id).toEqual(expect.not.stringMatching(/^r:/));
+    expect(body.count).toEqual(expect.any(Number));
+    expect(body.created).toEqual(expect.not.stringMatching(/^c:/));
+    expect(body.count).toBeGreaterThanOrEqual(10);
+    expect(body.count).toBeLessThanOrEqual(20);
   });
 
   it('applies auth into headers and removes auth block', () => {
