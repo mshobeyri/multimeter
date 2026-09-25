@@ -11,7 +11,6 @@ import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
 import { APIData } from "mmt-core/APIData";
 import { protocolResolver } from "mmt-core";
-import { httpMethodAllowsRequestBody } from "mmt-core/apiMethod";
 import { FileContext } from "../fileContext";
 
 interface InterfaceEditorProps {
@@ -577,8 +576,8 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       ) : null}
 
-      {/* Hide body in edit when method is GET (tester disables it instead). */}
-      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && resolvedReqFormat !== "none" && (effectiveProtocol === "ws" || !data.method || httpMethodAllowsRequestBody(data.method)) && (
+      {/* Hide body when resolved format is none (auto+GET). Explicit formats keep a body on GET. */}
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && resolvedReqFormat !== "none" && (
         <>
           <div className="label api-body-label">
             <span>Body</span>

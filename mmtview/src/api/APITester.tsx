@@ -27,7 +27,7 @@ import {
   type ResponseViewMode,
 } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
-import { httpMethodAllowsRequestBody, resolveApiHttpMethod } from "mmt-core/apiMethod";
+import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
 import {
   accentChromeCssVars,
@@ -203,8 +203,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     setResponseViewModeState(view);
     localStorage.setItem("apitest-response-view-mode", view);
   };
+  // Body is disabled only when the resolved format is `none` (e.g. auto+GET).
+  // An explicit format (raw/json/…) keeps the body editable and sendable on GET.
   const requestBodyDisabled = !isGraphQL && !isGrpc && effectiveProtocol !== "ws" &&
-    (!httpMethodAllowsRequestBody(methodOrProtocolKey) || resolvedRequestFormat === "none");
+    resolvedRequestFormat === "none";
   const [themeTick, setThemeTick] = useState(0);
   useEffect(() => {
     const onTheme = () => setThemeTick((n) => n + 1);
@@ -531,9 +533,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           <div
             className={`apitest-body-wrapper${requestBodyDisabled ? " is-disabled" : ""}`}
             data-mmt-coach="body"
-            title={requestBodyDisabled
-              ? (resolvedRequestFormat === "none" ? "No request body" : "GET requests have no request body")
-              : undefined}
+            title={requestBodyDisabled ? "No request body" : undefined}
           >
               {resolvedRequestFormat === "binary" ? (
                 <FilePickerInput

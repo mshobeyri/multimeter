@@ -7,6 +7,7 @@ import {
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
 import { REQUEST_FORMAT_VALUES, RequestFormat, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
+import { resolveRequestFormat } from "mmt-core/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
@@ -233,7 +234,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             onChange={query => emit({ query })}
           />
 
-          {selectedMethod !== 'get' && requestFormat(step.format) !== 'none' && (
+          {resolveRequestFormat(requestFormat(step.format), step.headers, selectedMethod) !== 'none' && (
             <>
               <div className="label">Body</div>
               <div className="field-pad">
