@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useMemo } from "react";
+import React, { useState, useContext, useEffect, useMemo, useRef } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
@@ -8,7 +8,8 @@ import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
-import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
+import { formatBody } from "mmt-core/markupConvertor";
+import { normalizeNewlines } from "mmt-core/textLines";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
@@ -109,6 +110,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     autoFormatBody,
     outputs,
     updateField,
+    restoreField,
     handleUrlChange,
     handleQueryChange,
     handleAddOutputVariable,
@@ -167,15 +169,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     requestData?.headers,
     methodOrProtocolValue.startsWith("method:") ? methodOrProtocolKey : undefined,
   );
-  /** YAML object/array in the file — edits round-trip through formattedBodyToYamlObject. */
-  const bodyYamlEncoded = api.body != null && typeof api.body !== "string";
-  // Preview from the resolved working copy (requestData). Fall back to api.body
-  // while the first resolve is in flight. Touched body still lives in requestData
-  // and is what buildRequestForSend sends via mergeTouched.
-  const requestBodyDisplay = formatBody(
-    resolvedRequestFormat,
-    requestData?.body ?? api.body ?? "",
-  );
+  // Untouched structured YAML body → format projection for highlight.
+  // Once the user edits, requestData.body is raw text (temporary modified state);
+  // keep it as-is so mid-edit invalid JSON/XML is allowed and Send uses editor text.
+  const requestBodySource = requestData?.body ?? api.body ?? "";
+  const requestBodyDisplay =
+    typeof requestBodySource === "string"
+      ? requestBodySource
+      : formatBody(resolvedRequestFormat, requestBodySource);
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
     if (saved === "raw" || saved === "pretty" || saved === "preview") {
@@ -314,16 +315,31 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     updateField("format", packFormatSpec({ request, response }) ?? format);
   };
 
+  // Snapshot of resolved display + body taken on first edit; exact revert exits temp mode.
+  const bodyTempBaselineRef = useRef<{ display: string; body: unknown } | null>(null);
+
+  useEffect(() => {
+    if (!touchedFields.has("body")) {
+      bodyTempBaselineRef.current = null;
+    }
+  }, [touchedFields]);
+
   const handleRequestBodyChange = (value: string) => {
-    if (bodyYamlEncoded) {
-      const packed = formattedBodyToYamlObject(resolvedRequestFormat, value);
-      if (packed === null || packed === undefined) {
-        return;
-      }
-      updateField("body", packed);
+    const normalized = normalizeNewlines(value);
+    if (!touchedFields.has("body")) {
+      const source = requestData?.body ?? api.body ?? "";
+      const display = typeof source === "string"
+        ? normalizeNewlines(source)
+        : normalizeNewlines(formatBody(resolvedRequestFormat, source));
+      bodyTempBaselineRef.current = { display, body: source };
+    }
+    const baseline = bodyTempBaselineRef.current;
+    if (baseline && normalized === baseline.display) {
+      restoreField("body", baseline.body);
+      bodyTempBaselineRef.current = null;
       return;
     }
-    updateField("body", value);
+    updateField("body", normalized);
   };
 
   const inputConstraints = useMemo(

@@ -435,9 +435,42 @@ function formattedBodyToYamlObject(
 }
 
 /**
+ * Pack UI formatted text into a structured YAML body value only when it is
+ * valid for `format`. Lenient YAML-fallback parsing is intentionally avoided
+ * so invalid mid-edit JSON stays text for text-vs-yaml diffs.
+ * Returns null when the text cannot be packed as that format.
+ */
+function packUiBodyStrictForYaml(format: Format, body: string): unknown|null {
+  const text = normalizeNewlines(body);
+  if (text.trim() === '') {
+    return null;
+  }
+  try {
+    if (format === 'json' || format === 'multipart') {
+      return JSON.parse(text);
+    }
+    if (isXmlFormat(format)) {
+      return flattenXmlObj(xml2js(text, {compact: true}));
+    }
+    if (format === 'urlencoded') {
+      return parseUrlEncodedBody(text);
+    }
+    if (format === 'binary' || format === 'text' || format === 'html' ||
+        format === 'none') {
+      // These formats are already plain text in YAML — not encoded objects.
+      return null;
+    }
+    return YAML.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Align UI body with YAML for diffs / write-back.
- * If the YAML-side body is structured (not plain text), pack the UI string
- * via {@link formattedBodyToYamlObject}. On pack failure, keep the UI text.
+ * When the YAML body is structured (encoded) and the UI text is valid for the
+ * request format, pack for encoded-vs-encoded compare. Otherwise keep the UI
+ * text (text-vs-yaml) — including invalid mid-edit JSON/XML.
  */
 function packBodyForYamlCompare(
     yamlBody: unknown,
@@ -450,8 +483,10 @@ function packBodyForYamlCompare(
   if (typeof uiBody !== 'string') {
     return uiBody;
   }
-  const packed = formattedBodyToYamlObject(format, uiBody);
-  if (packed === null || packed === undefined) {
+  const packed = packUiBodyStrictForYaml(format, uiBody);
+  // Only structured packs count as encoded-vs-encoded. A JSON string/number
+  // primitive is still "text" relative to an object YAML body.
+  if (packed === null || packed === undefined || typeof packed !== 'object') {
     return uiBody;
   }
   return packed;

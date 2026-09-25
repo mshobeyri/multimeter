@@ -245,6 +245,18 @@ describe('packBodyForYamlCompare', () => {
     expect(packBodyForYamlCompare(yamlBody, '<<<not-xml', 'xml')).toBe('<<<not-xml');
   });
 
+  it('falls back to UI text for invalid JSON (no YAML-lenient pack)', () => {
+    const yamlBody = {a: 1};
+    // Valid YAML / invalid JSON — must stay text-vs-yaml, not encoded.
+    expect(packBodyForYamlCompare(yamlBody, '{a: 1}', 'json')).toBe('{a: 1}');
+    expect(packBodyForYamlCompare(yamlBody, '{"a":', 'json')).toBe('{"a":');
+  });
+
+  it('packs valid JSON text when YAML body is structured', () => {
+    const yamlBody = {a: 1};
+    expect(packBodyForYamlCompare(yamlBody, '{\n  "a": 2\n}', 'json')).toEqual({a: 2});
+  });
+
   it('passes through non-string UI bodies unchanged', () => {
     const yamlBody = {a: 1};
     const uiBody = {a: 2};

@@ -155,6 +155,18 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     } as Request));
   }, [markFieldTouched]);
 
+  /** Set a field and drop it from touched (e.g. body reverted to pre-edit resolved text). */
+  const restoreField = useCallback((field: keyof Request, value: unknown) => {
+    if (touchedFieldsRef.current.has(field)) {
+      touchedFieldsRef.current.delete(field);
+      setTouchedFields(new Set(touchedFieldsRef.current));
+    }
+    setRequestData(prev => ({
+      ...(prev ?? {}),
+      [field]: value
+    } as Request));
+  }, []);
+
   const handleUrlChange = useCallback((newUrl: string) => {
     if (newUrl !== requestData?.url) {
       markFieldTouched("url");
@@ -611,6 +623,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     outputs,
     isSending,
     updateField,
+    restoreField,
     handleUrlChange,
     handleQueryChange,
     handleAddOutputVariable,
