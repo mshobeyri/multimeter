@@ -1,4 +1,4 @@
-import { generateReportHtml } from './reportHtml';
+import { generateReportHtml, parentSuiteNodeId } from './reportHtml';
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 
 function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
@@ -20,6 +20,15 @@ function makeRun(overrides: Partial<TestRunResult> = {}): TestRunResult {
     ...overrides,
   };
 }
+
+describe('parentSuiteNodeId', () => {
+  it('walks suite-node paths', () => {
+    expect(parentSuiteNodeId('suite-node:0.1.2')).toBe('suite-node:0.1');
+    expect(parentSuiteNodeId('suite-node:0')).toBe('suite-node:root');
+    expect(parentSuiteNodeId('suite-node:root')).toBeUndefined();
+    expect(parentSuiteNodeId('custom')).toBeUndefined();
+  });
+});
 
 describe('generateReportHtml', () => {
   it('generates valid HTML with summary boxes', () => {
@@ -69,7 +78,33 @@ describe('generateReportHtml', () => {
     const html = generateReportHtml(results);
     expect(html).toContain('test-a.mmt');
     expect(html).toContain('test-b.mmt');
-    expect(html).toContain('<section class="suite">');
+    expect(html).toContain('class="report-tree"');
+    expect(html).toContain('class="tree-title"');
+    expect(html).toContain('all passed');
+  });
+
+  it('nests suite items into a tree from node ids', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      testRuns: [
+        makeRun({ id: 'suite-node:0', displayName: 'Group 1', steps: [] }),
+        makeRun({
+          id: 'suite-node:0.0',
+          displayName: 'authorise user for transaction 1U - long title that used to squash the badge',
+          steps: [makeStep({ title: 'check status' })],
+        }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    const groupAt = html.indexOf('>Group 1<');
+    const childAt = html.indexOf('authorise user for transaction 1U');
+    expect(groupAt).toBeGreaterThanOrEqual(0);
+    expect(childAt).toBeGreaterThan(groupAt);
+    expect(html).toContain('tree-children');
+    expect(html).toContain('tree-title');
+    expect(html).toContain('1 step');
+    expect(html).toContain('all passed');
   });
 
   it('uses a suite icon for suite-only rows', () => {

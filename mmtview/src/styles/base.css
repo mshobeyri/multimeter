@@ -606,6 +606,7 @@ span.vertical.disabled:active {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   padding: 8px 4px;
   border-radius: 4px;
   background: transparent;
@@ -633,6 +634,7 @@ span.vertical.disabled:active {
 }
 
 .report-tree-badge {
+  flex-shrink: 0;
   font-size: 0.85em;
   opacity: 0.7;
   white-space: nowrap;
