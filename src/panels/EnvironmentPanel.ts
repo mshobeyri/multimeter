@@ -258,7 +258,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
       if (scope === 'all') {
         const result = await vscode.window.showWarningMessage(
             'Are you sure you want to clear all environment variables?',
-            {modal: true}, 'Clear All', 'Cancel');
+            {modal: true}, 'Clear All');
 
         if (result !== 'Clear All') {
           return;
@@ -280,7 +280,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           'Clear manual variable';
       const result = await vscode.window.showWarningMessage(
           `Are you sure you want to clear ${label} environment variables?`,
-          {modal: true}, confirmLabel, 'Cancel');
+          {modal: true}, confirmLabel);
 
       if (result !== confirmLabel) {
         return;
