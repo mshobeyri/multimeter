@@ -1,5 +1,6 @@
 import {valueToString, stringToValue} from './convertor';
 import {OMIT_SENTINEL} from 'mmt-core/omitKeyword';
+import {LITERAL_TOKEN_PREFIX} from 'mmt-core/literalToken';
 
 describe('convertor null and omit handling', () => {
   it('displays null and omit keywords instead of sentinel', () => {
@@ -20,6 +21,13 @@ describe('convertor null and omit handling', () => {
   it('parses quoted null and omit as literal strings', () => {
     expect(stringToValue('"null"')).toBe('null');
     expect(stringToValue('"omit"')).toBe('omit');
+  });
+
+  it('round-trips quoted token literals like omit', () => {
+    expect(valueToString(`${LITERAL_TOKEN_PREFIX}r:uuid`)).toBe('"r:uuid"');
+    expect(stringToValue('"r:uuid"')).toBe(`${LITERAL_TOKEN_PREFIX}r:uuid`);
+    expect(stringToValue('r:uuid')).toBe('r:uuid');
+    expect(stringToValue('"i:user"')).toBe(`${LITERAL_TOKEN_PREFIX}i:user`);
   });
 
   it('round-trips keyword values through display and parse', () => {

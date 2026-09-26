@@ -1,6 +1,11 @@
-
 import {JSONValue} from 'mmt-core/CommonData';
 import {isOmitSentinel, OMIT_SENTINEL} from 'mmt-core/omitKeyword';
+import {
+  isLiteralTokenValue,
+  isTokenLikeScalar,
+  unwrapLiteralToken,
+  wrapLiteralToken,
+} from 'mmt-core/literalToken';
 
 export const valueToString = (val: JSONValue | undefined): string => {
   if (val === undefined) {
@@ -13,6 +18,9 @@ export const valueToString = (val: JSONValue | undefined): string => {
     return 'omit';
   }
   if (typeof val === 'string') {
+    if (isLiteralTokenValue(val)) {
+      return `"${unwrapLiteralToken(val)}"`;
+    }
     if (val.toLowerCase() === 'true' || val.toLowerCase() === 'false') {
       return `"${val}"`;
     }
@@ -48,7 +56,11 @@ export const stringToValue = (val: string): JSONValue => {
 
     if ((t.startsWith('"') && t.endsWith('"')) ||
         (t.startsWith('\'') && t.endsWith('\''))) {
-      return t.slice(1, -1);
+      const inner = t.slice(1, -1);
+      if (isTokenLikeScalar(inner)) {
+        return wrapLiteralToken(inner);
+      }
+      return inner;
     }
 
     if (t === 'omit') {

@@ -250,6 +250,11 @@
       "require": "./dist/omitKeyword.js",
       "default": "./dist/omitKeyword.js"
     },
+    "./literalToken": {
+      "types": "./dist/literalToken.d.ts",
+      "require": "./dist/literalToken.js",
+      "default": "./dist/literalToken.js"
+    },
     "./multipartBody": {
       "types": "./dist/multipartBody.d.ts",
       "require": "./dist/multipartBody.js",

@@ -1,4 +1,5 @@
 import * as YAML from 'yaml';
+import {markQuotedTokenLiterals} from './literalToken';
 import {preserveMultilineDescriptionScalars} from './multilineDescriptionYaml';
 import {stripOmitFromMultipartParts} from './multipartBody';
 
@@ -50,6 +51,7 @@ export function parseYamlWithOmitKeyword(
   }
   preserveMultilineDescriptionScalars(doc.contents, yamlString);
   walkYamlNode(doc.contents);
+  markQuotedTokenLiterals(doc.contents);
   return doc.toJS();
 }
 

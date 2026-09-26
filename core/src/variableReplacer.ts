@@ -3,6 +3,7 @@ import {JSONRecord} from './CommonData';
 import {randomValueForToken} from './Random';
 import {currentValueForToken} from './Current';
 import {isOmitSentinel} from './omitKeyword';
+import {isLiteralTokenValue, unwrapLiteralToken, restoreLiteralTokens} from './literalToken';
 import {safeList} from './safer';
 import {TestData} from './TestData';
 
@@ -297,6 +298,9 @@ export const replaceDynamicTokensToJsInterpolations = (s: string): string => {
  */
 export function embedDynamicTokensAsJsInterpolations(value: any): any {
   if (typeof value === 'string') {
+    if (isLiteralTokenValue(value)) {
+      return unwrapLiteralToken(value);
+    }
     return replaceDynamicTokensToJsInterpolations(value);
   }
   if (Array.isArray(value)) {
@@ -318,6 +322,9 @@ export function embedDynamicTokensAsJsInterpolations(value: any): any {
  */
 export function toTemplateValueJs(value: string): string {
   const s = String(value ?? '');
+  if (isLiteralTokenValue(s)) {
+    return JSON.stringify(unwrapLiteralToken(s));
+  }
 
   const fullEnvAngle = new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
   const fullEnvPlain = new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
@@ -494,6 +501,9 @@ function resolveDynamicTokenValue(
 
 export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any {
   if (typeof val === 'string') {
+    if (isLiteralTokenValue(val)) {
+      return unwrapLiteralToken(val);
+    }
     const exactMatchers = [
       {re: new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'r'},
       {re: new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'r'},
@@ -548,6 +558,10 @@ function replaceRefs(
     obj: any, pattern: RegExp, mode: ReplacementMode,
     inputs: Record<string, any>, resolver?: DynamicResolver): any {
   if (typeof obj === 'string') {
+    // Quoted token scalars stay literal (see literalToken.ts) — do not resolve.
+    if (isLiteralTokenValue(obj)) {
+      return obj;
+    }
     // Build anchored (non-global) pattern for full-string variable match based
     const anchored = mode === ReplacementMode.BRACE ?
       new RegExp(`^<<(${DYNAMIC_KEY_RE})>>$`) :
@@ -729,6 +743,12 @@ export function replaceAllRefs(
   // Use resolver; no need to pre-prefix i:/e:/r:/c:
   let replacedIface = replaceInputRefsWithBrace(iface, {}, dynamicResolver);
   replacedIface = replaceInputRefsWithNone(replacedIface, {}, dynamicResolver);
+
+  // UI / preview resolves tokens — unwrap quoted literals to plain text.
+  // Codegen keeps markers so emitters can emit JSON string constants instead.
+  if (options.resolveRuntimeTokens !== false) {
+    replacedIface = restoreLiteralTokens(replacedIface);
+  }
 
   return replacedIface;
 }

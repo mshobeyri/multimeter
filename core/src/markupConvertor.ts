@@ -6,6 +6,10 @@ import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} f
 import {parseYamlWithOmitKeyword} from './omitKeyword';
 import {restoreOmitKeyword} from './omitKeyword';
 import {isOmitSentinel} from './omitKeyword';
+import {
+  isLiteralTokenValue,
+  restoreLiteralTokens,
+} from './literalToken';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 import {normalizeNewlines} from './textLines';
 import {mergeYamlValue} from './yamlAstMerge';
@@ -59,6 +63,10 @@ function applyKeywordScalarStyles(node: any, original: any): void {
       node.type = 'PLAIN';
       return;
     }
+    if (isLiteralTokenValue(original)) {
+      node.type = 'QUOTE_DOUBLE';
+      return;
+    }
     if ((original === 'omit' || original === 'null') &&
         typeof original === 'string') {
       node.type = 'QUOTE_DOUBLE';
@@ -99,7 +107,7 @@ function applyKeywordScalarStyles(node: any, original: any): void {
 
 function packYaml(obj: any, originalYaml?: string): string {
   try {
-    const restored = restoreOmitKeyword(obj);
+    const restored = restoreLiteralTokens(restoreOmitKeyword(obj));
     // Monaco/Windows editors often produce CRLF; YAML double-quotes those as
     // visible `\r` escapes. Normalize before emit so .mmt files stay LF-only.
     const normalized = normalizeYamlStringNewlines(restored);

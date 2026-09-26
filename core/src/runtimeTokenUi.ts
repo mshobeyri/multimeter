@@ -44,6 +44,10 @@ export function stringContainsRuntimeToken(value: unknown): boolean {
   if (typeof value !== 'string' || !value) {
     return false;
   }
+  // Quoted YAML tokens are stored wrapped — they are literal text, not runtime.
+  if (value.startsWith('__MMT_LITERAL__:')) {
+    return false;
+  }
   RUNTIME_TOKEN_IN_STRING_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = RUNTIME_TOKEN_IN_STRING_RE.exec(value)) !== null) {

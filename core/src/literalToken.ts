@@ -1,0 +1,135 @@
+/**
+ * YAML-quoted token scalars (`"r:uuid"`, `"i:user"`, …) stay literal text —
+ * same idea as quoted `"omit"` vs bare `omit`.
+ *
+ * Unquoted `r:uuid` still resolves. Quoted `"r:uuid"` is wrapped at parse time
+ * so replace/resolve leave the text unchanged, then unwrapped on YAML emit.
+ */
+
+/** Marks a YAML-quoted token scalar so resolve/replace leave it as plain text. */
+export const LITERAL_TOKEN_PREFIX = '__MMT_LITERAL__:';
+
+// Keep in sync with variableReplacer token shapes (avoid importing that module —
+// it depends on this one for resolve skips).
+const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
+const ACCESSOR_SEGMENT_RE =
+    '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|:-?\\d*|[A-Za-z_][A-Za-z0-9_]*)\\])';
+const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
+const RANDOM_TOKEN_ARGUMENTS_RE =
+    '\\(\\s*[^(),\\s]+(?:\\s*,\\s*[^(),\\s]+)?\\s*\\)';
+const RANDOM_TOKEN_SPEC_RE =
+    `${TOKEN_NAME_RE}(?:${RANDOM_TOKEN_ARGUMENTS_RE})?`;
+const CURRENT_TOKEN_ARGUMENTS_RE =
+    '\\([+-](?:\\d+(?:\\.\\d+)?(?:ms|s|m|h|d|w))+\\)';
+const CURRENT_TOKEN_SPEC_RE =
+    `${TOKEN_NAME_RE}(?:${CURRENT_TOKEN_ARGUMENTS_RE})?`;
+/** Loose `(...)` so quoted `r:int(a,b)` / `c:date(x)` still count as token-like. */
+const RUNTIME_ARGS_LOOSE_RE = '(?:\\([^)]*\\))?';
+const RUNTIME_SPEC_RE = `${TOKEN_NAME_RE}${RUNTIME_ARGS_LOOSE_RE}`;
+
+const DYNAMIC_KEY_RE =
+    `(?:r:${RUNTIME_SPEC_RE}|c:${RUNTIME_SPEC_RE}|(?:e|i|o):${TOKEN_NAME_RE})` +
+    ACCESSOR_PATH_RE;
+
+const ENV_BRACE_TOKEN_RE =
+    new RegExp(`^e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\}$`);
+const SINGLE_ANGLE_ENV_RE =
+    new RegExp(`^<\\s*e:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\s*>$`);
+const ANGLE_TOKEN_RE =
+    new RegExp(`^<<\\s*(${DYNAMIC_KEY_RE})\\s*>>$`);
+const PLAIN_TOKEN_RE =
+    new RegExp(`^(${DYNAMIC_KEY_RE})$`);
+
+/**
+ * True when a whole scalar looks like an e:/i:/r:/c:/o: token (plain, braced,
+ * or angle-wrapped). Used to decide which quoted YAML values stay literal.
+ */
+export function isTokenLikeScalar(value: string): boolean {
+  const text = String(value ?? '');
+  if (!text) {
+    return false;
+  }
+  if (ENV_BRACE_TOKEN_RE.test(text) || SINGLE_ANGLE_ENV_RE.test(text)) {
+    return true;
+  }
+  if (ANGLE_TOKEN_RE.test(text) || PLAIN_TOKEN_RE.test(text)) {
+    return true;
+  }
+  return false;
+}
+
+export function isLiteralTokenValue(value: unknown): boolean {
+  return typeof value === 'string' && value.startsWith(LITERAL_TOKEN_PREFIX);
+}
+
+export function wrapLiteralToken(value: string): string {
+  if (isLiteralTokenValue(value)) {
+    return value;
+  }
+  return LITERAL_TOKEN_PREFIX + value;
+}
+
+export function unwrapLiteralToken(value: string): string {
+  if (!isLiteralTokenValue(value)) {
+    return value;
+  }
+  return value.slice(LITERAL_TOKEN_PREFIX.length);
+}
+
+/** Deep-unwrap literal markers for YAML emit / logs (value becomes plain text). */
+export function restoreLiteralTokens(value: any): any {
+  if (isLiteralTokenValue(value)) {
+    return unwrapLiteralToken(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => restoreLiteralTokens(item));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, restoreLiteralTokens(v)]));
+  }
+  return value;
+}
+
+/** Replace markers inside already-serialized text. */
+export function restoreLiteralTokensInText(text: string): string {
+  return String(text ?? '').split(LITERAL_TOKEN_PREFIX).join('');
+}
+
+/**
+ * Walk a yaml AST: quoted token-like scalars become literal markers so they
+ * survive resolve the same way quoted `"omit"` survives the omit keyword.
+ */
+export function markQuotedTokenLiterals(node: any): void {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+
+  if ((node.type === 'QUOTE_DOUBLE' || node.type === 'QUOTE_SINGLE') &&
+      typeof node.value === 'string' &&
+      isTokenLikeScalar(node.value) &&
+      !isLiteralTokenValue(node.value)) {
+    node.value = wrapLiteralToken(node.value);
+    return;
+  }
+
+  if (Array.isArray(node.items)) {
+    for (const item of node.items) {
+      if (item && typeof item === 'object' &&
+          Object.prototype.hasOwnProperty.call(item, 'key') &&
+          Object.prototype.hasOwnProperty.call(item, 'value')) {
+        markQuotedTokenLiterals(item.key);
+        markQuotedTokenLiterals(item.value);
+      } else {
+        markQuotedTokenLiterals(item);
+      }
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(node, 'key')) {
+    markQuotedTokenLiterals(node.key);
+  }
+  if (Object.prototype.hasOwnProperty.call(node, 'value')) {
+    markQuotedTokenLiterals(node.value);
+  }
+}
