@@ -14,6 +14,10 @@ import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
 import { isSpecSourceFormat, type SourceFormat } from "../sourceFormat";
 import { getFileLinkTargetAtPosition } from "./yamlLinks";
 import {
+  dispatchSelectExample,
+  getExampleNameTargetAtPosition,
+} from "./exampleSelect";
+import {
   findHttpStepAtPosition,
   httpStepApiPreviewYamlAtPosition,
   suggestHttpStepApiFilename,
@@ -956,7 +960,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     };
   }, [editorReady, reorderDocument]);
 
-  // Ctrl/Cmd hover + click to open imported files or call names
+  // Ctrl/Cmd hover + click: open imports/calls, or select API example by name
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
     const monaco = monacoRef.current;
@@ -974,14 +978,31 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
     const getLinkContent = () => model.getValue();
 
-    const updateUnderline = (pos: any, withModifier: boolean) => {
-      const target = withModifier
-        ? getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos)
+    const resolveClickTarget = (pos: any, withModifier: boolean) => {
+      if (!withModifier) {
+        return { example: null, file: null };
+      }
+      const example = docType === 'api'
+        ? getExampleNameTargetAtPosition(monaco, model, getLinkContent(), pos)
         : null;
+      if (example) {
+        return { example, file: null };
+      }
+      return {
+        example: null,
+        file: getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos),
+      };
+    };
+
+    const updateUnderline = (pos: any, withModifier: boolean) => {
+      const { example, file } = resolveClickTarget(pos, withModifier);
+      const range = example?.range || file?.range;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
-      if (!target) return;
+      if (!range) {
+        return;
+      }
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, [{
-        range: target.range,
+        range,
         options: {
           inlineClassName: 'mmt-link-underline',
           stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
@@ -995,8 +1016,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
       updateUnderline(pos, withMod);
-      const target = withMod ? getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos) : null;
-      editor.updateOptions({ mouseStyle: target ? 'pointer' : 'text' });
+      const { example, file } = resolveClickTarget(pos, withMod);
+      editor.updateOptions({ mouseStyle: (example || file) ? 'pointer' : 'text' });
     });
 
     const onKeyDown = editor.onKeyDown((e: any) => {
@@ -1016,7 +1037,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
       if (withMod) {
-        const target = getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos);
+        const { example, file: target } = resolveClickTarget(pos, true);
+        if (example) {
+          evt.preventDefault?.();
+          evt.stopPropagation?.();
+          dispatchSelectExample(example.exampleIndex);
+          return;
+        }
         if (target?.httpStepPreview) {
           try {
             const yaml = httpStepApiPreviewYamlAtPosition(

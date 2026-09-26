@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useMemo, useRef } from "react";
+import React, { useState, useContext, useEffect, useMemo, useRef, useCallback } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
@@ -45,6 +45,7 @@ import {
   accentChromeFor,
 } from "../shared/themeAccent";
 import { findMatchingExampleIndex } from "./apiExampleMatch";
+import { SELECT_EXAMPLE_EVENT } from "../text/exampleSelect";
 
 interface APITestProps {
   api: APIData;
@@ -466,7 +467,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     return status;
   }, [selectedExampleIdx, examples, outputs, responseData, api.outputs, currentInputs, matchBaseline]);
 
-  const handleExampleChange = (newIdx: number) => {
+  const handleExampleChange = useCallback((newIdx: number) => {
     setSelectedExampleIdx(newIdx);
     const baseInputs = newIdx === -1
       ? (api.inputs || {})
@@ -474,7 +475,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     const nextInputs = cloneInputs(baseInputs);
     setCurrentInputs(nextInputs);
     prepareRequestData(nextInputs, { respectTouched: false, forceReset: true });
-  };
+  }, [api.inputs, examples, prepareRequestData, setCurrentInputs, setSelectedExampleIdx]);
+
+  useEffect(() => {
+    const onSelectExample = (event: Event) => {
+      const idx = (event as CustomEvent<{ exampleIndex?: number }>).detail?.exampleIndex;
+      if (typeof idx !== "number" || !Number.isInteger(idx) || idx < 0) {
+        return;
+      }
+      if (idx >= examples.length) {
+        return;
+      }
+      handleExampleChange(idx);
+    };
+    window.addEventListener(SELECT_EXAMPLE_EVENT, onSelectExample);
+    return () => window.removeEventListener(SELECT_EXAMPLE_EVENT, onSelectExample);
+  }, [examples.length, handleExampleChange]);
 
   const handleInputsChange = (data: JSONRecord) => {
     setCurrentInputs(data);
