@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DiffEditor } from "@monaco-editor/react";
 import { defineTheme, getMonacoThemeName } from "../text/Theme";
-import { requestYamlMonacoRemount } from "../shared/monacoContextUi";
 
 interface UnsavedChangesWarningProps {
   /** Current file / applied YAML (left / original side of the diff). */
@@ -10,6 +9,10 @@ interface UnsavedChangesWarningProps {
   modifiedYaml: string;
   onSave: () => void;
   onReset: () => void;
+  /** When false, hide the UNSAVED CHANGES button but keep DiffEditor mounted. */
+  showLauncher?: boolean;
+  /** Fired once the DiffEditor has been created (so the parent can keep us mounted). */
+  onDiffParked?: () => void;
 }
 
 const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
@@ -17,23 +20,19 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
   modifiedYaml,
   onSave,
   onReset,
+  showLauncher = true,
+  onDiffParked,
 }) => {
   const [open, setOpen] = useState(false);
+  // Keep DiffEditor mounted after first open — disposing it breaks YAML Ctrl+Z / menus.
+  const [diffMounted, setDiffMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const afterDiffEditorUnmount = (action?: () => void) => {
-    setOpen(false);
-    // DiffEditor unmounts this frame; remount YAML next frame so context menus work.
-    requestAnimationFrame(() => {
-      requestYamlMonacoRemount();
-      if (!action) {
-        return;
-      }
-      requestAnimationFrame(() => {
-        action();
-      });
-    });
+  const openPopup = () => {
+    setDiffMounted(true);
+    onDiffParked?.();
+    setOpen(true);
   };
 
   useEffect(() => {
@@ -45,34 +44,40 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
         !popupRef.current?.contains(e.target as Node) &&
         !buttonRef.current?.contains(e.target as Node)
       ) {
-        afterDiffEditorUnmount();
+        setOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   return (
     <div className="unsaved-changes-anchor">
-      <button
-        ref={buttonRef}
-        className="action-button api-edit-launcher unsaved-warning-btn"
-        onClick={() => setOpen(v => !v)}
-        title="The UI has unsaved changes"
-        type="button"
-      >
-        <span className="codicon codicon-warning" aria-hidden />
-        <span className="api-edit-launcher-text">UNSAVED CHANGES</span>
-      </button>
-      {open && (
-        <div ref={popupRef} className="unsaved-changes-popup">
+      {showLauncher ? (
+        <button
+          ref={buttonRef}
+          className="action-button api-edit-launcher unsaved-warning-btn"
+          onClick={() => (open ? setOpen(false) : openPopup())}
+          title="The UI has unsaved changes"
+          type="button"
+        >
+          <span className="codicon codicon-warning" aria-hidden />
+          <span className="api-edit-launcher-text">UNSAVED CHANGES</span>
+        </button>
+      ) : null}
+      {diffMounted ? (
+        <div
+          ref={popupRef}
+          className="unsaved-changes-popup"
+          hidden={!open}
+          style={open ? undefined : { display: "none" }}
+        >
           <div className="unsaved-changes-popup-header">
             <span className="codicon codicon-warning unsaved-changes-popup-icon" aria-hidden />
             <span>UNSAVED CHANGES</span>
             <button
               className="unsaved-changes-popup-close"
-              onClick={() => afterDiffEditorUnmount()}
+              onClick={() => setOpen(false)}
               type="button"
               title="Close"
             >
@@ -86,7 +91,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
             <div className="unsaved-changes-popup-actions">
               <button
                 className="button-icon"
-                onClick={() => afterDiffEditorUnmount(onSave)}
+                onClick={() => { setOpen(false); onSave(); }}
                 type="button"
                 title="Write UI edits into the YAML"
               >
@@ -94,7 +99,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
               </button>
               <button
                 className="button-icon"
-                onClick={() => afterDiffEditorUnmount(onReset)}
+                onClick={() => { setOpen(false); onReset(); }}
                 type="button"
                 title="Discard UI changes"
               >
@@ -138,7 +143,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
             />
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

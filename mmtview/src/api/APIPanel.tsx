@@ -52,10 +52,14 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
 
   const [page, setPage] = usePanelPage<"test" | "edit">("test");
   const [tab, setTab] = useState<"overview" | "interface" | "examples">("overview");
+  // Keep UnsavedChangesWarning mounted after DiffEditor opens so disposing it
+  // never breaks the YAML editor's context menu / undo stack.
+  const [diffParked, setDiffParked] = useState(false);
   const { mmtFilePath } = useContext(FileContext);
 
   useEffect(() => {
     setTab("overview");
+    setDiffParked(false);
   }, [mmtFilePath]);
 
   // Test-mode override tracking. We don't snapshot the API on entry; instead
@@ -308,20 +312,23 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
                     readOnly ? undefined : (
                       <>
                         <YamlErrorWarning />
-                          {isTestModified ? (
-                            <UnsavedChangesWarning
-                              originalYaml={appliedContent}
-                              modifiedYaml={modifiedYaml}
-                              onSave={handleWarningSave}
-                              onReset={handleWarningReset}
-                            />
-                          ) : (
+                          {!isTestModified ? (
                             <HeaderAction
                               icon="edit"
                               label="Edit API"
                               onClick={() => setPage('edit')}
                             />
-                          )}
+                          ) : null}
+                          {(isTestModified || diffParked) ? (
+                            <UnsavedChangesWarning
+                              showLauncher={isTestModified}
+                              originalYaml={appliedContent}
+                              modifiedYaml={isTestModified ? modifiedYaml : appliedContent}
+                              onSave={handleWarningSave}
+                              onReset={handleWarningReset}
+                              onDiffParked={() => setDiffParked(true)}
+                            />
+                          ) : null}
                       </>
                     )
                   }

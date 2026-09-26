@@ -19,8 +19,6 @@ interface TextEditorProps {
   onPasteTextTransform?: (text: string) => string | null | undefined;
   showGlyphMargin?: boolean;
   readOnly?: boolean;
-  /** When set, remount this editor (preserving view state) on that window event. */
-  remountEventName?: string;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -169,7 +167,6 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onPasteTextTransform,
   showGlyphMargin = false,
   readOnly = false,
-  remountEventName,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -177,8 +174,6 @@ const TextEditor: React.FC<TextEditorProps> = ({
   const applyingExternalContentRef = useRef(false);
   const contentRef = useRef(content);
   contentRef.current = content;
-  const [instanceKey, setInstanceKey] = useState(0);
-  const pendingViewStateRef = useRef<unknown>(null);
 
   // Use passed refs if provided, else fallback to local refs
   const monacoRefToUse = monacoRef || localMonacoRef;
@@ -188,24 +183,6 @@ const TextEditor: React.FC<TextEditorProps> = ({
   useEffect(() => {
     toggleRunButtonRef.current = onToggleRunButton;
   }, [onToggleRunButton]);
-
-  useEffect(() => {
-    if (!remountEventName) {
-      return;
-    }
-    const onRemount = () => {
-      const editor = editorRefToUse.current;
-      try {
-        pendingViewStateRef.current = editor?.saveViewState?.() ?? null;
-      } catch {
-        pendingViewStateRef.current = null;
-      }
-      setEditorReady?.(false);
-      setInstanceKey((key) => key + 1);
-    };
-    window.addEventListener(remountEventName, onRemount);
-    return () => window.removeEventListener(remountEventName, onRemount);
-  }, [remountEventName, editorRefToUse, setEditorReady]);
 
   const inspectPositionRef = useRef(onInspectPosition);
   useEffect(() => {
@@ -524,20 +501,11 @@ const TextEditor: React.FC<TextEditorProps> = ({
       }
     });
     // Mark editor as ready for consumers like YamlEditorPanel effects
-    if (pendingViewStateRef.current) {
-      try {
-        editor.restoreViewState?.(pendingViewStateRef.current);
-      } catch {
-        // ignore
-      }
-      pendingViewStateRef.current = null;
-    }
     setEditorReady?.(true);
   };
 
   return (
     <MonacoEditor
-      key={instanceKey}
       height="100%"
       width="100%"
       language={language}
