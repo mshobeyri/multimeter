@@ -99,7 +99,9 @@ export function responseFormat(format?: FormatSpec | null | Record<string, unkno
   return normalizeFormat(format).response;
 }
 
-/** Compact for YAML: scalar when response is auto (or both match), else split. */
+/** Compact for YAML write-back.
+ * Scalar when response is auto (response defaults to detect). Explicit matching
+ * request/response stay as an object so Save keeps the user's response choice. */
 export function packFormatSpec(format?: FormatSpec | null): FormatSpec | undefined {
   if (format == null) {
     return undefined;
@@ -113,12 +115,6 @@ export function packFormatSpec(format?: FormatSpec | null): FormatSpec | undefin
   }
   if (request === "auto" && response === "auto") {
     return "auto";
-  }
-  if (request === "auto" || response === "auto") {
-    return { request, response };
-  }
-  if (request === response) {
-    return request;
   }
   return { request, response };
 }

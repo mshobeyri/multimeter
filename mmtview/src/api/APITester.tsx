@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useMemo, useRef } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
-import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, packFormatSpec, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
@@ -13,6 +13,7 @@ import {
   displayRequestBody,
   type BodyTempBaseline,
 } from "mmt-core/apiBodyEdit";
+import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
@@ -316,9 +317,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
   const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
-    const request = side === "request" ? format as RequestFormat : currentRequestFormat;
-    const response = side === "response" ? format as ResponseFormat : currentResponseFormat;
-    updateField("format", packFormatSpec({ request, response }) ?? format);
+    // Format chips are temporary UI (like body edits): deduced from YAML on
+    // open/reset, independently editable per side, exit temp when both sides
+    // match the YAML baseline again. Store an explicit object while touched so
+    // request/response stay independent (scalar YAML means response:auto).
+    const result = applyFormatSideEdit({
+      side,
+      value: format,
+      yamlFormat: api.format,
+      currentFormat: requestData?.format ?? api.format,
+      formatTouched: touchedFields.has("format"),
+    });
+    if (result.kind === "exitTemp") {
+      restoreField("format", result.format);
+      return;
+    }
+    updateField("format", result.format);
   };
 
   // Snapshot of resolved display + body taken on first edit; exact revert exits temp mode.

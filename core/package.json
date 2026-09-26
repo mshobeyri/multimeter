@@ -70,6 +70,11 @@
       "require": "./dist/apiBodyEdit.js",
       "default": "./dist/apiBodyEdit.js"
     },
+    "./apiFormatEdit": {
+      "types": "./dist/apiFormatEdit.d.ts",
+      "require": "./dist/apiFormatEdit.js",
+      "default": "./dist/apiFormatEdit.js"
+    },
     "./NetworkData": {
       "types": "./dist/NetworkData.d.ts",
       "require": "./dist/NetworkData.js",
