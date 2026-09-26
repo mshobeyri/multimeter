@@ -125,6 +125,22 @@ describe('token site extraction', () => {
     expect(sites.some((s) => s.length >= 'i:message[0:1]'.length)).toBe(true);
   });
 
+  it('skips plain i: refs inside YAML quotes but keeps <<i:>>', () => {
+    const content = [
+      'type: api',
+      'inputs:',
+      '  asd: x',
+      'headers:',
+      '  A: "i:sd"',
+      '  B: \'i:missing\'',
+      'body:',
+      '  plain: i:xasd',
+      '  angled: "<<i:also_missing>>"',
+    ].join('\n');
+    const sites = extractInputRefSites(content);
+    expect(sites.map((s) => s.name).sort()).toEqual(['also_missing', 'xasd']);
+  });
+
   it('extracts env refs with accessor syntax', () => {
     const content = [
       'type: api',

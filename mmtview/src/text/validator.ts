@@ -1661,11 +1661,65 @@ const ENV_REF_CURLY_RE = new RegExp(`(?<![A-Za-z0-9])e:\\{(${TOKEN_NAME_RE})(${A
 const ENV_REF_PLAIN_RE = new RegExp(`(?<![A-Za-z0-9])e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`, 'g');
 
 /**
+ * True when `offset` sits inside a single- or double-quoted span on its line.
+ * Used so quoted `"i:name"` literals are not treated as input refs (same idea
+ * as quoted token scalars staying literal text). `<<i:name>>` is checked
+ * separately and always counts.
+ */
+function isOffsetInsideQuotedYamlScalar(content: string, offset: number): boolean {
+  if (offset < 0 || offset >= content.length) {
+    return false;
+  }
+  const lineStart = content.lastIndexOf('\n', offset - 1) + 1;
+  let lineEnd = content.indexOf('\n', offset);
+  if (lineEnd < 0) {
+    lineEnd = content.length;
+  }
+  const line = content.slice(lineStart, lineEnd);
+  const local = offset - lineStart;
+
+  let inDouble = false;
+  let inSingle = false;
+  for (let i = 0; i < local; i++) {
+    const ch = line[i];
+    if (inDouble) {
+      if (ch === '\\') {
+        i += 1;
+        continue;
+      }
+      if (ch === '"') {
+        inDouble = false;
+      }
+      continue;
+    }
+    if (inSingle) {
+      // YAML single-quoted escape is doubled ''
+      if (ch === "'" && line[i + 1] === "'") {
+        i += 1;
+        continue;
+      }
+      if (ch === "'") {
+        inSingle = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = true;
+    } else if (ch === "'") {
+      inSingle = true;
+    }
+  }
+  return inDouble || inSingle;
+}
+
+/**
  * Scan the raw YAML content for `i:xxx` and `<<i:xxx>>` references and
  * return their positions. Accessor forms like `<<i:name[0]>>` and
  * `i:user.name` are also recognised.
  *
  * Comment lines (starting with `#`) are skipped.
+ * Plain `i:xxx` inside YAML quotes (`"i:xxx"`) is skipped — those are
+ * literal text. Angle-wrapped `<<i:xxx>>` is always included.
  */
 export function extractInputRefSites(content: string): InputRefSiteInfo[] {
   const results: InputRefSiteInfo[] = [];
@@ -1693,6 +1747,9 @@ export function extractInputRefSites(content: string): InputRefSiteInfo[] {
     const fullMatchOffset = m.index;
     const before = content.slice(Math.max(0, fullMatchOffset - 10), fullMatchOffset);
     if (/<<\s*$/.test(before)) {
+      continue;
+    }
+    if (isOffsetInsideQuotedYamlScalar(content, fullMatchOffset)) {
       continue;
     }
     const line = offsetToLineNumber(content, fullMatchOffset);
