@@ -267,10 +267,10 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     };
   }, [resolveFreshRequestData]);
 
-  // Rebuild request UI only for scopes that actually changed (url / body / headers / …).
+  // Rebuild request UI when YAML/`api` changes. Example dropdown applies inputs
+  // itself; input edits only sync the selected index (no reload).
   useEffect(() => {
     const prevApi = prevApiRef.current;
-    const exampleChanged = prevExampleIdxRef.current !== selectedExampleIdx;
     prevExampleIdxRef.current = selectedExampleIdx;
 
     let scopes: ApiUiRefreshScope[];
@@ -282,39 +282,31 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       forceReset = true;
     } else if (prevApi !== api) {
       scopes = diffApiRefreshScopes(prevApi, api);
-      if (scopes.length === 0 && !exampleChanged) {
+      if (scopes.length === 0) {
         prevApiRef.current = api;
         return;
       }
 
-      const inputsChanged =
-        JSON.stringify(prevApi.inputs) !== JSON.stringify(api.inputs);
-
-      // Examples-only edits do not affect request values — skip rebuild via isDocOnlyRefresh.
-      if (inputsChanged) {
-        forceReset = true;
-        scopes = ["all"];
-        exampleIdx = -1;
-        if (selectedExampleIdx !== -1) {
-          prevExampleIdxRef.current = -1;
-          setSelectedExampleIdx(-1);
-        }
-      } else if (scopes.includes("all")) {
-        forceReset = true;
+      // Examples / doc-only YAML edits leave the live request alone.
+      if (isDocOnlyRefresh(scopes)) {
+        prevApiRef.current = api;
+        return;
       }
-    } else if (exampleChanged) {
-      scopes = ["all"];
+
+      // Any other YAML change resets inputs to defaults and clears example
+      // selection (Select...), matching preset-style behavior.
       forceReset = true;
+      scopes = ["all"];
+      exampleIdx = -1;
+      if (selectedExampleIdx !== -1) {
+        setSelectedExampleIdx(-1);
+      }
     } else {
-      prevApiRef.current = api;
+      // Same API: example index sync from inputs must not rewrite inputs.
       return;
     }
 
     prevApiRef.current = api;
-
-    if (isDocOnlyRefresh(scopes)) {
-      return;
-    }
 
     const baseInputs = exampleIdx === -1
       ? (api.inputs || {})

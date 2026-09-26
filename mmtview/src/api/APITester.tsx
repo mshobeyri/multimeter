@@ -36,6 +36,7 @@ import {
   accentChromeCssVars,
   accentChromeFor,
 } from "../shared/themeAccent";
+import { findMatchingExampleIndex } from "./apiExampleMatch";
 
 interface APITestProps {
   api: APIData;
@@ -401,7 +402,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       : (examples[newIdx]?.inputs || {});
     const nextInputs = cloneInputs(baseInputs);
     setCurrentInputs(nextInputs);
-    prepareRequestData(nextInputs);
+    prepareRequestData(nextInputs, { respectTouched: false, forceReset: true });
+  };
+
+  const handleInputsChange = (data: JSONRecord) => {
+    setCurrentInputs(data);
+    prepareRequestData(data, { respectTouched: false });
+    const match = findMatchingExampleIndex(examples, data);
+    if (match !== selectedExampleIdx) {
+      setSelectedExampleIdx(match);
+    }
   };
 
   const handleAddAsExample = () => {
@@ -634,14 +644,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               <div className="label">Example</div>
               <div className="field-inline is-gap">
                 <select
-                  value={selectedExampleIdx ?? ""}
+                  value={selectedExampleIdx ?? -1}
                   onChange={e => {
                     const newIdx = Number(e.target.value);
                     handleExampleChange(newIdx);
                   }}
                   className="field-grow"
                 >
-                  <option value={-1}>Defaults</option>
+                  <option value={-1}>Select...</option>
                   {examples
                     .filter(ex => ex && typeof ex === "object")
                     .map((ex, idx) => (
@@ -664,10 +674,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             <VEditor
               label="Inputs"
               value={currentInputs}
-              onChange={(data) => {
-                setCurrentInputs(data);
-                prepareRequestData(data, { respectTouched: false });
-              }}
+              onChange={handleInputsChange}
               keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
               inputConstraints={inputConstraints}
               deletable={false}
