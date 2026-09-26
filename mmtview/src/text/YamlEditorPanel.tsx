@@ -3,6 +3,7 @@ import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { curlToAPI, isCurlCommand } from "mmt-core/curlConvertor";
 import TextEditor from "../text/TextEditor";
+import { REMOUNT_YAML_MONACO_EVENT } from "../shared/monacoContextUi";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { opsList } from "mmt-core/TestData";
@@ -1324,6 +1325,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         onPasteTextTransform={transformPastedText}
         showGlyphMargin={true}
         fontSize={fontSize}
+        remountEventName={REMOUNT_YAML_MONACO_EVENT}
       />
     </div>
   );
