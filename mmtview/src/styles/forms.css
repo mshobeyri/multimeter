@@ -180,6 +180,24 @@
   font-size: 16px;
 }
 
+/* Small red dot: r:/c: preview that refreshes on Send */
+.mmt-runtime-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vscode-errorForeground, #f14c4c);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.method-url-bar-url-wrap.has-runtime-dot .mmt-runtime-dot {
+  top: 3px;
+  right: 4px;
+}
+
 .list-editor {
   margin-right: 10px;
 }

@@ -33,6 +33,13 @@ function editorLanguageForBody(format: string): string {
     return format;
 }
 
+export type BodyRuntimeRange = {
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+};
+
 export type BodyViewProps = {
     value: string;
     format: string;
@@ -41,9 +48,20 @@ export type BodyViewProps = {
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
     refreshKey?: number;
     disabled?: boolean;
+    /** Monaco ranges for resolved r:/c: values (red dot at top-right of each). */
+    runtimeRanges?: BodyRuntimeRange[];
 };
 
-const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable", onInspectPosition, refreshKey, disabled = false }) => {
+const BodyView: React.FC<BodyViewProps> = ({
+    value,
+    format,
+    onChange,
+    mode = "appliable",
+    onInspectPosition,
+    refreshKey,
+    disabled = false,
+    runtimeRanges,
+}) => {
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
     const [canApply, setCanApply] = useState(false);
@@ -51,6 +69,8 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const isUserEditingRef = useRef(false);
     const editorRef = useRef<any>(null);
+    const runtimeDecorationsRef = useRef<string[]>([]);
+    const [editorReady, setEditorReady] = useState(false);
     const [cursorPath, setCursorPath] = useState<{ path: PathSegment[]; expr: string; key: string } | null>(null);
     const cursorListenerRef = useRef<any>(null);
     const applyChrome = useAccentChrome("green");
@@ -163,6 +183,41 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         // eslint-disable-next-line
     }, [localValue, format, value, isValid]);
 
+    // Remounting BodyView (fullscreen portal) clears the editor; wait for onMount.
+    useEffect(() => {
+        setEditorReady(false);
+    }, [isFullscreen]);
+
+    // Red dots on resolved r:/c: values (afterContent at end of each range).
+    useEffect(() => {
+        if (!editorReady) {
+            return;
+        }
+        const editor = editorRef.current;
+        if (!editor || typeof editor.deltaDecorations !== "function") {
+            return;
+        }
+        const ranges = runtimeRanges && runtimeRanges.length > 0 ? runtimeRanges : [];
+        runtimeDecorationsRef.current = editor.deltaDecorations(
+            runtimeDecorationsRef.current,
+            ranges.map(range => ({
+                range,
+                options: {
+                    afterContentClassName: "mmt-runtime-value-dot",
+                    stickiness: 1, // NeverGrowsWhenTypingAtEdges
+                },
+            })),
+        );
+        return () => {
+            if (editorRef.current && typeof editorRef.current.deltaDecorations === "function") {
+                runtimeDecorationsRef.current = editorRef.current.deltaDecorations(
+                    runtimeDecorationsRef.current,
+                    [],
+                );
+            }
+        };
+    }, [runtimeRanges, localValue, format, isFullscreen, editorReady]);
+
     // Exit fullscreen on Escape
     useEffect(() => {
         if (!isFullscreen) return;
@@ -206,6 +261,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 fontSize={11}
                 onInspectPosition={onInspectPosition}
                 editorRef={editorRef}
+                setEditorReady={setEditorReady}
                 readOnly={disabled}
             />
             <div className="bodyview-toolbar">

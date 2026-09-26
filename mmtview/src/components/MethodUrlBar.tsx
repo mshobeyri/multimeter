@@ -35,6 +35,8 @@ type MethodUrlBarProps = {
   query: Record<string, string>;
   onUrlChange: (url: string) => void;
   onQueryChange: (query: Record<string, string>) => void;
+  /** Red dot: URL/query still has unresolved r:/c: preview that refreshes on Send. */
+  showRuntimeDot?: boolean;
 };
 
 const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
@@ -44,6 +46,7 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   query,
   onUrlChange,
   onQueryChange,
+  showRuntimeDot = false,
 }) => {
   const urlValue = url + buildQueryString(query);
   const [inputValue, setInputValue] = useState(urlValue);
@@ -86,20 +89,25 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
           ))}
         </select>
       </div>
-      <input
-        type="text"
-        className="method-url-bar-url"
-        value={inputValue}
-        onChange={handleChange}
-        spellCheck={false}
-        aria-label="Request URL"
-        onKeyDown={event => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            event.currentTarget.blur();
-          }
-        }}
-      />
+      <div className={`method-url-bar-url-wrap${showRuntimeDot ? " has-runtime-dot" : ""}`}>
+        <input
+          type="text"
+          className="method-url-bar-url"
+          value={inputValue}
+          onChange={handleChange}
+          spellCheck={false}
+          aria-label="Request URL"
+          onKeyDown={event => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        {showRuntimeDot ? (
+          <span className="mmt-runtime-dot" title="Refreshes on Send (r:/c:)" aria-hidden />
+        ) : null}
+      </div>
     </div>
   );
 };

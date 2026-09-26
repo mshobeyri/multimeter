@@ -75,6 +75,11 @@
       "require": "./dist/apiFormatEdit.js",
       "default": "./dist/apiFormatEdit.js"
     },
+    "./runtimeTokenUi": {
+      "types": "./dist/runtimeTokenUi.d.ts",
+      "require": "./dist/runtimeTokenUi.js",
+      "default": "./dist/runtimeTokenUi.js"
+    },
     "./NetworkData": {
       "types": "./dist/NetworkData.d.ts",
       "require": "./dist/NetworkData.js",

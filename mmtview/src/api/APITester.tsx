@@ -14,6 +14,13 @@ import {
   type BodyTempBaseline,
 } from "mmt-core/apiBodyEdit";
 import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
+import {
+  collectRuntimeLeaves,
+  findRuntimeValueRangesInJson,
+  findRuntimeValueRangesInPlainText,
+  runtimeTokenKeys,
+  stringContainsRuntimeToken,
+} from "mmt-core/runtimeTokenUi";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
@@ -56,6 +63,11 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
     return 0;
   }
   return Object.keys(record).filter(key => key.trim().length > 0).length;
+}
+
+function isJsonLikeBodyFormat(format: string): boolean {
+  const normalized = (format || "").toLowerCase();
+  return normalized === "json" || normalized === "multipart";
 }
 
 const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> = [
@@ -182,6 +194,51 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     requestBodySource,
     resolvedRequestFormat,
   );
+  const bodyRuntimeRanges = useMemo(() => {
+    if (touchedFields.has("body")) {
+      return [];
+    }
+    const leaves = collectRuntimeLeaves(api.body, requestData?.body);
+    if (leaves.length === 0) {
+      return [];
+    }
+    if (isJsonLikeBodyFormat(resolvedRequestFormat)) {
+      return findRuntimeValueRangesInJson(requestBodyDisplay, leaves);
+    }
+    return findRuntimeValueRangesInPlainText(requestBodyDisplay, leaves);
+  }, [api.body, requestData?.body, requestBodyDisplay, resolvedRequestFormat, touchedFields]);
+
+  const urlHasRuntimeToken = useMemo(() => {
+    if (touchedFields.has("url") || touchedFields.has("query")) {
+      return false;
+    }
+    if (stringContainsRuntimeToken(api.url)) {
+      return true;
+    }
+    return runtimeTokenKeys(api.query as Record<string, unknown> | undefined).size > 0;
+  }, [api.url, api.query, touchedFields]);
+
+  const headerRuntimeKeys = useMemo(() => {
+    if (touchedFields.has("headers")) {
+      return new Set<string>();
+    }
+    return runtimeTokenKeys(api.headers as Record<string, unknown> | undefined);
+  }, [api.headers, touchedFields]);
+
+  const cookieRuntimeKeys = useMemo(() => {
+    if (touchedFields.has("cookies")) {
+      return new Set<string>();
+    }
+    return runtimeTokenKeys(api.cookies as Record<string, unknown> | undefined);
+  }, [api.cookies, touchedFields]);
+
+  const queryRuntimeKeys = useMemo(() => {
+    if (touchedFields.has("query") || touchedFields.has("url")) {
+      return new Set<string>();
+    }
+    return runtimeTokenKeys(api.query as Record<string, unknown> | undefined);
+  }, [api.query, touchedFields]);
+
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
     if (saved === "raw" || saved === "pretty" || saved === "preview") {
@@ -473,6 +530,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           query={requestData?.query || {}}
           onUrlChange={handleUrlChange}
           onQueryChange={handleQueryChange}
+          showRuntimeDot={urlHasRuntimeToken}
         />
         {rightOfUrlButton && (
           <div className="apitest-url-row-actions">
@@ -527,16 +585,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           label="Query parameters"
           value={requestData?.query || {}}
           onChange={query => updateField("query", query)}
+          runtimeKeys={queryRuntimeKeys}
         />}
         {shouldShowHeaders() && <KSVEditor
           label="Request Headers"
           value={requestData?.headers || {}}
           onChange={headers => updateField("headers", headers)}
+          runtimeKeys={headerRuntimeKeys}
         />}
         {shouldShowCookies() && <KSVEditor
           label="Manual Cookies"
           value={requestData?.cookies || {}}
           onChange={cookies => updateField("cookies", cookies)}
+          runtimeKeys={cookieRuntimeKeys}
         />}
         {shouldShowDoc() && api.description ? (
           <MdViewer
@@ -583,6 +644,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   mode="live"
                   disabled={requestBodyDisabled}
                   onChange={requestBodyDisabled ? undefined : handleRequestBodyChange}
+                  runtimeRanges={bodyRuntimeRanges}
                 />
               )}
           </div>

@@ -20,6 +20,8 @@ interface KSVEditorProps {
   expandable?: boolean;
   filePicker?: boolean;
   filePickerFilters?: Array<{ name?: string; extensions?: string[] }>;
+  /** Keys whose values came from r:/c: (show red dot while not in temp mode). */
+  runtimeKeys?: Set<string> | string[];
 }
 
 // Utility to ensure an empty key is always at the end
@@ -58,11 +60,17 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   deletable = true,
   expandable = true,
   filePicker = false,
-  filePickerFilters
+  filePickerFilters,
+  runtimeKeys,
 }) => {
   // Use an array of entries to preserve order and handle the object format
   const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
-
+  const runtimeKeySet = useMemo(() => {
+    if (!runtimeKeys) {
+      return null;
+    }
+    return runtimeKeys instanceof Set ? runtimeKeys : new Set(runtimeKeys);
+  }, [runtimeKeys]);
   // Ensure options is always an array - safety check
   const safeOptions = Array.isArray(options) ? options : [];
 
@@ -164,6 +172,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         placeholder={valuePlaceholder}
                         disabled={disabled}
                         removable={deletable && !deactivated}
+                        showRuntimeDot={Boolean(runtimeKeySet?.has(k))}
                       />
                     )
                   )}

@@ -319,6 +319,29 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  // Red dot after resolved r:/c: body values (BodyView decorations)
+  useEffect(() => {
+    if (document.getElementById("mmt-runtime-value-dot-style")) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = "mmt-runtime-value-dot-style";
+    style.innerHTML = `
+      .monaco-editor .mmt-runtime-value-dot::after {
+        content: "";
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        margin-left: 3px;
+        border-radius: 50%;
+        background: var(--vscode-errorForeground, #f14c4c);
+        vertical-align: text-top;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   /**
    * Apply parent `content` without Monaco React's controlled `value` sync.
    * That path uses executeEdits(..., forceMoveMarkers: true) on the full range,

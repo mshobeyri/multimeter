@@ -95,6 +95,18 @@
   -webkit-user-select: text;
 }
 
+.method-url-bar-url-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.method-url-bar-url-wrap > input.method-url-bar-url {
+  width: 100%;
+}
+
 .method-url-bar-url::-webkit-scrollbar {
   display: none;
 }
