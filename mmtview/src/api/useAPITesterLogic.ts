@@ -4,7 +4,8 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
-import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
+import { bodyForSend } from "mmt-core/apiBodyEdit";
+import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
@@ -260,13 +261,10 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       merged.headers,
       merged.method ?? apiRef.current.method,
     );
-    if (merged.body != null && typeof merged.body !== "string" && reqFormat !== "multipart") {
-      return {
-        ...merged,
-        body: formatBody(reqFormat, merged.body, false),
-      };
-    }
-    return merged;
+    return {
+      ...merged,
+      body: bodyForSend(merged.body, reqFormat),
+    };
   }, [resolveFreshRequestData]);
 
   // Rebuild request UI only for scopes that actually changed (url / body / headers / …).

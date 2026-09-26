@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { DiffEditor } from "@monaco-editor/react";
-import { defineTheme, getMonacoThemeName } from "../text/Theme";
+import ParkedYamlDiff from "./ParkedYamlDiff";
 
 interface UnsavedChangesWarningProps {
   /** Current file / applied YAML (left / original side of the diff). */
@@ -24,7 +23,8 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
   onDiffParked,
 }) => {
   const [open, setOpen] = useState(false);
-  // Keep DiffEditor mounted after first open — disposing it breaks YAML Ctrl+Z / menus.
+  // Keep Diff host mounted after first open — disposing Monaco DiffEditor
+  // breaks the YAML editor's context menu / undo stack.
   const [diffMounted, setDiffMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -69,8 +69,19 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
         <div
           ref={popupRef}
           className="unsaved-changes-popup"
-          hidden={!open}
-          style={open ? undefined : { display: "none" }}
+          // Keep real layout size while closed — display:none zeros Monaco and
+          // breaks hideUnchangedRegions / wrap. Never reparent the editor DOM.
+          style={
+            open
+              ? undefined
+              : {
+                  position: "fixed",
+                  left: -10000,
+                  top: 0,
+                  visibility: "hidden",
+                  pointerEvents: "none",
+                }
+          }
         >
           <div className="unsaved-changes-popup-header">
             <span className="codicon codicon-warning unsaved-changes-popup-icon" aria-hidden />
@@ -108,38 +119,10 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
             </div>
           </div>
           <div className="unsaved-changes-popup-diff">
-            <DiffEditor
+            <ParkedYamlDiff
               original={originalYaml}
               modified={modifiedYaml}
-              language="yaml"
-              theme={getMonacoThemeName()}
-              beforeMount={defineTheme}
-              height="240px"
-              options={{
-                readOnly: true,
-                contextmenu: false,
-                renderSideBySide: false,
-                hideUnchangedRegions: {
-                  enabled: true,
-                  contextLineCount: 1,
-                  minimumLineCount: 3,
-                  revealLineCount: 20,
-                },
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 12,
-                lineNumbers: "off",
-                glyphMargin: false,
-                folding: false,
-                renderOverviewRuler: false,
-                overviewRulerLanes: 0,
-                scrollbar: {
-                  verticalScrollbarSize: 8,
-                  horizontalScrollbarSize: 8,
-                },
-                renderIndicators: true,
-                ignoreTrimWhitespace: false,
-              }}
+              visible={open}
             />
           </div>
         </div>

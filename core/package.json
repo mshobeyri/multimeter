@@ -65,6 +65,11 @@
       "require": "./dist/formatResolve.js",
       "default": "./dist/formatResolve.js"
     },
+    "./apiBodyEdit": {
+      "types": "./dist/apiBodyEdit.d.ts",
+      "require": "./dist/apiBodyEdit.js",
+      "default": "./dist/apiBodyEdit.js"
+    },
     "./NetworkData": {
       "types": "./dist/NetworkData.d.ts",
       "require": "./dist/NetworkData.js",

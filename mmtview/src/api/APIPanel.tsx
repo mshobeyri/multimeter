@@ -12,7 +12,7 @@ import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import { requestFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
-import { packBodyForYamlCompare } from "mmt-core/markupConvertor";
+import { bodyForYamlSave } from "mmt-core/apiBodyEdit";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { usePanelPage } from "../usePanelPage";
@@ -100,7 +100,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
     if (field !== "body") {
       return raw;
     }
-    return packBodyForYamlCompare(
+    return bodyForYamlSave(
       api.body,
       raw,
       resolveRequestFormat(

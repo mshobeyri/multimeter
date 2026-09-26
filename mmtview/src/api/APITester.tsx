@@ -8,8 +8,11 @@ import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
-import { formatBody } from "mmt-core/markupConvertor";
-import { normalizeNewlines } from "mmt-core/textLines";
+import {
+  applyRequestBodyEdit,
+  displayRequestBody,
+  type BodyTempBaseline,
+} from "mmt-core/apiBodyEdit";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
@@ -173,10 +176,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   // Once the user edits, requestData.body is raw text (temporary modified state);
   // keep it as-is so mid-edit invalid JSON/XML is allowed and Send uses editor text.
   const requestBodySource = requestData?.body ?? api.body ?? "";
-  const requestBodyDisplay =
-    typeof requestBodySource === "string"
-      ? requestBodySource
-      : formatBody(resolvedRequestFormat, requestBodySource);
+  const requestBodyDisplay = displayRequestBody(
+    requestBodySource,
+    resolvedRequestFormat,
+  );
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
     if (saved === "raw" || saved === "pretty" || saved === "preview") {
@@ -318,7 +321,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   };
 
   // Snapshot of resolved display + body taken on first edit; exact revert exits temp mode.
-  const bodyTempBaselineRef = useRef<{ display: string; body: unknown } | null>(null);
+  const bodyTempBaselineRef = useRef<BodyTempBaseline | null>(null);
 
   useEffect(() => {
     if (!touchedFields.has("body")) {
@@ -327,21 +330,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   }, [touchedFields]);
 
   const handleRequestBodyChange = (value: string) => {
-    const normalized = normalizeNewlines(value);
-    if (!touchedFields.has("body")) {
-      const source = requestData?.body ?? api.body ?? "";
-      const display = typeof source === "string"
-        ? normalizeNewlines(source)
-        : normalizeNewlines(formatBody(resolvedRequestFormat, source));
-      bodyTempBaselineRef.current = { display, body: source };
-    }
-    const baseline = bodyTempBaselineRef.current;
-    if (baseline && normalized === baseline.display) {
-      restoreField("body", baseline.body);
-      bodyTempBaselineRef.current = null;
+    const result = applyRequestBodyEdit({
+      value,
+      currentBody: requestData?.body ?? api.body ?? "",
+      format: resolvedRequestFormat,
+      baseline: bodyTempBaselineRef.current,
+      bodyAlreadyTouched: touchedFields.has("body"),
+    });
+    bodyTempBaselineRef.current = result.baseline;
+    if (result.kind === "exitTemp") {
+      restoreField("body", result.body);
       return;
     }
-    updateField("body", normalized);
+    updateField("body", result.body);
   };
 
   const inputConstraints = useMemo(
