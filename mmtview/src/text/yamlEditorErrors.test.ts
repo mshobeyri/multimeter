@@ -40,7 +40,20 @@ describe('collectYamlEditorErrors', () => {
     expect(collectYamlEditorErrors('   \n')).toEqual([]);
   });
 
-  it('returns ordering errors for out-of-order suite keys', () => {
+  it('accepts scalar format: auto', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'method: post',
+      'format: auto',
+      'body:',
+      '  message: hi',
+      '',
+    ].join('\n');
+    expect(collectYamlEditorErrors(content)).toEqual([]);
+  });
+
+  it('does not treat key ordering as a blocking YAML error', () => {
     const content = [
       'type: suite',
       'items:',
@@ -49,7 +62,6 @@ describe('collectYamlEditorErrors', () => {
       '  only: [smoke]',
       '',
     ].join('\n');
-    const errors = collectYamlEditorErrors(content);
-    expect(errors.some((error) => error.message.includes("'filter' should appear before 'items'"))).toBe(true);
+    expect(collectYamlEditorErrors(content)).toEqual([]);
   });
 });

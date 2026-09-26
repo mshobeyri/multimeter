@@ -1,6 +1,6 @@
 import {parseYamlDoc} from 'mmt-core/markupConvertor';
 import {validateYamlContent} from './Validate';
-import {detectOrderingIssue, findAuthProblems, findStageAfterProblems, getCanonicalOrder} from './validator';
+import {findAuthProblems, findStageAfterProblems} from './validator';
 
 export const REVEAL_YAML_EVENT = 'mmt-reveal-yaml-error';
 
@@ -36,7 +36,8 @@ function parseErrorsFromYamlDoc(doc: {errors?: any[]} | null | undefined): YamlE
   });
 }
 
-/** Error-severity issues shown in the YAML editor (parse, schema, auth, stage after). */
+/** Error-severity issues for the right-panel YAML ERROR banner (parse, schema, auth, stage after).
+ * Ordering is a Format Document warning in the editor — not a blocking YAML error. */
 export function collectYamlEditorErrors(content: string): YamlEditorError[] {
   if (!content.trim()) {
     return [];
@@ -83,18 +84,6 @@ export function collectYamlEditorErrors(content: string): YamlEditorError[] {
             message: problem.message,
             line: problem.line,
             column: problem.column,
-          });
-        }
-      }
-
-      const expectedOrder = getCanonicalOrder(docType);
-      if (expectedOrder) {
-        const orderingIssue = detectOrderingIssue(doc, content, expectedOrder);
-        if (orderingIssue) {
-          errors.push({
-            message: orderingIssue.message,
-            line: orderingIssue.line,
-            column: 1,
           });
         }
       }

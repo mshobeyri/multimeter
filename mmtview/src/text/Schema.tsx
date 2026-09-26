@@ -52,7 +52,7 @@ const AutoResponseFormatEnumSchema = {
 /** Scalar format or `{ request, response }` when they differ. */
 const FormatSpecSchema = {
     anyOf: [
-        FormatEnumSchema,
+        AutoFormatEnumSchema,
         {
             type: 'object',
             properties: {

@@ -512,4 +512,19 @@ describe('validateYamlContent API method requirements', () => {
     expect(errors.some(error => String(error.message).includes('/endpoints/0/body'))).toBe(false);
     expect(errors.length).toBe(0);
   });
+
+  it('accepts scalar format: auto on API files', () => {
+    const errors = validateYamlContent([
+      'type: api',
+      'url: https://example.com/echo',
+      'method: post',
+      'format: auto',
+      'body:',
+      '  message: hi',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('.format'))).toBe(false);
+    expect(errors.some(error => /expected one of/i.test(String(error.message)))).toBe(false);
+    expect(errors.length).toBe(0);
+  });
 });
