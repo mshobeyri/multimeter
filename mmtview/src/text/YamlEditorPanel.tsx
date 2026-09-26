@@ -57,6 +57,7 @@ import {
   ENV_BRACE_TOKEN_HIGHLIGHT_RE,
   INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
   INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE,
+  isHighlightableToken,
   OUTPUT_KEY_TOKEN_HIGHLIGHT_RE,
   PLAIN_TOKEN_HIGHLIGHT_RE,
 } from './tokenHighlightPatterns';
@@ -93,7 +94,7 @@ function pushCapturedTokenHighlight(
   className: string
 ): void {
   const token = match[tokenGroupIndex];
-  if (!token) {
+  if (!token || !isHighlightableToken(token)) {
     return;
   }
   const tokenOffset = match.index + match[0].indexOf(token);
@@ -1088,6 +1089,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const value = model.getValue();
       let match;
       while ((match = INLINE_ANGLE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        if (!isHighlightableToken(match[1] || '')) {
+          continue;
+        }
         pushHighlightRange(
           matches, monaco, model, match.index, match.index + match[0].length, I_PREFIX_CLASS
         );

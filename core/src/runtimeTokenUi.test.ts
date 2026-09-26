@@ -15,6 +15,16 @@ describe('stringContainsRuntimeToken', () => {
     expect(stringContainsRuntimeToken('e:api_url')).toBe(false);
     expect(stringContainsRuntimeToken('hello')).toBe(false);
   });
+
+  it('ignores unknown r:/c: keywords', () => {
+    expect(stringContainsRuntimeToken('r:not_a_real_token')).toBe(false);
+    expect(stringContainsRuntimeToken('<<c:nope>>')).toBe(false);
+  });
+
+  it('accepts any parentheses when the keyword is known', () => {
+    expect(stringContainsRuntimeToken('c:date(whatever)')).toBe(true);
+    expect(stringContainsRuntimeToken('r:int(a,b)')).toBe(true);
+  });
 });
 
 describe('collectRuntimeLeaves + findRuntimeValueRangesInJson', () => {

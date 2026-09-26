@@ -1,24 +1,59 @@
+import {CURRENT_FUTURE_PAST_ALIASES, CURRENT_TOKEN_MAP} from './Current';
+import {RANDOM_TOKEN_MAP} from './Random';
 import {
   ACCESSOR_PATH_RE,
-  CURRENT_TOKEN_SPEC_RE,
-  RANDOM_TOKEN_SPEC_RE,
+  TOKEN_NAME_RE,
 } from './variableReplacer';
+
+const KNOWN_RANDOM_TOKENS = new Set(Object.keys(RANDOM_TOKEN_MAP));
+const KNOWN_CURRENT_TOKENS = new Set([
+  ...Object.keys(CURRENT_TOKEN_MAP),
+  ...Object.keys(CURRENT_FUTURE_PAST_ALIASES),
+]);
+
+/** Loose `(...)` for detection — keyword must still be a known r:/c: name. */
+const RUNTIME_TOKEN_ARGS_LOOSE_RE = '(?:\\([^)]*\\))?';
+const RUNTIME_TOKEN_SPEC_LOOSE_RE =
+    `${TOKEN_NAME_RE}${RUNTIME_TOKEN_ARGS_LOOSE_RE}`;
 
 const RUNTIME_TOKEN_IN_STRING_RE = new RegExp(
     [
-      `<<\\s*r:${RANDOM_TOKEN_SPEC_RE}${ACCESSOR_PATH_RE}\\s*>>`,
-      `<<\\s*c:${CURRENT_TOKEN_SPEC_RE}${ACCESSOR_PATH_RE}\\s*>>`,
-      `(?<![A-Za-z0-9_])r:${RANDOM_TOKEN_SPEC_RE}${ACCESSOR_PATH_RE}(?![A-Za-z0-9_])`,
-      `(?<![A-Za-z0-9_])c:${CURRENT_TOKEN_SPEC_RE}${ACCESSOR_PATH_RE}(?![A-Za-z0-9_])`,
+      `<<\\s*(r|c):(${RUNTIME_TOKEN_SPEC_LOOSE_RE})${ACCESSOR_PATH_RE}\\s*>>`,
+      `(?<![A-Za-z0-9_])(r|c):(${RUNTIME_TOKEN_SPEC_LOOSE_RE})${ACCESSOR_PATH_RE}(?![A-Za-z0-9_])`,
     ].join('|'),
+    'g',
 );
 
-/** True when a string contains an r: or c: token (plain or << >>). */
+function isKnownRuntimeKeyword(prefix: string, spec: string): boolean {
+  const nameMatch = /^([A-Za-z_][A-Za-z0-9_-]*)/.exec(spec);
+  if (!nameMatch) {
+    return false;
+  }
+  const name = nameMatch[1];
+  if (prefix === 'r') {
+    return KNOWN_RANDOM_TOKENS.has(name);
+  }
+  if (prefix === 'c') {
+    return KNOWN_CURRENT_TOKENS.has(name);
+  }
+  return false;
+}
+
+/** True when a string contains a known r: or c: token (plain or << >>). */
 export function stringContainsRuntimeToken(value: unknown): boolean {
   if (typeof value !== 'string' || !value) {
     return false;
   }
-  return RUNTIME_TOKEN_IN_STRING_RE.test(value);
+  RUNTIME_TOKEN_IN_STRING_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = RUNTIME_TOKEN_IN_STRING_RE.exec(value)) !== null) {
+    const prefix = match[1] || match[3];
+    const spec = match[2] || match[4];
+    if (prefix && spec && isKnownRuntimeKeyword(prefix, spec)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export type RuntimeLeaf = {
