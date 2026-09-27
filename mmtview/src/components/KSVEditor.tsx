@@ -2,9 +2,10 @@ import React, { useMemo, useContext } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
-import { JSONRecord } from "mmt-core/CommonData";
+import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from '../fileContext';
+import { valueToString, stringToValue } from "./convertor";
 
 interface KSVEditorProps {
   label: string;
@@ -24,8 +25,19 @@ interface KSVEditorProps {
   runtimeKeys?: Set<string> | string[];
 }
 
+function toStoredString(display: string): string {
+  const typed = stringToValue(display);
+  if (typeof typed === "string") {
+    return typed;
+  }
+  return valueToString(typed as JSONValue);
+}
+
 // Utility to ensure an empty key is always at the end
-function withTrailingEmptyKey(obj?: string | Record<string, string> | JSONRecord, addEmpty: boolean = true): Array<[string, string]> {
+function withTrailingEmptyKey(
+  obj?: string | Record<string, string> | JSONRecord,
+  addEmpty: boolean = true,
+): Array<[string, string]> {
   if (!obj) {
     return addEmpty ? [["", ""]] : [];
   }
@@ -34,19 +46,19 @@ function withTrailingEmptyKey(obj?: string | Record<string, string> | JSONRecord
     return addEmpty ? [["", ""]] : [];
   }
 
-  // Convert JSONRecord or Record<string, string> to entries
+  // Display via convertor so omit / numbers / quoted token literals stay correct
+  // and `__MMT_LITERAL__:` never leaks into the field UI.
   const entries = Object.entries(obj).map(([key, value]): [string, string] => [
     key,
-    typeof value === 'string' ? value : String(value || '')
+    valueToString(value as JSONValue),
   ]);
 
-  // Ensure there's always an empty entry at the end for adding new items
   if (addEmpty && (entries.length === 0 || entries[entries.length - 1][0] !== "")) {
     return [...entries, ["", ""]];
   }
   return entries;
 }
-// Key Select Value
+
 const KSVEditor: React.FC<KSVEditorProps> = ({
   label,
   value,
@@ -63,7 +75,6 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   filePickerFilters,
   runtimeKeys,
 }) => {
-  // Use an array of entries to preserve order and handle the object format
   const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
   const runtimeKeySet = useMemo(() => {
     if (!runtimeKeys) {
@@ -71,21 +82,18 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
     }
     return runtimeKeys instanceof Set ? runtimeKeys : new Set(runtimeKeys);
   }, [runtimeKeys]);
-  // Ensure options is always an array - safety check
   const safeOptions = Array.isArray(options) ? options : [];
 
-  // File context (avoid calling hooks inside callbacks)
   const fileCtx = useContext(FileContext);
   const effectiveFilePickerFilters = filePickerFilters || [{
     name: 'MMT, data, HTTP, Bruno, and JS files',
     extensions: ['mmt', 'csv', 'json', 'yaml', 'yml', 'http', 'https', 'bru', 'bruno', 'js', 'cjs', 'mjs'],
   }];
 
-  // Helper to convert entries array back to object
   const toObject = (arr: Array<[string, string]>): Record<string, string> =>
     safeList(arr).reduce<Record<string, string>>((acc, [k, v]) => {
-      if (k.trim()) { // Only include non-empty keys
-        acc[k] = v;
+      if (k.trim()) {
+        acc[k] = toStoredString(v);
       }
       return acc;
     }, {});
@@ -95,11 +103,10 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
       i === idx ? [newKey, v] : [k, v]
     );
 
-    // Remove duplicate keys except for the current one
     const seen = new Set<string>();
     const filtered = newEntries.filter(([k], i) => {
-      if (!k.trim()) return true; // Keep empty keys
-      if (seen.has(k) && i !== idx) return false; // Remove duplicates
+      if (!k.trim()) return true;
+      if (seen.has(k) && i !== idx) return false;
       seen.add(k);
       return true;
     });

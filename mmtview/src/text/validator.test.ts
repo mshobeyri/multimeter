@@ -141,6 +141,19 @@ describe('token site extraction', () => {
     expect(sites.map((s) => s.name).sort()).toEqual(['also_missing', 'xasd']);
   });
 
+  it('skips plain e: refs inside YAML quotes but keeps <<e:>>', () => {
+    const content = [
+      'type: api',
+      'headers:',
+      '  A: "e:missing"',
+      '  B: \'e:also\'',
+      'url: e:bare_host',
+      'path: "<<e:angled>>"',
+    ].join('\n');
+    const sites = extractEnvRefSites(content);
+    expect(sites.map((s) => s.name).sort()).toEqual(['angled', 'bare_host']);
+  });
+
   it('extracts env refs with accessor syntax', () => {
     const content = [
       'type: api',

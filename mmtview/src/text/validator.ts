@@ -1855,6 +1855,9 @@ export type EnvRefSiteInfo = {
  * references and return their positions. Accessor forms like `[0]`, `[0:3]`,
  * and `.field` are also recognised.
  * Comment lines (starting with `#`) are skipped.
+ * Plain `e:xxx` inside YAML quotes (`"e:xxx"`) is skipped — those are
+ * literal text (same as plain `i:`). Angle / brace forms (`<<e:>>`, `<e:>`,
+ * `e:{…}`) are always included.
  */
 export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
   const results: EnvRefSiteInfo[] = [];
@@ -1911,6 +1914,9 @@ export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
     }
     const before = content.slice(Math.max(0, m.index - 10), m.index);
     if (/<<\s*$/.test(before) || /<\s*$/.test(before)) {
+      continue;
+    }
+    if (isOffsetInsideQuotedYamlScalar(content, m.index)) {
       continue;
     }
     seen.add(m.index);
