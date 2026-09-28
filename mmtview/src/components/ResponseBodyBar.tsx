@@ -1,15 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { ResponseFormat } from "mmt-core/CommonData";
 import { ResponseViewMode } from "../api/responseBodyDisplay";
 import {
-  DEFAULT_RAW_FORMAT,
+  BodyFormatSelect,
   FormatChip,
-  RawFormatSelect,
-  type RawBodyFormat,
-  RESPONSE_BODY_FORMAT_TOP_LEVEL,
-  isRawFormat,
-  topLevelForFormat,
-  type BodyFormatTopLevel,
+  RESPONSE_BODY_FORMAT_MENU,
 } from "./BodyFormatControls";
 
 type ResponseBodyBarProps = {
@@ -29,80 +24,37 @@ const ResponseBodyBar: React.FC<ResponseBodyBarProps> = ({
   onTypeChange,
   onViewChange,
 }) => {
-  const rawSelected = type !== "auto" && isRawFormat(type);
-  const [lastRawFormat, setLastRawFormat] = useState<RawBodyFormat>(() => {
-    if (type !== "auto" && isRawFormat(type)) {
-      return type;
-    }
-    return DEFAULT_RAW_FORMAT;
-  });
-
-  useEffect(() => {
-    if (type !== "auto" && isRawFormat(type)) {
-      setLastRawFormat(type);
-    }
-  }, [type]);
-
-  const selectTopLevel = (level: Exclude<BodyFormatTopLevel, "none">) => {
-    if (level === "raw") {
-      if (rawSelected) {
-        onTypeChange(type);
-      } else {
-        onTypeChange(lastRawFormat);
-      }
-      return;
-    }
-    onTypeChange(level);
-  };
-
   return (
-    <div className="apitest-body-format-bar" role="tablist" aria-label="Response body view">
-      <div className="apitest-body-format-bar-group">
-        <FormatChip
-          label="auto"
-          selected={type === "auto"}
-          onClick={() => onTypeChange("auto")}
+    <div className="apitest-body-toolbar" role="tablist" aria-label="Response body view">
+      <div className="apitest-body-toolbar-main">
+        <BodyFormatSelect
+          value={type}
+          menu={RESPONSE_BODY_FORMAT_MENU}
+          onChange={onTypeChange}
+          ariaLabel="Response body format"
         />
-        {RESPONSE_BODY_FORMAT_TOP_LEVEL.map(level => (
+        <span className="apitest-body-format-divider" aria-hidden />
+        <div className="apitest-body-format-bar-group">
+          {prettyAvailable ? (
+            <FormatChip
+              label="pretty"
+              selected={view === "pretty"}
+              onClick={() => onViewChange("pretty")}
+            />
+          ) : null}
           <FormatChip
-            key={level}
-            label={level}
-            selected={type !== "auto" && topLevelForFormat(type) === level}
-            title={level === "multipart" ? "multipart/form-data (Postman form-data)" : undefined}
-            onClick={() => selectTopLevel(level)}
+            label="raw"
+            selected={view === "raw"}
+            onClick={() => onViewChange("raw")}
           />
-        ))}
-        {rawSelected ? (
-          <RawFormatSelect
-            value={type}
-            onChange={format => {
-              setLastRawFormat(format);
-              onTypeChange(format);
-            }}
-          />
-        ) : null}
-      </div>
-      <span className="apitest-body-format-divider" aria-hidden />
-      <div className="apitest-body-format-bar-group">
-        {prettyAvailable ? (
-          <FormatChip
-            label="pretty"
-            selected={view === "pretty"}
-            onClick={() => onViewChange("pretty")}
-          />
-        ) : null}
-        <FormatChip
-          label="raw"
-          selected={view === "raw"}
-          onClick={() => onViewChange("raw")}
-        />
-        {previewAvailable ? (
-          <FormatChip
-            label="preview"
-            selected={view === "preview"}
-            onClick={() => onViewChange("preview")}
-          />
-        ) : null}
+          {previewAvailable ? (
+            <FormatChip
+              label="preview"
+              selected={view === "preview"}
+              onClick={() => onViewChange("preview")}
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   );

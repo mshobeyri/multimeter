@@ -221,6 +221,11 @@
   min-height: 0;
 }
 
+.apitest-body-pane > .apitest-body-toolbar,
+.apitest-body-pane > .apitest-body-format-bar {
+  flex: 0 0 auto;
+}
+
 .apitest-section > .apitest-body-pane {
   flex: 1 1 auto;
   min-height: 150px;
@@ -237,12 +242,14 @@
 
 .apitest-body-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 6px 12px;
   flex-shrink: 0;
   padding: 2px 6px 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .apitest-body-toolbar-main {
@@ -269,6 +276,7 @@
 
 .apitest-body-format-raw-select {
   position: relative;
+  z-index: 2;
 }
 
 .apitest-body-format-raw-trigger,
@@ -280,10 +288,14 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--vscode-textLink-foreground, #3794ff);
+  color: var(--vscode-foreground, #cccccc);
   font-size: 12px;
   line-height: 16px;
   cursor: pointer;
+}
+
+.apitest-body-format-raw-trigger:hover {
+  color: var(--vscode-foreground, #cccccc);
 }
 
 .apitest-body-format-raw-trigger .codicon {
@@ -293,14 +305,30 @@
 .apitest-body-format-raw-menu {
   position: absolute;
   top: calc(100% + 4px);
-  right: 0;
-  z-index: 20;
-  min-width: 112px;
+  left: 0;
+  right: auto;
+  z-index: 40;
+  min-width: max(112px, 100%);
   padding: 4px 0;
   border: 1px solid var(--vscode-editorWidget-border, #454545);
   border-radius: var(--mmt-control-radius);
   background: var(--vscode-dropdown-background, var(--vscode-editor-background, #1e1e1e));
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.apitest-body-format-raw-heading {
+  padding: 6px 10px 2px;
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground, #999);
+  pointer-events: none;
+  user-select: none;
+}
+
+.apitest-body-format-raw-option.is-raw-child {
+  padding-left: 18px;
 }
 
 .apitest-body-format-raw-option {

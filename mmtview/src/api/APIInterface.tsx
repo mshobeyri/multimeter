@@ -581,7 +581,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         <>
           <div className="label api-body-label">
             <span>Body</span>
-            {resolvedReqFormat !== "binary" && resolvedReqFormat !== "multipart" && (
+            {resolvedReqFormat !== "binary" && resolvedReqFormat !== "multipart" && resolvedReqFormat !== "text" && (
               <label
                 className="api-body-yaml-encoded"
                 title="Store body as structured YAML instead of a text block"
@@ -591,7 +591,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                   checked={bodyYamlEncoded}
                   onChange={(e) => setBodyYamlEncoded(e.target.checked)}
                 />
-                YAML-encoded
+                encoded
               </label>
             )}
           </div>

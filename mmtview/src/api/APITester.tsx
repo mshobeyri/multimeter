@@ -44,6 +44,7 @@ import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
 import ApiTestsEditor from "./ApiTestsEditor";
+import { formatBody } from "mmt-core/markupConvertor";
 import { FormatChip } from "../components/BodyFormatControls";
 import {
   accentChromeCssVars,
@@ -454,9 +455,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     });
     if (result.kind === "exitTemp") {
       restoreField("format", result.format);
-      return;
+    } else {
+      updateField("format", result.format);
     }
-    updateField("format", result.format);
+    // text bodies are always plain storage.
+    if (side === "request" && format === "text" && isStructuredYamlBody(api.body)) {
+      const asText = formatBody("text", api.body ?? "");
+      setBodyYamlEncodedManual(false);
+      setBodyYamlEncodeError(false);
+      onUpdateApi?.({ body: valueForYamlSave(asText) as APIData["body"] });
+    }
   };
 
   // Resolved preview vs token editor. Mode only leaves tokens via the chip (no blur exit).
@@ -547,13 +555,25 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   const handleBodyEditYamlEncoded = useCallback((enabled: boolean) => {
     setBodyYamlEncodedManual(enabled);
+    const asText = bodyTokenMode === "tokens"
+      ? bodyEditDraft
+      : (typeof api.body === "string"
+        ? api.body
+        : formatBody(resolvedRequestFormat, api.body ?? ""));
     if (enabled) {
-      writeBodyPreferYamlEncoded(bodyEditDraft, true);
+      writeBodyPreferYamlEncoded(asText, true);
       return;
     }
     setBodyYamlEncodeError(false);
-    writeBodyToYaml(bodyEditDraft, false);
-  }, [bodyEditDraft, writeBodyPreferYamlEncoded, writeBodyToYaml]);
+    writeBodyToYaml(asText, false);
+  }, [
+    bodyTokenMode,
+    bodyEditDraft,
+    api.body,
+    resolvedRequestFormat,
+    writeBodyPreferYamlEncoded,
+    writeBodyToYaml,
+  ]);
 
   const handleBodyTokenModeChange = useCallback((mode: BodyTokenMode) => {
     if (mode === bodyTokenMode) {
@@ -835,60 +855,70 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           <div className="apitest-body-pane">
             <div className="apitest-body-toolbar">
               <div className="apitest-body-toolbar-main">
-                {bodyTokenMode === "tokens" ? (
-                  <div
-                    className="apitest-body-format-bar-group"
-                    role="radiogroup"
-                    aria-label="Body storage"
-                  >
-                    <FormatChip
-                      label="plain"
-                      selected={!bodyEditYamlEncoded}
-                      title="Store body as a text block"
-                      onClick={() => handleBodyEditYamlEncoded(false)}
-                    />
-                    <FormatChip
-                      label="YAML-encoded"
-                      selected={bodyEditYamlEncoded}
-                      title="Store body as structured YAML instead of a text block"
-                      onClick={() => handleBodyEditYamlEncoded(true)}
-                    />
-                    {bodyYamlEncodeError ? (
-                      <span
-                        className="codicon codicon-error apitest-body-yaml-encode-error"
-                        title="Could not store as structured YAML; using plain until valid again"
-                        role="img"
-                        aria-label="Could not store as structured YAML; using plain until valid again"
+                <BodyFormatBar
+                  value={currentRequestFormat}
+                  onChange={format => setBodyFormat("request", format)}
+                />
+                {resolvedRequestFormat !== "none"
+                  && resolvedRequestFormat !== "text"
+                  && resolvedRequestFormat !== "binary"
+                  && resolvedRequestFormat !== "multipart" ? (
+                  <>
+                    <span className="apitest-body-format-divider" aria-hidden />
+                    <div
+                      className="apitest-body-format-bar-group"
+                      role="radiogroup"
+                      aria-label="Body storage"
+                    >
+                      <FormatChip
+                        label="plain"
+                        selected={!bodyEditYamlEncoded}
+                        title="Store body as a text block"
+                        onClick={() => handleBodyEditYamlEncoded(false)}
                       />
-                    ) : null}
-                  </div>
-                ) : (
-                  <BodyFormatBar
-                    value={currentRequestFormat}
-                    onChange={format => setBodyFormat("request", format)}
-                  />
-                )}
+                      <FormatChip
+                        label="encoded"
+                        selected={bodyEditYamlEncoded}
+                        title="Store body as structured YAML instead of a text block"
+                        onClick={() => handleBodyEditYamlEncoded(true)}
+                      />
+                      {bodyYamlEncodeError ? (
+                        <span
+                          className="codicon codicon-error apitest-body-yaml-encode-error"
+                          title="Could not store as structured YAML; using plain until valid again"
+                          role="img"
+                          aria-label="Could not store as structured YAML; using plain until valid again"
+                        />
+                      ) : null}
+                    </div>
+                  </>
+                ) : null}
+                {resolvedRequestFormat !== "none"
+                  && resolvedRequestFormat !== "binary"
+                  && resolvedRequestFormat !== "multipart" ? (
+                  <>
+                    <span className="apitest-body-format-divider" aria-hidden />
+                    <div
+                      className="apitest-body-format-bar-group"
+                      role="radiogroup"
+                      aria-label="Body display"
+                    >
+                      <FormatChip
+                        label="resolved"
+                        selected={bodyTokenMode === "resolved"}
+                        title="Show resolved input/env values"
+                        onClick={() => handleBodyTokenModeChange("resolved")}
+                      />
+                      <FormatChip
+                        label="tokens"
+                        selected={bodyTokenMode === "tokens"}
+                        title="Edit {{i:}} / {{e:}} / {{r:}} / {{c:}} tokens"
+                        onClick={() => handleBodyTokenModeChange("tokens")}
+                      />
+                    </div>
+                  </>
+                ) : null}
               </div>
-              {resolvedRequestFormat !== "binary" && resolvedRequestFormat !== "multipart" && (
-                <div
-                  className="apitest-body-mode-bar"
-                  role="radiogroup"
-                  aria-label="Body display"
-                >
-                  <FormatChip
-                    label="resolved"
-                    selected={bodyTokenMode === "resolved"}
-                    title="Show resolved input/env values"
-                    onClick={() => handleBodyTokenModeChange("resolved")}
-                  />
-                  <FormatChip
-                    label="tokens"
-                    selected={bodyTokenMode === "tokens"}
-                    title="Edit {{i:}} / {{e:}} / {{r:}} / {{c:}} tokens"
-                    onClick={() => handleBodyTokenModeChange("tokens")}
-                  />
-                </div>
-              )}
             </div>
             {requestBodyDisabled ? (
               <div className="apitest-body-none" role="status">
