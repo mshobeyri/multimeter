@@ -1092,7 +1092,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "examples:\n\t- id: example1\n\t\ttitle: Example 1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200\n",
             detail: 'Usage examples [array of key: value]',
-            documentation: 'Concrete examples with id/title, inputs, and optional soft/hard checks.\n`name` is deprecated — use `id` + `title` (click struck-through `name:` to expand).\nExample:\nexamples:\n\t- id: admin\n\t\ttitle: Get Admin User\n\t\tinputs:\n\t\t\tuserId: "admin123"\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200',
+            documentation: 'Concrete examples with id/title, inputs, and optional soft/hard checks.\n`name` is deprecated — use `id` + `title` (click struck-through `name:` to expand).\nExample `outputs:` is deprecated — use `expect:` (click to rename).\nExample:\nexamples:\n\t- id: admin\n\t\ttitle: Get Admin User\n\t\tinputs:\n\t\t\tuserId: "admin123"\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200',
         }
     ];
     const envSuggestions = [
@@ -1611,32 +1611,60 @@ export const KeySuggestionsByParent = (monaco: any) => {
 
     const exampleSuggestions = [
         {
+            label: "id",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "id: ",
+            detail: 'Example id [string]',
+            documentation: 'Stable identifier for this example (preferred).\nExample: id: create-admin',
+        },
+        {
+            label: "title",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "title: ",
+            detail: 'Example title [string]',
+            documentation: 'Display label for this example.\nExample: title: Create Admin User',
+        },
+        {
             label: "name",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "name: ",
-            detail: 'Example name [string]',
-            documentation: 'A unique identifier for this example. Used to distinguish between different test scenarios or use cases.\nExample: name: "Create Admin User"',
+            detail: 'Deprecated — use id + title',
+            documentation: 'Deprecated alias for both id and title. Click struck-through `name:` to expand to id/title.',
         },
         {
             label: "description",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "description: ",
             detail: 'Example description [string]',
-            documentation: 'A detailed description of what this example demonstrates, its purpose, and expected behavior.\nExample: description: "This example shows how to create a new admin user with full permissions"',
+            documentation: 'A detailed description of what this example demonstrates.\nExample: description: "Create a new admin user"',
         },
         {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "inputs:\n\t",
-            detail: 'Input parameters [array of objects]',
-            documentation: 'Define specific input values for this example. These override the default inputs defined at the API level and provide concrete test data.\nExample:\ninputs:\n\t- username: "admin123"\n\t- email: "admin@example.com"\n\t- role: "administrator"\n\t- password: "SecurePass123!"',
+            detail: 'Input parameters [object]',
+            documentation: 'Input values for this example (override API defaults).\nExample:\ninputs:\n\tusername: "admin123"',
+        },
+        {
+            label: "expect",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "expect:\n\t",
+            detail: 'Soft checks [object]',
+            documentation: 'Soft checks on run outputs (same operators as call expect).\nExample:\nexpect:\n\tstatus_code: 200',
+        },
+        {
+            label: "require",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "require:\n\t",
+            detail: 'Hard checks [object]',
+            documentation: 'Hard checks on run outputs (same operators as call require).\nExample:\nrequire:\n\tstatus_code: == 200',
         },
         {
             label: "outputs",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",
-            detail: 'Expected outputs [object]',
-            documentation: 'Define expected output values for this example. Used to verify the API response matches expectations.\nExample:\noutputs:\n\tstatus_code: 200\n\tbody: {"id": 1}',
+            detail: 'Deprecated — use expect',
+            documentation: 'Deprecated alias for soft expect. Click struck-through `outputs:` to rename to expect.',
         }
     ];
     const authSuggestions = [

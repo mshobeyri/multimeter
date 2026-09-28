@@ -1,12 +1,12 @@
 # Examples, validation, and UI
 
-Define example inputs and (optional) expected outputs so you can run them as smoke tests.
+Define example inputs and soft/hard checks so you can run them as smoke tests from the **Tests** tab.
 
 ## Running examples
 
 **YAML editor** — Each example with an `id:` (or legacy `name:`) shows a {{btn:run}} glyph in the left margin on that line. Click it to run that example through core; Multimeter opens the log output.
 
-**API tester** — On the **In / Out** tab, use the **Example** dropdown to pick **Select...** (API defaults) or an example. That selection pre-fills **Inputs** (and expected outputs for match icons) for the next {{btn:send:Send}}. Editing inputs auto-selects a matching example, or **Select...** when none match.
+**API tester** — On the **Tests** tab, use the **Example** dropdown to pick **Select...** (API defaults) or an example. Request-side **Inputs** pre-fill for the next {{btn:send:Send}}. Response-side **Expect** / **Require** edit soft and hard checks. Use **+** to add a new test from the current inputs (and extracted values as expect). Editing inputs while an example is selected writes to that example.
 
 ```yaml
 examples:
@@ -16,9 +16,6 @@ examples:
     inputs:
       username: alice
       password: secret
-    outputs:
-      status: 200
-      token: "*"   # wildcard/placeholder documentation if exact value varies
     expect:
       status: 200
     require:
@@ -28,11 +25,11 @@ examples:
     inputs:
       username: alice
       password: wrong
-    outputs:
+    expect:
       status: 401
 ```
 
-Prefer `id` (stable identifier) and `title` (display label). Deprecated `name` still works as a fallback for both — click the struck-through `name:` in the editor to expand to `id` + `title`. Duplicate ids fail validation.
+Prefer `id` + `title`. Deprecated `name` still works as a fallback for both — click struck-through `name:` to expand. Deprecated example `outputs:` is an alias for soft `expect` — click to rename. Duplicate ids fail validation.
 
 
 ## Validation and requirements
@@ -45,7 +42,7 @@ Prefer `id` (stable identifier) and `title` (display label). Deprecated `name` s
 
 ## UI features
 
-- **Example dropdown** (In / Out tab): Switch between **Select...** (API defaults) and examples; inputs update immediately. Editing inputs auto-selects a matching example when values match.
+- **Example dropdown** (Tests tab): Switch between **Select...** (API defaults) and examples; inputs update immediately.
 - **Method override button**: Temporarily change the HTTP method from the UI without editing the YAML. Useful for quick testing of the same endpoint with different methods.
 - **Copyable outputs**: Output values in the response panel can be copied with a click.
 - **Extract variable from output**: Click on a value in the response body to automatically create an output extraction path for that value.

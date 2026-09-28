@@ -209,7 +209,8 @@ describe('resolveApiExample and prepareApiRun', () => {
     const prepared = prepareApiRun(raw, {b: 9}, {exampleName: 'Happy'}, () => {});
     expect(prepared.exampleName).toBe('Happy');
     expect(prepared.inputsUsed).toMatchObject({a: 2, b: 9});
-    expect(prepared.exampleOutputs).toEqual({status: 200});
+    expect(prepared.exampleTest).toEqual({expect: {status: 200}});
+    expect(prepared.exampleOutputs).toBeUndefined();
   });
 });
 

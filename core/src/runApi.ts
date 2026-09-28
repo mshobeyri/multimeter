@@ -28,13 +28,11 @@ export function resolveApiExample(
     const label = exampleTitle(ex) || exampleId(ex);
     const inputs =
         isPlainObject(ex?.inputs) ? {...ex.inputs as Record<string, any>} : {};
-    const outputs = isPlainObject(ex?.outputs) ?
-        {...ex.outputs as Record<string, any>} :
-        undefined;
+    // Soft checks go through exampleTest (expect, with deprecated outputs folded in).
+    // Do not also feed exampleOutputs into formatExpects — that would double-log.
     const exampleTest = exampleToApiTestBlock(ex);
     return {
       exampleInputs: inputs,
-      exampleOutputs: outputs,
       exampleTest,
       resolvedExampleName: label,
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,

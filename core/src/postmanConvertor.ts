@@ -758,7 +758,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
           }
           const responseOutputs = responseToOutputs(resp);
           if (Object.keys(responseOutputs.exampleOutputs).length > 0) {
-            example.outputs = responseOutputs.exampleOutputs;
+            example.expect = responseOutputs.exampleOutputs;
           }
           return example;
         });
@@ -775,7 +775,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
               return {
                 id,
                 title: id,
-                ...(Object.keys(responseOutputs.exampleOutputs).length > 0 ? {outputs: responseOutputs.exampleOutputs} : {}),
+                ...(Object.keys(responseOutputs.exampleOutputs).length > 0 ? {expect: responseOutputs.exampleOutputs} : {}),
               };
             })
             .filter(ex => ex.id);

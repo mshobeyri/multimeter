@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect, useMemo, useRef, useCallback } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
-import { APIData, exampleId, exampleTitle } from "mmt-core/APIData";
+import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { Request } from "mmt-core/NetworkData";
@@ -55,7 +55,7 @@ interface APITestProps {
   initialExampleIndex?: number;
 }
 
-type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc" | "tests";
+type EditorTab = "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc" | "tests";
 
 function countNamedEntries(record?: Record<string, unknown> | null): number {
   if (!record) {
@@ -65,7 +65,6 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
 }
 
 const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> = [
-  { key: "inout", label: "In / Out" },
   { key: "graphql", label: "GraphQL", protocol: "graphql" },
   { key: "grpc", label: "gRPC", protocol: "grpc" },
   { key: "body", label: "Body" },
@@ -85,27 +84,6 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   } catch {
     return { ...source };
   }
-}
-
-/** Compare run output vs example expected value (allows string/number coercion). */
-function outputValuesMatch(actual: unknown, expected: unknown): boolean {
-  if (Object.is(actual, expected)) {
-    return true;
-  }
-  if (actual === undefined || expected === undefined) {
-    return false;
-  }
-  if (actual === null || expected === null) {
-    return actual === expected;
-  }
-  if (typeof actual === "object" || typeof expected === "object") {
-    try {
-      return JSON.stringify(actual) === JSON.stringify(expected);
-    } catch {
-      return false;
-    }
-  }
-  return String(actual) === String(expected);
 }
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
@@ -318,7 +296,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
-    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc" || saved === "inout" || saved === "tests") {
+    // Legacy In/Out tab merged into Tests.
+    if (saved === "inout") {
+      return "tests";
+    }
+    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc" || saved === "tests") {
       return saved;
     }
     if (api.protocol === "graphql") {
@@ -354,7 +336,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       if (protocol === "graphql" || protocol === "grpc") {
         setEditorTab(protocol);
       } else if (editorTab === "graphql" || editorTab === "grpc") {
-        setEditorTab("inout");
+        setEditorTab("body");
       }
       return;
     }
@@ -363,7 +345,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       updateField("method", method);
       updateField("protocol", "http");
       if (editorTab === "graphql" || editorTab === "grpc") {
-        setEditorTab("inout");
+        setEditorTab("body");
       }
     }
   };
@@ -372,11 +354,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowHeaders = () => editorTab === "headers";
   const shouldShowCookies = () => editorTab === "cookies";
   const shouldShowBody = () => editorTab === "body";
-  const shouldShowInputs = () => editorTab === "inout";
+  const shouldShowInputs = () => editorTab === "tests";
   const shouldShowResponse = () => editorTab === "body";
   const shouldShowResponseHeaders = () => editorTab === "headers";
   const shouldShowResponseCookies = () => editorTab === "cookies";
-  const shouldShowOutputs = () => editorTab === "inout";
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
@@ -431,50 +412,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     [api.description]
   );
 
-  // Match icons are tied to the response that was produced for a specific
-  // example + inputs snapshot. Changing either clears icons until the next run.
-  const [matchBaseline, setMatchBaseline] = useState<{ exampleIdx: number; inputsKey: string } | null>(null);
-  useEffect(() => {
-    if (!responseData) {
-      setMatchBaseline(null);
-      return;
-    }
-    setMatchBaseline({
-      exampleIdx: selectedExampleIdx,
-      inputsKey: JSON.stringify(currentInputs),
-    });
-    // Only stamp when a new response arrives — not when inputs/example change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [responseRevision, responseData]);
-
-  const outputMatchStatus = useMemo(() => {
-    const status = new Map<string, "match" | "mismatch">();
-    if (selectedExampleIdx < 0 || !responseData || !matchBaseline) {
-      return status;
-    }
-    if (
-      matchBaseline.exampleIdx !== selectedExampleIdx ||
-      matchBaseline.inputsKey !== JSON.stringify(currentInputs)
-    ) {
-      return status;
-    }
-    const expected = examples[selectedExampleIdx]?.outputs;
-    const expectedObj = expected && typeof expected === "object" ? expected : {};
-    const outputKeys = typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : [];
-
-    outputKeys.forEach((key) => {
-      if (!Object.prototype.hasOwnProperty.call(expectedObj, key)) {
-        return;
-      }
-      if (outputValuesMatch(outputs[key], expectedObj[key])) {
-        status.set(key, "match");
-      } else {
-        status.set(key, "mismatch");
-      }
-    });
-    return status;
-  }, [selectedExampleIdx, examples, outputs, responseData, api.outputs, currentInputs, matchBaseline]);
-
   const handleExampleChange = useCallback((newIdx: number) => {
     setSelectedExampleIdx(newIdx);
     const baseInputs = newIdx === -1
@@ -503,13 +440,29 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const handleInputsChange = (data: JSONRecord) => {
     setCurrentInputs(data);
     prepareRequestData(data, { respectTouched: false });
+    if (selectedExampleIdx >= 0 && examples[selectedExampleIdx]) {
+      const nextExamples = examples.map((ex, i) => {
+        if (i !== selectedExampleIdx) {
+          return ex;
+        }
+        const updated = { ...ex };
+        if (Object.keys(data).length > 0) {
+          updated.inputs = cloneInputs(data);
+        } else {
+          delete updated.inputs;
+        }
+        return updated;
+      });
+      onUpdateApi?.({ examples: nextExamples });
+      return;
+    }
     const match = findMatchingExampleIndex(examples, data);
     if (match !== selectedExampleIdx) {
       setSelectedExampleIdx(match);
     }
   };
 
-  const handleAddAsExample = () => {
+  const handleAddAsTest = () => {
     const newExampleNameBase = "example";
     let newId = newExampleNameBase;
     const idSet = new Set(
@@ -523,7 +476,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       newId = `${newExampleNameBase}${counter++}`;
     }
 
-    const newExample: { id: string; title?: string; inputs?: JSONRecord; outputs?: JSONRecord } = {
+    const newExample: { id: string; title?: string; inputs?: JSONRecord; expect?: JSONRecord } = {
       id: newId,
       title: newId,
     };
@@ -531,22 +484,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       newExample.inputs = cloneInputs(currentInputs);
     }
 
-    // Only persist outputs that are defined on the API — never invent status_code.
+    // Snapshot extracted output values into soft expect (equality checks).
     const definedOutputKeys = Object.keys(api.outputs || {});
     if (definedOutputKeys.length > 0) {
-      const exampleOutputs: JSONRecord = {};
+      const exampleExpect: JSONRecord = {};
       definedOutputKeys.forEach((key) => {
         if (Object.prototype.hasOwnProperty.call(outputs, key)) {
-          exampleOutputs[key] = outputs[key];
+          exampleExpect[key] = outputs[key];
         }
       });
-      if (Object.keys(exampleOutputs).length > 0) {
-        newExample.outputs = exampleOutputs;
+      if (Object.keys(exampleExpect).length > 0) {
+        newExample.expect = exampleExpect;
       }
     }
 
     const updatedExamples = [...(api.examples || []), newExample];
     onUpdateApi?.({ examples: updatedExamples });
+    setSelectedExampleIdx(updatedExamples.length - 1);
   };
 
   return (
@@ -594,7 +548,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   : tab.key === "tests"
                     ? (() => {
                         const ex = selectedExampleIdx >= 0 ? examples[selectedExampleIdx] : undefined;
-                        return Object.keys(ex?.expect || {}).length +
+                        const soft = exampleExpect(ex);
+                        return Object.keys(soft || {}).length +
                             Object.keys(ex?.require || {}).length;
                       })()
                     : 0;
@@ -778,9 +733,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 <button
                   type="button"
                   className="button-icon no-shrink"
-                  onClick={handleAddAsExample}
-                  title="Add as example"
-                  aria-label="Add as example"
+                  onClick={handleAddAsTest}
+                  title="Add as test"
+                  aria-label="Add as test"
                 >
                   <span className="codicon codicon-add" aria-hidden />
                 </button>
@@ -794,62 +749,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               inputConstraints={inputConstraints}
               deletable={false}
             />
-          </>
-        )}
-
-        {shouldShowTests() && (
-          <>
-            <div className="apitest-example">
-              <div className="label">Example</div>
-              <div className="field-inline is-gap">
-                <select
-                  value={selectedExampleIdx ?? -1}
-                  onChange={e => handleExampleChange(Number(e.target.value))}
-                  className="field-grow"
-                >
-                  <option value={-1}>Select...</option>
-                  {examples
-                    .filter(ex => ex && typeof ex === "object")
-                    .map((ex, idx) => (
-                      <option key={exampleId(ex) || idx} value={idx}>
-                        {exampleTitle(ex) || exampleId(ex) || `Example ${idx + 1}`}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-            {selectedExampleIdx < 0 || !examples[selectedExampleIdx] ? (
-              <div className="apitest-empty">Select an example to edit tests.</div>
-            ) : (
-              <ApiTestsEditor
-                test={{
-                  expect: examples[selectedExampleIdx].expect,
-                  require: examples[selectedExampleIdx].require,
-                }}
-                results={apiTestResults}
-                fieldSuggestions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
-                onChange={(next) => {
-                  const nextExamples = examples.map((ex, i) => {
-                    if (i !== selectedExampleIdx) {
-                      return ex;
-                    }
-                    const updated = { ...ex };
-                    if (next?.expect) {
-                      updated.expect = next.expect;
-                    } else {
-                      delete updated.expect;
-                    }
-                    if (next?.require) {
-                      updated.require = next.require;
-                    } else {
-                      delete updated.require;
-                    }
-                    return updated;
-                  });
-                  onUpdateApi?.({ examples: nextExamples });
-                }}
-              />
-            )}
           </>
         )}
       </div>
@@ -920,16 +819,43 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           </div>
         )}
 
-        {shouldShowOutputs() && (
-          <VEditor
-            label="Outputs"
-            value={outputs}
-            onChange={() => { }}
-            keyOptions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
-            deletable={false}
-            copyable={true}
-            matchStatus={outputMatchStatus}
-          />
+        {shouldShowTests() && (
+          selectedExampleIdx < 0 || !examples[selectedExampleIdx] ? (
+            <div className="apitest-empty">Select an example to edit expect / require.</div>
+          ) : (
+            <ApiTestsEditor
+              test={{
+                expect: exampleExpect(examples[selectedExampleIdx]),
+                require: examples[selectedExampleIdx].require,
+              }}
+              results={apiTestResults}
+              fieldSuggestions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
+              onChange={(next) => {
+                const nextExamples = examples.map((ex, i) => {
+                  if (i !== selectedExampleIdx) {
+                    return ex;
+                  }
+                  const updated = { ...ex };
+                  // Migrating off deprecated outputs when writing expect.
+                  if (updated.outputs !== undefined) {
+                    delete updated.outputs;
+                  }
+                  if (next?.expect) {
+                    updated.expect = next.expect;
+                  } else {
+                    delete updated.expect;
+                  }
+                  if (next?.require) {
+                    updated.require = next.require;
+                  } else {
+                    delete updated.require;
+                  }
+                  return updated;
+                });
+                onUpdateApi?.({ examples: nextExamples });
+              }}
+            />
+          )
         )}
       </div>
 

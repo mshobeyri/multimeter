@@ -38,8 +38,9 @@ describe('httpStepApiPreview', () => {
       'body.body.message': 'body.body.message',
     });
     expect(api.examples).toEqual([{
-      name: 'Send an echo request',
-      outputs: {
+      id: 'Send an echo request',
+      title: 'Send an echo request',
+      expect: {
         status: 200,
         'body.body.message': 'hello world',
       },
@@ -62,7 +63,7 @@ describe('httpStepApiPreview', () => {
       'body.name': 'body.name',
       'body.role': 'body.role',
     });
-    expect(api.examples?.[0].outputs).toEqual({
+    expect(api.examples?.[0].expect).toEqual({
       status: 200,
       'body.name': '!= null',
       'body.role': '=* /admin/',
@@ -86,7 +87,7 @@ describe('httpStepApiPreview', () => {
       token: 'body.token',
       status: 'status',
     });
-    expect(api.examples?.[0].outputs).toEqual({
+    expect(api.examples?.[0].expect).toEqual({
       status: 200,
       token: '*',
     });
@@ -186,7 +187,7 @@ describe('httpStepApiPreview', () => {
     expect(yaml).toContain('status: 200');
     const api = yamlToAPI(yaml);
     expect(api.method).toBe('post');
-    expect(api.examples?.[0].outputs?.status).toBe(200);
+    expect(api.examples?.[0].expect?.status).toBe(200);
   });
 
   test('suggestHttpStepApiFilename sanitizes id/title', () => {
@@ -245,7 +246,7 @@ describe('httpStepApiPreview', () => {
     expect(yaml!).toContain('!= null');
     const api = yamlToAPI(yaml!);
     expect(api.inputs).toEqual({userId: 'u-9'});
-    expect(api.examples?.[0].outputs?.['body.name']).toBe('!= null');
+    expect(api.examples?.[0].expect?.['body.name']).toBe('!= null');
   });
 
   test('finds nested http steps under if/steps', () => {

@@ -240,4 +240,28 @@ describe('compatibility deprecations', () => {
     expect(fixedBoth).toContain('title: Keep');
     expect(fixedBoth).not.toContain('name:');
   });
+
+  it('warns when api example uses deprecated outputs and click-renames to expect', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - id: ok',
+      '    outputs:',
+      '      status: 200',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const problems = findCompatibilityProblems(content, doc, 'api');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({
+      category: 'compatibility',
+      severity: 'warning',
+      message: expect.stringContaining('deprecated'),
+      applyFix: {kind: 'renameYamlKey', from: 'outputs', to: 'expect'},
+    });
+    const issue = findCompatibilityIssueAtPosition(content, doc, 'api', 5, 5);
+    const updated = applyCompatibilityFix(content, issue!.applyFix, issue!.line);
+    expect(updated).toContain('expect:');
+    expect(updated).not.toContain('outputs:');
+  });
 });

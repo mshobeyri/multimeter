@@ -57,6 +57,25 @@ describe('apiParsePack example expect/require', () => {
       '  - name: dup',
     ].join('\n'))).toThrow(/duplicate example id/);
   });
+
+  it('treats deprecated example outputs as soft expect and packs expect', () => {
+    const api = yamlToAPI([
+      'type: api',
+      'url: https://x',
+      'examples:',
+      '  - id: legacy-out',
+      '    outputs:',
+      '      status: 200',
+    ].join('\n'));
+    expect(api.examples?.[0]?.outputs).toEqual({status: 200});
+    expect(exampleToApiTestBlock(api.examples?.[0])).toEqual({
+      expect: {status: 200},
+    });
+    const packed = apiToYaml(api);
+    expect(packed).toContain('expect:');
+    expect(packed).toContain('status: 200');
+    expect(packed).not.toContain('outputs:');
+  });
   it('rejects root-level test key', () => {
     expect(() => yamlToAPIStrict([
       'type: api',

@@ -13,7 +13,7 @@ Inside `description`, document inputs and outputs with annotations (not plain Ma
 - `<<i:param_name>> description text` — input parameter
 - `<<o:param_name>> description text` — output parameter
 
-Optional leading `[...]` on an **input** annotation documents allowed values (ranges / enums) and enables a picker in the API **In / Out** tab:
+Optional leading `[...]` on an **input** annotation documents allowed values (ranges / enums) and enables a picker in the API **Tests** tab:
 
 - `[a, b, c]` — discrete options (comma-separated; double-quoted tokens allowed)
 - `[1-5]` — integer range, inclusive (picker hidden if more than 10 values)
@@ -54,7 +54,7 @@ body:
 
 After you save this:
 
-- Open the **In / Out** tab to see input descriptions and range pickers next to the input fields
+- Open the **Tests** tab to see input descriptions and range pickers next to the input fields
 - Open the **Doc** tab to preview the documented parameters (same annotations feed generated HTML/Markdown docs)
 
 Declare the matching keys under `inputs` / `outputs` and wire them in the request — see [Inputs](./inputs.md) and [Outputs](./outputs.md).

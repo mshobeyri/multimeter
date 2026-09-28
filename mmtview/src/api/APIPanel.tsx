@@ -7,14 +7,14 @@ import APITest from "./APITester";
 import ApiTestsEditor from "./ApiTestsEditor";
 import UnsavedChangesWarning from "./UnsavedChangesWarning";
 import YamlErrorWarning from "./YamlErrorWarning";
-import { APIData, ExampleData, exampleId, exampleTitle } from "mmt-core/APIData";
+import { APIData, ExampleData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
-import { requestFormat } from "mmt-core/CommonData";
+import { JSONRecord, requestFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { bodyForYamlSave } from "mmt-core/apiBodyEdit";
-import { safeList, safeListCopy } from "mmt-core/safer";
+import { isNonEmptyObject, safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { usePanelPage } from "../usePanelPage";
 import { FileContext } from "../fileContext";
@@ -23,6 +23,7 @@ import TabBar from "../components/TabBar";
 import PrimaryButton from "../components/PrimaryButton";
 import PanelEditHeader from "../components/PanelEditHeader";
 import { HeaderAction } from "../components/PanelRunHeader";
+import VEditor from "../components/VEditor";
 
 const API_EDIT_TABS = [
   { id: "overview" as const, label: "Overview", icon: "search" },
@@ -42,14 +43,42 @@ function ApiTestsEditTab({
   const [exampleIdx, setExampleIdx] = useState(-1);
   const selected = exampleIdx >= 0 ? examples[exampleIdx] : undefined;
 
+  const addTest = () => {
+    const base = "example";
+    let newId = base;
+    const idSet = new Set(
+      examples.map(e => (exampleId(e) || "").toLowerCase()).filter(Boolean),
+    );
+    let counter = 1;
+    while (idSet.has(newId.toLowerCase())) {
+      newId = `${base}${counter++}`;
+    }
+    const next = [...examples, { id: newId, title: newId }];
+    update({ examples: next });
+    setExampleIdx(next.length - 1);
+  };
+
+  const patchSelected = (patch: Partial<ExampleData> | ((ex: ExampleData) => ExampleData)) => {
+    if (exampleIdx < 0) {
+      return;
+    }
+    const nextExamples = examples.map((ex, i) => {
+      if (i !== exampleIdx) {
+        return ex;
+      }
+      return typeof patch === "function" ? patch(ex) : { ...ex, ...patch };
+    });
+    update({ examples: nextExamples });
+  };
+
   return (
     <div className="field-pad">
       <div className="label">Example</div>
-      <div className="field-pad">
+      <div className="field-inline is-gap field-pad">
         <select
           value={exampleIdx}
           onChange={e => setExampleIdx(Number(e.target.value))}
-          className="mmt-fill"
+          className="field-grow"
         >
           <option value={-1}>Select...</option>
           {examples.map((ex, idx) => (
@@ -58,34 +87,67 @@ function ApiTestsEditTab({
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          className="button-icon no-shrink"
+          onClick={addTest}
+          title="Add test"
+          aria-label="Add test"
+        >
+          <span className="codicon codicon-add" aria-hidden />
+        </button>
       </div>
       {!selected ? (
-        <div className="muted">Select an example to edit tests.</div>
+        <div className="muted">Select an example to edit inputs and tests.</div>
       ) : (
-        <ApiTestsEditor
-          test={{ expect: selected.expect, require: selected.require }}
-          fieldSuggestions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
-          onChange={(next) => {
-            const nextExamples = examples.map((ex, i) => {
-              if (i !== exampleIdx) {
-                return ex;
-              }
-              const updated: ExampleData = { ...ex };
-              if (next?.expect) {
-                updated.expect = next.expect;
-              } else {
-                delete updated.expect;
-              }
-              if (next?.require) {
-                updated.require = next.require;
-              } else {
-                delete updated.require;
-              }
-              return updated;
-            });
-            update({ examples: nextExamples });
-          }}
-        />
+        <>
+          {isNonEmptyObject(api.inputs) ? (
+            <VEditor
+              label="Inputs"
+              value={selected.inputs || {}}
+              onChange={(kv: JSONRecord) => {
+                patchSelected((ex) => {
+                  const updated = { ...ex };
+                  if (Object.keys(kv).length > 0) {
+                    updated.inputs = { ...kv };
+                  } else {
+                    delete updated.inputs;
+                  }
+                  return updated;
+                });
+              }}
+              keyOptions={Object.keys(api.inputs || {})}
+            />
+          ) : (
+            <div className="panel-form-row">
+              <div className="label">Inputs</div>
+              <div className="error-panel">You need to define inputs first</div>
+            </div>
+          )}
+          <ApiTestsEditor
+            test={{ expect: exampleExpect(selected), require: selected.require }}
+            fieldSuggestions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
+            onChange={(next) => {
+              patchSelected((ex) => {
+                const updated: ExampleData = { ...ex };
+                if (updated.outputs !== undefined) {
+                  delete updated.outputs;
+                }
+                if (next?.expect) {
+                  updated.expect = next.expect;
+                } else {
+                  delete updated.expect;
+                }
+                if (next?.require) {
+                  updated.require = next.require;
+                } else {
+                  delete updated.require;
+                }
+                return updated;
+              });
+            }}
+          />
+        </>
       )}
     </div>
   );
@@ -429,8 +491,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
                                   <div key={idx} className="inner-box">
                                     <APIExample
                                       data={example}
-                                      apiInputs={api.inputs}
-                                      apiOutputs={api.outputs}
                                       onChange={(updated) => updateExample(idx, updated)}
                                       onRemove={() => removeExample(idx)}
                                     />

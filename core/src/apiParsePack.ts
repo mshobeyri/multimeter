@@ -1,5 +1,14 @@
 
-import {APIData, ApiTestBlock, AuthConfig, ExampleData, GraphQLConfig, GrpcConfig, exampleId} from './APIData';
+import {
+  APIData,
+  ApiTestBlock,
+  AuthConfig,
+  ExampleData,
+  GraphQLConfig,
+  GrpcConfig,
+  exampleExpect,
+  exampleId,
+} from './APIData';
 import {
   FORMAT_VALUES,
   Format,
@@ -163,11 +172,10 @@ function packExample(example: ExampleData): Record<string, any> {
   if (isNonEmptyObject(example.inputs)) {
     out.inputs = example.inputs;
   }
-  if (isNonEmptyObject(example.outputs)) {
-    out.outputs = example.outputs;
-  }
-  if (isNonEmptyObject(example.expect)) {
-    out.expect = example.expect;
+  // Prefer expect; fold deprecated outputs into expect and never rewrite outputs.
+  const expect = exampleExpect(example);
+  if (isNonEmptyObject(expect)) {
+    out.expect = expect;
   }
   if (isNonEmptyObject(example.require)) {
     out.require = example.require;
@@ -197,8 +205,9 @@ export function exampleToApiTestBlock(example: ExampleData | undefined | null): 
     return undefined;
   }
   const block: ApiTestBlock = {};
-  if (isNonEmptyObject(example.expect)) {
-    block.expect = example.expect;
+  const expect = exampleExpect(example);
+  if (isNonEmptyObject(expect)) {
+    block.expect = expect;
   }
   if (isNonEmptyObject(example.require)) {
     block.require = example.require;

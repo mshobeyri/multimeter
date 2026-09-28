@@ -14,7 +14,7 @@ export type HttpStepApiPreviewOptions = {
 
 /**
  * Build a temporary `type: api` document from an inline HTTP test step.
- * - `expect` fields become `outputs` (path → path) and an example with expected values.
+ * - `expect` fields become API `outputs` (path → path) and an example `expect` with values.
  * - `e:` tokens are left as-is.
  * - `i:` refs are copied into `inputs` using test-level defaults when present.
  */
@@ -48,9 +48,10 @@ export function buildApiPreviewFromHttpStep(
   const examples: ExampleData[]|undefined =
       Object.keys(exampleOutputs).length > 0 ?
       [{
-        name: step.title || step.id || 'from-expect',
+        id: step.title || step.id || 'from-expect',
+        title: step.title || step.id || 'from-expect',
         ...(Object.keys(inputs).length > 0 ? {inputs: {...inputs}} : {}),
-        outputs: exampleOutputs,
+        expect: exampleOutputs,
       }] :
       undefined;
 

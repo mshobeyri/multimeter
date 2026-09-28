@@ -42,12 +42,42 @@ export interface ExampleData {
   name?: string;
   description?: string;
   inputs?: JSONRecord;
-  // Optional expected outputs for this example (mirrors API level outputs)
+  /**
+   * @deprecated Use `expect`. Treated as a soft-expect map (equality checks).
+   * Click the struck-through `outputs:` under an example to rename to `expect:`.
+   */
   outputs?: JSONRecord;
   /** Soft checks on run outputs (same shape/operators as call expect). */
   expect?: ExpectMap;
   /** Hard checks on run outputs (same shape/operators as call require). */
   require?: ExpectMap;
+}
+
+/**
+ * Effective soft-expect map: `expect`, with deprecated `outputs` filling missing keys.
+ */
+export function exampleExpect(example: ExampleData | null | undefined): ExpectMap | undefined {
+  if (!example) {
+    return undefined;
+  }
+  const fromExpect = example.expect && typeof example.expect === 'object' && !Array.isArray(example.expect) ?
+      example.expect :
+      undefined;
+  const fromOutputs = example.outputs && typeof example.outputs === 'object' && !Array.isArray(example.outputs) ?
+      example.outputs as ExpectMap :
+      undefined;
+  if (!fromExpect && !fromOutputs) {
+    return undefined;
+  }
+  if (!fromOutputs) {
+    return fromExpect;
+  }
+  if (!fromExpect) {
+    return {...fromOutputs};
+  }
+  // Prefer explicit expect entries; fill gaps from deprecated outputs.
+  const merged: ExpectMap = {...fromOutputs, ...fromExpect};
+  return merged;
 }
 
 /** Effective example id: `id`, else deprecated `name`. */

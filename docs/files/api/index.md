@@ -49,13 +49,12 @@ Under the URL bar:
 
 | Tab | What you see |
 |---|---|
-| **In / Out** | **Example** dropdown (**Select...** or a named example), runtime **inputs** (range pickers from description annotations), and extracted **outputs** after a send |
 | **Body** | Request body; after send, **Response Body** appears below Send. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
 | **Params** | Query parameters |
 | **Headers** | Request headers; response headers appear below Send after a reply |
 | **Cookies** | Request cookies; response cookies appear below Send after a reply |
 | **Doc** | Preview of `description` and `<<i:>>` / `<<o:>>` parameter docs |
-| **Tests** | Pick an **example** (same selector pattern as In / Out), then edit soft **Expect** / hard **Require** for that example. After Send with that example selected, rows show pass/fail |
+| **Tests** | **Example** dropdown + **+** to add a test; request-side **Inputs**; response-side soft **Expect** / hard **Require**. After Send with an example selected, rows show pass/fail |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
 ### Send
