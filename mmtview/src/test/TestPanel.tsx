@@ -101,12 +101,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
 
   const [page, setPage] = usePanelPage<TestPage>("test");
   const [tab, setTab] = useState<"overview" | "flow" | "code">("overview");
-  const [diffParked, setDiffParked] = useState(false);
   const { mmtFilePath } = React.useContext(FileContext);
 
   useEffect(() => {
     setTab("overview");
-    setDiffParked(false);
   }, [mmtFilePath]);
 
   const isTestModified = page === "test" && hasUiOverrides;
@@ -147,7 +145,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
         return;
       }
 
-      // Cancel (or dialog dismissed): leave both sides as they are.
+      // Keep UI (or dialog dismissed): leave both sides as they are.
       dismissedYamlRef.current = yaml;
       pendingYamlRef.current = null;
     } finally {
@@ -291,14 +289,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                             onClick={() => setPage('edit')}
                           />
                         ) : null}
-                        {(isTestModified || diffParked) ? (
+                        {isTestModified ? (
                           <UnsavedChangesWarning
-                            showLauncher={isTestModified}
-                            originalYaml={appliedContent}
-                            modifiedYaml={isTestModified ? modifiedYaml : appliedContent}
                             onSave={handleWarningSave}
                             onReset={handleWarningReset}
-                            onDiffParked={() => setDiffParked(true)}
                           />
                         ) : null}
                     </>

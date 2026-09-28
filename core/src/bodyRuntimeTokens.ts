@@ -10,6 +10,7 @@ import {RANDOM_TOKEN_MAP} from './Random';
 import {
   ACCESSOR_PATH_RE,
   TOKEN_NAME_RE,
+  applyValueAccessor,
 } from './variableReplacer';
 import {
   stringContainsRuntimeToken,
@@ -33,21 +34,49 @@ const ANGLE_RUNTIME_GLOBAL_RE = new RegExp(
     'g',
 );
 
-/** Body-editor display form: `{{random uuid}}` / `{{current date(+1d)}}`. */
-const DISPLAY_RUNTIME_AT_RE =
-    /^\{\{\s*(random|current)\s+((?:[^{}]|\([^)]*\))+?)\s*\}\}/i;
-const DISPLAY_RUNTIME_GLOBAL_RE =
+/**
+ * Tester UI display form (integrity): `{{r:uuid}}` / `{{c:date(+1d)}}` /
+ * `{{i:user}}` / `{{e:token}}`. Same prefix:name shape as YAML tokens.
+ */
+const DISPLAY_PREFIXED_GLOBAL_RE =
+    /\{\{\s*([ierce]):((?:[^{}]|\([^)]*\))+?)\s*\}\}/gi;
+const WHOLE_DISPLAY_PREFIXED_RE =
+    /^\{\{\s*([ierce]):((?:[^{}]|\([^)]*\))+?)\s*\}\}$/i;
+/** Match a display token at the start of a string (for JSON unquoted scan). */
+const DISPLAY_PREFIXED_AT_RE =
+    /^\{\{\s*([ierce]):((?:[^{}]|\([^)]*\))+?)\s*\}\}/i;
+
+/**
+ * Legacy long-form still accepted on parse only:
+ * `{{random uuid}}` / `{{current date(+1d)}}`.
+ */
+const LEGACY_DISPLAY_RUNTIME_GLOBAL_RE =
     /\{\{\s*(random|current)\s+((?:[^{}]|\([^)]*\))+?)\s*\}\}/gi;
-const WHOLE_DISPLAY_RUNTIME_RE =
+const WHOLE_LEGACY_DISPLAY_RUNTIME_RE =
     /^\{\{\s*(random|current)\s+((?:[^{}]|\([^)]*\))+?)\s*\}\}$/i;
+const LEGACY_DISPLAY_RUNTIME_AT_RE =
+    /^\{\{\s*(random|current)\s+((?:[^{}]|\([^)]*\))+?)\s*\}\}/i;
+
+/** Input/env angle forms in free text. */
+const ANGLE_IE_GLOBAL_RE = new RegExp(
+    `<<\\s*((?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE})\\s*>>`,
+    'g',
+);
+const WHOLE_ANGLE_IE_RE = new RegExp(
+    `^<<\\s*((?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE})\\s*>>$`,
+);
+const PLAIN_IE_GLOBAL_RE = new RegExp(
+    `(?<![A-Za-z0-9_])((?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`,
+    'g',
+);
 
 const PLACEHOLDER_PREFIX = '__MMT_RT_';
 const PLACEHOLDER_RE = new RegExp(`^${PLACEHOLDER_PREFIX}(\\d+)__$`);
 
 /**
  * r:/c: tokens whose resolved value is a JSON number or boolean — shown
- * unquoted as `{{random int}}`. Everything else is a string and shown as
- * `"{{random uuid}}"` so resolve is plain text substitution inside the quotes.
+ * unquoted as `{{r:int}}`. Everything else is a string and shown as
+ * `"{{r:uuid}}"` so resolve is plain text substitution inside the quotes.
  */
 const NON_STRING_RANDOM_TOKENS = new Set([
   'int',
@@ -97,11 +126,68 @@ function tokenKeyword(plainSpec: string): {prefix: string, name: string}|null {
 }
 
 /**
- * True when this r:/c: token resolves to a JSON string (needs quotes in the
- * body so substitution keeps a string). False for number/bool tokens.
+ * Optional maps used to decide JSON quoting for `{{i:…}}` / `{{e:…}}`.
+ * Number/boolean resolved values → unquoted; everything else → quoted string.
  */
-export function runtimeTokenEmitsJsonString(plainSpec: string): boolean {
-  const parsed = tokenKeyword(plainSpec);
+export type RuntimeTokenValueContext = {
+  inputs?: Record<string, unknown>|null;
+  env?: Record<string, unknown>|null;
+};
+
+function lookupIeResolvedValue(
+    plainSpec: string,
+    ctx?: RuntimeTokenValueContext,
+): unknown {
+  if (!ctx) {
+    return undefined;
+  }
+  const m = new RegExp(
+      `^(i|e):(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`,
+      'i',
+  ).exec(String(plainSpec ?? '').trim());
+  if (!m) {
+    return undefined;
+  }
+  const prefix = m[1].toLowerCase();
+  const name = m[2];
+  const accessor = m[3] || '';
+  const map = prefix === 'i' ? ctx.inputs : ctx.env;
+  if (!map || typeof map !== 'object' || Array.isArray(map)) {
+    return undefined;
+  }
+  if (!Object.prototype.hasOwnProperty.call(map, name)) {
+    return undefined;
+  }
+  return applyValueAccessor(
+      (map as Record<string, unknown>)[name],
+      accessor,
+  );
+}
+
+/**
+ * True when this token should appear as a JSON string (quoted) in the body
+ * editor. False for number/bool (and null) so the token stays unquoted.
+ *
+ * - `r:` / `c:` — from known token kinds (unchanged).
+ * - `i:` / `e:` — from `typeof` of the active inputs/env value when `ctx` is set;
+ *   missing values default to string (quoted).
+ */
+export function runtimeTokenEmitsJsonString(
+    plainSpec: string,
+    ctx?: RuntimeTokenValueContext,
+): boolean {
+  const trimmed = String(plainSpec ?? '').trim();
+  if (/^[ie]:/i.test(trimmed)) {
+    const val = lookupIeResolvedValue(trimmed, ctx);
+    if (val === undefined) {
+      return true;
+    }
+    if (val === null || typeof val === 'number' || typeof val === 'boolean') {
+      return false;
+    }
+    return true;
+  }
+  const parsed = tokenKeyword(trimmed);
   if (!parsed) {
     return true;
   }
@@ -160,16 +246,35 @@ function angleToPlain(angled: string): string|null {
 }
 
 /**
- * `{{random uuid}}` / `{{current epoch ms}}` → `r:uuid` / `c:epoch_ms`.
- * Spaces in the name become underscores; args like `(10,20)` stay as-is.
+ * Display curly → plain token.
+ * - `{{r:uuid}}` / `{{c:epoch_ms}}` / `{{i:user}}` / `{{e:token}}`
+ * - Legacy: `{{random uuid}}` / `{{current epoch ms}}` → `r:uuid` / `c:epoch_ms`
  */
 export function displayTokenToPlain(display: string): string|null {
-  const m = WHOLE_DISPLAY_RUNTIME_RE.exec(String(display ?? '').trim());
-  if (!m) {
+  const trimmed = String(display ?? '').trim();
+  const prefixed = WHOLE_DISPLAY_PREFIXED_RE.exec(trimmed);
+  if (prefixed) {
+    const prefix = prefixed[1].toLowerCase();
+    const rest = prefixed[2].trim();
+    if (!rest || !'ierce'.includes(prefix)) {
+      return null;
+    }
+    const plain = `${prefix}:${rest}`;
+    if (prefix === 'r' || prefix === 'c') {
+      return stringContainsRuntimeToken(plain) ? plain : null;
+    }
+    // i: / e: — accept any TOKEN_NAME-shaped rest (including accessors).
+    return new RegExp(`^(?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}$`)
+               .test(plain) ?
+        plain :
+        null;
+  }
+  const legacy = WHOLE_LEGACY_DISPLAY_RUNTIME_RE.exec(trimmed);
+  if (!legacy) {
     return null;
   }
-  const prefix = m[1].toLowerCase() === 'random' ? 'r' : 'c';
-  const rest = m[2].trim();
+  const prefix = legacy[1].toLowerCase() === 'random' ? 'r' : 'c';
+  const rest = legacy[2].trim();
   const argStart = rest.search(/[(\[]/);
   const rawName = (argStart >= 0 ? rest.slice(0, argStart) : rest).trim();
   const args = argStart >= 0 ? rest.slice(argStart).trim() : '';
@@ -181,40 +286,29 @@ export function displayTokenToPlain(display: string): string|null {
   return stringContainsRuntimeToken(plain) ? plain : null;
 }
 
-function plainToDisplaySpec(plain: string): {kind: 'random'|'current', label: string}|null {
-  const cleaned = plain.trim();
-  const angled = angleToPlain(cleaned);
-  const spec = angled ?? cleaned;
-  const m = /^(r|c):(.+)$/.exec(spec);
-  if (!m || !stringContainsRuntimeToken(spec)) {
-    return null;
-  }
-  const kind = m[1] === 'r' ? 'random' : 'current';
-  const rest = m[2];
-  const argStart = rest.search(/[(\[]/);
-  const rawName = argStart >= 0 ? rest.slice(0, argStart) : rest;
-  const args = argStart >= 0 ? rest.slice(argStart) : '';
-  const label = `${rawName.replace(/_/g, ' ')}${args}`;
-  return {kind, label};
-}
-
-/** `r:uuid` / `<<c:date>>` → `{{random uuid}}` / `{{current date}}`. */
+/** Plain `r:uuid` / `<<i:user>>` / already-display → `{{r:uuid}}` / `{{i:user}}`. */
 export function toDisplayRuntimeToken(value: string): string {
   const text = isLiteralTokenValue(value) ? unwrapLiteralToken(value) : value;
   const trimmed = text.trim();
   const already = displayTokenToPlain(trimmed);
   if (already) {
-    const spec = plainToDisplaySpec(already);
-    return spec ? `{{${spec.kind} ${spec.label}}}` : trimmed;
+    return `{{${already}}}`;
   }
-  const fromAngle = angleToPlain(trimmed);
-  const plain = fromAngle ??
-      (WHOLE_PLAIN_RUNTIME_RE.test(trimmed) ? trimmed : null);
-  if (!plain) {
-    return trimmed;
+  const fromRcAngle = angleToPlain(trimmed);
+  if (fromRcAngle && stringContainsRuntimeToken(fromRcAngle)) {
+    return `{{${fromRcAngle}}}`;
   }
-  const spec = plainToDisplaySpec(plain);
-  return spec ? `{{${spec.kind} ${spec.label}}}` : trimmed;
+  if (WHOLE_PLAIN_RUNTIME_RE.test(trimmed) && stringContainsRuntimeToken(trimmed)) {
+    return `{{${trimmed}}}`;
+  }
+  const ieAngle = WHOLE_ANGLE_IE_RE.exec(trimmed);
+  if (ieAngle) {
+    return `{{${ieAngle[1]}}}`;
+  }
+  if (new RegExp(`^(?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}$`).test(trimmed)) {
+    return `{{${trimmed}}}`;
+  }
+  return trimmed;
 }
 
 /** @deprecated Use toDisplayRuntimeToken */
@@ -227,14 +321,23 @@ const PLAIN_RUNTIME_GLOBAL_RE = new RegExp(
 );
 
 /**
- * Rewrite every known r:/c: token in free text to `{{random …}}` / `{{current …}}`
- * (plain, `<<…>>`, or already-display forms).
+ * Rewrite r:/c: tokens in free text to `{{r:…}}` / `{{c:…}}`
+ * (plain, `<<…>>`, legacy long-form, or already-display). Does **not** rewrite
+ * i:/e: (preview keeps those as resolved values).
  */
 export function rewriteRuntimeTokensInText(text: string): string {
   let out = String(text ?? '');
-  out = out.replace(DISPLAY_RUNTIME_GLOBAL_RE, (match) => {
+  out = out.replace(LEGACY_DISPLAY_RUNTIME_GLOBAL_RE, (match) => {
     const plain = displayTokenToPlain(match);
-    return plain ? toDisplayRuntimeToken(plain) : match;
+    return plain && (plain.startsWith('r:') || plain.startsWith('c:')) ?
+        toDisplayRuntimeToken(plain) :
+        match;
+  });
+  out = out.replace(DISPLAY_PREFIXED_GLOBAL_RE, (match) => {
+    const plain = displayTokenToPlain(match);
+    return plain && (plain.startsWith('r:') || plain.startsWith('c:')) ?
+        toDisplayRuntimeToken(plain) :
+        match;
   });
   out = out.replace(ANGLE_RUNTIME_GLOBAL_RE, (_match, plain: string) => {
     if (!stringContainsRuntimeToken(plain)) {
@@ -242,8 +345,12 @@ export function rewriteRuntimeTokensInText(text: string): string {
     }
     return toDisplayRuntimeToken(plain);
   });
-  out = out.replace(PLAIN_RUNTIME_GLOBAL_RE, (match, plain: string) => {
+  out = out.replace(PLAIN_RUNTIME_GLOBAL_RE, (match, plain: string, offset: number) => {
     if (!stringContainsRuntimeToken(plain)) {
+      return match;
+    }
+    // Do not rematch `r:…` / `c:…` already inside `{{r:…}}` / `{{c:…}}`.
+    if (offset >= 2 && out.slice(offset - 2, offset) === '{{') {
       return match;
     }
     return toDisplayRuntimeToken(plain);
@@ -252,14 +359,42 @@ export function rewriteRuntimeTokensInText(text: string): string {
 }
 
 /**
- * Convert body-editor display tokens to resolvable `<<r:…>>` / `<<c:…>>`
+ * Rewrite i:/e:/r:/c: tokens to uniform `{{prefix:…}}` for the edit buffer.
+ */
+export function rewriteAllTokensToDisplayText(text: string): string {
+  let out = rewriteRuntimeTokensInText(text);
+  out = out.replace(DISPLAY_PREFIXED_GLOBAL_RE, (match) => {
+    const plain = displayTokenToPlain(match);
+    return plain ? toDisplayRuntimeToken(plain) : match;
+  });
+  out = out.replace(ANGLE_IE_GLOBAL_RE, (_match, plain: string) => {
+    return toDisplayRuntimeToken(plain);
+  });
+  out = out.replace(PLAIN_IE_GLOBAL_RE, (match, plain: string, offset: number) => {
+    // Do not rematch `i:…` / `e:…` already inside `{{i:…}}` / `{{e:…}}`.
+    if (offset >= 2 && out.slice(offset - 2, offset) === '{{') {
+      return match;
+    }
+    return toDisplayRuntimeToken(plain);
+  });
+  return out;
+}
+
+/**
+ * Convert body-editor display tokens to resolvable `<<…>>`
  * so Send / runner replaceAllRefs can expand them.
  */
 export function displayRuntimeTokensToResolvableText(text: string): string {
-  return String(text ?? '').replace(DISPLAY_RUNTIME_GLOBAL_RE, (match) => {
+  let out = String(text ?? '');
+  out = out.replace(LEGACY_DISPLAY_RUNTIME_GLOBAL_RE, (match) => {
     const plain = displayTokenToPlain(match);
     return plain ? `<<${plain}>>` : match;
   });
+  out = out.replace(DISPLAY_PREFIXED_GLOBAL_RE, (match) => {
+    const plain = displayTokenToPlain(match);
+    return plain ? `<<${plain}>>` : match;
+  });
+  return out;
 }
 
 /**
@@ -315,7 +450,8 @@ export function projectBodyKeepingRuntimeTokens(
 
 /**
  * Rewrite whole-value r:/c: leaves to display text for XML / urlencoded / text
- * (`{{random uuid}}`). Quotes are a JSON concern only.
+ * (`{{r:uuid}}`). Quotes are a JSON concern only. Does **not** rewrite i:/e:
+ * (preview keeps those resolved).
  */
 export function rewriteRuntimeLeavesToDisplayText(value: unknown): unknown {
   if (typeof value === 'string') {
@@ -326,8 +462,10 @@ export function rewriteRuntimeLeavesToDisplayText(value: unknown): unknown {
     if (isLiteralTokenValue(value)) {
       return rewriteRuntimeTokensInText(unwrapLiteralToken(value));
     }
-    if (stringContainsRuntimeToken(value) || DISPLAY_RUNTIME_GLOBAL_RE.test(value)) {
-      DISPLAY_RUNTIME_GLOBAL_RE.lastIndex = 0;
+    if (stringContainsRuntimeToken(value) || DISPLAY_PREFIXED_GLOBAL_RE.test(value) ||
+        LEGACY_DISPLAY_RUNTIME_GLOBAL_RE.test(value)) {
+      DISPLAY_PREFIXED_GLOBAL_RE.lastIndex = 0;
+      LEGACY_DISPLAY_RUNTIME_GLOBAL_RE.lastIndex = 0;
       return rewriteRuntimeTokensInText(value);
     }
     return value;
@@ -346,6 +484,35 @@ export function rewriteRuntimeLeavesToDisplayText(value: unknown): unknown {
   return value;
 }
 
+/**
+ * Edit-buffer projection: every i:/e:/r:/c: leaf becomes `{{prefix:…}}`.
+ */
+export function rewriteAllLeavesToDisplayText(value: unknown): unknown {
+  if (typeof value === 'string') {
+    if (isLiteralTokenValue(value)) {
+      return rewriteAllTokensToDisplayText(unwrapLiteralToken(value));
+    }
+    const trimmed = value.trim();
+    const converted = toDisplayRuntimeToken(trimmed);
+    if (converted !== trimmed || displayTokenToPlain(trimmed)) {
+      return converted;
+    }
+    return rewriteAllTokensToDisplayText(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => rewriteAllLeavesToDisplayText(item));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+          k,
+          rewriteAllLeavesToDisplayText(v),
+        ]),
+    );
+  }
+  return value;
+}
+
 /** @deprecated Use rewriteRuntimeLeavesToDisplayText */
 export const rewriteRuntimeLeavesToAngleText = rewriteRuntimeLeavesToDisplayText;
 
@@ -357,7 +524,10 @@ export const rewriteRuntimeLeavesToAngleText = rewriteRuntimeLeavesToDisplayText
 export function reviveDisplayRuntimeTokensInValue(value: unknown): unknown {
   if (typeof value === 'string') {
     const trimmed = value.trim();
-    if (WHOLE_DISPLAY_RUNTIME_RE.test(trimmed) || WHOLE_ANGLE_RUNTIME_RE.test(trimmed)) {
+    if (WHOLE_DISPLAY_PREFIXED_RE.test(trimmed) ||
+        WHOLE_LEGACY_DISPLAY_RUNTIME_RE.test(trimmed) ||
+        WHOLE_ANGLE_RUNTIME_RE.test(trimmed) ||
+        WHOLE_ANGLE_IE_RE.test(trimmed)) {
       const fromDisplay = displayTokenToPlain(trimmed);
       if (fromDisplay) {
         return fromDisplay;
@@ -404,16 +574,18 @@ export function unescapeAngleRuntimeTokensInXml(xml: string): string {
 }
 
 /**
- * URLSearchParams percent-encodes `{{random uuid}}`. Restore known display
- * tokens so the urlencoded editor keeps readable `{{…}}` forms.
+ * URLSearchParams percent-encodes `{{r:uuid}}` (and legacy `{{random uuid}}`).
+ * Restore known display tokens so the urlencoded editor keeps readable `{{…}}`.
  */
 export function restoreAngleRuntimeTokensInUrlEncoded(text: string): string {
+  // URLSearchParams encodes `{{` / `}}` / `:` as %7B%7B / %7D%7D / %3A.
   return String(text ?? '').replace(
-      /%7B%7B(?:random|current)(?:[A-Za-z0-9_\-().+\s]|%[0-9A-Fa-f]{2})*%7D%7D/gi,
+      /%7B%7B(?:(?:random|current)(?:[A-Za-z0-9_\-().+\s]|%[0-9A-Fa-f]{2})*|[ierce](?::|%3A)(?:[A-Za-z0-9_\-().+,]|%[0-9A-Fa-f]{2})*)%7D%7D/gi,
       (match) => {
         try {
           const decoded = decodeURIComponent(match.replace(/\+/g, '%20'));
-          return displayTokenToPlain(decoded) ? decoded : match;
+          const plain = displayTokenToPlain(decoded);
+          return plain ? toDisplayRuntimeToken(plain) : match;
         } catch {
           return match;
         }
@@ -437,15 +609,72 @@ export function isXmlWithRuntimeTokensValid(
   }
 }
 
-function jsonFormForRuntimePlain(plain: string): string {
+function plainTokenFromLeaf(value: string): string|null {
+  const trimmed = value.trim();
+  const fromDisplay = displayTokenToPlain(trimmed);
+  if (fromDisplay) {
+    return fromDisplay;
+  }
+  const fromRcAngle = angleToPlain(trimmed);
+  if (fromRcAngle) {
+    return fromRcAngle;
+  }
+  if (isWholeBareRuntimeToken(trimmed)) {
+    return trimmed;
+  }
+  const ie = new RegExp(
+      `^(?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}$`,
+      'i',
+  ).exec(trimmed);
+  if (ie) {
+    return trimmed;
+  }
+  const ieAngle = new RegExp(
+      `^<<\\s*((?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE})\\s*>>$`,
+      'i',
+  ).exec(trimmed);
+  return ieAngle ? ieAngle[1] : null;
+}
+
+/**
+ * Prefer typeof of the resolved leaf (what Send uses) for i:/e: quoting;
+ * fall back to inputs/env context; default string.
+ */
+function tokenEmitsJsonStringForLeaf(
+    plain: string,
+    resolvedLeaf: unknown,
+    ctx?: RuntimeTokenValueContext,
+): boolean {
+  if (/^[ie]:/i.test(plain) && resolvedLeaf !== undefined) {
+    if (resolvedLeaf === null ||
+        typeof resolvedLeaf === 'number' ||
+        typeof resolvedLeaf === 'boolean') {
+      return false;
+    }
+    return true;
+  }
+  return runtimeTokenEmitsJsonString(plain, ctx);
+}
+
+function jsonFormForRuntimePlain(
+    plain: string,
+    ctx?: RuntimeTokenValueContext,
+    resolvedLeaf?: unknown,
+): string {
   const display = toDisplayRuntimeToken(plain);
-  if (runtimeTokenEmitsJsonString(plain)) {
+  if (tokenEmitsJsonStringForLeaf(plain, resolvedLeaf, ctx)) {
     return JSON.stringify(display);
   }
   return display;
 }
 
-function writeJsonWithRuntimeTokens(value: unknown, space: number, level: number): string {
+function writeJsonWithRuntimeTokens(
+    value: unknown,
+    space: number,
+    level: number,
+    ctx?: RuntimeTokenValueContext,
+    resolvedHint?: unknown,
+): string {
   if (value === null) {
     return 'null';
   }
@@ -456,11 +685,9 @@ function writeJsonWithRuntimeTokens(value: unknown, space: number, level: number
     return Number.isFinite(value) ? String(value) : 'null';
   }
   if (typeof value === 'string') {
-    if (isWholeBareRuntimeToken(value) || angleToPlain(value.trim()) ||
-        displayTokenToPlain(value)) {
-      const plain = displayTokenToPlain(value) ??
-          angleToPlain(value.trim()) ?? value.trim();
-      return jsonFormForRuntimePlain(plain);
+    const plain = plainTokenFromLeaf(value);
+    if (plain && (stringContainsRuntimeToken(plain) || /^[ie]:/i.test(plain))) {
+      return jsonFormForRuntimePlain(plain, ctx, resolvedHint);
     }
     if (isWholeLiteralRuntimeToken(value)) {
       return JSON.stringify(toDisplayRuntimeToken(value));
@@ -471,21 +698,34 @@ function writeJsonWithRuntimeTokens(value: unknown, space: number, level: number
     return JSON.stringify(rewriteRuntimeTokensInText(value));
   }
   if (Array.isArray(value)) {
+    const hintArr = Array.isArray(resolvedHint) ? resolvedHint : undefined;
     if (value.length === 0) {
       return '[]';
     }
     if (space <= 0) {
-      return `[${value.map((item) => writeJsonWithRuntimeTokens(item, 0, 0)).join(',')}]`;
+      return `[${
+        value
+            .map((item, i) => writeJsonWithRuntimeTokens(
+                item, 0, 0, ctx, hintArr ? hintArr[i] : undefined))
+            .join(',')
+      }]`;
     }
     const innerIndent = ' '.repeat(space * (level + 1));
     const outerIndent = ' '.repeat(space * level);
     const parts = value.map(
-        (item) => `${innerIndent}${writeJsonWithRuntimeTokens(item, space, level + 1)}`,
+        (item, i) => `${innerIndent}${
+          writeJsonWithRuntimeTokens(
+              item, space, level + 1, ctx, hintArr ? hintArr[i] : undefined)}`,
     );
     return `[\n${parts.join(',\n')}\n${outerIndent}]`;
   }
   if (value && typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>);
+    const hintObj =
+        resolvedHint && typeof resolvedHint === 'object' &&
+            !Array.isArray(resolvedHint) ?
+          resolvedHint as Record<string, unknown> :
+          undefined;
     if (entries.length === 0) {
       return '{}';
     }
@@ -493,7 +733,9 @@ function writeJsonWithRuntimeTokens(value: unknown, space: number, level: number
       return `{${
         entries
             .map(([k, v]) =>
-              `${JSON.stringify(k)}:${writeJsonWithRuntimeTokens(v, 0, 0)}`)
+              `${JSON.stringify(k)}:${
+                writeJsonWithRuntimeTokens(
+                    v, 0, 0, ctx, hintObj ? hintObj[k] : undefined)}`)
             .join(',')
       }}`;
     }
@@ -502,7 +744,8 @@ function writeJsonWithRuntimeTokens(value: unknown, space: number, level: number
     const parts = entries.map(
         ([k, v]) =>
           `${innerIndent}${JSON.stringify(k)}: ${
-            writeJsonWithRuntimeTokens(v, space, level + 1)}`,
+            writeJsonWithRuntimeTokens(
+                v, space, level + 1, ctx, hintObj ? hintObj[k] : undefined)}`,
     );
     return `{\n${parts.join(',\n')}\n${outerIndent}}`;
   }
@@ -510,14 +753,16 @@ function writeJsonWithRuntimeTokens(value: unknown, space: number, level: number
 }
 
 /**
- * Pretty/compact JSON: string tokens as `"{{random uuid}}"`, number/bool as
- * bare `{{random int}}` / `{{random bool}}`.
+ * Pretty/compact JSON: string tokens as `"{{r:uuid}}"`, number/bool as
+ * bare `{{r:int}}` / `{{i:yy}}` (from resolved leaf type and/or value context).
  */
 export function stringifyJsonWithRuntimeTokens(
     value: unknown,
     pretty: boolean = true,
+    ctx?: RuntimeTokenValueContext,
+    resolvedHint?: unknown,
 ): string {
-  return writeJsonWithRuntimeTokens(value, pretty ? 2 : 0, 0);
+  return writeJsonWithRuntimeTokens(value, pretty ? 2 : 0, 0, ctx, resolvedHint);
 }
 
 /**
@@ -554,7 +799,8 @@ export function mapUnquotedDisplayRuntimeTokens(
     }
     if (ch === '{' && text.startsWith('{{', i)) {
       const slice = text.slice(i);
-      const m = DISPLAY_RUNTIME_AT_RE.exec(slice);
+      const m = DISPLAY_PREFIXED_AT_RE.exec(slice) ||
+          LEGACY_DISPLAY_RUNTIME_AT_RE.exec(slice);
       if (m) {
         const plain = displayTokenToPlain(m[0]);
         if (plain) {
@@ -628,27 +874,31 @@ export function isJsonWithRuntimeTokensValid(text: string): boolean {
 }
 
 /**
- * Find highlight ranges for `{{random …}}` / `{{current …}}` in body text.
+ * Find highlight ranges for `{{r:…}}` / `{{c:…}}` / `{{i:…}}` / `{{e:…}}`
+ * (and legacy `{{random …}}` / `{{current …}}`) in body text.
  */
 export function findDisplayRuntimeTokenRanges(text: string): TextPositionRange[] {
   if (!text) {
     return [];
   }
   const ranges: TextPositionRange[] = [];
-  const re = new RegExp(DISPLAY_RUNTIME_GLOBAL_RE.source, 'gi');
-  let match: RegExpExecArray|null;
-  while ((match = re.exec(text)) !== null) {
-    if (!displayTokenToPlain(match[0])) {
-      continue;
+  const patterns = [DISPLAY_PREFIXED_GLOBAL_RE, LEGACY_DISPLAY_RUNTIME_GLOBAL_RE];
+  for (const base of patterns) {
+    const re = new RegExp(base.source, 'gi');
+    let match: RegExpExecArray|null;
+    while ((match = re.exec(text)) !== null) {
+      if (!displayTokenToPlain(match[0])) {
+        continue;
+      }
+      const start = indexToPosition(text, match.index);
+      const end = indexToPosition(text, match.index + match[0].length);
+      ranges.push({
+        startLineNumber: start.line,
+        startColumn: start.column,
+        endLineNumber: end.line,
+        endColumn: end.column,
+      });
     }
-    const start = indexToPosition(text, match.index);
-    const end = indexToPosition(text, match.index + match[0].length);
-    ranges.push({
-      startLineNumber: start.line,
-      startColumn: start.column,
-      endLineNumber: end.line,
-      endColumn: end.column,
-    });
   }
   return ranges;
 }
@@ -657,9 +907,10 @@ export function findDisplayRuntimeTokenRanges(text: string): TextPositionRange[]
 export const findAngleRuntimeTokenRanges = findDisplayRuntimeTokenRanges;
 
 /**
- * Tester UI string for a single field: prefer YAML `source` r:/c: markers as
- * `{{random …}}` / `{{current …}}`; otherwise show `resolved` as-is.
- * Quoted YAML literals (`__MMT_LITERAL__:…`) stay literal (not converted).
+ * Tester UI string for a single field (preview):
+ * - Prefer YAML `source` r:/c: markers as `{{r:…}}` / `{{c:…}}`
+ * - Otherwise show `resolved` as-is (so idle preview shows resolved input/env)
+ * Quoted YAML literals stay literal.
  */
 export function displayRuntimeString(
     resolved: unknown,
@@ -669,6 +920,7 @@ export function displayRuntimeString(
     if (isLiteralTokenValue(source)) {
       return `"${unwrapLiteralToken(source)}"`;
     }
+    // Preview keeps r:/c: as display tokens; i:/e: use resolved values.
     if (stringContainsRuntimeToken(source) || displayTokenToPlain(source) ||
         angleToPlain(source.trim())) {
       return rewriteRuntimeTokensInText(source);
@@ -688,6 +940,91 @@ export function displayRuntimeString(
   } catch {
     return String(resolved);
   }
+}
+
+/**
+ * Full YAML/source template projected to edit-buffer display tokens
+ * (`{{i:…}}` / `{{e:…}}` / `{{r:…}}` / `{{c:…}}`).
+ */
+export function sourceToDisplayTokenTemplate(source: unknown): string {
+  if (source == null) {
+    return '';
+  }
+  if (typeof source === 'string') {
+    if (isLiteralTokenValue(source)) {
+      return `"${unwrapLiteralToken(source)}"`;
+    }
+    return rewriteAllTokensToDisplayText(source);
+  }
+  try {
+    return rewriteAllTokensToDisplayText(JSON.stringify(source));
+  } catch {
+    return rewriteAllTokensToDisplayText(String(source));
+  }
+}
+
+/**
+ * Map a single-field edit from preview text onto the token template.
+ * Falls back to the template when positions cannot be transferred (typical
+ * when resolved lengths differ from `{{i:…}}` / `{{e:…}}`).
+ */
+export function enterEditStringBuffer(
+    preview: string,
+    edited: string,
+    yamlSource: unknown,
+): string {
+  const template = sourceToDisplayTokenTemplate(yamlSource);
+  if (edited === preview) {
+    return template;
+  }
+  // Already showing the template — keep the user's edit.
+  if (preview === template) {
+    return edited;
+  }
+  // Large replace / paste into preview: keep edited text, normalize tokens.
+  if (Math.abs(edited.length - preview.length) > 1) {
+    return rewriteAllTokensToDisplayText(edited);
+  }
+  // First keystroke: enter edit mode on the template (key consumed as switch).
+  return template;
+}
+
+/**
+ * Enter edit mode for a string record (headers / query / cookies / …).
+ * Untouched keys become display-token templates from YAML `source`.
+ */
+export function enterEditStringRecord(
+    preview: Record<string, string>,
+    edited: Record<string, string>,
+    yamlSource?: Record<string, unknown>|null,
+): Record<string, string> {
+  const src = yamlSource && typeof yamlSource === 'object' ? yamlSource : {};
+  const out: Record<string, string> = {};
+  const keys = new Set([...Object.keys(edited), ...Object.keys(preview)]);
+  for (const key of keys) {
+    const next = edited[key];
+    if (next === undefined) {
+      continue;
+    }
+    const prev = preview[key] ?? '';
+    const srcVal = Object.prototype.hasOwnProperty.call(src, key) ?
+      src[key] :
+      undefined;
+    if (srcVal === undefined) {
+      out[key] = next;
+      continue;
+    }
+    out[key] = enterEditStringBuffer(prev, next, srcVal);
+  }
+  return out;
+}
+
+/**
+ * Pack a tester edit-buffer value back to YAML token forms
+ * (`{{i:x}}` → `<<i:x>>` / bare, etc.).
+ */
+export function valueForYamlSave(uiValue: unknown): unknown {
+  return reviveDisplayRuntimeTokensInValue(uiValue);
 }
 
 /**

@@ -4,16 +4,12 @@ import { registerYamlAutocomplete } from './registerYamlAutocomplete';
 
 const VALIDATION_DEBOUNCE_MS = 500;
 
-/** Skip ephemeral DiffEditor models — they must not steal the editor's debounce. */
+/** Skip ephemeral YAML models — they must not steal the editor's debounce. */
 function shouldValidateYamlModel(model: any): boolean {
     if (!model || typeof model.getLanguageId !== 'function') {
         return false;
     }
     if (model.getLanguageId() !== 'yaml') {
-        return false;
-    }
-    const uri = model.uri?.toString?.() ?? '';
-    if (uri.includes('inmemory://mmt/unsaved-diff/')) {
         return false;
     }
     return true;

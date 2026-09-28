@@ -510,6 +510,10 @@
   gap: 8px;
 }
 
+.unsaved-changes-popup--simple {
+  width: 320px;
+}
+
 .unsaved-changes-popup-header {
   display: flex;
   align-items: center;
@@ -566,6 +570,10 @@
   display: flex;
   gap: 4px;
   margin-left: auto;
+}
+
+.unsaved-changes-popup--simple .unsaved-changes-popup-actions {
+  margin-left: 0;
 }
 
 .unsaved-changes-popup-yaml {

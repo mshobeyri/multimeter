@@ -120,6 +120,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   );
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
   const currentInputsRef = useRef<JSONRecord>({});
+  const [envValues, setEnvValues] = useState<JSONRecord>({});
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
   const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
   const [outputs, setOutputs] = useState<JSONRecord>({});
@@ -207,6 +208,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   ): Promise<Request> => {
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const envParameters = await loadEnvParameters();
+    setEnvValues(envParameters);
     return resolveApiRequest(
       api,
       resolvedInputs,
@@ -290,6 +292,17 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       // Examples / doc-only YAML edits leave the live request alone.
       if (isDocOnlyRefresh(scopes)) {
         prevApiRef.current = api;
+        return;
+      }
+
+      // Body-only YAML edits (e.g. live token editor): re-resolve body without
+      // resetting inputs / example selection.
+      if (scopes.length === 1 && scopes[0] === "body") {
+        prevApiRef.current = api;
+        prepareRequestData(currentInputsRef.current, {
+          respectTouched: false,
+          scopes: ["body"],
+        });
         return;
       }
 
@@ -614,6 +627,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     setSelectedExampleIdx,
     currentInputs,
     setCurrentInputs,
+    envValues,
     autoFormatBody,
     setAutoFormatBody,
     outputs,

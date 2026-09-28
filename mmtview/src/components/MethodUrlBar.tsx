@@ -35,6 +35,8 @@ type MethodUrlBarProps = {
   query: Record<string, string>;
   onUrlChange: (url: string) => void;
   onQueryChange: (query: Record<string, string>) => void;
+  /** Soften styling while showing resolved preview (YAML still has tokens). */
+  previewMuted?: boolean;
 };
 
 const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
@@ -44,6 +46,7 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   query,
   onUrlChange,
   onQueryChange,
+  previewMuted = false,
 }) => {
   const urlValue = url + buildQueryString(query);
   const [inputValue, setInputValue] = useState(urlValue);
@@ -89,7 +92,7 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
       <div className="method-url-bar-url-wrap">
         <input
           type="text"
-          className="method-url-bar-url"
+          className={`method-url-bar-url${previewMuted ? " is-token-preview" : ""}`}
           value={inputValue}
           onChange={handleChange}
           spellCheck={false}

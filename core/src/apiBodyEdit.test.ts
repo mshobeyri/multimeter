@@ -1,5 +1,6 @@
 import {
   applyRequestBodyEdit,
+  bodyEditTokenTemplate,
   bodyForSend,
   bodyForYamlSave,
   displayRequestBody,
@@ -22,7 +23,7 @@ describe('displayRequestBody', () => {
     );
   });
 
-  it('projects r:/c: markers as {{random …}} when tokenSource is set', () => {
+  it('projects r:/c: markers as {{r:…}} when tokenSource is set', () => {
     const source = {id: 'r:uuid', n: 'r:int', label: 'hello'};
     const resolved = {
       id: '11111111-1111-1111-1111-111111111111',
@@ -30,8 +31,8 @@ describe('displayRequestBody', () => {
       label: 'hello',
     };
     const shown = displayRequestBody(resolved, 'json', {tokenSource: source});
-    expect(shown).toContain('"id": "{{random uuid}}"');
-    expect(shown).toContain('"n": {{random int}}');
+    expect(shown).toContain('"id": "{{r:uuid}}"');
+    expect(shown).toContain('"n": {{r:int}}');
     expect(shown).toContain('"label": "hello"');
     expect(shown).not.toContain('11111111');
   });
@@ -118,6 +119,58 @@ describe('applyRequestBodyEdit', () => {
     }
     expect(result.body).toBe('{"message":');
   });
+
+  it('first keystroke with i:/e: tokens swaps to edit template', () => {
+    const source = {user: 'i:name', token: '<<e:auth>>'};
+    const resolved = {user: 'alice', token: 'secret'};
+    const preview = displayRequestBody(resolved, 'json', {tokenSource: source});
+    const template = bodyEditTokenTemplate(source, 'json');
+    expect(preview).toContain('alice');
+    expect(template).toContain('{{i:name}}');
+    expect(template).toContain('{{e:auth}}');
+
+    const result = applyRequestBodyEdit({
+      value: preview.slice(0, -1), // one-char delete from preview
+      currentBody: resolved,
+      format: 'json',
+      baseline: null,
+      bodyAlreadyTouched: false,
+      tokenSource: source,
+    });
+    expect(result.kind).toBe('stayTemp');
+    if (result.kind !== 'stayTemp') {
+      return;
+    }
+    expect(result.body).toBe(template);
+    expect(result.baseline?.display).toBe(template);
+  });
+
+  it('edit template quotes i: from input value types', () => {
+    const source = {
+      name: 'i:xxx',
+      ssd: 'i:yy',
+      message: 'Hello from mmt!',
+    };
+    const template = bodyEditTokenTemplate(source, 'json', {
+      inputs: {xxx: 'ss', yy: 10},
+    });
+    expect(template).toContain('"name": "{{i:xxx}}"');
+    expect(template).toContain('"ssd": {{i:yy}}');
+    expect(template).not.toContain('"ssd": "{{i:yy}}"');
+  });
+
+  it('edit template quotes i: from resolved leaf types without inputs', () => {
+    const source = {
+      name: 'i:xxx',
+      ssd: 'i:yy',
+      message: 'Hello from mmt!',
+    };
+    const resolved = {name: 'ss', ssd: 10, message: 'Hello from mmt!'};
+    const template = bodyEditTokenTemplate(source, 'json', undefined, resolved);
+    expect(template).toContain('"name": "{{i:xxx}}"');
+    expect(template).toContain('"ssd": {{i:yy}}');
+    expect(template).not.toContain('"ssd": "{{i:yy}}"');
+  });
 });
 
 describe('bodyForSend', () => {
@@ -151,7 +204,7 @@ describe('bodyForYamlSave + resolveRequestFormat (chart flow)', () => {
   it('packs display runtime tokens back to bare scalars', () => {
     const yamlBody = {id: 'r:uuid', n: 1, label: 'x'};
     const ui =
-        '{\n  "id": "{{random uuid}}",\n  "n": {{random int}},\n  "label": "{{current date}}"\n}';
+        '{\n  "id": "{{r:uuid}}",\n  "n": {{r:int}},\n  "label": "{{c:date}}"\n}';
     expect(bodyForYamlSave(yamlBody, ui, 'json')).toEqual({
       id: 'r:uuid',
       n: 'r:int',
@@ -238,11 +291,11 @@ describe('headersTokenSource / queryTokenSource', () => {
 describe('requestForSend', () => {
   it('converts {{…}} in url/headers/query/cookies to <<r:/c:…>>', () => {
     const sent = requestForSend({
-      url: 'https://example.com/{{random uuid}}',
-      headers: {Authorization: 'Bearer {{random uuid}}'},
-      query: {id: '{{current epoch}}'},
-      cookies: {sid: '{{random uuid}}'},
-      body: '{"x":"{{random uuid}}"}',
+      url: 'https://example.com/{{r:uuid}}',
+      headers: {Authorization: 'Bearer {{r:uuid}}'},
+      query: {id: '{{c:epoch}}'},
+      cookies: {sid: '{{r:uuid}}'},
+      body: '{"x":"{{r:uuid}}"}',
     }, 'json');
     expect(sent.url).toBe('https://example.com/<<r:uuid>>');
     expect(sent.headers?.Authorization).toBe('Bearer <<r:uuid>>');

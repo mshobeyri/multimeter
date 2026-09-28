@@ -107,6 +107,10 @@
   width: 100%;
 }
 
+.method-url-bar-url-wrap > input.method-url-bar-url.is-token-preview {
+  color: var(--vscode-descriptionForeground, #858585);
+}
+
 .method-url-bar-url::-webkit-scrollbar {
   display: none;
 }
@@ -229,6 +233,38 @@
   gap: 6px 12px;
   flex-shrink: 0;
   padding: 2px 6px 8px;
+}
+
+.apitest-body-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  flex-shrink: 0;
+  padding: 2px 6px 8px;
+}
+
+.apitest-body-toolbar-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.apitest-body-toolbar-main .apitest-body-format-bar {
+  padding: 0;
+}
+
+.apitest-body-mode-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 12px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .apitest-body-format-raw-select {

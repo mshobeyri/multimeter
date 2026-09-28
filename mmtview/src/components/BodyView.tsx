@@ -39,10 +39,25 @@ function editorLanguageForBody(format: string): string {
     return format;
 }
 
+export type BodyViewCursor = {
+    lineNumber: number;
+    column: number;
+};
+
 export type BodyViewProps = {
     value: string;
     format: string;
     onChange?: (value: string) => void;
+    /**
+     * When set, the first user keystroke/paste opens token edit elsewhere
+     * instead of mutating this editor (keeps Ctrl+Z on the preview buffer).
+     * Receives the caret position from the preview editor.
+     */
+    onStartEdit?: (cursor?: BodyViewCursor) => void;
+    /** Fired when the Monaco editor loses focus. */
+    onBlur?: () => void;
+    /** Restore caret after mount (e.g. when swapping preview → edit editor). */
+    initialCursor?: BodyViewCursor;
     mode?: mode;
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
     refreshKey?: number;
@@ -53,6 +68,9 @@ const BodyView: React.FC<BodyViewProps> = ({
     value,
     format,
     onChange,
+    onStartEdit,
+    onBlur,
+    initialCursor,
     mode = "appliable",
     onInspectPosition,
     refreshKey,
@@ -124,6 +142,40 @@ const BodyView: React.FC<BodyViewProps> = ({
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editorRef.current, onInspectPosition, computePathAtCursor]);
+
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor || !onBlur || typeof editor.onDidBlurEditorWidget !== "function") {
+            return;
+        }
+        const disposable = editor.onDidBlurEditorWidget(() => {
+            onBlur();
+        });
+        return () => {
+            disposable?.dispose?.();
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editorRef.current, editorReady, onBlur]);
+
+    // Restore caret + focus when this editor replaces another (preview → edit).
+    useEffect(() => {
+        if (!editorReady || !initialCursor) {
+            return;
+        }
+        const editor = editorRef.current;
+        if (!editor) {
+            return;
+        }
+        const model = editor.getModel?.();
+        const lineCount = model?.getLineCount?.() ?? 1;
+        const lineNumber = Math.min(Math.max(1, initialCursor.lineNumber), lineCount);
+        const maxColumn = model?.getLineMaxColumn?.(lineNumber) ?? 1;
+        const column = Math.min(Math.max(1, initialCursor.column), maxColumn);
+        const pos = { lineNumber, column };
+        editor.setPosition?.(pos);
+        editor.revealPositionInCenterIfOutsideViewport?.(pos);
+        editor.focus?.();
+    }, [editorReady, initialCursor]);
 
     // Keep localValue in sync with parent value (when parent changes).
     // Ignore EOL-only differences: live mode normalizes CRLF→LF for YAML, and
@@ -247,6 +299,20 @@ const BodyView: React.FC<BodyViewProps> = ({
             <TextEditor
                 content={localValue}
                 setContent={(nextValue: string) => {
+                    if (onStartEdit) {
+                        const pos = editorRef.current?.getPosition?.();
+                        // Keystroke already advanced the caret; we discard it and
+                        // open tokens mode, so restore one column earlier.
+                        onStartEdit(
+                            pos
+                                ? {
+                                    lineNumber: pos.lineNumber,
+                                    column: Math.max(1, pos.column - 1),
+                                  }
+                                : undefined,
+                        );
+                        return;
+                    }
                     isUserEditingRef.current = true;
                     setLocalValue(nextValue);
                 }}
@@ -263,8 +329,11 @@ const BodyView: React.FC<BodyViewProps> = ({
                     <button
                         className="bodyview-btn-icon"
                         title="Beautify"
+                        // Keep Monaco focused so parent blur handlers don't exit edit.
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                             const beautified = beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue);
+                            isUserEditingRef.current = true;
                             setLocalValue(beautified);
                         }}
                     >
@@ -279,6 +348,7 @@ const BodyView: React.FC<BodyViewProps> = ({
                             color: applyChrome.onFill,
                             border: `1px solid ${applyChrome.border}`,
                         }}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                             if (onChange) {
                                 onChange(normalizeNewlines(localValue));

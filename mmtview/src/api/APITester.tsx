@@ -1,22 +1,28 @@
 import React, { useState, useContext, useEffect, useMemo, useRef, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
-import BodyView from "../components/BodyView";
+import BodyView, { type BodyViewCursor } from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
-  applyRequestBodyEdit,
+  bodyEditTokenTemplate,
+  bodyForYamlSave,
   displayRequestBody,
   displayRequestStringRecord,
   displayRuntimeString,
+  enterEditStringBuffer,
+  enterEditStringRecord,
   headersTokenSource,
   queryTokenSource,
-  type BodyTempBaseline,
+  valueForYamlSave,
 } from "mmt-core/apiBodyEdit";
+import { resolveApiRequest } from "mmt-core/resolveApiRequest";
+import { normalizeNewlines } from "mmt-core/textLines";
 import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
@@ -38,12 +44,17 @@ import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
 import ApiTestsEditor from "./ApiTestsEditor";
+import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
+import { FormatChip } from "../components/BodyFormatControls";
 import {
   accentChromeCssVars,
   accentChromeFor,
 } from "../shared/themeAccent";
 import { findMatchingExampleIndex } from "./apiExampleMatch";
 import { SELECT_EXAMPLE_EVENT } from "../text/exampleSelect";
+
+/** Body pane: resolved values vs editable {{…}} tokens. */
+type BodyTokenMode = "resolved" | "tokens";
 
 interface APITestProps {
   api: APIData;
@@ -97,6 +108,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     setSelectedExampleIdx,
     currentInputs,
     setCurrentInputs,
+    envValues,
     autoFormatBody,
     outputs,
     apiTestResults,
@@ -115,14 +127,20 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     isSending,
   } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath, initialExampleIndex });
 
+  const bodyValueContext = useMemo(
+    () => ({ inputs: currentInputs, env: envValues }),
+    [currentInputs, envValues],
+  );
+
+  const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>("resolved");
+
   useEffect(() => {
     onModificationChange?.(requestData, touchedFields);
   }, [requestData, touchedFields, onModificationChange]);
 
   useEffect(() => {
-    if (!onRequestReset) { return; }
-    // Full reset: restore baseline inputs from YAML/`api`, clear touches, rebuild request.
-    onRequestReset(() => {
+    onRequestReset?.(() => {
+      setBodyTokenMode("resolved");
       const baseInputs = selectedExampleIdx === -1
         ? (api.inputs || {})
         : (examples[selectedExampleIdx]?.inputs || {});
@@ -131,6 +149,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       prepareRequestData(nextInputs, { forceReset: true, scopes: ["all"] });
     });
   }, [onRequestReset, prepareRequestData, api, examples, selectedExampleIdx, setCurrentInputs]);
+
+  useEffect(() => {
+    setBodyTokenMode("resolved");
+  }, [mmtFilePath]);
 
   // Based on the displayed URL (not resolved inputs/env)
   const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined
@@ -160,16 +182,48 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     requestData?.headers,
     methodOrProtocolValue.startsWith("method:") ? methodOrProtocolKey : undefined,
   );
-  // Untouched structured YAML body → format projection for highlight.
-  // Once the user edits, requestData.body is raw text (temporary modified state);
-  // keep it as-is so mid-edit invalid JSON/XML is allowed and Send uses editor text.
-  // r:/c: markers from YAML are shown as {{random …}} / {{current …}} (not resolved values).
-  const requestBodySource = requestData?.body ?? api.body ?? "";
-  const requestBodyDisplay = displayRequestBody(
-    requestBodySource,
+  // Resolved preview for the idle BodyView. Token editing uses a separate
+  // BodyView instance so each buffer keeps its own Ctrl+Z stack.
+  const requestBodyDisplay = useMemo(() => {
+    if (!touchedFields.has("body")) {
+      return displayRequestBody(
+        requestData?.body ?? api.body ?? "",
+        resolvedRequestFormat,
+        { tokenSource: api.body, valueContext: bodyValueContext },
+      );
+    }
+    const override = requestData?.body;
+    const packed = typeof override === "string"
+      ? bodyForYamlSave(api.body, override, resolvedRequestFormat)
+      : override;
+    const tokenSource = packed != null && typeof packed !== "string"
+      ? packed
+      : api.body;
+    try {
+      const resolved = resolveApiRequest(
+        { ...api, body: packed ?? api.body } as typeof api,
+        currentInputs,
+        envValues,
+        { preserveStructuredBody: true },
+      );
+      return displayRequestBody(resolved.body, resolvedRequestFormat, {
+        tokenSource,
+        valueContext: bodyValueContext,
+      });
+    } catch {
+      return typeof override === "string"
+        ? override
+        : displayRequestBody(override ?? "", resolvedRequestFormat);
+    }
+  }, [
+    touchedFields,
+    requestData?.body,
+    api,
     resolvedRequestFormat,
-    touchedFields.has("body") ? undefined : { tokenSource: api.body },
-  );
+    currentInputs,
+    envValues,
+    bodyValueContext,
+  ]);
   const headerTokenSrc = useMemo(() => headersTokenSource(api), [api]);
   const queryTokenSrc = useMemo(() => queryTokenSource(api), [api]);
   const displayUrl = useMemo(
@@ -224,6 +278,45 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     [requestData?.grpc?.message, api.grpc?.message, touchedFields],
   );
 
+  const onUrlChange = useCallback((newUrl: string) => {
+    if (!touchedFields.has("url")) {
+      handleUrlChange(enterEditStringBuffer(displayUrl, newUrl, api.url));
+      return;
+    }
+    handleUrlChange(newUrl);
+  }, [touchedFields, displayUrl, api.url, handleUrlChange]);
+
+  const onQueryChange = useCallback((query: Record<string, string>) => {
+    if (!touchedFields.has("query") && !touchedFields.has("url")) {
+      handleQueryChange(enterEditStringRecord(displayQuery, query, queryTokenSrc));
+      return;
+    }
+    handleQueryChange(query);
+  }, [touchedFields, displayQuery, queryTokenSrc, handleQueryChange]);
+
+  const onHeadersChange = useCallback((headers: Record<string, string>) => {
+    if (!touchedFields.has("headers")) {
+      updateField("headers", enterEditStringRecord(displayHeaders, headers, headerTokenSrc));
+      return;
+    }
+    updateField("headers", headers);
+  }, [touchedFields, displayHeaders, headerTokenSrc, updateField]);
+
+  const onCookiesChange = useCallback((cookies: Record<string, string>) => {
+    if (!touchedFields.has("cookies")) {
+      updateField(
+        "cookies",
+        enterEditStringRecord(
+          displayCookies,
+          cookies,
+          api.cookies as Record<string, unknown> | undefined,
+        ),
+      );
+      return;
+    }
+    updateField("cookies", cookies);
+  }, [touchedFields, displayCookies, api.cookies, updateField]);
+
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
     if (saved === "raw" || saved === "pretty" || saved === "preview") {
@@ -275,24 +368,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     exampleIndex: selectedExampleIdx,
     manualInputs: currentInputs
   }), [currentInputs, selectedExampleIdx]);
-  const sendContextMenuItems = useMemo(() => [
-    {
-      label: "Run in Core",
-      icon: "codicon-play",
-      onClick: handleRunInCore,
-    },
-    ...(canRunCurl ? [{
-      label: "Run in Curl",
-      icon: "codicon-terminal",
-      onClick: () => {
-        window.vscode?.postMessage({
-          command: "runCurlCommand",
-          request: requestData,
-          inputs: runInputs
-        });
-      }
-    }] : [])
-  ], [canRunCurl, handleRunInCore, requestData, runInputs]);
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
@@ -381,31 +456,156 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     updateField("format", result.format);
   };
 
-  // Snapshot of projected display + body taken on first edit; exact revert exits temp mode.
-  const bodyTempBaselineRef = useRef<BodyTempBaseline | null>(null);
+  // Resolved preview vs token editor. Mode only leaves tokens via the chip (no blur exit).
+  const [bodyEditDraft, setBodyEditDraft] = useState("");
+  const [bodyEditSession, setBodyEditSession] = useState(0);
+  const [bodyEditCursor, setBodyEditCursor] = useState<BodyViewCursor | undefined>();
+  const resolvedBodyHintRef = useRef<unknown>(undefined);
+
+  // Same rule as Interface edit: structured object → YAML-encoded, string → plain.
+  const bodyEditYamlEncoded =
+    api.body != null &&
+    api.body !== "" &&
+    typeof api.body !== "string";
 
   useEffect(() => {
-    if (!touchedFields.has("body")) {
-      bodyTempBaselineRef.current = null;
+    const structured = requestData?.body ?? api.body;
+    if (structured != null && typeof structured !== "string") {
+      resolvedBodyHintRef.current = structured;
     }
-  }, [touchedFields]);
+  }, [requestData?.body, api.body]);
 
-  const handleRequestBodyChange = (value: string) => {
-    const result = applyRequestBodyEdit({
-      value,
-      currentBody: requestData?.body ?? api.body ?? "",
-      format: resolvedRequestFormat,
-      baseline: bodyTempBaselineRef.current,
-      bodyAlreadyTouched: touchedFields.has("body"),
-      tokenSource: api.body,
-    });
-    bodyTempBaselineRef.current = result.baseline;
-    if (result.kind === "exitTemp") {
-      restoreField("body", result.body);
+  const openBodyTokens = useCallback((cursor?: BodyViewCursor) => {
+    const tokenSource = api.body;
+    const resolvedHint = typeof requestData?.body === "string"
+      ? resolvedBodyHintRef.current
+      : (requestData?.body ?? resolvedBodyHintRef.current);
+    const template = bodyEditTokenTemplate(
+      tokenSource,
+      resolvedRequestFormat,
+      bodyValueContext,
+      resolvedHint,
+    );
+    setBodyEditCursor(cursor);
+    setBodyEditDraft(template);
+    setBodyEditSession((n) => n + 1);
+    setBodyTokenMode("tokens");
+  }, [
+    requestData?.body,
+    api.body,
+    resolvedRequestFormat,
+    bodyValueContext,
+  ]);
+
+  // Mirror Interface applyBodyEdit / setBodyYamlEncoded, then revive {{…}} → YAML tokens.
+  const writeBodyToYaml = useCallback((text: string, yamlEncoded: boolean) => {
+    const normalized = normalizeNewlines(text);
+    if (yamlEncoded) {
+      const packed = formattedBodyToYamlObject(resolvedRequestFormat, normalized);
+      if (packed === null || packed === undefined) {
+        return false;
+      }
+      onUpdateApi?.({ body: valueForYamlSave(packed) as APIData["body"] });
+      return true;
+    }
+    onUpdateApi?.({ body: valueForYamlSave(normalized) as APIData["body"] });
+    return true;
+  }, [onUpdateApi, resolvedRequestFormat]);
+
+  const handleBodyEditChange = useCallback((val: string) => {
+    setBodyEditDraft(val);
+    writeBodyToYaml(val, bodyEditYamlEncoded);
+  }, [bodyEditYamlEncoded, writeBodyToYaml]);
+
+  const handleBodyEditYamlEncoded = useCallback((enabled: boolean) => {
+    if (enabled === bodyEditYamlEncoded) {
       return;
     }
-    updateField("body", result.body);
-  };
+    writeBodyToYaml(bodyEditDraft, enabled);
+  }, [bodyEditDraft, bodyEditYamlEncoded, writeBodyToYaml]);
+
+  const handleBodyTokenModeChange = useCallback((mode: BodyTokenMode) => {
+    if (mode === bodyTokenMode) {
+      return;
+    }
+    if (mode === "tokens") {
+      openBodyTokens();
+      return;
+    }
+    // Flush draft so resolved view / Send see the latest tokens.
+    writeBodyToYaml(bodyEditDraft, bodyEditYamlEncoded);
+    setBodyTokenMode("resolved");
+  }, [
+    bodyTokenMode,
+    openBodyTokens,
+    writeBodyToYaml,
+    bodyEditDraft,
+    bodyEditYamlEncoded,
+  ]);
+
+  const sendWithResolvedBody = useCallback(async () => {
+    if (bodyTokenMode === "tokens") {
+      // Commit YAML before send so resolveApiRequest sees the draft tokens.
+      flushSync(() => {
+        writeBodyToYaml(bodyEditDraft, bodyEditYamlEncoded);
+      });
+    }
+    await handleSend();
+  }, [
+    bodyTokenMode,
+    bodyEditDraft,
+    bodyEditYamlEncoded,
+    writeBodyToYaml,
+    handleSend,
+  ]);
+
+  const runWithResolvedBody = useCallback(async () => {
+    if (bodyTokenMode === "tokens") {
+      flushSync(() => {
+        writeBodyToYaml(bodyEditDraft, bodyEditYamlEncoded);
+      });
+    }
+    await handleRunInCore();
+  }, [
+    bodyTokenMode,
+    bodyEditDraft,
+    bodyEditYamlEncoded,
+    writeBodyToYaml,
+    handleRunInCore,
+  ]);
+
+  const sendContextMenuItems = useMemo(() => [
+    {
+      label: "Run in Core",
+      icon: "codicon-play",
+      onClick: runWithResolvedBody,
+    },
+    ...(canRunCurl ? [{
+      label: "Run in Curl",
+      icon: "codicon-terminal",
+      onClick: () => {
+        if (bodyTokenMode === "tokens") {
+          flushSync(() => {
+            writeBodyToYaml(bodyEditDraft, bodyEditYamlEncoded);
+          });
+        }
+        window.vscode?.postMessage({
+          command: "runCurlCommand",
+          request: requestData,
+          inputs: runInputs
+        });
+      }
+    }] : [])
+  ], [
+    canRunCurl,
+    runWithResolvedBody,
+    requestData,
+    runInputs,
+    bodyTokenMode,
+    bodyEditDraft,
+    bodyEditYamlEncoded,
+    writeBodyToYaml,
+  ]);
 
   const inputConstraints = useMemo(
     () => extractInputConstraintsFromDescription(api.description || ""),
@@ -514,8 +714,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           onMethodChange={handleMethodOrProtocolChange}
           url={displayUrl}
           query={displayQuery}
-          onUrlChange={handleUrlChange}
-          onQueryChange={handleQueryChange}
+          onUrlChange={onUrlChange}
+          onQueryChange={onQueryChange}
+          previewMuted={
+            !touchedFields.has("url") &&
+            typeof api.url === "string" &&
+            /(?:<<\s*[ierce]:|(?:^|[^A-Za-z0-9_])[ierce]:|\{\{\s*(?:[ierce]:|random|current))/i
+              .test(api.url)
+          }
         />
         {rightOfUrlButton && (
           <div className="apitest-url-row-actions">
@@ -571,17 +777,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         {shouldShowQuery() && <KSVEditor
           label="Query parameters"
           value={displayQuery}
-          onChange={query => updateField("query", query)}
+          onChange={onQueryChange}
         />}
         {shouldShowHeaders() && <KSVEditor
           label="Request Headers"
           value={displayHeaders}
-          onChange={headers => updateField("headers", headers)}
+          onChange={onHeadersChange}
         />}
         {shouldShowCookies() && <KSVEditor
           label="Manual Cookies"
           value={displayCookies}
-          onChange={cookies => updateField("cookies", cookies)}
+          onChange={onCookiesChange}
         />}
         {shouldShowDoc() && api.description ? (
           <MdViewer
@@ -596,10 +802,55 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         ) : null}
         {shouldShowBody() && (
           <div className="apitest-body-pane">
-            <BodyFormatBar
-              value={currentRequestFormat}
-              onChange={format => setBodyFormat("request", format)}
-            />
+            <div className="apitest-body-toolbar">
+              <div className="apitest-body-toolbar-main">
+                {bodyTokenMode === "tokens" ? (
+                  <div
+                    className="apitest-body-format-bar-group"
+                    role="radiogroup"
+                    aria-label="Body storage"
+                  >
+                    <FormatChip
+                      label="plain"
+                      selected={!bodyEditYamlEncoded}
+                      title="Store body as a text block"
+                      onClick={() => handleBodyEditYamlEncoded(false)}
+                    />
+                    <FormatChip
+                      label="YAML-encoded"
+                      selected={bodyEditYamlEncoded}
+                      title="Store body as structured YAML instead of a text block"
+                      onClick={() => handleBodyEditYamlEncoded(true)}
+                    />
+                  </div>
+                ) : (
+                  <BodyFormatBar
+                    value={currentRequestFormat}
+                    onChange={format => setBodyFormat("request", format)}
+                  />
+                )}
+              </div>
+              {resolvedRequestFormat !== "binary" && resolvedRequestFormat !== "multipart" && (
+                <div
+                  className="apitest-body-mode-bar"
+                  role="radiogroup"
+                  aria-label="Body display"
+                >
+                  <FormatChip
+                    label="resolved"
+                    selected={bodyTokenMode === "resolved"}
+                    title="Show resolved input/env values"
+                    onClick={() => handleBodyTokenModeChange("resolved")}
+                  />
+                  <FormatChip
+                    label="tokens"
+                    selected={bodyTokenMode === "tokens"}
+                    title="Edit {{i:}} / {{e:}} / {{r:}} / {{c:}} tokens"
+                    onClick={() => handleBodyTokenModeChange("tokens")}
+                  />
+                </div>
+              )}
+            </div>
             {requestBodyDisabled ? (
               <div className="apitest-body-none" role="status">
                 <span className="codicon codicon-jersey apitest-body-none-icon" aria-hidden />
@@ -624,12 +875,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                     value={requestData?.body}
                     onChange={parts => updateField("body", parts)}
                   />
+                ) : bodyTokenMode === "tokens" ? (
+                  <BodyView
+                    key={`body-tokens-${bodyEditSession}`}
+                    value={bodyEditDraft}
+                    format={resolvedRequestFormat}
+                    mode="live"
+                    onChange={handleBodyEditChange}
+                    initialCursor={bodyEditCursor}
+                  />
                 ) : (
                   <BodyView
+                    key="body-resolved"
                     value={requestBodyDisplay}
                     format={resolvedRequestFormat}
                     mode="live"
-                    onChange={handleRequestBodyChange}
+                    onStartEdit={openBodyTokens}
                   />
                 )}
               </div>
@@ -649,7 +910,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 format="graphql"
                 mode="live"
                 onChange={val => {
-                  updateField("graphql", { ...requestData?.graphql, ...api.graphql, operation: val });
+                  const operation = !touchedFields.has("graphql")
+                    ? enterEditStringBuffer(
+                        displayRuntimeString(
+                          requestData?.graphql?.operation || api.graphql?.operation || "",
+                          api.graphql?.operation,
+                        ),
+                        val,
+                        api.graphql?.operation,
+                      )
+                    : val;
+                  updateField("graphql", { ...requestData?.graphql, ...api.graphql, operation });
                 }}
               />
             </div>
@@ -657,7 +928,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               label="Variables"
               value={displayGraphqlVariables}
               onChange={variables => {
-                const vars = Object.keys(variables).length ? variables : undefined;
+                const entered = !touchedFields.has("graphql")
+                  ? enterEditStringRecord(
+                      displayGraphqlVariables,
+                      variables,
+                      api.graphql?.variables as Record<string, unknown> | undefined,
+                    )
+                  : variables;
+                const vars = Object.keys(entered).length ? entered : undefined;
                 updateField("graphql", { ...requestData?.graphql, ...api.graphql, variables: vars });
               }}
             />
@@ -696,7 +974,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               label="Message"
               value={displayGrpcMessage}
               onChange={msg => {
-                const message = Object.keys(msg).length ? msg : undefined;
+                const entered = !touchedFields.has("grpc")
+                  ? enterEditStringRecord(
+                      displayGrpcMessage,
+                      msg,
+                      api.grpc?.message as Record<string, unknown> | undefined,
+                    )
+                  : msg;
+                const message = Object.keys(entered).length ? entered : undefined;
                 updateField("grpc", { ...requestData?.grpc, ...api.grpc, message });
               }}
             />
@@ -759,7 +1044,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           )}
           <SendButton
             accent={methodOrProtocolAccent}
-            onClick={handleSend}
+            onClick={sendWithResolvedBody}
             onCancel={handleCancel}
             disabled={isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && !network.connected}
             loading={

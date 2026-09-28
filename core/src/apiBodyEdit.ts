@@ -4,24 +4,41 @@ import {Request} from './NetworkData';
 import {applyAuthToRequest} from './apiParsePack';
 import {
   projectBodyKeepingRuntimeTokens,
+  rewriteAllLeavesToDisplayText,
   rewriteRuntimeLeavesToDisplayText,
   stringifyJsonWithRuntimeTokens,
   displayRuntimeTokensToResolvableText,
   displayTokensToResolvableDeep,
   displayRuntimeStringRecord,
   displayRuntimeString,
+  sourceToDisplayTokenTemplate,
+  valueForYamlSave,
+  type RuntimeTokenValueContext,
 } from './bodyRuntimeTokens';
 import {formatBody, packBodyForYamlCompare} from './markupConvertor';
 import {normalizeNewlines} from './textLines';
 
-export {displayRuntimeString, displayRuntimeStringRecord} from './bodyRuntimeTokens';
+export {
+  displayRuntimeString,
+  displayRuntimeStringRecord,
+  enterEditStringBuffer,
+  enterEditStringRecord,
+  sourceToDisplayTokenTemplate,
+  valueForYamlSave,
+} from './bodyRuntimeTokens';
+export type {RuntimeTokenValueContext} from './bodyRuntimeTokens';
 
 export type DisplayRequestBodyOptions = {
   /**
    * YAML body with r:/c: markers. When set, those tokens are shown as
-   * `{{random …}}` / `{{current …}}` instead of resolved preview values.
+   * `{{r:…}}` / `{{c:…}}` instead of resolved preview values.
    */
   tokenSource?: unknown;
+  /**
+   * Active inputs / env used to quote `{{i:}}` / `{{e:}}` in JSON
+   * (number/bool → unquoted).
+   */
+  valueContext?: RuntimeTokenValueContext;
 };
 
 function isXmlLikeFormat(format: Format): boolean {
@@ -48,7 +65,8 @@ export function displayRequestBody(
     projectBodyKeepingRuntimeTokens(options.tokenSource, body) :
     body;
   if (format === 'json' || format === 'multipart') {
-    return stringifyJsonWithRuntimeTokens(projected, true);
+    return stringifyJsonWithRuntimeTokens(
+        projected, true, options?.valueContext);
   }
   if (options && options.tokenSource !== undefined &&
       (isXmlLikeFormat(format) || format === 'urlencoded' || format === 'text' ||
@@ -59,8 +77,32 @@ export function displayRequestBody(
   return formatBody(format, projected as string|object);
 }
 
+/**
+ * Edit-buffer body text: every YAML i:/e:/r:/c: leaf as `{{prefix:…}}`.
+ * JSON quoting for i:/e: prefers `resolvedHint` leaf types, then valueContext.
+ */
+export function bodyEditTokenTemplate(
+    tokenSource: unknown,
+    format: Format,
+    valueContext?: RuntimeTokenValueContext,
+    resolvedHint?: unknown,
+): string {
+  if (tokenSource == null) {
+    return '';
+  }
+  if (typeof tokenSource === 'string') {
+    return sourceToDisplayTokenTemplate(tokenSource);
+  }
+  const projected = rewriteAllLeavesToDisplayText(tokenSource);
+  if (format === 'json' || format === 'multipart') {
+    return stringifyJsonWithRuntimeTokens(
+        projected, true, valueContext, resolvedHint);
+  }
+  return formatBody(format, projected as string|object);
+}
+
 export type BodyTempBaseline = {
-  /** Resolved display string at first keystroke (exact match exits temp). */
+  /** Edit-buffer display string at first keystroke (exact match exits temp). */
   display: string;
   /** Original body value to restore on exact revert. */
   body: unknown;
@@ -72,8 +114,8 @@ export type BodyEditResult =
 
 /**
  * Apply a tester body keystroke.
- * - First edit snapshots the pre-edit display + original body.
- * - Exact match of that display exits temp and restores the original body.
+ * - First edit swaps to the YAML token template (`{{i:}}`/`{{e:}}`/`{{r:}}`/`{{c:}}`).
+ * - Exact match of that template exits temp and restores the original body.
  * - Otherwise stays in temp with a free-form string (no live pack).
  */
 export function applyRequestBodyEdit(args: {
@@ -82,19 +124,45 @@ export function applyRequestBodyEdit(args: {
   format: Format;
   baseline: BodyTempBaseline|null;
   bodyAlreadyTouched: boolean;
-  /** YAML body markers for r:/c: display projection (baseline snapshot). */
+  /** YAML body markers for edit-buffer / preview projection. */
   tokenSource?: unknown;
+  /** Active inputs/env for JSON i:/e: quoting. */
+  valueContext?: RuntimeTokenValueContext;
+  /**
+   * Parallel resolved body (before edit) — preferred source of leaf types
+   * for JSON quoting of {{i:}}/{{e:}}.
+   */
+  resolvedHint?: unknown;
 }): BodyEditResult {
   const normalized = normalizeNewlines(args.value);
   let baseline = args.baseline;
+  const resolvedHint = args.resolvedHint !== undefined ?
+    args.resolvedHint :
+    (typeof args.currentBody === 'string' ? undefined : args.currentBody);
   if (!args.bodyAlreadyTouched || !baseline) {
-    const display = displayRequestBody(args.currentBody, args.format, {
+    const preview = normalizeNewlines(displayRequestBody(args.currentBody, args.format, {
       tokenSource: args.tokenSource,
-    });
+      valueContext: args.valueContext,
+    }));
+    const editTemplate = normalizeNewlines(bodyEditTokenTemplate(
+        args.tokenSource ?? args.currentBody,
+        args.format,
+        args.valueContext,
+        resolvedHint,
+    ));
     baseline = {
-      display: normalizeNewlines(display),
+      display: editTemplate,
       body: args.currentBody,
     };
+    // First keystroke while previewing resolved i:/e:: enter edit on template.
+    if (preview !== editTemplate) {
+      const smallEdit = Math.abs(normalized.length - preview.length) <= 1;
+      const body = smallEdit ? editTemplate : normalized;
+      if (body === editTemplate) {
+        return {kind: 'stayTemp', body: editTemplate, baseline};
+      }
+      return {kind: 'stayTemp', body, baseline};
+    }
   }
   if (normalized === baseline.display) {
     return {kind: 'exitTemp', body: baseline.body, baseline: null};
@@ -112,7 +180,7 @@ export function bodyForSend(body: unknown, format: Format): unknown {
     return body;
   }
   if (typeof body === 'string') {
-    // Editor may show {{random uuid}}; runner expects <<r:uuid>> / plain tokens.
+    // Editor may show {{r:uuid}}; runner expects <<r:uuid>> / plain tokens.
     return displayRuntimeTokensToResolvableText(body);
   }
   if (format === 'multipart') {
@@ -130,7 +198,15 @@ export function bodyForYamlSave(
     uiBody: unknown,
     format: Format,
 ): unknown {
-  return packBodyForYamlCompare(yamlBody, uiBody, format);
+  return valueForYamlSave(packBodyForYamlCompare(yamlBody, uiBody, format));
+}
+
+/**
+ * Non-body field value written back into YAML on Save.
+ * Converts display `{{…}}` tokens to YAML `<<…>>` / bare forms.
+ */
+export function fieldForYamlSave(uiValue: unknown): unknown {
+  return valueForYamlSave(uiValue);
 }
 
 function asStringRecord(

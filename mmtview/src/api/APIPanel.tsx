@@ -12,7 +12,7 @@ import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import { requestFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
-import { bodyForYamlSave } from "mmt-core/apiBodyEdit";
+import { bodyForYamlSave, fieldForYamlSave, sourceToDisplayTokenTemplate } from "mmt-core/apiBodyEdit";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { usePanelPage } from "../usePanelPage";
@@ -52,14 +52,10 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
 
   const [page, setPage] = usePanelPage<"test" | "edit">("test");
   const [tab, setTab] = useState<"overview" | "interface" | "examples">("overview");
-  // Keep UnsavedChangesWarning mounted after DiffEditor opens so disposing it
-  // never breaks the YAML editor's context menu / undo stack.
-  const [diffParked, setDiffParked] = useState(false);
   const { mmtFilePath } = useContext(FileContext);
 
   useEffect(() => {
     setTab("overview");
-    setDiffParked(false);
   }, [mmtFilePath]);
 
   // Test-mode override tracking. We don't snapshot the API on entry; instead
@@ -95,10 +91,11 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
 
   // Build the API as it would look with the user's tester overrides applied.
   // Only fields explicitly touched by the user become overrides.
+  // Edit buffers hold display tokens ({{i:}}/{{e:}}/…); pack to YAML forms on Save.
   const uiFieldValue = useCallback((field: string): unknown => {
     const raw = (testRequestData as Record<string, unknown> | undefined)?.[field];
     if (field !== "body") {
-      return raw;
+      return fieldForYamlSave(raw);
     }
     return bodyForYamlSave(
       api.body,
@@ -109,7 +106,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
           (testRequestData?.method as string | undefined) ?? api.method,
       ),
     );
-  }, [api.body, api.format, testRequestData]);
+  }, [api.body, api.format, api.method, testRequestData]);
 
   const modifiedApi = useMemo<APIData>(() => {
     if (!testRequestData || testTouchedFields.size === 0) {
@@ -142,7 +139,16 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
       if (modified) { return; }
       const fieldKey = field as string;
       const reqVal = uiFieldValue(fieldKey);
-      const apiVal = (api as unknown as Record<string, unknown>)[fieldKey];
+      const apiRaw = (api as unknown as Record<string, unknown>)[fieldKey];
+      // Normalize YAML tokens the same way Save packs the UI buffer, so
+      // enter-edit alone (resolved → {{i:}} with no real change) is not dirty.
+      const apiVal = fieldKey === "body"
+        ? apiRaw
+        : fieldForYamlSave(
+            typeof apiRaw === "string"
+              ? sourceToDisplayTokenTemplate(apiRaw)
+              : apiRaw,
+          );
       if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
         modified = true;
       }
@@ -151,11 +157,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
   }, [api, testRequestData, testTouchedFields, uiFieldValue]);
 
   const isTestModified = page === "test" && hasUiOverrides;
-
-  const modifiedYaml = useMemo(
-    () => (hasUiOverrides ? apiToYaml(savedModifiedApi, appliedContent) : ""),
-    [hasUiOverrides, savedModifiedApi, appliedContent]
-  );
 
   const contentRef = useRef(content);
 
@@ -184,7 +185,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
         return;
       }
 
-      // Cancel (or dialog dismissed): leave both sides as they are.
+      // Keep UI (or dialog dismissed): leave both sides as they are.
       dismissedYamlRef.current = yaml;
       pendingYamlRef.current = null;
     } finally {
@@ -319,14 +320,10 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
                               onClick={() => setPage('edit')}
                             />
                           ) : null}
-                          {(isTestModified || diffParked) ? (
+                          {isTestModified ? (
                             <UnsavedChangesWarning
-                              showLauncher={isTestModified}
-                              originalYaml={appliedContent}
-                              modifiedYaml={isTestModified ? modifiedYaml : appliedContent}
                               onSave={handleWarningSave}
                               onReset={handleWarningReset}
-                              onDiffParked={() => setDiffParked(true)}
                             />
                           ) : null}
                       </>

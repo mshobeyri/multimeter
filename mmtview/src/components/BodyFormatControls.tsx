@@ -42,6 +42,8 @@ export function FormatChip({
       aria-selected={selected}
       className={`apitest-body-format-chip${selected ? " is-selected" : ""}`}
       title={title}
+      // Don't steal focus from Monaco (body edit blur would exit edit mode).
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
     >
       {label}
