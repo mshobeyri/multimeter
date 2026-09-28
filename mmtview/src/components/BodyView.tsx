@@ -6,6 +6,7 @@ import {
   findDisplayRuntimeTokenRanges,
   isJsonWithRuntimeTokensValid,
   isXmlWithRuntimeTokensValid,
+  type RuntimeTokenValueContext,
 } from "mmt-core/bodyRuntimeTokens";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
 import { normalizeNewlines } from "mmt-core/textLines";
@@ -58,6 +59,8 @@ export type BodyViewProps = {
     onBlur?: () => void;
     /** Restore caret after mount (e.g. when swapping preview → edit editor). */
     initialCursor?: BodyViewCursor;
+    /** Inputs/env for JSON i:/e: quoting when beautifying. */
+    valueContext?: RuntimeTokenValueContext;
     mode?: mode;
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
     refreshKey?: number;
@@ -71,6 +74,7 @@ const BodyView: React.FC<BodyViewProps> = ({
     onStartEdit,
     onBlur,
     initialCursor,
+    valueContext,
     mode = "appliable",
     onInspectPosition,
     refreshKey,
@@ -196,6 +200,14 @@ const BodyView: React.FC<BodyViewProps> = ({
         }
     }, [localValue, mode, onChange]);
 
+    const beautifyBody = useCallback((text: string) => {
+        return beautify(
+            format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart",
+            text,
+            valueContext,
+        );
+    }, [format, valueContext]);
+
     // Validate JSON or XML when localValue or format changes
     useEffect(() => {
         let valid = true;
@@ -221,13 +233,13 @@ const BodyView: React.FC<BodyViewProps> = ({
         setIsValid(valid);
         setErrorMsg(valid ? null : err);
 
-        if (isValid && valid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue) !== value) {
+        if (isValid && valid && beautifyBody(localValue) !== value) {
             setCanApply(true);
         } else {
             setCanApply(false);
         }
         // eslint-disable-next-line
-    }, [localValue, format, value, isValid]);
+    }, [localValue, format, value, isValid, beautifyBody]);
 
     // Remounting BodyView (fullscreen portal) clears the editor; wait for onMount.
     useEffect(() => {
@@ -325,14 +337,14 @@ const BodyView: React.FC<BodyViewProps> = ({
                 readOnly={disabled}
             />
             <div className="bodyview-toolbar">
-                {!disabled && ((isJsonLikeBodyFormat(format) || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue) !== localValue) && (
+                {!disabled && ((isJsonLikeBodyFormat(format) || (format || "").includes("xml")) && isValid && beautifyBody(localValue) !== localValue) && (
                     <button
                         className="bodyview-btn-icon"
                         title="Beautify"
                         // Keep Monaco focused so parent blur handlers don't exit edit.
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
-                            const beautified = beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart", localValue);
+                            const beautified = beautifyBody(localValue);
                             isUserEditingRef.current = true;
                             setLocalValue(beautified);
                         }}

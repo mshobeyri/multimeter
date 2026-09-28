@@ -644,6 +644,7 @@ function tokenEmitsJsonStringForLeaf(
     plain: string,
     resolvedLeaf: unknown,
     ctx?: RuntimeTokenValueContext,
+    forceBarePlains?: ReadonlySet<string>,
 ): boolean {
   if (/^[ie]:/i.test(plain) && resolvedLeaf !== undefined) {
     if (resolvedLeaf === null ||
@@ -653,6 +654,19 @@ function tokenEmitsJsonStringForLeaf(
     }
     return true;
   }
+  if (/^[ie]:/i.test(plain) && ctx) {
+    const val = lookupIeResolvedValue(plain, ctx);
+    if (val !== undefined) {
+      if (val === null || typeof val === 'number' || typeof val === 'boolean') {
+        return false;
+      }
+      return true;
+    }
+  }
+  // Beautify round-trip without ctx: keep i:/e: unquoted when source was bare.
+  if (forceBarePlains && forceBarePlains.has(plain) && /^[ie]:/i.test(plain)) {
+    return false;
+  }
   return runtimeTokenEmitsJsonString(plain, ctx);
 }
 
@@ -660,9 +674,10 @@ function jsonFormForRuntimePlain(
     plain: string,
     ctx?: RuntimeTokenValueContext,
     resolvedLeaf?: unknown,
+    forceBarePlains?: ReadonlySet<string>,
 ): string {
   const display = toDisplayRuntimeToken(plain);
-  if (tokenEmitsJsonStringForLeaf(plain, resolvedLeaf, ctx)) {
+  if (tokenEmitsJsonStringForLeaf(plain, resolvedLeaf, ctx, forceBarePlains)) {
     return JSON.stringify(display);
   }
   return display;
@@ -674,6 +689,7 @@ function writeJsonWithRuntimeTokens(
     level: number,
     ctx?: RuntimeTokenValueContext,
     resolvedHint?: unknown,
+    forceBarePlains?: ReadonlySet<string>,
 ): string {
   if (value === null) {
     return 'null';
@@ -687,7 +703,7 @@ function writeJsonWithRuntimeTokens(
   if (typeof value === 'string') {
     const plain = plainTokenFromLeaf(value);
     if (plain && (stringContainsRuntimeToken(plain) || /^[ie]:/i.test(plain))) {
-      return jsonFormForRuntimePlain(plain, ctx, resolvedHint);
+      return jsonFormForRuntimePlain(plain, ctx, resolvedHint, forceBarePlains);
     }
     if (isWholeLiteralRuntimeToken(value)) {
       return JSON.stringify(toDisplayRuntimeToken(value));
@@ -706,7 +722,8 @@ function writeJsonWithRuntimeTokens(
       return `[${
         value
             .map((item, i) => writeJsonWithRuntimeTokens(
-                item, 0, 0, ctx, hintArr ? hintArr[i] : undefined))
+                item, 0, 0, ctx, hintArr ? hintArr[i] : undefined,
+                forceBarePlains))
             .join(',')
       }]`;
     }
@@ -715,7 +732,8 @@ function writeJsonWithRuntimeTokens(
     const parts = value.map(
         (item, i) => `${innerIndent}${
           writeJsonWithRuntimeTokens(
-              item, space, level + 1, ctx, hintArr ? hintArr[i] : undefined)}`,
+              item, space, level + 1, ctx, hintArr ? hintArr[i] : undefined,
+              forceBarePlains)}`,
     );
     return `[\n${parts.join(',\n')}\n${outerIndent}]`;
   }
@@ -735,7 +753,8 @@ function writeJsonWithRuntimeTokens(
             .map(([k, v]) =>
               `${JSON.stringify(k)}:${
                 writeJsonWithRuntimeTokens(
-                    v, 0, 0, ctx, hintObj ? hintObj[k] : undefined)}`)
+                    v, 0, 0, ctx, hintObj ? hintObj[k] : undefined,
+                    forceBarePlains)}`)
             .join(',')
       }}`;
     }
@@ -745,7 +764,8 @@ function writeJsonWithRuntimeTokens(
         ([k, v]) =>
           `${innerIndent}${JSON.stringify(k)}: ${
             writeJsonWithRuntimeTokens(
-                v, space, level + 1, ctx, hintObj ? hintObj[k] : undefined)}`,
+                v, space, level + 1, ctx, hintObj ? hintObj[k] : undefined,
+                forceBarePlains)}`,
     );
     return `{\n${parts.join(',\n')}\n${outerIndent}}`;
   }
@@ -755,14 +775,17 @@ function writeJsonWithRuntimeTokens(
 /**
  * Pretty/compact JSON: string tokens as `"{{r:uuid}}"`, number/bool as
  * bare `{{r:int}}` / `{{i:yy}}` (from resolved leaf type and/or value context).
+ * `forceBarePlains` keeps listed i:/e: tokens unquoted (beautify round-trip).
  */
 export function stringifyJsonWithRuntimeTokens(
     value: unknown,
     pretty: boolean = true,
     ctx?: RuntimeTokenValueContext,
     resolvedHint?: unknown,
+    forceBarePlains?: ReadonlySet<string>,
 ): string {
-  return writeJsonWithRuntimeTokens(value, pretty ? 2 : 0, 0, ctx, resolvedHint);
+  return writeJsonWithRuntimeTokens(
+      value, pretty ? 2 : 0, 0, ctx, resolvedHint, forceBarePlains);
 }
 
 /**

@@ -1,5 +1,6 @@
 import {
   applyRequestBodyEdit,
+  bodyEditTokenTemplate,
   bodyForSend,
   bodyForYamlSave,
   displayRequestBody,
@@ -532,6 +533,119 @@ describe('beautify preserves display tokens', () => {
         'multipart',
         '[{"name":"id","value":"{{r:uuid}}"}]',
     )).toContain('{{r:uuid}}');
+  });
+
+  it('keeps unquoted i:/e: number and bool tokens without valueContext', () => {
+    const src = [
+      '{',
+      '  "name": "{{i:xxx}}",',
+      '  "ssd": {{i:yy}},',
+      '  "dd": {{i:dd}},',
+      '  "message": "Hello from mmt!",',
+      '  "asd": "{{r:uuid}}"',
+      '}',
+    ].join('\n');
+    const out = beautify('json', src);
+    expect(out).toContain('"name": "{{i:xxx}}"');
+    expect(out).toContain('"ssd": {{i:yy}}');
+    expect(out).not.toContain('"ssd": "{{i:yy}}"');
+    expect(out).toContain('"dd": {{i:dd}}');
+    expect(out).not.toContain('"dd": "{{i:dd}}"');
+    expect(out).toContain('"asd": "{{r:uuid}}"');
+  });
+
+  it('quotes i:/e:/r:/c: by type with valueContext for all shapes', () => {
+    const ctx = {
+      inputs: {
+        str: 'hello',
+        num: 10,
+        flag: true,
+        empty: null,
+      },
+      env: {
+        host: 'localhost',
+        port: 8080,
+        ok: false,
+      },
+    };
+    // Compact / wrongly spaced source — beautify + ctx should fix quoting.
+    const src =
+        '{"str":{{i:str}},"num":"{{i:num}}","flag":"{{i:flag}}","empty":"{{i:empty}}",' +
+        '"host":{{e:host}},"port":"{{e:port}}","ok":"{{e:ok}}",' +
+        '"id":{{r:uuid}},"n":"{{r:int}}","b":"{{r:bool}}",' +
+        '"date":{{c:date}},"epoch":"{{c:epoch_ms}}"}';
+    const out = beautify('json', src, ctx);
+    expect(out).toContain('"str": "{{i:str}}"');
+    expect(out).toContain('"num": {{i:num}}');
+    expect(out).not.toContain('"num": "{{i:num}}"');
+    expect(out).toContain('"flag": {{i:flag}}');
+    expect(out).not.toContain('"flag": "{{i:flag}}"');
+    expect(out).toContain('"empty": {{i:empty}}');
+    expect(out).toContain('"host": "{{e:host}}"');
+    expect(out).toContain('"port": {{e:port}}');
+    expect(out).not.toContain('"port": "{{e:port}}"');
+    expect(out).toContain('"ok": {{e:ok}}');
+    expect(out).toContain('"id": "{{r:uuid}}"');
+    expect(out).toContain('"n": {{r:int}}');
+    expect(out).not.toContain('"n": "{{r:int}}"');
+    expect(out).toContain('"b": {{r:bool}}');
+    expect(out).toContain('"date": "{{c:date}}"');
+    expect(out).toContain('"epoch": {{c:epoch_ms}}');
+  });
+});
+
+describe('bodyEditTokenTemplate quotes by input/env types', () => {
+  it('covers string, number, bool, null, r:, and c: leaves', () => {
+    const source = {
+      name: 'i:xxx',
+      ssd: 'i:yy',
+      dd: 'i:dd',
+      z: 'i:z',
+      host: 'e:host',
+      port: 'e:port',
+      asd: 'r:uuid',
+      n: 'r:int',
+      flag: 'r:bool',
+      when: 'c:date',
+      epoch: 'c:epoch_ms',
+      message: 'Hello from mmt!',
+    };
+    const resolved = {
+      name: 'ss',
+      ssd: 10,
+      dd: true,
+      z: null,
+      host: 'h',
+      port: 443,
+      asd: '550e8400-e29b-41d4-a716-446655440000',
+      n: 7,
+      flag: false,
+      when: '2020-01-01',
+      epoch: 1,
+      message: 'Hello from mmt!',
+    };
+    const template = bodyEditTokenTemplate(
+        source,
+        'json',
+        {
+          inputs: {xxx: 'ss', yy: 10, dd: true, z: null},
+          env: {host: 'h', port: 443},
+        },
+        resolved,
+    );
+    expect(template).toContain('"name": "{{i:xxx}}"');
+    expect(template).toContain('"ssd": {{i:yy}}');
+    expect(template).not.toContain('"ssd": "{{i:yy}}"');
+    expect(template).toContain('"dd": {{i:dd}}');
+    expect(template).toContain('"z": {{i:z}}');
+    expect(template).toContain('"host": "{{e:host}}"');
+    expect(template).toContain('"port": {{e:port}}');
+    expect(template).toContain('"asd": "{{r:uuid}}"');
+    expect(template).toContain('"n": {{r:int}}');
+    expect(template).toContain('"flag": {{r:bool}}');
+    expect(template).toContain('"when": "{{c:date}}"');
+    expect(template).toContain('"epoch": {{c:epoch_ms}}');
+    expect(template).toContain('"message": "Hello from mmt!"');
   });
 });
 

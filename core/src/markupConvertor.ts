@@ -15,12 +15,14 @@ import {normalizeNewlines} from './textLines';
 import {mergeYamlValue} from './yamlAstMerge';
 import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
 import {
+  mapUnquotedDisplayRuntimeTokens,
   parseJsonWithRuntimeTokens,
   parseXmlTextWithRuntimeTokens,
   restoreAngleRuntimeTokensInUrlEncoded,
   reviveDisplayRuntimeTokensInValue,
   rewriteRuntimeLeavesToDisplayText,
   stringifyJsonWithRuntimeTokens,
+  type RuntimeTokenValueContext,
 } from './bodyRuntimeTokens';
 
 /**
@@ -542,11 +544,33 @@ function packBodyForYamlCompare(
   return packed;
 }
 
-function beautify(format: Format, value: string): string {
+/** Collect i:/e: plains that appear unquoted in JSON source (for beautify). */
+function collectUnquotedIePlains(text: string): Set<string> {
+  const plains = new Set<string>();
+  mapUnquotedDisplayRuntimeTokens(text, (plain) => {
+    if (/^[ie]:/i.test(plain)) {
+      plains.add(plain);
+    }
+    return 'null';
+  });
+  return plains;
+}
+
+function beautify(
+    format: Format,
+    value: string,
+    valueContext?: RuntimeTokenValueContext,
+): string {
   try {
     if (format === 'json' || format === 'multipart') {
+      const normalized = normalizeNewlines(value);
+      const forceBarePlains = collectUnquotedIePlains(normalized);
       return stringifyJsonWithRuntimeTokens(
-          parseJsonWithRuntimeTokens(value), true);
+          parseJsonWithRuntimeTokens(normalized),
+          true,
+          valueContext,
+          undefined,
+          forceBarePlains);
     }
     if (isXmlFormat(format)) {
       const parsed = parseXmlTextWithRuntimeTokens(

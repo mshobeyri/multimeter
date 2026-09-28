@@ -948,6 +948,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                     mode="live"
                     onChange={handleBodyEditChange}
                     initialCursor={bodyEditCursor}
+                    valueContext={bodyValueContext}
                   />
                 ) : (
                   <BodyView
@@ -956,6 +957,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                     format={resolvedRequestFormat}
                     mode="live"
                     onStartEdit={openBodyTokens}
+                    valueContext={bodyValueContext}
                   />
                 )}
               </div>
