@@ -10,8 +10,7 @@ Edits in edit mode write directly to the YAML. The tester UI is temporary until 
 |---|---|
 | {{btn:search:Overview}} | `title`, `tags`, `description` (with optional Markdown preview), `import`, `inputs`, `outputs`, `setenv` |
 | {{btn:symbol-interface:Interface}} | `protocol`, `url`, `method`, `timeout`, `headers`, `query`, `cookies`, `body`, `auth`, request/response `format` |
-| {{btn:lightbulb:Examples}} | Example **id** / **title** / **description** — add or remove example blocks |
-| {{btn:beaker:Tests}} | Per-example **Inputs**, soft **Expect**, and hard **Require** — same operators as call |
+| {{btn:lightbulb:Examples}} | Example **id** / **title** / **description**, **Inputs**, soft **Expect**, and hard **Require** |
 
 ### Overview
 
@@ -21,7 +20,7 @@ Edits in edit mode write directly to the YAML. The tester UI is temporary until 
 | `tags` | Searchable tag chips; maps to `tags:` |
 | `description` | Markdown editor with optional preview; maps to `description:` |
 | `import` | Key/value alias → path pairs with file picker (JSON, YAML, CSV data files) |
-| `inputs` | Parameter definitions used by `<<i:>>` tokens and the Tests tab |
+| `inputs` | Parameter definitions used by `<<i:>>` tokens and the Examples tab |
 | `outputs` | Extraction expressions for response values |
 | `setenv` | Capture response values into environment variables |
 
@@ -44,9 +43,9 @@ Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message)
 
 ### Examples
 
-Each example block has an **id**, optional **title**, and optional **description**. Use **Add Example** to create a new block; remove with the delete control on each example. Inputs and expect/require live on the **Tests** tab.
+Each example block has an **id**, optional **title**, optional **description**, **inputs**, and soft/hard checks (**expect** / **require**). Use **Add Example** to create a new block; remove with the delete control on each example.
 
-Examples appear in the tester **Tests** tab dropdown and get run glyphs in the YAML editor when `id:` (or deprecated `name:`) is non-empty. See [Examples](./examples.md).
+Examples appear in the tester **Examples** tab dropdown and get run glyphs in the YAML editor when `id:` (or deprecated `name:`) is non-empty. See [Examples](./examples.md).
 
 ---
 

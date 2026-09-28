@@ -88,6 +88,23 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
         results.find(r => r.level === level && r.comparison.startsWith(`${row.field} `));
   };
 
+  const resultIcon = (level: "expect" | "require", row: ExpectUiRow) => {
+    const result = resultForRow(level, row);
+    const ok = result?.status === "passed";
+    const failed = result?.status === "failed";
+    return (
+      <span
+        className={`apitest-result-slot no-shrink${ok ? " is-pass" : ""}${failed ? " is-fail" : ""}`}
+        title={ok ? "Passed" : failed ? "Failed" : undefined}
+        aria-label={ok ? "Passed" : failed ? "Failed" : undefined}
+        aria-hidden={!result}
+      >
+        {ok ? <span className="codicon codicon-check" /> : null}
+        {failed ? <span className="codicon codicon-error" /> : null}
+      </span>
+    );
+  };
+
   const hasAnyRows = expectList.length > 0 || requireList.length > 0;
   const summary = React.useMemo(() => {
     if (!results || results.length === 0) {
@@ -126,21 +143,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
         }}
         renderField={(row, i) => (
           <>
-            {(() => {
-              const result = resultForRow("expect", row);
-              if (!result) {
-                return null;
-              }
-              const ok = result.status === "passed";
-              return (
-                <span
-                  className={`codicon ${ok ? "codicon-check" : "codicon-error"} no-shrink`}
-                  style={{ color: ok ? "var(--vscode-testing-iconPassed)" : "var(--vscode-testing-iconFailed)" }}
-                  title={ok ? "Passed" : "Failed"}
-                  aria-label={ok ? "Passed" : "Failed"}
-                />
-              );
-            })()}
+            {resultIcon("expect", row)}
             <CheckClauseFieldInput
               list="apitest-test-fields"
               value={row.field}
@@ -174,21 +177,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
         }}
         renderField={(row, i) => (
           <>
-            {(() => {
-              const result = resultForRow("require", row);
-              if (!result) {
-                return null;
-              }
-              const ok = result.status === "passed";
-              return (
-                <span
-                  className={`codicon ${ok ? "codicon-check" : "codicon-error"} no-shrink`}
-                  style={{ color: ok ? "var(--vscode-testing-iconPassed)" : "var(--vscode-testing-iconFailed)" }}
-                  title={ok ? "Passed" : "Failed"}
-                  aria-label={ok ? "Passed" : "Failed"}
-                />
-              );
-            })()}
+            {resultIcon("require", row)}
             <CheckClauseFieldInput
               list="apitest-test-fields"
               value={row.field}

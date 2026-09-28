@@ -55,7 +55,7 @@ interface APITestProps {
   initialExampleIndex?: number;
 }
 
-type EditorTab = "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc" | "tests";
+type EditorTab = "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc" | "examples";
 
 function countNamedEntries(record?: Record<string, unknown> | null): number {
   if (!record) {
@@ -67,12 +67,12 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
 const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> = [
   { key: "graphql", label: "GraphQL", protocol: "graphql" },
   { key: "grpc", label: "gRPC", protocol: "grpc" },
-  { key: "body", label: "Body" },
   { key: "params", label: "Params" },
   { key: "headers", label: "Headers" },
+  { key: "body", label: "Body" },
   { key: "cookies", label: "Cookies" },
   { key: "doc", label: "Doc" },
-  { key: "tests", label: "Tests" },
+  { key: "examples", label: "Examples" },
 ];
 
 function cloneInputs(source?: JSONRecord): JSONRecord {
@@ -296,11 +296,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
-    // Legacy In/Out tab merged into Tests.
-    if (saved === "inout") {
-      return "tests";
+    // Legacy tabs merged into Examples.
+    if (saved === "inout" || saved === "tests") {
+      return "examples";
     }
-    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc" || saved === "tests") {
+    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc" || saved === "examples") {
       return saved;
     }
     if (api.protocol === "graphql") {
@@ -354,14 +354,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowHeaders = () => editorTab === "headers";
   const shouldShowCookies = () => editorTab === "cookies";
   const shouldShowBody = () => editorTab === "body";
-  const shouldShowInputs = () => editorTab === "tests";
+  const shouldShowInputs = () => editorTab === "examples";
   const shouldShowResponse = () => editorTab === "body";
   const shouldShowResponseHeaders = () => editorTab === "headers";
   const shouldShowResponseCookies = () => editorTab === "cookies";
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
-  const shouldShowTests = () => editorTab === "tests";
+  const shouldShowExamples = () => editorTab === "examples";
   const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
     // Format chips are temporary UI (like body edits): deduced from YAML on
     // open/reset, independently editable per side, exit temp when both sides
@@ -545,13 +545,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 ? countNamedEntries(requestData?.headers || api.headers)
                 : tab.key === "cookies"
                   ? countNamedEntries(requestData?.cookies || api.cookies)
-                  : tab.key === "tests"
-                    ? (() => {
-                        const ex = selectedExampleIdx >= 0 ? examples[selectedExampleIdx] : undefined;
-                        const soft = exampleExpect(ex);
-                        return Object.keys(soft || {}).length +
-                            Object.keys(ex?.require || {}).length;
-                      })()
+                  : tab.key === "examples"
+                    ? examples.filter(ex => ex && typeof ex === "object").length
                     : 0;
               return (
             <button
@@ -819,7 +814,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           </div>
         )}
 
-        {shouldShowTests() && (
+        {shouldShowExamples() && (
           selectedExampleIdx < 0 || !examples[selectedExampleIdx] ? (
             <div className="apitest-empty">Select an example to edit expect / require.</div>
           ) : (

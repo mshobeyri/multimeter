@@ -6,7 +6,7 @@ Syntax:
 - `<<i:param_name>> description text` — input parameter
 - `<<o:param_name>> description text` — output parameter
 
-Optional leading `[...]` on an input annotation documents allowed values and enables a picker on the API **Tests** tab:
+Optional leading `[...]` on an input annotation documents allowed values and enables a picker on the API **Examples** tab:
 
 - `[a, b, c]` — discrete options
 - `[1-5]` — integer range, inclusive
@@ -33,6 +33,6 @@ method: post
 url: https://test.mmt.dev/post
 ```
 
-In the editor, open **Tests** to see descriptions and range pickers, and **Doc** to preview the documented parameters. Generated HTML/Markdown docs show each annotation as a parameter table row.
+In the editor, open **Examples** to see descriptions and range pickers, and **Doc** to preview the documented parameters. Generated HTML/Markdown docs show each annotation as a parameter table row.
 
 Wire the same names under `inputs` / `outputs` — see [Inputs](../api/inputs.md) and [Outputs](../api/outputs.md).

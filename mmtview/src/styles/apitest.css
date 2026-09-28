@@ -189,6 +189,27 @@
   vertical-align: super;
 }
 
+/* Fixed-width slot so pass/fail icons don't reflow expect/require rows. */
+.apitest-result-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.apitest-result-slot.is-pass {
+  color: var(--vscode-testing-iconPassed);
+}
+
+.apitest-result-slot.is-fail {
+  color: var(--vscode-testing-iconFailed);
+}
+
 .apitest-body-pane {
   display: flex;
   flex-direction: column;

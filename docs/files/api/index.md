@@ -49,12 +49,12 @@ Under the URL bar:
 
 | Tab | What you see |
 |---|---|
-| **Body** | Request body; after send, **Response Body** appears below Send. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
 | **Params** | Query parameters |
 | **Headers** | Request headers; response headers appear below Send after a reply |
+| **Body** | Request body; after send, **Response Body** appears below Send. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
 | **Cookies** | Request cookies; response cookies appear below Send after a reply |
 | **Doc** | Preview of `description` and `<<i:>>` / `<<o:>>` parameter docs |
-| **Tests** | **Example** dropdown + **+** to add a test; request-side **Inputs**; response-side soft **Expect** / hard **Require**. After Send with an example selected, rows show pass/fail |
+| **Examples** | **Example** dropdown + **+** to add a test; request-side **Inputs**; response-side soft **Expect** / hard **Require**. Badge shows example count. After Send with an example selected, rows show pass/fail |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
 ### Send
