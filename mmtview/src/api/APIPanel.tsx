@@ -1,23 +1,14 @@
 import { yamlToAPI, apiToYaml } from "mmt-core/apiParsePack";
 import React, { useContext, useEffect, useState, useRef, useMemo, useCallback } from "react";
 import APIOverview from "./APIOverview";
-import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
 import APITest from "./APITester";
-import UnsavedChangesWarning from "./UnsavedChangesWarning";
 import YamlErrorWarning from "./YamlErrorWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
-import { Request } from "mmt-core/NetworkData";
-import { protocolResolver } from "mmt-core";
-import { resolveApiHttpMethod } from "mmt-core/apiMethod";
-import { requestFormat } from "mmt-core/CommonData";
-import { resolveRequestFormat } from "mmt-core/formatResolve";
-import { bodyForYamlSave, fieldForYamlSave, sourceToDisplayTokenTemplate } from "mmt-core/apiBodyEdit";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { usePanelPage } from "../usePanelPage";
 import { FileContext } from "../fileContext";
-import { showYamlUiConflictDialog } from "../vsAPI";
 import TabBar from "../components/TabBar";
 import PrimaryButton from "../components/PrimaryButton";
 import PanelEditHeader from "../components/PanelEditHeader";
@@ -25,7 +16,6 @@ import { HeaderAction } from "../components/PanelRunHeader";
 
 const API_EDIT_TABS = [
   { id: "overview" as const, label: "Overview", icon: "search" },
-  { id: "interface" as const, label: "Interface", icon: "symbol-interface" },
   { id: "examples" as const, label: "Examples", icon: "lightbulb" },
 ];
 
@@ -38,259 +28,71 @@ interface APIsProps {
 }
 
 const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, selector, initialExampleIndex }) => {
-  // `appliedContent` is what the right-side API UI is built from.
-  // When the tester has temporary edits, YAML changes are held until the
-  // user discards the UI changes or cancels.
+  // Peer model: YAML ↔ tester UI stay in sync. `appliedContent` tracks the
+  // last YAML snapshot the right panel is built from; UI writes update both
+  // sides immediately, and left-editor YAML changes apply straight through.
   const [appliedContent, setAppliedContent] = useState(content);
-  const resetAfterApplyRef = useRef(false);
-  const pendingYamlRef = useRef<string | null>(null);
-  const dialogOpenRef = useRef(false);
-  const dismissedYamlRef = useRef<string | null>(null);
-
   const resolvedContent = useResolvedYamlContent(appliedContent);
   const api = useMemo<APIData>(() => yamlToAPI(resolvedContent), [resolvedContent]);
 
   const [page, setPage] = usePanelPage<"test" | "edit">("test");
-  const [tab, setTab] = useState<"overview" | "interface" | "examples">("overview");
+  const [tab, setTab] = useState<"overview" | "examples">("overview");
   const { mmtFilePath } = useContext(FileContext);
 
   useEffect(() => {
     setTab("overview");
   }, [mmtFilePath]);
 
-  // Test-mode override tracking. We don't snapshot the API on entry; instead
-  // we ask the tester which fields the user has touched and compare those
-  // values against the current `api`. This way:
-  //  - YAML edits don't silently overwrite UI overrides
-  //  - Reverting a touched value back to its api value clears the warning
-  const [testRequestData, setTestRequestData] = useState<Request | undefined>(undefined);
-  const [testTouchedFields, setTestTouchedFields] = useState<Set<keyof Request>>(new Set());
+  const appliedContentRef = useRef(appliedContent);
+  appliedContentRef.current = appliedContent;
+  const apiRef = useRef(api);
+  apiRef.current = api;
 
-  const handleModificationChange = useCallback(
-    (req: Request | undefined, touched: Set<keyof Request>) => {
-      setTestRequestData(req);
-      setTestTouchedFields(touched);
-    },
-    []
-  );
-
-  const resetRef = useRef<(() => void) | null>(null);
-
-  const handleRequestReset = useCallback((reset: () => void) => {
-    resetRef.current = reset;
-  }, []);
-
-    const setAPI = (newApi: APIData) => {
-    const newYaml = apiToYaml(newApi, appliedContent);
-    // UI-originated writes are intentional — apply immediately on both sides.
-    dismissedYamlRef.current = null;
-    pendingYamlRef.current = null;
-    setAppliedContent(newYaml);
-    setContent(newYaml, { force: true });
-  };
-
-  // Build the API as it would look with the user's tester overrides applied.
-  // Only fields explicitly touched by the user become overrides.
-  // Edit buffers hold display tokens ({{i:}}/{{e:}}/…); pack to YAML forms on Save.
-  const uiFieldValue = useCallback((field: string): unknown => {
-    const raw = (testRequestData as Record<string, unknown> | undefined)?.[field];
-    if (field !== "body") {
-      return fieldForYamlSave(raw);
-    }
-    return bodyForYamlSave(
-      api.body,
-      raw,
-      resolveRequestFormat(
-          requestFormat(api.format),
-          testRequestData?.headers as Record<string, string> | undefined,
-          (testRequestData?.method as string | undefined) ?? api.method,
-      ),
-    );
-  }, [api.body, api.format, api.method, testRequestData]);
-
-  const modifiedApi = useMemo<APIData>(() => {
-    if (!testRequestData || testTouchedFields.size === 0) {
-      return api;
-    }
-    const overrides: Record<string, unknown> = {};
-    testTouchedFields.forEach((field) => {
-      overrides[field as string] = uiFieldValue(field as string);
-    });
-    return { ...api, ...overrides } as APIData;
-  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
-
-  const savedModifiedApi = useMemo<APIData>(() => {
-    const effectiveProtocol = protocolResolver.getEffectiveProtocol(modifiedApi.protocol, modifiedApi.url);
-    if (effectiveProtocol !== 'http' || modifiedApi.method) {
-      return modifiedApi;
-    }
-    return {
-      ...modifiedApi,
-      method: resolveApiHttpMethod(undefined, modifiedApi.body),
-    } as APIData;
-  }, [modifiedApi]);
-
-  const hasUiOverrides = useMemo(() => {
-    if (!testRequestData || testTouchedFields.size === 0) {
-      return false;
-    }
-    let modified = false;
-    testTouchedFields.forEach((field) => {
-      if (modified) { return; }
-      const fieldKey = field as string;
-      const reqVal = uiFieldValue(fieldKey);
-      const apiRaw = (api as unknown as Record<string, unknown>)[fieldKey];
-      // Normalize YAML tokens the same way Save packs the UI buffer, so
-      // enter-edit alone (resolved → {{i:}} with no real change) is not dirty.
-      const apiVal = fieldKey === "body"
-        ? apiRaw
-        : fieldForYamlSave(
-            typeof apiRaw === "string"
-              ? sourceToDisplayTokenTemplate(apiRaw)
-              : apiRaw,
-          );
-      if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
-        modified = true;
-      }
-    });
-    return modified;
-  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
-
-  const isTestModified = page === "test" && hasUiOverrides;
-
-  const contentRef = useRef(content);
-
+  // Left YAML editor → right panel (no staging / conflict dialog).
   useEffect(() => {
-    contentRef.current = content;
-  }, [content]);
-
-  const applyYamlAndResetUi = useCallback((yaml: string) => {
-    resetAfterApplyRef.current = true;
-    dismissedYamlRef.current = null;
-    pendingYamlRef.current = null;
-    setAppliedContent(yaml);
-  }, []);
-
-  const promptConflict = useCallback(async () => {
-    if (dialogOpenRef.current) {
-      return;
-    }
-    dialogOpenRef.current = true;
-    try {
-      const choice = await showYamlUiConflictDialog();
-      const yaml = pendingYamlRef.current ?? contentRef.current;
-
-      if (choice === "discard-ui") {
-        applyYamlAndResetUi(yaml);
-        return;
-      }
-
-      // Keep UI (or dialog dismissed): leave both sides as they are.
-      dismissedYamlRef.current = yaml;
-      pendingYamlRef.current = null;
-    } finally {
-      dialogOpenRef.current = false;
-    }
-  }, [applyYamlAndResetUi]);
-
-  // Gate YAML → UI updates when the tester has temporary edits.
-  useEffect(() => {
-    if (content === appliedContent) {
-      dismissedYamlRef.current = null;
-      pendingYamlRef.current = null;
-      return;
-    }
-
-    // UI overrides were cleared — safe to apply YAML.
-    if (!hasUiOverrides) {
-      dismissedYamlRef.current = null;
-      pendingYamlRef.current = null;
+    if (content !== appliedContent) {
       setAppliedContent(content);
-      return;
+      appliedContentRef.current = content;
     }
+  }, [content, appliedContent]);
 
-    // User already cancelled for this exact YAML snapshot.
-    if (dismissedYamlRef.current === content) {
-      return;
-    }
-
-    pendingYamlRef.current = content;
-    if (dialogOpenRef.current) {
-      return;
-    }
-
-    void promptConflict();
-  }, [content, appliedContent, hasUiOverrides, promptConflict]);
-
-  // After resolving a conflict by applying new YAML/`api`, clear tester overrides.
-  useEffect(() => {
-    if (!resetAfterApplyRef.current) {
-      return;
-    }
-    resetAfterApplyRef.current = false;
-    resetRef.current?.();
-  }, [api]);
-
-  const handleWarningReset = useCallback(() => {
-    // Reset both sides to the stored YAML so UI and editor match again.
-    const stored = appliedContent;
-    dismissedYamlRef.current = null;
-    pendingYamlRef.current = null;
-    setTestRequestData(undefined);
-    setTestTouchedFields(new Set());
-    setAppliedContent(stored);
-    setContent(stored, { force: true });
-    resetRef.current?.();
-  }, [appliedContent, setContent]);
-
-  // Save temporary UI into YAML — drop tester overrides so later YAML
-  // edits apply to the UI instead of looking like unsaved changes again.
-  const handleWarningSave = useCallback(() => {
-    const newYaml = apiToYaml(savedModifiedApi, appliedContent);
-    resetAfterApplyRef.current = true;
-    dismissedYamlRef.current = null;
-    pendingYamlRef.current = null;
-    setTestRequestData(undefined);
-    setTestTouchedFields(new Set());
+  const setAPI = useCallback((newApi: APIData) => {
+    const newYaml = apiToYaml(newApi, appliedContentRef.current);
+    apiRef.current = newApi;
+    appliedContentRef.current = newYaml;
     setAppliedContent(newYaml);
     setContent(newYaml, { force: true });
-    if (newYaml === appliedContent) {
-      resetAfterApplyRef.current = false;
-      resetRef.current?.();
-    }
-  }, [appliedContent, savedModifiedApi, setContent]);
+  }, [setContent]);
 
   useEffect(() => {
     if (readOnly && page !== "test") {
       setPage("test");
     }
-  }, [readOnly, page]);
+  }, [readOnly, page, setPage]);
 
-  // Helper to update top-level fields
-  const update = (patch: Partial<APIData>) => {
-    setAPI({ ...api, ...patch });
-  };
+  const update = useCallback((patch: Partial<APIData>) => {
+    setAPI({ ...apiRef.current, ...patch });
+  }, [setAPI]);
 
-  // Helper to update a specific interface
-  const updateInterface = (patch: Partial<APIData>) => {
-    setAPI({ ...api, ...patch });
-  };
+  const updateExample = useCallback((idx: number, patch: Partial<ExampleData>) => {
+    setAPI({
+      ...apiRef.current,
+      examples: safeListCopy(apiRef.current.examples).map((example, i) =>
+        i === idx ? { ...example, ...patch } : example
+      ),
+    });
+  }, [setAPI]);
 
-  const updateExample = (idx: number, patch: Partial<ExampleData>) => {
-    setAPI({ ...api, examples: safeListCopy(api.examples).map((example, i) => i === idx ? { ...example, ...patch } : example) });
-  };
+  const removeExample = useCallback((idx: number) => {
+    const examples = safeList(apiRef.current.examples).filter((_, i) => i !== idx);
+    setAPI({ ...apiRef.current, examples });
+  }, [setAPI]);
 
-  const removeExample = (idx: number) => {
-
-    const examples = safeList(api.examples).filter((_, i) => i !== idx);
-    setAPI({ ...api, examples });
-  };
-
-  const addExample = () => {
-    const examples = safeListCopy(api.examples);
+  const addExample = useCallback(() => {
+    const examples = safeListCopy(apiRef.current.examples);
     examples.push({ id: "" });
-    setAPI({ ...api, examples });
-  };
+    setAPI({ ...apiRef.current, examples });
+  }, [setAPI]);
 
   return (
     <div className="panel is-clip">
@@ -305,27 +107,17 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
                 <APITest
                   api={api}
                   onUpdateApi={update}
-                  onModificationChange={handleModificationChange}
-                  onRequestReset={handleRequestReset}
                   initialExampleIndex={initialExampleIndex}
                   selector={readOnly ? selector : undefined}
                   rightOfUrlButton={
                     readOnly ? undefined : (
                       <>
                         <YamlErrorWarning />
-                          {!isTestModified ? (
-                            <HeaderAction
-                              icon="edit"
-                              label="Edit API"
-                              onClick={() => setPage('edit')}
-                            />
-                          ) : null}
-                          {isTestModified ? (
-                            <UnsavedChangesWarning
-                              onSave={handleWarningSave}
-                              onReset={handleWarningReset}
-                            />
-                          ) : null}
+                        <HeaderAction
+                          icon="edit"
+                          label="Edit API"
+                          onClick={() => setPage('edit')}
+                        />
                       </>
                     )
                   }
@@ -346,13 +138,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
 
                   <div className="panel-scroll">
                     {tab === 'overview' && <APIOverview api={api} update={update} />}
-
-                    {tab === 'interface' && (
-                      <InterfaceEditor
-                        data={api}
-                        onChange={(updated) => updateInterface(updated)}
-                      />
-                    )}
 
                     {tab === 'examples' && (
                       <table className="field-table is-flush">

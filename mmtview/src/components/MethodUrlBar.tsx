@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Method, Protocol } from "mmt-core/CommonData";
-import { buildQueryString, parseQueryString } from "./UrlInput";
 
 const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const OTHER_PROTOCOLS: Protocol[] = ["ws", "graphql", "grpc"];
@@ -10,6 +9,36 @@ const PROTOCOL_LABELS: Record<string, string> = {
   graphql: "GraphQL",
   grpc: "gRPC",
 };
+
+/** Join query for the URL editor without percent-encoding `{{…}}` tokens. */
+function joinQueryForEditor(query: Record<string, string> = {}): string {
+  const entries = Object.entries(query).filter(([k]) => k);
+  if (entries.length === 0) {
+    return "";
+  }
+  return "?" + entries.map(([k, v]) => `${k}=${v ?? ""}`).join("&");
+}
+
+/** Parse query from the URL editor (token-friendly, no decode required). */
+function parseQueryForEditor(qs: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!qs) {
+    return result;
+  }
+  const clean = qs.startsWith("?") ? qs.slice(1) : qs;
+  for (const pair of clean.split("&")) {
+    if (!pair) {
+      continue;
+    }
+    const eq = pair.indexOf("=");
+    if (eq < 0) {
+      result[pair] = "";
+      continue;
+    }
+    result[pair.slice(0, eq)] = pair.slice(eq + 1);
+  }
+  return result;
+}
 
 function methodUrlBarLabel(value: string): string {
   if (value.startsWith("protocol:")) {
@@ -25,7 +54,7 @@ function methodUrlBarLabel(value: string): string {
 function emitUrl(value: string, onUrlChange: (url: string) => void, onQueryChange: (query: Record<string, string>) => void) {
   const [base, ...queryParts] = value.split("?");
   onUrlChange(base);
-  onQueryChange(parseQueryString(queryParts.join("?")));
+  onQueryChange(parseQueryForEditor(queryParts.join("?")));
 }
 
 type MethodUrlBarProps = {
@@ -35,8 +64,6 @@ type MethodUrlBarProps = {
   query: Record<string, string>;
   onUrlChange: (url: string) => void;
   onQueryChange: (query: Record<string, string>) => void;
-  /** Soften styling while showing resolved preview (YAML still has tokens). */
-  previewMuted?: boolean;
 };
 
 const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
@@ -46,9 +73,8 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   query,
   onUrlChange,
   onQueryChange,
-  previewMuted = false,
 }) => {
-  const urlValue = url + buildQueryString(query);
+  const urlValue = url + joinQueryForEditor(query);
   const [inputValue, setInputValue] = useState(urlValue);
   const isUserInput = useRef(false);
 
@@ -75,7 +101,7 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
           className="method-url-bar-select"
           value={methodValue}
           onChange={e => onMethodChange(e.target.value)}
-          title="HTTP method or protocol (temporary override)"
+          title="HTTP method or protocol"
           aria-label="HTTP method or protocol"
         >
           {HTTP_METHODS.map(method => (
@@ -92,7 +118,7 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
       <div className="method-url-bar-url-wrap">
         <input
           type="text"
-          className={`method-url-bar-url${previewMuted ? " is-token-preview" : ""}`}
+          className="method-url-bar-url"
           value={inputValue}
           onChange={handleChange}
           spellCheck={false}

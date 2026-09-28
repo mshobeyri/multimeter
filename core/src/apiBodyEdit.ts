@@ -23,6 +23,10 @@ export {
   displayRuntimeStringRecord,
   enterEditStringBuffer,
   enterEditStringRecord,
+  peerRecordToDisplay,
+  peerRecordToYaml,
+  peerStringToDisplay,
+  peerStringToYaml,
   sourceToDisplayTokenTemplate,
   valueForYamlSave,
 } from './bodyRuntimeTokens';

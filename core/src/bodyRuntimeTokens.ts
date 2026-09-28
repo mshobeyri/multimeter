@@ -1115,3 +1115,62 @@ export function displayTokensToResolvableDeep(value: unknown): unknown {
   }
   return value;
 }
+
+/**
+ * YAML → tester peer display for a single string field.
+ * `r:uuid` / `<<i:x>>` → `{{r:uuid}}` / `{{i:x}}`.
+ */
+export function peerStringToDisplay(yaml: unknown): string {
+  if (yaml == null) {
+    return '';
+  }
+  if (typeof yaml === 'string') {
+    return sourceToDisplayTokenTemplate(yaml);
+  }
+  return sourceToDisplayTokenTemplate(String(yaml));
+}
+
+/**
+ * YAML string map → tester peer display map (`{{…}}` tokens).
+ */
+export function peerRecordToDisplay(
+    yaml?: Record<string, unknown>|null,
+): Record<string, string> {
+  const src = yaml && typeof yaml === 'object' ? yaml : {};
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(src)) {
+    out[key] = peerStringToDisplay(value);
+  }
+  return out;
+}
+
+/**
+ * Tester peer string → YAML form.
+ * Accepts bare `r:uuid`, `{{r:uuid}}`, or `<<r:uuid>>` → stores `r:uuid`
+ * (or `<<…>>` when embedded in larger text).
+ */
+export function peerStringToYaml(ui: string): string {
+  const normalized = rewriteAllTokensToDisplayText(String(ui ?? ''));
+  const packed = valueForYamlSave(normalized);
+  return typeof packed === 'string' ? packed : String(packed ?? '');
+}
+
+/**
+ * Tester peer string map → YAML map. Empty maps become `undefined` so the
+ * key is omitted from the file.
+ */
+export function peerRecordToYaml(
+    ui?: Record<string, string>|null,
+): Record<string, string>|undefined {
+  if (!ui || typeof ui !== 'object') {
+    return undefined;
+  }
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(ui)) {
+    if (!key.trim() && !(value ?? '').trim()) {
+      continue;
+    }
+    out[key] = peerStringToYaml(value ?? '');
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}

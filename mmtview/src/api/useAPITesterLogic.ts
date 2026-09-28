@@ -4,7 +4,7 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
-import { requestForSend } from "mmt-core/apiBodyEdit";
+import { fieldForYamlSave, requestForSend } from "mmt-core/apiBodyEdit";
 import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
@@ -150,15 +150,39 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     }
   }, []);
 
-  const updateField = useCallback((field: keyof Request, value: unknown) => {
-    markFieldTouched(field);
-    setRequestData(prev => ({
-      ...(prev ?? {}),
-      [field]: value
-    } as Request));
-  }, [markFieldTouched]);
+  /** Pack UI edit buffers into YAML forms and write the file immediately. */
+  const writeYamlPatch = useCallback((patch: Partial<Request>) => {
+    if (!onUpdateApi || Object.keys(patch).length === 0) {
+      return;
+    }
+    const yamlPatch: Partial<APIData> = {};
+    (Object.keys(patch) as (keyof Request)[]).forEach((field) => {
+      (yamlPatch as Record<string, unknown>)[field as string] = fieldForYamlSave(
+        patch[field],
+      );
+    });
+    onUpdateApi(yamlPatch);
+  }, [onUpdateApi]);
 
-  /** Set a field and drop it from touched (e.g. body reverted to pre-edit resolved text). */
+  /** Update one or more request fields and write them to YAML immediately. */
+  const updateFields = useCallback((patch: Partial<Request>) => {
+    const keys = Object.keys(patch) as (keyof Request)[];
+    if (keys.length === 0) {
+      return;
+    }
+    keys.forEach((field) => markFieldTouched(field));
+    setRequestData((prev) => ({
+      ...(prev ?? {}),
+      ...patch,
+    } as Request));
+    writeYamlPatch(patch);
+  }, [markFieldTouched, writeYamlPatch]);
+
+  const updateField = useCallback((field: keyof Request, value: unknown) => {
+    updateFields({ [field]: value } as Partial<Request>);
+  }, [updateFields]);
+
+  /** Set a field and drop it from touched (e.g. format reverted to YAML baseline). */
   const restoreField = useCallback((field: keyof Request, value: unknown) => {
     if (touchedFieldsRef.current.has(field)) {
       touchedFieldsRef.current.delete(field);
@@ -168,25 +192,22 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       ...(prev ?? {}),
       [field]: value
     } as Request));
-  }, []);
+    writeYamlPatch({ [field]: value } as Partial<Request>);
+  }, [writeYamlPatch]);
 
   const handleUrlChange = useCallback((newUrl: string) => {
     if (newUrl !== requestData?.url) {
-      markFieldTouched("url");
-      setRequestData(prev => ({
-        ...(prev ?? {}),
-        url: newUrl
-      } as Request));
+      updateFields({ url: newUrl });
     }
-  }, [requestData?.url, markFieldTouched]);
+  }, [requestData?.url, updateFields]);
 
   const handleQueryChange = useCallback((query: Record<string, string>) => {
     const prevQuery = JSON.stringify(requestData?.query || {});
     const nextQuery = JSON.stringify(query || {});
     if (prevQuery !== nextQuery) {
-      updateField("query", query);
+      updateFields({ query });
     }
-  }, [requestData?.query, updateField]);
+  }, [requestData?.query, updateFields]);
 
   const loadEnvParameters = useCallback(async (): Promise<JSONRecord> => {
     const envVars = await new Promise<any[]>(resolve => {
@@ -302,6 +323,21 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
         prepareRequestData(currentInputsRef.current, {
           respectTouched: false,
           scopes: ["body"],
+        });
+        return;
+      }
+
+      // Live tester writes for url/headers/meta (and multi-scope combos of those
+      // with body): refresh in place. Keep edit buffers for touched fields so
+      // {{…}} display mode survives the YAML echo.
+      const liveOnly = scopes.every(
+        (s) => s === "url" || s === "body" || s === "headers" || s === "meta" || s === "doc" || s === "examples",
+      );
+      if (liveOnly && scopes.some((s) => s === "url" || s === "body" || s === "headers" || s === "meta")) {
+        prevApiRef.current = api;
+        prepareRequestData(currentInputsRef.current, {
+          respectTouched: true,
+          scopes,
         });
         return;
       }
@@ -634,6 +670,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     apiTestResults,
     isSending,
     updateField,
+    updateFields,
     restoreField,
     handleUrlChange,
     handleQueryChange,

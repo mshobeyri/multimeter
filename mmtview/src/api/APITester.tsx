@@ -4,26 +4,21 @@ import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraint
 import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
-import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView, { type BodyViewCursor } from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
-  bodyForYamlSave,
   displayRequestBody,
-  displayRequestStringRecord,
-  displayRuntimeString,
-  enterEditStringBuffer,
-  enterEditStringRecord,
-  headersTokenSource,
   packBodyAsYamlEncoded,
-  queryTokenSource,
+  peerRecordToDisplay,
+  peerRecordToYaml,
+  peerStringToDisplay,
+  peerStringToYaml,
   tokensTextToYamlBody,
   valueForYamlSave,
   yamlBodyToTokensText,
 } from "mmt-core/apiBodyEdit";
-import { resolveApiRequest } from "mmt-core/resolveApiRequest";
 import { normalizeNewlines } from "mmt-core/textLines";
 import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
 import SendButton from "../components/SendButton";
@@ -65,7 +60,6 @@ function isStructuredYamlBody(body: unknown): boolean {
 interface APITestProps {
   api: APIData;
   onUpdateApi?: (patch: Partial<APIData>) => void;
-  onModificationChange?: (requestData: Request | undefined, touchedFields: Set<keyof Request>) => void;
   onRequestReset?: (reset: () => void) => void;
   rightOfUrlButton?: React.ReactNode;
   selector?: React.ReactNode;
@@ -103,11 +97,10 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   }
 }
 
-const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
+const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
   const { mmtFilePath } = useContext(FileContext);
   const {
     requestData,
-    touchedFields,
     responseData,
     responseRevision,
     selectedExampleIdx,
@@ -118,10 +111,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     autoFormatBody,
     outputs,
     apiTestResults,
-    updateField,
-    restoreField,
-    handleUrlChange,
-    handleQueryChange,
     handleAddOutputVariable,
     prepareRequestData,
     handleSend,
@@ -139,10 +128,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   );
 
   const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>("resolved");
-
-  useEffect(() => {
-    onModificationChange?.(requestData, touchedFields);
-  }, [requestData, touchedFields, onModificationChange]);
 
   useEffect(() => {
     onRequestReset?.(() => {
@@ -172,12 +157,43 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     return protocolResolver.getEffectiveProtocol(protocol, url) === "ws";
   };
 
-  const isGraphQL = requestData?.protocol === "graphql";
-  const isGrpc = requestData?.protocol === "grpc";
+  // Peer fields read from YAML (`api`); requestData is for Send resolution / body preview.
+  const isGraphQL = (requestData?.protocol ?? api.protocol) === "graphql";
+  const isGrpc = (requestData?.protocol ?? api.protocol) === "grpc";
   const requestProtocol = requestData?.protocol || api.protocol;
+  const peerUrl = useMemo(() => peerStringToDisplay(api.url), [api.url]);
+  const peerQuery = useMemo(
+    () => peerRecordToDisplay(api.query as Record<string, unknown> | undefined),
+    [api.query],
+  );
+  const peerHeaders = useMemo(
+    () => peerRecordToDisplay(api.headers as Record<string, unknown> | undefined),
+    [api.headers],
+  );
+  const peerCookies = useMemo(
+    () => peerRecordToDisplay(api.cookies as Record<string, unknown> | undefined),
+    [api.cookies],
+  );
+  const peerGraphqlVariables = useMemo(
+    () => peerRecordToDisplay(
+      api.graphql?.variables as Record<string, unknown> | undefined,
+    ),
+    [api.graphql?.variables],
+  );
+  const peerGrpcMessage = useMemo(
+    () => peerRecordToDisplay(
+      api.grpc?.message as Record<string, unknown> | undefined,
+    ),
+    [api.grpc?.message],
+  );
+  const peerGraphqlOperation = useMemo(
+    () => peerStringToDisplay(api.graphql?.operation),
+    [api.graphql?.operation],
+  );
+
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(
     requestData?.protocol || api.protocol,
-    requestData?.url
+    api.url,
   );
   const methodOrProtocolValue = (effectiveProtocol === "ws" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc")
     ? `protocol:${effectiveProtocol}`
@@ -187,143 +203,43 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
     ? methodOrProtocolValue.slice("protocol:".length)
     : methodOrProtocolValue.slice("method:".length);
-  const currentRequestFormat = requestFormat(requestData?.format ?? api.format);
-  const currentResponseFormat = responseFormat(requestData?.format ?? api.format);
+  const currentRequestFormat = requestFormat(api.format);
+  const currentResponseFormat = responseFormat(api.format);
   const resolvedRequestFormat = resolveRequestFormat(
     currentRequestFormat,
-    requestData?.headers,
+    api.headers as Record<string, string> | undefined,
     methodOrProtocolValue.startsWith("method:") ? methodOrProtocolKey : undefined,
   );
   // Resolved preview shows substituted i:/e:/r:/c: values. Token mode uses a
   // separate BodyView with {{…}} markers (own Ctrl+Z stack).
   const requestBodyDisplay = useMemo(() => {
-    if (!touchedFields.has("body")) {
-      return displayRequestBody(
-        requestData?.body ?? api.body ?? "",
-        resolvedRequestFormat,
-        { valueContext: bodyValueContext },
-      );
-    }
-    const override = requestData?.body;
-    const packed = typeof override === "string"
-      ? bodyForYamlSave(api.body, override, resolvedRequestFormat)
-      : override;
-    try {
-      const resolved = resolveApiRequest(
-        { ...api, body: packed ?? api.body } as typeof api,
-        currentInputs,
-        envValues,
-        { preserveStructuredBody: true },
-      );
-      return displayRequestBody(resolved.body, resolvedRequestFormat, {
-        valueContext: bodyValueContext,
-      });
-    } catch {
-      return typeof override === "string"
-        ? override
-        : displayRequestBody(override ?? "", resolvedRequestFormat);
-    }
+    return displayRequestBody(
+      requestData?.body ?? api.body ?? "",
+      resolvedRequestFormat,
+      { valueContext: bodyValueContext },
+    );
   }, [
-    touchedFields,
     requestData?.body,
-    api,
+    api.body,
     resolvedRequestFormat,
-    currentInputs,
-    envValues,
     bodyValueContext,
   ]);
-  const headerTokenSrc = useMemo(() => headersTokenSource(api), [api]);
-  const queryTokenSrc = useMemo(() => queryTokenSource(api), [api]);
-  const displayUrl = useMemo(
-    () => displayRuntimeString(
-      requestData?.url ?? "",
-      touchedFields.has("url") ? undefined : api.url,
-    ),
-    [requestData?.url, api.url, touchedFields],
-  );
-  const displayQuery = useMemo(
-    () => displayRequestStringRecord(
-      requestData?.query as Record<string, unknown> | undefined,
-      queryTokenSrc,
-      { touched: touchedFields.has("query") || touchedFields.has("url") },
-    ),
-    [requestData?.query, queryTokenSrc, touchedFields],
-  );
-  const displayHeaders = useMemo(
-    () => displayRequestStringRecord(
-      requestData?.headers as Record<string, unknown> | undefined,
-      headerTokenSrc,
-      { touched: touchedFields.has("headers") },
-    ),
-    [requestData?.headers, headerTokenSrc, touchedFields],
-  );
-  const displayCookies = useMemo(
-    () => displayRequestStringRecord(
-      requestData?.cookies as Record<string, unknown> | undefined,
-      api.cookies as Record<string, unknown> | undefined,
-      { touched: touchedFields.has("cookies") },
-    ),
-    [requestData?.cookies, api.cookies, touchedFields],
-  );
-  const displayGraphqlVariables = useMemo(
-    () => displayRequestStringRecord(
-      (requestData?.graphql?.variables ?? api.graphql?.variables) as
-        | Record<string, unknown>
-        | undefined,
-      api.graphql?.variables as Record<string, unknown> | undefined,
-      { touched: touchedFields.has("graphql") },
-    ),
-    [requestData?.graphql?.variables, api.graphql?.variables, touchedFields],
-  );
-  const displayGrpcMessage = useMemo(
-    () => displayRequestStringRecord(
-      (requestData?.grpc?.message ?? api.grpc?.message) as
-        | Record<string, unknown>
-        | undefined,
-      api.grpc?.message as Record<string, unknown> | undefined,
-      { touched: touchedFields.has("grpc") },
-    ),
-    [requestData?.grpc?.message, api.grpc?.message, touchedFields],
-  );
 
   const onUrlChange = useCallback((newUrl: string) => {
-    if (!touchedFields.has("url")) {
-      handleUrlChange(enterEditStringBuffer(displayUrl, newUrl, api.url));
-      return;
-    }
-    handleUrlChange(newUrl);
-  }, [touchedFields, displayUrl, api.url, handleUrlChange]);
+    onUpdateApi?.({ url: peerStringToYaml(newUrl) });
+  }, [onUpdateApi]);
 
   const onQueryChange = useCallback((query: Record<string, string>) => {
-    if (!touchedFields.has("query") && !touchedFields.has("url")) {
-      handleQueryChange(enterEditStringRecord(displayQuery, query, queryTokenSrc));
-      return;
-    }
-    handleQueryChange(query);
-  }, [touchedFields, displayQuery, queryTokenSrc, handleQueryChange]);
+    onUpdateApi?.({ query: peerRecordToYaml(query) });
+  }, [onUpdateApi]);
 
   const onHeadersChange = useCallback((headers: Record<string, string>) => {
-    if (!touchedFields.has("headers")) {
-      updateField("headers", enterEditStringRecord(displayHeaders, headers, headerTokenSrc));
-      return;
-    }
-    updateField("headers", headers);
-  }, [touchedFields, displayHeaders, headerTokenSrc, updateField]);
+    onUpdateApi?.({ headers: peerRecordToYaml(headers) });
+  }, [onUpdateApi]);
 
   const onCookiesChange = useCallback((cookies: Record<string, string>) => {
-    if (!touchedFields.has("cookies")) {
-      updateField(
-        "cookies",
-        enterEditStringRecord(
-          displayCookies,
-          cookies,
-          api.cookies as Record<string, unknown> | undefined,
-        ),
-      );
-      return;
-    }
-    updateField("cookies", cookies);
-  }, [touchedFields, displayCookies, api.cookies, updateField]);
+    onUpdateApi?.({ cookies: peerRecordToYaml(cookies) });
+  }, [onUpdateApi]);
 
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
@@ -371,7 +287,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const methodOrProtocolAccent = methodChrome.accent;
 
   const canRunCurl = requestProtocol !== "graphql" && requestProtocol !== "grpc" &&
-    !isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
+    !isDisplayedUrlWebSocket(requestData?.protocol || api.protocol, api.url);
   const runInputs = useMemo(() => ({
     exampleIndex: selectedExampleIdx,
     manualInputs: currentInputs
@@ -415,7 +331,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const handleMethodOrProtocolChange = (raw: string) => {
     if (raw.startsWith("protocol:")) {
       const protocol = raw.slice("protocol:".length) as Protocol;
-      updateField("protocol", protocol);
+      onUpdateApi?.({ protocol });
       if (protocol === "graphql" || protocol === "grpc") {
         setEditorTab(protocol);
       } else if (editorTab === "graphql" || editorTab === "grpc") {
@@ -425,8 +341,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     }
     if (raw.startsWith("method:")) {
       const method = raw.slice("method:".length) as Method;
-      updateField("method", method);
-      updateField("protocol", "http");
+      onUpdateApi?.({ method, protocol: "http" });
       if (editorTab === "graphql" || editorTab === "grpc") {
         setEditorTab("body");
       }
@@ -446,22 +361,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowGrpc = () => editorTab === "grpc";
   const shouldShowExamples = () => editorTab === "examples";
   const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
-    // Format chips are temporary UI (like body edits): deduced from YAML on
-    // open/reset, independently editable per side, exit temp when both sides
-    // match the YAML baseline again. Store an explicit object while touched so
-    // request/response stay independent (scalar YAML means response:auto).
+    // Format chips write straight to YAML. applyFormatSideEdit keeps
+    // request/response independent and collapses back to the YAML shape when
+    // both sides match the baseline again.
     const result = applyFormatSideEdit({
       side,
       value: format,
       yamlFormat: api.format,
-      currentFormat: requestData?.format ?? api.format,
-      formatTouched: touchedFields.has("format"),
+      currentFormat: api.format,
+      formatTouched: false,
     });
-    if (result.kind === "exitTemp") {
-      restoreField("format", result.format);
-    } else {
-      updateField("format", result.format);
-    }
+    onUpdateApi?.({ format: result.format });
     // text bodies are always plain storage.
     if (side === "request" && format === "text" && isStructuredYamlBody(api.body)) {
       const asText = formatBody("text", api.body ?? "");
@@ -808,16 +718,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         <MethodUrlBar
           methodValue={methodOrProtocolValue}
           onMethodChange={handleMethodOrProtocolChange}
-          url={displayUrl}
-          query={displayQuery}
+          url={peerUrl}
+          query={peerQuery}
           onUrlChange={onUrlChange}
           onQueryChange={onQueryChange}
-          previewMuted={
-            !touchedFields.has("url") &&
-            typeof api.url === "string" &&
-            /(?:<<\s*[ierce]:|(?:^|[^A-Za-z0-9_])[ierce]:|\{\{\s*(?:[ierce]:|random|current))/i
-              .test(api.url)
-          }
         />
         {rightOfUrlButton && (
           <div className="apitest-url-row-actions">
@@ -844,9 +748,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             .map(tab => {
               const active = editorTab === tab.key;
               const count = tab.key === "headers"
-                ? countNamedEntries(requestData?.headers || api.headers)
+                ? countNamedEntries(api.headers)
                 : tab.key === "cookies"
-                  ? countNamedEntries(requestData?.cookies || api.cookies)
+                  ? countNamedEntries(api.cookies)
                   : tab.key === "examples"
                     ? examples.filter(ex => ex && typeof ex === "object").length
                     : 0;
@@ -872,17 +776,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       <div className="apitest-section apitest-section--request">
         {shouldShowQuery() && <KSVEditor
           label="Query parameters"
-          value={displayQuery}
+          value={peerQuery}
           onChange={onQueryChange}
         />}
         {shouldShowHeaders() && <KSVEditor
           label="Request Headers"
-          value={displayHeaders}
+          value={peerHeaders}
           onChange={onHeadersChange}
         />}
         {shouldShowCookies() && <KSVEditor
           label="Manual Cookies"
-          value={displayCookies}
+          value={peerCookies}
           onChange={onCookiesChange}
         />}
         {shouldShowDoc() && api.description ? (
@@ -972,17 +876,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               >
                 {resolvedRequestFormat === "binary" ? (
                   <FilePickerInput
-                    value={typeof requestData?.body === "string" ? requestData.body : ""}
+                    value={peerStringToDisplay(
+                      typeof api.body === "string" ? api.body : "",
+                    )}
                     basePath={mmtFilePath}
                     showFilePicker
                     placeholder="Relative path to binary file"
-                    onChange={val => updateField("body", val)}
-                    onEnterPressed={val => updateField("body", val)}
+                    onChange={val => onUpdateApi?.({ body: peerStringToYaml(val) })}
+                    onEnterPressed={val => onUpdateApi?.({ body: peerStringToYaml(val) })}
                   />
                 ) : resolvedRequestFormat === "multipart" ? (
                   <MultipartPartsEditor
-                    value={requestData?.body}
-                    onChange={parts => updateField("body", parts)}
+                    value={api.body}
+                    onChange={parts => onUpdateApi?.({ body: parts as APIData["body"] })}
                   />
                 ) : bodyTokenMode === "tokens" ? (
                   <BodyView
@@ -1014,40 +920,31 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             <div className="label">Operation</div>
             <div className="apitest-body-wrapper">
               <BodyView
-                value={displayRuntimeString(
-                  requestData?.graphql?.operation || api.graphql?.operation || "",
-                  touchedFields.has("graphql") ? undefined : api.graphql?.operation,
-                )}
+                value={peerGraphqlOperation}
                 format="graphql"
                 mode="live"
                 onChange={val => {
-                  const operation = !touchedFields.has("graphql")
-                    ? enterEditStringBuffer(
-                        displayRuntimeString(
-                          requestData?.graphql?.operation || api.graphql?.operation || "",
-                          api.graphql?.operation,
-                        ),
-                        val,
-                        api.graphql?.operation,
-                      )
-                    : val;
-                  updateField("graphql", { ...requestData?.graphql, ...api.graphql, operation });
+                  onUpdateApi?.({
+                    graphql: {
+                      operation: peerStringToYaml(val),
+                      operationName: api.graphql?.operationName,
+                      variables: api.graphql?.variables,
+                    },
+                  });
                 }}
               />
             </div>
             <KSVEditor
               label="Variables"
-              value={displayGraphqlVariables}
+              value={peerGraphqlVariables}
               onChange={variables => {
-                const entered = !touchedFields.has("graphql")
-                  ? enterEditStringRecord(
-                      displayGraphqlVariables,
-                      variables,
-                      api.graphql?.variables as Record<string, unknown> | undefined,
-                    )
-                  : variables;
-                const vars = Object.keys(entered).length ? entered : undefined;
-                updateField("graphql", { ...requestData?.graphql, ...api.graphql, variables: vars });
+                onUpdateApi?.({
+                  graphql: {
+                    operation: api.graphql?.operation ?? "",
+                    operationName: api.graphql?.operationName,
+                    variables: peerRecordToYaml(variables),
+                  },
+                });
               }}
             />
           </>
@@ -1061,9 +958,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 <input
                   type="text"
                   placeholder="package.ServiceName"
-                  value={requestData?.grpc?.service || api.grpc?.service || ""}
+                  value={api.grpc?.service || ""}
                   onChange={e => {
-                    updateField("grpc", { ...requestData?.grpc, ...api.grpc, service: e.target.value });
+                    onUpdateApi?.({
+                      grpc: {
+                        proto: api.grpc?.proto,
+                        service: e.target.value,
+                        method: api.grpc?.method ?? "",
+                        message: api.grpc?.message,
+                        stream: api.grpc?.stream,
+                      },
+                    });
                   }}
                   className="mmt-fill"
                 />
@@ -1073,9 +978,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 <input
                   type="text"
                   placeholder="MethodName"
-                  value={requestData?.grpc?.method || api.grpc?.method || ""}
+                  value={api.grpc?.method || ""}
                   onChange={e => {
-                    updateField("grpc", { ...requestData?.grpc, ...api.grpc, method: e.target.value });
+                    onUpdateApi?.({
+                      grpc: {
+                        proto: api.grpc?.proto,
+                        service: api.grpc?.service ?? "",
+                        method: e.target.value,
+                        message: api.grpc?.message,
+                        stream: api.grpc?.stream,
+                      },
+                    });
                   }}
                   className="mmt-fill"
                 />
@@ -1083,17 +996,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             </div>
             <KSVEditor
               label="Message"
-              value={displayGrpcMessage}
+              value={peerGrpcMessage}
               onChange={msg => {
-                const entered = !touchedFields.has("grpc")
-                  ? enterEditStringRecord(
-                      displayGrpcMessage,
-                      msg,
-                      api.grpc?.message as Record<string, unknown> | undefined,
-                    )
-                  : msg;
-                const message = Object.keys(entered).length ? entered : undefined;
-                updateField("grpc", { ...requestData?.grpc, ...api.grpc, message });
+                onUpdateApi?.({
+                  grpc: {
+                    proto: api.grpc?.proto,
+                    service: api.grpc?.service ?? "",
+                    method: api.grpc?.method ?? "",
+                    message: peerRecordToYaml(msg),
+                    stream: api.grpc?.stream,
+                  },
+                });
               }}
             />
           </>

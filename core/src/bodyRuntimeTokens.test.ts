@@ -28,6 +28,10 @@ import {
   sourceToDisplayTokenTemplate,
   stringifyJsonWithRuntimeTokens,
   toDisplayRuntimeToken,
+  peerStringToDisplay,
+  peerStringToYaml,
+  peerRecordToDisplay,
+  peerRecordToYaml,
 } from './bodyRuntimeTokens';
 import {beautify, formatBody} from './markupConvertor';
 import {xml2js} from 'xml-js';
@@ -54,6 +58,40 @@ describe('toDisplayRuntimeToken', () => {
     expect(displayTokenToPlain('{{random uuid}}')).toBe('r:uuid');
     expect(displayTokenToPlain('{{current epoch ms}}')).toBe('c:epoch_ms');
     expect(displayTokenToPlain('{{current date(+1d)}}')).toBe('c:date(+1d)');
+  });
+});
+
+describe('peerString / peerRecord YAML↔UI', () => {
+  it('displays bare and angled YAML tokens as {{…}}', () => {
+    expect(peerStringToDisplay('r:uuid')).toBe('{{r:uuid}}');
+    expect(peerStringToDisplay('<<i:user>>')).toBe('{{i:user}}');
+    expect(peerStringToDisplay('Bearer <<e:token>>')).toBe('Bearer {{e:token}}');
+    expect(peerRecordToDisplay({id: 'r:uuid', q: '<<i:x>>'})).toEqual({
+      id: '{{r:uuid}}',
+      q: '{{i:x}}',
+    });
+  });
+
+  it('writes bare r:uuid and {{r:uuid}} to YAML as r:uuid', () => {
+    expect(peerStringToYaml('r:uuid')).toBe('r:uuid');
+    expect(peerStringToYaml('{{r:uuid}}')).toBe('r:uuid');
+    expect(peerStringToYaml('{{i:user}}')).toBe('i:user');
+    expect(peerRecordToYaml({id: 'r:uuid', name: '{{i:user}}'})).toEqual({
+      id: 'r:uuid',
+      name: 'i:user',
+    });
+  });
+
+  it('round-trips query-style records', () => {
+    const yaml = {id: 'r:uuid', city: 'i:city'};
+    const ui = peerRecordToDisplay(yaml);
+    expect(ui).toEqual({id: '{{r:uuid}}', city: '{{i:city}}'});
+    expect(peerRecordToYaml(ui)).toEqual(yaml);
+  });
+
+  it('omits empty records', () => {
+    expect(peerRecordToYaml({})).toBeUndefined();
+    expect(peerRecordToYaml({'': ''})).toBeUndefined();
   });
 });
 
