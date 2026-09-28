@@ -146,6 +146,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   useEffect(() => {
     onRequestReset?.(() => {
       setBodyTokenMode("resolved");
+      setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
+      setBodyYamlEncodeError(false);
       const baseInputs = selectedExampleIdx === -1
         ? (api.inputs || {})
         : (examples[selectedExampleIdx]?.inputs || {});
@@ -157,6 +159,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   useEffect(() => {
     setBodyTokenMode("resolved");
+    // Seed storage preference from the newly opened file only.
+    setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
+    setBodyYamlEncodeError(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on file switch
   }, [mmtFilePath]);
 
   // Based on the displayed URL (not resolved inputs/env)
@@ -513,14 +519,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const openBodyTokens = useCallback((cursor?: BodyViewCursor) => {
     const template = tokensTextFromYaml();
     skipBodySyncRef.current = true;
-    setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
+    // Keep encode preference — do not reset from current storage shape
+    // (mid-edit may be temporarily plain while preference is still encoded).
     setBodyEditCursor(cursor);
     setBodyEditDraft(template);
     // Remount once when entering tokens (fresh Ctrl+Z stack) — never on YAML echo.
     setBodyEditSession((n) => n + 1);
     setBodyYamlEncodeError(false);
     setBodyTokenMode("tokens");
-  }, [tokensTextFromYaml, api.body]);
+  }, [tokensTextFromYaml]);
 
   /** Write api.body as plain string or structured YAML. Returns whether encode succeeded. */
   const writeBodyStorage = useCallback((text: string, preferEncoded: boolean): boolean => {
@@ -604,6 +611,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   // External YAML edits (left pane) while in tokens mode → refresh draft only.
   // Do not bump bodyEditSession (that remounts Monaco and feels like a reload).
+  // Do not touch bodyYamlEncodedManual — preference survives temporary plain fallback.
   useEffect(() => {
     if (bodyTokenMode !== "tokens") {
       return;
@@ -613,12 +621,36 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       return;
     }
     const template = tokensTextFromYaml();
-    setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
-    setBodyYamlEncodeError(false);
     setBodyEditDraft((prev) => (
       normalizeNewlines(prev) === normalizeNewlines(template) ? prev : template
     ));
   }, [api.body, bodyTokenMode, tokensTextFromYaml]);
+
+  // Prefer-encoded: when body is temporarily plain (invalid mid-edit or YAML tweak)
+  // but the text packs again, snap back to structured storage.
+  useEffect(() => {
+    if (!bodyYamlEncodedManual) {
+      return;
+    }
+    if (isStructuredYamlBody(api.body)) {
+      setBodyYamlEncodeError(false);
+      return;
+    }
+    if (typeof api.body !== "string" || api.body.trim() === "") {
+      return;
+    }
+    if (skipBodySyncRef.current) {
+      return;
+    }
+    const packed = packBodyAsYamlEncoded(api.body, resolvedRequestFormat);
+    if (packed == null) {
+      setBodyYamlEncodeError(true);
+      return;
+    }
+    skipBodySyncRef.current = true;
+    setBodyYamlEncodeError(false);
+    onUpdateApi?.({ body: packed as APIData["body"] });
+  }, [api.body, bodyYamlEncodedManual, resolvedRequestFormat, onUpdateApi]);
 
   // If a self-write did not change api.body, the sync effect never runs — clear skip.
   useEffect(() => {
