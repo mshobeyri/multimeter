@@ -23,15 +23,38 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
     onChange({ ...data, outputs: { ...kv } });
   };
 
+  const setId = (v: string) => {
+    const next: ExampleData = { ...data, id: v };
+    // Migrating off deprecated `name`: keep it as title if title was empty.
+    if (!next.title?.trim() && data.name?.trim()) {
+      next.title = data.name.trim();
+    }
+    if (next.name !== undefined) {
+      delete next.name;
+    }
+    onChange(next);
+  };
+
   return (
     <div className="panel-form">
       <div className="panel-form-row">
-        <div className="label">Name</div>
+        <div className="label">Id</div>
         <FieldWithRemove
-          value={data.name ?? ""}
-          onChange={v => onChange({ ...data, name: v })}
+          value={data.id ?? data.name ?? ""}
+          onChange={setId}
           onRemovePressed={onRemove ?? (() => { })}
-          placeholder="name"
+          placeholder="id"
+        />
+      </div>
+
+      <div className="panel-form-row">
+        <div className="label">Title</div>
+        <input
+          type="text"
+          value={data.title ?? data.name ?? ""}
+          onChange={e => onChange({ ...data, title: e.target.value })}
+          placeholder="title"
+          className="mmt-fill"
         />
       </div>
 

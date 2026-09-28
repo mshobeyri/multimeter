@@ -95,7 +95,7 @@ export type ExampleLineInfo = {
 
 /**
  * Line numbers for each entry in the top-level `examples:` array.
- * Prefers the `name:` key line so run glyphs align with the example name
+ * Prefers `id:` (then legacy `name:`) so run glyphs align with the identifier
  * even when `description` or a block `-` precedes it in YAML.
  */
 export function extractExampleLineInfo(
@@ -113,13 +113,14 @@ export function extractExampleLineInfo(
       Array.isArray(examplesPair.value?.items) ? examplesPair.value.items : [];
   const positions: ExampleLineInfo[] = [];
   seqItems.forEach((exampleNode, idx) => {
-    const namePair = Array.isArray(exampleNode?.items) ?
-        exampleNode.items.find((pair: any) => pair?.key?.value === 'name') :
-        undefined;
+    const pairs: any[] = Array.isArray(exampleNode?.items) ? exampleNode.items : [];
+    const idPair = pairs.find((pair: any) => pair?.key?.value === 'id');
+    const namePair = pairs.find((pair: any) => pair?.key?.value === 'name');
+    const labelPair = idPair || namePair;
     let offset: number|undefined;
-    if (namePair?.key && Array.isArray(namePair.key.range) &&
-        typeof namePair.key.range[0] === 'number') {
-      offset = namePair.key.range[0];
+    if (labelPair?.key && Array.isArray(labelPair.key.range) &&
+        typeof labelPair.key.range[0] === 'number') {
+      offset = labelPair.key.range[0];
     } else if (Array.isArray(exampleNode?.range) &&
         typeof exampleNode.range[0] === 'number') {
       offset = exampleNode.range[0];
@@ -1605,7 +1606,7 @@ export function getUndefinedExampleKeyDecorations(
 
 /**
  * Produce ProblemEntry items for example keys that don't match API-level
- * inputs/outputs (for the problems panel).
+ * inputs/outputs (for the problems panel), plus duplicate example ids.
  */
 export function findExampleKeyProblems(
   content: string,
@@ -1616,28 +1617,67 @@ export function findExampleKeyProblems(
     return [];
   }
 
+  const problems: ProblemEntry[] = [];
+
+  // Duplicate example id / legacy name
+  try {
+    const rootItems: any[] = Array.isArray(yamlDoc?.contents?.items) ? yamlDoc.contents.items : [];
+    const examplesPair = rootItems.find((item: any) => item?.key?.value === "examples");
+    const seqItems: any[] =
+        Array.isArray(examplesPair?.value?.items) ? examplesPair.value.items : [];
+    const seen = new Map<string, { line: number }>();
+    seqItems.forEach((exampleNode: any) => {
+      if (!exampleNode || !Array.isArray(exampleNode.items)) {
+        return;
+      }
+      const idPair = exampleNode.items.find((pair: any) => pair?.key?.value === "id");
+      const namePair = exampleNode.items.find((pair: any) => pair?.key?.value === "name");
+      const pair = idPair || namePair;
+      const value = pair?.value?.value;
+      if (typeof value !== "string" || !value.trim()) {
+        return;
+      }
+      const id = value.trim();
+      const range = Array.isArray(pair?.key?.range) ? pair.key.range : null;
+      const offset = range && typeof range[0] === "number" ? range[0] : 0;
+      const line = offsetToLineNumber(content, offset);
+      const prev = seen.get(id);
+      if (prev) {
+        problems.push({
+          message: `Duplicate example id "${id}"`,
+          severity: "error",
+          line,
+          column: 1,
+        });
+      } else {
+        seen.set(id, { line });
+      }
+    });
+  } catch {
+    // ignore AST issues
+  }
+
   const apiInputs = extractApiLevelKeys(yamlDoc, "inputs");
   const apiOutputs = extractApiLevelKeys(yamlDoc, "outputs");
 
   if (apiInputs.size === 0 && apiOutputs.size === 0) {
-    return [];
+    return problems;
   }
 
   const sites = extractApiExampleKeySites(yamlDoc, content);
-  return sites
-    .filter((site) => {
-      const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
-      return allowed.size > 0 && !allowed.has(site.key);
-    })
-    .map((site) => {
+  for (const site of sites) {
+    const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
+    if (allowed.size > 0 && !allowed.has(site.key)) {
       const sectionLabel = site.section === "inputs" ? "inputs" : "outputs";
-      return {
+      problems.push({
         message: `"${site.key}" is not defined in API ${sectionLabel}`,
-        severity: "warning" as const,
+        severity: "warning",
         line: site.line,
         column: 1,
-      };
-    });
+      });
+    }
+  }
+  return problems;
 }
 
 export type InputRefSiteInfo = {

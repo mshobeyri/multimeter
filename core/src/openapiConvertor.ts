@@ -523,7 +523,7 @@ function attachOpenApiExamples(
   }
 
   const examples: ExampleData[] = namedExamples.map((example) => {
-    const item: ExampleData = {name: example.name};
+    const item: ExampleData = {id: example.name, title: example.name};
     if (example.description) {
       item.description = example.description;
     }
@@ -531,7 +531,7 @@ function attachOpenApiExamples(
       item.inputs = {body: example.body};
     }
     return item;
-  }).filter((example) => example.name || example.inputs || example.description);
+  }).filter((example) => example.id || example.inputs || example.description);
 
   if (examples.length > 0) {
     apiData.examples = examples;

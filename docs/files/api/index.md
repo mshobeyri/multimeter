@@ -11,9 +11,9 @@ Run glyphs appear in the left margin of the YAML pane:
 | Control | What it does |
 |---|---|
 | {{btn:run}} on `type:` | Run the API with default inputs through core (opens log output) |
-| {{btn:run}} on a named example's `name:` line | Run that example through core (opens log output) |
+| {{btn:run}} on an example's `id:` line | Run that example through core (opens log output) |
 
-Example run glyphs appear only when the example has a non-empty `name`.
+Example run glyphs appear only when the example has a non-empty `id` (or deprecated `name`).
 
 ## API tester UI
 

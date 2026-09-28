@@ -161,7 +161,8 @@ describe('openapiConvertor.openApiToAPI', () => {
     expect(apis).toHaveLength(1);
     expect(apis[0].body).toBe('<<i:body>>');
     expect(JSON.parse(String(apis[0].inputs?.body))).toEqual({name: 'Default'});
-    expect(apis[0].examples?.map(example => example.name)).toEqual(['Cat', 'Dog']);
+    expect(apis[0].examples?.map(example => example.id)).toEqual(['Cat', 'Dog']);
+    expect(apis[0].examples?.map(example => example.title)).toEqual(['Cat', 'Dog']);
     expect(apis[0].examples?.[0].inputs?.body && JSON.parse(String(apis[0].examples[0].inputs.body))).toEqual({name: 'Whiskers'});
     expect(apis[0].examples?.[1].description).toBe('A dog');
   });
@@ -188,7 +189,7 @@ describe('openapiConvertor.openApiToAPI', () => {
     const api = openApiToAPI(spec)[0];
     expect(api.body).toBe('<<i:body>>');
     expect(JSON.parse(String(api.inputs?.body))).toEqual({ok: true});
-    expect(api.examples?.[0].name).toBe('only');
+    expect(api.examples?.[0].id).toBe('only');
     expect(api.examples?.[0].inputs).toBeUndefined();
   });
 

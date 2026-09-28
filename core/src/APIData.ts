@@ -31,6 +31,14 @@ export interface AuthOAuth2 {
 export type AuthConfig = AuthBearer | AuthBasic | AuthApiKey | AuthOAuth2 | 'none';
 
 export interface ExampleData {
+  /** Stable example identifier (preferred). Used for selection and future `call: alias.id`. */
+  id?: string;
+  /** Display title (preferred). */
+  title?: string;
+  /**
+   * @deprecated Use `id` and `title`. When `id` is missing, `name` is used as both
+   * id and title. Click the struck-through `name:` in the editor to expand to id/title.
+   */
   name?: string;
   description?: string;
   inputs?: JSONRecord;
@@ -40,6 +48,37 @@ export interface ExampleData {
   expect?: ExpectMap;
   /** Hard checks on run outputs (same shape/operators as call require). */
   require?: ExpectMap;
+}
+
+/** Effective example id: `id`, else deprecated `name`. */
+export function exampleId(example: ExampleData | null | undefined): string | undefined {
+  if (!example) {
+    return undefined;
+  }
+  if (typeof example.id === 'string' && example.id.trim()) {
+    return example.id.trim();
+  }
+  if (typeof example.name === 'string' && example.name.trim()) {
+    return example.name.trim();
+  }
+  return undefined;
+}
+
+/** Effective example title: `title`, else deprecated `name`, else `id`. */
+export function exampleTitle(example: ExampleData | null | undefined): string | undefined {
+  if (!example) {
+    return undefined;
+  }
+  if (typeof example.title === 'string' && example.title.trim()) {
+    return example.title.trim();
+  }
+  if (typeof example.name === 'string' && example.name.trim()) {
+    return example.name.trim();
+  }
+  if (typeof example.id === 'string' && example.id.trim()) {
+    return example.id.trim();
+  }
+  return undefined;
 }
 
 /** Soft/hard assertion maps shared by example expect/require and eval helpers. */

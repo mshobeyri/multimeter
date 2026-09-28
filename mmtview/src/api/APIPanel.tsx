@@ -7,7 +7,7 @@ import APITest from "./APITester";
 import ApiTestsEditor from "./ApiTestsEditor";
 import UnsavedChangesWarning from "./UnsavedChangesWarning";
 import YamlErrorWarning from "./YamlErrorWarning";
-import { APIData, ExampleData } from "mmt-core/APIData";
+import { APIData, ExampleData, exampleId, exampleTitle } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
@@ -53,8 +53,8 @@ function ApiTestsEditTab({
         >
           <option value={-1}>Select...</option>
           {examples.map((ex, idx) => (
-            <option key={ex?.name || idx} value={idx}>
-              {ex?.name || `Example ${idx + 1}`}
+            <option key={exampleId(ex) || idx} value={idx}>
+              {exampleTitle(ex) || exampleId(ex) || `Example ${idx + 1}`}
             </option>
           ))}
         </select>
@@ -348,7 +348,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent, readOnly = false, sele
 
   const addExample = () => {
     const examples = safeListCopy(api.examples);
-    examples.push({ name: "" });
+    examples.push({ id: "" });
     setAPI({ ...api, examples });
   };
 

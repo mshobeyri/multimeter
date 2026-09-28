@@ -1090,9 +1090,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200\n",
+            insertText: "examples:\n\t- id: example1\n\t\ttitle: Example 1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200\n",
             detail: 'Usage examples [array of key: value]',
-            documentation: 'Concrete examples with inputs and optional soft/hard checks.\n`expect` / `require` use the same operators as call.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\t\tinputs:\n\t\t\tuserId: "admin123"\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200',
+            documentation: 'Concrete examples with id/title, inputs, and optional soft/hard checks.\n`name` is deprecated — use `id` + `title` (click struck-through `name:` to expand).\nExample:\nexamples:\n\t- id: admin\n\t\ttitle: Get Admin User\n\t\tinputs:\n\t\t\tuserId: "admin123"\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200',
         }
     ];
     const envSuggestions = [

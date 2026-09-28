@@ -1,5 +1,5 @@
 
-import {APIData, ApiTestBlock, AuthConfig, ExampleData, GraphQLConfig, GrpcConfig} from './APIData';
+import {APIData, ApiTestBlock, AuthConfig, ExampleData, GraphQLConfig, GrpcConfig, exampleId} from './APIData';
 import {
   FORMAT_VALUES,
   Format,
@@ -108,6 +108,12 @@ function parseExample(raw: any): ExampleData | null {
     return null;
   }
   const example: ExampleData = {};
+  if (typeof raw.id === 'string') {
+    example.id = raw.id;
+  }
+  if (typeof raw.title === 'string') {
+    example.title = raw.title;
+  }
   if (typeof raw.name === 'string') {
     example.name = raw.name;
   }
@@ -137,8 +143,19 @@ function parseExamples(raw: any): ExampleData[] {
 
 function packExample(example: ExampleData): Record<string, any> {
   const out: Record<string, any> = {};
-  if (example.name) {
-    out.name = example.name;
+  const id = typeof example.id === 'string' && example.id.trim() ? example.id.trim() : undefined;
+  const title = typeof example.title === 'string' && example.title.trim() ? example.title.trim() : undefined;
+  const name = typeof example.name === 'string' && example.name.trim() ? example.name.trim() : undefined;
+  // Prefer id/title. Keep deprecated name only when id is still missing.
+  if (id) {
+    out.id = id;
+  } else if (name) {
+    out.name = name;
+  }
+  if (title) {
+    out.title = title;
+  } else if (id && name && name !== id) {
+    // Unlikely; title already covers display.
   }
   if (example.description) {
     out.description = example.description;
@@ -156,6 +173,22 @@ function packExample(example: ExampleData): Record<string, any> {
     out.require = example.require;
   }
   return out;
+}
+
+function assertUniqueExampleIds(examples: ExampleData[]): void {
+  const seen = new Map<string, number>();
+  for (let i = 0; i < examples.length; i++) {
+    const id = exampleId(examples[i]);
+    if (!id) {
+      continue;
+    }
+    const prev = seen.get(id);
+    if (typeof prev === 'number') {
+      throw new Error(
+          `Invalid API file: duplicate example id "${id}" (examples #${prev + 1} and #${i + 1})`);
+    }
+    seen.set(id, i);
+  }
 }
 
 /** Soft/hard maps from an example (for eval helpers). */
@@ -399,6 +432,8 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     throw new Error(`Invalid API file: "grpc" block is ignored for protocol "${doc.protocol}"`);
   }
   const auth = validateAuth(doc.auth);
+  const examples = parseExamples(doc.examples);
+  assertUniqueExampleIds(examples);
   return {
     type: doc.type || '',
     title: doc.title || '',
@@ -420,7 +455,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     auth,
     graphql,
     grpc,
-    examples: parseExamples(doc.examples),
+    examples,
   };
 }
 

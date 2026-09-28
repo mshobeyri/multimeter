@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect, useMemo, useRef, useCallback } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
-import { APIData } from "mmt-core/APIData";
+import { APIData, exampleId, exampleTitle } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { Request } from "mmt-core/NetworkData";
@@ -511,14 +511,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   const handleAddAsExample = () => {
     const newExampleNameBase = "example";
-    let newName = newExampleNameBase;
-    const nameSet = new Set((api.examples || []).map(e => (e?.name || "").toLowerCase()));
+    let newId = newExampleNameBase;
+    const idSet = new Set(
+      (api.examples || [])
+        .map(e => exampleId(e) || "")
+        .filter(Boolean)
+        .map(id => id.toLowerCase()),
+    );
     let counter = 1;
-    while (nameSet.has(newName.toLowerCase())) {
-      newName = `${newExampleNameBase}${counter++}`;
+    while (idSet.has(newId.toLowerCase())) {
+      newId = `${newExampleNameBase}${counter++}`;
     }
 
-    const newExample: { name: string; inputs?: JSONRecord; outputs?: JSONRecord } = { name: newName };
+    const newExample: { id: string; title?: string; inputs?: JSONRecord; outputs?: JSONRecord } = {
+      id: newId,
+      title: newId,
+    };
     if (Object.keys(currentInputs).length) {
       newExample.inputs = cloneInputs(currentInputs);
     }
@@ -762,8 +770,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   {examples
                     .filter(ex => ex && typeof ex === "object")
                     .map((ex, idx) => (
-                      <option key={ex?.name || idx} value={idx}>
-                        {ex?.name || `Example ${idx + 1}`}
+                      <option key={exampleId(ex) || idx} value={idx}>
+                        {exampleTitle(ex) || exampleId(ex) || `Example ${idx + 1}`}
                       </option>
                     ))}
                 </select>
@@ -803,8 +811,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                   {examples
                     .filter(ex => ex && typeof ex === "object")
                     .map((ex, idx) => (
-                      <option key={ex?.name || idx} value={idx}>
-                        {ex?.name || `Example ${idx + 1}`}
+                      <option key={exampleId(ex) || idx} value={idx}>
+                        {exampleTitle(ex) || exampleId(ex) || `Example ${idx + 1}`}
                       </option>
                     ))}
                 </select>

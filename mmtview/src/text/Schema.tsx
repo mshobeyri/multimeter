@@ -316,8 +316,9 @@ export const APISchema = {
             type: 'array',
             items: {
                 type: 'object',
-                required: ['name'],
                 properties: {
+                    id: { type: 'string' },
+                    title: { type: 'string' },
                     name: { type: 'string' },
                     description: { type: 'string' },
                     inputs: {
@@ -373,6 +374,10 @@ export const APISchema = {
                         }
                     }
                 },
+                anyOf: [
+                    { required: ['id'] },
+                    { required: ['name'] }
+                ],
                 additionalProperties: false
             }
         }

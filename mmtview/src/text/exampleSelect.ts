@@ -44,7 +44,8 @@ function scalarRangeOffsets(node: any): {start: number, end: number}|null {
 }
 
 /**
- * Collect `examples[].name` value spans from the YAML AST (for Ctrl+click).
+ * Collect `examples[].id` (preferred) or legacy `examples[].name` value spans
+ * from the YAML AST (for Ctrl+click).
  */
 export function collectExampleNameHits(content: string): ExampleNameHit[] {
   const hits: ExampleNameHit[] = [];
@@ -66,18 +67,20 @@ export function collectExampleNameHits(content: string): ExampleNameHit[] {
     if (!exampleNode || !Array.isArray(exampleNode.items)) {
       return;
     }
+    const idPair = exampleNode.items.find((pair: any) => pair?.key?.value === 'id');
     const namePair = exampleNode.items.find((pair: any) => pair?.key?.value === 'name');
-    const nameValue = namePair?.value?.value;
-    if (typeof nameValue !== 'string' || !nameValue.trim()) {
+    const pair = idPair || namePair;
+    const value = pair?.value?.value;
+    if (typeof value !== 'string' || !value.trim()) {
       return;
     }
-    const range = scalarRangeOffsets(namePair.value);
+    const range = scalarRangeOffsets(pair.value);
     if (!range) {
       return;
     }
     hits.push({
       exampleIndex: idx,
-      name: nameValue,
+      name: value,
       startOffset: range.start,
       endOffset: range.end,
     });
@@ -94,7 +97,7 @@ function positionToOffset(content: string, lineNumber: number, column: number): 
   return offset + Math.max(0, column - 1);
 }
 
-/** Ctrl/Cmd+hover/click target for an example `name:` value. */
+/** Ctrl/Cmd+hover/click target for an example `id:` / legacy `name:` value. */
 export function getExampleNameTargetAtPosition(
     monaco: any,
     model: any,

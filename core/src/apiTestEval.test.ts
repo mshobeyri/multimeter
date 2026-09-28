@@ -1,4 +1,5 @@
 import {evaluateApiTest, resolveApiOutputField} from './apiTestEval';
+import {exampleId, exampleTitle} from './APIData';
 import {apiToYaml, exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 
 describe('apiParsePack example expect/require', () => {
@@ -9,7 +10,8 @@ describe('apiParsePack example expect/require', () => {
       'outputs:',
       '  status_code: status',
       'examples:',
-      '  - name: ok',
+      '  - id: ok',
+      '    title: Happy path',
       '    expect:',
       '      status_code: 200',
       '    require:',
@@ -17,7 +19,8 @@ describe('apiParsePack example expect/require', () => {
     ].join('\n');
     const api = yamlToAPIStrict(yaml);
     expect(api.examples?.[0]).toMatchObject({
-      name: 'ok',
+      id: 'ok',
+      title: 'Happy path',
       expect: {status_code: 200},
       require: {status_code: '== 200'},
     });
@@ -26,12 +29,34 @@ describe('apiParsePack example expect/require', () => {
       require: {status_code: '== 200'},
     });
     const packed = apiToYaml(api);
+    expect(packed).toContain('id: ok');
+    expect(packed).toContain('title: Happy path');
     expect(packed).toContain('expect:');
     expect(packed).toContain('require:');
     expect(packed).not.toContain('\ntest:');
     expect(yamlToAPI(packed).examples?.[0]?.expect).toEqual({status_code: 200});
   });
 
+  it('uses deprecated name as id/title fallback and rejects duplicate ids', () => {
+    const api = yamlToAPI([
+      'type: api',
+      'url: https://x',
+      'examples:',
+      '  - name: legacy',
+    ].join('\n'));
+    expect(api.examples?.[0]?.name).toBe('legacy');
+    expect(exampleId(api.examples?.[0])).toBe('legacy');
+    expect(exampleTitle(api.examples?.[0])).toBe('legacy');
+    expect(exampleToApiTestBlock(api.examples?.[0])).toBeUndefined();
+
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://x',
+      'examples:',
+      '  - id: dup',
+      '  - name: dup',
+    ].join('\n'))).toThrow(/duplicate example id/);
+  });
   it('rejects root-level test key', () => {
     expect(() => yamlToAPIStrict([
       'type: api',

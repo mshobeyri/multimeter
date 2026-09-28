@@ -1,16 +1,17 @@
 import {collectExampleNameHits} from './exampleSelect';
 
 describe('collectExampleNameHits', () => {
-  it('finds example name value spans', () => {
+  it('finds example id value spans (preferred over name)', () => {
     const content = [
       'type: api',
       'url: https://example.com',
       'method: get',
       'examples:',
-      '  - name: first',
+      '  - id: first',
+      '    title: First',
       '    inputs:',
       '      a: 1',
-      '  - name: "second"',
+      '  - id: "second"',
       '    inputs:',
       '      b: 2',
     ].join('\n');
@@ -22,7 +23,7 @@ describe('collectExampleNameHits', () => {
     expect(content.slice(hits[1].startOffset, hits[1].endOffset)).toContain('second');
   });
 
-  it('skips examples without a name', () => {
+  it('falls back to legacy name when id is missing', () => {
     const content = [
       'type: api',
       'url: https://example.com',

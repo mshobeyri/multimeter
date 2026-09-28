@@ -683,7 +683,8 @@ export function postmanToAPI(postmanJson: any): APIData[] {
         const examples = pmResponses.map((resp, idx) => {
           const or = normalizePostmanRequest(resp && (resp.originalRequest || resp.request));
           const example: any = {
-            name: resp?.name || `example_${idx + 1}`,
+            id: resp?.name || `example_${idx + 1}`,
+            title: resp?.name || `example_${idx + 1}`,
             description: resp?.description || undefined,
             inputs: {} as Record<string, any>,
           };
@@ -762,20 +763,22 @@ export function postmanToAPI(postmanJson: any): APIData[] {
           return example;
         });
 
-        // Keep only examples that have a name or inputs/description
-        apiData.examples = examples.filter(ex => ex && (ex.name || ex.inputs || ex.description));
+        // Keep only examples that have an id or inputs/description
+        apiData.examples = examples.filter(ex => ex && (ex.id || ex.inputs || ex.description));
       }
       // Fallback: responses exist but no originalRequest/request examples captured
       if (!apiData.examples && pmResponses.length > 0) {
         apiData.examples = pmResponses
             .map((resp, idx) => {
               const responseOutputs = responseToOutputs(resp);
+              const id = resp?.name || `example_${idx + 1}`;
               return {
-                name: resp?.name || `example_${idx + 1}`,
+                id,
+                title: id,
                 ...(Object.keys(responseOutputs.exampleOutputs).length > 0 ? {outputs: responseOutputs.exampleOutputs} : {}),
               };
             })
-            .filter(ex => ex.name);
+            .filter(ex => ex.id);
       }
     } catch (e) {
       // Non-fatal: if examples parsing fails, return base apiData

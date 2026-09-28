@@ -69,13 +69,15 @@ query:
      offset: <<i:offset>>
    operationName: GetUsers
  examples:
-   - name: first-page
+   - id: first-page
+     title: First page
      inputs:
        limit: 5
        offset: 0
      outputs:
        userCount: 5
-   - name: second-page
+   - id: second-page
+     title: Second page
      inputs:
        limit: 5
        offset: 5

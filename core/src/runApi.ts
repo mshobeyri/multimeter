@@ -1,4 +1,4 @@
-import {APIData, ApiTestBlock} from './APIData';
+import {APIData, ApiTestBlock, exampleId, exampleTitle} from './APIData';
 import {exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 import {CREATE_API_LOG_HELPERS_SOURCE} from './apiLogHelpersFactorySource';
 import {evaluateApiTest} from './apiTestEval';
@@ -25,8 +25,7 @@ export function resolveApiExample(
     return {exampleInputs: {}};
   }
   const toResult = (ex: any, idx?: number): ResolveExampleResult => {
-    const name =
-        typeof ex?.name === 'string' && ex.name.trim() ? ex.name : undefined;
+    const label = exampleTitle(ex) || exampleId(ex);
     const inputs =
         isPlainObject(ex?.inputs) ? {...ex.inputs as Record<string, any>} : {};
     const outputs = isPlainObject(ex?.outputs) ?
@@ -37,15 +36,17 @@ export function resolveApiExample(
       exampleInputs: inputs,
       exampleOutputs: outputs,
       exampleTest,
-      resolvedExampleName: name,
+      resolvedExampleName: label,
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,
     };
   };
   if (requestedName) {
     const target = requestedName.trim().toLowerCase();
     const idx = examples.findIndex(ex => {
-      const nm = typeof ex?.name === 'string' ? ex.name.trim() : '';
-      return nm.toLowerCase() === target;
+      const id = exampleId(ex);
+      const title = exampleTitle(ex);
+      return (id && id.toLowerCase() === target) ||
+          (title && title.toLowerCase() === target);
     });
     if (idx >= 0) {
       return toResult(examples[idx], idx);
