@@ -11,16 +11,13 @@ import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
   applyRequestBodyEdit,
   displayRequestBody,
+  displayRequestStringRecord,
+  displayRuntimeString,
+  headersTokenSource,
+  queryTokenSource,
   type BodyTempBaseline,
 } from "mmt-core/apiBodyEdit";
 import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
-import {
-  collectRuntimeLeaves,
-  findRuntimeValueRangesInJson,
-  findRuntimeValueRangesInPlainText,
-  runtimeTokenKeys,
-  stringContainsRuntimeToken,
-} from "mmt-core/runtimeTokenUi";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
@@ -64,11 +61,6 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
     return 0;
   }
   return Object.keys(record).filter(key => key.trim().length > 0).length;
-}
-
-function isJsonLikeBodyFormat(format: string): boolean {
-  const normalized = (format || "").toLowerCase();
-  return normalized === "json" || normalized === "multipart";
 }
 
 const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> = [
@@ -190,55 +182,66 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   // Untouched structured YAML body → format projection for highlight.
   // Once the user edits, requestData.body is raw text (temporary modified state);
   // keep it as-is so mid-edit invalid JSON/XML is allowed and Send uses editor text.
+  // r:/c: markers from YAML are shown as {{random …}} / {{current …}} (not resolved values).
   const requestBodySource = requestData?.body ?? api.body ?? "";
   const requestBodyDisplay = displayRequestBody(
     requestBodySource,
     resolvedRequestFormat,
+    touchedFields.has("body") ? undefined : { tokenSource: api.body },
   );
-  const bodyRuntimeRanges = useMemo(() => {
-    if (touchedFields.has("body")) {
-      return [];
-    }
-    const leaves = collectRuntimeLeaves(api.body, requestData?.body);
-    if (leaves.length === 0) {
-      return [];
-    }
-    if (isJsonLikeBodyFormat(resolvedRequestFormat)) {
-      return findRuntimeValueRangesInJson(requestBodyDisplay, leaves);
-    }
-    return findRuntimeValueRangesInPlainText(requestBodyDisplay, leaves);
-  }, [api.body, requestData?.body, requestBodyDisplay, resolvedRequestFormat, touchedFields]);
-
-  const urlHasRuntimeToken = useMemo(() => {
-    if (touchedFields.has("url") || touchedFields.has("query")) {
-      return false;
-    }
-    if (stringContainsRuntimeToken(api.url)) {
-      return true;
-    }
-    return runtimeTokenKeys(api.query as Record<string, unknown> | undefined).size > 0;
-  }, [api.url, api.query, touchedFields]);
-
-  const headerRuntimeKeys = useMemo(() => {
-    if (touchedFields.has("headers")) {
-      return new Set<string>();
-    }
-    return runtimeTokenKeys(api.headers as Record<string, unknown> | undefined);
-  }, [api.headers, touchedFields]);
-
-  const cookieRuntimeKeys = useMemo(() => {
-    if (touchedFields.has("cookies")) {
-      return new Set<string>();
-    }
-    return runtimeTokenKeys(api.cookies as Record<string, unknown> | undefined);
-  }, [api.cookies, touchedFields]);
-
-  const queryRuntimeKeys = useMemo(() => {
-    if (touchedFields.has("query") || touchedFields.has("url")) {
-      return new Set<string>();
-    }
-    return runtimeTokenKeys(api.query as Record<string, unknown> | undefined);
-  }, [api.query, touchedFields]);
+  const headerTokenSrc = useMemo(() => headersTokenSource(api), [api]);
+  const queryTokenSrc = useMemo(() => queryTokenSource(api), [api]);
+  const displayUrl = useMemo(
+    () => displayRuntimeString(
+      requestData?.url ?? "",
+      touchedFields.has("url") ? undefined : api.url,
+    ),
+    [requestData?.url, api.url, touchedFields],
+  );
+  const displayQuery = useMemo(
+    () => displayRequestStringRecord(
+      requestData?.query as Record<string, unknown> | undefined,
+      queryTokenSrc,
+      { touched: touchedFields.has("query") || touchedFields.has("url") },
+    ),
+    [requestData?.query, queryTokenSrc, touchedFields],
+  );
+  const displayHeaders = useMemo(
+    () => displayRequestStringRecord(
+      requestData?.headers as Record<string, unknown> | undefined,
+      headerTokenSrc,
+      { touched: touchedFields.has("headers") },
+    ),
+    [requestData?.headers, headerTokenSrc, touchedFields],
+  );
+  const displayCookies = useMemo(
+    () => displayRequestStringRecord(
+      requestData?.cookies as Record<string, unknown> | undefined,
+      api.cookies as Record<string, unknown> | undefined,
+      { touched: touchedFields.has("cookies") },
+    ),
+    [requestData?.cookies, api.cookies, touchedFields],
+  );
+  const displayGraphqlVariables = useMemo(
+    () => displayRequestStringRecord(
+      (requestData?.graphql?.variables ?? api.graphql?.variables) as
+        | Record<string, unknown>
+        | undefined,
+      api.graphql?.variables as Record<string, unknown> | undefined,
+      { touched: touchedFields.has("graphql") },
+    ),
+    [requestData?.graphql?.variables, api.graphql?.variables, touchedFields],
+  );
+  const displayGrpcMessage = useMemo(
+    () => displayRequestStringRecord(
+      (requestData?.grpc?.message ?? api.grpc?.message) as
+        | Record<string, unknown>
+        | undefined,
+      api.grpc?.message as Record<string, unknown> | undefined,
+      { touched: touchedFields.has("grpc") },
+    ),
+    [requestData?.grpc?.message, api.grpc?.message, touchedFields],
+  );
 
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
@@ -393,7 +396,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     updateField("format", result.format);
   };
 
-  // Snapshot of resolved display + body taken on first edit; exact revert exits temp mode.
+  // Snapshot of projected display + body taken on first edit; exact revert exits temp mode.
   const bodyTempBaselineRef = useRef<BodyTempBaseline | null>(null);
 
   useEffect(() => {
@@ -409,6 +412,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       format: resolvedRequestFormat,
       baseline: bodyTempBaselineRef.current,
       bodyAlreadyTouched: touchedFields.has("body"),
+      tokenSource: api.body,
     });
     bodyTempBaselineRef.current = result.baseline;
     if (result.kind === "exitTemp") {
@@ -542,11 +546,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         <MethodUrlBar
           methodValue={methodOrProtocolValue}
           onMethodChange={handleMethodOrProtocolChange}
-          url={requestData?.url ?? ""}
-          query={requestData?.query || {}}
+          url={displayUrl}
+          query={displayQuery}
           onUrlChange={handleUrlChange}
           onQueryChange={handleQueryChange}
-          showRuntimeDot={urlHasRuntimeToken}
         />
         {rightOfUrlButton && (
           <div className="apitest-url-row-actions">
@@ -599,21 +602,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       <div className="apitest-section apitest-section--request">
         {shouldShowQuery() && <KSVEditor
           label="Query parameters"
-          value={requestData?.query || {}}
+          value={displayQuery}
           onChange={query => updateField("query", query)}
-          runtimeKeys={queryRuntimeKeys}
         />}
         {shouldShowHeaders() && <KSVEditor
           label="Request Headers"
-          value={requestData?.headers || {}}
+          value={displayHeaders}
           onChange={headers => updateField("headers", headers)}
-          runtimeKeys={headerRuntimeKeys}
         />}
         {shouldShowCookies() && <KSVEditor
           label="Manual Cookies"
-          value={requestData?.cookies || {}}
+          value={displayCookies}
           onChange={cookies => updateField("cookies", cookies)}
-          runtimeKeys={cookieRuntimeKeys}
         />}
         {shouldShowDoc() && api.description ? (
           <MdViewer
@@ -632,38 +632,40 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               value={currentRequestFormat}
               onChange={format => setBodyFormat("request", format)}
             />
-          <div
-            className={`apitest-body-wrapper${requestBodyDisabled ? " is-disabled" : ""}`}
-            data-mmt-coach="body"
-            title={requestBodyDisabled ? "No request body" : undefined}
-          >
-              {resolvedRequestFormat === "binary" ? (
-                <FilePickerInput
-                  value={typeof requestData?.body === "string" ? requestData.body : ""}
-                  basePath={mmtFilePath}
-                  showFilePicker
-                  placeholder="Relative path to binary file"
-                  onChange={val => updateField("body", val)}
-                  onEnterPressed={val => updateField("body", val)}
-                  disabled={requestBodyDisabled}
-                />
-              ) : resolvedRequestFormat === "multipart" ? (
-                <MultipartPartsEditor
-                  value={requestData?.body}
-                  onChange={parts => updateField("body", parts)}
-                  disabled={requestBodyDisabled}
-                />
-              ) : (
-                <BodyView
-                  value={requestBodyDisplay}
-                  format={resolvedRequestFormat}
-                  mode="live"
-                  disabled={requestBodyDisabled}
-                  onChange={requestBodyDisabled ? undefined : handleRequestBodyChange}
-                  runtimeRanges={bodyRuntimeRanges}
-                />
-              )}
-          </div>
+            {requestBodyDisabled ? (
+              <div className="apitest-body-none" role="status">
+                <span className="codicon codicon-jersey apitest-body-none-icon" aria-hidden />
+                <div className="apitest-body-none-message">Request has no body.</div>
+              </div>
+            ) : (
+              <div
+                className="apitest-body-wrapper"
+                data-mmt-coach="body"
+              >
+                {resolvedRequestFormat === "binary" ? (
+                  <FilePickerInput
+                    value={typeof requestData?.body === "string" ? requestData.body : ""}
+                    basePath={mmtFilePath}
+                    showFilePicker
+                    placeholder="Relative path to binary file"
+                    onChange={val => updateField("body", val)}
+                    onEnterPressed={val => updateField("body", val)}
+                  />
+                ) : resolvedRequestFormat === "multipart" ? (
+                  <MultipartPartsEditor
+                    value={requestData?.body}
+                    onChange={parts => updateField("body", parts)}
+                  />
+                ) : (
+                  <BodyView
+                    value={requestBodyDisplay}
+                    format={resolvedRequestFormat}
+                    mode="live"
+                    onChange={handleRequestBodyChange}
+                  />
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -672,7 +674,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             <div className="label">Operation</div>
             <div className="apitest-body-wrapper">
               <BodyView
-                value={requestData?.graphql?.operation || api.graphql?.operation || ""}
+                value={displayRuntimeString(
+                  requestData?.graphql?.operation || api.graphql?.operation || "",
+                  touchedFields.has("graphql") ? undefined : api.graphql?.operation,
+                )}
                 format="graphql"
                 mode="live"
                 onChange={val => {
@@ -682,7 +687,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             </div>
             <KSVEditor
               label="Variables"
-              value={requestData?.graphql?.variables ?? api.graphql?.variables ?? {}}
+              value={displayGraphqlVariables}
               onChange={variables => {
                 const vars = Object.keys(variables).length ? variables : undefined;
                 updateField("graphql", { ...requestData?.graphql, ...api.graphql, variables: vars });
@@ -721,7 +726,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             </div>
             <KSVEditor
               label="Message"
-              value={(requestData?.grpc?.message ?? api.grpc?.message ?? {}) as Record<string, string>}
+              value={displayGrpcMessage}
               onChange={msg => {
                 const message = Object.keys(msg).length ? msg : undefined;
                 updateField("grpc", { ...requestData?.grpc, ...api.grpc, message });

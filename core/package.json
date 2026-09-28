@@ -80,6 +80,11 @@
       "require": "./dist/runtimeTokenUi.js",
       "default": "./dist/runtimeTokenUi.js"
     },
+    "./bodyRuntimeTokens": {
+      "types": "./dist/bodyRuntimeTokens.d.ts",
+      "require": "./dist/bodyRuntimeTokens.js",
+      "default": "./dist/bodyRuntimeTokens.js"
+    },
     "./NetworkData": {
       "types": "./dist/NetworkData.d.ts",
       "require": "./dist/NetworkData.js",

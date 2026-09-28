@@ -21,8 +21,6 @@ interface KSVEditorProps {
   expandable?: boolean;
   filePicker?: boolean;
   filePickerFilters?: Array<{ name?: string; extensions?: string[] }>;
-  /** Keys whose values came from r:/c: (show red dot while not in temp mode). */
-  runtimeKeys?: Set<string> | string[];
 }
 
 function toStoredString(display: string): string {
@@ -73,15 +71,8 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   expandable = true,
   filePicker = false,
   filePickerFilters,
-  runtimeKeys,
 }) => {
   const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
-  const runtimeKeySet = useMemo(() => {
-    if (!runtimeKeys) {
-      return null;
-    }
-    return runtimeKeys instanceof Set ? runtimeKeys : new Set(runtimeKeys);
-  }, [runtimeKeys]);
   const safeOptions = Array.isArray(options) ? options : [];
 
   const fileCtx = useContext(FileContext);
@@ -179,7 +170,6 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         placeholder={valuePlaceholder}
                         disabled={disabled}
                         removable={deletable && !deactivated}
-                        showRuntimeDot={Boolean(runtimeKeySet?.has(k))}
                       />
                     )
                   )}

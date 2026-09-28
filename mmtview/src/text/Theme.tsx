@@ -191,13 +191,21 @@ function buildThemeDefinition(monaco: any, themeName: string) {
       // YAML &anchor / *alias (monarch token from yamlTokenizer)
       { token: "namespace", foreground: anchor },
       { token: "namespace.yaml", foreground: anchor },
+      // Body {{random …}} / {{current …}} (mmt-json)
+      { token: "namespace.json", foreground: anchor },
 
-      // JSON tokens (match VS Code / Monaco scope names)
+      // JSON tokens (match VS Code / Monaco scope names from jsonMode.js)
+      { token: "string.key", foreground: key },
       { token: "string.key.json", foreground: key },
+      { token: "string.value", foreground: string },
       { token: "string.value.json", foreground: string },
       { token: "number.json", foreground: number },
       { token: "keyword.json", foreground: keyword },
       { token: "delimiter.json", foreground: punct },
+      { token: "delimiter.bracket.json", foreground: punct },
+      { token: "delimiter.array.json", foreground: punct },
+      { token: "delimiter.colon.json", foreground: punct },
+      { token: "delimiter.comma.json", foreground: punct },
 
       // urlencoded form body (key=value&...)
       { token: "key.urlencoded", foreground: key },

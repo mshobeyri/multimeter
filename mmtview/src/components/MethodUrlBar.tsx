@@ -35,8 +35,6 @@ type MethodUrlBarProps = {
   query: Record<string, string>;
   onUrlChange: (url: string) => void;
   onQueryChange: (query: Record<string, string>) => void;
-  /** Red dot: URL/query still has unresolved r:/c: preview that refreshes on Send. */
-  showRuntimeDot?: boolean;
 };
 
 const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
@@ -46,7 +44,6 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   query,
   onUrlChange,
   onQueryChange,
-  showRuntimeDot = false,
 }) => {
   const urlValue = url + buildQueryString(query);
   const [inputValue, setInputValue] = useState(urlValue);
@@ -89,7 +86,7 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
           ))}
         </select>
       </div>
-      <div className={`method-url-bar-url-wrap${showRuntimeDot ? " has-runtime-dot" : ""}`}>
+      <div className="method-url-bar-url-wrap">
         <input
           type="text"
           className="method-url-bar-url"
@@ -104,9 +101,6 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
             }
           }}
         />
-        {showRuntimeDot ? (
-          <span className="mmt-runtime-dot" title="Refreshes on Send (r:/c:)" aria-hidden />
-        ) : null}
       </div>
     </div>
   );

@@ -2,10 +2,15 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { xml2js } from "xml-js";
 import { beautify } from "mmt-core/markupConvertor";
+import {
+  findDisplayRuntimeTokenRanges,
+  isJsonWithRuntimeTokensValid,
+  isXmlWithRuntimeTokensValid,
+} from "mmt-core/bodyRuntimeTokens";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
 import { normalizeNewlines } from "mmt-core/textLines";
 import { shouldReplaceLocalEditorValue } from "../text/editorContentSync";
-import TextEditor from "../text/TextEditor";
+import TextEditor, { MMT_JSON_LANGUAGE_ID } from "../text/TextEditor";
 import { useAccentChrome } from "../shared/useAccentChrome";
 
 export type mode = "appliable" | "live";
@@ -28,17 +33,11 @@ function editorLanguageForBody(format: string): string {
         return "xml";
     }
     if (isJsonLikeBodyFormat(normalized)) {
-        return "json";
+        // JSON theme scopes + {{random/current …}} values (built-in json breaks keys).
+        return MMT_JSON_LANGUAGE_ID;
     }
     return format;
 }
-
-export type BodyRuntimeRange = {
-    startLineNumber: number;
-    startColumn: number;
-    endLineNumber: number;
-    endColumn: number;
-};
 
 export type BodyViewProps = {
     value: string;
@@ -48,8 +47,6 @@ export type BodyViewProps = {
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
     refreshKey?: number;
     disabled?: boolean;
-    /** Monaco ranges for resolved r:/c: values (red dot at top-right of each). */
-    runtimeRanges?: BodyRuntimeRange[];
 };
 
 const BodyView: React.FC<BodyViewProps> = ({
@@ -60,7 +57,6 @@ const BodyView: React.FC<BodyViewProps> = ({
     onInspectPosition,
     refreshKey,
     disabled = false,
-    runtimeRanges,
 }) => {
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
@@ -69,7 +65,7 @@ const BodyView: React.FC<BodyViewProps> = ({
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const isUserEditingRef = useRef(false);
     const editorRef = useRef<any>(null);
-    const runtimeDecorationsRef = useRef<string[]>([]);
+    const tokenDecorationsRef = useRef<string[]>([]);
     const [editorReady, setEditorReady] = useState(false);
     const [cursorPath, setCursorPath] = useState<{ path: PathSegment[]; expr: string; key: string } | null>(null);
     const cursorListenerRef = useRef<any>(null);
@@ -158,18 +154,16 @@ const BodyView: React.FC<BodyViewProps> = ({
             return;
         }
         if (isJsonLikeBodyFormat(format)) {
-            try {
-                JSON.parse(localValue);
-            } catch (e: any) {
+            if (!isJsonWithRuntimeTokensValid(localValue)) {
                 valid = false;
-                err = e?.message || "Invalid JSON";
+                err = "Invalid JSON";
             }
         } else if (isXmlLike) {
-            try {
-                xml2js(localValue, { compact: true });
-            } catch (e: any) {
+            if (!isXmlWithRuntimeTokensValid(localValue, (xml) => {
+                xml2js(xml, { compact: true });
+            })) {
                 valid = false;
-                err = e?.message || "Invalid XML";
+                err = "Invalid XML";
             }
         }
         setIsValid(valid);
@@ -188,7 +182,7 @@ const BodyView: React.FC<BodyViewProps> = ({
         setEditorReady(false);
     }, [isFullscreen]);
 
-    // Red dots on resolved r:/c: values (afterContent at end of each range).
+    // Badge highlight for {{random …}} / {{current …}} spans.
     useEffect(() => {
         if (!editorReady) {
             return;
@@ -197,26 +191,26 @@ const BodyView: React.FC<BodyViewProps> = ({
         if (!editor || typeof editor.deltaDecorations !== "function") {
             return;
         }
-        const ranges = runtimeRanges && runtimeRanges.length > 0 ? runtimeRanges : [];
-        runtimeDecorationsRef.current = editor.deltaDecorations(
-            runtimeDecorationsRef.current,
+        const ranges = findDisplayRuntimeTokenRanges(localValue);
+        tokenDecorationsRef.current = editor.deltaDecorations(
+            tokenDecorationsRef.current,
             ranges.map(range => ({
                 range,
                 options: {
-                    afterContentClassName: "mmt-runtime-value-dot",
+                    inlineClassName: "mmt-body-runtime-token",
                     stickiness: 1, // NeverGrowsWhenTypingAtEdges
                 },
             })),
         );
         return () => {
-            if (editorRef.current && typeof editorRef.current.deltaDecorations === "function") {
-                runtimeDecorationsRef.current = editorRef.current.deltaDecorations(
-                    runtimeDecorationsRef.current,
+            if (typeof editor.deltaDecorations === "function") {
+                tokenDecorationsRef.current = editor.deltaDecorations(
+                    tokenDecorationsRef.current,
                     [],
                 );
             }
         };
-    }, [runtimeRanges, localValue, format, isFullscreen, editorReady]);
+    }, [localValue, format, isFullscreen, editorReady]);
 
     // Exit fullscreen on Escape
     useEffect(() => {

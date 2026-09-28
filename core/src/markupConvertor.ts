@@ -14,6 +14,14 @@ import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 import {normalizeNewlines} from './textLines';
 import {mergeYamlValue} from './yamlAstMerge';
 import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
+import {
+  parseJsonWithRuntimeTokens,
+  parseXmlTextWithRuntimeTokens,
+  restoreAngleRuntimeTokensInUrlEncoded,
+  reviveDisplayRuntimeTokensInValue,
+  rewriteRuntimeLeavesToDisplayText,
+  stringifyJsonWithRuntimeTokens,
+} from './bodyRuntimeTokens';
 
 /**
  * Quote YAML-unsafe expect/debug operators (`!=`, `!*`, `>`, …) before parsing.
@@ -203,7 +211,8 @@ function objectToUrlEncoded(obj: Record<string, unknown>): string {
   for (const [key, value] of Object.entries(obj)) {
     params.append(key, formValueToString(value));
   }
-  return params.toString();
+  // Keep <<r:/c:>> readable in the editor (do not leave them percent-encoded).
+  return restoreAngleRuntimeTokensInUrlEncoded(params.toString());
 }
 
 function formatUrlEncodedBody(body: string|object): string {
@@ -220,12 +229,12 @@ function formatUrlEncodedBody(body: string|object): string {
     } catch {
       // Keep as raw string (already encoded or plain text)
     }
-    return trimmed;
+    return restoreAngleRuntimeTokensInUrlEncoded(trimmed);
   }
   if (body && typeof body === 'object' && !Array.isArray(body)) {
     return objectToUrlEncoded(body as Record<string, unknown>);
   }
-  return body == null ? '' : String(body);
+  return body == null ? '' : restoreAngleRuntimeTokensInUrlEncoded(String(body));
 }
 
 function parseUrlEncodedBody(body: string): Record<string, string> {
@@ -252,7 +261,7 @@ function coerceBodyToStructuredObject(body: string|object): string|object {
   }
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
-      return JSON.parse(normalized);
+      return parseJsonWithRuntimeTokens(normalized) as string|object;
     } catch {
       // fall through
     }
@@ -269,15 +278,43 @@ function coerceBodyToStructuredObject(body: string|object): string|object {
 }
 
 function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean): string {
-  const coerced = coerceBodyToStructuredObject(body);
-  if (coerced === '') {
-    return '';
+  let xmlObj: unknown;
+  if (typeof body === 'string') {
+    const normalized = normalizeNewlines(body);
+    if (normalized.trim() === '') {
+      return '';
+    }
+    const trimmed = normalized.trimStart();
+    if (trimmed.startsWith('<')) {
+      // Lenient parse + revive {{random …}} / {{current …}} leaves to r:/c:.
+      xmlObj = parseXmlTextWithRuntimeTokens(
+          normalized,
+          (xml) => flattenXmlObj(xml2js(xml, {compact: true})),
+      );
+      xmlObj = rewriteRuntimeLeavesToDisplayText(xmlObj);
+    } else {
+      // JSON/YAML object text → structured object, then XML (existing convert path).
+      const coerced = coerceBodyToStructuredObject(normalized);
+      if (coerced === '') {
+        return '';
+      }
+      xmlObj = typeof coerced === 'string' ?
+        flattenXmlObj(xml2js(coerced, {compact: true})) :
+        coerced;
+    }
+  } else {
+    const coerced = coerceBodyToStructuredObject(body);
+    if (coerced === '') {
+      return '';
+    }
+    xmlObj = typeof coerced === 'string' ?
+      flattenXmlObj(xml2js(coerced, {compact: true})) :
+      coerced;
   }
-  const xmlObj = typeof coerced === 'string' ? xml2js(coerced, {compact: true}) : coerced;
-  return js2xml(xmlObj, {
+  return js2xml(xmlObj as object, {
     compact: true,
     spaces: pretty ? 2 : 0,
-    fullTagEmptyElement: expanded
+    fullTagEmptyElement: expanded,
   });
 }
 
@@ -309,7 +346,7 @@ function normalizeBodyToJsonObject(body: string|object): unknown {
     }
   }
   try {
-    return JSON.parse(coerced);
+    return parseJsonWithRuntimeTokens(coerced);
   } catch {
     try {
       return YAML.parse(coerced);
@@ -365,14 +402,15 @@ function formatBody(
     }
     if (format === 'html') {
       if (typeof body !== 'string') {
-        return JSON.stringify(body, null, pretty ? 2 : 0);
+        // Same as text/none: keep number/bool runtime tokens unquoted.
+        return stringifyJsonWithRuntimeTokens(body, pretty);
       }
       return pretty ? formatHtmlBody(body) : body;
     }
     if (format === 'text' || format === 'none') {
       return typeof body === 'string' ?
           body :
-          JSON.stringify(body, null, pretty ? 2 : 0);
+          stringifyJsonWithRuntimeTokens(body, pretty);
     }
     return typeof body === 'string' ? body : YAML.stringify(body);
   } catch {
@@ -455,13 +493,17 @@ function packUiBodyStrictForYaml(format: Format, body: string): unknown|null {
   }
   try {
     if (format === 'json' || format === 'multipart') {
-      return JSON.parse(text);
+      // Allow unquoted `<<r:…>>` / `<<c:…>>` and revive them to bare tokens.
+      return parseJsonWithRuntimeTokens(text);
     }
     if (isXmlFormat(format)) {
-      return flattenXmlObj(xml2js(text, {compact: true}));
+      return parseXmlTextWithRuntimeTokens(
+          text,
+          (xml) => flattenXmlObj(xml2js(xml, {compact: true})),
+      );
     }
     if (format === 'urlencoded') {
-      return parseUrlEncodedBody(text);
+      return reviveDisplayRuntimeTokensInValue(parseUrlEncodedBody(text));
     }
     if (format === 'binary' || format === 'text' || format === 'html' ||
         format === 'none') {
@@ -503,13 +545,23 @@ function packBodyForYamlCompare(
 function beautify(format: Format, value: string): string {
   try {
     if (format === 'json' || format === 'multipart') {
-      return JSON.stringify(JSON.parse(value), null, 2);
+      return stringifyJsonWithRuntimeTokens(
+          parseJsonWithRuntimeTokens(value), true);
     }
     if (isXmlFormat(format)) {
-      return formatXmlBody(value, true, format === 'xmle');
+      const parsed = parseXmlTextWithRuntimeTokens(
+          value,
+          (xml) => flattenXmlObj(xml2js(xml, {compact: true})),
+      );
+      return formatXmlBody(
+          rewriteRuntimeLeavesToDisplayText(parsed) as string|object,
+          true,
+          format === 'xmle');
     }
     if (format === 'urlencoded') {
-      return objectToUrlEncoded(parseUrlEncodedBody(value));
+      const parsed = reviveDisplayRuntimeTokensInValue(parseUrlEncodedBody(value));
+      return objectToUrlEncoded(
+          rewriteRuntimeLeavesToDisplayText(parsed) as Record<string, unknown>);
     }
     if (format === 'html') {
       return formatHtmlBody(value);

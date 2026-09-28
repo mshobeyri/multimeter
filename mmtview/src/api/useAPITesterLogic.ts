@@ -4,7 +4,7 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
-import { bodyForSend } from "mmt-core/apiBodyEdit";
+import { requestForSend } from "mmt-core/apiBodyEdit";
 import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
@@ -262,8 +262,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       merged.method ?? apiRef.current.method,
     );
     return {
-      ...merged,
-      body: bodyForSend(merged.body, reqFormat),
+      ...requestForSend(merged, reqFormat),
     };
   }, [resolveFreshRequestData]);
 

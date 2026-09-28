@@ -3,6 +3,9 @@ import {
   bodyForSend,
   bodyForYamlSave,
   displayRequestBody,
+  headersTokenSource,
+  queryTokenSource,
+  requestForSend,
 } from './apiBodyEdit';
 import {formatBody} from './markupConvertor';
 import {resolveRequestFormat} from './formatResolve';
@@ -17,6 +20,20 @@ describe('displayRequestBody', () => {
     expect(displayRequestBody({message: 'hi'}, 'json')).toBe(
         formatBody('json', {message: 'hi'}),
     );
+  });
+
+  it('projects r:/c: markers as {{random …}} when tokenSource is set', () => {
+    const source = {id: 'r:uuid', n: 'r:int', label: 'hello'};
+    const resolved = {
+      id: '11111111-1111-1111-1111-111111111111',
+      n: 7,
+      label: 'hello',
+    };
+    const shown = displayRequestBody(resolved, 'json', {tokenSource: source});
+    expect(shown).toContain('"id": "{{random uuid}}"');
+    expect(shown).toContain('"n": {{random int}}');
+    expect(shown).toContain('"label": "hello"');
+    expect(shown).not.toContain('11111111');
   });
 
   it('treats null/undefined as empty', () => {
@@ -131,6 +148,17 @@ describe('bodyForYamlSave + resolveRequestFormat (chart flow)', () => {
     expect(bodyForYamlSave(yamlBody, ui, 'json')).toEqual({message: 'ssss'});
   });
 
+  it('packs display runtime tokens back to bare scalars', () => {
+    const yamlBody = {id: 'r:uuid', n: 1, label: 'x'};
+    const ui =
+        '{\n  "id": "{{random uuid}}",\n  "n": {{random int}},\n  "label": "{{current date}}"\n}';
+    expect(bodyForYamlSave(yamlBody, ui, 'json')).toEqual({
+      id: 'r:uuid',
+      n: 'r:int',
+      label: 'c:date',
+    });
+  });
+
   it('keeps invalid UI text as text when YAML was structured', () => {
     const yamlBody = {message: 'hello'};
     expect(bodyForYamlSave(yamlBody, '{"message":', 'json')).toBe('{"message":');
@@ -184,5 +212,42 @@ describe('bodyForYamlSave + resolveRequestFormat (chart flow)', () => {
     expect(bodyForSend(reverted.body, format)).toBe(
         formatBody(format, yamlBody, false),
     );
+  });
+});
+
+describe('headersTokenSource / queryTokenSource', () => {
+  it('keeps auth bearer token markers for display projection', () => {
+    const headers = headersTokenSource({
+      headers: {Accept: 'application/json'},
+      auth: {type: 'bearer', token: 'r:uuid'},
+    });
+    expect(headers.Authorization).toBe('Bearer r:uuid');
+    expect(headers.Accept).toBe('application/json');
+  });
+
+  it('keeps api-key query markers', () => {
+    const query = queryTokenSource({
+      query: {page: '1'},
+      auth: {type: 'api-key', query: 'key', value: 'r:uuid'},
+    });
+    expect(query.key).toBe('r:uuid');
+    expect(query.page).toBe('1');
+  });
+});
+
+describe('requestForSend', () => {
+  it('converts {{…}} in url/headers/query/cookies to <<r:/c:…>>', () => {
+    const sent = requestForSend({
+      url: 'https://example.com/{{random uuid}}',
+      headers: {Authorization: 'Bearer {{random uuid}}'},
+      query: {id: '{{current epoch}}'},
+      cookies: {sid: '{{random uuid}}'},
+      body: '{"x":"{{random uuid}}"}',
+    }, 'json');
+    expect(sent.url).toBe('https://example.com/<<r:uuid>>');
+    expect(sent.headers?.Authorization).toBe('Bearer <<r:uuid>>');
+    expect(sent.query?.id).toBe('<<c:epoch>>');
+    expect(sent.cookies?.sid).toBe('<<r:uuid>>');
+    expect(sent.body).toBe('{"x":"<<r:uuid>>"}');
   });
 });

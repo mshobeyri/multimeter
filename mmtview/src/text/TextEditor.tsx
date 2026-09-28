@@ -82,6 +82,61 @@ function registerUrlEncodedLanguage(monaco: any) {
   });
 }
 
+/**
+ * JSON body language: emit the same scopes as Monaco's built-in JSON tokenizer
+ * (`string.key.json`, `string.value.json`, …) so Theme key colors apply, plus
+ * bare `{{random …}}` / `{{current …}}` as values. Built-in `json` breaks on
+ * those and loses key highlighting for the rest of the document.
+ *
+ * tokenPostfix must be "" — default would be `.mmt-json`, which would make
+ * keys `string.key.mmt-json` and fall through to the generic `string` color.
+ */
+let mmtJsonLanguageIdRegistered = false;
+export const MMT_JSON_LANGUAGE_ID = "mmt-json";
+function registerMmtJsonLanguage(monaco: any) {
+  if (!mmtJsonLanguageIdRegistered) {
+    if (!monaco.languages.getLanguages().some((l: { id: string }) => l.id === MMT_JSON_LANGUAGE_ID)) {
+      monaco.languages.register({ id: MMT_JSON_LANGUAGE_ID });
+    }
+    mmtJsonLanguageIdRegistered = true;
+  }
+  monaco.languages.setLanguageConfiguration(MMT_JSON_LANGUAGE_ID, {
+    brackets: [
+      ["{", "}"],
+      ["[", "]"],
+    ],
+    autoClosingPairs: [
+      { open: "{", close: "}" },
+      { open: "[", close: "]" },
+      { open: '"', close: '"' },
+    ],
+  });
+  // Full scope names (same as monaco jsonMode.js). Empty postfix is required.
+  monaco.languages.setMonarchTokensProvider(MMT_JSON_LANGUAGE_ID, {
+    defaultToken: "",
+    tokenPostfix: "",
+    tokenizer: {
+      root: [
+        [/\s+/, ""],
+        // Whole {{…}} as one token (before `{`) so braces/words/numbers stay uniform.
+        // Allow parenthesized args; stop at first `}` that isn't inside `(…)`.
+        [/\{\{\s*(?:random|current)\s+(?:[^{}]|\([^)]*\))+?\s*\}\}/i, "namespace.json"],
+        [/\{/, "delimiter.bracket.json"],
+        [/\}/, "delimiter.bracket.json"],
+        [/\[/, "delimiter.array.json"],
+        [/\]/, "delimiter.array.json"],
+        [/,/, "delimiter.comma.json"],
+        [/:/, "delimiter.colon.json"],
+        // Same key regex as Monaco's JSON monarch / common samples.
+        [/"([^"\\]|\\.)*"(?=\s*:)/, "string.key.json"],
+        [/"([^"\\]|\\.)*"/, "string.value.json"],
+        [/-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/, "number.json"],
+        [/\b(?:true|false|null)\b/, "keyword.json"],
+      ],
+    },
+  });
+}
+
 let xmlHighlightPatched = false;
 /** Color XML element/CDATA text as string (orange), matching JSON/YAML values. */
 function patchXmlValueHighlighting(monaco: any) {
@@ -319,7 +374,25 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
-  // Red dot after resolved r:/c: body values (BodyView decorations)
+  // Body {{random …}} / {{current …}}: one foreground color + soft glass fill
+  // (same glass as the old e:/i: highlight — not wordHighlightStrong).
+  useEffect(() => {
+    let style = document.getElementById("mmt-body-runtime-token-style") as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "mmt-body-runtime-token-style";
+      document.head.appendChild(style);
+    }
+    style.innerHTML = `
+      .monaco-editor .mmt-body-runtime-token {
+        color: var(--mmt-token-variable, var(--mmt-token-anchor, #4ec9b0)) !important;
+        background: color-mix(in srgb, var(--vscode-editorInfo-foreground, #75beff) 28%, transparent);
+        border-radius: 2px;
+      }
+    `;
+  }, []);
+
+  // Red dot after resolved r:/c: body values (legacy; URL/KSV still use .mmt-runtime-dot)
   useEffect(() => {
     if (document.getElementById("mmt-runtime-value-dot-style")) {
       return;
@@ -539,6 +612,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         defineTheme(monaco);
         registerGraphQLLanguage(monaco);
         registerUrlEncodedLanguage(monaco);
+        registerMmtJsonLanguage(monaco);
         patchXmlValueHighlighting(monaco);
         beforeMount?.(monaco);
       }}
