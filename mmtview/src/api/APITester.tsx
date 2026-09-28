@@ -747,6 +747,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           query={peerQuery}
           onUrlChange={onUrlChange}
           onQueryChange={onQueryChange}
+          canContainToken
+          valueContext={bodyValueContext}
         />
         {rightOfUrlButton && (
           <div className="apitest-url-row-actions">
@@ -804,18 +806,24 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           value={peerQuery}
           onChange={onQueryChange}
           commitMode="blur"
+          canContainToken
+          valueContext={bodyValueContext}
         />}
         {shouldShowHeaders() && <KSVEditor
           label="Request Headers"
           value={peerHeaders}
           onChange={onHeadersChange}
           commitMode="blur"
+          canContainToken
+          valueContext={bodyValueContext}
         />}
         {shouldShowCookies() && <KSVEditor
           label="Manual Cookies"
           value={peerCookies}
           onChange={onCookiesChange}
           commitMode="blur"
+          canContainToken
+          valueContext={bodyValueContext}
         />}
         {shouldShowDoc() && api.description ? (
           <MdViewer
@@ -910,6 +918,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     basePath={mmtFilePath}
                     showFilePicker
                     placeholder="Relative path to binary file"
+                    canContainToken
+                    valueContext={bodyValueContext}
                     onChange={val => onUpdateApi?.({ body: peerStringToYaml(val) })}
                     onEnterPressed={val => onUpdateApi?.({ body: peerStringToYaml(val) })}
                   />
@@ -917,6 +927,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                   <MultipartPartsEditor
                     value={api.body}
                     onChange={parts => onUpdateApi?.({ body: parts as APIData["body"] })}
+                    canContainToken
+                    valueContext={bodyValueContext}
                   />
                 ) : bodyTokenMode === "tokens" ? (
                   <BodyView
@@ -966,6 +978,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               label="Variables"
               value={peerGraphqlVariables}
               commitMode="blur"
+              canContainToken
+              valueContext={bodyValueContext}
               onChange={variables => {
                 onUpdateApi?.({
                   graphql: {
@@ -1027,6 +1041,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               label="Message"
               value={peerGrpcMessage}
               commitMode="blur"
+              canContainToken
+              valueContext={bodyValueContext}
               onChange={msg => {
                 onUpdateApi?.({
                   grpc: {
@@ -1082,6 +1098,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
               inputConstraints={inputConstraints}
               deletable={false}
+              canContainToken
+              valueContext={bodyValueContext}
             />
           </>
         )}
@@ -1176,6 +1194,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 }}
                 results={apiTestResults}
                 fieldSuggestions={outputFieldSuggestions}
+                canContainToken
+                valueContext={bodyValueContext}
                 onChange={(next) => {
                   const nextExamples = examples.map((ex, i) => {
                     if (i !== selectedExampleIdx) {

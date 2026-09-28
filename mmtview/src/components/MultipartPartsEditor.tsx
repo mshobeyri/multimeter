@@ -1,6 +1,8 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { safeList } from "mmt-core/safer";
 import type { MultipartPartSpec } from "mmt-core/multipartBody";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
 import FieldWithRemove from "./FieldWithRemove";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from "../fileContext";
@@ -18,12 +20,16 @@ interface MultipartPartsEditorProps {
   value?: unknown;
   onChange: (parts: MultipartPartSpec[] | undefined) => void;
   disabled?: boolean;
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 }
 
 const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
   value,
   onChange,
   disabled = false,
+  canContainToken = false,
+  valueContext,
 }) => {
   const fileCtx = useContext(FileContext);
   const [rows, setRows] = useState<MultipartPartRow[]>(() => bodyToMultipartRows(value));
@@ -54,12 +60,16 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
   };
 
   const handleValueChange = (idx: number, nextValue: string) => {
-    commit(safeList(rows).map((row, i) => (i === idx ? { ...row, value: nextValue } : row)));
+    const stored = canContainToken ? peerStringToYaml(nextValue) : nextValue;
+    commit(safeList(rows).map((row, i) => (i === idx ? { ...row, value: stored } : row)));
   };
 
   const handleRemove = (idx: number) => {
     commit(safeList(rows).filter((_, i) => i !== idx));
   };
+
+  const displayValue = (raw: string) =>
+    canContainToken ? peerStringToDisplay(raw) : raw;
 
   return (
     <div className="multipart-parts-editor">
@@ -92,7 +102,7 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
                 <td className="multipart-part-value">
                   {row.kind === "file" ? (
                     <FilePickerInput
-                      value={row.value}
+                      value={displayValue(row.value)}
                       onChange={nextValue => handleValueChange(i, nextValue)}
                       onRemovePressed={() => handleRemove(i)}
                       basePath={fileCtx?.mmtFilePath}
@@ -100,15 +110,19 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
                       removable={removable}
                       disabled={disabled}
                       placeholder="Relative path to file"
+                      canContainToken={canContainToken}
+                      valueContext={valueContext}
                     />
                   ) : (
                     <FieldWithRemove
-                      value={row.value}
+                      value={displayValue(row.value)}
                       onChange={nextValue => handleValueChange(i, nextValue)}
                       onRemovePressed={() => handleRemove(i)}
                       placeholder="value"
                       disabled={disabled}
                       removable={removable}
+                      canContainToken={canContainToken}
+                      valueContext={valueContext}
                     />
                   )}
                 </td>

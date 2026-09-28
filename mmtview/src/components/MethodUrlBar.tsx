@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Method, Protocol } from "mmt-core/CommonData";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import TokenFieldInput from "./TokenFieldInput";
 
 const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const OTHER_PROTOCOLS: Protocol[] = ["ws", "graphql", "grpc"];
@@ -64,6 +66,8 @@ type MethodUrlBarProps = {
   query: Record<string, string>;
   onUrlChange: (url: string) => void;
   onQueryChange: (query: Record<string, string>) => void;
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 };
 
 /**
@@ -77,6 +81,8 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   query,
   onUrlChange,
   onQueryChange,
+  canContainToken = false,
+  valueContext,
 }) => {
   const urlValue = url + joinQueryForEditor(query);
   const [inputValue, setInputValue] = useState(urlValue);
@@ -116,28 +122,49 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
         </select>
       </div>
       <div className="method-url-bar-url-wrap">
-        <input
-          type="text"
-          className="method-url-bar-url"
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-          onFocus={() => {
-            focusedRef.current = true;
-          }}
-          onBlur={() => {
-            focusedRef.current = false;
-            commit(inputValue);
-          }}
-          spellCheck={false}
-          aria-label="Request URL"
-          onKeyDown={event => {
-            if (event.key === "Enter") {
-              event.preventDefault();
+        {canContainToken ? (
+          <TokenFieldInput
+            type="text"
+            className="method-url-bar-url"
+            value={urlValue}
+            canContainToken
+            valueContext={valueContext}
+            spellCheck={false}
+            aria-label="Request URL"
+            onFocus={() => {
+              focusedRef.current = true;
+            }}
+            onCommit={value => {
+              focusedRef.current = false;
+              setInputValue(value);
+              commit(value);
+            }}
+            onDraftChange={setInputValue}
+          />
+        ) : (
+          <input
+            type="text"
+            className="method-url-bar-url"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onFocus={() => {
+              focusedRef.current = true;
+            }}
+            onBlur={() => {
+              focusedRef.current = false;
               commit(inputValue);
-              event.currentTarget.blur();
-            }
-          }}
-        />
+            }}
+            spellCheck={false}
+            aria-label="Request URL"
+            onKeyDown={event => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commit(inputValue);
+                event.currentTarget.blur();
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );

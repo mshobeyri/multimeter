@@ -7,6 +7,8 @@ import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 import { valueToString, stringToValue } from "./convertor";
 import { isOmitSentinel } from "mmt-core/omitKeyword";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
 
 interface VEditorProps {
   label: string;
@@ -21,6 +23,9 @@ interface VEditorProps {
   copyable?: boolean;
   /** Per-key match status vs selected example expected outputs (shown beside the field). */
   matchStatus?: ReadonlyMap<string, "match" | "mismatch">;
+  /** Value fields: resolved/token dual-mode when a value contains tokens. */
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 }
 
 const VEditor: React.FC<VEditorProps> = ({
@@ -33,7 +38,9 @@ const VEditor: React.FC<VEditorProps> = ({
   disabled,
   deletable = true,
   copyable = false,
-  matchStatus
+  matchStatus,
+  canContainToken = false,
+  valueContext,
 }) => {
   const keys = typeof keyOptions === "string" ? [keyOptions]: keyOptions;
 
@@ -46,6 +53,8 @@ const VEditor: React.FC<VEditorProps> = ({
     if (newVal.trim() === "") {
       // Remove the key if value is empty
       delete updated[key];
+    } else if (canContainToken) {
+      updated[key] = peerStringToYaml(newVal);
     } else {
       // Convert string input to match original type
       updated[key] = stringToValue(newVal);
@@ -79,7 +88,9 @@ const VEditor: React.FC<VEditorProps> = ({
       <div>
         {safeList(keys).map((key, index) => {
           const currentValue = value?.[key];
-          const displayValue = valueToString(currentValue);
+          const displayValue = typeof currentValue === "string" && canContainToken
+            ? peerStringToDisplay(currentValue)
+            : valueToString(currentValue);
           const hasValue = currentValue !== undefined;
           const typeLabel = currentValue === null
             ? "null"
@@ -122,6 +133,8 @@ const VEditor: React.FC<VEditorProps> = ({
               disabled={disabled}
               removable={deletable && hasValue}
               copyable={copyable}
+              canContainToken={canContainToken}
+              valueContext={valueContext}
             />
           );
 

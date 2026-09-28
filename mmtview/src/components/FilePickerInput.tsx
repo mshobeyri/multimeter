@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { openOsFilePicker } from '../vsAPI';
 import fileHelper from 'mmt-core/fileHelper';
+import type { RuntimeTokenValueContext } from 'mmt-core/apiBodyEdit';
+import TokenFieldInput from './TokenFieldInput';
 
 type FileFilter = { name?: string; extensions?: string[] };
 
@@ -21,6 +23,8 @@ interface FilePickerInputProps {
   placeholder?: string;
   /** Wavy red underline for a line-level validation error. */
   invalid?: boolean;
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 }
 
 const FilePickerInput: React.FC<FilePickerInputProps> = ({
@@ -37,6 +41,8 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
   removable = false,
   placeholder,
   invalid = false,
+  canContainToken = false,
+  valueContext,
 }) => {
   const filterPayload = useMemo(() => {
     if (!filters || filters.length === 0) { return undefined; }
@@ -87,28 +93,47 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
   if (showFilePicker) { rightPadding += 28; }
   if (removable) { rightPadding += 28; }
 
+  const inputClassName = ['file-picker-input', invalid ? 'mmt-line-error' : ''].filter(Boolean).join(' ');
+
   return (
     <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
-      <input
-        ref={ref}
-        type="text"
-        value={value}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={e => {
-          onChange && onChange(e.target.value);
-        }}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            (e.target as HTMLInputElement).blur();
-            onEnterPressed && onEnterPressed(value);
-          }
-        }}
-        style={{ paddingRight: rightPadding }}
-        className={['file-picker-input', invalid ? 'mmt-line-error' : ''].filter(Boolean).join(' ')}
-        title={value}
-      />
+      {canContainToken && !disabled ? (
+        <TokenFieldInput
+          value={value}
+          canContainToken
+          valueContext={valueContext}
+          placeholder={placeholder}
+          style={{ paddingRight: rightPadding }}
+          className={inputClassName}
+          title={value}
+          onCommit={next => {
+            onChange?.(next);
+            onEnterPressed?.(next);
+          }}
+          onDraftChange={next => onChange?.(next)}
+        />
+      ) : (
+        <input
+          ref={ref}
+          type="text"
+          value={value}
+          disabled={disabled}
+          placeholder={placeholder}
+          onChange={e => {
+            onChange && onChange(e.target.value);
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+              onEnterPressed && onEnterPressed(value);
+            }
+          }}
+          style={{ paddingRight: rightPadding }}
+          className={inputClassName}
+          title={value}
+        />
+      )}
       {showFilePicker && (
         <button
           onClick={handleOpenPicker}

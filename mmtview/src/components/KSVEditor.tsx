@@ -6,6 +6,7 @@ import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from '../fileContext';
 import { valueToString, stringToValue } from "./convertor";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
 interface KSVEditorProps {
   label: string;
@@ -31,6 +32,9 @@ interface KSVEditorProps {
   copyable?: boolean;
   filePicker?: boolean;
   filePickerFilters?: Array<{ name?: string; extensions?: string[] }>;
+  /** Value fields: resolved/token dual-mode when a value contains tokens. */
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 }
 
 function toStoredString(display: string): string {
@@ -84,6 +88,8 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   copyable = false,
   filePicker = false,
   filePickerFilters,
+  canContainToken = false,
+  valueContext,
 }) => {
   const commitOnBlur = commitMode === "blur";
   const entriesFromProps = useMemo(
@@ -257,6 +263,8 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         readOnly={readOnly}
                         removable={deletable && !deactivated && !readOnly}
                         copyable={copyable}
+                        canContainToken={canContainToken}
+                        valueContext={valueContext}
                       />
                     )
                   )}

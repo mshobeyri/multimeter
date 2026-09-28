@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import TokenFieldInput from "./TokenFieldInput";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
 type BlurCommitInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -6,15 +8,20 @@ type BlurCommitInputProps = Omit<
 > & {
   value: string;
   onCommit: (value: string) => void;
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 };
 
 /**
  * Text input that keeps a local draft while focused and calls onCommit
  * on blur or Enter — for peer YAML fields that should not write mid-keystroke.
+ * With `canContainToken`, token-bearing values use resolved preview / token edit.
  */
 const BlurCommitInput: React.FC<BlurCommitInputProps> = ({
   value,
   onCommit,
+  canContainToken = false,
+  valueContext,
   onFocus,
   onKeyDown,
   ...rest
@@ -27,6 +34,20 @@ const BlurCommitInput: React.FC<BlurCommitInputProps> = ({
       setDraft(value);
     }
   }, [value]);
+
+  if (canContainToken) {
+    return (
+      <TokenFieldInput
+        {...rest}
+        value={value}
+        canContainToken
+        valueContext={valueContext}
+        onCommit={onCommit}
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
+      />
+    );
+  }
 
   return (
     <input

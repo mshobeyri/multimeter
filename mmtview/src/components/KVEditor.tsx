@@ -3,6 +3,8 @@ import FieldWithRemove from "./FieldWithRemove";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 import { valueToString, stringToValue } from "./convertor";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
 
 interface KVEditorProps {
   label: string;
@@ -15,6 +17,8 @@ interface KVEditorProps {
   keysDisabled?: boolean;
   deletable?: boolean;
   expandable?: boolean;
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 }
 
 // Utility to ensure an empty key is always at the end
@@ -45,7 +49,9 @@ const KVEditor: React.FC<KVEditorProps> = ({
   deactivated = false,
   keysDisabled = false,
   deletable = true,
-  expandable = true
+  expandable = true,
+  canContainToken = false,
+  valueContext,
 }) => {
   // Use an array of entries to preserve order and handle the object format
   const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
@@ -54,7 +60,8 @@ const KVEditor: React.FC<KVEditorProps> = ({
   const toObject = (arr: Array<[string, JSONValue]>): Record<string, JSONValue> =>
     safeList(arr).reduce<Record<string, JSONValue>>((acc, [k, v]) => {
       if (k.trim()) { // Only include non-empty keys
-        acc[k] = stringToValue(v);
+        const raw = String(v ?? "");
+        acc[k] = canContainToken ? peerStringToYaml(raw) : stringToValue(raw);
       }
       return acc;
     }, {});
@@ -113,12 +120,18 @@ const KVEditor: React.FC<KVEditorProps> = ({
                 <td>
                   {k.trim() !== "" && (
                     <FieldWithRemove
-                      value={v}
+                      value={
+                        canContainToken
+                          ? peerStringToDisplay(String(v ?? ""))
+                          : String(v ?? "")
+                      }
                       onChange={newVal => handleValueChange(index, newVal)}
                       onRemovePressed={() => handleRemove(index)}
                       placeholder={valuePlaceholder}
                       disabled={disabled}
                       removable={deletable && !deactivated}
+                      canContainToken={canContainToken}
+                      valueContext={valueContext}
                     />
                   )}
                 </td>

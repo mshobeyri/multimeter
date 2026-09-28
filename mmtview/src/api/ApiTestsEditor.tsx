@@ -9,6 +9,7 @@ import {
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
 import CheckClauseList, { CheckClauseFieldInput } from "../components/CheckClauseList";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
 const DEFAULT_FIELDS = [
   "status",
@@ -27,6 +28,9 @@ export interface ApiTestsEditorProps {
   results?: ApiTestExpectItem[] | null;
   /** Suggested field names (e.g. declared outputs) — shown first in the field select. */
   fieldSuggestions?: string[];
+  /** Expected values: resolved/token dual-mode when they contain tokens. */
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 }
 
 function buildTestBlock(
@@ -53,6 +57,8 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
   onChange,
   results,
   fieldSuggestions,
+  canContainToken = false,
+  valueContext,
 }) => {
   const expectList = React.useMemo(() => expectMapToUiRows(test?.expect as any), [test?.expect]);
   const requireList = React.useMemo(() => expectMapToUiRows(test?.require as any), [test?.require]);
@@ -130,6 +136,8 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
       <CheckClauseList
         kind="expect"
         rows={expectList}
+        canContainToken={canContainToken}
+        valueContext={valueContext}
         onPartChange={(index, part, val) => {
           const updated = expectList.map((row, i) => (
             i === index ? applyExpectUiRowChange(row, part, val) : row
@@ -170,6 +178,8 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
       <CheckClauseList
         kind="require"
         rows={requireList}
+        canContainToken={canContainToken}
+        valueContext={valueContext}
         onPartChange={(index, part, val) => {
           const updated = requireList.map((row, i) => (
             i === index ? applyExpectUiRowChange(row, part, val) : row

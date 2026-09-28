@@ -103,12 +103,29 @@
   align-items: stretch;
 }
 
+.method-url-bar-url-wrap > .token-field {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.method-url-bar-url-wrap > input.method-url-bar-url,
+.method-url-bar-url-wrap .token-field > input.method-url-bar-url {
+  width: 100%;
+  min-width: 0;
+}
+
 .method-url-bar-url-wrap > input.method-url-bar-url {
   width: 100%;
 }
 
 .method-url-bar-url-wrap > input.method-url-bar-url.is-token-preview {
   color: var(--vscode-descriptionForeground, #858585);
+}
+
+.method-url-bar-url-wrap .token-field.has-highlights .token-field-input.is-highlight-overlay {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
 .method-url-bar-url::-webkit-scrollbar {

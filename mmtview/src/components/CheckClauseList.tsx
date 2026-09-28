@@ -1,6 +1,9 @@
 import React from "react";
 import type { ExpectUiRow } from "mmt-core/expectUi";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
 import OperatorSelect from "./OperatorSelect";
+import TokenFieldInput from "./TokenFieldInput";
 
 export type CheckClauseKind = "expect" | "require";
 
@@ -83,6 +86,8 @@ type CheckClauseListProps = {
   onAdd: () => void;
   renderField: (row: ExpectUiRow, index: number) => React.ReactNode;
   children?: React.ReactNode;
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 };
 
 const CheckClauseList: React.FC<CheckClauseListProps> = ({
@@ -93,6 +98,8 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
   onAdd,
   renderField,
   children,
+  canContainToken = false,
+  valueContext,
 }) => {
   const copy = CLAUSE_COPY[kind];
   const label = kind === "expect" ? "Expect" : "Require";
@@ -113,13 +120,25 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                   className="is-grow"
                   title="Comparison operator"
                 />
-                <input
-                  type="text"
-                  value={row.expected}
-                  onChange={e => onPartChange(i, "expected", e.target.value)}
-                  className="field-flex-2"
-                  placeholder={copy.expected}
-                />
+                {canContainToken ? (
+                  <TokenFieldInput
+                    value={peerStringToDisplay(row.expected)}
+                    canContainToken
+                    valueContext={valueContext}
+                    className="field-flex-2"
+                    placeholder={copy.expected}
+                    onCommit={val => onPartChange(i, "expected", peerStringToYaml(val))}
+                    onDraftChange={val => onPartChange(i, "expected", peerStringToYaml(val))}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={row.expected}
+                    onChange={e => onPartChange(i, "expected", e.target.value)}
+                    className="field-flex-2"
+                    placeholder={copy.expected}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => onRemove(i)}

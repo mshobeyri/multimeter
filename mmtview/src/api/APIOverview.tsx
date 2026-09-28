@@ -3,9 +3,18 @@ import SearchableTagInput from "../components/SearchableTagInput";
 import KSVEditor from "../components/KSVEditor";
 import KVEditor from "../components/KVEditor";
 import { APIData } from "mmt-core/APIData";
+import { JSONRecord } from "mmt-core/CommonData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import MdViewer from "../components/MdViewer";
 import { safeList } from "mmt-core/safer";
+import {
+  peerStringToDisplay,
+  peerStringToYaml,
+  stringContainsFieldToken,
+} from "mmt-core/apiBodyEdit";
+import TokenFieldInput from "../components/TokenFieldInput";
+import { useEnvTokenValueContext } from "../components/useEnvTokenValueContext";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
 interface APIOverviewProps {
   api: APIData;
@@ -23,8 +32,52 @@ function parseTimeoutInput(value: string): number | undefined {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
+function AuthValueField({
+  value,
+  onCommit,
+  valueContext,
+  placeholder,
+  password,
+  className,
+}: {
+  value: string;
+  onCommit: (yaml: string) => void;
+  valueContext: RuntimeTokenValueContext;
+  placeholder?: string;
+  password?: boolean;
+  className?: string;
+}) {
+  const display = peerStringToDisplay(value ?? "");
+  const hasTokens = stringContainsFieldToken(display);
+  if (password && !hasTokens) {
+    return (
+      <input
+        className={className}
+        type="password"
+        placeholder={placeholder}
+        value={value ?? ""}
+        onChange={e => onCommit(e.target.value)}
+      />
+    );
+  }
+  return (
+    <TokenFieldInput
+      className={className}
+      value={display}
+      canContainToken
+      valueContext={valueContext}
+      placeholder={placeholder}
+      onCommit={v => onCommit(peerStringToYaml(v))}
+      onDraftChange={v => onCommit(peerStringToYaml(v))}
+    />
+  );
+}
+
 const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
   const [showPreview, setShowPreview] = useState(false);
+  const valueContext = useEnvTokenValueContext(
+    typeof api.inputs === "object" ? (api.inputs as JSONRecord) : {},
+  );
 
   return (
     <div className="panel-form APIOverview">
@@ -123,30 +176,31 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
 
         {api.auth && api.auth !== "none" && api.auth.type === "bearer" && (
           <div className="field-stack">
-            <input
-              type="text"
+            <AuthValueField
               placeholder="Token"
               value={api.auth.token}
-              onChange={e => update({ auth: { ...api.auth as any, token: e.target.value } })}
+              valueContext={valueContext}
+              onCommit={token => update({ auth: { ...api.auth as any, token } })}
             />
           </div>
         )}
 
         {api.auth && api.auth !== "none" && api.auth.type === "basic" && (
           <div className="field-inline is-inset">
-            <input
+            <AuthValueField
               className="field-grow"
-              type="text"
               placeholder="Username"
               value={api.auth.username}
-              onChange={e => update({ auth: { ...api.auth as any, username: e.target.value } })}
+              valueContext={valueContext}
+              onCommit={username => update({ auth: { ...api.auth as any, username } })}
             />
-            <input
+            <AuthValueField
               className="field-grow"
-              type="password"
               placeholder="Password"
+              password
               value={api.auth.password}
-              onChange={e => update({ auth: { ...api.auth as any, password: e.target.value } })}
+              valueContext={valueContext}
+              onCommit={password => update({ auth: { ...api.auth as any, password } })}
             />
           </div>
         )}
@@ -197,45 +251,46 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
                 }}
               />
             </div>
-            <input
-              type="text"
+            <AuthValueField
               placeholder="Value"
               value={api.auth.value}
-              onChange={e => update({ auth: { ...api.auth as any, value: e.target.value } })}
+              valueContext={valueContext}
+              onCommit={value => update({ auth: { ...api.auth as any, value } })}
             />
           </div>
         )}
 
         {api.auth && api.auth !== "none" && api.auth.type === "oauth2" && (
           <div className="field-stack">
-            <input
-              type="text"
+            <AuthValueField
               placeholder="Token URL"
               value={api.auth.token_url}
-              onChange={e => update({ auth: { ...api.auth as any, token_url: e.target.value } })}
+              valueContext={valueContext}
+              onCommit={token_url => update({ auth: { ...api.auth as any, token_url } })}
             />
             <div className="field-inline">
-              <input
+              <AuthValueField
                 className="field-grow"
-                type="text"
                 placeholder="Client ID"
                 value={api.auth.client_id}
-                onChange={e => update({ auth: { ...api.auth as any, client_id: e.target.value } })}
+                valueContext={valueContext}
+                onCommit={client_id => update({ auth: { ...api.auth as any, client_id } })}
               />
-              <input
+              <AuthValueField
                 className="field-grow"
-                type="password"
                 placeholder="Client Secret"
+                password
                 value={api.auth.client_secret}
-                onChange={e => update({ auth: { ...api.auth as any, client_secret: e.target.value } })}
+                valueContext={valueContext}
+                onCommit={client_secret => update({ auth: { ...api.auth as any, client_secret } })}
               />
             </div>
-            <input
-              type="text"
+            <AuthValueField
               placeholder="Scope (optional)"
               value={api.auth.scope ?? ""}
-              onChange={e => {
-                const scope = e.target.value || undefined;
+              valueContext={valueContext}
+              onCommit={scopeRaw => {
+                const scope = scopeRaw || undefined;
                 update({ auth: { ...api.auth as any, scope } });
               }}
             />
@@ -264,6 +319,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         }}
         keyPlaceholder="name"
         valuePlaceholder="value"
+        canContainToken
+        valueContext={valueContext}
       />
       <KSVEditor
         label="Outputs"

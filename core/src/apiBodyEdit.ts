@@ -23,14 +23,21 @@ export {
   displayRuntimeStringRecord,
   enterEditStringBuffer,
   enterEditStringRecord,
+  findDisplayTokenCharRanges,
   peerRecordToDisplay,
   peerRecordToYaml,
   peerStringToDisplay,
   peerStringToYaml,
+  projectTokenFieldPreview,
   sourceToDisplayTokenTemplate,
+  stringContainsFieldToken,
   valueForYamlSave,
 } from './bodyRuntimeTokens';
-export type {RuntimeTokenValueContext} from './bodyRuntimeTokens';
+export type {
+  RuntimeTokenValueContext,
+  TokenFieldSpan,
+  TokenFieldSpanKind,
+} from './bodyRuntimeTokens';
 
 export type DisplayRequestBodyOptions = {
   /**

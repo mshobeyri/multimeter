@@ -32,6 +32,9 @@ import {
   peerStringToYaml,
   peerRecordToDisplay,
   peerRecordToYaml,
+  projectTokenFieldPreview,
+  stringContainsFieldToken,
+  findDisplayTokenCharRanges,
 } from './bodyRuntimeTokens';
 import {beautify, formatBody} from './markupConvertor';
 import {xml2js} from 'xml-js';
@@ -163,6 +166,33 @@ describe('enterEditStringBuffer / sourceToDisplayTokenTemplate', () => {
   it('keeps large paste as the edit buffer', () => {
     expect(enterEditStringBuffer('alice', 'hello world', '<<i:user>>'))
         .toBe('hello world');
+  });
+});
+
+describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
+  it('detects display, angle, and bare tokens', () => {
+    expect(stringContainsFieldToken('{{i:user}}')).toBe(true);
+    expect(stringContainsFieldToken('Bearer <<e:token>>')).toBe(true);
+    expect(stringContainsFieldToken('r:uuid')).toBe(true);
+    expect(stringContainsFieldToken('plain')).toBe(false);
+  });
+
+  it('projects i:/e:/r:/c: to resolved spans', () => {
+    const {text, spans} = projectTokenFieldPreview(
+        'Bearer {{e:token}} / {{r:uuid}}',
+        {env: {token: 'secret'}, inputs: {}},
+    );
+    expect(text.startsWith('Bearer secret / ')).toBe(true);
+    expect(text.includes('{{r:uuid}}')).toBe(false);
+    expect(text.includes('{{e:token}}')).toBe(false);
+    expect(spans.length).toBe(2);
+    expect(spans.every(s => s.kind === 'resolved')).toBe(true);
+  });
+
+  it('findDisplayTokenCharRanges covers {{…}} edit buffer', () => {
+    const spans = findDisplayTokenCharRanges('x{{i:a}}y{{r:uuid}}');
+    expect(spans.length).toBe(2);
+    expect(spans.every(s => s.kind === 'token')).toBe(true);
   });
 });
 

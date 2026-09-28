@@ -11,6 +11,7 @@ import {
   ACCESSOR_PATH_RE,
   TOKEN_NAME_RE,
   applyValueAccessor,
+  replaceAllRefs,
 } from './variableReplacer';
 import {
   stringContainsRuntimeToken,
@@ -1067,6 +1068,174 @@ export function enterEditStringRecord(
     out[key] = enterEditStringBuffer(prev, next, srcVal);
   }
   return out;
+}
+
+/**
+ * True when a field string contains any i:/e:/r:/c: token
+ * (display `{{}}`, angle `<<>>`, or bare forms).
+ */
+export function stringContainsFieldToken(value: unknown): boolean {
+  if (typeof value !== 'string' || !value) {
+    return false;
+  }
+  if (isLiteralTokenValue(value)) {
+    return stringContainsFieldToken(unwrapLiteralToken(value));
+  }
+  if (displayTokenToPlain(value.trim())) {
+    return true;
+  }
+  if (stringContainsRuntimeToken(value)) {
+    return true;
+  }
+  const angledIe = new RegExp(ANGLE_IE_GLOBAL_RE.source, 'g');
+  if (angledIe.test(value)) {
+    return true;
+  }
+  const plainIe = new RegExp(PLAIN_IE_GLOBAL_RE.source, 'g');
+  if (plainIe.test(value)) {
+    return true;
+  }
+  const displayRe = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
+  let match: RegExpExecArray|null;
+  while ((match = displayRe.exec(value)) !== null) {
+    if (displayTokenToPlain(match[0])) {
+      return true;
+    }
+  }
+  return new RegExp(
+             `^(?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}$`,
+             )
+             .test(value.trim());
+}
+
+export type TokenFieldSpanKind = 'resolved'|'token';
+
+export type TokenFieldSpan = {
+  start: number;
+  end: number;
+  kind: TokenFieldSpanKind;
+};
+
+function ieResolvedToDisplayText(resolved: unknown): string {
+  if (resolved === undefined) {
+    return '';
+  }
+  if (resolved === null) {
+    return 'null';
+  }
+  if (typeof resolved === 'string') {
+    return resolved;
+  }
+  if (typeof resolved === 'number' || typeof resolved === 'boolean') {
+    return String(resolved);
+  }
+  try {
+    return JSON.stringify(resolved);
+  } catch {
+    return String(resolved);
+  }
+}
+
+/** Resolve a bare `r:…` / `c:…` token for idle field preview. */
+function lookupRuntimeResolvedValue(plainSpec: string): unknown {
+  const trimmed = String(plainSpec ?? '').trim();
+  if (!/^[rc]:/i.test(trimmed) || !stringContainsRuntimeToken(trimmed)) {
+    return undefined;
+  }
+  try {
+    const out = replaceAllRefs(
+        {v: `<<${trimmed}>>`},
+        {},
+        {},
+        {},
+        new Set(),
+        {resolveRuntimeTokens: true},
+    );
+    return out?.v;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Idle preview for a token-capable field:
+ * - `{{i:}}` / `{{e:}}` / `{{r:}}` / `{{c:}}` → resolved values (span kind `resolved`)
+ * - Unresolved tokens stay as display `{{…}}` (span kind `token`)
+ */
+export function projectTokenFieldPreview(
+    source: string,
+    ctx?: RuntimeTokenValueContext,
+    ): {text: string; spans: TokenFieldSpan[]} {
+  const raw = String(source ?? '');
+  if (isLiteralTokenValue(raw)) {
+    const inner = `"${unwrapLiteralToken(raw)}"`;
+    return {text: inner, spans: []};
+  }
+  const template = rewriteAllTokensToDisplayText(raw);
+  let text = '';
+  const spans: TokenFieldSpan[] = [];
+  const re = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
+  let last = 0;
+  let match: RegExpExecArray|null;
+  while ((match = re.exec(template)) !== null) {
+    if (match.index > last) {
+      text += template.slice(last, match.index);
+    }
+    const plain = displayTokenToPlain(match[0]);
+    if (!plain) {
+      text += match[0];
+      last = match.index + match[0].length;
+      continue;
+    }
+    const prefix = plain.charAt(0).toLowerCase();
+    let resolved: unknown = undefined;
+    if (prefix === 'r' || prefix === 'c') {
+      resolved = lookupRuntimeResolvedValue(plain);
+    } else {
+      resolved = lookupIeResolvedValue(plain, ctx);
+    }
+    if (resolved === undefined) {
+      const piece = toDisplayRuntimeToken(plain);
+      const start = text.length;
+      text += piece;
+      spans.push({start, end: text.length, kind: 'token'});
+    } else {
+      const piece = ieResolvedToDisplayText(resolved);
+      const start = text.length;
+      text += piece;
+      if (piece.length > 0) {
+        spans.push({start, end: text.length, kind: 'resolved'});
+      }
+    }
+    last = match.index + match[0].length;
+  }
+  text += template.slice(last);
+  return {text, spans};
+}
+
+/** Char-offset ranges for `{{i|e|r|c:…}}` (and legacy) in edit-buffer text. */
+export function findDisplayTokenCharRanges(text: string): TokenFieldSpan[] {
+  if (!text) {
+    return [];
+  }
+  const spans: TokenFieldSpan[] = [];
+  const patterns = [DISPLAY_PREFIXED_GLOBAL_RE, LEGACY_DISPLAY_RUNTIME_GLOBAL_RE];
+  for (const base of patterns) {
+    const re = new RegExp(base.source, 'gi');
+    let match: RegExpExecArray|null;
+    while ((match = re.exec(text)) !== null) {
+      if (!displayTokenToPlain(match[0])) {
+        continue;
+      }
+      spans.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        kind: 'token',
+      });
+    }
+  }
+  spans.sort((a, b) => a.start - b.start);
+  return spans;
 }
 
 /**

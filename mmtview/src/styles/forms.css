@@ -550,6 +550,64 @@ select.is-invalid {
   margin-left: 20px;
 }
 
+/* Token-capable single-line fields (resolved preview + token edit). */
+.token-field {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.token-field-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.token-field-input.is-token-preview {
+  color: var(--vscode-descriptionForeground, #858585);
+}
+
+/* Hide native glyphs completely — `color: transparent` alone is not enough in Chromium. */
+.token-field.has-highlights .token-field-input.is-highlight-overlay {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--vscode-editorCursor-foreground, var(--vscode-foreground, #ccc));
+  background: transparent !important;
+}
+
+.token-field-backdrop {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  white-space: pre;
+  pointer-events: none;
+  color: var(--vscode-input-foreground, var(--vscode-foreground, #ccc));
+  box-sizing: border-box;
+  /* padding/font synced from the input in JS so glyphs align */
+  line-height: inherit;
+}
+
+.token-field.is-preview .token-field-backdrop {
+  color: var(--vscode-descriptionForeground, #858585);
+}
+
+.token-field-span.is-resolved {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--vscode-charts-green, #89d185);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.token-field-span.is-token {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--mmt-token-variable, var(--mmt-token-anchor, #4ec9b0));
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
 
 .doc-services {
   display: flex;
