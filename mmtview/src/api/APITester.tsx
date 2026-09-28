@@ -186,23 +186,20 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     requestData?.headers,
     methodOrProtocolValue.startsWith("method:") ? methodOrProtocolKey : undefined,
   );
-  // Resolved preview for the idle BodyView. Token editing uses a separate
-  // BodyView instance so each buffer keeps its own Ctrl+Z stack.
+  // Resolved preview shows substituted i:/e:/r:/c: values. Token mode uses a
+  // separate BodyView with {{…}} markers (own Ctrl+Z stack).
   const requestBodyDisplay = useMemo(() => {
     if (!touchedFields.has("body")) {
       return displayRequestBody(
         requestData?.body ?? api.body ?? "",
         resolvedRequestFormat,
-        { tokenSource: api.body, valueContext: bodyValueContext },
+        { valueContext: bodyValueContext },
       );
     }
     const override = requestData?.body;
     const packed = typeof override === "string"
       ? bodyForYamlSave(api.body, override, resolvedRequestFormat)
       : override;
-    const tokenSource = packed != null && typeof packed !== "string"
-      ? packed
-      : api.body;
     try {
       const resolved = resolveApiRequest(
         { ...api, body: packed ?? api.body } as typeof api,
@@ -211,7 +208,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         { preserveStructuredBody: true },
       );
       return displayRequestBody(resolved.body, resolvedRequestFormat, {
-        tokenSource,
         valueContext: bodyValueContext,
       });
     } catch {
