@@ -1,4 +1,4 @@
-import React, { useMemo, useContext } from "react";
+import React, { useMemo, useContext, useState, useEffect, useRef, useCallback } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
@@ -11,6 +11,12 @@ interface KSVEditorProps {
   label: string;
   value?: string | Record<string, string> | JSONRecord;
   onChange: (v: Record<string, string>) => void;
+  /**
+   * `live` (default): every keystroke calls onChange.
+   * `blur`: keep a local draft while focused; call onChange on blur, Enter,
+   * or row remove — avoids mid-token YAML writes in the API tester peer.
+   */
+  commitMode?: "live" | "blur";
   keyPlaceholder?: string;
   valuePlaceholder?: string;
   options?: string[];
@@ -61,6 +67,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   label,
   value,
   onChange,
+  commitMode = "live",
   keyPlaceholder = "key",
   valuePlaceholder = "value",
   options,
@@ -72,7 +79,17 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   filePicker = false,
   filePickerFilters,
 }) => {
-  const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
+  const commitOnBlur = commitMode === "blur";
+  const entriesFromProps = useMemo(
+    () => withTrailingEmptyKey(value, expandable),
+    [value, expandable],
+  );
+  const [draft, setDraft] = useState<Array<[string, string]> | null>(null);
+  const focusedRef = useRef(false);
+  const draftRef = useRef<Array<[string, string]> | null>(null);
+  draftRef.current = draft;
+
+  const entries = draft ?? entriesFromProps;
   const safeOptions = Array.isArray(options) ? options : [];
 
   const fileCtx = useContext(FileContext);
@@ -81,6 +98,13 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
     extensions: ['mmt', 'csv', 'json', 'yaml', 'yml', 'http', 'https', 'bru', 'bruno', 'js', 'cjs', 'mjs'],
   }];
 
+  // External YAML / prop updates win when the editor is not focused.
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setDraft(null);
+    }
+  }, [entriesFromProps]);
+
   const toObject = (arr: Array<[string, string]>): Record<string, string> =>
     safeList(arr).reduce<Record<string, string>>((acc, [k, v]) => {
       if (k.trim()) {
@@ -88,6 +112,19 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
       }
       return acc;
     }, {});
+
+  const commitEntries = useCallback((next: Array<[string, string]>) => {
+    onChange(toObject(next));
+  }, [onChange]);
+
+  const updateEntries = (next: Array<[string, string]>, opts?: { commit?: boolean }) => {
+    if (commitOnBlur && !opts?.commit) {
+      setDraft(next);
+      return;
+    }
+    setDraft(commitOnBlur ? next : null);
+    commitEntries(next);
+  };
 
   const handleKeyChange = (idx: number, newKey: string) => {
     const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
@@ -102,23 +139,47 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
       return true;
     });
 
-    onChange(toObject(filtered));
+    updateEntries(filtered);
   };
 
   const handleValueChange = (idx: number, newVal: string) => {
     const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
       i === idx ? [k, newVal] : [k, v]
     );
-    onChange(toObject(newEntries));
+    updateEntries(newEntries);
   };
 
   const handleRemove = (idx: number) => {
     const newEntries = safeList(entries).filter((_, i) => i !== idx);
-    onChange(toObject(newEntries));
+    // Structural edits commit immediately even in blur mode.
+    updateEntries(newEntries, { commit: true });
+  };
+
+  const commitDraftIfNeeded = () => {
+    if (!commitOnBlur) {
+      return;
+    }
+    const current = draftRef.current;
+    if (current) {
+      commitEntries(current);
+    }
   };
 
   return (
-    <div className="mmt-fill">
+    <div
+      className="mmt-fill"
+      onFocusCapture={() => {
+        focusedRef.current = true;
+      }}
+      onBlurCapture={e => {
+        const next = e.relatedTarget as Node | null;
+        if (next && e.currentTarget.contains(next)) {
+          return;
+        }
+        focusedRef.current = false;
+        commitDraftIfNeeded();
+      }}
+    >
       {label ? (
         <div
           className={disabled ? "label label-disabled" : "label"}
@@ -136,6 +197,13 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                   <input
                     value={k}
                     onChange={e => handleKeyChange(i, e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        commitDraftIfNeeded();
+                        (e.currentTarget as HTMLInputElement).blur();
+                      }
+                    }}
                     placeholder={keyPlaceholder}
                     disabled={disabled || keysDisabled}
                   />
@@ -146,6 +214,9 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                       <FilePickerInput
                         value={v}
                         onChange={newVal => handleValueChange(i, newVal)}
+                        onEnterPressed={() => {
+                          commitDraftIfNeeded();
+                        }}
                         onRemovePressed={() => handleRemove(i)}
                         basePath={fileCtx?.mmtFilePath}
                         filters={effectiveFilePickerFilters}
@@ -155,7 +226,13 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                     ) : safeOptions.length > 0 ? (
                       <SelectWithRemove
                         value={v}
-                        onChange={newVal => handleValueChange(i, newVal)}
+                        onChange={newVal => {
+                          // Selects are discrete — always commit.
+                          const newEntries = safeList(entries).map(([key, val], idx): [string, string] =>
+                            idx === i ? [key, newVal] : [key, val]
+                          );
+                          updateEntries(newEntries, { commit: true });
+                        }}
                         onRemovePressed={() => handleRemove(i)}
                         options={safeOptions}
                         placeholder={valuePlaceholder}
@@ -166,6 +243,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                       <FieldWithRemove
                         value={v}
                         onChange={newVal => handleValueChange(i, newVal)}
+                        onEnter={() => commitDraftIfNeeded()}
                         onRemovePressed={() => handleRemove(i)}
                         placeholder={valuePlaceholder}
                         disabled={disabled}

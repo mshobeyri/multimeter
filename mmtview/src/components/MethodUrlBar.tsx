@@ -66,6 +66,10 @@ type MethodUrlBarProps = {
   onQueryChange: (query: Record<string, string>) => void;
 };
 
+/**
+ * URL edits stay local until blur or Enter so mid-token YAML writes
+ * (e.g. incomplete `r:u`) do not hit the file.
+ */
 const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   methodValue,
   onMethodChange,
@@ -76,20 +80,16 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
 }) => {
   const urlValue = url + joinQueryForEditor(query);
   const [inputValue, setInputValue] = useState(urlValue);
-  const isUserInput = useRef(false);
+  const focusedRef = useRef(false);
 
   useEffect(() => {
-    if (!isUserInput.current && urlValue !== inputValue) {
+    if (!focusedRef.current && urlValue !== inputValue) {
       setInputValue(urlValue);
     }
-    isUserInput.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlValue]);
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    setInputValue(value);
-    isUserInput.current = true;
+  const commit = (value: string) => {
     emitUrl(value, onUrlChange, onQueryChange);
   };
 
@@ -120,12 +120,20 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
           type="text"
           className="method-url-bar-url"
           value={inputValue}
-          onChange={handleChange}
+          onChange={e => setInputValue(e.target.value)}
+          onFocus={() => {
+            focusedRef.current = true;
+          }}
+          onBlur={() => {
+            focusedRef.current = false;
+            commit(inputValue);
+          }}
           spellCheck={false}
           aria-label="Request URL"
           onKeyDown={event => {
             if (event.key === "Enter") {
               event.preventDefault();
+              commit(inputValue);
               event.currentTarget.blur();
             }
           }}

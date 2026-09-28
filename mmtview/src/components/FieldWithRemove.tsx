@@ -4,6 +4,8 @@ interface FieldWithRemoveProps {
   value: string;
   onChange: (v: string) => void;
   onRemovePressed: () => void;
+  onBlur?: () => void;
+  onEnter?: () => void;
   placeholder?: string;
   disabled?: boolean;
   removable?: boolean;
@@ -14,6 +16,8 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   value,
   onChange,
   onRemovePressed,
+  onBlur,
+  onEnter,
   placeholder,
   disabled = false,
   removable = true,
@@ -30,6 +34,14 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
         placeholder={placeholder}
         style={{ paddingRight }}
         onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
+        onKeyDown={e => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onEnter?.();
+            (e.currentTarget as HTMLInputElement).blur();
+          }
+        }}
         disabled={disabled}
       />
       {copyable && value && (

@@ -24,6 +24,7 @@ import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import MethodUrlBar from "../components/MethodUrlBar";
+import BlurCommitInput from "../components/BlurCommitInput";
 import BodyFormatBar from "../components/BodyFormatBar";
 import ResponseBodyBar from "../components/ResponseBodyBar";
 import ResponseBodyContent from "../components/ResponseBodyContent";
@@ -778,16 +779,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           label="Query parameters"
           value={peerQuery}
           onChange={onQueryChange}
+          commitMode="blur"
         />}
         {shouldShowHeaders() && <KSVEditor
           label="Request Headers"
           value={peerHeaders}
           onChange={onHeadersChange}
+          commitMode="blur"
         />}
         {shouldShowCookies() && <KSVEditor
           label="Manual Cookies"
           value={peerCookies}
           onChange={onCookiesChange}
+          commitMode="blur"
         />}
         {shouldShowDoc() && api.description ? (
           <MdViewer
@@ -937,6 +941,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <KSVEditor
               label="Variables"
               value={peerGraphqlVariables}
+              commitMode="blur"
               onChange={variables => {
                 onUpdateApi?.({
                   graphql: {
@@ -955,15 +960,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <div className="field-inline is-gap is-spaced">
               <div className="field-grow">
                 <div className="label">Service</div>
-                <input
+                <BlurCommitInput
                   type="text"
                   placeholder="package.ServiceName"
                   value={api.grpc?.service || ""}
-                  onChange={e => {
+                  onCommit={service => {
                     onUpdateApi?.({
                       grpc: {
                         proto: api.grpc?.proto,
-                        service: e.target.value,
+                        service,
                         method: api.grpc?.method ?? "",
                         message: api.grpc?.message,
                         stream: api.grpc?.stream,
@@ -975,16 +980,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               </div>
               <div className="field-grow">
                 <div className="label">Method</div>
-                <input
+                <BlurCommitInput
                   type="text"
                   placeholder="MethodName"
                   value={api.grpc?.method || ""}
-                  onChange={e => {
+                  onCommit={method => {
                     onUpdateApi?.({
                       grpc: {
                         proto: api.grpc?.proto,
                         service: api.grpc?.service ?? "",
-                        method: e.target.value,
+                        method,
                         message: api.grpc?.message,
                         stream: api.grpc?.stream,
                       },
@@ -997,6 +1002,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <KSVEditor
               label="Message"
               value={peerGrpcMessage}
+              commitMode="blur"
               onChange={msg => {
                 onUpdateApi?.({
                   grpc: {
