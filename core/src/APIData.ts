@@ -1,4 +1,5 @@
 import {Format, FormatSpec, GrpcStream, JSONRecord, JSONValue, Method, MMTFile, Protocol} from './CommonData';
+import type {ExpectMap} from './TestData';
 
 export interface AuthBearer {
   type: 'bearer';
@@ -35,7 +36,17 @@ export interface ExampleData {
   inputs?: JSONRecord;
   // Optional expected outputs for this example (mirrors API level outputs)
   outputs?: JSONRecord;
+  /** Soft checks on run outputs (same shape/operators as call expect). */
+  expect?: ExpectMap;
+  /** Hard checks on run outputs (same shape/operators as call require). */
+  require?: ExpectMap;
 }
+
+/** Soft/hard assertion maps shared by example expect/require and eval helpers. */
+export type ApiTestBlock = {
+  expect?: ExpectMap;
+  require?: ExpectMap;
+};
 
 export interface GraphQLConfig {
   operation: string;

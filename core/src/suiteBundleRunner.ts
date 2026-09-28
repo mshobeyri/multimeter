@@ -122,8 +122,8 @@ function activeTagFilter(options: RunFileOptions, bundle: SuiteBundle): TagFilte
 
 function nodeHasRunnable(
     node: SuiteBundleNode, filter: TagFilter, parentSelected: boolean): boolean {
-  if (node.kind === 'test') {
-    return decideTagRun('test', node.tags, filter, parentSelected) === 'run';
+  if (node.kind === 'test' || node.kind === 'api') {
+    return decideTagRun(node.kind, node.tags, filter, parentSelected) === 'run';
   }
   if (node.kind === 'suite') {
     const decision = decideTagRun('suite', node.tags, filter, parentSelected);
@@ -147,7 +147,7 @@ function nodesHaveRunnable(
 }
 
 function reportSkippedBundleNode(params: {
-  node: Extract<SuiteBundleNode, {kind: 'test'}| {kind: 'suite'}| {kind: 'group'}>;
+  node: Extract<SuiteBundleNode, {kind: 'test'}| {kind: 'api'}| {kind: 'suite'}| {kind: 'group'}>;
   bundle: SuiteBundle;
   options: RunFileOptions;
   nextIndex: () => number;
@@ -168,12 +168,12 @@ function reportSkippedBundleNode(params: {
     filePath,
     entry: node.kind === 'group' ? node.label : node.path,
     title,
-    docType: node.kind === 'suite' ? 'suite' : node.kind === 'test' ? 'test' : undefined,
+    docType: node.kind === 'suite' ? 'suite' : node.kind === 'api' ? 'api' : node.kind === 'test' ? 'test' : undefined,
     id: node.id,
   });
   if (node.kind === 'suite' || node.kind === 'group') {
     for (const child of node.children) {
-      if (child.kind === 'test' || child.kind === 'suite' || child.kind === 'group') {
+      if (child.kind === 'test' || child.kind === 'api' || child.kind === 'suite' || child.kind === 'group') {
         reportSkippedBundleNode({node: child, bundle, options, nextIndex});
       }
     }
@@ -185,7 +185,7 @@ function collectRunnableCountFromRoot(root: readonly SuiteBundleNode[]): number 
   let count = 0;
   const walk = (nodes: readonly SuiteBundleNode[]) => {
     for (const n of nodes) {
-      if (n.kind === 'test' || n.kind === 'suite') {
+      if (n.kind === 'test' || n.kind === 'api' || n.kind === 'suite') {
         count += 1;
       }
       if (n.kind === 'group' || n.kind === 'suite') {
@@ -198,7 +198,7 @@ function collectRunnableCountFromRoot(root: readonly SuiteBundleNode[]): number 
 }
 
 async function runSuiteBundleNode(params: {
-  node: Extract<SuiteBundleNode, {kind: 'test'}> | Extract<SuiteBundleNode, {kind: 'suite'}>;
+  node: Extract<SuiteBundleNode, {kind: 'test'}> | Extract<SuiteBundleNode, {kind: 'api'}> | Extract<SuiteBundleNode, {kind: 'suite'}>;
   bundle: SuiteBundle;
   options: RunFileOptions;
   runFile: (options: RunFileOptions) => Promise<RunFileResult>;
@@ -284,7 +284,7 @@ async function runSuiteBundleNode(params: {
     };
 
     let childRun: RunFileResult;
-    if (node.kind === 'test') {
+    if (node.kind === 'test' || node.kind === 'api') {
       childRun = await runFile(childRunOptions);
     } else {
       const nestedFilter = decision === 'run'
@@ -470,7 +470,7 @@ async function runSuiteGroup(params: {
       return {success: false, threw: false, cancelled: true, status: 'failed' as SuiteStepStatus};
     }
 
-    if (child.kind === 'test' || child.kind === 'suite') {
+    if (child.kind === 'test' || child.kind === 'api' || child.kind === 'suite') {
       return await runSuiteBundleNode({
         node: child,
         bundle,
@@ -711,7 +711,7 @@ export async function executeSuiteBundle(params: {
         continue;
       }
 
-      if (n.kind === 'test' || n.kind === 'suite') {
+      if (n.kind === 'test' || n.kind === 'api' || n.kind === 'suite') {
         const r = await runSuiteBundleNode({
           node: n,
           bundle,

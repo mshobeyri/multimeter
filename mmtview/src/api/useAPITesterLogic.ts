@@ -123,6 +123,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
   const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
   const [outputs, setOutputs] = useState<JSONRecord>({});
+  const [apiTestResults, setApiTestResults] = useState<import("mmt-core/apiTestEval").ApiTestExpectItem[] | null>(null);
 
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
 
@@ -445,6 +446,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   const handleSend = useCallback(async () => {
     setResponseData(undefined);
     setResponseRevision(prev => prev + 1);
+    setApiTestResults(null);
 
     const req = await buildRequestForSend();
     const protocol = protocolResolver.getEffectiveProtocol(
@@ -557,6 +559,11 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       if (message.cancelled) {
         return;
       }
+      if (message.apiTest && Array.isArray(message.apiTest.items)) {
+        setApiTestResults(message.apiTest.items);
+      } else {
+        setApiTestResults(null);
+      }
       if (typeof message.response !== "undefined" && message.response !== null) {
         let response = message.response as Response;
         // Keep the body raw here; Response BodyView beautifies on display when
@@ -610,6 +617,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     autoFormatBody,
     setAutoFormatBody,
     outputs,
+    apiTestResults,
     isSending,
     updateField,
     restoreField,

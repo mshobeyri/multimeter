@@ -40,6 +40,11 @@
       "require": "./dist/apiRunResult.js",
       "default": "./dist/apiRunResult.js"
     },
+    "./apiTestEval": {
+      "types": "./dist/apiTestEval.d.ts",
+      "require": "./dist/apiTestEval.js",
+      "default": "./dist/apiTestEval.js"
+    },
     "./CommonData": {
       "types": "./dist/CommonData.d.ts",
       "require": "./dist/CommonData.js",

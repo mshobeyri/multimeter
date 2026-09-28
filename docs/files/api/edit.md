@@ -11,6 +11,7 @@ Edits in edit mode write directly to the YAML. The tester UI is temporary until 
 | {{btn:search:Overview}} | `title`, `tags`, `description` (with optional Markdown preview), `import`, `inputs`, `outputs`, `setenv` |
 | {{btn:symbol-interface:Interface}} | `protocol`, `url`, `method`, `timeout`, `headers`, `query`, `cookies`, `body`, `auth`, request/response `format` |
 | {{btn:lightbulb:Examples}} | Named examples — add, edit, or remove example blocks |
+| {{btn:beaker:Tests}} | Per-example soft **Expect** / hard **Require** (`examples[].expect` / `require`) — same operators as call |
 
 ### Overview
 

@@ -10,7 +10,7 @@ You can use these fields for documentation and to help with searching and filter
 
 ### `items`
 
-The `items` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs, tests, HTTP files, Bruno files, or other suites.
+The `items` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs (`type: api`), tests, HTTP files, Bruno files, or other suites. API leaves run with **default inputs** + suite env (per-example asserts are edited in the API Tests tab; suite behavior for example tests may expand later).
 
 > **Legacy alias:** `tests` is still accepted as an alias for `items` in existing suite files.
 

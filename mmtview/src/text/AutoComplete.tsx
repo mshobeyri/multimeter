@@ -1090,9 +1090,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n\t\toutputs:\n\t\t\tstatus_code: 200\n\t\t\tkey1: value1\n",
+            insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200\n",
             detail: 'Usage examples [array of key: value]',
-            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\t\tinputs:\n\t\tuserId: "admin123"\n\t\tapiKey: "test-key-456 "\n\t\toutputs:\n\t\tstatus_code: 200\n\t\tuserName: "Admin User"',
+            documentation: 'Concrete examples with inputs and optional soft/hard checks.\n`expect` / `require` use the same operators as call.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\t\tinputs:\n\t\t\tuserId: "admin123"\n\t\texpect:\n\t\t\tstatus_code: 200\n\t\trequire:\n\t\t\tstatus_code: == 200',
         }
     ];
     const envSuggestions = [

@@ -56,7 +56,7 @@ function countSuiteRunnableItems(
 ): number {
     let count = 0;
     const walk = (node: SuiteTreeNode): void => {
-        if (node.kind === 'test' || node.kind === 'suite') {
+        if (node.kind === 'test' || node.kind === 'api' || node.kind === 'suite') {
             count += 1;
         }
         if (node.kind === 'group' || node.kind === 'suite') {
@@ -104,7 +104,7 @@ function buildDisplayNamesFromHierarchy(
         const label = getNodeLabel(node);
         const currentPath = node.kind === 'group' ? pathParts : [...pathParts, label];
 
-        if (node.kind === 'test' || node.kind === 'suite' || node.kind === 'server' || node.kind === 'missing' || node.kind === 'cycle') {
+        if (node.kind === 'test' || node.kind === 'api' || node.kind === 'suite' || node.kind === 'server' || node.kind === 'missing' || node.kind === 'cycle') {
             result[node.id] = currentPath.join(' / ');
         }
 

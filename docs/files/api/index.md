@@ -55,6 +55,7 @@ Under the URL bar:
 | **Headers** | Request headers; response headers appear below Send after a reply |
 | **Cookies** | Request cookies; response cookies appear below Send after a reply |
 | **Doc** | Preview of `description` and `<<i:>>` / `<<o:>>` parameter docs |
+| **Tests** | Pick an **example** (same selector pattern as In / Out), then edit soft **Expect** / hard **Require** for that example. After Send with that example selected, rows show pass/fail |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
 ### Send

@@ -1,5 +1,5 @@
 
-import {APIData, AuthConfig, GraphQLConfig, GrpcConfig} from './APIData';
+import {APIData, ApiTestBlock, AuthConfig, ExampleData, GraphQLConfig, GrpcConfig} from './APIData';
 import {
   FORMAT_VALUES,
   Format,
@@ -13,6 +13,7 @@ import {
 } from './CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
+import type {ExpectMap} from './TestData';
 import {coerceYamlString} from './yamlIncompleteScalar';
 
 /** Valid root-level keys for type: api files. */
@@ -94,6 +95,102 @@ function parseGrpcConfig(raw: any): GrpcConfig | undefined {
 }
 
 const VALID_AUTH_TYPES = new Set(['bearer', 'basic', 'api-key', 'oauth2']);
+
+function parseExpectMap(raw: any): ExpectMap | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  return raw as ExpectMap;
+}
+
+function parseExample(raw: any): ExampleData | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const example: ExampleData = {};
+  if (typeof raw.name === 'string') {
+    example.name = raw.name;
+  }
+  if (typeof raw.description === 'string') {
+    example.description = raw.description;
+  }
+  if (raw.inputs && typeof raw.inputs === 'object') {
+    example.inputs = raw.inputs;
+  }
+  if (raw.outputs && typeof raw.outputs === 'object') {
+    example.outputs = raw.outputs;
+  }
+  const expect = parseExpectMap(raw.expect);
+  if (expect) {
+    example.expect = expect;
+  }
+  const require = parseExpectMap(raw.require);
+  if (require) {
+    example.require = require;
+  }
+  return example;
+}
+
+function parseExamples(raw: any): ExampleData[] {
+  return safeList(raw).map(parseExample).filter((ex): ex is ExampleData => !!ex);
+}
+
+function packExample(example: ExampleData): Record<string, any> {
+  const out: Record<string, any> = {};
+  if (example.name) {
+    out.name = example.name;
+  }
+  if (example.description) {
+    out.description = example.description;
+  }
+  if (isNonEmptyObject(example.inputs)) {
+    out.inputs = example.inputs;
+  }
+  if (isNonEmptyObject(example.outputs)) {
+    out.outputs = example.outputs;
+  }
+  if (isNonEmptyObject(example.expect)) {
+    out.expect = example.expect;
+  }
+  if (isNonEmptyObject(example.require)) {
+    out.require = example.require;
+  }
+  return out;
+}
+
+/** Soft/hard maps from an example (for eval helpers). */
+export function exampleToApiTestBlock(example: ExampleData | undefined | null): ApiTestBlock | undefined {
+  if (!example) {
+    return undefined;
+  }
+  const block: ApiTestBlock = {};
+  if (isNonEmptyObject(example.expect)) {
+    block.expect = example.expect;
+  }
+  if (isNonEmptyObject(example.require)) {
+    block.require = example.require;
+  }
+  return Object.keys(block).length > 0 ? block : undefined;
+}
+
+/** Lightweight title/tags peek for suite hierarchy (no full validation). */
+export function peekApiMetaFromYaml(yamlContent: string): {title?: string; tags?: string[]} {
+  try {
+    const doc = parseYaml(yamlContent) as any;
+    if (!doc || typeof doc !== 'object') {
+      return {};
+    }
+    const title = typeof doc.title === 'string' && doc.title.trim() ? doc.title.trim() : undefined;
+    let tags: string[] | undefined;
+    if (Array.isArray(doc.tags)) {
+      const out = doc.tags.map((t: any) => String(t).trim()).filter(Boolean);
+      tags = out.length ? out : undefined;
+    }
+    return {title, tags};
+  } catch {
+    return {};
+  }
+}
 
 export function validateAuth(raw: any): AuthConfig | undefined {
   if (raw === undefined || raw === null) {
@@ -237,7 +334,7 @@ export function yamlToAPI(yamlContent: string): APIData {
       auth,
       graphql: parseGraphQLConfig(doc.graphql),
       grpc: parseGrpcConfig(doc.grpc),
-      examples: safeList(doc.examples),
+      examples: parseExamples(doc.examples),
     };
   } catch {
     return {} as APIData;
@@ -323,7 +420,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     auth,
     graphql,
     grpc,
-    examples: safeList(doc.examples),
+    examples: parseExamples(doc.examples),
   };
 }
 
@@ -420,7 +517,7 @@ export function apiToYaml(api: APIData, originalYaml?: string): string {
     }
   };
   if (isNonEmptyList(api.examples)) {
-    yamlObj.examples = api.examples;
+    yamlObj.examples = api.examples.map(packExample).filter(ex => Object.keys(ex).length > 0);
   };
   return packYaml(yamlObj, originalYaml);
 }

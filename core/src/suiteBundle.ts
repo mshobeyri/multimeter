@@ -6,7 +6,7 @@ import {
 } from './SuiteData';
 import {createSuiteNodeId} from './suiteNodeId';
 
-export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'server'|'missing'|'cycle';
+export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'api'|'server'|'missing'|'cycle';
 
 function resolveNodeId(node: SuiteHierarchyNode, indexPath: number[]): string {
   const existing = (node as any)?.id;
@@ -20,6 +20,7 @@ export type SuiteBundleNode =
   | {kind: 'group'; id: string; label: string; children: SuiteBundleNode[]}
   | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteBundleNode[]; servers?: string[]; tags?: string[]; filter?: SuiteYamlFilter}
   | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
+  | {kind: 'api'; id: string; path: string; title?: string; tags?: string[]}
   | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
@@ -101,6 +102,19 @@ export function createSuiteBundle(params: {
           testNode.tags = node.tags;
         }
         out.push(testNode);
+        continue;
+      }
+
+      if (node.kind === 'api') {
+        const id = resolveNodeId(node, nextIndexPath);
+        const apiNode: SuiteBundleNode = {kind: 'api', id, path: node.path};
+        if (typeof node.title === 'string' && node.title.trim()) {
+          apiNode.title = node.title.trim();
+        }
+        if (Array.isArray(node.tags) && node.tags.length > 0) {
+          apiNode.tags = node.tags;
+        }
+        out.push(apiNode);
         continue;
       }
 

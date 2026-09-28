@@ -345,6 +345,32 @@ export const APISchema = {
                                 { type: 'null' }
                             ]
                         }
+                    },
+                    expect: {
+                        type: 'object',
+                        additionalProperties: {
+                            anyOf: [
+                                { type: 'string' },
+                                { type: 'number' },
+                                { type: 'boolean' },
+                                { type: 'object' },
+                                { type: 'array' },
+                                { type: 'null' }
+                            ]
+                        }
+                    },
+                    require: {
+                        type: 'object',
+                        additionalProperties: {
+                            anyOf: [
+                                { type: 'string' },
+                                { type: 'number' },
+                                { type: 'boolean' },
+                                { type: 'object' },
+                                { type: 'array' },
+                                { type: 'null' }
+                            ]
+                        }
                     }
                 },
                 additionalProperties: false

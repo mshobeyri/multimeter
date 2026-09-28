@@ -113,6 +113,8 @@ export interface RunResult {
   threw?: boolean;
   outputs?: Record<string, any>;
   cancelled?: boolean;
+  /** Structured API `test.expect` / `test.require` results (API runs only). */
+  apiTest?: import('./apiTestEval').ApiTestEvalResult;
   /** True when the generated JS failed syntax validation (bad .mmt syntax). */
   syntaxError?: boolean;
   /** Set when generated JS threw during execution (e.g. ReferenceError). Assert throws use this too. */

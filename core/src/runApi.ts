@@ -1,6 +1,7 @@
-import {APIData} from './APIData';
-import {yamlToAPI, yamlToAPIStrict} from './apiParsePack';
+import {APIData, ApiTestBlock} from './APIData';
+import {exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 import {CREATE_API_LOG_HELPERS_SOURCE} from './apiLogHelpersFactorySource';
+import {evaluateApiTest} from './apiTestEval';
 import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
@@ -10,6 +11,7 @@ import {replaceAllRefs, resolveInputsMap} from './variableReplacer';
 export interface ResolveExampleResult {
   exampleInputs: Record<string, any>;
   exampleOutputs?: Record<string, any>;
+  exampleTest?: ApiTestBlock;
   resolvedExampleName?: string;
   resolvedExampleIndex?: number;
 }
@@ -30,9 +32,11 @@ export function resolveApiExample(
     const outputs = isPlainObject(ex?.outputs) ?
         {...ex.outputs as Record<string, any>} :
         undefined;
+    const exampleTest = exampleToApiTestBlock(ex);
     return {
       exampleInputs: inputs,
       exampleOutputs: outputs,
+      exampleTest,
       resolvedExampleName: name,
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,
     };
@@ -77,7 +81,7 @@ export function prepareApiRun(
       typeof options.exampleName === 'string' && options.exampleName.trim() ?
       options.exampleName.trim() :
       undefined;
-  const {exampleInputs, exampleOutputs, resolvedExampleName, resolvedExampleIndex} =
+  const {exampleInputs, exampleOutputs, exampleTest, resolvedExampleName, resolvedExampleIndex} =
       resolveApiExample(
           apiDoc, requestedExampleIndex, requestedExampleName, log);
   const inputsUsed = mergeInputs({
@@ -92,6 +96,7 @@ export function prepareApiRun(
     exampleName: resolvedExampleName,
     exampleIndex: resolvedExampleIndex,
     exampleOutputs,
+    exampleTest,
   };
 }
 
@@ -665,6 +670,7 @@ export async function executeApi(
     exampleName,
     exampleIndex,
     exampleOutputs,
+    exampleTest,
   } = prepared;
   const {fileLoader, jsRunner} = options;
 
@@ -706,6 +712,40 @@ export async function executeApi(
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }
+
+  // Evaluate the selected example's expect/require after outputs exist.
+  // Soft failures log but keep success; hard (require) failures fail the run.
+  // (No root-level test block — asserts live on examples only.)
+  if (!result.cancelled && !result.syntaxError && exampleTest) {
+    const apiTest = evaluateApiTest(result.outputs, exampleTest);
+    result.apiTest = apiTest;
+    if (apiTest.hasChecks) {
+      const titlePart = displayName ? `"${displayName}" - ` : '';
+      for (const item of apiTest.items) {
+        const label = item.level === 'require' ? 'Require' : 'Expect';
+        if (item.status === 'passed') {
+          options.logger('info', `\u2713 ${label} ${titlePart}"${item.comparison}"`);
+        } else {
+          const got = item.actual === undefined ? 'undefined' :
+              (typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual));
+          options.logger(
+              'error',
+              `\u00D7 ${label} ${titlePart}"${item.comparison}" (${got})`);
+        }
+      }
+      if (apiTest.hardFailed) {
+        result.success = false;
+        if (!result.errors) {
+          result.errors = [];
+        }
+        const failed = apiTest.items
+            .filter(i => i.level === 'require' && i.status === 'failed')
+            .map(i => i.comparison);
+        result.errors.push(`API require failed: ${failed.join('; ')}`);
+      }
+    }
+  }
+
   return {
     js,
     result,

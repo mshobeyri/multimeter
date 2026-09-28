@@ -362,7 +362,8 @@ export async function handleRunCurrentDocument(
       postApiRunResult(
           webviewPanel, document.uri.toString(),
           result.cancelled ? null : buildApiTesterResponse(result.outputs),
-          !!result.cancelled);
+          !!result.cancelled,
+          result.cancelled ? null : (result.apiTest ?? null));
       if (!result.cancelled) {
         getOnboarding()?.onApiRun(rawFile);
       }
@@ -427,12 +428,14 @@ export async function handleRunCurrentDocument(
 /** Post API run result to the webview Response panel (Send / Run in Core). */
 function postApiRunResult(
     webviewPanel: vscode.WebviewPanel, uri: string,
-    response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean) {
+    response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean,
+    apiTest?: import('mmt-core/apiTestEval').ApiTestEvalResult | null) {
   webviewPanel.webview.postMessage({
     command: 'multimeter.api.run.result',
     uri,
     response,
     cancelled,
+    apiTest: apiTest ?? null,
   });
 }
 

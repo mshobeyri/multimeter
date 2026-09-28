@@ -55,6 +55,8 @@ export interface PreparedRun {
   exampleName?: string;
   exampleIndex?: number;
   exampleOutputs?: Record<string, any>;
+  /** expect/require from the selected example (API runs). */
+  exampleTest?: import('./APIData').ApiTestBlock;
   loadtestConfig?: LoadTestPreparedConfig;
 }
 

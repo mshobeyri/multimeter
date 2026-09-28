@@ -9,7 +9,7 @@ export function fingerprintSuiteTreeNode(node: SuiteTreeNode | null | undefined)
   const parts: string[] = [node.kind, node.id];
   if (node.kind === 'group') {
     parts.push(node.label || '');
-  } else if (node.kind === 'suite' || node.kind === 'test' || node.kind === 'server') {
+  } else if (node.kind === 'suite' || node.kind === 'test' || node.kind === 'api' || node.kind === 'server') {
     parts.push(node.path || '');
     parts.push(('title' in node && node.title) ? node.title : '');
   } else if (node.kind === 'missing' || node.kind === 'cycle') {
@@ -107,7 +107,7 @@ export function remapSuiteTargetId(
     if (!node || typeof node !== 'object') {
       continue;
     }
-    if ((node.kind === 'test' || node.kind === 'suite' || node.kind === 'server') && node.path === oldPath) {
+    if ((node.kind === 'test' || node.kind === 'api' || node.kind === 'suite' || node.kind === 'server') && node.path === oldPath) {
       if (oldTitle && node.title === oldTitle) {
         return node.id;
       }

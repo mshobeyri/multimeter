@@ -16,6 +16,7 @@
 - `body:` string, object, or array (json/xml/text/urlencoded based on format; relative path string when format is binary; multipart parts list when format is multipart; not used with graphql)
 - `graphql:` { `operation:` string (required), variables?: object, operationName?: string }
 - `auth:` `none` | { `type:` `bearer`, token } | { `type:` `basic`, username, password } | { `type:` `api-key`, header|query, value } | { `type:` `oauth2`, grant, token_url, client_id, client_secret, scope? }
-- `examples:` array of { name (required), description?, inputs?, outputs? }
+- `examples:` array of { name (required), description?, inputs?, outputs?, expect?, require? }
+  - `expect` / `require`: soft/hard checks on run outputs for that example (same shape/operators as [call expect/require](../test/steps/call.md#expect))
 
 ---

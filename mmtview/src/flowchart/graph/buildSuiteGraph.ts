@@ -191,7 +191,9 @@ function buildTestEntry(
   predecessors: string[],
 ): string[] {
   const title =
-      hierarchy && hierarchy.kind === 'test' && hierarchy.title ? hierarchy.title : basename(path);
+      hierarchy && (hierarchy.kind === 'test' || hierarchy.kind === 'api') && hierarchy.title
+        ? hierarchy.title
+        : basename(path);
 
   const containerId = ctx.nextId('test');
   const testData = ctx.input.testDataByPath?.[path];

@@ -37,6 +37,7 @@ import {
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
+import ApiTestsEditor from "./ApiTestsEditor";
 import {
   accentChromeCssVars,
   accentChromeFor,
@@ -54,7 +55,7 @@ interface APITestProps {
   initialExampleIndex?: number;
 }
 
-type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc";
+type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc" | "tests";
 
 function countNamedEntries(record?: Record<string, unknown> | null): number {
   if (!record) {
@@ -71,7 +72,8 @@ const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> =
   { key: "params", label: "Params" },
   { key: "headers", label: "Headers" },
   { key: "cookies", label: "Cookies" },
-  { key: "doc", label: "Doc" }
+  { key: "doc", label: "Doc" },
+  { key: "tests", label: "Tests" },
 ];
 
 function cloneInputs(source?: JSONRecord): JSONRecord {
@@ -119,6 +121,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     setCurrentInputs,
     autoFormatBody,
     outputs,
+    apiTestResults,
     updateField,
     restoreField,
     handleUrlChange,
@@ -315,7 +318,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
-    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc" || saved === "inout") {
+    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc" || saved === "inout" || saved === "tests") {
       return saved;
     }
     if (api.protocol === "graphql") {
@@ -377,6 +380,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
+  const shouldShowTests = () => editorTab === "tests";
   const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
     // Format chips are temporary UI (like body edits): deduced from YAML on
     // open/reset, independently editable per side, exit temp when both sides
@@ -579,7 +583,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 ? countNamedEntries(requestData?.headers || api.headers)
                 : tab.key === "cookies"
                   ? countNamedEntries(requestData?.cookies || api.cookies)
-                  : 0;
+                  : tab.key === "tests"
+                    ? (() => {
+                        const ex = selectedExampleIdx >= 0 ? examples[selectedExampleIdx] : undefined;
+                        return Object.keys(ex?.expect || {}).length +
+                            Object.keys(ex?.require || {}).length;
+                      })()
+                    : 0;
               return (
             <button
               key={tab.key}
@@ -776,6 +786,62 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               inputConstraints={inputConstraints}
               deletable={false}
             />
+          </>
+        )}
+
+        {shouldShowTests() && (
+          <>
+            <div className="apitest-example">
+              <div className="label">Example</div>
+              <div className="field-inline is-gap">
+                <select
+                  value={selectedExampleIdx ?? -1}
+                  onChange={e => handleExampleChange(Number(e.target.value))}
+                  className="field-grow"
+                >
+                  <option value={-1}>Select...</option>
+                  {examples
+                    .filter(ex => ex && typeof ex === "object")
+                    .map((ex, idx) => (
+                      <option key={ex?.name || idx} value={idx}>
+                        {ex?.name || `Example ${idx + 1}`}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+            {selectedExampleIdx < 0 || !examples[selectedExampleIdx] ? (
+              <div className="apitest-empty">Select an example to edit tests.</div>
+            ) : (
+              <ApiTestsEditor
+                test={{
+                  expect: examples[selectedExampleIdx].expect,
+                  require: examples[selectedExampleIdx].require,
+                }}
+                results={apiTestResults}
+                fieldSuggestions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
+                onChange={(next) => {
+                  const nextExamples = examples.map((ex, i) => {
+                    if (i !== selectedExampleIdx) {
+                      return ex;
+                    }
+                    const updated = { ...ex };
+                    if (next?.expect) {
+                      updated.expect = next.expect;
+                    } else {
+                      delete updated.expect;
+                    }
+                    if (next?.require) {
+                      updated.require = next.require;
+                    } else {
+                      delete updated.require;
+                    }
+                    return updated;
+                  });
+                  onUpdateApi?.({ examples: nextExamples });
+                }}
+              />
+            )}
           </>
         )}
       </div>
