@@ -202,6 +202,24 @@ export function bodyForYamlSave(
 }
 
 /**
+ * Try to pack UI / plain-storage body text into a structured YAML object.
+ * Independent of whether the file currently stores plain or encoded.
+ * Returns null when the text is not valid for `format`.
+ */
+export function packBodyAsYamlEncoded(
+    uiBody: string,
+    format: Format,
+): unknown|null {
+  // Fake structured anchor so packBodyForYamlCompare attempts a strict pack
+  // even when the current YAML body is still a plain string.
+  const packed = bodyForYamlSave({_: true}, uiBody, format);
+  if (packed == null || typeof packed !== 'object') {
+    return null;
+  }
+  return packed;
+}
+
+/**
  * Non-body field value written back into YAML on Save.
  * Converts display `{{…}}` tokens to YAML `<<…>>` / bare forms.
  */

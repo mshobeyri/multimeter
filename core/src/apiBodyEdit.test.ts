@@ -5,6 +5,7 @@ import {
   bodyForYamlSave,
   displayRequestBody,
   headersTokenSource,
+  packBodyAsYamlEncoded,
   queryTokenSource,
   requestForSend,
 } from './apiBodyEdit';
@@ -219,6 +220,29 @@ describe('bodyForYamlSave + resolveRequestFormat (chart flow)', () => {
 
   it('keeps UI text when YAML body was already a string', () => {
     expect(bodyForYamlSave('raw', '<a/>', 'xml')).toBe('<a/>');
+  });
+
+  it('packBodyAsYamlEncoded packs plain-storage <<i:>> JSON into structured YAML', () => {
+    const plain = [
+      '{',
+      '  "name": "<<i:xxx>>",',
+      '  "ssd": <<i:yy>>,',
+      '  "dd": <<i:dd>>,',
+      '  "message": "Hello from mmt!",',
+      '  "asd": "{{r:uuid}}"',
+      '}',
+    ].join('\n');
+    expect(packBodyAsYamlEncoded(plain, 'json')).toEqual({
+      name: 'i:xxx',
+      ssd: 'i:yy',
+      dd: 'i:dd',
+      message: 'Hello from mmt!',
+      asd: 'r:uuid',
+    });
+  });
+
+  it('packBodyAsYamlEncoded returns null for invalid JSON', () => {
+    expect(packBodyAsYamlEncoded('{"message":', 'json')).toBeNull();
   });
 
   it('end-to-end: display → edit → revert exits → send/save paths', () => {

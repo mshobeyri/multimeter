@@ -65,6 +65,15 @@ const ANGLE_IE_GLOBAL_RE = new RegExp(
 const WHOLE_ANGLE_IE_RE = new RegExp(
     `^<<\\s*((?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE})\\s*>>$`,
 );
+/**
+ * Unquoted YAML/plain-storage angle tokens in JSON text
+ * (`<<i:yy>>`, `<<r:uuid>>`, …) — same scan as `{{…}}`.
+ */
+const ANGLE_PREFIXED_AT_RE = new RegExp(
+    `^<<\\s*((?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}|` +
+        `(?:r|c):(?:${RUNTIME_TOKEN_SPEC_LOOSE_RE})${ACCESSOR_PATH_RE})\\s*>>`,
+    'i',
+);
 const PLAIN_IE_GLOBAL_RE = new RegExp(
     `(?<![A-Za-z0-9_])((?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`,
     'g',
@@ -241,8 +250,13 @@ export function isWholeLiteralRuntimeToken(value: string): boolean {
 }
 
 function angleToPlain(angled: string): string|null {
-  const m = WHOLE_ANGLE_RUNTIME_RE.exec(angled.trim());
-  return m ? m[1] : null;
+  const trimmed = angled.trim();
+  const runtime = WHOLE_ANGLE_RUNTIME_RE.exec(trimmed);
+  if (runtime) {
+    return runtime[1];
+  }
+  const ie = WHOLE_ANGLE_IE_RE.exec(trimmed);
+  return ie ? ie[1] : null;
 }
 
 /**
@@ -533,8 +547,11 @@ export function reviveDisplayRuntimeTokensInValue(value: unknown): unknown {
         return fromDisplay;
       }
       const fromAngle = angleToPlain(trimmed);
-      if (fromAngle && stringContainsRuntimeToken(fromAngle)) {
-        return fromAngle;
+      if (fromAngle) {
+        // Whole-value <<i:>> / <<e:>> / known <<r:>> / <<c:>> → bare YAML token.
+        if (/^[ie]:/i.test(fromAngle) || stringContainsRuntimeToken(fromAngle)) {
+          return fromAngle;
+        }
       }
     }
     return displayRuntimeTokensToResolvableText(value);
@@ -789,8 +806,8 @@ export function stringifyJsonWithRuntimeTokens(
 }
 
 /**
- * Replace unquoted `{{random …}}` / `{{current …}}` outside JSON strings.
- * `onToken` receives the plain `r:…` / `c:…` spec.
+ * Replace unquoted `{{…}}` / `<<…>>` runtime tokens outside JSON strings.
+ * `onToken` receives the plain `i:` / `e:` / `r:` / `c:` spec.
  */
 export function mapUnquotedDisplayRuntimeTokens(
     text: string,
@@ -831,6 +848,15 @@ export function mapUnquotedDisplayRuntimeTokens(
           i += m[0].length;
           continue;
         }
+      }
+    }
+    // Plain-storage YAML bodies keep unquoted <<i:yy>> / <<r:int>> in JSON.
+    if (ch === '<' && text.startsWith('<<', i)) {
+      const m = ANGLE_PREFIXED_AT_RE.exec(text.slice(i));
+      if (m && m[1]) {
+        out += onToken(m[1]);
+        i += m[0].length;
+        continue;
       }
     }
     out += ch;
@@ -944,8 +970,9 @@ export function displayRuntimeString(
       return `"${unwrapLiteralToken(source)}"`;
     }
     // Preview keeps r:/c: as display tokens; i:/e: use resolved values.
+    const angled = angleToPlain(source.trim());
     if (stringContainsRuntimeToken(source) || displayTokenToPlain(source) ||
-        angleToPlain(source.trim())) {
+        (angled != null && stringContainsRuntimeToken(angled))) {
       return rewriteRuntimeTokensInText(source);
     }
   }

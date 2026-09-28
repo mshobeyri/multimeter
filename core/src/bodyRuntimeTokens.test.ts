@@ -241,6 +241,29 @@ describe('parseJsonWithRuntimeTokens', () => {
     });
   });
 
+  it('parses plain-storage unquoted <<i:>> / <<e:>> angle tokens', () => {
+    const parsed = parseJsonWithRuntimeTokens(`{
+  "name": "<<i:xxx>>",
+  "ssd": <<i:yy>>,
+  "dd": <<i:dd>>,
+  "host": "<<e:host>>",
+  "port": <<e:port>>,
+  "id": "<<r:uuid>>",
+  "n": <<r:int>>,
+  "message": "Hello from mmt!"
+}`);
+    expect(parsed).toEqual({
+      name: 'i:xxx',
+      ssd: 'i:yy',
+      dd: 'i:dd',
+      host: 'e:host',
+      port: 'e:port',
+      id: 'r:uuid',
+      n: 'r:int',
+      message: 'Hello from mmt!',
+    });
+  });
+
   it('round-trips string vs number/bool forms', () => {
     const original = {
       id: 'r:uuid',
@@ -263,6 +286,8 @@ describe('isJsonWithRuntimeTokensValid', () => {
     expect(isJsonWithRuntimeTokensValid('{"a": {{r:uuid}}}')).toBe(true);
     expect(isJsonWithRuntimeTokensValid('{"a": "{{r:uuid}}"}')).toBe(true);
     expect(isJsonWithRuntimeTokensValid('{"a": {{r:int}}}')).toBe(true);
+    expect(isJsonWithRuntimeTokensValid('{"a": <<i:yy>>}')).toBe(true);
+    expect(isJsonWithRuntimeTokensValid('{"a": "<<i:xxx>>"}')).toBe(true);
     expect(isJsonWithRuntimeTokensValid('{"a":')).toBe(false);
     expect(isJsonWithRuntimeTokensValid('{"a": {{env host}}}')).toBe(false);
   });
