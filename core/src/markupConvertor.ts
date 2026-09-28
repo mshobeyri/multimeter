@@ -8,6 +8,7 @@ import {restoreOmitKeyword} from './omitKeyword';
 import {isOmitSentinel} from './omitKeyword';
 import {
   isLiteralTokenValue,
+  isTokenLikeScalar,
   restoreLiteralTokens,
 } from './literalToken';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
@@ -75,6 +76,13 @@ function applyKeywordScalarStyles(node: any, original: any): void {
     }
     if (isLiteralTokenValue(original)) {
       node.type = 'QUOTE_DOUBLE';
+      return;
+    }
+    // Resolving tokens must stay plain. Merge keeps prior scalar style, so a
+    // mid-edit quoted `"{{r:u}}"` would otherwise stick and turn a completed
+    // `r:uuid` into a non-resolving quoted literal.
+    if (typeof original === 'string' && isTokenLikeScalar(original)) {
+      node.type = 'PLAIN';
       return;
     }
     if ((original === 'omit' || original === 'null') &&

@@ -82,6 +82,11 @@ describe('peerString / peerRecord YAML↔UI', () => {
     });
   });
 
+  it('strips incomplete whole {{r:…}} to bare form', () => {
+    expect(peerStringToYaml('{{r:u}}')).toBe('r:u');
+    expect(peerStringToYaml('{{r:uu}}')).toBe('r:uu');
+  });
+
   it('round-trips query-style records', () => {
     const yaml = {id: 'r:uuid', city: 'i:city'};
     const ui = peerRecordToDisplay(yaml);

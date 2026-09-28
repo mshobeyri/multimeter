@@ -327,6 +327,23 @@ method: get
     const twice = apiToYaml(yamlToAPI(once), once);
     expect(yamlToAPI(twice)).toEqual(yamlToAPI(once));
   });
+
+  it('does not keep quote style when a query token finishes as r:uuid', () => {
+    // Mid-edit `{{r:u}}` is YAML-quoted; completing the token must emit plain
+    // `r:uuid` (resolving), not a quoted literal.
+    const midEdit = `type: api
+url: https://x
+query:
+  id: "{{r:u}}"
+`;
+    const api = yamlToAPI(midEdit);
+    api.query = {id: 'r:uuid'};
+    const out = apiToYaml(api, midEdit);
+    expect(out).toMatch(/id: r:uuid\b/);
+    expect(out).not.toMatch(/id: ["']r:uuid["']/);
+    const roundTrip = yamlToAPI(out);
+    expect(roundTrip.query?.id).toBe('r:uuid');
+  });
 });
 
 describe('mergeYamlValue', () => {

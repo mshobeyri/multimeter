@@ -1148,11 +1148,23 @@ export function peerRecordToDisplay(
  * Tester peer string → YAML form.
  * Accepts bare `r:uuid`, `{{r:uuid}}`, or `<<r:uuid>>` → stores `r:uuid`
  * (or `<<…>>` when embedded in larger text).
+ *
+ * Incomplete / unknown whole `{{r:…}}` values strip to bare `r:…` so YAML does
+ * not quote braces mid-keystroke (which would later stick as literal style).
  */
 export function peerStringToYaml(ui: string): string {
   const normalized = rewriteAllTokensToDisplayText(String(ui ?? ''));
   const packed = valueForYamlSave(normalized);
-  return typeof packed === 'string' ? packed : String(packed ?? '');
+  if (typeof packed !== 'string') {
+    return String(packed ?? '');
+  }
+  const trimmed = packed.trim();
+  const display = WHOLE_DISPLAY_PREFIXED_RE.exec(trimmed);
+  if (display && packed === trimmed) {
+    // Known tokens already revived above; this catches incomplete `{{r:u}}`.
+    return `${display[1]}:${display[2].trim()}`;
+  }
+  return packed;
 }
 
 /**
