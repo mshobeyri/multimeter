@@ -44,7 +44,6 @@ import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
 import ApiTestsEditor from "./ApiTestsEditor";
-import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { FormatChip } from "../components/BodyFormatControls";
 import {
   accentChromeCssVars,
@@ -55,6 +54,10 @@ import { SELECT_EXAMPLE_EVENT } from "../text/exampleSelect";
 
 /** Body pane: resolved values vs editable {{…}} tokens. */
 type BodyTokenMode = "resolved" | "tokens";
+
+function isStructuredYamlBody(body: unknown): boolean {
+  return body != null && body !== "" && typeof body === "object";
+}
 
 interface APITestProps {
   api: APIData;
@@ -460,13 +463,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const [bodyEditDraft, setBodyEditDraft] = useState("");
   const [bodyEditSession, setBodyEditSession] = useState(0);
   const [bodyEditCursor, setBodyEditCursor] = useState<BodyViewCursor | undefined>();
+  const [bodyYamlEncodeError, setBodyYamlEncodeError] = useState(false);
+  // Storage chip follows api.body; manual preference drives encode retries.
+  const [bodyYamlEncodedManual, setBodyYamlEncodedManual] = useState(true);
+  const bodyYamlEncodedOriginalRef = useRef(false);
   const resolvedBodyHintRef = useRef<unknown>(undefined);
 
-  // Same rule as Interface edit: structured object → YAML-encoded, string → plain.
-  const bodyEditYamlEncoded =
-    api.body != null &&
-    api.body !== "" &&
-    typeof api.body !== "string";
+  const isYamlEncodedBody = (body: unknown) => isStructuredYamlBody(body);
+
+  // Actual on-disk/storage shape (auto-switches plain ↔ YAML-encoded).
+  const bodyEditYamlEncoded = isYamlEncodedBody(api.body);
 
   useEffect(() => {
     const structured = requestData?.body ?? api.body;
@@ -486,9 +492,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       bodyValueContext,
       resolvedHint,
     );
+    const original = isYamlEncodedBody(api.body);
+    bodyYamlEncodedOriginalRef.current = original;
+    setBodyYamlEncodedManual(original);
     setBodyEditCursor(cursor);
     setBodyEditDraft(template);
     setBodyEditSession((n) => n + 1);
+    setBodyYamlEncodeError(false);
     setBodyTokenMode("tokens");
   }, [
     requestData?.body,
@@ -497,32 +507,53 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     bodyValueContext,
   ]);
 
-  // Mirror Interface applyBodyEdit / setBodyYamlEncoded, then revive {{…}} → YAML tokens.
+  // Strict pack for YAML-encoded (same rules as Save). Lenient formattedBodyToYamlObject
+  // can YAML-parse broken JSON into a wrong object — that must fall back to plain.
   const writeBodyToYaml = useCallback((text: string, yamlEncoded: boolean) => {
     const normalized = normalizeNewlines(text);
     if (yamlEncoded) {
-      const packed = formattedBodyToYamlObject(resolvedRequestFormat, normalized);
-      if (packed === null || packed === undefined) {
+      const anchor = isStructuredYamlBody(api.body) ? api.body : { _: true };
+      const packed = bodyForYamlSave(anchor, normalized, resolvedRequestFormat);
+      if (!isStructuredYamlBody(packed)) {
         return false;
       }
-      onUpdateApi?.({ body: valueForYamlSave(packed) as APIData["body"] });
+      onUpdateApi?.({ body: packed as APIData["body"] });
       return true;
     }
     onUpdateApi?.({ body: valueForYamlSave(normalized) as APIData["body"] });
     return true;
-  }, [onUpdateApi, resolvedRequestFormat]);
+  }, [api.body, onUpdateApi, resolvedRequestFormat]);
+
+  /** Prefer structured YAML; on failure save plain and set the encode-error flag. */
+  const writeBodyPreferYamlEncoded = useCallback((text: string, preferYaml: boolean) => {
+    if (preferYaml) {
+      if (writeBodyToYaml(text, true)) {
+        setBodyYamlEncodeError(false);
+        return true;
+      }
+      setBodyYamlEncodeError(true);
+      writeBodyToYaml(text, false);
+      return false;
+    }
+    writeBodyToYaml(text, false);
+    return true;
+  }, [writeBodyToYaml]);
 
   const handleBodyEditChange = useCallback((val: string) => {
     setBodyEditDraft(val);
-    writeBodyToYaml(val, bodyEditYamlEncoded);
-  }, [bodyEditYamlEncoded, writeBodyToYaml]);
+    // Manual YAML-encoded → retry every keystroke so we snap back when valid again.
+    writeBodyPreferYamlEncoded(val, bodyYamlEncodedManual);
+  }, [bodyYamlEncodedManual, writeBodyPreferYamlEncoded]);
 
   const handleBodyEditYamlEncoded = useCallback((enabled: boolean) => {
-    if (enabled === bodyEditYamlEncoded) {
+    setBodyYamlEncodedManual(enabled);
+    if (enabled) {
+      writeBodyPreferYamlEncoded(bodyEditDraft, true);
       return;
     }
-    writeBodyToYaml(bodyEditDraft, enabled);
-  }, [bodyEditDraft, bodyEditYamlEncoded, writeBodyToYaml]);
+    setBodyYamlEncodeError(false);
+    writeBodyToYaml(bodyEditDraft, false);
+  }, [bodyEditDraft, writeBodyPreferYamlEncoded, writeBodyToYaml]);
 
   const handleBodyTokenModeChange = useCallback((mode: BodyTokenMode) => {
     if (mode === bodyTokenMode) {
@@ -533,44 +564,44 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       return;
     }
     // Flush draft so resolved view / Send see the latest tokens.
-    writeBodyToYaml(bodyEditDraft, bodyEditYamlEncoded);
+    writeBodyPreferYamlEncoded(bodyEditDraft, bodyYamlEncodedManual);
     setBodyTokenMode("resolved");
   }, [
     bodyTokenMode,
     openBodyTokens,
-    writeBodyToYaml,
+    writeBodyPreferYamlEncoded,
     bodyEditDraft,
-    bodyEditYamlEncoded,
+    bodyYamlEncodedManual,
   ]);
 
   const sendWithResolvedBody = useCallback(async () => {
     if (bodyTokenMode === "tokens") {
       // Commit YAML before send so resolveApiRequest sees the draft tokens.
       flushSync(() => {
-        writeBodyToYaml(bodyEditDraft, bodyEditYamlEncoded);
+        writeBodyPreferYamlEncoded(bodyEditDraft, bodyYamlEncodedManual);
       });
     }
     await handleSend();
   }, [
     bodyTokenMode,
     bodyEditDraft,
-    bodyEditYamlEncoded,
-    writeBodyToYaml,
+    bodyYamlEncodedManual,
+    writeBodyPreferYamlEncoded,
     handleSend,
   ]);
 
   const runWithResolvedBody = useCallback(async () => {
     if (bodyTokenMode === "tokens") {
       flushSync(() => {
-        writeBodyToYaml(bodyEditDraft, bodyEditYamlEncoded);
+        writeBodyPreferYamlEncoded(bodyEditDraft, bodyYamlEncodedManual);
       });
     }
     await handleRunInCore();
   }, [
     bodyTokenMode,
     bodyEditDraft,
-    bodyEditYamlEncoded,
-    writeBodyToYaml,
+    bodyYamlEncodedManual,
+    writeBodyPreferYamlEncoded,
     handleRunInCore,
   ]);
 
@@ -586,7 +617,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       onClick: () => {
         if (bodyTokenMode === "tokens") {
           flushSync(() => {
-            writeBodyToYaml(bodyEditDraft, bodyEditYamlEncoded);
+            writeBodyPreferYamlEncoded(bodyEditDraft, bodyYamlEncodedManual);
           });
         }
         window.vscode?.postMessage({
@@ -603,8 +634,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     runInputs,
     bodyTokenMode,
     bodyEditDraft,
-    bodyEditYamlEncoded,
-    writeBodyToYaml,
+    bodyYamlEncodedManual,
+    writeBodyPreferYamlEncoded,
   ]);
 
   const inputConstraints = useMemo(
@@ -822,6 +853,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                       title="Store body as structured YAML instead of a text block"
                       onClick={() => handleBodyEditYamlEncoded(true)}
                     />
+                    {bodyYamlEncodeError ? (
+                      <span
+                        className="codicon codicon-error apitest-body-yaml-encode-error"
+                        title="Could not store as structured YAML; using plain until valid again"
+                        role="img"
+                        aria-label="Could not store as structured YAML; using plain until valid again"
+                      />
+                    ) : null}
                   </div>
                 ) : (
                   <BodyFormatBar

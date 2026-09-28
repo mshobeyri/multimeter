@@ -382,6 +382,13 @@
   gap: 6px 12px;
 }
 
+.apitest-body-yaml-encode-error {
+  color: var(--vscode-errorForeground, #f48771);
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 .apitest-body-format-divider {
   display: inline-block;
   width: 1px;
