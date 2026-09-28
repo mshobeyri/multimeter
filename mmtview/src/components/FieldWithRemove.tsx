@@ -8,6 +8,8 @@ interface FieldWithRemoveProps {
   onEnter?: () => void;
   placeholder?: string;
   disabled?: boolean;
+  /** Non-editable but visually normal (unlike disabled). */
+  readOnly?: boolean;
   removable?: boolean;
   copyable?: boolean;
 }
@@ -20,6 +22,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   onEnter,
   placeholder,
   disabled = false,
+  readOnly = false,
   removable = true,
   copyable = false,
 }) => {
@@ -43,6 +46,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
           }
         }}
         disabled={disabled}
+        readOnly={readOnly}
       />
       {copyable && value && (
         <button
@@ -56,7 +60,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
       {removable && <button
         onClick={onRemovePressed}
         title="Remove field"
-        disabled={disabled}
+        disabled={disabled || readOnly}
         className="field-button"
       >
         <span className="action-button codicon codicon-close" />

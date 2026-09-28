@@ -545,6 +545,11 @@ select.is-invalid {
   cursor: pointer;
 }
 
+/* Align with expect/require fields that lead with a result-slot + gap. */
+.apitest-tests .ghost-add {
+  margin-left: 20px;
+}
+
 
 .doc-services {
   display: flex;

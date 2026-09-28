@@ -6,7 +6,7 @@ Define example inputs and soft/hard checks so you can run them as smoke tests fr
 
 **YAML editor** — Each example with an `id:` (or legacy `name:`) shows a {{btn:run}} glyph in the left margin on that line. Click it to run that example through core; Multimeter opens the log output.
 
-**API tester** — On the **Examples** tab, use the **Example** dropdown to pick **Select...** (API defaults) or an example. Request-side **Inputs** pre-fill for the next {{btn:send:Send}}. Response-side **Expect** / **Require** edit soft and hard checks. Use **+** to add a new test from the current inputs (and extracted values as expect). Editing inputs while an example is selected writes to that example.
+**API tester** — On the **Examples** tab, use the **Example** dropdown to pick **Defaults** (API default inputs) or an example. Request-side **Inputs** pre-fill for the next {{btn:send:Send}}. Response-side shows extracted **Outputs**; with an example selected you can edit soft **Expect** / hard **Require** (field pickers include declared outputs). Use **+** to add a new test from the current inputs (and extracted values as expect). Editing inputs while an example is selected writes to that example.
 
 ```yaml
 examples:
@@ -42,9 +42,9 @@ Prefer `id` + `title`. Deprecated `name` still works as a fallback for both — 
 
 ## UI features
 
-- **Example dropdown** (Examples tab): Switch between **Select...** (API defaults) and examples; inputs update immediately.
+- **Example dropdown** (Examples tab): Switch between **Defaults** (API default inputs) and examples; inputs update immediately. **Defaults** shows outputs only (no expect/require editing).
 - **Method override button**: Temporarily change the HTTP method from the UI without editing the YAML. Useful for quick testing of the same endpoint with different methods.
-- **Copyable outputs**: Output values in the response panel can be copied with a click.
+- **Copyable outputs**: Output values on the Examples response pane can be copied with a click.
 - **Extract variable from output**: Click on a value in the response body to automatically create an output extraction path for that value.
 
 ---

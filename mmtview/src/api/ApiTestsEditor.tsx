@@ -25,10 +25,8 @@ export interface ApiTestsEditorProps {
   onChange: (test: ApiTestBlock | undefined) => void;
   /** Result rows from the last Send / run (optional). */
   results?: ApiTestExpectItem[] | null;
-  /** Suggested field names (e.g. declared outputs). */
+  /** Suggested field names (e.g. declared outputs) — shown first in the field select. */
   fieldSuggestions?: string[];
-  /** When true, show empty-state copy for no tests (SDD: no blue link). */
-  showEmptyState?: boolean;
 }
 
 function buildTestBlock(
@@ -55,14 +53,22 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
   onChange,
   results,
   fieldSuggestions,
-  showEmptyState = true,
 }) => {
   const expectList = React.useMemo(() => expectMapToUiRows(test?.expect as any), [test?.expect]);
   const requireList = React.useMemo(() => expectMapToUiRows(test?.require as any), [test?.require]);
 
   const suggestions = React.useMemo(() => {
-    const set = new Set<string>([...DEFAULT_FIELDS, ...(fieldSuggestions || [])]);
-    return Array.from(set);
+    // Declared outputs first, then built-in response fields (deduped).
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const name of [...(fieldSuggestions || []), ...DEFAULT_FIELDS]) {
+      if (!name || seen.has(name)) {
+        continue;
+      }
+      seen.add(name);
+      out.push(name);
+    }
+    return out;
   }, [fieldSuggestions]);
 
   const emit = (nextExpect?: ExpectUiRow[], nextRequire?: ExpectUiRow[]) => {
@@ -105,7 +111,6 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
     );
   };
 
-  const hasAnyRows = expectList.length > 0 || requireList.length > 0;
   const summary = React.useMemo(() => {
     if (!results || results.length === 0) {
       return null;
@@ -122,9 +127,6 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
           {summary.passed} passed, {summary.failed} failed
         </div>
       )}
-      {!hasAnyRows && showEmptyState && !summary ? (
-        <div className="apitest-empty">No tests on this example.</div>
-      ) : null}
       <CheckClauseList
         kind="expect"
         rows={expectList}
@@ -145,7 +147,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
           <>
             {resultIcon("expect", row)}
             <CheckClauseFieldInput
-              list="apitest-test-fields"
+              list="apitest-expect-fields"
               value={row.field}
               onChange={val => {
                 const updated = expectList.map((r, idx) => (
@@ -154,11 +156,17 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
                 emit(updated);
               }}
               title="Output field"
-              placeholder="field"
+              placeholder="status"
             />
           </>
         )}
-      />
+      >
+        <datalist id="apitest-expect-fields">
+          {suggestions.map(field => (
+            <option key={field} value={field} />
+          ))}
+        </datalist>
+      </CheckClauseList>
       <CheckClauseList
         kind="require"
         rows={requireList}
@@ -179,7 +187,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
           <>
             {resultIcon("require", row)}
             <CheckClauseFieldInput
-              list="apitest-test-fields"
+              list="apitest-require-fields"
               value={row.field}
               onChange={val => {
                 const updated = requireList.map((r, idx) => (
@@ -188,16 +196,17 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
                 emit(undefined, updated);
               }}
               title="Output field"
-              placeholder="field"
+              placeholder="status"
             />
           </>
         )}
-      />
-      <datalist id="apitest-test-fields">
-        {suggestions.map(f => (
-          <option key={f} value={f} />
-        ))}
-      </datalist>
+      >
+        <datalist id="apitest-require-fields">
+          {suggestions.map(field => (
+            <option key={field} value={field} />
+          ))}
+        </datalist>
+      </CheckClauseList>
     </div>
   );
 };

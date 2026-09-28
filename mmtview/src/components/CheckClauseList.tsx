@@ -5,19 +5,16 @@ import OperatorSelect from "./OperatorSelect";
 export type CheckClauseKind = "expect" | "require";
 
 const CLAUSE_COPY: Record<CheckClauseKind, {
-  empty: string;
   add: string;
   remove: string;
   expected: string;
 }> = {
   expect: {
-    empty: "No expectations",
     add: "+ Add expect",
     remove: "Remove expect",
     expected: "expected value",
   },
   require: {
-    empty: "No requirements",
     add: "+ Add require",
     remove: "Remove require",
     expected: "required value",
@@ -105,7 +102,7 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
       <div className="label">{label}</div>
       <div className="field-pad">
         {children}
-        {rows.length ? (
+        {rows.length > 0 && (
           <div className="field-stack is-loose">
             {rows.map((row, i) => (
               <div key={i} className="field-inline">
@@ -133,8 +130,6 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
               </div>
             ))}
           </div>
-        ) : (
-          <div className="muted">{copy.empty}</div>
         )}
         <div className="field-block">
           <button

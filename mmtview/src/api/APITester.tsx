@@ -191,6 +191,30 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     () => peerStringToDisplay(api.graphql?.operation),
     [api.graphql?.operation],
   );
+  /** Declared output keys with last-extracted values (Examples response pane). */
+  const outputDisplay = useMemo(() => {
+    const rules = api.outputs && typeof api.outputs === "object" ? api.outputs : {};
+    const out: Record<string, string> = {};
+    for (const key of Object.keys(rules)) {
+      const raw = (outputs as Record<string, unknown> | undefined)?.[key];
+      if (raw === undefined || raw === null) {
+        out[key] = "";
+      } else if (typeof raw === "string") {
+        out[key] = raw;
+      } else {
+        try {
+          out[key] = JSON.stringify(raw);
+        } catch {
+          out[key] = String(raw);
+        }
+      }
+    }
+    return out;
+  }, [api.outputs, outputs]);
+  const outputFieldSuggestions = useMemo(
+    () => Object.keys(api.outputs && typeof api.outputs === "object" ? api.outputs : {}),
+    [api.outputs],
+  );
 
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(
     requestData?.protocol || api.protocol,
@@ -1031,7 +1055,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                   }}
                   className="field-grow"
                 >
-                  <option value={-1}>Select...</option>
+                  <option value={-1}>Defaults</option>
                   {examples
                     .filter(ex => ex && typeof ex === "object")
                     .map((ex, idx) => (
@@ -1130,42 +1154,55 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         )}
 
         {shouldShowExamples() && (
-          selectedExampleIdx < 0 || !examples[selectedExampleIdx] ? (
-            <div className="apitest-empty">Select an example to edit expect / require.</div>
-          ) : (
-            <ApiTestsEditor
-              test={{
-                expect: exampleExpect(examples[selectedExampleIdx]),
-                require: examples[selectedExampleIdx].require,
-              }}
-              results={apiTestResults}
-              fieldSuggestions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
-              onChange={(next) => {
-                const nextExamples = examples.map((ex, i) => {
-                  if (i !== selectedExampleIdx) {
-                    return ex;
-                  }
-                  const updated = { ...ex };
-                  // Migrating off deprecated outputs when writing expect.
-                  if (updated.outputs !== undefined) {
-                    delete updated.outputs;
-                  }
-                  if (next?.expect) {
-                    updated.expect = next.expect;
-                  } else {
-                    delete updated.expect;
-                  }
-                  if (next?.require) {
-                    updated.require = next.require;
-                  } else {
-                    delete updated.require;
-                  }
-                  return updated;
-                });
-                onUpdateApi?.({ examples: nextExamples });
-              }}
-            />
-          )
+          <>
+            {Object.keys(outputDisplay).length > 0 ? (
+              <KSVEditor
+                label="Outputs"
+                value={outputDisplay}
+                onChange={() => { }}
+                readOnly
+                deactivated
+                deletable={false}
+                copyable
+              />
+            ) : (
+              <div className="apitest-empty">No outputs defined.</div>
+            )}
+            {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
+              <ApiTestsEditor
+                test={{
+                  expect: exampleExpect(examples[selectedExampleIdx]),
+                  require: examples[selectedExampleIdx].require,
+                }}
+                results={apiTestResults}
+                fieldSuggestions={outputFieldSuggestions}
+                onChange={(next) => {
+                  const nextExamples = examples.map((ex, i) => {
+                    if (i !== selectedExampleIdx) {
+                      return ex;
+                    }
+                    const updated = { ...ex };
+                    // Migrating off deprecated outputs when writing expect.
+                    if (updated.outputs !== undefined) {
+                      delete updated.outputs;
+                    }
+                    if (next?.expect) {
+                      updated.expect = next.expect;
+                    } else {
+                      delete updated.expect;
+                    }
+                    if (next?.require) {
+                      updated.require = next.require;
+                    } else {
+                      delete updated.require;
+                    }
+                    return updated;
+                  });
+                  onUpdateApi?.({ examples: nextExamples });
+                }}
+              />
+            ) : null}
+          </>
         )}
       </div>
 

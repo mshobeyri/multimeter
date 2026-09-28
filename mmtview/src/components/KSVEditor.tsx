@@ -21,10 +21,14 @@ interface KSVEditorProps {
   valuePlaceholder?: string;
   options?: string[];
   disabled?: boolean;
+  /** Non-editable but visually normal (unlike disabled). */
+  readOnly?: boolean;
   deactivated?: boolean;
   keysDisabled?: boolean;
   deletable?: boolean;
   expandable?: boolean;
+  /** Show copy buttons on value fields (useful for read-only outputs). */
+  copyable?: boolean;
   filePicker?: boolean;
   filePickerFilters?: Array<{ name?: string; extensions?: string[] }>;
 }
@@ -72,10 +76,12 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   valuePlaceholder = "value",
   options,
   disabled,
+  readOnly = false,
   deactivated = false,
   keysDisabled = false,
   deletable = true,
   expandable = true,
+  copyable = false,
   filePicker = false,
   filePickerFilters,
 }) => {
@@ -206,6 +212,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                     }}
                     placeholder={keyPlaceholder}
                     disabled={disabled || keysDisabled}
+                    readOnly={readOnly}
                   />
                 </td>
                 <td>
@@ -221,7 +228,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         basePath={fileCtx?.mmtFilePath}
                         filters={effectiveFilePickerFilters}
                         showFilePicker={true}
-                        removable={deletable && !deactivated}
+                        removable={deletable && !deactivated && !readOnly}
                       />
                     ) : safeOptions.length > 0 ? (
                       <SelectWithRemove
@@ -236,8 +243,8 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         onRemovePressed={() => handleRemove(i)}
                         options={safeOptions}
                         placeholder={valuePlaceholder}
-                        disabled={disabled}
-                        removable={deletable && !deactivated}
+                        disabled={disabled || readOnly}
+                        removable={deletable && !deactivated && !readOnly}
                       />
                     ) : (
                       <FieldWithRemove
@@ -247,7 +254,9 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         onRemovePressed={() => handleRemove(i)}
                         placeholder={valuePlaceholder}
                         disabled={disabled}
-                        removable={deletable && !deactivated}
+                        readOnly={readOnly}
+                        removable={deletable && !deactivated && !readOnly}
+                        copyable={copyable}
                       />
                     )
                   )}
