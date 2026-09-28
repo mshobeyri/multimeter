@@ -10,7 +10,6 @@ import BodyView, { type BodyViewCursor } from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
-  bodyEditTokenTemplate,
   bodyForYamlSave,
   displayRequestBody,
   displayRequestStringRecord,
@@ -20,7 +19,9 @@ import {
   headersTokenSource,
   packBodyAsYamlEncoded,
   queryTokenSource,
+  tokensTextToYamlBody,
   valueForYamlSave,
+  yamlBodyToTokensText,
 } from "mmt-core/apiBodyEdit";
 import { resolveApiRequest } from "mmt-core/resolveApiRequest";
 import { normalizeNewlines } from "mmt-core/textLines";
@@ -474,7 +475,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   // Two independent axes:
   //   storage: plain | encoded  → shape of api.body in YAML
   //   view:    resolved | tokens → what BodyView shows
-  // Tokens draft is local and cheap; YAML persistence is peer storage, not a BodyView remount.
+  // Tokens draft peers YAML on every keystroke (no debounce).
   const [bodyEditDraft, setBodyEditDraft] = useState("");
   const [bodyEditSession, setBodyEditSession] = useState(0);
   const [bodyEditCursor, setBodyEditCursor] = useState<BodyViewCursor | undefined>();
@@ -482,8 +483,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   // Manual preference: retry encode on each keystroke while true.
   const [bodyYamlEncodedManual, setBodyYamlEncodedManual] = useState(true);
   const skipBodySyncRef = useRef(false);
-  const bodyYamlWriteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingBodyYamlWriteRef = useRef<{ text: string; preferEncoded: boolean } | null>(null);
   const resolvedBodyHintRef = useRef<unknown>(undefined);
 
   // Actual on-disk/storage shape (follows api.body; chip write updates it).
@@ -500,7 +499,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     const resolvedHint = typeof requestData?.body === "string"
       ? resolvedBodyHintRef.current
       : (requestData?.body ?? resolvedBodyHintRef.current);
-    return bodyEditTokenTemplate(
+    // Peer: YAML → tokens (never from resolved values).
+    return yamlBodyToTokensText(
       api.body,
       resolvedRequestFormat,
       bodyValueContext,
@@ -529,75 +529,32 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     setBodyTokenMode("tokens");
   }, [tokensTextFromYaml]);
 
-  /** Write api.body as plain string or structured YAML. Returns whether encode succeeded. */
+  /**
+   * Peer write: tokens/display text → YAML body (immediate).
+   * Resolved values never flow into YAML — only token text (draft or yaml→tokens).
+   */
   const writeBodyStorage = useCallback((text: string, preferEncoded: boolean): boolean => {
     // Own write → ignore the following api.body echo (do not rewrite draft).
     skipBodySyncRef.current = true;
-    const normalized = normalizeNewlines(text);
-    if (preferEncoded) {
-      const packed = packBodyAsYamlEncoded(normalized, resolvedRequestFormat);
-      if (packed != null) {
-        setBodyYamlEncodeError(false);
-        onUpdateApi?.({ body: packed as APIData["body"] });
-        return true;
-      }
-      setBodyYamlEncodeError(true);
-    } else {
-      setBodyYamlEncodeError(false);
-    }
-    const plain = valueForYamlSave(normalized);
-    const nextBody = (typeof plain === "string" ? plain : normalized) as APIData["body"];
+    const nextBody = tokensTextToYamlBody(
+      text,
+      resolvedRequestFormat,
+      preferEncoded,
+    ) as APIData["body"];
+    const encodedOk = preferEncoded && isStructuredYamlBody(nextBody);
+    setBodyYamlEncodeError(preferEncoded && !encodedOk);
     onUpdateApi?.({ body: nextBody });
-    return !preferEncoded;
+    return !preferEncoded || encodedOk;
   }, [onUpdateApi, resolvedRequestFormat]);
-
-  const flushBodyYamlWrite = useCallback(() => {
-    if (bodyYamlWriteTimerRef.current != null) {
-      clearTimeout(bodyYamlWriteTimerRef.current);
-      bodyYamlWriteTimerRef.current = null;
-    }
-    const pending = pendingBodyYamlWriteRef.current;
-    if (!pending) {
-      return;
-    }
-    pendingBodyYamlWriteRef.current = null;
-    writeBodyStorage(pending.text, pending.preferEncoded);
-  }, [writeBodyStorage]);
-
-  /** Debounced YAML peer write — draft stays instant; storage catches up. */
-  const scheduleBodyYamlWrite = useCallback((text: string, preferEncoded: boolean) => {
-    pendingBodyYamlWriteRef.current = { text, preferEncoded };
-    if (bodyYamlWriteTimerRef.current != null) {
-      clearTimeout(bodyYamlWriteTimerRef.current);
-    }
-    bodyYamlWriteTimerRef.current = setTimeout(() => {
-      bodyYamlWriteTimerRef.current = null;
-      flushBodyYamlWrite();
-    }, 120);
-  }, [flushBodyYamlWrite]);
-
-  useEffect(() => {
-    return () => {
-      if (bodyYamlWriteTimerRef.current != null) {
-        clearTimeout(bodyYamlWriteTimerRef.current);
-      }
-    };
-  }, []);
 
   const handleBodyEditChange = useCallback((val: string) => {
     setBodyEditDraft(val);
-    scheduleBodyYamlWrite(val, bodyYamlEncodedManual);
-  }, [bodyYamlEncodedManual, scheduleBodyYamlWrite]);
+    writeBodyStorage(val, bodyYamlEncodedManual);
+  }, [bodyYamlEncodedManual, writeBodyStorage]);
 
   /** plain/encoded chip — independent of resolved/tokens view. */
   const handleBodyEditYamlEncoded = useCallback((enabled: boolean) => {
     setBodyYamlEncodedManual(enabled);
-    // Cancel debounced peer write; chip applies immediately with the new storage mode.
-    pendingBodyYamlWriteRef.current = null;
-    if (bodyYamlWriteTimerRef.current != null) {
-      clearTimeout(bodyYamlWriteTimerRef.current);
-      bodyYamlWriteTimerRef.current = null;
-    }
     writeBodyStorage(
       bodyTokenMode === "tokens" ? bodyEditDraft : bodyTextForStorage(),
       enabled,
@@ -672,13 +629,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       return;
     }
     // Flush draft so resolved view / Send see the latest tokens.
-    flushBodyYamlWrite();
     writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
     setBodyTokenMode("resolved");
   }, [
     bodyTokenMode,
     openBodyTokens,
-    flushBodyYamlWrite,
     writeBodyStorage,
     bodyEditDraft,
     bodyYamlEncodedManual,
@@ -688,7 +643,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     if (bodyTokenMode === "tokens") {
       // Commit YAML before send so resolveApiRequest sees the draft tokens.
       flushSync(() => {
-        flushBodyYamlWrite();
         writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
       });
     }
@@ -697,7 +651,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     bodyTokenMode,
     bodyEditDraft,
     bodyYamlEncodedManual,
-    flushBodyYamlWrite,
     writeBodyStorage,
     handleSend,
   ]);
@@ -705,7 +658,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const runWithResolvedBody = useCallback(async () => {
     if (bodyTokenMode === "tokens") {
       flushSync(() => {
-        flushBodyYamlWrite();
         writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
       });
     }
@@ -714,7 +666,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     bodyTokenMode,
     bodyEditDraft,
     bodyYamlEncodedManual,
-    flushBodyYamlWrite,
     writeBodyStorage,
     handleRunInCore,
   ]);
@@ -731,7 +682,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       onClick: () => {
         if (bodyTokenMode === "tokens") {
           flushSync(() => {
-            flushBodyYamlWrite();
             writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
           });
         }
@@ -750,7 +700,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     bodyTokenMode,
     bodyEditDraft,
     bodyYamlEncodedManual,
-    flushBodyYamlWrite,
     writeBodyStorage,
   ]);
 
@@ -975,17 +924,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                       <FormatChip
                         label="encoded"
                         selected={bodyEditYamlEncoded}
-                        title="Store body as structured YAML instead of a text block"
+                        overlined={bodyYamlEncodeError}
+                        title={bodyYamlEncodeError
+                          ? "Encoded preferred — using plain until the body is valid again"
+                          : "Store body as structured YAML instead of a text block"}
                         onClick={() => handleBodyEditYamlEncoded(true)}
                       />
-                      {bodyYamlEncodeError ? (
-                        <span
-                          className="codicon codicon-error apitest-body-yaml-encode-error"
-                          title="Could not store as structured YAML; using plain until valid again"
-                          role="img"
-                          aria-label="Could not store as structured YAML; using plain until valid again"
-                        />
-                      ) : null}
                     </div>
                   </>
                 ) : null}

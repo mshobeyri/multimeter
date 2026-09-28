@@ -360,7 +360,9 @@ function normalizeBodyToJsonObject(body: string|object): unknown {
 
 function formatBody(
     format: Format, body: string|object,
-    pretty: boolean = true): string {
+    pretty: boolean = true,
+    valueContext?: RuntimeTokenValueContext,
+): string {
   // Normalize empty-ish inputs to empty string for display/editing purposes
   if (body === null || body === undefined) {
     return '';
@@ -381,7 +383,8 @@ function formatBody(
       if (typeof obj === 'string') {
         return obj;
       }
-      return pretty ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);
+      // Keep r:/c:/i:/e: as `{{…}}` (JSON.stringify would emit bare `"r:city"`).
+      return stringifyJsonWithRuntimeTokens(obj, pretty, valueContext);
     }
     if (isXmlFormat(format)) {
       return formatXmlBody(body, pretty, format === 'xmle');
@@ -394,11 +397,8 @@ function formatBody(
       return typeof body === 'string' ? body.trim() : String(body);
     }
     if (format === 'multipart') {
-      if (Array.isArray(body)) {
-        return JSON.stringify(body, null, pretty ? 2 : 0);
-      }
-      if (body && typeof body === 'object') {
-        return JSON.stringify(body, null, pretty ? 2 : 0);
+      if (Array.isArray(body) || (body && typeof body === 'object')) {
+        return stringifyJsonWithRuntimeTokens(body, pretty);
       }
       return typeof body === 'string' ? body : String(body ?? '');
     }

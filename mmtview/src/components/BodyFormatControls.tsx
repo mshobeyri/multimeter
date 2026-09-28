@@ -73,11 +73,14 @@ export function FormatChip({
   label,
   selected,
   title,
+  overlined,
   onClick,
 }: {
   label: string;
   selected: boolean;
   title?: string;
+  /** Soft pending/unavailable marker (e.g. encoded preferred but temporarily plain). */
+  overlined?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -85,7 +88,10 @@ export function FormatChip({
       type="button"
       role="tab"
       aria-selected={selected}
-      className={`apitest-body-format-chip${selected ? " is-selected" : ""}`}
+      className={
+        `apitest-body-format-chip${selected ? " is-selected" : ""}` +
+        `${overlined ? " is-overlined" : ""}`
+      }
       title={title}
       // Don't steal focus from Monaco (body edit blur would exit edit mode).
       onMouseDown={(e) => e.preventDefault()}

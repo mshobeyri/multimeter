@@ -8,6 +8,8 @@ import {
   packBodyAsYamlEncoded,
   queryTokenSource,
   requestForSend,
+  tokensTextToYamlBody,
+  yamlBodyToTokensText,
 } from './apiBodyEdit';
 import {formatBody} from './markupConvertor';
 import {resolveRequestFormat} from './formatResolve';
@@ -244,7 +246,161 @@ describe('bodyForYamlSave + resolveRequestFormat (chart flow)', () => {
   it('packBodyAsYamlEncoded returns null for invalid JSON', () => {
     expect(packBodyAsYamlEncoded('{"message":', 'json')).toBeNull();
   });
+});
 
+describe('token conversion matrix (display ↔ pack ↔ template ↔ formatBody)', () => {
+  const ctx = {
+    inputs: {str: 'hello', num: 10, flag: true, empty: null as null},
+    env: {host: 'localhost', port: 8080, ok: false},
+  };
+
+  const cases: Array<{
+    name: string;
+    displayJson: string;
+    packed: Record<string, unknown>;
+    templateHas: string;
+    templateHasNot?: string;
+  }> = [
+    {
+      name: 'r: string (city)',
+      displayJson: '{"asd":"{{r:city}}"}',
+      packed: {asd: 'r:city'},
+      templateHas: '"asd": "{{r:city}}"',
+      templateHasNot: '"asd": "r:city"',
+    },
+    {
+      name: 'r: string (uuid)',
+      displayJson: '{"id":"{{r:uuid}}"}',
+      packed: {id: 'r:uuid'},
+      templateHas: '"id": "{{r:uuid}}"',
+      templateHasNot: '"id": "r:uuid"',
+    },
+    {
+      name: 'r: number (int)',
+      displayJson: '{"n":{{r:int}}}',
+      packed: {n: 'r:int'},
+      templateHas: '"n": {{r:int}}',
+      templateHasNot: '"n": "{{r:int}}"',
+    },
+    {
+      name: 'r: bool',
+      displayJson: '{"flag":{{r:bool}}}',
+      packed: {flag: 'r:bool'},
+      templateHas: '"flag": {{r:bool}}',
+      templateHasNot: '"flag": "{{r:bool}}"',
+    },
+    {
+      name: 'c: string (date)',
+      displayJson: '{"when":"{{c:date}}"}',
+      packed: {when: 'c:date'},
+      templateHas: '"when": "{{c:date}}"',
+      templateHasNot: '"when": "c:date"',
+    },
+    {
+      name: 'c: number (epoch_ms)',
+      displayJson: '{"epoch":{{c:epoch_ms}}}',
+      packed: {epoch: 'c:epoch_ms'},
+      templateHas: '"epoch": {{c:epoch_ms}}',
+      templateHasNot: '"epoch": "{{c:epoch_ms}}"',
+    },
+    {
+      name: 'i: string',
+      displayJson: '{"name":"{{i:str}}"}',
+      packed: {name: 'i:str'},
+      templateHas: '"name": "{{i:str}}"',
+    },
+    {
+      name: 'i: number',
+      displayJson: '{"ssd":{{i:num}}}',
+      packed: {ssd: 'i:num'},
+      templateHas: '"ssd": {{i:num}}',
+      templateHasNot: '"ssd": "{{i:num}}"',
+    },
+    {
+      name: 'i: bool',
+      displayJson: '{"dd":{{i:flag}}}',
+      packed: {dd: 'i:flag'},
+      templateHas: '"dd": {{i:flag}}',
+      templateHasNot: '"dd": "{{i:flag}}"',
+    },
+    {
+      name: 'e: string',
+      displayJson: '{"host":"{{e:host}}"}',
+      packed: {host: 'e:host'},
+      templateHas: '"host": "{{e:host}}"',
+    },
+    {
+      name: 'e: number',
+      displayJson: '{"port":{{e:port}}}',
+      packed: {port: 'e:port'},
+      templateHas: '"port": {{e:port}}',
+      templateHasNot: '"port": "{{e:port}}"',
+    },
+    {
+      name: 'e: bool',
+      displayJson: '{"ok":{{e:ok}}}',
+      packed: {ok: 'e:ok'},
+      templateHas: '"ok": {{e:ok}}',
+      templateHasNot: '"ok": "{{e:ok}}"',
+    },
+  ];
+
+  it.each(cases)(
+      '$name: pack → template → formatBody keep display tokens',
+      ({displayJson, packed, templateHas, templateHasNot}) => {
+        const fromPack = packBodyAsYamlEncoded(displayJson, 'json');
+        expect(fromPack).toEqual(packed);
+
+        const template = bodyEditTokenTemplate(fromPack, 'json', ctx);
+        expect(template).toContain(templateHas);
+        if (templateHasNot) {
+          expect(template).not.toContain(templateHasNot);
+        }
+
+        // formatBody must not collapse tokens to bare "r:city" / "c:date".
+        const formatted = formatBody('json', fromPack as object, true, ctx);
+        expect(formatted).toContain(templateHas);
+        if (templateHasNot) {
+          expect(formatted).not.toContain(templateHasNot);
+        }
+
+        // Full round-trip through display JSON again.
+        expect(packBodyAsYamlEncoded(template, 'json')).toEqual(packed);
+      },
+  );
+
+  it('removing and restoring }} on {{r:city}} stays plain mid-edit then repacks cleanly', () => {
+    const complete = '{\n  "asd": "{{r:city}}"\n}';
+    // One closing brace removed from the display token (JSON string still valid).
+    const missingBrace = '{\n  "asd": "{{r:city}"\n}';
+
+    // Mid-edit must NOT pack into structured YAML (would store "{{r:city}" as a leaf).
+    expect(packBodyAsYamlEncoded(missingBrace, 'json')).toBeNull();
+    const midPlain = tokensTextToYamlBody(missingBrace, 'json', true);
+    expect(typeof midPlain).toBe('string');
+    expect(midPlain as string).toContain('{{r:city}');
+    expect(midPlain as string).not.toContain('"r:city"');
+    // Peer back to tokens keeps the incomplete display form.
+    expect(yamlBodyToTokensText(midPlain, 'json')).toContain('"asd": "{{r:city}"');
+    expect(yamlBodyToTokensText(midPlain, 'json')).not.toContain('"asd": "r:city"');
+
+    const restored = packBodyAsYamlEncoded(complete, 'json');
+    expect(restored).toEqual({asd: 'r:city'});
+    const restoredTemplate = yamlBodyToTokensText(restored, 'json');
+    expect(restoredTemplate).toContain('"asd": "{{r:city}}"');
+    expect(restoredTemplate).not.toContain('"asd": "r:city"');
+    expect(formatBody('json', restored as object)).toContain('"asd": "{{r:city}}"');
+    expect(formatBody('json', restored as object)).not.toContain('"asd": "r:city"');
+  });
+
+  it('formatBody(json) on structured tokens never emits bare "r:city"', () => {
+    expect(formatBody('json', {asd: 'r:city', id: 'r:uuid'}, true)).toBe(
+        '{\n  "asd": "{{r:city}}",\n  "id": "{{r:uuid}}"\n}',
+    );
+  });
+});
+
+describe('bodyForYamlSave chart extras', () => {
   it('end-to-end: display → edit → revert exits → send/save paths', () => {
     const yamlBody = {message: 'hello from env'};
     const format = resolveRequestFormat('json', {}, 'post');

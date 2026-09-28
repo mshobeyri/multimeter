@@ -190,6 +190,25 @@ export function bodyForSend(body: unknown, format: Format): unknown {
 }
 
 /**
+ * True when a packed value still contains display `{{` / `}}` braces.
+ * Complete tokens revive to bare `r:city` / `i:x`; leftover braces mean the UI
+ * text is mid-edit and must stay plain storage (not structured YAML).
+ */
+function packedHasStrayDisplayBraces(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return value.includes('{{') || value.includes('}}');
+  }
+  if (Array.isArray(value)) {
+    return value.some(packedHasStrayDisplayBraces);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).some(
+        packedHasStrayDisplayBraces);
+  }
+  return false;
+}
+
+/**
  * Body value written back into YAML on "Save to YAML".
  * Same rules as packBodyForYamlCompare (strict pack when YAML was encoded).
  */
@@ -202,9 +221,43 @@ export function bodyForYamlSave(
 }
 
 /**
+ * Peer: tokens editor text → YAML body.
+ * Prefer structured (encoded) when the text fully packs; otherwise plain string
+ * with `<<…>>` forms. Never takes resolved values — only token/display text.
+ */
+export function tokensTextToYamlBody(
+    uiBody: string,
+    format: Format,
+    preferEncoded: boolean = true,
+): unknown {
+  const normalized = normalizeNewlines(uiBody);
+  if (preferEncoded) {
+    const packed = packBodyAsYamlEncoded(normalized, format);
+    if (packed != null) {
+      return packed;
+    }
+  }
+  return valueForYamlSave(normalized);
+}
+
+/**
+ * Peer: YAML body → tokens editor text (`{{i:}}` / `{{r:}}` / …).
+ * Inverse of tokensTextToYamlBody for the display buffer.
+ */
+export function yamlBodyToTokensText(
+    yamlBody: unknown,
+    format: Format,
+    valueContext?: RuntimeTokenValueContext,
+    resolvedHint?: unknown,
+): string {
+  return bodyEditTokenTemplate(yamlBody, format, valueContext, resolvedHint);
+}
+
+/**
  * Try to pack UI / plain-storage body text into a structured YAML object.
  * Independent of whether the file currently stores plain or encoded.
- * Returns null when the text is not valid for `format`.
+ * Returns null when the text is not valid for `format`, or when any leaf still
+ * contains incomplete `{{…}}` display braces (mid-edit — keep as plain text).
  */
 export function packBodyAsYamlEncoded(
     uiBody: string,
@@ -214,6 +267,11 @@ export function packBodyAsYamlEncoded(
   // even when the current YAML body is still a plain string.
   const packed = bodyForYamlSave({_: true}, uiBody, format);
   if (packed == null || typeof packed !== 'object') {
+    return null;
+  }
+  // Incomplete `{{r:city}` would otherwise land in YAML as a quoted string leaf
+  // and break the tokens↔YAML peer round-trip when braces are restored.
+  if (packedHasStrayDisplayBraces(packed)) {
     return null;
   }
   return packed;

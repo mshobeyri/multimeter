@@ -403,18 +403,16 @@
   background: currentColor;
 }
 
+.apitest-body-format-chip.is-overlined {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
 .apitest-body-format-bar-group {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 12px;
-}
-
-.apitest-body-yaml-encode-error {
-  color: var(--vscode-errorForeground, #f48771);
-  font-size: 14px;
-  line-height: 1;
-  flex-shrink: 0;
 }
 
 .apitest-body-format-divider {

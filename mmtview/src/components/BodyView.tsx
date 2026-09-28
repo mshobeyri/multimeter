@@ -88,6 +88,12 @@ const BodyView: React.FC<BodyViewProps> = ({
     const isUserEditingRef = useRef(false);
     const editorRef = useRef<any>(null);
     const tokenDecorationsRef = useRef<string[]>([]);
+    /**
+     * Last user-placed caret (click / arrows). Not updated when a keystroke
+     * moves the caret — that way resolved→tokens opens at the pre-key position
+     * (backspace must not land one column earlier).
+     */
+    const preEditCursorRef = useRef<BodyViewCursor | undefined>(undefined);
     const [editorReady, setEditorReady] = useState(false);
     const [cursorPath, setCursorPath] = useState<{ path: PathSegment[]; expr: string; key: string } | null>(null);
     const cursorListenerRef = useRef<any>(null);
@@ -160,6 +166,41 @@ const BodyView: React.FC<BodyViewProps> = ({
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editorRef.current, editorReady, onBlur]);
+
+    // Track user-placed caret only. Content-driven moves (type/backspace) must
+    // not overwrite this — onStartEdit restores this pre-key position.
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor || !onStartEdit || typeof editor.onDidChangeCursorPosition !== "function") {
+            return;
+        }
+        const store = (pos: { lineNumber: number; column: number } | null | undefined) => {
+            if (!pos) {
+                return;
+            }
+            preEditCursorRef.current = {
+                lineNumber: pos.lineNumber,
+                column: pos.column,
+            };
+        };
+        store(editor.getPosition?.());
+        // monaco.editor.CursorChangeReason.Explicit === 3
+        const Explicit = 3;
+        const disposable = editor.onDidChangeCursorPosition((e: {
+            reason?: number;
+            position?: { lineNumber: number; column: number };
+        }) => {
+            // Ignore content-driven caret moves (type / backspace / delete).
+            if (e.reason !== Explicit) {
+                return;
+            }
+            store(e.position);
+        });
+        return () => {
+            disposable?.dispose?.();
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editorRef.current, editorReady, onStartEdit]);
 
     // Restore caret + focus when this editor replaces another (preview → edit).
     useEffect(() => {
@@ -312,17 +353,8 @@ const BodyView: React.FC<BodyViewProps> = ({
                 content={localValue}
                 setContent={(nextValue: string) => {
                     if (onStartEdit) {
-                        const pos = editorRef.current?.getPosition?.();
-                        // Keystroke already advanced the caret; we discard it and
-                        // open tokens mode, so restore one column earlier.
-                        onStartEdit(
-                            pos
-                                ? {
-                                    lineNumber: pos.lineNumber,
-                                    column: Math.max(1, pos.column - 1),
-                                  }
-                                : undefined,
-                        );
+                        // Discard the keystroke; open tokens at the pre-key caret.
+                        onStartEdit(preEditCursorRef.current);
                         return;
                     }
                     isUserEditingRef.current = true;
