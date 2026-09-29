@@ -712,35 +712,23 @@ export async function executeApi(
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }
 
-  // Evaluate the selected example's expect/require after outputs exist.
-  // Soft failures log but keep success; hard (require) failures fail the run.
-  // (No root-level test block — asserts live on examples only.)
+  // Evaluate the selected example's expect after outputs exist.
+  // Soft failures log but keep success (examples have no require / hard fail).
   if (!result.cancelled && !result.syntaxError && exampleTest) {
     const apiTest = evaluateApiTest(result.outputs, exampleTest);
     result.apiTest = apiTest;
     if (apiTest.hasChecks) {
       const titlePart = displayName ? `"${displayName}" - ` : '';
       for (const item of apiTest.items) {
-        const label = item.level === 'require' ? 'Require' : 'Expect';
         if (item.status === 'passed') {
-          options.logger('info', `\u2713 ${label} ${titlePart}"${item.comparison}"`);
+          options.logger('info', `\u2713 Expect ${titlePart}"${item.comparison}"`);
         } else {
           const got = item.actual === undefined ? 'undefined' :
               (typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual));
           options.logger(
               'error',
-              `\u00D7 ${label} ${titlePart}"${item.comparison}" (${got})`);
+              `\u00D7 Expect ${titlePart}"${item.comparison}" (${got})`);
         }
-      }
-      if (apiTest.hardFailed) {
-        result.success = false;
-        if (!result.errors) {
-          result.errors = [];
-        }
-        const failed = apiTest.items
-            .filter(i => i.level === 'require' && i.status === 'failed')
-            .map(i => i.comparison);
-        result.errors.push(`API require failed: ${failed.join('; ')}`);
       }
     }
   }

@@ -207,6 +207,30 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   }, [outputKeys, outputs]);
   const outputFieldSuggestions = outputKeys;
 
+  /** Per declared output: pass/fail vs selected example expect after Send. */
+  const outputMatchStatus = useMemo(() => {
+    const map = new Map<string, "match" | "mismatch">();
+    if (!apiTestResults?.length || outputKeys.length === 0) {
+      return map;
+    }
+    const keySet = new Set(outputKeys);
+    for (const item of apiTestResults) {
+      if (item.level !== "expect") {
+        continue;
+      }
+      const field = String(item.comparison || "").split(/\s+/)[0];
+      if (!field || !keySet.has(field)) {
+        continue;
+      }
+      if (item.status === "failed") {
+        map.set(field, "mismatch");
+      } else if (item.status === "passed" && map.get(field) !== "mismatch") {
+        map.set(field, "match");
+      }
+    }
+    return map;
+  }, [apiTestResults, outputKeys]);
+
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(
     requestData?.protocol || api.protocol,
     api.url,
@@ -1097,6 +1121,36 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               canContainToken
               valueContext={bodyValueContext}
             />
+            {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
+              <ApiTestsEditor
+                test={{
+                  expect: exampleExpect(examples[selectedExampleIdx]),
+                }}
+                results={apiTestResults}
+                fieldSuggestions={outputFieldSuggestions}
+                canContainToken
+                valueContext={bodyValueContext}
+                onChange={(next) => {
+                  const nextExamples = examples.map((ex, i) => {
+                    if (i !== selectedExampleIdx) {
+                      return ex;
+                    }
+                    const updated = { ...ex };
+                    // Migrating off deprecated outputs when writing expect.
+                    if (updated.outputs !== undefined) {
+                      delete updated.outputs;
+                    }
+                    if (next?.expect) {
+                      updated.expect = next.expect;
+                    } else {
+                      delete updated.expect;
+                    }
+                    return updated;
+                  });
+                  onUpdateApi?.({ examples: nextExamples });
+                }}
+              />
+            ) : null}
           </>
         )}
       </div>
@@ -1178,46 +1232,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 readOnly
                 deletable={false}
                 copyable
+                matchStatus={outputMatchStatus}
               />
             ) : (
               <div className="apitest-empty">No outputs defined.</div>
             )}
-            {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
-              <ApiTestsEditor
-                test={{
-                  expect: exampleExpect(examples[selectedExampleIdx]),
-                  require: examples[selectedExampleIdx].require,
-                }}
-                results={apiTestResults}
-                fieldSuggestions={outputFieldSuggestions}
-                canContainToken
-                valueContext={bodyValueContext}
-                onChange={(next) => {
-                  const nextExamples = examples.map((ex, i) => {
-                    if (i !== selectedExampleIdx) {
-                      return ex;
-                    }
-                    const updated = { ...ex };
-                    // Migrating off deprecated outputs when writing expect.
-                    if (updated.outputs !== undefined) {
-                      delete updated.outputs;
-                    }
-                    if (next?.expect) {
-                      updated.expect = next.expect;
-                    } else {
-                      delete updated.expect;
-                    }
-                    if (next?.require) {
-                      updated.require = next.require;
-                    } else {
-                      delete updated.require;
-                    }
-                    return updated;
-                  });
-                  onUpdateApi?.({ examples: nextExamples });
-                }}
-              />
-            ) : null}
           </>
         )}
       </div>

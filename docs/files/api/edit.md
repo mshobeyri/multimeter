@@ -43,7 +43,7 @@ Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message)
 
 ### Examples
 
-Each example block has an **id**, optional **title**, optional **description**, **inputs**, and soft/hard checks (**expect** / **require**). Use **Add Example** to create a new block; remove with the delete control on each example.
+Each example block has an **id**, optional **title**, optional **description**, **inputs**, and soft **expect** checks. Use **Add Example** to create a new block; remove with the delete control on each example.
 
 Examples appear in the tester **Examples** tab dropdown and get run glyphs in the YAML editor when `id:` (or deprecated `name:`) is non-empty. See [Examples](./examples.md).
 

@@ -60,7 +60,7 @@ const SETTING_HTTP_KEY_ORDER = ['version', 'timeout'];
 const HTML_KEY_ORDER = ['triable', 'cors_proxy'];
 const SERVICE_KEY_ORDER = ['name', 'description', 'sources'];
 export const EXAMPLE_KEY_ORDER = [
-  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect', 'require',
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect',
 ];
 const JUDGE_OPTIONS_KEY_ORDER = ['temperature', 'timeout'];
 const JUDGE_DEFAULTS_KEY_ORDER = ['checks', 'criteria'];
@@ -187,6 +187,9 @@ function visit(node: unknown, kind: VisitKind, rootOrder?: string[]): void {
       } else if (key === 'examples' && isSeq(value)) {
         for (const example of value.items) {
           if (isMap(example)) {
+            // Examples are soft-expect only — drop legacy require on format.
+            example.items = example.items.filter(
+                item => !(isPair(item) && pairKey(item) === 'require'));
             reorderMapPairs(example, EXAMPLE_KEY_ORDER);
             visit(example, 'generic');
           }

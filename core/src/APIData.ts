@@ -49,8 +49,6 @@ export interface ExampleData {
   outputs?: JSONRecord;
   /** Soft checks on run outputs (same shape/operators as call expect). */
   expect?: ExpectMap;
-  /** Hard checks on run outputs (same shape/operators as call require). */
-  require?: ExpectMap;
 }
 
 /**
@@ -111,9 +109,10 @@ export function exampleTitle(example: ExampleData | null | undefined): string | 
   return undefined;
 }
 
-/** Soft/hard assertion maps shared by example expect/require and eval helpers. */
+/** Assertion maps for example expect (and shared eval helpers). */
 export type ApiTestBlock = {
   expect?: ExpectMap;
+  /** Hard checks — used by call/test steps; examples are expect-only. */
   require?: ExpectMap;
 };
 

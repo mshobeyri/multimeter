@@ -2,8 +2,8 @@ import {evaluateApiTest, resolveApiOutputField} from './apiTestEval';
 import {exampleId, exampleTitle} from './APIData';
 import {apiToYaml, exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 
-describe('apiParsePack example expect/require', () => {
-  it('parses and packs example expect / require', () => {
+describe('apiParsePack example expect', () => {
+  it('parses and packs example expect', () => {
     const yaml = [
       'type: api',
       'url: https://example.com',
@@ -14,27 +14,34 @@ describe('apiParsePack example expect/require', () => {
       '    title: Happy path',
       '    expect:',
       '      status_code: 200',
-      '    require:',
-      '      status_code: == 200',
     ].join('\n');
     const api = yamlToAPIStrict(yaml);
     expect(api.examples?.[0]).toMatchObject({
       id: 'ok',
       title: 'Happy path',
       expect: {status_code: 200},
-      require: {status_code: '== 200'},
     });
     expect(exampleToApiTestBlock(api.examples?.[0])).toEqual({
       expect: {status_code: 200},
-      require: {status_code: '== 200'},
     });
     const packed = apiToYaml(api);
     expect(packed).toContain('id: ok');
     expect(packed).toContain('title: Happy path');
     expect(packed).toContain('expect:');
-    expect(packed).toContain('require:');
+    expect(packed).not.toContain('require:');
     expect(packed).not.toContain('\ntest:');
     expect(yamlToAPI(packed).examples?.[0]?.expect).toEqual({status_code: 200});
+  });
+
+  it('rejects require on examples', () => {
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - id: ok',
+      '    require:',
+      '      status: 200',
+    ].join('\n'))).toThrow(/unknown key\(s\) in examples #1: "require"/);
   });
 
   it('uses deprecated name as id/title fallback and rejects duplicate ids', () => {
@@ -86,11 +93,11 @@ describe('apiParsePack example expect/require', () => {
     ].join('\n'))).toThrow(/unknown key/);
   });
 
-  it('omits empty expect/require on pack', () => {
+  it('omits empty expect on pack', () => {
     const yaml = apiToYaml({
       type: 'api',
       url: 'https://example.com',
-      examples: [{name: 'a', expect: {}, require: {}}],
+      examples: [{name: 'a', expect: {}}],
     } as any);
     expect(yaml).toContain('name: a');
     expect(yaml).not.toContain('expect:');

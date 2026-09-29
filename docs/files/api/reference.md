@@ -16,12 +16,13 @@
 - `body:` string, object, or array (json/xml/text/urlencoded based on format; relative path string when format is binary; multipart parts list when format is multipart; not used with graphql)
 - `graphql:` { `operation:` string (required), variables?: object, operationName?: string }
 - `auth:` `none` | { `type:` `bearer`, token } | { `type:` `basic`, username, password } | { `type:` `api-key`, header|query, value } | { `type:` `oauth2`, grant, token_url, client_id, client_secret, scope? }
-- `examples:` array of { id?, title?, name? (deprecated), description?, inputs?, expect?, require?, outputs? (deprecated) }
+- `examples:` array of { id?, title?, name? (deprecated), description?, inputs?, expect?, outputs? (deprecated) }
   - `id`: stable identifier (preferred; first field). Falls back to deprecated `name` when missing
   - `title`: display label (preferred). Falls back to deprecated `name`, then `id`
   - `name`: deprecated alias for both id and title — click the struck-through key in the editor to expand to `id` + `title`
-  - `expect` / `require`: soft/hard checks on run outputs for that example (same shape/operators as [call expect/require](../test/steps/call.md#expect))
+  - `expect`: soft checks on run outputs for that example (same shape/operators as [call expect](../test/steps/call.md#expect))
   - `outputs`: deprecated alias for soft `expect` (equality values) — click the struck-through key to rename to `expect:`
+  - Unknown example keys (including `require`) fail validation
   - Duplicate example ids fail validation
 
 ---

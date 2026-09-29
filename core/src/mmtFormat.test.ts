@@ -216,7 +216,7 @@ describe('mmtFormat comment preservation', () => {
     expect(formatted).toContain('name: ada');
   });
 
-  it('reorders API example keys to id/title/name/inputs/outputs/expect/require', () => {
+  it('reorders API example keys and drops example require', () => {
     const yaml = [
       'type: api',
       'url: https://test.mmt.dev/echo',
@@ -238,12 +238,11 @@ describe('mmtFormat comment preservation', () => {
     const titleAt = slice.indexOf('title:');
     const inputsAt = slice.indexOf('inputs:');
     const expectAt = slice.indexOf('expect:');
-    const requireAt = slice.indexOf('require:');
     expect(idAt).toBeGreaterThan(-1);
     expect(titleAt).toBeGreaterThan(idAt);
     expect(inputsAt).toBeGreaterThan(titleAt);
     expect(expectAt).toBeGreaterThan(inputsAt);
-    expect(requireAt).toBeGreaterThan(expectAt);
+    expect(slice).not.toContain('require:');
   });
 
   it('preserves comments at multiple depths in test steps and else', () => {

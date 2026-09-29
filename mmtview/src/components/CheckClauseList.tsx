@@ -117,19 +117,20 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                 <OperatorSelect
                   value={row.op as any}
                   onChange={nextOp => onPartChange(i, "op", nextOp)}
-                  className="is-grow"
+                  className="no-shrink"
                   title="Comparison operator"
                 />
                 {canContainToken ? (
-                  <TokenFieldInput
-                    value={peerStringToDisplay(row.expected)}
-                    canContainToken
-                    valueContext={valueContext}
-                    className="field-flex-2"
-                    placeholder={copy.expected}
-                    onCommit={val => onPartChange(i, "expected", peerStringToYaml(val))}
-                    onDraftChange={val => onPartChange(i, "expected", peerStringToYaml(val))}
-                  />
+                  <div className="field-flex-2">
+                    <TokenFieldInput
+                      value={peerStringToDisplay(row.expected)}
+                      canContainToken
+                      valueContext={valueContext}
+                      placeholder={copy.expected}
+                      onCommit={val => onPartChange(i, "expected", peerStringToYaml(val))}
+                      onDraftChange={val => onPartChange(i, "expected", peerStringToYaml(val))}
+                    />
+                  </div>
                 ) : (
                   <input
                     type="text"

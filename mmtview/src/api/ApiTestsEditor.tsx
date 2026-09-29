@@ -33,23 +33,12 @@ export interface ApiTestsEditorProps {
   valueContext?: RuntimeTokenValueContext;
 }
 
-function buildTestBlock(
-  expectRows: ExpectUiRow[],
-  requireRows: ExpectUiRow[],
-): ApiTestBlock | undefined {
+function buildExpectBlock(expectRows: ExpectUiRow[]): ApiTestBlock | undefined {
   const expectMap = uiRowsToExpectMap(expectRows);
-  const requireMap = uiRowsToExpectMap(requireRows);
-  if (!expectMap && !requireMap) {
+  if (!expectMap) {
     return undefined;
   }
-  const block: ApiTestBlock = {};
-  if (expectMap) {
-    block.expect = expectMap as ApiTestBlock["expect"];
-  }
-  if (requireMap) {
-    block.require = requireMap as ApiTestBlock["require"];
-  }
-  return block;
+  return { expect: expectMap as ApiTestBlock["expect"] };
 }
 
 const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
@@ -61,7 +50,6 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
   valueContext,
 }) => {
   const expectList = React.useMemo(() => expectMapToUiRows(test?.expect as any), [test?.expect]);
-  const requireList = React.useMemo(() => expectMapToUiRows(test?.require as any), [test?.require]);
 
   const suggestions = React.useMemo(() => {
     // Declared outputs first, then built-in response fields (deduped).
@@ -77,31 +65,33 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
     return out;
   }, [fieldSuggestions]);
 
-  const emit = (nextExpect?: ExpectUiRow[], nextRequire?: ExpectUiRow[]) => {
-    onChange(buildTestBlock(nextExpect ?? expectList, nextRequire ?? requireList));
+  const emit = (nextExpect: ExpectUiRow[]) => {
+    onChange(buildExpectBlock(nextExpect));
   };
 
   const resultByComparison = React.useMemo(() => {
     const map = new Map<string, ApiTestExpectItem>();
     for (const item of results || []) {
-      map.set(`${item.level}:${item.comparison}`, item);
+      if (item.level !== "expect") {
+        continue;
+      }
+      map.set(item.comparison, item);
     }
     return map;
   }, [results]);
 
-  const resultForRow = (level: "expect" | "require", row: ExpectUiRow): ApiTestExpectItem | undefined => {
+  const resultForRow = (row: ExpectUiRow): ApiTestExpectItem | undefined => {
     if (!results || results.length === 0) {
       return undefined;
     }
-    // Prefer matching by comparison string built the same way as evaluation.
     const op = row.explicitOperator || row.op !== "==" ? row.op : "==";
     const comparison = `${row.field} ${op} ${row.expected}`;
-    return resultByComparison.get(`${level}:${comparison}`) ||
-        results.find(r => r.level === level && r.comparison.startsWith(`${row.field} `));
+    return resultByComparison.get(comparison) ||
+        results.find(r => r.level === "expect" && r.comparison.startsWith(`${row.field} `));
   };
 
-  const resultIcon = (level: "expect" | "require", row: ExpectUiRow) => {
-    const result = resultForRow(level, row);
+  const resultIcon = (row: ExpectUiRow) => {
+    const result = resultForRow(row);
     const ok = result?.status === "passed";
     const failed = result?.status === "failed";
     return (
@@ -112,27 +102,13 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
         aria-hidden={!result}
       >
         {ok ? <span className="codicon codicon-check" /> : null}
-        {failed ? <span className="codicon codicon-error" /> : null}
+        {failed ? <span className="codicon codicon-close" /> : null}
       </span>
     );
   };
 
-  const summary = React.useMemo(() => {
-    if (!results || results.length === 0) {
-      return null;
-    }
-    const passed = results.filter(r => r.status === "passed").length;
-    const failed = results.filter(r => r.status === "failed").length;
-    return { passed, failed, total: results.length };
-  }, [results]);
-
   return (
     <div className="apitest-tests">
-      {summary && (
-        <div className="apitest-tests-summary muted">
-          {summary.passed} passed, {summary.failed} failed
-        </div>
-      )}
       <CheckClauseList
         kind="expect"
         rows={expectList}
@@ -153,7 +129,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
         }}
         renderField={(row, i) => (
           <>
-            {resultIcon("expect", row)}
+            {resultIcon(row)}
             <CheckClauseFieldInput
               list="apitest-expect-fields"
               value={row.field}
@@ -170,48 +146,6 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
         )}
       >
         <datalist id="apitest-expect-fields">
-          {suggestions.map(field => (
-            <option key={field} value={field} />
-          ))}
-        </datalist>
-      </CheckClauseList>
-      <CheckClauseList
-        kind="require"
-        rows={requireList}
-        canContainToken={canContainToken}
-        valueContext={valueContext}
-        onPartChange={(index, part, val) => {
-          const updated = requireList.map((row, i) => (
-            i === index ? applyExpectUiRowChange(row, part, val) : row
-          ));
-          emit(undefined, updated);
-        }}
-        onRemove={(index) => emit(undefined, requireList.filter((_, i) => i !== index))}
-        onAdd={() => {
-          const defaultField = requireList.length > 0
-            ? requireList[requireList.length - 1].field
-            : (suggestions[0] || "status");
-          emit(undefined, [...requireList, createEmptyExpectUiRow(defaultField)]);
-        }}
-        renderField={(row, i) => (
-          <>
-            {resultIcon("require", row)}
-            <CheckClauseFieldInput
-              list="apitest-require-fields"
-              value={row.field}
-              onChange={val => {
-                const updated = requireList.map((r, idx) => (
-                  idx === i ? applyExpectUiRowChange(r, "field", val) : r
-                ));
-                emit(undefined, updated);
-              }}
-              title="Output field"
-              placeholder="status"
-            />
-          </>
-        )}
-      >
-        <datalist id="apitest-require-fields">
           {suggestions.map(field => (
             <option key={field} value={field} />
           ))}

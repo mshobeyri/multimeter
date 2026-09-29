@@ -139,11 +139,28 @@ function parseExample(raw: any): ExampleData | null {
   if (expect) {
     example.expect = expect;
   }
-  const require = parseExpectMap(raw.require);
-  if (require) {
-    example.require = require;
-  }
   return example;
+}
+
+/** Allowed keys on each `examples:` entry (strict parse + pack). */
+const VALID_EXAMPLE_KEYS = new Set([
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect',
+]);
+
+function assertExampleKeys(examplesRaw: any): void {
+  const list = safeList(examplesRaw);
+  for (let i = 0; i < list.length; i++) {
+    const ex = list[i];
+    if (!ex || typeof ex !== 'object' || Array.isArray(ex)) {
+      continue;
+    }
+    const unknown = Object.keys(ex).filter(k => !VALID_EXAMPLE_KEYS.has(k));
+    if (unknown.length > 0) {
+      throw new Error(
+          `Invalid API file: unknown key(s) in examples #${i + 1}: ${
+              unknown.map(k => `"${k}"`).join(', ')}`);
+    }
+  }
 }
 
 function parseExamples(raw: any): ExampleData[] {
@@ -177,9 +194,6 @@ function packExample(example: ExampleData): Record<string, any> {
   if (isNonEmptyObject(expect)) {
     out.expect = expect;
   }
-  if (isNonEmptyObject(example.require)) {
-    out.require = example.require;
-  }
   return out;
 }
 
@@ -199,20 +213,16 @@ function assertUniqueExampleIds(examples: ExampleData[]): void {
   }
 }
 
-/** Soft/hard maps from an example (for eval helpers). */
+/** Expect map from an example (for eval helpers). Examples are soft-expect only. */
 export function exampleToApiTestBlock(example: ExampleData | undefined | null): ApiTestBlock | undefined {
   if (!example) {
     return undefined;
   }
-  const block: ApiTestBlock = {};
   const expect = exampleExpect(example);
-  if (isNonEmptyObject(expect)) {
-    block.expect = expect;
+  if (!isNonEmptyObject(expect)) {
+    return undefined;
   }
-  if (isNonEmptyObject(example.require)) {
-    block.require = example.require;
-  }
-  return Object.keys(block).length > 0 ? block : undefined;
+  return { expect };
 }
 
 /** Lightweight title/tags peek for suite hierarchy (no full validation). */
@@ -441,6 +451,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     throw new Error(`Invalid API file: "grpc" block is ignored for protocol "${doc.protocol}"`);
   }
   const auth = validateAuth(doc.auth);
+  assertExampleKeys(doc.examples);
   const examples = parseExamples(doc.examples);
   assertUniqueExampleIds(examples);
   return {

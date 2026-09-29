@@ -545,7 +545,7 @@ select.is-invalid {
   cursor: pointer;
 }
 
-/* Align with expect/require fields that lead with a result-slot + gap. */
+/* Align with expect fields that lead with a result-slot + gap. */
 .apitest-tests .ghost-add {
   margin-left: 20px;
 }
@@ -556,6 +556,12 @@ select.is-invalid {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
+}
+
+/* Flex child wrapper (expect rows) owns width; avoid nested width:100% crushing siblings. */
+.field-flex-2 > .token-field {
+  width: 100%;
+  min-width: 0;
 }
 
 .token-field-input {

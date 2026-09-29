@@ -793,7 +793,7 @@ function detectServerEndpointOrderingIssue(doc: any, content: string): OrderingI
 
 /** Canonical example entry key order (must match core/mmtFormatAst EXAMPLE_KEY_ORDER). */
 const API_EXAMPLE_KEY_ORDER = [
-  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect', 'require',
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect',
 ];
 
 /**
@@ -1651,16 +1651,31 @@ export function findExampleKeyProblems(
 
   const problems: ProblemEntry[] = [];
 
-  // Duplicate example id / legacy name
+  // Unknown example keys + duplicate example id / legacy name
   try {
     const rootItems: any[] = Array.isArray(yamlDoc?.contents?.items) ? yamlDoc.contents.items : [];
     const examplesPair = rootItems.find((item: any) => item?.key?.value === "examples");
     const seqItems: any[] =
         Array.isArray(examplesPair?.value?.items) ? examplesPair.value.items : [];
+    const allowedExampleKeys = new Set(API_EXAMPLE_KEY_ORDER);
     const seen = new Map<string, { line: number }>();
     seqItems.forEach((exampleNode: any) => {
       if (!exampleNode || !Array.isArray(exampleNode.items)) {
         return;
+      }
+      for (const keyPair of exampleNode.items) {
+        const key = keyPair?.key?.value;
+        if (typeof key !== "string" || allowedExampleKeys.has(key)) {
+          continue;
+        }
+        const range = Array.isArray(keyPair?.key?.range) ? keyPair.key.range : null;
+        const offset = range && typeof range[0] === "number" ? range[0] : 0;
+        problems.push({
+          message: `Unknown example field "${key}"`,
+          severity: "error",
+          line: offsetToLineNumber(content, offset),
+          column: 1,
+        });
       }
       const idPair = exampleNode.items.find((pair: any) => pair?.key?.value === "id");
       const namePair = exampleNode.items.find((pair: any) => pair?.key?.value === "name");

@@ -153,23 +153,34 @@ const VEditor: React.FC<VEditorProps> = ({
                 )}
               </div>
               <div className="field-inline">
+                {matchStatus && matchStatus.size > 0 ? (
+                  <span
+                    className={`apitest-result-slot no-shrink${
+                      fieldMatch === "match" ? " is-pass" : ""
+                    }${fieldMatch === "mismatch" ? " is-fail" : ""}`}
+                    title={fieldMatch === "match"
+                      ? "Matches example expect"
+                      : fieldMatch === "mismatch"
+                        ? "Does not match example expect"
+                        : undefined}
+                    aria-label={fieldMatch === "match"
+                      ? "Matches example expect"
+                      : fieldMatch === "mismatch"
+                        ? "Does not match example expect"
+                        : undefined}
+                    aria-hidden={!fieldMatch}
+                  >
+                    {fieldMatch === "match"
+                      ? <span className="codicon codicon-check" />
+                      : null}
+                    {fieldMatch === "mismatch"
+                      ? <span className="codicon codicon-close" />
+                      : null}
+                  </span>
+                ) : null}
                 <div className="field-grow">
                   {fieldControl}
                 </div>
-                {fieldMatch === "match" && (
-                  <span
-                    className="codicon codicon-check match-icon is-pass"
-                    title="Matches example output"
-                    aria-label="Matches example output"
-                  />
-                )}
-                {fieldMatch === "mismatch" && (
-                  <span
-                    className="codicon codicon-close match-icon is-fail"
-                    title="Does not match example output"
-                    aria-label="Does not match example output"
-                  />
-                )}
               </div>
             </div>
           );
