@@ -5,10 +5,10 @@ import SelectWithRemove from "./SelectWithRemove";
 import { ParamConstraintOption } from "mmt-core/paramConstraints";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
-import { valueToString, stringToValue } from "./convertor";
+import { valueToString, stringToValue, peerFieldToValue } from "./convertor";
 import { isOmitSentinel } from "mmt-core/omitKeyword";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
-import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
+import { peerStringToDisplay } from "mmt-core/apiBodyEdit";
 
 interface VEditorProps {
   label: string;
@@ -54,7 +54,7 @@ const VEditor: React.FC<VEditorProps> = ({
       // Remove the key if value is empty
       delete updated[key];
     } else if (canContainToken) {
-      updated[key] = peerStringToYaml(newVal);
+      updated[key] = peerFieldToValue(newVal);
     } else {
       // Convert string input to match original type
       updated[key] = stringToValue(newVal);

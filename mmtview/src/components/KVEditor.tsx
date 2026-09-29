@@ -2,9 +2,9 @@ import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
-import { valueToString, stringToValue } from "./convertor";
+import { valueToString, stringToValue, peerFieldToValue } from "./convertor";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
-import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
+import { peerStringToDisplay } from "mmt-core/apiBodyEdit";
 
 interface KVEditorProps {
   label: string;
@@ -61,7 +61,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
     safeList(arr).reduce<Record<string, JSONValue>>((acc, [k, v]) => {
       if (k.trim()) { // Only include non-empty keys
         const raw = String(v ?? "");
-        acc[k] = canContainToken ? peerStringToYaml(raw) : stringToValue(raw);
+        acc[k] = canContainToken ? peerFieldToValue(raw) : stringToValue(raw);
       }
       return acc;
     }, {});

@@ -6,6 +6,7 @@ import {
   unwrapLiteralToken,
   wrapLiteralToken,
 } from 'mmt-core/literalToken';
+import {peerStringToYaml} from 'mmt-core/apiBodyEdit';
 
 export const valueToString = (val: JSONValue | undefined): string => {
   if (val === undefined) {
@@ -91,3 +92,11 @@ export const stringToValue = (val: string): JSONValue => {
   }
   return val;
 };
+
+/**
+ * Token-capable field → stored YAML value.
+ * Normalizes `{{r:uuid}}` / bare tokens via peerStringToYaml, then coerces
+ * types (int / bool / omit / null) like stringToValue. Keys stay strings.
+ */
+export const peerFieldToValue = (val: string): JSONValue =>
+  stringToValue(peerStringToYaml(val));
