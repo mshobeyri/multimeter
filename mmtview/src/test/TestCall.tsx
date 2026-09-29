@@ -9,7 +9,11 @@ import {
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
 import FieldWithRemove from "../components/FieldWithRemove";
-import CheckClauseList, { CheckClauseFieldSelect } from "../components/CheckClauseList";
+import CheckClauseList, {
+  newCheckClauseRowId,
+  stripCheckClauseRowIds,
+  type CheckClauseRow,
+} from "../components/CheckClauseList";
 import ReportLevelFields from "../components/ReportLevelFields";
 
 /** A single row in the expect UI list */
@@ -112,15 +116,32 @@ const TestCall: React.FC<TestCallProps> = ({
 
   // --- Inline expect helpers ---
 
+  /** Stable row ids by index so renaming a field does not remount other rows. */
+  const expectIdsRef = React.useRef<string[]>([]);
+  const requireIdsRef = React.useRef<string[]>([]);
+
+  const bindRowIds = (
+    rows: ExpectRow[],
+    idsRef: React.MutableRefObject<string[]>,
+  ): CheckClauseRow[] => {
+    while (idsRef.current.length < rows.length) {
+      idsRef.current.push(newCheckClauseRowId());
+    }
+    if (idsRef.current.length > rows.length) {
+      idsRef.current = idsRef.current.slice(0, rows.length);
+    }
+    return rows.map((row, i) => ({ ...row, rowId: idsRef.current[i] }));
+  };
+
   /** Read expect rows from local state */
-  const expectList: ExpectRow[] = React.useMemo(() => {
-    const raw = local && typeof local === 'object' ? (local as any).expect : undefined;
-    return expectMapToUiRows(raw);
+  const expectList: CheckClauseRow[] = React.useMemo(() => {
+    const raw = local && typeof local === "object" ? (local as any).expect : undefined;
+    return bindRowIds(expectMapToUiRows(raw), expectIdsRef);
   }, [local]);
 
-  const requireList: ExpectRow[] = React.useMemo(() => {
-    const raw = local && typeof local === 'object' ? (local as any).require : undefined;
-    return expectMapToUiRows(raw);
+  const requireList: CheckClauseRow[] = React.useMemo(() => {
+    const raw = local && typeof local === "object" ? (local as any).require : undefined;
+    return bindRowIds(expectMapToUiRows(raw), requireIdsRef);
   }, [local]);
 
   const callReport = React.useMemo(() => {
@@ -144,9 +165,9 @@ const TestCall: React.FC<TestCallProps> = ({
     if (id && id.trim().length > 0) { obj.id = id; }
     if (title && title.trim().length > 0) { obj.title = title; }
     obj.inputs = inp;
-    const expectMap = uiRowsToExpectMap(exp);
+    const expectMap = uiRowsToExpectMap(stripCheckClauseRowIds(exp as CheckClauseRow[]));
     if (expectMap) { obj.expect = expectMap; }
-    const requireMap = uiRowsToExpectMap(req);
+    const requireMap = uiRowsToExpectMap(stripCheckClauseRowIds(req as CheckClauseRow[]));
     if (requireMap) { obj.require = requireMap; }
     if (rep !== undefined) { obj.report = rep; }
     return obj;
@@ -270,11 +291,20 @@ const TestCall: React.FC<TestCallProps> = ({
   ), [availableInputs, keys]);
 
   const availableOutputs = React.useMemo(() => {
-    if (!currentAlias || !importedOutputsByAlias) {
-      return ['_.status'] as string[];
+    const builtins = ["status", "status_code", "duration", "body", "headers", "cookies"];
+    const outs = currentAlias && importedOutputsByAlias
+      ? (importedOutputsByAlias[currentAlias] || []).filter(Boolean)
+      : [];
+    const seen = new Set<string>();
+    const merged: string[] = [];
+    for (const name of [...outs, ...builtins]) {
+      if (!name || seen.has(name)) {
+        continue;
+      }
+      seen.add(name);
+      merged.push(name);
     }
-    const outs = (importedOutputsByAlias[currentAlias] || []).filter(Boolean);
-    return ['_.status', ...outs];
+    return merged;
   }, [currentAlias, importedOutputsByAlias]);
 
   // --- Expect / require handlers ---
@@ -468,33 +498,19 @@ const TestCall: React.FC<TestCallProps> = ({
           <CheckClauseList
             kind="expect"
             rows={expectList}
+            fieldOptions={availableOutputs}
             onPartChange={handleExpectPartChange}
             onRemove={handleRemoveExpect}
             onAdd={handleAddExpect}
-            renderField={(row, i) => (
-              <CheckClauseFieldSelect
-                value={row.field}
-                options={availableOutputs}
-                onChange={val => handleExpectPartChange(i, "field", val)}
-                title="Output field to check"
-              />
-            )}
           />
 
           <CheckClauseList
             kind="require"
             rows={requireList}
+            fieldOptions={availableOutputs}
             onPartChange={handleRequirePartChange}
             onRemove={handleRemoveRequire}
             onAdd={handleAddRequire}
-            renderField={(row, i) => (
-              <CheckClauseFieldSelect
-                value={row.field}
-                options={availableOutputs}
-                onChange={val => handleRequirePartChange(i, "field", val)}
-                title="Output field to require"
-              />
-            )}
           />
 
           {(expectList.length > 0 || requireList.length > 0) && (

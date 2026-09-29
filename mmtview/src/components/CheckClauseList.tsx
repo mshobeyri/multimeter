@@ -24,29 +24,21 @@ const CLAUSE_COPY: Record<CheckClauseKind, {
   },
 };
 
-export function CheckClauseFieldInput({
-  list,
-  value,
-  onChange,
-  title,
-  placeholder,
-}: {
-  list?: string;
-  value: string;
-  onChange: (value: string) => void;
-  title?: string;
-  placeholder?: string;
-}) {
-  return (
-    <input
-      list={list}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      className="field-flex-2"
-      title={title}
-      placeholder={placeholder}
-    />
-  );
+/** Stable row identity for list rendering (avoids jump on field rename). */
+export type CheckClauseRow = ExpectUiRow & { rowId: string };
+
+let nextRowId = 1;
+export function newCheckClauseRowId(): string {
+  nextRowId += 1;
+  return `cc-${nextRowId}`;
+}
+
+export function withCheckClauseRowIds(rows: ExpectUiRow[]): CheckClauseRow[] {
+  return rows.map(row => ({ ...row, rowId: newCheckClauseRowId() }));
+}
+
+export function stripCheckClauseRowIds(rows: CheckClauseRow[]): ExpectUiRow[] {
+  return rows.map(({ rowId: _rowId, ...row }) => row);
 }
 
 export function CheckClauseFieldSelect({
@@ -60,32 +52,36 @@ export function CheckClauseFieldSelect({
   onChange: (value: string) => void;
   title?: string;
 }) {
+  const opts = [...options];
+  if (value && !opts.includes(value)) {
+    opts.unshift(value);
+  }
+  if (opts.length === 0) {
+    opts.push("status");
+  }
+  const effective = opts.includes(value) ? value : opts[0];
   return (
     <select
-      value={value}
+      value={effective}
       onChange={e => onChange(e.target.value)}
-      className="field-flex-2"
+      className="check-clause-key"
       title={title}
     >
-      <option value="" disabled>-- field --</option>
-      {options.map(option => (
+      {opts.map(option => (
         <option key={option} value={option}>{option}</option>
       ))}
-      {value && !options.includes(value) && (
-        <option key={value} value={value}>{value}</option>
-      )}
     </select>
   );
 }
 
 type CheckClauseListProps = {
   kind: CheckClauseKind;
-  rows: ExpectUiRow[];
+  rows: CheckClauseRow[];
+  fieldOptions: string[];
   onPartChange: (index: number, part: "field" | "op" | "expected", value: string) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
-  renderField: (row: ExpectUiRow, index: number) => React.ReactNode;
-  children?: React.ReactNode;
+  renderStatus?: (row: CheckClauseRow, index: number) => React.ReactNode;
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
 };
@@ -93,11 +89,11 @@ type CheckClauseListProps = {
 const CheckClauseList: React.FC<CheckClauseListProps> = ({
   kind,
   rows,
+  fieldOptions,
   onPartChange,
   onRemove,
   onAdd,
-  renderField,
-  children,
+  renderStatus,
   canContainToken = false,
   valueContext,
 }) => {
@@ -108,20 +104,31 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
     <>
       <div className="label">{label}</div>
       <div className="field-pad">
-        {children}
         {rows.length > 0 && (
-          <div className="field-stack is-loose">
+          <div className="check-clause-table">
             {rows.map((row, i) => (
-              <div key={i} className="field-inline">
-                {renderField(row, i)}
-                <OperatorSelect
-                  value={row.op as any}
-                  onChange={nextOp => onPartChange(i, "op", nextOp)}
-                  className="no-shrink"
-                  title="Comparison operator"
+              <div key={row.rowId} className="check-clause-row">
+                <div className="check-clause-status">
+                  {renderStatus ? renderStatus(row, i) : (
+                    <span className="apitest-result-slot" aria-hidden />
+                  )}
+                </div>
+                <CheckClauseFieldSelect
+                  value={row.field}
+                  options={fieldOptions}
+                  onChange={val => onPartChange(i, "field", val)}
+                  title="Output field"
                 />
-                {canContainToken ? (
-                  <div className="field-flex-2">
+                <div className="check-clause-op">
+                  <OperatorSelect
+                    value={row.op as any}
+                    onChange={nextOp => onPartChange(i, "op", nextOp)}
+                    compact
+                    title="Comparison operator"
+                  />
+                </div>
+                <div className="check-clause-value">
+                  {canContainToken ? (
                     <TokenFieldInput
                       value={peerStringToDisplay(row.expected)}
                       canContainToken
@@ -130,20 +137,22 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                       onCommit={val => onPartChange(i, "expected", peerStringToYaml(val))}
                       onDraftChange={val => onPartChange(i, "expected", peerStringToYaml(val))}
                     />
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={row.expected}
-                    onChange={e => onPartChange(i, "expected", e.target.value)}
-                    className="field-flex-2"
-                    placeholder={copy.expected}
-                  />
-                )}
+                  ) : (
+                    <input
+                      type="text"
+                      value={row.expected}
+                      onChange={e => onPartChange(i, "expected", e.target.value)}
+                      placeholder={copy.expected}
+                    />
+                  )}
+                </div>
+                <span className="check-clause-type veditor-type" title="Value type">
+                  {row.expected.trim() !== "" ? `(${row.valueKind || "string"})` : ""}
+                </span>
                 <button
                   type="button"
                   onClick={() => onRemove(i)}
-                  className="action-button codicon codicon-close no-shrink"
+                  className="action-button codicon codicon-close check-clause-remove"
                   title={copy.remove}
                   aria-label={copy.remove}
                 />

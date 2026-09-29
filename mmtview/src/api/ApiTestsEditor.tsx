@@ -1,24 +1,27 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ApiTestBlock } from "mmt-core/APIData";
 import type { ApiTestExpectItem } from "mmt-core/apiTestEval";
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
   expectMapToUiRows,
-  type ExpectUiRow,
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
-import CheckClauseList, { CheckClauseFieldInput } from "../components/CheckClauseList";
+import CheckClauseList, {
+  newCheckClauseRowId,
+  stripCheckClauseRowIds,
+  withCheckClauseRowIds,
+  type CheckClauseRow,
+} from "../components/CheckClauseList";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
 const DEFAULT_FIELDS = [
   "status",
   "status_code",
+  "duration",
   "body",
-  "body.message",
   "headers",
   "cookies",
-  "duration",
 ];
 
 export interface ApiTestsEditorProps {
@@ -33,12 +36,16 @@ export interface ApiTestsEditorProps {
   valueContext?: RuntimeTokenValueContext;
 }
 
-function buildExpectBlock(expectRows: ExpectUiRow[]): ApiTestBlock | undefined {
-  const expectMap = uiRowsToExpectMap(expectRows);
+function buildExpectBlock(expectRows: CheckClauseRow[]): ApiTestBlock | undefined {
+  const expectMap = uiRowsToExpectMap(stripCheckClauseRowIds(expectRows));
   if (!expectMap) {
     return undefined;
   }
   return { expect: expectMap as ApiTestBlock["expect"] };
+}
+
+function expectSourceSig(expect: ApiTestBlock["expect"] | undefined): string {
+  return JSON.stringify(expect ?? null);
 }
 
 const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
@@ -49,10 +56,25 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
   canContainToken = false,
   valueContext,
 }) => {
-  const expectList = React.useMemo(() => expectMapToUiRows(test?.expect as any), [test?.expect]);
+  const sourceSig = useMemo(
+    () => expectSourceSig(test?.expect),
+    [test?.expect],
+  );
+  const lastEmittedSig = useRef(sourceSig);
+  const [rows, setRows] = useState<CheckClauseRow[]>(() =>
+    withCheckClauseRowIds(expectMapToUiRows(test?.expect as any)),
+  );
 
-  const suggestions = React.useMemo(() => {
-    // Declared outputs first, then built-in response fields (deduped).
+  // Reload rows when example / external expect changes — not when we just emitted.
+  useEffect(() => {
+    if (sourceSig === lastEmittedSig.current) {
+      return;
+    }
+    setRows(withCheckClauseRowIds(expectMapToUiRows(test?.expect as any)));
+    lastEmittedSig.current = sourceSig;
+  }, [sourceSig, test?.expect]);
+
+  const fieldOptions = useMemo(() => {
     const out: string[] = [];
     const seen = new Set<string>();
     for (const name of [...(fieldSuggestions || []), ...DEFAULT_FIELDS]) {
@@ -65,11 +87,14 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
     return out;
   }, [fieldSuggestions]);
 
-  const emit = (nextExpect: ExpectUiRow[]) => {
-    onChange(buildExpectBlock(nextExpect));
+  const emit = (next: CheckClauseRow[]) => {
+    setRows(next);
+    const block = buildExpectBlock(next);
+    lastEmittedSig.current = expectSourceSig(block?.expect);
+    onChange(block);
   };
 
-  const resultByComparison = React.useMemo(() => {
+  const resultByComparison = useMemo(() => {
     const map = new Map<string, ApiTestExpectItem>();
     for (const item of results || []) {
       if (item.level !== "expect") {
@@ -80,7 +105,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
     return map;
   }, [results]);
 
-  const resultForRow = (row: ExpectUiRow): ApiTestExpectItem | undefined => {
+  const resultForRow = (row: CheckClauseRow): ApiTestExpectItem | undefined => {
     if (!results || results.length === 0) {
       return undefined;
     }
@@ -90,13 +115,13 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
         results.find(r => r.level === "expect" && r.comparison.startsWith(`${row.field} `));
   };
 
-  const resultIcon = (row: ExpectUiRow) => {
+  const resultIcon = (row: CheckClauseRow) => {
     const result = resultForRow(row);
     const ok = result?.status === "passed";
     const failed = result?.status === "failed";
     return (
       <span
-        className={`apitest-result-slot no-shrink${ok ? " is-pass" : ""}${failed ? " is-fail" : ""}`}
+        className={`apitest-result-slot${ok ? " is-pass" : ""}${failed ? " is-fail" : ""}`}
         title={ok ? "Passed" : failed ? "Failed" : undefined}
         aria-label={ok ? "Passed" : failed ? "Failed" : undefined}
         aria-hidden={!result}
@@ -111,46 +136,29 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
     <div className="apitest-tests">
       <CheckClauseList
         kind="expect"
-        rows={expectList}
+        rows={rows}
+        fieldOptions={fieldOptions}
         canContainToken={canContainToken}
         valueContext={valueContext}
+        renderStatus={resultIcon}
         onPartChange={(index, part, val) => {
-          const updated = expectList.map((row, i) => (
-            i === index ? applyExpectUiRowChange(row, part, val) : row
-          ));
-          emit(updated);
+          emit(rows.map((row, i) => (
+            i === index
+              ? { ...applyExpectUiRowChange(row, part, val), rowId: row.rowId }
+              : row
+          )));
         }}
-        onRemove={(index) => emit(expectList.filter((_, i) => i !== index))}
+        onRemove={(index) => emit(rows.filter((_, i) => i !== index))}
         onAdd={() => {
-          const defaultField = expectList.length > 0
-            ? expectList[expectList.length - 1].field
-            : (suggestions[0] || "status");
-          emit([...expectList, createEmptyExpectUiRow(defaultField)]);
+          const defaultField = rows.length > 0
+            ? rows[rows.length - 1].field
+            : (fieldOptions[0] || "status");
+          emit([
+            ...rows,
+            { ...createEmptyExpectUiRow(defaultField), rowId: newCheckClauseRowId() },
+          ]);
         }}
-        renderField={(row, i) => (
-          <>
-            {resultIcon(row)}
-            <CheckClauseFieldInput
-              list="apitest-expect-fields"
-              value={row.field}
-              onChange={val => {
-                const updated = expectList.map((r, idx) => (
-                  idx === i ? applyExpectUiRowChange(r, "field", val) : r
-                ));
-                emit(updated);
-              }}
-              title="Output field"
-              placeholder="status"
-            />
-          </>
-        )}
-      >
-        <datalist id="apitest-expect-fields">
-          {suggestions.map(field => (
-            <option key={field} value={field} />
-          ))}
-        </datalist>
-      </CheckClauseList>
+      />
     </div>
   );
 };

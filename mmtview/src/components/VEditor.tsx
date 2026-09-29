@@ -142,12 +142,19 @@ const VEditor: React.FC<VEditorProps> = ({
             />
           );
 
-          // Fixed-width slot before the value field (same as expect rows).
+          // Fixed-width slot before the value field (same size as expect rows).
+          // Empty twin on the key row keeps header/value aligned with no jump.
           const showMatchGutter = matchStatus != null;
 
           return (
-            <div key={key} className="veditor-row">
-              <div className="veditor-key-row">
+            <div
+              key={key}
+              className={`veditor-row${showMatchGutter ? " has-match-gutter" : ""}`}
+            >
+              <div className="veditor-key-row field-inline">
+                {showMatchGutter ? (
+                  <span className="apitest-result-slot no-shrink" aria-hidden />
+                ) : null}
                 <span className="veditor-key">{key}</span>
                 {hasValue && (
                   <span className="veditor-type">

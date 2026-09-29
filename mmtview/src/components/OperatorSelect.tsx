@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { CheckOps, getFuzzyPercentOperatorBase, getFuzzyPercentOperatorValue, getOpOptionLabel, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentAnyOperator, isTimeAnyOperator, makeFuzzyPercentOperator, makeTimeOperator, normalizeTimeVelocity, selectableOpsList } from "mmt-core/TestData";
+import {
+  CheckOps,
+  getFuzzyPercentOperatorBase,
+  getFuzzyPercentOperatorValue,
+  getOpOptionLabel,
+  getTimeOperatorBase,
+  getTimeOperatorVelocity,
+  isFuzzyPercentAnyOperator,
+  isTimeAnyOperator,
+  makeFuzzyPercentOperator,
+  makeTimeOperator,
+  normalizeTimeVelocity,
+  selectableOpsList,
+} from "mmt-core/TestData";
 import { safeList } from "mmt-core/safer";
 
 type OperatorSelectProps = {
@@ -8,9 +21,22 @@ type OperatorSelectProps = {
   className?: string;
   style?: React.CSSProperties;
   title?: string;
+  /** Narrow native select for expect/require rows. */
+  compact?: boolean;
 };
 
-const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, className, style, title }) => {
+/**
+ * Plain native `<select>` for comparison operators (no custom overlay face).
+ * Optional percent / velocity inputs appear for fuzzy and time operators.
+ */
+const OperatorSelect: React.FC<OperatorSelectProps> = ({
+  value,
+  onChange,
+  className,
+  style,
+  title,
+  compact = false,
+}) => {
   const fuzzyBase = getFuzzyPercentOperatorBase(value);
   const timeBase = getTimeOperatorBase(value);
   const selectValue = (fuzzyBase || timeBase || value) as CheckOps;
@@ -23,11 +49,11 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, classN
   }, [timeVelocity]);
 
   const updateOperator = (nextValue: CheckOps) => {
-    if (nextValue === '>%' || nextValue === '<%') {
+    if (nextValue === ">%" || nextValue === "<%") {
       onChange(makeFuzzyPercentOperator(nextValue, fuzzyPercent));
       return;
     }
-    if (nextValue === '=s~' || nextValue === '!s~') {
+    if (nextValue === "=s~" || nextValue === "!s~") {
       onChange(makeTimeOperator(nextValue, timeVelocity));
       return;
     }
@@ -35,7 +61,7 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, classN
   };
 
   const updatePercent = (nextPercent: number) => {
-    const base = fuzzyBase || '>%';
+    const base = fuzzyBase || ">%";
     onChange(makeFuzzyPercentOperator(base, nextPercent));
   };
 
@@ -45,38 +71,38 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, classN
     if (!normalized) {
       return;
     }
-    onChange(makeTimeOperator(timeBase || '=s~', normalized));
+    onChange(makeTimeOperator(timeBase || "=s~", normalized));
   };
 
   const commitVelocity = () => {
     const normalized = normalizeTimeVelocity(velocityText);
     const next = normalized || timeVelocity;
     setVelocityText(next);
-    onChange(makeTimeOperator(timeBase || '=s~', next));
+    onChange(makeTimeOperator(timeBase || "=s~", next));
   };
 
   return (
-    <div className={["op-select", className].filter(Boolean).join(" ")} style={style}>
-      <div className="op-select-face">
-        <select
-          value={selectValue}
-          onChange={e => updateOperator(e.target.value as CheckOps)}
-          title={title}
-        >
-          {safeList(selectableOpsList).map((relation) => (
-            <option
-              key={relation}
-              value={relation}
-              title={getOpOptionLabel(relation)}
-            >
-              {getOpOptionLabel(relation)}
-            </option>
-          ))}
-        </select>
-        <span className="op-select-value">
-          {selectValue}
-        </span>
-      </div>
+    <div
+      className={["op-select", compact ? "is-compact" : "", className]
+        .filter(Boolean)
+        .join(" ")}
+      style={style}
+    >
+      <select
+        value={selectValue}
+        onChange={e => updateOperator(e.target.value as CheckOps)}
+        title={title}
+      >
+        {safeList(selectableOpsList).map(relation => (
+          <option
+            key={relation}
+            value={relation}
+            title={getOpOptionLabel(relation)}
+          >
+            {compact ? relation : getOpOptionLabel(relation)}
+          </option>
+        ))}
+      </select>
       {isFuzzyPercentAnyOperator(value) && (
         <input
           type="number"

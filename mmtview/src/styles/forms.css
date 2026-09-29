@@ -486,6 +486,7 @@ select.is-invalid {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .op-select.is-fixed {
@@ -498,43 +499,93 @@ select.is-invalid {
   min-width: 0;
 }
 
-.op-select-face {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-}
-
-.op-select-face select {
-  width: 100%;
-  color: transparent;
-  background-color: transparent;
-}
-
-.op-select-face option {
-  color: var(--vscode-foreground);
-}
-
-.op-select-value {
-  position: absolute;
-  left: 8px;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--vscode-foreground);
+.op-select.is-compact > select {
+  width: 3.25rem;
+  min-width: 3.25rem;
+  max-width: 3.25rem;
+  padding-left: 2px;
+  padding-right: 2px;
+  text-align: center;
 }
 
 .op-select-percent {
-  width: 68px;
+  width: 4rem;
   flex: 0 0 auto;
 }
 
 .op-select-velocity {
-  width: 88px;
+  width: 4.5rem;
   flex: 0 0 auto;
+}
+
+/* Expect/require rows: fixed columns — status | key | op | value | type | remove */
+.check-clause-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.check-clause-row {
+  display: grid;
+  grid-template-columns: 16px minmax(72px, 1fr) auto minmax(88px, 1.4fr) 4.25rem 20px;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.check-clause-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-clause-key {
+  width: 100%;
+  min-width: 0;
+}
+
+.check-clause-op {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+
+.check-clause-op .op-select {
+  width: 100%;
+}
+
+.check-clause-value {
+  min-width: 0;
+}
+
+.check-clause-value > input,
+.check-clause-value > .token-field {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.check-clause-type {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 1em;
+}
+
+.check-clause-remove {
+  justify-self: end;
+}
+
+/* Align add button with key column (after status gutter). */
+.apitest-tests .ghost-add,
+.field-pad > .field-block .ghost-add {
+  margin-left: 20px;
 }
 
 .ghost-add {
@@ -543,11 +594,6 @@ select.is-invalid {
   border: 1px dashed var(--vscode-editorWidget-border, #555);
   background: transparent;
   cursor: pointer;
-}
-
-/* Align with expect fields that lead with a result-slot + gap. */
-.apitest-tests .ghost-add {
-  margin-left: 20px;
 }
 
 /* Token-capable single-line fields (resolved preview + token edit). */

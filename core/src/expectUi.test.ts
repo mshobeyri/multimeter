@@ -83,7 +83,16 @@ steps:
     expect(applyExpectUiRowChange(empty, 'op', '!=')).toMatchObject({
       op: '!=', explicitOperator: true,
     });
-    expect(applyExpectUiRowChange(empty, 'expected', '201').expected).toBe('201');
+    expect(applyExpectUiRowChange(empty, 'expected', '201')).toMatchObject({
+      expected: '201',
+      valueKind: 'number',
+    });
+    expect(applyExpectUiRowChange(empty, 'expected', 'true')).toMatchObject({
+      valueKind: 'boolean',
+    });
+    expect(applyExpectUiRowChange(empty, 'expected', '112m')).toMatchObject({
+      valueKind: 'string',
+    });
     const merged = uiRowsToExpectMap([
       {field: 'a', op: '==', expected: '1', explicitOperator: true},
       {field: 'a', op: '=C', expected: 'x', explicitOperator: true},

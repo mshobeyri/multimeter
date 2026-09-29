@@ -1867,6 +1867,11 @@ button:focus {
   padding-left: 20px;
 }
 
+/* Match expect result-slot gutter: fixed 16px before value (and key spacer). */
+.veditor-row.has-match-gutter {
+  padding-left: 0;
+}
+
 .veditor-key-row {
   margin-bottom: 2px;
 }

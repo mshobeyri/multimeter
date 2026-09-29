@@ -118,6 +118,19 @@ export function createEmptyExpectUiRow(field: string): ExpectUiRow {
   };
 }
 
+/** Infer YAML scalar kind from the expected-value editor text. */
+export function detectExpectValueKind(raw: string): ExpectUiValueKind {
+  const t = String(raw ?? '').trim();
+  if (t === 'true' || t === 'false') {
+    return 'boolean';
+  }
+  // Plain decimal / int only — reject hex, trailing units, empty.
+  if (t !== '' && /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(t)) {
+    return 'number';
+  }
+  return 'string';
+}
+
 export function applyExpectUiRowChange(
     row: ExpectUiRow,
     part: 'field' | 'op' | 'expected',
@@ -129,5 +142,9 @@ export function applyExpectUiRowChange(
   if (part === 'op') {
     return { ...row, op: value, explicitOperator: true };
   }
-  return { ...row, expected: value };
+  return {
+    ...row,
+    expected: value,
+    valueKind: detectExpectValueKind(value),
+  };
 }
