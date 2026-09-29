@@ -505,13 +505,30 @@ describe('multiple template vars in one string', () => {
     });
   });
 
-  it('refreshRuntimeTokens clears r:/c: caches between resolves', () => {
+  it('refreshRuntimeTokens clears c: caches between resolves', () => {
     const iface = {id: 'r:uuid'};
     const first = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
     const second = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
     expect(first.id).not.toBe('r:uuid');
     expect(second.id).not.toBe('r:uuid');
     expect(first.id).not.toBe(second.id);
+  });
+
+  it('gives each r: occurrence a unique value in the same resolve', () => {
+    const iface = {
+      a: 'r:uuid',
+      b: 'r:uuid',
+      c: '<<r:uuid>>',
+      d: 'r:int(1,1000000)',
+      e: 'r:int(1,1000000)',
+    };
+    const result = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
+    expect(result.a).not.toBe(result.b);
+    expect(result.a).not.toBe(result.c);
+    expect(result.b).not.toBe(result.c);
+    expect(result.d).not.toBe(result.e);
+    expect(typeof result.d).toBe('number');
+    expect(typeof result.e).toBe('number');
   });
 
   it('resolves parameterized random tokens and preserves invalid forms', () => {

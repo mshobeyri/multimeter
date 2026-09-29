@@ -401,21 +401,11 @@ enum ReplacementMode {
 
 type DynamicResolver = (key: string) => any | undefined;
 
-// Cache for random token results to keep UI stable across re-renders
-const RANDOM_CACHE = new Map<string, any>();
-export function resetRandomTokenCache(): void { RANDOM_CACHE.clear(); }
+// Random tokens are unique per occurrence (two `r:uuid` → two values).
+export function resetRandomTokenCache(): void { /* no-op: r: is never cached */ }
 
 function generateRandomByName(name: string): any {
-  const cacheKey = `r:${name.trim()}`;
-  if (RANDOM_CACHE.has(cacheKey)) {
-    return RANDOM_CACHE.get(cacheKey);
-  }
-  const val = randomValueForToken(name);
-  if (val === undefined) {
-    return undefined;
-  }
-  RANDOM_CACHE.set(cacheKey, val);
-  return val;
+  return randomValueForToken(name);
 }
 
 // Cache for current token results to keep UI stable across re-renders (single evaluation per render cycle)
@@ -703,7 +693,7 @@ export interface ReplaceAllRefsOptions {
    * values; code generators disable it so every execution gets fresh values.
    */
   resolveRuntimeTokens?: boolean;
-  /** Clear r:/c: caches before resolving so each call gets fresh runtime values. */
+  /** Clear c: caches before resolving so each call gets a fresh "current" snapshot. */
   refreshRuntimeTokens?: boolean;
 }
 
