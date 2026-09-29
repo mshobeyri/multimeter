@@ -19,6 +19,8 @@ interface VEditorProps {
   /** Per-input options from `<<i:name>> [a, b]` description annotations */
   inputConstraints?: Record<string, ParamConstraintOption[]>;
   disabled?: boolean;
+  /** Non-editable but visually normal (unlike disabled). */
+  readOnly?: boolean;
   deletable?: boolean;
   copyable?: boolean;
   /** Per-key match status vs selected example expected outputs (shown beside the field). */
@@ -36,6 +38,7 @@ const VEditor: React.FC<VEditorProps> = ({
   valueOptions,
   inputConstraints,
   disabled,
+  readOnly = false,
   deletable = true,
   copyable = false,
   matchStatus,
@@ -109,8 +112,8 @@ const VEditor: React.FC<VEditorProps> = ({
               onRemovePressed={() => handleRemove(index)}
               options={valueOptions}
               placeholder="Value"
-              disabled={disabled}
-              removable={deletable}
+              disabled={disabled || readOnly}
+              removable={deletable && !readOnly}
             />
           ) : pickerOptions && pickerOptions.length > 0 ? (
             <FieldWithOptionsPicker
@@ -120,8 +123,8 @@ const VEditor: React.FC<VEditorProps> = ({
               onRemovePressed={() => handleRemove(index)}
               options={pickerOptions}
               placeholder="Value"
-              disabled={disabled}
-              removable={deletable && hasValue}
+              disabled={disabled || readOnly}
+              removable={deletable && hasValue && !readOnly}
               copyable={copyable}
             />
           ) : (
@@ -131,9 +134,10 @@ const VEditor: React.FC<VEditorProps> = ({
               onRemovePressed={() => handleRemove(index)}
               placeholder="Value"
               disabled={disabled}
-              removable={deletable && hasValue}
+              readOnly={readOnly}
+              removable={deletable && hasValue && !readOnly}
               copyable={copyable}
-              canContainToken={canContainToken}
+              canContainToken={canContainToken && !readOnly}
               valueContext={valueContext}
             />
           );

@@ -191,30 +191,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     () => peerStringToDisplay(api.graphql?.operation),
     [api.graphql?.operation],
   );
-  /** Declared output keys with last-extracted values (Examples response pane). */
-  const outputDisplay = useMemo(() => {
-    const rules = api.outputs && typeof api.outputs === "object" ? api.outputs : {};
-    const out: Record<string, string> = {};
-    for (const key of Object.keys(rules)) {
-      const raw = (outputs as Record<string, unknown> | undefined)?.[key];
-      if (raw === undefined || raw === null) {
-        out[key] = "";
-      } else if (typeof raw === "string") {
-        out[key] = raw;
-      } else {
-        try {
-          out[key] = JSON.stringify(raw);
-        } catch {
-          out[key] = String(raw);
-        }
-      }
-    }
-    return out;
-  }, [api.outputs, outputs]);
-  const outputFieldSuggestions = useMemo(
+  /** Declared output keys (Examples pane); values keep runtime types for VEditor. */
+  const outputKeys = useMemo(
     () => Object.keys(api.outputs && typeof api.outputs === "object" ? api.outputs : {}),
     [api.outputs],
   );
+  const outputDisplay = useMemo((): JSONRecord => {
+    const out: JSONRecord = {};
+    for (const key of outputKeys) {
+      if (Object.prototype.hasOwnProperty.call(outputs, key)) {
+        out[key] = outputs[key];
+      }
+    }
+    return out;
+  }, [outputKeys, outputs]);
+  const outputFieldSuggestions = outputKeys;
 
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(
     requestData?.protocol || api.protocol,
@@ -1178,13 +1169,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
         {shouldShowExamples() && (
           <>
-            {Object.keys(outputDisplay).length > 0 ? (
-              <KSVEditor
+            {outputKeys.length > 0 ? (
+              <VEditor
                 label="Outputs"
                 value={outputDisplay}
                 onChange={() => { }}
+                keyOptions={outputKeys}
                 readOnly
-                deactivated
                 deletable={false}
                 copyable
               />
