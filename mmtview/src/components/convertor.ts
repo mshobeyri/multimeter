@@ -1,102 +1,58 @@
-import {JSONValue} from 'mmt-core/CommonData';
-import {isOmitSentinel, OMIT_SENTINEL} from 'mmt-core/omitKeyword';
 import {
-  isLiteralTokenValue,
-  isTokenLikeScalar,
-  unwrapLiteralToken,
-  wrapLiteralToken,
-} from 'mmt-core/literalToken';
-import {peerStringToYaml} from 'mmt-core/apiBodyEdit';
+  inputBoxToYamlValue,
+  yamlValueToInputBox,
+} from 'mmt-core/yamlValueConvert';
+import {peerStringToDisplay, peerStringToYaml} from 'mmt-core/apiBodyEdit';
+import {isLiteralTokenValue} from 'mmt-core/literalToken';
+import {JSONValue} from 'mmt-core/CommonData';
 
-export const valueToString = (val: JSONValue | undefined): string => {
-  if (val === undefined) {
-    return '';
-  }
-  if (val === null) {
-    return 'null';
-  }
-  if (isOmitSentinel(val)) {
-    return 'omit';
-  }
-  if (typeof val === 'string') {
-    if (isLiteralTokenValue(val)) {
-      return `"${unwrapLiteralToken(val)}"`;
-    }
-    if (val.toLowerCase() === 'true' || val.toLowerCase() === 'false') {
-      return `"${val}"`;
-    }
-    if (val.toLowerCase() === 'null') {
-      return '"null"';
-    }
-    if (val.toLowerCase() === 'omit') {
-      return '"omit"';
-    }
-    if (val.trim() !== '' && !isNaN(Number(val))) {
-      return `"${val}"`;
-    }
-    return val;
-  }
-  if (typeof val === 'boolean') {
-    return val.toString();
-  }
-  if (typeof val === 'number') {
-    return val.toString();
-  }
-  if (typeof val === 'object') {
-    return JSON.stringify(val);
-  }
-  return String(val);
-};
+export {
+  inputBoxToYamlValue,
+  valueToString,
+  stringToValue,
+  yamlValueToInputBox,
+} from 'mmt-core/yamlValueConvert';
 
-export const stringToValue = (val: string): JSONValue => {
-  if (val === null || val === undefined) {
-    return '';
+/**
+ * YAML / model value → input box, with optional `{{…}}` token display rewrite.
+ * Ambiguous quoted scalars (`"112"`, `"true"`, …) and quoted token literals
+ * keep their quotes; bare tokens become display templates when `tokens` is on.
+ */
+export function yamlValueToInputBoxWithTokens(
+    val: JSONValue | undefined,
+    tokens = false,
+): string {
+  if (!tokens || typeof val !== 'string') {
+    return yamlValueToInputBox(val);
   }
-  if (typeof val === 'string') {
-    const t = val.trim();
-
-    if ((t.startsWith('"') && t.endsWith('"')) ||
-        (t.startsWith('\'') && t.endsWith('\''))) {
-      const inner = t.slice(1, -1);
-      if (isTokenLikeScalar(inner)) {
-        return wrapLiteralToken(inner);
-      }
-      return inner;
-    }
-
-    if (t === 'omit') {
-      return OMIT_SENTINEL;
-    }
-    if (t === 'null') {
-      return null;
-    }
-    if (t.toLowerCase() === 'true') {
-      return true;
-    }
-    if (t.toLowerCase() === 'false') {
-      return false;
-    }
-    const num = Number(t);
-    if (!isNaN(num) && t !== '') {
-      return num;
-    }
-    if ((t.startsWith('{') && t.endsWith('}')) ||
-        (t.startsWith('[') && t.endsWith(']'))) {
-      try {
-        return JSON.parse(t);
-      } catch {
-        // Fall through to return as string
-      }
-    }
-    return val;
+  if (isLiteralTokenValue(val)) {
+    return yamlValueToInputBox(val);
   }
-  return val;
-};
+  const displayed = yamlValueToInputBox(val);
+  // valueToString wrapped quotes for an ambiguous scalar — keep them.
+  if (displayed !== val && displayed.startsWith('"') && displayed.endsWith('"')) {
+    return displayed;
+  }
+  return peerStringToDisplay(val);
+}
+
+/**
+ * Input box → YAML / model value, with optional peer token normalization.
+ */
+export function inputBoxToYamlValueWithTokens(
+    val: string,
+    tokens = false,
+): JSONValue {
+  if (!tokens) {
+    return inputBoxToYamlValue(val);
+  }
+  return inputBoxToYamlValue(peerStringToYaml(val));
+}
 
 /**
  * Token-capable field → stored YAML value.
  * Normalizes `{{r:uuid}}` / bare tokens via peerStringToYaml, then coerces
- * types (int / bool / omit / null) like stringToValue. Keys stay strings.
+ * types (int / bool / omit / null) like inputBoxToYamlValue. Keys stay strings.
  */
 export const peerFieldToValue = (val: string): JSONValue =>
-  stringToValue(peerStringToYaml(val));
+  inputBoxToYamlValueWithTokens(val, true);

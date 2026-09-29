@@ -1,4 +1,11 @@
-import {valueToString, stringToValue} from './convertor';
+import {
+  valueToString,
+  stringToValue,
+  yamlValueToInputBox,
+  inputBoxToYamlValue,
+  yamlValueToInputBoxWithTokens,
+  peerFieldToValue,
+} from './convertor';
 import {OMIT_SENTINEL} from 'mmt-core/omitKeyword';
 import {LITERAL_TOKEN_PREFIX} from 'mmt-core/literalToken';
 
@@ -33,5 +40,16 @@ describe('convertor null and omit handling', () => {
   it('round-trips keyword values through display and parse', () => {
     expect(stringToValue(valueToString(null))).toBe(null);
     expect(stringToValue(valueToString(OMIT_SENTINEL))).toBe(OMIT_SENTINEL);
+  });
+
+  it('keeps quotes on numeric-looking input strings', () => {
+    expect(yamlValueToInputBox('112')).toBe('"112"');
+    expect(yamlValueToInputBox(112)).toBe('112');
+    expect(inputBoxToYamlValue('"112"')).toBe('112');
+    expect(typeof inputBoxToYamlValue('"112"')).toBe('string');
+    expect(inputBoxToYamlValue('112')).toBe(112);
+    expect(peerFieldToValue('"112"')).toBe('112');
+    expect(typeof peerFieldToValue('"112"')).toBe('string');
+    expect(yamlValueToInputBoxWithTokens('112', true)).toBe('"112"');
   });
 });

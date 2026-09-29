@@ -265,6 +265,11 @@
       "require": "./dist/literalToken.js",
       "default": "./dist/literalToken.js"
     },
+    "./yamlValueConvert": {
+      "types": "./dist/yamlValueConvert.d.ts",
+      "require": "./dist/yamlValueConvert.js",
+      "default": "./dist/yamlValueConvert.js"
+    },
     "./multipartBody": {
       "types": "./dist/multipartBody.d.ts",
       "require": "./dist/multipartBody.js",

@@ -65,7 +65,21 @@ steps:
     expect(expectValueToUiRow('msg', 'hello')).toMatchObject({
       op: '==', expected: 'hello', explicitOperator: false,
     });
-    expect(expectValueToUiRow('msg', null)).toMatchObject({expected: ''});
+    expect(expectValueToUiRow('msg', null)).toMatchObject({expected: 'null'});
+    expect(expectValueToUiRow('code', '112')).toMatchObject({
+      expected: '"112"',
+      valueKind: 'string',
+    });
+    expect(expectValueToUiRow('code', 112)).toMatchObject({
+      expected: '112',
+      valueKind: 'number',
+    });
+    expect(uiRowToExpectValue({
+      field: 'code', op: '==', expected: '"112"', explicitOperator: false, valueKind: 'string',
+    })).toBe('112');
+    expect(typeof uiRowToExpectValue({
+      field: 'code', op: '==', expected: '"112"', explicitOperator: false, valueKind: 'string',
+    })).toBe('string');
     expect(uiRowToExpectValue({
       field: 'n', op: '==', expected: 'nope', explicitOperator: false, valueKind: 'number',
     })).toBe('nope');

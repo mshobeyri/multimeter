@@ -2,9 +2,11 @@ import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
-import { valueToString, stringToValue, peerFieldToValue } from "./convertor";
+import {
+  yamlValueToInputBoxWithTokens,
+  inputBoxToYamlValueWithTokens,
+} from "./convertor";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
-import { peerStringToDisplay } from "mmt-core/apiBodyEdit";
 
 interface KVEditorProps {
   label: string;
@@ -22,14 +24,18 @@ interface KVEditorProps {
 }
 
 // Utility to ensure an empty key is always at the end
-function withTrailingEmptyKey(obj?: JSONRecord, addEmpty: boolean = true): Array<[string, JSONValue]> {
+function withTrailingEmptyKey(
+  obj: JSONRecord | undefined,
+  tokens: boolean,
+  addEmpty: boolean = true,
+): Array<[string, string]> {
   if (!obj) {
     return addEmpty ? [["", ""]] : [];
   }
 
-  const entries = Object.entries(obj).map(([key, value]): [string, JSONValue] => [
+  const entries = Object.entries(obj).map(([key, value]): [string, string] => [
     key,
-    valueToString(value)
+    yamlValueToInputBoxWithTokens(value, tokens),
   ]);
 
   // Ensure there's always an empty entry at the end for adding new items
@@ -54,20 +60,22 @@ const KVEditor: React.FC<KVEditorProps> = ({
   valueContext,
 }) => {
   // Use an array of entries to preserve order and handle the object format
-  const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
+  const entries = useMemo(
+    () => withTrailingEmptyKey(value, canContainToken, expandable),
+    [value, canContainToken, expandable],
+  );
 
   // Helper to convert entries array back to object
-  const toObject = (arr: Array<[string, JSONValue]>): Record<string, JSONValue> =>
+  const toObject = (arr: Array<[string, string]>): Record<string, JSONValue> =>
     safeList(arr).reduce<Record<string, JSONValue>>((acc, [k, v]) => {
       if (k.trim()) { // Only include non-empty keys
-        const raw = String(v ?? "");
-        acc[k] = canContainToken ? peerFieldToValue(raw) : stringToValue(raw);
+        acc[k] = inputBoxToYamlValueWithTokens(String(v ?? ""), canContainToken);
       }
       return acc;
     }, {});
 
   const handleKeyChange = (idx: number, newKey: string) => {
-    const newEntries = safeList(entries).map(([k, v], i): [string, JSONValue] =>
+    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
       i === idx ? [newKey, v] : [k, v]
     );
 
@@ -84,7 +92,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
   };
 
   const handleValueChange = (idx: number, newVal: string) => {
-    const newEntries = safeList(entries).map(([k, v], i): [string, JSONValue] =>
+    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
       i === idx ? [k, newVal] : [k, v]
     );
     onChange(toObject(newEntries));
@@ -120,11 +128,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                 <td>
                   {k.trim() !== "" && (
                     <FieldWithRemove
-                      value={
-                        canContainToken
-                          ? peerStringToDisplay(String(v ?? ""))
-                          : String(v ?? "")
-                      }
+                      value={String(v ?? "")}
                       onChange={newVal => handleValueChange(index, newVal)}
                       onRemovePressed={() => handleRemove(index)}
                       placeholder={valuePlaceholder}

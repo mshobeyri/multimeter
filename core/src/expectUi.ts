@@ -1,4 +1,6 @@
-import { splitCheckOperatorPrefix, unquoteExpectLiteral } from './TestData';
+import {JSONValue} from './CommonData';
+import {splitCheckOperatorPrefix, unquoteExpectLiteral} from './TestData';
+import {inputBoxToYamlValue, yamlValueToInputBox} from './yamlValueConvert';
 
 export type ExpectUiValueKind = 'string' | 'number' | 'boolean';
 
@@ -13,42 +15,46 @@ export interface ExpectUiRow {
   valueKind?: ExpectUiValueKind;
 }
 
-export function expectValueToUiRow(field: string, value: unknown): ExpectUiRow {
+function kindFromYamlValue(value: unknown): ExpectUiValueKind {
   if (typeof value === 'number') {
-    return {
-      field,
-      op: '==',
-      expected: String(value),
-      explicitOperator: false,
-      valueKind: 'number',
-    };
+    return 'number';
   }
   if (typeof value === 'boolean') {
+    return 'boolean';
+  }
+  return 'string';
+}
+
+export function expectValueToUiRow(field: string, value: unknown): ExpectUiRow {
+  if (typeof value === 'string') {
+    const s = value.trim();
+    const prefixed = splitCheckOperatorPrefix(s);
+    if (prefixed) {
+      return {
+        field,
+        op: prefixed.operator,
+        expected: unquoteExpectLiteral(prefixed.expected),
+        explicitOperator: true,
+        valueKind: 'string',
+      };
+    }
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean' ||
+      typeof value === 'string' || value === null) {
     return {
       field,
       op: '==',
-      expected: String(value),
+      expected: yamlValueToInputBox(value as JSONValue),
       explicitOperator: false,
-      valueKind: 'boolean',
-    };
-  }
-
-  const s = String(value ?? '').trim();
-  const prefixed = splitCheckOperatorPrefix(s);
-  if (prefixed) {
-    return {
-      field,
-      op: prefixed.operator,
-      expected: unquoteExpectLiteral(prefixed.expected),
-      explicitOperator: true,
-      valueKind: 'string',
+      valueKind: kindFromYamlValue(value),
     };
   }
 
   return {
     field,
     op: '==',
-    expected: unquoteExpectLiteral(s),
+    expected: yamlValueToInputBox(String(value ?? '')),
     explicitOperator: false,
     valueKind: 'string',
   };
@@ -56,14 +62,10 @@ export function expectValueToUiRow(field: string, value: unknown): ExpectUiRow {
 
 export function uiRowToExpectValue(row: ExpectUiRow): string | number | boolean {
   if (row.op === '==' && !row.explicitOperator) {
-    if (row.valueKind === 'number') {
-      const n = Number(row.expected);
-      if (!Number.isNaN(n)) {
-        return n;
-      }
-    }
-    if (row.valueKind === 'boolean') {
-      return row.expected === 'true';
+    const typed = inputBoxToYamlValue(row.expected);
+    if (typeof typed === 'number' || typeof typed === 'boolean' ||
+        typeof typed === 'string') {
+      return typed;
     }
     return row.expected;
   }
@@ -120,15 +122,7 @@ export function createEmptyExpectUiRow(field: string): ExpectUiRow {
 
 /** Infer YAML scalar kind from the expected-value editor text. */
 export function detectExpectValueKind(raw: string): ExpectUiValueKind {
-  const t = String(raw ?? '').trim();
-  if (t === 'true' || t === 'false') {
-    return 'boolean';
-  }
-  // Plain decimal / int only — reject hex, trailing units, empty.
-  if (t !== '' && /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(t)) {
-    return 'number';
-  }
-  return 'string';
+  return kindFromYamlValue(inputBoxToYamlValue(raw));
 }
 
 export function applyExpectUiRowChange(
@@ -137,10 +131,10 @@ export function applyExpectUiRowChange(
     value: string,
 ): ExpectUiRow {
   if (part === 'field') {
-    return { ...row, field: value };
+    return {...row, field: value};
   }
   if (part === 'op') {
-    return { ...row, op: value, explicitOperator: true };
+    return {...row, op: value, explicitOperator: true};
   }
   return {
     ...row,

@@ -11,6 +11,7 @@ import {
   isTokenLikeScalar,
   restoreLiteralTokens,
 } from './literalToken';
+import {needsYamlDoubleQuotes} from './yamlValueConvert';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 import {normalizeNewlines} from './textLines';
 import {mergeYamlValue} from './yamlAstMerge';
@@ -85,8 +86,8 @@ function applyKeywordScalarStyles(node: any, original: any): void {
       node.type = 'PLAIN';
       return;
     }
-    if ((original === 'omit' || original === 'null') &&
-        typeof original === 'string') {
+    // Keep `"112"` / `"true"` / `"omit"` as quoted strings on emit.
+    if (typeof original === 'string' && needsYamlDoubleQuotes(original)) {
       node.type = 'QUOTE_DOUBLE';
     }
     return;

@@ -2,6 +2,10 @@ import React from "react";
 import type { ExpectUiRow } from "mmt-core/expectUi";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
+import {
+  inputBoxToYamlValue,
+  yamlValueToInputBox,
+} from "./convertor";
 import OperatorSelect from "./OperatorSelect";
 import TokenFieldInput from "./TokenFieldInput";
 
@@ -130,12 +134,25 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                 <div className="check-clause-value">
                   {canContainToken ? (
                     <TokenFieldInput
-                      value={peerStringToDisplay(row.expected)}
+                      value={
+                        (row.expected.startsWith('"') && row.expected.endsWith('"')) ||
+                        (row.expected.startsWith("'") && row.expected.endsWith("'"))
+                          ? row.expected
+                          : peerStringToDisplay(row.expected)
+                      }
                       canContainToken
                       valueContext={valueContext}
                       placeholder={copy.expected}
-                      onCommit={val => onPartChange(i, "expected", peerStringToYaml(val))}
-                      onDraftChange={val => onPartChange(i, "expected", peerStringToYaml(val))}
+                      onCommit={val => onPartChange(
+                        i,
+                        "expected",
+                        yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val))),
+                      )}
+                      onDraftChange={val => onPartChange(
+                        i,
+                        "expected",
+                        yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val))),
+                      )}
                     />
                   ) : (
                     <input
