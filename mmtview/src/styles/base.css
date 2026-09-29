@@ -1867,6 +1867,19 @@ button:focus {
   padding-left: 20px;
 }
 
+/* Fixed pass/fail gutter before header+value — same width whether icon is set. */
+.veditor-row.has-match-gutter {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding-left: 0;
+}
+
+.veditor-row.has-match-gutter > .veditor-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .veditor-key-row {
   margin-bottom: 2px;
 }

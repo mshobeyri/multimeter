@@ -142,44 +142,53 @@ const VEditor: React.FC<VEditorProps> = ({
             />
           );
 
+          // Reserve a fixed result gutter whenever matchStatus is provided so
+          // pass/fail icons don't shift header + value when they appear.
+          const showMatchGutter = matchStatus != null;
+
           return (
-            <div key={key} className="veditor-row">
-              <div className="veditor-key-row">
-                <span className="veditor-key">{key}</span>
-                {hasValue && (
-                  <span className="veditor-type">
-                    ({typeLabel})
-                  </span>
-                )}
-              </div>
-              <div className="field-inline">
-                {matchStatus && matchStatus.size > 0 ? (
-                  <span
-                    className={`apitest-result-slot no-shrink${
-                      fieldMatch === "match" ? " is-pass" : ""
-                    }${fieldMatch === "mismatch" ? " is-fail" : ""}`}
-                    title={fieldMatch === "match"
-                      ? "Matches example expect"
-                      : fieldMatch === "mismatch"
-                        ? "Does not match example expect"
-                        : undefined}
-                    aria-label={fieldMatch === "match"
-                      ? "Matches example expect"
-                      : fieldMatch === "mismatch"
-                        ? "Does not match example expect"
-                        : undefined}
-                    aria-hidden={!fieldMatch}
-                  >
-                    {fieldMatch === "match"
-                      ? <span className="codicon codicon-check" />
-                      : null}
-                    {fieldMatch === "mismatch"
-                      ? <span className="codicon codicon-close" />
-                      : null}
-                  </span>
-                ) : null}
-                <div className="field-grow">
-                  {fieldControl}
+            <div
+              key={key}
+              className={`veditor-row${showMatchGutter ? " has-match-gutter" : ""}`}
+            >
+              {showMatchGutter ? (
+                <span
+                  className={`apitest-result-slot no-shrink${
+                    fieldMatch === "match" ? " is-pass" : ""
+                  }${fieldMatch === "mismatch" ? " is-fail" : ""}`}
+                  title={fieldMatch === "match"
+                    ? "Matches example expect"
+                    : fieldMatch === "mismatch"
+                      ? "Does not match example expect"
+                      : undefined}
+                  aria-label={fieldMatch === "match"
+                    ? "Matches example expect"
+                    : fieldMatch === "mismatch"
+                      ? "Does not match example expect"
+                      : undefined}
+                  aria-hidden={!fieldMatch}
+                >
+                  {fieldMatch === "match"
+                    ? <span className="codicon codicon-check" />
+                    : null}
+                  {fieldMatch === "mismatch"
+                    ? <span className="codicon codicon-close" />
+                    : null}
+                </span>
+              ) : null}
+              <div className="veditor-main">
+                <div className="veditor-key-row">
+                  <span className="veditor-key">{key}</span>
+                  {hasValue && (
+                    <span className="veditor-type">
+                      ({typeLabel})
+                    </span>
+                  )}
+                </div>
+                <div className="field-inline">
+                  <div className="field-grow">
+                    {fieldControl}
+                  </div>
                 </div>
               </div>
             </div>
