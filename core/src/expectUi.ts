@@ -1,8 +1,15 @@
 import {JSONValue} from './CommonData';
+import {isOmitSentinel} from './omitKeyword';
 import {splitCheckOperatorPrefix, unquoteExpectLiteral} from './TestData';
-import {inputBoxToYamlValue, yamlValueToInputBox} from './yamlValueConvert';
+import {
+  inputBoxToYamlValue,
+  yamlValueToInputBox,
+  yamlValueTypeLabel,
+} from './yamlValueConvert';
 
-export type ExpectUiValueKind = 'string' | 'number' | 'boolean';
+/** UI type chip for expect rows — same labels as Inputs via yamlValueTypeLabel. */
+export type ExpectUiValueKind =
+    'string'|'number'|'boolean'|'null'|'omit'|'array'|'object'|'undefined';
 
 /** One row in the call/http expect editor. */
 export interface ExpectUiRow {
@@ -16,17 +23,24 @@ export interface ExpectUiRow {
 }
 
 function kindFromYamlValue(value: unknown): ExpectUiValueKind {
-  if (typeof value === 'number') {
-    return 'number';
+  const label = yamlValueTypeLabel(value);
+  switch (label) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+    case 'null':
+    case 'omit':
+    case 'array':
+    case 'object':
+    case 'undefined':
+      return label;
+    default:
+      return 'string';
   }
-  if (typeof value === 'boolean') {
-    return 'boolean';
-  }
-  return 'string';
 }
 
 export function expectValueToUiRow(field: string, value: unknown): ExpectUiRow {
-  if (typeof value === 'string') {
+  if (typeof value === 'string' && !isOmitSentinel(value)) {
     const s = value.trim();
     const prefixed = splitCheckOperatorPrefix(s);
     if (prefixed) {
@@ -60,11 +74,14 @@ export function expectValueToUiRow(field: string, value: unknown): ExpectUiRow {
   };
 }
 
-export function uiRowToExpectValue(row: ExpectUiRow): string | number | boolean {
+/** Plain == values may be null / omit; operator strings stay strings. */
+export function uiRowToExpectValue(
+    row: ExpectUiRow,
+): string|number|boolean|null {
   if (row.op === '==' && !row.explicitOperator) {
     const typed = inputBoxToYamlValue(row.expected);
     if (typeof typed === 'number' || typeof typed === 'boolean' ||
-        typeof typed === 'string') {
+        typeof typed === 'string' || typed === null) {
       return typed;
     }
     return row.expected;

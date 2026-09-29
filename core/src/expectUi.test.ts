@@ -6,6 +6,7 @@ import {
   uiRowToExpectValue,
   uiRowsToExpectMap,
 } from './expectUi';
+import {OMIT_SENTINEL} from './omitKeyword';
 import { testToYaml, yamlToTest } from './testParsePack';
 
 describe('expectUi', () => {
@@ -65,7 +66,10 @@ steps:
     expect(expectValueToUiRow('msg', 'hello')).toMatchObject({
       op: '==', expected: 'hello', explicitOperator: false,
     });
-    expect(expectValueToUiRow('msg', null)).toMatchObject({expected: 'null'});
+    expect(expectValueToUiRow('msg', null)).toMatchObject({
+      expected: 'null',
+      valueKind: 'null',
+    });
     expect(expectValueToUiRow('code', '112')).toMatchObject({
       expected: '"112"',
       valueKind: 'string',
@@ -74,6 +78,28 @@ steps:
       expected: '112',
       valueKind: 'number',
     });
+    expect(expectValueToUiRow('skip', OMIT_SENTINEL)).toMatchObject({
+      expected: 'omit',
+      valueKind: 'omit',
+    });
+    expect(applyExpectUiRowChange(
+        createEmptyExpectUiRow('x'), 'expected', 'omit',
+    )).toMatchObject({
+      expected: 'omit',
+      valueKind: 'omit',
+    });
+    expect(applyExpectUiRowChange(
+        createEmptyExpectUiRow('x'), 'expected', 'null',
+    )).toMatchObject({
+      expected: 'null',
+      valueKind: 'null',
+    });
+    expect(uiRowToExpectValue({
+      field: 'skip', op: '==', expected: 'omit', explicitOperator: false, valueKind: 'omit',
+    })).toBe(OMIT_SENTINEL);
+    expect(uiRowToExpectValue({
+      field: 'n', op: '==', expected: 'null', explicitOperator: false, valueKind: 'null',
+    })).toBe(null);
     expect(uiRowToExpectValue({
       field: 'code', op: '==', expected: '"112"', explicitOperator: false, valueKind: 'string',
     })).toBe('112');

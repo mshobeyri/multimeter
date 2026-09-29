@@ -2,6 +2,7 @@ import {
   inputBoxToYamlValue,
   needsYamlDoubleQuotes,
   yamlValueToInputBox,
+  yamlValueTypeLabel,
 } from './yamlValueConvert';
 import {OMIT_SENTINEL} from './omitKeyword';
 import {LITERAL_TOKEN_PREFIX} from './literalToken';
@@ -41,6 +42,14 @@ describe('yamlValueConvert', () => {
     expect(inputBoxToYamlValue('"r:uuid"')).toBe(
         `${LITERAL_TOKEN_PREFIX}r:uuid`);
     expect(inputBoxToYamlValue('r:uuid')).toBe('r:uuid');
+  });
+
+  it('labels omit / null / numbers for UI type chips', () => {
+    expect(yamlValueTypeLabel(null)).toBe('null');
+    expect(yamlValueTypeLabel(OMIT_SENTINEL)).toBe('omit');
+    expect(yamlValueTypeLabel(112)).toBe('number');
+    expect(yamlValueTypeLabel('112')).toBe('string');
+    expect(yamlValueTypeLabel(true)).toBe('boolean');
   });
 
   it('preserves inputs xxx: "112" through parse → pack', () => {

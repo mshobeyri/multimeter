@@ -9,7 +9,7 @@ import {
   yamlValueToInputBoxWithTokens,
   inputBoxToYamlValueWithTokens,
 } from "./convertor";
-import { isOmitSentinel } from "mmt-core/omitKeyword";
+import { yamlValueTypeLabel } from "mmt-core/yamlValueConvert";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
 interface VEditorProps {
@@ -95,13 +95,7 @@ const VEditor: React.FC<VEditorProps> = ({
             canContainToken,
           );
           const hasValue = currentValue !== undefined;
-          const typeLabel = currentValue === null
-            ? "null"
-            : isOmitSentinel(currentValue)
-              ? "omit"
-              : Array.isArray(currentValue)
-                ? "array"
-                : typeof currentValue;
+          const typeLabel = yamlValueTypeLabel(currentValue);
           const pickerOptions = inputConstraints?.[key];
           const fieldMatch = matchStatus?.get(key);
 

@@ -108,6 +108,26 @@ export function inputBoxToYamlValue(val: string): JSONValue {
   return val;
 }
 
+/**
+ * UI type label for a YAML / model value — shared by Inputs, Expect, etc.
+ * Examples: `omit`, `null`, `number`, `string`, `boolean`, `array`, `object`.
+ */
+export function yamlValueTypeLabel(val: unknown): string {
+  if (val === null) {
+    return 'null';
+  }
+  if (isOmitSentinel(val)) {
+    return 'omit';
+  }
+  if (Array.isArray(val)) {
+    return 'array';
+  }
+  if (val === undefined) {
+    return 'undefined';
+  }
+  return typeof val;
+}
+
 /** Alias kept for existing call sites. */
 export const valueToString = yamlValueToInputBox;
 /** Alias kept for existing call sites. */

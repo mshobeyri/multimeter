@@ -11,6 +11,7 @@ export {
   valueToString,
   stringToValue,
   yamlValueToInputBox,
+  yamlValueTypeLabel,
 } from 'mmt-core/yamlValueConvert';
 
 /**
