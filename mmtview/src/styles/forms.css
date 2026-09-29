@@ -595,17 +595,19 @@ select.is-invalid {
 .token-field-span.is-resolved {
   color: inherit;
   text-decoration: underline;
-  text-decoration-color: var(--vscode-charts-green, #89d185);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 2px;
+  text-decoration-skip-ink: auto;
 }
 
 .token-field-span.is-token {
   color: inherit;
   text-decoration: underline;
-  text-decoration-color: var(--mmt-token-variable, var(--mmt-token-anchor, #4ec9b0));
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 2px;
+  text-decoration-skip-ink: auto;
 }
 
 
