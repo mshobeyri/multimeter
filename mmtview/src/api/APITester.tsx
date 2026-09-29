@@ -83,8 +83,8 @@ const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> =
   { key: "headers", label: "Headers" },
   { key: "body", label: "Body" },
   { key: "cookies", label: "Cookies" },
-  { key: "doc", label: "Doc" },
   { key: "examples", label: "Examples" },
+  { key: "doc", label: "Doc" },
 ];
 
 function cloneInputs(source?: JSONRecord): JSONRecord {
@@ -799,6 +799,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       {/* ── Scrollable content area: fills between header and toolbar ── */}
       <div className="apitest-content">
 
+      {shouldShowDoc() ? (
+        <div className="apitest-section apitest-section--doc">
+          {api.description ? (
+            <MdViewer
+              description={api.description}
+              inputs={api.inputs}
+              outputs={api.outputs}
+            />
+          ) : (
+            <div className="apitest-empty">
+              No description available.
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
       {/* Request section */}
       <div className="apitest-section apitest-section--request">
         {shouldShowQuery() && <KSVEditor
@@ -825,17 +841,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           canContainToken
           valueContext={bodyValueContext}
         />}
-        {shouldShowDoc() && api.description ? (
-          <MdViewer
-            description={api.description}
-            inputs={api.inputs}
-            outputs={api.outputs}
-          />
-        ) : shouldShowDoc() ? (
-          <div className="apitest-empty">
-            No description available.
-          </div>
-        ) : null}
         {shouldShowBody() && (
           <div className="apitest-body-pane">
             <div className="apitest-body-toolbar">
@@ -1225,6 +1230,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </>
         )}
       </div>
+
+        </>
+      )}
 
       </div>
 

@@ -514,6 +514,11 @@
   overflow-x: hidden;
 }
 
+/* Doc uses the full content height (no request/response split). */
+.apitest-section--doc {
+  gap: 0;
+}
+
 /* Section children keep their natural height so the section scrolls
    when combined content exceeds the available space. */
 .apitest-section > * {
