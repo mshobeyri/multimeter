@@ -11,7 +11,11 @@ import { resolveRequestFormat } from "mmt-core/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
-import CheckClauseList, { CheckClauseFieldInput } from "../components/CheckClauseList";
+import CheckClauseList, {
+  newCheckClauseRowId,
+  stripCheckClauseRowIds,
+  type CheckClauseRow,
+} from "../components/CheckClauseList";
 import ReportLevelFields from "../components/ReportLevelFields";
 import { FileContext } from "../fileContext";
 
@@ -37,14 +41,36 @@ const parseTimeoutInput = (value: string): number | undefined => {
 const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const { mmtFilePath } = useContext(FileContext);
   const step = value && typeof value === 'object' ? value : {};
-  const expectList = React.useMemo(() => expectMapToUiRows(step.expect), [step.expect]);
-  const requireList = React.useMemo(() => expectMapToUiRows(step.require), [step.require]);
+  const expectIdsRef = React.useRef<string[]>([]);
+  const requireIdsRef = React.useRef<string[]>([]);
+
+  const bindRowIds = (
+    rows: ExpectRow[],
+    idsRef: React.MutableRefObject<string[]>,
+  ): CheckClauseRow[] => {
+    while (idsRef.current.length < rows.length) {
+      idsRef.current.push(newCheckClauseRowId());
+    }
+    if (idsRef.current.length > rows.length) {
+      idsRef.current = idsRef.current.slice(0, rows.length);
+    }
+    return rows.map((row, i) => ({ ...row, rowId: idsRef.current[i] }));
+  };
+
+  const expectList = React.useMemo(
+    () => bindRowIds(expectMapToUiRows(step.expect), expectIdsRef),
+    [step.expect],
+  );
+  const requireList = React.useMemo(
+    () => bindRowIds(expectMapToUiRows(step.require), requireIdsRef),
+    [step.require],
+  );
   const callReport = step.report;
 
   const emit = (
       patch: Record<string, any>,
-      nextExpect?: ExpectRow[],
-      nextRequire?: ExpectRow[],
+      nextExpect?: ExpectRow[] | CheckClauseRow[],
+      nextRequire?: ExpectRow[] | CheckClauseRow[],
       nextReport?: any,
   ) => {
     const next: any = {
@@ -73,13 +99,17 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     if (next.body === '' || next.body === undefined) {
       delete next.body;
     }
-    const expectMap = uiRowsToExpectMap(nextExpect ?? expectList);
+    const expectMap = uiRowsToExpectMap(
+      stripCheckClauseRowIds((nextExpect ?? expectList) as CheckClauseRow[]),
+    );
     if (expectMap) {
       next.expect = expectMap;
     } else {
       delete next.expect;
     }
-    const requireMap = uiRowsToExpectMap(nextRequire ?? requireList);
+    const requireMap = uiRowsToExpectMap(
+      stripCheckClauseRowIds((nextRequire ?? requireList) as CheckClauseRow[]),
+    );
     if (requireMap) {
       next.require = requireMap;
     } else {
@@ -98,7 +128,10 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     const defaultField = expectList.length > 0
       ? expectList[expectList.length - 1].field
       : 'body.message';
-    emit({}, [...expectList, createEmptyExpectUiRow(defaultField)]);
+    emit({}, [
+      ...expectList,
+      { ...createEmptyExpectUiRow(defaultField), rowId: newCheckClauseRowId() },
+    ]);
   };
 
   const handleRemoveExpect = (index: number) => {
@@ -107,7 +140,9 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
 
   const handleExpectPartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
     const updated = expectList.map((row, i) => (
-      i === index ? applyExpectUiRowChange(row, part, val) : row
+      i === index
+        ? { ...applyExpectUiRowChange(row, part, val), rowId: row.rowId }
+        : row
     ));
     emit({}, updated);
   };
@@ -116,7 +151,10 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     const defaultField = requireList.length > 0
       ? requireList[requireList.length - 1].field
       : 'status';
-    emit({}, undefined, [...requireList, createEmptyExpectUiRow(defaultField)]);
+    emit({}, undefined, [
+      ...requireList,
+      { ...createEmptyExpectUiRow(defaultField), rowId: newCheckClauseRowId() },
+    ]);
   };
 
   const handleRemoveRequire = (index: number) => {
@@ -125,7 +163,9 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
 
   const handleRequirePartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
     const updated = requireList.map((row, i) => (
-      i === index ? applyExpectUiRowChange(row, part, val) : row
+      i === index
+        ? { ...applyExpectUiRowChange(row, part, val), rowId: row.rowId }
+        : row
     ));
     emit({}, undefined, updated);
   };
@@ -266,48 +306,20 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           <CheckClauseList
             kind="expect"
             rows={expectList}
+            fieldOptions={responseFields}
             onPartChange={handleExpectPartChange}
             onRemove={handleRemoveExpect}
             onAdd={handleAddExpect}
-            renderField={(row, i) => (
-              <CheckClauseFieldInput
-                list="http-response-fields"
-                value={row.field}
-                onChange={val => handleExpectPartChange(i, "field", val)}
-                title="Response path to check"
-                placeholder="body.message"
-              />
-            )}
-          >
-            <datalist id="http-response-fields">
-              {responseFields.map(field => (
-                <option key={field} value={field} />
-              ))}
-            </datalist>
-          </CheckClauseList>
+          />
 
           <CheckClauseList
             kind="require"
             rows={requireList}
+            fieldOptions={responseFields}
             onPartChange={handleRequirePartChange}
             onRemove={handleRemoveRequire}
             onAdd={handleAddRequire}
-            renderField={(row, i) => (
-              <CheckClauseFieldInput
-                list="http-require-response-fields"
-                value={row.field}
-                onChange={val => handleRequirePartChange(i, "field", val)}
-                title="Response path to require"
-                placeholder="status"
-              />
-            )}
-          >
-            <datalist id="http-require-response-fields">
-              {responseFields.map(field => (
-                <option key={field} value={field} />
-              ))}
-            </datalist>
-          </CheckClauseList>
+          />
 
           {(expectList.length > 0 || requireList.length > 0) && (
             <ReportLevelFields
