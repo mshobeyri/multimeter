@@ -59,7 +59,9 @@ const SETTING_KEY_ORDER = ['http'];
 const SETTING_HTTP_KEY_ORDER = ['version', 'timeout'];
 const HTML_KEY_ORDER = ['triable', 'cors_proxy'];
 const SERVICE_KEY_ORDER = ['name', 'description', 'sources'];
-const EXAMPLE_KEY_ORDER = ['name', 'description', 'inputs', 'outputs'];
+export const EXAMPLE_KEY_ORDER = [
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect', 'require',
+];
 const JUDGE_OPTIONS_KEY_ORDER = ['temperature', 'timeout'];
 const JUDGE_DEFAULTS_KEY_ORDER = ['checks', 'criteria'];
 

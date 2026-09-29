@@ -791,6 +791,33 @@ function detectServerEndpointOrderingIssue(doc: any, content: string): OrderingI
   return null;
 }
 
+/** Canonical example entry key order (must match core/mmtFormatAst EXAMPLE_KEY_ORDER). */
+const API_EXAMPLE_KEY_ORDER = [
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect', 'require',
+];
+
+/**
+ * Detect the first example-entry ordering issue in an API document.
+ */
+function detectApiExampleOrderingIssue(doc: any, content: string): OrderingIssue | null {
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const examplesPair = rootItems.find((item: any) => item?.key?.value === 'examples');
+  if (!examplesPair?.value?.items) {
+    return null;
+  }
+  const examplesSeq: any[] = Array.isArray(examplesPair.value.items) ? examplesPair.value.items : [];
+  for (const exNode of examplesSeq) {
+    const pairs: any[] = Array.isArray(exNode?.items) ? exNode.items : [];
+    if (pairs.length > 1) {
+      const issue = detectKeysOutOfOrder(pairs, API_EXAMPLE_KEY_ORDER, content, 'Example');
+      if (issue) {
+        return issue;
+      }
+    }
+  }
+  return null;
+}
+
 const VALID_REPORT_ROOT_KEYS = new Set(getCanonicalOrder('report') ?? []);
 
 export function findReportUnknownRootKeyProblems(
@@ -840,7 +867,12 @@ export function computeOrderingMarkers(
     ? detectServerEndpointOrderingIssue(yamlDoc, content)
     : null;
 
-  const effectiveIssue = issue || stepIssue || endpointIssue;
+  // If no root-level issue, check example-entry ordering for API documents
+  const exampleIssue = !issue && !stepIssue && !endpointIssue && docType === 'api'
+    ? detectApiExampleOrderingIssue(yamlDoc, content)
+    : null;
+
+  const effectiveIssue = issue || stepIssue || endpointIssue || exampleIssue;
 
   const markers = [
     ...reportKeyProblems.map(problem => ({

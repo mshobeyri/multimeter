@@ -216,6 +216,36 @@ describe('mmtFormat comment preservation', () => {
     expect(formatted).toContain('name: ada');
   });
 
+  it('reorders API example keys to id/title/name/inputs/outputs/expect/require', () => {
+    const yaml = [
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'examples:',
+      '  - require:',
+      '      status: 200',
+      '    inputs:',
+      '      n: 1',
+      '    title: Happy',
+      '    id: happy',
+      '    expect:',
+      '      status: 200',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'echo.mmt');
+    const ex = formatted.indexOf('examples:');
+    const slice = formatted.slice(ex);
+    const idAt = slice.indexOf('id:');
+    const titleAt = slice.indexOf('title:');
+    const inputsAt = slice.indexOf('inputs:');
+    const expectAt = slice.indexOf('expect:');
+    const requireAt = slice.indexOf('require:');
+    expect(idAt).toBeGreaterThan(-1);
+    expect(titleAt).toBeGreaterThan(idAt);
+    expect(inputsAt).toBeGreaterThan(titleAt);
+    expect(expectAt).toBeGreaterThan(inputsAt);
+    expect(requireAt).toBeGreaterThan(expectAt);
+  });
+
   it('preserves comments at multiple depths in test steps and else', () => {
     const yaml = [
       '# test intent: branch coverage',
