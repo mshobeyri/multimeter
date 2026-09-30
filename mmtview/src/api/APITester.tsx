@@ -1091,14 +1091,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                   }}
                   className="field-grow"
                 >
-                  <option value={-1}>Defaults</option>
+                  <option value={-1}>Select...</option>
                   {examples
                     .filter(ex => ex && typeof ex === "object")
-                    .map((ex, idx) => (
-                      <option key={exampleId(ex) || idx} value={idx}>
-                        {exampleTitle(ex) || exampleId(ex) || `Example ${idx + 1}`}
-                      </option>
-                    ))}
+                    .map((ex, idx) => {
+                      const id = exampleId(ex);
+                      const titleOnly = typeof ex.title === "string" && ex.title.trim()
+                        ? ex.title.trim()
+                        : undefined;
+                      const label = id && titleOnly
+                        ? `${id} - ${titleOnly}`
+                        : (id || titleOnly || exampleTitle(ex) || `Example ${idx + 1}`);
+                      return (
+                        <option key={id || idx} value={idx}>
+                          {label}
+                        </option>
+                      );
+                    })}
                 </select>
                 <button
                   type="button"

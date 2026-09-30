@@ -54,7 +54,7 @@ Under the URL bar:
 | **Body** | Request body; after send, **Response Body** appears below Send. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
 | **Cookies** | Request cookies; response cookies appear below Send after a reply |
 | **Doc** | Preview of `description` and `<<i:>>` / `<<o:>>` parameter docs |
-| **Examples** | **Example** dropdown (**Defaults** or an example) + **+** to add a test; request-side **Inputs** and soft **Expect** when an example is selected; response-side **Outputs**. Badge shows example count. After Send with an example selected, expect rows and matching outputs show pass/fail |
+| **Examples** | **Example** dropdown (**Select...** or `id - title`) + **+** to add a test; request-side **Inputs** and soft **Expect** when an example is selected; response-side **Outputs**. Badge shows example count. After Send with an example selected, expect rows and matching outputs show pass/fail |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
 ### Send
