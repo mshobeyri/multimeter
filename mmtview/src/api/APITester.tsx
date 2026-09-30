@@ -50,6 +50,7 @@ import KVEditor from "../components/KVEditor";
 import { safeList } from "mmt-core/safer";
 import ApiTestsEditor from "./ApiTestsEditor";
 import ApiSettingsEditor from "./ApiSettingsEditor";
+import ApiAuthEditor from "./ApiAuthEditor";
 import { formatBody } from "mmt-core/markupConvertor";
 import { FormatChip } from "../components/BodyFormatControls";
 import OverflowTabBar, { type OverflowTabItem } from "../components/OverflowTabBar";
@@ -78,6 +79,7 @@ interface APITestProps {
 
 type EditorTab =
   | "settings"
+  | "auth"
   | "body"
   | "params"
   | "headers"
@@ -104,6 +106,7 @@ const TAB_OPTIONS: Array<{
   iconOnly?: string;
 }> = [
   { key: "settings", label: "Settings", iconOnly: "settings-gear" },
+  { key: "auth", label: "Auth" },
   { key: "graphql", label: "GraphQL", protocol: "graphql" },
   { key: "grpc", label: "gRPC", protocol: "grpc" },
   { key: "params", label: "Params" },
@@ -398,6 +401,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     if (
       saved === "settings" ||
+      saved === "auth" ||
       saved === "body" ||
       saved === "params" ||
       saved === "headers" ||
@@ -532,6 +536,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const shouldShowResponseCookies = () => responseTab === "cookies";
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowSettings = () => editorTab === "settings";
+  const shouldShowAuth = () => editorTab === "auth";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
   const isWsUrl = isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
@@ -1150,6 +1155,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <ApiSettingsEditor api={api} update={onUpdateApi} />
           ) : (
             <div className="apitest-empty">Settings are read-only.</div>
+          )}
+        </div>
+      ) : shouldShowAuth() ? (
+        <div className="apitest-section apitest-section--settings">
+          {onUpdateApi ? (
+            <ApiAuthEditor api={api} update={onUpdateApi} />
+          ) : (
+            <div className="apitest-empty">Auth is read-only.</div>
           )}
         </div>
       ) : (

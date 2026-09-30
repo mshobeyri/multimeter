@@ -6,7 +6,8 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 
 | Place | Fields |
 |---|---|
-| {{btn:settings-gear:Settings}} (first tab) | `timeout`, `auth`, `import` |
+| {{btn:settings-gear:Settings}} (first tab) | `timeout`, `import` |
+| **Auth** | `auth` — none, bearer, basic, API key, or OAuth2 |
 | **Doc** | `title`, `tags`, `description` — click the pencil next to a section to edit |
 | **Inputs** (request) | Declared `inputs` (pencil), runtime example values, soft **Expect** |
 | **Outputs** (response) | Declared `outputs` / `setenv` (pencil); view mode shows extracted / env values after Send |
@@ -15,8 +16,11 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 ### Settings
 
 - `timeout` — per-request timeout in milliseconds
-- `auth` — none, bearer, basic, API key, or OAuth2
 - `import` — alias → path pairs with file picker (JSON, YAML, CSV)
+
+### Auth
+
+- `auth` — none, bearer, basic, API key, or OAuth2 (see [Auth](./auth.md))
 
 ### Doc
 

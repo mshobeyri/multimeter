@@ -36,7 +36,8 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 
 | Request tab | What you see |
 |---|---|
-| {{btn:settings-gear}} | `timeout`, `auth`, `import` |
+| {{btn:settings-gear}} | `timeout`, `import` |
+| **Auth** | `auth` (none, bearer, basic, API key, OAuth2) |
 | **Params** | Query parameters |
 | **Headers** | Request headers |
 | **Body** | Request body. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
