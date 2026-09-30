@@ -503,6 +503,41 @@
   overflow: hidden;
 }
 
+.apitest-pane-fill {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.apitest-fade-pane {
+  transition: opacity var(--apitest-fade-ms, 120ms) ease;
+  will-change: opacity;
+}
+
+.apitest-fade-pane.is-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.apitest-fade-pane.is-in {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apitest-fade-pane {
+    transition: none;
+  }
+
+  .apitest-fade-pane.is-out,
+  .apitest-fade-pane.is-in {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .apitest-section {
   flex: 1;
   min-height: 0;

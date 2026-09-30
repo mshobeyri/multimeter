@@ -44,6 +44,7 @@ import MdViewer from "../components/MdViewer";
 import DescriptionEditor from "../components/DescriptionEditor";
 import SearchableTagInput from "../components/SearchableTagInput";
 import SectionEditLabel, { SectionEditDone } from "../components/SectionEditLabel";
+import FadePane from "../components/FadePane";
 import KVEditor from "../components/KVEditor";
 import { safeList } from "mmt-core/safer";
 import ApiTestsEditor from "./ApiTestsEditor";
@@ -859,6 +860,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
       {/* ── Scrollable content area: fills between header and toolbar ── */}
       <div className="apitest-content">
+      <FadePane paneKey={editorTab} className="apitest-pane-fill" durationMs={130}>
 
       {shouldShowDoc() ? (
         <div className="apitest-section apitest-section--doc panel-form">
@@ -868,21 +870,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               editing={editTitle}
               onEdit={() => setEditTitle(true)}
             />
-            {editTitle ? (
-              <div className="apitest-section-indent">
-                <input
-                  value={api.title || ""}
-                  onChange={e => onUpdateApi?.({ title: e.target.value })}
-                  placeholder="title"
-                  disabled={!onUpdateApi}
-                />
-                <SectionEditDone onDone={() => setEditTitle(false)} />
-              </div>
-            ) : (
-              <div className={api.title ? "apitest-doc-plain" : "apitest-empty"}>
-                {api.title || "No title"}
-              </div>
-            )}
+            <FadePane paneKey={editTitle ? "edit" : "view"} durationMs={100}>
+              {editTitle ? (
+                <div className="apitest-section-indent">
+                  <input
+                    value={api.title || ""}
+                    onChange={e => onUpdateApi?.({ title: e.target.value })}
+                    placeholder="title"
+                    disabled={!onUpdateApi}
+                  />
+                  <SectionEditDone onDone={() => setEditTitle(false)} />
+                </div>
+              ) : (
+                <div className={api.title ? "apitest-doc-plain" : "apitest-empty"}>
+                  {api.title || "No title"}
+                </div>
+              )}
+            </FadePane>
           </div>
 
           <div className="panel-form-row">
@@ -891,22 +895,24 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               editing={editTags}
               onEdit={() => setEditTags(true)}
             />
-            {editTags ? (
-              <div className="apitest-section-indent">
-                <SearchableTagInput
-                  tags={safeList(api.tags)}
-                  onChange={tags => onUpdateApi?.({ tags })}
-                  suggestions={["security", "sessionless", "api", "user", "admin"]}
-                />
-                <SectionEditDone onDone={() => setEditTags(false)} />
-              </div>
-            ) : safeList(api.tags).length > 0 ? (
-              <div className="apitest-doc-plain">
-                {safeList(api.tags).join(", ")}
-              </div>
-            ) : (
-              <div className="apitest-empty">No tags</div>
-            )}
+            <FadePane paneKey={editTags ? "edit" : "view"} durationMs={100}>
+              {editTags ? (
+                <div className="apitest-section-indent">
+                  <SearchableTagInput
+                    tags={safeList(api.tags)}
+                    onChange={tags => onUpdateApi?.({ tags })}
+                    suggestions={["security", "sessionless", "api", "user", "admin"]}
+                  />
+                  <SectionEditDone onDone={() => setEditTags(false)} />
+                </div>
+              ) : safeList(api.tags).length > 0 ? (
+                <div className="apitest-doc-plain">
+                  {safeList(api.tags).join(", ")}
+                </div>
+              ) : (
+                <div className="apitest-empty">No tags</div>
+              )}
+            </FadePane>
           </div>
 
           <div className="panel-form-row">
@@ -915,24 +921,26 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               editing={editDescription}
               onEdit={() => setEditDescription(true)}
             />
-            {editDescription ? (
-              <div className="apitest-section-indent">
-                <DescriptionEditor
-                  value={api.description || ""}
-                  onChange={value => onUpdateApi?.({ description: value })}
+            <FadePane paneKey={editDescription ? "edit" : "view"} durationMs={100}>
+              {editDescription ? (
+                <div className="apitest-section-indent">
+                  <DescriptionEditor
+                    value={api.description || ""}
+                    onChange={value => onUpdateApi?.({ description: value })}
+                  />
+                  <SectionEditDone onDone={() => setEditDescription(false)} />
+                </div>
+              ) : api.description ? (
+                <MdViewer
+                  description={api.description}
+                  inputs={api.inputs}
+                  outputs={api.outputs}
+                  showDescriptionLabel={false}
                 />
-                <SectionEditDone onDone={() => setEditDescription(false)} />
-              </div>
-            ) : api.description ? (
-              <MdViewer
-                description={api.description}
-                inputs={api.inputs}
-                outputs={api.outputs}
-                showDescriptionLabel={false}
-              />
-            ) : (
-              <div className="apitest-empty">No description available.</div>
-            )}
+              ) : (
+                <div className="apitest-empty">No description available.</div>
+              )}
+            </FadePane>
           </div>
         </div>
       ) : shouldShowSettings() ? (
@@ -1240,32 +1248,34 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               editing={editInputsDecl}
               onEdit={() => setEditInputsDecl(true)}
             />
-            {editInputsDecl ? (
-              <div className="apitest-section-indent">
-                <KVEditor
+            <FadePane paneKey={editInputsDecl ? "edit" : "view"} durationMs={100}>
+              {editInputsDecl ? (
+                <div className="apitest-section-indent">
+                  <KVEditor
+                    label=""
+                    value={api.inputs}
+                    onChange={kv => onUpdateApi?.({ inputs: kv })}
+                    keyPlaceholder="name"
+                    valuePlaceholder="value"
+                    canContainToken
+                    valueContext={bodyValueContext}
+                    disabled={!onUpdateApi}
+                  />
+                  <SectionEditDone onDone={() => setEditInputsDecl(false)} />
+                </div>
+              ) : (
+                <VEditor
                   label=""
-                  value={api.inputs}
-                  onChange={kv => onUpdateApi?.({ inputs: kv })}
-                  keyPlaceholder="name"
-                  valuePlaceholder="value"
+                  value={currentInputs}
+                  onChange={handleInputsChange}
+                  keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
+                  inputConstraints={inputConstraints}
+                  deletable={false}
                   canContainToken
                   valueContext={bodyValueContext}
-                  disabled={!onUpdateApi}
                 />
-                <SectionEditDone onDone={() => setEditInputsDecl(false)} />
-              </div>
-            ) : (
-              <VEditor
-                label=""
-                value={currentInputs}
-                onChange={handleInputsChange}
-                keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
-                inputConstraints={inputConstraints}
-                deletable={false}
-                canContainToken
-                valueContext={bodyValueContext}
-              />
-            )}
+              )}
+            </FadePane>
             {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
               <ApiTestsEditor
                 test={{
@@ -1373,32 +1383,34 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               editing={editOutputsDecl}
               onEdit={() => setEditOutputsDecl(true)}
             />
-            {editOutputsDecl ? (
-              <div className="apitest-section-indent">
-                <KSVEditor
+            <FadePane paneKey={editOutputsDecl ? "edit" : "view"} durationMs={100}>
+              {editOutputsDecl ? (
+                <div className="apitest-section-indent">
+                  <KSVEditor
+                    label=""
+                    value={api.outputs}
+                    onChange={kv => onUpdateApi?.({ outputs: kv })}
+                    keyPlaceholder="name"
+                    valuePlaceholder="value"
+                    disabled={!onUpdateApi}
+                  />
+                  <SectionEditDone onDone={() => setEditOutputsDecl(false)} />
+                </div>
+              ) : outputKeys.length > 0 ? (
+                <VEditor
                   label=""
-                  value={api.outputs}
-                  onChange={kv => onUpdateApi?.({ outputs: kv })}
-                  keyPlaceholder="name"
-                  valuePlaceholder="value"
-                  disabled={!onUpdateApi}
+                  value={outputDisplay}
+                  onChange={() => { }}
+                  keyOptions={outputKeys}
+                  readOnly
+                  deletable={false}
+                  copyable
+                  matchStatus={outputMatchStatus}
                 />
-                <SectionEditDone onDone={() => setEditOutputsDecl(false)} />
-              </div>
-            ) : outputKeys.length > 0 ? (
-              <VEditor
-                label=""
-                value={outputDisplay}
-                onChange={() => { }}
-                keyOptions={outputKeys}
-                readOnly
-                deletable={false}
-                copyable
-                matchStatus={outputMatchStatus}
-              />
-            ) : (
-              <div className="apitest-empty">No outputs defined.</div>
-            )}
+              ) : (
+                <div className="apitest-empty">No outputs defined.</div>
+              )}
+            </FadePane>
           </>
         )}
       </div>
@@ -1406,6 +1418,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         </>
       )}
 
+      </FadePane>
       </div>
 
       {/* ── Fixed bottom toolbar ── */}
