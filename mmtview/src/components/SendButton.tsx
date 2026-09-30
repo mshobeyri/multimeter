@@ -11,6 +11,9 @@ export type SendButtonMenuItem = {
 
 const DEFAULT_SEND_ACCENT = SEMANTIC_COLORS.green;
 const DISABLED_ACCENT = "#7a7979";
+const MAIN_SIZE = 28;
+const SEND_SEGMENT_WIDTH = 34;
+const MENU_SEGMENT_WIDTH = 20;
 
 const SendButton: React.FC<{
   onClick: () => void;
@@ -23,12 +26,14 @@ const SendButton: React.FC<{
 }> = ({ onClick, onCancel, disabled, loading, accent = DEFAULT_SEND_ACCENT, contextMenuItems }) => {
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [hover, setHover] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const [menuPos, setMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [themeTick, setThemeTick] = useState(0);
-  const openMenu = Boolean(menuPos && contextMenuItems?.length);
+  const hasMenu = Boolean(contextMenuItems?.length);
+  const openMenu = Boolean(menuPos && hasMenu);
 
   useEffect(() => {
     const onTheme = () => setThemeTick((n) => n + 1);
@@ -48,7 +53,9 @@ const SendButton: React.FC<{
     }
 
     return () => {
-      if (timer) clearTimeout(timer);
+      if (timer) {
+        clearTimeout(timer);
+      }
     };
   }, [loading]);
 
@@ -97,6 +104,28 @@ const SendButton: React.FC<{
     );
     setMenuPos({ left, top });
   }, [contextMenuItems?.length]);
+
+  const openMenuNearButton = useCallback(() => {
+    const anchor = wrapperRef.current ?? menuTriggerRef.current ?? btnRef.current;
+    if (!anchor || !contextMenuItems?.length) {
+      return;
+    }
+    const rect = anchor.getBoundingClientRect();
+    openMenuAt(rect.left, rect.bottom + 4);
+  }, [contextMenuItems?.length, openMenuAt]);
+
+  const toggleMenuFromTrigger = (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!contextMenuItems?.length) {
+      return;
+    }
+    if (openMenu) {
+      setMenuPos(null);
+      return;
+    }
+    openMenuNearButton();
+  };
 
   const openContextMenu = (event: React.MouseEvent<HTMLElement>) => {
     if (!contextMenuItems?.length) {
@@ -224,90 +253,158 @@ const SendButton: React.FC<{
     </div>
   ) : null;
 
+  const loadingRing = loading ? (
+    <span
+      style={{
+        position: "absolute",
+        inset: -4,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none",
+        zIndex: 1
+      }}
+    >
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        style={{
+          animation: "spin 1s linear infinite"
+        }}
+      >
+        <circle
+          cx="16"
+          cy="16"
+          r="14"
+          fill="none"
+          stroke={activeChrome.onFill}
+          strokeWidth="3"
+          strokeDasharray="40"
+          strokeDashoffset="10"
+          strokeLinecap="round"
+          opacity="0.7"
+        />
+        <style>
+          {`@keyframes spin { 100% { transform: rotate(360deg); } }`}
+        </style>
+      </svg>
+    </span>
+  ) : null;
+
+  const sendIcon = (
+    <span
+      className={`codicon ${showCancel ? "codicon-close" : "codicon-send"}`}
+      style={{
+        fontSize: "16px",
+        zIndex: 2,
+        color: activeChrome.onFill,
+        marginLeft: showCancel ? "0" : "4px"
+      }}
+    />
+  );
+
   return (
     <>
       <span
         ref={wrapperRef}
         data-mmt-coach="send"
-        style={{ display: "inline-flex" }}
+        style={{
+          position: "relative",
+          display: "inline-flex",
+          alignItems: "stretch",
+          height: MAIN_SIZE,
+          borderRadius: hasMenu ? MAIN_SIZE / 2 : "50%",
+          overflow: "hidden",
+          background: activeChrome.fill,
+          border: `1px solid ${activeChrome.border}`,
+          boxShadow: activeChrome.outline ? "none" : "0 2px 6px #0001",
+          transition: "background-color 0.5s ease, border-color 0.5s ease",
+        }}
         onMouseDown={handleMouseDown}
         onContextMenu={openContextMenu}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        aria-haspopup={contextMenuItems?.length ? "menu" : undefined}
+        aria-haspopup={hasMenu ? "menu" : undefined}
         aria-expanded={openMenu || undefined}
       >
         <button
           ref={btnRef}
           style={{
-            background: activeChrome.fill,
+            background: "transparent",
             color: activeChrome.onFill,
-            border: `1px solid ${activeChrome.border}`,
-            borderRadius: "50%",
-            width: 30,
-            height: 30,
+            border: "none",
+            borderRadius: hasMenu
+              ? `${MAIN_SIZE / 2}px 0 0 ${MAIN_SIZE / 2}px`
+              : "50%",
+            width: hasMenu ? SEND_SEGMENT_WIDTH : MAIN_SIZE,
+            height: MAIN_SIZE,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: disabled ? "not-allowed" : "pointer",
-            boxShadow: activeChrome.outline ? "none" : "0 2px 6px #0001",
             padding: 0,
+            position: "relative",
+            flex: "0 0 auto",
             outline: "none",
-            transition: "background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease"
           }}
           title={showCancel ? "Cancel" : "Send"}
           onClick={handleClick}
           disabled={disabled}
         >
-          {loading && (
+          {loadingRing}
+          {sendIcon}
+        </button>
+        {hasMenu ? (
+          <>
             <span
+              aria-hidden
               style={{
-                position: "absolute",
-                width: 38,
-                height: 38,
+                width: 1,
+                alignSelf: "stretch",
+                margin: "5px 0",
+                background: `color-mix(in srgb, ${activeChrome.onFill} 45%, transparent)`,
+                flex: "0 0 auto",
+              }}
+            />
+            <button
+              ref={menuTriggerRef}
+              type="button"
+              title="More send options"
+              aria-label="More send options"
+              aria-haspopup="menu"
+              aria-expanded={openMenu}
+              onClick={toggleMenuFromTrigger}
+              onMouseDown={(event) => event.stopPropagation()}
+              style={{
+                background: "transparent",
+                color: activeChrome.onFill,
+                border: "none",
+                borderRadius: `0 ${MAIN_SIZE / 2}px ${MAIN_SIZE / 2}px 0`,
+                width: MENU_SEGMENT_WIDTH,
+                height: MAIN_SIZE,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                pointerEvents: "none",
-                zIndex: 1
+                padding: 0,
+                margin: 0,
+                cursor: "pointer",
+                flex: "0 0 auto",
+                outline: "none",
               }}
             >
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 32 32"
+              <span
+                className="codicon codicon-chevron-down"
                 style={{
-                  animation: "spin 1s linear infinite"
+                  fontSize: "12px",
+                  color: activeChrome.onFill,
+                  lineHeight: 1,
                 }}
-              >
-                <circle
-                  cx="16"
-                  cy="16"
-                  r="14"
-                  fill="none"
-                  stroke={activeChrome.onFill}
-                  strokeWidth="3"
-                  strokeDasharray="40"
-                  strokeDashoffset="10"
-                  strokeLinecap="round"
-                  opacity="0.7"
-                />
-                <style>
-                  {`@keyframes spin { 100% { transform: rotate(360deg); } }`}
-                </style>
-              </svg>
-            </span>
-          )}
-          <span
-            className={`codicon ${showCancel ? "codicon-close" : "codicon-send"}`}
-            style={{
-              fontSize: "16px",
-              zIndex: 2,
-              color: activeChrome.onFill,
-              marginLeft: showCancel ? "0" : "4px"
-            }}
-          ></span>
-        </button>
+                aria-hidden
+              />
+            </button>
+          </>
+        ) : null}
       </span>
       {menu && ReactDOM.createPortal(menu, document.body)}
     </>

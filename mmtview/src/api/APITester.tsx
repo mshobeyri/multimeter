@@ -120,7 +120,6 @@ const TAB_OPTIONS: Array<{
   /** When set, tab shows only this codicon (no text label). */
   iconOnly?: string;
 }> = [
-  { key: "settings", label: "Settings", iconOnly: "settings-gear" },
   { key: "auth", label: "Auth" },
   { key: "graphql", label: "GraphQL", protocol: "graphql" },
   { key: "grpc", label: "gRPC", protocol: "grpc" },
@@ -130,6 +129,7 @@ const TAB_OPTIONS: Array<{
   { key: "cookies", label: "Cookies" },
   { key: "inputs", label: "Inputs" },
   { key: "doc", label: "Doc" },
+  { key: "settings", label: "Settings", iconOnly: "settings-gear" },
 ];
 
 const RESPONSE_TAB_OPTIONS: Array<{ key: ResponseTab; label: string }> = [

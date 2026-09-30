@@ -179,7 +179,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
 
   return (
     <div
-      className="mmt-fill"
+      className={`mmt-fill${deactivated ? " is-deactivated" : ""}`}
       onFocusCapture={() => {
         focusedRef.current = true;
       }}
@@ -218,7 +218,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                     }}
                     placeholder={keyPlaceholder}
                     disabled={disabled || keysDisabled}
-                    readOnly={readOnly}
+                    readOnly={readOnly || deactivated}
                   />
                 </td>
                 <td>
@@ -249,7 +249,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         onRemovePressed={() => handleRemove(i)}
                         options={safeOptions}
                         placeholder={valuePlaceholder}
-                        disabled={disabled || readOnly}
+                        disabled={disabled || readOnly || deactivated}
                         removable={deletable && !deactivated && !readOnly}
                       />
                     ) : (
@@ -260,7 +260,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         onRemovePressed={() => handleRemove(i)}
                         placeholder={valuePlaceholder}
                         disabled={disabled}
-                        readOnly={readOnly}
+                        readOnly={readOnly || deactivated}
                         removable={deletable && !deactivated && !readOnly}
                         copyable={copyable}
                         canContainToken={canContainToken}

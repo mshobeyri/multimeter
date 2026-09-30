@@ -59,6 +59,21 @@
   box-sizing: border-box;
 }
 
+.mmt-fill.is-deactivated input,
+.mmt-fill.is-deactivated select,
+.mmt-fill.is-deactivated textarea {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  caret-color: transparent;
+}
+
+.mmt-fill.is-deactivated input:focus,
+.mmt-fill.is-deactivated select:focus,
+.mmt-fill.is-deactivated textarea:focus {
+  outline: none;
+}
+
 .field-inline {
   display: flex;
   align-items: center;
