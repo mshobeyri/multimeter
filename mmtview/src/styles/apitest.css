@@ -726,7 +726,8 @@
 }
 
 .apitest-doc-plain {
-  padding: 4px 0;
+  /* Match MdViewer: .doc-preview (12px) + .doc-preview-body (12px). */
+  padding: 8px 12px 8px 24px;
   color: var(--vscode-foreground, #cccccc);
   word-break: break-word;
 }
@@ -739,6 +740,10 @@
 .apitest-section .apitest-empty {
   padding-left: 0;
   padding-right: 0;
+}
+
+.apitest-section--doc .apitest-empty {
+  padding: 8px 12px 8px 24px;
 }
 
 .button-icon.is-active {

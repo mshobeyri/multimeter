@@ -634,9 +634,10 @@ select.is-invalid {
 }
 
 .check-clause-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 7.75rem minmax(0, 1fr);
   gap: 4px;
+  align-items: center;
   width: 100%;
   min-width: 0;
 }
@@ -645,22 +646,19 @@ select.is-invalid {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 16px;
-  width: 16px;
+  min-width: 0;
 }
 
 .check-clause-key {
-  flex: 1 1 0;
-  width: 0;
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
 .check-clause-op {
-  flex: 0 0 7.75rem;
-  width: 7.75rem;
-  min-width: 7.75rem;
-  max-width: 7.75rem;
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -690,8 +688,7 @@ select.is-invalid {
 }
 
 .check-clause-value {
-  flex: 1 1 0;
-  width: 0;
+  width: 100%;
   min-width: 0;
   position: relative;
 }
