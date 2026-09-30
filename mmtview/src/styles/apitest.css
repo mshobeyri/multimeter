@@ -11,7 +11,7 @@
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid var(--vscode-input-border, #3c3c3c);
-  border-radius: var(--mmt-control-radius);
+  border-radius: 999px;
   background-color: var(--vscode-input-background, #1e1e1e);
 }
 
@@ -176,7 +176,6 @@
   width: 100%;
   height: 100%;
   padding: 16px;
-  padding-bottom: 0;
   box-sizing: border-box;
   min-height: 0;
   min-width: 0;
@@ -190,7 +189,7 @@
 
 .apitest-url-row {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 8px;
   padding: 0 0 8px;
 }
@@ -199,8 +198,37 @@
   flex-shrink: 0;
 }
 
+.apitest-url-send {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0;
+}
+
 .apitest-tabs-row {
   padding: 0 0 8px;
+  flex-shrink: 0;
+}
+
+.apitest-response-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.apitest-response-tabs-row > .tab-bar {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.apitest-response-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .apitest-empty {
@@ -514,6 +542,30 @@
   flex-direction: column;
   gap: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.apitest-split {
+  height: 100% !important;
+  width: 100%;
+  position: relative !important;
+}
+
+.apitest-split > .Pane,
+.apitest-split > .Pane1,
+.apitest-split > .Pane2 {
+  overflow: hidden !important;
+}
+
+.apitest-split-pane,
+.apitest-request-pane,
+.apitest-response-pane {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .apitest-pane-fill {
@@ -562,7 +614,7 @@
   overflow-x: hidden;
 }
 
-/* Doc / settings use the full content height (no request/response split). */
+/* Doc / settings fill the request pane. */
 .apitest-section--doc,
 .apitest-section--settings {
   gap: 0;
@@ -661,49 +713,6 @@
    when combined content exceeds the available space. */
 .apitest-section > * {
   flex-shrink: 0;
-}
-
-.apitest-send-row {
-  flex-shrink: 0;
-  position: relative;
-  height: 46px;
-}
-
-.apitest-send-row .horizontal-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  margin: 0;
-  transform: translateY(-50%);
-}
-
-.apitest-send-controls {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translate(-10px, -50%);
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  z-index: 5;
-}
-
-.apitest-toolbar {
-  flex-shrink: 0;
-  background: var(--vscode-editor-background, #232323);
-  padding: 0;
-  z-index: 5;
-  overflow: visible;
-}
-
-.apitest-toolbar-inner {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  min-height: 32px;
 }
 
 /* Body wrapper: grows to fill section, minimum 150px triggers scroll.

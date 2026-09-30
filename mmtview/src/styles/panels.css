@@ -289,8 +289,7 @@
 
 .apitest-url-row-actions {
   display: flex;
-  align-items: flex-start;
-  padding-top: 2px;
+  align-items: center;
   flex-shrink: 0;
 }
 

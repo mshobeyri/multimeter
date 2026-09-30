@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect, useMemo, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
+import { SplitPane } from "@rexxars/react-split-pane";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
@@ -83,7 +84,9 @@ type EditorTab =
   | "doc"
   | "graphql"
   | "grpc"
-  | "inout";
+  | "inputs";
+
+type ResponseTab = "body" | "headers" | "cookies" | "outputs";
 
 function countNamedEntries(record?: Record<string, unknown> | null): number {
   if (!record) {
@@ -106,9 +109,22 @@ const TAB_OPTIONS: Array<{
   { key: "headers", label: "Headers" },
   { key: "body", label: "Body" },
   { key: "cookies", label: "Cookies" },
-  { key: "inout", label: "In/Out" },
+  { key: "inputs", label: "Inputs" },
   { key: "doc", label: "Doc" },
 ];
+
+const RESPONSE_TAB_OPTIONS: Array<{ key: ResponseTab; label: string }> = [
+  { key: "body", label: "Body" },
+  { key: "headers", label: "Headers" },
+  { key: "cookies", label: "Cookies" },
+  { key: "outputs", label: "Outputs" },
+];
+
+const REQUEST_PANE_RATIO_KEY = "apitest-request-pane-ratio";
+const RESPONSE_TAB_KEY = "apitest-response-tab";
+const DEFAULT_REQUEST_PANE_RATIO = 0.5;
+const MIN_REQUEST_PANE_RATIO = 0.15;
+const MAX_REQUEST_PANE_RATIO = 0.85;
 
 function cloneInputs(source?: JSONRecord): JSONRecord {
   if (!source) {
@@ -358,9 +374,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
-    // Legacy Examples / tests tabs → In/Out.
-    if (saved === "examples" || saved === "tests") {
-      return "inout";
+    // Legacy combined In/Out / Examples / tests → Inputs (request side).
+    if (saved === "examples" || saved === "tests" || saved === "inout") {
+      return "inputs";
     }
     if (
       saved === "settings" ||
@@ -371,7 +387,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       saved === "doc" ||
       saved === "graphql" ||
       saved === "grpc" ||
-      saved === "inout"
+      saved === "inputs"
     ) {
       return saved;
     }
@@ -384,6 +400,47 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     return "body";
   });
 
+  const [responseTab, setResponseTabInternal] = useState<ResponseTab>(() => {
+    const saved = localStorage.getItem(RESPONSE_TAB_KEY);
+    // Legacy combined response In/Out tab → Outputs.
+    if (saved === "inout") {
+      return "outputs";
+    }
+    if (saved === "body" || saved === "headers" || saved === "cookies" || saved === "outputs") {
+      return saved;
+    }
+    return "body";
+  });
+
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const requestPaneRatioRef = useRef(DEFAULT_REQUEST_PANE_RATIO);
+  const [requestPaneSize, setRequestPaneSize] = useState(200);
+
+  useEffect(() => {
+    const saved = Number(localStorage.getItem(REQUEST_PANE_RATIO_KEY));
+    if (Number.isFinite(saved) && saved >= MIN_REQUEST_PANE_RATIO && saved <= MAX_REQUEST_PANE_RATIO) {
+      requestPaneRatioRef.current = saved;
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) {
+      return;
+    }
+    const syncFromRatio = () => {
+      const height = el.clientHeight;
+      if (height <= 0) {
+        return;
+      }
+      setRequestPaneSize(Math.floor(height * requestPaneRatioRef.current));
+    };
+    syncFromRatio();
+    const observer = new ResizeObserver(syncFromRatio);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const [editTitle, setEditTitle] = useState(false);
   const [editTags, setEditTags] = useState(false);
   const [editDescription, setEditDescription] = useState(false);
@@ -393,6 +450,24 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const setEditorTab = (tab: EditorTab) => {
     setEditorTabInternal(tab);
     localStorage.setItem("apitest-editor-tab", tab);
+  };
+
+  const setResponseTab = (tab: ResponseTab) => {
+    setResponseTabInternal(tab);
+    localStorage.setItem(RESPONSE_TAB_KEY, tab);
+  };
+
+  const handleRequestPaneResize = (size: number) => {
+    const height = contentRef.current?.clientHeight ?? 0;
+    if (height > 0) {
+      const ratio = Math.min(
+        MAX_REQUEST_PANE_RATIO,
+        Math.max(MIN_REQUEST_PANE_RATIO, size / height),
+      );
+      requestPaneRatioRef.current = ratio;
+      localStorage.setItem(REQUEST_PANE_RATIO_KEY, String(ratio));
+    }
+    setRequestPaneSize(size);
   };
 
   useEffect(() => {
@@ -431,15 +506,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const shouldShowHeaders = () => editorTab === "headers";
   const shouldShowCookies = () => editorTab === "cookies";
   const shouldShowBody = () => editorTab === "body";
-  const shouldShowInputs = () => editorTab === "inout";
-  const shouldShowResponse = () => editorTab === "body";
-  const shouldShowResponseHeaders = () => editorTab === "headers";
-  const shouldShowResponseCookies = () => editorTab === "cookies";
+  const shouldShowInputs = () => editorTab === "inputs";
+  const shouldShowOutputs = () => responseTab === "outputs";
+  const shouldShowResponse = () => responseTab === "body";
+  const shouldShowResponseHeaders = () => responseTab === "headers";
+  const shouldShowResponseCookies = () => responseTab === "cookies";
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowSettings = () => editorTab === "settings";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
-  const shouldShowExamples = () => editorTab === "inout";
+  const isWsUrl = isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
   const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
     // Format chips write straight to YAML. applyFormatSideEdit keeps
     // request/response independent and collapses back to the YAML shape when
@@ -791,7 +867,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
   return (
     <div className={`apitest-root${selector ? " apitest-root--source" : ""}`}>
-      {/* ── Fixed header: URL bar + tab bar ── */}
+      {/* ── Fixed header: URL bar + Send ── */}
       <div className="apitest-fixed-header">
       <div className="apitest-url-row" style={methodChromeVars as React.CSSProperties}>
         {selector}
@@ -805,13 +881,44 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           canContainToken
           valueContext={bodyValueContext}
         />
+        <div className="apitest-url-send">
+          {isWsUrl && (
+            <ConnectButton
+              connected={network.connected}
+              onClick={handleConnect}
+            />
+          )}
+          <SendButton
+            accent={methodOrProtocolAccent}
+            onClick={sendWithResolvedBody}
+            onCancel={handleCancel}
+            disabled={isWsUrl && !network.connected}
+            loading={isWsUrl ? network.loading : isSending}
+            contextMenuItems={sendContextMenuItems}
+          />
+        </div>
         {rightOfUrlButton && (
           <div className="apitest-url-row-actions">
             {rightOfUrlButton}
           </div>
         )}
       </div>
+      </div>
 
+      {/* ── Request | Response split ── */}
+      <div className="apitest-content" ref={contentRef}>
+      <SplitPane
+        split="horizontal"
+        size={requestPaneSize}
+        onChange={handleRequestPaneResize}
+        minSize={100}
+        maxSize={-100}
+        resizerClassName="Resizer"
+        className="apitest-split"
+        pane1ClassName="apitest-split-pane"
+        pane2ClassName="apitest-split-pane"
+      >
+      <div className="apitest-request-pane">
       <div className="apitest-tabs-row">
         <div className="tab-bar is-gap">
           {TAB_OPTIONS
@@ -833,7 +940,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 ? countNamedEntries(api.headers)
                 : tab.key === "cookies"
                   ? countNamedEntries(api.cookies)
-                  : tab.key === "inout"
+                  : tab.key === "inputs"
                     ? examples.filter(ex => ex && typeof ex === "object").length
                     : 0;
               return (
@@ -856,10 +963,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             })}
         </div>
       </div>
-      </div>
-
-      {/* ── Scrollable content area: fills between header and toolbar ── */}
-      <div className="apitest-content">
       <FadePane paneKey={editorTab} className="apitest-pane-fill" durationMs={130}>
 
       {shouldShowDoc() ? (
@@ -952,9 +1055,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           )}
         </div>
       ) : (
-        <>
-      {/* Request section */}
-      <div className="apitest-section apitest-section--request">
+        <div className="apitest-section apitest-section--request">
         {shouldShowQuery() && <KSVEditor
           label="Query parameters"
           value={peerQuery}
@@ -1308,75 +1409,65 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             ) : null}
           </>
         )}
+
+        </div>
+      )}
+
+      </FadePane>
       </div>
 
-      {/* Send button row */}
-      <div className="apitest-send-row">
-        <div className="apitest-send-controls">
-          {isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && (
-            <ConnectButton
-              connected={network.connected}
-              onClick={handleConnect}
+      <div className="apitest-response-pane">
+      <div className="apitest-tabs-row apitest-response-tabs-row">
+        <div className="tab-bar is-gap">
+          {RESPONSE_TAB_OPTIONS.map(tab => {
+            const active = responseTab === tab.key;
+            const count = tab.key === "headers"
+              ? countNamedEntries(responseData?.headers)
+              : tab.key === "cookies"
+                ? countNamedEntries(responseData?.cookies)
+                : tab.key === "outputs"
+                  ? outputKeys.length
+                  : 0;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                className={`tab-button-small${active ? " active" : ""}`}
+                onClick={() => setResponseTab(tab.key)}
+              >
+                {tab.label}
+                {count > 0 ? <span className="apitest-tab-count">{count}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+        <div className="apitest-response-meta">
+          {(responseData?.duration) && <ResponseDuration duration={responseData.duration} />}
+          {(responseData) && (
+            <ResponseStatus
+              protocol={requestData?.protocol}
+              status={responseData.status}
+              errorMessage={responseData.errorMessage}
+              errorCode={responseData.errorCode}
+              warning={responseData.warning}
+              onClick={() => showHistoryPanel({ openLatest: true })}
             />
           )}
-          <SendButton
-            accent={methodOrProtocolAccent}
-            onClick={sendWithResolvedBody}
-            onCancel={handleCancel}
-            disabled={isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && !network.connected}
-            loading={
-              isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url)
-                ? network.loading
-                : isSending
-            }
-            contextMenuItems={sendContextMenuItems}
-          />
+          <button
+            type="button"
+            onClick={() => {
+              showHistoryPanel();
+            }}
+            className="toolbar-button"
+            title="Show History Panel"
+          >
+            <span className="codicon codicon-history toolbar-button-icon"></span>
+          </button>
         </div>
-        <div className="horizontal-line horizontal-line--below" />
       </div>
-
-      {/* Response section */}
+      <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={130}>
       <div className="apitest-section apitest-section--response">
-        {shouldShowResponseHeaders() && (
-          <KSVEditor
-            label="Response headers"
-            value={responseData?.headers || {}}
-            onChange={headers => { }}
-            deactivated={true}
-          />
-        )}
-
-        {shouldShowResponseCookies() && (
-          <KSVEditor
-            label="Cookies"
-            value={responseData?.cookies || {}}
-            onChange={cookies => { }}
-            deactivated={true}
-          />
-        )}
-
-        {(shouldShowResponse() || shouldShowGraphql() || shouldShowGrpc()) && (
-          <div className="apitest-body-pane">
-            <ResponseBodyBar
-              type={currentResponseFormat}
-              view={responseDisplay.effectiveView}
-              prettyAvailable={responseDisplay.prettyAvailable}
-              previewAvailable={responseDisplay.previewAvailable}
-              onTypeChange={type => setBodyFormat("response", type)}
-              onViewChange={setResponseViewMode}
-            />
-          <div className="apitest-body-wrapper">
-            <ResponseBodyContent
-              display={responseDisplay}
-              refreshKey={responseRevision}
-              requestUrl={requestData?.url}
-              onInspectPosition={handleAddOutputVariable}
-            />
-          </div>
-          </div>
-        )}
-
-        {shouldShowExamples() && (
+        {shouldShowOutputs() && (
           <>
             <SectionEditLabel
               label="Outputs"
@@ -1413,41 +1504,61 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             </FadePane>
           </>
         )}
+
+        {shouldShowResponseHeaders() && (
+          responseData ? (
+            <KSVEditor
+              label="Response headers"
+              value={responseData.headers || {}}
+              onChange={() => { }}
+              deactivated={true}
+            />
+          ) : (
+            <div className="apitest-empty">No response yet.</div>
+          )
+        )}
+
+        {shouldShowResponseCookies() && (
+          responseData ? (
+            <KSVEditor
+              label="Cookies"
+              value={responseData.cookies || {}}
+              onChange={() => { }}
+              deactivated={true}
+            />
+          ) : (
+            <div className="apitest-empty">No response yet.</div>
+          )
+        )}
+
+        {shouldShowResponse() && (
+          responseData ? (
+            <div className="apitest-body-pane">
+              <ResponseBodyBar
+                type={currentResponseFormat}
+                view={responseDisplay.effectiveView}
+                prettyAvailable={responseDisplay.prettyAvailable}
+                previewAvailable={responseDisplay.previewAvailable}
+                onTypeChange={type => setBodyFormat("response", type)}
+                onViewChange={setResponseViewMode}
+              />
+              <div className="apitest-body-wrapper">
+                <ResponseBodyContent
+                  display={responseDisplay}
+                  refreshKey={responseRevision}
+                  requestUrl={requestData?.url}
+                  onInspectPosition={handleAddOutputVariable}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="apitest-empty">No response yet. Click Send to run the request.</div>
+          )
+        )}
       </div>
-
-        </>
-      )}
-
       </FadePane>
       </div>
-
-      {/* ── Fixed bottom toolbar ── */}
-      <div className="apitest-toolbar">
-        <div className="horizontal-line horizontal-line--above" />
-        <div className="apitest-toolbar-inner">
-          {(responseData?.duration) && <ResponseDuration duration={responseData.duration} />}
-          {(responseData) && (
-            <ResponseStatus
-              protocol={requestData?.protocol}
-              status={responseData.status}
-              errorMessage={responseData.errorMessage}
-              errorCode={responseData.errorCode}
-              warning={responseData.warning}
-              onClick={() => showHistoryPanel({ openLatest: true })}
-            />
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              showHistoryPanel();
-            }}
-            className="toolbar-button"
-            title="Show History Panel"
-          >
-            <span className="codicon codicon-history toolbar-button-icon"></span>
-          </button>
-        </div>
+      </SplitPane>
       </div>
     </div>
   );
