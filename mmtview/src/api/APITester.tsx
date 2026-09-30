@@ -100,16 +100,22 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
 
 /** Empty state for response tabs before the first Send. */
 const NoResponseYet: React.FC<{ onSend: () => void }> = ({ onSend }) => (
-  <div className="apitest-empty">
-    No response yet. Click{" "}
-    <button
-      type="button"
-      className="apitest-empty-send-link"
-      onClick={onSend}
-    >
-      Send
-    </button>
-    {" "}to run the request.
+  <div className="apitest-body-none apitest-no-response" role="status">
+    <span className="codicon codicon-send apitest-body-none-icon" aria-hidden />
+    <div className="apitest-body-none-message">
+      <div className="apitest-body-none-title">No response yet.</div>
+      <div className="apitest-body-none-hint">
+        Click{" "}
+        <button
+          type="button"
+          className="apitest-empty-send-link"
+          onClick={onSend}
+        >
+          Send
+        </button>
+        {" "}to run the request.
+      </div>
+    </div>
   </div>
 );
 
@@ -1538,10 +1544,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       </div>
       <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={100}>
       <div className="apitest-section apitest-section--response">
-        {!responseData && (shouldShowResponse() || shouldShowResponseHeaders() || shouldShowResponseCookies() || shouldShowOutputs()) ? (
-          <NoResponseYet onSend={sendWithResolvedBody} />
-        ) : (
-          <>
         {shouldShowOutputs() && (
           <>
             <SectionEditLabel
@@ -1612,6 +1614,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </>
         )}
 
+        {!responseData && (shouldShowResponse() || shouldShowResponseHeaders() || shouldShowResponseCookies()) ? (
+          <NoResponseYet onSend={sendWithResolvedBody} />
+        ) : (
+          <>
         {shouldShowResponseHeaders() && (
           countNamedEntries(responseData?.headers) > 0 ? (
             <KSVEditor
