@@ -1606,21 +1606,29 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         )}
 
         {shouldShowResponseHeaders() && (
-          <KSVEditor
-            label=""
-            value={responseData?.headers || {}}
-            onChange={() => { }}
-            deactivated={true}
-          />
+          countNamedEntries(responseData?.headers) > 0 ? (
+            <KSVEditor
+              label=""
+              value={responseData?.headers || {}}
+              onChange={() => { }}
+              deactivated={true}
+            />
+          ) : (
+            <div className="apitest-empty">No response headers.</div>
+          )
         )}
 
         {shouldShowResponseCookies() && (
-          <KSVEditor
-            label=""
-            value={responseData?.cookies || {}}
-            onChange={() => { }}
-            deactivated={true}
-          />
+          countNamedEntries(responseData?.cookies) > 0 ? (
+            <KSVEditor
+              label=""
+              value={responseData?.cookies || {}}
+              onChange={() => { }}
+              deactivated={true}
+            />
+          ) : (
+            <div className="apitest-empty">No response cookies.</div>
+          )
         )}
 
         {shouldShowResponse() && (
