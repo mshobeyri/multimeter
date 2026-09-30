@@ -4,10 +4,9 @@ import {splitCheckOperatorPrefix, unquoteExpectLiteral} from './TestData';
 import {
   inputBoxToYamlValue,
   yamlValueToInputBox,
-  yamlValueTypeLabel,
 } from './yamlValueConvert';
 
-/** UI type chip for expect rows — same labels as Inputs via yamlValueTypeLabel. */
+/** Internal value kind for expect rows (full names). Display via shortValueTypeLabel. */
 export type ExpectUiValueKind =
     'string'|'number'|'boolean'|'null'|'omit'|'array'|'object'|'undefined';
 
@@ -23,17 +22,27 @@ export interface ExpectUiRow {
 }
 
 function kindFromYamlValue(value: unknown): ExpectUiValueKind {
-  const label = yamlValueTypeLabel(value);
-  switch (label) {
+  if (value === null) {
+    return 'null';
+  }
+  if (isOmitSentinel(value)) {
+    return 'omit';
+  }
+  if (Array.isArray(value)) {
+    return 'array';
+  }
+  if (value === undefined) {
+    return 'undefined';
+  }
+  switch (typeof value) {
     case 'string':
+      return 'string';
     case 'number':
+      return 'number';
     case 'boolean':
-    case 'null':
-    case 'omit':
-    case 'array':
+      return 'boolean';
     case 'object':
-    case 'undefined':
-      return label;
+      return 'object';
     default:
       return 'string';
   }

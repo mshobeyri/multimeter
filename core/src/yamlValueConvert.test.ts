@@ -47,9 +47,11 @@ describe('yamlValueConvert', () => {
   it('labels omit / null / numbers for UI type chips', () => {
     expect(yamlValueTypeLabel(null)).toBe('null');
     expect(yamlValueTypeLabel(OMIT_SENTINEL)).toBe('omit');
-    expect(yamlValueTypeLabel(112)).toBe('number');
-    expect(yamlValueTypeLabel('112')).toBe('string');
-    expect(yamlValueTypeLabel(true)).toBe('boolean');
+    expect(yamlValueTypeLabel(112)).toBe('num');
+    expect(yamlValueTypeLabel('112')).toBe('str');
+    expect(yamlValueTypeLabel(true)).toBe('bool');
+    expect(yamlValueTypeLabel({a: 1})).toBe('obj');
+    expect(yamlValueTypeLabel([1])).toBe('list');
   });
 
   it('preserves inputs xxx: "112" through parse → pack', () => {

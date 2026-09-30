@@ -109,8 +109,8 @@ export function inputBoxToYamlValue(val: string): JSONValue {
 }
 
 /**
- * UI type label for a YAML / model value — shared by Inputs, Expect, etc.
- * Examples: `omit`, `null`, `number`, `string`, `boolean`, `array`, `object`.
+ * Short UI type chip for a YAML / model value — Inputs, Expect, etc.
+ * `str` | `num` | `bool` | `omit` | `obj` | `list` | `null` | `undefined`
  */
 export function yamlValueTypeLabel(val: unknown): string {
   if (val === null) {
@@ -120,12 +120,52 @@ export function yamlValueTypeLabel(val: unknown): string {
     return 'omit';
   }
   if (Array.isArray(val)) {
-    return 'array';
+    return 'list';
   }
   if (val === undefined) {
     return 'undefined';
   }
-  return typeof val;
+  switch (typeof val) {
+    case 'string':
+      return 'str';
+    case 'number':
+      return 'num';
+    case 'boolean':
+      return 'bool';
+    case 'object':
+      return 'obj';
+    default:
+      return 'str';
+  }
+}
+
+/** Map an ExpectUiValueKind (or legacy long label) to the short chip text. */
+export function shortValueTypeLabel(kind: string | undefined): string {
+  switch (kind) {
+    case 'string':
+    case 'str':
+      return 'str';
+    case 'number':
+    case 'num':
+      return 'num';
+    case 'boolean':
+    case 'bool':
+      return 'bool';
+    case 'array':
+    case 'list':
+      return 'list';
+    case 'object':
+    case 'obj':
+      return 'obj';
+    case 'omit':
+      return 'omit';
+    case 'null':
+      return 'null';
+    case 'undefined':
+      return 'undefined';
+    default:
+      return kind || 'str';
+  }
 }
 
 /** Alias kept for existing call sites. */

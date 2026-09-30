@@ -17,6 +17,24 @@ interface FieldWithRemoveProps {
   /** Opt into resolved/token dual-mode when the value contains tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
+  /** YAML value type chip drawn inside the input on the right (e.g. number). */
+  typeLabel?: string;
+}
+
+/** Padding / right offset so a type chip and trailing icon buttons don't overlap text. */
+export function fieldTrailingLayout(options: {
+  typeLabel?: string;
+  buttonCount?: number;
+}): { paddingRight: number; typeRight: number; typeText: string } {
+  const typeText = options.typeLabel ? `(${options.typeLabel})` : "";
+  const buttonCount = Math.max(0, options.buttonCount ?? 0);
+  const buttonPad = buttonCount > 0 ? 4 + buttonCount * 24 : 8;
+  const typePad = typeText ? Math.ceil(typeText.length * 6.5) + 8 : 0;
+  return {
+    typeText,
+    paddingRight: buttonPad + typePad,
+    typeRight: 4 + buttonCount * 24,
+  };
 }
 
 const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
@@ -32,9 +50,13 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   copyable = false,
   canContainToken = false,
   valueContext,
+  typeLabel,
 }) => {
-  const buttonCount = (removable ? 1 : 0) + (copyable ? 1 : 0);
-  const paddingRight = buttonCount > 0 ? 12 + buttonCount * 24 : 36;
+  const buttonCount = (removable ? 1 : 0) + (copyable && value ? 1 : 0);
+  const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
+    typeLabel,
+    buttonCount,
+  });
 
   return (
     <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
@@ -75,6 +97,11 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
           readOnly={readOnly}
         />
       )}
+      {typeText ? (
+        <span className="field-type-affix" style={{ right: typeRight }} title="Value type">
+          {typeText}
+        </span>
+      ) : null}
       {copyable && value && (
         <button
           onClick={() => navigator.clipboard.writeText(value).catch(() => {})}

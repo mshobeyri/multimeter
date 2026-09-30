@@ -12,6 +12,7 @@ export {
   stringToValue,
   yamlValueToInputBox,
   yamlValueTypeLabel,
+  shortValueTypeLabel,
 } from 'mmt-core/yamlValueConvert';
 
 /**

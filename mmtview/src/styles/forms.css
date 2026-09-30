@@ -195,6 +195,19 @@
   font-size: 16px;
 }
 
+/* Type chip inside the input, end-right (left of X / picker / copy). */
+.field-type-affix {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--vscode-descriptionForeground, #888);
+  white-space: nowrap;
+  z-index: 1;
+}
+
 /* Small red dot: r:/c: preview that refreshes on Send */
 .mmt-runtime-dot {
   position: absolute;
@@ -227,6 +240,7 @@ select.is-invalid {
 }
 
 .select-with-remove {
+  position: relative;
   display: flex;
   width: 100%;
   align-items: center;
@@ -235,11 +249,14 @@ select.is-invalid {
 .select-with-remove select {
   width: 100%;
   vertical-align: top;
+  box-sizing: border-box;
 }
 
-.select-with-remove.has-remove select {
-  width: calc(100% - 32px);
-  margin-right: 4px;
+.select-with-remove .field-button {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
 }
 
 .select-with-remove.is-disabled select {
@@ -676,6 +693,7 @@ select.is-invalid {
   flex: 1 1 0;
   width: 0;
   min-width: 0;
+  position: relative;
 }
 
 .check-clause-value > input,
@@ -683,15 +701,6 @@ select.is-invalid {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-}
-
-.check-clause-type {
-  flex: 0 0 auto;
-  text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-height: 1em;
 }
 
 .check-clause-remove {

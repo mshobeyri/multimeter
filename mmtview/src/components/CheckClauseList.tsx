@@ -8,6 +8,8 @@ import {
 } from "./convertor";
 import OperatorSelect from "./OperatorSelect";
 import TokenFieldInput from "./TokenFieldInput";
+import { fieldTrailingLayout } from "./FieldWithRemove";
+import { shortValueTypeLabel } from "mmt-core/yamlValueConvert";
 
 export type CheckClauseKind = "expect" | "require";
 
@@ -110,71 +112,88 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
       <div className="field-pad">
         {rows.length > 0 && (
           <div className="check-clause-table">
-            {rows.map((row, i) => (
-              <div key={row.rowId} className="check-clause-row">
-                <div className="check-clause-status">
-                  {renderStatus ? renderStatus(row, i) : (
-                    <span className="apitest-result-slot" aria-hidden />
-                  )}
-                </div>
-                <CheckClauseFieldSelect
-                  value={row.field}
-                  options={fieldOptions}
-                  onChange={val => onPartChange(i, "field", val)}
-                  title="Output field"
-                />
-                <div className="check-clause-op">
-                  <OperatorSelect
-                    value={row.op as any}
-                    onChange={nextOp => onPartChange(i, "op", nextOp)}
-                    compact
-                    title="Comparison operator"
+            {rows.map((row, i) => {
+              const typeLabel = row.expected.trim() !== ""
+                ? shortValueTypeLabel(row.valueKind || "string")
+                : undefined;
+              const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
+                typeLabel,
+                buttonCount: 0,
+              });
+              return (
+                <div key={row.rowId} className="check-clause-row">
+                  <div className="check-clause-status">
+                    {renderStatus ? renderStatus(row, i) : (
+                      <span className="apitest-result-slot" aria-hidden />
+                    )}
+                  </div>
+                  <CheckClauseFieldSelect
+                    value={row.field}
+                    options={fieldOptions}
+                    onChange={val => onPartChange(i, "field", val)}
+                    title="Output field"
+                  />
+                  <div className="check-clause-op">
+                    <OperatorSelect
+                      value={row.op as any}
+                      onChange={nextOp => onPartChange(i, "op", nextOp)}
+                      compact
+                      title="Comparison operator"
+                    />
+                  </div>
+                  <div className="check-clause-value field-with-remove">
+                    {canContainToken ? (
+                      <TokenFieldInput
+                        value={
+                          (row.expected.startsWith('"') && row.expected.endsWith('"')) ||
+                          (row.expected.startsWith("'") && row.expected.endsWith("'"))
+                            ? row.expected
+                            : peerStringToDisplay(row.expected)
+                        }
+                        canContainToken
+                        valueContext={valueContext}
+                        placeholder={copy.expected}
+                        style={{ paddingRight }}
+                        onCommit={val => onPartChange(
+                          i,
+                          "expected",
+                          yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val))),
+                        )}
+                        onDraftChange={val => onPartChange(
+                          i,
+                          "expected",
+                          yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val))),
+                        )}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={row.expected}
+                        onChange={e => onPartChange(i, "expected", e.target.value)}
+                        placeholder={copy.expected}
+                        style={{ paddingRight }}
+                      />
+                    )}
+                    {typeText ? (
+                      <span
+                        className="field-type-affix"
+                        style={{ right: typeRight }}
+                        title="Value type"
+                      >
+                        {typeText}
+                      </span>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(i)}
+                    className="check-clause-remove codicon codicon-close"
+                    title={copy.remove}
+                    aria-label={copy.remove}
                   />
                 </div>
-                <div className="check-clause-value">
-                  {canContainToken ? (
-                    <TokenFieldInput
-                      value={
-                        (row.expected.startsWith('"') && row.expected.endsWith('"')) ||
-                        (row.expected.startsWith("'") && row.expected.endsWith("'"))
-                          ? row.expected
-                          : peerStringToDisplay(row.expected)
-                      }
-                      canContainToken
-                      valueContext={valueContext}
-                      placeholder={copy.expected}
-                      onCommit={val => onPartChange(
-                        i,
-                        "expected",
-                        yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val))),
-                      )}
-                      onDraftChange={val => onPartChange(
-                        i,
-                        "expected",
-                        yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val))),
-                      )}
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      value={row.expected}
-                      onChange={e => onPartChange(i, "expected", e.target.value)}
-                      placeholder={copy.expected}
-                    />
-                  )}
-                </div>
-                <span className="check-clause-type veditor-type" title="Value type">
-                  {row.expected.trim() !== "" ? `(${row.valueKind || "string"})` : ""}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onRemove(i)}
-                  className="check-clause-remove codicon codicon-close"
-                  title={copy.remove}
-                  aria-label={copy.remove}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         <div className="field-block">

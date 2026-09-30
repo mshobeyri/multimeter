@@ -1421,8 +1421,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                   type="button"
                   className="button-icon no-shrink"
                   onClick={handleAddAsTest}
-                  title="Add as test"
-                  aria-label="Add as test"
+                  title="Add current inputs as a new example"
+                  aria-label="Add current inputs as a new example"
                 >
                   <span className="codicon codicon-add" aria-hidden />
                 </button>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ParamConstraintOption } from "mmt-core/paramConstraints";
 import { safeList } from "mmt-core/safer";
+import { fieldTrailingLayout } from "./FieldWithRemove";
 
 interface FieldWithOptionsPickerProps {
   value: string;
@@ -12,6 +13,7 @@ interface FieldWithOptionsPickerProps {
   disabled?: boolean;
   removable?: boolean;
   copyable?: boolean;
+  typeLabel?: string;
 }
 
 const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
@@ -24,6 +26,7 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
   disabled = false,
   removable = true,
   copyable = false,
+  typeLabel,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -42,10 +45,14 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
   }, [menuOpen]);
 
   const showPicker = options.length > 0;
-  const buttonCount = (showPicker ? 1 : 0) + (removable ? 1 : 0) + (copyable ? 1 : 0);
-  const paddingRight = buttonCount > 0 ? 12 + buttonCount * 24 : 36;
+  const buttonCount =
+    (showPicker ? 1 : 0) + (removable ? 1 : 0) + (copyable && value ? 1 : 0);
+  const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
+    typeLabel,
+    buttonCount,
+  });
 
-  const pickerRight = (removable ? 28 : 4) + (copyable ? 24 : 0);
+  const pickerRight = (removable ? 28 : 4) + (copyable && value ? 24 : 0);
 
   return (
     <div
@@ -60,6 +67,11 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
       />
+      {typeText ? (
+        <span className="field-type-affix" style={{ right: typeRight }} title="Value type">
+          {typeText}
+        </span>
+      ) : null}
       {copyable && value && (
         <button
           onClick={() => navigator.clipboard.writeText(value).catch(() => {})}

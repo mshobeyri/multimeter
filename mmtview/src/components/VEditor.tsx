@@ -110,6 +110,7 @@ const VEditor: React.FC<VEditorProps> = ({
               placeholder="Value"
               disabled={disabled || readOnly}
               removable={deletable && !readOnly}
+              typeLabel={hasValue ? typeLabel : undefined}
             />
           ) : pickerOptions && pickerOptions.length > 0 ? (
             <FieldWithOptionsPicker
@@ -122,6 +123,7 @@ const VEditor: React.FC<VEditorProps> = ({
               disabled={disabled || readOnly}
               removable={deletable && hasValue && !readOnly}
               copyable={copyable}
+              typeLabel={hasValue ? typeLabel : undefined}
             />
           ) : (
             <FieldWithRemove
@@ -135,6 +137,7 @@ const VEditor: React.FC<VEditorProps> = ({
               copyable={copyable}
               canContainToken={canContainToken && !readOnly}
               valueContext={valueContext}
+              typeLabel={hasValue ? typeLabel : undefined}
             />
           );
 
@@ -152,11 +155,6 @@ const VEditor: React.FC<VEditorProps> = ({
                   <span className="apitest-result-slot no-shrink" aria-hidden />
                 ) : null}
                 <span className="veditor-key">{key}</span>
-                {hasValue && (
-                  <span className="veditor-type">
-                    ({typeLabel})
-                  </span>
-                )}
               </div>
               <div className="field-inline">
                 {showMatchGutter ? (
