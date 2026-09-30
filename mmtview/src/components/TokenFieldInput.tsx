@@ -84,6 +84,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   const hasTokens = canContainToken && stringContainsFieldToken(value);
   const [draft, setDraft] = useState(value);
   const [tokenEdit, setTokenEdit] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [mirrorStyle, setMirrorStyle] = useState<React.CSSProperties>({});
   const focusedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -106,8 +107,9 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
     ? (preview?.spans ?? [])
     : findDisplayTokenCharRanges(draft);
 
-  // Mirror layer whenever the stored value has tokens (underline needs a backdrop).
-  const useHighlightLayer = hasTokens;
+  // Underline layer only when blurred — while focused the native input keeps a
+  // visible caret / selection like a normal field.
+  const useHighlightLayer = hasTokens && !focused;
 
   useLayoutEffect(() => {
     const el = inputRef.current;
@@ -185,10 +187,12 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
         }}
         onFocus={e => {
           focusedRef.current = true;
+          setFocused(true);
           onFocus?.(e);
         }}
         onBlur={() => {
           focusedRef.current = false;
+          setFocused(false);
           if (showPreview) {
             // No edits — keep stored token template.
             setTokenEdit(false);

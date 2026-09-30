@@ -120,12 +120,25 @@
 }
 
 .method-url-bar-url-wrap > input.method-url-bar-url.is-token-preview {
-  color: var(--vscode-descriptionForeground, #858585);
+  color: var(--vscode-input-foreground, #d4d4d4);
+}
+
+.method-url-bar-url-wrap .token-field.has-highlights {
+  background: transparent;
+  border-radius: 0;
 }
 
 .method-url-bar-url-wrap .token-field.has-highlights .token-field-input.is-highlight-overlay {
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
+  caret-color: var(--vscode-input-foreground, #d4d4d4) !important;
+}
+
+/* URL bar already has chrome; keep token backdrop transparent so it doesn't chip. */
+.method-url-bar-url-wrap .token-field-backdrop {
+  background: transparent;
+  border-radius: 0;
+  color: var(--vscode-input-foreground, #d4d4d4);
 }
 
 .method-url-bar-url::-webkit-scrollbar {

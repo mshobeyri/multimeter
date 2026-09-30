@@ -615,15 +615,24 @@ select.is-invalid {
   box-sizing: border-box;
 }
 
+/* Same colors as a normal input — only underline marks tokens. */
 .token-field-input.is-token-preview {
-  color: var(--vscode-descriptionForeground, #858585);
+  color: var(--vscode-input-foreground, #d4d4d4);
 }
 
-/* Hide native glyphs completely — `color: transparent` alone is not enough in Chromium. */
+/*
+ * Blurred token fields: paint the normal input fill on the wrapper so the
+ * transparent overlay still shows the same background (no chip / size change).
+ */
+.token-field.has-highlights {
+  background-color: var(--vscode-input-background, #1e1e1e);
+  border-radius: var(--mmt-control-radius);
+}
+
 .token-field.has-highlights .token-field-input.is-highlight-overlay {
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
-  caret-color: var(--vscode-editorCursor-foreground, var(--vscode-foreground, #ccc));
+  caret-color: var(--vscode-input-foreground, #d4d4d4) !important;
   background: transparent !important;
 }
 
@@ -634,27 +643,17 @@ select.is-invalid {
   overflow: hidden;
   white-space: pre;
   pointer-events: none;
-  color: var(--vscode-input-foreground, var(--vscode-foreground, #ccc));
+  color: var(--vscode-input-foreground, #d4d4d4);
+  background: transparent;
   box-sizing: border-box;
   /* padding/font synced from the input in JS so glyphs align */
   line-height: inherit;
 }
 
-.token-field.is-preview .token-field-backdrop {
-  color: var(--vscode-descriptionForeground, #858585);
-}
-
-.token-field-span.is-resolved {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: currentColor;
-  text-decoration-thickness: from-font;
-  text-underline-offset: 2px;
-  text-decoration-skip-ink: auto;
-}
-
+.token-field-span.is-resolved,
 .token-field-span.is-token {
   color: inherit;
+  background: transparent;
   text-decoration: underline;
   text-decoration-color: currentColor;
   text-decoration-thickness: from-font;
