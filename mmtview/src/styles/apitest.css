@@ -524,7 +524,8 @@
   object-fit: contain;
 }
 
-.apitest-fixed-header .tab-bar {
+.apitest-fixed-header .tab-bar,
+.apitest-tabs-row .tab-bar {
   margin-bottom: 0;
 }
 

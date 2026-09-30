@@ -956,6 +956,11 @@ button:focus {
   gap: 8px;
 }
 
+/* Optional: hide the full-width rule under the strip (active tab underline stays). */
+.tab-bar.is-no-rule {
+  border-bottom: none;
+}
+
 .tab-button {
   padding: 8px 12px;
   border: none;

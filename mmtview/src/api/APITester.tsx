@@ -938,7 +938,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       >
       <div className="apitest-request-pane">
       <div className="apitest-tabs-row">
-        <div className="tab-bar is-gap">
+        <div className="tab-bar is-gap is-no-rule">
           {TAB_OPTIONS
             .filter(tab => {
               // Hide body/params/cookies for graphql/grpc protocols
@@ -1436,7 +1436,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
       <div className="apitest-response-pane">
       <div className="apitest-tabs-row apitest-response-tabs-row">
-        <div className="tab-bar is-gap">
+        <div className="tab-bar is-gap is-no-rule">
           {RESPONSE_TAB_OPTIONS.map(tab => {
             const active = responseTab === tab.key;
             const count = tab.key === "headers"
