@@ -11,6 +11,7 @@ type FadePaneProps = {
 
 /**
  * Light hide-then-show swap for tab panels and section edit/view bodies.
+ * Tab panels sized by the parent flex area — content swaps do not resize height.
  */
 const FadePane: React.FC<FadePaneProps> = ({
   paneKey,
@@ -25,9 +26,17 @@ const FadePane: React.FC<FadePaneProps> = ({
   const [rendered, setRendered] = useState(children);
   const [visible, setVisible] = useState(true);
 
+  // Keep same-key content live without restarting a fade.
+  useEffect(() => {
+    if (paneKey !== renderedKey || !visible) {
+      return;
+    }
+    setRendered(children);
+  }, [children, paneKey, renderedKey, visible]);
+
+  // Fade out → swap → fade in only when the pane key changes.
   useEffect(() => {
     if (paneKey === renderedKey) {
-      setRendered(children);
       return;
     }
     setVisible(false);
@@ -37,7 +46,7 @@ const FadePane: React.FC<FadePaneProps> = ({
       setVisible(true);
     }, durationMs);
     return () => window.clearTimeout(t);
-  }, [paneKey, renderedKey, durationMs, children]);
+  }, [paneKey, renderedKey, durationMs]);
 
   return (
     <div
