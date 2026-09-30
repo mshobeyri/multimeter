@@ -1016,8 +1016,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           showRule={false}
           gap
         />
-        {shouldShowBody() && (
-          <div className="apitest-tabs-tools">
+        <div
+          className={`apitest-tabs-tools${shouldShowBody() ? "" : " is-hidden"}`}
+          aria-hidden={!shouldShowBody()}
+        >
             <div className="apitest-body-toolbar-main">
               <BodyFormatBar
                 value={currentRequestFormat}
@@ -1078,10 +1080,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 </>
               ) : null}
             </div>
-          </div>
-        )}
+        </div>
       </div>
-      <FadePane paneKey={editorTab} className="apitest-pane-fill" durationMs={130}>
+      <FadePane paneKey={editorTab} className="apitest-pane-fill" durationMs={100}>
 
       {shouldShowDoc() ? (
         <div className="apitest-section apitest-section--doc panel-form">
@@ -1490,9 +1491,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           showRule={false}
           gap
         />
-        {shouldShowResponse() && responseData ? (
+        {responseData ? (
           <>
-            <div className="apitest-tabs-tools">
+            <div
+              className={`apitest-tabs-tools${shouldShowResponse() ? "" : " is-hidden"}`}
+              aria-hidden={!shouldShowResponse()}
+            >
               <ResponseBodyBar
                 type={currentResponseFormat}
                 view={responseDisplay.effectiveView}
@@ -1502,7 +1506,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 onViewChange={setResponseViewMode}
               />
             </div>
-            <span className="apitest-tabs-tools-divider" aria-hidden />
+            <span
+              className={`apitest-tabs-tools-divider${shouldShowResponse() ? "" : " is-hidden"}`}
+              aria-hidden
+            />
           </>
         ) : null}
         <div className="apitest-response-meta">
@@ -1529,7 +1536,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </button>
         </div>
       </div>
-      <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={130}>
+      <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={100}>
       <div className="apitest-section apitest-section--response">
         {!responseData && (shouldShowResponse() || shouldShowResponseHeaders() || shouldShowResponseCookies() || shouldShowOutputs()) ? (
           <NoResponseYet onSend={sendWithResolvedBody} />

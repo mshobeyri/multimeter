@@ -5,48 +5,66 @@ type FadePaneProps = {
   paneKey: string;
   className?: string;
   children: React.ReactNode;
-  /** Fade-out duration (ms); fade-in uses the same timing. */
+  /** Fade-out / fade-in duration (ms) each. */
   durationMs?: number;
 };
 
 /**
- * Light hide-then-show swap for tab panels and section edit/view bodies.
- * Tab panels sized by the parent flex area — content swaps do not resize height.
+ * Fade-out → swap → fade-in for tab panels and edit/view bodies.
+ * Previous content stays mounted through fade-out; parent `.apitest-pane-fill`
+ * pins height so swaps do not jump.
  */
 const FadePane: React.FC<FadePaneProps> = ({
   paneKey,
   className,
   children,
-  durationMs = 120,
+  durationMs = 100,
 }) => {
   const childrenRef = useRef(children);
   childrenRef.current = children;
 
-  const [renderedKey, setRenderedKey] = useState(paneKey);
+  const renderedKeyRef = useRef(paneKey);
   const [rendered, setRendered] = useState(children);
   const [visible, setVisible] = useState(true);
 
-  // Keep same-key content live without restarting a fade.
+  // Same-key updates stay live; do not overwrite mid-fade.
   useEffect(() => {
-    if (paneKey !== renderedKey || !visible) {
+    if (paneKey !== renderedKeyRef.current) {
       return;
     }
     setRendered(children);
-  }, [children, paneKey, renderedKey, visible]);
+  }, [children, paneKey]);
 
-  // Fade out → swap → fade in only when the pane key changes.
   useEffect(() => {
-    if (paneKey === renderedKey) {
+    if (paneKey === renderedKeyRef.current) {
       return;
     }
+
+    let cancelled = false;
     setVisible(false);
-    const t = window.setTimeout(() => {
-      setRenderedKey(paneKey);
+
+    const fadeOutTimer = window.setTimeout(() => {
+      if (cancelled) {
+        return;
+      }
+      renderedKeyRef.current = paneKey;
       setRendered(childrenRef.current);
-      setVisible(true);
+      // Ensure the browser paints opacity 0 before fading in.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          if (cancelled) {
+            return;
+          }
+          setVisible(true);
+        });
+      });
     }, durationMs);
-    return () => window.clearTimeout(t);
-  }, [paneKey, renderedKey, durationMs]);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(fadeOutTimer);
+    };
+  }, [paneKey, durationMs]);
 
   return (
     <div

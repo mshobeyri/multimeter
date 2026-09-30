@@ -239,6 +239,12 @@
   max-width: 55%;
 }
 
+.apitest-tabs-tools.is-hidden,
+.apitest-tabs-tools-divider.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .apitest-tabs-tools .apitest-body-toolbar,
 .apitest-tabs-tools .apitest-body-format-bar,
 .apitest-tabs-tools .apitest-body-toolbar-main {
