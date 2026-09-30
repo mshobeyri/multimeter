@@ -624,7 +624,7 @@ select.is-invalid {
   flex: 0 0 auto;
 }
 
-/* Expect/require rows: status | key = value | fixed op | type | boxed remove */
+/* Expect/require rows: status | key = value | fixed op | value (type + inner X) */
 .check-clause-table {
   display: flex;
   flex-direction: column;
@@ -701,30 +701,6 @@ select.is-invalid {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-}
-
-.check-clause-remove {
-  box-sizing: border-box;
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
-  border-radius: var(--mmt-control-radius);
-  background: var(--vscode-input-background, #1e1e1e) !important;
-  color: var(--vscode-foreground, #d4d4d4);
-  cursor: pointer;
-  opacity: 0.85;
-  font-size: 14px;
-}
-
-.check-clause-remove:hover {
-  opacity: 1;
-  border-color: var(--vscode-focusBorder, #007fd4);
 }
 
 /* Align add button with key column (after status gutter). */

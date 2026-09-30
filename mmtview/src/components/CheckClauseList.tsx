@@ -118,8 +118,25 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                 : undefined;
               const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
                 typeLabel,
-                buttonCount: 0,
+                buttonCount: 1,
               });
+              const expectedDisplay = canContainToken
+                ? (
+                    (row.expected.startsWith('"') && row.expected.endsWith('"')) ||
+                    (row.expected.startsWith("'") && row.expected.endsWith("'"))
+                      ? row.expected
+                      : peerStringToDisplay(row.expected)
+                  )
+                : row.expected;
+              const commitExpected = (val: string) => {
+                onPartChange(
+                  i,
+                  "expected",
+                  canContainToken
+                    ? yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val)))
+                    : val,
+                );
+              };
               return (
                 <div key={row.rowId} className="check-clause-row">
                   <div className="check-clause-status">
@@ -141,29 +158,16 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                       title="Comparison operator"
                     />
                   </div>
-                  <div className="check-clause-value field-with-remove">
+                  <div className="check-clause-value field-with-remove has-remove">
                     {canContainToken ? (
                       <TokenFieldInput
-                        value={
-                          (row.expected.startsWith('"') && row.expected.endsWith('"')) ||
-                          (row.expected.startsWith("'") && row.expected.endsWith("'"))
-                            ? row.expected
-                            : peerStringToDisplay(row.expected)
-                        }
+                        value={expectedDisplay}
                         canContainToken
                         valueContext={valueContext}
                         placeholder={copy.expected}
                         style={{ paddingRight }}
-                        onCommit={val => onPartChange(
-                          i,
-                          "expected",
-                          yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val))),
-                        )}
-                        onDraftChange={val => onPartChange(
-                          i,
-                          "expected",
-                          yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val))),
-                        )}
+                        onCommit={commitExpected}
+                        onDraftChange={commitExpected}
                       />
                     ) : (
                       <input
@@ -183,14 +187,16 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                         {typeText}
                       </span>
                     ) : null}
+                    <button
+                      type="button"
+                      onClick={() => onRemove(i)}
+                      title={copy.remove}
+                      aria-label={copy.remove}
+                      className="field-button"
+                    >
+                      <span className="action-button codicon codicon-close" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onRemove(i)}
-                    className="check-clause-remove codicon codicon-close"
-                    title={copy.remove}
-                    aria-label={copy.remove}
-                  />
                 </div>
               );
             })}
