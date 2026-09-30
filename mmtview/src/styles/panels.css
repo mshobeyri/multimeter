@@ -75,12 +75,103 @@
   position: relative;
 }
 
-.panel-box:has(.unsaved-warning-btn) {
-  --mmt-status-bar: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+.mmt-yaml-error-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 55%, transparent);
+  backdrop-filter: blur(1px);
 }
 
-.panel-box:has(.yaml-error-btn) {
-  --mmt-status-bar: var(--vscode-errorForeground, #f14c4c);
+.mmt-yaml-error-dim-card {
+  max-width: 420px;
+  width: 100%;
+  padding: 20px 22px;
+  border-radius: 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.12));
+  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #252526));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mmt-yaml-error-dim-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.mmt-yaml-error-dim-desc {
+  margin: 0;
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.4;
+  color: var(--vscode-descriptionForeground, #858585);
+  text-align: center;
+}
+
+.mmt-yaml-error-dim-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.mmt-yaml-error-dim-item {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground, #ccc);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mmt-yaml-error-dim-item:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.06));
+}
+
+.mmt-yaml-error-dim-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding-top: 4px;
+}
+
+.mmt-yaml-error-dim-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.mmt-yaml-error-dim-link:hover {
+  color: var(--vscode-textLink-activeForeground, #3794ff);
+}
+
+.panel-box:has(.unsaved-warning-btn) {
+  --mmt-status-bar: var(--vscode-notificationsWarningIcon-foreground, #cca700);
 }
 
 .panel-box:has(.unsaved-warning-btn)::before {
@@ -106,6 +197,8 @@
 
 .yaml-error-btn {
   --mmt-status-accent: var(--vscode-errorForeground, #f14c4c);
+  color: var(--mmt-status-accent) !important;
+  white-space: nowrap;
 }
 
 .panel-run-header {
@@ -674,6 +767,7 @@ select.method-select:focus-visible {
 }
 
 .ui-pane-inner {
+  position: relative;
   width: 100%;
   height: 100%;
   max-width: 1200px;

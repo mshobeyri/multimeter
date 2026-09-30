@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 import {FileContext} from '../fileContext';
 import {revealYamlEditorError, type YamlEditorError} from '../text/yamlEditorErrors';
 
@@ -9,11 +9,75 @@ function formatErrorLine(error: YamlEditorError): string {
   return error.message;
 }
 
+/**
+ * Full-pane dim when YAML is invalid. Restore reverts to the last valid YAML;
+ * Keep only closes the overlay so the stale UI stays visible.
+ */
+export const YamlErrorDim: React.FC = () => {
+  const {yamlErrors, yamlStale, restoreValidYaml, dismissYamlErrorDim, yamlErrorDimDismissed} =
+    useContext(FileContext);
+  const errors = yamlErrors || [];
+
+  if (errors.length === 0 || yamlErrorDimDismissed) {
+    return null;
+  }
+
+  const canRestore = Boolean(yamlStale && restoreValidYaml);
+
+  return (
+    <div className="mmt-yaml-error-dim" role="alertdialog" aria-label="Error">
+      <div className="mmt-yaml-error-dim-card">
+        <div className="mmt-yaml-error-dim-title">
+          <span className="codicon codicon-error" aria-hidden />
+          <span>Error</span>
+        </div>
+        <p className="mmt-yaml-error-dim-desc">
+          {yamlStale
+            ? 'This UI still shows the last valid version until you fix or restore the YAML.'
+            : 'Fix the YAML to use the UI, or keep editing with the last valid view.'}
+        </p>
+        <ul className="mmt-yaml-error-dim-list">
+          {errors.map((error, index) => (
+            <li key={`${error.line ?? 0}:${error.column ?? 0}:${error.message}:${index}`}>
+              <button
+                type="button"
+                className="mmt-yaml-error-dim-item"
+                onClick={() => revealYamlEditorError(error)}
+                title={error.line ? `Go to line ${error.line}` : undefined}
+              >
+                {formatErrorLine(error)}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="mmt-yaml-error-dim-actions">
+          {canRestore && (
+            <button
+              type="button"
+              className="mmt-yaml-error-dim-link"
+              onClick={() => restoreValidYaml?.()}
+            >
+              Restore
+            </button>
+          )}
+          <button
+            type="button"
+            className="mmt-yaml-error-dim-link"
+            onClick={() => dismissYamlErrorDim?.()}
+          >
+            Keep
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const YamlErrorWarning: React.FC = () => {
   const {yamlErrors, yamlStale, restoreValidYaml} = useContext(FileContext);
   const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const popupRef = React.useRef<HTMLDivElement>(null);
   const errors = yamlErrors || [];
 
   useEffect(() => {
@@ -42,19 +106,19 @@ const YamlErrorWarning: React.FC = () => {
     <div className="unsaved-changes-anchor">
       <button
         ref={buttonRef}
-        className="action-button api-edit-launcher unsaved-warning-btn yaml-error-btn"
+        className="action-button api-edit-launcher yaml-error-btn"
         onClick={() => setOpen((v) => !v)}
         title="The YAML has errors"
         type="button"
       >
         <span className="codicon codicon-error" aria-hidden />
-        <span className="api-edit-launcher-text">YAML ERROR</span>
+        <span className="api-edit-launcher-text">Error</span>
       </button>
       {open && (
         <div ref={popupRef} className="unsaved-changes-popup yaml-error-popup">
           <div className="unsaved-changes-popup-header">
             <span className="codicon codicon-error unsaved-changes-popup-icon yaml-error-popup-icon" aria-hidden />
-            <span>YAML ERROR</span>
+            <span>Error</span>
             <button
               className="unsaved-changes-popup-close"
               onClick={() => setOpen(false)}
@@ -109,7 +173,7 @@ const YamlErrorWarning: React.FC = () => {
   );
 };
 
-/** Hide children while YAML errors are present (e.g. export). */
+/** Hide children while YAML errors are present (e.g. Send, export). */
 export function HideWhenYamlError({children}: {children: React.ReactNode}) {
   const {yamlErrors} = useContext(FileContext);
   if (yamlErrors && yamlErrors.length > 0) {

@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
+import { formatMmtYaml } from "mmt-core/mmtFormat";
 import { curlToAPI, isCurlCommand } from "mmt-core/curlConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
@@ -297,6 +298,28 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   });
 
   const { reorderDocument } = useFormatAndOrder({ contentRef, docType, setContent });
+
+  const needsYamlBeautify = useMemo(() => {
+    if (sourceFormat !== "mmt") {
+      return false;
+    }
+    try {
+      return formatMmtYaml(content).changed;
+    } catch {
+      return false;
+    }
+  }, [content, sourceFormat]);
+
+  const beautifyYaml = () => {
+    try {
+      const { formatted, changed } = formatMmtYaml(content);
+      if (changed) {
+        setContent(formatted);
+      }
+    } catch {
+      // Invalid YAML — keep editor as-is (markers already show the error).
+    }
+  };
 
   const transformPastedText = (text: string): string | null => {
     if (!isCurlCommand(text)) {
@@ -1356,6 +1379,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         showGlyphMargin={true}
         fontSize={fontSize}
       />
+      {needsYamlBeautify && (
+        <div className="bodyview-toolbar">
+          <button
+            type="button"
+            className="bodyview-btn-icon"
+            title="Beautify"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={beautifyYaml}
+          >
+            <span className="codicon codicon-wand" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

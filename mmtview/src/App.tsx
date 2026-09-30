@@ -25,7 +25,7 @@ import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
 import { cacheBodyLineNumbers } from "./api/bodyLineNumbersConfig";
 import { collectYamlEditorErrors } from "./text/yamlEditorErrors";
 import { cacheReportSpillBytes } from "./shared/reportSpillConfig";
-import YamlErrorWarning from "./api/YamlErrorWarning";
+import YamlErrorWarning, { YamlErrorDim } from "./api/YamlErrorWarning";
 import SpecApiPanel from "./spec/SpecApiPanel";
 import {
   SourceFormat,
@@ -448,9 +448,22 @@ const App: React.FC = () => {
 
   const yamlStale = sourceFormat === "mmt" && content !== validContent && yamlErrors.length > 0;
 
+  const [yamlErrorDimDismissed, setYamlErrorDimDismissed] = useState(false);
+
+  useEffect(() => {
+    if (yamlErrors.length === 0) {
+      setYamlErrorDimDismissed(false);
+    }
+  }, [yamlErrors.length]);
+
   const restoreValidYaml = useCallback(() => {
     setContent(validContent);
+    setYamlErrorDimDismissed(false);
   }, [validContent]);
+
+  const dismissYamlErrorDim = useCallback(() => {
+    setYamlErrorDimDismissed(true);
+  }, []);
 
   useEffect(() => {
     if (isInitLoad.current) {
@@ -538,7 +551,17 @@ const App: React.FC = () => {
     : { display: "none", width: 0, minWidth: 0, margin: 0, padding: 0, pointerEvents: "none" };
 
   return (
-    <FileContext.Provider value={{ mmtFilePath, projectRoot, yamlErrors, yamlStale, restoreValidYaml, collectionFiles, collectionName }}>
+    <FileContext.Provider value={{
+      mmtFilePath,
+      projectRoot,
+      yamlErrors,
+      yamlStale,
+      restoreValidYaml,
+      yamlErrorDimDismissed,
+      dismissYamlErrorDim,
+      collectionFiles,
+      collectionName,
+    }}>
       <div ref={splitHostRef} className="split-host">
         <SplitPane
           split="vertical"
@@ -587,6 +610,7 @@ const App: React.FC = () => {
               className="ui-pane-inner"
               style={isSplitMode ? { minWidth: 450 } : undefined}
             >
+              <YamlErrorDim />
               <PanelErrorBoundary resetKey={`${docType || "none"}::${validContent}`}>
                 {docType === "env" && (
                   <EnvironmentPanel content={validContent} setContent={uiSetContent} />

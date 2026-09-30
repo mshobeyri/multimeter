@@ -169,7 +169,7 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                 <button
                   type="button"
                   onClick={() => onRemove(i)}
-                  className="action-button codicon codicon-close check-clause-remove"
+                  className="check-clause-remove codicon codicon-close"
                   title={copy.remove}
                   aria-label={copy.remove}
                 />

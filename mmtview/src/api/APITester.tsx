@@ -24,6 +24,7 @@ import { normalizeNewlines } from "mmt-core/textLines";
 import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
+import { HideWhenYamlError } from "./YamlErrorWarning";
 import MethodUrlBar from "../components/MethodUrlBar";
 import BlurCommitInput from "../components/BlurCommitInput";
 import BodyFormatBar from "../components/BodyFormatBar";
@@ -147,6 +148,7 @@ const RESPONSE_TAB_OPTIONS: Array<{ key: ResponseTab; label: string }> = [
 
 const REQUEST_PANE_RATIO_KEY = "apitest-request-pane-ratio";
 const RESPONSE_TAB_KEY = "apitest-response-tab";
+const BODY_TOKEN_MODE_KEY = "apitest-body-token-mode";
 const DEFAULT_REQUEST_PANE_RATIO = 0.5;
 const MIN_REQUEST_PANE_RATIO = 0.15;
 const MAX_REQUEST_PANE_RATIO = 0.85;
@@ -194,11 +196,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     [currentInputs, envValues],
   );
 
-  const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>("resolved");
+  const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
+    const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
+    if (saved === "resolved" || saved === "tokens") {
+      return saved;
+    }
+    return "tokens";
+  });
 
   useEffect(() => {
     onRequestReset?.(() => {
-      setBodyTokenMode("resolved");
       setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
       setBodyYamlEncodeError(false);
       const baseInputs = selectedExampleIdx === -1
@@ -211,12 +218,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   }, [onRequestReset, prepareRequestData, api, examples, selectedExampleIdx, setCurrentInputs]);
 
   useEffect(() => {
-    setBodyTokenMode("resolved");
     // Seed storage preference from the newly opened file only.
     setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
     setBodyYamlEncodeError(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on file switch
   }, [mmtFilePath]);
+
+  useEffect(() => {
+    localStorage.setItem(BODY_TOKEN_MODE_KEY, bodyTokenMode);
+  }, [bodyTokenMode]);
 
   // Based on the displayed URL (not resolved inputs/env)
   const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined
@@ -983,14 +993,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               onClick={handleConnect}
             />
           )}
-          <SendButton
-            accent={methodOrProtocolAccent}
-            onClick={sendWithResolvedBody}
-            onCancel={handleCancel}
-            disabled={isWsUrl && !network.connected}
-            loading={isWsUrl ? network.loading : isSending}
-            contextMenuItems={sendContextMenuItems}
-          />
+          <HideWhenYamlError>
+            <SendButton
+              accent={methodOrProtocolAccent}
+              onClick={sendWithResolvedBody}
+              onCancel={handleCancel}
+              disabled={isWsUrl && !network.connected}
+              loading={isWsUrl ? network.loading : isSending}
+              contextMenuItems={sendContextMenuItems}
+            />
+          </HideWhenYamlError>
         </div>
         {rightOfUrlButton && (
           <div className="apitest-url-row-actions">

@@ -386,6 +386,29 @@ get {
     expect(steps.map(step => (step as {id?: string}).id)).toEqual(['Health', 'Health2']);
   });
 
+  it('translates Bruno {{$…}} dynamics to MMT tokens (Postman-parity map)', () => {
+    const bru = `meta {
+  name: Dyn
+}
+get {
+  url: https://test.mmt.dev/echo?id={{$guid}}&t={{$timestamp}}
+}
+headers {
+  X-Email: {{$randomEmail}}
+  X-Uuid: {{$randomUUID}}
+}
+body:json {
+  {"name":"{{$randomFullName}}","ip":"{{$randomIP}}"}
+}
+`;
+    const api = brunoToAPI(bru, 'dyn.bru');
+    expect(api?.url).toContain('id=r:uuid');
+    expect(api?.url).toContain('t=c:epoch');
+    expect(api?.headers?.['X-Email']).toBe('r:email');
+    expect(api?.headers?.['X-Uuid']).toBe('r:uuid');
+    expect(api?.body).toEqual({name: 'r:full_name', ip: 'r:ip'});
+  });
+
   it('reports unclosed blocks, duplicate methods, and empty URLs', () => {
     const unclosed = parseBrunoDocument('get {\n  url: https://example.com\n');
     expect(unclosed.warnings.some(w => w.message.includes('Unclosed Bruno block'))).toBe(true);

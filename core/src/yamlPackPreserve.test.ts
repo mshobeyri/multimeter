@@ -371,6 +371,19 @@ describe('mergeYamlValue', () => {
     expect(text).toContain('extra: true');
   });
 
+  it('inserts new map keys in Object.keys order (canonical pack order)', () => {
+    const doc = YAML.parseDocument('type: api\nurl: https://x\nmethod: get\nexamples: []\n');
+    mergeYamlValue(doc, doc.contents, {
+      type: 'api',
+      url: 'https://x',
+      method: 'get',
+      body: {ok: true},
+      examples: [],
+    });
+    const keys = (doc.contents as any).items.map((item: any) => String(item.key.value));
+    expect(keys).toEqual(['type', 'url', 'method', 'body', 'examples']);
+  });
+
   it('replaces a scalar with a map when the type changes', () => {
     const doc = YAML.parseDocument('value: old\n');
     mergeYamlValue(doc, doc.contents, {value: {nested: 1}});

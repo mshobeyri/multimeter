@@ -54,11 +54,30 @@ const POSTMAN_RANDOM_TOKEN_NAMES = new Set(Object.values(POSTMAN_RANDOM_MAP));
 export function translatePostmanTemplate(str: string): string {
   return str.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_m, inner) => {
     const name = String(inner).trim();
-    if (POSTMAN_RANDOM_MAP[name]) {
-      return `r:${POSTMAN_RANDOM_MAP[name]}`;
+    const mapped = lookupPostmanDynamicName(name);
+    if (mapped) {
+      return `r:${mapped}`;
     }
     return `<<e:${name}>>`;
   });
+}
+
+/** Map a Postman/Bruno `{{$…}}` name to an MMT random token name, if known. */
+export function lookupPostmanDynamicName(name: string): string | undefined {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (POSTMAN_RANDOM_MAP[trimmed]) {
+    return POSTMAN_RANDOM_MAP[trimmed];
+  }
+  const lower = trimmed.toLowerCase();
+  for (const [key, value] of Object.entries(POSTMAN_RANDOM_MAP)) {
+    if (key.toLowerCase() === lower) {
+      return value;
+    }
+  }
+  return undefined;
 }
 
 function replacePostmanVars(str: string): string {
@@ -140,7 +159,7 @@ export function parsePostmanRawJsonBody(raw: string): string | object {
       unquotedPattern,
       (_match, _token, inner, suffix) => {
         const key = `$${String(inner).trim()}`;
-        const mapped = POSTMAN_RANDOM_MAP[key];
+        const mapped = lookupPostmanDynamicName(key);
         if (mapped) {
           return `: "__MMT_UNQUOTED_${mapped}__"${suffix}`;
         }

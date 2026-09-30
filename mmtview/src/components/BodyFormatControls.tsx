@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Format, RequestFormat, ResponseFormat } from "mmt-core/CommonData";
 
 export type BodyFormatTopLevel = "none" | "multipart" | "raw" | "binary";
@@ -117,26 +118,117 @@ export function BodyFormatSelect<T extends string>({
   ariaLabel?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ left: number; top: number; minWidth: number } | null>(null);
   const selectRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const entries: readonly BodyFormatMenuEntry<T>[] = menu
     ?? (options ?? []).map(option => ({ kind: "option" as const, value: option }));
+
+  useLayoutEffect(() => {
+    if (!menuOpen || !triggerRef.current) {
+      setMenuPos(null);
+      return;
+    }
+    const place = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+      const minWidth = Math.max(112, rect.width);
+      const margin = 8;
+      const left = Math.min(
+        Math.max(margin, rect.left),
+        window.innerWidth - minWidth - margin,
+      );
+      const top = Math.min(rect.bottom + 4, window.innerHeight - margin);
+      setMenuPos({ left, top, minWidth });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!menuOpen) {
       return;
     }
     const onPointerDown = (event: PointerEvent) => {
-      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
       }
+      if (selectRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
+      }
+      setMenuOpen(false);
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [menuOpen]);
 
+  const menuNode = menuOpen && menuPos ? (
+    <div
+      ref={menuRef}
+      className="apitest-body-format-raw-menu is-portal"
+      role="listbox"
+      style={{
+        position: "fixed",
+        left: menuPos.left,
+        top: menuPos.top,
+        minWidth: menuPos.minWidth,
+        zIndex: 1000,
+      }}
+    >
+      {(() => {
+        let underRaw = false;
+        return entries.map((entry, index) => {
+          if (entry.kind === "heading") {
+            underRaw = entry.label.toLowerCase() === "raw";
+            return (
+              <div
+                key={`heading-${entry.label}-${index}`}
+                className="apitest-body-format-raw-heading"
+                role="presentation"
+              >
+                {entry.label}
+              </div>
+            );
+          }
+          const selected = entry.value === value;
+          return (
+            <button
+              key={entry.value}
+              type="button"
+              role="option"
+              aria-selected={selected}
+              className={[
+                "apitest-body-format-raw-option",
+                selected ? "is-selected" : "",
+                underRaw ? "is-raw-child" : "",
+              ].filter(Boolean).join(" ")}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setMenuOpen(false);
+                onChange(entry.value);
+              }}
+            >
+              {entry.value}
+            </button>
+          );
+        });
+      })()}
+    </div>
+  ) : null;
+
   return (
     <div className="apitest-body-format-raw-select" ref={selectRef}>
       <button
+        ref={triggerRef}
         type="button"
         className="apitest-body-format-raw-trigger"
         aria-haspopup="listbox"
@@ -148,48 +240,7 @@ export function BodyFormatSelect<T extends string>({
         <span>{value}</span>
         <span className="codicon codicon-chevron-down" aria-hidden />
       </button>
-      {menuOpen ? (
-        <div className="apitest-body-format-raw-menu" role="listbox">
-          {(() => {
-            let underRaw = false;
-            return entries.map((entry, index) => {
-              if (entry.kind === "heading") {
-                underRaw = entry.label.toLowerCase() === "raw";
-                return (
-                  <div
-                    key={`heading-${entry.label}-${index}`}
-                    className="apitest-body-format-raw-heading"
-                    role="presentation"
-                  >
-                    {entry.label}
-                  </div>
-                );
-              }
-              const selected = entry.value === value;
-              return (
-                <button
-                  key={entry.value}
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  className={[
-                    "apitest-body-format-raw-option",
-                    selected ? "is-selected" : "",
-                    underRaw ? "is-raw-child" : "",
-                  ].filter(Boolean).join(" ")}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onChange(entry.value);
-                  }}
-                >
-                  {entry.value}
-                </button>
-              );
-            });
-          })()}
-        </div>
-      ) : null}
+      {menuNode ? createPortal(menuNode, document.body) : null}
     </div>
   );
 }

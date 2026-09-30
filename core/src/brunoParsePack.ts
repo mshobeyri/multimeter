@@ -1,6 +1,7 @@
 import {APIData, AuthConfig} from './APIData';
 import {Method} from './CommonData';
 import {applyRunDebugToRequestSteps, safeStepId} from './identifierUtils';
+import {lookupPostmanDynamicName} from './postmanConvertor';
 import {TestData, TestFlowHttp, TestFlowStep} from './TestData';
 import {validateTestData} from './testParsePack';
 
@@ -230,15 +231,23 @@ const sanitizeId = (value: string): string => safeStepId(value);
 
 const convertVariableReference = (expr: string, variables: Record<string, string>): string => {
   const trimmed = expr.trim();
-  const lower = trimmed.toLowerCase();
   if (Object.prototype.hasOwnProperty.call(variables, trimmed)) {
     return variables[trimmed];
   }
+  const lower = trimmed.toLowerCase();
+  // Clock-style timestamp (Bruno + Postman $timestamp).
+  if (lower === '$timestamp' || lower === 'timestamp') {
+    return 'c:epoch';
+  }
+  const mapped = lookupPostmanDynamicName(trimmed);
+  if (mapped) {
+    if (mapped === 'epoch') {
+      return 'c:epoch';
+    }
+    return `r:${mapped}`;
+  }
   if (lower === '$guid' || lower === '$uuid' || lower === '$randomuuid') {
     return 'r:uuid';
-  }
-  if (lower === '$timestamp') {
-    return 'c:epoch';
   }
   return `<<e:${trimmed.replace(/[^A-Za-z0-9_-]/g, '_')}>>`;
 };
