@@ -68,7 +68,6 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
   return (
     <div className="panel-form">
       <div className="panel-form-row">
-        <div className="label">Auth</div>
         <select
           value={!api.auth ? "" : api.auth === "none" ? "none" : api.auth.type}
           onChange={e => {

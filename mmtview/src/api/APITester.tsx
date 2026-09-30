@@ -1168,7 +1168,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       ) : (
         <div className="apitest-section apitest-section--request">
         {shouldShowQuery() && <KSVEditor
-          label="Query parameters"
+          label=""
           value={peerQuery}
           onChange={onQueryChange}
           commitMode="blur"
@@ -1176,7 +1176,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           valueContext={bodyValueContext}
         />}
         {shouldShowHeaders() && <KSVEditor
-          label="Request Headers"
+          label=""
           value={peerHeaders}
           onChange={onHeadersChange}
           commitMode="blur"
@@ -1184,7 +1184,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           valueContext={bodyValueContext}
         />}
         {shouldShowCookies() && <KSVEditor
-          label="Manual Cookies"
+          label=""
           value={peerCookies}
           onChange={onCookiesChange}
           commitMode="blur"
@@ -1589,7 +1589,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         {shouldShowResponseHeaders() && (
           responseData ? (
             <KSVEditor
-              label="Response headers"
+              label=""
               value={responseData.headers || {}}
               onChange={() => { }}
               deactivated={true}
@@ -1602,7 +1602,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         {shouldShowResponseCookies() && (
           responseData ? (
             <KSVEditor
-              label="Cookies"
+              label=""
               value={responseData.cookies || {}}
               onChange={() => { }}
               deactivated={true}

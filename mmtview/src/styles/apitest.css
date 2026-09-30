@@ -316,6 +316,9 @@
 .apitest-section > .apitest-body-pane {
   flex: 1 1 auto;
   min-height: 150px;
+  /* Cancel section horizontal inset so Body stays edge-to-edge. */
+  margin-left: -15px;
+  margin-right: -15px;
 }
 
 .apitest-body-format-bar {
@@ -642,6 +645,8 @@
   gap: 12px;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 0 15px;
+  box-sizing: border-box;
 }
 
 /* Doc / settings fill the request pane. */
