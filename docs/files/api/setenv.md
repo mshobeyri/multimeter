@@ -3,6 +3,8 @@
 ### `setenv`
 Promote values from the response into the runtime environment after an API run.
 
+In the API tester, **Setenv** lives on the response **Outputs** tab: view mode shows which env variables were set to what after Send; the pencil opens edit mode for the extraction expressions (same editor formerly under Settings).
+
 Values use the **same extraction expressions as `outputs`** (paths, regex, keywords):
 ```yaml
 outputs:

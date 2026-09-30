@@ -32,39 +32,35 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 
 ### Tabs
 
-Under the URL bar:
+**Request** (top pane) and **Response** (bottom pane) each have their own tabs. Drag the sash between them to resize.
 
-| Tab | What you see |
+| Request tab | What you see |
 |---|---|
-| {{btn:settings-gear}} | `timeout`, `auth`, `import`, `setenv` |
+| {{btn:settings-gear}} | `timeout`, `auth`, `import` |
 | **Params** | Query parameters |
-| **Headers** | Request headers; response headers appear below Send after a reply |
-| **Body** | Request body; after send, **Response Body** appears below Send. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
-| **Cookies** | Request cookies; response cookies appear below Send after a reply |
-| **In/Out** | **Example** dropdown (**Select...** or `id - title`) + **+**; request-side **Inputs** and soft **Expect**; response-side **Outputs**. Pencil on Inputs/Outputs edits declarations. Badge shows example count |
+| **Headers** | Request headers |
+| **Body** | Request body. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
+| **Cookies** | Request cookies |
+| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Badge shows example count |
 | **Doc** | **Title**, **tags**, and **description** (Markdown). Pencil per section to edit |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
+| Response tab | What you see |
+|---|---|
+| **Body** | Response body (pretty / raw / preview) |
+| **Headers** | Response headers |
+| **Cookies** | Response cookies |
+| **Outputs** | Extracted **Outputs** and **Setenv** values after Send. Pencil edits extraction / setenv expressions |
+
+Send sits on the URL row (next to the method+URL control). Duration, status, and history sit at the right of the response tab bar.
+
 ### Send
 
-Below the request editors:
-
 | Control | What it does |
 |---|---|
-| {{btn:send:Send}} | Circular send button — runs the current request (HTTP / GraphQL / gRPC). After ~1.5s while in flight it turns into **Cancel** |
+| {{btn:send:Send}} | Circular send button beside the URL — runs the current request (HTTP / GraphQL / gRPC). After ~1.5s while in flight it turns into **Cancel** |
 | Right-click Send | Context menu: **Run in Core**, and **Run in Curl** for HTTP ([Curl](../../integration/curl.md)) |
 | {{btn:plug:Connect}} | WebSocket only — connect first; Send stays disabled until connected |
-
-### Bottom toolbar
-
-Fixed bar at the bottom of the tester:
-
-| Control | What it does |
-|---|---|
-| **Duration** | Last response time |
-| **Status** | HTTP status or protocol error / warning |
-| {{btn:history}} | Opens the **History** panel |
-| {{btn:sparkle-filled}} | Toggle auto-format (beautify) for bodies |
 
 See also: [History](../../panels/history.md) · [Connections](../../panels/connections.md)
 

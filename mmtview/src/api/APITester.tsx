@@ -150,6 +150,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     envValues,
     autoFormatBody,
     outputs,
+    setenvValues,
     apiTestResults,
     handleAddOutputVariable,
     prepareRequestData,
@@ -245,6 +246,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     return out;
   }, [outputKeys, outputs]);
   const outputFieldSuggestions = outputKeys;
+
+  /** Declared setenv env names; view mode shows values written after Send. */
+  const setenvKeys = useMemo(
+    () => Object.keys(api.setenv && typeof api.setenv === "object" ? api.setenv : {})
+      .filter(key => key.trim().length > 0),
+    [api.setenv],
+  );
+  const setenvDisplay = useMemo((): JSONRecord => {
+    const out: JSONRecord = {};
+    for (const key of setenvKeys) {
+      if (Object.prototype.hasOwnProperty.call(setenvValues, key)) {
+        out[key] = setenvValues[key];
+      }
+    }
+    return out;
+  }, [setenvKeys, setenvValues]);
 
   /** Per declared output: pass/fail vs selected example expect after Send. */
   const outputMatchStatus = useMemo(() => {
@@ -446,6 +463,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const [editDescription, setEditDescription] = useState(false);
   const [editInputsDecl, setEditInputsDecl] = useState(false);
   const [editOutputsDecl, setEditOutputsDecl] = useState(false);
+  const [editSetenvDecl, setEditSetenvDecl] = useState(false);
 
   const setEditorTab = (tab: EditorTab) => {
     setEditorTabInternal(tab);
@@ -1500,6 +1518,38 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 />
               ) : (
                 <div className="apitest-empty">No outputs defined.</div>
+              )}
+            </FadePane>
+            <SectionEditLabel
+              label="Setenv"
+              editing={editSetenvDecl}
+              onEdit={() => setEditSetenvDecl(true)}
+            />
+            <FadePane paneKey={editSetenvDecl ? "edit" : "view"} durationMs={100}>
+              {editSetenvDecl ? (
+                <div className="apitest-section-indent">
+                  <KSVEditor
+                    label=""
+                    value={api.setenv}
+                    onChange={kv => onUpdateApi?.({ setenv: kv })}
+                    keyPlaceholder="name"
+                    valuePlaceholder="body.path or regex"
+                    disabled={!onUpdateApi}
+                  />
+                  <SectionEditDone onDone={() => setEditSetenvDecl(false)} />
+                </div>
+              ) : setenvKeys.length > 0 ? (
+                <VEditor
+                  label=""
+                  value={setenvDisplay}
+                  onChange={() => { }}
+                  keyOptions={setenvKeys}
+                  readOnly
+                  deletable={false}
+                  copyable
+                />
+              ) : (
+                <div className="apitest-empty">No setenv variables defined.</div>
               )}
             </FadePane>
           </>

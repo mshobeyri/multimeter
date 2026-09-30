@@ -68,7 +68,7 @@ function AuthValueField({
   );
 }
 
-/** Auth, timeout, import, and setenv — Settings gear tab. */
+/** Auth, timeout, and import — Settings gear tab. */
 const ApiSettingsEditor: React.FC<ApiSettingsEditorProps> = ({ api, update }) => {
   const valueContext = useEnvTokenValueContext(
     typeof api.inputs === "object" ? (api.inputs as JSONRecord) : {},
@@ -262,15 +262,6 @@ const ApiSettingsEditor: React.FC<ApiSettingsEditorProps> = ({ api, update }) =>
         filePickerFilters={[
           { name: "Data files", extensions: ["json", "yaml", "yml", "csv"] },
         ]}
-      />
-      <KSVEditor
-        label="Setenv"
-        value={api.setenv}
-        onChange={kv => {
-          update({ setenv: kv });
-        }}
-        keyPlaceholder="name"
-        valuePlaceholder="body.path or regex"
       />
     </div>
   );

@@ -6,9 +6,10 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 
 | Place | Fields |
 |---|---|
-| {{btn:settings-gear:Settings}} (first tab) | `timeout`, `auth`, `import`, `setenv` |
+| {{btn:settings-gear:Settings}} (first tab) | `timeout`, `auth`, `import` |
 | **Doc** | `title`, `tags`, `description` — click the pencil next to a section to edit |
-| **In/Out** | Declared `inputs` / `outputs` (pencil), runtime example **Inputs** / **Outputs**, soft **Expect** |
+| **Inputs** (request) | Declared `inputs` (pencil), runtime example values, soft **Expect** |
+| **Outputs** (response) | Declared `outputs` / `setenv` (pencil); view mode shows extracted / env values after Send |
 | **Params** / **Headers** / **Body** / **Cookies** | Request message fields (same as Send) |
 
 ### Settings
@@ -16,7 +17,6 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 - `timeout` — per-request timeout in milliseconds
 - `auth` — none, bearer, basic, API key, or OAuth2
 - `import` — alias → path pairs with file picker (JSON, YAML, CSV)
-- `setenv` — capture response values into environment variables
 
 ### Doc
 
@@ -24,10 +24,10 @@ Each of **Title**, **Tags**, and **Description** has a pencil control. View mode
 
 See [Documentation](./documentation.md) for description annotations.
 
-### In/Out
+### Inputs / Outputs
 
-- **Example** dropdown and soft **Expect** stay on this tab
-- Pencil on **Inputs** / **Outputs** switches between runtime values (for Send) and declared defaults / extraction paths
+- **Inputs** (request pane): Example dropdown, soft **Expect**, and declared/runtime inputs
+- **Outputs** (response pane): pencil switches between extraction paths and values after Send; **Setenv** works the same way (edit expressions / view env values written after Send)
 
 Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear on their protocol tabs. See [Protocols](./protocols/index.md).
 

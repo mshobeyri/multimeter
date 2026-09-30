@@ -124,6 +124,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
   const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
   const [outputs, setOutputs] = useState<JSONRecord>({});
+  const [setenvValues, setSetenvValues] = useState<JSONRecord>({});
   const [apiTestResults, setApiTestResults] = useState<import("mmt-core/apiTestEval").ApiTestExpectItem[] | null>(null);
 
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
@@ -398,9 +399,22 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
         }
       });
       setOutputs(finalOutputs);
+    } else {
+      setOutputs({});
     }
 
-    void handleSetEnvVariables(api, extractSource, finalOutputs);
+    const resolvedSetenv = resolveSetenvValues({
+      response: extractSource,
+      setenv: api.setenv,
+      outputs: api.outputs,
+      extractedOutputs: finalOutputs,
+    });
+    const nextSetenv: JSONRecord = {};
+    for (const item of resolvedSetenv) {
+      nextSetenv[item.name] = item.value;
+    }
+    setSetenvValues(nextSetenv);
+    void applyResolvedSetenvVariables(api, resolvedSetenv);
   }, [responseData?.body, responseData?.headers, responseData?.cookies, responseData?.status, responseData?.duration, api.outputs, api.setenv, api]);
 
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
@@ -667,6 +681,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     autoFormatBody,
     setAutoFormatBody,
     outputs,
+    setenvValues,
     apiTestResults,
     isSending,
     updateField,
@@ -701,28 +716,10 @@ function toContentString(data: any): string {
   return responseBodyToRawString(data);
 }
 
-async function handleSetEnvVariables(
+async function applyResolvedSetenvVariables(
   api: APIData,
-  response: {
-    type: "auto";
-    body: any;
-    headers: Record<string, any>;
-    cookies: Record<string, any>;
-    status?: number;
-    duration?: number;
-  },
-  finalOutputs: JSONRecord
+  resolved: Array<{ name: string; value: string | number | boolean }>,
 ) {
-  if (!api.setenv || typeof api.setenv !== "object" || Object.keys(api.setenv).length === 0) {
-    return;
-  }
-
-  const resolved = resolveSetenvValues({
-    response,
-    setenv: api.setenv,
-    outputs: api.outputs,
-    extractedOutputs: finalOutputs,
-  });
   if (resolved.length === 0) {
     return;
   }
