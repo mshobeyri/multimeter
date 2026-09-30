@@ -98,6 +98,21 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
   return Object.keys(record).filter(key => key.trim().length > 0).length;
 }
 
+/** Empty state for response tabs before the first Send. */
+const NoResponseYet: React.FC<{ onSend: () => void }> = ({ onSend }) => (
+  <div className="apitest-empty">
+    No response yet. Click{" "}
+    <button
+      type="button"
+      className="apitest-empty-send-link"
+      onClick={onSend}
+    >
+      Send
+    </button>
+    {" "}to run the request.
+  </div>
+);
+
 const TAB_OPTIONS: Array<{
   key: EditorTab;
   label: string;
@@ -1516,6 +1531,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       </div>
       <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={130}>
       <div className="apitest-section apitest-section--response">
+        {!responseData && (shouldShowResponse() || shouldShowResponseHeaders() || shouldShowResponseCookies() || shouldShowOutputs()) ? (
+          <NoResponseYet onSend={sendWithResolvedBody} />
+        ) : (
+          <>
         {shouldShowOutputs() && (
           <>
             <SectionEditLabel
@@ -1587,46 +1606,36 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         )}
 
         {shouldShowResponseHeaders() && (
-          responseData ? (
-            <KSVEditor
-              label=""
-              value={responseData.headers || {}}
-              onChange={() => { }}
-              deactivated={true}
-            />
-          ) : (
-            <div className="apitest-empty">No response yet.</div>
-          )
+          <KSVEditor
+            label=""
+            value={responseData?.headers || {}}
+            onChange={() => { }}
+            deactivated={true}
+          />
         )}
 
         {shouldShowResponseCookies() && (
-          responseData ? (
-            <KSVEditor
-              label=""
-              value={responseData.cookies || {}}
-              onChange={() => { }}
-              deactivated={true}
-            />
-          ) : (
-            <div className="apitest-empty">No response yet.</div>
-          )
+          <KSVEditor
+            label=""
+            value={responseData?.cookies || {}}
+            onChange={() => { }}
+            deactivated={true}
+          />
         )}
 
         {shouldShowResponse() && (
-          responseData ? (
-            <div className="apitest-body-pane">
-              <div className="apitest-body-wrapper">
-                <ResponseBodyContent
-                  display={responseDisplay}
-                  refreshKey={responseRevision}
-                  requestUrl={requestData?.url}
-                  onInspectPosition={handleAddOutputVariable}
-                />
-              </div>
+          <div className="apitest-body-pane">
+            <div className="apitest-body-wrapper">
+              <ResponseBodyContent
+                display={responseDisplay}
+                refreshKey={responseRevision}
+                requestUrl={requestData?.url}
+                onInspectPosition={handleAddOutputVariable}
+              />
             </div>
-          ) : (
-            <div className="apitest-empty">No response yet. Click Send to run the request.</div>
-          )
+          </div>
+        )}
+          </>
         )}
       </div>
       </FadePane>
