@@ -52,6 +52,7 @@ import ApiTestsEditor from "./ApiTestsEditor";
 import ApiSettingsEditor from "./ApiSettingsEditor";
 import { formatBody } from "mmt-core/markupConvertor";
 import { FormatChip } from "../components/BodyFormatControls";
+import OverflowTabBar, { type OverflowTabItem } from "../components/OverflowTabBar";
 import {
   accentChromeCssVars,
   accentChromeFor,
@@ -883,6 +884,55 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     setSelectedExampleIdx(updatedExamples.length - 1);
   };
 
+  const requestOverflowTabs = useMemo((): OverflowTabItem<EditorTab>[] => {
+    return TAB_OPTIONS
+      .filter(tab => {
+        if ((isGraphQL || isGrpc) && (tab.key === "body" || tab.key === "params" || tab.key === "cookies")) {
+          return false;
+        }
+        if (tab.protocol) {
+          if (tab.protocol === "graphql") { return isGraphQL; }
+          if (tab.protocol === "grpc") { return isGrpc; }
+        }
+        return true;
+      })
+      .map(tab => {
+        const count = tab.key === "headers"
+          ? countNamedEntries(api.headers)
+          : tab.key === "cookies"
+            ? countNamedEntries(api.cookies)
+            : tab.key === "inputs"
+              ? countNamedEntries(api.inputs as Record<string, unknown> | undefined)
+              : 0;
+        return {
+          id: tab.key,
+          label: tab.label,
+          count: count > 0 ? count : undefined,
+          iconOnly: tab.iconOnly,
+          buttonClassName: tab.iconOnly ? "apitest-tab-settings" : undefined,
+          title: tab.iconOnly ? tab.label : undefined,
+          "aria-label": tab.iconOnly ? tab.label : undefined,
+        };
+      });
+  }, [api.cookies, api.headers, api.inputs, isGraphQL, isGrpc]);
+
+  const responseOverflowTabs = useMemo((): OverflowTabItem<ResponseTab>[] => {
+    return RESPONSE_TAB_OPTIONS.map(tab => {
+      const count = tab.key === "headers"
+        ? countNamedEntries(responseData?.headers)
+        : tab.key === "cookies"
+          ? countNamedEntries(responseData?.cookies)
+          : tab.key === "outputs"
+            ? outputKeys.length + setenvKeys.length
+            : 0;
+      return {
+        id: tab.key,
+        label: tab.label,
+        count: count > 0 ? count : undefined,
+      };
+    });
+  }, [outputKeys.length, responseData?.cookies, responseData?.headers, setenvKeys.length]);
+
   return (
     <div className={`apitest-root${selector ? " apitest-root--source" : ""}`}>
       {/* ── Fixed header: URL bar + Send ── */}
@@ -938,48 +988,78 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       >
       <div className="apitest-request-pane">
       <div className="apitest-tabs-row">
-        <div className="tab-bar is-gap is-no-rule">
-          {TAB_OPTIONS
-            .filter(tab => {
-              // Hide body/params/cookies for graphql/grpc protocols
-              if ((isGraphQL || isGrpc) && (tab.key === "body" || tab.key === "params" || tab.key === "cookies")) {
-                return false;
-              }
-              // Only show protocol-specific tabs for matching protocol
-              if (tab.protocol) {
-                if (tab.protocol === "graphql") { return isGraphQL; }
-                if (tab.protocol === "grpc") { return isGrpc; }
-              }
-              return true;
-            })
-            .map(tab => {
-              const active = editorTab === tab.key;
-              const count = tab.key === "headers"
-                ? countNamedEntries(api.headers)
-                : tab.key === "cookies"
-                  ? countNamedEntries(api.cookies)
-                  : tab.key === "inputs"
-                    ? examples.filter(ex => ex && typeof ex === "object").length
-                    : 0;
-              return (
-            <button
-              key={tab.key}
-              type="button"
-              className={`tab-button-small${tab.iconOnly ? " apitest-tab-settings" : ""}${active ? " active" : ""}`}
-              onClick={() => setEditorTab(tab.key)}
-              title={tab.iconOnly ? tab.label : undefined}
-              aria-label={tab.iconOnly ? tab.label : undefined}
-            >
-              {tab.iconOnly ? (
-                <span className={`codicon codicon-${tab.iconOnly} tab-button-icon`} aria-hidden />
-              ) : (
-                tab.label
-              )}
-              {count > 0 ? <span className="apitest-tab-count">{count}</span> : null}
-            </button>
-              );
-            })}
-        </div>
+        <OverflowTabBar
+          tabs={requestOverflowTabs}
+          value={editorTab}
+          onChange={setEditorTab}
+          variant="small"
+          showRule={false}
+          gap
+        />
+        {shouldShowBody() && (
+          <div className="apitest-tabs-tools">
+            <div className="apitest-body-toolbar-main">
+              <BodyFormatBar
+                value={currentRequestFormat}
+                onChange={format => setBodyFormat("request", format)}
+              />
+              {resolvedRequestFormat !== "none"
+                && resolvedRequestFormat !== "text"
+                && resolvedRequestFormat !== "binary"
+                && resolvedRequestFormat !== "multipart" ? (
+                <>
+                  <span className="apitest-body-format-divider" aria-hidden />
+                  <div
+                    className="apitest-body-format-bar-group"
+                    role="radiogroup"
+                    aria-label="Body storage"
+                  >
+                    <FormatChip
+                      label="plain"
+                      selected={!bodyEditYamlEncoded}
+                      title="Store body as a text block"
+                      onClick={() => handleBodyEditYamlEncoded(false)}
+                    />
+                    <FormatChip
+                      label="encoded"
+                      selected={bodyEditYamlEncoded}
+                      overlined={bodyYamlEncodeError}
+                      title={bodyYamlEncodeError
+                        ? "Encoded preferred — using plain until the body is valid again"
+                        : "Store body as structured YAML instead of a text block"}
+                      onClick={() => handleBodyEditYamlEncoded(true)}
+                    />
+                  </div>
+                </>
+              ) : null}
+              {resolvedRequestFormat !== "none"
+                && resolvedRequestFormat !== "binary"
+                && resolvedRequestFormat !== "multipart" ? (
+                <>
+                  <span className="apitest-body-format-divider" aria-hidden />
+                  <div
+                    className="apitest-body-format-bar-group"
+                    role="radiogroup"
+                    aria-label="Body display"
+                  >
+                    <FormatChip
+                      label="resolved"
+                      selected={bodyTokenMode === "resolved"}
+                      title="Show resolved input/env values"
+                      onClick={() => handleBodyTokenModeChange("resolved")}
+                    />
+                    <FormatChip
+                      label="tokens"
+                      selected={bodyTokenMode === "tokens"}
+                      title="Edit {{i:}} / {{e:}} / {{r:}} / {{c:}} tokens"
+                      onClick={() => handleBodyTokenModeChange("tokens")}
+                    />
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
       </div>
       <FadePane paneKey={editorTab} className="apitest-pane-fill" durationMs={130}>
 
@@ -1100,68 +1180,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         />}
         {shouldShowBody() && (
           <div className="apitest-body-pane">
-            <div className="apitest-body-toolbar">
-              <div className="apitest-body-toolbar-main">
-                <BodyFormatBar
-                  value={currentRequestFormat}
-                  onChange={format => setBodyFormat("request", format)}
-                />
-                {resolvedRequestFormat !== "none"
-                  && resolvedRequestFormat !== "text"
-                  && resolvedRequestFormat !== "binary"
-                  && resolvedRequestFormat !== "multipart" ? (
-                  <>
-                    <span className="apitest-body-format-divider" aria-hidden />
-                    <div
-                      className="apitest-body-format-bar-group"
-                      role="radiogroup"
-                      aria-label="Body storage"
-                    >
-                      <FormatChip
-                        label="plain"
-                        selected={!bodyEditYamlEncoded}
-                        title="Store body as a text block"
-                        onClick={() => handleBodyEditYamlEncoded(false)}
-                      />
-                      <FormatChip
-                        label="encoded"
-                        selected={bodyEditYamlEncoded}
-                        overlined={bodyYamlEncodeError}
-                        title={bodyYamlEncodeError
-                          ? "Encoded preferred — using plain until the body is valid again"
-                          : "Store body as structured YAML instead of a text block"}
-                        onClick={() => handleBodyEditYamlEncoded(true)}
-                      />
-                    </div>
-                  </>
-                ) : null}
-                {resolvedRequestFormat !== "none"
-                  && resolvedRequestFormat !== "binary"
-                  && resolvedRequestFormat !== "multipart" ? (
-                  <>
-                    <span className="apitest-body-format-divider" aria-hidden />
-                    <div
-                      className="apitest-body-format-bar-group"
-                      role="radiogroup"
-                      aria-label="Body display"
-                    >
-                      <FormatChip
-                        label="resolved"
-                        selected={bodyTokenMode === "resolved"}
-                        title="Show resolved input/env values"
-                        onClick={() => handleBodyTokenModeChange("resolved")}
-                      />
-                      <FormatChip
-                        label="tokens"
-                        selected={bodyTokenMode === "tokens"}
-                        title="Edit {{i:}} / {{e:}} / {{r:}} / {{c:}} tokens"
-                        onClick={() => handleBodyTokenModeChange("tokens")}
-                      />
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            </div>
             {requestBodyDisabled ? (
               <div className="apitest-body-none" role="status">
                 <span className="codicon codicon-jersey apitest-body-none-icon" aria-hidden />
@@ -1436,29 +1454,29 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
       <div className="apitest-response-pane">
       <div className="apitest-tabs-row apitest-response-tabs-row">
-        <div className="tab-bar is-gap is-no-rule">
-          {RESPONSE_TAB_OPTIONS.map(tab => {
-            const active = responseTab === tab.key;
-            const count = tab.key === "headers"
-              ? countNamedEntries(responseData?.headers)
-              : tab.key === "cookies"
-                ? countNamedEntries(responseData?.cookies)
-                : tab.key === "outputs"
-                  ? outputKeys.length
-                  : 0;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                className={`tab-button-small${active ? " active" : ""}`}
-                onClick={() => setResponseTab(tab.key)}
-              >
-                {tab.label}
-                {count > 0 ? <span className="apitest-tab-count">{count}</span> : null}
-              </button>
-            );
-          })}
-        </div>
+        <OverflowTabBar
+          tabs={responseOverflowTabs}
+          value={responseTab}
+          onChange={setResponseTab}
+          variant="small"
+          showRule={false}
+          gap
+        />
+        {shouldShowResponse() && responseData ? (
+          <>
+            <div className="apitest-tabs-tools">
+              <ResponseBodyBar
+                type={currentResponseFormat}
+                view={responseDisplay.effectiveView}
+                prettyAvailable={responseDisplay.prettyAvailable}
+                previewAvailable={responseDisplay.previewAvailable}
+                onTypeChange={type => setBodyFormat("response", type)}
+                onViewChange={setResponseViewMode}
+              />
+            </div>
+            <span className="apitest-tabs-tools-divider" aria-hidden />
+          </>
+        ) : null}
         <div className="apitest-response-meta">
           {(responseData?.duration) && <ResponseDuration duration={responseData.duration} />}
           {(responseData) && (
@@ -1584,14 +1602,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         {shouldShowResponse() && (
           responseData ? (
             <div className="apitest-body-pane">
-              <ResponseBodyBar
-                type={currentResponseFormat}
-                view={responseDisplay.effectiveView}
-                prettyAvailable={responseDisplay.prettyAvailable}
-                previewAvailable={responseDisplay.previewAvailable}
-                onTypeChange={type => setBodyFormat("response", type)}
-                onViewChange={setResponseViewMode}
-              />
               <div className="apitest-body-wrapper">
                 <ResponseBodyContent
                   display={responseDisplay}

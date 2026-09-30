@@ -206,21 +206,50 @@
 }
 
 .apitest-tabs-row {
-  padding: 0 0 8px;
-  flex-shrink: 0;
-}
-
-.apitest-response-tabs-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding: 0 0 8px;
+  flex-shrink: 0;
   min-width: 0;
 }
 
-.apitest-response-tabs-row > .tab-bar {
+.apitest-tabs-row > .tab-bar,
+.apitest-tabs-row > .overflow-tab-bar {
   min-width: 0;
   flex: 1 1 auto;
+}
+
+.apitest-response-tabs-row > .tab-bar,
+.apitest-response-tabs-row > .overflow-tab-bar {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.apitest-tabs-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 12px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.apitest-tabs-tools .apitest-body-toolbar,
+.apitest-tabs-tools .apitest-body-format-bar,
+.apitest-tabs-tools .apitest-body-toolbar-main {
+  padding: 0;
+  flex: 0 1 auto;
+}
+
+.apitest-tabs-tools-divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 14px;
+  margin: 0 2px;
+  background: var(--vscode-editorWidget-border, #454545);
+  flex-shrink: 0;
 }
 
 .apitest-response-meta {

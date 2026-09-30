@@ -41,7 +41,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 | **Headers** | Request headers |
 | **Body** | Request body. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
 | **Cookies** | Request cookies |
-| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Badge shows example count |
+| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Badge shows input count |
 | **Doc** | **Title**, **tags**, and **description** (Markdown). Pencil per section to edit |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
@@ -50,7 +50,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 | **Body** | Response body (pretty / raw / preview) |
 | **Headers** | Response headers |
 | **Cookies** | Response cookies |
-| **Outputs** | Extracted **Outputs** and **Setenv** values after Send. Pencil edits extraction / setenv expressions |
+| **Outputs** | Extracted **Outputs** and **Setenv** values after Send. Pencil edits extraction / setenv expressions. Badge shows outputs + setenv count |
 
 Send sits on the URL row (next to the method+URL control). Duration, status, and history sit at the right of the response tab bar.
 

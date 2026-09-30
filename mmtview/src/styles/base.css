@@ -961,6 +961,41 @@ button:focus {
   border-bottom: none;
 }
 
+/* Overflow tab strip: no wrap; clipped tabs move into ≫ menu. */
+.overflow-tab-bar {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 100%;
+}
+
+.overflow-tab-bar-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  flex-wrap: nowrap;
+  margin: 0;
+  border: none;
+}
+
+.tab-bar.is-overflow {
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.tab-overflow-more {
+  flex-shrink: 0;
+  letter-spacing: -0.05em;
+  font-weight: 600;
+}
+
 .tab-button {
   padding: 8px 12px;
   border: none;
