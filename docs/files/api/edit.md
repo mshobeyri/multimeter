@@ -1,52 +1,36 @@
-# Edit API
+# Edit API fields in the tester
 
-Open an API file in VS Code and click {{btn:edit:Edit API}} in the tester top bar to switch from the **API tester** to **edit mode**. Use the back control on the edit header to return to the tester.
+API fields are edited inline in the **API tester** — there is no separate Edit API page. Edits write directly to the YAML.
 
-Edits in edit mode write directly to the YAML. The tester UI is temporary until you **Save to YAML** or **Discard** (see [Unsaved Changes](./index.md#unsaved-changes)).
+## Where to edit
 
-## Tabs
-
-| Tab | What you edit |
+| Place | Fields |
 |---|---|
-| {{btn:search:Overview}} | `title`, `tags`, `description` (with optional Markdown preview), `import`, `inputs`, `outputs`, `setenv` |
-| {{btn:symbol-interface:Interface}} | `protocol`, `url`, `method`, `timeout`, `headers`, `query`, `cookies`, `body`, `auth`, request/response `format` |
-| {{btn:lightbulb:Examples}} | Example **id** / **title** / **description**, **Inputs**, soft **Expect**, and hard **Require** |
+| {{btn:settings-gear:Settings}} (first tab) | `timeout`, `auth`, `import`, `setenv` |
+| **Doc** | `title`, `tags`, `description` — click the pencil next to a section to edit |
+| **In/Out** | Declared `inputs` / `outputs` (pencil), runtime example **Inputs** / **Outputs**, soft **Expect** |
+| **Params** / **Headers** / **Body** / **Cookies** | Request message fields (same as Send) |
 
-### Overview
+### Settings
 
-| Field | Notes |
-|---|---|
-| `title` | Maps to `title:` |
-| `tags` | Searchable tag chips; maps to `tags:` |
-| `description` | Markdown editor with optional preview; maps to `description:` |
-| `import` | Key/value alias → path pairs with file picker (JSON, YAML, CSV data files) |
-| `inputs` | Parameter definitions used by `<<i:>>` tokens and the Examples tab |
-| `outputs` | Extraction expressions for response values |
-| `setenv` | Capture response values into environment variables |
-
-See [Documentation](./documentation.md) for description annotations and [Inputs](./inputs.md) / [Outputs](./outputs.md) for token syntax.
-
-### Interface
-
-The Interface tab is the structured editor for the request definition:
-
-- `protocol` — HTTP, WebSocket, GraphQL, or gRPC
-- `url` — base URL (query string is edited separately)
-- `method` — HTTP verb when applicable
 - `timeout` — per-request timeout in milliseconds
-- `headers`, `query`, `cookies` — key/value editors
-- `body` — request body with format selector (`json`, `xml`, `text`, `urlencoded`, `binary`, …)
 - `auth` — none, bearer, basic, API key, or OAuth2
-- `format` — separate request and response format pickers
+- `import` — alias → path pairs with file picker (JSON, YAML, CSV)
+- `setenv` — capture response values into environment variables
 
-Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear when that protocol is selected. See [Protocols](./protocols/index.md).
+### Doc
 
-### Examples
+Each of **Title**, **Tags**, and **Description** has a pencil control. View mode shows the rendered value (Markdown for description); edit mode shows the same boxes formerly on the Edit API page.
 
-Each example block has an **id**, optional **title**, optional **description**, **inputs**, and soft **expect** checks. Use **Add Example** to create a new block; remove with the delete control on each example.
+See [Documentation](./documentation.md) for description annotations.
 
-Examples appear in the tester **Examples** tab dropdown and get run glyphs in the YAML editor when `id:` (or deprecated `name:`) is non-empty. See [Examples](./examples.md).
+### In/Out
+
+- **Example** dropdown and soft **Expect** stay on this tab
+- Pencil on **Inputs** / **Outputs** switches between runtime values (for Send) and declared defaults / extraction paths
+
+Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear on their protocol tabs. See [Protocols](./protocols/index.md).
 
 ---
 
-See also: [API overview](./index.md) · [Quick start](./quick-start.md) · [Reference](./reference.md)
+See also: [API overview](./index.md) · [Quick start](./quick-start.md) · [Reference](./reference.md) · [Examples](./examples.md)

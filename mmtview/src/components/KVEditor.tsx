@@ -105,11 +105,13 @@ const KVEditor: React.FC<KVEditorProps> = ({
 
   return (
     <div className="mmt-fill">
-      <div
-        className={disabled ? "label label-disabled" : "label"}
-      >
-        {label}
-      </div>
+      {label ? (
+        <div
+          className={disabled ? "label label-disabled" : "label"}
+        >
+          {label}
+        </div>
+      ) : null}
       <table className="field-table">
         <tbody>
           {safeList(entries)

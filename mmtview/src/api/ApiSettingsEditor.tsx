@@ -1,12 +1,7 @@
-import React, { useState } from "react";
-import SearchableTagInput from "../components/SearchableTagInput";
+import React from "react";
 import KSVEditor from "../components/KSVEditor";
-import KVEditor from "../components/KVEditor";
 import { APIData } from "mmt-core/APIData";
 import { JSONRecord } from "mmt-core/CommonData";
-import DescriptionEditor from "../components/DescriptionEditor";
-import MdViewer from "../components/MdViewer";
-import { safeList } from "mmt-core/safer";
 import {
   peerStringToDisplay,
   peerStringToYaml,
@@ -16,7 +11,7 @@ import TokenFieldInput from "../components/TokenFieldInput";
 import { useEnvTokenValueContext } from "../components/useEnvTokenValueContext";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
-interface APIOverviewProps {
+interface ApiSettingsEditorProps {
   api: APIData;
   update: (patch: Partial<APIData>) => void;
 }
@@ -73,57 +68,14 @@ function AuthValueField({
   );
 }
 
-const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
-  const [showPreview, setShowPreview] = useState(false);
+/** Auth, timeout, import, and setenv — Settings gear tab. */
+const ApiSettingsEditor: React.FC<ApiSettingsEditorProps> = ({ api, update }) => {
   const valueContext = useEnvTokenValueContext(
     typeof api.inputs === "object" ? (api.inputs as JSONRecord) : {},
   );
 
   return (
-    <div className="panel-form APIOverview">
-      <div className="panel-form-row">
-        <div className="label">Title</div>
-        <input
-          value={api.title || ""}
-          onChange={e => update({ title: e.target.value })}
-          placeholder="title"
-        />
-      </div>
-
-      <div className="panel-form-row">
-        <div className="label">Tags</div>
-        <SearchableTagInput
-          tags={safeList(api.tags)}
-          onChange={tags => update({ tags })}
-          suggestions={["security", "sessionless", "api", "user", "admin"]}
-        />
-      </div>
-
-      <div className="panel-form-row">
-        <div className="label label-row">
-          <span>Description</span>
-          <label className="label-action">
-            <input
-              type="checkbox"
-              checked={showPreview}
-              onChange={e => setShowPreview(e.target.checked)}
-            />
-            Preview
-          </label>
-        </div>
-        <DescriptionEditor
-          value={api.description || ""}
-          onChange={value => update({ description: value })}
-        />
-        {showPreview && api.description ? (
-          <MdViewer
-            description={api.description}
-            inputs={api.inputs}
-            outputs={api.outputs}
-          />
-        ) : null}
-      </div>
-
+    <div className="panel-form">
       <div className="panel-form-row">
         <div className="label">Timeout (ms)</div>
         <input
@@ -311,26 +263,6 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
           { name: "Data files", extensions: ["json", "yaml", "yml", "csv"] },
         ]}
       />
-      <KVEditor
-        label="Inputs"
-        value={api.inputs}
-        onChange={kv => {
-          update({ inputs: kv });
-        }}
-        keyPlaceholder="name"
-        valuePlaceholder="value"
-        canContainToken
-        valueContext={valueContext}
-      />
-      <KSVEditor
-        label="Outputs"
-        value={api.outputs}
-        onChange={kv => {
-          update({ outputs: kv });
-        }}
-        keyPlaceholder="name"
-        valuePlaceholder="value"
-      />
       <KSVEditor
         label="Setenv"
         value={api.setenv}
@@ -344,4 +276,4 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
   );
 };
 
-export default APIOverview;
+export default ApiSettingsEditor;

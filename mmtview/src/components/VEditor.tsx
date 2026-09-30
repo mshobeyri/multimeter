@@ -84,9 +84,11 @@ const VEditor: React.FC<VEditorProps> = ({
 
   return (
     <div className="mmt-fill">
-      <div className={disabled ? "label label-disabled is-gap" : "label is-gap"}>
-        {label}
-      </div>
+      {label ? (
+        <div className={disabled ? "label label-disabled is-gap" : "label is-gap"}>
+          {label}
+        </div>
+      ) : null}
       <div>
         {safeList(keys).map((key, index) => {
           const currentValue = value?.[key];

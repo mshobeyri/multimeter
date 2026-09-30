@@ -2,7 +2,7 @@
 
 Write request definitions in `.mmt` files with `type: api`. Open an API file in VS Code to get the **API tester** on the right (YAML stays on the left).
 
-![API tester — method, URL, Edit API, and Body tab](../../screenshots/api-tester.png)
+![API tester — method, URL, and Body tab](../../screenshots/api-tester.png)
 
 ## YAML editor
 
@@ -23,25 +23,12 @@ Example run glyphs appear only when the example has a non-empty `id` (or depreca
 |---|---|
 | **Method / protocol** | Colored dropdown left of the URL (e.g. {{btn:method:POST}}). Pick an HTTP method, or switch protocol to WebSocket / GraphQL / gRPC |
 | **URL** | Editable request URL. Edits in the Params tab stay synced with the query string |
-| {{btn:edit:Edit API}} | Switches to **edit mode** — see [Edit API](./edit.md). Hidden while the tester has unsaved changes |
-| {{btn:warning:UNSAVED CHANGES}} | Appears instead of Edit API when the tester has unsaved UI edits — see [Unsaved Changes](#unsaved-changes) |
 
-### Unsaved Changes
-
-The API tester is **temporary**. Edits to method, URL, body, headers, and so on are used for Send, but they are not in the YAML until you save them there. Closing the file discards them. **Edit API** writes the YAML; the tester does not.
-
-When the tester has unsaved edits, a bar at the top of the right pane turns yellow and **Edit API** is replaced by {{btn:warning:UNSAVED CHANGES}}. Open it to compare the two versions:
-
-- {{btn:save:Save to YAML}} — write the tester values into the YAML
-- {{btn:discard:Discard}} — throw away the UI changes and follow the YAML again
-
-If you edit the YAML while the tester has unsaved changes, a dialog titled **Unsaved changes in UI** asks you to **Discard UI changes** (apply the YAML). Dismiss the dialog to keep the tester as-is.
-
-![Unsaved Changes — Save to YAML writes tester edits into the file; Discard throws them away](../../screenshots/api-yaml-autosync-paused.png)
+Edits in the tester (including Doc pencils, Settings, and In/Out declarations) write to the YAML. See [Edit API fields](./edit.md).
 
 ### YAML errors
 
-When the YAML on the left has errors, the tester keeps the last valid UI. The same top bar turns red and **Edit API** is replaced by {{btn:error:YAML ERROR}}. Open it to read the errors. Click an error to jump to that line. If the YAML is broken, **Restore YAML** reverts it to the last valid version.
+When the YAML on the left has errors, the tester keeps the last valid UI. The top bar shows {{btn:error:YAML ERROR}}. Open it to read the errors. Click an error to jump to that line. If the YAML is broken, **Restore YAML** reverts it to the last valid version.
 
 ### Tabs
 
@@ -49,12 +36,13 @@ Under the URL bar:
 
 | Tab | What you see |
 |---|---|
+| {{btn:settings-gear}} | `timeout`, `auth`, `import`, `setenv` |
 | **Params** | Query parameters |
 | **Headers** | Request headers; response headers appear below Send after a reply |
 | **Body** | Request body; after send, **Response Body** appears below Send. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
 | **Cookies** | Request cookies; response cookies appear below Send after a reply |
-| **Doc** | Preview of `description` and `<<i:>>` / `<<o:>>` parameter docs |
-| **Examples** | **Example** dropdown (**Select...** or `id - title`) + **+** to add a test; request-side **Inputs** and soft **Expect** when an example is selected; response-side **Outputs**. Badge shows example count. After Send with an example selected, expect rows and matching outputs show pass/fail |
+| **In/Out** | **Example** dropdown (**Select...** or `id - title`) + **+**; request-side **Inputs** and soft **Expect**; response-side **Outputs**. Pencil on Inputs/Outputs edits declarations. Badge shows example count |
+| **Doc** | **Title**, **tags**, and **description** (Markdown). Pencil per section to edit |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
 ### Send
@@ -120,7 +108,7 @@ cookies:
 
 ## API elements
 
-- [Quick start](./quick-start.md) · [Edit API](./edit.md)
+- [Quick start](./quick-start.md) · [Edit API fields](./edit.md)
 - [Protocols](./protocols/index.md) — HTTP, WebSocket, GraphQL, gRPC
 - [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP examples](./protocols/http-bodies.md)
 - [Headers](./headers.md) · [Auth](./auth.md)

@@ -41,7 +41,13 @@ import {
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import MdViewer from "../components/MdViewer";
+import DescriptionEditor from "../components/DescriptionEditor";
+import SearchableTagInput from "../components/SearchableTagInput";
+import SectionEditLabel, { SectionEditDone } from "../components/SectionEditLabel";
+import KVEditor from "../components/KVEditor";
+import { safeList } from "mmt-core/safer";
 import ApiTestsEditor from "./ApiTestsEditor";
+import ApiSettingsEditor from "./ApiSettingsEditor";
 import { formatBody } from "mmt-core/markupConvertor";
 import { FormatChip } from "../components/BodyFormatControls";
 import {
@@ -67,7 +73,16 @@ interface APITestProps {
   initialExampleIndex?: number;
 }
 
-type EditorTab = "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc" | "examples";
+type EditorTab =
+  | "settings"
+  | "body"
+  | "params"
+  | "headers"
+  | "cookies"
+  | "doc"
+  | "graphql"
+  | "grpc"
+  | "inout";
 
 function countNamedEntries(record?: Record<string, unknown> | null): number {
   if (!record) {
@@ -76,14 +91,21 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
   return Object.keys(record).filter(key => key.trim().length > 0).length;
 }
 
-const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> = [
+const TAB_OPTIONS: Array<{
+  key: EditorTab;
+  label: string;
+  protocol?: string;
+  /** When set, tab shows only this codicon (no text label). */
+  iconOnly?: string;
+}> = [
+  { key: "settings", label: "Settings", iconOnly: "settings-gear" },
   { key: "graphql", label: "GraphQL", protocol: "graphql" },
   { key: "grpc", label: "gRPC", protocol: "grpc" },
   { key: "params", label: "Params" },
   { key: "headers", label: "Headers" },
   { key: "body", label: "Body" },
   { key: "cookies", label: "Cookies" },
-  { key: "examples", label: "Examples" },
+  { key: "inout", label: "In/Out" },
   { key: "doc", label: "Doc" },
 ];
 
@@ -335,11 +357,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
-    // Legacy tabs merged into Examples.
-    if (saved === "inout" || saved === "tests") {
-      return "examples";
+    // Legacy Examples / tests tabs → In/Out.
+    if (saved === "examples" || saved === "tests") {
+      return "inout";
     }
-    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc" || saved === "examples") {
+    if (
+      saved === "settings" ||
+      saved === "body" ||
+      saved === "params" ||
+      saved === "headers" ||
+      saved === "cookies" ||
+      saved === "doc" ||
+      saved === "graphql" ||
+      saved === "grpc" ||
+      saved === "inout"
+    ) {
       return saved;
     }
     if (api.protocol === "graphql") {
@@ -350,6 +382,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     return "body";
   });
+
+  const [editTitle, setEditTitle] = useState(false);
+  const [editTags, setEditTags] = useState(false);
+  const [editDescription, setEditDescription] = useState(false);
+  const [editInputsDecl, setEditInputsDecl] = useState(false);
+  const [editOutputsDecl, setEditOutputsDecl] = useState(false);
 
   const setEditorTab = (tab: EditorTab) => {
     setEditorTabInternal(tab);
@@ -392,14 +430,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const shouldShowHeaders = () => editorTab === "headers";
   const shouldShowCookies = () => editorTab === "cookies";
   const shouldShowBody = () => editorTab === "body";
-  const shouldShowInputs = () => editorTab === "examples";
+  const shouldShowInputs = () => editorTab === "inout";
   const shouldShowResponse = () => editorTab === "body";
   const shouldShowResponseHeaders = () => editorTab === "headers";
   const shouldShowResponseCookies = () => editorTab === "cookies";
   const shouldShowDoc = () => editorTab === "doc";
+  const shouldShowSettings = () => editorTab === "settings";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
-  const shouldShowExamples = () => editorTab === "examples";
+  const shouldShowExamples = () => editorTab === "inout";
   const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
     // Format chips write straight to YAML. applyFormatSideEdit keeps
     // request/response independent and collapses back to the YAML shape when
@@ -793,16 +832,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 ? countNamedEntries(api.headers)
                 : tab.key === "cookies"
                   ? countNamedEntries(api.cookies)
-                  : tab.key === "examples"
+                  : tab.key === "inout"
                     ? examples.filter(ex => ex && typeof ex === "object").length
                     : 0;
               return (
             <button
               key={tab.key}
-              className={`tab-button-small ${active ? "active" : ""}`}
+              type="button"
+              className={`tab-button-small${tab.iconOnly ? " apitest-tab-settings" : ""}${active ? " active" : ""}`}
               onClick={() => setEditorTab(tab.key)}
+              title={tab.iconOnly ? tab.label : undefined}
+              aria-label={tab.iconOnly ? tab.label : undefined}
             >
-              {tab.label}
+              {tab.iconOnly ? (
+                <span className={`codicon codicon-${tab.iconOnly} tab-button-icon`} aria-hidden />
+              ) : (
+                tab.label
+              )}
               {count > 0 ? <span className="apitest-tab-count">{count}</span> : null}
             </button>
               );
@@ -815,17 +861,86 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       <div className="apitest-content">
 
       {shouldShowDoc() ? (
-        <div className="apitest-section apitest-section--doc">
-          {api.description ? (
-            <MdViewer
-              description={api.description}
-              inputs={api.inputs}
-              outputs={api.outputs}
+        <div className="apitest-section apitest-section--doc panel-form">
+          <div className="panel-form-row">
+            <SectionEditLabel
+              label="Title"
+              editing={editTitle}
+              onEdit={() => setEditTitle(true)}
             />
+            {editTitle ? (
+              <div className="apitest-section-indent">
+                <input
+                  value={api.title || ""}
+                  onChange={e => onUpdateApi?.({ title: e.target.value })}
+                  placeholder="title"
+                  disabled={!onUpdateApi}
+                />
+                <SectionEditDone onDone={() => setEditTitle(false)} />
+              </div>
+            ) : (
+              <div className={api.title ? "apitest-doc-plain" : "apitest-empty"}>
+                {api.title || "No title"}
+              </div>
+            )}
+          </div>
+
+          <div className="panel-form-row">
+            <SectionEditLabel
+              label="Tags"
+              editing={editTags}
+              onEdit={() => setEditTags(true)}
+            />
+            {editTags ? (
+              <div className="apitest-section-indent">
+                <SearchableTagInput
+                  tags={safeList(api.tags)}
+                  onChange={tags => onUpdateApi?.({ tags })}
+                  suggestions={["security", "sessionless", "api", "user", "admin"]}
+                />
+                <SectionEditDone onDone={() => setEditTags(false)} />
+              </div>
+            ) : safeList(api.tags).length > 0 ? (
+              <div className="apitest-doc-plain">
+                {safeList(api.tags).join(", ")}
+              </div>
+            ) : (
+              <div className="apitest-empty">No tags</div>
+            )}
+          </div>
+
+          <div className="panel-form-row">
+            <SectionEditLabel
+              label="Description"
+              editing={editDescription}
+              onEdit={() => setEditDescription(true)}
+            />
+            {editDescription ? (
+              <div className="apitest-section-indent">
+                <DescriptionEditor
+                  value={api.description || ""}
+                  onChange={value => onUpdateApi?.({ description: value })}
+                />
+                <SectionEditDone onDone={() => setEditDescription(false)} />
+              </div>
+            ) : api.description ? (
+              <MdViewer
+                description={api.description}
+                inputs={api.inputs}
+                outputs={api.outputs}
+                showDescriptionLabel={false}
+              />
+            ) : (
+              <div className="apitest-empty">No description available.</div>
+            )}
+          </div>
+        </div>
+      ) : shouldShowSettings() ? (
+        <div className="apitest-section apitest-section--settings">
+          {onUpdateApi ? (
+            <ApiSettingsEditor api={api} update={onUpdateApi} />
           ) : (
-            <div className="apitest-empty">
-              No description available.
-            </div>
+            <div className="apitest-empty">Settings are read-only.</div>
           )}
         </div>
       ) : (
@@ -1120,16 +1235,37 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 </button>
               </div>
             </div>
-            <VEditor
+            <SectionEditLabel
               label="Inputs"
-              value={currentInputs}
-              onChange={handleInputsChange}
-              keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
-              inputConstraints={inputConstraints}
-              deletable={false}
-              canContainToken
-              valueContext={bodyValueContext}
+              editing={editInputsDecl}
+              onEdit={() => setEditInputsDecl(true)}
             />
+            {editInputsDecl ? (
+              <div className="apitest-section-indent">
+                <KVEditor
+                  label=""
+                  value={api.inputs}
+                  onChange={kv => onUpdateApi?.({ inputs: kv })}
+                  keyPlaceholder="name"
+                  valuePlaceholder="value"
+                  canContainToken
+                  valueContext={bodyValueContext}
+                  disabled={!onUpdateApi}
+                />
+                <SectionEditDone onDone={() => setEditInputsDecl(false)} />
+              </div>
+            ) : (
+              <VEditor
+                label=""
+                value={currentInputs}
+                onChange={handleInputsChange}
+                keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
+                inputConstraints={inputConstraints}
+                deletable={false}
+                canContainToken
+                valueContext={bodyValueContext}
+              />
+            )}
             {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
               <ApiTestsEditor
                 test={{
@@ -1232,9 +1368,26 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
         {shouldShowExamples() && (
           <>
-            {outputKeys.length > 0 ? (
+            <SectionEditLabel
+              label="Outputs"
+              editing={editOutputsDecl}
+              onEdit={() => setEditOutputsDecl(true)}
+            />
+            {editOutputsDecl ? (
+              <div className="apitest-section-indent">
+                <KSVEditor
+                  label=""
+                  value={api.outputs}
+                  onChange={kv => onUpdateApi?.({ outputs: kv })}
+                  keyPlaceholder="name"
+                  valuePlaceholder="value"
+                  disabled={!onUpdateApi}
+                />
+                <SectionEditDone onDone={() => setEditOutputsDecl(false)} />
+              </div>
+            ) : outputKeys.length > 0 ? (
               <VEditor
-                label="Outputs"
+                label=""
                 value={outputDisplay}
                 onChange={() => { }}
                 keyOptions={outputKeys}

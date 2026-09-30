@@ -17,7 +17,7 @@
 - [Overview](./files.md)
 - [API](./files/api/index.md)
   - [Quick start](./files/api/quick-start.md)
-  - [Edit API](./files/api/edit.md)
+  - [Edit API fields](./files/api/edit.md)
   - [Protocols](./files/api/protocols/index.md)
     - [HTTP](./files/api/protocols/http.md)
     - [WebSocket](./files/api/protocols/websocket.md)

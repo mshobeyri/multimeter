@@ -514,9 +514,99 @@
   overflow-x: hidden;
 }
 
-/* Doc uses the full content height (no request/response split). */
-.apitest-section--doc {
+/* Doc / settings use the full content height (no request/response split). */
+.apitest-section--doc,
+.apitest-section--settings {
   gap: 0;
+}
+
+.apitest-doc-plain {
+  padding: 4px 12px;
+  color: var(--vscode-foreground, #cccccc);
+  word-break: break-word;
+}
+
+.apitest-section-indent {
+  padding-left: 12px;
+  box-sizing: border-box;
+}
+
+.button-icon.is-active {
+  color: var(--vscode-button-background, #0e639c);
+}
+
+.section-edit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-start;
+  width: auto;
+}
+
+.section-edit-toggle {
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  line-height: 1;
+  justify-content: center;
+  align-items: center;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  opacity: 0.75;
+}
+
+.section-edit-toggle .codicon {
+  font-size: 9.6px;
+}
+
+.section-edit-toggle:hover,
+.section-edit-toggle:focus {
+  background: transparent !important;
+  border: none !important;
+  opacity: 1;
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.section-edit-done-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+
+.section-edit-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: transparent !important;
+  border: 1px solid var(--vscode-input-border, #3c3c3c) !important;
+  border-radius: var(--mmt-control-radius, 4px);
+  color: var(--vscode-foreground, #cccccc) !important;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.section-edit-done .codicon {
+  font-size: 12px;
+}
+
+.section-edit-done:hover,
+.section-edit-done:focus {
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.08)) !important;
+  border-color: var(--vscode-focusBorder, #007fd4) !important;
+}
+
+.tab-button-small.apitest-tab-settings {
+  padding: 4px 6px;
+}
+
+.tab-button-small.apitest-tab-settings .tab-button-icon {
+  font-size: 12px;
 }
 
 /* Section children keep their natural height so the section scrolls
