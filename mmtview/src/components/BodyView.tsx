@@ -486,7 +486,8 @@ const BodyView: React.FC<BodyViewProps> = ({
                 )}
                 {onInspectPosition && cursorPath && (
                     <button
-                        className="bodyview-btn-icon"
+                        type="button"
+                        className="button-icon no-shrink section-edit-toggle"
                         title={`Add output: ${cursorPath.key} = ${cursorPath.expr}`}
                         onClick={() => {
                             const editor = editorRef.current;
@@ -501,15 +502,19 @@ const BodyView: React.FC<BodyViewProps> = ({
                             onInspectPosition({ line: pos.lineNumber, column: pos.column, text });
                         }}
                     >
-                        <span className="codicon codicon-sign-out" />
+                        <span className="codicon codicon-sign-out" aria-hidden />
                     </button>
                 )}
                 <button
-                    className="bodyview-btn-icon"
+                    type="button"
+                    className="button-icon no-shrink section-edit-toggle"
                     title={isFullscreen ? "Exit full screen (Esc)" : "Full screen"}
                     onClick={() => setIsFullscreen(!isFullscreen)}
                 >
-                    <span className={`codicon ${isFullscreen ? "codicon-screen-normal" : "codicon-screen-full"}`} />
+                    <span
+                      className={`codicon ${isFullscreen ? "codicon-screen-normal" : "codicon-screen-full"}`}
+                      aria-hidden
+                    />
                 </button>
             </div>
         </div>

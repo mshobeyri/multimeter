@@ -182,6 +182,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     handleSend,
     handleRunInCore,
     handleCancel,
+    clearResponse,
     handleConnect,
     network,
     examples,
@@ -1530,15 +1531,27 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               onClick={() => showHistoryPanel({ openLatest: true })}
             />
           )}
+          {responseData ? (
+            <button
+              type="button"
+              className="button-icon no-shrink section-edit-toggle"
+              onClick={clearResponse}
+              title="Clear response"
+              aria-label="Clear response"
+            >
+              <span className="codicon codicon-eraser" aria-hidden />
+            </button>
+          ) : null}
           <button
             type="button"
+            className="button-icon no-shrink section-edit-toggle"
             onClick={() => {
               showHistoryPanel();
             }}
-            className="toolbar-button"
             title="Show History Panel"
+            aria-label="Show History Panel"
           >
-            <span className="codicon codicon-history toolbar-button-icon"></span>
+            <span className="codicon codicon-history" aria-hidden />
           </button>
         </div>
       </div>

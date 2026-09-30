@@ -540,6 +540,14 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     window.vscode?.postMessage({ command: "stopTestRun" });
   }, [network]);
 
+  const clearResponse = useCallback(() => {
+    setResponseData(undefined);
+    setResponseRevision(prev => prev + 1);
+    setApiTestResults(null);
+    setOutputs({});
+    setSetenvValues({});
+  }, []);
+
   const handleConnect = useCallback(() => {
     setResponseData(undefined);
     if (network.connected) {
@@ -694,6 +702,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     handleSend,
     handleRunInCore,
     handleCancel,
+    clearResponse,
     handleConnect,
     network,
     examples,

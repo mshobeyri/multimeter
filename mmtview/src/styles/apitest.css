@@ -267,7 +267,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -771,6 +771,12 @@
   border: none !important;
   opacity: 1;
   color: var(--vscode-foreground, #cccccc);
+}
+
+.section-edit-toggle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: var(--vscode-disabledForeground, #666);
 }
 
 .section-edit-done-row {
