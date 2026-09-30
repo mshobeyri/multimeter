@@ -350,8 +350,8 @@
   flex: 1 1 auto;
   min-height: 150px;
   /* Cancel section horizontal inset so Body stays edge-to-edge. */
-  margin-left: -15px;
-  margin-right: -15px;
+  margin-left: -20px;
+  margin-right: -20px;
 }
 
 .apitest-body-format-bar {
@@ -686,7 +686,8 @@
   gap: 6px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 15px;
+  /* Single inset for Params/Headers/Auth/Doc/Settings/Inputs. */
+  padding: 0 20px;
   box-sizing: border-box;
 }
 
@@ -697,7 +698,8 @@
 }
 
 /* Match Auth/Settings fields to Params/Headers vertical start + tighter stacks. */
-.apitest-section .panel-form {
+.apitest-section .panel-form,
+.apitest-section.panel-form {
   gap: 6px;
   padding-top: 3px;
   box-sizing: border-box;
@@ -708,7 +710,7 @@
 }
 
 .apitest-section .field-table td {
-  padding: 3px 5px;
+  padding: 3px 0;
 }
 
 .apitest-section .field-stack {
@@ -716,14 +718,19 @@
 }
 
 .apitest-doc-plain {
-  padding: 4px 12px;
+  padding: 4px 0;
   color: var(--vscode-foreground, #cccccc);
   word-break: break-word;
 }
 
 .apitest-section-indent {
-  padding-left: 12px;
+  padding-left: 0;
   box-sizing: border-box;
+}
+
+.apitest-section .apitest-empty {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .button-icon.is-active {
