@@ -210,7 +210,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 0 0 8px;
+  padding: 0 8px 8px 0;
   flex-shrink: 0;
   min-width: 0;
 }
@@ -664,7 +664,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 15px;
@@ -675,6 +675,25 @@
 .apitest-section--doc,
 .apitest-section--settings {
   gap: 0;
+}
+
+/* Match Auth/Settings fields to Params/Headers vertical start + tighter stacks. */
+.apitest-section .panel-form {
+  gap: 6px;
+  padding-top: 3px;
+  box-sizing: border-box;
+}
+
+.apitest-section .panel-form-row {
+  gap: 4px;
+}
+
+.apitest-section .field-table td {
+  padding: 3px 5px;
+}
+
+.apitest-section .field-stack {
+  gap: 4px;
 }
 
 .apitest-doc-plain {
