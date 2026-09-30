@@ -244,15 +244,14 @@ span.vertical.disabled:active {
 }
 
 .bodyview {
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border: none;
   overflow: hidden;
-  /* Prevents content from bleeding outside border */
+  /* Prevents content from bleeding outside */
   position: relative;
   width: 100%;
   height: 250px;
   overflow: auto;
   border-radius: var(--mmt-control-radius);
-  transition: border-color 0.2s;
 }
 
 /* Fullscreen mode for request/response body editors */

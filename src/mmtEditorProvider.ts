@@ -57,6 +57,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     try {
       const config = vscode.workspace.getConfiguration('multimeter');
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
+      const bodyLineNumbers = !!config.get<boolean>('body.lineNumbers');
       const editorFontSize = config.get<number>('editor.fontSize');
       const defaultPanel = config.get<string>('editor.defaultPanel') || 'yaml-ui';
       const collapseDescription = !!config.get<boolean>('editor.collapseDescription');
@@ -64,6 +65,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       return {
         command: 'config',
         bodyAutoFormat,
+        bodyLineNumbers,
         editorFontSize,
         defaultPanel,
         collapseDescription,
@@ -75,6 +77,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       return {
         command: 'config',
         bodyAutoFormat: false,
+        bodyLineNumbers: false,
         editorFontSize: 12,
         defaultPanel: 'yaml-ui',
         collapseDescription: false,

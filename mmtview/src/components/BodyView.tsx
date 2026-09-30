@@ -13,6 +13,12 @@ import { normalizeNewlines } from "mmt-core/textLines";
 import { shouldReplaceLocalEditorValue } from "../text/editorContentSync";
 import TextEditor, { MMT_JSON_LANGUAGE_ID } from "../text/TextEditor";
 import { useAccentChrome } from "../shared/useAccentChrome";
+import {
+  cacheBodyLineNumbers,
+  readCachedBodyLineNumbers,
+  requestEditorConfig,
+  setBodyLineNumbersConfig,
+} from "../api/bodyLineNumbersConfig";
 
 export type mode = "appliable" | "live";
 
@@ -96,9 +102,70 @@ const BodyView: React.FC<BodyViewProps> = ({
     const preEditCursorRef = useRef<BodyViewCursor | undefined>(undefined);
     const [editorReady, setEditorReady] = useState(false);
     const [cursorPath, setCursorPath] = useState<{ path: PathSegment[]; expr: string; key: string } | null>(null);
+    const [showLineNumbers, setShowLineNumbers] = useState<boolean>(() => readCachedBodyLineNumbers());
+    const showLineNumbersRef = useRef(showLineNumbers);
+    showLineNumbersRef.current = showLineNumbers;
     const cursorListenerRef = useRef<any>(null);
     const applyChrome = useAccentChrome("green");
     const errorChrome = useAccentChrome("red");
+
+    useEffect(() => {
+      requestEditorConfig();
+      const handleConfig = (message: any) => {
+        if (typeof message?.bodyLineNumbers !== "boolean") {
+          return;
+        }
+        cacheBodyLineNumbers(message.bodyLineNumbers);
+        setShowLineNumbers(message.bodyLineNumbers);
+      };
+      const onMessage = (event: MessageEvent) => {
+        if (event.data?.command === "config") {
+          handleConfig(event.data);
+        }
+      };
+      const onConfigEvent = (event: Event) => {
+        handleConfig((event as CustomEvent).detail);
+      };
+      window.addEventListener("message", onMessage);
+      window.addEventListener("multimeter.config", onConfigEvent);
+      return () => {
+        window.removeEventListener("message", onMessage);
+        window.removeEventListener("multimeter.config", onConfigEvent);
+      };
+    }, []);
+
+    // Keep Monaco’s cut/copy/paste/format menu; add line-numbers as an extra action.
+    useEffect(() => {
+      if (!editorReady) {
+        return;
+      }
+      const editor = editorRef.current;
+      if (!editor || typeof editor.addAction !== "function") {
+        return;
+      }
+      const existing = typeof editor.getAction === "function"
+        ? editor.getAction("mmt.toggleBodyLineNumbers")
+        : null;
+      if (existing && typeof existing.dispose === "function") {
+        existing.dispose();
+      }
+      const disposable = editor.addAction({
+        id: "mmt.toggleBodyLineNumbers",
+        label: showLineNumbers ? "Hide Line Numbers" : "Show Line Numbers",
+        contextMenuGroupId: "mmt",
+        contextMenuOrder: 1,
+        run: () => {
+          const next = !showLineNumbersRef.current;
+          setShowLineNumbers(next);
+          setBodyLineNumbersConfig(next);
+        },
+      });
+      return () => {
+        if (disposable && typeof disposable.dispose === "function") {
+          disposable.dispose();
+        }
+      };
+    }, [editorReady, showLineNumbers, isFullscreen]);
 
     const detectContentType = useCallback((text: string): "json" | "xml" => {
         const fmt = (format || "json").toLowerCase();
@@ -361,7 +428,7 @@ const BodyView: React.FC<BodyViewProps> = ({
                     setLocalValue(nextValue);
                 }}
                 language={editorLanguageForBody(format)}
-                showNumbers={false}
+                showNumbers={showLineNumbers}
                 fontSize={11}
                 onInspectPosition={onInspectPosition}
                 editorRef={editorRef}

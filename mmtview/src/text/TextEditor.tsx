@@ -19,6 +19,8 @@ interface TextEditorProps {
   onPasteTextTransform?: (text: string) => string | null | undefined;
   showGlyphMargin?: boolean;
   readOnly?: boolean;
+  /** Monaco built-in context menu. Default true. */
+  enableContextMenu?: boolean;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -222,6 +224,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onPasteTextTransform,
   showGlyphMargin = false,
   readOnly = false,
+  enableContextMenu = true,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -634,6 +637,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         glyphMargin: showGlyphMargin,
         readOnly,
         domReadOnly: readOnly,
+        contextmenu: enableContextMenu,
         lineDecorationsWidth: 0,
         scrollbar: {
           horizontal: "auto",

@@ -22,6 +22,7 @@ import { FileContext } from "./fileContext";
 import PanelErrorBoundary from "./shared/PanelErrorBoundary";
 import { ensureThemeSync } from "./text/Theme";
 import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
+import { cacheBodyLineNumbers } from "./api/bodyLineNumbersConfig";
 import { collectYamlEditorErrors } from "./text/yamlEditorErrors";
 import { cacheReportSpillBytes } from "./shared/reportSpillConfig";
 import YamlErrorWarning from "./api/YamlErrorWarning";
@@ -375,10 +376,17 @@ const App: React.FC = () => {
         if (typeof message.bodyAutoFormat === "boolean") {
           cacheBodyAutoFormat(message.bodyAutoFormat);
         }
+        if (typeof message.bodyLineNumbers === "boolean") {
+          cacheBodyLineNumbers(message.bodyLineNumbers);
+        }
         if (typeof message.reportSpillBytes === "number" && message.reportSpillBytes >= 0) {
           cacheReportSpillBytes(message.reportSpillBytes);
         }
-        if (typeof message.bodyAutoFormat === "boolean" || typeof message.reportSpillBytes === "number") {
+        if (
+          typeof message.bodyAutoFormat === "boolean"
+          || typeof message.bodyLineNumbers === "boolean"
+          || typeof message.reportSpillBytes === "number"
+        ) {
           window.dispatchEvent(new CustomEvent("multimeter.config", { detail: message }));
         }
         const size = Number(message.editorFontSize);

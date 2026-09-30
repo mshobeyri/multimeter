@@ -154,6 +154,11 @@
           "default": false,
           "description": "Automatically format the body of the responses"
         },
+        "multimeter.body.lineNumbers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show line numbers in API request/response body editors"
+        },
         "multimeter.editor.fontSize": {
           "type": "number",
           "default": 12,

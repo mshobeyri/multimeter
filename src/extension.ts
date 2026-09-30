@@ -80,6 +80,7 @@ function registerEditorProvider(
   context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(event => {
         if (event.affectsConfiguration('multimeter.body.auto.format') ||
+            event.affectsConfiguration('multimeter.body.lineNumbers') ||
             event.affectsConfiguration('multimeter.editor.fontSize') ||
             event.affectsConfiguration(
                 'multimeter.editor.collapseDescription')) {
