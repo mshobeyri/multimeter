@@ -68,46 +68,34 @@
   position: relative;
 }
 
+/* Dimmed YAML error report: black boxes top-down, actions under last error. */
 .mmt-yaml-error-dim {
   position: absolute;
   inset: 0;
   z-index: 30;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  align-items: flex-start;
+  padding: 20px 24px;
+  box-sizing: border-box;
   background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 55%, transparent);
   backdrop-filter: blur(1px);
+  cursor: default;
+  overflow: auto;
 }
 
-.mmt-yaml-error-dim-card {
-  max-width: 420px;
+.mmt-yaml-error-dim-body {
   width: 100%;
-  padding: 20px 22px;
-  border-radius: 8px;
-  border: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.12));
-  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #252526));
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.mmt-yaml-error-dim-title {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: var(--vscode-font-size, 13px);
-  color: var(--vscode-errorForeground, #f14c4c);
+  pointer-events: none;
 }
 
-.mmt-yaml-error-dim-desc {
-  margin: 0;
-  font-size: var(--vscode-font-size, 13px);
-  line-height: 1.4;
-  color: var(--vscode-descriptionForeground, #858585);
-  text-align: center;
+.mmt-yaml-error-dim-item,
+.mmt-yaml-error-dim-actions,
+.mmt-yaml-error-dim-link {
+  pointer-events: auto;
 }
 
 .mmt-yaml-error-dim-list {
@@ -116,36 +104,57 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: 180px;
-  overflow: auto;
+  gap: 8px;
 }
 
 .mmt-yaml-error-dim-item {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--vscode-foreground, #ccc);
-  font: inherit;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  background: #000;
+  color: #e6e6e6;
+  font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 12px;
+  line-height: 1.45;
   text-align: left;
   cursor: pointer;
 }
 
 .mmt-yaml-error-dim-item:hover {
-  border-color: var(--vscode-focusBorder, #007fd4);
-  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.06));
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.mmt-yaml-error-dim-item-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--vscode-font-family, sans-serif);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.mmt-yaml-error-dim-item-msg {
+  display: block;
+  width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .mmt-yaml-error-dim-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 18px;
-  padding-top: 4px;
+  padding: 2px 2px 0;
 }
 
 .mmt-yaml-error-dim-link {

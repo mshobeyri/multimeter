@@ -10,8 +10,8 @@ function formatErrorLine(error: YamlEditorError): string {
 }
 
 /**
- * Full-pane dim when YAML is invalid. Restore reverts to the last valid YAML;
- * Keep only closes the overlay so the stale UI stays visible.
+ * Full-pane YAML error report over a dimmed UI. Each black box is titled Error;
+ * Restore/Keep sit under the last box. Click empty space to dismiss.
  */
 export const YamlErrorDim: React.FC = () => {
   const {yamlErrors, yamlStale, restoreValidYaml, dismissYamlErrorDim, yamlErrorDimDismissed} =
@@ -25,45 +25,55 @@ export const YamlErrorDim: React.FC = () => {
   const canRestore = Boolean(yamlStale && restoreValidYaml);
 
   return (
-    <div className="mmt-yaml-error-dim" role="alertdialog" aria-label="Error">
-      <div className="mmt-yaml-error-dim-card">
-        <div className="mmt-yaml-error-dim-title">
-          <span className="codicon codicon-error" aria-hidden />
-          <span>Error</span>
-        </div>
-        <p className="mmt-yaml-error-dim-desc">
-          {yamlStale
-            ? 'This UI still shows the last valid version until you fix or restore the YAML.'
-            : 'Fix the YAML to use the UI, or keep editing with the last valid view.'}
-        </p>
+    <div
+      className="mmt-yaml-error-dim"
+      role="alert"
+      aria-label="Error"
+      onClick={() => dismissYamlErrorDim?.()}
+    >
+      <div className="mmt-yaml-error-dim-body">
         <ul className="mmt-yaml-error-dim-list">
           {errors.map((error, index) => (
             <li key={`${error.line ?? 0}:${error.column ?? 0}:${error.message}:${index}`}>
               <button
                 type="button"
                 className="mmt-yaml-error-dim-item"
-                onClick={() => revealYamlEditorError(error)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  revealYamlEditorError(error);
+                  dismissYamlErrorDim?.();
+                }}
                 title={error.line ? `Go to line ${error.line}` : undefined}
               >
-                {formatErrorLine(error)}
+                <span className="mmt-yaml-error-dim-item-title">
+                  <span className="codicon codicon-error" aria-hidden />
+                  <span>Error</span>
+                </span>
+                <span className="mmt-yaml-error-dim-item-msg">{formatErrorLine(error)}</span>
               </button>
             </li>
           ))}
         </ul>
         <div className="mmt-yaml-error-dim-actions">
-          {canRestore && (
+          {canRestore ? (
             <button
               type="button"
               className="mmt-yaml-error-dim-link"
-              onClick={() => restoreValidYaml?.()}
+              onClick={(e) => {
+                e.stopPropagation();
+                restoreValidYaml?.();
+              }}
             >
               Restore
             </button>
-          )}
+          ) : null}
           <button
             type="button"
             className="mmt-yaml-error-dim-link"
-            onClick={() => dismissYamlErrorDim?.()}
+            onClick={(e) => {
+              e.stopPropagation();
+              dismissYamlErrorDim?.();
+            }}
           >
             Keep
           </button>
