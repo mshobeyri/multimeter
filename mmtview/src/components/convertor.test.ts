@@ -4,6 +4,9 @@ import {
   yamlValueToInputBox,
   inputBoxToYamlValue,
   yamlValueToInputBoxWithTokens,
+  inputBoxToYamlValueWithTokens,
+  inputBoxToYamlString,
+  withOptionalPeer,
   peerFieldToValue,
 } from './convertor';
 import {OMIT_SENTINEL} from 'mmt-core/omitKeyword';
@@ -51,5 +54,29 @@ describe('convertor null and omit handling', () => {
     expect(peerFieldToValue('"112"')).toBe('112');
     expect(typeof peerFieldToValue('"112"')).toBe('string');
     expect(yamlValueToInputBoxWithTokens('112', true)).toBe('"112"');
+  });
+});
+
+describe('shared UI → YAML write pipeline', () => {
+  it('withOptionalPeer only rewrites when tokens are enabled', () => {
+    expect(withOptionalPeer('{{r:uuid}}', false)).toBe('{{r:uuid}}');
+    expect(withOptionalPeer('{{r:uuid}}', true)).toBe('r:uuid');
+    expect(withOptionalPeer('{{i:user}}', true)).toBe('i:user');
+  });
+
+  it('typed write: peer then coerce', () => {
+    expect(inputBoxToYamlValueWithTokens('{{r:uuid}}', true)).toBe('r:uuid');
+    expect(inputBoxToYamlValueWithTokens('112', true)).toBe(112);
+    expect(inputBoxToYamlValueWithTokens('"112"', true)).toBe('112');
+    expect(inputBoxToYamlValueWithTokens('112', false)).toBe(112);
+  });
+
+  it('string write: peer then coerce then stringify', () => {
+    expect(inputBoxToYamlString('{{r:uuid}}', true)).toBe('r:uuid');
+    expect(inputBoxToYamlString('112', true)).toBe('112');
+    expect(typeof inputBoxToYamlString('112', true)).toBe('string');
+    expect(inputBoxToYamlString('"112"', true)).toBe('112');
+    expect(inputBoxToYamlString('true', true)).toBe('true');
+    expect(inputBoxToYamlString('{{r:uuid}}', false)).toBe('{{r:uuid}}');
   });
 });

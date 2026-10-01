@@ -3,9 +3,9 @@ import { APIData } from "mmt-core/APIData";
 import { JSONRecord } from "mmt-core/CommonData";
 import {
   peerStringToDisplay,
-  peerStringToYaml,
   stringContainsFieldToken,
 } from "mmt-core/apiBodyEdit";
+import { withOptionalPeer } from "../components/convertor";
 import TokenFieldInput from "../components/TokenFieldInput";
 import { useEnvTokenValueContext } from "../components/useEnvTokenValueContext";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
@@ -60,8 +60,8 @@ function AuthValueField({
       canContainToken
       valueContext={valueContext}
       placeholder={placeholder}
-      onCommit={v => onCommit(peerStringToYaml(v))}
-      onDraftChange={v => onCommit(peerStringToYaml(v))}
+      onCommit={v => onCommit(withOptionalPeer(v, true))}
+      onDraftChange={v => onCommit(withOptionalPeer(v, true))}
     />
   );
 }

@@ -360,6 +360,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     onUpdateApi?.({ url: peerStringToYaml(newUrl) });
   }, [onUpdateApi]);
 
+  // Finalize string maps for YAML (peer + omit empty). KSV/URL bar may already
+  // peer when canContainToken; peerRecordToYaml is idempotent.
   const onQueryChange = useCallback((query: Record<string, string>) => {
     onUpdateApi?.({ query: peerRecordToYaml(query) });
   }, [onUpdateApi]);

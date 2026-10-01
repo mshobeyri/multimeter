@@ -2,10 +2,11 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { safeList } from "mmt-core/safer";
 import type { MultipartPartSpec } from "mmt-core/multipartBody";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
-import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
+import { peerStringToDisplay } from "mmt-core/apiBodyEdit";
 import FieldWithRemove from "./FieldWithRemove";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from "../fileContext";
+import { withOptionalPeer } from "./convertor";
 import {
   bodyToMultipartRows,
   isEmptyMultipartPartRow,
@@ -60,7 +61,7 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
   };
 
   const handleValueChange = (idx: number, nextValue: string) => {
-    const stored = canContainToken ? peerStringToYaml(nextValue) : nextValue;
+    const stored = withOptionalPeer(nextValue, canContainToken);
     commit(safeList(rows).map((row, i) => (i === idx ? { ...row, value: stored } : row)));
   };
 

@@ -16,6 +16,44 @@ export {
 } from 'mmt-core/yamlValueConvert';
 
 /**
+ * Shared UI → YAML write step 1: optional peer token normalize.
+ * `{{r:uuid}}` / bare / `<<…>>` → YAML token form when `tokens` is on.
+ */
+export function withOptionalPeer(val: string, tokens = false): string {
+  return tokens ? peerStringToYaml(val) : val;
+}
+
+/**
+ * Shared UI → YAML write for typed fields (inputs, expect values).
+ * peer (optional) → type coerce (`"112"` → string, `112` → number, …).
+ */
+export function inputBoxToYamlValueWithTokens(
+    val: string,
+    tokens = false,
+): JSONValue {
+  return inputBoxToYamlValue(withOptionalPeer(val, tokens));
+}
+
+/**
+ * Shared UI → YAML write for string maps (headers, query, cookies, …).
+ * Same pipeline as {@link inputBoxToYamlValueWithTokens}, then non-strings are
+ * re-stringified so the stored record stays `Record<string, string>`.
+ */
+export function inputBoxToYamlString(val: string, tokens = false): string {
+  const typed = inputBoxToYamlValueWithTokens(val, tokens);
+  if (typeof typed === 'string') {
+    return typed;
+  }
+  return yamlValueToInputBox(typed);
+}
+
+/**
+ * Token-capable typed field → stored YAML value (`tokens` always on).
+ */
+export const peerFieldToValue = (val: string): JSONValue =>
+  inputBoxToYamlValueWithTokens(val, true);
+
+/**
  * YAML / model value → input box, with optional `{{…}}` token display rewrite.
  * Ambiguous quoted scalars (`"112"`, `"true"`, …) and quoted token literals
  * keep their quotes; bare tokens become display templates when `tokens` is on.
@@ -37,24 +75,3 @@ export function yamlValueToInputBoxWithTokens(
   }
   return peerStringToDisplay(val);
 }
-
-/**
- * Input box → YAML / model value, with optional peer token normalization.
- */
-export function inputBoxToYamlValueWithTokens(
-    val: string,
-    tokens = false,
-): JSONValue {
-  if (!tokens) {
-    return inputBoxToYamlValue(val);
-  }
-  return inputBoxToYamlValue(peerStringToYaml(val));
-}
-
-/**
- * Token-capable field → stored YAML value.
- * Normalizes `{{r:uuid}}` / bare tokens via peerStringToYaml, then coerces
- * types (int / bool / omit / null) like inputBoxToYamlValue. Keys stay strings.
- */
-export const peerFieldToValue = (val: string): JSONValue =>
-  inputBoxToYamlValueWithTokens(val, true);

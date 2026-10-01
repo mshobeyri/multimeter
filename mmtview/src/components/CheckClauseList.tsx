@@ -1,9 +1,9 @@
 import React from "react";
 import type { ExpectUiRow } from "mmt-core/expectUi";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
-import { peerStringToDisplay, peerStringToYaml } from "mmt-core/apiBodyEdit";
+import { peerStringToDisplay } from "mmt-core/apiBodyEdit";
 import {
-  inputBoxToYamlValue,
+  inputBoxToYamlValueWithTokens,
   yamlValueToInputBox,
 } from "./convertor";
 import OperatorSelect from "./OperatorSelect";
@@ -133,7 +133,7 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                   i,
                   "expected",
                   canContainToken
-                    ? yamlValueToInputBox(inputBoxToYamlValue(peerStringToYaml(val)))
+                    ? yamlValueToInputBox(inputBoxToYamlValueWithTokens(val, true))
                     : val,
                 );
               };

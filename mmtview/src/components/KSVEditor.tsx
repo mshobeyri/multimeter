@@ -5,7 +5,10 @@ import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from '../fileContext';
-import { valueToString, stringToValue } from "./convertor";
+import {
+  inputBoxToYamlString,
+  yamlValueToInputBoxWithTokens,
+} from "./convertor";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import {
   entriesToUniqueRecord,
@@ -36,16 +39,9 @@ interface KSVEditorProps {
   valueContext?: RuntimeTokenValueContext;
 }
 
-function toStoredString(display: string): string {
-  const typed = stringToValue(display);
-  if (typeof typed === "string") {
-    return typed;
-  }
-  return valueToString(typed as JSONValue);
-}
-
 function withTrailingEmptyKey(
-  obj?: string | Record<string, string> | JSONRecord,
+  obj: string | Record<string, string> | JSONRecord | undefined,
+  tokens: boolean,
   addEmpty: boolean = true,
 ): KvEntry[] {
   if (!obj) {
@@ -58,7 +54,7 @@ function withTrailingEmptyKey(
 
   const entries = Object.entries(obj).map(([key, value]): KvEntry => [
     key,
-    valueToString(value as JSONValue),
+    yamlValueToInputBoxWithTokens(value as JSONValue, tokens),
   ]);
 
   if (addEmpty && (entries.length === 0 || entries[entries.length - 1][0] !== "")) {
@@ -87,8 +83,8 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   valueContext,
 }) => {
   const propEntries = useMemo(
-    () => withTrailingEmptyKey(value, expandable),
-    [value, expandable],
+    () => withTrailingEmptyKey(value, canContainToken, expandable),
+    [value, canContainToken, expandable],
   );
   const [draft, setDraft] = useState<KvEntry[] | null>(null);
   const entries = draft ?? propEntries;
@@ -114,7 +110,10 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
 
   const publish = (next: KvEntry[]) => {
     setDraft(next);
-    onChange(entriesToUniqueRecord(next, toStoredString));
+    onChange(entriesToUniqueRecord(
+      next,
+      (display) => inputBoxToYamlString(display, canContainToken),
+    ));
   };
 
   const handleKeyChange = (idx: number, newKey: string) => {
