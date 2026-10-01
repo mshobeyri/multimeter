@@ -1272,81 +1272,28 @@ export function findDisplayTokenCharRanges(
 /**
  * Hover/underline spans for body text.
  * - Marks any `{{…}}` still visible (tooltip = resolved value when known).
- * - When `tokenTemplate` is set, also marks substituted i:/e: values in order
- *   (tooltip = display token key).
+ * - When `tokenSource` + `resolvedBody` are set, marks substituted i:/e:/r:/c:
+ *   leaf values using the real resolved body (stable r:/c: UUIDs).
+ * - Else when `tokenTemplate` is set, aligns template → display for i:/e:/r:/c:.
  */
 export function findBodyTokenHoverSpans(
     displayText: string,
     options?: {
       tokenTemplate?: string;
       valueContext?: RuntimeTokenValueContext;
+      tokenSource?: unknown;
+      resolvedBody?: unknown;
     },
     ): TokenFieldSpan[] {
   const ctx = options?.valueContext;
   const fromDisplay = findDisplayTokenCharRanges(displayText, ctx);
-  const template = options?.tokenTemplate;
-  if (!template || !ctx) {
-    return fromDisplay;
-  }
+  const leaves = collectTokenResolvedLeaves(
+      options?.tokenSource, options?.resolvedBody);
+  const fromLeaves = leaves.length > 0 ?
+    locateLeafSpansInDisplay(displayText, leaves) :
+    locateTemplateSpansInDisplay(displayText, options?.tokenTemplate);
 
-  const fromTemplate: TokenFieldSpan[] = [];
-  const re = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
-  let searchFrom = 0;
-  let match: RegExpExecArray|null;
-  while ((match = re.exec(template)) !== null) {
-    const plain = displayTokenToPlain(match[0]);
-    if (!plain) {
-      continue;
-    }
-    const prefix = plain.charAt(0).toLowerCase();
-    const tokenDisplay = toDisplayRuntimeToken(plain);
-    if (prefix === 'r' || prefix === 'c') {
-      // r:/c: usually stay as display tokens in token mode; in resolved view
-      // they are already substituted — skip ordered search (unstable values).
-      continue;
-    }
-    const resolved = lookupIeResolvedValue(plain, ctx);
-    if (resolved === undefined) {
-      const idx = displayText.indexOf(tokenDisplay, searchFrom);
-      if (idx >= 0) {
-        fromTemplate.push({
-          start: idx,
-          end: idx + tokenDisplay.length,
-          kind: 'token',
-        });
-        searchFrom = idx + tokenDisplay.length;
-      }
-      continue;
-    }
-    const piece = ieResolvedToDisplayText(resolved);
-    if (!piece) {
-      continue;
-    }
-    let idx = displayText.indexOf(piece, searchFrom);
-    let start = idx;
-    let end = idx + piece.length;
-    if (idx < 0) {
-      const quoted = JSON.stringify(piece);
-      idx = displayText.indexOf(quoted, searchFrom);
-      if (idx >= 0) {
-        start = idx + 1;
-        end = start + piece.length;
-      }
-    }
-    if (idx >= 0 && end > start) {
-      fromTemplate.push({
-        start,
-        end,
-        kind: 'resolved',
-        tooltip: tokenDisplay,
-      });
-      searchFrom = end;
-    }
-  }
-
-  // Prefer template-derived resolved spans; keep display {{…}} spans that do
-  // not overlap them (token mode / leftover tokens).
-  const merged = [...fromTemplate];
+  const merged = [...fromLeaves];
   for (const span of fromDisplay) {
     const overlaps = merged.some(
         (s) => !(span.end <= s.start || span.start >= s.end));
@@ -1358,12 +1305,180 @@ export function findBodyTokenHoverSpans(
   return merged;
 }
 
+type TokenResolvedLeaf = {plain: string; piece: string};
+
+function collectTokenResolvedLeaves(
+    tokenSource: unknown,
+    resolvedBody: unknown,
+    ): TokenResolvedLeaf[] {
+  if (tokenSource === undefined || resolvedBody === undefined) {
+    return [];
+  }
+  const out: TokenResolvedLeaf[] = [];
+  walkTokenResolvedLeaves(tokenSource, resolvedBody, out);
+  return out;
+}
+
+function walkTokenResolvedLeaves(
+    tokenNode: unknown,
+    resolvedNode: unknown,
+    out: TokenResolvedLeaf[],
+    ): void {
+  if (typeof tokenNode === 'string') {
+    if (isLiteralTokenValue(tokenNode)) {
+      return;
+    }
+    const plain = plainTokenFromLeaf(tokenNode) ||
+        displayTokenToPlain(tokenNode.trim()) ||
+        angleToPlain(tokenNode.trim());
+    if (!plain) {
+      return;
+    }
+    const prefix = plain.charAt(0).toLowerCase();
+    if (prefix !== 'i' && prefix !== 'e' && prefix !== 'r' && prefix !== 'c') {
+      return;
+    }
+    const piece = ieResolvedToDisplayText(resolvedNode);
+    if (!piece) {
+      return;
+    }
+    out.push({plain, piece});
+    return;
+  }
+  if (Array.isArray(tokenNode)) {
+    const resolvedArr = Array.isArray(resolvedNode) ? resolvedNode : [];
+    for (let i = 0; i < tokenNode.length; i++) {
+      walkTokenResolvedLeaves(tokenNode[i], resolvedArr[i], out);
+    }
+    return;
+  }
+  if (tokenNode && typeof tokenNode === 'object') {
+    const tokenObj = tokenNode as Record<string, unknown>;
+    const resolvedObj =
+        resolvedNode && typeof resolvedNode === 'object' &&
+                !Array.isArray(resolvedNode) ?
+        resolvedNode as Record<string, unknown> :
+        {};
+    for (const key of Object.keys(tokenObj)) {
+      walkTokenResolvedLeaves(tokenObj[key], resolvedObj[key], out);
+    }
+  }
+}
+
+function locateLeafSpansInDisplay(
+    displayText: string,
+    leaves: TokenResolvedLeaf[],
+    ): TokenFieldSpan[] {
+  const spans: TokenFieldSpan[] = [];
+  let searchFrom = 0;
+  for (const leaf of leaves) {
+    const located = indexOfResolvedPiece(displayText, leaf.piece, searchFrom);
+    if (!located) {
+      continue;
+    }
+    spans.push({
+      start: located.start,
+      end: located.end,
+      kind: 'resolved',
+      tooltip: toDisplayRuntimeToken(leaf.plain),
+    });
+    searchFrom = located.end;
+  }
+  return spans;
+}
+
+function locateTemplateSpansInDisplay(
+    displayText: string,
+    tokenTemplate: string|undefined,
+    ): TokenFieldSpan[] {
+  if (!tokenTemplate) {
+    return [];
+  }
+  const parts: Array<{kind: 'text'|'token'; value: string; plain?: string}> = [];
+  const re = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
+  let last = 0;
+  let match: RegExpExecArray|null;
+  while ((match = re.exec(tokenTemplate)) !== null) {
+    if (match.index > last) {
+      parts.push({kind: 'text', value: tokenTemplate.slice(last, match.index)});
+    }
+    const plain = displayTokenToPlain(match[0]);
+    if (plain) {
+      parts.push({kind: 'token', value: match[0], plain});
+    } else {
+      parts.push({kind: 'text', value: match[0]});
+    }
+    last = match.index + match[0].length;
+  }
+  if (last < tokenTemplate.length) {
+    parts.push({kind: 'text', value: tokenTemplate.slice(last)});
+  }
+
+  const spans: TokenFieldSpan[] = [];
+  let searchFrom = 0;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.kind === 'text') {
+      if (!part.value) {
+        continue;
+      }
+      const idx = displayText.indexOf(part.value, searchFrom);
+      if (idx < 0) {
+        return spans;
+      }
+      searchFrom = idx + part.value.length;
+      continue;
+    }
+    let valueEnd = displayText.length;
+    const nextText = parts.slice(i + 1).find((p) => p.kind === 'text' && p.value);
+    if (nextText) {
+      const nextIdx = displayText.indexOf(nextText.value, searchFrom);
+      if (nextIdx < 0) {
+        return spans;
+      }
+      valueEnd = nextIdx;
+    }
+    if (valueEnd > searchFrom && part.plain) {
+      spans.push({
+        start: searchFrom,
+        end: valueEnd,
+        kind: 'resolved',
+        tooltip: toDisplayRuntimeToken(part.plain),
+      });
+    }
+    searchFrom = valueEnd;
+  }
+  return spans;
+}
+
+function indexOfResolvedPiece(
+    displayText: string,
+    piece: string,
+    searchFrom: number,
+    ): {start: number; end: number}|null {
+  if (!piece) {
+    return null;
+  }
+  let idx = displayText.indexOf(piece, searchFrom);
+  if (idx >= 0) {
+    return {start: idx, end: idx + piece.length};
+  }
+  const quoted = JSON.stringify(piece);
+  idx = displayText.indexOf(quoted, searchFrom);
+  if (idx >= 0) {
+    return {start: idx + 1, end: idx + 1 + piece.length};
+  }
+  return null;
+}
+
 /** Monaco ranges for body token underlines + hover tooltips. */
 export function findBodyTokenHoverRanges(
     displayText: string,
     options?: {
       tokenTemplate?: string;
       valueContext?: RuntimeTokenValueContext;
+      tokenSource?: unknown;
+      resolvedBody?: unknown;
     },
     ): BodyTokenHoverRange[] {
   return findBodyTokenHoverSpans(displayText, options).map((span) => {

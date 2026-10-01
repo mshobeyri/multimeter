@@ -213,6 +213,22 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(resolved.length).toBeGreaterThanOrEqual(1);
     expect(resolved.some(s => s.tooltip === '{{i:user}}')).toBe(true);
   });
+
+  it('findBodyTokenHoverSpans underlines resolved r:/c: from structured bodies', () => {
+    const uuid = '11111111-1111-1111-1111-111111111111';
+    const spans = findBodyTokenHoverSpans(
+        `{\n  "asd": "${uuid}"\n}`,
+        {
+          tokenSource: {asd: 'r:uuid'},
+          resolvedBody: {asd: uuid},
+        },
+    );
+    const resolved = spans.filter(s => s.kind === 'resolved');
+    expect(resolved.some(s => s.tooltip === '{{r:uuid}}')).toBe(true);
+    const hit = resolved.find(s => s.tooltip === '{{r:uuid}}');
+    expect(hit).toBeTruthy();
+    expect(`{\n  "asd": "${uuid}"\n}`.slice(hit!.start, hit!.end)).toBe(uuid);
+  });
 });
 
 describe('runtimeTokenEmitsJsonString', () => {

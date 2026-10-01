@@ -393,7 +393,6 @@ const TextEditor: React.FC<TextEditorProps> = ({
         border-radius: 2px;
         text-decoration: underline;
         text-underline-offset: 2px;
-        cursor: help;
       }
     `;
   }, []);

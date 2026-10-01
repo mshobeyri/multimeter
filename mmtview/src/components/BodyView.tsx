@@ -6,6 +6,7 @@ import {
   findBodyTokenHoverRanges,
   isJsonWithRuntimeTokensValid,
   isXmlWithRuntimeTokensValid,
+  type BodyTokenHoverRange,
   type RuntimeTokenValueContext,
 } from "mmt-core/bodyRuntimeTokens";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
@@ -26,6 +27,22 @@ const JSON_LIKE_BODY_FORMATS = new Set(["json", "multipart"]);
 
 function isJsonLikeBodyFormat(format: string): boolean {
     return JSON_LIKE_BODY_FORMATS.has((format || "").toLowerCase());
+}
+
+function positionInHoverRange(
+    pos: { lineNumber: number; column: number },
+    range: BodyTokenHoverRange,
+): boolean {
+    if (pos.lineNumber < range.startLineNumber || pos.lineNumber > range.endLineNumber) {
+        return false;
+    }
+    if (pos.lineNumber === range.startLineNumber && pos.column < range.startColumn) {
+        return false;
+    }
+    if (pos.lineNumber === range.endLineNumber && pos.column > range.endColumn) {
+        return false;
+    }
+    return true;
 }
 
 function editorLanguageForBody(format: string): string {
@@ -72,6 +89,10 @@ export type BodyViewProps = {
      * the display are underlined and hover shows the token key.
      */
     tokenTemplate?: string;
+    /** Structured YAML body with tokens — pairs with resolvedBody for r:/c: underlines. */
+    tokenSource?: unknown;
+    /** Structured resolved body (request preview) for r:/c: / i:/e: underlines. */
+    resolvedBody?: unknown;
     mode?: mode;
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
     refreshKey?: number;
@@ -87,6 +108,8 @@ const BodyView: React.FC<BodyViewProps> = ({
     initialCursor,
     valueContext,
     tokenTemplate,
+    tokenSource,
+    resolvedBody,
     mode = "appliable",
     onInspectPosition,
     refreshKey,
@@ -100,6 +123,12 @@ const BodyView: React.FC<BodyViewProps> = ({
     const isUserEditingRef = useRef(false);
     const editorRef = useRef<any>(null);
     const tokenDecorationsRef = useRef<string[]>([]);
+    const tokenHoverRangesRef = useRef<BodyTokenHoverRange[]>([]);
+    const [tokenHoverTip, setTokenHoverTip] = useState<{
+        text: string;
+        left: number;
+        top: number;
+    } | null>(null);
     /**
      * Last user-placed caret (click / arrows). Not updated when a keystroke
      * moves the caret — that way resolved→tokens opens at the pre-key position
@@ -360,7 +389,7 @@ const BodyView: React.FC<BodyViewProps> = ({
         setEditorReady(false);
     }, [isFullscreen]);
 
-    // Underline token / resolved-from-token spans; Monaco hover shows the pair.
+    // Underline token / resolved-from-token spans; custom tip shows the pair.
     useEffect(() => {
         if (!editorReady) {
             return;
@@ -372,7 +401,10 @@ const BodyView: React.FC<BodyViewProps> = ({
         const ranges = findBodyTokenHoverRanges(localValue, {
             tokenTemplate,
             valueContext,
+            tokenSource,
+            resolvedBody,
         });
+        tokenHoverRangesRef.current = ranges.filter(r => Boolean(r.tooltip?.trim()));
         tokenDecorationsRef.current = editor.deltaDecorations(
             tokenDecorationsRef.current,
             ranges.map(range => ({
@@ -386,9 +418,6 @@ const BodyView: React.FC<BodyViewProps> = ({
                     inlineClassName: range.kind === "resolved"
                         ? "mmt-body-runtime-token is-resolved"
                         : "mmt-body-runtime-token is-token",
-                    hoverMessage: range.tooltip
-                        ? { value: range.tooltip }
-                        : undefined,
                     stickiness: 1, // NeverGrowsWhenTypingAtEdges
                 },
             })),
@@ -400,8 +429,63 @@ const BodyView: React.FC<BodyViewProps> = ({
                     [],
                 );
             }
+            tokenHoverRangesRef.current = [];
+            setTokenHoverTip(null);
         };
-    }, [localValue, format, isFullscreen, editorReady, tokenTemplate, valueContext]);
+    }, [localValue, format, isFullscreen, editorReady, tokenTemplate, valueContext, tokenSource, resolvedBody]);
+
+    // Fit-to-content hover tip (Monaco's hover widget scrolls / pads oddly).
+    useEffect(() => {
+        if (!editorReady) {
+            return;
+        }
+        const editor = editorRef.current;
+        if (!editor || typeof editor.onMouseMove !== "function") {
+            return;
+        }
+        const move = editor.onMouseMove((e: {
+            target?: { position?: { lineNumber: number; column: number } | null };
+        }) => {
+            const pos = e.target?.position;
+            if (!pos) {
+                setTokenHoverTip(null);
+                return;
+            }
+            const hit = tokenHoverRangesRef.current.find(r => positionInHoverRange(pos, r));
+            const tip = hit?.tooltip?.trim();
+            if (!hit || !tip || typeof editor.getScrolledVisiblePosition !== "function") {
+                setTokenHoverTip(null);
+                return;
+            }
+            const coords = editor.getScrolledVisiblePosition({
+                lineNumber: hit.startLineNumber,
+                column: hit.startColumn,
+            });
+            if (!coords) {
+                setTokenHoverTip(null);
+                return;
+            }
+            const editorDom = typeof editor.getDomNode === "function" ? editor.getDomNode() : null;
+            const editorRect = editorDom?.getBoundingClientRect();
+            if (!editorRect) {
+                setTokenHoverTip(null);
+                return;
+            }
+            setTokenHoverTip({
+                text: tip,
+                left: editorRect.left + coords.left,
+                top: editorRect.top + coords.top + coords.height + 4,
+            });
+        });
+        const leave = typeof editor.onMouseLeave === "function"
+            ? editor.onMouseLeave(() => setTokenHoverTip(null))
+            : null;
+        return () => {
+            move?.dispose?.();
+            leave?.dispose?.();
+            setTokenHoverTip(null);
+        };
+    }, [editorReady, isFullscreen]);
 
     // Exit fullscreen on Escape
     useEffect(() => {
@@ -454,6 +538,16 @@ const BodyView: React.FC<BodyViewProps> = ({
                 setEditorReady={setEditorReady}
                 readOnly={disabled}
             />
+            {tokenHoverTip ? createPortal(
+                <div
+                    className="token-hover-tip"
+                    style={{ left: tokenHoverTip.left, top: tokenHoverTip.top }}
+                    role="tooltip"
+                >
+                    {tokenHoverTip.text}
+                </div>,
+                document.body,
+            ) : null}
             <div className="bodyview-toolbar">
                 {!disabled && ((isJsonLikeBodyFormat(format) || (format || "").includes("xml")) && isValid && beautifyBody(localValue) !== localValue) && (
                     <button

@@ -762,13 +762,14 @@ select.is-invalid {
 
 .token-field-span.has-tooltip {
   pointer-events: auto;
-  cursor: help;
 }
 
 .token-hover-tip {
-  position: absolute;
-  z-index: 40;
-  max-width: min(360px, 80vw);
+  position: fixed;
+  z-index: 10000;
+  width: max-content;
+  max-width: min(480px, 80vw);
+  max-height: min(200px, 40vh);
   padding: 4px 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 3px;
@@ -778,7 +779,8 @@ select.is-invalid {
   font-size: 11px;
   line-height: 1.35;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow: auto;
   pointer-events: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }

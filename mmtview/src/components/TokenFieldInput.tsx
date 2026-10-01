@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   enterEditStringBuffer,
   findDisplayTokenCharRanges,
@@ -172,16 +173,14 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
 
   const showSpanTip = (span: TokenFieldSpan, el: HTMLElement) => {
     const tip = span.tooltip?.trim();
-    const root = rootRef.current;
-    if (!tip || !root) {
+    if (!tip) {
       return;
     }
-    const rootRect = root.getBoundingClientRect();
     const spanRect = el.getBoundingClientRect();
     setHoverTip({
       text: tip,
-      left: Math.max(0, spanRect.left - rootRect.left),
-      top: spanRect.bottom - rootRect.top + 4,
+      left: spanRect.left,
+      top: spanRect.bottom + 4,
     });
   };
 
@@ -203,14 +202,15 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
           )}
         </div>
       ) : null}
-      {hoverTip ? (
+      {hoverTip ? createPortal(
         <div
           className="token-hover-tip"
           style={{ left: hoverTip.left, top: hoverTip.top }}
           role="tooltip"
         >
           {hoverTip.text}
-        </div>
+        </div>,
+        document.body,
       ) : null}
       <input
         {...rest}

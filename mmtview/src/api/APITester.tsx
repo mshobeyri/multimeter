@@ -1267,6 +1267,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     onStartEdit={openBodyTokens}
                     valueContext={bodyValueContext}
                     tokenTemplate={tokensTextFromYaml()}
+                    tokenSource={api.body}
+                    resolvedBody={requestData?.body ?? api.body}
                   />
                 )}              </div>
             )}
