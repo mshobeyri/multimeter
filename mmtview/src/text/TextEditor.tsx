@@ -391,6 +391,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
         color: var(--mmt-token-variable, var(--mmt-token-anchor, #4ec9b0)) !important;
         background: color-mix(in srgb, var(--vscode-editorInfo-foreground, #75beff) 28%, transparent);
         border-radius: 2px;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: help;
       }
     `;
   }, []);

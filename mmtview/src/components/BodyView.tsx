@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { xml2js } from "xml-js";
 import { beautify } from "mmt-core/markupConvertor";
 import {
-  findDisplayRuntimeTokenRanges,
+  findBodyTokenHoverRanges,
   isJsonWithRuntimeTokensValid,
   isXmlWithRuntimeTokensValid,
   type RuntimeTokenValueContext,
@@ -67,6 +67,11 @@ export type BodyViewProps = {
     initialCursor?: BodyViewCursor;
     /** Inputs/env for JSON i:/e: quoting when beautifying. */
     valueContext?: RuntimeTokenValueContext;
+    /**
+     * Token-form body text (`{{i:…}}` / …). When set, resolved i:/e: values in
+     * the display are underlined and hover shows the token key.
+     */
+    tokenTemplate?: string;
     mode?: mode;
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
     refreshKey?: number;
@@ -81,6 +86,7 @@ const BodyView: React.FC<BodyViewProps> = ({
     onBlur,
     initialCursor,
     valueContext,
+    tokenTemplate,
     mode = "appliable",
     onInspectPosition,
     refreshKey,
@@ -354,7 +360,7 @@ const BodyView: React.FC<BodyViewProps> = ({
         setEditorReady(false);
     }, [isFullscreen]);
 
-    // Badge highlight for {{random …}} / {{current …}} spans.
+    // Underline token / resolved-from-token spans; Monaco hover shows the pair.
     useEffect(() => {
         if (!editorReady) {
             return;
@@ -363,13 +369,26 @@ const BodyView: React.FC<BodyViewProps> = ({
         if (!editor || typeof editor.deltaDecorations !== "function") {
             return;
         }
-        const ranges = findDisplayRuntimeTokenRanges(localValue);
+        const ranges = findBodyTokenHoverRanges(localValue, {
+            tokenTemplate,
+            valueContext,
+        });
         tokenDecorationsRef.current = editor.deltaDecorations(
             tokenDecorationsRef.current,
             ranges.map(range => ({
-                range,
+                range: {
+                    startLineNumber: range.startLineNumber,
+                    startColumn: range.startColumn,
+                    endLineNumber: range.endLineNumber,
+                    endColumn: range.endColumn,
+                },
                 options: {
-                    inlineClassName: "mmt-body-runtime-token",
+                    inlineClassName: range.kind === "resolved"
+                        ? "mmt-body-runtime-token is-resolved"
+                        : "mmt-body-runtime-token is-token",
+                    hoverMessage: range.tooltip
+                        ? { value: range.tooltip }
+                        : undefined,
                     stickiness: 1, // NeverGrowsWhenTypingAtEdges
                 },
             })),
@@ -382,7 +401,7 @@ const BodyView: React.FC<BodyViewProps> = ({
                 );
             }
         };
-    }, [localValue, format, isFullscreen, editorReady]);
+    }, [localValue, format, isFullscreen, editorReady, tokenTemplate, valueContext]);
 
     // Exit fullscreen on Escape
     useEffect(() => {

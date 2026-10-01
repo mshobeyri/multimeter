@@ -1114,6 +1114,17 @@ export type TokenFieldSpan = {
   start: number;
   end: number;
   kind: TokenFieldSpanKind;
+  /**
+   * Hover label: display token (`{{i:name}}`) when `kind` is `resolved`,
+   * or the resolved value when `kind` is `token`.
+   */
+  tooltip?: string;
+};
+
+/** Monaco-style range plus optional hover tooltip for body token underlines. */
+export type BodyTokenHoverRange = TextPositionRange & {
+  kind: TokenFieldSpanKind;
+  tooltip?: string;
 };
 
 function ieResolvedToDisplayText(resolved: unknown): string {
@@ -1204,7 +1215,12 @@ export function projectTokenFieldPreview(
       const start = text.length;
       text += piece;
       if (piece.length > 0) {
-        spans.push({start, end: text.length, kind: 'resolved'});
+        spans.push({
+          start,
+          end: text.length,
+          kind: 'resolved',
+          tooltip: toDisplayRuntimeToken(plain),
+        });
       }
     }
     last = match.index + match[0].length;
@@ -1214,7 +1230,10 @@ export function projectTokenFieldPreview(
 }
 
 /** Char-offset ranges for `{{i|e|r|c:…}}` (and legacy) in edit-buffer text. */
-export function findDisplayTokenCharRanges(text: string): TokenFieldSpan[] {
+export function findDisplayTokenCharRanges(
+    text: string,
+    ctx?: RuntimeTokenValueContext,
+    ): TokenFieldSpan[] {
   if (!text) {
     return [];
   }
@@ -1224,18 +1243,141 @@ export function findDisplayTokenCharRanges(text: string): TokenFieldSpan[] {
     const re = new RegExp(base.source, 'gi');
     let match: RegExpExecArray|null;
     while ((match = re.exec(text)) !== null) {
-      if (!displayTokenToPlain(match[0])) {
+      const plain = displayTokenToPlain(match[0]);
+      if (!plain) {
         continue;
       }
+      const prefix = plain.charAt(0).toLowerCase();
+      let resolved: unknown = undefined;
+      if (prefix === 'r' || prefix === 'c') {
+        resolved = lookupRuntimeResolvedValue(plain);
+      } else {
+        resolved = lookupIeResolvedValue(plain, ctx);
+      }
+      const tooltip = resolved === undefined ?
+        undefined :
+        ieResolvedToDisplayText(resolved);
       spans.push({
         start: match.index,
         end: match.index + match[0].length,
         kind: 'token',
+        tooltip: tooltip || undefined,
       });
     }
   }
   spans.sort((a, b) => a.start - b.start);
   return spans;
+}
+
+/**
+ * Hover/underline spans for body text.
+ * - Marks any `{{…}}` still visible (tooltip = resolved value when known).
+ * - When `tokenTemplate` is set, also marks substituted i:/e: values in order
+ *   (tooltip = display token key).
+ */
+export function findBodyTokenHoverSpans(
+    displayText: string,
+    options?: {
+      tokenTemplate?: string;
+      valueContext?: RuntimeTokenValueContext;
+    },
+    ): TokenFieldSpan[] {
+  const ctx = options?.valueContext;
+  const fromDisplay = findDisplayTokenCharRanges(displayText, ctx);
+  const template = options?.tokenTemplate;
+  if (!template || !ctx) {
+    return fromDisplay;
+  }
+
+  const fromTemplate: TokenFieldSpan[] = [];
+  const re = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
+  let searchFrom = 0;
+  let match: RegExpExecArray|null;
+  while ((match = re.exec(template)) !== null) {
+    const plain = displayTokenToPlain(match[0]);
+    if (!plain) {
+      continue;
+    }
+    const prefix = plain.charAt(0).toLowerCase();
+    const tokenDisplay = toDisplayRuntimeToken(plain);
+    if (prefix === 'r' || prefix === 'c') {
+      // r:/c: usually stay as display tokens in token mode; in resolved view
+      // they are already substituted — skip ordered search (unstable values).
+      continue;
+    }
+    const resolved = lookupIeResolvedValue(plain, ctx);
+    if (resolved === undefined) {
+      const idx = displayText.indexOf(tokenDisplay, searchFrom);
+      if (idx >= 0) {
+        fromTemplate.push({
+          start: idx,
+          end: idx + tokenDisplay.length,
+          kind: 'token',
+        });
+        searchFrom = idx + tokenDisplay.length;
+      }
+      continue;
+    }
+    const piece = ieResolvedToDisplayText(resolved);
+    if (!piece) {
+      continue;
+    }
+    let idx = displayText.indexOf(piece, searchFrom);
+    let start = idx;
+    let end = idx + piece.length;
+    if (idx < 0) {
+      const quoted = JSON.stringify(piece);
+      idx = displayText.indexOf(quoted, searchFrom);
+      if (idx >= 0) {
+        start = idx + 1;
+        end = start + piece.length;
+      }
+    }
+    if (idx >= 0 && end > start) {
+      fromTemplate.push({
+        start,
+        end,
+        kind: 'resolved',
+        tooltip: tokenDisplay,
+      });
+      searchFrom = end;
+    }
+  }
+
+  // Prefer template-derived resolved spans; keep display {{…}} spans that do
+  // not overlap them (token mode / leftover tokens).
+  const merged = [...fromTemplate];
+  for (const span of fromDisplay) {
+    const overlaps = merged.some(
+        (s) => !(span.end <= s.start || span.start >= s.end));
+    if (!overlaps) {
+      merged.push(span);
+    }
+  }
+  merged.sort((a, b) => a.start - b.start);
+  return merged;
+}
+
+/** Monaco ranges for body token underlines + hover tooltips. */
+export function findBodyTokenHoverRanges(
+    displayText: string,
+    options?: {
+      tokenTemplate?: string;
+      valueContext?: RuntimeTokenValueContext;
+    },
+    ): BodyTokenHoverRange[] {
+  return findBodyTokenHoverSpans(displayText, options).map((span) => {
+    const start = indexToPosition(displayText, span.start);
+    const end = indexToPosition(displayText, span.end);
+    return {
+      startLineNumber: start.line,
+      startColumn: start.column,
+      endLineNumber: end.line,
+      endColumn: end.column,
+      kind: span.kind,
+      tooltip: span.tooltip,
+    };
+  });
 }
 
 /**

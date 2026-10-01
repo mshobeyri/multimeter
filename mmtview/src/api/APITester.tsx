@@ -26,7 +26,6 @@ import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import { HideWhenYamlError } from "./YamlErrorWarning";
 import MethodUrlBar from "../components/MethodUrlBar";
-import BlurCommitInput from "../components/BlurCommitInput";
 import BodyFormatBar from "../components/BodyFormatBar";
 import ResponseBodyBar from "../components/ResponseBodyBar";
 import ResponseBodyContent from "../components/ResponseBodyContent";
@@ -1200,7 +1199,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           label=""
           value={peerQuery}
           onChange={onQueryChange}
-          commitMode="blur"
           canContainToken
           valueContext={bodyValueContext}
         />}
@@ -1208,7 +1206,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           label=""
           value={peerHeaders}
           onChange={onHeadersChange}
-          commitMode="blur"
           canContainToken
           valueContext={bodyValueContext}
         />}
@@ -1216,7 +1213,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           label=""
           value={peerCookies}
           onChange={onCookiesChange}
-          commitMode="blur"
           canContainToken
           valueContext={bodyValueContext}
         />}
@@ -1270,9 +1266,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     mode="live"
                     onStartEdit={openBodyTokens}
                     valueContext={bodyValueContext}
+                    tokenTemplate={tokensTextFromYaml()}
                   />
-                )}
-              </div>
+                )}              </div>
             )}
           </div>
         )}
@@ -1299,7 +1295,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <KSVEditor
               label="Variables"
               value={peerGraphqlVariables}
-              commitMode="blur"
               canContainToken
               valueContext={bodyValueContext}
               onChange={variables => {
@@ -1320,15 +1315,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <div className="field-inline is-gap is-spaced">
               <div className="field-grow">
                 <div className="label">Service</div>
-                <BlurCommitInput
+                <input
                   type="text"
                   placeholder="package.ServiceName"
                   value={api.grpc?.service || ""}
-                  onCommit={service => {
+                  onChange={e => {
                     onUpdateApi?.({
                       grpc: {
                         proto: api.grpc?.proto,
-                        service,
+                        service: e.target.value,
                         method: api.grpc?.method ?? "",
                         message: api.grpc?.message,
                         stream: api.grpc?.stream,
@@ -1340,16 +1335,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               </div>
               <div className="field-grow">
                 <div className="label">Method</div>
-                <BlurCommitInput
+                <input
                   type="text"
                   placeholder="MethodName"
                   value={api.grpc?.method || ""}
-                  onCommit={method => {
+                  onChange={e => {
                     onUpdateApi?.({
                       grpc: {
                         proto: api.grpc?.proto,
                         service: api.grpc?.service ?? "",
-                        method,
+                        method: e.target.value,
                         message: api.grpc?.message,
                         stream: api.grpc?.stream,
                       },
@@ -1362,7 +1357,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <KSVEditor
               label="Message"
               value={peerGrpcMessage}
-              commitMode="blur"
               canContainToken
               valueContext={bodyValueContext}
               onChange={msg => {

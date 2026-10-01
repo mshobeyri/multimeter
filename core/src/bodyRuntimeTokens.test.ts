@@ -35,6 +35,7 @@ import {
   projectTokenFieldPreview,
   stringContainsFieldToken,
   findDisplayTokenCharRanges,
+  findBodyTokenHoverSpans,
 } from './bodyRuntimeTokens';
 import {beautify, formatBody} from './markupConvertor';
 import {xml2js} from 'xml-js';
@@ -187,12 +188,30 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(text.includes('{{e:token}}')).toBe(false);
     expect(spans.length).toBe(2);
     expect(spans.every(s => s.kind === 'resolved')).toBe(true);
+    expect(spans[0].tooltip).toBe('{{e:token}}');
   });
 
   it('findDisplayTokenCharRanges covers {{…}} edit buffer', () => {
-    const spans = findDisplayTokenCharRanges('x{{i:a}}y{{r:uuid}}');
+    const spans = findDisplayTokenCharRanges('x{{i:a}}y{{r:uuid}}', {
+      inputs: {a: 'A'},
+      env: {},
+    });
     expect(spans.length).toBe(2);
     expect(spans.every(s => s.kind === 'token')).toBe(true);
+    expect(spans[0].tooltip).toBe('A');
+  });
+
+  it('findBodyTokenHoverSpans marks resolved i:/e: values from template', () => {
+    const spans = findBodyTokenHoverSpans(
+        '{"user":"alice","n":10}',
+        {
+          tokenTemplate: '{"user":"{{i:user}}","n":{{i:n}}}',
+          valueContext: {inputs: {user: 'alice', n: 10}, env: {}},
+        },
+    );
+    const resolved = spans.filter(s => s.kind === 'resolved');
+    expect(resolved.length).toBeGreaterThanOrEqual(1);
+    expect(resolved.some(s => s.tooltip === '{{i:user}}')).toBe(true);
   });
 });
 

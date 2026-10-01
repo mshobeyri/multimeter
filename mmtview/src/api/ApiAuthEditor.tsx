@@ -18,6 +18,13 @@ interface ApiAuthEditorProps {
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;
 
+function authSelectValue(auth: APIData["auth"]): string {
+  if (!auth || auth === "none") {
+    return "none";
+  }
+  return auth.type;
+}
+
 function AuthValueField({
   value,
   onCommit,
@@ -69,13 +76,12 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
     <div className="panel-form">
       <div className="panel-form-row">
         <select
-          value={!api.auth ? "" : api.auth === "none" ? "none" : api.auth.type}
+          value={authSelectValue(api.auth)}
           onChange={e => {
             const val = e.target.value;
-            if (!val) {
+            if (val === "none") {
+              // Default: omit auth from YAML entirely (do not write auth: none).
               update({ auth: undefined });
-            } else if (val === "none") {
-              update({ auth: "none" });
             } else if (val === "bearer") {
               update({ auth: { type: "bearer", token: "" } });
             } else if (val === "basic") {
@@ -95,7 +101,6 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
             }
           }}
         >
-          <option value="">(none)</option>
           {authTypeOptions.map(opt => (
             <option key={opt} value={opt}>{opt}</option>
           ))}

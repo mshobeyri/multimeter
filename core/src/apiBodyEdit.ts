@@ -37,6 +37,7 @@ export type {
   RuntimeTokenValueContext,
   TokenFieldSpan,
   TokenFieldSpanKind,
+  BodyTokenHoverRange,
 } from './bodyRuntimeTokens';
 
 export type DisplayRequestBodyOptions = {

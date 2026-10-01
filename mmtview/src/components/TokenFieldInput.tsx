@@ -26,9 +26,18 @@ type TokenFieldInputProps = Omit<
   onDraftChange?: (value: string) => void;
 };
 
+type HoverTip = {
+  text: string;
+  left: number;
+  top: number;
+};
+
 function renderHighlighted(
   text: string,
   spans: TokenFieldSpan[],
+  onSpanEnter: (span: TokenFieldSpan, el: HTMLElement) => void,
+  onSpanLeave: () => void,
+  onSpanClick: () => void,
 ): React.ReactNode {
   if (!text) {
     return null;
@@ -45,14 +54,21 @@ function renderHighlighted(
     if (span.start > last) {
       parts.push(text.slice(last, span.start));
     }
+    const tip = span.tooltip?.trim();
     parts.push(
       <span
         key={`${span.kind}-${span.start}-${i}`}
-        className={
-          span.kind === "resolved"
-            ? "token-field-span is-resolved"
-            : "token-field-span is-token"
-        }
+        className={[
+          span.kind === "resolved" ? "token-field-span is-resolved" : "token-field-span is-token",
+          tip ? "has-tooltip" : "",
+        ].filter(Boolean).join(" ")}
+        onMouseEnter={tip ? (e) => onSpanEnter(span, e.currentTarget) : undefined}
+        onMouseLeave={tip ? onSpanLeave : undefined}
+        onMouseDown={tip ? (e) => {
+          // Keep focus transfer to the input without selecting the mirror.
+          e.preventDefault();
+          onSpanClick();
+        } : undefined}
       >
         {text.slice(span.start, span.end)}
       </span>,
@@ -86,8 +102,10 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   const [tokenEdit, setTokenEdit] = useState(false);
   const [focused, setFocused] = useState(false);
   const [mirrorStyle, setMirrorStyle] = useState<React.CSSProperties>({});
+  const [hoverTip, setHoverTip] = useState<HoverTip | null>(null);
   const focusedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!focusedRef.current) {
@@ -105,11 +123,17 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   const displayValue = showPreview ? (preview?.text ?? "") : draft;
   const highlightSpans = showPreview
     ? (preview?.spans ?? [])
-    : findDisplayTokenCharRanges(draft);
+    : findDisplayTokenCharRanges(draft, valueContext);
 
   // Underline layer only when blurred — while focused the native input keeps a
   // visible caret / selection like a normal field.
   const useHighlightLayer = hasTokens && !focused;
+
+  useEffect(() => {
+    if (!useHighlightLayer) {
+      setHoverTip(null);
+    }
+  }, [useHighlightLayer]);
 
   useLayoutEffect(() => {
     const el = inputRef.current;
@@ -146,15 +170,46 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
     onDraftChange?.(nextDraft);
   };
 
+  const showSpanTip = (span: TokenFieldSpan, el: HTMLElement) => {
+    const tip = span.tooltip?.trim();
+    const root = rootRef.current;
+    if (!tip || !root) {
+      return;
+    }
+    const rootRect = root.getBoundingClientRect();
+    const spanRect = el.getBoundingClientRect();
+    setHoverTip({
+      text: tip,
+      left: Math.max(0, spanRect.left - rootRect.left),
+      top: spanRect.bottom - rootRect.top + 4,
+    });
+  };
+
   return (
     <div
+      ref={rootRef}
       className={`token-field${showPreview ? " is-preview" : ""}${
         tokenEdit ? " is-token-edit" : ""
       }${useHighlightLayer ? " has-highlights" : ""}`}
     >
       {useHighlightLayer ? (
         <div className="token-field-backdrop" style={mirrorStyle} aria-hidden>
-          {renderHighlighted(displayValue, highlightSpans)}
+          {renderHighlighted(
+            displayValue,
+            highlightSpans,
+            showSpanTip,
+            () => setHoverTip(null),
+            () => inputRef.current?.focus(),
+          )}
+        </div>
+      ) : null}
+      {hoverTip ? (
+        <div
+          className="token-hover-tip"
+          style={{ left: hoverTip.left, top: hoverTip.top }}
+          role="tooltip"
+        >
+          {hoverTip.text}
         </div>
       ) : null}
       <input
@@ -188,6 +243,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
         onFocus={e => {
           focusedRef.current = true;
           setFocused(true);
+          setHoverTip(null);
           onFocus?.(e);
         }}
         onBlur={() => {

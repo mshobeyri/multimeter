@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { Method, Protocol } from "mmt-core/CommonData";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import TokenFieldInput from "./TokenFieldInput";
@@ -70,10 +70,7 @@ type MethodUrlBarProps = {
   valueContext?: RuntimeTokenValueContext;
 };
 
-/**
- * URL edits stay local until blur or Enter so mid-token YAML writes
- * (e.g. incomplete `r:u`) do not hit the file.
- */
+/** Method + URL bar; URL/query edits write live into the API YAML peer. */
 const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   methodValue,
   onMethodChange,
@@ -85,19 +82,6 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   valueContext,
 }) => {
   const urlValue = url + joinQueryForEditor(query);
-  const [inputValue, setInputValue] = useState(urlValue);
-  const focusedRef = useRef(false);
-
-  useEffect(() => {
-    if (!focusedRef.current && urlValue !== inputValue) {
-      setInputValue(urlValue);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlValue]);
-
-  const commit = (value: string) => {
-    emitUrl(value, onUrlChange, onQueryChange);
-  };
 
   return (
     <div className="method-url-bar">
@@ -131,38 +115,17 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
             valueContext={valueContext}
             spellCheck={false}
             aria-label="Request URL"
-            onFocus={() => {
-              focusedRef.current = true;
-            }}
-            onCommit={value => {
-              focusedRef.current = false;
-              setInputValue(value);
-              commit(value);
-            }}
-            onDraftChange={setInputValue}
+            onCommit={value => emitUrl(value, onUrlChange, onQueryChange)}
+            onDraftChange={value => emitUrl(value, onUrlChange, onQueryChange)}
           />
         ) : (
           <input
             type="text"
             className="method-url-bar-url"
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            onFocus={() => {
-              focusedRef.current = true;
-            }}
-            onBlur={() => {
-              focusedRef.current = false;
-              commit(inputValue);
-            }}
+            value={urlValue}
+            onChange={e => emitUrl(e.target.value, onUrlChange, onQueryChange)}
             spellCheck={false}
             aria-label="Request URL"
-            onKeyDown={event => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                commit(inputValue);
-                event.currentTarget.blur();
-              }
-            }}
           />
         )}
       </div>
