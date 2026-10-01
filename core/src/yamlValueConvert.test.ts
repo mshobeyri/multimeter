@@ -1,5 +1,6 @@
 import {
   inputBoxToYamlValue,
+  isIncompleteJsonLiteral,
   needsYamlDoubleQuotes,
   yamlValueToInputBox,
   yamlValueTypeLabel,
@@ -52,6 +53,24 @@ describe('yamlValueConvert', () => {
     expect(yamlValueTypeLabel(true)).toBe('bool');
     expect(yamlValueTypeLabel({a: 1})).toBe('obj');
     expect(yamlValueTypeLabel([1])).toBe('list');
+  });
+
+  it('detects incomplete JSON object/array literals', () => {
+    expect(isIncompleteJsonLiteral('{')).toBe(true);
+    expect(isIncompleteJsonLiteral('{"a":')).toBe(true);
+    expect(isIncompleteJsonLiteral('[1,')).toBe(true);
+    expect(isIncompleteJsonLiteral('{}')).toBe(false);
+    expect(isIncompleteJsonLiteral('{"a":1}')).toBe(false);
+    expect(isIncompleteJsonLiteral('[1,2]')).toBe(false);
+    expect(isIncompleteJsonLiteral('hello')).toBe(false);
+  });
+
+  it('round-trips objects through the input box as JSON text', () => {
+    const obj = {name: 10, ssd: {message: 'Hello from mmt!'}};
+    const display = yamlValueToInputBox(obj as any);
+    expect(display.startsWith('{')).toBe(true);
+    expect(display).toContain('"name":10');
+    expect(inputBoxToYamlValue(display)).toEqual(obj);
   });
 
   it('preserves inputs xxx: "112" through parse → pack', () => {

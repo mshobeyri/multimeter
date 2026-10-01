@@ -14,11 +14,36 @@ import {
   variablesToBoards,
   type EnvVariableBoard,
 } from "./envVariableUi";
+import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
 
 const typeOptions = [
   { label: "List", value: "list" },
   { label: "Object", value: "object" },
 ];
+
+function boardHasIncompleteJson(boards: EnvVariableBoard[]): boolean {
+  for (const board of boards) {
+    if (board.type === "list" && Array.isArray(board.value)) {
+      if (board.value.some(
+        (v) => typeof v === "string" && isIncompleteJsonLiteral(v),
+      )) {
+        return true;
+      }
+    } else if (
+      board.type === "object" &&
+      board.value &&
+      typeof board.value === "object" &&
+      !Array.isArray(board.value)
+    ) {
+      if (Object.values(board.value).some(
+        (v) => typeof v === "string" && isIncompleteJsonLiteral(v),
+      )) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 interface EnvironmentVariableEditProps {
   variables: EnvironmentData["variables"];
@@ -45,6 +70,10 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({
 
   const publish = (next: EnvVariableBoard[]) => {
     setBoards(next);
+    if (boardHasIncompleteJson(next)) {
+      // Keep local draft while JSON object/list literals are mid-edit.
+      return;
+    }
     const sanitized = boardsToVariables(next);
     syncedSig.current = envVariablesSignature(sanitized);
     onChange(sanitized);

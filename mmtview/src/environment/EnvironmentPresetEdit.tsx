@@ -11,6 +11,7 @@ import {
   presetsToBoards,
   type EnvPresetBoard,
 } from "./envPresetUi";
+import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
 
 interface EnvironmentPresetEditProps {
   presets: EnvPresets;
@@ -37,6 +38,16 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({
 
   const publish = (next: EnvPresetBoard[]) => {
     setBoards(next);
+    const hasIncomplete = next.some((board) =>
+      board.values.some((entry) =>
+        Object.values(entry.kv || {}).some(
+          (v) => typeof v === "string" && isIncompleteJsonLiteral(v),
+        ),
+      ),
+    );
+    if (hasIncomplete) {
+      return;
+    }
     const sanitized = boardsToPresets(next);
     syncedSig.current = envPresetsSignature(sanitized);
     onChange(sanitized);

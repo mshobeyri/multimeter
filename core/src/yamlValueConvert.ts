@@ -60,6 +60,24 @@ export function yamlValueToInputBox(val: JSONValue | undefined): string {
 }
 
 /**
+ * True when text looks like a JSON object/array literal that is not yet valid
+ * JSON (e.g. mid-keystroke `{` or `{"a":`). Live editors must not publish these
+ * or they overwrite real object/list values with the stub string `"{"`.
+ */
+export function isIncompleteJsonLiteral(text: string): boolean {
+  const t = String(text ?? '').trim();
+  if (!t.startsWith('{') && !t.startsWith('[')) {
+    return false;
+  }
+  try {
+    JSON.parse(t);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Input-box text → stored YAML / model value.
  * `"112"` → string `"112"`; `112` → number `112`; bare tokens stay tokens.
  */
@@ -102,7 +120,9 @@ export function inputBoxToYamlValue(val: string): JSONValue {
     try {
       return JSON.parse(t);
     } catch {
-      // Fall through to return as string
+      // Incomplete / invalid JSON literal — keep the raw text so callers can
+      // decide whether to defer publishing (see isIncompleteJsonLiteral).
+      return val;
     }
   }
   return val;

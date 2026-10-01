@@ -161,10 +161,16 @@
 .field-with-remove {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.field-with-remove > input {
+.field-with-remove > input,
+.field-with-remove .token-field {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   vertical-align: top;
 }
 
@@ -219,7 +225,25 @@
 }
 
 .list-editor {
-  margin-right: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.list-editor .field-pad {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.list-editor .field-with-remove,
+.list-editor .file-picker-input,
+.list-editor input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .is-invalid {

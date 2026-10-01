@@ -11,6 +11,7 @@ import {
   yamlValueToInputBoxWithTokens,
 } from "./convertor";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,
@@ -110,14 +111,20 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
 
   // Drop local draft once keys are unique again and props have caught up.
+  // Keep the draft while a value is mid-edit incomplete JSON so live YAML
+  // writes do not collapse objects to "{".
   useEffect(() => {
     if (!draft) {
+      return;
+    }
+    if (typedValues &&
+        draft.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
       return;
     }
     if (findDuplicateKeyIndexes(draft).size === 0) {
       setDraft(null);
     }
-  }, [propEntries, draft]);
+  }, [propEntries, draft, typedValues]);
 
   const safeOptions = Array.isArray(options) ? options : [];
 
@@ -129,6 +136,11 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
 
   const publish = (next: KvEntry[]) => {
     setDraft(next);
+    if (typedValues &&
+        next.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
+      // Draft only — do not overwrite structured YAML with "{".
+      return;
+    }
     if (typedValues) {
       const typedOnChange = onChange as (v: JSONRecord) => void;
       typedOnChange(entriesToUniqueRecord(

@@ -6,7 +6,10 @@ import {
   yamlValueToInputBoxWithTokens,
   inputBoxToYamlValueWithTokens,
 } from "./convertor";
-import { yamlValueTypeLabel } from "mmt-core/yamlValueConvert";
+import {
+  isIncompleteJsonLiteral,
+  yamlValueTypeLabel,
+} from "mmt-core/yamlValueConvert";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import {
   entriesToUniqueRecord,
@@ -81,6 +84,9 @@ const KVEditor: React.FC<KVEditorProps> = ({
     if (!draft) {
       return;
     }
+    if (draft.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
+      return;
+    }
     if (findDuplicateKeyIndexes(draft).size === 0) {
       setDraft(null);
     }
@@ -88,6 +94,9 @@ const KVEditor: React.FC<KVEditorProps> = ({
 
   const publish = (next: KvEntry[]) => {
     setDraft(next);
+    if (next.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
+      return;
+    }
     onChange(entriesToUniqueRecord(
       next,
       (display) => inputBoxToYamlValueWithTokens(display, canContainToken),

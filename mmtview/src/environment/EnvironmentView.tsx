@@ -1,6 +1,21 @@
 import React, { useState } from "react";
 import { EnvVariable } from "./EnvironmentData";
 import SettingsTable, { SettingsTableColumn, SettingsTableRow } from "../components/SettingsTable";
+import type { JSONValue } from "mmt-core/CommonData";
+
+function formatEnvDisplayValue(value: JSONValue | undefined): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
 
 interface EnvironmentViewProps {
   vars: EnvVariable[];
@@ -41,7 +56,7 @@ const EnvironmentView: React.FC<EnvironmentViewProps> = ({
     cells: {
       name: v.name,
       label: v.label,
-      value: String(v.value ?? "")
+      value: formatEnvDisplayValue(v.value),
     }
   }));
 
