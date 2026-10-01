@@ -11,6 +11,7 @@ import TestFlowCSV from "./TestFlowCSV";
 import { type MissingImportEntry } from "../text/validator";
 import TestIf, { type IfClause } from "./TestIf";
 import KSVEditor from "../components/KSVEditor";
+import StableTextInput, { StableTextArea } from "../components/StableTextInput";
 
 function clauseFromRaw(raw: string): IfClause {
   const parsed = parseComparisonParts(raw);
@@ -155,11 +156,11 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({
         const parsed = parseIfForUi(raw);
         if (!expanded && parsed.second) {
           return (
-            <input
+            <StableTextInput
               value={raw}
-              onChange={e => onChange({
+              onChange={next => onChange({
                 ...stepData,
-                [type]: e.target.value,
+                [type]: next,
               })}
               placeholder="(actual == expected && other != 0 | actual == expected || other == 1)"
               className="mmt-fill"
@@ -225,40 +226,40 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({
       }
       case 'for':
         return (
-          <input
+          <StableTextInput
             placeholder="(i = 0; i < 5; i++ | key in obj | item of list)"
             value={stepData.for || ''}
-            onChange={e => onChange({ ...stepData, for: e.target.value })}
+            onChange={next => onChange({ ...stepData, for: next })}
             className="mmt-fill"
           />
         );
       case 'repeat':
       case 'delay':
         return (
-          <input
+          <StableTextInput
             placeholder={type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2s | 3m | 4h)'}
             value={stepData[type] != null ? String(stepData[type]) : ''}
-            onChange={e => onChange({ ...stepData, [type]: coerceRepeatOrDelayValue(e.target.value) })}
+            onChange={next => onChange({ ...stepData, [type]: coerceRepeatOrDelayValue(next) })}
             className="mmt-fill"
           />
         );
       case 'js':
         return (
-          <textarea
+          <StableTextArea
             className="test-flow-js"
             placeholder="JavaScript code"
             value={stepData[type] || ''}
-            onChange={e => onChange({ js: e.target.value })}
+            onChange={next => onChange({ js: next })}
             style={{ height: expanded ? 400 : 24 }}
           />
         );
       case 'print':
         return (
-          <textarea
+          <StableTextArea
             className="test-flow-js"
             placeholder="Message to print"
             value={stepData[type] || ''}
-            onChange={e => onChange({ print: e.target.value })}
+            onChange={next => onChange({ print: next })}
             style={{ height: expanded ? 400 : 24 }}
           />
         );
@@ -302,10 +303,10 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({
         return null;
       case 'run':
         return (
-          <input
+          <StableTextInput
             placeholder="mock server file (e.g. mock/server.mmt)"
             value={stepData[type] || ''}
-            onChange={e => onChange({ [type]: e.target.value })}
+            onChange={next => onChange({ [type]: next })}
             className="mmt-fill"
           />
         );
@@ -322,28 +323,28 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({
         };
         return (
           <div className="mmt-fill">
-            <input
+            <StableTextInput
               className="mmt-fill"
               placeholder="id"
               value={idVal}
-              onChange={e => updateStage({ id: e.target.value })}
+              onChange={next => updateStage({ id: next })}
             />
             {expanded && (
               <>
                 <div className="label">Condition</div>
                 <div className="field-pad">
-                  <input
+                  <StableTextInput
                     placeholder="e.g. e:RUN_PREP == true"
                     value={condVal}
-                    onChange={e => updateStage({ condition: e.target.value })}
+                    onChange={next => updateStage({ condition: next })}
                   />
                 </div>
                 <div className="label">Depends on</div>
                 <div className="field-pad">
-                  <input
+                  <StableTextInput
                     placeholder="comma-separated stage ids"
                     value={depsStr}
-                    onChange={e => updateStage({ after: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                    onChange={next => updateStage({ after: next.split(',').map(s => s.trim()).filter(Boolean) })}
                   />
                 </div>
               </>

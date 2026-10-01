@@ -3,6 +3,7 @@ import SearchableTagInput from "../components/SearchableTagInput";
 import KSVEditor from "../components/KSVEditor";
 import { TestData } from "mmt-core/TestData";
 import DescriptionEditor from "../components/DescriptionEditor";
+import StableTextInput from "../components/StableTextInput";
 import { type MissingImportEntry } from "../text/validator";
 
 interface TestOverviewProps {
@@ -15,9 +16,9 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
   <div className="panel-form">
     <div className="panel-form-row">
       <div className="label">Title</div>
-      <input
+      <StableTextInput
         value={test.title || ""}
-        onChange={e => update({ title: e.target.value })}
+        onChange={next => update({ title: next })}
         placeholder="title"
       />
     </div>
@@ -79,10 +80,10 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
     />
     <div className="panel-form-row">
       <div className="label">Cache</div>
-      <input
+      <StableTextInput
         value={test.cache != null ? String(test.cache) : ""}
-        onChange={e => {
-          const raw = e.target.value.trim();
+        onChange={next => {
+          const raw = next.trim();
           if (!raw) {
             update({ cache: undefined });
             return;

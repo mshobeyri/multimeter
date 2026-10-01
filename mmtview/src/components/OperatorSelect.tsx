@@ -15,6 +15,7 @@ import {
   selectableOpsList,
 } from "mmt-core/TestData";
 import { safeList } from "mmt-core/safer";
+import StableTextInput from "./StableTextInput";
 
 type OperatorSelectProps = {
   value: CheckOps;
@@ -207,22 +208,22 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({
       </button>
       {menuNode ? createPortal(menuNode, document.body) : null}
       {isFuzzyPercentAnyOperator(value) && (
-        <input
+        <StableTextInput
           type="number"
           min={0}
           max={100}
           step={1}
-          value={fuzzyPercent}
-          onChange={e => updatePercent(Number(e.target.value))}
+          value={String(fuzzyPercent)}
+          onChange={next => updatePercent(Number(next))}
           title="Fuzzy match percentage"
           className="op-select-percent"
         />
       )}
       {isTimeAnyOperator(value) && (
-        <input
+        <StableTextInput
           type="text"
           value={velocityText}
-          onChange={e => updateVelocity(e.target.value)}
+          onChange={next => updateVelocity(next)}
           onBlur={commitVelocity}
           title="Acceptable time difference (velocity)"
           placeholder="1s"

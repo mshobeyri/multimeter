@@ -6,6 +6,7 @@ import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIDat
 import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import KSVEditor from "../components/KSVEditor";
+import StableTextInput from "../components/StableTextInput";
 import BodyView, { type BodyViewCursor } from "../components/BodyView";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
@@ -1114,9 +1115,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             />
             {editTitle ? (
               <div>
-                <input
+                <StableTextInput
                   value={api.title || ""}
-                  onChange={e => onUpdateApi?.({ title: e.target.value })}
+                  onChange={next => onUpdateApi?.({ title: next })}
                   placeholder="title"
                   disabled={!onUpdateApi}
                 />
@@ -1319,15 +1320,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <div className="field-inline is-gap is-spaced">
               <div className="field-grow">
                 <div className="label">Service</div>
-                <input
+                <StableTextInput
                   type="text"
                   placeholder="package.ServiceName"
                   value={api.grpc?.service || ""}
-                  onChange={e => {
+                  onChange={next => {
                     onUpdateApi?.({
                       grpc: {
                         proto: api.grpc?.proto,
-                        service: e.target.value,
+                        service: next,
                         method: api.grpc?.method ?? "",
                         message: api.grpc?.message,
                         stream: api.grpc?.stream,
@@ -1339,16 +1340,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               </div>
               <div className="field-grow">
                 <div className="label">Method</div>
-                <input
+                <StableTextInput
                   type="text"
                   placeholder="MethodName"
                   value={api.grpc?.method || ""}
-                  onChange={e => {
+                  onChange={next => {
                     onUpdateApi?.({
                       grpc: {
                         proto: api.grpc?.proto,
                         service: api.grpc?.service ?? "",
-                        method: e.target.value,
+                        method: next,
                         message: api.grpc?.message,
                         stream: api.grpc?.stream,
                       },

@@ -14,8 +14,10 @@ import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,
+  kvEntriesEqual,
   type KvEntry,
 } from "./kvEntryDraft";
+import StableTextInput from "./StableTextInput";
 import {
   handleKvEditorTab,
   KV_FIELD_ATTR,
@@ -79,6 +81,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
   const [draft, setDraft] = useState<KvEntry[] | null>(null);
   const entries = draft ?? propEntries;
   const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
+  const publishedRef = useRef<KvEntry[] | null>(null);
 
   useEffect(() => {
     if (!draft) {
@@ -87,12 +90,25 @@ const KVEditor: React.FC<KVEditorProps> = ({
     if (draft.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
       return;
     }
-    if (findDuplicateKeyIndexes(draft).size === 0) {
-      setDraft(null);
+    if (findDuplicateKeyIndexes(draft).size > 0) {
+      return;
     }
+    // Same text came back from YAML — drop the draft without touching inputs.
+    if (kvEntriesEqual(draft, propEntries)) {
+      publishedRef.current = null;
+      setDraft(null);
+      return;
+    }
+    const echo = publishedRef.current;
+    if (echo && kvEntriesEqual(draft, echo)) {
+      return;
+    }
+    publishedRef.current = null;
+    setDraft(null);
   }, [propEntries, draft]);
 
   const publish = (next: KvEntry[]) => {
+    publishedRef.current = next;
     setDraft(next);
     if (next.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
       return;
@@ -144,9 +160,9 @@ const KVEditor: React.FC<KVEditorProps> = ({
             .map(([k, v], index) => (
               <tr key={index}>
                 <td>
-                  <input
+                  <StableTextInput
                     value={k}
-                    onChange={e => handleKeyChange(index, e.target.value)}
+                    onChange={next => handleKeyChange(index, next)}
                     placeholder={keyPlaceholder}
                     disabled={disabled || keysDisabled}
                     className={duplicateIndexes.has(index) ? "is-invalid" : undefined}

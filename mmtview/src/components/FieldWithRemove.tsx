@@ -1,5 +1,6 @@
 import React from "react";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
 import { KV_FIELD_ATTR } from "./kvFieldNav";
 
@@ -87,13 +88,13 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
           }}
         />
       ) : (
-        <input
+        <StableTextInput
           type="text"
           value={value}
           placeholder={placeholder}
           style={{ paddingRight }}
           {...kvAttr}
-          onChange={e => onChange(e.target.value)}
+          onChange={onChange}
           onBlur={onBlur}
           onKeyDown={e => {
             if (e.key === "Enter") {

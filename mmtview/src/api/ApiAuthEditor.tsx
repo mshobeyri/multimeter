@@ -6,6 +6,7 @@ import {
   stringContainsFieldToken,
 } from "mmt-core/apiBodyEdit";
 import { withOptionalPeer } from "../components/convertor";
+import StableTextInput from "../components/StableTextInput";
 import TokenFieldInput from "../components/TokenFieldInput";
 import { useEnvTokenValueContext } from "../components/useEnvTokenValueContext";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
@@ -44,12 +45,12 @@ function AuthValueField({
   const hasTokens = stringContainsFieldToken(display);
   if (password && !hasTokens) {
     return (
-      <input
+      <StableTextInput
         className={className}
         type="password"
         placeholder={placeholder}
         value={value ?? ""}
-        onChange={e => onCommit(e.target.value)}
+        onChange={onCommit}
       />
     );
   }
@@ -163,12 +164,12 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
-              <input
+              <StableTextInput
                 className="field-grow"
                 type="text"
                 placeholder="Key name"
                 value={api.auth.header ?? api.auth.query ?? ""}
-                onChange={e => {
+                onChange={next => {
                   const current = api.auth as {
                     type: "api-key";
                     header?: string;
@@ -176,9 +177,9 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
                     value: string;
                   };
                   if (current.header != null) {
-                    update({ auth: { type: "api-key", header: e.target.value, value: current.value } });
+                    update({ auth: { type: "api-key", header: next, value: current.value } });
                   } else {
-                    update({ auth: { type: "api-key", query: e.target.value, value: current.value } });
+                    update({ auth: { type: "api-key", query: next, value: current.value } });
                   }
                 }}
               />

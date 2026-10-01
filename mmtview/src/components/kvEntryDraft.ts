@@ -2,6 +2,19 @@
 
 export type KvEntry = [string, string];
 
+/** True when two key/value rows show the same text (order-sensitive). */
+export function kvEntriesEqual(a: KvEntry[], b: KvEntry[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (a[i][0] !== b[i][0] || a[i][1] !== b[i][1]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /** Indexes whose non-empty key appears more than once (exact string match). */
 export function findDuplicateKeyIndexes(entries: KvEntry[]): Set<number> {
   const byKey = new Map<string, number[]>();

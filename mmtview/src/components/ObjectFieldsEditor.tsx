@@ -57,8 +57,8 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
     return (
         <div>
             <div className="object-fields-title">Fields</div>
-            {safeList(orderedFields).map(([name, type]) => (
-                <div key={name} className="object-field-row">
+            {safeList(orderedFields).map(([name, type], index) => (
+                <div key={index} className="object-field-row">
                     {editingField === name ? (
                         <input
                             type="text"

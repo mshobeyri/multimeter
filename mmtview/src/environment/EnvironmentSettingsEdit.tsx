@@ -1,4 +1,5 @@
 import React from "react";
+import StableTextInput from "../components/StableTextInput";
 import { EnvSetting } from "./EnvironmentData";
 
 interface EnvironmentSettingsEditProps {
@@ -57,12 +58,12 @@ const EnvironmentSettingsEdit: React.FC<EnvironmentSettingsEditProps> = ({
           </div>
           <div>
             <div className="label label-sm">Timeout (ms)</div>
-            <input
+            <StableTextInput
               type="number"
               min={0}
               className="input-field mmt-fill"
-              value={http.timeout ?? ""}
-              onChange={(e) => updateHttp({ timeout: parseNumberInput(e.target.value) })}
+              value={http.timeout == null ? "" : String(http.timeout)}
+              onChange={(next) => updateHttp({ timeout: parseNumberInput(next) })}
               placeholder="30000"
             />
           </div>

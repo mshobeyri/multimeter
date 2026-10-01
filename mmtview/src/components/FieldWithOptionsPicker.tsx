@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ParamConstraintOption } from "mmt-core/paramConstraints";
 import { safeList } from "mmt-core/safer";
 import { fieldTrailingLayout } from "./FieldWithRemove";
+import StableTextInput from "./StableTextInput";
 import { KV_FIELD_ATTR } from "./kvFieldNav";
 
 interface FieldWithOptionsPickerProps {
@@ -62,12 +63,12 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
       ref={rootRef}
       className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}
     >
-      <input
+      <StableTextInput
         type="text"
         value={value}
         placeholder={placeholder}
         style={{ paddingRight }}
-        onChange={e => onChange(e.target.value)}
+        onChange={onChange}
         disabled={disabled}
         {...(kvField ? { [KV_FIELD_ATTR]: kvField } : {})}
       />

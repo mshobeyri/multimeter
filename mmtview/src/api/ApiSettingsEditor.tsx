@@ -1,5 +1,6 @@
 import React from "react";
 import KSVEditor from "../components/KSVEditor";
+import StableTextInput from "../components/StableTextInput";
 import { APIData } from "mmt-core/APIData";
 
 interface ApiSettingsEditorProps {
@@ -21,13 +22,13 @@ const ApiSettingsEditor: React.FC<ApiSettingsEditorProps> = ({ api, update }) =>
     <div className="panel-form">
       <div className="panel-form-row">
         <div className="label">Timeout (ms)</div>
-        <input
+        <StableTextInput
           type="number"
           min={0}
           step={100}
-          value={api.timeout ?? ""}
-          onChange={e => {
-            const timeout = parseTimeoutInput(e.target.value);
+          value={api.timeout == null ? "" : String(api.timeout)}
+          onChange={next => {
+            const timeout = parseTimeoutInput(next);
             update({ timeout });
           }}
           placeholder="Default network timeout"

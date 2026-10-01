@@ -8,6 +8,7 @@ import {
   type RuntimeTokenValueContext,
   type TokenFieldSpan,
 } from "mmt-core/apiBodyEdit";
+import { shouldAdoptFieldValue } from "./fieldValueSync";
 
 type TokenFieldInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -105,14 +106,17 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   const [mirrorStyle, setMirrorStyle] = useState<React.CSSProperties>({});
   const [hoverTip, setHoverTip] = useState<HoverTip | null>(null);
   const focusedRef = useRef(false);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!focusedRef.current) {
-      setDraft(value);
-      setTokenEdit(false);
+    if (!shouldAdoptFieldValue(draftRef.current, value, focusedRef.current)) {
+      return;
     }
+    setDraft(value);
+    setTokenEdit(false);
   }, [value]);
 
   const preview = useMemo(

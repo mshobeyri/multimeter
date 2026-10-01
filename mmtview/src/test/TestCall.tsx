@@ -9,6 +9,7 @@ import {
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
 import FieldWithRemove from "../components/FieldWithRemove";
+import StableTextInput from "../components/StableTextInput";
 import CheckClauseList, {
   newCheckClauseRowId,
   stripCheckClauseRowIds,
@@ -109,9 +110,17 @@ const TestCall: React.FC<TestCallProps> = ({
 
   // Keep local in sync if parent changes externally (avoid stomping during our own edits by shallow check)
   React.useEffect(() => {
-    if (value && typeof value === 'object' && value !== localRef.current) {
-      setLocal(value);
+    if (!value || typeof value !== 'object' || value === localRef.current) {
+      return;
     }
+    try {
+      if (JSON.stringify(value) === JSON.stringify(localRef.current)) {
+        return;
+      }
+    } catch {
+      // Adopt the parent value when it cannot be compared.
+    }
+    setLocal(value);
   }, [value]);
 
   // --- Inline expect helpers ---
@@ -185,8 +194,7 @@ const TestCall: React.FC<TestCallProps> = ({
     scheduleEmit(next);
   };
 
-  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const idVal = e.target.value;
+  const handleIdChange = (idVal: string) => {
     if (!currentAlias) return;
     const next = buildCallObj({ id: idVal });
     setLocal(next);
@@ -320,8 +328,7 @@ const TestCall: React.FC<TestCallProps> = ({
     scheduleEmit(next);
   };
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const titleVal = e.target.value;
+  const handleTitleChange = (titleVal: string) => {
     if (!currentAlias) return;
     const next = buildCallObj({ title: titleVal });
     setLocal(next);
@@ -416,7 +423,7 @@ const TestCall: React.FC<TestCallProps> = ({
 
       <div className="label">Id</div>
       <div className="field-pad">
-        <input
+        <StableTextInput
           type="text"
           value={currentId}
           onChange={handleIdChange}
@@ -437,7 +444,7 @@ const TestCall: React.FC<TestCallProps> = ({
 
       <div className="label">Title</div>
       <div className="field-pad">
-        <input
+        <StableTextInput
           type="text"
           value={currentTitle}
           onChange={handleTitleChange}

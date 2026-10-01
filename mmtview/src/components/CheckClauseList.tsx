@@ -7,6 +7,7 @@ import {
   yamlValueToInputBox,
 } from "./convertor";
 import OperatorSelect from "./OperatorSelect";
+import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
 import { fieldTrailingLayout } from "./FieldWithRemove";
 import { shortValueTypeLabel } from "mmt-core/yamlValueConvert";
@@ -170,10 +171,10 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                         onDraftChange={commitExpected}
                       />
                     ) : (
-                      <input
+                      <StableTextInput
                         type="text"
                         value={row.expected}
-                        onChange={e => onPartChange(i, "expected", e.target.value)}
+                        onChange={next => onPartChange(i, "expected", next)}
                         placeholder={copy.expected}
                         style={{ paddingRight }}
                       />

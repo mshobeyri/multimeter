@@ -2,6 +2,7 @@ import React from "react";
 import FLEditor from "../components/FLEditor";
 import { DocData } from "mmt-core/DocData";
 import FieldWithRemove from "../components/FieldWithRemove";
+import StableTextInput from "../components/StableTextInput";
 
 interface DocSourceProps {
   doc: DocData;
@@ -46,12 +47,12 @@ const DocSource: React.FC<DocSourceProps> = ({ doc, update }) => {
               }}
             />
             <div className="label">Description</div>
-            <input
+            <StableTextInput
               value={(svc as any)?.description || ''}
               placeholder="service description (optional)"
-              onChange={e => {
+              onChange={nextValue => {
                 const next = services.slice();
-                next[idx] = { ...next[idx], description: e.target.value } as any;
+                next[idx] = { ...next[idx], description: nextValue } as any;
                 update({ services: next });
               }}
             />

@@ -2,6 +2,7 @@ import React from "react";
 import { MockEndpoint } from "mmt-core/MockData";
 import { KebabMenu } from "../components/PopupMenu";
 import KSVEditor from "../components/KSVEditor";
+import StableTextInput, { StableTextArea } from "../components/StableTextInput";
 import { METHOD_PROTOCOL_COLORS, methodTextColor as sharedMethodTextColor } from '../shared/themeAccent';
 
 interface MockEndpointBoxProps {
@@ -195,9 +196,9 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         {!isFallback && (
           <div className="mock-form-row">
             <span className="mock-form-label">Path</span>
-            <input
+            <StableTextInput
               value={local.path || ''}
-              onChange={e => setField({ path: e.target.value })}
+              onChange={next => setField({ path: next })}
               {...blurOrEnter}
               placeholder="/path/:param"
               className="mock-form-control"
@@ -207,10 +208,10 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         {/* Status */}
         <div className="mock-form-row">
           <span className="mock-form-label">Status</span>
-          <input
+          <StableTextInput
             type="number"
-            value={local.status ?? 200}
-            onChange={e => setField({ status: parseInt(e.target.value, 10) || 200 })}
+            value={String(local.status ?? 200)}
+            onChange={next => setField({ status: parseInt(next, 10) || 200 })}
             {...blurOrEnter}
             min={100} max={599}
             className="mock-form-control"
@@ -232,9 +233,9 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         {!isFallback && (
           <div className="mock-form-row">
             <span className="mock-form-label">Name</span>
-            <input
+            <StableTextInput
               value={local.name || ''}
-              onChange={e => setField({ name: e.target.value || undefined })}
+              onChange={next => setField({ name: next || undefined })}
               {...blurOrEnter}
               placeholder="optional"
               className="mock-form-control"
@@ -245,10 +246,10 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         {!isFallback && (
           <div className="mock-form-row">
             <span className="mock-form-label">Delay</span>
-            <input
+            <StableTextInput
               type="number"
-              value={local.delay ?? ''}
-              onChange={e => setField({ delay: parseInt(e.target.value, 10) || undefined })}
+              value={local.delay == null ? '' : String(local.delay)}
+              onChange={next => setField({ delay: parseInt(next, 10) || undefined })}
               {...blurOrEnter}
               min={0}
               placeholder="inherited"
@@ -272,9 +273,9 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         <div className="mock-form-row is-top">
           <span className="mock-form-label is-area">Body</span>
           <div className="field-grow">
-            <textarea
+            <StableTextArea
               value={localBody}
-              onChange={e => updateLocalBody(e.target.value)}
+              onChange={next => updateLocalBody(next)}
               onBlur={() => commit()}
               onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) { (e.target as HTMLElement).blur(); } }}
               placeholder="Response body"

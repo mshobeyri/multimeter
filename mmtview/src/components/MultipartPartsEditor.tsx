@@ -4,6 +4,7 @@ import type { MultipartPartSpec } from "mmt-core/multipartBody";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import { peerStringToDisplay } from "mmt-core/apiBodyEdit";
 import FieldWithRemove from "./FieldWithRemove";
+import StableTextInput from "./StableTextInput";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from "../fileContext";
 import { withOptionalPeer } from "./convertor";
@@ -82,9 +83,9 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
             return (
               <tr key={i}>
                 <td className="multipart-part-name">
-                  <input
+                  <StableTextInput
                     value={row.name}
-                    onChange={e => handleNameChange(i, e.target.value)}
+                    onChange={next => handleNameChange(i, next)}
                     placeholder="name"
                     disabled={disabled}
                   />

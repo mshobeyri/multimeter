@@ -4,6 +4,7 @@ import { loadtestToYaml, yamlToLoadTest } from 'mmt-core/loadtestParsePack';
 import { LoadTestData } from 'mmt-core/LoadTestData';
 import FileOverview from '../shared/FileOverview';
 import FilePickerInput from '../components/FilePickerInput';
+import StableTextInput from '../components/StableTextInput';
 import KSVEditor from '../components/KSVEditor';
 import { FileContext } from '../fileContext';
 import TabBar from '../components/TabBar';
@@ -350,29 +351,29 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const loadTabContent = (
     <div className="edit-section">
       <div className="label is-field">Threads</div>
-      <input
+      <StableTextInput
         type="number"
         min={1}
         className="vscode-input field-control"
-        value={load.threads ?? ''}
-        onChange={(e) => handleThreadsChange(e.target.value)}
+        value={load.threads == null ? '' : String(load.threads)}
+        onChange={(next) => handleThreadsChange(next)}
         placeholder="1"
       />
       <div className="label is-field">Repeat</div>
-      <input
+      <StableTextInput
         type="text"
         required
         className="vscode-input field-control"
-        value={load.repeat ?? ''}
-        onChange={(e) => handleRepeatChange(e.target.value)}
+        value={load.repeat == null ? '' : String(load.repeat)}
+        onChange={(next) => handleRepeatChange(next)}
         placeholder="1m or 1000"
       />
       <div className="label is-field">Ramp-up</div>
-      <input
+      <StableTextInput
         type="text"
         className="vscode-input field-control"
-        value={load.rampup ?? ''}
-        onChange={(e) => handleRampupChange(e.target.value)}
+        value={load.rampup == null ? '' : String(load.rampup)}
+        onChange={(next) => handleRampupChange(next)}
         placeholder="0s"
       />
       <div className="hint-text">
@@ -385,11 +386,11 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
     <div className="edit-section">
       <div className="label is-field">Preset</div>
       <div className="field-inset">
-        <input
+        <StableTextInput
           type="text"
           className="vscode-input mmt-fill"
           value={environment?.preset || ''}
-          onChange={(e) => handleEnvPresetChange(e.target.value)}
+          onChange={(next) => handleEnvPresetChange(next)}
           placeholder="preset name (from multimeter.mmt or env file)"
         />
       </div>

@@ -1,6 +1,7 @@
 import React from "react";
 import { Method, Protocol } from "mmt-core/CommonData";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
 
 const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
@@ -119,11 +120,11 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
             onDraftChange={value => emitUrl(value, onUrlChange, onQueryChange)}
           />
         ) : (
-          <input
+          <StableTextInput
             type="text"
             className="method-url-bar-url"
             value={urlValue}
-            onChange={e => emitUrl(e.target.value, onUrlChange, onQueryChange)}
+            onChange={next => emitUrl(next, onUrlChange, onQueryChange)}
             spellCheck={false}
             aria-label="Request URL"
           />

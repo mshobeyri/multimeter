@@ -15,8 +15,10 @@ import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,
+  kvEntriesEqual,
   type KvEntry,
 } from "./kvEntryDraft";
+import StableTextInput from "./StableTextInput";
 import {
   handleKvEditorTab,
   KV_FIELD_ATTR,
@@ -109,10 +111,11 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   const [draft, setDraft] = useState<KvEntry[] | null>(null);
   const entries = draft ?? propEntries;
   const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
+  const publishedRef = useRef<KvEntry[] | null>(null);
 
-  // Drop local draft once keys are unique again and props have caught up.
-  // Keep the draft while a value is mid-edit incomplete JSON so live YAML
-  // writes do not collapse objects to "{".
+  // Drop local draft once keys are unique and the echoed text matches.
+  // Keep the draft while a value is mid-edit incomplete JSON, or when the
+  // YAML round-trip would rewrite the same edit (that rewrite jumps the caret).
   useEffect(() => {
     if (!draft) {
       return;
@@ -121,9 +124,20 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
         draft.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
       return;
     }
-    if (findDuplicateKeyIndexes(draft).size === 0) {
-      setDraft(null);
+    if (findDuplicateKeyIndexes(draft).size > 0) {
+      return;
     }
+    if (kvEntriesEqual(draft, propEntries)) {
+      publishedRef.current = null;
+      setDraft(null);
+      return;
+    }
+    const echo = publishedRef.current;
+    if (echo && kvEntriesEqual(draft, echo)) {
+      return;
+    }
+    publishedRef.current = null;
+    setDraft(null);
   }, [propEntries, draft, typedValues]);
 
   const safeOptions = Array.isArray(options) ? options : [];
@@ -135,6 +149,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   }];
 
   const publish = (next: KvEntry[]) => {
+    publishedRef.current = next;
     setDraft(next);
     if (typedValues &&
         next.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
@@ -197,9 +212,9 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
             .map(([k, v], i) => (
               <tr key={i}>
                 <td>
-                  <input
+                  <StableTextInput
                     value={k}
-                    onChange={e => handleKeyChange(i, e.target.value)}
+                    onChange={next => handleKeyChange(i, next)}
                     placeholder={keyPlaceholder}
                     disabled={disabled || keysDisabled}
                     readOnly={readOnly || deactivated}

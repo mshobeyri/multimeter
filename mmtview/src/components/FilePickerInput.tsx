@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { openOsFilePicker } from '../vsAPI';
 import fileHelper from 'mmt-core/fileHelper';
 import type { RuntimeTokenValueContext } from 'mmt-core/apiBodyEdit';
+import StableTextInput from './StableTextInput';
 import TokenFieldInput from './TokenFieldInput';
 import { KV_FIELD_ATTR } from './kvFieldNav';
 
@@ -118,20 +119,20 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           onDraftChange={next => onChange?.(next)}
         />
       ) : (
-        <input
+        <StableTextInput
           ref={ref}
           type="text"
           value={value}
           disabled={disabled}
           placeholder={placeholder}
-          onChange={e => {
-            onChange && onChange(e.target.value);
+          onChange={next => {
+            onChange && onChange(next);
           }}
           onKeyDown={e => {
             if (e.key === 'Enter') {
               e.preventDefault();
               (e.target as HTMLInputElement).blur();
-              onEnterPressed && onEnterPressed(value);
+              onEnterPressed && onEnterPressed((e.target as HTMLInputElement).value);
             }
           }}
           style={{ paddingRight: rightPadding }}

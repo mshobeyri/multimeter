@@ -7,6 +7,7 @@ import {
   splitJudgeEvalBlock,
 } from 'mmt-core/JudgeData';
 import KVEditor from '../components/KVEditor';
+import StableTextInput from '../components/StableTextInput';
 import LEditor from '../components/LEditor';
 
 interface TestJudgeProps {
@@ -32,9 +33,17 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
   };
 
   React.useEffect(() => {
-    if (value && typeof value === 'object' && value !== localRef.current) {
-      setLocal(value);
+    if (!value || typeof value !== 'object' || value === localRef.current) {
+      return;
     }
+    try {
+      if (JSON.stringify(value) === JSON.stringify(localRef.current)) {
+        return;
+      }
+    } catch {
+      // Fall through and adopt the parent value.
+    }
+    setLocal(value);
   }, [value]);
 
   const judgeImports = React.useMemo(() => {
@@ -102,10 +111,10 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
         <>
       <div className="label">Id</div>
       <div className="field-pad">
-        <input
+        <StableTextInput
           type="text"
           value={currentId}
-          onChange={(e) => emit(buildObj({ id: e.target.value }))}
+          onChange={(next) => emit(buildObj({ id: next }))}
           disabled={!currentAlias}
           placeholder="id"
         />
@@ -113,10 +122,10 @@ const TestJudge: React.FC<TestJudgeProps> = ({ value, imports, onChange, expande
 
       <div className="label">Title</div>
       <div className="field-pad">
-        <input
+        <StableTextInput
           type="text"
           value={currentTitle}
-          onChange={(e) => emit(buildObj({ title: e.target.value }))}
+          onChange={(next) => emit(buildObj({ title: next }))}
           disabled={!currentAlias}
           placeholder="title"
         />

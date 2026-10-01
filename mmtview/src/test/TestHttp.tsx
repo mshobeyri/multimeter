@@ -10,6 +10,7 @@ import { REQUEST_FORMAT_VALUES, RequestFormat, RESPONSE_FORMAT_VALUES, ResponseF
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
+import StableTextInput, { StableTextArea } from "../components/StableTextInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import CheckClauseList, {
   newCheckClauseRowId,
@@ -175,10 +176,10 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   return (
     <div className="mmt-fill">
       <div className="field-pad">
-        <input
+        <StableTextInput
           type="text"
           value={step.http || ''}
-          onChange={e => emit({ http: e.target.value })}
+          onChange={next => emit({ http: next })}
           placeholder="URL"
         />
       </div>
@@ -186,20 +187,20 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
         <>
           <div className="label">Id</div>
           <div className="field-pad">
-            <input
+            <StableTextInput
               type="text"
               value={step.id || ''}
-              onChange={e => emit({ id: e.target.value })}
+              onChange={next => emit({ id: next })}
               placeholder="Optional id to capture response"
             />
           </div>
 
           <div className="label">Title</div>
           <div className="field-pad">
-            <input
+            <StableTextInput
               type="text"
               value={step.title || ''}
-              onChange={e => emit({ title: e.target.value })}
+              onChange={next => emit({ title: next })}
               placeholder="Optional display title"
             />
           </div>
@@ -218,12 +219,12 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
 
           <div className="label">Timeout (ms)</div>
           <div className="field-pad">
-            <input
+            <StableTextInput
               type="number"
               min={0}
               step={100}
-              value={step.timeout ?? ''}
-              onChange={e => emit({ timeout: parseTimeoutInput(e.target.value) })}
+              value={step.timeout == null ? "" : String(step.timeout)}
+              onChange={next => emit({ timeout: parseTimeoutInput(next) })}
               placeholder="Default network timeout"
             />
           </div>
@@ -293,9 +294,9 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                     onChange={parts => emit({ body: parts })}
                   />
                 ) : (
-                  <textarea
+                  <StableTextArea
                     value={typeof step.body === 'string' ? step.body : JSON.stringify(step.body || '', null, 2)}
-                    onChange={e => emit({ body: e.target.value })}
+                    onChange={next => emit({ body: next })}
                     placeholder="Request body"
                   />
                 )}
