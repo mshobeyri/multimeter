@@ -6,6 +6,7 @@ import {
   yamlValueToInputBoxWithTokens,
   inputBoxToYamlValueWithTokens,
 } from "./convertor";
+import { yamlValueTypeLabel } from "mmt-core/yamlValueConvert";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
 interface KVEditorProps {
@@ -138,6 +139,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                       removable={deletable && !deactivated}
                       canContainToken={canContainToken}
                       valueContext={valueContext}
+                      typeLabel={yamlValueTypeLabel(value?.[k])}
                     />
                   )}
                 </td>
