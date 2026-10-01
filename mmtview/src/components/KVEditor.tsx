@@ -14,7 +14,9 @@ import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,
+  kvEntriesContentEqual,
   kvEntriesEqual,
+  withTrailingEmptyRow,
   type KvEntry,
 } from "./kvEntryDraft";
 import StableTextInput from "./StableTextInput";
@@ -93,23 +95,30 @@ const KVEditor: React.FC<KVEditorProps> = ({
     if (findDuplicateKeyIndexes(draft).size > 0) {
       return;
     }
-    // Same text came back from YAML — drop the draft without touching inputs.
-    if (kvEntriesEqual(draft, propEntries)) {
+    // Same keys and values came back. Drop the draft so the blank next-key
+    // row from props is shown. The placeholder row is not part of the compare.
+    if (kvEntriesContentEqual(draft, propEntries)) {
       publishedRef.current = null;
       setDraft(null);
       return;
     }
     const echo = publishedRef.current;
-    if (echo && kvEntriesEqual(draft, echo)) {
+    if (echo && kvEntriesContentEqual(draft, echo)) {
+      const shown = withTrailingEmptyRow(draft, expandable);
+      if (!kvEntriesEqual(draft, shown)) {
+        publishedRef.current = shown;
+        setDraft(shown);
+      }
       return;
     }
     publishedRef.current = null;
     setDraft(null);
-  }, [propEntries, draft]);
+  }, [propEntries, draft, expandable]);
 
   const publish = (next: KvEntry[]) => {
-    publishedRef.current = next;
-    setDraft(next);
+    const shown = withTrailingEmptyRow(next, expandable);
+    publishedRef.current = shown;
+    setDraft(shown);
     if (next.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
       return;
     }

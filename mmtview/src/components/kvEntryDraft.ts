@@ -15,6 +15,30 @@ export function kvEntriesEqual(a: KvEntry[], b: KvEntry[]): boolean {
   return true;
 }
 
+/** Placeholder row that lets the user add another key. */
+export function withoutTrailingEmptyKey(entries: KvEntry[]): KvEntry[] {
+  if (entries.length > 0 && entries[entries.length - 1][0] === "") {
+    return entries.slice(0, -1);
+  }
+  return entries;
+}
+
+/** Compare rows ignoring the blank "add another key" placeholder. */
+export function kvEntriesContentEqual(a: KvEntry[], b: KvEntry[]): boolean {
+  return kvEntriesEqual(withoutTrailingEmptyKey(a), withoutTrailingEmptyKey(b));
+}
+
+/** Keep a blank key row at the end so the next entry can be typed. */
+export function withTrailingEmptyRow(entries: KvEntry[], addEmpty: boolean): KvEntry[] {
+  if (!addEmpty) {
+    return entries;
+  }
+  if (entries.length === 0 || entries[entries.length - 1][0] !== "") {
+    return [...entries, ["", ""]];
+  }
+  return entries;
+}
+
 /** Indexes whose non-empty key appears more than once (exact string match). */
 export function findDuplicateKeyIndexes(entries: KvEntry[]): Set<number> {
   const byKey = new Map<string, number[]>();
