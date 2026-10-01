@@ -1,4 +1,4 @@
-import React, { useMemo, useContext } from "react";
+import React, { useMemo, useContext, useState, useEffect } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
@@ -7,6 +7,11 @@ import FilePickerInput from "./FilePickerInput";
 import { FileContext } from '../fileContext';
 import { valueToString, stringToValue } from "./convertor";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import {
+  entriesToUniqueRecord,
+  findDuplicateKeyIndexes,
+  type KvEntry,
+} from "./kvEntryDraft";
 
 interface KSVEditorProps {
   label: string;
@@ -39,11 +44,10 @@ function toStoredString(display: string): string {
   return valueToString(typed as JSONValue);
 }
 
-// Utility to ensure an empty key is always at the end
 function withTrailingEmptyKey(
   obj?: string | Record<string, string> | JSONRecord,
   addEmpty: boolean = true,
-): Array<[string, string]> {
+): KvEntry[] {
   if (!obj) {
     return addEmpty ? [["", ""]] : [];
   }
@@ -52,9 +56,7 @@ function withTrailingEmptyKey(
     return addEmpty ? [["", ""]] : [];
   }
 
-  // Display via convertor so omit / numbers / quoted token literals stay correct
-  // and `__MMT_LITERAL__:` never leaks into the field UI.
-  const entries = Object.entries(obj).map(([key, value]): [string, string] => [
+  const entries = Object.entries(obj).map(([key, value]): KvEntry => [
     key,
     valueToString(value as JSONValue),
   ]);
@@ -84,10 +86,24 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   canContainToken = false,
   valueContext,
 }) => {
-  const entries = useMemo(
+  const propEntries = useMemo(
     () => withTrailingEmptyKey(value, expandable),
     [value, expandable],
   );
+  const [draft, setDraft] = useState<KvEntry[] | null>(null);
+  const entries = draft ?? propEntries;
+  const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
+
+  // Drop local draft once keys are unique again and props have caught up.
+  useEffect(() => {
+    if (!draft) {
+      return;
+    }
+    if (findDuplicateKeyIndexes(draft).size === 0) {
+      setDraft(null);
+    }
+  }, [propEntries, draft]);
+
   const safeOptions = Array.isArray(options) ? options : [];
 
   const fileCtx = useContext(FileContext);
@@ -96,40 +112,28 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
     extensions: ['mmt', 'csv', 'json', 'yaml', 'yml', 'http', 'https', 'bru', 'bruno', 'js', 'cjs', 'mjs'],
   }];
 
-  const toObject = (arr: Array<[string, string]>): Record<string, string> =>
-    safeList(arr).reduce<Record<string, string>>((acc, [k, v]) => {
-      if (k.trim()) {
-        acc[k] = toStoredString(v);
-      }
-      return acc;
-    }, {});
+  const publish = (next: KvEntry[]) => {
+    setDraft(next);
+    onChange(entriesToUniqueRecord(next, toStoredString));
+  };
 
   const handleKeyChange = (idx: number, newKey: string) => {
-    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
+    const newEntries = safeList(entries).map(([k, v], i): KvEntry =>
       i === idx ? [newKey, v] : [k, v]
     );
-
-    const seen = new Set<string>();
-    const filtered = newEntries.filter(([k], i) => {
-      if (!k.trim()) return true;
-      if (seen.has(k) && i !== idx) return false;
-      seen.add(k);
-      return true;
-    });
-
-    onChange(toObject(filtered));
+    publish(newEntries);
   };
 
   const handleValueChange = (idx: number, newVal: string) => {
-    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
+    const newEntries = safeList(entries).map(([k, v], i): KvEntry =>
       i === idx ? [k, newVal] : [k, v]
     );
-    onChange(toObject(newEntries));
+    publish(newEntries);
   };
 
   const handleRemove = (idx: number) => {
     const newEntries = safeList(entries).filter((_, i) => i !== idx);
-    onChange(toObject(newEntries));
+    publish(newEntries);
   };
 
   return (
@@ -154,6 +158,9 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                     placeholder={keyPlaceholder}
                     disabled={disabled || keysDisabled}
                     readOnly={readOnly || deactivated}
+                    className={duplicateIndexes.has(i) ? "is-invalid" : undefined}
+                    title={duplicateIndexes.has(i) ? "Duplicate key" : undefined}
+                    aria-invalid={duplicateIndexes.has(i)}
                   />
                 </td>
                 <td>
@@ -172,10 +179,10 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                       <SelectWithRemove
                         value={v}
                         onChange={newVal => {
-                          const newEntries = safeList(entries).map(([key, val], idx): [string, string] =>
+                          const newEntries = safeList(entries).map(([key, val], idx): KvEntry =>
                             idx === i ? [key, newVal] : [key, val]
                           );
-                          onChange(toObject(newEntries));
+                          publish(newEntries);
                         }}
                         onRemovePressed={() => handleRemove(i)}
                         options={safeOptions}

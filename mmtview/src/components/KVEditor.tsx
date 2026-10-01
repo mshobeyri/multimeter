@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
@@ -8,6 +8,11 @@ import {
 } from "./convertor";
 import { yamlValueTypeLabel } from "mmt-core/yamlValueConvert";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import {
+  entriesToUniqueRecord,
+  findDuplicateKeyIndexes,
+  type KvEntry,
+} from "./kvEntryDraft";
 
 interface KVEditorProps {
   label: string;
@@ -24,22 +29,20 @@ interface KVEditorProps {
   valueContext?: RuntimeTokenValueContext;
 }
 
-// Utility to ensure an empty key is always at the end
 function withTrailingEmptyKey(
   obj: JSONRecord | undefined,
   tokens: boolean,
   addEmpty: boolean = true,
-): Array<[string, string]> {
+): KvEntry[] {
   if (!obj) {
     return addEmpty ? [["", ""]] : [];
   }
 
-  const entries = Object.entries(obj).map(([key, value]): [string, string] => [
+  const entries = Object.entries(obj).map(([key, value]): KvEntry => [
     key,
     yamlValueToInputBoxWithTokens(value, tokens),
   ]);
 
-  // Ensure there's always an empty entry at the end for adding new items
   if (addEmpty && (entries.length === 0 || entries[entries.length - 1][0] !== "")) {
     return [...entries, ["", ""]];
   }
@@ -60,48 +63,48 @@ const KVEditor: React.FC<KVEditorProps> = ({
   canContainToken = false,
   valueContext,
 }) => {
-  // Use an array of entries to preserve order and handle the object format
-  const entries = useMemo(
+  const propEntries = useMemo(
     () => withTrailingEmptyKey(value, canContainToken, expandable),
     [value, canContainToken, expandable],
   );
+  const [draft, setDraft] = useState<KvEntry[] | null>(null);
+  const entries = draft ?? propEntries;
+  const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
 
-  // Helper to convert entries array back to object
-  const toObject = (arr: Array<[string, string]>): Record<string, JSONValue> =>
-    safeList(arr).reduce<Record<string, JSONValue>>((acc, [k, v]) => {
-      if (k.trim()) { // Only include non-empty keys
-        acc[k] = inputBoxToYamlValueWithTokens(String(v ?? ""), canContainToken);
-      }
-      return acc;
-    }, {});
+  useEffect(() => {
+    if (!draft) {
+      return;
+    }
+    if (findDuplicateKeyIndexes(draft).size === 0) {
+      setDraft(null);
+    }
+  }, [propEntries, draft]);
+
+  const publish = (next: KvEntry[]) => {
+    setDraft(next);
+    onChange(entriesToUniqueRecord(
+      next,
+      (display) => inputBoxToYamlValueWithTokens(display, canContainToken),
+    ));
+  };
 
   const handleKeyChange = (idx: number, newKey: string) => {
-    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
+    const newEntries = safeList(entries).map(([k, v], i): KvEntry =>
       i === idx ? [newKey, v] : [k, v]
     );
-
-    // Remove duplicate keys except for the current one
-    const seen = new Set<string>();
-    const filtered = newEntries.filter(([k], i) => {
-      if (!k.trim()) return true; // Keep empty keys
-      if (seen.has(k) && i !== idx) return false; // Remove duplicates
-      seen.add(k);
-      return true;
-    });
-
-    onChange(toObject(filtered));
+    publish(newEntries);
   };
 
   const handleValueChange = (idx: number, newVal: string) => {
-    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
+    const newEntries = safeList(entries).map(([k, v], i): KvEntry =>
       i === idx ? [k, newVal] : [k, v]
     );
-    onChange(toObject(newEntries));
+    publish(newEntries);
   };
 
   const handleRemove = (idx: number) => {
     const newEntries = safeList(entries).filter((_, i) => i !== idx);
-    onChange(toObject(newEntries));
+    publish(newEntries);
   };
 
   return (
@@ -118,7 +121,6 @@ const KVEditor: React.FC<KVEditorProps> = ({
           {safeList(entries)
             .filter(([k], index) => !(deactivated && k === "" && index === entries.length - 1))
             .map(([k, v], index) => (
-
               <tr key={index}>
                 <td>
                   <input
@@ -126,6 +128,9 @@ const KVEditor: React.FC<KVEditorProps> = ({
                     onChange={e => handleKeyChange(index, e.target.value)}
                     placeholder={keyPlaceholder}
                     disabled={disabled || keysDisabled}
+                    className={duplicateIndexes.has(index) ? "is-invalid" : undefined}
+                    title={duplicateIndexes.has(index) ? "Duplicate key" : undefined}
+                    aria-invalid={duplicateIndexes.has(index)}
                   />
                 </td>
                 <td>
@@ -139,7 +144,11 @@ const KVEditor: React.FC<KVEditorProps> = ({
                       removable={deletable && !deactivated}
                       canContainToken={canContainToken}
                       valueContext={valueContext}
-                      typeLabel={yamlValueTypeLabel(value?.[k])}
+                      typeLabel={
+                        !duplicateIndexes.has(index) && value?.[k] !== undefined
+                          ? yamlValueTypeLabel(value?.[k])
+                          : undefined
+                      }
                     />
                   )}
                 </td>

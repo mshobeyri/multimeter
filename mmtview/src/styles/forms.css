@@ -227,6 +227,7 @@
   border-color: var(--vscode-errorForeground, #f14c4c);
 }
 
+input.is-invalid,
 select.is-invalid {
   box-shadow: 0 0 0 1px var(--vscode-errorForeground, #f14c4c);
 }
