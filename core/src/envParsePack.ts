@@ -5,6 +5,7 @@ import {
   EnvCertificates,
   EnvClientCertificate,
   EnvData,
+  EnvNestedObject,
   EnvSetting,
   EnvVariableValue,
 } from './EnvData';
@@ -40,7 +41,7 @@ function parseVariableValue(raw: unknown): EnvVariableValue | undefined {
     return raw as EnvVariableValue;
   }
   if (raw && typeof raw === 'object') {
-    return {...(raw as Record<string, string | number | boolean | null | undefined>)};
+    return {...(raw as EnvNestedObject)};
   }
   return undefined;
 }

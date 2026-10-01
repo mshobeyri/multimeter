@@ -191,11 +191,35 @@ variables:
       variables: {
         api_url: {local: 'https://example.com'},
         draft: {},
+        tags: [],
       },
     });
     expect(patched).toContain('api_url:');
     expect(patched).toContain('draft: {}');
+    expect(patched).toMatch(/tags:\s*\[\]/);
     expect(patched.trim().endsWith('{')).toBe(false);
     expect(() => yamlToEnv(patched)).not.toThrow();
+  });
+
+  it('round-trips nested object and list choice values', () => {
+    const input = `type: env
+variables:
+  config:
+    local:
+      host: localhost
+      port: 8080
+  flags:
+    - true
+    - {debug: true}
+`;
+    const env = yamlToEnv(input);
+    expect(env.variables?.config).toEqual({
+      local: {host: 'localhost', port: 8080},
+    });
+    expect(env.variables?.flags).toEqual([true, {debug: true}]);
+    const patched = patchEnvYaml(input, {variables: env.variables});
+    const again = yamlToEnv(patched);
+    expect(again.variables?.config).toEqual(env.variables?.config);
+    expect(again.variables?.flags).toEqual(env.variables?.flags);
   });
 });

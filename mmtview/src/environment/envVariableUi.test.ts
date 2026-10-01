@@ -21,23 +21,60 @@ describe('envVariableUi', () => {
     });
   });
 
-  it('coerces list display text to typed YAML scalars', () => {
+  it('preserves nested object and list field values', () => {
     expect(boardsToVariables([
-      {name: 'ports', type: 'list', value: ['8080', '"8080"', 'true', 'hello']},
+      {
+        name: 'config',
+        type: 'object',
+        value: {
+          local: {host: 'localhost', port: 8080},
+          tags: ['a', 'b'],
+          raw: '{"x":1}',
+          listLit: '[1,2]',
+        },
+      },
     ])).toEqual({
-      ports: [8080, '8080', true, 'hello'],
+      config: {
+        local: {host: 'localhost', port: 8080},
+        tags: ['a', 'b'],
+        raw: {x: 1},
+        listLit: [1, 2],
+      },
     });
   });
 
-  it('drops unnamed boards and empty objects / lists', () => {
+  it('coerces list display text to typed YAML scalars and structures', () => {
+    expect(boardsToVariables([
+      {
+        name: 'ports',
+        type: 'list',
+        value: ['8080', '"8080"', 'true', 'hello', '[1,2]', '{"a":1}'],
+      },
+    ])).toEqual({
+      ports: [8080, '8080', true, 'hello', [1, 2], {a: 1}],
+    });
+  });
+
+  it('keeps named empty object/list shells and drops unnamed drafts', () => {
     expect(boardsToVariables([
       {name: '', type: 'object', value: {a: '1'}},
       {name: 'draft', type: 'object', value: {}},
       {name: 'tags', type: 'list', value: []},
       {name: 'api_url', type: 'object', value: {local: 'https://x'}},
     ])).toEqual({
+      draft: {},
+      tags: [],
       api_url: {local: 'https://x'},
     });
+  });
+
+  it('round-trips object and list variable shapes', () => {
+    const vars = {
+      api_url: {local: 'https://x', prod: 'https://y'},
+      timeouts: [1000, 2000],
+      nested: {dev: {port: 8080, headers: {a: 'b'}}},
+    } as unknown as Record<string, import('mmt-core/EnvData').EnvVariableValue>;
+    expect(boardsToVariables(variablesToBoards(vars))).toEqual(vars);
   });
 
   it('keeps signature stable for equal maps', () => {

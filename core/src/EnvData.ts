@@ -29,11 +29,31 @@ export interface EnvSetting {
   http?: EnvHttpSettings;
 }
 
-export type EnvVariableValue =
-  | {[label: string]: string | number | boolean | null | undefined}
-  | Array<string | number | boolean | null>;
+/**
+ * Nested values allowed inside env variable maps/lists (scalars or JSON
+ * object/array structures typed in the UI).
+ *
+ * The object branch is an interface so TypeScript can resolve the recursive
+ * index signature (a type-alias-only form collapses to scalars).
+ */
+export interface EnvNestedObject {
+  [key: string]: EnvNestedValue;
+}
 
-export type EnvPresetValue = string | number | boolean | null;
+export type EnvNestedValue =
+  | string
+  | number
+  | boolean
+  | null
+  | EnvNestedValue[]
+  | EnvNestedObject;
+
+export type EnvVariableValue =
+  | EnvNestedObject
+  | EnvNestedValue[];
+
+/** Preset entries are usually choice keys; nested JSON is also allowed. */
+export type EnvPresetValue = EnvNestedValue;
 export type EnvPresetMapping = Record<string, EnvPresetValue>;
 export type EnvPresetGroup = Record<string, EnvPresetMapping>;
 export type EnvPresets = Record<string, EnvPresetGroup>;

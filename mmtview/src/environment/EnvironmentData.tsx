@@ -17,13 +17,8 @@ export type {
 } from 'mmt-core/EnvData';
 
 /** UI document shape for the env editor. */
-export type EnvironmentData = Omit<EnvData, 'type'|'variables'> & {
+export type EnvironmentData = Omit<EnvData, 'type'> & {
   type: string;
-  variables: {
-    [name: string]:
-      | {[label: string]: string|number|boolean|null|undefined}
-      | Array<string|number|boolean|null>;
-  };
 };
 
 /** Env-panel subset of NetworkData.CertificateSettings. */
