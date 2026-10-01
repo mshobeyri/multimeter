@@ -31,6 +31,7 @@ export {
   projectTokenFieldPreview,
   sourceToDisplayTokenTemplate,
   stringContainsFieldToken,
+  wrapTypedTokenAtCursor,
   valueForYamlSave,
 } from './bodyRuntimeTokens';
 export type {

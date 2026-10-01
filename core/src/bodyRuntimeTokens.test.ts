@@ -34,6 +34,7 @@ import {
   peerRecordToYaml,
   projectTokenFieldPreview,
   stringContainsFieldToken,
+  wrapTypedTokenAtCursor,
   findDisplayTokenCharRanges,
   findBodyTokenHoverSpans,
 } from './bodyRuntimeTokens';
@@ -167,6 +168,37 @@ describe('enterEditStringBuffer / sourceToDisplayTokenTemplate', () => {
   it('keeps large paste as the edit buffer', () => {
     expect(enterEditStringBuffer('alice', 'hello world', '<<i:user>>'))
         .toBe('hello world');
+  });
+});
+
+describe('wrapTypedTokenAtCursor', () => {
+  it('wraps i/e/r/c after the first character and keeps the caret there', () => {
+    expect(wrapTypedTokenAtCursor('i:x', 3)).toEqual({text: '{{i:x}}', cursor: 5});
+    expect(wrapTypedTokenAtCursor('e:t', 3)).toEqual({text: '{{e:t}}', cursor: 5});
+    expect(wrapTypedTokenAtCursor('r:u', 3)).toEqual({text: '{{r:u}}', cursor: 5});
+    expect(wrapTypedTokenAtCursor('c:d', 3)).toEqual({text: '{{c:d}}', cursor: 5});
+    expect(wrapTypedTokenAtCursor('r:uuid', 6)).toEqual({
+      text: '{{r:uuid}}',
+      cursor: 8,
+    });
+  });
+
+  it('wraps a token in surrounding text with the caret after that character', () => {
+    expect(wrapTypedTokenAtCursor('Bearer i:x', 10)).toEqual({
+      text: 'Bearer {{i:x}}',
+      cursor: 12,
+    });
+    expect(wrapTypedTokenAtCursor('i:xy', 3)).toEqual({text: '{{i:xy}}', cursor: 5});
+  });
+
+  it('does not wrap a prefix alone or a token that is already braced', () => {
+    expect(wrapTypedTokenAtCursor('i:', 2)).toEqual({text: 'i:', cursor: 2});
+    expect(wrapTypedTokenAtCursor('{{i:x}}', 5)).toEqual({text: '{{i:x}}', cursor: 5});
+    expect(wrapTypedTokenAtCursor('{{r:uuid}}', 8)).toEqual({
+      text: '{{r:uuid}}',
+      cursor: 8,
+    });
+    expect(wrapTypedTokenAtCursor('<<i:x>>', 5)).toEqual({text: '<<i:x>>', cursor: 5});
   });
 });
 

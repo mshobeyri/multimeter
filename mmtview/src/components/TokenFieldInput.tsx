@@ -5,6 +5,7 @@ import {
   findDisplayTokenCharRanges,
   projectTokenFieldPreview,
   stringContainsFieldToken,
+  wrapTypedTokenAtCursor,
   type RuntimeTokenValueContext,
   type TokenFieldSpan,
 } from "mmt-core/apiBodyEdit";
@@ -110,6 +111,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   draftRef.current = draft;
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const pendingCaretRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!shouldAdoptFieldValue(draftRef.current, value, focusedRef.current)) {
@@ -164,6 +166,17 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
       boxSizing: cs.boxSizing as React.CSSProperties["boxSizing"],
     });
   }, [useHighlightLayer, displayValue, className, style]);
+
+  // After `i:x` → `{{i:x}}`, put the caret back after `x` (before `}}`).
+  useLayoutEffect(() => {
+    const pos = pendingCaretRef.current;
+    const el = inputRef.current;
+    if (pos == null || !el || document.activeElement !== el) {
+      return;
+    }
+    pendingCaretRef.current = null;
+    el.setSelectionRange(pos, pos);
+  }, [displayValue]);
 
   const commit = (next: string) => {
     onCommit(next);
@@ -241,8 +254,16 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
             beginTokenEdit(template);
             return;
           }
-          setDraft(next);
-          onDraftChange?.(next);
+          const caret = e.target.selectionStart ?? next.length;
+          const wrapped = wrapTypedTokenAtCursor(next, caret);
+          if (wrapped.text !== next) {
+            // Stay on the {{…}} template. Resolved preview waits until blur,
+            // so finishing `r:uuid` does not swap in the generated value.
+            pendingCaretRef.current = wrapped.cursor;
+            setTokenEdit(true);
+          }
+          setDraft(wrapped.text);
+          onDraftChange?.(wrapped.text);
         }}
         onFocus={e => {
           focusedRef.current = true;

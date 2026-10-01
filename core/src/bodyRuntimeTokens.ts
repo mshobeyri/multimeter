@@ -1015,6 +1015,38 @@ export function sourceToDisplayTokenTemplate(source: unknown): string {
 }
 
 /**
+ * While typing, wrap the bare `i:` / `e:` / `r:` / `c:` token under the caret.
+ * `i:x` becomes `{{i:x}}` and the caret stays just after `x` (before `}}`).
+ * Tokens already inside `{{…}}` or `<<…>>` are left alone.
+ */
+export function wrapTypedTokenAtCursor(
+    text: string,
+    cursor: number,
+): {text: string, cursor: number} {
+  const source = String(text ?? '');
+  const rawCaret = Number.isFinite(cursor) ? cursor : source.length;
+  const caret = Math.max(0, Math.min(rawCaret, source.length));
+  const re = new RegExp(
+      `(?<![A-Za-z0-9_{<])([riec]):(${TOKEN_NAME_RE}(?:\\([^)]*\\))?${ACCESSOR_PATH_RE})`,
+      'g',
+  );
+  let match: RegExpExecArray|null;
+  while ((match = re.exec(source)) !== null) {
+    const start = match.index;
+    const end = start + match[0].length;
+    const afterColon = start + match[1].length + 1;
+    // Need at least one character after the colon, and the caret in that name.
+    if (caret <= afterColon || caret > end) {
+      continue;
+    }
+    const wrapped =
+        source.slice(0, start) + '{{' + match[0] + '}}' + source.slice(end);
+    return {text: wrapped, cursor: caret + 2};
+  }
+  return {text: source, cursor: caret};
+}
+
+/**
  * Map a single-field edit from preview text onto the token template.
  * Falls back to the template when positions cannot be transferred (typical
  * when resolved lengths differ from `{{i:…}}` / `{{e:…}}`).
