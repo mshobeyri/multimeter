@@ -1,7 +1,7 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import { safeList } from "mmt-core/safer";
-import { JSONRecord, JSONValue } from "mmt-core/CommonData";
+import { JSONRecord } from "mmt-core/CommonData";
 import {
   yamlValueToInputBoxWithTokens,
   inputBoxToYamlValueWithTokens,
@@ -13,6 +13,11 @@ import {
   findDuplicateKeyIndexes,
   type KvEntry,
 } from "./kvEntryDraft";
+import {
+  handleKvEditorTab,
+  KV_FIELD_ATTR,
+  kvFieldId,
+} from "./kvFieldNav";
 
 interface KVEditorProps {
   label: string;
@@ -63,6 +68,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
   canContainToken = false,
   valueContext,
 }) => {
+  const tableRef = useRef<HTMLTableElement>(null);
   const propEntries = useMemo(
     () => withTrailingEmptyKey(value, canContainToken, expandable),
     [value, canContainToken, expandable],
@@ -116,7 +122,13 @@ const KVEditor: React.FC<KVEditorProps> = ({
           {label}
         </div>
       ) : null}
-      <table className="field-table">
+      <table
+        ref={tableRef}
+        className="field-table"
+        onKeyDown={e => {
+          handleKvEditorTab(e, tableRef.current);
+        }}
+      >
         <tbody>
           {safeList(entries)
             .filter(([k], index) => !(deactivated && k === "" && index === entries.length - 1))
@@ -131,6 +143,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                     className={duplicateIndexes.has(index) ? "is-invalid" : undefined}
                     title={duplicateIndexes.has(index) ? "Duplicate key" : undefined}
                     aria-invalid={duplicateIndexes.has(index)}
+                    {...{ [KV_FIELD_ATTR]: kvFieldId(index, "key") }}
                   />
                 </td>
                 <td>
@@ -144,6 +157,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                       removable={deletable && !deactivated}
                       canContainToken={canContainToken}
                       valueContext={valueContext}
+                      kvField={kvFieldId(index, "value")}
                       typeLabel={
                         !duplicateIndexes.has(index) && value?.[k] !== undefined
                           ? yamlValueTypeLabel(value?.[k])

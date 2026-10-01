@@ -3,6 +3,7 @@ import { openOsFilePicker } from '../vsAPI';
 import fileHelper from 'mmt-core/fileHelper';
 import type { RuntimeTokenValueContext } from 'mmt-core/apiBodyEdit';
 import TokenFieldInput from './TokenFieldInput';
+import { KV_FIELD_ATTR } from './kvFieldNav';
 
 type FileFilter = { name?: string; extensions?: string[] };
 
@@ -25,6 +26,7 @@ interface FilePickerInputProps {
   invalid?: boolean;
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
+  kvField?: string;
 }
 
 const FilePickerInput: React.FC<FilePickerInputProps> = ({
@@ -43,6 +45,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
   invalid = false,
   canContainToken = false,
   valueContext,
+  kvField,
 }) => {
   const filterPayload = useMemo(() => {
     if (!filters || filters.length === 0) { return undefined; }
@@ -94,6 +97,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
   if (removable) { rightPadding += 28; }
 
   const inputClassName = ['file-picker-input', invalid ? 'mmt-line-error' : ''].filter(Boolean).join(' ');
+  const kvAttr = kvField ? { [KV_FIELD_ATTR]: kvField } as Record<string, string> : undefined;
 
   return (
     <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
@@ -106,6 +110,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           style={{ paddingRight: rightPadding }}
           className={inputClassName}
           title={value}
+          {...kvAttr}
           onCommit={next => {
             onChange?.(next);
             onEnterPressed?.(next);
@@ -132,10 +137,13 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           style={{ paddingRight: rightPadding }}
           className={inputClassName}
           title={value}
+          {...kvAttr}
         />
       )}
       {showFilePicker && (
         <button
+          type="button"
+          tabIndex={-1}
           onClick={handleOpenPicker}
           disabled={disabled}
           title={
@@ -152,6 +160,8 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
       )}
       {removable && (
         <button
+          type="button"
+          tabIndex={-1}
           onClick={handleRemove}
           disabled={disabled}
           title="Remove"

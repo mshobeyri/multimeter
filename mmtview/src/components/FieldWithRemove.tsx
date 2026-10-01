@@ -1,6 +1,7 @@
 import React from "react";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import TokenFieldInput from "./TokenFieldInput";
+import { KV_FIELD_ATTR } from "./kvFieldNav";
 
 interface FieldWithRemoveProps {
   value: string;
@@ -19,6 +20,8 @@ interface FieldWithRemoveProps {
   valueContext?: RuntimeTokenValueContext;
   /** YAML value type chip drawn inside the input on the right (e.g. number). */
   typeLabel?: string;
+  /** Marks this control for KV/KSV Tab navigation (`data-mmt-kv-field`). */
+  kvField?: string;
 }
 
 /** Padding / right offset so a type chip and trailing icon buttons don't overlap text. */
@@ -51,12 +54,16 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   canContainToken = false,
   valueContext,
   typeLabel,
+  kvField,
 }) => {
   const buttonCount = (removable ? 1 : 0) + (copyable && value ? 1 : 0);
   const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
     typeLabel,
     buttonCount,
   });
+  const kvAttr = kvField
+    ? { [KV_FIELD_ATTR]: kvField } as Record<string, string>
+    : undefined;
 
   return (
     <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
@@ -67,6 +74,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
           valueContext={valueContext}
           placeholder={placeholder}
           style={{ paddingRight }}
+          {...kvAttr}
           onCommit={next => {
             onChange(next);
             onBlur?.();
@@ -84,6 +92,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
           value={value}
           placeholder={placeholder}
           style={{ paddingRight }}
+          {...kvAttr}
           onChange={e => onChange(e.target.value)}
           onBlur={onBlur}
           onKeyDown={e => {
@@ -104,6 +113,8 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
       ) : null}
       {copyable && value && (
         <button
+          type="button"
+          tabIndex={-1}
           onClick={() => navigator.clipboard.writeText(value).catch(() => {})}
           title="Copy value"
           className="field-button is-copy"
@@ -112,6 +123,8 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
         </button>
       )}
       {removable && <button
+        type="button"
+        tabIndex={-1}
         onClick={onRemovePressed}
         title="Remove field"
         disabled={disabled || readOnly}

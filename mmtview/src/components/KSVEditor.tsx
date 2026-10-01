@@ -1,4 +1,4 @@
-import React, { useMemo, useContext, useState, useEffect } from "react";
+import React, { useMemo, useContext, useState, useEffect, useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
@@ -15,6 +15,11 @@ import {
   findDuplicateKeyIndexes,
   type KvEntry,
 } from "./kvEntryDraft";
+import {
+  handleKvEditorTab,
+  KV_FIELD_ATTR,
+  kvFieldId,
+} from "./kvFieldNav";
 
 interface KSVEditorProps {
   label: string;
@@ -82,6 +87,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   canContainToken = false,
   valueContext,
 }) => {
+  const tableRef = useRef<HTMLTableElement>(null);
   const propEntries = useMemo(
     () => withTrailingEmptyKey(value, canContainToken, expandable),
     [value, canContainToken, expandable],
@@ -144,7 +150,13 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
           {label}
         </div>
       ) : null}
-      <table className="field-table">
+      <table
+        ref={tableRef}
+        className="field-table"
+        onKeyDown={e => {
+          handleKvEditorTab(e, tableRef.current);
+        }}
+      >
         <tbody>
           {safeList(entries)
             .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
@@ -160,6 +172,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                     className={duplicateIndexes.has(i) ? "is-invalid" : undefined}
                     title={duplicateIndexes.has(i) ? "Duplicate key" : undefined}
                     aria-invalid={duplicateIndexes.has(i)}
+                    {...{ [KV_FIELD_ATTR]: kvFieldId(i, "key") }}
                   />
                 </td>
                 <td>
@@ -173,6 +186,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         filters={effectiveFilePickerFilters}
                         showFilePicker={true}
                         removable={deletable && !deactivated && !readOnly}
+                        kvField={kvFieldId(i, "value")}
                       />
                     ) : safeOptions.length > 0 ? (
                       <SelectWithRemove
@@ -188,6 +202,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         placeholder={valuePlaceholder}
                         disabled={disabled || readOnly || deactivated}
                         removable={deletable && !deactivated && !readOnly}
+                        kvField={kvFieldId(i, "value")}
                       />
                     ) : (
                       <FieldWithRemove
@@ -201,6 +216,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         copyable={copyable}
                         canContainToken={canContainToken}
                         valueContext={valueContext}
+                        kvField={kvFieldId(i, "value")}
                       />
                     )
                   )}

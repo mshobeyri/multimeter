@@ -1,6 +1,7 @@
 import React from "react";
 import { safeList } from "mmt-core/safer";
 import { fieldTrailingLayout } from "./FieldWithRemove";
+import { KV_FIELD_ATTR } from "./kvFieldNav";
 
 interface SelectWithRemoveProps {
   value: string;
@@ -11,6 +12,7 @@ interface SelectWithRemoveProps {
   disabled?: boolean;
   removable?: boolean;
   typeLabel?: string;
+  kvField?: string;
 }
 
 const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
@@ -22,6 +24,7 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
   disabled = false,
   removable = true,
   typeLabel,
+  kvField,
 }) => {
   const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
     typeLabel,
@@ -35,6 +38,7 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
         style={{ paddingRight }}
+        {...(kvField ? { [KV_FIELD_ATTR]: kvField } : {})}
       >
         <option value="" disabled>
           {placeholder || "Select..."}
@@ -52,6 +56,8 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
       ) : null}
       {removable && (
         <button
+          type="button"
+          tabIndex={-1}
           onClick={onRemovePressed}
           title="Remove field"
           disabled={disabled}

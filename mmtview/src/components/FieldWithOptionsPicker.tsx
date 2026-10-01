@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ParamConstraintOption } from "mmt-core/paramConstraints";
 import { safeList } from "mmt-core/safer";
 import { fieldTrailingLayout } from "./FieldWithRemove";
+import { KV_FIELD_ATTR } from "./kvFieldNav";
 
 interface FieldWithOptionsPickerProps {
   value: string;
@@ -14,6 +15,7 @@ interface FieldWithOptionsPickerProps {
   removable?: boolean;
   copyable?: boolean;
   typeLabel?: string;
+  kvField?: string;
 }
 
 const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
@@ -27,6 +29,7 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
   removable = true,
   copyable = false,
   typeLabel,
+  kvField,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -66,6 +69,7 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
         style={{ paddingRight }}
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
+        {...(kvField ? { [KV_FIELD_ATTR]: kvField } : {})}
       />
       {typeText ? (
         <span className="field-type-affix" style={{ right: typeRight }} title="Value type">
@@ -74,6 +78,8 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
       ) : null}
       {copyable && value && (
         <button
+          type="button"
+          tabIndex={-1}
           onClick={() => navigator.clipboard.writeText(value).catch(() => {})}
           title="Copy value"
           style={{
@@ -88,6 +94,7 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
         <>
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => setMenuOpen(open => !open)}
             title="Choose from listed options"
             disabled={disabled}
@@ -102,6 +109,7 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
                 <button
                   key={`${opt.label}:${String(opt.value)}`}
                   type="button"
+                  tabIndex={-1}
                   role="option"
                   aria-selected={opt.label === value}
                   onClick={() => {
@@ -123,6 +131,8 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
       )}
       {removable && (
         <button
+          type="button"
+          tabIndex={-1}
           onClick={onRemovePressed}
           title="Remove field"
           disabled={disabled}

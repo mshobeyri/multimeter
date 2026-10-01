@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import FieldWithOptionsPicker from "./FieldWithOptionsPicker";
 import SelectWithRemove from "./SelectWithRemove";
@@ -11,6 +11,7 @@ import {
 } from "./convertor";
 import { yamlValueTypeLabel } from "mmt-core/yamlValueConvert";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { handleKvEditorTab, kvFieldId } from "./kvFieldNav";
 
 interface VEditorProps {
   label: string;
@@ -47,6 +48,7 @@ const VEditor: React.FC<VEditorProps> = ({
   canContainToken = false,
   valueContext,
 }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const keys = typeof keyOptions === "string" ? [keyOptions]: keyOptions;
 
   const handleValueChange = (keyIndex: number, newVal: string) => {
@@ -83,7 +85,13 @@ const VEditor: React.FC<VEditorProps> = ({
   };
 
   return (
-    <div className="mmt-fill">
+    <div
+      className="mmt-fill"
+      ref={rootRef}
+      onKeyDown={e => {
+        handleKvEditorTab(e, rootRef.current);
+      }}
+    >
       {label ? (
         <div className={disabled ? "label label-disabled is-gap" : "label is-gap"}>
           {label}
@@ -100,6 +108,7 @@ const VEditor: React.FC<VEditorProps> = ({
           const typeLabel = yamlValueTypeLabel(currentValue);
           const pickerOptions = inputConstraints?.[key];
           const fieldMatch = matchStatus?.get(key);
+          const valueField = kvFieldId(index, "value");
 
           const fieldControl = valueOptions && valueOptions.length > 0 ? (
             <SelectWithRemove
@@ -111,6 +120,7 @@ const VEditor: React.FC<VEditorProps> = ({
               disabled={disabled || readOnly}
               removable={deletable && !readOnly}
               typeLabel={hasValue ? typeLabel : undefined}
+              kvField={valueField}
             />
           ) : pickerOptions && pickerOptions.length > 0 ? (
             <FieldWithOptionsPicker
@@ -124,6 +134,7 @@ const VEditor: React.FC<VEditorProps> = ({
               removable={deletable && hasValue && !readOnly}
               copyable={copyable}
               typeLabel={hasValue ? typeLabel : undefined}
+              kvField={valueField}
             />
           ) : (
             <FieldWithRemove
@@ -138,6 +149,7 @@ const VEditor: React.FC<VEditorProps> = ({
               canContainToken={canContainToken && !readOnly}
               valueContext={valueContext}
               typeLabel={hasValue ? typeLabel : undefined}
+              kvField={valueField}
             />
           );
 
