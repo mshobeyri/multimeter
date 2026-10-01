@@ -1,5 +1,6 @@
 import {
   boardsToVariables,
+  coerceEnvScalar,
   envVariablesSignature,
   variablesToBoards,
 } from './envVariableUi';
@@ -21,7 +22,7 @@ describe('envVariableUi', () => {
     });
   });
 
-  it('preserves nested object and list field values', () => {
+  it('ignores nested object and list field values', () => {
     expect(boardsToVariables([
       {
         name: 'config',
@@ -31,19 +32,23 @@ describe('envVariableUi', () => {
           tags: ['a', 'b'],
           raw: '{"x":1}',
           listLit: '[1,2]',
+          url: 'https://x',
+          port: '8080',
         },
       },
     ])).toEqual({
       config: {
-        local: {host: 'localhost', port: 8080},
-        tags: ['a', 'b'],
-        raw: {x: 1},
-        listLit: [1, 2],
+        url: 'https://x',
+        port: 8080,
       },
     });
+    expect(coerceEnvScalar({a: 1} as any)).toBeUndefined();
+    expect(coerceEnvScalar([1, 2] as any)).toBeUndefined();
+    expect(coerceEnvScalar('{"a":1}')).toBeUndefined();
+    expect(coerceEnvScalar('[1,2]')).toBeUndefined();
   });
 
-  it('coerces list display text to typed YAML scalars and structures', () => {
+  it('coerces list display text to scalars and drops object/list items', () => {
     expect(boardsToVariables([
       {
         name: 'ports',
@@ -51,7 +56,7 @@ describe('envVariableUi', () => {
         value: ['8080', '"8080"', 'true', 'hello', '[1,2]', '{"a":1}'],
       },
     ])).toEqual({
-      ports: [8080, '8080', true, 'hello', [1, 2], {a: 1}],
+      ports: [8080, '8080', true, 'hello'],
     });
   });
 
@@ -68,13 +73,17 @@ describe('envVariableUi', () => {
     });
   });
 
-  it('round-trips object and list variable shapes', () => {
-    const vars = {
+  it('strips nested values when loading boards from YAML', () => {
+    const boards = variablesToBoards({
       api_url: {local: 'https://x', prod: 'https://y'},
       timeouts: [1000, 2000],
-      nested: {dev: {port: 8080, headers: {a: 'b'}}},
-    } as unknown as Record<string, import('mmt-core/EnvData').EnvVariableValue>;
-    expect(boardsToVariables(variablesToBoards(vars))).toEqual(vars);
+      nested: {dev: {port: 8080} as any, plain: 'ok'},
+    } as any);
+    expect(boardsToVariables(boards)).toEqual({
+      api_url: {local: 'https://x', prod: 'https://y'},
+      timeouts: [1000, 2000],
+      nested: {plain: 'ok'},
+    });
   });
 
   it('keeps signature stable for equal maps', () => {

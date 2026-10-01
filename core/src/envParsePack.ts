@@ -5,7 +5,7 @@ import {
   EnvCertificates,
   EnvClientCertificate,
   EnvData,
-  EnvNestedObject,
+  EnvScalar,
   EnvSetting,
   EnvVariableValue,
 } from './EnvData';
@@ -36,12 +36,25 @@ function reorderKeys(obj: Record<string, any>, order: string[]): Record<string, 
   return result;
 }
 
+function isEnvScalarValue(value: unknown): value is EnvScalar {
+  return value === null ||
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean';
+}
+
 function parseVariableValue(raw: unknown): EnvVariableValue | undefined {
   if (Array.isArray(raw)) {
-    return raw as EnvVariableValue;
+    return raw.filter(isEnvScalarValue);
   }
   if (raw && typeof raw === 'object') {
-    return {...(raw as EnvNestedObject)};
+    const out: Record<string, EnvScalar | undefined> = {};
+    for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+      if (isEnvScalarValue(val)) {
+        out[key] = val;
+      }
+    }
+    return out;
   }
   return undefined;
 }

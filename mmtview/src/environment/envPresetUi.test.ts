@@ -31,4 +31,27 @@ describe('envPresetUi', () => {
       },
     });
   });
+
+  it('ignores object and list preset values', () => {
+    expect(boardsToPresets([
+      {
+        name: 'runner',
+        values: [
+          {
+            env: 'dev',
+            kv: {
+              port: '8080',
+              nested: {a: 1} as any,
+              list: [1, 2] as any,
+              json: '{"x":1}',
+            },
+          },
+        ],
+      },
+    ])).toEqual({
+      runner: {
+        dev: {port: 8080},
+      },
+    });
+  });
 });

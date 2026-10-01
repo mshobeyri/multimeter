@@ -201,25 +201,23 @@ variables:
     expect(() => yamlToEnv(patched)).not.toThrow();
   });
 
-  it('round-trips nested object and list choice values', () => {
+  it('drops nested object and list choice values when parsing', () => {
     const input = `type: env
 variables:
   config:
     local:
       host: localhost
       port: 8080
+    plain: https://x
   flags:
     - true
     - {debug: true}
+    - 2
 `;
     const env = yamlToEnv(input);
     expect(env.variables?.config).toEqual({
-      local: {host: 'localhost', port: 8080},
+      plain: 'https://x',
     });
-    expect(env.variables?.flags).toEqual([true, {debug: true}]);
-    const patched = patchEnvYaml(input, {variables: env.variables});
-    const again = yamlToEnv(patched);
-    expect(again.variables?.config).toEqual(env.variables?.config);
-    expect(again.variables?.flags).toEqual(env.variables?.flags);
+    expect(env.variables?.flags).toEqual([true, 2]);
   });
 });

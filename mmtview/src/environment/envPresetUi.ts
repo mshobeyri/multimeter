@@ -1,6 +1,6 @@
 import type {JSONValue} from 'mmt-core/CommonData';
 import type {EnvPresetMapping, EnvPresets, EnvPresetValue} from 'mmt-core/EnvData';
-import {inputBoxToYamlValue} from 'mmt-core/yamlValueConvert';
+import {coerceEnvScalar, isEnvScalar} from './envVariableUi';
 
 export type EnvPresetEnvBoard = {
   env: string;
@@ -19,10 +19,15 @@ export function envPresetsSignature(presets: EnvPresets | undefined): string {
 export function presetsToBoards(presets: EnvPresets | undefined): EnvPresetBoard[] {
   return Object.entries(presets || {}).map(([name, envs]) => ({
     name,
-    values: Object.entries(envs || {}).map(([env, kv]) => ({
-      env,
-      kv: {...(kv || {})} as Record<string, JSONValue>,
-    })),
+    values: Object.entries(envs || {}).map(([env, kv]) => {
+      const scalarKv: Record<string, JSONValue> = {};
+      for (const [key, val] of Object.entries(kv || {})) {
+        if (isEnvScalar(val)) {
+          scalarKv[key] = val;
+        }
+      }
+      return {env, kv: scalarKv};
+    }),
   }));
 }
 
@@ -30,7 +35,7 @@ export function presetsToBoards(presets: EnvPresets | undefined): EnvPresetBoard
  * Boards → YAML `presets` map.
  * - Drops unnamed preset / env boards.
  * - Drops empty env mappings (`dev: {}`).
- * - Keeps typed scalars (numbers / bools / null) from the editor.
+ * - Keeps typed scalars only; object/list values are ignored.
  */
 export function boardsToPresets(boards: EnvPresetBoard[]): EnvPresets {
   const out: EnvPresets = {};
@@ -53,11 +58,11 @@ export function boardsToPresets(boards: EnvPresetBoard[]): EnvPresets {
         if (val === undefined) {
           continue;
         }
-        if (typeof val === 'string') {
-          kv[key] = inputBoxToYamlValue(val) as EnvPresetValue;
-        } else {
-          kv[key] = val as EnvPresetValue;
+        const scalar = coerceEnvScalar(val as JSONValue);
+        if (scalar === undefined) {
+          continue;
         }
+        kv[key] = scalar as EnvPresetValue;
       }
       if (Object.keys(kv).length === 0) {
         continue;
