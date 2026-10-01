@@ -699,8 +699,9 @@
   box-sizing: border-box;
 }
 
-/* Doc / settings fill the request pane. */
+/* Doc / Auth / Settings fill the request pane. */
 .apitest-section--doc,
+.apitest-section--auth,
 .apitest-section--settings {
   gap: 0;
 }
@@ -730,11 +731,6 @@
   padding: 8px 12px 8px 24px;
   color: var(--vscode-foreground, #cccccc);
   word-break: break-word;
-}
-
-.apitest-section-indent {
-  padding-left: 0;
-  box-sizing: border-box;
 }
 
 .apitest-section .apitest-empty {

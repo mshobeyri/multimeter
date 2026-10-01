@@ -10,9 +10,12 @@ type FadePaneProps = {
 };
 
 /**
- * Fade-out → swap → fade-in for tab panels and edit/view bodies.
+ * Fade-out → swap → fade-in for tab panels.
  * Previous content stays mounted through fade-out; parent `.apitest-pane-fill`
  * pins height so swaps do not jump.
+ *
+ * Interruptions (Strict Mode remount, rapid key changes) restore opacity so the
+ * pane never stays stuck invisible after a cancelled fade-in.
  */
 const FadePane: React.FC<FadePaneProps> = ({
   paneKey,
@@ -41,6 +44,8 @@ const FadePane: React.FC<FadePaneProps> = ({
     }
 
     let cancelled = false;
+    let raf1 = 0;
+    let raf2 = 0;
     setVisible(false);
 
     const fadeOutTimer = window.setTimeout(() => {
@@ -49,12 +54,11 @@ const FadePane: React.FC<FadePaneProps> = ({
       }
       renderedKeyRef.current = paneKey;
       setRendered(childrenRef.current);
-      // Ensure the browser paints opacity 0 before fading in.
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          if (cancelled) {
-            return;
-          }
+      // Paint opacity 0 before fading in.
+      raf1 = window.requestAnimationFrame(() => {
+        raf2 = window.requestAnimationFrame(() => {
+          // Always reveal after swap. If a newer transition owns the pane it
+          // will hide again; never leave opacity 0 after content was replaced.
           setVisible(true);
         });
       });
@@ -63,6 +67,10 @@ const FadePane: React.FC<FadePaneProps> = ({
     return () => {
       cancelled = true;
       window.clearTimeout(fadeOutTimer);
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+      // Interrupted mid-fade: restore opacity (old or already-swapped content).
+      setVisible(true);
     };
   }, [paneKey, durationMs]);
 

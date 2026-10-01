@@ -46,14 +46,6 @@
   box-sizing: border-box;
 }
 
-.field-table.is-flush {
-  margin-top: 0;
-}
-
-.field-table.is-flush td {
-  padding: 0;
-}
-
 .field-table input {
   width: 100%;
   box-sizing: border-box;
@@ -438,11 +430,6 @@ select.is-invalid {
   margin-top: 0;
 }
 
-.field-flex-2 {
-  flex: 2;
-  min-width: 0;
-}
-
 .no-shrink {
   flex-shrink: 0;
 }
@@ -720,12 +707,6 @@ select.is-invalid {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-}
-
-/* Flex child wrapper (expect rows) owns width; avoid nested width:100% crushing siblings. */
-.field-flex-2 > .token-field {
-  width: 100%;
-  min-width: 0;
 }
 
 .token-field-input {

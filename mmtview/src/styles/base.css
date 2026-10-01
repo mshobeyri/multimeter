@@ -1925,25 +1925,6 @@ button:focus {
   font-weight: 500;
 }
 
-.veditor-type {
-  font-size: 8px;
-  color: var(--vscode-descriptionForeground, #888);
-  margin-left: 4px;
-}
-
-.match-icon {
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.match-icon.is-pass {
-  color: var(--vscode-testing-iconPassed, #73c991);
-}
-
-.match-icon.is-fail {
-  color: var(--vscode-testing-iconFailed, #f14c4c);
-}
-
 .panel-form {
   display: flex;
   flex-direction: column;

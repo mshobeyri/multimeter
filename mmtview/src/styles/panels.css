@@ -63,13 +63,6 @@
   min-width: 0;
 }
 
-.apitest-panel-wrapper {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-}
-
 /* Top status bar: one rectangle on the panel; yellow unsaved, red YAML error. */
 .mmt-yaml-error {
   position: relative;
