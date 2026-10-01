@@ -7,6 +7,7 @@ import FilePickerInput from "./FilePickerInput";
 import { FileContext } from '../fileContext';
 import {
   inputBoxToYamlString,
+  inputBoxToYamlValueWithTokens,
   yamlValueToInputBoxWithTokens,
 } from "./convertor";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
@@ -21,10 +22,9 @@ import {
   kvFieldId,
 } from "./kvFieldNav";
 
-interface KSVEditorProps {
+type KSVEditorBaseProps = {
   label: string;
   value?: string | Record<string, string> | JSONRecord;
-  onChange: (v: Record<string, string>) => void;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
   options?: string[];
@@ -42,7 +42,19 @@ interface KSVEditorProps {
   /** Value fields: resolved/token dual-mode when a value contains tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
-}
+};
+
+type KSVEditorProps = KSVEditorBaseProps & (
+  | {
+    /** Keep YAML types (number / bool / null) in values. */
+    typedValues: true;
+    onChange: (v: JSONRecord) => void;
+  }
+  | {
+    typedValues?: false;
+    onChange: (v: Record<string, string>) => void;
+  }
+);
 
 function withTrailingEmptyKey(
   obj: string | Record<string, string> | JSONRecord | undefined,
@@ -86,6 +98,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   filePickerFilters,
   canContainToken = false,
   valueContext,
+  typedValues = false,
 }) => {
   const tableRef = useRef<HTMLTableElement>(null);
   const propEntries = useMemo(
@@ -116,7 +129,16 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
 
   const publish = (next: KvEntry[]) => {
     setDraft(next);
-    onChange(entriesToUniqueRecord(
+    if (typedValues) {
+      const typedOnChange = onChange as (v: JSONRecord) => void;
+      typedOnChange(entriesToUniqueRecord(
+        next,
+        (display) => inputBoxToYamlValueWithTokens(display, canContainToken),
+      ));
+      return;
+    }
+    const stringOnChange = onChange as (v: Record<string, string>) => void;
+    stringOnChange(entriesToUniqueRecord(
       next,
       (display) => inputBoxToYamlString(display, canContainToken),
     ));

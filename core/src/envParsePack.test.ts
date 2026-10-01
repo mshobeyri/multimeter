@@ -160,4 +160,42 @@ certificates:
     expect(env.extra).toEqual({foo: 'bar'});
     expect(envToYaml({type: 'env'} as any)).toContain('type: env');
   });
+
+  it('round-trips numeric and boolean variable fields without quoting', () => {
+    const input = `type: env
+variables:
+  port:
+    local: 8080
+    secure: true
+`;
+    const patched = patchEnvYaml(input, {
+      variables: {
+        port: {local: 8080, secure: true},
+        name: {local: 'api'},
+      },
+    });
+    expect(patched).toMatch(/local: 8080/);
+    expect(patched).toMatch(/secure: true/);
+    expect(patched).not.toMatch(/local: ["']8080["']/);
+    const parsed = yamlToEnv(patched);
+    expect(parsed.variables?.port).toEqual({local: 8080, secure: true});
+  });
+
+  it('does not leave a dangling flow-map brace for empty variable objects', () => {
+    const input = `type: env
+variables:
+  api_url:
+    local: https://example.com
+`;
+    const patched = patchEnvYaml(input, {
+      variables: {
+        api_url: {local: 'https://example.com'},
+        draft: {},
+      },
+    });
+    expect(patched).toContain('api_url:');
+    expect(patched).toContain('draft: {}');
+    expect(patched.trim().endsWith('{')).toBe(false);
+    expect(() => yamlToEnv(patched)).not.toThrow();
+  });
 });

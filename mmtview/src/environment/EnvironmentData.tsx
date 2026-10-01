@@ -20,7 +20,9 @@ export type {
 export type EnvironmentData = Omit<EnvData, 'type'|'variables'> & {
   type: string;
   variables: {
-    [name: string]: {[label: string]: string|undefined}|string[];
+    [name: string]:
+      | {[label: string]: string|number|boolean|null|undefined}
+      | Array<string|number|boolean|null>;
   };
 };
 
