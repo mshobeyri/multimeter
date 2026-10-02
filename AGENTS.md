@@ -30,6 +30,8 @@
   - `networkCore.ts`, `network.ts`, `NetworkData.ts`: HTTP/WebSocket client, message routing, and shared network config types.
   - `outputExtractor.ts` + `pathAtPosition.test.ts`: JSON/XML/xpath/jsonpath/regex extraction and “path at cursor” helpers.
   - `variableReplacer.ts`: **single source of truth** for all token-matching regex and replacement logic. All regex patterns and token accessor handling for `e:`, `i:`, `r:`, `c:` tokens (including forms like `[0]`, `[0:3]`, and `.field`) live here. Other modules (`JSerHelper`, `JSerTestFlow`, `JSerAPI`, etc.) import helpers from `variableReplacer` — they must NOT define their own token-matching regexes.
+  - YAML on disk: bare whole-value tokens (`r:int`) and embedded `<<prefix:name>>`. API tester UI uses `{{prefix:name}}`; that curly form is also accepted in YAML and normalized to bare / `<<>>` on parse (`markupConvertor` + `reviveDisplayRuntimeTokensInValue`). See `AI/sdd/sdd-token-form-consistency.md`.
+  - Return types for JSON UI quoting: `randomTokenValueType` / `currentTokenValueType` in `Random.ts` / `Current.ts` (not hardcoded allowlists in the UI layer).
 - When extending behavior:
   - First update the relevant data model types in `core/src/*Data.ts` (e.g. `APIData`, `TestData`, `NetworkConfig`).
   - Add/adjust unit tests in `core/src/*.test.ts` that cover the new pure logic.
@@ -73,7 +75,7 @@
 
 ## Workflow / agent rules
 
-- After completing a coding request that changes source, run `npm run compile` at the repo root and fix any compile errors before finishing (or before committing when a commit was requested).
+- **Always compile before finishing.** After any coding session that changes source (including when the user says you are done, or when wrapping up a multi-step task), run `npm run compile` at the repo root, fix any compile errors, and only then consider the work complete. Do this even if tests already passed. Skip only when no source files were changed (docs-only / SDD-only with no code).
 - Do **NOT** create, stage, or push git commits unless the user explicitly asks you to do so. Always ask for confirmation before running any `git add`, `git commit`, or `git push` operations. You may edit files in the workspace to make suggested changes, but do not record those changes in version control until the user gives explicit permission. When edits are made without committing, clearly list the modified files and the intended commit message so the user can approve.
 - Do **NOT** touch `CHANGELOG.md` for regular fixes or features. It is written only as part of the release workflow, from the commits included in that release.
 

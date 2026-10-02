@@ -647,6 +647,41 @@ export const RANDOM_TOKEN_MAP: Record<string, RandomTokenGenerator> = {
   int: randomInt,
 };
 
+/** Resolved JS typeof for each random generator (JSON UI quoting / docs). */
+export type TokenValueType = 'string'|'number'|'boolean';
+
+const RANDOM_NON_STRING: Record<string, TokenValueType> = {
+  int: 'number',
+  float: 'number',
+  bool: 'boolean',
+  latitude: 'number',
+  longitude: 'number',
+  epoch: 'number',
+  epoch_ms: 'number',
+  epoch_now: 'number',
+  epoch_now_ms: 'number',
+  epoch_future: 'number',
+  epoch_future_ms: 'number',
+  epoch_past: 'number',
+  epoch_past_ms: 'number',
+};
+
+/** Return type of `r:name` (args ignored). Unknown names → undefined. */
+export function randomTokenValueType(name: string): TokenValueType|undefined {
+  const key = String(name || '');
+  if (!Object.prototype.hasOwnProperty.call(RANDOM_TOKEN_MAP, key)) {
+    return undefined;
+  }
+  return RANDOM_NON_STRING[key] || 'string';
+}
+
+/** Every RANDOM_TOKEN_MAP key → value type (for tests / docs sync). */
+export const RANDOM_TOKEN_VALUE_TYPES: Record<string, TokenValueType> =
+    Object.fromEntries(
+        Object.keys(RANDOM_TOKEN_MAP).map(
+            (k) => [k, randomTokenValueType(k) as TokenValueType]),
+    );
+
 export interface RandomTokenParameterSpec {
   min: number;
   max: number;

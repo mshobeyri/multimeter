@@ -2,6 +2,7 @@
 
 **Date:** 2026-09-28  
 **Status:** Implemented (tester UI + display helpers)  
+**Follow-up:** [sdd-token-form-consistency.md](./sdd-token-form-consistency.md) — unify idle preview + JSON quote types where this SDD’s L3 preview policy drifted in `projectTokenFieldPreview`.  
 **Scope:** `mmtview` API tester UI (+ display-only helpers in `core` used by the UI). **Not** JSer, runner, CLI, suite execution, or network send semantics.
 
 ---

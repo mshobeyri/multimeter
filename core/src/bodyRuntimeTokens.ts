@@ -1,12 +1,13 @@
 import {
   CURRENT_FUTURE_PAST_ALIASES,
   CURRENT_TOKEN_MAP,
+  currentTokenValueType,
 } from './Current';
 import {
   isLiteralTokenValue,
   unwrapLiteralToken,
 } from './literalToken';
-import {RANDOM_TOKEN_MAP} from './Random';
+import {randomTokenValueType} from './Random';
 import {
   ACCESSOR_PATH_RE,
   TOKEN_NAME_RE,
@@ -18,7 +19,7 @@ import {
   type TextPositionRange,
 } from './runtimeTokenUi';
 
-/** Loose `(...)` so display/parse accept any args on known r:/c: keywords. */
+/** Loose `(...)` so display/parse accept any args on r:/c: keyword shapes. */
 const RUNTIME_TOKEN_ARGS_LOOSE_RE = '(?:\\([^)]*\\))?';
 const RUNTIME_TOKEN_SPEC_LOOSE_RE =
     `${TOKEN_NAME_RE}${RUNTIME_TOKEN_ARGS_LOOSE_RE}`;
@@ -82,36 +83,6 @@ const PLAIN_IE_GLOBAL_RE = new RegExp(
 
 const PLACEHOLDER_PREFIX = '__MMT_RT_';
 const PLACEHOLDER_RE = new RegExp(`^${PLACEHOLDER_PREFIX}(\\d+)__$`);
-
-/**
- * r:/c: tokens whose resolved value is a JSON number or boolean — shown
- * unquoted as `{{r:int}}`. Everything else is a string and shown as
- * `"{{r:uuid}}"` so resolve is plain text substitution inside the quotes.
- */
-const NON_STRING_RANDOM_TOKENS = new Set([
-  'int',
-  'float',
-  'bool',
-  'latitude',
-  'longitude',
-  'epoch',
-  'epoch_ms',
-  'epoch_now',
-  'epoch_now_ms',
-  'epoch_future',
-  'epoch_future_ms',
-  'epoch_past',
-  'epoch_past_ms',
-]);
-
-const NON_STRING_CURRENT_TOKENS = new Set([
-  'epoch',
-  'epoch_ms',
-  'weekday_number',
-  'day',
-  'month',
-  'year',
-]);
 
 function indexToPosition(text: string, index: number): {line: number, column: number} {
   let line = 1;
@@ -178,7 +149,8 @@ function lookupIeResolvedValue(
  * True when this token should appear as a JSON string (quoted) in the body
  * editor. False for number/bool (and null) so the token stays unquoted.
  *
- * - `r:` / `c:` — from known token kinds (unchanged).
+ * - `r:` / `c:` — from generator return-type metadata (`randomTokenValueType` /
+ *   `currentTokenValueType`).
  * - `i:` / `e:` — from `typeof` of the active inputs/env value when `ctx` is set;
  *   missing values default to string (quoted).
  */
@@ -203,20 +175,22 @@ export function runtimeTokenEmitsJsonString(
   }
   let name = parsed.name;
   if (parsed.prefix === 'r') {
-    if (!Object.prototype.hasOwnProperty.call(RANDOM_TOKEN_MAP, name)) {
+    const t = randomTokenValueType(name);
+    if (!t) {
       return true;
     }
-    return !NON_STRING_RANDOM_TOKENS.has(name);
+    return t === 'string';
   }
   const alias = CURRENT_FUTURE_PAST_ALIASES[name];
   if (alias) {
     name = alias.base;
   }
-  if (!Object.prototype.hasOwnProperty.call(CURRENT_TOKEN_MAP, name) &&
-      !NON_STRING_CURRENT_TOKENS.has(name)) {
+  const t = currentTokenValueType(name);
+  if (!t &&
+      !Object.prototype.hasOwnProperty.call(CURRENT_TOKEN_MAP, name)) {
     return true;
   }
-  return !NON_STRING_CURRENT_TOKENS.has(name);
+  return (t || 'string') === 'string';
 }
 
 /** True when the whole string is a bare resolving r:/c: token. */
@@ -546,6 +520,10 @@ export const rewriteRuntimeLeavesToAngleText = rewriteRuntimeLeavesToDisplayText
  */
 export function reviveDisplayRuntimeTokensInValue(value: unknown): unknown {
   if (typeof value === 'string') {
+    // YAML-quoted token scalars stay literal (do not rewrite {{…}} inside).
+    if (isLiteralTokenValue(value)) {
+      return value;
+    }
     const trimmed = value.trim();
     if (WHOLE_DISPLAY_PREFIXED_RE.test(trimmed) ||
         WHOLE_LEGACY_DISPLAY_RUNTIME_RE.test(trimmed) ||
@@ -986,7 +964,10 @@ export function displayRuntimeString(
     }
   }
   if (typeof resolved === 'string') {
-    return resolved;
+    if (isLiteralTokenValue(resolved)) {
+      return `"${unwrapLiteralToken(resolved)}"`;
+    }
+    return rewriteAllTokensToDisplayText(resolved);
   }
   if (resolved == null) {
     return '';
@@ -1179,7 +1160,11 @@ function ieResolvedToDisplayText(resolved: unknown): string {
     return 'null';
   }
   if (typeof resolved === 'string') {
-    return resolved;
+    if (isLiteralTokenValue(resolved)) {
+      return `"${unwrapLiteralToken(resolved)}"`;
+    }
+    // Nested tokens (i:age → r:int) use UI display form, not bare YAML.
+    return rewriteAllTokensToDisplayText(resolved);
   }
   if (typeof resolved === 'number' || typeof resolved === 'boolean') {
     return String(resolved);
@@ -1213,9 +1198,10 @@ function lookupRuntimeResolvedValue(plainSpec: string): unknown {
 }
 
 /**
- * Idle preview for a token-capable field:
- * - `{{i:}}` / `{{e:}}` / `{{r:}}` / `{{c:}}` → resolved values (span kind `resolved`)
- * - Unresolved tokens stay as display `{{…}}` (span kind `token`)
+ * Idle preview for a token-capable field (SDD token-form-consistency L3):
+ * - `{{i:}}` / `{{e:}}` → resolved values (span kind `resolved`)
+ * - `{{r:}}` / `{{c:}}` → stay as display tokens (do not freeze a random/current sample)
+ * - Unresolved i:/e: stay as display `{{…}}` (span kind `token`)
  */
 export function projectTokenFieldPreview(
     source: string,
@@ -1243,12 +1229,16 @@ export function projectTokenFieldPreview(
       continue;
     }
     const prefix = plain.charAt(0).toLowerCase();
-    let resolved: unknown = undefined;
+    // Match displayRuntimeString / L3: never expand r:/c: in idle preview.
     if (prefix === 'r' || prefix === 'c') {
-      resolved = lookupRuntimeResolvedValue(plain);
-    } else {
-      resolved = lookupIeResolvedValue(plain, ctx);
+      const piece = toDisplayRuntimeToken(plain);
+      const start = text.length;
+      text += piece;
+      spans.push({start, end: text.length, kind: 'token'});
+      last = match.index + match[0].length;
+      continue;
     }
+    const resolved = lookupIeResolvedValue(plain, ctx);
     if (resolved === undefined) {
       const piece = toDisplayRuntimeToken(plain);
       const start = text.length;

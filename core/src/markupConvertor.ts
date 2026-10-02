@@ -28,12 +28,60 @@ import {
 } from './bodyRuntimeTokens';
 
 /**
+ * Rewrite Multimeter UI curly tokens `{{i|e|r|c:…}}` to `<<…>>` in raw YAML
+ * *before* parse. Unquoted `{{r:uuid}}` is invalid YAML flow syntax
+ * (`{` starts a map); angle form is a plain scalar. Skips double/single
+ * quoted regions so `"{{r:uuid}}"` can stay a quoted literal. Postman-style
+ * `{{var}}` without a prefix is left unchanged.
+ */
+export function normalizeCurlyTokensInYamlSource(yamlString: string): string {
+  const src = String(yamlString ?? '');
+  let out = '';
+  let i = 0;
+  let quote: '"'|"'"|null = null;
+  while (i < src.length) {
+    const ch = src[i];
+    if (quote) {
+      out += ch;
+      if (ch === '\\' && quote === '"' && i + 1 < src.length) {
+        out += src[i + 1];
+        i += 2;
+        continue;
+      }
+      if (ch === quote) {
+        quote = null;
+      }
+      i += 1;
+      continue;
+    }
+    if (ch === '"' || ch === '\'') {
+      quote = ch as '"'|"'";
+      out += ch;
+      i += 1;
+      continue;
+    }
+    if (ch === '{' && src.startsWith('{{', i)) {
+      const slice = src.slice(i);
+      const m = /^\{\{\s*([ierce]:(?:[^{}]|\([^)]*\))+?)\s*\}\}/i.exec(slice);
+      if (m) {
+        out += `<<${m[1].trim()}>>`;
+        i += m[0].length;
+        continue;
+      }
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
+/**
  * Quote YAML-unsafe expect/debug operators (`!=`, `!*`, `>`, …) before parsing.
  * Without this, YAML treats `!…` as tags and silently drops the operator
  * (e.g. `status: != 100` → `status: 100`).
  */
 function prepareYaml(yamlString: string): string {
-  return quoteExpectOperators(yamlString || '');
+  return quoteExpectOperators(normalizeCurlyTokensInYamlSource(yamlString || ''));
 }
 
 function parseYamlDoc(yamlString: string): any {
@@ -50,7 +98,9 @@ function parseYamlDoc(yamlString: string): any {
 
 function parseYaml(yamlString: string): any {
   try {
-    return parseYamlWithOmitKeyword(prepareYaml(yamlString), false);
+    const js = parseYamlWithOmitKeyword(prepareYaml(yamlString), false);
+    // Option C: accept UI-style {{i|e|r|c:…}} in YAML; normalize to bare / <<>>.
+    return reviveDisplayRuntimeTokensInValue(js);
   } catch (e) {
     return null;
   }
@@ -61,7 +111,8 @@ function parseYaml(yamlString: string): any {
  * Use this in execution paths where errors must be surfaced.
  */
 function parseYamlStrict(yamlString: string): any {
-  return parseYamlWithOmitKeyword(prepareYaml(yamlString), true);
+  return reviveDisplayRuntimeTokensInValue(
+      parseYamlWithOmitKeyword(prepareYaml(yamlString), true));
 }
 
 function applyKeywordScalarStyles(node: any, original: any): void {

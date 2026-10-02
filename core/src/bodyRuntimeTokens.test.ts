@@ -50,6 +50,9 @@ describe('toDisplayRuntimeToken', () => {
     expect(toDisplayRuntimeToken('<<c:date(+1d)>>')).toBe('{{c:date(+1d)}}');
     expect(toDisplayRuntimeToken('<<i:user>>')).toBe('{{i:user}}');
     expect(toDisplayRuntimeToken('e:token')).toBe('{{e:token}}');
+    // Unknown names are still tokens in the UI (validator warns separately).
+    expect(toDisplayRuntimeToken('r:not_a_real_token')).toBe('{{r:not_a_real_token}}');
+    expect(toDisplayRuntimeToken('<<c:nope>>')).toBe('{{c:nope}}');
   });
 
   it('round-trips display → plain (new + legacy long-form)', () => {
@@ -236,17 +239,28 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(stringContainsFieldToken('plain')).toBe(false);
   });
 
-  it('projects i:/e:/r:/c: to resolved spans', () => {
+  it('resolves i:/e: in idle preview but keeps r:/c: as display tokens', () => {
     const {text, spans} = projectTokenFieldPreview(
-        'Bearer {{e:token}} / {{r:uuid}}',
+        'Bearer {{e:token}} / {{r:uuid}} / {{c:date}}',
         {env: {token: 'secret'}, inputs: {}},
     );
-    expect(text.startsWith('Bearer secret / ')).toBe(true);
-    expect(text.includes('{{r:uuid}}')).toBe(false);
-    expect(text.includes('{{e:token}}')).toBe(false);
-    expect(spans.length).toBe(2);
-    expect(spans.every(s => s.kind === 'resolved')).toBe(true);
-    expect(spans[0].tooltip).toBe('{{e:token}}');
+    expect(text).toBe('Bearer secret / {{r:uuid}} / {{c:date}}');
+    expect(spans.length).toBe(3);
+    expect(spans[0]).toMatchObject({kind: 'resolved', tooltip: '{{e:token}}'});
+    expect(spans[1]).toMatchObject({kind: 'token'});
+    expect(spans[2]).toMatchObject({kind: 'token'});
+    expect(text.slice(spans[1].start, spans[1].end)).toBe('{{r:uuid}}');
+    expect(text.slice(spans[2].start, spans[2].end)).toBe('{{c:date}}');
+  });
+
+  it('shows nested r:/c: input values as {{…}} in i: idle preview', () => {
+    const {text, spans} = projectTokenFieldPreview('{{i:age}}', {
+      inputs: {age: 'r:int'},
+      env: {},
+    });
+    expect(text).toBe('{{r:int}}');
+    expect(spans).toHaveLength(1);
+    expect(spans[0]).toMatchObject({kind: 'resolved', tooltip: '{{i:age}}'});
   });
 
   it('findDisplayTokenCharRanges covers {{…}} edit buffer', () => {
@@ -294,9 +308,14 @@ describe('runtimeTokenEmitsJsonString', () => {
     expect(runtimeTokenEmitsJsonString('r:uuid')).toBe(true);
     expect(runtimeTokenEmitsJsonString('r:password(20)')).toBe(true);
     expect(runtimeTokenEmitsJsonString('c:date')).toBe(true);
+    // Weekday / month *names* are strings (quoted in JSON body UI).
+    expect(runtimeTokenEmitsJsonString('c:day')).toBe(true);
+    expect(runtimeTokenEmitsJsonString('c:month')).toBe(true);
     expect(runtimeTokenEmitsJsonString('r:int')).toBe(false);
     expect(runtimeTokenEmitsJsonString('r:bool')).toBe(false);
     expect(runtimeTokenEmitsJsonString('c:epoch_ms')).toBe(false);
+    expect(runtimeTokenEmitsJsonString('c:year')).toBe(false);
+    expect(runtimeTokenEmitsJsonString('c:weekday_number')).toBe(false);
   });
 
   it('quotes i:/e: from inputs/env value types', () => {
@@ -360,6 +379,19 @@ describe('stringifyJsonWithRuntimeTokens', () => {
     expect(text).toContain('"request_id": "req-{{r:uuid}}"');
     expect(text).toContain('"bounded_int": {{r:int(10,20)}}');
     expect(text).toContain('"label": "{{c:date}}"');
+  });
+
+  it('quotes c:day / c:month (string names, not numbers)', () => {
+    const text = stringifyJsonWithRuntimeTokens({
+      weekday: 'c:day',
+      month_name: 'c:month',
+      year: 'c:year',
+    });
+    expect(text).toContain('"weekday": "{{c:day}}"');
+    expect(text).toContain('"month_name": "{{c:month}}"');
+    expect(text).toContain('"year": {{c:year}}');
+    expect(text).not.toContain('"weekday": {{c:day}}');
+    expect(text).not.toContain('"month_name": {{c:month}}');
   });
 
   it('quotes i:/e: from inputs/env value types', () => {

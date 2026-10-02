@@ -4,6 +4,8 @@ import {
   extractEnvRefSites,
   extractExampleLineInfo,
   extractInputRefSites,
+  extractRuntimeRefSites,
+  findUnknownRuntimeRefProblems,
   findTestCallAliasProblems,
   findTestJudgeAliasProblems,
   findTestCallInputsProblems,
@@ -18,6 +20,7 @@ import {
   computeDuplicateServerMarkers,
   computeSuiteThenSeparatorMarkers,
   findSuiteThenSeparatorProblems,
+  findDiscouragedBareEmbeddedTokenProblems,
 } from './validator';
 
 describe('offsetToLineNumber', () => {
@@ -179,6 +182,41 @@ describe('token site extraction', () => {
     const sites = extractEnvRefSites(content);
     expect(sites.map((s) => s.name).sort()).toEqual(['base_url', 'token', 'user']);
     expect(sites.some((s) => s.length >= 'e:base_url[0:8]'.length)).toBe(true);
+  });
+});
+
+describe('unknown r:/c: runtime refs', () => {
+  it('extracts bare and angled r:/c: sites', () => {
+    const content = [
+      'type: api',
+      'headers:',
+      '  A: r:uuid',
+      '  B: <<c:date>>',
+      '  C: r:not_a_real_token',
+      '  D: "r:quoted_literal"',
+      '  E: hello r:uuid',
+    ].join('\n');
+    const sites = extractRuntimeRefSites(content);
+    expect(sites.map((s) => `${s.prefix}:${s.name}`).sort()).toEqual([
+      'c:date',
+      'r:not_a_real_token',
+      'r:uuid',
+    ]);
+  });
+
+  it('warns only for unknown generator names', () => {
+    const content = [
+      'type: api',
+      'headers:',
+      '  A: r:uuid',
+      '  B: r:not_a_real_token',
+      '  C: <<c:nope>>',
+    ].join('\n');
+    const problems = findUnknownRuntimeRefProblems(content);
+    expect(problems.map((p) => p.message).sort()).toEqual([
+      'Unknown current token "nope"',
+      'Unknown random token "not_a_real_token"',
+    ]);
   });
 });
 
@@ -846,5 +884,35 @@ describe('findReportUnknownRootKeyProblems', () => {
     ].join('\n');
     const doc = buildDoc(content);
     expect(findReportUnknownRootKeyProblems(doc, content, 'report')).toHaveLength(0);
+  });
+});
+
+describe('findDiscouragedBareEmbeddedTokenProblems', () => {
+  it('warns on bare tokens mixed into other text', () => {
+    const content = [
+      'type: api',
+      'url: https://e:host/api',
+      'headers:',
+      '  Authorization: Bearer e:token',
+      'id: r:uuid',
+      'ok: <<e:host>>/x',
+      'quoted: "e:token"',
+    ].join('\n');
+    const problems = findDiscouragedBareEmbeddedTokenProblems(content);
+    expect(problems.length).toBeGreaterThanOrEqual(2);
+    expect(problems.some((p) => p.message.includes('e:host'))).toBe(true);
+    expect(problems.some((p) => p.message.includes('e:token'))).toBe(true);
+    expect(problems.every((p) => p.severity === 'warning')).toBe(true);
+  });
+
+  it('does not warn on whole-value bare tokens', () => {
+    const content = [
+      'type: api',
+      'url: e:base_url',
+      'body:',
+      '  n: r:int',
+      '  t: c:epoch',
+    ].join('\n');
+    expect(findDiscouragedBareEmbeddedTokenProblems(content)).toEqual([]);
   });
 });

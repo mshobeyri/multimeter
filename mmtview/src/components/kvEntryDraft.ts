@@ -28,6 +28,60 @@ export function kvEntriesContentEqual(a: KvEntry[], b: KvEntry[]): boolean {
   return kvEntriesEqual(withoutTrailingEmptyKey(a), withoutTrailingEmptyKey(b));
 }
 
+export type KvDraftSyncAction =
+  | {type: 'keep'}
+  | {type: 'clear'}
+  | {type: 'normalizeTrailing'; entries: KvEntry[]};
+
+/**
+ * Decide whether a KSV local draft should survive a props update.
+ * - Keep while waiting for our YAML echo (props unchanged) or when props match
+ *   the last publish.
+ * - Clear when props move to a third snapshot (left YAML editor changed keys /
+ *   values) so the UI follows the file.
+ */
+export function resolveKvDraftSync(args: {
+  draft: KvEntry[];
+  propEntries: KvEntry[];
+  prevPropEntries: KvEntry[];
+  published: KvEntry[]|null;
+  expandable: boolean;
+  blockWhileIncomplete?: boolean;
+}): KvDraftSyncAction {
+  const {
+    draft,
+    propEntries,
+    prevPropEntries,
+    published,
+    expandable,
+    blockWhileIncomplete = false,
+  } = args;
+
+  if (blockWhileIncomplete) {
+    return {type: 'keep'};
+  }
+  if (findDuplicateKeyIndexes(draft).size > 0) {
+    return {type: 'keep'};
+  }
+  if (kvEntriesContentEqual(draft, propEntries)) {
+    return {type: 'clear'};
+  }
+  const echo = published;
+  if (echo && kvEntriesContentEqual(draft, echo)) {
+    if (kvEntriesContentEqual(propEntries, echo)) {
+      const shown = withTrailingEmptyRow(draft, expandable);
+      if (!kvEntriesEqual(draft, shown)) {
+        return {type: 'normalizeTrailing', entries: shown};
+      }
+      return {type: 'keep'};
+    }
+    if (kvEntriesContentEqual(propEntries, prevPropEntries)) {
+      return {type: 'keep'};
+    }
+  }
+  return {type: 'clear'};
+}
+
 /** Keep a blank key row at the end so the next entry can be typed. */
 export function withTrailingEmptyRow(entries: KvEntry[], addEmpty: boolean): KvEntry[] {
   if (!addEmpty) {

@@ -2,6 +2,8 @@ import {
   collectRuntimeLeaves,
   findRuntimeValueRangesInJson,
   findRuntimeValueRangesInPlainText,
+  isKnownRuntimeToken,
+  isKnownRuntimeTokenName,
   runtimeTokenKeys,
   stringContainsRuntimeToken,
 } from './runtimeTokenUi';
@@ -17,14 +19,18 @@ describe('stringContainsRuntimeToken', () => {
     expect(stringContainsRuntimeToken('hello')).toBe(false);
   });
 
-  it('ignores unknown r:/c: keywords', () => {
-    expect(stringContainsRuntimeToken('r:not_a_real_token')).toBe(false);
-    expect(stringContainsRuntimeToken('<<c:nope>>')).toBe(false);
+  it('treats any well-formed r:/c: name as a token (known check is separate)', () => {
+    expect(stringContainsRuntimeToken('r:not_a_real_token')).toBe(true);
+    expect(stringContainsRuntimeToken('<<c:nope>>')).toBe(true);
+    expect(isKnownRuntimeToken('r:not_a_real_token')).toBe(false);
+    expect(isKnownRuntimeTokenName('c', 'nope')).toBe(false);
+    expect(isKnownRuntimeToken('r:uuid')).toBe(true);
   });
 
-  it('accepts any parentheses when the keyword is known', () => {
+  it('accepts any parentheses on a well-formed keyword', () => {
     expect(stringContainsRuntimeToken('c:date(whatever)')).toBe(true);
     expect(stringContainsRuntimeToken('r:int(a,b)')).toBe(true);
+    expect(stringContainsRuntimeToken('r:nope(1,2)')).toBe(true);
   });
 });
 

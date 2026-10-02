@@ -397,3 +397,22 @@ describe('Random API data generators', () => {
         .toBeGreaterThanOrEqual(3);
   });
 });
+
+describe('randomTokenValueType metadata', () => {
+  it('covers every RANDOM_TOKEN_MAP key and matches sample typeof', () => {
+    for (const [name, gen] of Object.entries(Random.RANDOM_TOKEN_MAP)) {
+      const declared = Random.randomTokenValueType(name);
+      expect(declared).toBeDefined();
+      expect(Random.RANDOM_TOKEN_VALUE_TYPES[name]).toBe(declared);
+      const sample = gen();
+      expect(typeof sample).toBe(declared);
+    }
+  });
+
+  it('marks number/bool tokens correctly', () => {
+    expect(Random.randomTokenValueType('int')).toBe('number');
+    expect(Random.randomTokenValueType('bool')).toBe('boolean');
+    expect(Random.randomTokenValueType('uuid')).toBe('string');
+    expect(Random.randomTokenValueType('nope')).toBeUndefined();
+  });
+});

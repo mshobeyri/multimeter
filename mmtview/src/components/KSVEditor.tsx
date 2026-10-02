@@ -15,8 +15,7 @@ import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,
-  kvEntriesContentEqual,
-  kvEntriesEqual,
+  resolveKvDraftSync,
   withTrailingEmptyRow,
   type KvEntry,
 } from "./kvEntryDraft";
@@ -114,39 +113,43 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   const entries = draft ?? propEntries;
   const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
   const publishedRef = useRef<KvEntry[] | null>(null);
+  const prevPropEntriesRef = useRef(propEntries);
 
   // Drop local draft once keys are unique and the echoed text matches.
-  // Keep the draft while a value is mid-edit incomplete JSON, or when the
-  // YAML round-trip would rewrite the same edit (that rewrite jumps the caret).
+  // Keep the draft while a value is mid-edit incomplete JSON, or while we are
+  // waiting for our own YAML round-trip. If props change to something else
+  // (left YAML editor), drop the draft so the UI follows the file.
   useEffect(() => {
+    const prevProps = prevPropEntriesRef.current;
+
     if (!draft) {
+      prevPropEntriesRef.current = propEntries;
       return;
     }
-    if (typedValues &&
-        draft.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
+
+    const action = resolveKvDraftSync({
+      draft,
+      propEntries,
+      prevPropEntries: prevProps,
+      published: publishedRef.current,
+      expandable,
+      blockWhileIncomplete: typedValues &&
+        draft.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v)),
+    });
+
+    if (action.type === 'keep') {
+      prevPropEntriesRef.current = propEntries;
       return;
     }
-    if (findDuplicateKeyIndexes(draft).size > 0) {
-      return;
-    }
-    // Same keys and values came back. Drop the draft so the blank next-key
-    // row from props is shown. The placeholder row is not part of the compare.
-    if (kvEntriesContentEqual(draft, propEntries)) {
-      publishedRef.current = null;
-      setDraft(null);
-      return;
-    }
-    const echo = publishedRef.current;
-    if (echo && kvEntriesContentEqual(draft, echo)) {
-      const shown = withTrailingEmptyRow(draft, expandable);
-      if (!kvEntriesEqual(draft, shown)) {
-        publishedRef.current = shown;
-        setDraft(shown);
-      }
+    if (action.type === 'normalizeTrailing') {
+      publishedRef.current = action.entries;
+      setDraft(action.entries);
+      prevPropEntriesRef.current = propEntries;
       return;
     }
     publishedRef.current = null;
     setDraft(null);
+    prevPropEntriesRef.current = propEntries;
   }, [propEntries, draft, typedValues, expandable]);
 
   const safeOptions = Array.isArray(options) ? options : [];

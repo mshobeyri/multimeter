@@ -1,4 +1,5 @@
 import {outputExtractor} from 'mmt-core';
+import {isKnownRuntimeTokenName} from 'mmt-core/runtimeTokenUi';
 import {isInsideYamlBlockScalar} from './tokenHighlightPatterns';
 
 export type MissingImportEntry = { alias: string; path: string };
@@ -2108,6 +2109,205 @@ export function findEnvRefProblems(
     }));
 }
 
+export type RuntimeRefSiteInfo = {
+  prefix: 'r' | 'c';
+  name: string;
+  offset: number;
+  length: number;
+  line: number;
+};
+
+const RUNTIME_REF_BRACE_RE = new RegExp(
+  `<<\\s*(r|c):(${TOKEN_NAME_RE})(?:\\([^)]*\\))?(${ACCESSOR_PATH_RE})\\s*>>`,
+  'g',
+);
+const RUNTIME_REF_PLAIN_RE = new RegExp(
+  `(?<![A-Za-z0-9_])(r|c):(${TOKEN_NAME_RE})(?:\\([^)]*\\))?(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`,
+  'g',
+);
+
+function unknownRuntimeTokenMessage(prefix: 'r' | 'c', name: string): string {
+  if (prefix === 'r') {
+    return `Unknown random token "${name}"`;
+  }
+  return `Unknown current token "${name}"`;
+}
+
+/**
+ * Scan YAML for `r:xxx` / `c:xxx` and `<<r:/c:…>>` sites (same bare/angle
+ * rules as i:/e:). Used to warn on names that are not built-in generators.
+ */
+export function extractRuntimeRefSites(content: string): RuntimeRefSiteInfo[] {
+  const results: RuntimeRefSiteInfo[] = [];
+  const seen = new Set<number>();
+
+  function isCommentLine(offset: number): boolean {
+    const lineStart = content.lastIndexOf('\n', offset) + 1;
+    return content.slice(lineStart, offset).trimStart().startsWith('#');
+  }
+
+  let m: RegExpExecArray | null;
+  RUNTIME_REF_BRACE_RE.lastIndex = 0;
+  while ((m = RUNTIME_REF_BRACE_RE.exec(content)) !== null) {
+    if (isCommentLine(m.index)) {
+      continue;
+    }
+    const prefix = m[1].toLowerCase() as 'r' | 'c';
+    const name = m[2];
+    const accessor = m[3] || '';
+    // Underline keyword (+ accessor); args may sit between name and accessor.
+    const innerOffset = content.indexOf(`${prefix}:${name}`, m.index);
+    const underlineOffset = innerOffset >= 0 ? innerOffset : m.index;
+    const underlineLength = innerOffset >= 0
+      ? `${prefix}:${name}${accessor}`.length
+      : m[0].length;
+    seen.add(underlineOffset);
+    results.push({
+      prefix,
+      name,
+      offset: underlineOffset,
+      length: underlineLength,
+      line: offsetToLineNumber(content, m.index),
+    });
+  }
+
+  RUNTIME_REF_PLAIN_RE.lastIndex = 0;
+  while ((m = RUNTIME_REF_PLAIN_RE.exec(content)) !== null) {
+    if (isCommentLine(m.index) || seen.has(m.index)) {
+      continue;
+    }
+    const before = content.slice(Math.max(0, m.index - 10), m.index);
+    if (/<<\s*$/.test(before)) {
+      continue;
+    }
+    if (isOffsetInsideQuotedYamlScalar(content, m.index)) {
+      continue;
+    }
+    if (!isBareTokenWholeYamlValue(content, m.index, m[0].length)) {
+      continue;
+    }
+    seen.add(m.index);
+    results.push({
+      prefix: m[1].toLowerCase() as 'r' | 'c',
+      name: m[2],
+      offset: m.index,
+      length: m[0].length,
+      line: offsetToLineNumber(content, m.index),
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Yellow wavy underline for `r:` / `c:` tokens whose name is not a built-in
+ * generator (same presentation as undefined i:/e: refs).
+ */
+export function getUnknownRuntimeRefDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  inlineClassName: string,
+): any[] {
+  if (!model) {
+    return [];
+  }
+
+  const decorations: any[] = [];
+  for (const site of extractRuntimeRefSites(content)) {
+    if (isKnownRuntimeTokenName(site.prefix, site.name)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+    const hoverMessage = {value: unknownRuntimeTokenMessage(site.prefix, site.name)};
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+  return decorations;
+}
+
+/** Problem panel entries for unknown `r:` / `c:` generator names. */
+export function findUnknownRuntimeRefProblems(content: string): ProblemEntry[] {
+  return extractRuntimeRefSites(content)
+    .filter((site) => !isKnownRuntimeTokenName(site.prefix, site.name))
+    .map((site) => ({
+      message: unknownRuntimeTokenMessage(site.prefix, site.name),
+      severity: 'warning' as const,
+      line: site.line,
+      column: 1,
+    }));
+}
+
+
+/**
+ * Warn when a bare `e:`/`i:`/`r:`/`c:` token appears *inside* other text on a
+ * simple `key: value` line. Whole-value bare tokens are fine; mixed text should
+ * use `<<prefix:name>>` (SDD token-form-consistency L2 / Phase 3).
+ * Quoted scalars and tokens already inside `<<…>>` / `{{…}}` are skipped.
+ */
+export function findDiscouragedBareEmbeddedTokenProblems(
+    content: string,
+): ProblemEntry[] {
+  const lines = String(content ?? '').split(/\r?\n/);
+  const results: ProblemEntry[] = [];
+  const bareRe =
+      /(?<![{<A-Za-z0-9_])([eirc]):([A-Za-z_][A-Za-z0-9_-]*)(?![A-Za-z0-9_])/g;
+  const wholeBareRe =
+      /^(?:[eirc]):[A-Za-z_][A-Za-z0-9_-]*(?:\([^)]*\))?(?:\.[A-Za-z_][A-Za-z0-9_]*|\[-?\d*(?::-?\d*)?\])*$/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedStart = line.trimStart();
+    if (!trimmedStart || trimmedStart.startsWith('#')) {
+      continue;
+    }
+    const colonMatch = /:\s+/.exec(line);
+    if (!colonMatch || colonMatch.index == null) {
+      continue;
+    }
+    const valueStart = colonMatch.index + colonMatch[0].length;
+    let value = line.slice(valueStart);
+    const valueTrim = value.trim();
+    if (!valueTrim) {
+      continue;
+    }
+    if ((valueTrim.startsWith('"') && valueTrim.endsWith('"')) ||
+        (valueTrim.startsWith('\'') && valueTrim.endsWith('\''))) {
+      continue;
+    }
+    if (wholeBareRe.test(valueTrim)) {
+      continue;
+    }
+    const masked = valueTrim
+        .replace(/<<[\s\S]*?>>/g, (m) => ' '.repeat(m.length))
+        .replace(/\{\{[\s\S]*?\}\}/g, (m) => ' '.repeat(m.length));
+    bareRe.lastIndex = 0;
+    let match: RegExpExecArray|null;
+    while ((match = bareRe.exec(masked)) !== null) {
+      const prefix = match[1];
+      const name = match[2];
+      results.push({
+        message:
+            `Bare ${prefix}:${name} inside other text is discouraged; ` +
+            `use <<${prefix}:${name}>> (canonical YAML). ` +
+            `UI form {{${prefix}:${name}}} is also accepted and normalized on save.`,
+        severity: 'warning',
+        line: i + 1,
+        column: valueStart + match.index + 1,
+      });
+    }
+  }
+  return results;
+}
 
 /**
  * Detect root-level `description:` keys whose value spans multiple lines

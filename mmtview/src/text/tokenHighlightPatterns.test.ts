@@ -21,16 +21,16 @@ describe('tokenHighlightPatterns', () => {
     expect(collectTokenHighlightMatches(text)).toContain('c:date(not-a-strict-offset)');
   });
 
-  it('does not highlight unknown r:/c: keywords', () => {
+  it('highlights any well-formed r:/c: name (unknown names warn separately)', () => {
     const text = [
       'bad_r: r:not_a_real_token',
       'bad_c: c:nope',
       'angled: <<r:garbage>>',
     ].join('\n');
     const matches = collectTokenHighlightMatches(text);
-    expect(matches).not.toContain('r:not_a_real_token');
-    expect(matches).not.toContain('c:nope');
-    expect(matches).not.toContain('r:garbage');
+    expect(matches).toContain('r:not_a_real_token');
+    expect(matches).toContain('c:nope');
+    expect(matches).toContain('r:garbage');
   });
 
   it('does not highlight arbitrary letter prefixes', () => {
@@ -98,10 +98,10 @@ describe('tokenHighlightPatterns', () => {
     expect(match?.[1]).toBe('e:{token}');
   });
 
-  it('isHighlightableToken checks only the keyword before parentheses', () => {
+  it('isHighlightableToken accepts any r:/c: shape like i:/e:', () => {
     expect(isHighlightableToken('r:uuid')).toBe(true);
     expect(isHighlightableToken('r:uuid(anything)')).toBe(true);
-    expect(isHighlightableToken('r:nope')).toBe(false);
+    expect(isHighlightableToken('r:nope')).toBe(true);
     expect(isHighlightableToken('c:date(+1d)')).toBe(true);
     expect(isHighlightableToken('c:date_future')).toBe(true);
     expect(isHighlightableToken('e:anything')).toBe(true);

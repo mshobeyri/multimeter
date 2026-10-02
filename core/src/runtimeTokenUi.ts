@@ -11,7 +11,7 @@ const KNOWN_CURRENT_TOKENS = new Set([
   ...Object.keys(CURRENT_FUTURE_PAST_ALIASES),
 ]);
 
-/** Loose `(...)` for detection — keyword must still be a known r:/c: name. */
+/** Loose `(...)` for shape detection — validity is a separate warning. */
 const RUNTIME_TOKEN_ARGS_LOOSE_RE = '(?:\\([^)]*\\))?';
 const RUNTIME_TOKEN_SPEC_LOOSE_RE =
     `${TOKEN_NAME_RE}${RUNTIME_TOKEN_ARGS_LOOSE_RE}`;
@@ -24,22 +24,42 @@ const RUNTIME_TOKEN_IN_STRING_RE = new RegExp(
     'g',
 );
 
-function isKnownRuntimeKeyword(prefix: string, spec: string): boolean {
-  const nameMatch = /^([A-Za-z_][A-Za-z0-9_-]*)/.exec(spec);
-  if (!nameMatch) {
-    return false;
+/** Keyword name from an `r:` / `c:` spec (before args / accessors). */
+export function runtimeTokenKeywordName(spec: string): string|null {
+  const nameMatch = /^([A-Za-z_][A-Za-z0-9_-]*)/.exec(String(spec ?? '').trim());
+  return nameMatch ? nameMatch[1] : null;
+}
+
+/** True when `r:name` / `c:name` is a built-in generator (for warnings). */
+export function isKnownRuntimeTokenName(prefix: string, name: string): boolean {
+  const p = String(prefix ?? '').toLowerCase();
+  const n = String(name ?? '');
+  if (p === 'r') {
+    return KNOWN_RANDOM_TOKENS.has(n);
   }
-  const name = nameMatch[1];
-  if (prefix === 'r') {
-    return KNOWN_RANDOM_TOKENS.has(name);
-  }
-  if (prefix === 'c') {
-    return KNOWN_CURRENT_TOKENS.has(name);
+  if (p === 'c') {
+    return KNOWN_CURRENT_TOKENS.has(n);
   }
   return false;
 }
 
-/** True when a string contains a known r: or c: token (plain or << >>). */
+/**
+ * True when a plain `r:…` / `c:…` (or angle form) names a known generator.
+ * Shape-only recognition uses `stringContainsRuntimeToken`.
+ */
+export function isKnownRuntimeToken(plain: string): boolean {
+  const m = /^(r|c):([A-Za-z_][A-Za-z0-9_-]*)/i.exec(String(plain ?? '').trim());
+  if (!m) {
+    return false;
+  }
+  return isKnownRuntimeTokenName(m[1], m[2]);
+}
+
+/**
+ * True when a string contains a well-formed r: or c: token (plain or << >>).
+ * Any `r:name` / `c:name` shape counts — same idea as i:/e:. Unknown names
+ * are still tokens in the UI; validate with `isKnownRuntimeTokenName`.
+ */
 export function stringContainsRuntimeToken(value: unknown): boolean {
   if (typeof value !== 'string' || !value) {
     return false;
@@ -53,7 +73,7 @@ export function stringContainsRuntimeToken(value: unknown): boolean {
   while ((match = RUNTIME_TOKEN_IN_STRING_RE.exec(value)) !== null) {
     const prefix = match[1] || match[3];
     const spec = match[2] || match[4];
-    if (!prefix || !spec || !isKnownRuntimeKeyword(prefix, spec)) {
+    if (!prefix || !spec || !runtimeTokenKeywordName(spec)) {
       continue;
     }
     // Angle form counts anywhere. Bare `r:uuid` counts only as the whole value.

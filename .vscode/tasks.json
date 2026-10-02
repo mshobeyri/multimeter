@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compile-webview",
+      "type": "shell",
+      "command": "npm run buildview && node esbuild.js",
+      "options": {
+        "env": {
+          "PATH": "${env:HOME}/.local/node/bin:${env:PATH}"
+        }
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    }
+  ]
+}

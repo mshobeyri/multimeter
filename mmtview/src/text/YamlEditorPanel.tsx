@@ -41,6 +41,9 @@ import {
   findInputRefProblems,
   getUndefinedEnvRefDecorations,
   findEnvRefProblems,
+  getUnknownRuntimeRefDecorations,
+  findUnknownRuntimeRefProblems,
+  findDiscouragedBareEmbeddedTokenProblems,
   findMultilineDescriptionProblems,
   findAuthProblems,
   computeStageAfterMarkers,
@@ -205,6 +208,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const undefinedExampleKeyDecorationsRef = useRef<string[]>([]);
   const undefinedInputRefDecorationsRef = useRef<string[]>([]);
   const undefinedEnvRefDecorationsRef = useRef<string[]>([]);
+  const unknownRuntimeRefDecorationsRef = useRef<string[]>([]);
   const undefinedOutputValueDecorationsRef = useRef<string[]>([]);
   const invalidStageAfterDecorationsRef = useRef<string[]>([]);
   const compatibilityDecorationsRef = useRef<string[]>([]);
@@ -230,7 +234,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [exampleKeyProblems, setExampleKeyProblems] = useState<ProblemEntry[]>([]);
   const [inputRefProblems, setInputRefProblems] = useState<ProblemEntry[]>([]);
   const [envRefProblems, setEnvRefProblems] = useState<ProblemEntry[]>([]);
+  const [runtimeRefProblems, setRuntimeRefProblems] = useState<ProblemEntry[]>([]);
   const [descriptionProblems, setDescriptionProblems] = useState<ProblemEntry[]>([]);
+  const [bareTokenProblems, setBareTokenProblems] = useState<ProblemEntry[]>([]);
   const [stageAfterProblems, setStageAfterProblems] = useState<ProblemEntry[]>([]);
   const [authProblems, setAuthProblems] = useState<ProblemEntry[]>([]);
   const [compatibilityProblems, setCompatibilityProblems] = useState<ProblemEntry[]>([]);
@@ -851,6 +857,45 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-description", markers);
   }, [content, editorReady]);
 
+  // Warn on bare e:/i:/r:/c: embedded in other text (prefer <<…>>)
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      setBareTokenProblems([]);
+      return;
+    }
+    if (sourceFormat === "http" || sourceFormat === "bruno" ||
+        isSpecSourceFormat(sourceFormat)) {
+      setBareTokenProblems([]);
+      const model = editorRef.current.getModel();
+      if (model && monacoRef.current) {
+        monacoRef.current.editor.setModelMarkers(model, "mmt-bare-token", []);
+      }
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      setBareTokenProblems([]);
+      return;
+    }
+    const problems = findDiscouragedBareEmbeddedTokenProblems(content);
+    setBareTokenProblems(problems);
+    const markers = problems.map((p) => {
+      const lineNumber = Math.min(Math.max(p.line ?? 1, 1), model.getLineCount());
+      const col = Math.max(p.column ?? 1, 1);
+      return {
+        startLineNumber: lineNumber,
+        startColumn: col,
+        endLineNumber: lineNumber,
+        endColumn: model.getLineMaxColumn(lineNumber),
+        message: p.message,
+        severity: monaco.MarkerSeverity.Warning,
+      };
+    });
+    monaco.editor.setModelMarkers(model, "mmt-bare-token", markers);
+  }, [content, editorReady, sourceFormat]);
+
   // Validate auth field in API documents
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -962,6 +1007,38 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       decos
     );
   }, [content, editorReady, knownEnvNames]);
+
+  // Warn on unknown r:xxx / c:xxx generator names (same underline as i:/e:)
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      setRuntimeRefProblems([]);
+      unknownRuntimeRefDecorationsRef.current = editor.deltaDecorations(
+        unknownRuntimeRefDecorationsRef.current,
+        [],
+      );
+      return;
+    }
+
+    const problems = findUnknownRuntimeRefProblems(content);
+    setRuntimeRefProblems(problems);
+
+    const decos = getUnknownRuntimeRefDecorations(
+      monaco,
+      model,
+      content,
+      UNDEFINED_INPUT_CLASS,
+    );
+    unknownRuntimeRefDecorationsRef.current = editor.deltaDecorations(
+      unknownRuntimeRefDecorationsRef.current,
+      decos,
+    );
+  }, [content, editorReady]);
 
   useEffect(() => {
     if (!editorReady || !editorRef.current || !monacoRef.current) {
@@ -1361,7 +1438,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...exampleKeyProblems,
       ...inputRefProblems,
       ...envRefProblems,
+      ...runtimeRefProblems,
       ...descriptionProblems,
+      ...bareTokenProblems,
       ...stageAfterProblems,
       ...authProblems,
       ...compatibilityProblems,
@@ -1370,7 +1449,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, duplicateServerProblems, suiteThenSeparatorProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems, compatibilityProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, duplicateServerProblems, suiteThenSeparatorProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, runtimeRefProblems, descriptionProblems, bareTokenProblems, stageAfterProblems, authProblems, compatibilityProblems]);
 
   return (
     <div className="yaml-host">

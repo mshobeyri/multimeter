@@ -1,4 +1,3 @@
-import {Current, Random} from 'mmt-core';
 import {
   TOKEN_NAME_RE,
   ACCESSOR_PATH_RE,
@@ -7,8 +6,8 @@ import {
 const ENV_BRACE_TOKEN = `e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\}`;
 
 /**
- * Highlight form of r:/c: — known keyword name + any `(...)` args (not validated).
- * Runtime replacement still uses the stricter specs in variableReplacer.
+ * Highlight form of r:/c: — any keyword-shaped name + optional `(...)` args.
+ * Unknown names still highlight; the validator warns separately (like i:/e:).
  */
 const RUNTIME_TOKEN_ARGS_LOOSE_RE = '(?:\\([^)]*\\))?';
 const RUNTIME_TOKEN_HIGHLIGHT_SPEC_RE =
@@ -24,18 +23,13 @@ const ENV_INPUT_TOKEN_RE =
 export const DYNAMIC_KEY_HIGHLIGHT_RE =
     `(?:${RUNTIME_TOKEN_HIGHLIGHT_RE}|${ENV_INPUT_TOKEN_RE})`;
 
-const KNOWN_RANDOM_TOKENS = new Set(Object.keys(Random.RANDOM_TOKEN_MAP));
-const KNOWN_CURRENT_TOKENS = new Set([
-  ...Object.keys(Current.CURRENT_TOKEN_MAP),
-  ...Object.keys(Current.CURRENT_FUTURE_PAST_ALIASES),
-]);
-
 const RUNTIME_TOKEN_PREFIX_RE =
     /^(r|c):([A-Za-z_][A-Za-z0-9_-]*)/;
 
 /**
  * Whether a captured token should get the editor highlight.
- * Allowed prefixes: r: / c: (known keywords) / e: / i: / o: (output keys) / e:{…}.
+ * Allowed prefixes: r: / c: / e: / i: / o: (output keys) / e:{…}.
+ * Any well-formed r:/c: name highlights (same as i:/e:); unknown → warning.
  */
 export function isHighlightableToken(token: string): boolean {
   const trimmed = String(token || '').trim();
@@ -47,18 +41,8 @@ export function isHighlightableToken(token: string): boolean {
   ) {
     return true;
   }
-  const match = RUNTIME_TOKEN_PREFIX_RE.exec(trimmed);
-  if (!match) {
-    return false;
-  }
-  const prefix = match[1];
-  const name = match[2];
-  if (prefix === 'r') {
-    return KNOWN_RANDOM_TOKENS.has(name);
-  }
-  return KNOWN_CURRENT_TOKENS.has(name);
+  return RUNTIME_TOKEN_PREFIX_RE.test(trimmed);
 }
-
 /** Full `<<...>>` tokens including parameterized `r:` / `c:` forms. */
 export const INLINE_ANGLE_TOKEN_HIGHLIGHT_RE = new RegExp(
   `<<\\s*(${DYNAMIC_KEY_HIGHLIGHT_RE})\\s*>>`,

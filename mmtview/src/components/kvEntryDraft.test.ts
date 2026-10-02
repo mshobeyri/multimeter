@@ -1,5 +1,6 @@
 import {
   kvEntriesContentEqual,
+  resolveKvDraftSync,
   withTrailingEmptyRow,
   withoutTrailingEmptyKey,
 } from "./kvEntryDraft";
@@ -32,5 +33,65 @@ describe("kv trailing empty key row", () => {
 
   it("starts an empty list with one blank key row", () => {
     expect(withTrailingEmptyRow([], true)).toEqual([["", ""]]);
+  });
+});
+
+describe("resolveKvDraftSync", () => {
+  it("keeps the draft while the YAML echo is still in flight", () => {
+    const fromUi: [string, string][] = [
+      ["asd", "{{r:name}}"],
+      ["", ""],
+    ];
+    const stillOldProps: [string, string][] = [
+      ["another", "{{r:full_name}}"],
+      ["", ""],
+    ];
+    expect(
+      resolveKvDraftSync({
+        draft: fromUi,
+        propEntries: stillOldProps,
+        prevPropEntries: stillOldProps,
+        published: fromUi,
+        expandable: true,
+      }),
+    ).toEqual({type: "keep"});
+  });
+
+  it("clears the draft when YAML keys change on the left", () => {
+    const fromUi: [string, string][] = [
+      ["asd", "{{r:name}}"],
+      ["", ""],
+    ];
+    const prevProps: [string, string][] = [["asd", "{{r:name}}"], ["", ""]];
+    const fromYaml: [string, string][] = [
+      ["ass", "{{i:xxx}}"],
+      ["ds", "{{i:age}}"],
+      ["", ""],
+    ];
+    expect(
+      resolveKvDraftSync({
+        draft: fromUi,
+        propEntries: fromYaml,
+        prevPropEntries: prevProps,
+        published: fromUi,
+        expandable: true,
+      }),
+    ).toEqual({type: "clear"});
+  });
+
+  it("clears the draft when props match the draft content", () => {
+    const rows: [string, string][] = [
+      ["asd", "{{r:name}}"],
+      ["", ""],
+    ];
+    expect(
+      resolveKvDraftSync({
+        draft: rows,
+        propEntries: [["asd", "{{r:name}}"]],
+        prevPropEntries: [["old", "x"]],
+        published: rows,
+        expandable: true,
+      }),
+    ).toEqual({type: "clear"});
   });
 });

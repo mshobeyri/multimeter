@@ -39,10 +39,14 @@ const ANGLE_TOKEN_RE =
     new RegExp(`^<<\\s*(${DYNAMIC_KEY_RE})\\s*>>$`);
 const PLAIN_TOKEN_RE =
     new RegExp(`^(${DYNAMIC_KEY_RE})$`);
+/** UI / Option C YAML alias: `{{i:x}}` / `{{r:uuid}}` / … */
+const DISPLAY_CURLY_TOKEN_RE =
+    new RegExp(`^\\{\\{\\s*(${DYNAMIC_KEY_RE})\\s*\\}\\}$`, 'i');
 
 /**
  * True when a whole scalar looks like an e:/i:/r:/c:/o: token (plain, braced,
- * or angle-wrapped). Used to decide which quoted YAML values stay literal.
+ * angle-wrapped, or curly display form). Used to decide which quoted YAML
+ * values stay literal.
  */
 export function isTokenLikeScalar(value: string): boolean {
   const text = String(value ?? '');
@@ -52,7 +56,8 @@ export function isTokenLikeScalar(value: string): boolean {
   if (ENV_BRACE_TOKEN_RE.test(text) || SINGLE_ANGLE_ENV_RE.test(text)) {
     return true;
   }
-  if (ANGLE_TOKEN_RE.test(text) || PLAIN_TOKEN_RE.test(text)) {
+  if (ANGLE_TOKEN_RE.test(text) || PLAIN_TOKEN_RE.test(text) ||
+      DISPLAY_CURLY_TOKEN_RE.test(text)) {
     return true;
   }
   return false;
