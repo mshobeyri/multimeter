@@ -11,10 +11,10 @@ import {TestData} from './TestData';
 // Shared token helpers
 //
 // Supported forms for env/input/random/current/output references in .mmt files:
-//   <<e:VAR>>          angle-bracket-wrapped
+//   <<e:VAR>>          angle-bracket-wrapped (required when mixed with other text)
 //   <e:VAR>            single-angle-bracket-wrapped (env only)
-//   e:{VAR}            brace-wrapped (env only)
-//   e:VAR              plain
+//   e:{VAR}            brace-wrapped (env only, whole value)
+//   e:VAR              plain, only when the entire value is the token
 //   <<o:name>> / o:name  test outputs object (runtime; not API doc annotations)
 //
 // Optional accessor suffixes are supported after the base token name:
@@ -41,7 +41,9 @@ export const DYNAMIC_KEY_RE =
 
 function replaceTokenForms(
     s: string, prefix: string,
-    formatter: (name: string, accessor: string, match: string) => string,
+    formatter: (
+      name: string, accessor: string, match: string, offset: number, source: string,
+    ) => string,
     options: {
       includeAngles?: boolean,
       includeSingleAngles?: boolean,
@@ -58,22 +60,26 @@ function replaceTokenForms(
   if (options.includeAngles !== false) {
     out = out.replace(
         new RegExp(`<<\\s*${prefix}:${capture}\\s*>>`, 'g'),
-        (match, name: string, accessor = '') => formatter(name, accessor || '', match));
+        (match, name: string, accessor = '', offset: number, source: string) =>
+          formatter(name, accessor || '', match, offset, source));
   }
   if (options.includeSingleAngles) {
     out = out.replace(
         new RegExp(`<\\s*${prefix}:${capture}\\s*>`, 'g'),
-        (match, name: string, accessor = '') => formatter(name, accessor || '', match));
+        (match, name: string, accessor = '', offset: number, source: string) =>
+          formatter(name, accessor || '', match, offset, source));
   }
   if (options.includeBraceForm) {
     out = out.replace(
         new RegExp(`(?<![a-zA-Z0-9])${prefix}:\\{(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\}`, 'g'),
-        (match, name: string, accessor = '') => formatter(name, accessor || '', match));
+        (match, name: string, accessor = '', offset: number, source: string) =>
+          formatter(name, accessor || '', match, offset, source));
   }
   if (options.includePlain !== false) {
     out = out.replace(
         new RegExp(`(?<![a-zA-Z0-9])${prefix}:${capture}(?![A-Za-z0-9_])`, 'g'),
-        (match, name: string, accessor = '') => formatter(name, accessor || '', match));
+        (match, name: string, accessor = '', offset: number, source: string) =>
+          formatter(name, accessor || '', match, offset, source));
   }
   return out;
 }
@@ -511,27 +517,35 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
       }
     }
 
+    // Bare r:/c:/e: count only when the whole string is the token (handled
+    // above). Mixed text must use <<…>>.
     let out = replaceTokenForms(
         val, 'r',
-        (name, accessor, match) => {
+        (name, accessor, match, offset, source) => {
           const resolved = resolveDynamicTokenValue('r', name, accessor, {}, envs);
-          return resolved !== undefined ? embedResolvedTokenText(resolved) : match;
+          return resolved !== undefined ?
+            embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
+            match;
         },
-        {includeSingleAngles: false, includeBraceForm: false});
+        {includeSingleAngles: false, includeBraceForm: false, includePlain: false});
     out = replaceTokenForms(
         out, 'c',
-        (name, accessor, match) => {
+        (name, accessor, match, offset, source) => {
           const resolved = resolveDynamicTokenValue('c', name, accessor, {}, envs);
-          return resolved !== undefined ? embedResolvedTokenText(resolved) : match;
+          return resolved !== undefined ?
+            embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
+            match;
         },
-        {includeSingleAngles: false, includeBraceForm: false});
+        {includeSingleAngles: false, includeBraceForm: false, includePlain: false});
     out = replaceTokenForms(
         out, 'e',
-        (name, accessor, match) => {
+        (name, accessor, match, offset, source) => {
           const resolved = resolveDynamicTokenValue('e', name, accessor, {}, envs);
-          return resolved !== undefined ? embedResolvedTokenText(resolved) : match;
+          return resolved !== undefined ?
+            embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
+            match;
         },
-        {includeSingleAngles: true, includeBraceForm: true});
+        {includeSingleAngles: true, includeBraceForm: true, includePlain: false});
     return out;
   }
   if (Array.isArray(val)) {
@@ -544,18 +558,60 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
   return val;
 }
 
+function jsonText(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/** Escape text so it can sit inside an existing JSON string. */
+function escapeJsonStringContent(text: string): string {
+  return text
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t');
+}
+
+/**
+ * True when `index` is inside a double-quoted span.
+ * `"<<i:zz>>"` is the string form of the token; unquoted `<<i:zz>>` is JSON.
+ */
+function isInsideDoubleQuotes(source: string, index: number): boolean {
+  let inside = false;
+  const text = String(source ?? '');
+  const end = Math.max(0, Math.min(index, text.length));
+  for (let i = 0; i < end; i++) {
+    const ch = text[i];
+    if (ch === '\\') {
+      i += 1;
+      continue;
+    }
+    if (ch === '"') {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
 /**
  * Drop a resolved token into surrounding text.
- * Strings, numbers, and bools stay as their plain text. Objects and lists
- * become JSON so a body like `"obj": <<i:zz>>` stays valid.
+ * Unquoted: objects and lists become JSON (`"obj": <<i:zz>>`).
+ * Inside quotes (`"<<i:zz>>"`): the value is a string — objects and lists
+ * are JSON text, not `[object Object]` or a comma join.
  */
-function embedResolvedTokenText(value: unknown): string {
+function embedResolvedTokenText(value: unknown, insideString = false): string {
+  if (insideString) {
+    const text = value !== null && typeof value === 'object' ?
+      jsonText(value) :
+      String(value);
+    return escapeJsonStringContent(text);
+  }
   if (value !== null && typeof value === 'object') {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
+    return jsonText(value);
   }
   return String(value);
 }
@@ -588,23 +644,14 @@ function replaceRefs(
       return obj;
     }
 
-    // For partial replacements or multiple matches, convert to string.
+    // A bare token is only a token when the entire value is that token.
+    // Mixed text such as `username: i:xxx` or `"i:xxx"` stays literal.
     if (mode === ReplacementMode.NONE) {
-      // Pattern is `(:\s*)(key)` – only replace values after a colon+space.
-      return obj.replace(pattern, (match, prefix: string, key: string) => {
-        let found = inputs[key];
-        if (found === undefined && resolver) {
-          found = resolver(key);
-        }
-        if (found === undefined) {
-          return prefix + key;
-        }
-        return prefix + embedResolvedTokenText(found);
-      });
+      return obj;
     }
 
-    // BRACE mode keeps the previous behavior (no prefix group).
-    return obj.replace(pattern, (match, key: string) => {
+    // BRACE mode: `<<token>>` anywhere. Inside quotes the value is a string.
+    return obj.replace(pattern, (match, key: string, offset: number) => {
       let found = inputs[key];
       if (found === undefined && resolver) {
         found = resolver(key);
@@ -612,7 +659,7 @@ function replaceRefs(
       if (found === undefined) {
         return match;
       }
-      return embedResolvedTokenText(found);
+      return embedResolvedTokenText(found, isInsideDoubleQuotes(obj, offset));
     });
   }
 
@@ -636,7 +683,7 @@ function replaceRefs(
 /**
  * Recursively scan an object for `i:name` input references and return the
  * unique set of referenced input names.
- * Detects both `<<i:name>>` (brace form) and standalone `i:name` (value form).
+ * Detects `<<i:name>>` anywhere, and bare `i:name` only when it is the whole value.
  */
 export function collectInputRefsFromObject(obj: any): string[] {
   const refs = new Set<string>();
@@ -656,16 +703,11 @@ export function collectInputRefsFromObject(obj: any): string[] {
       return;
     }
 
-    // Partial brace matches: <<i:name>> anywhere in string
+    // Partial brace matches: <<i:name>> anywhere in string.
+    // Bare `i:name` mixed with other text is not a token.
     const braceRe = new RegExp(`<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>`, 'g');
     let m;
     while ((m = braceRe.exec(value)) !== null) {
-      refs.add(m[1]);
-    }
-
-    // After colon-space: `: i:name` (matches the NONE-mode global pattern)
-    const afterColonRe = new RegExp(`:\\si:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*`, 'g');
-    while ((m = afterColonRe.exec(value)) !== null) {
       refs.add(m[1]);
     }
   }
@@ -695,11 +737,11 @@ export function replaceInputRefsWithBrace(obj: any, inputs: any, resolver?: Dyna
 }
 
 export function replaceInputRefsWithNone(obj: any, inputs: any, resolver?: DynamicResolver): any {
-  // Only replace plain tokens when they occur as values after a literal
-  // colon+space (" : "), e.g. "key: i:foo". This ensures patterns like
-  // "hi:i:foo" are not touched.
+  // Bare tokens resolve only when the whole string is the token (`i:foo`).
+  // The pattern is unused for partial scans; the anchored full match in
+  // replaceRefs does the work.
   return replaceRefs(
-      obj, new RegExp(`(:\\s)(${DYNAMIC_KEY_RE})`, 'g'), ReplacementMode.NONE,
+      obj, new RegExp(`(${DYNAMIC_KEY_RE})`, 'g'), ReplacementMode.NONE,
       inputs, resolver);
 }
 

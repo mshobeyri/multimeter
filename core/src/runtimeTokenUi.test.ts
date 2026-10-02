@@ -12,6 +12,7 @@ describe('stringContainsRuntimeToken', () => {
     expect(stringContainsRuntimeToken('c:date')).toBe(true);
     expect(stringContainsRuntimeToken('<<r:uuid>>')).toBe(true);
     expect(stringContainsRuntimeToken('id-<<c:epoch_ms>>')).toBe(true);
+    expect(stringContainsRuntimeToken('Bearer r:uuid')).toBe(false);
     expect(stringContainsRuntimeToken('e:api_url')).toBe(false);
     expect(stringContainsRuntimeToken('hello')).toBe(false);
   });
@@ -62,9 +63,10 @@ describe('findRuntimeValueRangesInPlainText', () => {
 describe('runtimeTokenKeys', () => {
   it('returns keys whose values contain runtime tokens', () => {
     expect([...runtimeTokenKeys({
-      Authorization: 'Bearer r:uuid',
+      Authorization: 'Bearer <<r:uuid>>',
       Accept: 'application/json',
       stamp: 'c:epoch_ms',
+      note: 'Bearer r:uuid',
     })].sort()).toEqual(['Authorization', 'stamp']);
   });
 });

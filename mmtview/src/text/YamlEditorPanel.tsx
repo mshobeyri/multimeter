@@ -63,6 +63,7 @@ import {
   INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
   INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE,
   isHighlightableToken,
+  isInsideYamlBlockScalar,
   OUTPUT_KEY_TOKEN_HIGHLIGHT_RE,
   PLAIN_TOKEN_HIGHLIGHT_RE,
 } from './tokenHighlightPatterns';
@@ -1160,6 +1161,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const value = model.getValue();
       let match;
       while ((match = PLAIN_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        const token = match[1];
+        if (!token || isInsideYamlBlockScalar(value, match.index + match[0].indexOf(token))) {
+          continue;
+        }
         pushCapturedTokenHighlight(matches, monaco, model, match, 1, I_PREFIX_CLASS);
       }
     }
@@ -1167,6 +1172,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const value = model.getValue();
       let match;
       while ((match = ENV_BRACE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        const token = match[1];
+        if (!token || isInsideYamlBlockScalar(value, match.index + match[0].indexOf(token))) {
+          continue;
+        }
         pushCapturedTokenHighlight(matches, monaco, model, match, 1, I_PREFIX_CLASS);
       }
     }

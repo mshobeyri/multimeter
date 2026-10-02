@@ -1,4 +1,5 @@
 import {outputExtractor} from 'mmt-core';
+import {isInsideYamlBlockScalar} from './tokenHighlightPatterns';
 
 export type MissingImportEntry = { alias: string; path: string };
 
@@ -1800,6 +1801,27 @@ function isOffsetInsideQuotedYamlScalar(content: string, offset: number): boolea
 }
 
 /**
+ * Bare `i:` / `e:` / `e:{…}` count only when they are the entire YAML value
+ * (`key: i:name` or `- e:HOST`). Mixed text and block-scalar lines do not.
+ */
+function isBareTokenWholeYamlValue(content: string, offset: number, length: number): boolean {
+  if (offset < 0 || isInsideYamlBlockScalar(content, offset)) {
+    return false;
+  }
+  const lineStart = content.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
+  let lineEnd = content.indexOf('\n', offset);
+  if (lineEnd < 0) {
+    lineEnd = content.length;
+  }
+  const before = content.slice(lineStart, offset);
+  const after = content.slice(offset + length, lineEnd);
+  if (!/^[ \t]*(?:-[ \t]+|[A-Za-z_][\w.-]*[ \t]*:[ \t]+)$/.test(before)) {
+    return false;
+  }
+  return /^[ \t]*(?:#.*)?$/.test(after);
+}
+
+/**
  * Scan the raw YAML content for `i:xxx` and `<<i:xxx>>` references and
  * return their positions. Accessor forms like `<<i:name[0]>>` and
  * `i:user.name` are also recognised.
@@ -1837,6 +1859,9 @@ export function extractInputRefSites(content: string): InputRefSiteInfo[] {
       continue;
     }
     if (isOffsetInsideQuotedYamlScalar(content, fullMatchOffset)) {
+      continue;
+    }
+    if (!isBareTokenWholeYamlValue(content, fullMatchOffset, m[0].length)) {
       continue;
     }
     const line = offsetToLineNumber(content, fullMatchOffset);
@@ -1991,6 +2016,9 @@ export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
     if (isCommentLine(m.index) || seen.has(m.index)) {
       continue;
     }
+    if (!isBareTokenWholeYamlValue(content, m.index, m[0].length)) {
+      continue;
+    }
     seen.add(m.index);
     results.push({ name: m[1], offset: m.index, length: m[0].length, line: offsetToLineNumber(content, m.index) });
   }
@@ -2004,6 +2032,9 @@ export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
       continue;
     }
     if (isOffsetInsideQuotedYamlScalar(content, m.index)) {
+      continue;
+    }
+    if (!isBareTokenWholeYamlValue(content, m.index, m[0].length)) {
       continue;
     }
     seen.add(m.index);

@@ -253,14 +253,14 @@ describe('variableReplacer', () => {
     expect(out).toEqual({ a: 'mehrdad', b: ['X', 'mehrdad', 1], c: { n: 35 } });
   });
 
-  it('replaceInputRefsWithNone replaces plain tokens only after colon-space', () => {
+  it('replaceInputRefsWithNone replaces a bare token only when it is the whole value', () => {
     const inputs = { 'i:key': 'VAL', 'e:HOST': 'api.local' } as any;
+    expect(replaceInputRefsWithNone('i:key', inputs)).toBe('VAL');
+    expect(replaceInputRefsWithNone('e:HOST', inputs)).toBe('api.local');
     expect(replaceInputRefsWithNone('url: i:key host: e:HOST', inputs))
-        .toBe('url: VAL host: api.local');
-    // Should not touch plain tokens that are not values after colon-space,
-    // but allow replacing when prefixed with a colon and space in mid-string.
+        .toBe('url: i:key host: e:HOST');
     expect(replaceInputRefsWithNone('hi:i:key there e:HOST', inputs))
-		.toBe('hi:i:key there e:HOST');
+        .toBe('hi:i:key there e:HOST');
   });
 
   it('replaceAllRefs merges defaults, inputs and envs with prefixes', () => {
@@ -290,8 +290,8 @@ describe('variableReplacer', () => {
     } as any;
     const out = replaceAllRefs(iface, defaults, inputs, envs);
     expect(out.url).toBe('http://i:host/users');
-    expect(out.meta).toMatch(/User .*@.* at api\.local/);
-    expect(out.meta).not.toMatch(/r:email|e:HOST/);
+    // Bare `r:email` mixed into other text stays literal. `<<e:HOST>>` resolves.
+    expect(out.meta).toBe('User r:email at api.local');
     expect(out.id).toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/);
   });
 
@@ -309,16 +309,23 @@ describe('variableReplacer', () => {
     expect(out.body.username).toBe('actualValue');
   });
 
-  it('resolves chained i: -> e: references with plain token syntax', () => {
-    // Same scenario but using plain i:xxx syntax (after colon-space)
+  it('resolves chained i: -> e: when the plain token is the whole value', () => {
     const defaults = { xxx: 'e:test' } as any;
     const inputs = {} as any;
     const envs = { test: 'envValue' } as any;
     const iface = {
-      body: 'username: i:xxx'
+      body: { username: 'i:xxx' }
     } as any;
     const out = replaceAllRefs(iface, defaults, inputs, envs);
-    expect(out.body).toBe('username: envValue');
+    expect(out.body.username).toBe('envValue');
+  });
+
+  it('does not resolve a bare token mixed into other text', () => {
+    const defaults = { xxx: 'e:test' } as any;
+    const envs = { test: 'envValue' } as any;
+    const iface = { body: 'username: i:xxx' } as any;
+    const out = replaceAllRefs(iface, defaults, {}, envs);
+    expect(out.body).toBe('username: i:xxx');
   });
 
   it('supports string index and slice access on input values', () => {
@@ -326,10 +333,16 @@ describe('variableReplacer', () => {
     const iface = {
       first: '<<i:message[0]>>',
       short: '<<i:message[0:2]>>',
-      body: 'value: i:message[1:4]'
+      body: 'value: i:message[1:4]',
+      slice: 'i:message[1:4]'
     } as any;
     const out = replaceAllRefs(iface, defaults, {}, {} as any);
-    expect(out).toEqual({ first: 'h', short: 'he', body: 'value: ell' });
+    expect(out).toEqual({
+      first: 'h',
+      short: 'he',
+      body: 'value: i:message[1:4]',
+      slice: 'ell',
+    });
   });
 
   it('supports open-ended slice accessors on both ends', () => {
@@ -337,10 +350,10 @@ describe('variableReplacer', () => {
     const iface = {
       tail: '<<i:message[1:]>>',
       head: '<<i:message[:4]>>',
-      plain: 'value: i:message[:2]'
+      plain: 'i:message[:2]'
     } as any;
     const out = replaceAllRefs(iface, defaults, {}, {} as any);
-    expect(out).toEqual({ tail: 'ello', head: 'hell', plain: 'value: he' });
+    expect(out).toEqual({ tail: 'ello', head: 'hell', plain: 'he' });
   });
 
   it('keeps accessor replacements as runtime expressions for ${input} placeholders', () => {
@@ -374,10 +387,15 @@ describe('variableReplacer', () => {
         '  "dd": <<i:xxx>>,',
         '  "name": "<<e:url>>",',
         '  "obj": <<i:zz>>,',
-        '  "list": <<i:list>>',
+        '  "list": <<i:list>>,',
+        '  "ddStr": "<<i:xxx>>",',
+        '  "objStr": "<<i:zz>>",',
+        '  "listStr": "<<i:list>>",',
+        '  "bare": "i:xxx"',
         '}',
       ].join('\n'),
       whole: '<<i:zz>>',
+      mixed: 'hello i:xxx',
     } as any;
     const out = replaceAllRefs(iface, {
       xxx: 10,
@@ -385,12 +403,17 @@ describe('variableReplacer', () => {
       list: ['ls', 'nl'],
     } as any, {}, {url: 'https://test.mmt.dev'} as any);
     expect(out.whole).toEqual({xx: 'yy'});
+    expect(out.mixed).toBe('hello i:xxx');
     expect(out.body).toBe([
       '{',
       '  "dd": 10,',
       '  "name": "https://test.mmt.dev",',
       '  "obj": {"xx":"yy"},',
-      '  "list": ["ls","nl"]',
+      '  "list": ["ls","nl"],',
+      '  "ddStr": "10",',
+      '  "objStr": "{\\"xx\\":\\"yy\\"}",',
+      '  "listStr": "[\\"ls\\",\\"nl\\"]",',
+      '  "bare": "i:xxx"',
       '}',
     ].join('\n'));
   });
@@ -429,9 +452,9 @@ describe('collectInputRefsFromObject', () => {
     expect(collectInputRefsFromObject(obj)).toEqual(['auth_token']);
   });
 
-  it('finds after-colon-space references', () => {
+  it('does not treat a bare token mixed into other text as an input ref', () => {
     const obj = { body: 'username: i:user' };
-    expect(collectInputRefsFromObject(obj)).toEqual(['user']);
+    expect(collectInputRefsFromObject(obj)).toEqual([]);
   });
 
   it('finds refs in nested objects and arrays', () => {
@@ -455,7 +478,7 @@ describe('collectInputRefsFromObject', () => {
   });
 
   it('collects base input names from accessor forms', () => {
-    const obj = { a: '<<i:name[0:1]>>', b: 'user: i:profile.name' };
+    const obj = { a: '<<i:name[0:1]>>', b: 'i:profile.name' };
     expect(collectInputRefsFromObject(obj).sort()).toEqual(['name', 'profile']);
   });
 

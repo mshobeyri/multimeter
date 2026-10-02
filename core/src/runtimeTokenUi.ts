@@ -53,9 +53,14 @@ export function stringContainsRuntimeToken(value: unknown): boolean {
   while ((match = RUNTIME_TOKEN_IN_STRING_RE.exec(value)) !== null) {
     const prefix = match[1] || match[3];
     const spec = match[2] || match[4];
-    if (prefix && spec && isKnownRuntimeKeyword(prefix, spec)) {
-      return true;
+    if (!prefix || !spec || !isKnownRuntimeKeyword(prefix, spec)) {
+      continue;
     }
+    // Angle form counts anywhere. Bare `r:uuid` counts only as the whole value.
+    if (!match[1] && value.trim() !== match[0]) {
+      continue;
+    }
+    return true;
   }
   return false;
 }

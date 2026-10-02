@@ -108,7 +108,8 @@ describe('peerString / peerRecord YAML↔UI', () => {
 describe('rewriteRuntimeTokensInText', () => {
   it('rewrites r:/c: plain, angle, and embedded tokens', () => {
     expect(rewriteRuntimeTokensInText('r:uuid')).toBe('{{r:uuid}}');
-    expect(rewriteRuntimeTokensInText('Bearer r:uuid')).toBe('Bearer {{r:uuid}}');
+    expect(rewriteRuntimeTokensInText('Bearer r:uuid')).toBe('Bearer r:uuid');
+    expect(rewriteRuntimeTokensInText('Bearer <<r:uuid>>')).toBe('Bearer {{r:uuid}}');
     expect(rewriteRuntimeTokensInText('<<c:date>>')).toBe('{{c:date}}');
     expect(rewriteRuntimeTokensInText('id={{r:uuid}}')).toBe('id={{r:uuid}}');
     expect(rewriteRuntimeTokensInText('{{r:uuid}}')).toBe('{{r:uuid}}');
@@ -129,6 +130,10 @@ describe('displayRuntimeString / displayRuntimeStringRecord', () => {
     expect(displayRuntimeString(
         'Bearer 11111111-1111-1111-1111-111111111111',
         'Bearer r:uuid',
+    )).toBe('Bearer 11111111-1111-1111-1111-111111111111');
+    expect(displayRuntimeString(
+        'Bearer 11111111-1111-1111-1111-111111111111',
+        'Bearer <<r:uuid>>',
     )).toBe('Bearer {{r:uuid}}');
     expect(displayRuntimeStringRecord(
         {a: 'resolved', b: 'keep'},
@@ -183,26 +188,32 @@ describe('wrapTypedTokenAtCursor', () => {
     });
   });
 
-  it('wraps a token in surrounding text with the caret after that character', () => {
+  it('wraps a whole-value token and leaves mixed text literal', () => {
     expect(wrapTypedTokenAtCursor('Bearer i:x', 10)).toEqual({
-      text: 'Bearer {{i:x}}',
-      cursor: 12,
+      text: 'Bearer i:x',
+      cursor: 10,
     });
     expect(wrapTypedTokenAtCursor('i:xy', 3)).toEqual({text: '{{i:xy}}', cursor: 5});
   });
 
-  it('wraps a token inside JSON body text and keeps the caret after that character', () => {
+  it('does not wrap a bare token mixed into JSON text', () => {
     const before = '{\n  "id": "i:x"\n}';
     const cursor = before.indexOf('i:x') + 'i:x'.length;
     expect(wrapTypedTokenAtCursor(before, cursor)).toEqual({
-      text: '{\n  "id": "{{i:x}}"\n}',
-      cursor: cursor + 2,
+      text: before,
+      cursor,
     });
     const uuid = '{\n  "id": "r:uuid"\n}';
     const uuidCursor = uuid.indexOf('r:uuid') + 'r:uuid'.length;
     expect(wrapTypedTokenAtCursor(uuid, uuidCursor)).toEqual({
-      text: '{\n  "id": "{{r:uuid}}"\n}',
-      cursor: uuidCursor + 2,
+      text: uuid,
+      cursor: uuidCursor,
+    });
+    const angled = '{\n  "id": "<<i:x>>"\n}';
+    const angledCursor = angled.indexOf('i:x') + 'i:x'.length;
+    expect(wrapTypedTokenAtCursor(angled, angledCursor)).toEqual({
+      text: angled,
+      cursor: angledCursor,
     });
   });
 

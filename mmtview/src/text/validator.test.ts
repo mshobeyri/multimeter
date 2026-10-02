@@ -141,6 +141,20 @@ describe('token site extraction', () => {
     expect(sites.map((s) => s.name).sort()).toEqual(['also_missing', 'xasd']);
   });
 
+  it('does not treat a bare i: mixed into other text as an input ref', () => {
+    const content = [
+      'type: api',
+      'inputs:',
+      '  asd: x',
+      'note: hello i:missing',
+      'body: |-',
+      '  user: i:also',
+      'plain: i:xasd',
+    ].join('\n');
+    const sites = extractInputRefSites(content);
+    expect(sites.map((s) => s.name)).toEqual(['xasd']);
+  });
+
   it('skips plain e: refs inside YAML quotes but keeps <<e:>>', () => {
     const content = [
       'type: api',

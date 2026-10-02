@@ -44,6 +44,19 @@ describe('tokenHighlightPatterns', () => {
     expect(matches).toEqual([]);
   });
 
+  it('does not highlight a bare token mixed with other text', () => {
+    const text = [
+      'note: hello i:username',
+      'auth: Bearer r:uuid',
+      'quoted: "i:username"',
+      'body: |-',
+      '  user: i:username',
+      'keep: i:username',
+    ].join('\n');
+    const matches = collectTokenHighlightMatches(text);
+    expect(matches).toEqual(['i:username']);
+  });
+
   it('still highlights known tokens and e:/i: forms', () => {
     const text = [
       'id: r:uuid',

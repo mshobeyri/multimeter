@@ -71,17 +71,59 @@ export const INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE = new RegExp(
   'g'
 );
 
-/** Plain tokens after YAML value colon-space, including `e:{NAME}`. */
+/**
+ * Bare tokens highlight only as a whole YAML value:
+ * `key: i:name` or `- r:uuid`, through the end of the line.
+ */
+const WHOLE_VALUE_PREFIX =
+  `(?:^|\\n)[ \\t]*(?:-[ \\t]+|[A-Za-z_][\\w.-]*[ \\t]*:[ \\t]+)`;
+const WHOLE_VALUE_SUFFIX = `(?=[ \\t]*(?:#.*)?(?:\\n|$))`;
+
+/** Plain tokens that are the entire YAML value, including `e:{NAME}`. */
 export const PLAIN_TOKEN_HIGHLIGHT_RE = new RegExp(
-  `:\\s(${DYNAMIC_KEY_HIGHLIGHT_RE}|${ENV_BRACE_TOKEN})`,
+  `${WHOLE_VALUE_PREFIX}(${DYNAMIC_KEY_HIGHLIGHT_RE}|${ENV_BRACE_TOKEN})${WHOLE_VALUE_SUFFIX}`,
   'g'
 );
 
-/** `e:{NAME}` env brace form anywhere in the document. */
+/** `e:{NAME}` only when it is the entire YAML value. */
 export const ENV_BRACE_TOKEN_HIGHLIGHT_RE = new RegExp(
-  `(?<![A-Za-z0-9])(${ENV_BRACE_TOKEN})`,
+  `${WHOLE_VALUE_PREFIX}(${ENV_BRACE_TOKEN})${WHOLE_VALUE_SUFFIX}`,
   'g'
 );
+
+/**
+ * True when `offset` sits in a YAML block scalar (`|` / `>`).
+ * Lines inside the block are one string, so a bare `i:name` there is not
+ * its own value.
+ */
+export function isInsideYamlBlockScalar(content: string, offset: number): boolean {
+  const text = String(content ?? '');
+  const lines = text.split('\n');
+  let pos = 0;
+  let blockIndent = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const next = pos + line.length + (i < lines.length - 1 ? 1 : 0);
+    const indent = line.match(/^[ \t]*/)?.[0].length ?? 0;
+    if (offset < next || (i === lines.length - 1 && offset <= text.length)) {
+      if (blockIndent < 0) {
+        return false;
+      }
+      if (line.trim() === '') {
+        return true;
+      }
+      return indent > blockIndent;
+    }
+    if (blockIndent >= 0 && line.trim() !== '' && indent <= blockIndent) {
+      blockIndent = -1;
+    }
+    if (blockIndent < 0 && /^[ \t]*[^ \t#][^:]*:\s*[|>][+-]?\d*\s*(?:#.*)?$/.test(line)) {
+      blockIndent = indent;
+    }
+    pos = next;
+  }
+  return false;
+}
 
 /** `o:name` keys used as YAML keys under `set`, etc. */
 export const OUTPUT_KEY_TOKEN_HIGHLIGHT_RE = new RegExp(
@@ -104,9 +146,16 @@ export function collectTokenHighlightMatches(text: string): string[] {
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(text)) !== null) {
       const token = match[1];
-      if (token && isHighlightableToken(token)) {
-        found.push(token);
+      if (!token || !isHighlightableToken(token)) {
+        continue;
       }
+      if (pattern === PLAIN_TOKEN_HIGHLIGHT_RE || pattern === ENV_BRACE_TOKEN_HIGHLIGHT_RE) {
+        const tokenOffset = match.index + match[0].indexOf(token);
+        if (isInsideYamlBlockScalar(text, tokenOffset)) {
+          continue;
+        }
+      }
+      found.push(token);
     }
   }
 

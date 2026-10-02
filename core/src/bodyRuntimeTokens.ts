@@ -364,6 +364,10 @@ export function rewriteRuntimeTokensInText(text: string): string {
     if (!stringContainsRuntimeToken(plain)) {
       return match;
     }
+    // Bare r:/c: is a token only when it is the entire value.
+    if (out.trim() !== plain) {
+      return match;
+    }
     // Do not rematch `r:…` / `c:…` already inside `{{r:…}}` / `{{c:…}}`.
     if (offset >= 2 && out.slice(offset - 2, offset) === '{{') {
       return match;
@@ -386,6 +390,10 @@ export function rewriteAllTokensToDisplayText(text: string): string {
     return toDisplayRuntimeToken(plain);
   });
   out = out.replace(PLAIN_IE_GLOBAL_RE, (match, plain: string, offset: number) => {
+    // Bare i:/e: is a token only when it is the entire value.
+    if (out.trim() !== plain) {
+      return match;
+    }
     // Do not rematch `i:…` / `e:…` already inside `{{i:…}}` / `{{e:…}}`.
     if (offset >= 2 && out.slice(offset - 2, offset) === '{{') {
       return match;
@@ -1007,16 +1015,20 @@ export function sourceToDisplayTokenTemplate(source: unknown): string {
     }
     return rewriteAllTokensToDisplayText(source);
   }
-  try {
-    return rewriteAllTokensToDisplayText(JSON.stringify(source));
-  } catch {
-    return rewriteAllTokensToDisplayText(String(source));
+  if (typeof source === 'object') {
+    try {
+      return JSON.stringify(rewriteAllLeavesToDisplayText(source));
+    } catch {
+      return rewriteAllTokensToDisplayText(String(source));
+    }
   }
+  return rewriteAllTokensToDisplayText(String(source));
 }
 
 /**
- * While typing, wrap the bare `i:` / `e:` / `r:` / `c:` token under the caret.
- * `i:x` becomes `{{i:x}}` and the caret stays just after `x` (before `}}`).
+ * While typing, wrap a bare `i:` / `e:` / `r:` / `c:` token when it is the
+ * entire value. `i:x` becomes `{{i:x}}` and the caret stays just after `x`.
+ * Mixed text (`Bearer i:x`, `"i:x"`) stays literal — embed those with `<<…>>`.
  * Tokens already inside `{{…}}` or `<<…>>` are left alone.
  */
 export function wrapTypedTokenAtCursor(
@@ -1037,6 +1049,10 @@ export function wrapTypedTokenAtCursor(
     const afterColon = start + match[1].length + 1;
     // Need at least one character after the colon, and the caret in that name.
     if (caret <= afterColon || caret > end) {
+      continue;
+    }
+    // Only the whole value is a bare token.
+    if (source.trim() !== match[0]) {
       continue;
     }
     const wrapped =
@@ -1121,10 +1137,6 @@ export function stringContainsFieldToken(value: unknown): boolean {
   }
   const angledIe = new RegExp(ANGLE_IE_GLOBAL_RE.source, 'g');
   if (angledIe.test(value)) {
-    return true;
-  }
-  const plainIe = new RegExp(PLAIN_IE_GLOBAL_RE.source, 'g');
-  if (plainIe.test(value)) {
     return true;
   }
   const displayRe = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
