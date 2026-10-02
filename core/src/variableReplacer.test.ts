@@ -367,6 +367,34 @@ describe('variableReplacer', () => {
     expect(out).toEqual({ first: 'a', prefix: 'Bearer abc', userName: 'mehrdad' });
   });
 
+  it('embeds object and list tokens as JSON inside a body string', () => {
+    const iface = {
+      body: [
+        '{',
+        '  "dd": <<i:xxx>>,',
+        '  "name": "<<e:url>>",',
+        '  "obj": <<i:zz>>,',
+        '  "list": <<i:list>>',
+        '}',
+      ].join('\n'),
+      whole: '<<i:zz>>',
+    } as any;
+    const out = replaceAllRefs(iface, {
+      xxx: 10,
+      zz: {xx: 'yy'},
+      list: ['ls', 'nl'],
+    } as any, {}, {url: 'https://test.mmt.dev'} as any);
+    expect(out.whole).toEqual({xx: 'yy'});
+    expect(out.body).toBe([
+      '{',
+      '  "dd": 10,',
+      '  "name": "https://test.mmt.dev",',
+      '  "obj": {"xx":"yy"},',
+      '  "list": ["ls","nl"]',
+      '}',
+    ].join('\n'));
+  });
+
   it('resolves chained i: -> e: in nested objects', () => {
     const defaults = { user: 'e:USER', pass: 'e:PASS' } as any;
     const inputs = {} as any;

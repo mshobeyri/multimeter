@@ -388,7 +388,7 @@ export const resolveEnvTokenValues =
             s, 'e',
             (name, accessor, match) => {
               const value = applyValueAccessor(envParams[name], accessor);
-              return value !== undefined ? String(value) : match;
+              return value !== undefined ? embedResolvedTokenText(value) : match;
             },
             {includeSingleAngles: true, includeBraceForm: true});
 
@@ -515,21 +515,21 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
         val, 'r',
         (name, accessor, match) => {
           const resolved = resolveDynamicTokenValue('r', name, accessor, {}, envs);
-          return resolved !== undefined ? String(resolved) : match;
+          return resolved !== undefined ? embedResolvedTokenText(resolved) : match;
         },
         {includeSingleAngles: false, includeBraceForm: false});
     out = replaceTokenForms(
         out, 'c',
         (name, accessor, match) => {
           const resolved = resolveDynamicTokenValue('c', name, accessor, {}, envs);
-          return resolved !== undefined ? String(resolved) : match;
+          return resolved !== undefined ? embedResolvedTokenText(resolved) : match;
         },
         {includeSingleAngles: false, includeBraceForm: false});
     out = replaceTokenForms(
         out, 'e',
         (name, accessor, match) => {
           const resolved = resolveDynamicTokenValue('e', name, accessor, {}, envs);
-          return resolved !== undefined ? String(resolved) : match;
+          return resolved !== undefined ? embedResolvedTokenText(resolved) : match;
         },
         {includeSingleAngles: true, includeBraceForm: true});
     return out;
@@ -542,6 +542,22 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
         safeList(Object.entries(val)).map(([k, v]) => [k, resolveEmbeddedTokens(v, envs)]));
   }
   return val;
+}
+
+/**
+ * Drop a resolved token into surrounding text.
+ * Strings, numbers, and bools stay as their plain text. Objects and lists
+ * become JSON so a body like `"obj": <<i:zz>>` stays valid.
+ */
+function embedResolvedTokenText(value: unknown): string {
+  if (value !== null && typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
 }
 
 function replaceRefs(
@@ -583,7 +599,7 @@ function replaceRefs(
         if (found === undefined) {
           return prefix + key;
         }
-        return prefix + String(found);
+        return prefix + embedResolvedTokenText(found);
       });
     }
 
@@ -596,7 +612,7 @@ function replaceRefs(
       if (found === undefined) {
         return match;
       }
-      return String(found);
+      return embedResolvedTokenText(found);
     });
   }
 
