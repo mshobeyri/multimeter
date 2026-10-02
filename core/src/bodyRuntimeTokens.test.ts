@@ -191,6 +191,21 @@ describe('wrapTypedTokenAtCursor', () => {
     expect(wrapTypedTokenAtCursor('i:xy', 3)).toEqual({text: '{{i:xy}}', cursor: 5});
   });
 
+  it('wraps a token inside JSON body text and keeps the caret after that character', () => {
+    const before = '{\n  "id": "i:x"\n}';
+    const cursor = before.indexOf('i:x') + 'i:x'.length;
+    expect(wrapTypedTokenAtCursor(before, cursor)).toEqual({
+      text: '{\n  "id": "{{i:x}}"\n}',
+      cursor: cursor + 2,
+    });
+    const uuid = '{\n  "id": "r:uuid"\n}';
+    const uuidCursor = uuid.indexOf('r:uuid') + 'r:uuid'.length;
+    expect(wrapTypedTokenAtCursor(uuid, uuidCursor)).toEqual({
+      text: '{\n  "id": "{{r:uuid}}"\n}',
+      cursor: uuidCursor + 2,
+    });
+  });
+
   it('does not wrap a prefix alone or a token that is already braced', () => {
     expect(wrapTypedTokenAtCursor('i:', 2)).toEqual({text: 'i:', cursor: 2});
     expect(wrapTypedTokenAtCursor('{{i:x}}', 5)).toEqual({text: '{{i:x}}', cursor: 5});

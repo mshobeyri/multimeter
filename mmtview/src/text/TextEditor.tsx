@@ -17,6 +17,11 @@ interface TextEditorProps {
   onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
   onToggleRunButton?: () => void;
   onPasteTextTransform?: (text: string) => string | null | undefined;
+  /**
+   * Rewrite the buffer after a keystroke. Used to wrap `i:x` as `{{i:x}}`
+   * and return the caret offset in the rewritten text.
+   */
+  rewriteTypedValue?: (text: string, cursor: number) => { text: string; cursor: number };
   showGlyphMargin?: boolean;
   readOnly?: boolean;
   /** Monaco built-in context menu. Default true. */
@@ -222,6 +227,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onInspectPosition,
   onToggleRunButton,
   onPasteTextTransform,
+  rewriteTypedValue,
   showGlyphMargin = false,
   readOnly = false,
   enableContextMenu = true,
@@ -251,6 +257,13 @@ const TextEditor: React.FC<TextEditorProps> = ({
   useEffect(() => {
     pasteTextTransformRef.current = onPasteTextTransform;
   }, [onPasteTextTransform]);
+
+  const rewriteTypedValueRef = useRef(rewriteTypedValue);
+  useEffect(() => {
+    rewriteTypedValueRef.current = rewriteTypedValue;
+  }, [rewriteTypedValue]);
+  /** Caret offset in the rewritten buffer (`{{i:x|}}`, before `}}`). */
+  const pendingTypedCaretRef = useRef<number | null>(null);
 
   // Keep Monaco React theme prop in sync with flip-flop theme names from Theme.tsx.
   const [monacoTheme, setMonacoTheme] = useState(getMonacoThemeName);
@@ -435,9 +448,23 @@ const TextEditor: React.FC<TextEditorProps> = ({
     if (!model) {
       return;
     }
+    const placePendingCaret = () => {
+      const pending = pendingTypedCaretRef.current;
+      const liveModel = editor.getModel?.();
+      if (pending == null || !liveModel || editor.getValue() !== next) {
+        return;
+      }
+      pendingTypedCaretRef.current = null;
+      if (typeof liveModel.getPositionAt !== "function") {
+        return;
+      }
+      const caret = liveModel.getPositionAt(Math.max(0, Math.min(pending, next.length)));
+      editor.setPosition?.(caret);
+    };
     const current = editor.getValue();
     const plan = planExternalMonacoApply(current, next);
     if (plan === "noop") {
+      placePendingCaret();
       return;
     }
     const scrollTop = editor.getScrollTop?.() ?? 0;
@@ -452,6 +479,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
       }
       editor.setScrollTop?.(scrollTop);
       editor.setScrollLeft?.(scrollLeft);
+      placePendingCaret();
     } finally {
       // Monaco may notify listeners asynchronously; keep suppress flags until
       // after the current turn so onChange cannot echo the sync as a user edit.
@@ -626,7 +654,54 @@ const TextEditor: React.FC<TextEditorProps> = ({
         if (applyingExternalContentRef.current) {
           return;
         }
-        setContent(value ?? "");
+        const raw = value ?? "";
+        const rewriter = rewriteTypedValueRef.current;
+        const editor = editorRefToUse.current;
+        const model = editor?.getModel?.();
+        const pos = editor?.getPosition?.();
+        if (
+          rewriter &&
+          model &&
+          pos &&
+          typeof model.getOffsetAt === "function" &&
+          typeof model.getPositionAt === "function"
+        ) {
+          const wrapped = rewriter(raw, model.getOffsetAt(pos));
+          if (wrapped.text !== raw) {
+            pendingTypedCaretRef.current = wrapped.cursor;
+            const span = computeMinimalEditSpan(raw, wrapped.text);
+            applyingExternalContentRef.current = true;
+            applyingPasteTransformRef.current = true;
+            try {
+              if (span && typeof editor.executeEdits === "function") {
+                const start = model.getPositionAt(span.start);
+                const end = model.getPositionAt(span.end);
+                editor.executeEdits("mmt-token-wrap", [{
+                  range: {
+                    startLineNumber: start.lineNumber,
+                    startColumn: start.column,
+                    endLineNumber: end.lineNumber,
+                    endColumn: end.column,
+                  },
+                  text: span.text,
+                  forceMoveMarkers: false,
+                }]);
+              }
+              const caret = model.getPositionAt(
+                Math.max(0, Math.min(wrapped.cursor, wrapped.text.length)),
+              );
+              editor.setPosition?.(caret);
+            } finally {
+              queueMicrotask(() => {
+                applyingExternalContentRef.current = false;
+                applyingPasteTransformRef.current = false;
+              });
+            }
+            setContent(wrapped.text);
+            return;
+          }
+        }
+        setContent(raw);
       }}
       options={{
         fontSize,

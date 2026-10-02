@@ -10,6 +10,7 @@ import {
   type RuntimeTokenValueContext,
 } from "mmt-core/bodyRuntimeTokens";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
+import { wrapTypedTokenAtCursor } from "mmt-core/apiBodyEdit";
 import { normalizeNewlines } from "mmt-core/textLines";
 import { shouldReplaceLocalEditorValue } from "../text/editorContentSync";
 import TextEditor, { MMT_JSON_LANGUAGE_ID } from "../text/TextEditor";
@@ -537,6 +538,7 @@ const BodyView: React.FC<BodyViewProps> = ({
                 editorRef={editorRef}
                 setEditorReady={setEditorReady}
                 readOnly={disabled}
+                rewriteTypedValue={disabled || onStartEdit ? undefined : wrapTypedTokenAtCursor}
             />
             {tokenHoverTip ? createPortal(
                 <div
