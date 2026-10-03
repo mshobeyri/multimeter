@@ -13,8 +13,6 @@ import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
   displayRequestBody,
   packBodyAsYamlEncoded,
-  peerRecordToDisplay,
-  peerRecordToYaml,
   peerStringToDisplay,
   peerStringToYaml,
   tokensTextToYamlBody,
@@ -265,18 +263,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     () => queryForUrlBar(api.query as Record<string, unknown> | undefined),
     [api.query],
   );
-  const peerGraphqlVariables = useMemo(
-    () => peerRecordToDisplay(
-      api.graphql?.variables as Record<string, unknown> | undefined,
-    ),
-    [api.graphql?.variables],
-  );
-  const peerGrpcMessage = useMemo(
-    () => peerRecordToDisplay(
-      api.grpc?.message as Record<string, unknown> | undefined,
-    ),
-    [api.grpc?.message],
-  );
   const peerGraphqlOperation = useMemo(
     () => peerStringToDisplay(api.graphql?.operation),
     [api.graphql?.operation],
@@ -375,8 +361,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     onUpdateApi?.({ url: peerStringToYaml(newUrl) });
   }, [onUpdateApi]);
 
-  // Finalize string maps for YAML (peer + omit empty). KSV/URL bar may already
-  // peer when canContainToken; peerRecordToYaml is idempotent.
+  // Query, cookies, and headers keep YAML types. The URL bar is a string view
+  // of that same query.
   const onQueryChange = useCallback((query: JSONRecord) => {
     onUpdateApi?.({ query: query as APIData["query"] });
   }, [onUpdateApi]);
@@ -1323,15 +1309,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             </div>
             <KSVEditor
               label="Variables"
-              value={peerGraphqlVariables}
+              value={api.graphql?.variables}
               canContainToken
+              typedValues
+              liveAngleTokens
               valueContext={bodyValueContext}
               onChange={variables => {
                 onUpdateApi?.({
                   graphql: {
                     operation: api.graphql?.operation ?? "",
                     operationName: api.graphql?.operationName,
-                    variables: peerRecordToYaml(variables),
+                    variables,
                   },
                 });
               }}
@@ -1385,8 +1373,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             </div>
             <KSVEditor
               label="Message"
-              value={peerGrpcMessage}
+              value={api.grpc?.message as JSONRecord | undefined}
               canContainToken
+              typedValues
+              liveAngleTokens
               valueContext={bodyValueContext}
               onChange={msg => {
                 onUpdateApi?.({
@@ -1394,7 +1384,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     proto: api.grpc?.proto,
                     service: api.grpc?.service ?? "",
                     method: api.grpc?.method ?? "",
-                    message: peerRecordToYaml(msg),
+                    message: msg,
                     stream: api.grpc?.stream,
                   },
                 });

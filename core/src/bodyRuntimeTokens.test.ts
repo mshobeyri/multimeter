@@ -1066,6 +1066,21 @@ describe('xml scalar yaml policy', () => {
     expect(wire).toContain('<ok>true</ok>');
     expect(wire).not.toContain('"112"');
   });
+
+  it('parses sibling elements back into the object', () => {
+    const source = {n: 100, name: 'ada', note: '__MMT_OMIT__'};
+    const ui = bodyEditTokenTemplate(source, 'xml');
+    expect(ui).toContain('<n>100</n>');
+    expect(ui).toContain('<name>ada</name>');
+    expect(ui).not.toContain('<note');
+    expect(bodyForYamlSave(source, ui, 'xml')).toEqual({n: 100, name: 'ada'});
+
+    const expanded = bodyEditTokenTemplate(source, 'xmle');
+    expect(bodyForYamlSave(source, expanded, 'xmle')).toEqual({
+      n: 100,
+      name: 'ada',
+    });
+  });
 });
 
 describe('formatBody without tokenSource still resolves normally', () => {
@@ -1118,6 +1133,23 @@ describe('json editor tokens', () => {
     expect(again).toMatch(/\bn: 100\b/);
     expect(again).toMatch(/\bok: true\b/);
   });
+
+  it('shows omit as the keyword and keeps quoted omit as text', () => {
+    const source = {note: '__MMT_OMIT__', keep: 'omit', n: 100};
+    const ui = bodyEditTokenTemplate(source, 'json');
+    expect(ui).toContain('"note": omit');
+    expect(ui).toContain('"keep": "omit"');
+    expect(ui).not.toContain('__MMT_OMIT__');
+    const saved = bodyForYamlSave(source, ui, 'json') as Record<string, unknown>;
+    expect(saved.note).toBe('__MMT_OMIT__');
+    expect(saved.keep).toBe('omit');
+    expect(saved.n).toBe(100);
+
+    const parts = bodyEditTokenTemplate(source, 'multipart');
+    expect(parts).toContain('"note": omit');
+    expect(parts).not.toContain('__MMT_OMIT__');
+    expect(bodyForYamlSave(source, parts, 'multipart')).toEqual(source);
+  });
 });
 
 describe('urlencoded scalar yaml policy', () => {
@@ -1158,5 +1190,52 @@ describe('urlencoded scalar yaml policy', () => {
   it('keeps the wire form empty for null', () => {
     expect(formatBody('urlencoded', {count: 3, enabled: true, empty: null}, false))
         .toBe('count=3&enabled=true&empty=');
+  });
+
+  it('keeps a nested value as one field without internal markers', () => {
+    const source = {
+      nested: {
+        a: 1,
+        note: '__MMT_OMIT__',
+        id: wrapLiteralToken('<<c:city>>'),
+      },
+      list: [1, 2],
+    };
+    const shown = displayRequestBody(source, 'urlencoded');
+    expect(shown).not.toContain('__MMT_');
+    expect(shown).toContain('omit');
+    const saved = bodyForYamlSave(source, shown, 'urlencoded') as Record<string, unknown>;
+    expect(typeof saved.nested).toBe('string');
+    expect(saved.nested).not.toContain('__MMT_');
+    expect(String(saved.nested)).toContain('omit');
+    expect(typeof saved.list).toBe('string');
+  });
+});
+
+describe('text html and none structured bodies', () => {
+  it('edits an object as JSON and saves the object back', () => {
+    const source = {
+      name: 'i:username',
+      note: '__MMT_OMIT__',
+      keep: 'omit',
+      n: 100,
+    };
+    for (const format of ['text', 'html', 'none'] as const) {
+      const ui = bodyEditTokenTemplate(source, format);
+      expect(ui).toContain('"note": omit');
+      expect(ui).toContain('"keep": "omit"');
+      expect(ui).not.toContain('__MMT_OMIT__');
+      expect(ui).not.toContain('<<i:username>>');
+      const saved = bodyForYamlSave(source, ui, format) as Record<string, unknown>;
+      expect(saved.name).toBe('i:username');
+      expect(saved.note).toBe('__MMT_OMIT__');
+      expect(saved.keep).toBe('omit');
+      expect(saved.n).toBe(100);
+    }
+  });
+
+  it('keeps raw text as text', () => {
+    expect(bodyForYamlSave('hello {{i:username}}', 'hello {{i:username}}', 'text'))
+        .toBe('hello <<i:username>>');
   });
 });

@@ -10,6 +10,7 @@ import {
   unwrapQuotedTokenText,
   wrapLiteralToken,
 } from './literalToken';
+import {isOmitSentinel, OMIT_SENTINEL} from './omitKeyword';
 import {randomTokenValueType} from './Random';
 import {
   ACCESSOR_PATH_RE,
@@ -724,6 +725,52 @@ function jsonFormForRuntimePlain(
   return display;
 }
 
+function isIdentChar(ch: string | undefined): boolean {
+  return !!ch && /[A-Za-z0-9_]/.test(ch);
+}
+
+/** Unquoted JSON `omit` is the keyword, same as YAML. Quoted `"omit"` stays text. */
+function mapUnquotedOmitKeywords(
+    text: string,
+    onOmit: () => string,
+): string {
+  let out = '';
+  let i = 0;
+  let inString = false;
+  let escape = false;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inString) {
+      out += ch;
+      if (escape) {
+        escape = false;
+      } else if (ch === '\\') {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      i += 1;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      i += 1;
+      continue;
+    }
+    if (text.startsWith('omit', i) &&
+        !isIdentChar(i > 0 ? text[i - 1] : undefined) &&
+        !isIdentChar(text[i + 4])) {
+      out += onOmit();
+      i += 4;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
 function writeJsonWithRuntimeTokens(
     value: unknown,
     space: number,
@@ -732,6 +779,9 @@ function writeJsonWithRuntimeTokens(
     resolvedHint?: unknown,
     forceBarePlains?: ReadonlySet<string>,
 ): string {
+  if (isOmitSentinel(value)) {
+    return 'omit';
+  }
   if (value === null) {
     return 'null';
   }
@@ -928,7 +978,12 @@ function reviveRuntimeTokenPlaceholders(
  */
 export function parseJsonWithRuntimeTokens(text: string): unknown {
   const map: string[] = [];
-  const replaced = mapUnquotedDisplayRuntimeTokens(text, (plain) => {
+  const withOmit = mapUnquotedOmitKeywords(text, () => {
+    const id = map.length;
+    map.push(OMIT_SENTINEL);
+    return `"${PLACEHOLDER_PREFIX}${id}__"`;
+  });
+  const replaced = mapUnquotedDisplayRuntimeTokens(withOmit, (plain) => {
     const id = map.length;
     map.push(plain);
     return `"${PLACEHOLDER_PREFIX}${id}__"`;

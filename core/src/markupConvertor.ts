@@ -276,7 +276,9 @@ function formValueToString(value: unknown): string {
   if (typeof value === 'number' || typeof value === 'boolean') {
     return String(value);
   }
-  return JSON.stringify(value);
+  // One form field stays one string. Spell nested JSON the way the editor
+  // spells leaves (`omit`, quoted token text) so internal markers stay out.
+  return stringifyJsonWithRuntimeTokens(value, false);
 }
 
 /**
@@ -709,6 +711,27 @@ function formatBody(
 }
 
 /**
+ * `xml-js` needs one root. A flat body emits sibling elements
+ * (`<n>100</n><name>ada</name>`). Wrap those, then unwrap the synthetic root
+ * so the pack is the original object.
+ */
+function parseXmlEditorObject(text: string): unknown {
+  const trimmed = text.trim();
+  try {
+    const parsed = flattenXmlObj(xml2js(
+        `<mmt-root>${trimmed}</mmt-root>`,
+        {compact: true},
+    ));
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return (parsed as Record<string, unknown>)['mmt-root'];
+    }
+  } catch {
+    // A declaration or other single document can fail inside the wrapper.
+  }
+  return flattenXmlObj(xml2js(trimmed, {compact: true}));
+}
+
+/**
  * Collapse `xml-js` compact nodes for YAML round-trips:
  * text-only elements become their text, repeated elements stay arrays, and
  * attributes are preserved so converting back to XML keeps them.
@@ -790,16 +813,21 @@ function packUiBodyStrictForYaml(format: Format, body: string): unknown|null {
       const marked = format === 'xml' ? markXmlPairEmpty(text) : text;
       return packXmlValue(parseXmlTextWithRuntimeTokens(
           marked,
-          (xml) => flattenXmlObj(xml2js(xml, {compact: true})),
+          parseXmlEditorObject,
       ));
+    }
+    if (format === 'text' || format === 'html' || format === 'none') {
+      const trimmed = text.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        return parseJsonWithRuntimeTokens(text);
+      }
+      return null;
     }
     if (format === 'urlencoded') {
       return reviveEditorBodyValue(
           coerceUrlEncodedRecord(parseUrlEncodedBody(text)));
     }
-    if (format === 'binary' || format === 'text' || format === 'html' ||
-        format === 'none') {
-      // These formats are already plain text in YAML — not encoded objects.
+    if (format === 'binary') {
       return null;
     }
     return YAML.parse(text);
@@ -866,7 +894,7 @@ function beautify(
       const marked = format === 'xml' ? markXmlPairEmpty(value) : value;
       const parsed = parseXmlTextWithRuntimeTokens(
           marked,
-          (xml) => flattenXmlObj(xml2js(xml, {compact: true})),
+          parseXmlEditorObject,
       );
       return formatXmlEditorBody(packXmlValue(parsed), format === 'xmle');
     }
