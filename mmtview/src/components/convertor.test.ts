@@ -6,6 +6,7 @@ import {
   yamlValueToInputBoxWithTokens,
   inputBoxToYamlValueWithTokens,
   inputBoxToYamlString,
+  stringFieldToYamlWithLiveTokens,
   withOptionalPeer,
   peerFieldToValue,
 } from './convertor';
@@ -90,6 +91,47 @@ describe('shared UI → YAML write pipeline', () => {
     expect(inputBoxToYamlValueWithTokens('"i:username"', true, true))
         .toBe(`${LITERAL_TOKEN_PREFIX}i:username`);
     expect(yamlValueToInputBoxWithTokens(literal, true)).toBe(quotedAngle);
+  });
+
+  it('spells a nested object with omit and live tokens', () => {
+    const source = {
+      a: 1,
+      note: OMIT_SENTINEL,
+      keep: 'omit',
+      id: `${LITERAL_TOKEN_PREFIX}<<c:city>>`,
+      live: 'c:city',
+      qn: '112',
+      str: `${LITERAL_TOKEN_PREFIX}i:username`,
+      list: [1, 2],
+    };
+    const ui = yamlValueToInputBoxWithTokens(source, true, true);
+    expect(ui).not.toContain('__MMT_');
+    expect(ui).toContain('"note":omit');
+    expect(ui).toContain('"keep":"omit"');
+    expect(ui).toContain('"qn":"112"');
+    expect(ui).toContain('"str":"i:username"');
+    expect(ui).toContain('"list":[1,2]');
+    const saved = inputBoxToYamlValueWithTokens(ui, true, true) as Record<string, unknown>;
+    expect(saved.a).toBe(1);
+    expect(saved.note).toBe(OMIT_SENTINEL);
+    expect(saved.keep).toBe('omit');
+    expect(saved.id).toBe('c:city');
+    expect(saved.live).toBe('c:city');
+    expect(saved.qn).toBe('112');
+    expect(saved.str).toBe(`${LITERAL_TOKEN_PREFIX}i:username`);
+    expect(saved.list).toEqual([1, 2]);
+  });
+
+  it('keeps auth text typed as text and live angle tokens bare', () => {
+    expect(stringFieldToYamlWithLiveTokens('{{c:city}}')).toBe('c:city');
+    expect(stringFieldToYamlWithLiveTokens('"<<c:city>>"')).toBe('c:city');
+    expect(stringFieldToYamlWithLiveTokens('100')).toBe('100');
+    expect(stringFieldToYamlWithLiveTokens('"112"')).toBe('112');
+    expect(stringFieldToYamlWithLiveTokens('true')).toBe('true');
+    expect(stringFieldToYamlWithLiveTokens('omit')).toBe('omit');
+    expect(stringFieldToYamlWithLiveTokens('"omit"')).toBe('omit');
+    expect(stringFieldToYamlWithLiveTokens('"i:username"'))
+        .toBe(`${LITERAL_TOKEN_PREFIX}i:username`);
   });
 
   it('string write: peer then coerce then stringify', () => {

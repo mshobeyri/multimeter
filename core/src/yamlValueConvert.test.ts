@@ -65,6 +65,9 @@ describe('yamlValueConvert', () => {
     expect(isIncompleteJsonLiteral('hello')).toBe(false);
     expect(isIncompleteJsonLiteral('{{i:username}}')).toBe(false);
     expect(isIncompleteJsonLiteral('{{r:uuid}}')).toBe(false);
+    expect(isIncompleteJsonLiteral('{"note":omit}')).toBe(false);
+    expect(isIncompleteJsonLiteral('{"id":"{{c:city}}"}')).toBe(false);
+    expect(isIncompleteJsonLiteral('{"note":omi')).toBe(true);
   });
 
   it('round-trips objects through the input box as JSON text', () => {

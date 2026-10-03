@@ -1,3 +1,4 @@
+import {parseJsonWithRuntimeTokens} from './bodyRuntimeTokens';
 import {JSONValue} from './CommonData';
 import {isOmitSentinel, OMIT_SENTINEL} from './omitKeyword';
 import {
@@ -77,7 +78,13 @@ export function isIncompleteJsonLiteral(text: string): boolean {
     JSON.parse(t);
     return false;
   } catch {
-    return true;
+    try {
+      // Unquoted `omit` and `{{token}}` are complete editor JSON.
+      parseJsonWithRuntimeTokens(t);
+      return false;
+    } catch {
+      return true;
+    }
   }
 }
 

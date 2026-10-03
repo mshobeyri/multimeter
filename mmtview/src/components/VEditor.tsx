@@ -30,6 +30,8 @@ interface VEditorProps {
   matchStatus?: ReadonlyMap<string, "match" | "mismatch">;
   /** Value fields: resolved/token dual-mode when a value contains tokens. */
   canContainToken?: boolean;
+  /** Whole `<<c:city>>` shows as `{{c:city}}` and saves as `c:city`. */
+  liveAngleTokens?: boolean;
   valueContext?: RuntimeTokenValueContext;
 }
 
@@ -46,6 +48,7 @@ const VEditor: React.FC<VEditorProps> = ({
   copyable = false,
   matchStatus,
   canContainToken = false,
+  liveAngleTokens = false,
   valueContext,
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -61,7 +64,7 @@ const VEditor: React.FC<VEditorProps> = ({
       // Remove the key if value is empty
       delete updated[key];
     } else {
-      updated[key] = inputBoxToYamlValueWithTokens(newVal, canContainToken);
+      updated[key] = inputBoxToYamlValueWithTokens(newVal, canContainToken, liveAngleTokens);
     }
     onChange(updated);
   };
@@ -103,6 +106,7 @@ const VEditor: React.FC<VEditorProps> = ({
           const displayValue = yamlValueToInputBoxWithTokens(
             currentValue,
             canContainToken,
+            liveAngleTokens,
           );
           const hasValue = currentValue !== undefined;
           const typeLabel = yamlValueTypeLabel(currentValue);

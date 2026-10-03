@@ -1,8 +1,10 @@
+import {JSONValue} from './CommonData';
 import {OMIT_SENTINEL, isOmitSentinel} from './omitKeyword';
 
 export interface MultipartPartSpec {
   name: string;
-  value?: string;
+  /** Text part. Numbers, bools, null, and omit stay typed in YAML. */
+  value?: JSONValue;
   file?: string;
   contentType?: string;
   filename?: string;
@@ -86,6 +88,19 @@ export function coerceMultipartPartsInput(body: unknown): unknown {
   }
 }
 
+export function partValueToWire(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (value && typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return String(value ?? '');
+}
+
 export function normalizeMultipartParts(body: unknown): MultipartPartSpec[] {
   const input = coerceMultipartPartsInput(body);
   if (!Array.isArray(input)) {
@@ -112,7 +127,7 @@ export function normalizeMultipartParts(body: unknown): MultipartPartSpec[] {
     }
     const part: MultipartPartSpec = {name: String(name)};
     if (hasValue) {
-      part.value = String(value);
+      part.value = partValueToWire(value);
     }
     if (hasFile) {
       part.file = String(file).trim();
@@ -187,7 +202,7 @@ export async function buildMultipartBodyFromParts(
     }
     resolved.push({
       name: spec.name,
-      content: spec.value == null ? '' : String(spec.value),
+      content: spec.value == null ? '' : partValueToWire(spec.value),
       contentType: spec.contentType || 'text/plain; charset=utf-8',
     });
   }

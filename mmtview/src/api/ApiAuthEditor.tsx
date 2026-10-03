@@ -2,10 +2,12 @@ import React from "react";
 import { APIData } from "mmt-core/APIData";
 import { JSONRecord } from "mmt-core/CommonData";
 import {
-  peerStringToDisplay,
   stringContainsFieldToken,
 } from "mmt-core/apiBodyEdit";
-import { withOptionalPeer } from "../components/convertor";
+import {
+  stringFieldToYamlWithLiveTokens,
+  yamlValueToInputBoxWithTokens,
+} from "../components/convertor";
 import StableTextInput from "../components/StableTextInput";
 import TokenFieldInput from "../components/TokenFieldInput";
 import { useEnvTokenValueContext } from "../components/useEnvTokenValueContext";
@@ -41,7 +43,7 @@ function AuthValueField({
   password?: boolean;
   className?: string;
 }) {
-  const display = peerStringToDisplay(value ?? "");
+  const display = yamlValueToInputBoxWithTokens(value ?? "", true, true);
   const hasTokens = stringContainsFieldToken(display);
   if (password && !hasTokens) {
     return (
@@ -61,8 +63,8 @@ function AuthValueField({
       canContainToken
       valueContext={valueContext}
       placeholder={placeholder}
-      onCommit={v => onCommit(withOptionalPeer(v, true))}
-      onDraftChange={v => onCommit(withOptionalPeer(v, true))}
+      onCommit={v => onCommit(stringFieldToYamlWithLiveTokens(v))}
+      onDraftChange={v => onCommit(stringFieldToYamlWithLiveTokens(v))}
     />
   );
 }

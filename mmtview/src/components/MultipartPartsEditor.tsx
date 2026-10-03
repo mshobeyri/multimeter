@@ -62,16 +62,23 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
   };
 
   const handleValueChange = (idx: number, nextValue: string) => {
-    const stored = withOptionalPeer(nextValue, canContainToken);
-    commit(safeList(rows).map((row, i) => (i === idx ? { ...row, value: stored } : row)));
+    const row = rows[idx];
+    const stored = row?.kind === "file" && canContainToken
+      ? withOptionalPeer(nextValue, true)
+      : nextValue;
+    commit(safeList(rows).map((item, i) => (i === idx ? { ...item, value: stored } : item)));
   };
 
   const handleRemove = (idx: number) => {
     commit(safeList(rows).filter((_, i) => i !== idx));
   };
 
-  const displayValue = (raw: string) =>
-    canContainToken ? peerStringToDisplay(raw) : raw;
+  const displayValue = (row: MultipartPartRow) => {
+    if (row.kind === "file" && canContainToken) {
+      return peerStringToDisplay(row.value);
+    }
+    return row.value;
+  };
 
   return (
     <div className="multipart-parts-editor">
@@ -104,7 +111,7 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
                 <td className="multipart-part-value">
                   {row.kind === "file" ? (
                     <FilePickerInput
-                      value={displayValue(row.value)}
+                      value={displayValue(row)}
                       onChange={nextValue => handleValueChange(i, nextValue)}
                       onRemovePressed={() => handleRemove(i)}
                       basePath={fileCtx?.mmtFilePath}
@@ -117,7 +124,7 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
                     />
                   ) : (
                     <FieldWithRemove
-                      value={displayValue(row.value)}
+                      value={displayValue(row)}
                       onChange={nextValue => handleValueChange(i, nextValue)}
                       onRemovePressed={() => handleRemove(i)}
                       placeholder="value"

@@ -4,8 +4,8 @@ import {JSONRecord, requestFormat} from './CommonData';
 import {resolveRequestFormat} from './formatResolve';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
-import {coerceMultipartPartsInput, MultipartPartSpec} from './multipartBody';
-import {stripOmitFromRequest} from './omitKeyword';
+import {coerceMultipartPartsInput, MultipartPartSpec, partValueToWire} from './multipartBody';
+import {isOmitSentinel, stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
 import {
   embedDynamicTokensAsJsInterpolations,
@@ -431,8 +431,8 @@ function multipartPartsToJs(
     const fields: string[] = [`name: ${JSON.stringify(String(part.name ?? ''))}`];
     if (part.file != null && String(part.file).trim() !== '') {
       fields.push(`file: ${toTpl(String(part.file).trim())}`);
-    } else if (part.value != null) {
-      fields.push(`value: ${toTpl(String(part.value))}`);
+    } else if (part.value != null && !isOmitSentinel(part.value)) {
+      fields.push(`value: ${toTpl(partValueToWire(part.value))}`);
     }
     if (part.contentType != null && String(part.contentType).trim() !== '') {
       fields.push(`contentType: ${JSON.stringify(String(part.contentType))}`);

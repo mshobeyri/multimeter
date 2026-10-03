@@ -1,10 +1,10 @@
 import React from "react";
 import type { ExpectUiRow } from "mmt-core/expectUi";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
-import { peerStringToDisplay } from "mmt-core/apiBodyEdit";
 import {
   inputBoxToYamlValueWithTokens,
   yamlValueToInputBox,
+  yamlValueToInputBoxWithTokens,
 } from "./convertor";
 import OperatorSelect from "./OperatorSelect";
 import StableTextInput from "./StableTextInput";
@@ -122,11 +122,10 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                 buttonCount: 1,
               });
               const expectedDisplay = canContainToken
-                ? (
-                    (row.expected.startsWith('"') && row.expected.endsWith('"')) ||
-                    (row.expected.startsWith("'") && row.expected.endsWith("'"))
-                      ? row.expected
-                      : peerStringToDisplay(row.expected)
+                ? yamlValueToInputBoxWithTokens(
+                    inputBoxToYamlValueWithTokens(row.expected, true, true),
+                    true,
+                    true,
                   )
                 : row.expected;
               const commitExpected = (val: string) => {
@@ -134,7 +133,7 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                   i,
                   "expected",
                   canContainToken
-                    ? yamlValueToInputBox(inputBoxToYamlValueWithTokens(val, true))
+                    ? yamlValueToInputBox(inputBoxToYamlValueWithTokens(val, true, true))
                     : val,
                 );
               };

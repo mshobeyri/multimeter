@@ -38,6 +38,8 @@ interface KVEditorProps {
   deletable?: boolean;
   expandable?: boolean;
   canContainToken?: boolean;
+  /** Whole `<<c:city>>` shows as `{{c:city}}` and saves as `c:city`. */
+  liveAngleTokens?: boolean;
   valueContext?: RuntimeTokenValueContext;
 }
 
@@ -45,6 +47,7 @@ function withTrailingEmptyKey(
   obj: JSONRecord | undefined,
   tokens: boolean,
   addEmpty: boolean = true,
+  liveAngleTokens: boolean = false,
 ): KvEntry[] {
   if (!obj) {
     return addEmpty ? [["", ""]] : [];
@@ -52,7 +55,7 @@ function withTrailingEmptyKey(
 
   const entries = Object.entries(obj).map(([key, value]): KvEntry => [
     key,
-    yamlValueToInputBoxWithTokens(value, tokens),
+    yamlValueToInputBoxWithTokens(value, tokens, liveAngleTokens),
   ]);
 
   if (addEmpty && (entries.length === 0 || entries[entries.length - 1][0] !== "")) {
@@ -73,12 +76,13 @@ const KVEditor: React.FC<KVEditorProps> = ({
   deletable = true,
   expandable = true,
   canContainToken = false,
+  liveAngleTokens = false,
   valueContext,
 }) => {
   const tableRef = useRef<HTMLTableElement>(null);
   const propEntries = useMemo(
-    () => withTrailingEmptyKey(value, canContainToken, expandable),
-    [value, canContainToken, expandable],
+    () => withTrailingEmptyKey(value, canContainToken, expandable, liveAngleTokens),
+    [value, canContainToken, expandable, liveAngleTokens],
   );
   const [draft, setDraft] = useState<KvEntry[] | null>(null);
   const entries = draft ?? propEntries;
@@ -124,7 +128,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
     }
     onChange(entriesToUniqueRecord(
       next,
-      (display) => inputBoxToYamlValueWithTokens(display, canContainToken),
+      (display) => inputBoxToYamlValueWithTokens(display, canContainToken, liveAngleTokens),
     ));
   };
 

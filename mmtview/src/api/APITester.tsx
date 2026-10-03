@@ -1449,6 +1449,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                   keyPlaceholder="name"
                   valuePlaceholder="value"
                   canContainToken
+                  liveAngleTokens
                   valueContext={bodyValueContext}
                   disabled={!onUpdateApi}
                 />
@@ -1463,6 +1464,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 inputConstraints={inputConstraints}
                 deletable={false}
                 canContainToken
+                liveAngleTokens
                 valueContext={bodyValueContext}
               />
             )}
