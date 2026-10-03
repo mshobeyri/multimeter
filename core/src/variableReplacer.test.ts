@@ -35,12 +35,12 @@ describe('normalizeEnvTokens', () => {
 });
 
 describe('toTemplateWithEnvVars', () => {
-  it('converts e:VAR to template literal with ${envVariables.VAR}', () => {
-    expect(toTemplateWithEnvVars('hello e:NAME')).toBe('`hello ${envVariables.NAME}`');
+  it('converts e:VAR to template literal with ${mmtEnv_("VAR")}', () => {
+    expect(toTemplateWithEnvVars('hello e:NAME')).toBe('`hello ${mmtEnv_("NAME")}`');
   });
 
   it('converts <<e:VAR>> to template literal', () => {
-    expect(toTemplateWithEnvVars('<<e:NAME>>')).toBe('`${envVariables.NAME}`');
+    expect(toTemplateWithEnvVars('<<e:NAME>>')).toBe('`${mmtEnv_("NAME")}`');
   });
 
   it('does not double-wrap existing ${envVariables.VAR}', () => {
@@ -66,15 +66,15 @@ describe('toTemplateWithEnvVars', () => {
 
   it('handles multiple env tokens in one string', () => {
     const result = toTemplateWithEnvVars('http://e:HOST:e:PORT/path');
-    expect(result).toContain('${envVariables.HOST}');
-    expect(result).toContain('${envVariables.PORT}');
+    expect(result).toContain('${mmtEnv_("HOST")}');
+    expect(result).toContain('${mmtEnv_("PORT")}');
     expect(result).not.toContain('${${');
   });
 
   it('preserves non-env ${...} expressions', () => {
     const result = toTemplateWithEnvVars('${callId.result} and e:HOST');
     expect(result).toContain('${callId.result}');
-    expect(result).toContain('${envVariables.HOST}');
+    expect(result).toContain('${mmtEnv_("HOST")}');
   });
 
   it('escapes backticks in the value', () => {
@@ -95,12 +95,12 @@ describe('toTemplateWithEnvVars', () => {
 });
 
 describe('toTemplateValueJs', () => {
-  it('full <<e:VAR>> returns bare envVariables reference', () => {
-    expect(toTemplateValueJs('<<e:HOST>>')).toBe('envVariables.HOST');
+  it('full <<e:VAR>> returns an mmtEnv_ call', () => {
+    expect(toTemplateValueJs('<<e:HOST>>')).toBe('mmtEnv_("HOST")');
   });
 
-  it('full e:VAR returns bare envVariables reference', () => {
-    expect(toTemplateValueJs('e:HOST')).toBe('envVariables.HOST');
+  it('full e:VAR returns an mmtEnv_ call', () => {
+    expect(toTemplateValueJs('e:HOST')).toBe('mmtEnv_("HOST")');
   });
 
   it('full <<r:VAR>> returns bare random call', () => {
@@ -113,27 +113,27 @@ describe('toTemplateValueJs', () => {
 
   it('two <<e:VAR>> tokens separated by underscore', () => {
     expect(toTemplateValueJs('<<e:base_url>>_<<e:base_url>>'))
-        .toBe('`${envVariables.base_url}_${envVariables.base_url}`');
+        .toBe('`${mmtEnv_("base_url")}_${mmtEnv_("base_url")}`');
   });
 
   it('supports env index access in full-token form', () => {
     expect(toTemplateValueJs('<<e:HOST[0]>>'))
-        .toBe('mmtAccess_(envVariables.HOST, "[0]")');
+        .toBe('mmtEnv_("HOST", "[0]")');
   });
 
   it('supports env slice access inside template values', () => {
     expect(toTemplateValueJs('https://<<e:HOST[0:3]>>/api'))
-        .toBe('`https://${mmtAccess_(envVariables.HOST, "[0:3]")}/api`');
+        .toBe('`https://${mmtEnv_("HOST", "[0:3]")}/api`');
   });
 
   it('mixed env and static text', () => {
     expect(toTemplateValueJs('https://<<e:host>>/api'))
-        .toBe('`https://${envVariables.host}/api`');
+        .toBe('`https://${mmtEnv_("host")}/api`');
   });
 
   it('mixed e: and r: tokens', () => {
     const result = toTemplateValueJs('<<e:host>>-<<r:email>>');
-    expect(result).toBe("`${envVariables.host}-${mmtRandom_('email')}`");
+    expect(result).toBe('`${mmtEnv_("host")}-${mmtRandom_(\'email\')}`');
   });
 
   it('full <<i:name>> returns bare input identifier', () => {
@@ -144,7 +144,7 @@ describe('toTemplateValueJs', () => {
   it('embeds sibling i: refs in default templates', () => {
     expect(toTemplateValueJs('asd_<<i:message>>')).toBe('`asd_${message}`');
     expect(toTemplateValueJs('<<i:name>>_<<e:base_url>>'))
-        .toBe('`${name}_${envVariables.base_url}`');
+        .toBe('`${name}_${mmtEnv_("base_url")}`');
   });
 
   it('supports slice accessors on sibling i: refs', () => {
@@ -152,6 +152,18 @@ describe('toTemplateValueJs', () => {
         .toBe('`asd_${mmtAccess_(message, "[0:4]")}`');
     expect(toTemplateValueJs('<<i:message[1:2]>>'))
         .toBe('mmtAccess_(message, "[1:2]")');
+  });
+
+  it('uses the token text when an i: name is not a declared input', () => {
+    const known = new Set(['message']);
+    expect(toTemplateValueJs('i:missing', {knownInputNames: known}))
+        .toBe('"i:missing"');
+    expect(toTemplateValueJs('<<i:missing[0]>>', {knownInputNames: known}))
+        .toBe('"i:missing[0]"');
+    expect(toTemplateValueJs('hello <<i:missing>>', {knownInputNames: known}))
+        .toBe('`hello i:missing`');
+    expect(toTemplateValueJs('<<i:message>>', {knownInputNames: known}))
+        .toBe('message');
   });
 
   it('full <<o:name>> returns outputs expression', () => {
@@ -617,15 +629,15 @@ describe('multiple template vars in one string', () => {
 describe('embedDynamicTokensAsJsInterpolations', () => {
   it('converts e: / r: / c: forms (including accessors) to ${...}', () => {
     expect(replaceDynamicTokensToJsInterpolations('e:HOST'))
-        .toBe('${envVariables.HOST}');
+        .toBe('${mmtEnv_("HOST")}');
     expect(replaceDynamicTokensToJsInterpolations('user=<<e:USER[0:2]>>'))
-        .toBe('user=${mmtAccess_(envVariables.USER, "[0:2]")}');
+        .toBe('user=${mmtEnv_("USER", "[0:2]")}');
     expect(replaceDynamicTokensToJsInterpolations('r:customToken'))
         .toBe("${mmtRandom_('customToken')}");
     expect(replaceDynamicTokensToJsInterpolations('c:customNow'))
         .toBe("${mmtCurrent_('customNow')}");
     expect(replaceDynamicTokensToJsInterpolations('<e:HOST> and e:{PORT}'))
-        .toBe('${envVariables.HOST} and ${envVariables.PORT}');
+        .toBe('${mmtEnv_("HOST")} and ${mmtEnv_("PORT")}');
   });
 
   it('deep-walks objects and arrays without touching non-strings', () => {
@@ -636,10 +648,10 @@ describe('embedDynamicTokensAsJsInterpolations', () => {
       d: ['<<e:X>>', { nested: 'r:custom' }],
     });
     expect(out).toEqual({
-      a: '${envVariables.HOST}',
+      a: '${mmtEnv_("HOST")}',
       b: 12,
       c: true,
-      d: ['${envVariables.X}', { nested: "${mmtRandom_('custom')}" }],
+      d: ['${mmtEnv_("X")}', { nested: "${mmtRandom_('custom')}" }],
     });
   });
 

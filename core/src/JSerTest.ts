@@ -7,7 +7,6 @@ import {flowToJsFunc} from './JSerTestFlow';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {TestData} from './TestData';
 import {
-  collectInputRefsFromObject,
   normalizeEnvTokens,
   replaceAllRefs,
   replaceOutputTokenRefs,
@@ -120,15 +119,9 @@ export const testToJsfunc = async(
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
-  // Validate that all i:xxx references point to declared inputs
-  const declaredInputKeys = new Set(Object.keys(paramsAsObj));
-  const inputRefs = collectInputRefsFromObject(ctx.test);
-  const undefinedRefs = inputRefs.filter(name => !declaredInputKeys.has(name));
-  if (undefinedRefs.length > 0) {
-    throw new Error(
-      `Undefined input(s): ${undefinedRefs.map(r => `"${r}"`).join(', ')}. Define them in the 'inputs' section of the test file.`
-    );
-  }
+  // Missing i: names stay as the token text (same as unknown r:/c:).
+  // The editor already warns; do not fail the run.
+  const knownInputNames = new Set(Object.keys(paramsAsObj));
 
   // Keep `${input}` placeholders in the generated function. Concrete values
   // (including interdependent input defaults) are supplied at the call site
@@ -140,13 +133,13 @@ export const testToJsfunc = async(
   // Test-only: o:/<<o:…>> → ${outputs.…}. Do not run on APIs (doc annotations).
   replaced = replaceOutputTokenRefs(replaced);
 
-  let inputParams = toInputsParams(replaced.inputs || {}, ' = ');
+  let inputParams = toInputsParams(replaced.inputs || {}, ' = ', knownInputNames);
   if (inputParams.length > 0) {
     inputParams += ' ';
   }
 
   let flow = '';
-  let outputParams = toInputsParams(replaced.outputs || {}, ': ');
+  let outputParams = toInputsParams(replaced.outputs || {}, ': ', knownInputNames);
   if (outputParams.length > 0) {
     outputParams = ' ' + outputParams + ' ';
   }
@@ -232,7 +225,8 @@ export const testToJsfunc = async(
   }
 
   const emitSetenv = root || (Array.isArray(ctx.test.tags) && ctx.test.tags.includes('http'));
-  flow += await flowToJsFunc(replaced, root, useExternalReport, importTitleMap, emitSetenv);
+  flow += await flowToJsFunc(
+      replaced, root, useExternalReport, importTitleMap, emitSetenv, knownInputNames);
 
   const fnName = `${toLowerUnderscore(ctx.name)}${root ? '_' : ''}`;
   const cacheSpec = ctx.test.cache;

@@ -171,6 +171,46 @@ const toJsAccessorExpression = (baseExpression: string, accessor = ''): string =
     accessor ? `mmtAccess_(${baseExpression}, ${JSON.stringify(accessor)})` : baseExpression;
 
 /**
+ * Names bound as input parameters while generating JS.
+ * An `i:` token whose name is not in the set becomes the token text
+ * (`i:name`, including any accessor) instead of a ReferenceError.
+ * Omit the set to keep emitting identifiers.
+ */
+export type JsTokenGenOptions = {
+  knownInputNames?: ReadonlySet<string>;
+};
+
+function missingInputTokenText(name: string, accessor: string): string {
+  return `i:${name}${accessor}`;
+}
+
+function isDeclaredInput(name: string, options?: JsTokenGenOptions): boolean {
+  const known = options?.knownInputNames;
+  return !known || known.has(name);
+}
+
+/** JS expression for an `i:` token. Missing names are the token text. */
+function inputTokenJsExpr(
+    name: string, accessor: string, options?: JsTokenGenOptions): string {
+  if (!isDeclaredInput(name, options)) {
+    return JSON.stringify(missingInputTokenText(name, accessor));
+  }
+  return toJsAccessorExpression(name, accessor);
+}
+
+/**
+ * Text spliced into a larger string. Declared inputs become `${…}`.
+ * Missing inputs stay as the token text so later encoding does not see `${}`.
+ */
+function inputTokenInterpolation(
+    name: string, accessor: string, options?: JsTokenGenOptions): string {
+  if (!isDeclaredInput(name, options)) {
+    return missingInputTokenText(name, accessor);
+  }
+  return '${' + toJsAccessorExpression(name, accessor) + '}';
+}
+
+/**
  * Normalize all env-token syntaxes to a JS expression rooted at `envVariables`.
  * Used when generating JS code outside template literals.
  */
@@ -192,15 +232,36 @@ export const replaceEnvTokensPlain = (s: string): string =>
         {includeAngles: false, includeSingleAngles: false, includeBraceForm: false});
 
 /**
+ * How a missing `e:` name is read.
+ * `lookup` — `envVariables.NAME` (undefined when absent). Used in comparisons
+ * so a missing flag stays falsy.
+ * `text` — `mmtEnv_('NAME')`, which returns the value or the token text
+ * `e:NAME` (same idea as unknown `r:` / `c:` / `i:`).
+ */
+export type EnvJsMode = 'lookup' | 'text';
+
+function envTokenJsExpr(
+    name: string, accessor: string, mode: EnvJsMode): string {
+  if (mode === 'text') {
+    const args = accessor ?
+      `${JSON.stringify(name)}, ${JSON.stringify(accessor)}` :
+      JSON.stringify(name);
+    return `mmtEnv_(${args})`;
+  }
+  return toJsAccessorExpression(`envVariables.${name}`, accessor);
+}
+
+/**
  * Replace all env-token syntaxes in `s` with `${...}` JS interpolations.
  * Exported so urlencoded body encoding can turn `e:` tokens into runtime
  * placeholders *before* percent-encoding (JSON/XML keep them readable).
+ * Value substitution uses `text` so a missing name stays `e:name`.
  */
-export const replaceEnvTokensToJs = (s: string): string =>
+export const replaceEnvTokensToJs = (
+    s: string, mode: EnvJsMode = 'lookup'): string =>
     replaceTokenForms(
         s, 'e',
-        (name, accessor) => '${' +
-            toJsAccessorExpression(`envVariables.${name}`, accessor) + '}',
+        (name, accessor) => '${' + envTokenJsExpr(name, accessor, mode) + '}',
         {includeSingleAngles: true, includeBraceForm: true});
 
 /**
@@ -225,11 +286,11 @@ export const replaceRandCurrentTokensToJs = (s: string): string => {
  * interpolations so API/test default params can reference sibling inputs
  * (e.g. `xx: asd_<<i:message>>` → `` `asd_${message}` ``).
  */
-export const replaceInputTokensToJs = (s: string): string =>
+export const replaceInputTokensToJs = (
+    s: string, options?: JsTokenGenOptions): string =>
     replaceTokenForms(
         s, 'i',
-        (name, accessor) =>
-            '${' + toJsAccessorExpression(name, accessor) + '}',
+        (name, accessor) => inputTokenInterpolation(name, accessor, options),
         {includeSingleAngles: false, includeBraceForm: false});
 
 /**
@@ -289,10 +350,11 @@ export function replaceOutputTokenRefs(value: any): any {
  * Convert remaining `e:` / `r:` / `c:` / `i:` / `o:` tokens in a string to `${...}`
  * interpolations (without wrapping in backticks).
  */
-export const replaceDynamicTokensToJsInterpolations = (s: string): string => {
-  let out = replaceEnvTokensToJs(String(s ?? ''));
+export const replaceDynamicTokensToJsInterpolations = (
+    s: string, options?: JsTokenGenOptions): string => {
+  let out = replaceEnvTokensToJs(String(s ?? ''), 'text');
   out = replaceRandCurrentTokensToJs(out);
-  out = replaceInputTokensToJs(out);
+  out = replaceInputTokensToJs(out, options);
   out = replaceOutputTokensToJs(out);
   return out;
 };
@@ -302,19 +364,23 @@ export const replaceDynamicTokensToJsInterpolations = (s: string): string => {
  * to `${...}` interpolations. Used before urlencoded encoding so dynamic refs
  * survive URLSearchParams percent-encoding the same way JSON/XML bodies do.
  */
-export function embedDynamicTokensAsJsInterpolations(value: any): any {
+export function embedDynamicTokensAsJsInterpolations(
+    value: any, options?: JsTokenGenOptions): any {
   if (typeof value === 'string') {
     if (isLiteralTokenValue(value)) {
       return unwrapLiteralToken(value);
     }
-    return replaceDynamicTokensToJsInterpolations(value);
+    return replaceDynamicTokensToJsInterpolations(value, options);
   }
   if (Array.isArray(value)) {
-    return value.map(embedDynamicTokensAsJsInterpolations);
+    return value.map(item => embedDynamicTokensAsJsInterpolations(item, options));
   }
   if (value && typeof value === 'object') {
     return Object.fromEntries(
-        Object.entries(value).map(([k, v]) => [k, embedDynamicTokensAsJsInterpolations(v)]));
+        Object.entries(value).map(([k, v]) => [
+          k,
+          embedDynamicTokensAsJsInterpolations(v, options),
+        ]));
   }
   return value;
 }
@@ -326,7 +392,8 @@ export function embedDynamicTokensAsJsInterpolations(value: any): any {
  * `<<i:message>>`, `<<o:token>>`), returns a bare JS expression. Otherwise
  * returns a backtick template literal with `${…}` interpolations.
  */
-export function toTemplateValueJs(value: string): string {
+export function toTemplateValueJs(
+    value: string, options?: JsTokenGenOptions): string {
   const s = String(value ?? '');
   if (isLiteralTokenValue(s)) {
     return JSON.stringify(unwrapLiteralToken(s));
@@ -345,7 +412,7 @@ export function toTemplateValueJs(value: string): string {
 
   let m = fullEnvAngle.exec(s) || fullEnvPlain.exec(s);
   if (m && m[1]) {
-    return toJsAccessorExpression(`envVariables.${m[1]}`, m[2] || '');
+    return envTokenJsExpr(m[1], m[2] || '', 'text');
   }
   m = fullRandAngle.exec(s) || fullRandPlain.exec(s);
   if (m && m[1]) {
@@ -357,16 +424,16 @@ export function toTemplateValueJs(value: string): string {
   }
   m = fullInputAngle.exec(s) || fullInputPlain.exec(s);
   if (m && m[1]) {
-    return toJsAccessorExpression(m[1], m[2] || '');
+    return inputTokenJsExpr(m[1], m[2] || '', options);
   }
   m = fullOutputAngle.exec(s) || fullOutputPlain.exec(s);
   if (m && m[1]) {
     return toJsAccessorExpression(`outputs.${m[1]}`, m[2] || '');
   }
 
-  let result = replaceEnvTokensToJs(s);
+  let result = replaceEnvTokensToJs(s, 'text');
   result = replaceRandCurrentTokensToJs(result);
-  result = replaceInputTokensToJs(result);
+  result = replaceInputTokensToJs(result, options);
   result = replaceOutputTokensToJs(result);
   return '`' + escapeBackticks(result) + '`';
 }
@@ -375,7 +442,7 @@ export function toTemplateValueJs(value: string): string {
  * Build a JS template literal that resolves env tokens at runtime.
  */
 export const toTemplateWithEnvVars = (s: string): string => {
-  let withEnv = replaceEnvTokensToJs(String(s ?? ''));
+  let withEnv = replaceEnvTokensToJs(String(s ?? ''), 'text');
   withEnv = replaceRandCurrentTokensToJs(withEnv);
   withEnv = withEnv.replace(
       /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,

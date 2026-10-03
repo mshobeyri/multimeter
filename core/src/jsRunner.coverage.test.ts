@@ -98,6 +98,27 @@ describe('jsRunner extra runtime paths', () => {
     expect(result.extracted.x).toBe(1);
   });
 
+  it('uses the token text when an e: name is missing', async () => {
+    const result = await runJSCode({
+      js: `
+        const envVariables = { HOST: 'example.com' };
+        return {
+          hit: mmtEnv_('HOST'),
+          miss: mmtEnv_('NOPE'),
+          missAcc: mmtEnv_('NOPE', '[0]'),
+          slice: mmtEnv_('HOST', '[0:4]'),
+        };
+      `,
+      title: 'env-fallback',
+      runId: 'r-env',
+      logger,
+    });
+    expect(result.hit).toBe('example.com');
+    expect(result.miss).toBe('e:NOPE');
+    expect(result.missAcc).toBe('e:NOPE[0]');
+    expect(result.slice).toBe('exam');
+  });
+
   it('traces send_ success and error and records grpc duration', async () => {
     const send = await runJSCode({
       js: `return send_({ url: 'https://example.com', method: 'GET' });`,

@@ -1,6 +1,6 @@
 import {JSONValue} from './CommonData';
 import {Type} from './CommonData';
-import {collectInputRefsFromObject, toTemplateValueJs} from './variableReplacer';
+import {collectInputRefsFromObject, JsTokenGenOptions, toTemplateValueJs} from './variableReplacer';
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '  ' + line).join('\n').slice(2);
@@ -48,15 +48,19 @@ export function orderInputKeysForDefaults(
 }
 
 export const toInputsParams =
-    (inputs: Record<string, JSONValue>, operator: string) => {
+    (inputs: Record<string, JSONValue>, operator: string,
+     knownInputNames?: ReadonlySet<string>) => {
       const source = inputs ?? {};
+      const tokenOptions: JsTokenGenOptions|undefined = knownInputNames ?
+          {knownInputNames} :
+          undefined;
       const formattedInputs =
           orderInputKeysForDefaults(source)
               .map(key => {
                 const value = source[key];
                 let formatted: string;
                 if (typeof value === 'string') {
-                  formatted = toTemplateValueJs(value);
+                  formatted = toTemplateValueJs(value, tokenOptions);
                 } else if (typeof value === 'object') {
                   formatted = JSON.stringify(value);
                 } else {

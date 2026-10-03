@@ -19,7 +19,9 @@ export interface APIContext {
 }
 
 export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
-  const inputParams = toInputsParams(ctx.api.inputs || {}, ' = ');
+  const knownInputNames = new Set(Object.keys(ctx.api.inputs ?? {}));
+  const tokenOptions = {knownInputNames};
+  const inputParams = toInputsParams(ctx.api.inputs || {}, ' = ', knownInputNames);
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.api.inputs ?? {}).map(key => [key, `\${${key}}`]));
@@ -52,7 +54,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   if (reqFormatForBody !== 'binary' && replaced.body != null) {
     replaced = {
       ...replaced,
-      body: embedDynamicTokensAsJsInterpolations(replaced.body),
+      body: embedDynamicTokensAsJsInterpolations(replaced.body, tokenOptions),
     };
   }
 
@@ -97,7 +99,8 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   } catch {
   }
 
-  const toTemplateWithEnvs = toTemplateValueJs;
+  const toTemplateWithEnvs = (value: string): string =>
+      toTemplateValueJs(value, tokenOptions);
 
   if (replaced.cookies && Object.keys(replaced.cookies).length > 0) {
     let cookies = Object.entries(replaced.cookies || {})

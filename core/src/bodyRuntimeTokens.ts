@@ -967,7 +967,13 @@ export function displayRuntimeString(
     if (isLiteralTokenValue(resolved)) {
       return `"${unwrapLiteralToken(resolved)}"`;
     }
-    return rewriteAllTokensToDisplayText(resolved);
+    const rewritten = rewriteAllTokensToDisplayText(resolved);
+    // A missing token's value is the plain text (`i:name`). Do not show that
+    // fallback as the editor form `{{i:name}}`.
+    if (displayTokenToPlain(rewritten.trim()) === resolved.trim()) {
+      return resolved;
+    }
+    return rewritten;
   }
   if (resolved == null) {
     return '';
@@ -1201,7 +1207,7 @@ function lookupRuntimeResolvedValue(plainSpec: string): unknown {
  * Idle preview for a token-capable field (SDD token-form-consistency L3):
  * - `{{i:}}` / `{{e:}}` → resolved values (span kind `resolved`)
  * - `{{r:}}` / `{{c:}}` → stay as display tokens (do not freeze a random/current sample)
- * - Unresolved i:/e: stay as display `{{…}}` (span kind `token`)
+ * - Unresolved i:/e: stay as the plain token text `i:name` / `e:name`
  */
 export function projectTokenFieldPreview(
     source: string,
@@ -1240,7 +1246,8 @@ export function projectTokenFieldPreview(
     }
     const resolved = lookupIeResolvedValue(plain, ctx);
     if (resolved === undefined) {
-      const piece = toDisplayRuntimeToken(plain);
+      // Same fallback as a run: the plain token text, not {{…}} and not blank.
+      const piece = plain;
       const start = text.length;
       text += piece;
       spans.push({start, end: text.length, kind: 'token'});

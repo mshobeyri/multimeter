@@ -525,10 +525,10 @@ describe('env token replacements in generated JS', () => {
          envVars: {}
        };
        const js = await rootTestToJsfunc(ctx);
-       expect(js).toContain('${envVariables.FOO}');
-       expect(js).toContain('${envVariables.BAR}');
-       expect(js).toContain('${envVariables.BAZ}');
-       expect(js).toContain('${envVariables.QUX}');
+       expect(js).toContain('${mmtEnv_("FOO")}');
+       expect(js).toContain('${mmtEnv_("BAR")}');
+       expect(js).toContain('${mmtEnv_("BAZ")}');
+       expect(js).toContain('${mmtEnv_("QUX")}');
      });
 
   it('resolves r: and c: tokens in print and call titles', async () => {
@@ -574,7 +574,7 @@ describe('env token replacements in generated JS', () => {
        expect(out).toContain('const a = envVariables.AAA;');
        expect(out).toContain('const b = envVariables.BBB;');
        expect(out).toContain(
-           '`X=${envVariables.FOO} Y=${envVariables.BAR} Z=${envVariables.BAZ} W=${envVariables.QUX}`');
+           '`X=${mmtEnv_("FOO")} Y=${mmtEnv_("BAR")} Z=${mmtEnv_("BAZ")} W=${mmtEnv_("QUX")}`');
      });
 
   it('does not double-wrap pre-existing ${envVariables.VAR} inside template literals',
@@ -594,7 +594,7 @@ describe('env token replacements in generated JS', () => {
        const input = 'const u = `http://${envVariables.HOST}:e:PORT/path`;';
        const out = variableReplacer(input);
        expect(out).toContain('${envVariables.HOST}');
-       expect(out).toContain('${envVariables.PORT}');
+       expect(out).toContain('${mmtEnv_("PORT")}');
        expect(out).not.toContain('${${');
      });
 
@@ -602,7 +602,7 @@ describe('env token replacements in generated JS', () => {
      () => {
        const input = 'const s = `value=<<e:FOO>>`;';
        const out = variableReplacer(input);
-       expect(out).toContain('${envVariables.FOO}');
+       expect(out).toContain('${mmtEnv_("FOO")}');
        expect(out).not.toContain('${${');
      });
 
@@ -610,7 +610,7 @@ describe('env token replacements in generated JS', () => {
     const input = 'const x = `${someVar} and e:NAME`;';
     const out = variableReplacer(input);
     expect(out).toContain('${someVar}');
-    expect(out).toContain('${envVariables.NAME}');
+    expect(out).toContain('${mmtEnv_("NAME")}');
     expect(out).not.toContain('${${');
   });
 
@@ -630,8 +630,8 @@ describe('env token replacements in generated JS', () => {
     ].join('\n');
     const out = variableReplacer(input);
     expect(out).toContain('const a = mmtAccess_(envVariables.AAA, "[0:1]");');
-    expect(out).toContain('${mmtAccess_(envVariables.FOO, "[0]")}');
-    expect(out).toContain('${mmtAccess_(envVariables.BAR, "[0:2]")}');
+    expect(out).toContain('${mmtEnv_("FOO", "[0]")}');
+    expect(out).toContain('${mmtEnv_("BAR", "[0:2]")}');
   });
 });
 
@@ -639,14 +639,14 @@ describe('toInputsParams env token handling', () => {
   it('converts e:VAR input default to envVariables reference', () => {
     const {toInputsParams} = require('./JSerHelper');
     const result = toInputsParams({ host: 'e:HOST' }, '=');
-    expect(result).toContain('envVariables.HOST');
+    expect(result).toContain('mmtEnv_("HOST")');
     expect(result).not.toContain('e:HOST');
   });
 
   it('converts <<e:VAR>> partial input to template with ${envVariables.VAR}', () => {
     const {toInputsParams} = require('./JSerHelper');
     const result = toInputsParams({ url: 'http://<<e:HOST>>/path' }, '=');
-    expect(result).toContain('${envVariables.HOST}');
+    expect(result).toContain('${mmtEnv_("HOST")}');
     expect(result).not.toContain('${${');
   });
 
@@ -733,6 +733,43 @@ describe('interdependent input defaults', () => {
     expect(paramsMatch?.[1]).toBeDefined();
     const params = paramsMatch![1];
     expect(params.indexOf('message')).toBeLessThan(params.indexOf('xx'));
+  });
+
+  it('keeps a missing i: token as its text instead of a ReferenceError', async () => {
+    const apiJs = await apiToJSfunc({
+      name: 'echo',
+      api: {
+        type: 'api',
+        title: 'Echo API',
+        inputs: {message: 'hello'},
+        url: 'https://test.mmt.dev/<<i:missing>>',
+        method: 'post',
+        format: 'json',
+        body: {note: 'hi <<i:missing>>', ok: 'i:message'},
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(apiJs).toContain('https://test.mmt.dev/i:missing');
+    expect(apiJs).toContain('hi i:missing');
+    expect(apiJs).not.toMatch(/\$\{\s*missing\s*\}/);
+    expect(apiJs).toContain('${message}');
+
+    const testJs = await testToJsfunc({
+      name: 'missingInput',
+      test: {
+        title: 'missing',
+        tags: [],
+        description: '',
+        inputs: {message: 'hello'},
+        steps: [{print: '<<i:missing>> <<i:message>>'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(testJs).toContain('i:missing');
+    expect(testJs).toContain('${message}');
+    expect(testJs).not.toMatch(/\$\{\s*missing\s*\}/);
   });
 });
 
@@ -1178,7 +1215,7 @@ Authorization: Bearer {{token}}
     expect(js).toContain('setenv_({ "token"');
     expect(js).toContain('request_1');
     expect(js).toContain('Bearer');
-    expect(js).toContain('envVariables.token');
+    expect(js).toContain('mmtEnv_("token")');
   });
 
   it('converts imported .bru files into callable test functions', async () => {
@@ -2207,7 +2244,7 @@ describe('body inputs numeric/boolean templating', () => {
         any;
     const js = await apiToJSfunc(ctx);
     // url should interpolate env without double wrapping (now uses __resolvedUrl)
-    expect(js).toContain('__resolvedUrl = `http://${envVariables.HOST}/login`');
+    expect(js).toContain('__resolvedUrl = `http://${mmtEnv_("HOST")}/login`');
     expect(js).toContain('url: __resolvedUrl');
     // numbers and booleans should be passed via var)
     expect(js).toContain('"pass":${password}');
@@ -2440,8 +2477,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  user: e:USERNAME',
       '  short: <<e:USERNAME[0:3]>>',
     ]);
-    expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
-    expect(js).toContain('mmtAccess_(envVariables.USERNAME, "[0:3]")');
+    expect(js).toContain('encodeURIComponent(String(mmtEnv_("USERNAME") ?? \'\'))');
+    expect(js).toContain('mmtEnv_("USERNAME", "[0:3]")');
     expect(js).not.toMatch(/e%3AUSERNAME/i);
   });
 
@@ -2456,7 +2493,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  b: e:{HOST}',
       '  c: <<e:HOST>>',
     ]);
-    expect(js.match(/envVariables\.HOST/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(js.match(/mmtEnv_\("HOST"\)/g)?.length).toBeGreaterThanOrEqual(3);
     expect(js).not.toMatch(/e%3AHOST|%3Ce%3AHOST|e%3A%7BHOST/i);
   });
 
@@ -2473,7 +2510,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       'body:',
       '  part: i:xxx[1:2]',
     ]);
-    expect(js).toMatch(/xxx\s*=\s*envVariables\.TOKEN/);
+    expect(js).toMatch(/xxx\s*=\s*mmtEnv_\("TOKEN"\)/);
     expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
     expect(js).not.toContain("mmtAccess_(xxx,+'[1:2]')");
   });
@@ -2489,9 +2526,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       'body:',
       '  path: /tenants/<<e:TENANT>>/users/<<i:id>>/<<e:TENANT[0]>>',
     ]);
-    expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
+    expect(js).toContain('encodeURIComponent(String(mmtEnv_("TENANT") ?? \'\'))');
     expect(js).toContain("encodeURIComponent(String(id ?? ''))");
-    expect(js).toContain('mmtAccess_(envVariables.TENANT, "[0]")');
+    expect(js).toContain('mmtEnv_("TENANT", "[0]")');
     expect(js).not.toMatch(/%24%7B|e%3ATENANT/i);
   });
 
@@ -2576,7 +2613,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  user: e:USERNAME',
     ]);
     expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
-    expect(js).toContain('${envVariables.USERNAME}');
+    expect(js).toContain('mmtEnv_(\\"USERNAME\\")');
     expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 
@@ -2594,7 +2631,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '    user: <<e:USERNAME>>',
     ]);
     expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
-    expect(js).toContain('${envVariables.USERNAME}');
+    expect(js).toContain('${mmtEnv_("USERNAME")}');
     expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 });
@@ -2619,13 +2656,13 @@ describe('urlencoded tokens through multilevel imports', () => {
   ].join('\n');
 
   function expectUrlencodedTokenJs(js: string) {
-    expect(js).toMatch(/token\s*=\s*envVariables\.AUTH_TOKEN/);
+    expect(js).toMatch(/token\s*=\s*mmtEnv_\("AUTH_TOKEN"\)/);
     expect(js).toContain("mmtAccess_(token, '[1:2]')");
     expect(js).not.toContain("mmtAccess_(token,+'[1:2]')");
     expect(js).toContain("encodeURIComponent(String(mmtAccess_(token, '[1:2]') ?? ''))");
-    expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
-    expect(js).toContain('mmtAccess_(envVariables.USERNAME, "[0:3]")');
-    expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
+    expect(js).toContain('encodeURIComponent(String(mmtEnv_("USERNAME") ?? \'\'))');
+    expect(js).toContain('mmtEnv_("USERNAME", "[0:3]")');
+    expect(js).toContain('encodeURIComponent(String(mmtEnv_("TENANT") ?? \'\'))');
     expect(js).toContain("mmtAccess_(token, '[0]')");
     expect(js).not.toMatch(/%24%7B|e%3AUSERNAME|e%3ATENANT|e%3AAUTH_TOKEN/i);
   }
@@ -2747,7 +2784,7 @@ describe('urlencoded tokens through multilevel imports', () => {
     expect(bundle).toContain('const form = form_');
     expectUrlencodedTokenJs(bundle);
     // Call-site override still references env at the leaf test layer
-    expect(bundle).toContain('envVariables.OVERRIDE_TOKEN');
+    expect(bundle).toContain('mmtEnv_("OVERRIDE_TOKEN")');
   });
 });
 
@@ -2912,7 +2949,7 @@ describe('API query handling', () => {
     const js = await apiToJSfunc(ctx);
     expect(js).toContain('query: {');
     expect(js).toContain('"page": `${page}`');
-    expect(js).toContain('"locale": `${envVariables.LOCALE}`');
+    expect(js).toContain('"locale": `${mmtEnv_("LOCALE")}`');
   });
 
   it('injects timeout into generated request objects', async () => {
@@ -3010,8 +3047,8 @@ describe('input defaults with e: references', () => {
     const ctx: APIContext =
         {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
     const js = await apiToJSfunc(ctx);
-    // The default value for xxx should reference envVariables.test, not literal 'e:test'
-    expect(js).toContain('envVariables.test');
+    // The default value for xxx should reference the env at runtime, not literal 'e:test'
+    expect(js).toContain('mmtEnv_("test")');
     // Should NOT contain literal 'e:test' as a default value
     expect(js).not.toMatch(/xxx\s*=\s*`e:test`/);
   });
@@ -3027,8 +3064,8 @@ describe('input defaults with e: references', () => {
       envVars: {}
     };
     const js = await testToJsfunc(ctx, true);
-    // The default should use envVariables.USERNAME
-    expect(js).toContain('envVariables.USERNAME');
+    // The default should read the env at runtime.
+    expect(js).toContain('mmtEnv_("USERNAME")');
     expect(js).not.toMatch(/user\s*=\s*`e:USERNAME`/);
   });
 
@@ -3428,7 +3465,7 @@ describe('auth field (apiToJSfunc)', () => {
       name: 'myApi', inputs: {}, envVars: {},
     };
     const js = await apiToJSfunc(ctx);
-    expect(js).toContain('envVariables.token');
+    expect(js).toContain('mmtEnv_("token")');
   });
 });
 

@@ -152,6 +152,16 @@ describe('displayRuntimeString / displayRuntimeStringRecord', () => {
     expect(displayRuntimeString('secret', 'e:token')).toBe('secret');
   });
 
+  it('keeps a missing i:/e: fallback as plain token text', () => {
+    expect(displayRuntimeString('i:missing', 'i:missing')).toBe('i:missing');
+    expect(displayRuntimeString('e:missing')).toBe('e:missing');
+    const missing = projectTokenFieldPreview('{{i:user}} / {{e:host}}', {
+      inputs: {},
+      env: {},
+    });
+    expect(missing.text).toBe('i:user / e:host');
+  });
+
   it('leaves quoted YAML literals alone', () => {
     expect(displayRuntimeString('r:uuid', wrapLiteralToken('r:uuid'))).toBe('"r:uuid"');
   });
