@@ -1,4 +1,6 @@
-import {yamlToAPIStrict, apiToYaml} from './apiParsePack';
+import {yamlToAPIStrict, apiToYaml, yamlToAPI} from './apiParsePack';
+import {requestForSend} from './apiBodyEdit';
+import {apiToJSfunc} from './JSerAPI';
 import {
   isLiteralTokenValue,
   isTokenLikeScalar,
@@ -92,7 +94,100 @@ body:
         api, {}, {}, {refreshRuntimeTokens: true, preserveStructuredBody: true});
     const body = resolved.body as Record<string, unknown>;
     expect(body.id).not.toBe('r:uuid');
-    expect(body.literal).toBe('r:uuid');
+    expect(isLiteralTokenValue(body.literal)).toBe(true);
+    expect(unwrapLiteralToken(String(body.literal))).toBe('r:uuid');
+  });
+
+  it('sends a resolved request with quoted tokens still as text', async () => {
+    const api = yamlToAPI([
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'format: json',
+      'inputs:',
+      '  username: alice',
+      '  age: 100',
+      'body:',
+      '  name: i:username',
+      '  years: i:age',
+      '  quotedName: "i:username"',
+      '  quotedAge: "i:age"',
+      '  quotedMissing: "e:xxx"',
+      '  quotedRandom: "r:uuid"',
+    ].join('\n'));
+    const resolved = resolveApiRequest(
+        api, {}, {}, {refreshRuntimeTokens: true, preserveStructuredBody: true});
+    const sent = String(requestForSend(resolved, 'json').body);
+    expect(sent).toContain('"name":"alice"');
+    expect(sent).toContain('"years":100');
+    expect(sent).toContain('"quotedName":"i:username"');
+    expect(sent).toContain('"quotedAge":"i:age"');
+    expect(sent).toContain('"quotedMissing":"e:xxx"');
+    expect(sent).toContain('"quotedRandom":"r:uuid"');
+    expect(sent).not.toContain('{{');
+    expect(sent).not.toContain('<<');
+
+    const resent = yamlToAPI([
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'format: json',
+      'inputs:',
+      '  username: alice',
+      '  age: 100',
+      'body: |',
+      ...sent.split('\n').map(line => `  ${line}`),
+    ].join('\n'));
+    const js = await apiToJSfunc({
+      api: resent, name: 'echo', inputs: {}, envVars: {},
+    });
+    expect(js).toContain('"quotedName":"i:username"');
+    expect(js).toContain('"quotedAge":"i:age"');
+    expect(js).toContain('"quotedMissing":"e:xxx"');
+    expect(js).toContain('"quotedRandom":"r:uuid"');
+    expect(js).not.toContain('quotedName":"${username}"');
+    expect(js).not.toContain('<<${mmtRandom_');
+    expect(js).not.toContain('<${mmtEnv_');
+  });
+
+  it('sends missing bare body tokens as plain text', async () => {
+    const api = yamlToAPI([
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'format: json',
+      'inputs:',
+      '  username: alice',
+      'body:',
+      '  missinge: e:xxx',
+      '  missingi: i:xxx',
+      '  missingr: r:xxx',
+      '  missingc: c:xxx',
+      '  strmissinge: "e:xxx"',
+    ].join('\n'));
+    const resolved = resolveApiRequest(
+        api, {}, {}, {refreshRuntimeTokens: true, preserveStructuredBody: true});
+    const sent = String(requestForSend(resolved, 'json').body);
+    const resent = yamlToAPI([
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'format: json',
+      'inputs:',
+      '  username: alice',
+      'body: |',
+      ...sent.split('\n').map(line => `  ${line}`),
+    ].join('\n'));
+    const js = await apiToJSfunc({
+      api: resent, name: 'echo', inputs: {}, envVars: {},
+    });
+    expect(js).toContain('${mmtEnv_("xxx")}');
+    expect(js).toContain('"missingi":"i:xxx"');
+    expect(js).toContain("JSON.stringify(mmtRandom_('xxx'))");
+    expect(js).toContain("JSON.stringify(mmtCurrent_('xxx'))");
+    expect(js).toContain('"strmissinge":"e:xxx"');
+    expect(js).not.toContain('<${mmtEnv_');
+    expect(js).not.toContain('<<');
   });
 
   it('round-trips quoted tokens back to quoted YAML', () => {
@@ -108,6 +203,34 @@ body:
     expect(yaml).toMatch(/literal:\s*"r:uuid"/);
     expect(yaml).not.toContain(LITERAL_TOKEN_PREFIX);
     expect(yaml).toMatch(/plain:\s*r:uuid/);
+  });
+
+  it('sends quoted body tokens as text and bare tokens as values', async () => {
+    const api = yamlToAPI([
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'format: json',
+      'inputs:',
+      '  username: alice',
+      '  age: 100',
+      'body:',
+      '  name: i:username',
+      '  years: i:age',
+      '  quotedName: "i:username"',
+      '  quotedAge: "i:age"',
+      '  quotedMissing: "i:xxx"',
+    ].join('\n'));
+    const js = await apiToJSfunc({
+      api, name: 'echo', inputs: {}, envVars: {},
+    });
+    expect(js).toContain('"${username}"');
+    expect(js).toContain('${JSON.stringify(age)}');
+    expect(js).toContain('"quotedName":"i:username"');
+    expect(js).toContain('"quotedAge":"i:age"');
+    expect(js).toContain('"quotedMissing":"i:xxx"');
+    expect(js).not.toContain('quotedName":"${username}"');
+    expect(js).not.toContain('quotedAge":${JSON.stringify(age)}');
   });
 
   it('codegen emits JSON string for quoted token literals', () => {

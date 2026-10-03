@@ -3,7 +3,7 @@ import {JSONRecord} from './CommonData';
 import {randomValueForToken} from './Random';
 import {currentValueForToken} from './Current';
 import {isOmitSentinel} from './omitKeyword';
-import {isLiteralTokenValue, unwrapLiteralToken, restoreLiteralTokens} from './literalToken';
+import {isLiteralTokenValue, unwrapLiteralToken, LITERAL_TOKEN_PREFIX} from './literalToken';
 import {safeList} from './safer';
 import {TestData} from './TestData';
 
@@ -57,29 +57,64 @@ function replaceTokenForms(
   const capture = `(${tokenSpec})(${ACCESSOR_PATH_RE})`;
   let out = source;
 
+  // A YAML-quoted bare token is the whole JSON string or XML text node
+  // (`"i:name"`, `>i:name<`). Leave that text alone. `<<token>>` and `<e:token>`
+  // are token syntax: replace the brackets too, so a missing name stays
+  // `i:name` instead of `<<i:name>>`.
+  const keepQuotedLiteral = (
+      match: string, offset: number, text: string, plain: boolean): boolean => {
+    if (offset <= 0 || offset + match.length >= text.length) {
+      return false;
+    }
+    if (text.slice(Math.max(0, offset - LITERAL_TOKEN_PREFIX.length), offset) ===
+        LITERAL_TOKEN_PREFIX) {
+      return true;
+    }
+    if (!plain) {
+      return false;
+    }
+    const before = text[offset - 1];
+    const after = text[offset + match.length];
+    if (before === '"' && after === '"') {
+      return true;
+    }
+    if (before === '>' && after === '<') {
+      return true;
+    }
+    return false;
+  };
+
   if (options.includeAngles !== false) {
     out = out.replace(
         new RegExp(`<<\\s*${prefix}:${capture}\\s*>>`, 'g'),
         (match, name: string, accessor = '', offset: number, source: string) =>
-          formatter(name, accessor || '', match, offset, source));
+          keepQuotedLiteral(match, offset, source, false) ?
+            match :
+            formatter(name, accessor || '', match, offset, source));
   }
   if (options.includeSingleAngles) {
     out = out.replace(
         new RegExp(`<\\s*${prefix}:${capture}\\s*>`, 'g'),
         (match, name: string, accessor = '', offset: number, source: string) =>
-          formatter(name, accessor || '', match, offset, source));
+          keepQuotedLiteral(match, offset, source, false) ?
+            match :
+            formatter(name, accessor || '', match, offset, source));
   }
   if (options.includeBraceForm) {
     out = out.replace(
         new RegExp(`(?<![a-zA-Z0-9])${prefix}:\\{(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\}`, 'g'),
         (match, name: string, accessor = '', offset: number, source: string) =>
-          formatter(name, accessor || '', match, offset, source));
+          keepQuotedLiteral(match, offset, source, false) ?
+            match :
+            formatter(name, accessor || '', match, offset, source));
   }
   if (options.includePlain !== false) {
     out = out.replace(
         new RegExp(`(?<![a-zA-Z0-9])${prefix}:${capture}(?![A-Za-z0-9_])`, 'g'),
         (match, name: string, accessor = '', offset: number, source: string) =>
-          formatter(name, accessor || '', match, offset, source));
+          keepQuotedLiteral(match, offset, source, true) ?
+            match :
+            formatter(name, accessor || '', match, offset, source));
   }
   return out;
 }
@@ -367,8 +402,10 @@ export const replaceDynamicTokensToJsInterpolations = (
 export function embedDynamicTokensAsJsInterpolations(
     value: any, options?: JsTokenGenOptions): any {
   if (typeof value === 'string') {
+    // Keep the quote marker. Unwrapping here makes `"i:user"` look like the
+    // bare token i:user, and the later JSON/XML scan resolves it.
     if (isLiteralTokenValue(value)) {
-      return unwrapLiteralToken(value);
+      return value;
     }
     return replaceDynamicTokensToJsInterpolations(value, options);
   }
@@ -859,12 +896,8 @@ export function replaceAllRefs(
   let replacedIface = replaceInputRefsWithBrace(iface, {}, dynamicResolver);
   replacedIface = replaceInputRefsWithNone(replacedIface, {}, dynamicResolver);
 
-  // UI / preview resolves tokens — unwrap quoted literals to plain text.
-  // Codegen keeps markers so emitters can emit JSON string constants instead.
-  if (options.resolveRuntimeTokens !== false) {
-    replacedIface = restoreLiteralTokens(replacedIface);
-  }
-
+  // Quoted YAML (`"i:name"`) stays a literal marker. Unwrapping it here makes
+  // the text `i:name`, and the next send/format pass treats that as a token.
   return replacedIface;
 }
 

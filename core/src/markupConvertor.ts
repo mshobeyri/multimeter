@@ -10,6 +10,7 @@ import {
   isLiteralTokenValue,
   isTokenLikeScalar,
   restoreLiteralTokens,
+  unwrapLiteralToken,
 } from './literalToken';
 import {needsYamlDoubleQuotes} from './yamlValueConvert';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
@@ -22,6 +23,8 @@ import {
   parseXmlTextWithRuntimeTokens,
   restoreAngleRuntimeTokensInUrlEncoded,
   reviveDisplayRuntimeTokensInValue,
+  reviveEditorBodyValue,
+  rewriteAllLeavesToDisplayText,
   rewriteRuntimeLeavesToDisplayText,
   stringifyJsonWithRuntimeTokens,
   type RuntimeTokenValueContext,
@@ -259,6 +262,9 @@ function formValueToString(value: unknown): string {
   if (value === null || value === undefined) {
     return '';
   }
+  if (typeof value === 'string' && isLiteralTokenValue(value)) {
+    return unwrapLiteralToken(value);
+  }
   if (typeof value === 'string') {
     return value;
   }
@@ -371,7 +377,7 @@ function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean):
     }
     xmlObj = typeof coerced === 'string' ?
       flattenXmlObj(xml2js(coerced, {compact: true})) :
-      coerced;
+      restoreLiteralTokens(coerced);
   }
   return js2xml(xmlObj as object, {
     compact: true,
@@ -565,7 +571,7 @@ function packUiBodyStrictForYaml(format: Format, body: string): unknown|null {
       );
     }
     if (format === 'urlencoded') {
-      return reviveDisplayRuntimeTokensInValue(parseUrlEncodedBody(text));
+      return reviveEditorBodyValue(parseUrlEncodedBody(text));
     }
     if (format === 'binary' || format === 'text' || format === 'html' ||
         format === 'none') {
@@ -626,7 +632,7 @@ function beautify(
       const normalized = normalizeNewlines(value);
       const forceBarePlains = collectUnquotedIePlains(normalized);
       return stringifyJsonWithRuntimeTokens(
-          parseJsonWithRuntimeTokens(normalized),
+          rewriteAllLeavesToDisplayText(parseJsonWithRuntimeTokens(normalized)),
           true,
           valueContext,
           undefined,
@@ -643,7 +649,7 @@ function beautify(
           format === 'xmle');
     }
     if (format === 'urlencoded') {
-      const parsed = reviveDisplayRuntimeTokensInValue(parseUrlEncodedBody(value));
+      const parsed = reviveEditorBodyValue(parseUrlEncodedBody(value));
       return objectToUrlEncoded(
           rewriteRuntimeLeavesToDisplayText(parsed) as Record<string, unknown>);
     }

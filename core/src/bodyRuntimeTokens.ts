@@ -5,7 +5,10 @@ import {
 } from './Current';
 import {
   isLiteralTokenValue,
+  isPlainTokenScalar,
   unwrapLiteralToken,
+  unwrapQuotedTokenText,
+  wrapLiteralToken,
 } from './literalToken';
 import {randomTokenValueType} from './Random';
 import {
@@ -452,12 +455,12 @@ export function projectBodyKeepingRuntimeTokens(
  */
 export function rewriteRuntimeLeavesToDisplayText(value: unknown): unknown {
   if (typeof value === 'string') {
-    if (isWholeBareRuntimeToken(value) || isWholeLiteralRuntimeToken(value) ||
+    if (isLiteralTokenValue(value)) {
+      return unwrapLiteralToken(value);
+    }
+    if (isWholeBareRuntimeToken(value) ||
         displayTokenToPlain(value) || angleToPlain(value.trim())) {
       return toDisplayRuntimeToken(value);
-    }
-    if (isLiteralTokenValue(value)) {
-      return rewriteRuntimeTokensInText(unwrapLiteralToken(value));
     }
     if (stringContainsRuntimeToken(value) || DISPLAY_PREFIXED_GLOBAL_RE.test(value) ||
         LEGACY_DISPLAY_RUNTIME_GLOBAL_RE.test(value)) {
@@ -487,7 +490,7 @@ export function rewriteRuntimeLeavesToDisplayText(value: unknown): unknown {
 export function rewriteAllLeavesToDisplayText(value: unknown): unknown {
   if (typeof value === 'string') {
     if (isLiteralTokenValue(value)) {
-      return rewriteAllTokensToDisplayText(unwrapLiteralToken(value));
+      return value;
     }
     const trimmed = value.trim();
     const converted = toDisplayRuntimeToken(trimmed);
@@ -523,6 +526,11 @@ export function reviveDisplayRuntimeTokensInValue(value: unknown): unknown {
     // YAML-quoted token scalars stay literal (do not rewrite {{…}} inside).
     if (isLiteralTokenValue(value)) {
       return value;
+    }
+    // Editor text `"i:xxx"` / `'r:uuid'` is quoted text, same as YAML quotes.
+    const quotedToken = unwrapQuotedTokenText(value);
+    if (quotedToken) {
+      return wrapLiteralToken(quotedToken);
     }
     const trimmed = value.trim();
     if (WHOLE_DISPLAY_PREFIXED_RE.test(trimmed) ||
@@ -561,6 +569,35 @@ export function reviveDisplayRuntimeTokensInValue(value: unknown): unknown {
 export const reviveAngleRuntimeTokensInValue = reviveDisplayRuntimeTokensInValue;
 
 /**
+ * Editor body text → model. A whole leaf `i:xxx` was inside JSON/XML quotes,
+ * so it stays quoted text. `{{i:xxx}}` and `<<i:xxx>>` stay live tokens.
+ * YAML parse does not use this — a bare YAML token must stay live.
+ */
+export function reviveEditorBodyValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    if (isLiteralTokenValue(value)) {
+      return value;
+    }
+    if (isPlainTokenScalar(value)) {
+      return wrapLiteralToken(value);
+    }
+    return reviveDisplayRuntimeTokensInValue(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => reviveEditorBodyValue(item));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+          k,
+          reviveEditorBodyValue(v),
+        ]),
+    );
+  }
+  return value;
+}
+
+/**
  * Parse XML (or XML-like editor text) and revive `{{random …}}` leaves to
  * bare `r:`/`c:` markers. `{{}}` is valid in XML text, so no placeholders.
  */
@@ -569,7 +606,7 @@ export function parseXmlTextWithRuntimeTokens(
     parseXml: (xml: string) => unknown,
 ): unknown {
   const parsed = parseXml(text);
-  return reviveDisplayRuntimeTokensInValue(parsed);
+  return reviveEditorBodyValue(parsed);
 }
 
 /** No-op for `{{}}` (kept for call-site compatibility). */
@@ -705,15 +742,15 @@ function writeJsonWithRuntimeTokens(
     return Number.isFinite(value) ? String(value) : 'null';
   }
   if (typeof value === 'string') {
+    if (isLiteralTokenValue(value)) {
+      return JSON.stringify(unwrapLiteralToken(value));
+    }
     const plain = plainTokenFromLeaf(value);
     if (plain && (stringContainsRuntimeToken(plain) || /^[ie]:/i.test(plain))) {
       return jsonFormForRuntimePlain(plain, ctx, resolvedHint, forceBarePlains);
     }
     if (isWholeLiteralRuntimeToken(value)) {
       return JSON.stringify(toDisplayRuntimeToken(value));
-    }
-    if (isLiteralTokenValue(value)) {
-      return JSON.stringify(rewriteRuntimeTokensInText(unwrapLiteralToken(value)));
     }
     return JSON.stringify(rewriteRuntimeTokensInText(value));
   }
@@ -863,6 +900,11 @@ function reviveRuntimeTokenPlaceholders(
     const placeholder = PLACEHOLDER_RE.exec(value);
     if (placeholder) {
       return map[Number(placeholder[1])] ?? value;
+    }
+    // A JSON string whose whole value is i:xxx was written as "i:xxx".
+    // That is quoted text. {{i:xxx}} still revives to a live token below.
+    if (isPlainTokenScalar(value)) {
+      return wrapLiteralToken(value);
     }
     return reviveDisplayRuntimeTokensInValue(value);
   }

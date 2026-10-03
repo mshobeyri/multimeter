@@ -43,6 +43,11 @@ const PLAIN_TOKEN_RE =
 const DISPLAY_CURLY_TOKEN_RE =
     new RegExp(`^\\{\\{\\s*(${DYNAMIC_KEY_RE})\\s*\\}\\}$`, 'i');
 
+/** Whole value is a bare `i:` / `e:` / `r:` / `c:` / `o:` token, not `{{…}}` or `<<…>>`. */
+export function isPlainTokenScalar(value: string): boolean {
+  return PLAIN_TOKEN_RE.test(String(value ?? ''));
+}
+
 /**
  * True when a whole scalar looks like an e:/i:/r:/c:/o: token (plain, braced,
  * angle-wrapped, or curly display form). Used to decide which quoted YAML
@@ -61,6 +66,24 @@ export function isTokenLikeScalar(value: string): boolean {
     return true;
   }
   return false;
+}
+
+/**
+ * `"i:xxx"` / `'r:uuid'` when the quote characters are part of the text
+ * (input box, or a JSON/XML value saved back from the editor).
+ * Returns the inner token, or null when this is not a quoted token.
+ */
+export function unwrapQuotedTokenText(value: string): string|null {
+  const text = String(value ?? '').trim();
+  if (text.length < 4) {
+    return null;
+  }
+  const quote = text[0];
+  if ((quote !== '"' && quote !== '\'') || text[text.length - 1] !== quote) {
+    return null;
+  }
+  const inner = text.slice(1, -1);
+  return isTokenLikeScalar(inner) ? inner : null;
 }
 
 export function isLiteralTokenValue(value: unknown): boolean {

@@ -80,6 +80,14 @@ describe('peerString / peerRecord YAML↔UI', () => {
     });
   });
 
+  it('writes quoted token text back as a literal and bare tokens as tokens', () => {
+    expect(peerStringToDisplay(wrapLiteralToken('i:xxx'))).toBe('"i:xxx"');
+    expect(peerStringToYaml('"i:xxx"')).toBe(wrapLiteralToken('i:xxx'));
+    expect(peerStringToYaml('\'r:uuid\'')).toBe(wrapLiteralToken('r:uuid'));
+    expect(peerStringToYaml('i:xxx')).toBe('i:xxx');
+    expect(peerStringToYaml('{{i:xxx}}')).toBe('i:xxx');
+  });
+
   it('writes bare r:uuid and {{r:uuid}} to YAML as r:uuid', () => {
     expect(peerStringToYaml('r:uuid')).toBe('r:uuid');
     expect(peerStringToYaml('{{r:uuid}}')).toBe('r:uuid');
@@ -388,7 +396,7 @@ describe('stringifyJsonWithRuntimeTokens', () => {
     expect(text).toContain('"active": {{r:bool}}');
     expect(text).toContain('"request_id": "req-{{r:uuid}}"');
     expect(text).toContain('"bounded_int": {{r:int(10,20)}}');
-    expect(text).toContain('"label": "{{c:date}}"');
+    expect(text).toContain('"label": "c:date"');
   });
 
   it('quotes c:day / c:month (string names, not numbers)', () => {
@@ -434,6 +442,15 @@ describe('stringifyJsonWithRuntimeTokens', () => {
 });
 
 describe('parseJsonWithRuntimeTokens', () => {
+  it('keeps a JSON string i:xxx as quoted text and {{i:xxx}} as a live token', () => {
+    const parsed = parseJsonWithRuntimeTokens(`{
+  "name": "{{i:username}}",
+  "str": "i:username"
+}`) as {name: string; str: string};
+    expect(parsed.name).toBe('i:username');
+    expect(parsed.str).toBe(wrapLiteralToken('i:username'));
+  });
+
   it('revives quoted string tokens and bare number tokens to plain markers', () => {
     const parsed = parseJsonWithRuntimeTokens(`{
   "id": "{{r:uuid}}",
@@ -879,6 +896,26 @@ describe('bodyEditTokenTemplate quotes by input/env types', () => {
     expect(template).toContain('"when": "{{c:date}}"');
     expect(template).toContain('"epoch": {{c:epoch_ms}}');
     expect(template).toContain('"message": "Hello from mmt!"');
+  });
+
+  it('round-trips quoted token text to a YAML literal', () => {
+    const source = {
+      name: 'i:username',
+      quoted: wrapLiteralToken('i:username'),
+      missing: wrapLiteralToken('i:xxx'),
+    };
+    const text = bodyEditTokenTemplate(source, 'json');
+    expect(text).toContain('"name": "{{i:username}}"');
+    expect(text).toContain('"quoted": "i:username"');
+    expect(text).not.toContain('"quoted": "{{i:username}}"');
+    expect(text).toContain('"missing": "i:xxx"');
+    expect(bodyForYamlSave(source, text, 'json')).toEqual(source);
+
+    const xmlSource = {id: wrapLiteralToken('i:xxx')};
+    const xml = bodyEditTokenTemplate(xmlSource, 'xml');
+    expect(xml).toContain('>i:xxx<');
+    expect(xml).not.toContain('>{{i:xxx}}<');
+    expect(bodyForYamlSave(xmlSource, xml, 'xml')).toEqual(xmlSource);
   });
 });
 
