@@ -71,6 +71,27 @@ describe('shared UI → YAML write pipeline', () => {
     expect(inputBoxToYamlValueWithTokens('112', false)).toBe(112);
   });
 
+  it('shows omit as omit and quoted omit as text', () => {
+    expect(yamlValueToInputBoxWithTokens(OMIT_SENTINEL, true)).toBe('omit');
+    expect(inputBoxToYamlValueWithTokens('omit', true)).toBe(OMIT_SENTINEL);
+    expect(yamlValueToInputBoxWithTokens('omit', true)).toBe('"omit"');
+    expect(inputBoxToYamlValueWithTokens('"omit"', true)).toBe('omit');
+  });
+
+  it('turns a whole angle token into a live token', () => {
+    const literal = `${LITERAL_TOKEN_PREFIX}<<c:city>>`;
+    const quotedAngle = '"<<c:city>>"';
+    expect(yamlValueToInputBoxWithTokens(literal, true, true)).toBe('{{c:city}}');
+    expect(yamlValueToInputBoxWithTokens('<<i:username>>', true, true)).toBe('{{i:username}}');
+    expect(inputBoxToYamlValueWithTokens('{{c:city}}', true, true)).toBe('c:city');
+    expect(inputBoxToYamlValueWithTokens(quotedAngle, true, true)).toBe('c:city');
+    expect(yamlValueToInputBoxWithTokens(`${LITERAL_TOKEN_PREFIX}i:username`, true, true))
+        .toBe('"i:username"');
+    expect(inputBoxToYamlValueWithTokens('"i:username"', true, true))
+        .toBe(`${LITERAL_TOKEN_PREFIX}i:username`);
+    expect(yamlValueToInputBoxWithTokens(literal, true)).toBe(quotedAngle);
+  });
+
   it('string write: peer then coerce then stringify', () => {
     expect(inputBoxToYamlString('{{r:uuid}}', true)).toBe('r:uuid');
     expect(inputBoxToYamlString('112', true)).toBe('112');

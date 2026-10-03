@@ -1,6 +1,6 @@
 import {js2xml, xml2js} from 'xml-js';
 import * as YAML from 'yaml';
-import {Format} from './CommonData';
+import {Format, JSONValue} from './CommonData';
 import {formatHtmlBody} from './htmlFormat';
 import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
 import {parseYamlWithOmitKeyword} from './omitKeyword';
@@ -12,7 +12,11 @@ import {
   restoreLiteralTokens,
   unwrapLiteralToken,
 } from './literalToken';
-import {needsYamlDoubleQuotes} from './yamlValueConvert';
+import {
+  inputBoxToYamlValue,
+  needsYamlDoubleQuotes,
+  yamlValueToInputBox,
+} from './yamlValueConvert';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 import {normalizeNewlines} from './textLines';
 import {mergeYamlValue} from './yamlAstMerge';
@@ -26,6 +30,7 @@ import {
   reviveEditorBodyValue,
   rewriteAllLeavesToDisplayText,
   rewriteRuntimeLeavesToDisplayText,
+  peerStringToDisplay,
   stringifyJsonWithRuntimeTokens,
   type RuntimeTokenValueContext,
 } from './bodyRuntimeTokens';
@@ -274,16 +279,64 @@ function formValueToString(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function objectToUrlEncoded(obj: Record<string, unknown>): string {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(obj)) {
-    params.append(key, formValueToString(value));
+/**
+ * Editor form text uses the input-box spelling: `100`, `true`, `null`,
+ * `"112"`, `"true"`. The wire spelling stays in {@link formValueToString}
+ * (`null` is an empty field, strings are not wrapped in quotes).
+ */
+function editorFormValue(value: unknown): string {
+  if (value === null || typeof value === 'number' || typeof value === 'boolean' ||
+      typeof value === 'string') {
+    return yamlValueToInputBox(value as JSONValue);
   }
-  // Keep <<r:/c:>> readable in the editor (do not leave them percent-encoded).
-  return restoreAngleRuntimeTokensInUrlEncoded(params.toString());
+  return formValueToString(value);
 }
 
-function formatUrlEncodedBody(body: string|object): string {
+/** Keep input-box quotes visible (`qn="112"`) instead of `%22112%22`. */
+function revealInputBoxQuotes(encoded: string): string {
+  return encoded.replace(/=%22([^&]*)%22(?=&|$)/g, (_match, inner: string) => {
+    return `="${decodeURIComponent(inner)}"`;
+  });
+}
+
+function objectToUrlEncoded(
+    obj: Record<string, unknown>,
+    editor = false,
+): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(obj)) {
+    params.append(key, editor ? editorFormValue(value) : formValueToString(value));
+  }
+  // Keep <<r:/c:>> readable in the editor (do not leave them percent-encoded).
+  const encoded = restoreAngleRuntimeTokensInUrlEncoded(params.toString());
+  return editor ? revealInputBoxQuotes(encoded) : encoded;
+}
+
+/**
+ * Form text → YAML value, same rules as an input box.
+ * `100` / `true` / `false` / `null` stay typed. `"112"` / `"true"` stay strings.
+ * A JSON object or list stays the one form-field string.
+ */
+function urlEncodedScalarToYaml(text: string): unknown {
+  const typed = inputBoxToYamlValue(text);
+  if (typed !== null && typeof typed === 'object') {
+    return text;
+  }
+  return typed;
+}
+
+function coerceUrlEncodedRecord(
+    record: Record<string, string>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+      Object.entries(record).map(([key, value]) => [
+        key,
+        urlEncodedScalarToYaml(value),
+      ]),
+  );
+}
+
+function formatUrlEncodedBody(body: string|object, editor = false): string {
   if (typeof body === 'string') {
     const trimmed = body.trim();
     if (!trimmed) {
@@ -292,7 +345,7 @@ function formatUrlEncodedBody(body: string|object): string {
     try {
       const parsed = YAML.parse(trimmed);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return objectToUrlEncoded(parsed as Record<string, unknown>);
+        return objectToUrlEncoded(parsed as Record<string, unknown>, editor);
       }
     } catch {
       // Keep as raw string (already encoded or plain text)
@@ -300,9 +353,14 @@ function formatUrlEncodedBody(body: string|object): string {
     return restoreAngleRuntimeTokensInUrlEncoded(trimmed);
   }
   if (body && typeof body === 'object' && !Array.isArray(body)) {
-    return objectToUrlEncoded(body as Record<string, unknown>);
+    return objectToUrlEncoded(body as Record<string, unknown>, editor);
   }
   return body == null ? '' : restoreAngleRuntimeTokensInUrlEncoded(String(body));
+}
+
+/** Urlencoded text for the tester editor (input-box scalar spelling). */
+export function formatUrlEncodedEditorBody(body: string|object): string {
+  return formatUrlEncodedBody(body, true);
 }
 
 function parseUrlEncodedBody(body: string): Record<string, string> {
@@ -343,6 +401,170 @@ function coerceBodyToStructuredObject(body: string|object): string|object {
     // fall through
   }
   return normalized;
+}
+
+/** Pair `<tag></tag>` in non-expanded XML means `""`. Self-closing stays `{}`. */
+const XML_EMPTY_TEXT = '__MMT_EMPTY_TEXT__';
+
+function markXmlPairEmpty(xml: string): string {
+  return xml.replace(
+      /<([A-Za-z_:][\w:.-]*)([^>/]*)><\/\1>/g,
+      `<$1$2>${XML_EMPTY_TEXT}</$1>`,
+  );
+}
+
+function restoreEmptyTextMarker(value: unknown): unknown {
+  if (value === XML_EMPTY_TEXT) {
+    return '';
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => restoreEmptyTextMarker(item));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, child]) => [
+          key,
+          restoreEmptyTextMarker(child),
+        ]),
+    );
+  }
+  return value;
+}
+
+/**
+ * XML element text → YAML value, same rules as an input box.
+ * Live tokens and quoted token literals are left for the revive that already
+ * ran. `100` / `true` / `null` / `omit` are typed. `"112"` stays a string.
+ */
+function coerceXmlScalars(value: unknown): unknown {
+  if (typeof value === 'string') {
+    if (isLiteralTokenValue(value) || isTokenLikeScalar(value)) {
+      return value;
+    }
+    const typed = inputBoxToYamlValue(value);
+    if (typed !== null && typeof typed === 'object') {
+      return value;
+    }
+    if (typeof typed === 'string' && !isTokenLikeScalar(typed)) {
+      return reviveEditorBodyValue(typed);
+    }
+    return typed;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => coerceXmlScalars(item));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, child]) => [
+          key,
+          coerceXmlScalars(child),
+        ]),
+    );
+  }
+  return value;
+}
+
+/** Drop `omit` fields, including nested ones. Quoted `"omit"` is not a sentinel. */
+function dropOmittedXmlFields(value: unknown): unknown {
+  if (isOmitSentinel(value)) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    const items: unknown[] = [];
+    for (const item of value) {
+      const next = dropOmittedXmlFields(item);
+      if (next !== undefined) {
+        items.push(next);
+      }
+    }
+    return items;
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      const next = dropOmittedXmlFields(child);
+      if (next !== undefined) {
+        out[key] = next;
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
+function packXmlValue(value: unknown): unknown {
+  return dropOmittedXmlFields(coerceXmlScalars(restoreEmptyTextMarker(value)));
+}
+
+function xmlEditorLeaf(value: JSONValue, expanded: boolean): string {
+  if (value === '') {
+    // xmle writes every empty element as `<tag></tag>`, which means `{}`.
+    // A blank string uses the input-box quotes so the two stay distinct.
+    return expanded ? '""' : XML_EMPTY_TEXT;
+  }
+  if (typeof value !== 'string') {
+    return yamlValueToInputBox(value);
+  }
+  if (isLiteralTokenValue(value)) {
+    return yamlValueToInputBox(value);
+  }
+  const displayed = yamlValueToInputBox(value);
+  if (displayed !== value && displayed.startsWith('"') && displayed.endsWith('"')) {
+    return displayed;
+  }
+  return peerStringToDisplay(value);
+}
+
+function xmlValueForEditor(value: unknown, expanded: boolean): unknown {
+  if (isOmitSentinel(value)) {
+    return undefined;
+  }
+  if (value === null || typeof value === 'number' || typeof value === 'boolean' ||
+      typeof value === 'string') {
+    return xmlEditorLeaf(value as JSONValue, expanded);
+  }
+  if (Array.isArray(value)) {
+    const items: unknown[] = [];
+    for (const item of value) {
+      const next = xmlValueForEditor(item, expanded);
+      if (next !== undefined) {
+        items.push(next);
+      }
+    }
+    return items;
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      const next = xmlValueForEditor(child, expanded);
+      if (next !== undefined) {
+        out[key] = next;
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
+function hideEmptyTextMarker(xml: string): string {
+  return xml.split(`>${XML_EMPTY_TEXT}<`).join('><');
+}
+
+/** XML text for the tester editor (input-box scalar spelling, omit removed). */
+export function formatXmlEditorBody(body: unknown, expanded: boolean): string {
+  if (body == null || isOmitSentinel(body)) {
+    return '';
+  }
+  if (typeof body === 'string') {
+    return body;
+  }
+  const prepared = xmlValueForEditor(body, expanded);
+  const xml = js2xml(prepared as object, {
+    compact: true,
+    spaces: 2,
+    fullTagEmptyElement: expanded,
+  });
+  return expanded ? xml : hideEmptyTextMarker(xml);
 }
 
 function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean): string {
@@ -565,13 +787,15 @@ function packUiBodyStrictForYaml(format: Format, body: string): unknown|null {
       return parseJsonWithRuntimeTokens(text);
     }
     if (isXmlFormat(format)) {
-      return parseXmlTextWithRuntimeTokens(
-          text,
+      const marked = format === 'xml' ? markXmlPairEmpty(text) : text;
+      return packXmlValue(parseXmlTextWithRuntimeTokens(
+          marked,
           (xml) => flattenXmlObj(xml2js(xml, {compact: true})),
-      );
+      ));
     }
     if (format === 'urlencoded') {
-      return reviveEditorBodyValue(parseUrlEncodedBody(text));
+      return reviveEditorBodyValue(
+          coerceUrlEncodedRecord(parseUrlEncodedBody(text)));
     }
     if (format === 'binary' || format === 'text' || format === 'html' ||
         format === 'none') {
@@ -639,19 +863,19 @@ function beautify(
           forceBarePlains);
     }
     if (isXmlFormat(format)) {
+      const marked = format === 'xml' ? markXmlPairEmpty(value) : value;
       const parsed = parseXmlTextWithRuntimeTokens(
-          value,
+          marked,
           (xml) => flattenXmlObj(xml2js(xml, {compact: true})),
       );
-      return formatXmlBody(
-          rewriteRuntimeLeavesToDisplayText(parsed) as string|object,
-          true,
-          format === 'xmle');
+      return formatXmlEditorBody(packXmlValue(parsed), format === 'xmle');
     }
     if (format === 'urlencoded') {
-      const parsed = reviveEditorBodyValue(parseUrlEncodedBody(value));
+      const parsed = reviveEditorBodyValue(
+          coerceUrlEncodedRecord(parseUrlEncodedBody(value)));
       return objectToUrlEncoded(
-          rewriteRuntimeLeavesToDisplayText(parsed) as Record<string, unknown>);
+          rewriteRuntimeLeavesToDisplayText(parsed) as Record<string, unknown>,
+          true);
     }
     if (format === 'html') {
       return formatHtmlBody(value);

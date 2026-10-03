@@ -46,6 +46,11 @@ type KSVEditorBaseProps = {
   /** Value fields: resolved/token dual-mode when a value contains tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
+  /**
+   * Whole `<<c:city>>` shows as `{{c:city}}` and saves as `c:city`.
+   * Quoted `i:username` stays a literal.
+   */
+  liveAngleTokens?: boolean;
 };
 
 type KSVEditorProps = KSVEditorBaseProps & (
@@ -64,6 +69,7 @@ function withTrailingEmptyKey(
   obj: string | Record<string, string> | JSONRecord | undefined,
   tokens: boolean,
   addEmpty: boolean = true,
+  liveAngleTokens: boolean = false,
 ): KvEntry[] {
   if (!obj) {
     return addEmpty ? [["", ""]] : [];
@@ -75,7 +81,7 @@ function withTrailingEmptyKey(
 
   const entries = Object.entries(obj).map(([key, value]): KvEntry => [
     key,
-    yamlValueToInputBoxWithTokens(value as JSONValue, tokens),
+    yamlValueToInputBoxWithTokens(value as JSONValue, tokens, liveAngleTokens),
   ]);
 
   if (addEmpty && (entries.length === 0 || entries[entries.length - 1][0] !== "")) {
@@ -103,11 +109,12 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   canContainToken = false,
   valueContext,
   typedValues = false,
+  liveAngleTokens = false,
 }) => {
   const tableRef = useRef<HTMLTableElement>(null);
   const propEntries = useMemo(
-    () => withTrailingEmptyKey(value, canContainToken, expandable),
-    [value, canContainToken, expandable],
+    () => withTrailingEmptyKey(value, canContainToken, expandable, liveAngleTokens),
+    [value, canContainToken, expandable, liveAngleTokens],
   );
   const [draft, setDraft] = useState<KvEntry[] | null>(null);
   const entries = draft ?? propEntries;
@@ -173,7 +180,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
       const typedOnChange = onChange as (v: JSONRecord) => void;
       typedOnChange(entriesToUniqueRecord(
         next,
-        (display) => inputBoxToYamlValueWithTokens(display, canContainToken),
+        (display) => inputBoxToYamlValueWithTokens(display, canContainToken, liveAngleTokens),
       ));
       return;
     }

@@ -15,7 +15,12 @@ import {
   valueForYamlSave,
   type RuntimeTokenValueContext,
 } from './bodyRuntimeTokens';
-import {formatBody, packBodyForYamlCompare} from './markupConvertor';
+import {
+  formatBody,
+  formatUrlEncodedEditorBody,
+  formatXmlEditorBody,
+  packBodyForYamlCompare,
+} from './markupConvertor';
 import {normalizeNewlines} from './textLines';
 
 export {
@@ -81,9 +86,17 @@ export function displayRequestBody(
     return stringifyJsonWithRuntimeTokens(
         projected, true, options?.valueContext);
   }
+  if (format === 'urlencoded') {
+    const shown = options && options.tokenSource !== undefined ?
+      rewriteRuntimeLeavesToDisplayText(projected) :
+      projected;
+    return formatUrlEncodedEditorBody(shown as string|object);
+  }
+  if (isXmlLikeFormat(format)) {
+    return formatXmlEditorBody(projected, format === 'xmle');
+  }
   if (options && options.tokenSource !== undefined &&
-      (isXmlLikeFormat(format) || format === 'urlencoded' || format === 'text' ||
-       format === 'html' || format === 'none')) {
+      (format === 'text' || format === 'html' || format === 'none')) {
     const display = rewriteRuntimeLeavesToDisplayText(projected);
     return formatBody(format, display as string|object);
   }
@@ -110,6 +123,12 @@ export function bodyEditTokenTemplate(
   if (format === 'json' || format === 'multipart') {
     return stringifyJsonWithRuntimeTokens(
         projected, true, valueContext, resolvedHint);
+  }
+  if (format === 'urlencoded') {
+    return formatUrlEncodedEditorBody(projected as string|object);
+  }
+  if (format === 'xml' || format === 'xmle') {
+    return formatXmlEditorBody(tokenSource, format === 'xmle');
   }
   return formatBody(format, projected as string|object);
 }

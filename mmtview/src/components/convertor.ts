@@ -3,7 +3,8 @@ import {
   yamlValueToInputBox,
 } from 'mmt-core/yamlValueConvert';
 import {peerStringToDisplay, peerStringToYaml} from 'mmt-core/apiBodyEdit';
-import {isLiteralTokenValue} from 'mmt-core/literalToken';
+import {isLiteralTokenValue, unwrapLiteralToken, wholeAngleTokenPlain} from 'mmt-core/literalToken';
+import {isOmitSentinel} from 'mmt-core/omitKeyword';
 import {JSONValue} from 'mmt-core/CommonData';
 
 export {
@@ -27,10 +28,26 @@ export function withOptionalPeer(val: string, tokens = false): string {
  * Shared UI → YAML write for typed fields (inputs, expect values).
  * peer (optional) → type coerce (`"112"` → string, `112` → number, …).
  */
+function unquoteWhole(val: string): string {
+  const t = String(val ?? '').trim();
+  if ((t.startsWith('"') && t.endsWith('"') && t.length >= 2) ||
+      (t.startsWith('\'') && t.endsWith('\'') && t.length >= 2)) {
+    return t.slice(1, -1);
+  }
+  return t;
+}
+
 export function inputBoxToYamlValueWithTokens(
     val: string,
     tokens = false,
+    liveAngleTokens = false,
 ): JSONValue {
+  if (liveAngleTokens) {
+    const plain = wholeAngleTokenPlain(unquoteWhole(val));
+    if (plain) {
+      return plain;
+    }
+  }
   return inputBoxToYamlValue(withOptionalPeer(val, tokens));
 }
 
@@ -61,11 +78,19 @@ export const peerFieldToValue = (val: string): JSONValue =>
 export function yamlValueToInputBoxWithTokens(
     val: JSONValue | undefined,
     tokens = false,
+    liveAngleTokens = false,
 ): string {
+  if (liveAngleTokens && typeof val === 'string') {
+    const inner = isLiteralTokenValue(val) ? unwrapLiteralToken(val) : val;
+    const plain = wholeAngleTokenPlain(inner);
+    if (plain) {
+      return `{{${plain}}}`;
+    }
+  }
   if (!tokens || typeof val !== 'string') {
     return yamlValueToInputBox(val);
   }
-  if (isLiteralTokenValue(val)) {
+  if (isLiteralTokenValue(val) || isOmitSentinel(val)) {
     return yamlValueToInputBox(val);
   }
   const displayed = yamlValueToInputBox(val);

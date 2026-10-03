@@ -37,6 +37,15 @@ const SINGLE_ANGLE_ENV_RE =
     new RegExp(`^<\\s*e:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\s*>$`);
 const ANGLE_TOKEN_RE =
     new RegExp(`^<<\\s*(${DYNAMIC_KEY_RE})\\s*>>$`);
+
+/** Whole `<<c:city>>` → `c:city`. Not a plain `c:city` or `{{c:city}}`. */
+export function wholeAngleTokenPlain(value: string): string | null {
+  const match = ANGLE_TOKEN_RE.exec(String(value ?? '').trim());
+  if (!match) {
+    return null;
+  }
+  return match[1].replace(/\s+/g, '');
+}
 const PLAIN_TOKEN_RE =
     new RegExp(`^(${DYNAMIC_KEY_RE})$`);
 /** UI / Option C YAML alias: `{{i:x}}` / `{{r:uuid}}` / … */

@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import { SplitPane } from "@rexxars/react-split-pane";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIData";
-import { JSONRecord, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
+import { JSONRecord, JSONValue, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
@@ -27,6 +27,10 @@ import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import { HideWhenYamlError } from "./YamlErrorWarning";
 import MethodUrlBar from "../components/MethodUrlBar";
+import {
+  inputBoxToYamlValueWithTokens,
+  yamlValueToInputBoxWithTokens,
+} from "../components/convertor";
 import BodyFormatBar from "../components/BodyFormatBar";
 import ResponseBodyBar from "../components/ResponseBodyBar";
 import ResponseBodyContent from "../components/ResponseBodyContent";
@@ -153,6 +157,24 @@ const DEFAULT_REQUEST_PANE_RATIO = 0.5;
 const MIN_REQUEST_PANE_RATIO = 0.15;
 const MAX_REQUEST_PANE_RATIO = 0.85;
 
+/** URL bar text for a typed query map. Same spelling as a header value. */
+function queryForUrlBar(query?: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(query ?? {})) {
+    out[key] = yamlValueToInputBoxWithTokens(value as JSONValue, true, true);
+  }
+  return out;
+}
+
+/** URL bar writes strings. Coerce them with the header / input-box rules. */
+function queryFromUrlBar(query: Record<string, string>): JSONRecord {
+  const out: JSONRecord = {};
+  for (const [key, value] of Object.entries(query)) {
+    out[key] = inputBoxToYamlValueWithTokens(value, true, true);
+  }
+  return out;
+}
+
 function cloneInputs(source?: JSONRecord): JSONRecord {
   if (!source) {
     return {};
@@ -239,13 +261,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const isGrpc = (requestData?.protocol ?? api.protocol) === "grpc";
   const requestProtocol = requestData?.protocol || api.protocol;
   const peerUrl = useMemo(() => peerStringToDisplay(api.url), [api.url]);
-  const peerQuery = useMemo(
-    () => peerRecordToDisplay(api.query as Record<string, unknown> | undefined),
+  const urlQuery = useMemo(
+    () => queryForUrlBar(api.query as Record<string, unknown> | undefined),
     [api.query],
-  );
-  const peerCookies = useMemo(
-    () => peerRecordToDisplay(api.cookies as Record<string, unknown> | undefined),
-    [api.cookies],
   );
   const peerGraphqlVariables = useMemo(
     () => peerRecordToDisplay(
@@ -359,16 +377,20 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
   // Finalize string maps for YAML (peer + omit empty). KSV/URL bar may already
   // peer when canContainToken; peerRecordToYaml is idempotent.
-  const onQueryChange = useCallback((query: Record<string, string>) => {
-    onUpdateApi?.({ query: peerRecordToYaml(query) });
+  const onQueryChange = useCallback((query: JSONRecord) => {
+    onUpdateApi?.({ query: query as APIData["query"] });
   }, [onUpdateApi]);
+
+  const onUrlQueryChange = useCallback((query: Record<string, string>) => {
+    onQueryChange(queryFromUrlBar(query));
+  }, [onQueryChange]);
 
   const onHeadersChange = useCallback((headers: JSONRecord) => {
     onUpdateApi?.({ headers: headers as APIData["headers"] });
   }, [onUpdateApi]);
 
-  const onCookiesChange = useCallback((cookies: Record<string, string>) => {
-    onUpdateApi?.({ cookies: peerRecordToYaml(cookies) });
+  const onCookiesChange = useCallback((cookies: JSONRecord) => {
+    onUpdateApi?.({ cookies: cookies as APIData["cookies"] });
   }, [onUpdateApi]);
 
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
@@ -978,9 +1000,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           methodValue={methodOrProtocolValue}
           onMethodChange={handleMethodOrProtocolChange}
           url={peerUrl}
-          query={peerQuery}
+          query={urlQuery}
           onUrlChange={onUrlChange}
-          onQueryChange={onQueryChange}
+          onQueryChange={onUrlQueryChange}
           canContainToken
           valueContext={bodyValueContext}
         />
@@ -1196,9 +1218,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         <div className="apitest-section">
         {shouldShowQuery() && <KSVEditor
           label=""
-          value={peerQuery}
+          value={api.query}
           onChange={onQueryChange}
           canContainToken
+          typedValues
+          liveAngleTokens
           valueContext={bodyValueContext}
         />}
         {shouldShowHeaders() && <KSVEditor
@@ -1207,13 +1231,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           onChange={onHeadersChange}
           canContainToken
           typedValues
+          liveAngleTokens
           valueContext={bodyValueContext}
         />}
         {shouldShowCookies() && <KSVEditor
           label=""
-          value={peerCookies}
+          value={api.cookies}
           onChange={onCookiesChange}
           canContainToken
+          typedValues
+          liveAngleTokens
           valueContext={bodyValueContext}
         />}
         {shouldShowBody() && (

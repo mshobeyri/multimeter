@@ -418,3 +418,36 @@ describe('header scalar round-trip', () => {
     expect(yamlToAPI(again).headers).toEqual(api.headers);
   });
 });
+
+describe('query and cookie scalar round-trip', () => {
+  it('keeps bool and number query and cookies typed', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com',
+      'method: get',
+      'query:',
+      '  flag: true',
+      '  qflag: "true"',
+      '  n: 100',
+      '  qn: "112"',
+      'cookies:',
+      '  flag: false',
+      '  n: 7',
+      '  qn: "8"',
+    ].join('\n');
+    const api = yamlToAPI(yaml);
+    expect(api.query).toEqual({flag: true, qflag: 'true', n: 100, qn: '112'});
+    expect(api.cookies).toEqual({flag: false, n: 7, qn: '8'});
+    const again = apiToYaml(api, yaml);
+    expect(again).toMatch(/flag: true\b/);
+    expect(again).toMatch(/qflag: "true"/);
+    expect(again).toMatch(/\bn: 100\b/);
+    expect(again).toMatch(/qn: "112"/);
+    expect(again).toMatch(/flag: false\b/);
+    expect(again).toMatch(/\bn: 7\b/);
+    expect(again).toMatch(/qn: "8"/);
+    const parsed = yamlToAPI(again);
+    expect(parsed.query).toEqual(api.query);
+    expect(parsed.cookies).toEqual(api.cookies);
+  });
+});

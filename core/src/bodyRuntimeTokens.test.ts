@@ -5,7 +5,12 @@ import {
   bodyForYamlSave,
   displayRequestBody,
 } from './apiBodyEdit';
-import {wrapLiteralToken} from './literalToken';
+import {
+  isLiteralTokenValue,
+  unwrapLiteralToken,
+  wrapLiteralToken,
+} from './literalToken';
+import {apiToYaml, yamlToAPI} from './apiParsePack';
 import {
   displayRuntimeTokensToResolvableText,
   displayRuntimeString,
@@ -913,7 +918,7 @@ describe('bodyEditTokenTemplate quotes by input/env types', () => {
 
     const xmlSource = {id: wrapLiteralToken('i:xxx')};
     const xml = bodyEditTokenTemplate(xmlSource, 'xml');
-    expect(xml).toContain('>i:xxx<');
+    expect(xml).toContain('<id>"i:xxx"</id>');
     expect(xml).not.toContain('>{{i:xxx}}<');
     expect(bodyForYamlSave(xmlSource, xml, 'xml')).toEqual(xmlSource);
   });
@@ -961,11 +966,197 @@ describe('applyRequestBodyEdit with tokenSource baseline', () => {
   });
 });
 
+describe('xml scalar yaml policy', () => {
+  const yaml = [
+    'type: api',
+    'url: https://example.com',
+    'method: post',
+    'format: xml',
+    'body:',
+    '  user:',
+    '    id: "<<i:username>>"',
+    '    name: i:username',
+    '    str: "i:username"',
+    '    n: 100',
+    '    ok: true',
+    '    off: false',
+    '    z: null',
+    '    qn: "112"',
+    '    qflag: "true"',
+    '    blank: ""',
+    '    empty: {}',
+    '    list:',
+    '      - 1',
+    '      - 2',
+    '    note: omit',
+    '    keep: "omit"',
+  ].join('\n');
+
+  it('types leaves, keeps quoted tokens, and drops omit', () => {
+    const api = yamlToAPI(yaml);
+    const ui = bodyEditTokenTemplate(api.body, 'xml');
+    expect(ui).toContain('<id>"&lt;&lt;i:username&gt;&gt;"</id>');
+    expect(ui).toContain('<name>{{i:username}}</name>');
+    expect(ui).toContain('<str>"i:username"</str>');
+    expect(ui).toContain('<n>100</n>');
+    expect(ui).toContain('<ok>true</ok>');
+    expect(ui).toContain('<off>false</off>');
+    expect(ui).toContain('<z>null</z>');
+    expect(ui).toContain('<qn>"112"</qn>');
+    expect(ui).toContain('<qflag>"true"</qflag>');
+    expect(ui).toContain('<blank></blank>');
+    expect(ui).toContain('<empty/>');
+    expect(ui).toContain('<list>1</list>');
+    expect(ui).toContain('<list>2</list>');
+    expect(ui).toContain('<keep>"omit"</keep>');
+    expect(ui).not.toContain('note');
+    expect(ui).not.toContain('__MMT_OMIT__');
+
+    const saved = bodyForYamlSave(api.body, ui, 'xml') as Record<string, any>;
+    expect(saved.user.id && unwrapLiteralToken(saved.user.id)).toBe('<<i:username>>');
+    expect(isLiteralTokenValue(saved.user.id)).toBe(true);
+    expect(saved.user.name).toBe('i:username');
+    expect(isLiteralTokenValue(saved.user.str)).toBe(true);
+    expect(unwrapLiteralToken(saved.user.str)).toBe('i:username');
+    expect(saved.user.n).toBe(100);
+    expect(saved.user.ok).toBe(true);
+    expect(saved.user.off).toBe(false);
+    expect(saved.user.z).toBeNull();
+    expect(saved.user.qn).toBe('112');
+    expect(saved.user.qflag).toBe('true');
+    expect(saved.user.blank).toBe('');
+    expect(saved.user.empty).toEqual({});
+    expect(saved.user.list).toEqual([1, 2]);
+    expect(saved.user.keep).toBe('omit');
+    expect(saved.user.note).toBeUndefined();
+
+    const again = apiToYaml({...api, body: saved}, yaml);
+    expect(again).not.toMatch(/note:/);
+    expect(again).toMatch(/\bn: 100\b/);
+    expect(again).toMatch(/qn: "112"/);
+    expect(again).toMatch(/id: "<<i:username>>"/);
+  });
+
+  it('expanded xml uses the same leaf rules and keeps empty objects', () => {
+    const source = {
+      user: {
+        id: 'i:username',
+        n: 100,
+        blank: '',
+        empty: {},
+        note: '__MMT_OMIT__',
+      },
+    };
+    const ui = bodyEditTokenTemplate(source, 'xmle');
+    expect(ui).toContain('<id>{{i:username}}</id>');
+    expect(ui).toContain('<n>100</n>');
+    expect(ui).toContain('<blank>""</blank>');
+    expect(ui).toContain('<empty></empty>');
+    expect(ui).not.toContain('note');
+    expect(ui).not.toContain('__MMT_OMIT__');
+    expect(bodyForYamlSave(source, ui, 'xmle')).toEqual({
+      user: {id: 'i:username', n: 100, blank: '', empty: {}},
+    });
+  });
+
+  it('sends xml without editor quotes', () => {
+    const wire = formatBody('xml', {n: 100, qn: '112', ok: true}, false);
+    expect(wire).toContain('<n>100</n>');
+    expect(wire).toContain('<qn>112</qn>');
+    expect(wire).toContain('<ok>true</ok>');
+    expect(wire).not.toContain('"112"');
+  });
+});
+
 describe('formatBody without tokenSource still resolves normally', () => {
   it('json stringifies concrete values', () => {
     expect(JSON.parse(formatBody('json', {id: 'abc', n: 1}))).toEqual({
       id: 'abc',
       n: 1,
     });
+  });
+});
+
+describe('json editor tokens', () => {
+  it('shows bracket forms and saves them as live tokens', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com',
+      'method: post',
+      'format: json',
+      'body:',
+      '  angled: "<<i:username>>"',
+      '  curly: "{{i:username}}"',
+      '  str: "i:username"',
+      '  name: i:username',
+      '  n: 100',
+      '  ok: true',
+    ].join('\n');
+    const api = yamlToAPI(yaml);
+    const ui = bodyEditTokenTemplate(api.body, 'json');
+    expect(ui).toContain('"angled": "<<i:username>>"');
+    expect(ui).toContain('"curly": "{{i:username}}"');
+    expect(ui).toContain('"str": "i:username"');
+    expect(ui).toContain('"name": "{{i:username}}"');
+    expect(ui).toContain('"n": 100');
+    expect(ui).toContain('"ok": true');
+
+    const saved = bodyForYamlSave(api.body, ui, 'json') as Record<string, unknown>;
+    expect(saved.angled).toBe('i:username');
+    expect(saved.curly).toBe('i:username');
+    expect(saved.name).toBe('i:username');
+    expect(saved.n).toBe(100);
+    expect(saved.ok).toBe(true);
+    expect(isLiteralTokenValue(saved.str)).toBe(true);
+    expect(unwrapLiteralToken(String(saved.str))).toBe('i:username');
+
+    const again = apiToYaml({...api, body: saved}, yaml);
+    expect(again).toMatch(/angled: i:username\b/);
+    expect(again).toMatch(/curly: i:username\b/);
+    expect(again).toMatch(/str: "i:username"/);
+    expect(again).toMatch(/name: i:username\b/);
+    expect(again).toMatch(/\bn: 100\b/);
+    expect(again).toMatch(/\bok: true\b/);
+  });
+});
+
+describe('urlencoded scalar yaml policy', () => {
+  it('stores numbers, bools, and null like inputs', () => {
+    const source = {
+      n: 100,
+      ok: true,
+      off: false,
+      z: null,
+      name: 'ada',
+      qn: '112',
+      qflag: 'true',
+      blank: '',
+    };
+    const shown = displayRequestBody(source, 'urlencoded');
+    expect(shown).toBe(
+        'n=100&ok=true&off=false&z=null&name=ada&qn="112"&qflag="true"&blank=',
+    );
+    expect(bodyForYamlSave(source, shown, 'urlencoded')).toEqual(source);
+  });
+
+  it('coerces form text on save', () => {
+    expect(bodyForYamlSave(
+        {n: 'x'},
+        'n=100&ok=true&off=false&z=null&qn="112"&qflag="true"&blank=',
+        'urlencoded',
+    )).toEqual({
+      n: 100,
+      ok: true,
+      off: false,
+      z: null,
+      qn: '112',
+      qflag: 'true',
+      blank: '',
+    });
+  });
+
+  it('keeps the wire form empty for null', () => {
+    expect(formatBody('urlencoded', {count: 3, enabled: true, empty: null}, false))
+        .toBe('count=3&enabled=true&empty=');
   });
 });
