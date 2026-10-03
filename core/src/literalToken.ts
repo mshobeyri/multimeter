@@ -31,10 +31,6 @@ const DYNAMIC_KEY_RE =
     `(?:r:${RUNTIME_SPEC_RE}|c:${RUNTIME_SPEC_RE}|(?:e|i|o):${TOKEN_NAME_RE})` +
     ACCESSOR_PATH_RE;
 
-const ENV_BRACE_TOKEN_RE =
-    new RegExp(`^e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\}$`);
-const SINGLE_ANGLE_ENV_RE =
-    new RegExp(`^<\\s*e:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\s*>$`);
 const ANGLE_TOKEN_RE =
     new RegExp(`^<<\\s*(${DYNAMIC_KEY_RE})\\s*>>$`);
 
@@ -58,17 +54,14 @@ export function isPlainTokenScalar(value: string): boolean {
 }
 
 /**
- * True when a whole scalar looks like an e:/i:/r:/c:/o: token (plain, braced,
- * angle-wrapped, or curly display form). Used to decide which quoted YAML
- * values stay literal.
+ * True when a whole scalar looks like an e:/i:/r:/c:/o: token (plain,
+ * `<<…>>`, or curly display form). Used to decide which quoted YAML
+ * values stay literal. `<e:name>` and `e:{name}` are ordinary text.
  */
 export function isTokenLikeScalar(value: string): boolean {
   const text = String(value ?? '');
   if (!text) {
     return false;
-  }
-  if (ENV_BRACE_TOKEN_RE.test(text) || SINGLE_ANGLE_ENV_RE.test(text)) {
-    return true;
   }
   if (ANGLE_TOKEN_RE.test(text) || PLAIN_TOKEN_RE.test(text) ||
       DISPLAY_CURLY_TOKEN_RE.test(text)) {

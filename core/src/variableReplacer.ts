@@ -12,8 +12,6 @@ import {TestData} from './TestData';
 //
 // Supported forms for env/input/random/current/output references in .mmt files:
 //   <<e:VAR>>          angle-bracket-wrapped (required when mixed with other text)
-//   <e:VAR>            single-angle-bracket-wrapped (env only)
-//   e:{VAR}            brace-wrapped (env only, whole value)
 //   e:VAR              plain, only when the entire value is the token
 //   <<o:name>> / o:name  test outputs object (runtime; not API doc annotations)
 //
@@ -46,8 +44,6 @@ function replaceTokenForms(
     ) => string,
     options: {
       includeAngles?: boolean,
-      includeSingleAngles?: boolean,
-      includeBraceForm?: boolean,
       includePlain?: boolean,
     } = {}): string {
   const source = String(s ?? '');
@@ -58,9 +54,9 @@ function replaceTokenForms(
   let out = source;
 
   // A YAML-quoted bare token is the whole JSON string or XML text node
-  // (`"i:name"`, `>i:name<`). Leave that text alone. `<<token>>` and `<e:token>`
-  // are token syntax: replace the brackets too, so a missing name stays
-  // `i:name` instead of `<<i:name>>`.
+  // (`"i:name"`, `>i:name<`). Leave that text alone. `<<token>>` is token
+  // syntax: replace the brackets too, so a missing name stays `i:name`
+  // instead of `<<i:name>>`. `<e:name>` and `e:{name}` are ordinary text.
   const keepQuotedLiteral = (
       match: string, offset: number, text: string, plain: boolean): boolean => {
     if (offset <= 0 || offset + match.length >= text.length) {
@@ -84,25 +80,27 @@ function replaceTokenForms(
     return false;
   };
 
+  // `<e:name>` is not a token. Skip a plain `e:name` that sits inside one
+  // pair of angles so the inner name is not rewritten on its own.
+  const wrappedInSingleAngles = (
+      offset: number, length: number, text: string): boolean => {
+    let i = offset - 1;
+    while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) {
+      i--;
+    }
+    if (i < 0 || text[i] !== '<' || (i > 0 && text[i - 1] === '<')) {
+      return false;
+    }
+    let j = offset + length;
+    while (j < text.length && (text[j] === ' ' || text[j] === '\t')) {
+      j++;
+    }
+    return j < text.length && text[j] === '>' && text[j + 1] !== '>';
+  };
+
   if (options.includeAngles !== false) {
     out = out.replace(
         new RegExp(`<<\\s*${prefix}:${capture}\\s*>>`, 'g'),
-        (match, name: string, accessor = '', offset: number, source: string) =>
-          keepQuotedLiteral(match, offset, source, false) ?
-            match :
-            formatter(name, accessor || '', match, offset, source));
-  }
-  if (options.includeSingleAngles) {
-    out = out.replace(
-        new RegExp(`<\\s*${prefix}:${capture}\\s*>`, 'g'),
-        (match, name: string, accessor = '', offset: number, source: string) =>
-          keepQuotedLiteral(match, offset, source, false) ?
-            match :
-            formatter(name, accessor || '', match, offset, source));
-  }
-  if (options.includeBraceForm) {
-    out = out.replace(
-        new RegExp(`(?<![a-zA-Z0-9])${prefix}:\\{(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\}`, 'g'),
         (match, name: string, accessor = '', offset: number, source: string) =>
           keepQuotedLiteral(match, offset, source, false) ?
             match :
@@ -112,7 +110,8 @@ function replaceTokenForms(
     out = out.replace(
         new RegExp(`(?<![a-zA-Z0-9])${prefix}:${capture}(?![A-Za-z0-9_])`, 'g'),
         (match, name: string, accessor = '', offset: number, source: string) =>
-          keepQuotedLiteral(match, offset, source, true) ?
+          keepQuotedLiteral(match, offset, source, true) ||
+              wrappedInSingleAngles(offset, match.length, source) ?
             match :
             formatter(name, accessor || '', match, offset, source));
   }
@@ -253,7 +252,7 @@ export const normalizeEnvTokens = (s: string): string =>
     replaceTokenForms(
         s, 'e',
         (name, accessor) => toJsAccessorExpression(`envVariables.${name}`, accessor),
-        {includeSingleAngles: true, includeBraceForm: true});
+        {});
 
 /**
  * Simple word-boundary env-token replacement: `e:VAR` → `envVariables.VAR`.
@@ -264,7 +263,7 @@ export const replaceEnvTokensPlain = (s: string): string =>
     replaceTokenForms(
         s, 'e',
         (name, accessor) => toJsAccessorExpression(`envVariables.${name}`, accessor),
-        {includeAngles: false, includeSingleAngles: false, includeBraceForm: false});
+        {includeAngles: false});
 
 /**
  * How a missing `e:` name is read.
@@ -297,7 +296,7 @@ export const replaceEnvTokensToJs = (
     replaceTokenForms(
         s, 'e',
         (name, accessor) => '${' + envTokenJsExpr(name, accessor, mode) + '}',
-        {includeSingleAngles: true, includeBraceForm: true});
+        {});
 
 /**
  * Replace all r: / c: token syntaxes in `s` with runtime call expressions.
@@ -307,12 +306,12 @@ export const replaceRandCurrentTokensToJs = (s: string): string => {
       s, 'r',
       (name, accessor) => '${' +
           toJsAccessorExpression(`mmtRandom_('${name}')`, accessor) + '}',
-      {includeSingleAngles: false, includeBraceForm: false});
+      {});
   out = replaceTokenForms(
       out, 'c',
       (name, accessor) => '${' +
           toJsAccessorExpression(`mmtCurrent_('${name}')`, accessor) + '}',
-      {includeSingleAngles: false, includeBraceForm: false});
+      {});
   return out;
 };
 
@@ -326,7 +325,7 @@ export const replaceInputTokensToJs = (
     replaceTokenForms(
         s, 'i',
         (name, accessor) => inputTokenInterpolation(name, accessor, options),
-        {includeSingleAngles: false, includeBraceForm: false});
+        {});
 
 /**
  * Replace `o:` / `<<o:…>>` tokens with `${outputs.…}` interpolations for
@@ -338,7 +337,7 @@ export const replaceOutputTokensToJs = (s: string): string =>
         s, 'o',
         (name, accessor) => '${' +
             toJsAccessorExpression(`outputs.${name}`, accessor) + '}',
-        {includeSingleAngles: false, includeBraceForm: false});
+        {});
 
 /**
  * Plain `o:name` → `outputs.name` (no `${…}`), for check/if expressions.
@@ -347,7 +346,7 @@ export const replaceOutputTokensPlain = (s: string): string =>
     replaceTokenForms(
         s, 'o',
         (name, accessor) => toJsAccessorExpression(`outputs.${name}`, accessor),
-        {includeAngles: false, includeSingleAngles: false, includeBraceForm: false});
+        {includeAngles: false});
 
 /**
  * Rewrite a `set` step key `o:user.name` to assignment LHS `outputs.user.name`.
@@ -500,7 +499,7 @@ export const resolveEnvTokenValues =
               const value = applyValueAccessor(envParams[name], accessor);
               return value !== undefined ? embedResolvedTokenText(value) : match;
             },
-            {includeSingleAngles: true, includeBraceForm: true});
+            {});
 
 // Replacement modes enum
 enum ReplacementMode {
@@ -631,7 +630,7 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
             embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
             match;
         },
-        {includeSingleAngles: false, includeBraceForm: false, includePlain: false});
+        {includePlain: false});
     out = replaceTokenForms(
         out, 'c',
         (name, accessor, match, offset, source) => {
@@ -640,7 +639,7 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
             embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
             match;
         },
-        {includeSingleAngles: false, includeBraceForm: false, includePlain: false});
+        {includePlain: false});
     out = replaceTokenForms(
         out, 'e',
         (name, accessor, match, offset, source) => {
@@ -649,7 +648,7 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
             embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
             match;
         },
-        {includeSingleAngles: true, includeBraceForm: true, includePlain: false});
+        {includePlain: false});
     return out;
   }
   if (Array.isArray(val)) {

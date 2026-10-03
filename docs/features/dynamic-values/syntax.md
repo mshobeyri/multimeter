@@ -9,10 +9,10 @@ See also: [Dynamic values overview](./index.md) · [Random tokens](./random.md) 
 | Form | Example | Notes |
 |------|---------|-------|
 | Angle brackets | `<<e:api_url>>` | **Preferred** inside strings (URLs, header values, body text) |
-| Single angle brackets | `<e:token>` | Env only (legacy alternate) |
-| Brace form | `e:{token}` | Env only (legacy alternate) |
 | Plain | `e:api_url` | **Whole scalar only** after `: ` (preserves type). Do not embed bare `e:` in other text — use `<<e:…>>` |
 | Curly alias | `{{e:api_url}}` | Accepted in YAML outside quotes (rewritten to `<<e:…>>` before parse). Quoted `"{{e:…}}"` stays literal text |
+
+`<e:name>` and `e:{name}` are ordinary text.
 
 ## Inputs (`i:`)
 

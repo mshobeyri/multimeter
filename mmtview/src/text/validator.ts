@@ -1745,8 +1745,6 @@ const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
 const INPUT_REF_BRACE_RE = new RegExp(`<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>`, 'g');
 const INPUT_REF_PLAIN_RE = new RegExp(`(?<![A-Za-z0-9])i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`, 'g');
 const ENV_REF_BRACE_RE = new RegExp(`<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>`, 'g');
-const ENV_REF_SINGLE_ANGLE_RE = new RegExp(`<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>`, 'g');
-const ENV_REF_CURLY_RE = new RegExp(`(?<![A-Za-z0-9])e:\\{(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\}`, 'g');
 const ENV_REF_PLAIN_RE = new RegExp(`(?<![A-Za-z0-9])e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`, 'g');
 
 /**
@@ -1802,7 +1800,7 @@ function isOffsetInsideQuotedYamlScalar(content: string, offset: number): boolea
 }
 
 /**
- * Bare `i:` / `e:` / `e:{…}` count only when they are the entire YAML value
+ * Bare `i:` / `e:` count only when they are the entire YAML value
  * (`key: i:name` or `- e:HOST`). Mixed text and block-scalar lines do not.
  */
 function isBareTokenWholeYamlValue(content: string, offset: number, length: number): boolean {
@@ -1964,13 +1962,13 @@ export type EnvRefSiteInfo = {
 };
 
 /**
- * Scan the raw YAML content for `e:xxx`, `<<e:xxx>>`, `<e:xxx>`, and `e:{xxx}`
- * references and return their positions. Accessor forms like `[0]`, `[0:3]`,
- * and `.field` are also recognised.
+ * Scan the raw YAML content for `e:xxx` and `<<e:xxx>>` references and
+ * return their positions. Accessor forms like `[0]`, `[0:3]`, and `.field`
+ * are also recognised.
  * Comment lines (starting with `#`) are skipped.
  * Plain `e:xxx` inside YAML quotes (`"e:xxx"`) is skipped — those are
- * literal text (same as plain `i:`). Angle / brace forms (`<<e:>>`, `<e:>`,
- * `e:{…}`) are always included.
+ * literal text (same as plain `i:`). `<<e:…>>` is always included.
+ * `<e:name>` and `e:{name}` are ordinary text.
  */
 export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
   const results: EnvRefSiteInfo[] = [];
@@ -1994,34 +1992,6 @@ export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
     const underlineLength = innerOffset >= 0 ? tokenText.length : m[0].length;
     seen.add(underlineOffset);
     results.push({ name, offset: underlineOffset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
-  }
-
-  while ((m = ENV_REF_SINGLE_ANGLE_RE.exec(content)) !== null) {
-    if (isCommentLine(m.index)) {
-      continue;
-    }
-    const name = m[1];
-    const accessor = m[2] || '';
-    const tokenText = 'e:' + name + accessor;
-    const innerOffset = content.indexOf(tokenText, m.index);
-    const offset = innerOffset >= 0 ? innerOffset : m.index;
-    if (seen.has(offset)) {
-      continue;
-    }
-    seen.add(offset);
-    const underlineLength = innerOffset >= 0 ? tokenText.length : m[0].length;
-    results.push({ name, offset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
-  }
-
-  while ((m = ENV_REF_CURLY_RE.exec(content)) !== null) {
-    if (isCommentLine(m.index) || seen.has(m.index)) {
-      continue;
-    }
-    if (!isBareTokenWholeYamlValue(content, m.index, m[0].length)) {
-      continue;
-    }
-    seen.add(m.index);
-    results.push({ name: m[1], offset: m.index, length: m[0].length, line: offsetToLineNumber(content, m.index) });
   }
 
   while ((m = ENV_REF_PLAIN_RE.exec(content)) !== null) {

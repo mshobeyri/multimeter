@@ -3,8 +3,6 @@ import {
   ACCESSOR_PATH_RE,
 } from 'mmt-core/variableReplacer';
 
-const ENV_BRACE_TOKEN = `e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\}`;
-
 /**
  * Highlight form of r:/c: — any keyword-shaped name + optional `(...)` args.
  * Unknown names still highlight; the validator warns separately (like i:/e:).
@@ -28,13 +26,12 @@ const RUNTIME_TOKEN_PREFIX_RE =
 
 /**
  * Whether a captured token should get the editor highlight.
- * Allowed prefixes: r: / c: / e: / i: / o: (output keys) / e:{…}.
+ * Allowed prefixes: r: / c: / e: / i: / o: (output keys).
  * Any well-formed r:/c: name highlights (same as i:/e:); unknown → warning.
  */
 export function isHighlightableToken(token: string): boolean {
   const trimmed = String(token || '').trim();
   if (
-    trimmed.startsWith('e:{') ||
     trimmed.startsWith('e:') ||
     trimmed.startsWith('i:') ||
     trimmed.startsWith('o:')
@@ -49,12 +46,6 @@ export const INLINE_ANGLE_TOKEN_HIGHLIGHT_RE = new RegExp(
   'g'
 );
 
-/** Single-angle env form: `<e:NAME>`. */
-export const INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE = new RegExp(
-  `<\\s*(e:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE})\\s*>`,
-  'g'
-);
-
 /**
  * Bare tokens highlight only as a whole YAML value:
  * `key: i:name` or `- r:uuid`, through the end of the line.
@@ -63,15 +54,9 @@ const WHOLE_VALUE_PREFIX =
   `(?:^|\\n)[ \\t]*(?:-[ \\t]+|[A-Za-z_][\\w.-]*[ \\t]*:[ \\t]+)`;
 const WHOLE_VALUE_SUFFIX = `(?=[ \\t]*(?:#.*)?(?:\\n|$))`;
 
-/** Plain tokens that are the entire YAML value, including `e:{NAME}`. */
+/** Plain tokens that are the entire YAML value. */
 export const PLAIN_TOKEN_HIGHLIGHT_RE = new RegExp(
-  `${WHOLE_VALUE_PREFIX}(${DYNAMIC_KEY_HIGHLIGHT_RE}|${ENV_BRACE_TOKEN})${WHOLE_VALUE_SUFFIX}`,
-  'g'
-);
-
-/** `e:{NAME}` only when it is the entire YAML value. */
-export const ENV_BRACE_TOKEN_HIGHLIGHT_RE = new RegExp(
-  `${WHOLE_VALUE_PREFIX}(${ENV_BRACE_TOKEN})${WHOLE_VALUE_SUFFIX}`,
+  `${WHOLE_VALUE_PREFIX}(${DYNAMIC_KEY_HIGHLIGHT_RE})${WHOLE_VALUE_SUFFIX}`,
   'g'
 );
 
@@ -119,9 +104,7 @@ export function collectTokenHighlightMatches(text: string): string[] {
   const found: string[] = [];
   const patterns = [
     INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
-    INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE,
     PLAIN_TOKEN_HIGHLIGHT_RE,
-    ENV_BRACE_TOKEN_HIGHLIGHT_RE,
     OUTPUT_KEY_TOKEN_HIGHLIGHT_RE,
   ];
 
@@ -133,7 +116,7 @@ export function collectTokenHighlightMatches(text: string): string[] {
       if (!token || !isHighlightableToken(token)) {
         continue;
       }
-      if (pattern === PLAIN_TOKEN_HIGHLIGHT_RE || pattern === ENV_BRACE_TOKEN_HIGHLIGHT_RE) {
+      if (pattern === PLAIN_TOKEN_HIGHLIGHT_RE) {
         const tokenOffset = match.index + match[0].indexOf(token);
         if (isInsideYamlBlockScalar(text, tokenOffset)) {
           continue;

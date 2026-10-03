@@ -62,6 +62,7 @@ What to use when
 Notes
 - `e:var` is not replaced inside plain text like `hi:e:var there`; it must follow `: `.
 - `{{var}}` is not supported — use `<<e:var>>` or `e:var` instead.
+- `<e:var>` and `e:{var}` are ordinary text, not tokens.
 - Slice form `[start:end]` uses normal JS `slice(start, end)` semantics.
 - Random (`r:`) and current (`c:`) tokens use the same syntax and accessors — see [Dynamic values](../../features/dynamic-values/index.md).
 

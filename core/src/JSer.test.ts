@@ -512,7 +512,7 @@ describe('CSV import parsing', () => {
 });
 
 describe('env token replacements in generated JS', () => {
-  it('replaces e:VAR, e:{VAR}, <e:VAR> and <<e:VAR>> inside template literals',
+  it('replaces e:VAR and <<e:VAR>> inside template literals',
      async () => {
        const ctx: TestContext = {
          name: 'envTplTest',
@@ -525,10 +525,12 @@ describe('env token replacements in generated JS', () => {
          envVars: {}
        };
        const js = await rootTestToJsfunc(ctx);
-       expect(js).toContain('${mmtEnv_("FOO")}');
+       expect(js).toContain('<e:FOO>');
        expect(js).toContain('${mmtEnv_("BAR")}');
        expect(js).toContain('${mmtEnv_("BAZ")}');
-       expect(js).toContain('${mmtEnv_("QUX")}');
+       expect(js).toContain('e:{QUX}');
+       expect(js).not.toContain('${mmtEnv_("FOO")}');
+       expect(js).not.toContain('${mmtEnv_("QUX")}');
      });
 
   it('resolves r: and c: tokens in print and call titles', async () => {
@@ -572,9 +574,9 @@ describe('env token replacements in generated JS', () => {
        ].join('\n');
        const out = variableReplacer(input);
        expect(out).toContain('const a = envVariables.AAA;');
-       expect(out).toContain('const b = envVariables.BBB;');
+       expect(out).toContain('const b = e:{BBB};');
        expect(out).toContain(
-           '`X=${mmtEnv_("FOO")} Y=${mmtEnv_("BAR")} Z=${mmtEnv_("BAZ")} W=${mmtEnv_("QUX")}`');
+           '`X=<e:FOO> Y=${mmtEnv_("BAR")} Z=${mmtEnv_("BAZ")} W=e:{QUX}`');
      });
 
   it('does not double-wrap pre-existing ${envVariables.VAR} inside template literals',
@@ -2235,7 +2237,7 @@ describe('body inputs numeric/boolean templating', () => {
   it('does not quote numbers, floats, and booleans in JSON body', async () => {
     const apiYaml = [
       'type: api', 'protocol: http', 'method: post', 'format: json',
-      'url: http://<e:HOST>/login', 'inputs:', '  username: username@gmail.com',
+      'url: http://<<e:HOST>>/login', 'inputs:', '  username: username@gmail.com',
       '  password: 123456', '  pi: 3.14', '  name: true', 'body: |',
       '  {"user":"${username}","pass":${password},"pi":${pi},"flag":${name}}'
     ].join('\n');
@@ -2482,7 +2484,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
     expect(js).not.toMatch(/e%3AUSERNAME/i);
   });
 
-  it('supports alternate env token forms in urlencoded bodies', async () => {
+  it('leaves single-angle and brace env spellings as text in urlencoded bodies', async () => {
     const js = await toJs([
       'type: api',
       'method: post',
@@ -2493,8 +2495,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  b: e:{HOST}',
       '  c: <<e:HOST>>',
     ]);
-    expect(js.match(/mmtEnv_\("HOST"\)/g)?.length).toBeGreaterThanOrEqual(3);
-    expect(js).not.toMatch(/e%3AHOST|%3Ce%3AHOST|e%3A%7BHOST/i);
+    expect(js.match(/mmtEnv_\("HOST"\)/g)?.length).toBe(1);
+    expect(js).toMatch(/%3Ce%3AHOST%3E|e%3A%7BHOST/i);
   });
 
   it('resolves env-backed input defaults through slice accessors', async () => {
@@ -2941,7 +2943,7 @@ describe('API query handling', () => {
       '  page: 1',
       'query:',
       '  page: i:page',
-      '  locale: <e:LOCALE>',
+      '  locale: e:LOCALE',
     ].join('\n');
     const ctx: APIContext =
         {api: yamlToAPI(apiYaml), name: 'users_api', inputs: {}, envVars: {}} as
@@ -2949,7 +2951,7 @@ describe('API query handling', () => {
     const js = await apiToJSfunc(ctx);
     expect(js).toContain('query: {');
     expect(js).toContain('"page": `${page}`');
-    expect(js).toContain('"locale": `${mmtEnv_("LOCALE")}`');
+    expect(js).toContain('"locale": mmtEnv_("LOCALE")');
   });
 
   it('injects timeout into generated request objects', async () => {

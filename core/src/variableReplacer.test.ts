@@ -5,27 +5,24 @@ describe('normalizeEnvTokens', () => {
     expect(normalizeEnvTokens('url=<<e:HOST>>')).toBe('url=envVariables.HOST');
   });
 
-  it('normalizes <e:VAR> to envVariables.VAR', () => {
-    expect(normalizeEnvTokens('url=<e:HOST>')).toBe('url=envVariables.HOST');
-  });
-
-  it('normalizes e:{VAR} to envVariables.VAR', () => {
-    expect(normalizeEnvTokens('url=e:{HOST}')).toBe('url=envVariables.HOST');
+  it('leaves single-angle and brace spellings as text', () => {
+    expect(normalizeEnvTokens('url=<e:HOST>')).toBe('url=<e:HOST>');
+    expect(normalizeEnvTokens('url=e:{HOST}')).toBe('url=e:{HOST}');
+    expect(normalizeEnvTokens('< e:HOST >')).toBe('< e:HOST >');
   });
 
   it('normalizes plain e:VAR to envVariables.VAR', () => {
     expect(normalizeEnvTokens('url=e:HOST/path')).toBe('url=envVariables.HOST/path');
   });
 
-  it('normalizes multiple mixed forms in one string', () => {
-    const input = '<<e:A>> and <e:B> and e:{C} and e:D';
+  it('normalizes multiple forms in one string', () => {
+    const input = '<<e:A>> and e:D';
     const out = normalizeEnvTokens(input);
-    expect(out).toBe('envVariables.A and envVariables.B and envVariables.C and envVariables.D');
+    expect(out).toBe('envVariables.A and envVariables.D');
   });
 
   it('handles whitespace in angle brackets', () => {
     expect(normalizeEnvTokens('<< e:HOST >>')).toBe('envVariables.HOST');
-    expect(normalizeEnvTokens('< e:HOST >')).toBe('envVariables.HOST');
   });
 
   it('leaves strings without env tokens unchanged', () => {
@@ -217,7 +214,7 @@ describe('replaceEnvTokensPlain', () => {
 
   it('does not handle angle-bracket or brace forms', () => {
     expect(replaceEnvTokensPlain('<<e:FOO>>')).toBe('<<envVariables.FOO>>');
-    // \b doesn't match before {, so e:{FOO} is left untouched
+    expect(replaceEnvTokensPlain('<e:FOO>')).toBe('<e:FOO>');
     expect(replaceEnvTokensPlain('e:{FOO}')).toBe('e:{FOO}');
   });
 });
@@ -226,8 +223,8 @@ describe('resolveEnvTokenValues', () => {
   it('resolves all env token forms against provided values', () => {
     const env = { HOST: 'localhost', PORT: '8080' };
     expect(resolveEnvTokenValues('<<e:HOST>>:<<e:PORT>>', env)).toBe('localhost:8080');
-    expect(resolveEnvTokenValues('<e:HOST>:<e:PORT>', env)).toBe('localhost:8080');
-    expect(resolveEnvTokenValues('e:{HOST}:e:{PORT}', env)).toBe('localhost:8080');
+    expect(resolveEnvTokenValues('<e:HOST>:<e:PORT>', env)).toBe('<e:HOST>:<e:PORT>');
+    expect(resolveEnvTokenValues('e:{HOST}:e:{PORT}', env)).toBe('e:{HOST}:e:{PORT}');
     expect(resolveEnvTokenValues('e:HOST:e:PORT', env)).toBe('localhost:8080');
   });
 
@@ -637,7 +634,7 @@ describe('embedDynamicTokensAsJsInterpolations', () => {
     expect(replaceDynamicTokensToJsInterpolations('c:customNow'))
         .toBe("${mmtCurrent_('customNow')}");
     expect(replaceDynamicTokensToJsInterpolations('<e:HOST> and e:{PORT}'))
-        .toBe('${mmtEnv_("HOST")} and ${mmtEnv_("PORT")}');
+        .toBe('<e:HOST> and e:{PORT}');
   });
 
   it('deep-walks objects and arrays without touching non-strings', () => {

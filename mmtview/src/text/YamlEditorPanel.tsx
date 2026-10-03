@@ -62,9 +62,7 @@ import { REVEAL_YAML_EVENT } from './yamlEditorErrors';
 // formatting and ordering helper moved to `useFormatAndOrder`
 
 import {
-  ENV_BRACE_TOKEN_HIGHLIGHT_RE,
   INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
-  INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE,
   isHighlightableToken,
   isInsideYamlBlockScalar,
   OUTPUT_KEY_TOKEN_HIGHLIGHT_RE,
@@ -1228,27 +1226,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     {
       const value = model.getValue();
       let match;
-      while ((match = INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE.exec(value)) !== null) {
-        pushHighlightRange(
-          matches, monaco, model, match.index, match.index + match[0].length, I_PREFIX_CLASS
-        );
-      }
-    }
-    {
-      const value = model.getValue();
-      let match;
       while ((match = PLAIN_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
-        const token = match[1];
-        if (!token || isInsideYamlBlockScalar(value, match.index + match[0].indexOf(token))) {
-          continue;
-        }
-        pushCapturedTokenHighlight(matches, monaco, model, match, 1, I_PREFIX_CLASS);
-      }
-    }
-    {
-      const value = model.getValue();
-      let match;
-      while ((match = ENV_BRACE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
         const token = match[1];
         if (!token || isInsideYamlBlockScalar(value, match.index + match[0].indexOf(token))) {
           continue;

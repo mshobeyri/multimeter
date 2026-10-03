@@ -44,8 +44,6 @@ Reference variables from a `type: env` file, suite `environment`, VS Code Enviro
 | Token | Meaning | Example value |
 |-------|---------|---------------|
 | `e:var` / `<<e:var>>` | Named environment variable | `https://test.mmt.dev` |
-| `e:{var}` | Same as plain form (alternate syntax) | — |
-| `<e:var>` | Same as `<<e:var>>` (alternate syntax) | — |
 
 Full env setup, presets, and type-preserving rules: [Environment](../../files/env/index.md).
 

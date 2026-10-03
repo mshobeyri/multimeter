@@ -2,7 +2,6 @@ import {
   collectTokenHighlightMatches,
   INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
   isHighlightableToken,
-  PLAIN_TOKEN_HIGHLIGHT_RE,
 } from './tokenHighlightPatterns';
 
 describe('tokenHighlightPatterns', () => {
@@ -73,9 +72,15 @@ describe('tokenHighlightPatterns', () => {
     ]));
   });
 
-  it('highlights env brace tokens including braces', () => {
-    const text = 'token: e:{MY_TOKEN}';
-    expect(collectTokenHighlightMatches(text)).toContain('e:{MY_TOKEN}');
+  it('does not highlight single-angle or brace env spellings', () => {
+    const text = [
+      'token: e:{MY_TOKEN}',
+      'url: <e:HOST>',
+    ].join('\n');
+    const matches = collectTokenHighlightMatches(text);
+    expect(matches).not.toContain('e:{MY_TOKEN}');
+    expect(matches).not.toContain('e:HOST');
+    expect(matches).not.toContain('<e:HOST>');
   });
 
   it('highlights plain parameterized random tokens after colon-space', () => {
@@ -89,13 +94,6 @@ describe('tokenHighlightPatterns', () => {
     const match = INLINE_ANGLE_TOKEN_HIGHLIGHT_RE.exec(text);
     expect(match?.[0]).toBe('<<r:int(10,20)>>');
     expect(match?.[1]).toBe('r:int(10,20)');
-  });
-
-  it('matches plain env brace tokens after colon-space', () => {
-    const text = 'Authorization: e:{token}';
-    PLAIN_TOKEN_HIGHLIGHT_RE.lastIndex = 0;
-    const match = PLAIN_TOKEN_HIGHLIGHT_RE.exec(text);
-    expect(match?.[1]).toBe('e:{token}');
   });
 
   it('isHighlightableToken accepts any r:/c: shape like i:/e:', () => {

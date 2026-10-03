@@ -16,7 +16,8 @@ describe('quoted token literals', () => {
     expect(isTokenLikeScalar('i:user')).toBe(true);
     expect(isTokenLikeScalar('e:api_url')).toBe(true);
     expect(isTokenLikeScalar('<<c:date>>')).toBe(true);
-    expect(isTokenLikeScalar('e:{token}')).toBe(true);
+    expect(isTokenLikeScalar('e:{token}')).toBe(false);
+    expect(isTokenLikeScalar('<e:token>')).toBe(false);
     expect(isTokenLikeScalar('{{r:uuid}}')).toBe(true);
     expect(isTokenLikeScalar('{{i:user}}')).toBe(true);
     expect(isTokenLikeScalar('hello')).toBe(false);
