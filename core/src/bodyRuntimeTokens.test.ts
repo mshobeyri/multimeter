@@ -4,6 +4,7 @@ import {
   bodyForSend,
   bodyForYamlSave,
   displayRequestBody,
+  saveEditorBody,
 } from './apiBodyEdit';
 import {
   isLiteralTokenValue,
@@ -1236,6 +1237,21 @@ describe('text html and none structured bodies', () => {
 
   it('keeps raw text as text', () => {
     expect(bodyForYamlSave('hello {{i:username}}', 'hello {{i:username}}', 'text'))
+        .toBe('hello <<i:username>>');
+  });
+});
+
+describe('saveEditorBody', () => {
+  it('keeps a structured body while JSON is unfinished', () => {
+    const source = {note: '__MMT_OMIT__', n: 100};
+    expect(saveEditorBody(source, '{', 'json')).toBe(source);
+    const ui = bodyEditTokenTemplate(source, 'json');
+    expect(ui).toContain('"note": omit');
+    expect(saveEditorBody(source, ui, 'json')).toEqual(source);
+  });
+
+  it('saves a finished text replacement', () => {
+    expect(saveEditorBody({n: 1}, 'hello {{i:username}}', 'text'))
         .toBe('hello <<i:username>>');
   });
 });

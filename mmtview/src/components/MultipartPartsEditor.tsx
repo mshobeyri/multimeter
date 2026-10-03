@@ -2,12 +2,10 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { safeList } from "mmt-core/safer";
 import type { MultipartPartSpec } from "mmt-core/multipartBody";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
-import { peerStringToDisplay } from "mmt-core/apiBodyEdit";
 import FieldWithRemove from "./FieldWithRemove";
 import StableTextInput from "./StableTextInput";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from "../fileContext";
-import { withOptionalPeer } from "./convertor";
 import {
   bodyToMultipartRows,
   isEmptyMultipartPartRow,
@@ -62,23 +60,14 @@ const MultipartPartsEditor: React.FC<MultipartPartsEditorProps> = ({
   };
 
   const handleValueChange = (idx: number, nextValue: string) => {
-    const row = rows[idx];
-    const stored = row?.kind === "file" && canContainToken
-      ? withOptionalPeer(nextValue, true)
-      : nextValue;
-    commit(safeList(rows).map((item, i) => (i === idx ? { ...item, value: stored } : item)));
+    commit(safeList(rows).map((item, i) => (i === idx ? { ...item, value: nextValue } : item)));
   };
 
   const handleRemove = (idx: number) => {
     commit(safeList(rows).filter((_, i) => i !== idx));
   };
 
-  const displayValue = (row: MultipartPartRow) => {
-    if (row.kind === "file" && canContainToken) {
-      return peerStringToDisplay(row.value);
-    }
-    return row.value;
-  };
+  const displayValue = (row: MultipartPartRow) => row.value;
 
   return (
     <div className="multipart-parts-editor">

@@ -3,7 +3,11 @@ import {
   coerceMultipartPartsInput,
   type MultipartPartSpec,
 } from "mmt-core/multipartBody";
-import { inputBoxToYamlValueWithTokens, yamlValueToInputBoxWithTokens } from "./convertor";
+import {
+  inputBoxToYamlValueWithTokens,
+  stringFieldToYamlWithLiveTokens,
+  yamlValueToInputBoxWithTokens,
+} from "./convertor";
 
 export type MultipartPartKind = "text" | "file";
 
@@ -49,7 +53,7 @@ function rowFromRaw(raw: unknown): MultipartPartRow | undefined {
   const hasFileField = Object.prototype.hasOwnProperty.call(raw, "file");
   const kind: MultipartPartKind = hasFileField ? "file" : "text";
   const value = kind === "file"
-    ? String(spec.file ?? "").trim()
+    ? yamlValueToInputBoxWithTokens((spec.file ?? "") as JSONValue, true, true)
     : yamlValueToInputBoxWithTokens(spec.value as JSONValue, true, true);
   const row: MultipartPartRow = {
     name: spec.name == null ? "" : String(spec.name),
@@ -101,7 +105,7 @@ export function multipartRowsToBody(rows: MultipartPartRow[]): MultipartPartSpec
     if (row.kind === "file") {
       parts.push(applyOptionalMeta({
         name,
-        file: String(row.value || "").trim(),
+        file: stringFieldToYamlWithLiveTokens(String(row.value || "")).trim(),
       }, row));
       continue;
     }

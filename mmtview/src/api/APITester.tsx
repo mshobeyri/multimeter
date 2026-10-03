@@ -13,8 +13,6 @@ import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
   displayRequestBody,
   packBodyAsYamlEncoded,
-  peerStringToDisplay,
-  peerStringToYaml,
   tokensTextToYamlBody,
   valueForYamlSave,
   yamlBodyToTokensText,
@@ -27,6 +25,7 @@ import { HideWhenYamlError } from "./YamlErrorWarning";
 import MethodUrlBar from "../components/MethodUrlBar";
 import {
   inputBoxToYamlValueWithTokens,
+  stringFieldToYamlWithLiveTokens,
   yamlValueToInputBoxWithTokens,
 } from "../components/convertor";
 import BodyFormatBar from "../components/BodyFormatBar";
@@ -258,13 +257,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const isGraphQL = (requestData?.protocol ?? api.protocol) === "graphql";
   const isGrpc = (requestData?.protocol ?? api.protocol) === "grpc";
   const requestProtocol = requestData?.protocol || api.protocol;
-  const peerUrl = useMemo(() => peerStringToDisplay(api.url), [api.url]);
+  const peerUrl = useMemo(
+    () => yamlValueToInputBoxWithTokens(api.url, true, true),
+    [api.url],
+  );
   const urlQuery = useMemo(
     () => queryForUrlBar(api.query as Record<string, unknown> | undefined),
     [api.query],
   );
   const peerGraphqlOperation = useMemo(
-    () => peerStringToDisplay(api.graphql?.operation),
+    () => yamlValueToInputBoxWithTokens(api.graphql?.operation, true, true),
     [api.graphql?.operation],
   );
   /** Declared output keys (Examples pane); values keep runtime types for VEditor. */
@@ -358,7 +360,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   ]);
 
   const onUrlChange = useCallback((newUrl: string) => {
-    onUpdateApi?.({ url: peerStringToYaml(newUrl) });
+    onUpdateApi?.({ url: stringFieldToYamlWithLiveTokens(newUrl) });
   }, [onUpdateApi]);
 
   // Query, cookies, and headers keep YAML types. The URL bar is a string view
@@ -1243,16 +1245,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               >
                 {resolvedRequestFormat === "binary" ? (
                   <FilePickerInput
-                    value={peerStringToDisplay(
+                    value={yamlValueToInputBoxWithTokens(
                       typeof api.body === "string" ? api.body : "",
+                      true,
+                      true,
                     )}
                     basePath={mmtFilePath}
                     showFilePicker
                     placeholder="Relative path to binary file"
                     canContainToken
                     valueContext={bodyValueContext}
-                    onChange={val => onUpdateApi?.({ body: peerStringToYaml(val) })}
-                    onEnterPressed={val => onUpdateApi?.({ body: peerStringToYaml(val) })}
+                    onChange={val => onUpdateApi?.({ body: stringFieldToYamlWithLiveTokens(val) })}
+                    onEnterPressed={val => onUpdateApi?.({ body: stringFieldToYamlWithLiveTokens(val) })}
                   />
                 ) : resolvedRequestFormat === "multipart" ? (
                   <MultipartPartsEditor
@@ -1299,7 +1303,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 onChange={val => {
                   onUpdateApi?.({
                     graphql: {
-                      operation: peerStringToYaml(val),
+                      operation: stringFieldToYamlWithLiveTokens(val),
                       operationName: api.graphql?.operationName,
                       variables: api.graphql?.variables,
                     },

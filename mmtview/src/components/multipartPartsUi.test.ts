@@ -105,6 +105,20 @@ describe("multipartPartsUi", () => {
     ]);
   });
 
+  it("saves a whole angle file path as a bare token", () => {
+    const body = [
+      { name: "upload", file: `${LITERAL_TOKEN_PREFIX}<<e:file>>` },
+      { name: "other", file: "files/<<e:name>>.bin" },
+    ];
+    const rows = bodyToMultipartRows(body, false);
+    expect(rows.find(row => row.name === "upload")?.value).toBe("{{e:file}}");
+    expect(rows.find(row => row.name === "other")?.value).toBe("files/{{e:name}}.bin");
+    expect(multipartRowsToBody(rows)).toEqual([
+      { name: "upload", file: "e:file" },
+      { name: "other", file: "files/<<e:name>>.bin" },
+    ]);
+  });
+
   it("keeps a stable signature across trailing-empty display rows", () => {
     const parts = [{ name: "a", value: "b" }];
     expect(multipartPartsSignature(parts))

@@ -9,6 +9,10 @@ import {
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
 import FieldWithRemove from "../components/FieldWithRemove";
+import {
+  inputBoxToYamlValueWithTokens,
+  yamlValueToInputBoxWithTokens,
+} from "../components/convertor";
 import StableTextInput from "../components/StableTextInput";
 import CheckClauseList, {
   newCheckClauseRowId,
@@ -70,14 +74,6 @@ const TestCall: React.FC<TestCallProps> = ({
     if (stableStringify(ac.expect) !== stableStringify(bc.expect)) return false;
     if (stableStringify(ac.report) !== stableStringify(bc.report)) return false;
     return true;
-  };
-
-  const parseLiteral = (text: string): any => {
-    const t = (text ?? '').trim();
-    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) return t.slice(1, -1);
-    if (/^(true|false)$/i.test(t)) return /^true$/i.test(t);
-    if (/^-?\d+(?:\.\d+)?$/.test(t)) { const n = Number(t); if (!Number.isNaN(n)) return n; }
-    return text;
   };
 
   // Derive selected alias from YAML: either a plain string or an object with `call`
@@ -378,7 +374,10 @@ const TestCall: React.FC<TestCallProps> = ({
 
   const onInputChange = (key: string, val: string) => {
     if (!currentAlias) return;
-    const nextInputs = { ...inputs, [key]: parseLiteral(val) };
+    const nextInputs = {
+      ...inputs,
+      [key]: inputBoxToYamlValueWithTokens(val, true, true),
+    };
     const next = buildCallObj({ inputs: nextInputs });
     setLocal(next);
     scheduleEmit(next);
@@ -462,7 +461,7 @@ const TestCall: React.FC<TestCallProps> = ({
                 {keys.map(k => {
                   const hasProblem = invalidInputKeys.has(k);
                   const problemMessage = hasProblem ? validationProblems.inputProblems.find(p => p.inputKey === k)?.message : undefined;
-                  const valueForInput = typeof inputs[k] === 'string' ? inputs[k] as string : JSON.stringify(inputs[k]);
+                  const valueForInput = yamlValueToInputBoxWithTokens(inputs[k], true, true);
                   return (
                     <div key={k} className="field-stack is-compact">
                       <div className="param-key">{k}
@@ -478,6 +477,7 @@ const TestCall: React.FC<TestCallProps> = ({
                         value={valueForInput}
                         onChange={(e) => onInputChange(k, e)}
                         onRemovePressed={() => handleRemoveInput(k)}
+                        canContainToken
                       />
                     </div>
                   );
@@ -509,6 +509,7 @@ const TestCall: React.FC<TestCallProps> = ({
             onPartChange={handleExpectPartChange}
             onRemove={handleRemoveExpect}
             onAdd={handleAddExpect}
+            canContainToken
           />
 
           <CheckClauseList
@@ -518,6 +519,7 @@ const TestCall: React.FC<TestCallProps> = ({
             onPartChange={handleRequirePartChange}
             onRemove={handleRemoveRequire}
             onAdd={handleAddRequire}
+            canContainToken
           />
 
           {(expectList.length > 0 || requireList.length > 0) && (

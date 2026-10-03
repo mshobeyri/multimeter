@@ -292,10 +292,17 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
               value={local.headers}
               onChange={kv => {
                 const cleaned = Object.fromEntries(Object.entries(kv).filter(([k]) => k.trim()));
-                commitWith({ headers: Object.keys(cleaned).length > 0 ? cleaned : undefined });
+                commitWith({
+                  headers: Object.keys(cleaned).length > 0
+                    ? cleaned as MockEndpoint["headers"]
+                    : undefined,
+                });
               }}
               keyPlaceholder="Header"
               valuePlaceholder="value"
+              canContainToken
+              typedValues
+              liveAngleTokens
             />
           </div>
         </div>

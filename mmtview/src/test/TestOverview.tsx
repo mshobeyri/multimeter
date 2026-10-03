@@ -64,10 +64,13 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       label="Inputs"
       value={test.inputs}
       onChange={kv => {
-        update({ inputs: kv });
+        update({ inputs: kv as TestData["inputs"] });
       }}
       keyPlaceholder="name"
       valuePlaceholder="value"
+      canContainToken
+      typedValues
+      liveAngleTokens
     />
     <KSVEditor
       label="Outputs"

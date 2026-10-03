@@ -22,6 +22,7 @@ import {
   packBodyForYamlCompare,
 } from './markupConvertor';
 import {normalizeNewlines} from './textLines';
+import {isIncompleteJsonLiteral} from './yamlValueConvert';
 
 export {
   displayRuntimeString,
@@ -250,6 +251,32 @@ export function bodyForYamlSave(
     format: Format,
 ): unknown {
   return valueForYamlSave(packBodyForYamlCompare(yamlBody, uiBody, format));
+}
+
+/**
+ * Save a body editor. A structured YAML body stays structured while the text
+ * is still an unfinished JSON or XML edit.
+ */
+export function saveEditorBody(
+    yamlBody: unknown,
+    uiBody: string,
+    format: Format,
+): unknown {
+  const saved = bodyForYamlSave(yamlBody, uiBody, format);
+  if (yamlBody == null || typeof yamlBody !== 'object') {
+    return saved;
+  }
+  if (saved !== null && typeof saved === 'object') {
+    return saved;
+  }
+  const text = String(uiBody ?? '');
+  if (isIncompleteJsonLiteral(text)) {
+    return yamlBody;
+  }
+  if ((format === 'xml' || format === 'xmle') && text.trim().startsWith('<')) {
+    return yamlBody;
+  }
+  return saved;
 }
 
 /**

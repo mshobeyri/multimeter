@@ -8,6 +8,7 @@ import {
 } from "mmt-core/expectUi";
 import { REQUEST_FORMAT_VALUES, RequestFormat, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
+import { bodyEditTokenTemplate, saveEditorBody } from "mmt-core/apiBodyEdit";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import StableTextInput, { StableTextArea } from "../components/StableTextInput";
@@ -19,6 +20,10 @@ import CheckClauseList, {
 } from "../components/CheckClauseList";
 import ReportLevelFields from "../components/ReportLevelFields";
 import { FileContext } from "../fileContext";
+import {
+  stringFieldToYamlWithLiveTokens,
+  yamlValueToInputBoxWithTokens,
+} from "../components/convertor";
 
 interface ExpectRow extends ExpectUiRow {}
 
@@ -172,14 +177,19 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   };
 
   const selectedMethod = String(step.method || 'get').toLowerCase();
+  const bodyFormat = resolveRequestFormat(
+    requestFormat(step.format),
+    step.headers,
+    selectedMethod,
+  );
 
   return (
     <div className="mmt-fill">
       <div className="field-pad">
         <StableTextInput
           type="text"
-          value={step.http || ''}
-          onChange={next => emit({ http: next })}
+          value={yamlValueToInputBoxWithTokens(step.http || "", true, true)}
+          onChange={next => emit({ http: stringFieldToYamlWithLiveTokens(next) })}
           placeholder="URL"
         />
       </div>
@@ -267,36 +277,54 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             label="Headers"
             value={step.headers || {}}
             onChange={headers => emit({ headers })}
+            canContainToken
+            typedValues
+            liveAngleTokens
           />
 
           <KSVEditor
             label="Query"
             value={step.query || {}}
             onChange={query => emit({ query })}
+            canContainToken
+            typedValues
+            liveAngleTokens
           />
 
-          {resolveRequestFormat(requestFormat(step.format), step.headers, selectedMethod) !== 'none' && (
+          {bodyFormat !== 'none' && (
             <>
               <div className="label">Body</div>
               <div className="field-pad">
-                {requestFormat(step.format) === 'binary' ? (
+                {bodyFormat === 'binary' ? (
                   <FilePickerInput
-                    value={typeof step.body === 'string' ? step.body : ''}
+                    value={yamlValueToInputBoxWithTokens(
+                      typeof step.body === 'string' ? step.body : '',
+                      true,
+                      true,
+                    )}
                     basePath={mmtFilePath}
                     showFilePicker
                     placeholder="Relative path to binary file"
-                    onChange={path => emit({ body: path })}
-                    onEnterPressed={path => emit({ body: path })}
+                    canContainToken
+                    onChange={path => emit({ body: stringFieldToYamlWithLiveTokens(path) })}
+                    onEnterPressed={path => emit({ body: stringFieldToYamlWithLiveTokens(path) })}
                   />
-                ) : requestFormat(step.format) === 'multipart' ? (
+                ) : bodyFormat === 'multipart' ? (
                   <MultipartPartsEditor
                     value={step.body}
                     onChange={parts => emit({ body: parts })}
+                    canContainToken
                   />
                 ) : (
                   <StableTextArea
-                    value={typeof step.body === 'string' ? step.body : JSON.stringify(step.body || '', null, 2)}
-                    onChange={next => emit({ body: next })}
+                    value={bodyEditTokenTemplate(step.body ?? '', bodyFormat)}
+                    onChange={next => {
+                      const saved = saveEditorBody(step.body, next, bodyFormat);
+                      if (saved === step.body) {
+                        return;
+                      }
+                      emit({ body: saved });
+                    }}
                     placeholder="Request body"
                   />
                 )}
@@ -311,6 +339,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             onPartChange={handleExpectPartChange}
             onRemove={handleRemoveExpect}
             onAdd={handleAddExpect}
+            canContainToken
           />
 
           <CheckClauseList
@@ -320,6 +349,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             onPartChange={handleRequirePartChange}
             onRemove={handleRemoveRequire}
             onAdd={handleAddRequire}
+            canContainToken
           />
 
           {(expectList.length > 0 || requireList.length > 0) && (
