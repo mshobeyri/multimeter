@@ -390,3 +390,31 @@ describe('mergeYamlValue', () => {
     expect(YAML.parse(doc.toString())).toEqual({value: {nested: 1}});
   });
 });
+
+describe('header scalar round-trip', () => {
+  it('keeps bool and number headers typed and quoted strings quoted', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com',
+      'method: get',
+      'headers:',
+      '  flag: true',
+      '  qflag: "true"',
+      '  n: 100',
+      '  qn: "112"',
+    ].join('\n');
+    const api = yamlToAPI(yaml);
+    expect(api.headers).toEqual({
+      flag: true,
+      qflag: 'true',
+      n: 100,
+      qn: '112',
+    });
+    const again = apiToYaml(api, yaml);
+    expect(again).toMatch(/flag: true\b/);
+    expect(again).toMatch(/qflag: "true"/);
+    expect(again).toMatch(/\bn: 100\b/);
+    expect(again).toMatch(/qn: "112"/);
+    expect(yamlToAPI(again).headers).toEqual(api.headers);
+  });
+});

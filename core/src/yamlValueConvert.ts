@@ -69,6 +69,10 @@ export function isIncompleteJsonLiteral(text: string): boolean {
   if (!t.startsWith('{') && !t.startsWith('[')) {
     return false;
   }
+  // `{{i:name}}` is a token template, not a half-typed JSON object.
+  if (t.startsWith('{{')) {
+    return false;
+  }
   try {
     JSON.parse(t);
     return false;

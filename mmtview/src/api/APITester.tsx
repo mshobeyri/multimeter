@@ -243,10 +243,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     () => peerRecordToDisplay(api.query as Record<string, unknown> | undefined),
     [api.query],
   );
-  const peerHeaders = useMemo(
-    () => peerRecordToDisplay(api.headers as Record<string, unknown> | undefined),
-    [api.headers],
-  );
   const peerCookies = useMemo(
     () => peerRecordToDisplay(api.cookies as Record<string, unknown> | undefined),
     [api.cookies],
@@ -367,8 +363,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     onUpdateApi?.({ query: peerRecordToYaml(query) });
   }, [onUpdateApi]);
 
-  const onHeadersChange = useCallback((headers: Record<string, string>) => {
-    onUpdateApi?.({ headers: peerRecordToYaml(headers) });
+  const onHeadersChange = useCallback((headers: JSONRecord) => {
+    onUpdateApi?.({ headers: headers as APIData["headers"] });
   }, [onUpdateApi]);
 
   const onCookiesChange = useCallback((cookies: Record<string, string>) => {
@@ -1207,9 +1203,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         />}
         {shouldShowHeaders() && <KSVEditor
           label=""
-          value={peerHeaders}
+          value={api.headers}
           onChange={onHeadersChange}
           canContainToken
+          typedValues
           valueContext={bodyValueContext}
         />}
         {shouldShowCookies() && <KSVEditor
