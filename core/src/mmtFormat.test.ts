@@ -105,6 +105,31 @@ describe('mmtFormat', () => {
     expect(result.formatted).toContain('# keep me');
   });
 
+  it('keeps unquoted {{i|e|r|c:…}} tokens as scalars', () => {
+    const yaml = [
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'headers:',
+      '  X-User: {{i:name}}',
+      '  X-Note: hello {{e:env}}',
+      '  X-Literal: "{{r:uuid}}"',
+      'body:',
+      '  n: {{r:int(10,20)}}',
+      '  city: {{c:city}}',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'echo.mmt');
+    expect(formatted).toContain('X-User: {{i:name}}');
+    expect(formatted).toContain('X-Note: hello {{e:env}}');
+    expect(formatted).toContain('X-Literal: "{{r:uuid}}"');
+    expect(formatted).toContain('n: {{r:int(10,20)}}');
+    expect(formatted).toContain('city: {{c:city}}');
+    expect(formatted).not.toContain('{ ? {');
+    const again = formatMmtYaml(formatted, 'echo.mmt');
+    expect(again.formatted).toBe(formatted);
+  });
+
   it('reorders if/else step keys and preserves branch comments', () => {
     const yaml = [
       'type: test',

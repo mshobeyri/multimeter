@@ -1,4 +1,8 @@
 import YAML, {isMap, isPair, isScalar, isSeq, Pair, YAMLMap} from 'yaml';
+import {
+  restoreShieldedCurlyTokens,
+  shieldCurlyTokensInYamlSource,
+} from './markupConvertor';
 import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
 import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
 import {JUDGE_KEY_ORDER} from './judgeParsePack';
@@ -224,7 +228,10 @@ function visit(node: unknown, kind: VisitKind, rootOrder?: string[]): void {
  * or rewrite structure (unlike yamlToX → xToYaml).
  */
 export function formatMmtYamlAst(content: string, docType: string): string {
-  const prepared = quoteExpectOperators(content || '');
+  // Unquoted {{i:name}} is a flow map to the YAML library (`{ ? { i:name } }`).
+  // Shield those tokens so format keeps the scalar spelling.
+  const shielded = shieldCurlyTokensInYamlSource(content || '');
+  const prepared = quoteExpectOperators(shielded.text);
   const doc = YAML.parseDocument(prepared);
   if (doc.errors?.length) {
     doc.errors = filterOperatorYamlErrors(content, doc.errors);
@@ -245,5 +252,5 @@ export function formatMmtYamlAst(content: string, docType: string): string {
     blockQuote: 'literal',
     lineWidth: 0,
   } as any);
-  return emitUnquotedOperators(formatted);
+  return restoreShieldedCurlyTokens(emitUnquotedOperators(formatted), shielded);
 }

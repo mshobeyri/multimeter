@@ -35,14 +35,19 @@ import {
   type RuntimeTokenValueContext,
 } from './bodyRuntimeTokens';
 
+/** Unquoted `{{i|e|r|c:…}}` at the cursor. Quoted text is handled by the walker. */
+const CURLY_TOKEN_AT_RE =
+    /^\{\{\s*([ierce]:(?:[^{}]|\([^)]*\))+?)\s*\}\}/i;
+
 /**
- * Rewrite Multimeter UI curly tokens `{{i|e|r|c:…}}` to `<<…>>` in raw YAML
- * *before* parse. Unquoted `{{r:uuid}}` is invalid YAML flow syntax
- * (`{` starts a map); angle form is a plain scalar. Skips double/single
- * quoted regions so `"{{r:uuid}}"` can stay a quoted literal. Postman-style
- * `{{var}}` without a prefix is left unchanged.
+ * Walk raw YAML, skipping single- and double-quoted regions, and replace
+ * unquoted `{{i|e|r|c:…}}` tokens. Postman-style `{{var}}` (no prefix) is
+ * left unchanged. Quoted `"{{r:uuid}}"` stays literal text.
  */
-export function normalizeCurlyTokensInYamlSource(yamlString: string): string {
+function mapUnquotedCurlyTokens(
+    yamlString: string,
+    replace: (match: RegExpExecArray) => string,
+): string {
   const src = String(yamlString ?? '');
   let out = '';
   let i = 0;
@@ -69,10 +74,9 @@ export function normalizeCurlyTokensInYamlSource(yamlString: string): string {
       continue;
     }
     if (ch === '{' && src.startsWith('{{', i)) {
-      const slice = src.slice(i);
-      const m = /^\{\{\s*([ierce]:(?:[^{}]|\([^)]*\))+?)\s*\}\}/i.exec(slice);
+      const m = CURLY_TOKEN_AT_RE.exec(src.slice(i));
       if (m) {
-        out += `<<${m[1].trim()}>>`;
+        out += replace(m);
         i += m[0].length;
         continue;
       }
@@ -81,6 +85,59 @@ export function normalizeCurlyTokensInYamlSource(yamlString: string): string {
     i += 1;
   }
   return out;
+}
+
+/**
+ * Rewrite Multimeter UI curly tokens `{{i|e|r|c:…}}` to `<<…>>` in raw YAML
+ * *before* parse. Unquoted `{{r:uuid}}` is invalid YAML flow syntax
+ * (`{` starts a map); angle form is a plain scalar.
+ */
+export function normalizeCurlyTokensInYamlSource(yamlString: string): string {
+  return mapUnquotedCurlyTokens(yamlString, (m) => `<<${m[1].trim()}>>`);
+}
+
+export type ShieldedCurlyTokens = {
+  text: string;
+  tokens: string[];
+  placeholderPrefix: string;
+};
+
+/**
+ * Replace unquoted `{{i|e|r|c:…}}` with plain placeholders so the YAML
+ * parser cannot read `{` as a flow map. Restore with
+ * `restoreShieldedCurlyTokens` after `doc.toString()`.
+ */
+export function shieldCurlyTokensInYamlSource(yamlString: string): ShieldedCurlyTokens {
+  const src = String(yamlString ?? '');
+  let placeholderPrefix = 'mmtCurlyToken';
+  let n = 0;
+  while (src.includes(placeholderPrefix)) {
+    n += 1;
+    placeholderPrefix = `mmtCurlyToken${n}X`;
+  }
+  const tokens: string[] = [];
+  const text = mapUnquotedCurlyTokens(src, (m) => {
+    const id = tokens.length;
+    tokens.push(m[0]);
+    return `${placeholderPrefix}${id}`;
+  });
+  return {text, tokens, placeholderPrefix};
+}
+
+/** Put shielded `{{i|e|r|c:…}}` tokens back after a YAML emit. */
+export function restoreShieldedCurlyTokens(
+    yamlString: string,
+    shielded: ShieldedCurlyTokens,
+): string {
+  if (!shielded.tokens.length) {
+    return yamlString;
+  }
+  const prefix = shielded.placeholderPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`${prefix}(\\d+)`, 'g');
+  return yamlString.replace(re, (full, index) => {
+    const token = shielded.tokens[Number(index)];
+    return token ?? full;
+  });
 }
 
 /**
