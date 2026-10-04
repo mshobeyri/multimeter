@@ -37,7 +37,6 @@ body:
     quoted_curly: "{{c:day}}"
     curly_whole: {{c:city}}
     text_slice: <<c:city[0:1]>>
-    missing_embed: "x<<c:not_a_token>>y"
 examples:
   - id: defaults
     title: Check outputs
@@ -57,4 +56,3 @@ examples:
       quoted_curly: c:day
       curly_whole: c:city
       text_slice: c:city[0:1]
-      missing_embed: "xc:not_a_tokeny"

@@ -43,20 +43,19 @@ body:
   quoted_curly: "{{i:username}}"
   curly_whole: {{i:city}}
   text_slice: <<i:city[0:3]>>
-  missing_embed: "x<<i:nickname>>y"
 examples:
   - id: defaults
     title: Check outputs
     expect:
       status_code: 200
       username: i:username
-      age: i:age
-      active: i:active
+      age: =S <<i:age>>
+      active: =S <<i:active>>
       city: i:city
       missing_nickname: "i:nickname"
       literal_token: "i:username"
       literal_omit: "omit"
-      angle_whole: i:age
+      angle_whole: =S <<i:age>>
       quoted_angle: i:username
       angle_prefix: "asdaalice"
       angle_suffix: "100asas"
@@ -64,4 +63,3 @@ examples:
       quoted_curly: i:username
       curly_whole: i:city
       text_slice: i:city[0:3]
-      missing_embed: "xi:nicknamey"

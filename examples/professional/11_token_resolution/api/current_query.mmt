@@ -19,7 +19,6 @@ outputs:
   missing_embed: body.query.missing_embed
   status_code: status
 url: https://test.mmt.dev/echo
-method: get
 query:
   day_name: c:day
   epoch_seconds: c:epoch
@@ -36,6 +35,7 @@ query:
   curly_whole: {{c:city}}
   text_slice: <<c:city[0:1]>>
   missing_embed: "x<<c:not_a_token>>y"
+method: get
 examples:
   - id: defaults
     title: Check outputs

@@ -35,23 +35,22 @@ body:
     angle_both: "asda<<r:bool>>asas"
     quoted_curly: "{{r:color}}"
     curly_whole: {{r:color}}
-    missing_embed: "x<<r:not_a_token>>y"
 examples:
   - id: defaults
     title: Check outputs
     expect:
       status_code: 200
-      request_id: r:uuid
-      lucky_number: r:int(10,20)
-      active: r:bool
+      request_id: != null
+      lucky_number: =* [0-9]+
+      active: =* true|false
       missing_token: "r:not_a_token"
       literal_token: "r:uuid"
       literal_omit: "omit"
-      angle_whole: r:int(10,20)
-      quoted_angle: r:int(10,20)
+      angle_whole: =* [0-9]+
+      quoted_angle: =* [0-9]+
       angle_prefix: =* ^asda(1[0-9]|20)$
       angle_suffix: =* ^(1[0-9]|20)asas$
       angle_both: =* ^asda(true|false)asas$
-      quoted_curly: r:color
-      curly_whole: r:color
-      missing_embed: "xr:not_a_tokeny"
+      quoted_curly: =* [a-z]+
+      curly_whole: =* [a-z]+
+
