@@ -1,0 +1,107 @@
+type: test
+title: Current token resolution
+description: "Echoes c: values. JSON keeps c:epoch as a number. c:day and c:city stay text. Other formats send text."
+import:
+  jsonBody: ../api/current_json_body.mmt
+  xmlBody: ../api/current_xml_body.mmt
+  formBody: ../api/current_urlencoded_body.mmt
+  headerApi: ../api/current_header.mmt
+  queryApi: ../api/current_query.mmt
+steps:
+  - call: jsonBody
+    id: json_body
+    expect:
+      status_code: 200
+      day_name: != null
+      epoch_seconds: > 1700000000
+      city: != null
+      missing_token: "c:not_a_token"
+      literal_token: "c:day"
+      literal_omit: "omit"
+      removed_note: omit
+      angle_whole: "> 1700000000"
+      quoted_angle: "=* ^(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$"
+      angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
+      angle_suffix: =$ asas
+      angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
+      quoted_curly: "=* ^\\{\\{(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\\}\\}$"
+      curly_whole: "!= null"
+      text_slice: "=# 1"
+      missing_embed: "xc:not_a_tokeny"
+  - call: xmlBody
+    id: xml_body
+    expect:
+      status_code: 200
+      day_name: != null
+      epoch_seconds: != null
+      city: != null
+      missing_token: "c:not_a_token"
+      literal_token: "c:day"
+      literal_omit: "omit"
+      angle_whole: "=* ^[0-9]{10}$"
+      quoted_angle: "=* ^&lt;&lt;(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)&gt;&gt;$"
+      angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
+      angle_suffix: =$ asas
+      angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
+      quoted_curly: "=* ^\\{\\{(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\\}\\}$"
+      curly_whole: "!= null"
+      text_slice: "=# 1"
+      missing_embed: "xc:not_a_tokeny"
+  - call: formBody
+    id: form_body
+    expect:
+      status_code: 200
+      day_name: != null
+      epoch_seconds: != null
+      city: != null
+      missing_token: "c:not_a_token"
+      literal_token: "c:day"
+      literal_omit: "omit"
+      angle_whole: "=* ^[0-9]{10}$"
+      quoted_angle: "<<c:day>>"
+      angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
+      angle_suffix: =$ asas
+      angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
+      quoted_curly: "=* ^\\{\\{(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\\}\\}$"
+      curly_whole: "!= null"
+      text_slice: "=# 1"
+      missing_embed: "xc:not_a_tokeny"
+  - call: headerApi
+    id: header_call
+    expect:
+      status_code: 200
+      day_name: != null
+      epoch_seconds: != null
+      city: != null
+      missing_token: "c:not_a_token"
+      literal_token: "c:day"
+      literal_omit: "omit"
+      angle_whole: "=* ^[0-9]{10}$"
+      quoted_angle: "<<c:day>>"
+      angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
+      angle_suffix: =$ asas
+      angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
+      quoted_curly: "{{c:day}}"
+      curly_whole: "!= null"
+      text_slice: "=# 1"
+      missing_embed: "xc:not_a_tokeny"
+  - call: queryApi
+    id: query_call
+    expect:
+      status_code: 200
+      day_name: != null
+      epoch_seconds: != null
+      city: != null
+      missing_token: "c:not_a_token"
+      literal_token: "c:day"
+      literal_omit: "omit"
+
+      angle_whole: "=* ^[0-9]{10}$"
+      quoted_angle: "<<c:day>>"
+      angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
+      angle_suffix: =$ asas
+      angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
+      quoted_curly: "{{c:day}}"
+      curly_whole: "!= null"
+      text_slice: "=# 1"
+      missing_embed: "xc:not_a_tokeny"

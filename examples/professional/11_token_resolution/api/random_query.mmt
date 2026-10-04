@@ -1,0 +1,36 @@
+type: api
+title: Random tokens in the query string
+description: "Query values are strings. r:int is sent as digits, not a JSON number."
+outputs:
+  request_id: body.query.request_id
+  lucky_number: body.query.lucky_number
+  active: body.query.active
+  missing_token: body.query.missing_token
+  literal_token: body.query.literal_token
+  literal_omit: body.query.literal_omit
+  angle_whole: body.query.angle_whole
+  quoted_angle: body.query.quoted_angle
+  angle_prefix: body.query.angle_prefix
+  angle_suffix: body.query.angle_suffix
+  angle_both: body.query.angle_both
+  quoted_curly: body.query.quoted_curly
+  curly_whole: body.query.curly_whole
+  missing_embed: body.query.missing_embed
+  status_code: status
+url: https://test.mmt.dev/echo
+method: get
+query:
+  request_id: r:uuid
+  lucky_number: r:int(10,20)
+  active: r:bool
+  missing_token: r:not_a_token
+  literal_token: "r:uuid"
+  literal_omit: "omit"
+  angle_whole: <<r:int(10,20)>>
+  quoted_angle: "<<r:int(10,20)>>"
+  angle_prefix: "asda<<r:int(10,20)>>"
+  angle_suffix: "<<r:int(10,20)>>asas"
+  angle_both: "asda<<r:bool>>asas"
+  quoted_curly: "{{r:color}}"
+  curly_whole: {{r:color}}
+  missing_embed: "x<<r:not_a_token>>y"

@@ -1,0 +1,38 @@
+type: api
+title: Current tokens in headers
+description: "Header values are strings. c:epoch is sent as digits, not a JSON number."
+outputs:
+  day_name: body[headers][x-day-name]
+  epoch_seconds: body[headers][x-epoch-seconds]
+  city: body[headers][x-city]
+  missing_token: body[headers][x-missing-token]
+  literal_token: body[headers][x-literal-token]
+  literal_omit: body[headers][x-literal-omit]
+  angle_whole: body[headers][x-angle-whole]
+  quoted_angle: body[headers][x-quoted-angle]
+  angle_prefix: body[headers][x-angle-prefix]
+  angle_suffix: body[headers][x-angle-suffix]
+  angle_both: body[headers][x-angle-both]
+  quoted_curly: body[headers][x-quoted-curly]
+  curly_whole: body[headers][x-curly-whole]
+  text_slice: body[headers][x-text-slice]
+  missing_embed: body[headers][x-missing-embed]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: get
+headers:
+  X-Day-Name: c:day
+  X-Epoch-Seconds: c:epoch
+  X-City: c:city
+  X-Missing-Token: c:not_a_token
+  X-Literal-Token: "c:day"
+  X-Literal-Omit: "omit"
+  X-Angle-Whole: <<c:epoch>>
+  X-Quoted-Angle: "<<c:day>>"
+  X-Angle-Prefix: "asda<<c:day>>"
+  X-Angle-Suffix: "<<c:city>>asas"
+  X-Angle-Both: "asda<<c:day>>asas"
+  X-Quoted-Curly: "{{c:day}}"
+  X-Curly-Whole: {{c:city}}
+  X-Text-Slice: <<c:city[0:1]>>
+  X-Missing-Embed: "x<<c:not_a_token>>y"

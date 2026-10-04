@@ -1,0 +1,124 @@
+type: test
+title: Random token resolution
+description: "Echoes r: values. JSON keeps uuid as text, int as a number, and bool as a boolean. Other formats send text."
+import:
+  jsonBody: ../api/random_json_body.mmt
+  xmlBody: ../api/random_xml_body.mmt
+  formBody: ../api/random_urlencoded_body.mmt
+  headerApi: ../api/random_header.mmt
+  queryApi: ../api/random_query.mmt
+steps:
+  - call: jsonBody
+    id: json_body
+    expect:
+      status_code: 200
+      request_id: != null
+      lucky_number:
+        - >= 10
+        - <= 20
+      active: != null
+      missing_token: "r:not_a_token"
+      literal_token: "r:uuid"
+      literal_omit: "omit"
+      removed_note: omit
+      angle_whole: 
+        - ">= 10"
+        - <= 20
+      quoted_angle: 
+        - ">= 10"
+        - <= 20
+      angle_prefix: =* ^asda(1[0-9]|20)$
+      angle_suffix: =* ^(1[0-9]|20)asas$
+      angle_both: =* ^asda(true|false)asas$
+      quoted_curly: 
+        - "=^ \"{{\""
+        - "!C r:"
+      curly_whole: 
+        - "!= null"
+        - "!C r:"
+      missing_embed: "xr:not_a_tokeny"
+  - call: xmlBody
+    id: xml_body
+    expect:
+      status_code: 200
+      request_id: != null
+      lucky_number: != null
+      active: != null
+      missing_token: "r:not_a_token"
+      literal_token: "r:uuid"
+      literal_omit: "omit"
+      angle_whole: =* ^(1[0-9]|20)$
+      quoted_angle: "=* ^&lt;&lt;(1[0-9]|20)&gt;&gt;$"
+      angle_prefix: =* ^asda(1[0-9]|20)$
+      angle_suffix: =* ^(1[0-9]|20)asas$
+      angle_both: =* ^asda(true|false)asas$
+      quoted_curly: 
+        - "=^ \"{{\""
+        - "!C r:"
+      curly_whole: 
+        - "!= null"
+        - "!C r:"
+      missing_embed: "xr:not_a_tokeny"
+  - call: formBody
+    id: form_body
+    expect:
+      status_code: 200
+      request_id: != null
+      lucky_number: != null
+      active: != null
+      missing_token: "r:not_a_token"
+      literal_token: "r:uuid"
+      literal_omit: "omit"
+      angle_whole: =* ^(1[0-9]|20)$
+      quoted_angle: "<<r:int(10,20)>>"
+      angle_prefix: =* ^asda(1[0-9]|20)$
+      angle_suffix: =* ^(1[0-9]|20)asas$
+      angle_both: =* ^asda(true|false)asas$
+      quoted_curly: 
+        - "=^ \"{{\""
+        - "!C r:"
+      curly_whole: 
+        - "!= null"
+        - "!C r:"
+      missing_embed: "xr:not_a_tokeny"
+  - call: headerApi
+    id: header_call
+    expect:
+      status_code: 200
+      request_id: != null
+      lucky_number: != null
+      color: != null
+      missing_token: "r:not_a_token"
+      literal_token: "r:uuid"
+      literal_omit: "omit"
+      angle_whole: =* ^(1[0-9]|20)$
+      quoted_angle: "<<r:int(10,20)>>"
+      angle_prefix: =* ^asda(1[0-9]|20)$
+      angle_suffix: =* ^(1[0-9]|20)asas$
+      angle_both: =* ^asda(true|false)asas$
+      quoted_curly: "{{r:color}}"
+      curly_whole: 
+        - "!= null"
+        - "!C r:"
+      missing_embed: "xr:not_a_tokeny"
+  - call: queryApi
+    id: query_call
+    expect:
+      status_code: 200
+      request_id: != null
+      lucky_number: != null
+      active: != null
+      missing_token: "r:not_a_token"
+      literal_token: "r:uuid"
+      literal_omit: "omit"
+
+      angle_whole: =* ^(1[0-9]|20)$
+      quoted_angle: "<<r:int(10,20)>>"
+      angle_prefix: =* ^asda(1[0-9]|20)$
+      angle_suffix: =* ^(1[0-9]|20)asas$
+      angle_both: =* ^asda(true|false)asas$
+      quoted_curly: "{{r:color}}"
+      curly_whole: 
+        - "!= null"
+        - "!C r:"
+      missing_embed: "xr:not_a_tokeny"

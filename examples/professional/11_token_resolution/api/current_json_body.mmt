@@ -1,0 +1,41 @@
+type: api
+title: Current tokens in a JSON body
+description: "A whole-field c: value keeps the generator type. c:day and c:city are text. c:epoch is a number."
+outputs:
+  day_name: body.body.day_name
+  epoch_seconds: body.body.epoch_seconds
+  city: body.body.city
+  missing_token: body.body.missing_token
+  literal_token: body.body.literal_token
+  literal_omit: body.body.literal_omit
+  removed_note: body.body.removed_note
+  angle_whole: body.body.angle_whole
+  quoted_angle: body.body.quoted_angle
+  angle_prefix: body.body.angle_prefix
+  angle_suffix: body.body.angle_suffix
+  angle_both: body.body.angle_both
+  quoted_curly: body.body.quoted_curly
+  curly_whole: body.body.curly_whole
+  text_slice: body.body.text_slice
+  missing_embed: body.body.missing_embed
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  day_name: c:day
+  epoch_seconds: c:epoch
+  city: c:city
+  missing_token: c:not_a_token
+  literal_token: "c:day"
+  removed_note: omit
+  literal_omit: "omit"
+  angle_whole: <<c:epoch>>
+  quoted_angle: "<<c:day>>"
+  angle_prefix: "asda<<c:day>>"
+  angle_suffix: "<<c:city>>asas"
+  angle_both: "asda<<c:day>>asas"
+  quoted_curly: "{{c:day}}"
+  curly_whole: {{c:city}}
+  text_slice: <<c:city[0:1]>>
+  missing_embed: "x<<c:not_a_token>>y"

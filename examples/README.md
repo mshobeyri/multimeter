@@ -16,4 +16,4 @@ Use these when you are ready for reusable APIs, authentication, mock servers, ri
 
 ## Professional
 
-Use these for higher-complexity workflows such as reports, CI pipelines (GitHub, GitLab, Azure), TLS/mTLS certificates, load testing, external mTLS smoke tests, converting a full OpenAPI spec (operations, examples, auth, schemas) into `.mmt` files, and advanced JavaScript helper imports.
+Use these for higher-complexity workflows such as reports, CI pipelines (GitHub, GitLab, Azure), TLS/mTLS certificates, load testing, external mTLS smoke tests, converting a full OpenAPI spec (operations, examples, auth, schemas) into `.mmt` files, token type resolution on the echo server (`11_token_resolution`), and advanced JavaScript helper imports.

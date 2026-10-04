@@ -1,0 +1,36 @@
+type: api
+title: Random tokens in headers
+description: "Header values are strings. r:int is sent as digits. r:color is a color name."
+outputs:
+  request_id: body[headers][x-request-id]
+  lucky_number: body[headers][x-lucky-number]
+  color: body[headers][x-color]
+  missing_token: body[headers][x-missing-token]
+  literal_token: body[headers][x-literal-token]
+  literal_omit: body[headers][x-literal-omit]
+  angle_whole: body[headers][x-angle-whole]
+  quoted_angle: body[headers][x-quoted-angle]
+  angle_prefix: body[headers][x-angle-prefix]
+  angle_suffix: body[headers][x-angle-suffix]
+  angle_both: body[headers][x-angle-both]
+  quoted_curly: body[headers][x-quoted-curly]
+  curly_whole: body[headers][x-curly-whole]
+  missing_embed: body[headers][x-missing-embed]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: get
+headers:
+  X-Request-Id: r:uuid
+  X-Lucky-Number: r:int(10,20)
+  X-Color: r:color
+  X-Missing-Token: r:not_a_token
+  X-Literal-Token: "r:uuid"
+  X-Literal-Omit: "omit"
+  X-Angle-Whole: <<r:int(10,20)>>
+  X-Quoted-Angle: "<<r:int(10,20)>>"
+  X-Angle-Prefix: "asda<<r:int(10,20)>>"
+  X-Angle-Suffix: "<<r:int(10,20)>>asas"
+  X-Angle-Both: "asda<<r:bool>>asas"
+  X-Quoted-Curly: "{{r:color}}"
+  X-Curly-Whole: {{r:color}}
+  X-Missing-Embed: "x<<r:not_a_token>>y"

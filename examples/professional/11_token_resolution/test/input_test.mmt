@@ -1,0 +1,112 @@
+type: test
+title: Input token resolution
+description: "Echoes i: values. JSON keeps the input type. XML, form, headers, and query send text."
+import:
+  jsonBody: ../api/input_json_body.mmt
+  xmlBody: ../api/input_xml_body.mmt
+  formBody: ../api/input_urlencoded_body.mmt
+  headerApi: ../api/input_header.mmt
+  queryApi: ../api/input_query.mmt
+steps:
+  - call: jsonBody
+    id: json_body
+    expect:
+      status_code: 200
+      username: alice
+      age: 100
+      active: true
+      city: Berlin
+      missing_nickname: "{{i:nickname}}"
+      literal_token: "i:username"
+      literal_omit: "omit"
+      removed_note: omit
+      angle_whole: 100
+      quoted_angle: alice
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: "{{alice}}"
+      curly_whole: "Berlin"
+      text_slice: "Ber"
+      missing_embed: "xi:nicknamey"
+  - call: xmlBody
+    id: xml_body
+    expect:
+      status_code: 200
+      username: alice
+      age: "100"
+      active: "true"
+      city: Berlin
+      missing_nickname: "i:nickname"
+      literal_token: "i:username"
+      literal_omit: "omit"
+      angle_whole: "100"
+      quoted_angle: "&lt;&lt;alice&gt;&gt;"
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: "{{alice}}"
+      curly_whole: "Berlin"
+      text_slice: "Ber"
+      missing_embed: "xi:nicknamey"
+  - call: formBody
+    id: form_body
+    expect:
+      status_code: 200
+      username: alice
+      age: "100"
+      active: "true"
+      city: Berlin
+      missing_nickname: "i:nickname"
+      literal_token: "i:username"
+      literal_omit: "omit"
+      angle_whole: "100"
+      quoted_angle: "<<i:username>>"
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: "{{alice}}"
+      curly_whole: "Berlin"
+      text_slice: "Ber"
+      missing_embed: "xi:nicknamey"
+  - call: headerApi
+    id: header_call
+    expect:
+      status_code: 200
+      username: alice
+      age: "100"
+      active: "true"
+      city: Berlin
+      missing_nickname: "i:nickname"
+      literal_token: "i:username"
+      literal_omit: "omit"
+      angle_whole: "100"
+      quoted_angle: "<<i:username>>"
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: "{{i:username}}"
+      curly_whole: "Berlin"
+      text_slice: "Ber"
+      missing_embed: "xi:nicknamey"
+  - call: queryApi
+    id: query_call
+    expect:
+      status_code: 200
+      username: alice
+      age: "100"
+      active: "true"
+      city: Berlin
+      missing_nickname: "i:nickname"
+      literal_token: "i:username"
+      literal_omit: "omit"
+
+      angle_whole: "100"
+      quoted_angle: "<<i:username>>"
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: "{{i:username}}"
+      curly_whole: "Berlin"
+      text_slice: "Ber"
+      missing_embed: "xi:nicknamey"
