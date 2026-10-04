@@ -1,7 +1,10 @@
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
+  expectDisplayToStored,
   expectMapToUiRows,
+  expectStoredToDisplay,
+  expectTextUnchanged,
   expectValueToUiRow,
   uiRowToExpectValue,
   uiRowsToExpectMap,
@@ -139,5 +142,24 @@ steps:
       {field: 'a', op: '!=', expected: '9', explicitOperator: true},
     ]);
     expect(merged?.a).toEqual(['== 1', '=C x', '!= 9']);
+  });
+
+  it('keeps echo expects literal and whole tokens bare', () => {
+    expect(expectStoredToDisplay('xc:not_a_tokeny')).toBe('xc:not_a_tokeny');
+    expect(expectDisplayToStored('xc:not_a_tokeny')).toBe('xc:not_a_tokeny');
+    expect(expectDisplayToStored(expectStoredToDisplay('xc:not_a_tokeny')))
+        .toBe('xc:not_a_tokeny');
+    expect(expectStoredToDisplay('c:day')).toBe('{{c:day}}');
+    expect(expectDisplayToStored('{{c:day}}')).toBe('c:day');
+    expect(expectDisplayToStored('<<c:day>>')).toBe('c:day');
+    expect(expectTextUnchanged('c:day', '{{c:day}}')).toBe(true);
+    expect(expectTextUnchanged('xc:not_a_tokeny', 'x<<c:not_a_token>>y')).toBe(false);
+    expect(expectStoredToDisplay('"c:not_a_token"')).toBe('"c:not_a_token"');
+    expect(expectDisplayToStored('"c:not_a_token"')).toBe('"c:not_a_token"');
+    expect(expectStoredToDisplay('omit')).toBe('omit');
+    expect(expectDisplayToStored('x{{c:day}}y')).toBe('x<<c:day>>y');
+    expect(expectDisplayToStored('xr:not_a_tokeny')).toBe('xr:not_a_tokeny');
+    expect(expectDisplayToStored('xi:nicknamey')).toBe('xi:nicknamey');
+    expect(expectDisplayToStored('xe:regiony')).toBe('xe:regiony');
   });
 });
