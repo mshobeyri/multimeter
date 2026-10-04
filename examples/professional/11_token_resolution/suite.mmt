@@ -1,8 +1,24 @@
 type: suite
 title: Token resolution
-description: Runs the env, input, random, and current echo samples
+description: Runs every env, input, random, and current echo sample
 items:
-  - test/env_test.mmt
-  - test/input_test.mmt
-  - test/random_test.mmt
-  - test/current_test.mmt
+  - test/env_json_body_test.mmt
+  - test/env_xml_body_test.mmt
+  - test/env_urlencoded_body_test.mmt
+  - test/env_header_test.mmt
+  - test/env_query_test.mmt
+  - test/input_json_body_test.mmt
+  - test/input_xml_body_test.mmt
+  - test/input_urlencoded_body_test.mmt
+  - test/input_header_test.mmt
+  - test/input_query_test.mmt
+  - test/random_json_body_test.mmt
+  - test/random_xml_body_test.mmt
+  - test/random_urlencoded_body_test.mmt
+  - test/random_header_test.mmt
+  - test/random_query_test.mmt
+  - test/current_json_body_test.mmt
+  - test/current_xml_body_test.mmt
+  - test/current_urlencoded_body_test.mmt
+  - test/current_header_test.mmt
+  - test/current_query_test.mmt

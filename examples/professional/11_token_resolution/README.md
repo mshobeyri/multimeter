@@ -69,16 +69,16 @@ JSON is the only format here that still shows `plan_code` as the number `10` and
 | `api/current_header.mmt` | `c:` as header text |
 | `api/current_query.mmt` | `c:` as query text |
 
-Each API lists `outputs` for the echoed fields. `test/env_test.mmt`, `test/input_test.mmt`, `test/random_test.mmt`, and `test/current_test.mmt` assert those values. `suite.mmt` runs all four.
+Each API lists `outputs` for the echoed fields. Matching tests live under `test/` (`env_json_body_test.mmt` for `api/env_json_body.mmt`, and so on). `suite.mmt` runs all twenty.
 
 ## How to use
 
 Open any file in `api/` and click **Send**. Open a file in `test/`, or `suite.mmt`, and click **Run**.
 
 ```sh
-npx testlight run examples/professional/11_token_resolution/test/env_test.mmt \
+npx testlight run examples/professional/11_token_resolution/test/env_json_body_test.mmt \
   --env-file examples/professional/11_token_resolution/multimeter.mmt
-npx testlight run examples/professional/11_token_resolution/test/input_test.mmt
+npx testlight run examples/professional/11_token_resolution/test/input_json_body_test.mmt
 npx testlight run examples/professional/11_token_resolution/suite.mmt \
   --env-file examples/professional/11_token_resolution/multimeter.mmt
 ```
