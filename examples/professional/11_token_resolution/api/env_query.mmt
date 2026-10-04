@@ -46,19 +46,19 @@ examples:
     expect:
       status_code: 200
       account_age: =S <<e:account_age>>
-      feature_enabled: =S <<e:feature_enabled>>
-      plan_code: =S <<e:plan_code>>
+      feature_enabled: =S e:feature_enabled
+      plan_code: =S e:plan_code
       plan_label: e:plan_label
       service_url: e:service_url
       missing_region: "e:region"
       literal_token: "e:account_age"
       literal_omit: "omit"
-      angle_whole: =S <<e:account_age>>
-      quoted_angle: =S <<e:account_age>>
+      angle_whole: "42"
+      quoted_angle: =$ e:account_age
       angle_prefix: "asda42"
       angle_suffix: "42asas"
       angle_both: "asdatrueasas"
-      quoted_curly: =S <<e:account_age>>
+      quoted_curly: "42"
       curly_whole: e:plan_label
       text_slice: e:service_url[0:8]
       missing_embed: "xe:regiony"
