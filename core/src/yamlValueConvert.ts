@@ -3,6 +3,7 @@ import {JSONValue} from './CommonData';
 import {isOmitSentinel, OMIT_SENTINEL} from './omitKeyword';
 import {
   isLiteralTokenValue,
+  isPlainTokenScalar,
   isTokenLikeScalar,
   unwrapLiteralToken,
   wrapLiteralToken,
@@ -104,7 +105,9 @@ export function inputBoxToYamlValue(val: string): JSONValue {
   if ((t.startsWith('"') && t.endsWith('"')) ||
       (t.startsWith('\'') && t.endsWith('\''))) {
     const inner = t.slice(1, -1);
-    if (isTokenLikeScalar(inner)) {
+    // `"i:username"` is the text. `"<<i:username>>"` and `"{{i:username}}"`
+    // still resolve.
+    if (isPlainTokenScalar(inner)) {
       return wrapLiteralToken(inner);
     }
     return inner;

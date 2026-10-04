@@ -9,18 +9,18 @@ Each request also sends the other spellings of one token:
 | YAML | Meaning |
 |---|---|
 | `<<e:account_age>>` | Whole value. JSON keeps the type (`42`). Other formats send the text `42`. |
-| `"<<e:account_age>>"` | Quoted whole angle. Sent as the text `<<e:account_age>>`. |
+| `"<<e:account_age>>"` | Quoted whole angle. Resolves the same way as `<<e:account_age>>`. |
 | `"asda<<e:account_age>>"` | Text before the token. Sent as `asda42`. |
 | `"<<e:account_age>>asas"` | Text after the token. Sent as `42asas`. |
 | `"asda<<e:feature_enabled>>asas"` | Text on both sides. Sent as `asdatrueasas`. |
 | `{{e:plan_label}}` | Unquoted curly, same as a bare token. JSON keeps the string `"10"`. |
-| `"{{e:account_age}}"` | Quoted curly. Sent as the text `{{e:account_age}}`. |
+| `"{{e:account_age}}"` | Quoted curly. Resolves the same way as `<<e:account_age>>`. |
 | `<<e:service_url[0:8]>>` | Part of a string. Sent as `https://`. |
 | `"x<<e:region>>y"` | A missing name inside text. Sent as `xe:regiony`. |
 
-`"asda<<token>>"` and `"<<token>>asas"` are strings in every format. `<<i:age>>`, `<<r:int(10,20)>>`, and `<<c:epoch>>` follow the same whole-value rule as `e:`. Unquoted `{{token}}` resolves the same way as `<<token>>` for `e:`, `i:`, `r:`, `c:`, and `o:`.
+`"asda<<token>>"` and `"<<token>>asas"` are strings in every format. `<<i:age>>`, `<<r:int(10,20)>>`, and `<<c:epoch>>` follow the same whole-value rule as `e:`. `{{token}}` resolves the same way as `<<token>>` for `e:`, `i:`, `r:`, `c:`, and `o:`, with or without quotes. A quoted bare token such as `"e:account_age"` stays the text `e:account_age`.
 
-A quoted `"<<token>>"` or `"{{token}}"` is that text in every format. XML escapes `<` and `>`, so `"<<e:account_age>>"` is echoed as `&lt;&lt;e:account_age&gt;&gt;`. `"{{e:account_age}}"` is echoed as `{{e:account_age}}`. The same rule applies to `i:`, `r:`, and `c:`.
+A whole-field example expect uses the same token (`e:account_age`, `i:username`, `c:day`, `r:uuid`, including a slice such as `i:city[0:3]`). `e:`, `i:`, and `c:` resolve to the value that was sent. Text formats still match when a number or boolean was sent as text. `r:` is checked as a regex of that generator, because each draw is new. `c:epoch` changes every second, so that expect stays a range. Text wrapped around a token (`asda42`, `asda15`) stays a concrete string or a regex.
 
 ## Environment
 

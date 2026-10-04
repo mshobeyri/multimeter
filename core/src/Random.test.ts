@@ -416,3 +416,41 @@ describe('randomTokenValueType metadata', () => {
     expect(Random.randomTokenValueType('nope')).toBeUndefined();
   });
 });
+
+describe('random token expect patterns', () => {
+  const specs = [
+    ...Object.keys(Random.RANDOM_TOKEN_MAP),
+    'int(10,20)',
+    'string(4)',
+    'float(1,3)',
+  ];
+
+  it('matches values the generator just produced, including their text form', () => {
+    for (const spec of specs) {
+      for (let i = 0; i < 8; i++) {
+        const value = Random.randomValueForToken(spec);
+        expect(value).not.toBeUndefined();
+        if (!Random.valueMatchesRandomToken(spec, value)) {
+          throw new Error(
+              `${spec} value ${JSON.stringify(value)} missed ${Random.randomTokenExpectPattern(spec)}`);
+        }
+        if (!Random.valueMatchesRandomToken(spec, String(value))) {
+          throw new Error(`${spec} text ${JSON.stringify(String(value))} missed`);
+        }
+      }
+    }
+  });
+
+  it('keeps an int range inside its bounds', () => {
+    expect(Random.valueMatchesRandomToken('int(10,20)', 9)).toBe(false);
+    expect(Random.valueMatchesRandomToken('int(10,20)', 10)).toBe(true);
+    expect(Random.valueMatchesRandomToken('int(10,20)', '20')).toBe(true);
+    expect(Random.valueMatchesRandomToken('int(10,20)', 21)).toBe(false);
+    expect(Random.valueMatchesRandomToken('int(10,20)', '010')).toBe(false);
+    for (let n = -2; n <= 3; n++) {
+      expect(Random.valueMatchesRandomToken('int(-2,3)', n)).toBe(true);
+    }
+    expect(Random.valueMatchesRandomToken('int(-2,3)', -3)).toBe(false);
+    expect(Random.valueMatchesRandomToken('not_a_token', 'x')).toBeUndefined();
+  });
+});

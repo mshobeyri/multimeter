@@ -72,17 +72,28 @@ body:
     expect(body.mixed).toBe('hello <<e:env>>');
   });
 
-  it('keeps quoted curly aliases as literal text', () => {
+  it('resolves quoted angle and curly tokens like the unquoted forms', () => {
     const api = yamlToAPIStrict(`
 type: api
 url: https://example.com
-method: get
+method: post
+inputs:
+  username: alice
 body:
-  literal: "{{r:uuid}}"
+  angle: "<<i:username>>"
+  curly: "{{i:username}}"
+  bare: "i:username"
 `);
     const body = api.body as Record<string, unknown>;
-    expect(isLiteralTokenValue(body.literal)).toBe(true);
-    expect(unwrapLiteralToken(String(body.literal))).toBe('{{r:uuid}}');
+    expect(body.angle).toBe('i:username');
+    expect(body.curly).toBe('i:username');
+    expect(isLiteralTokenValue(body.bare)).toBe(true);
+    const resolved = resolveApiRequest(
+        api, {}, {}, {refreshRuntimeTokens: true, preserveStructuredBody: true});
+    const sent = resolved.body as Record<string, unknown>;
+    expect(sent.angle).toBe('alice');
+    expect(sent.curly).toBe('alice');
+    expect(unwrapLiteralToken(String(sent.bare))).toBe('i:username');
   });
 
   it('keeps quoted tokens as text when resolving', () => {

@@ -720,7 +720,7 @@ export async function executeApi(
   // Evaluate the selected example's expect after outputs exist.
   // Soft failures log but keep success (examples have no require / hard fail).
   if (!result.cancelled && !result.syntaxError && exampleTest) {
-    const apiTest = evaluateApiTest(result.outputs, exampleTest);
+    const apiTest = evaluateApiTest(result.outputs, exampleTest, resolvedInputs, envVars);
     result.apiTest = apiTest;
     if (apiTest.hasChecks) {
       const titlePart = displayName ? `"${displayName}" - ` : '';

@@ -3,12 +3,14 @@ title: Input token resolution (header)
 description: "Echoes i: values as header text."
 import:
   api: ../api/input_header.mmt
+inputs:
+  username: alice
 steps:
   - call: api
     id: call
     expect:
       status_code: 200
-      username: alice
+      username: i:username
       age: "100"
       active: "true"
       city: Berlin
@@ -16,11 +18,11 @@ steps:
       literal_token: "i:username"
       literal_omit: "omit"
       angle_whole: "100"
-      quoted_angle: "<<i:username>>"
+      quoted_angle: i:username
       angle_prefix: "asdaalice"
       angle_suffix: "100asas"
       angle_both: "asdatrueasas"
-      quoted_curly: "{{i:username}}"
+      quoted_curly: i:username
       curly_whole: "Berlin"
       text_slice: "Ber"
       missing_embed: "xi:nicknamey"

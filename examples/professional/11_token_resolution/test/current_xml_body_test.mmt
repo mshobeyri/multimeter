@@ -15,11 +15,11 @@ steps:
       literal_token: "c:day"
       literal_omit: "omit"
       angle_whole: "=* ^[0-9]{10}$"
-      quoted_angle: "&lt;&lt;c:day&gt;&gt;"
+      quoted_angle: c:day
       angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
       angle_suffix: =$ asas
       angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
-      quoted_curly: "{{c:day}}"
+      quoted_curly: c:day
       curly_whole: "!= null"
       text_slice: "=# 1"
       missing_embed: "xc:not_a_tokeny"

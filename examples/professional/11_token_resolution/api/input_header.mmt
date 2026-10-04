@@ -48,19 +48,19 @@ examples:
     title: Check outputs
     expect:
       status_code: 200
-      username: alice
-      age: "100"
-      active: "true"
-      city: Berlin
+      username: i:username
+      age: i:age
+      active: i:active
+      city: i:city
       missing_nickname: "i:nickname"
       literal_token: "i:username"
       literal_omit: "omit"
-      angle_whole: "100"
-      quoted_angle: "<<i:username>>"
+      angle_whole: i:age
+      quoted_angle: i:username
       angle_prefix: "asdaalice"
       angle_suffix: "100asas"
       angle_both: "asdatrueasas"
-      quoted_curly: "{{i:username}}"
-      curly_whole: "Berlin"
-      text_slice: "Ber"
+      quoted_curly: i:username
+      curly_whole: i:city
+      text_slice: i:city[0:3]
       missing_embed: "xi:nicknamey"

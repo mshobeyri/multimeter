@@ -131,8 +131,10 @@ export function restoreLiteralTokensInText(text: string): string {
 }
 
 /**
- * Walk a yaml AST: quoted token-like scalars become literal markers so they
- * survive resolve the same way quoted `"omit"` survives the omit keyword.
+ * Walk a yaml AST: a quoted bare token (`"i:username"`, `"r:uuid"`) stays
+ * text, the same way quoted `"omit"` stays the word omit.
+ * Quoted `"<<i:username>>"` and `"{{i:username}}"` are not frozen. They
+ * resolve like the unquoted forms.
  */
 export function markQuotedTokenLiterals(node: any): void {
   if (!node || typeof node !== 'object') {
@@ -141,7 +143,7 @@ export function markQuotedTokenLiterals(node: any): void {
 
   if ((node.type === 'QUOTE_DOUBLE' || node.type === 'QUOTE_SINGLE') &&
       typeof node.value === 'string' &&
-      isTokenLikeScalar(node.value) &&
+      isPlainTokenScalar(node.value) &&
       !isLiteralTokenValue(node.value)) {
     node.value = wrapLiteralToken(node.value);
     return;

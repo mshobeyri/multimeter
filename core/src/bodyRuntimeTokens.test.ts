@@ -1009,7 +1009,7 @@ describe('xml scalar yaml policy', () => {
   it('types leaves, keeps quoted tokens, and drops omit', () => {
     const api = yamlToAPI(yaml);
     const ui = bodyEditTokenTemplate(api.body, 'xml');
-    expect(ui).toContain('<id>"&lt;&lt;i:username&gt;&gt;"</id>');
+    expect(ui).toContain('<id>{{i:username}}</id>');
     expect(ui).toContain('<name>{{i:username}}</name>');
     expect(ui).toContain('<str>"i:username"</str>');
     expect(ui).toContain('<n>100</n>');
@@ -1027,8 +1027,8 @@ describe('xml scalar yaml policy', () => {
     expect(ui).not.toContain('__MMT_OMIT__');
 
     const saved = bodyForYamlSave(api.body, ui, 'xml') as Record<string, any>;
-    expect(saved.user.id && unwrapLiteralToken(saved.user.id)).toBe('<<i:username>>');
-    expect(isLiteralTokenValue(saved.user.id)).toBe(true);
+    expect(saved.user.id).toBe('i:username');
+    expect(isLiteralTokenValue(saved.user.id)).toBe(false);
     expect(saved.user.name).toBe('i:username');
     expect(isLiteralTokenValue(saved.user.str)).toBe(true);
     expect(unwrapLiteralToken(saved.user.str)).toBe('i:username');
@@ -1048,7 +1048,7 @@ describe('xml scalar yaml policy', () => {
     expect(again).not.toMatch(/note:/);
     expect(again).toMatch(/\bn: 100\b/);
     expect(again).toMatch(/qn: "112"/);
-    expect(again).toMatch(/id: "<<i:username>>"/);
+    expect(again).toMatch(/id: i:username\b/);
   });
 
   it('expanded xml uses the same leaf rules and keeps empty objects', () => {
@@ -1123,7 +1123,7 @@ describe('json editor tokens', () => {
     ].join('\n');
     const api = yamlToAPI(yaml);
     const ui = bodyEditTokenTemplate(api.body, 'json');
-    expect(ui).toContain('"angled": "<<i:username>>"');
+    expect(ui).toContain('"angled": "{{i:username}}"');
     expect(ui).toContain('"curly": "{{i:username}}"');
     expect(ui).toContain('"str": "i:username"');
     expect(ui).toContain('"name": "{{i:username}}"');

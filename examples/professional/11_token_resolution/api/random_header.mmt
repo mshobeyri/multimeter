@@ -39,19 +39,17 @@ examples:
     title: Check outputs
     expect:
       status_code: 200
-      request_id: != null
-      lucky_number: != null
-      color: != null
+      request_id: r:uuid
+      lucky_number: r:int(10,20)
+      color: r:color
       missing_token: "r:not_a_token"
       literal_token: "r:uuid"
       literal_omit: "omit"
-      angle_whole: =* ^(1[0-9]|20)$
-      quoted_angle: "<<r:int(10,20)>>"
+      angle_whole: r:int(10,20)
+      quoted_angle: r:int(10,20)
       angle_prefix: =* ^asda(1[0-9]|20)$
       angle_suffix: =* ^(1[0-9]|20)asas$
       angle_both: =* ^asda(true|false)asas$
-      quoted_curly: "{{r:color}}"
-      curly_whole:
-        - "!= null"
-        - "!C r:"
+      quoted_curly: r:color
+      curly_whole: r:color
       missing_embed: "xr:not_a_tokeny"

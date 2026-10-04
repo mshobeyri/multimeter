@@ -15,11 +15,13 @@ steps:
       literal_token: "r:uuid"
       literal_omit: "omit"
       angle_whole: =* ^(1[0-9]|20)$
-      quoted_angle: "&lt;&lt;r:int(10,20)&gt;&gt;"
+      quoted_angle: =* ^(1[0-9]|20)$
       angle_prefix: =* ^asda(1[0-9]|20)$
       angle_suffix: =* ^(1[0-9]|20)asas$
       angle_both: =* ^asda(true|false)asas$
-      quoted_curly: "{{r:color}}"
+      quoted_curly:
+        - "!= null"
+        - "!C r:"
       curly_whole:
         - "!= null"
         - "!C r:"

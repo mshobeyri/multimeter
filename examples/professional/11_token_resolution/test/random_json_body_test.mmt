@@ -20,11 +20,15 @@ steps:
       angle_whole:
         - ">= 10"
         - <= 20
-      quoted_angle: "<<r:int(10,20)>>"
+      quoted_angle:
+        - ">= 10"
+        - <= 20
       angle_prefix: =* ^asda(1[0-9]|20)$
       angle_suffix: =* ^(1[0-9]|20)asas$
       angle_both: =* ^asda(true|false)asas$
-      quoted_curly: "{{r:color}}"
+      quoted_curly:
+        - "!= null"
+        - "!C r:"
       curly_whole:
         - "!= null"
         - "!C r:"

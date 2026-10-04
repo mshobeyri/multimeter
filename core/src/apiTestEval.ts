@@ -4,7 +4,7 @@
  */
 
 import type {ApiTestBlock} from './APIData';
-import {evaluateExpectValue} from './expectCompare';
+import {evaluateExpectValue, randomExpectPattern, resolveLiveExpectValue} from './expectCompare';
 import {parseExpectValue} from './JSerTestFlow';
 import {isLiteralTokenValue, unwrapLiteralToken} from './literalToken';
 import {isOmitSentinel} from './omitKeyword';
@@ -81,6 +81,8 @@ function expandMapItems(
     map: ExpectMap | undefined,
     level: 'expect' | 'require',
     outputs: Record<string, any>,
+    inputs?: Record<string, any> | null,
+    envVars?: Record<string, any> | null,
     ): ApiTestExpectItem[] {
   if (!map || typeof map !== 'object') {
     return [];
@@ -91,13 +93,15 @@ function expandMapItems(
     for (const v of values) {
       const parsed = parseExpectValue(v as ExpectValue);
       const operator = parsed.operator;
-      const expected = isLiteralTokenValue(parsed.expected)
-        ? unwrapLiteralToken(String(parsed.expected))
-        : parsed.expected;
+      const randomPattern = randomExpectPattern(parsed.expected);
+      const expected = randomPattern ??
+          resolveLiveExpectValue(parsed.expected, inputs, envVars);
       const actual = resolveApiOutputField(outputs, field);
-      const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
-      const comparison = `${field} ${operator} ${displayExpected}`;
-      const passed = evaluateExpectValue(actual, v as ExpectValue);
+      const displayOperator = randomPattern ? '=*' : operator;
+      const displayExpected = isOmitSentinel(v) ? 'omit' :
+          (randomPattern ?? expectValueToDisplay(expected));
+      const comparison = `${field} ${displayOperator} ${displayExpected}`;
+      const passed = evaluateExpectValue(actual, v as ExpectValue, inputs, envVars);
       items.push({
         comparison,
         actual,
@@ -117,10 +121,12 @@ function expandMapItems(
 export function evaluateApiTest(
     outputs: Record<string, any> | null | undefined,
     test: ApiTestBlock | undefined | null,
+    inputs?: Record<string, any> | null,
+    envVars?: Record<string, any> | null,
     ): ApiTestEvalResult {
   const root = outputs && typeof outputs === 'object' ? outputs : {};
-  const soft = expandMapItems(test?.expect, 'expect', root);
-  const hard = expandMapItems(test?.require, 'require', root);
+  const soft = expandMapItems(test?.expect, 'expect', root, inputs, envVars);
+  const hard = expandMapItems(test?.require, 'require', root, inputs, envVars);
   const items = [...soft, ...hard];
   return {
     items,

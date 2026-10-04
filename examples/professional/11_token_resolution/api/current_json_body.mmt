@@ -1,6 +1,6 @@
 type: api
 title: Current tokens in a JSON body
-description: "A whole-field c: value keeps the generator type. c:day and c:city are text. c:epoch is a number."
+description: "A whole-field c: value keeps the generator type. The example expects c:day and c:city. c:epoch is a number that changes, so the example checks the range."
 outputs:
   day_name: body.body.day_name
   epoch_seconds: body.body.epoch_seconds
@@ -44,19 +44,19 @@ examples:
     title: Check outputs
     expect:
       status_code: 200
-      day_name: != null
+      day_name: c:day
       epoch_seconds: > 1700000000
-      city: != null
+      city: c:city
       missing_token: "c:not_a_token"
       literal_token: "c:day"
       literal_omit: "omit"
       removed_note: omit
       angle_whole: "> 1700000000"
-      quoted_angle: "<<c:day>>"
+      quoted_angle: c:day
       angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
       angle_suffix: =$ asas
       angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
-      quoted_curly: "{{c:day}}"
-      curly_whole: "!= null"
-      text_slice: "=# 1"
+      quoted_curly: c:day
+      curly_whole: c:city
+      text_slice: c:city[0:1]
       missing_embed: "xc:not_a_tokeny"

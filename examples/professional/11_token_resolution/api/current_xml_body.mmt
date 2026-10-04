@@ -42,18 +42,18 @@ examples:
     title: Check outputs
     expect:
       status_code: 200
-      day_name: != null
+      day_name: c:day
       epoch_seconds: != null
-      city: != null
+      city: c:city
       missing_token: "c:not_a_token"
       literal_token: "c:day"
       literal_omit: "omit"
       angle_whole: "=* ^[0-9]{10}$"
-      quoted_angle: "&lt;&lt;c:day&gt;&gt;"
+      quoted_angle: c:day
       angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
       angle_suffix: =$ asas
       angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
-      quoted_curly: "{{c:day}}"
-      curly_whole: "!= null"
-      text_slice: "=# 1"
+      quoted_curly: c:day
+      curly_whole: c:city
+      text_slice: c:city[0:1]
       missing_embed: "xc:not_a_tokeny"

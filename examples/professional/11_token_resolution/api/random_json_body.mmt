@@ -1,6 +1,6 @@
 type: api
 title: Random tokens in a JSON body
-description: "A whole-field r: value keeps the generator type. uuid is text, int is a number, bool is a boolean."
+description: "A whole-field r: value keeps the generator type. The example expects r:uuid, r:int(10,20), r:bool, and r:color, checked as the shape of that generator."
 outputs:
   request_id: body.body.request_id
   lucky_number: body.body.lucky_number
@@ -42,24 +42,18 @@ examples:
     title: Check outputs
     expect:
       status_code: 200
-      request_id: != null
-      lucky_number:
-        - >= 10
-        - <= 20
-      active: != null
+      request_id: r:uuid
+      lucky_number: r:int(10,20)
+      active: r:bool
       missing_token: "r:not_a_token"
       literal_token: "r:uuid"
       literal_omit: "omit"
       removed_note: omit
-      angle_whole:
-        - ">= 10"
-        - <= 20
-      quoted_angle: "<<r:int(10,20)>>"
+      angle_whole: r:int(10,20)
+      quoted_angle: r:int(10,20)
       angle_prefix: =* ^asda(1[0-9]|20)$
       angle_suffix: =* ^(1[0-9]|20)asas$
       angle_both: =* ^asda(true|false)asas$
-      quoted_curly: "{{r:color}}"
-      curly_whole:
-        - "!= null"
-        - "!C r:"
+      quoted_curly: r:color
+      curly_whole: r:color
       missing_embed: "xr:not_a_tokeny"
