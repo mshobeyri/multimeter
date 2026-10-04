@@ -2,6 +2,35 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.44.1-pre]
+
+Pre-release. VS Code extension `1.44.1`; Testlight CLI and MCP `1.44.1-pre` on `@pre`.
+
+### API tester
+
+- Reshape the tester into a request/response split with Settings, Doc, and inline edit
+- Move auth into its own tab; rename Tests to Examples; show Outputs before Send
+- Split Send; run the open request, test, or suite with Cmd or Ctrl+Enter
+- Keep the caret stable while YAML echoes, and tab through key and value fields
+
+### Tokens and expects
+
+- Treat a bare token as a token only when it is the whole value; quoted tokens stay literal text
+- Accept `{{ }}` the same way as `<< >>`
+- Keep authored expects when a file is opened
+- Resolve example expects from live `e:`, `i:`, `c:`, and `r:` tokens
+- Give each `r:` occurrence its own value
+- Round-trip headers, multipart, GraphQL, gRPC, and text bodies without rewriting their spelling
+
+### Run controls
+
+- Open Run in Core and Run in Curl from More instead of a right-click
+- Keep Run and Stop as one button, with Stop centered while a run is in progress
+
+### Environment
+
+- Keep number, boolean, object, and list values in JSON requests and the environment panel
+
 ## [1.44.0-pre]
 
 Pre-release. VS Code extension `1.44.0`; Testlight CLI and MCP `1.44.0-pre` on `@pre`.
