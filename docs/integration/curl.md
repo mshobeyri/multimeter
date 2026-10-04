@@ -8,7 +8,7 @@ Paste a `curl ...` command into an API editor (YAML side). Multimeter detects it
 
 ## Run in Curl
 
-For HTTP APIs in the tester, right-click {{btn:send:Send}} and choose **Run in Curl**. Multimeter builds curl commands from the current request (method, URL, headers, body, environment) and:
+For HTTP APIs in the tester, click **More** next to {{btn:send:Send}} and choose **Run in Curl**. Multimeter builds curl commands from the current request (method, URL, headers, body, environment) and:
 
 - Runs the variant that matches your default terminal (Bash/Zsh, PowerShell, or CMD)
 - Copies a reference block to the clipboard with **Bash**, **PowerShell**, and **CMD** variants

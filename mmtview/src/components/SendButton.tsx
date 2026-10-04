@@ -128,53 +128,6 @@ const SendButton: React.FC<{
     openMenuNearButton();
   };
 
-  const openContextMenu = (event: React.MouseEvent<HTMLElement>) => {
-    if (!contextMenuItems?.length) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    openMenuAt(event.clientX, event.clientY);
-  };
-
-  const handleMouseDown = (event: React.MouseEvent<HTMLElement>) => {
-    if (event.button !== 2 || !contextMenuItems?.length) {
-      return;
-    }
-    openContextMenu(event);
-  };
-
-  useEffect(() => {
-    const handleDocumentMouseDown = (event: MouseEvent) => {
-      if (event.button !== 2 || !contextMenuItems?.length) {
-        return;
-      }
-      const target = event.target;
-      if (!target || !wrapperRef.current?.contains(target as Node)) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      openMenuAt(event.clientX, event.clientY);
-    };
-
-    const handleDocumentContextMenu = (event: MouseEvent) => {
-      const target = event.target;
-      if (!target || !wrapperRef.current?.contains(target as Node)) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-    };
-
-    document.addEventListener("mousedown", handleDocumentMouseDown, true);
-    document.addEventListener("contextmenu", handleDocumentContextMenu, true);
-    return () => {
-      document.removeEventListener("mousedown", handleDocumentMouseDown, true);
-      document.removeEventListener("contextmenu", handleDocumentContextMenu, true);
-    };
-  }, [contextMenuItems, openMenuAt]);
-
   useEffect(() => {
     if (!openMenu) {
       return;
@@ -322,8 +275,6 @@ const SendButton: React.FC<{
           boxShadow: activeChrome.outline ? "none" : "0 2px 6px #0001",
           transition: "background-color 0.5s ease, border-color 0.5s ease",
         }}
-        onMouseDown={handleMouseDown}
-        onContextMenu={openContextMenu}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         aria-haspopup={hasMenu ? "menu" : undefined}
@@ -371,8 +322,8 @@ const SendButton: React.FC<{
             <button
               ref={menuTriggerRef}
               type="button"
-              title="More send options"
-              aria-label="More send options"
+              title="More"
+              aria-label="More"
               aria-haspopup="menu"
               aria-expanded={openMenu}
               onClick={toggleMenuFromTrigger}

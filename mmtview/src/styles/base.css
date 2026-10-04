@@ -243,6 +243,184 @@ span.vertical.disabled:active {
   cursor: not-allowed;
 }
 
+/* One primary button. The chevron is a glyph inside it, not a second button. */
+.run-ctl {
+  --run-fill: var(--vscode-button-background, #0e639c);
+  --run-fill-hover: var(--vscode-button-hoverBackground, #1177bb);
+  --run-ink: var(--vscode-button-foreground, #ffffff);
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  background: var(--run-fill);
+  color: var(--run-ink);
+  border: 1px solid var(--run-line, transparent);
+  border-radius: var(--mmt-control-radius);
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  line-height: 16px;
+  overflow: hidden;
+}
+
+.run-ctl:hover:not(.is-preparing):not(.is-disabled) {
+  background: var(--run-fill-hover);
+}
+
+.run-ctl:has(:focus-visible) {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+}
+
+.run-ctl.is-preparing,
+.run-ctl.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.run-ctl button,
+.run-ctl button:hover,
+.run-ctl button:focus,
+.run-ctl button:disabled {
+  appearance: none;
+  background: transparent;
+  background-color: transparent;
+  color: inherit;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  min-width: 0;
+  font: inherit;
+  line-height: inherit;
+  outline: none;
+  opacity: 1;
+}
+
+.run-ctl-main {
+  display: grid;
+  align-items: center;
+  padding: 4px 8px 4px 12px;
+  cursor: pointer;
+}
+
+.run-ctl-sep {
+  align-self: center;
+  width: 1px;
+  height: 12px;
+  flex: 0 0 1px;
+  background: color-mix(in srgb, var(--run-ink) 32%, transparent);
+  pointer-events: none;
+}
+
+.run-ctl-sep.is-hidden {
+  visibility: hidden;
+}
+
+.run-ctl.is-preparing .run-ctl-main,
+.run-ctl.is-preparing .run-ctl-more,
+.run-ctl.is-disabled .run-ctl-main,
+.run-ctl.is-disabled .run-ctl-more,
+.run-ctl button:disabled {
+  cursor: not-allowed;
+}
+
+.run-split-sizer,
+.run-split-current {
+  grid-area: 1 / 1;
+}
+
+.run-split-sizer {
+  display: grid;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.run-split-measure,
+.run-split-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.run-split-measure {
+  grid-area: 1 / 1;
+}
+
+.run-split-current .codicon,
+.run-split-measure .codicon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+}
+
+.run-ctl > button.run-ctl-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: auto;
+  aspect-ratio: 5 / 4;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.run-ctl.is-running .run-split-current,
+.run-ctl.is-preparing .run-split-current {
+  visibility: hidden;
+}
+
+.run-ctl-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.run-ctl-center .codicon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+}
+
+.run-ctl-more .codicon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+}
+
+.run-ctl.is-running .run-ctl-more .codicon,
+.run-ctl.is-preparing .run-ctl-more .codicon {
+  visibility: hidden;
+}
+
+.run-split-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--vscode-editorWidget-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  min-width: 180px;
+  padding: 2px;
+}
+
+.run-split-menu .action-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .bodyview {
   border: none;
   overflow: hidden;
@@ -893,6 +1071,12 @@ button:focus {
   opacity: 0.85;
 }
 
+.tree-run-split {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .tree-run-button {
   padding: 6px;
   flex-shrink: 0;
@@ -900,6 +1084,15 @@ button:focus {
 
 .tree-run-button .codicon {
   font-size: 16px;
+}
+
+.tree-run-more {
+  padding: 6px 2px;
+  flex-shrink: 0;
+}
+
+.tree-run-more .codicon {
+  font-size: 12px;
 }
 
 /* Field/inline small icon button used next to inputs */

@@ -38,7 +38,7 @@ function useThemeTick(): number {
 }
 
 /** Resolve a button border: theme border when distinct, else transparent (match fill). */
-function usePrimaryButtonBorder(accentBorder?: string | null): string {
+export function usePrimaryButtonBorder(accentBorder?: string | null): string {
   const themeTick = useThemeTick();
   return useMemo(() => {
     if (accentBorder) {
