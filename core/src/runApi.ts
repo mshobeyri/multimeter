@@ -170,8 +170,13 @@ interface ApiRunnerWrapperOptions {
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
   const resolvedInputs = resolveInputsMap(opts.inputs, opts.envVars ?? {});
-  opts = replaceAllRefs(
-      {...opts, inputs: resolvedInputs}, {}, resolvedInputs, opts.envVars ?? {});
+  // The generated function already resolved tokens. Scanning it again would
+  // turn a quoted header/query `"<<e:name>>"` back into the env value.
+  const functionSource = opts.apiFunctionSource;
+  const scanned = replaceAllRefs(
+      {...opts, apiFunctionSource: '', inputs: resolvedInputs},
+      {}, resolvedInputs, opts.envVars ?? {});
+  opts = {...scanned, apiFunctionSource: functionSource};
   const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
   const exampleOutputs = isPlainObject(opts.exampleOutputs) ? opts.exampleOutputs : {};

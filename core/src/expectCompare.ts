@@ -41,6 +41,7 @@ import {
   trimEqualsIgnoreCase_,
 } from './testHelper';
 import {parseExpectValue} from './JSerTestFlow';
+import {isLiteralTokenValue, unwrapLiteralToken} from './literalToken';
 import {isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isTimeAnyOperator, getTimeOperatorBase, getTimeOperatorVelocity, DEFAULT_FUZZY_PERCENT, ExpectValue} from './TestData';
 import {isOmitSentinel} from './omitKeyword';
 import {applyValueAccessor} from './variableReplacer';
@@ -50,6 +51,9 @@ import {applyValueAccessor} from './variableReplacer';
  */
 export function evaluateComparison(
     actual: any, operator: string, expected: any): boolean {
+  if (isLiteralTokenValue(expected)) {
+    expected = unwrapLiteralToken(String(expected));
+  }
   if (isOmitSentinel(expected) || expected === null) {
     if (operator === '==') {
       return isOmitted_(actual);

@@ -47,6 +47,9 @@ const PLAIN_TOKEN_RE =
 /** UI / Option C YAML alias: `{{i:x}}` / `{{r:uuid}}` / … */
 const DISPLAY_CURLY_TOKEN_RE =
     new RegExp(`^\\{\\{\\s*(${DYNAMIC_KEY_RE})\\s*\\}\\}$`, 'i');
+/** Quoted `<<token>>` after XML escaping, as echoed by an XML body. */
+const XML_ESCAPED_ANGLE_RE =
+    new RegExp(`^&lt;&lt;\\s*(${DYNAMIC_KEY_RE})\\s*&gt;&gt;$`, 'i');
 
 /** Whole value is a bare `i:` / `e:` / `r:` / `c:` / `o:` token, not `{{…}}` or `<<…>>`. */
 export function isPlainTokenScalar(value: string): boolean {
@@ -55,8 +58,9 @@ export function isPlainTokenScalar(value: string): boolean {
 
 /**
  * True when a whole scalar looks like an e:/i:/r:/c:/o: token (plain,
- * `<<…>>`, or curly display form). Used to decide which quoted YAML
- * values stay literal. `<e:name>` and `e:{name}` are ordinary text.
+ * `<<…>>`, curly display form, or XML-escaped `&lt;&lt;…&gt;&gt;`).
+ * Used to decide which quoted YAML values stay literal.
+ * `<e:name>` and `e:{name}` are ordinary text.
  */
 export function isTokenLikeScalar(value: string): boolean {
   const text = String(value ?? '');
@@ -64,7 +68,7 @@ export function isTokenLikeScalar(value: string): boolean {
     return false;
   }
   if (ANGLE_TOKEN_RE.test(text) || PLAIN_TOKEN_RE.test(text) ||
-      DISPLAY_CURLY_TOKEN_RE.test(text)) {
+      DISPLAY_CURLY_TOKEN_RE.test(text) || XML_ESCAPED_ANGLE_RE.test(text)) {
     return true;
   }
   return false;

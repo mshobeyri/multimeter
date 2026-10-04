@@ -6,6 +6,7 @@ import {
 import {
   isLiteralTokenValue,
   isPlainTokenScalar,
+  LITERAL_TOKEN_PREFIX,
   unwrapLiteralToken,
   unwrapQuotedTokenText,
   wrapLiteralToken,
@@ -45,12 +46,12 @@ const ANGLE_RUNTIME_GLOBAL_RE = new RegExp(
  * `{{i:user}}` / `{{e:token}}`. Same prefix:name shape as YAML tokens.
  */
 const DISPLAY_PREFIXED_GLOBAL_RE =
-    /\{\{\s*([ierce]):((?:[^{}]|\([^)]*\))+?)\s*\}\}/gi;
+    /\{\{\s*([ierceo]):((?:[^{}]|\([^)]*\))+?)\s*\}\}/gi;
 const WHOLE_DISPLAY_PREFIXED_RE =
-    /^\{\{\s*([ierce]):((?:[^{}]|\([^)]*\))+?)\s*\}\}$/i;
+    /^\{\{\s*([ierceo]):((?:[^{}]|\([^)]*\))+?)\s*\}\}$/i;
 /** Match a display token at the start of a string (for JSON unquoted scan). */
 const DISPLAY_PREFIXED_AT_RE =
-    /^\{\{\s*([ierce]):((?:[^{}]|\([^)]*\))+?)\s*\}\}/i;
+    /^\{\{\s*([ierceo]):((?:[^{}]|\([^)]*\))+?)\s*\}\}/i;
 
 /**
  * Legacy long-form still accepted on parse only:
@@ -249,7 +250,7 @@ export function displayTokenToPlain(display: string): string|null {
   if (prefixed) {
     const prefix = prefixed[1].toLowerCase();
     const rest = prefixed[2].trim();
-    if (!rest || !'ierce'.includes(prefix)) {
+    if (!rest || !'ierceo'.includes(prefix)) {
       return null;
     }
     const plain = `${prefix}:${rest}`;
@@ -257,7 +258,7 @@ export function displayTokenToPlain(display: string): string|null {
       return stringContainsRuntimeToken(plain) ? plain : null;
     }
     // i: / e: — accept any TOKEN_NAME-shaped rest (including accessors).
-    return new RegExp(`^(?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}$`)
+    return new RegExp(`^(?:i|e|o):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}$`)
                .test(plain) ?
         plain :
         null;
@@ -621,9 +622,15 @@ export function unescapeAngleRuntimeTokensInXml(xml: string): string {
  */
 export function restoreAngleRuntimeTokensInUrlEncoded(text: string): string {
   // URLSearchParams encodes `{{` / `}}` / `:` as %7B%7B / %7D%7D / %3A.
+  // A quoted literal keeps its marker, so do not turn that token back into
+  // a resolving `{{…}}`.
+  const encodedPrefix = encodeURIComponent(LITERAL_TOKEN_PREFIX);
   return String(text ?? '').replace(
-      /%7B%7B(?:(?:random|current)(?:[A-Za-z0-9_\-().+\s]|%[0-9A-Fa-f]{2})*|[ierce](?::|%3A)(?:[A-Za-z0-9_\-().+,]|%[0-9A-Fa-f]{2})*)%7D%7D/gi,
-      (match) => {
+      /%7B%7B(?:(?:random|current)(?:[A-Za-z0-9_\-().+\s]|%[0-9A-Fa-f]{2})*|[ierceo](?::|%3A)(?:[A-Za-z0-9_\-().+,]|%[0-9A-Fa-f]{2})*)%7D%7D/gi,
+      (match, offset: number, source: string) => {
+        if (source.slice(offset - encodedPrefix.length, offset) === encodedPrefix) {
+          return match;
+        }
         try {
           const decoded = decodeURIComponent(match.replace(/\+/g, '%20'));
           const plain = displayTokenToPlain(decoded);
@@ -789,6 +796,7 @@ function writeJsonWithRuntimeTokens(
     ctx?: RuntimeTokenValueContext,
     resolvedHint?: unknown,
     forceBarePlains?: ReadonlySet<string>,
+    keepLiteralMarkers = false,
 ): string {
   if (isOmitSentinel(value)) {
     return 'omit';
@@ -804,7 +812,8 @@ function writeJsonWithRuntimeTokens(
   }
   if (typeof value === 'string') {
     if (isLiteralTokenValue(value)) {
-      return JSON.stringify(unwrapLiteralToken(value));
+      return JSON.stringify(
+          keepLiteralMarkers ? value : unwrapLiteralToken(value));
     }
     const plain = plainTokenFromLeaf(value);
     if (plain && (stringContainsRuntimeToken(plain) || /^[ie]:/i.test(plain))) {
@@ -825,7 +834,7 @@ function writeJsonWithRuntimeTokens(
         value
             .map((item, i) => writeJsonWithRuntimeTokens(
                 item, 0, 0, ctx, hintArr ? hintArr[i] : undefined,
-                forceBarePlains))
+                forceBarePlains, keepLiteralMarkers))
             .join(',')
       }]`;
     }
@@ -835,7 +844,7 @@ function writeJsonWithRuntimeTokens(
         (item, i) => `${innerIndent}${
           writeJsonWithRuntimeTokens(
               item, space, level + 1, ctx, hintArr ? hintArr[i] : undefined,
-              forceBarePlains)}`,
+              forceBarePlains, keepLiteralMarkers)}`,
     );
     return `[\n${parts.join(',\n')}\n${outerIndent}]`;
   }
@@ -856,7 +865,7 @@ function writeJsonWithRuntimeTokens(
               `${JSON.stringify(k)}:${
                 writeJsonWithRuntimeTokens(
                     v, 0, 0, ctx, hintObj ? hintObj[k] : undefined,
-                    forceBarePlains)}`)
+                    forceBarePlains, keepLiteralMarkers)}`)
             .join(',')
       }}`;
     }
@@ -867,7 +876,7 @@ function writeJsonWithRuntimeTokens(
           `${innerIndent}${JSON.stringify(k)}: ${
             writeJsonWithRuntimeTokens(
                 v, space, level + 1, ctx, hintObj ? hintObj[k] : undefined,
-                forceBarePlains)}`,
+                forceBarePlains, keepLiteralMarkers)}`,
     );
     return `{\n${parts.join(',\n')}\n${outerIndent}}`;
   }
@@ -885,9 +894,11 @@ export function stringifyJsonWithRuntimeTokens(
     ctx?: RuntimeTokenValueContext,
     resolvedHint?: unknown,
     forceBarePlains?: ReadonlySet<string>,
+    keepLiteralMarkers = false,
 ): string {
   return writeJsonWithRuntimeTokens(
-      value, pretty ? 2 : 0, 0, ctx, resolvedHint, forceBarePlains);
+      value, pretty ? 2 : 0, 0, ctx, resolvedHint, forceBarePlains,
+      keepLiteralMarkers);
 }
 
 /**

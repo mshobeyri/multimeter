@@ -6,6 +6,7 @@
 import type {ApiTestBlock} from './APIData';
 import {evaluateExpectValue} from './expectCompare';
 import {parseExpectValue} from './JSerTestFlow';
+import {isLiteralTokenValue, unwrapLiteralToken} from './literalToken';
 import {isOmitSentinel} from './omitKeyword';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import type {TestStepStatus} from './runConfig';
@@ -40,6 +41,9 @@ function isExplicitMultiCheckArray(value: unknown): value is ScalarExpectValue[]
 }
 
 function expectValueToDisplay(value: ExpectValue): string {
+  if (isLiteralTokenValue(value)) {
+    return unwrapLiteralToken(String(value));
+  }
   if (isOmitSentinel(value)) {
     return 'omit';
   }
@@ -85,7 +89,11 @@ function expandMapItems(
   for (const [field, val] of Object.entries(map)) {
     const values = isExplicitMultiCheckArray(val) ? val : [val];
     for (const v of values) {
-      const {operator, expected} = parseExpectValue(v as ExpectValue);
+      const parsed = parseExpectValue(v as ExpectValue);
+      const operator = parsed.operator;
+      const expected = isLiteralTokenValue(parsed.expected)
+        ? unwrapLiteralToken(String(parsed.expected))
+        : parsed.expected;
       const actual = resolveApiOutputField(outputs, field);
       const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
       const comparison = `${field} ${operator} ${displayExpected}`;

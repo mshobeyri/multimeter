@@ -37,7 +37,7 @@ import {
 
 /** Unquoted `{{i|e|r|c:…}}` at the cursor. Quoted text is handled by the walker. */
 const CURLY_TOKEN_AT_RE =
-    /^\{\{\s*([ierce]:(?:[^{}]|\([^)]*\))+?)\s*\}\}/i;
+    /^\{\{\s*([ierceo]:(?:[^{}]|\([^)]*\))+?)\s*\}\}/i;
 
 /**
  * Walk raw YAML, skipping single- and double-quoted regions, and replace
@@ -88,7 +88,7 @@ function mapUnquotedCurlyTokens(
 }
 
 /**
- * Rewrite Multimeter UI curly tokens `{{i|e|r|c:…}}` to `<<…>>` in raw YAML
+ * Rewrite Multimeter UI curly tokens `{{i|e|r|c|o:…}}` to `<<…>>` in raw YAML
  * *before* parse. Unquoted `{{r:uuid}}` is invalid YAML flow syntax
  * (`{` starts a map); angle form is a plain scalar.
  */
@@ -103,7 +103,7 @@ export type ShieldedCurlyTokens = {
 };
 
 /**
- * Replace unquoted `{{i|e|r|c:…}}` with plain placeholders so the YAML
+ * Replace unquoted `{{i|e|r|c|o:…}}` with plain placeholders so the YAML
  * parser cannot read `{` as a flow map. Restore with
  * `restoreShieldedCurlyTokens` after `doc.toString()`.
  */
@@ -124,7 +124,7 @@ export function shieldCurlyTokensInYamlSource(yamlString: string): ShieldedCurly
   return {text, tokens, placeholderPrefix};
 }
 
-/** Put shielded `{{i|e|r|c:…}}` tokens back after a YAML emit. */
+/** Put shielded `{{i|e|r|c|o:…}}` tokens back after a YAML emit. */
 export function restoreShieldedCurlyTokens(
     yamlString: string,
     shielded: ShieldedCurlyTokens,
@@ -320,12 +320,12 @@ function contentTypeForFormat(format: Format): string {
   }
 }
 
-function formValueToString(value: unknown): string {
+function formValueToString(value: unknown, keepLiteralMarkers = false): string {
   if (value === null || value === undefined) {
     return '';
   }
   if (typeof value === 'string' && isLiteralTokenValue(value)) {
-    return unwrapLiteralToken(value);
+    return keepLiteralMarkers ? value : unwrapLiteralToken(value);
   }
   if (typeof value === 'string') {
     return value;
@@ -361,10 +361,13 @@ function revealInputBoxQuotes(encoded: string): string {
 function objectToUrlEncoded(
     obj: Record<string, unknown>,
     editor = false,
+    keepLiteralMarkers = false,
 ): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(obj)) {
-    params.append(key, editor ? editorFormValue(value) : formValueToString(value));
+    params.append(
+        key,
+        editor ? editorFormValue(value) : formValueToString(value, keepLiteralMarkers));
   }
   // Keep <<r:/c:>> readable in the editor (do not leave them percent-encoded).
   const encoded = restoreAngleRuntimeTokensInUrlEncoded(params.toString());
@@ -395,7 +398,8 @@ function coerceUrlEncodedRecord(
   );
 }
 
-function formatUrlEncodedBody(body: string|object, editor = false): string {
+function formatUrlEncodedBody(
+    body: string|object, editor = false, keepLiteralMarkers = false): string {
   if (typeof body === 'string') {
     const trimmed = body.trim();
     if (!trimmed) {
@@ -404,7 +408,8 @@ function formatUrlEncodedBody(body: string|object, editor = false): string {
     try {
       const parsed = YAML.parse(trimmed);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return objectToUrlEncoded(parsed as Record<string, unknown>, editor);
+        return objectToUrlEncoded(
+            parsed as Record<string, unknown>, editor, keepLiteralMarkers);
       }
     } catch {
       // Keep as raw string (already encoded or plain text)
@@ -412,7 +417,8 @@ function formatUrlEncodedBody(body: string|object, editor = false): string {
     return restoreAngleRuntimeTokensInUrlEncoded(trimmed);
   }
   if (body && typeof body === 'object' && !Array.isArray(body)) {
-    return objectToUrlEncoded(body as Record<string, unknown>, editor);
+    return objectToUrlEncoded(
+        body as Record<string, unknown>, editor, keepLiteralMarkers);
   }
   return body == null ? '' : restoreAngleRuntimeTokensInUrlEncoded(String(body));
 }
@@ -626,7 +632,9 @@ export function formatXmlEditorBody(body: unknown, expanded: boolean): string {
   return expanded ? xml : hideEmptyTextMarker(xml);
 }
 
-function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean): string {
+function formatXmlBody(
+    body: string|object, pretty: boolean, expanded: boolean,
+    keepLiteralMarkers = false): string {
   let xmlObj: unknown;
   if (typeof body === 'string') {
     const normalized = normalizeNewlines(body);
@@ -658,7 +666,7 @@ function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean):
     }
     xmlObj = typeof coerced === 'string' ?
       flattenXmlObj(xml2js(coerced, {compact: true})) :
-      restoreLiteralTokens(coerced);
+      (keepLiteralMarkers ? coerced : restoreLiteralTokens(coerced));
   }
   return js2xml(xmlObj as object, {
     compact: true,
@@ -709,6 +717,7 @@ function formatBody(
     format: Format, body: string|object,
     pretty: boolean = true,
     valueContext?: RuntimeTokenValueContext,
+    keepLiteralMarkers = false,
 ): string {
   // Normalize empty-ish inputs to empty string for display/editing purposes
   if (body === null || body === undefined) {
@@ -731,13 +740,14 @@ function formatBody(
         return obj;
       }
       // Keep r:/c:/i:/e: as `{{…}}` (JSON.stringify would emit bare `"r:city"`).
-      return stringifyJsonWithRuntimeTokens(obj, pretty, valueContext);
+      return stringifyJsonWithRuntimeTokens(
+          obj, pretty, valueContext, undefined, undefined, keepLiteralMarkers);
     }
     if (isXmlFormat(format)) {
-      return formatXmlBody(body, pretty, format === 'xmle');
+      return formatXmlBody(body, pretty, format === 'xmle', keepLiteralMarkers);
     }
     if (format === 'urlencoded') {
-      return formatUrlEncodedBody(body);
+      return formatUrlEncodedBody(body, false, keepLiteralMarkers);
     }
     if (format === 'binary') {
       // Body is a file path string; do not re-encode

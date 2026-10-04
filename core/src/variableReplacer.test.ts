@@ -100,6 +100,20 @@ describe('toTemplateValueJs', () => {
     expect(toTemplateValueJs('e:HOST')).toBe('mmtEnv_("HOST")');
   });
 
+  it('treats {{ }} like << >> and keeps a quoted whole token literal', () => {
+    expect(toTemplateValueJs('{{e:HOST}}')).toBe('mmtEnv_("HOST")');
+    expect(toTemplateValueJs('{{o:token}}')).toBe('outputs.token');
+    expect(toTemplateValueJs('pre {{e:HOST}} post'))
+        .toBe('`pre ${mmtEnv_("HOST")} post`');
+    const literal = '__MMT_LITERAL__:';
+    expect(toTemplateValueJs(`{"age":"${literal}<<e:HOST>>"}`))
+        .toBe('`{"age":"<<e:HOST>>"}`');
+    expect(toTemplateValueJs(`{"age":"${literal}{{e:HOST}}"}`))
+        .toBe('`{"age":"{{e:HOST}}"}`');
+    expect(toTemplateValueJs('{"age":"asda<<e:HOST>>"}'))
+        .toBe('`{"age":"asda${mmtEnv_("HOST")}"}`');
+  });
+
   it('full <<r:VAR>> returns bare random call', () => {
     expect(toTemplateValueJs('<<r:email>>')).toBe("mmtRandom_('email')");
   });
@@ -260,6 +274,22 @@ describe('variableReplacer', () => {
     };
     const out = replaceInputRefsWithBrace(obj, inputs);
     expect(out).toEqual({ a: 'mehrdad', b: ['X', 'mehrdad', 1], c: { n: 35 } });
+  });
+
+  it('replaceAllRefs resolves {{ }} the same way as << >>', () => {
+    const out = replaceAllRefs(
+        {
+          whole: '{{e:HOST}}',
+          mixed: 'id={{i:name}}',
+          quoted: '__MMT_LITERAL__:{{e:HOST}}',
+        },
+        {},
+        {name: 'ada'},
+        {HOST: 'api.local'},
+    );
+    expect(out.whole).toBe('api.local');
+    expect(out.mixed).toBe('id=ada');
+    expect(out.quoted).toBe('__MMT_LITERAL__:{{e:HOST}}');
   });
 
   it('replaceInputRefsWithNone replaces a bare token only when it is the whole value', () => {

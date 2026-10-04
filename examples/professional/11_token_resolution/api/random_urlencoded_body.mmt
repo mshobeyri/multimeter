@@ -51,9 +51,7 @@ examples:
       angle_prefix: =* ^asda(1[0-9]|20)$
       angle_suffix: =* ^(1[0-9]|20)asas$
       angle_both: =* ^asda(true|false)asas$
-      quoted_curly:
-        - "=^ \"{{\""
-        - "!C r:"
+      quoted_curly: "{{r:color}}"
       curly_whole:
         - "!= null"
         - "!C r:"

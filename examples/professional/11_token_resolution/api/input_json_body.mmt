@@ -1,6 +1,6 @@
 type: api
 title: Input tokens in a JSON body
-description: "A whole-field i: value keeps the input type. A quoted token is text. A missing input is sent as {{i:nickname}}."
+description: "A whole-field i: value keeps the input type. A quoted token is text. A missing input is sent as i:nickname."
 inputs:
   username: alice
   age: 100
@@ -55,16 +55,16 @@ examples:
       age: 100
       active: true
       city: Berlin
-      missing_nickname: "{{i:nickname}}"
+      missing_nickname: "i:nickname"
       literal_token: "i:username"
       literal_omit: "omit"
       removed_note: omit
       angle_whole: 100
-      quoted_angle: alice
+      quoted_angle: "<<i:username>>"
       angle_prefix: "asdaalice"
       angle_suffix: "100asas"
       angle_both: "asdatrueasas"
-      quoted_curly: "{{alice}}"
+      quoted_curly: "{{i:username}}"
       curly_whole: "Berlin"
       text_slice: "Ber"
       missing_embed: "xi:nicknamey"

@@ -23,6 +23,9 @@ describe('quoted token literals', () => {
     expect(isTokenLikeScalar('hello')).toBe(false);
     expect(isTokenLikeScalar('d:nope')).toBe(false);
     expect(isTokenLikeScalar('{{var}}')).toBe(false);
+    expect(isTokenLikeScalar('&lt;&lt;c:day&gt;&gt;')).toBe(true);
+    expect(isTokenLikeScalar('&lt;&lt;r:int(10,20)&gt;&gt;')).toBe(true);
+    expect(isTokenLikeScalar('&lt;c:day&gt;')).toBe(false);
   });
 
   it('parses quoted tokens as literals and bare tokens as resolvable', () => {

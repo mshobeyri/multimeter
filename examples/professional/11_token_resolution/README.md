@@ -2,33 +2,25 @@
 
 Professional samples of `e:`, `i:`, `r:`, and `c:` against [test.mmt.dev/echo](https://test.mmt.dev/echo).
 
-A whole field in a **JSON** body keeps the value's type. **XML**, **urlencoded**, **headers**, and **query** always send text. A quoted token such as `"e:account_age"` is the literal text. `omit` removes the field. `"omit"` sends the word omit. A missing `e:`, `r:`, or `c:` token is sent as its own text, for example `e:region`. A missing `i:` token is `{{i:nickname}}` in JSON and `i:nickname` in the other formats.
+A whole field in a **JSON** body keeps the value's type. **XML**, **urlencoded**, **headers**, and **query** always send text. A quoted token such as `"e:account_age"` is the literal text. `omit` removes the field. `"omit"` sends the word omit. A missing `e:`, `i:`, `r:`, or `c:` token is sent as its own text, for example `e:region` or `i:nickname`.
 
 Each request also sends the other spellings of one token:
 
 | YAML | Meaning |
 |---|---|
 | `<<e:account_age>>` | Whole value. JSON keeps the type (`42`). Other formats send the text `42`. |
-| `"<<e:account_age>>"` | Quoted whole angle. See the results below. |
+| `"<<e:account_age>>"` | Quoted whole angle. Sent as the text `<<e:account_age>>`. |
 | `"asda<<e:account_age>>"` | Text before the token. Sent as `asda42`. |
 | `"<<e:account_age>>asas"` | Text after the token. Sent as `42asas`. |
 | `"asda<<e:feature_enabled>>asas"` | Text on both sides. Sent as `asdatrueasas`. |
 | `{{e:plan_label}}` | Unquoted curly, same as a bare token. JSON keeps the string `"10"`. |
-| `"{{e:account_age}}"` | Quoted curly. JSON, XML, and form send `{{42}}`. Headers and query send `{{envVariables.account_age}}`. |
+| `"{{e:account_age}}"` | Quoted curly. Sent as the text `{{e:account_age}}`. |
 | `<<e:service_url[0:8]>>` | Part of a string. Sent as `https://`. |
 | `"x<<e:region>>y"` | A missing name inside text. Sent as `xe:regiony`. |
 
-`"asda<<token>>"` and `"<<token>>asas"` are strings in every format. `<<i:age>>`, `<<r:int(10,20)>>`, and `<<c:epoch>>` follow the same whole-value rule as `e:`.
+`"asda<<token>>"` and `"<<token>>asas"` are strings in every format. `<<i:age>>`, `<<r:int(10,20)>>`, and `<<c:epoch>>` follow the same whole-value rule as `e:`. Unquoted `{{token}}` resolves the same way as `<<token>>` for `e:`, `i:`, `r:`, `c:`, and `o:`.
 
-A quoted `"<<token>>"` is not the same in every place. The tests expect:
-
-| | JSON | XML | form | header and query |
-|---|---|---|---|---|
-| `"<<e:account_age>>"` | `42` | `&lt;&lt;42&gt;&gt;` | `<<e:account_age>>` | `envVariables.account_age` |
-| `"{{e:account_age}}"` | `{{42}}` | `{{42}}` | `{{42}}` | `{{envVariables.account_age}}` |
-| `"<<i:username>>"` | `alice` | `&lt;&lt;alice&gt;&gt;` | `<<i:username>>` | `<<i:username>>` |
-| `"<<r:int(10,20)>>"` | a number from 10 to 20 | `&lt;&lt;10&gt;&gt;` through `&lt;&lt;20&gt;&gt;` | `<<r:int(10,20)>>` | `<<r:int(10,20)>>` |
-| `"<<c:day>>"` | the weekday name | `&lt;&lt;Sunday&gt;&gt;` and the other weekdays | `<<c:day>>` | `<<c:day>>` |
+A quoted `"<<token>>"` or `"{{token}}"` is that text in every format. XML escapes `<` and `>`, so `"<<e:account_age>>"` is echoed as `&lt;&lt;e:account_age&gt;&gt;`. `"{{e:account_age}}"` is echoed as `{{e:account_age}}`. The same rule applies to `i:`, `r:`, and `c:`.
 
 ## Environment
 

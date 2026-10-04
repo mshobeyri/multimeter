@@ -59,7 +59,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   }
 
   let formattedBody =
-      formatBody(reqFormatForBody, replaced.body || '', false);
+      formatBody(reqFormatForBody, replaced.body || '', false, undefined, true);
   // Replace placeholders with JSON.stringify(var) so non-strings are not quoted
   try {
     if (typeof formattedBody === 'string') {

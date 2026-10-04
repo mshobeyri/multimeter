@@ -55,15 +55,11 @@ examples:
       literal_token: "e:account_age"
       literal_omit: "omit"
       angle_whole: "42"
-      quoted_angle:
-        - '=^ "<<"'
-        - '=C "e:"'
-        - '=C account_age'
-        - '=$ ">>"'
+      quoted_angle: "<<e:account_age>>"
       angle_prefix: "asda42"
       angle_suffix: "42asas"
       angle_both: "asdatrueasas"
-      quoted_curly: "{{42}}"
+      quoted_curly: "{{e:account_age}}"
       curly_whole: "10"
       text_slice: "https://"
       missing_embed: "xe:regiony"

@@ -161,7 +161,7 @@ const mmtYamlLanguage = {
 
     // Whole {{i|e|r|c:…}} before `{`, so the YAML editor does not treat it as a flow map.
     curlyToken: [
-      [/\{\{\s*[iercIERC]:(?:[^{}]|\([^)]*\))+?\s*\}\}/, 'string'],
+      [/\{\{\s*[iercoIERCO]:(?:[^{}]|\([^)]*\))+?\s*\}\}/, 'string'],
     ],
 
     flowCollections: [

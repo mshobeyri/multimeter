@@ -579,6 +579,25 @@ describe('env token replacements in generated JS', () => {
            '`X=<e:FOO> Y=${mmtEnv_("BAR")} Z=${mmtEnv_("BAZ")} W=e:{QUX}`');
      });
 
+  it('leaves quoted token text alone in strings and templates', () => {
+    const input = [
+      'const header = "<<e:HOST>>";',
+      'const curly = "{{e:HOST}}";',
+      'const xml = `&lt;&lt;e:HOST&gt;&gt;`;',
+      'const body = `{"age":"<<e:HOST>>"}`;',
+      'const xmlCurly = `<quoted_curly>{{c:day}}</quoted_curly>`;',
+      'const live = `value=<<e:FOO>>`;',
+    ].join('\n');
+    const out = variableReplacer(input);
+    expect(out).toContain('const header = "<<e:HOST>>";');
+    expect(out).toContain('const curly = "{{e:HOST}}";');
+    expect(out).toContain('`&lt;&lt;e:HOST&gt;&gt;`');
+    expect(out).toContain('"age":"<<e:HOST>>"');
+    expect(out).toContain('<quoted_curly>{{c:day}}</quoted_curly>');
+    expect(out).not.toContain('mmtEnv_("HOST")');
+    expect(out).toContain('${mmtEnv_("FOO")}');
+  });
+
   it('does not double-wrap pre-existing ${envVariables.VAR} inside template literals',
      () => {
        // This is the exact regression: generated code may already have

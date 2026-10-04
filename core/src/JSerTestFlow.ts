@@ -5,6 +5,7 @@ import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} fr
 import {Comparison, ComparisonObject, comparisonOperatorPattern, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, isTimeAnyOperator, normalizeReportConfig, ReportConfig, ReportLevel, ScalarExpectValue, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
+import {isLiteralTokenValue, unwrapLiteralToken} from './literalToken';
 import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from './omitKeyword';
 import {replaceEnvTokensToJs, replaceOutputTokensToJs, rewriteOutputSetKey, toTemplateValueJs, toTemplateWithEnvVars} from './variableReplacer';
 import * as YAML from 'yaml';
@@ -293,6 +294,9 @@ const parseScalarComparisonExpected = (raw: string): ExpectValue => {
 };
 
 const expectValueToDisplay = (value: ExpectValue): string => {
+  if (isLiteralTokenValue(value)) {
+    return unwrapLiteralToken(String(value));
+  }
   if (isOmitSentinel(value)) {
     return 'omit';
   }
@@ -570,6 +574,8 @@ const judgeStepToJSfunc = (
  * (unquoted `omit` / `null` arrive as the omit sentinel / JS null).
  */
 export const parseExpectValue = (value: ExpectValue): { operator: string; expected: ExpectValue } => {
+  // A YAML-quoted token stays marked here. Codegen stringifies that marker as
+  // text (`"<<e:name>>"`). Runtime compare and the check label unwrap it.
   if (isOmitSentinel(value)) {
     return {operator: '==', expected: null};
   }

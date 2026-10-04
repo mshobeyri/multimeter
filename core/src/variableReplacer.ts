@@ -54,9 +54,10 @@ function replaceTokenForms(
   let out = source;
 
   // A YAML-quoted bare token is the whole JSON string or XML text node
-  // (`"i:name"`, `>i:name<`). Leave that text alone. `<<token>>` is token
-  // syntax: replace the brackets too, so a missing name stays `i:name`
-  // instead of `<<i:name>>`. `<e:name>` and `e:{name}` are ordinary text.
+  // (`"i:name"`, `>i:name<`). Leave that text alone. A quoted whole
+  // `"<<token>>"` / `"{{token}}"` is stored with the literal marker, so the
+  // wrapper just after that marker stays text. Embedded `<<token>>` /
+  // `{{token}}` still resolve. `<e:name>` and `e:{name}` are ordinary text.
   const keepQuotedLiteral = (
       match: string, offset: number, text: string, plain: boolean): boolean => {
     if (offset <= 0 || offset + match.length >= text.length) {
@@ -98,20 +99,67 @@ function replaceTokenForms(
     return j < text.length && text[j] === '>' && text[j + 1] !== '>';
   };
 
+  // A literal `"<<e:name>>"` / `"{{e:name}}"` keeps its wrapper. Do not also
+  // rewrite the inner name. Live `{{e:name}}` has no marker, so it still resolves.
+  const insideShieldedToken = (
+      offset: number, length: number, text: string): boolean => {
+    const shields: Array<[string, string]> = [['<<', '>>'], ['{{', '}}']];
+    for (const [open, close] of shields) {
+      if (offset < open.length + LITERAL_TOKEN_PREFIX.length) {
+        continue;
+      }
+      if (text.slice(offset - open.length, offset) !== open) {
+        continue;
+      }
+      if (!text.startsWith(close, offset + length)) {
+        continue;
+      }
+      const prefixAt = offset - open.length - LITERAL_TOKEN_PREFIX.length;
+      if (text.slice(prefixAt, prefixAt + LITERAL_TOKEN_PREFIX.length) ===
+          LITERAL_TOKEN_PREFIX) {
+        return true;
+      }
+    }
+    // XML escapes a quoted `<<c:day>>` to `&lt;&lt;c:day&gt;&gt;`.
+    const xmlOpen = '&lt;&lt;';
+    const xmlClose = '&gt;&gt;';
+    if (offset >= xmlOpen.length + LITERAL_TOKEN_PREFIX.length &&
+        text.slice(offset - xmlOpen.length, offset) === xmlOpen &&
+        text.startsWith(xmlClose, offset + length)) {
+      const prefixAt = offset - xmlOpen.length - LITERAL_TOKEN_PREFIX.length;
+      if (text.slice(prefixAt, prefixAt + LITERAL_TOKEN_PREFIX.length) ===
+          LITERAL_TOKEN_PREFIX) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const applyToken = (
+      match: string, name: string, accessor: string, offset: number,
+      source: string, plain: boolean): string =>
+    keepQuotedLiteral(match, offset, source, plain) ?
+      match :
+      formatter(name, accessor || '', match, offset, source);
+
   if (options.includeAngles !== false) {
     out = out.replace(
         new RegExp(`<<\\s*${prefix}:${capture}\\s*>>`, 'g'),
         (match, name: string, accessor = '', offset: number, source: string) =>
-          keepQuotedLiteral(match, offset, source, false) ?
-            match :
-            formatter(name, accessor || '', match, offset, source));
+          applyToken(match, name, accessor, offset, source, false));
+    out = out.replace(
+        new RegExp(`\\{\\{\\s*${prefix}:${capture}\\s*\\}\\}`, 'gi'),
+        (match, name: string, accessor = '', offset: number, source: string) =>
+          applyToken(match, name, accessor, offset, source, false));
   }
   if (options.includePlain !== false) {
     out = out.replace(
         new RegExp(`(?<![a-zA-Z0-9])${prefix}:${capture}(?![A-Za-z0-9_])`, 'g'),
         (match, name: string, accessor = '', offset: number, source: string) =>
           keepQuotedLiteral(match, offset, source, true) ||
-              wrappedInSingleAngles(offset, match.length, source) ?
+              wrappedInSingleAngles(offset, match.length, source) ||
+              (options.includeAngles !== false &&
+               insideShieldedToken(offset, match.length, source)) ?
             match :
             formatter(name, accessor || '', match, offset, source));
   }
@@ -436,33 +484,38 @@ export function toTemplateValueJs(
   }
 
   const fullEnvAngle = new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullEnvCurly = new RegExp(`^\\{\\{\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullEnvPlain = new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullRandAngle = new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullRandCurly = new RegExp(`^\\{\\{\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullRandPlain = new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
   const fullCurrAngle = new RegExp(`^<<\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullCurrCurly = new RegExp(`^\\{\\{\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullCurrPlain = new RegExp(`^c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
   const fullInputAngle = new RegExp(`^<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullInputCurly = new RegExp(`^\\{\\{\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullInputPlain = new RegExp(`^i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullOutputAngle = new RegExp(`^<<\\s*o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullOutputCurly = new RegExp(`^\\{\\{\\s*o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullOutputPlain = new RegExp(`^o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
 
-  let m = fullEnvAngle.exec(s) || fullEnvPlain.exec(s);
+  let m = fullEnvAngle.exec(s) || fullEnvCurly.exec(s) || fullEnvPlain.exec(s);
   if (m && m[1]) {
     return envTokenJsExpr(m[1], m[2] || '', 'text');
   }
-  m = fullRandAngle.exec(s) || fullRandPlain.exec(s);
+  m = fullRandAngle.exec(s) || fullRandCurly.exec(s) || fullRandPlain.exec(s);
   if (m && m[1]) {
     return toJsAccessorExpression(`mmtRandom_('${m[1]}')`, m[2] || '');
   }
-  m = fullCurrAngle.exec(s) || fullCurrPlain.exec(s);
+  m = fullCurrAngle.exec(s) || fullCurrCurly.exec(s) || fullCurrPlain.exec(s);
   if (m && m[1]) {
     return toJsAccessorExpression(`mmtCurrent_('${m[1]}')`, m[2] || '');
   }
-  m = fullInputAngle.exec(s) || fullInputPlain.exec(s);
+  m = fullInputAngle.exec(s) || fullInputCurly.exec(s) || fullInputPlain.exec(s);
   if (m && m[1]) {
     return inputTokenJsExpr(m[1], m[2] || '', options);
   }
-  m = fullOutputAngle.exec(s) || fullOutputPlain.exec(s);
+  m = fullOutputAngle.exec(s) || fullOutputCurly.exec(s) || fullOutputPlain.exec(s);
   if (m && m[1]) {
     return toJsAccessorExpression(`outputs.${m[1]}`, m[2] || '');
   }
@@ -471,6 +524,8 @@ export function toTemplateValueJs(
   result = replaceRandCurrentTokensToJs(result);
   result = replaceInputTokensToJs(result, options);
   result = replaceOutputTokensToJs(result);
+  result = result.split(LITERAL_TOKEN_PREFIX).join('');
+  result = result.split(encodeURIComponent(LITERAL_TOKEN_PREFIX)).join('');
   return '`' + escapeBackticks(result) + '`';
 }
 
@@ -609,7 +664,10 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
       {re: new RegExp(`^<<\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'c'},
       {re: new RegExp(`^c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'c'},
       {re: new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'e'},
+      {re: new RegExp(`^\\{\\{\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i'), prefix: 'e'},
       {re: new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'e'},
+      {re: new RegExp(`^\\{\\{\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i'), prefix: 'r'},
+      {re: new RegExp(`^\\{\\{\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i'), prefix: 'c'},
     ];
 
     for (const {re, prefix} of exactMatchers) {
@@ -729,12 +787,13 @@ function replaceRefs(
     }
     // Build anchored (non-global) pattern for full-string variable match based
     const anchored = mode === ReplacementMode.BRACE ?
-      new RegExp(`^<<(${DYNAMIC_KEY_RE})>>$`) :
+      new RegExp(`^(?:<<(${DYNAMIC_KEY_RE})>>|\\{\\{(${DYNAMIC_KEY_RE})\\}\\})$`) :
       new RegExp(`^(${DYNAMIC_KEY_RE})$`);
 
     const full = anchored.exec(obj);
-    if (full && full[1]) {
-      const key = full[1];
+    const fullKey = full ? (full[1] || full[2]) : '';
+    if (full && fullKey) {
+      const key = fullKey;
       let found = inputs[key];
       if (found === undefined && resolver) {
         found = resolver(key);
@@ -753,8 +812,11 @@ function replaceRefs(
       return obj;
     }
 
-    // BRACE mode: `<<token>>` anywhere. Inside quotes the value is a string.
-    return obj.replace(pattern, (match, key: string, offset: number) => {
+    // BRACE mode: `<<token>>` and `{{token}}` anywhere. Inside quotes the
+    // value is a string. A whole quoted token never reaches here: parse
+    // stores it as a literal marker, which returned above.
+    return obj.replace(pattern, (match, angleKey: string, curlyKey: string, offset: number) => {
+      const key = angleKey || curlyKey;
       let found = inputs[key];
       if (found === undefined && resolver) {
         found = resolver(key);
@@ -799,19 +861,23 @@ export function collectInputRefsFromObject(obj: any): string[] {
       return;
     }
 
-    // Full-string brace match: value is exactly `<<i:name>>` (optionally with accessors)
-    const fullBrace = new RegExp(`^<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>$`).exec(value);
+    // Full-string brace match: value is exactly `<<i:name>>` or `{{i:name}}`.
+    const fullBrace = new RegExp(
+        `^(?:<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>|\\{\\{i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*\\}\\})$`,
+        'i').exec(value);
     if (fullBrace) {
-      refs.add(fullBrace[1]);
+      refs.add(fullBrace[1] || fullBrace[2]);
       return;
     }
 
-    // Partial brace matches: <<i:name>> anywhere in string.
+    // Partial brace matches: <<i:name>> / {{i:name}} anywhere in string.
     // Bare `i:name` mixed with other text is not a token.
-    const braceRe = new RegExp(`<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>`, 'g');
+    const braceRe = new RegExp(
+        `<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>|\\{\\{i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*\\}\\}`,
+        'gi');
     let m;
     while ((m = braceRe.exec(value)) !== null) {
-      refs.add(m[1]);
+      refs.add(m[1] || m[2]);
     }
   }
 
@@ -836,7 +902,9 @@ export function collectInputRefsFromObject(obj: any): string[] {
 // Specific replacers using flags
 export function replaceInputRefsWithBrace(obj: any, inputs: any, resolver?: DynamicResolver): any {
   return replaceRefs(
-      obj, new RegExp(`<<(${DYNAMIC_KEY_RE})>>`, 'g'), ReplacementMode.BRACE, inputs, resolver);
+      obj,
+      new RegExp(`<<(${DYNAMIC_KEY_RE})>>|\\{\\{(${DYNAMIC_KEY_RE})\\}\\}`, 'g'),
+      ReplacementMode.BRACE, inputs, resolver);
 }
 
 export function replaceInputRefsWithNone(obj: any, inputs: any, resolver?: DynamicResolver): any {
