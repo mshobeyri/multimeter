@@ -40,3 +40,25 @@ query:
   curly_whole: {{e:plan_label}}
   text_slice: <<e:service_url[0:8]>>
   missing_embed: "x<<e:region>>y"
+examples:
+  - id: defaults
+    title: Check outputs
+    expect:
+      status_code: 200
+      account_age: "42"
+      feature_enabled: "true"
+      plan_code: "10"
+      plan_label: "10"
+      service_url: https://test.mmt.dev
+      missing_region: "e:region"
+      literal_token: "e:account_age"
+      literal_omit: "omit"
+      angle_whole: "42"
+      quoted_angle: envVariables.account_age
+      angle_prefix: "asda42"
+      angle_suffix: "42asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: "{{envVariables.account_age}}"
+      curly_whole: "10"
+      text_slice: "https://"
+      missing_embed: "xe:regiony"

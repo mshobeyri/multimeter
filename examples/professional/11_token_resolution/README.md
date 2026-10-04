@@ -69,11 +69,11 @@ JSON is the only format here that still shows `plan_code` as the number `10` and
 | `api/current_header.mmt` | `c:` as header text |
 | `api/current_query.mmt` | `c:` as query text |
 
-Each API lists `outputs` for the echoed fields. Matching tests live under `test/` (`env_json_body_test.mmt` for `api/env_json_body.mmt`, and so on). `suite.mmt` runs all twenty.
+Each API lists `outputs` for the echoed fields and a no-input `examples` entry (`id: defaults`) with the same `expect` checks as its matching test, so you can validate outputs from the API tester. Matching tests live under `test/` (`env_json_body_test.mmt` for `api/env_json_body.mmt`, and so on). `suite.mmt` runs all twenty.
 
 ## How to use
 
-Open any file in `api/` and click **Send**. Open a file in `test/`, or `suite.mmt`, and click **Run**.
+Open any file in `api/` and click **Send**, or run the `defaults` example glyph to check outputs. Open a file in `test/`, or `suite.mmt`, and click **Run**.
 
 ```sh
 npx testlight run examples/professional/11_token_resolution/test/env_json_body_test.mmt \

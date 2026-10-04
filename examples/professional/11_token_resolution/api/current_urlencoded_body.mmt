@@ -37,3 +37,23 @@ body:
   curly_whole: {{c:city}}
   text_slice: <<c:city[0:1]>>
   missing_embed: "x<<c:not_a_token>>y"
+examples:
+  - id: defaults
+    title: Check outputs
+    expect:
+      status_code: 200
+      day_name: != null
+      epoch_seconds: != null
+      city: != null
+      missing_token: "c:not_a_token"
+      literal_token: "c:day"
+      literal_omit: "omit"
+      angle_whole: "=* ^[0-9]{10}$"
+      quoted_angle: "<<c:day>>"
+      angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
+      angle_suffix: =$ asas
+      angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
+      quoted_curly: "=* ^\\{\\{(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\\}\\}$"
+      curly_whole: "!= null"
+      text_slice: "=# 1"
+      missing_embed: "xc:not_a_tokeny"
