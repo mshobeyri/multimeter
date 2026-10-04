@@ -236,8 +236,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     });
   }, [onRequestReset, prepareRequestData, api, examples, selectedExampleIdx, setCurrentInputs]);
 
+  const bodyPackReadyRef = useRef(false);
   useEffect(() => {
     // Seed storage preference from the newly opened file only.
+    // The pack effect below must not run on this same open — its state is
+    // still the previous file's preference until this update renders.
+    bodyPackReadyRef.current = false;
     setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
     setBodyYamlEncodeError(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on file switch
@@ -716,6 +720,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   // Prefer-encoded: when body is temporarily plain (invalid mid-edit or YAML tweak)
   // but the text packs again, snap back to structured storage.
   useEffect(() => {
+    if (!bodyPackReadyRef.current) {
+      bodyPackReadyRef.current = true;
+      return;
+    }
     if (!bodyYamlEncodedManual) {
       return;
     }

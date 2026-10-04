@@ -1,11 +1,11 @@
 import React from "react";
 import type { ExpectUiRow } from "mmt-core/expectUi";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import {
-  inputBoxToYamlValueWithTokens,
-  yamlValueToInputBox,
-  yamlValueToInputBoxWithTokens,
-} from "./convertor";
+  expectDisplayToStored,
+  expectStoredToDisplay,
+  expectTextUnchanged,
+} from "mmt-core/expectUi";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import OperatorSelect from "./OperatorSelect";
 import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
@@ -122,20 +122,16 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
                 buttonCount: 1,
               });
               const expectedDisplay = canContainToken
-                ? yamlValueToInputBoxWithTokens(
-                    inputBoxToYamlValueWithTokens(row.expected, true, true),
-                    true,
-                    true,
-                  )
+                ? expectStoredToDisplay(row.expected)
                 : row.expected;
               const commitExpected = (val: string) => {
-                onPartChange(
-                  i,
-                  "expected",
-                  canContainToken
-                    ? yamlValueToInputBox(inputBoxToYamlValueWithTokens(val, true, true))
-                    : val,
-                );
+                const stored = canContainToken ? expectDisplayToStored(val) : val;
+                // Display {{c:day}} is not an edit of c:day. Echo text such as
+                // xc:not_a_tokeny is not rewritten into <<c:…>>.
+                if (expectTextUnchanged(row.expected, stored)) {
+                  return;
+                }
+                onPartChange(i, "expected", stored);
               };
               return (
                 <div key={row.rowId} className="check-clause-row">

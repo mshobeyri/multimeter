@@ -1,4 +1,10 @@
+import {displayRuntimeTokensToResolvableText} from './bodyRuntimeTokens';
 import {JSONValue} from './CommonData';
+import {
+  isPlainTokenScalar,
+  isTokenLikeScalar,
+  wholeAngleTokenPlain,
+} from './literalToken';
 import {isOmitSentinel} from './omitKeyword';
 import {splitCheckOperatorPrefix, unquoteExpectLiteral} from './TestData';
 import {
@@ -149,6 +155,62 @@ export function createEmptyExpectUiRow(field: string): ExpectUiRow {
 /** Infer YAML scalar kind from the expected-value editor text. */
 export function detectExpectValueKind(raw: string): ExpectUiValueKind {
   return kindFromYamlValue(inputBoxToYamlValue(raw));
+}
+
+/**
+ * Whole e:/i:/r:/c:/o: token (`c:day`, `<<c:day>>`, `{{c:day}}`).
+ * Mixed text such as `xc:not_a_tokeny` is not a token.
+ */
+export function wholeExpectTokenPlain(value: string): string|null {
+  const text = String(value ?? '').trim();
+  if (!text || text.startsWith('"') || text.startsWith('\'')) {
+    return null;
+  }
+  if (isPlainTokenScalar(text)) {
+    return text;
+  }
+  const angle = wholeAngleTokenPlain(text);
+  if (angle) {
+    return angle;
+  }
+  if (text.startsWith('{{') && text.endsWith('}}') && isTokenLikeScalar(text)) {
+    const inner = text.slice(2, -2).trim().replace(/\s+/g, '');
+    if (isPlainTokenScalar(inner)) {
+      return inner;
+    }
+  }
+  return null;
+}
+
+/**
+ * Expect editor display. Whole tokens use `{{prefix:name}}`.
+ * Echo text, quoted literals, and operators stay as stored.
+ */
+export function expectStoredToDisplay(stored: string): string {
+  const plain = wholeExpectTokenPlain(stored);
+  if (plain) {
+    return `{{${plain}}}`;
+  }
+  return stored;
+}
+
+/**
+ * Expect editor text → row / YAML text.
+ * Whole tokens save as bare `prefix:name`. Other text is kept, including
+ * `xc:not_a_tokeny`. `{{token}}` the user typed inside other text becomes
+ * `<<token>>`. Bare letters glued to `c:` / `e:` / `i:` / `r:` are not wrapped.
+ */
+export function expectDisplayToStored(display: string): string {
+  const plain = wholeExpectTokenPlain(display);
+  if (plain) {
+    return plain;
+  }
+  return displayRuntimeTokensToResolvableText(display);
+}
+
+/** True when two expect editor strings are the same YAML value. */
+export function expectTextUnchanged(previous: string, next: string): boolean {
+  return expectDisplayToStored(previous) === expectDisplayToStored(next);
 }
 
 export function applyExpectUiRowChange(

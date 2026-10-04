@@ -1048,7 +1048,9 @@ describe('xml scalar yaml policy', () => {
     expect(again).not.toMatch(/note:/);
     expect(again).toMatch(/\bn: 100\b/);
     expect(again).toMatch(/qn: "112"/);
-    expect(again).toMatch(/id: i:username\b/);
+    // Same live token: keep the authored "<<i:username>>" spelling.
+    expect(again).toContain('id: "<<i:username>>"');
+    expect((yamlToAPI(again).body as {user: {id: string}}).user.id).toBe('i:username');
   });
 
   it('expanded xml uses the same leaf rules and keeps empty objects', () => {
@@ -1140,10 +1142,14 @@ describe('json editor tokens', () => {
     expect(unwrapLiteralToken(String(saved.str))).toBe('i:username');
 
     const again = apiToYaml({...api, body: saved}, yaml);
-    expect(again).toMatch(/angled: i:username\b/);
-    expect(again).toMatch(/curly: i:username\b/);
+    // Unchanged live tokens keep the spelling already in the file.
+    expect(again).toContain('angled: "<<i:username>>"');
+    expect(again).toContain('curly: "{{i:username}}"');
     expect(again).toMatch(/str: "i:username"/);
     expect(again).toMatch(/name: i:username\b/);
+    const round = yamlToAPI(again).body as Record<string, unknown>;
+    expect(round.angled).toBe('i:username');
+    expect(round.curly).toBe('i:username');
     expect(again).toMatch(/\bn: 100\b/);
     expect(again).toMatch(/\bok: true\b/);
   });

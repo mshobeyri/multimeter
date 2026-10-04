@@ -20,6 +20,10 @@ import {
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 import {normalizeNewlines} from './textLines';
 import {mergeYamlValue} from './yamlAstMerge';
+import {
+  restoreUnchangedScalarSpellings,
+  yamlModelsUnchanged,
+} from './yamlAuthoredScalars';
 import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
 import {
   mapUnquotedDisplayRuntimeTokens,
@@ -255,7 +259,7 @@ function packYaml(obj: any, originalYaml?: string): string {
         }
         applyKeywordScalarStyles(doc.contents, obj);
         forceBlockStyleForStepSequences(doc.contents);
-        return stringifyYamlDocument(doc);
+        return finishPackedYaml(stringifyYamlDocument(doc), originalYaml);
       }
     }
     const doc = new YAML.Document();
@@ -266,6 +270,26 @@ function packYaml(obj: any, originalYaml?: string): string {
   } catch (e) {
     return '';
   }
+}
+
+/**
+ * A load/resave of the same model must not rewrite expects or token spelling.
+ * A real edit still updates that value, and leaves every other scalar as authored.
+ */
+function finishPackedYaml(packed: string, originalYaml?: string): string {
+  if (!packed || typeof originalYaml !== 'string' || originalYaml.length === 0) {
+    return packed;
+  }
+  try {
+    const originalJs = parseYaml(originalYaml);
+    const packedJs = parseYaml(packed);
+    if (yamlModelsUnchanged(originalJs, packedJs)) {
+      return originalYaml;
+    }
+  } catch {
+    return packed;
+  }
+  return restoreUnchangedScalarSpellings(packed, originalYaml);
 }
 
 function stringifyYamlDocument(doc: YAML.Document): string {
