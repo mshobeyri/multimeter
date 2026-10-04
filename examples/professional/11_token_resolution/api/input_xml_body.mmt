@@ -7,43 +7,44 @@ inputs:
   active: true
   city: Berlin
 outputs:
-  username: body[/<username>(.*?)</username>/]
-  age: body[/<age>(.*?)</age>/]
-  active: body[/<active>(.*?)</active>/]
-  city: body[/<city>(.*?)</city>/]
-  missing_nickname: body[/<missing_nickname>(.*?)</missing_nickname>/]
-  literal_token: body[/<literal_token>(.*?)</literal_token>/]
-  literal_omit: body[/<literal_omit>(.*?)</literal_omit>/]
-  angle_whole: body[/<angle_whole>(.*?)</angle_whole>/]
-  quoted_angle: body[/<quoted_angle>(.*?)</quoted_angle>/]
-  angle_prefix: body[/<angle_prefix>(.*?)</angle_prefix>/]
-  angle_suffix: body[/<angle_suffix>(.*?)</angle_suffix>/]
-  angle_both: body[/<angle_both>(.*?)</angle_both>/]
-  quoted_curly: body[/<quoted_curly>(.*?)</quoted_curly>/]
-  curly_whole: body[/<curly_whole>(.*?)</curly_whole>/]
-  text_slice: body[/<text_slice>(.*?)</text_slice>/]
-  missing_embed: body[/<missing_embed>(.*?)</missing_embed>/]
+  username: body.body.username
+  age: body.body.age
+  active: body.body.active
+  city: body.body.city
+  missing_nickname: body.body.missing_nickname
+  literal_token: body.body.literal_token
+  literal_omit: body.body.literal_omit
+  angle_whole: body.body.angle_whole
+  quoted_angle: body.body.quoted_angle
+  angle_prefix: body.body.angle_prefix
+  angle_suffix: body.body.angle_suffix
+  angle_both: body.body.angle_both
+  quoted_curly: body.body.quoted_curly
+  curly_whole: body.body.curly_whole
+  text_slice: body.body.text_slice
+  missing_embed: body.body.missing_embed
   status_code: status
 url: https://test.mmt.dev/echo
 method: post
 format: xml
 body:
-  username: i:username
-  age: i:age
-  active: i:active
-  city: i:city
-  missing_nickname: i:nickname
-  literal_token: "i:username"
-  literal_omit: "omit"
-  angle_whole: <<i:age>>
-  quoted_angle: "<<i:username>>"
-  angle_prefix: "asda<<i:username>>"
-  angle_suffix: "<<i:age>>asas"
-  angle_both: "asda<<i:active>>asas"
-  quoted_curly: "{{i:username}}"
-  curly_whole: {{i:city}}
-  text_slice: <<i:city[0:3]>>
-  missing_embed: "x<<i:nickname>>y"
+  body:
+    username: i:username
+    age: i:age
+    active: i:active
+    city: i:city
+    missing_nickname: i:nickname
+    literal_token: "i:username"
+    literal_omit: "omit"
+    angle_whole: <<i:age>>
+    quoted_angle: "<<i:username>>"
+    angle_prefix: "asda<<i:username>>"
+    angle_suffix: "<<i:age>>asas"
+    angle_both: "asda<<i:active>>asas"
+    quoted_curly: "{{i:username}}"
+    curly_whole: {{i:city}}
+    text_slice: <<i:city[0:3]>>
+    missing_embed: "x<<i:nickname>>y"
 examples:
   - id: defaults
     title: Check outputs

@@ -2,45 +2,46 @@ type: api
 title: Env tokens in an XML body
 description: "XML element text is always a string, including numbers and booleans from e:."
 outputs:
-  account_age: body[/<account_age>(.*?)</account_age>/]
-  feature_enabled: body[/<feature_enabled>(.*?)</feature_enabled>/]
-  plan_code: body[/<plan_code>(.*?)</plan_code>/]
-  plan_label: body[/<plan_label>(.*?)</plan_label>/]
-  service_url: body[/<service_url>(.*?)</service_url>/]
-  missing_region: body[/<missing_region>(.*?)</missing_region>/]
-  literal_token: body[/<literal_token>(.*?)</literal_token>/]
-  literal_omit: body[/<literal_omit>(.*?)</literal_omit>/]
-  angle_whole: body[/<angle_whole>(.*?)</angle_whole>/]
-  quoted_angle: body[/<quoted_angle>(.*?)</quoted_angle>/]
-  angle_prefix: body[/<angle_prefix>(.*?)</angle_prefix>/]
-  angle_suffix: body[/<angle_suffix>(.*?)</angle_suffix>/]
-  angle_both: body[/<angle_both>(.*?)</angle_both>/]
-  quoted_curly: body[/<quoted_curly>(.*?)</quoted_curly>/]
-  curly_whole: body[/<curly_whole>(.*?)</curly_whole>/]
-  text_slice: body[/<text_slice>(.*?)</text_slice>/]
-  missing_embed: body[/<missing_embed>(.*?)</missing_embed>/]
+  account_age: body.body.account_age
+  feature_enabled: body.body.feature_enabled
+  plan_code: body.body.plan_code
+  plan_label: body.body.plan_label
+  service_url: body.body.service_url
+  missing_region: body.body.missing_region
+  literal_token: body.body.literal_token
+  literal_omit: body.body.literal_omit
+  angle_whole: body.body.angle_whole
+  quoted_angle: body.body.quoted_angle
+  angle_prefix: body.body.angle_prefix
+  angle_suffix: body.body.angle_suffix
+  angle_both: body.body.angle_both
+  quoted_curly: body.body.quoted_curly
+  curly_whole: body.body.curly_whole
+  text_slice: body.body.text_slice
+  missing_embed: body.body.missing_embed
   status_code: status
 url: https://test.mmt.dev/echo
 method: post
 format: xml
 body:
-  account_age: e:account_age
-  feature_enabled: e:feature_enabled
-  plan_code: e:plan_code
-  plan_label: e:plan_label
-  service_url: e:service_url
-  missing_region: e:region
-  literal_token: "e:account_age"
-  literal_omit: "omit"
-  angle_whole: <<e:account_age>>
-  quoted_angle: "<<e:account_age>>"
-  angle_prefix: "asda<<e:account_age>>"
-  angle_suffix: "<<e:account_age>>asas"
-  angle_both: "asda<<e:feature_enabled>>asas"
-  quoted_curly: "{{e:account_age}}"
-  curly_whole: {{e:plan_label}}
-  text_slice: <<e:service_url[0:8]>>
-  missing_embed: "x<<e:region>>y"
+  body:
+    account_age: e:account_age
+    feature_enabled: e:feature_enabled
+    plan_code: e:plan_code
+    plan_label: e:plan_label
+    service_url: e:service_url
+    missing_region: e:region
+    literal_token: "e:account_age"
+    literal_omit: "omit"
+    angle_whole: <<e:account_age>>
+    quoted_angle: "<<e:account_age>>"
+    angle_prefix: "asda<<e:account_age>>"
+    angle_suffix: "<<e:account_age>>asas"
+    angle_both: "asda<<e:feature_enabled>>asas"
+    quoted_curly: "{{e:account_age}}"
+    curly_whole: {{e:plan_label}}
+    text_slice: <<e:service_url[0:8]>>
+    missing_embed: "x<<e:region>>y"
 examples:
   - id: defaults
     title: Check outputs
