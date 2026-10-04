@@ -123,8 +123,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({
             <LEditor
               label="Values"
               value={(Array.isArray(board.value) ? board.value : []).map(
-                (v: JSONValue) =>
-                  typeof v === "string" ? v : envListValueToInputBox(v),
+                (v: JSONValue) => envListValueToInputBox(v),
               )}
               onChange={v => handleBoardChange(idx, { value: v })}
               placeholder="Value"

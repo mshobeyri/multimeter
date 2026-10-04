@@ -70,9 +70,10 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
         formattedBody = restoreUrlEncodedJsPlaceholders(formattedBody);
       } else if (reqFormat === 'json') {
         // A full-field runtime token must retain its native JSON type. Embedded
-        // tokens remain string interpolations.
+        // tokens remain string interpolations. Env is included with r:/c:
+        // because the stored type is only known when the request runs.
         formattedBody = formattedBody.replace(
-            /"\$\{((?:mmt(?:Random|Current)_\([^{}]*\)|mmtAccess_\([^{}]*\)))}"/g,
+            /"\$\{((?:mmt(?:Random|Current|Env)_\([^{}]*\)|mmtAccess_\([^{}]*\)))}"/g,
             '${JSON.stringify($1)}');
       }
       const entries = Object.entries(ctx.api.inputs ?? {});
@@ -94,6 +95,16 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
           formattedBody =
               (formattedBody as string).replace(quoted, '${' + name + '}');
         }
+      }
+      if (reqFormat === 'json') {
+        // JSON.stringify of a placeholder escapes inner double quotes
+        // (`mmtEnv_(\"name\")`). Those backslashes are a syntax error once the
+        // body is a template literal, and the call never runs. Quotes inside
+        // ${…} must be real string quotes so JSON.stringify returns the value's
+        // own JSON type (10 stays 10, "10" stays "10").
+        formattedBody = (formattedBody as string).replace(
+            /\$\{([^{}]*)\}/g,
+            (_match, expr) => '${' + String(expr).replace(/\\"/g, '"') + '}');
       }
     }
   } catch {

@@ -678,9 +678,28 @@ function plainTokenFromLeaf(value: string): string|null {
   return ieAngle ? ieAngle[1] : null;
 }
 
+/** True when the leaf is still the token text, not a substituted value. */
+function isUnresolvedTokenLeaf(plain: string, resolvedLeaf: unknown): boolean {
+  if (typeof resolvedLeaf !== 'string') {
+    return false;
+  }
+  const leaf = resolvedLeaf.trim();
+  return leaf === plain ||
+      leaf === `{{${plain}}}` ||
+      leaf === `<<${plain}>>`;
+}
+
+function jsonLeafIsString(val: unknown): boolean {
+  if (val === null || typeof val === 'number' || typeof val === 'boolean') {
+    return false;
+  }
+  return true;
+}
+
 /**
- * Prefer typeof of the resolved leaf (what Send uses) for i:/e: quoting;
- * fall back to inputs/env context; default string.
+ * Quote i:/e: from the live inputs/env type when that value is known.
+ * A leaf that is still the token text (`e:name`) is not a string value.
+ * Otherwise use the resolved leaf, then default to a string.
  */
 function tokenEmitsJsonStringForLeaf(
     plain: string,
@@ -688,21 +707,13 @@ function tokenEmitsJsonStringForLeaf(
     ctx?: RuntimeTokenValueContext,
     forceBarePlains?: ReadonlySet<string>,
 ): boolean {
-  if (/^[ie]:/i.test(plain) && resolvedLeaf !== undefined) {
-    if (resolvedLeaf === null ||
-        typeof resolvedLeaf === 'number' ||
-        typeof resolvedLeaf === 'boolean') {
-      return false;
+  if (/^[ie]:/i.test(plain)) {
+    const fromCtx = lookupIeResolvedValue(plain, ctx);
+    if (fromCtx !== undefined) {
+      return jsonLeafIsString(fromCtx);
     }
-    return true;
-  }
-  if (/^[ie]:/i.test(plain) && ctx) {
-    const val = lookupIeResolvedValue(plain, ctx);
-    if (val !== undefined) {
-      if (val === null || typeof val === 'number' || typeof val === 'boolean') {
-        return false;
-      }
-      return true;
+    if (resolvedLeaf !== undefined && !isUnresolvedTokenLeaf(plain, resolvedLeaf)) {
+      return jsonLeafIsString(resolvedLeaf);
     }
   }
   // Beautify round-trip without ctx: keep i:/e: unquoted when source was bare.

@@ -904,6 +904,19 @@ describe('bodyEditTokenTemplate quotes by input/env types', () => {
     expect(template).toContain('"message": "Hello from mmt!"');
   });
 
+  it('quotes e: from the env type when the leaf is still the token', () => {
+    const source = {xx: 'e:xx', host: 'e:host'};
+    const template = bodyEditTokenTemplate(
+        source,
+        'json',
+        {env: {xx: 20, host: 'localhost'}},
+        source,
+    );
+    expect(template).toContain('"xx": {{e:xx}}');
+    expect(template).not.toContain('"xx": "{{e:xx}}"');
+    expect(template).toContain('"host": "{{e:host}}"');
+  });
+
   it('round-trips quoted token text to a YAML literal', () => {
     const source = {
       name: 'i:username',

@@ -3,6 +3,7 @@ import { ComboTablePair } from "../components/ComboTable";
 import { EnvClientCertificate, EnvVariable, CertificateSettings } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
+import { yamlValueToInputBox } from "mmt-core/yamlValueConvert";
 import { loadCertificateSettings, saveCertificateSettings } from "../workspaceStorage";
 
 interface EnvironmentEnvProps {
@@ -86,7 +87,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                 return String(value);
             }
         }
-        return String(value);
+        return yamlValueToInputBox(value);
     };
 
     const handleSelectChange = (name: string, label: string) => {

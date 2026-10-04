@@ -9,6 +9,7 @@ import { JSONValue } from "mmt-core/CommonData";
 import { EnvCertificates, EnvVariable } from "./EnvironmentData";
 import { saveEnvPresets } from "../workspaceStorage";
 import { selectFromVariables } from "mmt-core/runConfig";
+import { envVariableChoices, pickEnvChoice } from "./envVariableUi";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import TabBar from "../components/TabBar";
 import PrimaryButton from "../components/PrimaryButton";
@@ -87,37 +88,19 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     const variablesObj = (yaml.variables && typeof yaml.variables === "object") ? yaml.variables : {};
     setVariableDefinitions(variablesObj as Record<string, any>);
     Object.entries(variablesObj).forEach(([name, value]) => {
-      // Ensure loadedVarsRef.current is always an array before calling .find
+      const options = envVariableChoices(value);
+      if (options.length === 0) {
+        return;
+      }
       const found = Array.isArray(loadedVarsRef.current)
         ? loadedVarsRef.current.find((v: any) => v.name === name)
         : undefined;
-      if (isList(value)) {
-        const options = value.map((v: string) => ({ label: String(v), value: String(v), options: [] }));
-        const selected = found
-          ? options.find(opt => opt.value === found.value) || options[0]
-          : options[0];
-        variablePairs.push({
-          name,
-          options,
-          value: selected
-        });
-      } else if (typeof value === "object" && value !== null) {
-        const options = Object.entries(value).map(([k, v]) => ({
-          label: k,
-          value: v
-        }));
-        let selected = options[0];
-        if (found) {
-          selected =
-            options.find(opt => opt.label === found.value || opt.value === found.value) ||
-            options[0];
-        }
-        variablePairs.push({
-          name,
-          options,
-          value: selected
-        });
-      }
+      const selected = pickEnvChoice(options, found) ?? options[0];
+      variablePairs.push({
+        name,
+        options,
+        value: selected,
+      });
     });
     setVariables(variablePairs);
 
@@ -188,9 +171,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             safeList(pair.options).find(opt => opt.label === choice)?.value ??
             selectFromVariables(variableDefinitions, pair.name, choice);
           const nextOption = safeList(pair.options).find(opt =>
-            opt.value === resolvedValue ||
-            opt.label === resolvedValue ||
-            String(opt.value) === String(resolvedValue)
+            opt.label === choice || Object.is(opt.value, resolvedValue)
           );
           if (nextOption) {
             return { ...pair, value: nextOption };
@@ -245,13 +226,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             ? loadedVarsRef.current.find((v: any) => v.name === pair.name)
             : undefined;
           if (found) {
-            const resolvedOptions = Array.isArray(found.options) && found.options.length > 0
-              ? found.options
-              : pair.options;
-            const selectedOption =
-              safeList(resolvedOptions).find(opt => opt.value === found.value) ||
-              resolvedOptions[0];
-            return { ...pair, options: resolvedOptions, value: selectedOption };
+            const selectedOption = pickEnvChoice(pair.options, found) ?? pair.value;
+            return { ...pair, value: selectedOption };
           }
           return pair;
         })
@@ -278,20 +254,18 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     setVariableDefinitions(variablesObj as Record<string, any>);
     const rebuiltPairs: ComboTablePair[] = [];
     Object.entries(variablesObj).forEach(([name, value]) => {
-      if (isList(value)) {
-        const options = value.map((v: string) => ({ label: String(v), value: String(v), options: [] }));
-        rebuiltPairs.push({ name, options, value: options[0] });
-      } else if (typeof value === "object" && value !== null) {
-        const options = Object.entries(value).map(([k, v]) => ({ label: k, value: v }));
-        rebuiltPairs.push({ name, options, value: options[0] });
-      } else {
-        const scalar = { label: String(value), value: value as JSONValue };
-        rebuiltPairs.push({
-          name,
-          options: [scalar],
-          value: scalar,
-        });
+      const options = envVariableChoices(value);
+      if (options.length === 0) {
+        return;
       }
+      const found = Array.isArray(loadedVarsRef.current)
+        ? loadedVarsRef.current.find((v: any) => v.name === name)
+        : undefined;
+      rebuiltPairs.push({
+        name,
+        options,
+        value: pickEnvChoice(options, found) ?? options[0],
+      });
     });
     let applied = rebuiltPairs;
     safeList(presets).forEach(preset => {
@@ -312,9 +286,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           safeList(pair.options).find(opt => opt.label === choice)?.value ??
           selectFromVariables(variablesObj as Record<string, any>, pair.name, choice);
         const nextOption = safeList(pair.options).find(opt =>
-          opt.value === resolvedValue ||
-          opt.label === resolvedValue ||
-          String(opt.value) === String(resolvedValue)
+          opt.label === choice || Object.is(opt.value, resolvedValue)
         );
         if (nextOption) {
           return { ...pair, value: nextOption };

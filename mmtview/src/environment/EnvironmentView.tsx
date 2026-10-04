@@ -2,19 +2,20 @@ import React, { useState } from "react";
 import { EnvVariable } from "./EnvironmentData";
 import SettingsTable, { SettingsTableColumn, SettingsTableRow } from "../components/SettingsTable";
 import type { JSONValue } from "mmt-core/CommonData";
+import { yamlValueToInputBox } from "mmt-core/yamlValueConvert";
 
 function formatEnvDisplayValue(value: JSONValue | undefined): string {
-  if (value === null || value === undefined) {
+  if (value === undefined) {
     return "";
   }
-  if (typeof value === "object") {
+  if (value !== null && typeof value === "object") {
     try {
       return JSON.stringify(value);
     } catch {
       return String(value);
     }
   }
-  return String(value);
+  return yamlValueToInputBox(value);
 }
 
 interface EnvironmentViewProps {

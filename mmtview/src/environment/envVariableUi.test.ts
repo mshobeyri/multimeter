@@ -1,7 +1,11 @@
 import {
   boardsToVariables,
   coerceEnvScalar,
+  envListValueToInputBox,
+  envScalarChoices,
+  envVariableChoices,
   envVariablesSignature,
+  pickEnvChoice,
   variablesToBoards,
 } from './envVariableUi';
 
@@ -46,6 +50,37 @@ describe('envVariableUi', () => {
     expect(coerceEnvScalar([1, 2] as any)).toBeUndefined();
     expect(coerceEnvScalar('{"a":1}')).toBeUndefined();
     expect(coerceEnvScalar('[1,2]')).toBeUndefined();
+  });
+
+  it('keeps number 10 and string "10" as different list values', () => {
+    expect(envListValueToInputBox(10)).toBe('10');
+    expect(envListValueToInputBox('10')).toBe('"10"');
+    expect(envScalarChoices([10, '10', true, null])).toEqual([
+      {label: '10', value: 10},
+      {label: '"10"', value: '10'},
+      {label: 'true', value: true},
+      {label: 'null', value: null},
+    ]);
+    expect(envVariableChoices(10)).toEqual([{label: '10', value: 10}]);
+    expect(envVariableChoices('10')).toEqual([{label: '"10"', value: '10'}]);
+    expect(envVariableChoices({local: 10, quoted: '10'})).toEqual([
+      {label: 'local', value: 10},
+      {label: 'quoted', value: '10'},
+    ]);
+    const choices = envVariableChoices([10, '10']);
+    expect(pickEnvChoice(choices, {label: '10', value: '10'})).toEqual({
+      label: '10',
+      value: 10,
+    });
+    expect(pickEnvChoice(choices, {label: '"10"', value: '10'})).toEqual({
+      label: '"10"',
+      value: '10',
+    });
+    expect(boardsToVariables([
+      {name: 'n', type: 'list', value: ['10', '"10"', 'true', 'null']},
+    ])).toEqual({
+      n: [10, '10', true, null],
+    });
   });
 
   it('coerces list display text to scalars and drops object/list items', () => {

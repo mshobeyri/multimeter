@@ -2584,6 +2584,69 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
     expect(js).not.toContain('"r:int(10,20)"');
   });
 
+  it('keeps a whole-field env token’s JSON type', async () => {
+    const js = await apiToJSfunc({
+      api: {
+        type: 'api',
+        url: 'https://example.com/echo',
+        method: 'post',
+        format: 'json',
+        body: {
+          n: 'e:count',
+          flag: 'e:ok',
+          label: 'hello <<e:count>>',
+        },
+      } as any,
+      name: 'envBody',
+      inputs: {},
+      envVars: {},
+    });
+    expect(js).toContain('JSON.stringify(mmtEnv_("count"))');
+    expect(js).toContain('JSON.stringify(mmtEnv_("ok"))');
+    expect(js).toContain('hello ${mmtEnv_("count")}');
+    expect(js).not.toContain('\\"n\\":"${mmtEnv_');
+    expect(js).not.toContain('\\"flag\\":"${mmtEnv_');
+
+    const sendBody = async (env: Record<string, unknown>): Promise<string> => {
+      const mmtEnv_ = (name: string) => (
+        Object.prototype.hasOwnProperty.call(env, name) ? env[name] : 'e:' + name
+      );
+      let sent = '';
+      const fn = new Function(
+          'mmtEnv_',
+          'send_',
+          'protocolFromUrl_',
+          'applyOmitToRequest_',
+          'extractOutputs_',
+          `${js}\nreturn envBody;`,
+      ) as (...args: unknown[]) => () => Promise<unknown>;
+      const envBody = fn(
+          mmtEnv_,
+          async (req: {body?: string}) => {
+            sent = String(req.body ?? '');
+            return {
+              status: 200, statusText: 'OK', body: {}, headers: {}, cookies: {}, duration: 1,
+            };
+          },
+          () => 'https',
+          () => {},
+          () => ({}),
+      );
+      await envBody();
+      return sent;
+    };
+
+    const numeric = JSON.parse(await sendBody({count: 10, ok: true}));
+    expect(numeric.n).toBe(10);
+    expect(numeric.flag).toBe(true);
+    expect(numeric.label).toBe('hello 10');
+
+    const quoted = JSON.parse(await sendBody({count: '10', ok: false}));
+    expect(quoted.n).toBe('10');
+    expect(quoted.flag).toBe(false);
+    expect(quoted.label).toBe('hello 10');
+  });
+
   it('still encodes static reserved characters in neighboring fields', async () => {
     const js = await toJs([
       'type: api',
@@ -2615,7 +2678,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  user: e:USERNAME',
     ]);
     expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
-    expect(js).toContain('mmtEnv_(\\"USERNAME\\")');
+    expect(js).toContain('JSON.stringify(mmtEnv_("USERNAME"))');
     expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 

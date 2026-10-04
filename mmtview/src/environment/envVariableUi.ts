@@ -125,7 +125,75 @@ export function boardsToVariables(
   return out;
 }
 
-/** Display helper for list rows (numbers/bools → input-box text). */
+export type EnvChoice = {label: string; value: JSONValue};
+
+/**
+ * Choices for one env variable. The stored value keeps its YAML type.
+ * List labels use input-box text so `10` and `"10"` stay distinct.
+ * Object labels are the field names. A scalar is a single choice.
+ */
+export function envVariableChoices(value: unknown): EnvChoice[] {
+  if (Array.isArray(value)) {
+    return envScalarChoices(value);
+  }
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).map(([label, item]) => ({
+      label,
+      value: item as JSONValue,
+    }));
+  }
+  if (isEnvScalar(value)) {
+    return [{label: yamlValueToInputBox(value), value}];
+  }
+  return [];
+}
+
+/**
+ * Which choice is active. Identity is the label (the field name, or the
+ * input-box text for a list). A stored value that was stringified (`"10"`
+ * for the number 10) does not replace the YAML type.
+ */
+export function pickEnvChoice(
+    options: EnvChoice[],
+    stored?: {label?: unknown; value?: unknown}|null,
+): EnvChoice|undefined {
+  if (options.length === 0) {
+    return undefined;
+  }
+  if (stored && typeof stored.label === 'string') {
+    const byLabel = options.find(opt => opt.label === stored.label);
+    if (byLabel) {
+      return byLabel;
+    }
+  }
+  if (stored) {
+    const byValue = options.find(opt => Object.is(opt.value, stored.value));
+    if (byValue) {
+      return byValue;
+    }
+  }
+  return options[0];
+}
+
+/**
+ * Choices for a list env variable. The stored value keeps its YAML type.
+ * The label uses input-box text so `10` and `"10"` stay distinct.
+ */
+export function envScalarChoices(value: unknown): EnvChoice[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const options: EnvChoice[] = [];
+  for (const item of value) {
+    if (!isEnvScalar(item)) {
+      continue;
+    }
+    options.push({label: yamlValueToInputBox(item), value: item});
+  }
+  return options;
+}
+
+/** Display helper for list rows (numbers/bools/quoted strings → input-box text). */
 export function envListValueToInputBox(value: JSONValue): string {
   if (!isEnvScalar(value) && value !== undefined) {
     return '';
