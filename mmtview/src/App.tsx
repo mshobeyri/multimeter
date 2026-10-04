@@ -34,6 +34,7 @@ import {
   parseCollectionFiles,
   parseSourceFormat,
 } from "./sourceFormat";
+import { hasPrimaryAction, invokePrimaryAction } from "./primaryAction";
 
 /** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
 function toEditorText(text: string): string {
@@ -356,6 +357,10 @@ const App: React.FC = () => {
         }
       }
 
+      if (message.command === "sendRequest") {
+        invokePrimaryAction();
+      }
+
       if (message.command === "multimeter.mmt.show.panel") {
         const width = getLayoutWidth();
         if (message.panelId === "full") {
@@ -475,6 +480,25 @@ const App: React.FC = () => {
 
   useEffect(() => {
     window.vscode?.postMessage({ command: "loadDocumentContent" });
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Enter" || event.repeat || event.isComposing) {
+        return;
+      }
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (!hasPrimaryAction()) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      invokePrimaryAction();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
 
   useEffect(() => {

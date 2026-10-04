@@ -100,6 +100,10 @@ function registerEditorProvider(
       vscode.commands.registerCommand('multimeter.mmt.show.ui', () => {
         mmtviewPanel.showPanel('ui');
       }));
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.sendRequest', () => {
+        mmtviewPanel.postToActivePanel({command: 'sendRequest'});
+      }));
 }
 
 function registerSidePanels(

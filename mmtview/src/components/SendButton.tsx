@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { accentChromeFor, harmonizeAccent, resolveAccent, SEMANTIC_COLORS } from "../shared/themeAccent";
+import { sendShortcutLabel } from "../primaryAction";
 
 export type SendButtonMenuItem = {
   label: string;
@@ -348,7 +349,7 @@ const SendButton: React.FC<{
             flex: "0 0 auto",
             outline: "none",
           }}
-          title={showCancel ? "Cancel" : "Send"}
+          title={showCancel ? "Cancel" : `Send (${sendShortcutLabel()})`}
           onClick={handleClick}
           disabled={disabled}
         >

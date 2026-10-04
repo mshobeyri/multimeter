@@ -16,6 +16,7 @@ import { runInCoreMenuItem } from '../components/ContextMenuHost';
 import RunStopToggle from '../components/RunStopToggle';
 import { loadEnvVariables } from '../workspaceStorage';
 import { keepEditor } from '../vsAPI';
+import { usePrimaryAction } from '../primaryAction';
 import {
     applyEnvRefreshToInputs,
     applyYamlInputsRefresh,
@@ -241,6 +242,8 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
         });
         postRunCurrentDocument();
     }, [runState, trimIgnoredRuns, postRunCurrentDocument]);
+
+    usePrimaryAction(handleRun);
 
     const handleStop = useCallback(() => {
         window.vscode?.postMessage({

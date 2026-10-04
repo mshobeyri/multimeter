@@ -107,6 +107,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     this.sendMessageToAllPanels(message);
   }
 
+  public postToActivePanel(message: any) {
+    const activePanel =
+        Array.from(this.activeWebviewPanels).find(panel => panel.active);
+    this.postMessageToPanel(activePanel, message);
+  }
+
   public showPanel(panelId: 'full'|'ui'|'yaml') {
     const message = {command: 'multimeter.mmt.show.panel', panelId};
 

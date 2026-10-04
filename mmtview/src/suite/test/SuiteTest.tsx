@@ -36,6 +36,7 @@ import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestRepo
 import { runInCoreMenuItem } from '../../components/ContextMenuHost';
 import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
 import RunStopToggle from '../../components/RunStopToggle';
+import { usePrimaryAction } from '../../primaryAction';
 import { expandedTreeItemsToReportNodeIds } from '../../shared/reportSpillLogic';
 import {
     deleteSpilledReportsForFile,
@@ -1180,6 +1181,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             });
         }
     }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, clearReportSpillState, runDataStore, suiteRunState]);
+
+    usePrimaryAction(canRun ? onRunSuite : null);
 
     const onRunTargets = useCallback((target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';

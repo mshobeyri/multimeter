@@ -22,6 +22,7 @@ import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import { HideWhenYamlError } from "./YamlErrorWarning";
+import { sendShortcutLabel, usePrimaryAction } from "../primaryAction";
 import MethodUrlBar from "../components/MethodUrlBar";
 import {
   inputBoxToYamlValueWithTokens,
@@ -107,15 +108,18 @@ const NoResponseYet: React.FC<{ onSend: () => void }> = ({ onSend }) => (
     <div className="apitest-body-none-message">
       <div className="apitest-body-none-title">No response yet.</div>
       <div className="apitest-body-none-hint">
-        Click{" "}
-        <button
-          type="button"
-          className="apitest-empty-send-link"
-          onClick={onSend}
-        >
-          Send
-        </button>
-        {" "}to run the request.
+        <div>
+          Click{" "}
+          <button
+            type="button"
+            className="apitest-empty-send-link"
+            onClick={onSend}
+          >
+            Send
+          </button>
+          {" "}or press {sendShortcutLabel()}
+        </div>
+        <div>to run the request.</div>
       </div>
     </div>
   </div>
@@ -184,7 +188,7 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
 }
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
-  const { mmtFilePath } = useContext(FileContext);
+  const { mmtFilePath, yamlErrors } = useContext(FileContext);
   const {
     requestData,
     responseData,
@@ -792,6 +796,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     writeBodyStorage,
     handleSend,
   ]);
+
+  const sendShortcutEnabled =
+    (!yamlErrors || yamlErrors.length === 0) && !(isWsUrl && !network.connected);
+  usePrimaryAction(sendShortcutEnabled ? sendWithResolvedBody : null);
 
   const runWithResolvedBody = useCallback(async () => {
     if (bodyTokenMode === "tokens") {

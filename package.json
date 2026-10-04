@@ -398,6 +398,12 @@
         "icon": "$(send)"
       },
       {
+        "command": "multimeter.sendRequest",
+        "title": "Send Request",
+        "category": "Multimeter",
+        "icon": "$(send)"
+      },
+      {
         "command": "multimeter.getStarted.reset",
         "title": "Reset Get Started",
         "category": "Multimeter"
@@ -518,6 +524,14 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "multimeter.sendRequest",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.httpEditor || activeCustomEditorId == mmt.brunoEditor || activeCustomEditorId == mmt.specEditor"
+      }
+    ],
     "menus": {
       "view/title": [
         {
