@@ -6,6 +6,8 @@ inputs:
   age: 100
   active: true
   city: Berlin
+  version: "1.0"
+  price: 9.5
 outputs:
   username: body.body.username
   age: body.body.age
@@ -23,6 +25,14 @@ outputs:
   curly_whole: body.body.curly_whole
   text_slice: body.body.text_slice
   missing_embed: body.body.missing_embed
+  attr_number: body.body.item.number
+  attr_bool: body.body.item.flag
+  attr_text: body.body.item.version
+  attr_angle: body.body.item.angle
+  attr_embedded: body.body.item.embedded
+  attr_literal: body.body.item.literal
+  attr_decimal: body.body.item.decimal
+  price_text: body.body.price
   status_code: status
 url: https://test.mmt.dev/echo
 method: post
@@ -45,6 +55,16 @@ body:
     curly_whole: {{i:city}}
     text_slice: <<i:city[0:3]>>
     missing_embed: "x<<i:nickname>>y"
+    item:
+      _attributes:
+        number: i:age
+        flag: i:active
+        version: i:version
+        angle: <<i:age>>
+        embedded: "n<<i:age>>"
+        literal: "1.0"
+        decimal: i:price
+    price: i:price
 examples:
   - id: defaults
     title: Check outputs
@@ -66,3 +86,11 @@ examples:
       curly_whole: i:city
       text_slice: i:city[0:3]
       missing_embed: "xi:nicknamey"
+      attr_number: "100"
+      attr_bool: "true"
+      attr_text: "1.0"
+      attr_angle: "100"
+      attr_embedded: "n100"
+      attr_literal: "1.0"
+      attr_decimal: "9.5"
+      price_text: "9.5"

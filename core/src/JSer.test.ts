@@ -756,6 +756,34 @@ describe('interdependent input defaults', () => {
     expect(params.indexOf('message')).toBeLessThan(params.indexOf('xx'));
   });
 
+  it('keeps quotes around numeric inputs in XML attributes', async () => {
+    const apiJs = await apiToJSfunc({
+      name: 'xmlAttr',
+      api: {
+        type: 'api',
+        title: 'XML attr',
+        inputs: {age: 100, active: true, ver: '1.0'},
+        url: 'https://test.mmt.dev/echo',
+        method: 'post',
+        format: 'xml',
+        body: {
+          body: {
+            item: {
+              _attributes: {id: 'i:age', on: 'i:active', ver: 'i:ver'},
+              _text: 'i:age',
+            },
+          },
+        },
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+    expect(apiJs).toContain('id="${age}"');
+    expect(apiJs).toContain('on="${active}"');
+    expect(apiJs).toContain('ver="${ver}"');
+    expect(apiJs).not.toContain('JSON.stringify(age)');
+  });
+
   it('keeps a missing i: token as its text instead of a ReferenceError', async () => {
     const apiJs = await apiToJSfunc({
       name: 'echo',

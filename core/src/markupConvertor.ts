@@ -362,12 +362,25 @@ function formValueToString(value: unknown, keepLiteralMarkers = false): string {
   return stringifyJsonWithRuntimeTokens(value, false);
 }
 
+/** True for numeric text that would change when typed (`1.0`, `007`, `1e3`). */
+function isNonCanonicalNumberText(text: string): boolean {
+  if (isLiteralTokenValue(text) || isTokenLikeScalar(text)) {
+    return false;
+  }
+  const typed = inputBoxToYamlValue(text);
+  return typeof typed === 'number' && String(typed) !== text;
+}
+
 /**
  * Editor form text uses the input-box spelling: `100`, `true`, `null`,
  * `"112"`, `"true"`. The wire spelling stays in {@link formValueToString}
  * (`null` is an empty field, strings are not wrapped in quotes).
  */
 function editorFormValue(value: unknown): string {
+  if (typeof value === 'string' && isNonCanonicalNumberText(value)) {
+    // `1.0` cannot be mistaken for a number that round-trips, so no quotes.
+    return value;
+  }
   if (value === null || typeof value === 'number' || typeof value === 'boolean' ||
       typeof value === 'string') {
     return yamlValueToInputBox(value as JSONValue);
@@ -406,6 +419,9 @@ function objectToUrlEncoded(
 function urlEncodedScalarToYaml(text: string): unknown {
   const typed = inputBoxToYamlValue(text);
   if (typed !== null && typeof typed === 'object') {
+    return text;
+  }
+  if (typeof typed === 'number' && String(typed) !== text) {
     return text;
   }
   return typed;
@@ -546,11 +562,26 @@ function coerceXmlScalars(value: unknown): unknown {
     return Object.fromEntries(
         Object.entries(value as Record<string, unknown>).map(([key, child]) => [
           key,
-          coerceXmlScalars(child),
+          key === XML_ATTRIBUTES_KEY ? coerceXmlAttributes(child) : coerceXmlScalars(child),
         ]),
     );
   }
   return value;
+}
+
+/** Attribute values are always text on the wire, so `1.0` must stay `"1.0"`. */
+function coerceXmlAttributes(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return coerceXmlScalars(value);
+  }
+  return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, child]) => {
+        const typed = coerceXmlScalars(child);
+        const keepText = typeof child === 'string' &&
+            (typed === null || typeof typed === 'number' || typeof typed === 'boolean');
+        return [key, keepText ? child : typed];
+      }),
+  );
 }
 
 /** Drop `omit` fields, including nested ones. Quoted `"omit"` is not a sentinel. */
@@ -604,6 +635,23 @@ function xmlEditorLeaf(value: JSONValue, expanded: boolean): string {
   return peerStringToDisplay(value);
 }
 
+const XML_ATTRIBUTES_KEY = '_attributes';
+
+/** Attribute text is shown as written. Input-box quotes would be escaped to &quot;. */
+function xmlAttributeForEditor(value: unknown): unknown {
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (typeof value === 'string' && value !== '' && !isLiteralTokenValue(value) &&
+      !isTokenLikeScalar(value)) {
+    return value;
+  }
+  if (value === '') {
+    return '';
+  }
+  return xmlEditorLeaf(value as JSONValue, false);
+}
+
 function xmlValueForEditor(value: unknown, expanded: boolean): unknown {
   if (isOmitSentinel(value)) {
     return undefined;
@@ -625,6 +673,13 @@ function xmlValueForEditor(value: unknown, expanded: boolean): unknown {
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {};
     for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      if (key === XML_ATTRIBUTES_KEY && child && typeof child === 'object' &&
+          !Array.isArray(child)) {
+        out[key] = Object.fromEntries(
+            Object.entries(child as Record<string, unknown>)
+                .map(([name, attr]) => [name, xmlAttributeForEditor(attr)]));
+        continue;
+      }
       const next = xmlValueForEditor(child, expanded);
       if (next !== undefined) {
         out[key] = next;

@@ -6,6 +6,8 @@ inputs:
   age: 100
   active: true
   city: Berlin
+  version: "1.0"
+  price: 9.5
 outputs:
   username: body.body.username
   age: body.body.age
@@ -22,6 +24,8 @@ outputs:
   quoted_curly: body.body.quoted_curly
   curly_whole: body.body.curly_whole
   text_slice: body.body.text_slice
+  version_text: body.body.version
+  price_value: body.body.price
   status_code: status
 url: https://test.mmt.dev/echo
 method: post
@@ -42,6 +46,8 @@ body:
   quoted_curly: "{{i:username}}"
   curly_whole: {{i:city}}
   text_slice: <<i:city[0:3]>>
+  version: i:version
+  price: i:price
 examples:
   - id: defaults
     title: Check outputs
@@ -62,3 +68,5 @@ examples:
       quoted_curly: i:username
       curly_whole: i:city
       text_slice: i:city[0:3]
+      version_text: "1.0"
+      price_value: "9.5"

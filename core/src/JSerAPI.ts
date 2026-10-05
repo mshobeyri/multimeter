@@ -76,7 +76,11 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
             /"\$\{((?:mmt(?:Random|Current|Env)_\([^{}]*\)|mmtAccess_\([^{}]*\)))}"/g,
             '${JSON.stringify($1)}');
       }
-      const entries = Object.entries(ctx.api.inputs ?? {});
+      // Only JSON drops the quotes around a whole-field number/boolean input.
+      // XML attributes and other text formats must keep them.
+      const entries = reqFormat === 'json' ?
+          Object.entries(ctx.api.inputs ?? {}) :
+          [];
       for (const [name, value] of entries) {
         // A whole-field "${name}" follows the input default's JSON type.
         // Strings stay quoted interpolations. Numbers, booleans, null, and
@@ -85,15 +89,9 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
         // {"xxx":asdasd}, which makes the server close the connection and
         // the next keep-alive call hang.
         const quoted = new RegExp(`\"\\$\\{${name}\\}\"`, 'g');
-        if (reqFormat === 'json' && typeof value !== 'string') {
+        if (typeof value !== 'string') {
           formattedBody = (formattedBody as string).replace(
               quoted, () => '${JSON.stringify(' + name + ')}');
-        } else if (typeof value === 'string') {
-          formattedBody =
-              (formattedBody as string).replace(quoted, '"${' + name + '}"');
-        } else {
-          formattedBody =
-              (formattedBody as string).replace(quoted, '${' + name + '}');
         }
       }
       if (reqFormat === 'json') {

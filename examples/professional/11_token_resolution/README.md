@@ -22,6 +22,8 @@ Each request also sends the other spellings of one token:
 
 A whole-field example expect uses the same token (`e:account_age`, `i:username`, `c:day`, `r:uuid`, including a slice such as `i:city[0:3]`). `e:`, `i:`, and `c:` resolve to the value that was sent. Text formats still match when a number or boolean was sent as text. `r:` is checked as a regex of that generator, because each draw is new. `c:epoch` changes every second, so that expect stays a range. Text wrapped around a token (`asda42`, `asda15`) stays a concrete string or a regex.
 
+The `i:` examples also send `version` (`"1.0"`) and `price` (`9.5`). `input_xml_body.mmt` puts numeric, boolean, and decimal tokens in XML attributes (`<item number="100" flag="true" …>`). Attribute values are always quoted, so the request stays valid XML.
+
 ## Environment
 
 `multimeter.mmt` is loaded as the workspace environment. The active values are:
