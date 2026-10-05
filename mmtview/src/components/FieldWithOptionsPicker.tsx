@@ -56,7 +56,8 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
     buttonCount,
   });
 
-  const pickerRight = (removable ? 28 : 4) + (copyable && value ? 24 : 0);
+  const pickerRight = 4 + (removable ? 32 : 0);
+  const copyRight = 4 + 32 * ((removable ? 1 : 0) + (showPicker ? 1 : 0));
 
   return (
     <div
@@ -84,7 +85,7 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
           onClick={() => navigator.clipboard.writeText(value).catch(() => {})}
           title="Copy value"
           style={{
-            right: removable ? (showPicker ? 52 : 28) : showPicker ? 28 : 4,
+            right: copyRight,
           }}
           className="field-button is-copy"
         >

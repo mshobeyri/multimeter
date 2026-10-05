@@ -32,12 +32,17 @@ export function fieldTrailingLayout(options: {
 }): { paddingRight: number; typeRight: number; typeText: string } {
   const typeText = options.typeLabel ? `(${options.typeLabel})` : "";
   const buttonCount = Math.max(0, options.buttonCount ?? 0);
-  const buttonPad = buttonCount > 0 ? 4 + buttonCount * 24 : 8;
-  const typePad = typeText ? Math.ceil(typeText.length * 6.5) + 8 : 0;
+  const buttonRight = 4 + buttonCount * 32;
+  const typeWidth = typeText ? Math.ceil(typeText.length * 4.5) : 0;
+  const typeRight = buttonRight;
   return {
     typeText,
-    paddingRight: buttonPad + typePad,
-    typeRight: 4 + buttonCount * 24,
+    paddingRight: typeText
+      ? typeRight + typeWidth + 4
+      : buttonCount > 0
+        ? buttonRight
+        : 8,
+    typeRight,
   };
 }
 
