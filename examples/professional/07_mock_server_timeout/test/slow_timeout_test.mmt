@@ -11,5 +11,5 @@ steps:
   - call: slow_request
     id: timeout_result
     expect:
-      status: 200
+      status: -1
     report: all

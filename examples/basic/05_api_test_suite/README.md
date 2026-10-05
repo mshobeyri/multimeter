@@ -1,6 +1,6 @@
-# API example `expect` / `require` in a suite
+# API example `expect` in a suite
 
-This example shows a `type: api` file with per-example `expect` / `require`, listed in a suite.
+This example shows a `type: api` file with per-example `expect`, listed in a suite.
 
 ```bash
 npx testlight run suite.mmt
