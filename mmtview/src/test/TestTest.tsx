@@ -413,14 +413,6 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                     preparingLabel="Starting…"
                     stopLabel="Stop test"
                     runContextMenuItems={[runInCoreMenuItem(() => {
-                        if (runState === 'pending' || runState === 'running') {
-                            return;
-                        }
-                        flushSync(() => {
-                            setStepReports([]);
-                            setOutputs({});
-                            setRunState('running');
-                        });
                         postRunCurrentDocument({ reportLifecycle: true });
                     })]}
                 />
