@@ -197,16 +197,18 @@ function findApiExampleNameDeprecatedIssues(content: string, yamlDoc: any): Comp
     }
 
     const lineStart = content.lastIndexOf('\n', Math.max(0, startOffset - 1)) + 1;
-    const indent = content.slice(lineStart, startOffset);
+    const linePrefix = content.slice(lineStart, startOffset);
+    const sequencePrefix = /^(\s*)-\s+$/.exec(linePrefix);
+    const indent = sequencePrefix ? `${sequencePrefix[1]}  ` : linePrefix;
     let replacement: string;
     if (hasId && hasTitle) {
       replacement = '';
     } else if (hasId && !hasTitle) {
-      replacement = `${indent}title: ${nameValue}\n`;
+      replacement = `title: ${nameValue}\n`;
     } else if (!hasId && hasTitle) {
-      replacement = `${indent}id: ${nameValue}\n`;
+      replacement = `id: ${nameValue}\n`;
     } else {
-      replacement = `${indent}id: ${nameValue}\n${indent}title: ${nameValue}\n`;
+      replacement = `id: ${nameValue}\n${indent}title: ${nameValue}\n`;
     }
 
     const line = offsetToLineNumber(content, startOffset);

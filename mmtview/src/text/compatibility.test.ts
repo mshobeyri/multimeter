@@ -210,6 +210,47 @@ describe('compatibility deprecations', () => {
     expect(updated).not.toContain('name: legacy');
   });
 
+  it('preserves the example list marker when expanding name on its first field', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - name: legacy',
+      '    outputs:',
+      '      status: 200',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const issue = findCompatibilityIssueAtPosition(content, doc, 'api', 4, 5);
+    expect(issue).not.toBeNull();
+
+    const expanded = applyCompatibilityFix(content, issue!.applyFix, issue!.line);
+    expect(expanded).toBe([
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - id: legacy',
+      '    title: legacy',
+      '    outputs:',
+      '      status: 200',
+    ].join('\n'));
+    expect(parseDocument(expanded!).errors).toHaveLength(0);
+
+    const expandedDoc = parseDocument(expanded!);
+    const outputsIssue = findCompatibilityIssueAtPosition(expanded!, expandedDoc, 'api', 6, 6);
+    expect(outputsIssue).not.toBeNull();
+    const migrated = applyCompatibilityFix(expanded!, outputsIssue!.applyFix, outputsIssue!.line);
+    expect(migrated).toBe([
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - id: legacy',
+      '    title: legacy',
+      '    expect:',
+      '      status: 200',
+    ].join('\n'));
+    expect(parseDocument(migrated!).errors).toHaveLength(0);
+  });
+
   it('click-fix fills only the missing id or title when the other is present', () => {
     const withId = [
       'type: api',
