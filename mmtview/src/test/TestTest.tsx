@@ -30,11 +30,9 @@ interface TestTestProps {
     testData: TestData;
     /** YAML sent to the runner; avoids re-serializing large tests on every Run click. */
     runYaml: string;
-    onInputsModificationChange?: (currentInputs: JSONRecord, dirtyKeys: Set<string>) => void;
-    onInputsReset?: (reset: () => void) => void;
 }
 
-const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, onInputsModificationChange }) => {
+const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
     const [runState, setRunState] = useState<StepStatus>('default');
@@ -106,7 +104,6 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
         const wasClean = dirtyKeysRef.current.size === 0;
         dirtyKeysRef.current = nextDirty;
         setDirtyKeys(new Set(nextDirty));
-        // Runtime input edits don't dirty the file; pin the preview tab instead.
         if (wasClean && nextDirty.size > 0) {
             keepEditor();
         }
@@ -120,27 +117,6 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
         currentInputsRef.current = next;
         setCurrentInputs(next);
     }, []);
-
-    const resetInputsFromYaml = useCallback(() => {
-        clearDirtyKeys();
-        const cleanup = loadEnvVariables((envVars) => {
-            cleanup();
-            const resolved = resolveInputDefaults(
-                yamlInputsRef.current,
-                envVarsToParameters(envVars),
-            );
-            resolvedBaselineRef.current = resolved;
-            applyInputs(resolved);
-        });
-    }, [applyInputs, clearDirtyKeys]);
-
-    useEffect(() => {
-        onInputsReset?.(resetInputsFromYaml);
-    }, [onInputsReset, resetInputsFromYaml]);
-
-    useEffect(() => {
-        onInputsModificationChange?.(currentInputs, dirtyKeys);
-    }, [currentInputs, dirtyKeys, onInputsModificationChange]);
 
     // YAML inputs changed (from applied panel content): rebuild, preserving dirty keys.
     useEffect(() => {

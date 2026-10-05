@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { TestData } from "mmt-core/TestData";
-import { JSONRecord } from "mmt-core/CommonData";
 import TestOverview from "./TestOverview";
 import TestFlow from "./TestFlow";
 import { yamlToTest, testToYaml } from "mmt-core/testParsePack";
@@ -10,8 +9,6 @@ import TestTest from "./TestTest";
 import { FileContext } from "../fileContext";
 import { usePanelPage } from "../usePanelPage";
 import { FlowchartView } from "../flowchart";
-import UnsavedChangesWarning from "../api/UnsavedChangesWarning";
-import { showYamlUiConflictDialog } from "../vsAPI";
 import TabBar from "../components/TabBar";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
 import PanelEditHeader from "../components/PanelEditHeader";
@@ -45,34 +42,14 @@ function pageTranslate(page: TestPage): string {
 
 const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = yamlToTest, onSaveAsMmt, readOnly, headerLeading }) => {
   // `appliedContent` is what the right-side test UI is built from.
-  // When the runner has temporary input edits, YAML changes are held until the
-  // user discards the UI changes or cancels — same as APIPanel.
+  // Runtime input edits stay ephemeral and do not mark the test YAML as modified.
   const [appliedContent, setAppliedContent] = useState(content);
-  const resetAfterApplyRef = useRef(false);
-  const pendingYamlRef = useRef<string | null>(null);
-  const dialogOpenRef = useRef(false);
-  const dismissedYamlRef = useRef<string | null>(null);
 
   const test = useMemo(() => parseTest(appliedContent), [appliedContent, parseTest]);
   const testRef = React.useRef<TestData>(test);
   const contentRef = React.useRef(content);
   const isReadOnly = readOnly || !!onSaveAsMmt;
 
-  const [tempInputs, setTempInputs] = useState<JSONRecord>({});
-  const [dirtyInputKeys, setDirtyInputKeys] = useState<Set<string>>(new Set());
-
-  const handleInputsModificationChange = useCallback(
-    (currentInputs: JSONRecord, dirtyKeys: Set<string>) => {
-      setTempInputs(currentInputs);
-      setDirtyInputKeys(dirtyKeys);
-    },
-    []
-  );
-
-  const resetRef = useRef<(() => void) | null>(null);
-  const handleInputsReset = useCallback((reset: () => void) => {
-    resetRef.current = reset;
-  }, []);
 
   useEffect(() => {
     testRef.current = test;
@@ -89,15 +66,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
     if (newYaml === contentRef.current && newYaml === appliedContent) {
       return;
     }
-    // UI-originated writes are intentional — apply immediately on both sides.
-    dismissedYamlRef.current = null;
-    pendingYamlRef.current = null;
     contentRef.current = newYaml;
     setAppliedContent(newYaml);
     setContent(newYaml, { force: true });
   }, [setContent, appliedContent]);
-
-  const hasUiOverrides = dirtyInputKeys.size > 0;
 
   const [page, setPage] = usePanelPage<TestPage>("test");
   const [tab, setTab] = useState<"overview" | "flow" | "code">("overview");
@@ -107,115 +79,11 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
     setTab("overview");
   }, [mmtFilePath]);
 
-  const isTestModified = page === "test" && hasUiOverrides;
-
-  const savedModifiedTest = useMemo<TestData>(() => {
-    if (!hasUiOverrides) {
-      return test;
-    }
-    return {
-      ...test,
-      inputs: { ...(test.inputs || {}), ...tempInputs },
-    } as TestData;
-  }, [hasUiOverrides, test, tempInputs]);
-
-  const modifiedYaml = useMemo(
-    () => (hasUiOverrides ? testToYaml(savedModifiedTest, appliedContent) : ""),
-    [hasUiOverrides, savedModifiedTest, appliedContent]
-  );
-
-  const applyYamlAndResetUi = useCallback((yaml: string) => {
-    resetAfterApplyRef.current = true;
-    dismissedYamlRef.current = null;
-    pendingYamlRef.current = null;
-    setAppliedContent(yaml);
-  }, []);
-
-  const promptConflict = useCallback(async () => {
-    if (dialogOpenRef.current) {
-      return;
-    }
-    dialogOpenRef.current = true;
-    try {
-      const choice = await showYamlUiConflictDialog();
-      const yaml = pendingYamlRef.current ?? contentRef.current;
-
-      if (choice === "discard-ui") {
-        applyYamlAndResetUi(yaml);
-        return;
-      }
-
-      // Keep UI (or dialog dismissed): leave both sides as they are.
-      dismissedYamlRef.current = yaml;
-      pendingYamlRef.current = null;
-    } finally {
-      dialogOpenRef.current = false;
-    }
-  }, [applyYamlAndResetUi]);
-
-  // Gate YAML → UI updates when the runner has temporary input edits.
   useEffect(() => {
-    if (content === appliedContent) {
-      dismissedYamlRef.current = null;
-      pendingYamlRef.current = null;
-      return;
-    }
-
-    if (!hasUiOverrides) {
-      dismissedYamlRef.current = null;
-      pendingYamlRef.current = null;
+    if (content !== appliedContent) {
       setAppliedContent(content);
-      return;
     }
-
-    if (dismissedYamlRef.current === content) {
-      return;
-    }
-
-    pendingYamlRef.current = content;
-    if (dialogOpenRef.current) {
-      return;
-    }
-
-    void promptConflict();
-  }, [content, appliedContent, hasUiOverrides, promptConflict]);
-
-  // After resolving a conflict by applying new YAML, clear temporary inputs.
-  useEffect(() => {
-    if (!resetAfterApplyRef.current) {
-      return;
-    }
-    resetAfterApplyRef.current = false;
-    resetRef.current?.();
-  }, [test]);
-
-  const handleWarningReset = useCallback(() => {
-    const stored = appliedContent;
-    dismissedYamlRef.current = null;
-    pendingYamlRef.current = null;
-    setTempInputs({});
-    setDirtyInputKeys(new Set());
-    setAppliedContent(stored);
-    setContent(stored, { force: true });
-    resetRef.current?.();
-  }, [appliedContent, setContent]);
-
-  // Save temporary UI into YAML — drop input overrides so later YAML
-  // edits apply to the UI instead of looking like unsaved changes again.
-  const handleWarningSave = useCallback(() => {
-    resetAfterApplyRef.current = true;
-    dismissedYamlRef.current = null;
-    pendingYamlRef.current = null;
-    setTempInputs({});
-    setDirtyInputKeys(new Set());
-    const newYaml = testToYaml(savedModifiedTest, appliedContent);
-    if (newYaml === contentRef.current && newYaml === appliedContent) {
-      resetAfterApplyRef.current = false;
-      resetRef.current?.();
-      return;
-    }
-    setTest(savedModifiedTest);
-  }, [appliedContent, savedModifiedTest, setTest]);
+  }, [content, appliedContent]);
 
   const importsMap = React.useMemo(() => {
     const raw = test?.import;
@@ -282,17 +150,11 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                             iconOnly
                             onClick={() => onSaveAsMmt(test)}
                           />
-                        ) : !isReadOnly && !isTestModified ? (
+                        ) : !isReadOnly ? (
                           <HeaderAction
                             icon="edit"
                             label="Edit Test"
                             onClick={() => setPage('edit')}
-                          />
-                        ) : null}
-                        {isTestModified ? (
-                          <UnsavedChangesWarning
-                            onSave={handleWarningSave}
-                            onReset={handleWarningReset}
                           />
                         ) : null}
                     </>
@@ -301,9 +163,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                 <div className="panel-page">
                   <TestTest
                     testData={test}
-                    runYaml={hasUiOverrides ? modifiedYaml : appliedContent}
-                    onInputsModificationChange={handleInputsModificationChange}
-                    onInputsReset={handleInputsReset}
+                    runYaml={appliedContent}
                   />
                 </div>
               </div>
