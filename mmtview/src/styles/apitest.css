@@ -241,6 +241,8 @@
 
 .apitest-tabs-tools.is-hidden,
 .apitest-tabs-tools-divider.is-hidden {
+  /* Collapse fully so the tab strip gets the whole row (no needless ≫ overflow). */
+  display: none;
   visibility: hidden;
   pointer-events: none;
 }
