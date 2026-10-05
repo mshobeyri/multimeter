@@ -2,6 +2,16 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.44.2-pre]
+
+Pre-release. VS Code extension `1.44.2`; Testlight CLI and MCP `1.44.2-pre` on `@pre`.
+
+### Tokens
+
+- Keep quotes around numeric and boolean inputs in XML attributes and other text formats; only JSON drops them
+- Show attribute values and numeric-looking strings such as `1.0` as plain text in XML and urlencoded bodies, and keep them strings
+- Extend the token resolution example with attributes, decimals, and numeric strings
+
 ## [1.44.1-pre]
 
 Pre-release. VS Code extension `1.44.1`; Testlight CLI and MCP `1.44.1-pre` on `@pre`.
