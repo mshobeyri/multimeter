@@ -1,6 +1,7 @@
 import {
   collectTokenHighlightMatches,
   INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
+  CURLY_TOKEN_HIGHLIGHT_RE,
   isHighlightableToken,
 } from './tokenHighlightPatterns';
 
@@ -105,5 +106,14 @@ describe('tokenHighlightPatterns', () => {
     expect(isHighlightableToken('e:anything')).toBe(true);
     expect(isHighlightableToken('d:something')).toBe(false);
     expect(isHighlightableToken('q:asss')).toBe(false);
+  });
+});
+
+describe('curly token highlight', () => {
+  it('matches {{e:name}} for all prefixes', () => {
+    for (const t of ['e:feature_enabled', 'i:a', 'r:uuid', 'c:city']) {
+      CURLY_TOKEN_HIGHLIGHT_RE.lastIndex = 0;
+      expect(CURLY_TOKEN_HIGHLIGHT_RE.exec(`x: "{{${t}}}"`)?.[1]).toBe(t);
+    }
   });
 });

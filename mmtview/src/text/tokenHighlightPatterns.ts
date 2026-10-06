@@ -46,6 +46,12 @@ export const INLINE_ANGLE_TOKEN_HIGHLIGHT_RE = new RegExp(
   'g'
 );
 
+/** Curly form `{{e:name}}` — same tokens, same highlight. */
+export const CURLY_TOKEN_HIGHLIGHT_RE = new RegExp(
+  `\\{\\{\\s*(${DYNAMIC_KEY_HIGHLIGHT_RE})\\s*\\}\\}`,
+  'g'
+);
+
 /**
  * Bare tokens highlight only as a whole YAML value:
  * `key: i:name` or `- r:uuid`, through the end of the line.
@@ -104,6 +110,7 @@ export function collectTokenHighlightMatches(text: string): string[] {
   const found: string[] = [];
   const patterns = [
     INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
+    CURLY_TOKEN_HIGHLIGHT_RE,
     PLAIN_TOKEN_HIGHLIGHT_RE,
     OUTPUT_KEY_TOKEN_HIGHLIGHT_RE,
   ];
