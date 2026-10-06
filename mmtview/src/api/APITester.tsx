@@ -95,6 +95,7 @@ type EditorTab =
   | "inputs";
 
 type ResponseTab = "body" | "headers" | "cookies" | "outputs";
+type RequestResponseLayout = "stacked" | "side-by-side";
 
 function countNamedEntries(record?: Record<string, unknown> | null): number {
   if (!record) {
@@ -154,6 +155,8 @@ const RESPONSE_TAB_OPTIONS: Array<{ key: ResponseTab; label: string }> = [
 ];
 
 const REQUEST_PANE_RATIO_KEY = "apitest-request-pane-ratio";
+const REQUEST_RESPONSE_LAYOUT_KEY = "apitest-request-response-layout";
+const SIDE_BY_SIDE_PANE_RATIO_KEY = "apitest-side-by-side-pane-ratio";
 const RESPONSE_TAB_KEY = "apitest-response-tab";
 const BODY_TOKEN_MODE_KEY = "apitest-body-token-mode";
 const DEFAULT_REQUEST_PANE_RATIO = 0.5;
@@ -491,13 +494,26 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   });
 
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const requestPaneRatioRef = useRef(DEFAULT_REQUEST_PANE_RATIO);
+  const requestPaneRatiosRef = useRef({
+    stacked: DEFAULT_REQUEST_PANE_RATIO,
+    sideBySide: DEFAULT_REQUEST_PANE_RATIO,
+  });
   const [requestPaneSize, setRequestPaneSize] = useState(200);
+  const [requestResponseLayout, setRequestResponseLayout] =
+    useState<RequestResponseLayout>(() => {
+      return localStorage.getItem(REQUEST_RESPONSE_LAYOUT_KEY) === "side-by-side"
+        ? "side-by-side"
+        : "stacked";
+    });
 
   useEffect(() => {
-    const saved = Number(localStorage.getItem(REQUEST_PANE_RATIO_KEY));
-    if (Number.isFinite(saved) && saved >= MIN_REQUEST_PANE_RATIO && saved <= MAX_REQUEST_PANE_RATIO) {
-      requestPaneRatioRef.current = saved;
+    const stackedRatio = Number(localStorage.getItem(REQUEST_PANE_RATIO_KEY));
+    if (Number.isFinite(stackedRatio) && stackedRatio >= MIN_REQUEST_PANE_RATIO && stackedRatio <= MAX_REQUEST_PANE_RATIO) {
+      requestPaneRatiosRef.current.stacked = stackedRatio;
+    }
+    const sideBySideRatio = Number(localStorage.getItem(SIDE_BY_SIDE_PANE_RATIO_KEY));
+    if (Number.isFinite(sideBySideRatio) && sideBySideRatio >= MIN_REQUEST_PANE_RATIO && sideBySideRatio <= MAX_REQUEST_PANE_RATIO) {
+      requestPaneRatiosRef.current.sideBySide = sideBySideRatio;
     }
   }, []);
 
@@ -507,17 +523,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       return;
     }
     const syncFromRatio = () => {
-      const height = el.clientHeight;
-      if (height <= 0) {
+      const isStacked = requestResponseLayout === "stacked";
+      const length = isStacked ? el.clientHeight : el.clientWidth;
+      if (length <= 0) {
         return;
       }
-      setRequestPaneSize(Math.floor(height * requestPaneRatioRef.current));
+      const ratio = isStacked
+        ? requestPaneRatiosRef.current.stacked
+        : requestPaneRatiosRef.current.sideBySide;
+      setRequestPaneSize(Math.floor(length * ratio));
     };
     syncFromRatio();
     const observer = new ResizeObserver(syncFromRatio);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [requestResponseLayout]);
 
   const [editTitle, setEditTitle] = useState(false);
   const [editTags, setEditTags] = useState(false);
@@ -537,16 +557,30 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   };
 
   const handleRequestPaneResize = (size: number) => {
-    const height = contentRef.current?.clientHeight ?? 0;
-    if (height > 0) {
+    const isStacked = requestResponseLayout === "stacked";
+    const length = isStacked
+      ? contentRef.current?.clientHeight ?? 0
+      : contentRef.current?.clientWidth ?? 0;
+    if (length > 0) {
       const ratio = Math.min(
         MAX_REQUEST_PANE_RATIO,
-        Math.max(MIN_REQUEST_PANE_RATIO, size / height),
+        Math.max(MIN_REQUEST_PANE_RATIO, size / length),
       );
-      requestPaneRatioRef.current = ratio;
-      localStorage.setItem(REQUEST_PANE_RATIO_KEY, String(ratio));
+      if (isStacked) {
+        requestPaneRatiosRef.current.stacked = ratio;
+        localStorage.setItem(REQUEST_PANE_RATIO_KEY, String(ratio));
+      } else {
+        requestPaneRatiosRef.current.sideBySide = ratio;
+        localStorage.setItem(SIDE_BY_SIDE_PANE_RATIO_KEY, String(ratio));
+      }
     }
     setRequestPaneSize(size);
+  };
+
+  const toggleRequestResponseLayout = () => {
+    const nextLayout = requestResponseLayout === "stacked" ? "side-by-side" : "stacked";
+    setRequestResponseLayout(nextLayout);
+    localStorage.setItem(REQUEST_RESPONSE_LAYOUT_KEY, nextLayout);
   };
 
   useEffect(() => {
@@ -1056,7 +1090,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   }, [outputKeys.length, responseData?.cookies, responseData?.headers, setenvKeys.length]);
 
   return (
-    <div className={`apitest-root${selector ? " apitest-root--source" : ""}`}>
+    <div className={`apitest-root${selector ? " apitest-root--source" : ""}${
+      requestResponseLayout === "side-by-side" ? " apitest-root--side-by-side" : ""
+    }`}>
       {/* ── Fixed header: URL bar + Send ── */}
       <div className="apitest-fixed-header">
       <div className="apitest-url-row" style={methodChromeVars as React.CSSProperties}>
@@ -1100,7 +1136,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       {/* ── Request | Response split ── */}
       <div className="apitest-content" ref={contentRef}>
       <SplitPane
-        split="horizontal"
+        split={requestResponseLayout === "stacked" ? "horizontal" : "vertical"}
         size={requestPaneSize}
         onChange={handleRequestPaneResize}
         minSize={100}
@@ -1652,6 +1688,27 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               aria-label="Show History Panel"
             >
               <span className="codicon codicon-history" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="button-icon no-shrink section-edit-toggle"
+              onClick={toggleRequestResponseLayout}
+              title={requestResponseLayout === "stacked"
+                ? "Switch to side-by-side request and response"
+                : "Switch to stacked request and response"}
+              aria-label={requestResponseLayout === "stacked"
+                ? "Switch to side-by-side request and response"
+                : "Switch to stacked request and response"}
+              aria-pressed={requestResponseLayout === "side-by-side"}
+            >
+              <span
+                className={`codicon ${
+                  requestResponseLayout === "stacked"
+                    ? "codicon-split-horizontal"
+                    : "codicon-split-vertical"
+                }`}
+                aria-hidden
+              />
             </button>
           </div>
         </div>

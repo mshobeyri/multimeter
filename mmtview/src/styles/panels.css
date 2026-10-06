@@ -777,6 +777,10 @@ select.method-select:focus-visible {
   overflow: auto;
 }
 
+.ui-pane-inner:has(.apitest-root--side-by-side) {
+  max-width: 2400px;
+}
+
 .yaml-host {
   height: 100%;
   min-height: 0;
