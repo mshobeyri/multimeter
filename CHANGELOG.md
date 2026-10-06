@@ -2,6 +2,20 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.44.3-pre]
+
+Pre-release. VS Code extension `1.44.3`; Testlight CLI and MCP `1.44.3-pre` on `@pre`.
+
+### API tester
+
+- Rework the response header controls
+- Improve switching between body formats
+
+### YAML editor
+
+- Show XML and urlencoded values without quotes in the editor
+- Highlight `{{ }}` curly tokens
+
 ## [1.44.2-pre]
 
 Pre-release. VS Code extension `1.44.2`; Testlight CLI and MCP `1.44.2-pre` on `@pre`.
