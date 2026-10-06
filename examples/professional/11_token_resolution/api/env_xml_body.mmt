@@ -32,14 +32,14 @@ body:
     missing_region: e:region
     literal_token: "e:account_age"
     literal_omit: "omit"
-    angle_whole: <<e:account_age>>
-    quoted_angle: "<<e:account_age>>"
-    angle_prefix: "asda<<e:account_age>>"
-    angle_suffix: "<<e:account_age>>asas"
-    angle_both: "asda<<e:feature_enabled>>asas"
-    quoted_curly: "{{e:account_age}}"
-    curly_whole: {{e:plan_label}}
-    text_slice: <<e:service_url[0:8]>>
+    angle_whole: e:account_age
+    quoted_angle: e:account_age
+    angle_prefix: asda<<e:account_age>>
+    angle_suffix: <<e:account_age>>asas
+    angle_both: asda<<e:feature_enabled>>asas
+    quoted_curly: e:account_age
+    curly_whole: e:plan_label
+    text_slice: e:service_url[0:8]
 examples:
   - id: defaults
     title: Check outputs
@@ -61,4 +61,5 @@ examples:
       quoted_curly: =S <<e:account_age>>
       curly_whole: e:plan_label
       text_slice: e:service_url[0:8]
-
+ 
+      

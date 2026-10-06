@@ -377,9 +377,9 @@ function isNonCanonicalNumberText(text: string): boolean {
  * (`null` is an empty field, strings are not wrapped in quotes).
  */
 function editorFormValue(value: unknown): string {
-  if (typeof value === 'string' && isNonCanonicalNumberText(value)) {
-    // `1.0` cannot be mistaken for a number that round-trips, so no quotes.
-    return value;
+  if (typeof value === 'string' && value !== '') {
+    // Form fields are text on the wire. Quotes are a JSON-only spelling.
+    return isLiteralTokenValue(value) ? unwrapLiteralToken(value) : value;
   }
   if (value === null || typeof value === 'number' || typeof value === 'boolean' ||
       typeof value === 'string') {
@@ -626,12 +626,9 @@ function xmlEditorLeaf(value: JSONValue, expanded: boolean): string {
     return yamlValueToInputBox(value);
   }
   if (isLiteralTokenValue(value)) {
-    return yamlValueToInputBox(value);
+    return unwrapLiteralToken(value);
   }
-  const displayed = yamlValueToInputBox(value);
-  if (displayed !== value && displayed.startsWith('"') && displayed.endsWith('"')) {
-    return displayed;
-  }
+  // Element text is always a string on the wire. Quotes are a JSON-only spelling.
   return peerStringToDisplay(value);
 }
 
