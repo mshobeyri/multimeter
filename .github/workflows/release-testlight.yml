@@ -21,7 +21,7 @@ jobs:
       npm_tag: ${{ steps.channel.outputs.npm_tag }}
       float_tag: ${{ steps.channel.outputs.float_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Detect channel and verify versions
         id: channel
         shell: bash
@@ -59,9 +59,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -136,7 +136,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: testlight-${{ matrix.platform }}
           path: |
@@ -147,10 +147,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [channel, build]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -206,7 +206,7 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Upload combined checksums
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: checksums-sha256
           path: release-assets/checksums-sha256.txt
@@ -215,7 +215,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [channel, release]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -239,9 +239,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [channel, release]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
@@ -311,9 +311,9 @@ jobs:
     needs: [channel, release]
     if: needs.channel.outputs.prerelease != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download checksums
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: checksums-sha256
           path: checksums
@@ -330,7 +330,7 @@ jobs:
     needs: [channel, release]
     if: needs.channel.outputs.prerelease != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Publish mshobeyri/testlight-action
         env:
           VERSION: ${{ needs.channel.outputs.version }}
