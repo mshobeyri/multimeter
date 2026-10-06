@@ -36,6 +36,9 @@ type KSVEditorBaseProps = {
   /** Non-editable but visually normal (unlike disabled). */
   readOnly?: boolean;
   deactivated?: boolean;
+  /** Fired when a row is clicked or focused. */
+  onRowSelect?: (key: string) => void;
+  selectedKey?: string;
   keysDisabled?: boolean;
   deletable?: boolean;
   expandable?: boolean;
@@ -100,6 +103,8 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   disabled,
   readOnly = false,
   deactivated = false,
+  onRowSelect,
+  selectedKey,
   keysDisabled = false,
   deletable = true,
   expandable = true,
@@ -230,7 +235,12 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
           {safeList(entries)
             .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
             .map(([k, v], i) => (
-              <tr key={i}>
+              <tr
+                key={i}
+                className={onRowSelect && k !== "" && k === selectedKey ? "is-selected" : undefined}
+                onClick={onRowSelect && k !== "" ? () => onRowSelect(k) : undefined}
+                onFocus={onRowSelect && k !== "" ? () => onRowSelect(k) : undefined}
+              >
                 <td>
                   <StableTextInput
                     value={k}

@@ -3,12 +3,14 @@ import { ResponseDisplayState } from "../api/responseBodyDisplay";
 import BinaryImagePreview from "./BinaryImagePreview";
 import BodyView from "./BodyView";
 import HtmlPreview from "./HtmlPreview";
+import type { BodyViewToolbarState } from "./BodyView";
 
 type ResponseBodyContentProps = {
   display: ResponseDisplayState;
   refreshKey: number;
   requestUrl?: string;
   onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
+  onToolbarChange?: (toolbar: BodyViewToolbarState | null) => void;
 };
 
 const ResponseBodyContent: React.FC<ResponseBodyContentProps> = ({
@@ -16,6 +18,7 @@ const ResponseBodyContent: React.FC<ResponseBodyContentProps> = ({
   refreshKey,
   requestUrl,
   onInspectPosition,
+  onToolbarChange,
 }) => {
   if (display.effectiveView === "preview" && display.previewKind === "html") {
     return (
@@ -36,6 +39,7 @@ const ResponseBodyContent: React.FC<ResponseBodyContentProps> = ({
       format={display.resolvedType}
       mode="live"
       onInspectPosition={onInspectPosition}
+      onToolbarChange={onToolbarChange}
       refreshKey={refreshKey}
     />
   );

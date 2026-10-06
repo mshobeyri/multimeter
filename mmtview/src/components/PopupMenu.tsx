@@ -172,6 +172,7 @@ type KebabMenuProps = {
   className?: string;
   menuClassName?: string;
   itemClassName?: string;
+  icon?: string;
 };
 
 export const KebabMenu: React.FC<KebabMenuProps> = ({
@@ -179,6 +180,7 @@ export const KebabMenu: React.FC<KebabMenuProps> = ({
   className,
   menuClassName = "popup-menu",
   itemClassName,
+  icon = "codicon-kebab-vertical",
 }) => {
   const menu = usePopupMenu({ width: 160 });
   const trigger = (
@@ -204,7 +206,7 @@ export const KebabMenu: React.FC<KebabMenuProps> = ({
       aria-expanded={menu.open}
       title="More actions"
     >
-      <span className="codicon codicon-kebab-vertical" />
+      <span className={`codicon ${icon}`} />
     </button>
   );
   const popup = menu.open && menu.position ? (

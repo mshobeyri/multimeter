@@ -432,6 +432,16 @@ span.vertical.disabled:active {
   border-radius: var(--mmt-control-radius);
 }
 
+.bodyview-toolbar {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+}
+
 /* Fullscreen mode for request/response body editors */
 .bodyview.bodyview-fullscreen {
   position: fixed;
@@ -446,19 +456,6 @@ span.vertical.disabled:active {
   border-radius: 0;
 }
 
-/* Right-side glassy toolbar inside body editors */
-.bodyview-toolbar {
-  position: absolute;
-  right: 14px;
-  bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  background-color: transparent;
-}
-
 .bodyview-btn {
   border: none;
   border-radius: 4px;
@@ -467,33 +464,6 @@ span.vertical.disabled:active {
   cursor: pointer;
   color: var(--vscode-foreground, #d4d4d4);
   background-color: transparent;
-}
-
-.bodyview-btn-icon {
-  border: none;
-  border-radius: 4px;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background-color: transparent;
-  color: var(--vscode-foreground, #d4d4d4);
-}
-
-.bodyview-btn-icon .codicon {
-  font-size: 16px;
-}
-
-.bodyview-error-indicator {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
 }
 
 /* Read-only highlighted body (history / report / step details) */

@@ -239,6 +239,38 @@
   max-width: 55%;
 }
 
+.apitest-response-tabs-row > .apitest-tabs-tools {
+  width: max-content;
+  flex: 0 1 auto;
+}
+
+.apitest-response-tabs-row .apitest-body-toolbar {
+  width: 100%;
+  min-width: 0;
+}
+
+.apitest-response-tabs-row .apitest-body-toolbar-main {
+  width: 100%;
+  min-width: 0;
+  gap: 6px;
+}
+
+.apitest-response-tabs-row .apitest-body-format-bar-group {
+  flex-wrap: nowrap;
+}
+
+.apitest-body-toolbar.is-compact .apitest-body-toolbar-main {
+  gap: 6px;
+}
+
+.apitest-body-toolbar.is-compact .apitest-body-format-raw-select {
+  min-width: 0;
+}
+
+.apitest-body-toolbar.is-compact .bodyview-header-kebab {
+  margin-left: auto;
+}
+
 .apitest-tabs-tools.is-hidden,
 .apitest-tabs-tools-divider.is-hidden {
   /* Collapse fully so the tab strip gets the whole row (no needless ≫ overflow). */
@@ -384,6 +416,75 @@
   gap: 6px 12px;
   min-width: 0;
   flex: 1 1 auto;
+}
+
+.bodyview-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.bodyview-header-error {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  height: 16px;
+  color: var(--vscode-errorForeground, #f48771);
+  flex: 0 0 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: width 140ms ease, flex-basis 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+
+.bodyview-header-error.is-invalid {
+  width: 16px;
+  flex-basis: 16px;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bodyview-header-error .codicon {
+  font-size: 13px;
+}
+
+.bodyview-header-kebab {
+  display: inline-flex;
+  align-items: center;
+}
+
+.bodyview-header-kebab > .action-button {
+  padding: 2px 4px;
+  min-width: 20px;
+  background: transparent;
+}
+
+.bodyview-header-menu {
+  min-width: 150px;
+  padding: 4px;
+}
+
+.bodyview-header-menu .action-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  text-align: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bodyview-header-error {
+    transition: none;
+  }
+}
+
+.apitest-graphql-operation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .apitest-body-toolbar-main .apitest-body-format-bar {
@@ -1526,4 +1627,8 @@
 .monaco-editor .suggest-widget .details .header .type {
   font-size: 11px !important;
   line-height: 1.2 !important;
+}
+
+.field-table tr.is-selected td input {
+  background: var(--vscode-list-inactiveSelectionBackground, transparent);
 }

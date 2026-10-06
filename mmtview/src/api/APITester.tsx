@@ -8,6 +8,8 @@ import { resolveRequestFormat } from "mmt-core/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
 import BodyView, { type BodyViewCursor } from "../components/BodyView";
+import type { BodyViewToolbarState } from "../components/BodyView";
+import BodyViewToolbarControls, { BodyViewValidationIndicator } from "../components/BodyViewToolbarControls";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
@@ -203,6 +205,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     setenvValues,
     apiTestResults,
     handleAddOutputVariable,
+    handleAddOutputExpression,
     prepareRequestData,
     handleSend,
     handleRunInCore,
@@ -218,6 +221,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     () => ({ inputs: currentInputs, env: envValues }),
     [currentInputs, envValues],
   );
+  const [requestBodyToolbar, setRequestBodyToolbar] = useState<BodyViewToolbarState | null>(null);
+  const [responseBodyToolbar, setResponseBodyToolbar] = useState<BodyViewToolbarState | null>(null);
+  const [selectedResponseHeader, setSelectedResponseHeader] = useState<string>("");
+  const [selectedResponseCookie, setSelectedResponseCookie] = useState<string>("");
+  const [graphqlBodyToolbar, setGraphqlBodyToolbar] = useState<BodyViewToolbarState | null>(null);
 
   const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
     const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
@@ -582,6 +590,32 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const shouldShowResponse = () => responseTab === "body";
   const shouldShowResponseHeaders = () => responseTab === "headers";
   const shouldShowResponseCookies = () => responseTab === "cookies";
+
+  const selectedHeaderKey = responseData?.headers && selectedResponseHeader in responseData.headers
+    ? selectedResponseHeader : "";
+  const selectedCookieKey = responseData?.cookies && selectedResponseCookie in responseData.cookies
+    ? selectedResponseCookie : "";
+  const canExtractOutput = Boolean(responseData) && (
+    responseTab === "headers" ? selectedHeaderKey !== ""
+      : responseTab === "cookies" ? selectedCookieKey !== ""
+        : responseTab === "body" ? Boolean(responseBodyToolbar?.canInspect)
+          : false);
+  const extractTitle = responseTab === "headers"
+    ? "Select a header to extract it as an output"
+    : responseTab === "cookies"
+      ? "Select a cookie to extract it as an output"
+      : responseTab === "body"
+        ? "Place the cursor on a response value to extract it"
+        : "Extract output";
+  const extractOutput = () => {
+    if (responseTab === "headers" && selectedHeaderKey) {
+      handleAddOutputExpression(`headers.${selectedHeaderKey}`, selectedHeaderKey);
+    } else if (responseTab === "cookies" && selectedCookieKey) {
+      handleAddOutputExpression(`cookies.${selectedCookieKey}`, selectedCookieKey);
+    } else if (responseTab === "body") {
+      responseBodyToolbar?.inspect();
+    }
+  };
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowSettings = () => editorTab === "settings";
   const shouldShowAuth = () => editorTab === "auth";
@@ -1091,6 +1125,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           aria-hidden={!shouldShowBody()}
         >
             <div className="apitest-body-toolbar-main">
+              <BodyViewValidationIndicator toolbar={requestBodyToolbar} />
               <BodyFormatBar
                 value={currentRequestFormat}
                 storageMode={bodyEditYamlEncoded
@@ -1109,6 +1144,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                   }
                 }}
               />
+              <BodyViewToolbarControls toolbar={requestBodyToolbar} />
               {resolvedRequestFormat !== "none"
                 && resolvedRequestFormat !== "binary"
                 && resolvedRequestFormat !== "multipart" ? (
@@ -1299,6 +1335,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     onChange={handleBodyEditChange}
                     initialCursor={bodyEditCursor}
                     valueContext={bodyValueContext}
+                    onToolbarChange={setRequestBodyToolbar}
                   />
                 ) : (
                   <BodyView
@@ -1311,6 +1348,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     tokenTemplate={tokensTextFromYaml()}
                     tokenSource={api.body}
                     resolvedBody={requestData?.body ?? api.body}
+                    onToolbarChange={setRequestBodyToolbar}
                   />
                 )}              </div>
             )}
@@ -1319,12 +1357,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
         {shouldShowGraphql() && (
           <>
-            <div className="label">Operation</div>
+            <div className="label apitest-graphql-operation-header">
+              Operation
+              <BodyViewToolbarControls toolbar={graphqlBodyToolbar} />
+            </div>
             <div className="apitest-body-wrapper">
               <BodyView
                 value={peerGraphqlOperation}
                 format="graphql"
                 mode="live"
+                onToolbarChange={setGraphqlBodyToolbar}
                 onChange={val => {
                   onUpdateApi?.({
                     graphql: {
@@ -1557,6 +1599,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 view={responseDisplay.effectiveView}
                 prettyAvailable={responseDisplay.prettyAvailable}
                 previewAvailable={responseDisplay.previewAvailable}
+                bodyToolbar={responseBodyToolbar}
                 onTypeChange={type => setBodyFormat("response", type)}
                 onViewChange={setResponseViewMode}
               />
@@ -1579,28 +1622,38 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               onClick={() => showHistoryPanel({ openLatest: true })}
             />
           )}
-          {responseData ? (
+          <div className="bodyview-header-actions">
+            <button
+              type="button"
+              className="button-icon no-shrink section-edit-toggle"
+              disabled={!canExtractOutput}
+              onMouseDown={event => event.preventDefault()}
+              onClick={extractOutput}
+              title={extractTitle}
+              aria-label="Extract output"
+            >
+              <span className="codicon codicon-sign-out" aria-hidden />
+            </button>
             <button
               type="button"
               className="button-icon no-shrink section-edit-toggle"
               onClick={clearResponse}
+              disabled={!responseData}
               title="Clear response"
               aria-label="Clear response"
             >
               <span className="codicon codicon-eraser" aria-hidden />
             </button>
-          ) : null}
-          <button
-            type="button"
-            className="button-icon no-shrink section-edit-toggle"
-            onClick={() => {
-              showHistoryPanel();
-            }}
-            title="Show History Panel"
-            aria-label="Show History Panel"
-          >
-            <span className="codicon codicon-history" aria-hidden />
-          </button>
+            <button
+              type="button"
+              className="button-icon no-shrink section-edit-toggle"
+              onClick={() => showHistoryPanel()}
+              title="Show History Panel"
+              aria-label="Show History Panel"
+            >
+              <span className="codicon codicon-history" aria-hidden />
+            </button>
+          </div>
         </div>
       </div>
       <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={100}>
@@ -1682,6 +1735,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               value={responseData?.headers || {}}
               onChange={() => { }}
               deactivated={true}
+              onRowSelect={setSelectedResponseHeader}
+              selectedKey={selectedResponseHeader}
             />
           ) : (
             <div className="apitest-empty">No response headers.</div>
@@ -1695,6 +1750,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               value={responseData?.cookies || {}}
               onChange={() => { }}
               deactivated={true}
+              onRowSelect={setSelectedResponseCookie}
+              selectedKey={selectedResponseCookie}
             />
           ) : (
             <div className="apitest-empty">No response cookies.</div>
@@ -1709,6 +1766,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 refreshKey={responseRevision}
                 requestUrl={requestData?.url}
                 onInspectPosition={handleAddOutputVariable}
+                onToolbarChange={setResponseBodyToolbar}
               />
             </div>
           </div>

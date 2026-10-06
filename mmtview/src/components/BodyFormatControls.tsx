@@ -230,6 +230,7 @@ export function BodyFormatSelect<T extends string>({
           const selected = entry.id && selectedEntryId
             ? entry.id === selectedEntryId
             : entry.value === value;
+          const optionLabel = entry.label ?? entry.value;
           return (
             <button
               key={entry.id ?? entry.value}
@@ -247,7 +248,7 @@ export function BodyFormatSelect<T extends string>({
                 onChange(entry.value, entry);
               }}
             >
-              {entry.label ?? entry.value}
+              {optionLabel}
             </button>
           );
         });

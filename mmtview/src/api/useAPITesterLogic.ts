@@ -417,6 +417,17 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     void applyResolvedSetenvVariables(api, resolvedSetenv);
   }, [responseData?.body, responseData?.headers, responseData?.cookies, responseData?.status, responseData?.duration, api.outputs, api.setenv, api]);
 
+  const addOutputEntry = useCallback((suggestedKey: string, expr: string) => {
+    const existing = { ...(apiRef.current.outputs || {}) };
+    let key = suggestedKey;
+    let counter = 1;
+    while (Object.prototype.hasOwnProperty.call(existing, key)) {
+      key = `${suggestedKey}_${counter++}`;
+    }
+    existing[key] = expr;
+    onUpdateApi?.({ outputs: existing });
+  }, [onUpdateApi]);
+
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
 
@@ -448,16 +459,12 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       }
     }
 
-    const existing = { ...(apiRef.current.outputs || {}) };
-    let key = suggestedKey;
-    let counter = 1;
-    while (Object.prototype.hasOwnProperty.call(existing, key)) {
-      key = `${suggestedKey}_${counter++}`;
-    }
+    addOutputEntry(suggestedKey, expr);
+  }, [addOutputEntry, requestData?.format, requestData?.headers, responseData]);
 
-    existing[key] = expr;
-    onUpdateApi?.({ outputs: existing });
-  }, [onUpdateApi, requestData?.format, requestData?.headers, responseData]);
+  const handleAddOutputExpression = useCallback((expr: string, suggestedKey: string) => {
+    addOutputEntry(suggestedKey, expr);
+  }, [addOutputEntry]);
 
   // HTTP/GraphQL/gRPC Send / Run in Core from the right panel: always send the
   // UI request as rawFile. Glyphs omit rawFile and use the editor file only.
@@ -698,6 +705,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     handleUrlChange,
     handleQueryChange,
     handleAddOutputVariable,
+    handleAddOutputExpression,
     prepareRequestData,
     handleSend,
     handleRunInCore,

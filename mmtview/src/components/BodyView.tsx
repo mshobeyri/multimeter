@@ -14,7 +14,6 @@ import { wrapTypedTokenAtCursor } from "mmt-core/apiBodyEdit";
 import { normalizeNewlines } from "mmt-core/textLines";
 import { shouldReplaceLocalEditorValue } from "../text/editorContentSync";
 import TextEditor, { MMT_JSON_LANGUAGE_ID } from "../text/TextEditor";
-import { useAccentChrome } from "../shared/useAccentChrome";
 import {
   cacheBodyLineNumbers,
   readCachedBodyLineNumbers,
@@ -69,6 +68,17 @@ export type BodyViewCursor = {
     column: number;
 };
 
+export type BodyViewToolbarState = {
+    isValid: boolean;
+    errorMessage: string | null;
+    canBeautify: boolean;
+    canApply: boolean;
+    canInspect: boolean;
+    beautify: () => void;
+    apply: () => void;
+    inspect: () => void;
+};
+
 export type BodyViewProps = {
     value: string;
     format: string;
@@ -96,6 +106,7 @@ export type BodyViewProps = {
     resolvedBody?: unknown;
     mode?: mode;
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
+    onToolbarChange?: (toolbar: BodyViewToolbarState | null) => void;
     refreshKey?: number;
     disabled?: boolean;
 };
@@ -113,6 +124,7 @@ const BodyView: React.FC<BodyViewProps> = ({
     resolvedBody,
     mode = "appliable",
     onInspectPosition,
+    onToolbarChange,
     refreshKey,
     disabled = false,
 }) => {
@@ -142,8 +154,6 @@ const BodyView: React.FC<BodyViewProps> = ({
     const showLineNumbersRef = useRef(showLineNumbers);
     showLineNumbersRef.current = showLineNumbers;
     const cursorListenerRef = useRef<any>(null);
-    const applyChrome = useAccentChrome("green");
-    const errorChrome = useAccentChrome("red");
 
     useEffect(() => {
       requestEditorConfig();
@@ -352,6 +362,69 @@ const BodyView: React.FC<BodyViewProps> = ({
         );
     }, [format, valueContext]);
 
+    const beautifyCurrentBody = useCallback(() => {
+        const beautified = beautifyBody(localValue);
+        isUserEditingRef.current = true;
+        setLocalValue(beautified);
+    }, [beautifyBody, localValue]);
+
+    const applyCurrentBody = useCallback(() => {
+        if (onChange) {
+            onChange(normalizeNewlines(localValue));
+        }
+        setCanApply(false);
+    }, [localValue, onChange]);
+
+    const inspectCurrentPosition = useCallback(() => {
+        const editor = editorRef.current;
+        if (!editor || !onInspectPosition) {
+            return;
+        }
+        const pos = editor.getPosition();
+        if (!pos) {
+            return;
+        }
+        onInspectPosition({
+            line: pos.lineNumber,
+            column: pos.column,
+            text: editor.getValue(),
+        });
+    }, [onInspectPosition]);
+
+    const canBeautify = !disabled &&
+        (isJsonLikeBodyFormat(format) || (format || "").includes("xml")) &&
+        isValid && beautifyBody(localValue) !== localValue;
+
+    useEffect(() => {
+        if (!onToolbarChange) {
+            return;
+        }
+        onToolbarChange({
+            isValid,
+            errorMessage: errorMsg,
+            canBeautify,
+            canApply: !disabled && mode === "appliable" && canApply && isValid,
+            canInspect: Boolean(onInspectPosition && cursorPath),
+            beautify: beautifyCurrentBody,
+            apply: applyCurrentBody,
+            inspect: inspectCurrentPosition,
+        });
+        return () => onToolbarChange(null);
+    }, [
+        onToolbarChange,
+        isValid,
+        errorMsg,
+        canBeautify,
+        disabled,
+        mode,
+        canApply,
+        onInspectPosition,
+        cursorPath,
+        beautifyCurrentBody,
+        applyCurrentBody,
+        inspectCurrentPosition,
+    ]);
+
     // Validate JSON or XML when localValue or format changes
     useEffect(() => {
         let valid = true;
@@ -359,6 +432,8 @@ const BodyView: React.FC<BodyViewProps> = ({
         const isXmlLike = (format || "").includes("xml");
         if (localValue === "") {
             setIsValid(true);
+            setErrorMsg(null);
+            setCanApply(false);
             return;
         }
         if (isJsonLikeBodyFormat(format)) {
@@ -551,84 +626,17 @@ const BodyView: React.FC<BodyViewProps> = ({
                 document.body,
             ) : null}
             <div className="bodyview-toolbar">
-                {!disabled && ((isJsonLikeBodyFormat(format) || (format || "").includes("xml")) && isValid && beautifyBody(localValue) !== localValue) && (
-                    <button
-                        className="bodyview-btn-icon"
-                        title="Beautify"
-                        // Keep Monaco focused so parent blur handlers don't exit edit.
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                            const beautified = beautifyBody(localValue);
-                            isUserEditingRef.current = true;
-                            setLocalValue(beautified);
-                        }}
-                    >
-                        <span className="codicon codicon-wand" />
-                    </button>
-                )}
-                {!disabled && mode === "appliable" && canApply && isValid && (
-                    <button
-                        className="bodyview-btn bodyview-btn-apply"
-                        style={{
-                            background: applyChrome.fill,
-                            color: applyChrome.onFill,
-                            border: `1px solid ${applyChrome.border}`,
-                        }}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                            if (onChange) {
-                                onChange(normalizeNewlines(localValue));
-                            }
-                            setCanApply(false);
-                        }}
-                    >
-                        Apply
-                    </button>
-                )}
-                {!isValid && (
-                    <span
-                        className="bodyview-error-indicator"
-                        style={{
-                            background: errorChrome.fill,
-                            color: errorChrome.onFill,
-                            border: `1px solid ${errorChrome.border}`,
-                            boxShadow: errorChrome.outline ? "none" : "0 2px 6px #0001",
-                        }}
-                        title={errorMsg || (isJsonLikeBodyFormat(format) ? "Invalid JSON" : (format || "").includes("xml") ? "Invalid XML" : "Invalid")}
-                    >
-                        <span className="codicon codicon-error" />
-                    </span>
-                )}
-                {onInspectPosition && cursorPath && (
-                    <button
-                        type="button"
-                        className="button-icon no-shrink section-edit-toggle"
-                        title={`Add output: ${cursorPath.key} = ${cursorPath.expr}`}
-                        onClick={() => {
-                            const editor = editorRef.current;
-                            if (!editor) {
-                                return;
-                            }
-                            const pos = editor.getPosition();
-                            if (!pos) {
-                                return;
-                            }
-                            const text = editor.getValue();
-                            onInspectPosition({ line: pos.lineNumber, column: pos.column, text });
-                        }}
-                    >
-                        <span className="codicon codicon-sign-out" aria-hidden />
-                    </button>
-                )}
                 <button
                     type="button"
                     className="button-icon no-shrink section-edit-toggle"
                     title={isFullscreen ? "Exit full screen (Esc)" : "Full screen"}
-                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
+                    onMouseDown={event => event.preventDefault()}
+                    onClick={() => setIsFullscreen(current => !current)}
                 >
                     <span
-                      className={`codicon ${isFullscreen ? "codicon-screen-normal" : "codicon-screen-full"}`}
-                      aria-hidden
+                        className={`codicon ${isFullscreen ? "codicon-screen-normal" : "codicon-screen-full"}`}
+                        aria-hidden
                     />
                 </button>
             </div>
