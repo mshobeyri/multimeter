@@ -164,6 +164,9 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
       letterSpacing: cs.letterSpacing,
       lineHeight: cs.lineHeight,
       boxSizing: cs.boxSizing as React.CSSProperties["boxSizing"],
+      ...(style?.paddingRight !== undefined
+        ? { clipPath: `inset(0 ${cs.paddingRight} 0 0)` }
+        : {}),
     });
   }, [useHighlightLayer, displayValue, className, style]);
 
