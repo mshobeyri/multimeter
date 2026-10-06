@@ -55,7 +55,6 @@ import ApiTestsEditor from "./ApiTestsEditor";
 import ApiSettingsEditor from "./ApiSettingsEditor";
 import ApiAuthEditor from "./ApiAuthEditor";
 import { formatBody } from "mmt-core/markupConvertor";
-import { FormatChip } from "../components/BodyFormatControls";
 import OverflowTabBar, { type OverflowTabItem } from "../components/OverflowTabBar";
 import {
   accentChromeCssVars,
@@ -63,6 +62,7 @@ import {
 } from "../shared/themeAccent";
 import { findMatchingExampleIndex } from "./apiExampleMatch";
 import { SELECT_EXAMPLE_EVENT } from "../text/exampleSelect";
+import { selectBodyFormatStorage } from "./bodyFormatSelection";
 
 /** Body pane: resolved values vs editable {{…}} tokens. */
 type BodyTokenMode = "resolved" | "tokens";
@@ -609,7 +609,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
   };
 
-  // Resolved preview vs token editor. Mode only leaves tokens via the chip (no blur exit).
+  // Resolved preview vs token editor. The mirror toggle switches between them.
   // Two independent axes:
   //   storage: plain | encoded  → shape of api.body in YAML
   //   view:    resolved | tokens → what BodyView shows
@@ -622,8 +622,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const [bodyYamlEncodedManual, setBodyYamlEncodedManual] = useState(true);
   const skipBodySyncRef = useRef(false);
   const resolvedBodyHintRef = useRef<unknown>(undefined);
-
-  // Actual on-disk/storage shape (follows api.body; chip write updates it).
   const bodyEditYamlEncoded = isStructuredYamlBody(api.body);
 
   useEffect(() => {
@@ -671,12 +669,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
    * Peer write: tokens/display text → YAML body (immediate).
    * Resolved values never flow into YAML — only token text (draft or yaml→tokens).
    */
-  const writeBodyStorage = useCallback((text: string, preferEncoded: boolean): boolean => {
+  const writeBodyStorage = useCallback((
+    text: string,
+    preferEncoded: boolean,
+    format = resolvedRequestFormat,
+  ): boolean => {
     // Own write → ignore the following api.body echo (do not rewrite draft).
     skipBodySyncRef.current = true;
     const nextBody = tokensTextToYamlBody(
       text,
-      resolvedRequestFormat,
+      format,
       preferEncoded,
     ) as APIData["body"];
     const encodedOk = preferEncoded && isStructuredYamlBody(nextBody);
@@ -690,18 +692,43 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     writeBodyStorage(val, bodyYamlEncodedManual);
   }, [bodyYamlEncodedManual, writeBodyStorage]);
 
-  /** plain/encoded chip — independent of resolved/tokens view. */
-  const handleBodyEditYamlEncoded = useCallback((enabled: boolean) => {
+  /** Raw/YAML-encoded menu choice — independent of resolved/token display. */
+  const handleBodyEditYamlEncoded = useCallback((
+    enabled: boolean,
+    format = resolvedRequestFormat,
+  ) => {
     setBodyYamlEncodedManual(enabled);
-    writeBodyStorage(
-      bodyTokenMode === "tokens" ? bodyEditDraft : bodyTextForStorage(),
-      enabled,
-    );
+    if (format === "text") {
+      setBodyYamlEncodeError(false);
+      return;
+    }
+    const currentText = bodyTokenMode === "tokens" ? bodyEditDraft : bodyTextForStorage();
+    const selection = selectBodyFormatStorage({
+      body: api.body,
+      currentText,
+      sourceFormat: resolvedRequestFormat,
+      targetFormat: format,
+      storageMode: enabled ? "encoded" : "plain",
+      valueContext: bodyValueContext,
+      resolvedHint: resolvedBodyHintRef.current,
+    });
+    setBodyEditDraft(selection.editText);
+    setBodyYamlEncodeError(selection.encodingFailed);
+    if (selection.encodingFailed) {
+      return;
+    }
+    if (selection.bodyChanged) {
+      skipBodySyncRef.current = true;
+      onUpdateApi?.({ body: selection.body as APIData["body"] });
+    }
   }, [
+    api.body,
     bodyTokenMode,
     bodyEditDraft,
     bodyTextForStorage,
-    writeBodyStorage,
+    resolvedRequestFormat,
+    bodyValueContext,
+    onUpdateApi,
   ]);
 
   // External YAML edits (left pane) while in tokens mode → refresh draft only.
@@ -1066,60 +1093,42 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <div className="apitest-body-toolbar-main">
               <BodyFormatBar
                 value={currentRequestFormat}
-                onChange={format => setBodyFormat("request", format)}
+                storageMode={bodyEditYamlEncoded
+                  || (bodyYamlEncodeError && bodyYamlEncodedManual)
+                  ? "encoded"
+                  : "plain"}
+                encodeError={bodyYamlEncodeError
+                  && resolvedRequestFormat !== "none"
+                  && resolvedRequestFormat !== "text"
+                  && resolvedRequestFormat !== "binary"
+                  && resolvedRequestFormat !== "multipart"}
+                onChange={(format, storageMode) => {
+                  setBodyFormat("request", format);
+                  if (storageMode && format !== "auto") {
+                    handleBodyEditYamlEncoded(storageMode === "encoded", format);
+                  }
+                }}
               />
               {resolvedRequestFormat !== "none"
-                && resolvedRequestFormat !== "text"
                 && resolvedRequestFormat !== "binary"
                 && resolvedRequestFormat !== "multipart" ? (
                 <>
                   <span className="apitest-body-format-divider" aria-hidden />
-                  <div
-                    className="apitest-body-format-bar-group"
-                    role="radiogroup"
-                    aria-label="Body storage"
+                  <button
+                    type="button"
+                    className={`button-icon no-shrink section-edit-toggle${bodyTokenMode === "resolved" ? " is-active" : ""}`}
+                    aria-label={bodyTokenMode === "resolved" ? "Show tokens" : "Show resolved values"}
+                    aria-pressed={bodyTokenMode === "resolved"}
+                    title={bodyTokenMode === "resolved"
+                      ? "Show tokens"
+                      : "Show resolved input/env values"}
+                    onMouseDown={event => event.preventDefault()}
+                    onClick={() => handleBodyTokenModeChange(
+                      bodyTokenMode === "resolved" ? "tokens" : "resolved",
+                    )}
                   >
-                    <FormatChip
-                      label="plain"
-                      selected={!bodyEditYamlEncoded}
-                      title="Store body as a text block"
-                      onClick={() => handleBodyEditYamlEncoded(false)}
-                    />
-                    <FormatChip
-                      label="encoded"
-                      selected={bodyEditYamlEncoded}
-                      overlined={bodyYamlEncodeError}
-                      title={bodyYamlEncodeError
-                        ? "Encoded preferred — using plain until the body is valid again"
-                        : "Store body as structured YAML instead of a text block"}
-                      onClick={() => handleBodyEditYamlEncoded(true)}
-                    />
-                  </div>
-                </>
-              ) : null}
-              {resolvedRequestFormat !== "none"
-                && resolvedRequestFormat !== "binary"
-                && resolvedRequestFormat !== "multipart" ? (
-                <>
-                  <span className="apitest-body-format-divider" aria-hidden />
-                  <div
-                    className="apitest-body-format-bar-group"
-                    role="radiogroup"
-                    aria-label="Body display"
-                  >
-                    <FormatChip
-                      label="resolved"
-                      selected={bodyTokenMode === "resolved"}
-                      title="Show resolved input/env values"
-                      onClick={() => handleBodyTokenModeChange("resolved")}
-                    />
-                    <FormatChip
-                      label="tokens"
-                      selected={bodyTokenMode === "tokens"}
-                      title="Edit {{i:}} / {{e:}} / {{r:}} / {{c:}} tokens"
-                      onClick={() => handleBodyTokenModeChange("tokens")}
-                    />
-                  </div>
+                    <span className="codicon codicon-mirror" aria-hidden />
+                  </button>
                 </>
               ) : null}
             </div>

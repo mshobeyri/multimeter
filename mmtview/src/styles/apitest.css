@@ -423,6 +423,11 @@
   color: var(--vscode-foreground, #cccccc);
 }
 
+.apitest-body-format-raw-trigger .is-struck {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
 .apitest-body-format-raw-trigger .codicon {
   font-size: 12px;
 }
@@ -460,7 +465,7 @@
   user-select: none;
 }
 
-.apitest-body-format-raw-option.is-raw-child {
+.apitest-body-format-raw-option.is-group-child {
   padding-left: 18px;
 }
 

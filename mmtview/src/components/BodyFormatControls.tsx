@@ -15,22 +15,38 @@ export type RawBodyFormat = typeof RAW_FORMATS[number];
 export const DEFAULT_RAW_FORMAT: RawBodyFormat = "json";
 
 export type BodyFormatMenuEntry<T extends string> =
-  | { kind: "option"; value: T }
+  | {
+      kind: "option";
+      value: T;
+      id?: string;
+      label?: string;
+      storageMode?: "plain" | "encoded";
+    }
   | { kind: "heading"; label: string };
 
-/** Request menu: auto, none, binary, multipart, then raw types. */
+function formatOptions<T extends string>(
+  formats: readonly T[],
+  storageMode: "plain" | "encoded",
+): BodyFormatMenuEntry<T>[] {
+  return formats.map(value => ({
+    kind: "option",
+    value,
+    id: `${storageMode}-${value}`,
+    label: storageMode === "encoded" ? `${value}-yml` : value,
+    storageMode,
+  }));
+}
+
+/** Request menu: top-level formats, then raw and structured body formats. */
 export const REQUEST_BODY_FORMAT_MENU: readonly BodyFormatMenuEntry<RequestFormat>[] = [
   { kind: "option", value: "auto" },
   { kind: "option", value: "none" },
   { kind: "option", value: "binary" },
   { kind: "option", value: "multipart" },
   { kind: "heading", label: "raw" },
-  { kind: "option", value: "json" },
-  { kind: "option", value: "xml" },
-  { kind: "option", value: "xmle" },
-  { kind: "option", value: "text" },
-  { kind: "option", value: "html" },
-  { kind: "option", value: "urlencoded" },
+  ...formatOptions(["json", "xml", "xmle", "text", "html", "urlencoded"], "plain"),
+  { kind: "heading", label: "YAML-encoded" },
+  ...formatOptions(["xml", "json", "html", "xmle", "urlencoded"], "encoded"),
 ];
 
 /** Response menu: auto, binary, multipart, then raw types (no none). */
@@ -51,7 +67,9 @@ export const RESPONSE_BODY_FORMAT_MENU: readonly BodyFormatMenuEntry<ResponseFor
 export const REQUEST_BODY_FORMAT_OPTIONS: readonly RequestFormat[] =
   REQUEST_BODY_FORMAT_MENU.filter(
     (entry): entry is { kind: "option"; value: RequestFormat } => entry.kind === "option",
-  ).map(entry => entry.value);
+  )
+    .map(entry => entry.value)
+    .filter((value, index, values) => values.indexOf(value) === index);
 
 /** @deprecated Prefer RESPONSE_BODY_FORMAT_MENU. */
 export const RESPONSE_BODY_FORMAT_OPTIONS: readonly ResponseFormat[] =
@@ -108,13 +126,23 @@ export function BodyFormatSelect<T extends string>({
   menu,
   options,
   onChange,
+  selectedEntryId,
+  triggerValue,
+  triggerSuffix,
+  strikeTriggerSuffix,
+  triggerTitle,
   ariaLabel = "Body format",
 }: {
   value: T;
   menu?: readonly BodyFormatMenuEntry<T>[];
   /** Flat options when `menu` is not provided. */
   options?: readonly T[];
-  onChange: (format: T) => void;
+  onChange: (format: T, entry?: Extract<BodyFormatMenuEntry<T>, { kind: "option" }>) => void;
+  selectedEntryId?: string;
+  triggerValue?: string;
+  triggerSuffix?: string;
+  strikeTriggerSuffix?: boolean;
+  triggerTitle?: string;
   ariaLabel?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -185,10 +213,10 @@ export function BodyFormatSelect<T extends string>({
       }}
     >
       {(() => {
-        let underRaw = false;
+        let underHeading = false;
         return entries.map((entry, index) => {
           if (entry.kind === "heading") {
-            underRaw = entry.label.toLowerCase() === "raw";
+            underHeading = true;
             return (
               <div
                 key={`heading-${entry.label}-${index}`}
@@ -199,25 +227,27 @@ export function BodyFormatSelect<T extends string>({
               </div>
             );
           }
-          const selected = entry.value === value;
+          const selected = entry.id && selectedEntryId
+            ? entry.id === selectedEntryId
+            : entry.value === value;
           return (
             <button
-              key={entry.value}
+              key={entry.id ?? entry.value}
               type="button"
               role="option"
               aria-selected={selected}
               className={[
                 "apitest-body-format-raw-option",
                 selected ? "is-selected" : "",
-                underRaw ? "is-raw-child" : "",
+                underHeading ? "is-group-child" : "",
               ].filter(Boolean).join(" ")}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 setMenuOpen(false);
-                onChange(entry.value);
+                onChange(entry.value, entry);
               }}
             >
-              {entry.value}
+              {entry.label ?? entry.value}
             </button>
           );
         });
@@ -234,10 +264,16 @@ export function BodyFormatSelect<T extends string>({
         aria-haspopup="listbox"
         aria-expanded={menuOpen}
         aria-label={ariaLabel}
+        title={triggerTitle}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setMenuOpen(current => !current)}
       >
-        <span>{value}</span>
+        <span>{triggerValue ?? value}</span>
+        {triggerSuffix ? (
+          <span className={strikeTriggerSuffix ? "is-struck" : undefined}>
+            {triggerSuffix}
+          </span>
+        ) : null}
         <span className="codicon codicon-chevron-down" aria-hidden />
       </button>
       {menuNode ? createPortal(menuNode, document.body) : null}
