@@ -2,6 +2,21 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.44.4-pre]
+
+Pre-release. VS Code extension `1.44.4`; Testlight CLI and MCP `1.44.4-pre` on `@pre`.
+
+### API tester
+
+- Add a request/response split layout toggle
+- Add global token mirror mode for request fields
+- Improve header controls and dividers, and move body formatting actions into the body view
+- Remove HTML from the available request body formats
+
+### Examples
+
+- Remove unintended title and description metadata from the Vault HTTP `setenv` example
+
 ## [1.44.3-pre]
 
 Pre-release. VS Code extension `1.44.3`; Testlight CLI and MCP `1.44.3-pre` on `@pre`.
