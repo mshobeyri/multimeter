@@ -627,6 +627,10 @@ export const messageReceived = async (
       });
       break;
 
+    case 'openEnvironmentPanel':
+      await vscode.commands.executeCommand('multimeter.environment.focus');
+      break;
+
     case 'updateConfig':
       await handleUpdateConfig(message, mmtProvider);
       break;

@@ -340,6 +340,10 @@ function normalizeOpenFilePath(filename: string): string {
     });
   }
 
+  export function showEnvironmentPanel() {
+    window.vscode?.postMessage({command: 'openEnvironmentPanel'});
+  }
+
   /** Pin the current preview tab so the next single-click open won't replace it. */
   export function keepEditor() {
     window.vscode?.postMessage({command: 'keepEditor'});

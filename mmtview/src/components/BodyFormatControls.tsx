@@ -146,7 +146,7 @@ export function BodyFormatSelect<T extends string>({
   ariaLabel?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ left: number; top: number; minWidth: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ right: number; top: number; minWidth: number } | null>(null);
   const selectRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -165,12 +165,9 @@ export function BodyFormatSelect<T extends string>({
       }
       const minWidth = Math.max(112, rect.width);
       const margin = 8;
-      const left = Math.min(
-        Math.max(margin, rect.left),
-        window.innerWidth - minWidth - margin,
-      );
+      const right = Math.max(margin, window.innerWidth - rect.right);
       const top = Math.min(rect.bottom + 4, window.innerHeight - margin);
-      setMenuPos({ left, top, minWidth });
+      setMenuPos({ right, top, minWidth });
     };
     place();
     window.addEventListener("resize", place);
@@ -206,7 +203,7 @@ export function BodyFormatSelect<T extends string>({
       role="listbox"
       style={{
         position: "fixed",
-        left: menuPos.left,
+        right: menuPos.right,
         top: menuPos.top,
         minWidth: menuPos.minWidth,
         zIndex: 1000,

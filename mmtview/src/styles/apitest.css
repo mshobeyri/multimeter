@@ -233,7 +233,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px 12px;
+  gap: 6px;
   flex-shrink: 0;
   min-width: 0;
   max-width: 55%;
@@ -282,6 +282,7 @@
 .apitest-tabs-tools .apitest-body-toolbar,
 .apitest-tabs-tools .apitest-body-format-bar,
 .apitest-tabs-tools .apitest-body-toolbar-main {
+  gap: 6px;
   padding: 0;
   flex: 0 1 auto;
   flex-wrap: nowrap;
@@ -289,10 +290,11 @@
 }
 
 .apitest-tabs-tools-divider {
+  display: inline-block;
   width: 1px;
-  align-self: stretch;
-  min-height: 14px;
-  margin: 0 2px;
+  height: 14px;
+  align-self: center;
+  margin: 0;
   background: var(--vscode-editorWidget-border, #454545);
   flex-shrink: 0;
 }
@@ -437,6 +439,11 @@
   opacity: 0;
   transform: scale(0.7);
   transition: width 140ms ease, flex-basis 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+
+.apitest-tabs-tools .bodyview-header-error:not(.is-invalid) {
+  /* Zero-width item still adds a flex gap; cancel it. */
+  margin-right: -6px;
 }
 
 .bodyview-header-error.is-invalid {

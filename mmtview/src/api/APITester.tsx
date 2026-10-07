@@ -38,7 +38,7 @@ import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
 import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
-import { showHistoryPanel } from "../vsAPI";
+import { showEnvironmentPanel, showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
 import {
   resolveResponseDisplayState,
@@ -1180,6 +1180,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                   }
                 }}
               />
+              {requestBodyToolbar && (requestBodyToolbar.canBeautify || requestBodyToolbar.canApply) ? (
+                <span className="apitest-body-format-divider" aria-hidden />
+              ) : null}
               <BodyViewToolbarControls toolbar={requestBodyToolbar} />
               {resolvedRequestFormat !== "none"
                 && resolvedRequestFormat !== "binary"
@@ -1205,6 +1208,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               ) : null}
             </div>
         </div>
+        <button
+          type="button"
+          className="button-icon no-shrink section-edit-toggle"
+          onClick={() => showEnvironmentPanel()}
+          title="Show Environment Variables"
+          aria-label="Show Environment Variables"
+        >
+          <span className="codicon codicon-globe" aria-hidden />
+        </button>
       </div>
       <FadePane paneKey={editorTab} className="apitest-pane-fill" durationMs={100}>
 
@@ -1658,6 +1670,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               onClick={() => showHistoryPanel({ openLatest: true })}
             />
           )}
+          {responseData ? <span className="apitest-tabs-tools-divider" aria-hidden /> : null}
           <div className="bodyview-header-actions">
             <button
               type="button"

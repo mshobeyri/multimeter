@@ -70,6 +70,7 @@ const ResponseBodyBar: React.FC<ResponseBodyBarProps> = ({
           onChange={onTypeChange}
           ariaLabel="Response body format"
         />
+        <span className="apitest-body-format-divider" aria-hidden />
         {compact ? (
           <BodyFormatSelect
             value={view}
