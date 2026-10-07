@@ -241,7 +241,6 @@ const App: React.FC = () => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
       if (message.command === "viewDocumentContent") {
-        isInitLoad.current = true;
         setDocumentContentLoaded(true);
         if (typeof message.uri === "string") {
           const savedViewState = readSavedViewState(message.uri);
@@ -262,7 +261,16 @@ const App: React.FC = () => {
               message.sourceFormat
         );
         setSourceFormat(nextSourceFormat);
-        setContent(toEditorText(message.content));
+        const loadedText = toEditorText(message.content);
+        setContent(prev => {
+          if (prev === loadedText) {
+            return prev;
+          }
+          // Skip echoing the loaded text back; an unchanged value would never
+          // consume this flag and would swallow the user's first edit.
+          isInitLoad.current = true;
+          return loadedText;
+        });
 
         // Only seed validContent if the initial document is valid;
         // otherwise leave it as-is (so UI doesn't see "{}" or "")
