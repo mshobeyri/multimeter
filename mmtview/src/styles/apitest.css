@@ -889,6 +889,10 @@
   font-size: 9.6px;
 }
 
+.section-edit-toggle.apitest-header-tool-btn .codicon {
+  font-size: 19.2px;
+}
+
 .section-edit-toggle:hover,
 .section-edit-toggle:focus {
   background: transparent !important;

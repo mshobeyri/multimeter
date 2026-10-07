@@ -10,7 +10,7 @@ import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
 import BodyView, { type BodyViewCursor } from "../components/BodyView";
 import type { BodyViewToolbarState } from "../components/BodyView";
-import BodyViewToolbarControls, { BodyViewValidationIndicator } from "../components/BodyViewToolbarControls";
+import { BodyViewValidationIndicator } from "../components/BodyViewToolbarControls";
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
@@ -229,7 +229,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const [responseBodyToolbar, setResponseBodyToolbar] = useState<BodyViewToolbarState | null>(null);
   const [selectedResponseHeader, setSelectedResponseHeader] = useState<string>("");
   const [selectedResponseCookie, setSelectedResponseCookie] = useState<string>("");
-  const [graphqlBodyToolbar, setGraphqlBodyToolbar] = useState<BodyViewToolbarState | null>(null);
 
   const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
     const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
@@ -1182,15 +1181,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                   }
                 }}
               />
-              {requestBodyToolbar && (requestBodyToolbar.canBeautify || requestBodyToolbar.canApply) ? (
-                <span className="apitest-body-format-divider" aria-hidden />
-              ) : null}
-              <BodyViewToolbarControls toolbar={requestBodyToolbar} />
             </div>
         </div>
+        <span
+          className={`apitest-tabs-tools-divider${shouldShowBody() ? "" : " is-hidden"}`}
+          aria-hidden
+        />
         <button
             type="button"
-            className={`button-icon no-shrink section-edit-toggle${bodyTokenMode === "resolved" ? " is-active" : ""}`}
+            className={`button-icon no-shrink section-edit-toggle apitest-header-tool-btn${bodyTokenMode === "resolved" ? " is-active" : ""}`}
             aria-label={bodyTokenMode === "resolved" ? "Show tokens" : "Show resolved values"}
             aria-pressed={bodyTokenMode === "resolved"}
             title={bodyTokenMode === "resolved"
@@ -1201,11 +1200,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               bodyTokenMode === "resolved" ? "tokens" : "resolved",
             )}
           >
-            <span className="codicon codicon-mirror" aria-hidden />
+            <span className="codicon codicon-telescope" aria-hidden />
           </button>
         <button
           type="button"
-          className="button-icon no-shrink section-edit-toggle"
+          className="button-icon no-shrink section-edit-toggle apitest-header-tool-btn"
           onClick={() => showEnvironmentPanel()}
           title="Show Environment Variables"
           aria-label="Show Environment Variables"
@@ -1402,14 +1401,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           <>
             <div className="label apitest-graphql-operation-header">
               Operation
-              <BodyViewToolbarControls toolbar={graphqlBodyToolbar} />
             </div>
             <div className="apitest-body-wrapper">
               <BodyView
                 value={peerGraphqlOperation}
                 format="graphql"
                 mode="live"
-                onToolbarChange={setGraphqlBodyToolbar}
                 onChange={val => {
                   onUpdateApi?.({
                     graphql: {

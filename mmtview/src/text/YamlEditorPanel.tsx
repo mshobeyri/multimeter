@@ -1463,7 +1463,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         <div className="bodyview-toolbar">
           <button
             type="button"
-            className="bodyview-btn-icon"
+            className="button-icon no-shrink section-edit-toggle"
             title="Beautify"
             onMouseDown={(e) => e.preventDefault()}
             onClick={beautifyYaml}

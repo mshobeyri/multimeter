@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { xml2js } from "xml-js";
+import { useAccentChrome } from "../shared/useAccentChrome";
 import { beautify } from "mmt-core/markupConvertor";
 import {
   findBodyTokenHoverRanges,
@@ -354,6 +355,7 @@ const BodyView: React.FC<BodyViewProps> = ({
         }
     }, [localValue, mode, onChange]);
 
+    const applyChrome = useAccentChrome("green");
     const beautifyBody = useCallback((text: string) => {
         return beautify(
             format as "json" | "xml" | "xmle" | "text" | "urlencoded" | "multipart",
@@ -626,6 +628,33 @@ const BodyView: React.FC<BodyViewProps> = ({
                 document.body,
             ) : null}
             <div className="bodyview-toolbar">
+                {canBeautify ? (
+                    <button
+                        type="button"
+                        className="button-icon no-shrink section-edit-toggle"
+                        title="Beautify"
+                        aria-label="Beautify body"
+                        onMouseDown={event => event.preventDefault()}
+                        onClick={beautifyCurrentBody}
+                    >
+                        <span className="codicon codicon-wand" aria-hidden />
+                    </button>
+                ) : null}
+                {!disabled && mode === "appliable" && canApply && isValid ? (
+                    <button
+                        type="button"
+                        className="bodyview-btn bodyview-btn-apply"
+                        style={{
+                            background: applyChrome.fill,
+                            color: applyChrome.onFill,
+                            border: `1px solid ${applyChrome.border}`,
+                        }}
+                        onMouseDown={event => event.preventDefault()}
+                        onClick={applyCurrentBody}
+                    >
+                        Apply
+                    </button>
+                ) : null}
                 <button
                     type="button"
                     className="button-icon no-shrink section-edit-toggle"

@@ -90,20 +90,6 @@ const ResponseBodyBar: React.FC<ResponseBodyBarProps> = ({
             ))}
           </div>
         )}
-        {bodyToolbar?.canBeautify ? (
-          <div className="bodyview-header-actions">
-            <button
-              type="button"
-              className="button-icon no-shrink section-edit-toggle"
-              title="Beautify"
-              aria-label="Beautify body"
-              onMouseDown={event => event.preventDefault()}
-              onClick={bodyToolbar.beautify}
-            >
-              <span className="codicon codicon-wand" aria-hidden />
-            </button>
-          </div>
-        ) : null}
       </div>
     </div>
   );
