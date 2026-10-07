@@ -1,3 +1,4 @@
+import { useTokenMode } from "./TokenModeContext";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -100,6 +101,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   style,
   ...rest
 }) => {
+  const tokenMode = useTokenMode();
   const hasTokens = canContainToken && stringContainsFieldToken(value);
   const [draft, setDraft] = useState(value);
   const [tokenEdit, setTokenEdit] = useState(false);
@@ -126,7 +128,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
     [hasTokens, value, valueContext],
   );
 
-  const showPreview = hasTokens && !tokenEdit;
+  const showPreview = hasTokens && !tokenEdit && tokenMode === "resolved";
   const displayValue = showPreview ? (preview?.text ?? "") : draft;
   const highlightSpans = showPreview
     ? (preview?.spans ?? [])

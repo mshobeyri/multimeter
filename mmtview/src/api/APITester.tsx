@@ -1,3 +1,4 @@
+import { TokenModeContext } from "../components/TokenModeContext";
 import React, { useState, useContext, useEffect, useMemo, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { SplitPane } from "@rexxars/react-split-pane";
@@ -1090,6 +1091,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   }, [outputKeys.length, responseData?.cookies, responseData?.headers, setenvKeys.length]);
 
   return (
+    <TokenModeContext.Provider value={bodyTokenMode}>
     <div className={`apitest-root${selector ? " apitest-root--source" : ""}${
       requestResponseLayout === "side-by-side" ? " apitest-root--side-by-side" : ""
     }`}>
@@ -1184,30 +1186,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 <span className="apitest-body-format-divider" aria-hidden />
               ) : null}
               <BodyViewToolbarControls toolbar={requestBodyToolbar} />
-              {resolvedRequestFormat !== "none"
-                && resolvedRequestFormat !== "binary"
-                && resolvedRequestFormat !== "multipart" ? (
-                <>
-                  <span className="apitest-body-format-divider" aria-hidden />
-                  <button
-                    type="button"
-                    className={`button-icon no-shrink section-edit-toggle${bodyTokenMode === "resolved" ? " is-active" : ""}`}
-                    aria-label={bodyTokenMode === "resolved" ? "Show tokens" : "Show resolved values"}
-                    aria-pressed={bodyTokenMode === "resolved"}
-                    title={bodyTokenMode === "resolved"
-                      ? "Show tokens"
-                      : "Show resolved input/env values"}
-                    onMouseDown={event => event.preventDefault()}
-                    onClick={() => handleBodyTokenModeChange(
-                      bodyTokenMode === "resolved" ? "tokens" : "resolved",
-                    )}
-                  >
-                    <span className="codicon codicon-mirror" aria-hidden />
-                  </button>
-                </>
-              ) : null}
             </div>
         </div>
+        <button
+            type="button"
+            className={`button-icon no-shrink section-edit-toggle${bodyTokenMode === "resolved" ? " is-active" : ""}`}
+            aria-label={bodyTokenMode === "resolved" ? "Show tokens" : "Show resolved values"}
+            aria-pressed={bodyTokenMode === "resolved"}
+            title={bodyTokenMode === "resolved"
+              ? "Show tokens"
+              : "Show resolved input/env values"}
+            onMouseDown={event => event.preventDefault()}
+            onClick={() => handleBodyTokenModeChange(
+              bodyTokenMode === "resolved" ? "tokens" : "resolved",
+            )}
+          >
+            <span className="codicon codicon-mirror" aria-hidden />
+          </button>
         <button
           type="button"
           className="button-icon no-shrink section-edit-toggle"
@@ -1849,6 +1844,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       </SplitPane>
       </div>
     </div>
+    </TokenModeContext.Provider>
   );
 };
 
