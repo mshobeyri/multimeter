@@ -44,9 +44,9 @@ export const REQUEST_BODY_FORMAT_MENU: readonly BodyFormatMenuEntry<RequestForma
   { kind: "option", value: "binary" },
   { kind: "option", value: "multipart" },
   { kind: "heading", label: "raw" },
-  ...formatOptions(["json", "xml", "xmle", "text", "html", "urlencoded"], "plain"),
+  ...formatOptions(["json", "xml", "xmle", "text", "urlencoded"], "plain"),
   { kind: "heading", label: "YAML-encoded" },
-  ...formatOptions(["xml", "json", "html", "xmle", "urlencoded"], "encoded"),
+  ...formatOptions(["xml", "json", "xmle", "urlencoded"], "encoded"),
 ];
 
 /** Response menu: auto, binary, multipart, then raw types (no none). */
