@@ -386,17 +386,6 @@ export const APISchema = {
         {
             if: {
                 properties: {
-                    method: { enum: ['post', 'put', 'patch'] }
-                },
-                required: ['method']
-            },
-            then: {
-                required: ['body']
-            }
-        },
-        {
-            if: {
-                properties: {
                     protocol: { const: 'graphql' }
                 },
                 required: ['protocol']

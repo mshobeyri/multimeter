@@ -1,4 +1,5 @@
 
+import {resolveProtocolFromUrl} from './protocolResolver';
 import {
   APIData,
   ApiTestBlock,
@@ -380,7 +381,7 @@ export function yamlToAPI(yamlContent: string): APIData {
       method: coerceYamlString(doc.method) as APIData['method'],
       timeout: typeof doc.timeout === 'number' ? doc.timeout : undefined,
       headers: doc.headers || {},
-      body: doc.body || '',
+      body: doc.body ?? undefined,
       query: doc.query || {},
       cookies: doc.cookies || {},
       auth,
@@ -469,7 +470,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     method: doc.method || '',
     timeout: doc.timeout,
     headers: doc.headers || {},
-    body: doc.body || '',
+    body: doc.body ?? undefined,
     query: doc.query || {},
     cookies: doc.cookies || {},
     auth,
@@ -477,6 +478,18 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     grpc,
     examples,
   };
+}
+
+function originalDeclaresKey(key: string, originalYaml?: string): boolean {
+  if (!originalYaml) {
+    return false;
+  }
+  try {
+    const doc = parseYamlStrict(originalYaml) as any;
+    return !!doc && typeof doc === 'object' && Object.prototype.hasOwnProperty.call(doc, key);
+  } catch {
+    return false;
+  }
 }
 
 export function apiToYaml(api: APIData, originalYaml?: string): string {
@@ -511,7 +524,11 @@ export function apiToYaml(api: APIData, originalYaml?: string): string {
   if (isNonEmptyObject(api.query)) {
     yamlObj.query = api.query;
   };
-  if (api.protocol) {
+  // A protocol equal to the URL-inferred default is only written when the
+  // original file already declared it.
+  if (api.protocol &&
+      (api.protocol !== resolveProtocolFromUrl(api.url) ||
+       originalDeclaresKey('protocol', originalYaml))) {
     yamlObj.protocol = api.protocol;
   };
   if (api.method) {
@@ -532,8 +549,10 @@ export function apiToYaml(api: APIData, originalYaml?: string): string {
   if (isNonEmptyObject(api.cookies)) {
     yamlObj.cookies = api.cookies;
   };
-  if (api.body && api.body !== '') {
-    yamlObj.body = api.body;
+  // An empty body is only written back when the original file declared it.
+  const bodyIsEmpty = api.body === '' || api.body === null;
+  if (api.body !== undefined && (!bodyIsEmpty || originalDeclaresKey('body', originalYaml))) {
+    yamlObj.body = api.body ?? '';
   };
   if (api.graphql) {
     const gqlObj: Record<string, any> = {};

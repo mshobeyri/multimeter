@@ -1,0 +1,11 @@
+type: api
+title: Login
+description: Logs in and promotes the token to `session_token` with `setenv`
+protocol: http
+method: post
+url: <<e:base_url>>/login
+outputs:
+  token: body.token
+setenv:
+  session_token: body.token
+body: ""

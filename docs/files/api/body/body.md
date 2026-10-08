@@ -1,6 +1,6 @@
 # Request body
 
-`body` is the request payload for HTTP APIs, or the message for WebSocket sends.
+`body` is the request payload for HTTP APIs, or the message for WebSocket sends. It is optional, even for `post`, `put` and `patch`: omitted or empty (`body: ''`) sends an empty body, and an explicit empty `body` is kept in the file.
 
 It can be:
 
