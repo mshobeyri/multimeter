@@ -2,6 +2,16 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.44.5]
+
+Stable release of the 1.44.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.44.5` on `@latest`.
+
+- API tester: request/response split with Settings, Doc, and inline edit; split layout toggle; global token mirror mode; reworked header and body controls
+- Tokens: a bare token is a token only when it is the whole value; `{{ }}` accepted like `<< >>`; type-aware quoting in XML, urlencoded, and JSON bodies
+- HTTP: keep-alive retry after resets; safer JSON encoding of number, boolean, and object inputs
+- Fix the first sample or template pick on a new temp file not being saved
+- Add a border around the New MMT file button
+
 ## [1.44.4-pre]
 
 Pre-release. VS Code extension `1.44.4`; Testlight CLI and MCP `1.44.4-pre` on `@pre`.
