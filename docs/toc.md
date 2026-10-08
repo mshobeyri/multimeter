@@ -42,6 +42,7 @@
     - [Control flow](./files/test/steps/control-flow.md)
     - [js](./files/test/steps/js.md)
     - [Variables](./files/test/steps/variables.md)
+    - [setenv](./files/test/steps/setenv.md)
   - [Stages](./files/test/stages/index.md)
     - [Stage condition](./files/test/stages/stage-condition.md)
   - [Reports](./files/test/reports.md)

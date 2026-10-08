@@ -51,7 +51,7 @@ See also: [Flow chart](../../features/flow-chart.md)
 - Step types: [call](./steps/call.md), [http](./steps/http.md), [run](./steps/run.md), [check](./steps/check.md), [assert](./steps/assert.md), [expect](./steps/run-expect.md)
 - [Control flow](./steps/control-flow.md): `if`, `for`, `repeat`, `delay`
 - [Stages](./stages/index.md) with parallel execution
-- [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md)
+- [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md) · [setenv](./steps/setenv.md)
 
 Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP file](../../integration/http-file.md) and [Bruno](../../integration/bruno.md).
 

@@ -231,6 +231,10 @@
               {
                 "title": "Variables",
                 "path": "files/test/steps/variables.md"
+              },
+              {
+                "title": "setenv",
+                "path": "files/test/steps/setenv.md"
               }
             ]
           },
