@@ -34,7 +34,7 @@ headers:
   X-Angle-Both: "asda<<c:day>>asas"
   X-Quoted-Curly: "{{c:day}}"
   X-Curly-Whole: {{c:city}}
-  X-Text-Slice: <<c:city[0:1]>>
+  X-Text-Slice: c:city[0:1]
   X-Missing-Embed: "x<<c:not_a_token>>y"
 examples:
   - id: defaults
