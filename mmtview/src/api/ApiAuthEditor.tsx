@@ -145,7 +145,7 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
             <div className="field-inline">
               <select
                 className="field-narrow"
-                value={api.auth.header != null ? "header" : "query"}
+                value={api.auth.query != null && api.auth.header == null ? "query" : "header"}
                 onChange={e => {
                   const placement = e.target.value as "header" | "query";
                   const current = api.auth as {
@@ -178,7 +178,7 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
                     query?: string;
                     value: string;
                   };
-                  if (current.header != null) {
+                  if (current.query == null || current.header != null) {
                     update({ auth: { type: "api-key", header: next, value: current.value } });
                   } else {
                     update({ auth: { type: "api-key", query: next, value: current.value } });

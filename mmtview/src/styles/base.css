@@ -2110,3 +2110,26 @@ button:focus {
   width: 100%;
   box-sizing: border-box;
 }
+
+/* Inline rows (e.g. username/password, key placement/name) share the width instead of each taking 100%. */
+.panel-form-row .field-inline {
+  width: 100%;
+  min-width: 0;
+}
+
+.panel-form-row .field-inline > .token-field,
+.panel-form-row .field-inline > input.field-grow {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.panel-form-row .field-inline > select.field-narrow {
+  width: 90px;
+  flex: 0 0 90px;
+}
+
+.panel-form-row .field-stack {
+  width: 100%;
+  min-width: 0;
+}
