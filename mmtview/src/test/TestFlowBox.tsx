@@ -7,7 +7,6 @@ import TestCall from "./TestCall";
 import TestJudge from "./TestJudge";
 import TestHttp from "./TestHttp";
 import TestFlowVar from "./TestFlowVar";
-import TestFlowCSV from "./TestFlowCSV";
 import { type MissingImportEntry } from "../text/validator";
 import TestIf, { type IfClause } from "./TestIf";
 import KSVEditor from "../components/KSVEditor";
@@ -105,7 +104,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({
 }) => {
   const { type, stepData, testData } = data;
 
-  type FlowTypeWithCsv = FlowType | 'data' | 'else';
+  type FlowTypeWithCsv = FlowType | 'else';
   const renderInner = () => {
     switch (type as FlowTypeWithCsv) {
       case 'call':
@@ -141,14 +140,6 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({
             value={stepData}
             expanded={expanded}
             onChange={httpObj => onChange({ ...httpObj })}
-          />
-        );
-      case 'data':
-        return (
-          <TestFlowCSV
-            value={stepData}
-            imports={typeof testData?.import === 'object' ? testData.import : undefined}
-            onChange={(v) => onChange(v)}
           />
         );
       case 'if': {

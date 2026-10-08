@@ -39,7 +39,7 @@ test 123,POST
 - Unquoted numbers are auto-coerced (`"42"` → `42`); `true`/`false` become booleans.
 - Quoted values stay as strings (e.g. `"00123"` stays `"00123"`).
 
-### 2. Import the CSV and bind it with `data`
+### 2. Import the CSV and use it
 
 ```yaml
 import:
@@ -48,7 +48,7 @@ steps:
   - for: message of messages
 ```
 
-The `data` step binds the imported CSV alias into scope so it can be used in loops and expressions.
+The imported CSV alias is available in loops and expressions.
 
 ### 3. Loop with `for`
 
@@ -77,4 +77,3 @@ The `for` expression is standard JavaScript — `const row of messages` iterates
 - See [Simple Test](../../basic/02_simple_test/) for a basic test without CSV.
 - See [API Inputs & Outputs](../01_api_inputs_outputs/) for more input/output patterns.
 - See [Test docs — for/repeat](../../../docs/files/test/steps/control-flow.md#for-repeat) for the full `for`/`repeat` reference.
-- See [Test docs — data](../../../docs/files/test/steps/variables.md#data) for more on the `data` step.

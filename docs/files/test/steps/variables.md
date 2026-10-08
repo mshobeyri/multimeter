@@ -35,12 +35,3 @@ When to use which:
 
 ## `setenv`
 Set environment variables at runtime. See [setenv](./setenv.md).
-
-## `data`
-Bind an imported CSV alias (from the test's import section) into scope for use in loops and steps.
-```yaml
-- data: users   # where import:
-                #   users: ./users.csv
-```
-
-See [Data-driven tests](../../../features/data-driven-tests.md) for a full CSV loop example.

@@ -133,7 +133,7 @@ flow:
     expect(emptyHttp.steps?.[0]).toEqual({});
   });
 
-  it('getTestFlowStepType detects each known type including data', () => {
+  it('getTestFlowStepType detects each known type', () => {
     const samples: Array<[TestFlowStep, string]> = [
       [{ stage: { id: 's', steps: [] } } as any, 'stage'],
       [{ step: { steps: [] } } as any, 'step'],
@@ -146,7 +146,6 @@ flow:
       [{ for: { name: 'i', from: 0, to: 1 }, steps: [] } as any, 'for'],
       [{ js: 'let a=1' } as any, 'js'],
       [{ print: 'x' } as any, 'print'],
-      [{ data: 'users' } as any, 'data'],
       [{ set: { a: 1 } } as any, 'set'],
       [{ var: { a: 1 } } as any, 'var'],
       [{ const: { a: 1 } } as any, 'const'],

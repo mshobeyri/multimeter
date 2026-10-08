@@ -240,7 +240,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
         }
     };
 
-    const createDefaultStep = (type: FlowType | 'data'): any => {
+    const createDefaultStep = (type: FlowType): any => {
         switch (type) {
             case 'print': return { print: '' };
             case 'call': return { call: '', id: '', inputs: {} };

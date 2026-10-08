@@ -82,7 +82,7 @@ export type FlowType =
   'stages'|'steps'|'stage'|'step'|'call'|'http'|'run'|'check'|'assert'|
     'judge'|
     'if'|'for'|'repeat'|
-    'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'data'|'setenv';
+    'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'setenv';
 
 export interface TestFlowBase {
   type?: FlowType;
@@ -257,7 +257,7 @@ export type TestData = TestDataSteps|TestDataStages;
 export const flowTypeOptions = [
   'call', 'http', 'run', 'check', 'assert', 'judge',
   'if', 'for', 'repeat', 'delay', 'end', 'js',
-  'print', 'data', 'set', 'var', 'const', 'let', 'setenv'
+  'print', 'set', 'var', 'const', 'let', 'setenv'
 ] as FlowType[];
 
 // Flow types that the UI can add as individual steps/folders

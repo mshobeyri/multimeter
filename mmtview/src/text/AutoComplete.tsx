@@ -532,19 +532,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
             ].join('\n')
         },
         {
-            label: "data",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "- data: ",
-            detail: 'Load data resource',
-            documentation: [
-                'Loads a data alias (CSV/JSON) for use in steps.',
-                'Example:',
-                '- data: users.csv',
-                '  id: users',
-                'Then use in JS: users[0].email'
-            ].join('\n')
-        },
-        {
             label: "check",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "- check: ",

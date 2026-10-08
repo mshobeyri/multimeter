@@ -801,15 +801,6 @@ export const TestSchema = {
                         },
                         additionalProperties: false
                     },
-                    // data step
-                    {
-                        type: 'object',
-                        required: ['data'],
-                        properties: {
-                            data: { type: 'string' }
-                        },
-                        additionalProperties: false
-                    },
                     // check step
                     {
                         type: 'object',
