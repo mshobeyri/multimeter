@@ -999,10 +999,8 @@ const varToJSfunc = (decl: string, step: any, rewriteOutputKeys = false): string
       .join('\n');
 };
 
-export const setenvToJSfunc = (setenv: Record<string, any>, root: boolean): string => {
-  // setenv only takes effect when running the test directly (root=true),
-  // not when imported into another test or suite
-  if (!root) {
+export const setenvToJSfunc = (setenv: Record<string, any>, enabled: boolean): string => {
+  if (!enabled) {
     return '';
   }
   const entries = Object.entries(setenv || {});

@@ -7,6 +7,7 @@ import {contentTypeForFormat, formatBody} from './markupConvertor';
 import {coerceMultipartPartsInput, MultipartPartSpec, partValueToWire} from './multipartBody';
 import {isOmitSentinel, stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
+import {buildSetenvExtractRules} from './setenvResolve';
 import {
   embedDynamicTokensAsJsInterpolations,
   replaceAllRefs,
@@ -17,6 +18,23 @@ export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord,
   reportOutputKeys?: string[]
 }
+
+/** Apply the API's `setenv` right after the response so later steps can read it. */
+const buildSetenvJs = (api: APIData): string => {
+  const rules = buildSetenvExtractRules(
+      api.setenv as Record<string, any>,
+      api.outputs as Record<string, string>);
+  if (Object.keys(rules).length === 0) {
+    return '';
+  }
+  return `  {
+    const __setenv_ = setenvValues_(extractOutputs_(__extractSource_, ${JSON.stringify(rules)}));
+    if (Object.keys(__setenv_).length > 0) {
+      setenv_(__setenv_);
+    }
+  }
+`;
+};
 
 export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const knownInputNames = new Set(Object.keys(ctx.api.inputs ?? {}));
@@ -149,6 +167,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   // Generate protocol resolution: use explicit protocol if provided,
   // otherwise infer from the resolved URL at runtime
+  const setenvCode = buildSetenvJs(ctx.api);
   const explicitProtocol = ctx.api.protocol;
   const isGraphQL = explicitProtocol === 'graphql';
   const isGrpc = explicitProtocol === 'grpc';
@@ -293,7 +312,7 @@ ${multipartBuildLines}  const res_ = await send_(req_);
     duration: res_?.duration || 0,
     reportOutputKeys: ${JSON.stringify(reportOutputKeys)}
   };
-${isGraphQL ? `
+${setenvCode}${isGraphQL ? `
   // GraphQL error detection: if response contains errors array, mark as failed
   try {
     const __gqlBody = typeof res_?.body === 'string' ? JSON.parse(res_.body) : res_?.body;
@@ -354,6 +373,7 @@ function generateGrpcFunction(
   const serviceExpr = toTpl(grpc.service);
   const methodExpr = toTpl(grpc.method);
   const streamExpr = grpc.stream ? `'${grpc.stream}'` : 'undefined';
+  const setenvCode = buildSetenvJs(ctx.api);
 
   // Build message object
   let messageExpr = '{}';
@@ -422,7 +442,7 @@ ${authCode}
     duration: __grpcRes.duration || 0,
     reportOutputKeys: ${JSON.stringify(reportOutputKeys)}
   };
-
+${setenvCode}
   return output_;
 };`;
 }

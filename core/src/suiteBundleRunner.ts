@@ -282,6 +282,15 @@ async function runSuiteBundleNode(params: {
       id,
       __mmtIsSuiteBundleChildRun: true,
     };
+    // Items that start after a setenv see its value, and it wins over manual env.
+    const setenvOverrides = options.__mmtSetenvOverrides;
+    if (setenvOverrides && Object.keys(setenvOverrides).length > 0) {
+      childRunOptions.envvar = {...(options.envvar || {}), ...setenvOverrides};
+      childRunOptions.manualEnvvars = {
+        ...(options.manualEnvvars || {}),
+        ...setenvOverrides,
+      };
+    }
 
     let childRun: RunFileResult;
     if (node.kind === 'test' || node.kind === 'api') {
@@ -606,6 +615,24 @@ export async function executeSuiteBundle(params: {
   }
   const resolvedFilter = activeTagFilter(effectiveOptions, bundle);
   effectiveOptions = {...effectiveOptions, tagFilter: resolvedFilter};
+
+  // Only the outermost suite owns the shared setenv store; nested suites inherit it.
+  if (shouldEmitSuiteRunEvents) {
+    const setenvOverrides: Record<string, any> = {};
+    const downstreamReporter = effectiveOptions.reporter;
+    effectiveOptions = {
+      ...effectiveOptions,
+      __mmtSetenvOverrides: setenvOverrides,
+      reporter: (message: RunReporterMessage): void => {
+        const event = message as any;
+        if (event && event.scope === 'setenv' && event.variables &&
+            typeof event.variables === 'object') {
+          Object.assign(setenvOverrides, event.variables);
+        }
+        downstreamReporter && downstreamReporter(message);
+      },
+    };
+  }
 
   const suiteDisplayName =
       (typeof bundle.rootTitle === 'string' && bundle.rootTitle.trim()) ?

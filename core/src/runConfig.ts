@@ -200,6 +200,12 @@ export interface RunFileOptions {
   __mmtIsSuiteBundleChildRun?: boolean;
 
   /**
+   * Internal: env values set by `setenv` during a suite run. Shared by
+   * reference across child runs so later items see earlier values.
+   */
+  __mmtSetenvOverrides?: Record<string, any>;
+
+  /**
    * Optional callback for starting mock servers.
    * Used by the `run` step in tests and for server nodes in suites.
    * Arguments: (alias: server file path, filePath: resolved absolute path).

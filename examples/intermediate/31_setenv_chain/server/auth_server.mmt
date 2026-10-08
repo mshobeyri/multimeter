@@ -1,0 +1,34 @@
+type: server
+title: Setenv chain mock server
+description: Issues a session token and only accepts requests that carry it
+port: 9131
+cors: true
+endpoints:
+  - method: post
+    path: /login
+    status: 200
+    format: json
+    body:
+      token: session-abc123
+  - method: get
+    path: /whoami
+    match:
+      headers:
+        Authorization: Bearer session-abc123
+    status: 200
+    format: json
+    body:
+      authenticated: true
+      user: alice
+  - method: get
+    path: /whoami
+    status: 401
+    format: json
+    body:
+      authenticated: false
+fallback:
+  status: 404
+  format: json
+  body:
+    errors:
+      - path not found

@@ -708,9 +708,18 @@ export async function executeApi(
     exampleOutputs,
     checkTitle: fileDisplayName,
   });
+  // Suite items hand `setenv` to the suite so later items can consume it.
+  const apiSetenvReporter = (options as any).__mmtIsSuiteBundleChildRun === true &&
+      typeof options.reporter === 'function' ?
+      (event: Record<string, any>) => {
+        if (event && event.scope === 'setenv') {
+          options.reporter({...event, id: event.id || (options as any).id} as any);
+        }
+      } :
+      undefined;
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
-      (options as any).id, fileLoader, undefined, undefined, undefined,
+      (options as any).id, fileLoader, apiSetenvReporter, undefined, undefined,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
       undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader);
   if (preLogs.length) {

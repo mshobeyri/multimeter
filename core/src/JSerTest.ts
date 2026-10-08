@@ -224,7 +224,8 @@ export const testToJsfunc = async(
     }
   }
 
-  const emitSetenv = root || (Array.isArray(ctx.test.tags) && ctx.test.tags.includes('http'));
+  // setenv also applies in imported tests so later steps of the caller see it.
+  const emitSetenv = true;
   flow += await flowToJsFunc(
       replaced, root, useExternalReport, importTitleMap, emitSetenv, knownInputNames);
 

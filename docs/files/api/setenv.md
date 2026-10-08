@@ -14,7 +14,9 @@ setenv:
   user_id: body.user.id
 ```
 
-These become available to subsequent steps/tests as environment variables (`e:token`, `<<e:token>>`).
+These become available immediately to subsequent steps, imported tests and later suite items as environment variables (`e:token`, `<<e:token>>`). This applies to a test calling the API, to the API tester, and to `testlight`. Values live in memory for the run (they are not written to env files) and win over `-e` values for later items.
+
+Example: [setenv chain](../../../examples/intermediate/31_setenv_chain/README.md).
 
 See [Environment](../env/index.md) for defining variables, presets, and how `e:` / `<<e:…>>` resolve at runtime.
 

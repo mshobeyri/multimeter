@@ -1,7 +1,7 @@
 import type {CheckLogMode} from './CommonData';
 import type {FileLoader} from './JSerFileLoader';
 import {parseCacheExpiryAtMs} from './JSerHelper';
-import {applyOmitToOutgoingRequest, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
+import {applyOmitToOutgoingRequest, isOmitSentinel, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from './omitKeyword';
 import {buildMultipartBodyFromParts} from './multipartBody';
 import {comparisonOperatorPattern, DEFAULT_TIME_VELOCITY} from './TestData';
 import {unsignedDurationMs} from './durationParse';
@@ -798,6 +798,22 @@ export const reportWithContext_ = (
   }
 
   emitStep(payload);
+};
+
+/**
+ * Keep only usable extracted API `setenv` values (same filtering as
+ * resolveSetenvValues): drop empty/omitted entries, stringify objects.
+ */
+export const setenvValues_ = (extracted: Record<string, any>): Record<string, any> => {
+  const out: Record<string, any> = {};
+  for (const [name, raw] of Object.entries(extracted || {})) {
+    if (!name || raw == null || raw === '' || isOmitSentinel(raw) ||
+        raw === OMIT_SENTINEL) {
+      continue;
+    }
+    out[name] = typeof raw === 'object' ? JSON.stringify(raw) : raw;
+  }
+  return out;
 };
 
 export const setenv_ = (variables: Record<string, any>) => {

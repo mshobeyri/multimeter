@@ -1,0 +1,11 @@
+type: test
+title: Reuse the token in a later suite item
+description: Does not log in; relies on `session_token` set by an earlier suite item
+import:
+  whoami: ../api/whoami.mmt
+steps:
+  - call: whoami
+    expect:
+      status: 200
+      user: alice
+    report: all
