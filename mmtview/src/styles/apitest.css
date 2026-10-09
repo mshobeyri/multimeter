@@ -590,7 +590,9 @@
 }
 
 .apitest-body-format-raw-option {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
   padding: 4px 10px;
   border: none;
@@ -599,6 +601,15 @@
   font-size: 12px;
   text-align: left;
   cursor: pointer;
+}
+
+.apitest-body-format-raw-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.send-button-menu.apitest-body-format-raw-menu {
+  padding: 4px 0;
 }
 
 .apitest-body-format-raw-option:hover,

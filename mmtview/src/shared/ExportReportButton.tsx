@@ -23,7 +23,10 @@ const ExportReportButton: React.FC<ExportReportButtonProps> = ({ disabled, onExp
   }, [onExport]);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-flex' }}>
+    <div
+      className={`export-report-button${disabled ? ' is-disabled' : ''}`}
+      style={{ position: 'relative', display: 'inline-flex' }}
+    >
       <PrimaryButtonFace icon="export" disabled={disabled}>
         Export
       </PrimaryButtonFace>
@@ -33,6 +36,7 @@ const ExportReportButton: React.FC<ExportReportButtonProps> = ({ disabled, onExp
         onChange={handleChange}
         defaultValue=""
         title="Export test report"
+        aria-label="Export test report"
         style={{
           position: 'absolute',
           inset: 0,

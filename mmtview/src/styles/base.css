@@ -261,6 +261,13 @@ span.vertical.disabled:active {
   background: var(--vscode-button-hoverBackground, #1177bb);
 }
 
+/* Export uses an invisible <select> over PrimaryButtonFace — hover the
+   wrapper so the face gets the same primary hover fill as Run. */
+.export-report-button:hover:not(.is-disabled) .primary-button,
+.export-report-button:focus-within:not(.is-disabled) .primary-button {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+
 .primary-button:disabled,
 .primary-button.is-disabled {
   opacity: 0.5;

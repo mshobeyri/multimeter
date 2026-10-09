@@ -25,17 +25,17 @@ import {
     remapSuiteTargetId,
 } from './suiteHierarchyFingerprint';
 import { statusIconFor } from '../../shared/Common';
-import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
+import type { ReportFormat } from '../../shared/ExportReportButton';
+import { buildReportRunMenuEntries } from '../../shared/reportRunMenu';
 import ReportStatusFilterButton from '../../shared/ReportStatusFilterButton';
 import ReportCollapseButton from '../../shared/ReportCollapseButton';
 import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
-import YamlErrorWarning, { HideWhenYamlError } from '../../api/YamlErrorWarning';
+import YamlErrorWarning from '../../api/YamlErrorWarning';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
-import { runInCoreMenuItem } from '../../components/ContextMenuHost';
 import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
-import RunStopToggle from '../../components/RunStopToggle';
+import SendButton from '../../components/SendButton';
 import { usePrimaryAction } from '../../primaryAction';
 import { expandedTreeItemsToReportNodeIds } from '../../shared/reportSpillLogic';
 import {
@@ -1367,6 +1367,56 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         suiteRunState === 'pending' ||
         suiteRunState === 'running' ||
         (mode === 'loadtest' ? !loadRunSummary : !hasSuiteReportData);
+
+    const handleClearReport = useCallback(() => {
+        if (suiteRunState === 'pending' || suiteRunState === 'running') {
+            return;
+        }
+        if (suiteRunIdRef.current) {
+            ignoredSuiteRunIdsRef.current.add(suiteRunIdRef.current);
+            trimIgnoredSuiteRuns();
+        }
+        suiteRunIdRef.current = null;
+        setSuiteRunId(null);
+        setSuiteRunState('default');
+        setLoadRunSummary(null);
+        setSuiteRunStartedAt(null);
+        setSuiteRunDurationMs(null);
+        suiteRunStartTimeRef.current = null;
+        pendingLeafResetRef.current = null;
+        partialRunTargetRef.current = null;
+        reportQueueRef.current = [];
+        resetLeafState('all');
+    }, [suiteRunState, trimIgnoredSuiteRuns, resetLeafState]);
+
+    const suiteClearDisabled =
+        suiteRunState === 'pending' ||
+        suiteRunState === 'running' ||
+        (mode === 'loadtest'
+            ? !loadRunSummary && suiteRunState === 'default'
+            : !hasSuiteReportData && suiteRunState === 'default');
+
+    const runMenuItems = useMemo(
+        () => buildReportRunMenuEntries({
+            onRunInCore: onRunSuiteInCore,
+            runInCoreDisabled: !canRun,
+            onClear: handleClearReport,
+            clearDisabled: suiteClearDisabled,
+            onExport: (format) => {
+                void handleExportReport(format);
+            },
+            exportDisabled: suiteExportDisabled,
+        }),
+        [
+            onRunSuiteInCore,
+            canRun,
+            handleClearReport,
+            suiteClearDisabled,
+            handleExportReport,
+            suiteExportDisabled,
+        ],
+    );
+
     const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
     const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
 
@@ -1580,22 +1630,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     return (
         <div className="panel-page">
             <div className="run-action-bar">
-                <RunStopToggle
-                    preparing={suiteRunState === 'pending'}
-                    running={suiteRunState === 'running'}
-                    onRun={onRunSuite}
-                    onStop={onStopSuite}
-                    runLabel={runLabel}
-                    preparingLabel="Starting…"
-                    stopLabel={stopLabel}
+                <SendButton
+                    mode="run"
+                    onClick={onRunSuite}
+                    onCancel={onStopSuite}
+                    loading={suiteRunState === 'pending' || suiteRunState === 'running'}
                     disabled={!canRun}
-                    runTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
-                    runContextMenuItems={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
+                    actionTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
+                    cancelTitle={stopLabel}
+                    contextMenuItems={runMenuItems}
                 />
                 <YamlErrorWarning />
-                <HideWhenYamlError>
-                    <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
-                </HideWhenYamlError>
             </div>
             <div className="panel-view-stack">
                 {noItems ? (

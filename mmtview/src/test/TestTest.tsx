@@ -5,15 +5,14 @@ import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraints';
 import { FileContext } from '../fileContext';
-import { HideWhenYamlError } from '../api/YamlErrorWarning';
 import { setEnvironmentVariables } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import { StepStatus } from '../shared/types';
-import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
+import type { ReportFormat } from '../shared/ExportReportButton';
+import { buildReportRunMenuEntries } from '../shared/reportRunMenu';
 import OverviewBoxes, { OverviewStats } from '../shared/OverviewBoxes';
 import VEditor from '../components/VEditor';
-import { runInCoreMenuItem } from '../components/ContextMenuHost';
-import RunStopToggle from '../components/RunStopToggle';
+import SendButton from '../components/SendButton';
 import { loadEnvVariables } from '../workspaceStorage';
 import { keepEditor } from '../vsAPI';
 import { usePrimaryAction } from '../primaryAction';
@@ -374,8 +373,47 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
         });
     }, [stepReports, runState, outputs, mmtFilePath, runStartedAt, runDurationMs, testData.title]);
 
+    const handleClearReport = useCallback(() => {
+        if (runState === 'pending' || runState === 'running') {
+            return;
+        }
+        if (latestRunIdRef.current) {
+            ignoredRunIdsRef.current.add(latestRunIdRef.current);
+            trimIgnoredRuns();
+        }
+        latestRunIdRef.current = null;
+        setStepReports([]);
+        setOutputs({});
+        setRunState('default');
+        setRunStartedAt(null);
+        setRunDurationMs(null);
+        runStartTimeRef.current = null;
+    }, [runState, trimIgnoredRuns]);
+
     const exportDisabled =
         runState === 'pending' || runState === 'running' || stepReports.length === 0;
+    const clearDisabled =
+        runState === 'pending' || runState === 'running' ||
+        (stepReports.length === 0 && runState === 'default');
+
+    const runMenuItems = useMemo(
+        () => buildReportRunMenuEntries({
+            onRunInCore: () => {
+                postRunCurrentDocument({ reportLifecycle: true });
+            },
+            onClear: handleClearReport,
+            clearDisabled,
+            onExport: handleExportReport,
+            exportDisabled,
+        }),
+        [
+            postRunCurrentDocument,
+            handleClearReport,
+            clearDisabled,
+            handleExportReport,
+            exportDisabled,
+        ],
+    );
 
     const isPreparing = runState === 'pending';
     const isRunning = runState === 'running';
@@ -402,21 +440,15 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     return (
         <div className="panel-page">
             <div className="run-action-bar">
-                <RunStopToggle
-                    preparing={isPreparing}
-                    running={isRunning}
-                    onRun={handleRun}
-                    onStop={handleStop}
-                    runLabel="Run test"
-                    preparingLabel="Starting…"
-                    stopLabel="Stop test"
-                    runContextMenuItems={[runInCoreMenuItem(() => {
-                        postRunCurrentDocument({ reportLifecycle: true });
-                    })]}
+                <SendButton
+                    mode="run"
+                    onClick={handleRun}
+                    onCancel={handleStop}
+                    loading={isPreparing || isRunning}
+                    actionTitle="Run test"
+                    cancelTitle="Stop test"
+                    contextMenuItems={runMenuItems}
                 />
-                <HideWhenYamlError>
-                    <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
-                </HideWhenYamlError>
             </div>
             <div className="panel-view-stack">
                 <div className="panel-view-fixed">
