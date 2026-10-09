@@ -3,10 +3,14 @@ import { EnvVariable } from "./EnvironmentData";
 import SettingsTable, { SettingsTableColumn, SettingsTableRow } from "../components/SettingsTable";
 import type { JSONValue } from "mmt-core/CommonData";
 import { yamlValueToInputBox } from "mmt-core/yamlValueConvert";
+import { EnvFilePathValue, isEnvFilePathDisplayValue } from "./envFilePathDisplay";
 
-function formatEnvDisplayValue(value: JSONValue | undefined): string {
+function formatEnvDisplayValue(value: JSONValue | undefined): React.ReactNode {
   if (value === undefined) {
     return "";
+  }
+  if (isEnvFilePathDisplayValue(value)) {
+    return <EnvFilePathValue value={value} />;
   }
   if (value !== null && typeof value === "object") {
     try {

@@ -13,12 +13,14 @@ import {
   unionJudgeChecksForModel,
 } from './JudgeData';
 import {evaluateJudge} from './judgeEngine';
-import {resolveInputsMap} from './variableReplacer';
+import {resolveInputsMap, resolveInputsMapAsync} from './variableReplacer';
 import './judgeEngineOllama';
 import './judgeEngineProviders';
 
 /** Used by generated root wrappers to resolve e:/i: in inputs at runtime. */
 export const resolveInputsMap_ = resolveInputsMap;
+/** Await file-backed env getters, then resolve inputs. */
+export const resolveInputsMapAsync_ = resolveInputsMapAsync;
 
 /**
  * Abort signal for cooperative test cancellation.

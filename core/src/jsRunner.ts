@@ -249,17 +249,24 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // subsequent e: references read the new value within the same run.
       `const setenv_ = (vars) => { if (typeof envVariables !== 'undefined' && vars && typeof vars === 'object') { for (const [k, v] of Object.entries(vars)) { try { envVariables[k] = v; } catch (_e) {} } } mmtHelper.setenvWithContext_(__reporter, __runId, __id, vars); };\n` +
       // Missing e: names stay the token text (same as unknown r:/c:/i:).
-      // Comparisons keep a raw envVariables read so a missing flag stays falsy.
-      `const mmtEnv_ = (name, accessor) => {\n` +
-      `  let value;\n` +
-      `  if (typeof envVariables !== 'undefined' && envVariables &&\n` +
-      `      Object.prototype.hasOwnProperty.call(envVariables, name)) {\n` +
-      `    value = envVariables[name];\n` +
+      // File-backed getters (functions from process EnvStore copy) are awaited.
+      // mode === 'lookup' → undefined when missing (comparisons stay falsy).
+      `const mmtEnv_ = (name, accessor, mode) => {\n` +
+      `  const lookup = mode === 'lookup';\n` +
+      `  const missing = () => lookup ? undefined : ('e:' + name + (accessor || ''));\n` +
+      `  const finish = (value) => {\n` +
+      `    if (value === undefined) { return missing(); }\n` +
+      `    return accessor ? mmtAccess_(value, accessor) : value;\n` +
+      `  };\n` +
+      `  if (typeof envVariables === 'undefined' || !envVariables ||\n` +
+      `      !Object.prototype.hasOwnProperty.call(envVariables, name)) {\n` +
+      `    return missing();\n` +
       `  }\n` +
-      `  if (value === undefined) {\n` +
-      `    return 'e:' + name + (accessor || '');\n` +
+      `  const raw = envVariables[name];\n` +
+      `  if (typeof raw === 'function') {\n` +
+      `    return Promise.resolve(raw()).then(finish);\n` +
       `  }\n` +
-      `  return accessor ? mmtAccess_(value, accessor) : value;\n` +
+      `  return finish(raw);\n` +
       `};\n` +
       // Override check_ to pass the closure-based report_ so that under
       // parallel execution each test uses its own reporter/runId/id instead

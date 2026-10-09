@@ -90,8 +90,9 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
         // A full-field runtime token must retain its native JSON type. Embedded
         // tokens remain string interpolations. Env is included with r:/c:
         // because the stored type is only known when the request runs.
+        // Whole-field runtime tokens (optionally awaited mmtEnv_) keep JSON type.
         formattedBody = formattedBody.replace(
-            /"\$\{((?:mmt(?:Random|Current|Env)_\([^{}]*\)|mmtAccess_\([^{}]*\)))}"/g,
+            /"\$\{((?:\(await\s+mmtEnv_\([^{}]*\)\))|(?:mmt(?:Random|Current|Env)_\([^{}]*\))|(?:mmtAccess_\([^{}]*\)))}"/g,
             '${JSON.stringify($1)}');
       }
       // Only JSON drops the quotes around a whole-field number/boolean input.

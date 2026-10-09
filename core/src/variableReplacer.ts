@@ -260,6 +260,11 @@ const toJsAccessorExpression = (baseExpression: string, accessor = ''): string =
  */
 export type JsTokenGenOptions = {
   knownInputNames?: ReadonlySet<string>;
+  /**
+   * When false, emit `mmtEnv_(...)` without `await` (parameter defaults cannot
+   * be async). Default true for expressions/templates.
+   */
+  awaitEnv?: boolean;
 };
 
 function missingInputTokenText(name: string, accessor: string): string {
@@ -293,44 +298,48 @@ function inputTokenInterpolation(
 }
 
 /**
- * Normalize all env-token syntaxes to a JS expression rooted at `envVariables`.
+ * Normalize all env-token syntaxes to an async resolver call.
  * Used when generating JS code outside template literals.
  */
 export const normalizeEnvTokens = (s: string): string =>
     replaceTokenForms(
         s, 'e',
-        (name, accessor) => toJsAccessorExpression(`envVariables.${name}`, accessor),
+        (name, accessor) => envTokenJsExpr(name, accessor || '', 'lookup', true),
         {});
 
 /**
- * Simple word-boundary env-token replacement: `e:VAR` → `envVariables.VAR`.
+ * Simple word-boundary env-token replacement: `e:VAR` → `(await mmtEnv_(...))`.
  * Only handles the plain `e:VAR` form (no angle/brace wrappers).
  * Useful for short expressions like conditional checks.
  */
 export const replaceEnvTokensPlain = (s: string): string =>
     replaceTokenForms(
         s, 'e',
-        (name, accessor) => toJsAccessorExpression(`envVariables.${name}`, accessor),
+        (name, accessor) => envTokenJsExpr(name, accessor || '', 'lookup', true),
         {includeAngles: false});
 
 /**
  * How a missing `e:` name is read.
- * `lookup` — `envVariables.NAME` (undefined when absent). Used in comparisons
- * so a missing flag stays falsy.
- * `text` — `mmtEnv_('NAME')`, which returns the value or the token text
- * `e:NAME` (same idea as unknown `r:` / `c:` / `i:`).
+ * `lookup` — undefined when absent (comparisons stay falsy).
+ * `text` — token text `e:NAME` when absent (same idea as unknown `r:` / `c:` / `i:`).
+ * Both go through `mmtEnv_` so file-backed getters are awaited.
  */
 export type EnvJsMode = 'lookup' | 'text';
 
 function envTokenJsExpr(
-    name: string, accessor: string, mode: EnvJsMode): string {
-  if (mode === 'text') {
-    const args = accessor ?
-      `${JSON.stringify(name)}, ${JSON.stringify(accessor)}` :
-      JSON.stringify(name);
-    return `mmtEnv_(${args})`;
+    name: string, accessor: string, mode: EnvJsMode,
+    awaitable = true): string {
+  const nameLit = JSON.stringify(name);
+  let call: string;
+  if (mode === 'lookup') {
+    const accessorLit = accessor ? JSON.stringify(accessor) : 'null';
+    call = `mmtEnv_(${nameLit}, ${accessorLit}, 'lookup')`;
+  } else if (accessor) {
+    call = `mmtEnv_(${nameLit}, ${JSON.stringify(accessor)})`;
+  } else {
+    call = `mmtEnv_(${nameLit})`;
   }
-  return toJsAccessorExpression(`envVariables.${name}`, accessor);
+  return awaitable ? `(await ${call})` : call;
 }
 
 /**
@@ -340,10 +349,11 @@ function envTokenJsExpr(
  * Value substitution uses `text` so a missing name stays `e:name`.
  */
 export const replaceEnvTokensToJs = (
-    s: string, mode: EnvJsMode = 'lookup'): string =>
+    s: string, mode: EnvJsMode = 'lookup', awaitable = true): string =>
     replaceTokenForms(
         s, 'e',
-        (name, accessor) => '${' + envTokenJsExpr(name, accessor, mode) + '}',
+        (name, accessor) =>
+            '${' + envTokenJsExpr(name, accessor || '', mode, awaitable) + '}',
         {});
 
 /**
@@ -499,9 +509,10 @@ export function toTemplateValueJs(
   const fullOutputCurly = new RegExp(`^\\{\\{\\s*o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullOutputPlain = new RegExp(`^o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
 
+  const awaitEnv = options?.awaitEnv !== false;
   let m = fullEnvAngle.exec(s) || fullEnvCurly.exec(s) || fullEnvPlain.exec(s);
   if (m && m[1]) {
-    return envTokenJsExpr(m[1], m[2] || '', 'text');
+    return envTokenJsExpr(m[1], m[2] || '', 'text', awaitEnv);
   }
   m = fullRandAngle.exec(s) || fullRandCurly.exec(s) || fullRandPlain.exec(s);
   if (m && m[1]) {
@@ -520,7 +531,7 @@ export function toTemplateValueJs(
     return toJsAccessorExpression(`outputs.${m[1]}`, m[2] || '');
   }
 
-  let result = replaceEnvTokensToJs(s, 'text');
+  let result = replaceEnvTokensToJs(s, 'text', awaitEnv);
   result = replaceRandCurrentTokensToJs(result);
   result = replaceInputTokensToJs(result, options);
   result = replaceOutputTokensToJs(result);
@@ -533,11 +544,11 @@ export function toTemplateValueJs(
  * Build a JS template literal that resolves env tokens at runtime.
  */
 export const toTemplateWithEnvVars = (s: string): string => {
-  let withEnv = replaceEnvTokensToJs(String(s ?? ''), 'text');
+  let withEnv = replaceEnvTokensToJs(String(s ?? ''), 'text', true);
   withEnv = replaceRandCurrentTokensToJs(withEnv);
   withEnv = withEnv.replace(
-      /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
-      '${envVariables.$1}');
+      /\$\{\s*\$\{\s*(?:await\s+)?mmtEnv_\([^)]*\)\s*\}\s*\}/g,
+      (match) => match.replace('$${', '${').replace('}$}', '}'));
   return '`' + escapeBackticks(withEnv) + '`';
 };
 
@@ -1025,4 +1036,15 @@ export function resolveInputsMap(
     current = next;
   }
   return current;
+}
+/** Materialize file-backed env getters, then resolve inputs (sync passes). */
+export async function resolveInputsMapAsync(
+    inputs: Record<string, any>|null|undefined,
+    envs: Record<string, any> = {},
+    maxPasses = 8): Promise<Record<string, any>> {
+  const plain: Record<string, any> = {};
+  for (const [name, value] of Object.entries(envs || {})) {
+    plain[name] = typeof value === 'function' ? await value() : value;
+  }
+  return resolveInputsMap(inputs, plain, maxPasses);
 }

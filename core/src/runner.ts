@@ -3,8 +3,12 @@ import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
 import {executeApi, prepareApiRun} from './runApi';
 import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
-import {createEnvStore} from './envStore';
+import {
+  createEnvStoreFromRun,
+  type EnvStore,
+} from './envStore';
 import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from './runConfig';
+import parseYaml from './markupConvertor';
 import {prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
 import {buildSuiteHierarchyFromSuiteFile} from './suiteHierarchy';
@@ -138,11 +142,20 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   
   const prepared = await prepareRunFromOptions(options, note);
   const {docType} = prepared;
-  // Process store: copy of resolved env for this run only. Source env is
-  // untouched. Suite children inherit the same store reference.
+  // Process store: copy of resolved env for this run only. `./…mmt` strings
+  // become getters at copy time. Suite children inherit the same store.
   if (!options.envStore) {
-    options = {...options, envStore: createEnvStore(prepared.envVarsUsed)};
+    options = {
+      ...options,
+      envStore: createEnvStoreFromRun({
+        initial: prepared.envVarsUsed,
+        envvarFilePath: options.envvarFilePath,
+        filePath: options.filePath || prepared.filePath,
+        projectRoot: options.projectRoot,
+      }),
+    };
   }
+  attachEnvFileRunner(options.envStore, options);
 
   if (docType === 'api') {
     return executeApi(prepared, options, preLogs);
@@ -209,4 +222,67 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   }
 
   throw new Error('Run is currently supported for test or api documents only.');
+}
+
+function outputKeysFromYaml(rawText: string): string[] {
+  try {
+    const doc = parseYaml(rawText);
+    const outputs = doc && typeof doc === 'object' ? (doc as any).outputs : undefined;
+    if (!outputs || typeof outputs !== 'object' || Array.isArray(outputs)) {
+      return [];
+    }
+    return Object.keys(outputs).filter(key => key && key !== '_');
+  } catch {
+    return [];
+  }
+}
+
+function cacheSpecFromYaml(rawText: string): unknown {
+  try {
+    const doc = parseYaml(rawText);
+    return doc && typeof doc === 'object' ? (doc as any).cache : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function attachEnvFileRunner(
+    store: EnvStore|undefined, options: RunFileOptions): void {
+  if (!store || typeof store.runEnvFile === 'function') {
+    return;
+  }
+  store.runEnvFile = async (resolvedPath: string) => {
+    let rawText = '';
+    try {
+      rawText = await options.fileLoader(resolvedPath);
+    } catch {
+      rawText = '';
+    }
+    const outputKeys = outputKeysFromYaml(rawText);
+    const cache = cacheSpecFromYaml(rawText);
+    const child = await runFile({
+      ...options,
+      file: resolvedPath,
+      fileType: 'path',
+      filePath: resolvedPath,
+      envStore: store,
+      suiteBundle: undefined,
+      exampleIndex: undefined,
+      exampleName: undefined,
+      manualInputs: {},
+      // Import-style cache hits skip re-execution inside the target file.
+      __mmtEnvValueRun: true,
+      // Never forward nested steps/logs into the parent run UI.
+      reporter: () => undefined,
+      logger: () => undefined,
+      checkLogMode: 'none',
+      id: undefined,
+      runId: undefined,
+    } as RunFileOptions);
+    return {
+      outputs: child.result?.outputs,
+      outputKeys,
+      cache,
+    };
+  };
 }

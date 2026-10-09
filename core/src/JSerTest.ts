@@ -386,7 +386,10 @@ export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const runRoot =
       `return (async () => {\n` +
       `  const __mmtRawInputs = ${JSON.stringify(rawInputs)};\n` +
-      `  return ${rootFuncName}(resolveInputsMap_(__mmtRawInputs, envVariables));\n` +
+      `  const __mmtResolvedInputs = typeof resolveInputsMapAsync_ === 'function'\n` +
+      `    ? await resolveInputsMapAsync_(__mmtRawInputs, envVariables)\n` +
+      `    : resolveInputsMap_(__mmtRawInputs, envVariables);\n` +
+      `  return ${rootFuncName}(__mmtResolvedInputs);\n` +
       `})();`;
   const full = `${importedFuncs}\n${test}\n${runRoot}`;
   return variableReplacer(full);

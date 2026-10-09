@@ -868,6 +868,12 @@ select.is-invalid {
   text-overflow: ellipsis;
 }
 
+.environment-file-path {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
 .environment-table-value {
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
   color: var(--vscode-symbolIcon-stringForeground, var(--vscode-foreground, #d4d4d4));

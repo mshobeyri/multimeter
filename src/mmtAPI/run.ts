@@ -49,6 +49,16 @@ function findProjectRoot(startPath: string): string | undefined {
   return findProjectRootSync(startPath, fs.existsSync, path.dirname, path.join) ?? findWorkspaceProjectRoot();
 }
 
+function workspaceEnvFilePath(projectRoot?: string): string|undefined {
+  if (!projectRoot) {
+    return undefined;
+  }
+  const envRel = vscode.workspace.getConfiguration('multimeter')
+                     .get<string>('workspaceEnvFile', 'multimeter.mmt') ||
+      'multimeter.mmt';
+  return path.isAbsolute(envRel) ? envRel : path.join(projectRoot, envRel);
+}
+
 let activeSuiteRun:
   {suiteRunId: string; controller: AbortController; panelId: string;}|null =
     null;
@@ -292,6 +302,7 @@ export async function handleRunCurrentDocument(
 
   const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);
+  const envvarFilePath = workspaceEnvFilePath(projectRoot);
   applyNetworkConfig(document.uri.fsPath, envVars, mmtProvider.context);
 
   const controller = new AbortController();
@@ -327,6 +338,7 @@ export async function handleRunCurrentDocument(
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: message?.inputs?.manualInputs || {},
       envvar: envVars,
+      envvarFilePath,
       manualEnvvars: {},
       fileStamp: stampFile,
       fileLoader,
@@ -518,6 +530,7 @@ export async function handleRunSuite(
         exampleIndex: message?.inputs?.exampleIndex,
         manualInputs: {},
         envvar: envVars,
+        envvarFilePath: workspaceEnvFilePath(projectRootLoadTest),
         manualEnvvars: {},
         fileStamp: stampFile,
         fileLoader,
@@ -607,6 +620,15 @@ export async function handleRunSuite(
       return startMockServerFromPath(filePath, mergedEnvVars);
     };
 
+    const suiteEnvFile = typeof bundle.environment?.file === 'string' ?
+        bundle.environment.file.trim() :
+        '';
+    const suiteEnvvarFilePath = suiteEnvFile ?
+        (path.isAbsolute(suiteEnvFile) ?
+             suiteEnvFile :
+             path.resolve(path.dirname(runFilePath), suiteEnvFile)) :
+        workspaceEnvFilePath(projectRootSuite);
+
     const runOutcome = await runner.runFile({
       file: rawSuite,
       fileType: 'raw',
@@ -614,6 +636,7 @@ export async function handleRunSuite(
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: {},
       envvar: mergedEnvVars,
+      envvarFilePath: suiteEnvvarFilePath,
       manualEnvvars: {},
       fileStamp: stampFile,
       fileLoader,

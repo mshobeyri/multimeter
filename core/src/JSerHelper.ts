@@ -51,9 +51,12 @@ export const toInputsParams =
     (inputs: Record<string, JSONValue>, operator: string,
      knownInputNames?: ReadonlySet<string>) => {
       const source = inputs ?? {};
-      const tokenOptions: JsTokenGenOptions|undefined = knownInputNames ?
-          {knownInputNames} :
-          undefined;
+      // Parameter defaults cannot use `await`; root wrappers resolve e: via
+      // resolveInputsMapAsync before calling.
+      const tokenOptions: JsTokenGenOptions = {
+        awaitEnv: false,
+        ...(knownInputNames ? {knownInputNames} : {}),
+      };
       const formattedInputs =
           orderInputKeysForDefaults(source)
               .map(key => {

@@ -526,11 +526,11 @@ describe('env token replacements in generated JS', () => {
        };
        const js = await rootTestToJsfunc(ctx);
        expect(js).toContain('<e:FOO>');
-       expect(js).toContain('${mmtEnv_("BAR")}');
-       expect(js).toContain('${mmtEnv_("BAZ")}');
+       expect(js).toContain('${(await mmtEnv_("BAR"))}');
+       expect(js).toContain('${(await mmtEnv_("BAZ"))}');
        expect(js).toContain('e:{QUX}');
-       expect(js).not.toContain('${mmtEnv_("FOO")}');
-       expect(js).not.toContain('${mmtEnv_("QUX")}');
+       expect(js).not.toContain('${(await mmtEnv_("FOO"))}');
+       expect(js).not.toContain('${(await mmtEnv_("QUX"))}');
      });
 
   it('resolves r: and c: tokens in print and call titles', async () => {
@@ -551,7 +551,7 @@ describe('env token replacements in generated JS', () => {
     expect(js).toContain("${mmtCurrent_('time')}");
   });
 
-  it('replaces tokens outside template literals as plain envVariables access',
+  it('replaces tokens outside template literals with await mmtEnv_ lookup',
      async () => {
        const ctx: TestContext = {
          name: 'envOutsideTest',
@@ -563,7 +563,7 @@ describe('env token replacements in generated JS', () => {
          envVars: {}
        };
        const js = await rootTestToJsfunc(ctx);
-       expect(js).toContain('i < envVariables.LIMIT');
+       expect(js).toContain('(await mmtEnv_("LIMIT", null, \'lookup\'))');
      });
 
   it('variableReplacer works on raw JS strings inside and outside template literals',
@@ -573,10 +573,10 @@ describe('env token replacements in generated JS', () => {
          'console.log(`X=<e:FOO> Y=<<e:BAR>> Z=e:BAZ W=e:{QUX}`);'
        ].join('\n');
        const out = variableReplacer(input);
-       expect(out).toContain('const a = envVariables.AAA;');
+       expect(out).toContain('const a = (await mmtEnv_("AAA", null, \'lookup\'));');
        expect(out).toContain('const b = e:{BBB};');
        expect(out).toContain(
-           '`X=<e:FOO> Y=${mmtEnv_("BAR")} Z=${mmtEnv_("BAZ")} W=e:{QUX}`');
+           '`X=<e:FOO> Y=${(await mmtEnv_("BAR"))} Z=${(await mmtEnv_("BAZ"))} W=e:{QUX}`');
      });
 
   it('leaves quoted token text alone in strings and templates', () => {
@@ -594,8 +594,8 @@ describe('env token replacements in generated JS', () => {
     expect(out).toContain('`&lt;&lt;e:HOST&gt;&gt;`');
     expect(out).toContain('"age":"<<e:HOST>>"');
     expect(out).toContain('<quoted_curly>{{c:day}}</quoted_curly>');
-    expect(out).not.toContain('mmtEnv_("HOST")');
-    expect(out).toContain('${mmtEnv_("FOO")}');
+    expect(out).not.toContain('(await mmtEnv_("HOST"))');
+    expect(out).toContain('${(await mmtEnv_("FOO"))}');
   });
 
   it('does not double-wrap pre-existing ${envVariables.VAR} inside template literals',
@@ -615,7 +615,7 @@ describe('env token replacements in generated JS', () => {
        const input = 'const u = `http://${envVariables.HOST}:e:PORT/path`;';
        const out = variableReplacer(input);
        expect(out).toContain('${envVariables.HOST}');
-       expect(out).toContain('${mmtEnv_("PORT")}');
+       expect(out).toContain('${(await mmtEnv_("PORT"))}');
        expect(out).not.toContain('${${');
      });
 
@@ -623,7 +623,7 @@ describe('env token replacements in generated JS', () => {
      () => {
        const input = 'const s = `value=<<e:FOO>>`;';
        const out = variableReplacer(input);
-       expect(out).toContain('${mmtEnv_("FOO")}');
+       expect(out).toContain('${(await mmtEnv_("FOO"))}');
        expect(out).not.toContain('${${');
      });
 
@@ -631,7 +631,7 @@ describe('env token replacements in generated JS', () => {
     const input = 'const x = `${someVar} and e:NAME`;';
     const out = variableReplacer(input);
     expect(out).toContain('${someVar}');
-    expect(out).toContain('${mmtEnv_("NAME")}');
+    expect(out).toContain('${(await mmtEnv_("NAME"))}');
     expect(out).not.toContain('${${');
   });
 
@@ -650,24 +650,26 @@ describe('env token replacements in generated JS', () => {
       'const b = `X=<<e:FOO[0]>> Y=<<e:BAR[0:2]>>`;'
     ].join('\n');
     const out = variableReplacer(input);
-    expect(out).toContain('const a = mmtAccess_(envVariables.AAA, "[0:1]");');
-    expect(out).toContain('${mmtEnv_("FOO", "[0]")}');
-    expect(out).toContain('${mmtEnv_("BAR", "[0:2]")}');
+    expect(out).toContain('(await mmtEnv_("AAA", "[0:1]", \'lookup\'))');
+    expect(out).toContain('${(await mmtEnv_("FOO", "[0]"))}');
+    expect(out).toContain('${(await mmtEnv_("BAR", "[0:2]"))}');
   });
 });
 
 describe('toInputsParams env token handling', () => {
-  it('converts e:VAR input default to envVariables reference', () => {
+  it('converts e:VAR input default to sync mmtEnv_ (no await in defaults)', () => {
     const {toInputsParams} = require('./JSerHelper');
     const result = toInputsParams({ host: 'e:HOST' }, '=');
     expect(result).toContain('mmtEnv_("HOST")');
+    expect(result).not.toContain('await mmtEnv_');
     expect(result).not.toContain('e:HOST');
   });
 
-  it('converts <<e:VAR>> partial input to template with ${envVariables.VAR}', () => {
+  it('converts <<e:VAR>> partial input to template with sync mmtEnv_', () => {
     const {toInputsParams} = require('./JSerHelper');
     const result = toInputsParams({ url: 'http://<<e:HOST>>/path' }, '=');
     expect(result).toContain('${mmtEnv_("HOST")}');
+    expect(result).not.toContain('await mmtEnv_');
     expect(result).not.toContain('${${');
   });
 
@@ -700,7 +702,7 @@ describe('interdependent input defaults', () => {
       envVars: {card: '4111111111111111', seq: '42'},
     });
     expect(js).not.toContain('const envVariables =');
-    expect(js).toContain('resolveInputsMap_(__mmtRawInputs, envVariables)');
+    expect(js).toContain('resolveInputsMapAsync_(__mmtRawInputs, envVariables)');
     expect(js).toContain('"card":"e:card"');
     expect(js).toContain('"seq":"e:seq"');
     expect(js).toContain('"short":"<<i:card[0:4]>>"');
@@ -725,7 +727,7 @@ describe('interdependent input defaults', () => {
       inputs: {card: '9999000011112222', seq: '7'},
       envVars: {card: '4111111111111111', seq: '42'},
     });
-    expect(js).toContain('resolveInputsMap_(__mmtRawInputs, envVariables)');
+    expect(js).toContain('resolveInputsMapAsync_(__mmtRawInputs, envVariables)');
     expect(js).toContain('"card":"9999000011112222"');
     expect(js).toContain('"seq":"7"');
     expect(js).toContain('"id":"<<i:card>>_<<i:seq>>"');
@@ -1204,7 +1206,7 @@ describe('rootTestToJsfunc + import tracker', () => {
 
     // Process store binds envVariables at runtime; codegen must not embed it.
     expect(js).not.toContain('const envVariables =');
-    expect(js).toContain('resolveInputsMap_(__mmtRawInputs, envVariables)');
+    expect(js).toContain('resolveInputsMapAsync_(__mmtRawInputs, envVariables)');
     expect(js).toContain('const testflow_ = async');
     expect(js).toContain('kxxx = txxx_;');
   });
@@ -1268,7 +1270,7 @@ Authorization: Bearer {{token}}
     expect(js).toContain('setenv_({ "token"');
     expect(js).toContain('request_1');
     expect(js).toContain('Bearer');
-    expect(js).toContain('mmtEnv_("token")');
+    expect(js).toContain('(await mmtEnv_("token"))');
   });
 
   it('converts imported .bru files into callable test functions', async () => {
@@ -2297,7 +2299,7 @@ describe('body inputs numeric/boolean templating', () => {
         any;
     const js = await apiToJSfunc(ctx);
     // url should interpolate env without double wrapping (now uses __resolvedUrl)
-    expect(js).toContain('__resolvedUrl = `http://${mmtEnv_("HOST")}/login`');
+    expect(js).toContain('__resolvedUrl = `http://${(await mmtEnv_("HOST"))}/login`');
     expect(js).toContain('url: __resolvedUrl');
     // numbers and booleans should be passed via var)
     expect(js).toContain('"pass":${password}');
@@ -2530,8 +2532,8 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  user: e:USERNAME',
       '  short: <<e:USERNAME[0:3]>>',
     ]);
-    expect(js).toContain('encodeURIComponent(String(mmtEnv_("USERNAME") ?? \'\'))');
-    expect(js).toContain('mmtEnv_("USERNAME", "[0:3]")');
+    expect(js).toContain('encodeURIComponent(String((await mmtEnv_("USERNAME")) ?? \'\'))');
+    expect(js).toContain('(await mmtEnv_("USERNAME", "[0:3]"))');
     expect(js).not.toMatch(/e%3AUSERNAME/i);
   });
 
@@ -2579,9 +2581,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       'body:',
       '  path: /tenants/<<e:TENANT>>/users/<<i:id>>/<<e:TENANT[0]>>',
     ]);
-    expect(js).toContain('encodeURIComponent(String(mmtEnv_("TENANT") ?? \'\'))');
+    expect(js).toContain('encodeURIComponent(String((await mmtEnv_("TENANT")) ?? \'\'))');
     expect(js).toContain("encodeURIComponent(String(id ?? ''))");
-    expect(js).toContain('mmtEnv_("TENANT", "[0]")');
+    expect(js).toContain('(await mmtEnv_("TENANT", "[0]"))');
     expect(js).not.toMatch(/%24%7B|e%3ATENANT/i);
   });
 
@@ -2652,9 +2654,9 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       inputs: {},
       envVars: {},
     });
-    expect(js).toContain('JSON.stringify(mmtEnv_("count"))');
-    expect(js).toContain('JSON.stringify(mmtEnv_("ok"))');
-    expect(js).toContain('hello ${mmtEnv_("count")}');
+    expect(js).toContain('JSON.stringify((await mmtEnv_("count")))');
+    expect(js).toContain('JSON.stringify((await mmtEnv_("ok")))');
+    expect(js).toContain('hello ${(await mmtEnv_("count"))}');
     expect(js).not.toContain('\\"n\\":"${mmtEnv_');
     expect(js).not.toContain('\\"flag\\":"${mmtEnv_');
 
@@ -2729,7 +2731,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  user: e:USERNAME',
     ]);
     expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
-    expect(js).toContain('JSON.stringify(mmtEnv_("USERNAME"))');
+    expect(js).toContain('JSON.stringify((await mmtEnv_("USERNAME")))');
     expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 
@@ -2747,7 +2749,7 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '    user: <<e:USERNAME>>',
     ]);
     expect(js).toContain("mmtAccess_(xxx, '[1:2]')");
-    expect(js).toContain('${mmtEnv_("USERNAME")}');
+    expect(js).toContain('${(await mmtEnv_("USERNAME"))}');
     expect(js).not.toContain('encodeURIComponent(String(mmtAccess_');
   });
 });
@@ -2776,9 +2778,9 @@ describe('urlencoded tokens through multilevel imports', () => {
     expect(js).toContain("mmtAccess_(token, '[1:2]')");
     expect(js).not.toContain("mmtAccess_(token,+'[1:2]')");
     expect(js).toContain("encodeURIComponent(String(mmtAccess_(token, '[1:2]') ?? ''))");
-    expect(js).toContain('encodeURIComponent(String(mmtEnv_("USERNAME") ?? \'\'))');
-    expect(js).toContain('mmtEnv_("USERNAME", "[0:3]")');
-    expect(js).toContain('encodeURIComponent(String(mmtEnv_("TENANT") ?? \'\'))');
+    expect(js).toContain('encodeURIComponent(String((await mmtEnv_("USERNAME")) ?? \'\'))');
+    expect(js).toContain('(await mmtEnv_("USERNAME", "[0:3]"))');
+    expect(js).toContain('encodeURIComponent(String((await mmtEnv_("TENANT")) ?? \'\'))');
     expect(js).toContain("mmtAccess_(token, '[0]')");
     expect(js).not.toMatch(/%24%7B|e%3AUSERNAME|e%3ATENANT|e%3AAUTH_TOKEN/i);
   }
@@ -2900,7 +2902,8 @@ describe('urlencoded tokens through multilevel imports', () => {
     expect(bundle).toContain('const form = form_');
     expectUrlencodedTokenJs(bundle);
     // Call-site override still references env at the leaf test layer
-    expect(bundle).toContain('mmtEnv_("OVERRIDE_TOKEN")');
+    expect(bundle).toMatch(/OVERRIDE_TOKEN/);
+    expect(bundle).toMatch(/mmtEnv_\("OVERRIDE_TOKEN"\)/);
   });
 });
 
@@ -3065,7 +3068,7 @@ describe('API query handling', () => {
     const js = await apiToJSfunc(ctx);
     expect(js).toContain('query: {');
     expect(js).toContain('"page": `${page}`');
-    expect(js).toContain('"locale": mmtEnv_("LOCALE")');
+    expect(js).toContain('"locale": (await mmtEnv_("LOCALE"))');
   });
 
   it('injects timeout into generated request objects', async () => {
@@ -3163,8 +3166,10 @@ describe('input defaults with e: references', () => {
     const ctx: APIContext =
         {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
     const js = await apiToJSfunc(ctx);
-    // The default value for xxx should reference the env at runtime, not literal 'e:test'
+    // Parameter defaults stay sync (no await); root resolveInputsMapAsync
+    // materializes file-backed getters before the call.
     expect(js).toContain('mmtEnv_("test")');
+    expect(js).not.toContain('await mmtEnv_("test")');
     // Should NOT contain literal 'e:test' as a default value
     expect(js).not.toMatch(/xxx\s*=\s*`e:test`/);
   });
@@ -3180,8 +3185,9 @@ describe('input defaults with e: references', () => {
       envVars: {}
     };
     const js = await testToJsfunc(ctx, true);
-    // The default should read the env at runtime.
+    // Parameter defaults stay sync (no await).
     expect(js).toContain('mmtEnv_("USERNAME")');
+    expect(js).not.toContain('await mmtEnv_("USERNAME")');
     expect(js).not.toMatch(/user\s*=\s*`e:USERNAME`/);
   });
 
@@ -3463,7 +3469,8 @@ describe('same-name file imports', () => {
     expect(js).toContain('const omit_keyword_ = async');
     expect(js).toContain('const omit_keyword_1_ = async');
     expect(js).toContain('const profile = omit_keyword_');
-    expect(js).toContain('return omit_keyword_1_(resolveInputsMap_(__mmtRawInputs, envVariables));');
+    expect(js).toContain('resolveInputsMapAsync_(__mmtRawInputs, envVariables)');
+    expect(js).toContain('return omit_keyword_1_(__mmtResolvedInputs);');
     expect(js.match(/const omit_keyword_ = async/g)?.length).toBe(1);
     expect(js.match(/const omit_keyword_1_ = async/g)?.length).toBe(1);
   });
@@ -3581,7 +3588,7 @@ describe('auth field (apiToJSfunc)', () => {
       name: 'myApi', inputs: {}, envVars: {},
     };
     const js = await apiToJSfunc(ctx);
-    expect(js).toContain('mmtEnv_("token")');
+    expect(js).toContain('(await mmtEnv_("token"))');
   });
 });
 

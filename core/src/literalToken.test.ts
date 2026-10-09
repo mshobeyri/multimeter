@@ -196,7 +196,7 @@ body:
     const js = await apiToJSfunc({
       api: resent, name: 'echo', inputs: {}, envVars: {},
     });
-    expect(js).toContain('JSON.stringify(mmtEnv_("xxx"))');
+    expect(js).toContain('JSON.stringify((await mmtEnv_("xxx")))');
     expect(js).toContain('"missingi":"i:xxx"');
     expect(js).toContain("JSON.stringify(mmtRandom_('xxx'))");
     expect(js).toContain("JSON.stringify(mmtCurrent_('xxx'))");

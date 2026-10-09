@@ -159,6 +159,15 @@ export interface RunFileOptions {
    */
   envStore?: EnvStore;
   /**
+   * Path of the env file that produced `envvar` (for resolving `./…mmt`
+   * file-backed variable values).
+   */
+  envvarFilePath?: string;
+  /**
+   * Internal: this `runFile` is resolving a file-backed env value.
+   */
+  __mmtEnvValueRun?: boolean;
+  /**
    * Specifies whether `file` contains raw content or a filesystem path.
    */
   fileType: 'raw'|'path';

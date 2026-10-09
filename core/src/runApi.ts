@@ -333,7 +333,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    if (__mmt_exampleLabel) {\n` +
       `      console.log('Running ' + __mmt_exampleLabel);\n` +
       `    }\n` +
-      `    if (typeof resolveInputsMap_ === 'function') {\n` +
+      `    if (typeof resolveInputsMapAsync_ === 'function') {\n` +
+      `      __mmt_inputs = await resolveInputsMapAsync_(__mmt_inputs, __mmt_envVars);\n` +
+      `    } else if (typeof resolveInputsMap_ === 'function') {\n` +
       `      __mmt_inputs = resolveInputsMap_(__mmt_inputs, __mmt_envVars);\n` +
       `    }\n` +
       `    const __mmt_hasEnv = Object.keys(__mmt_envVars || {}).length > 0;\n` +

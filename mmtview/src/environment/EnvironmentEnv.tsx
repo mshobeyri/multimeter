@@ -5,6 +5,7 @@ import { safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
 import { yamlValueToInputBox } from "mmt-core/yamlValueConvert";
 import { loadCertificateSettings, saveCertificateSettings } from "../workspaceStorage";
+import { EnvFilePathValue, isEnvFilePathDisplayValue } from "./envFilePathDisplay";
 
 interface EnvironmentEnvProps {
     variables: ComboTablePair[];
@@ -90,6 +91,13 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
         return yamlValueToInputBox(value);
     };
 
+    const renderValue = (value: JSONValue | undefined): React.ReactNode => {
+        if (isEnvFilePathDisplayValue(value)) {
+            return <EnvFilePathValue value={value} />;
+        }
+        return formatValue(value);
+    };
+
     const handleSelectChange = (name: string, label: string) => {
         const variable = variables.find(v => v.name === name);
         if (!variable) {
@@ -152,8 +160,8 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                                 )}
                                             </select>
                                         </td>
-                                        <td className="environment-table-value">{formatValue(pair.value?.value)}</td>
-                                        <td className="environment-table-value">{formatValue(current?.value)}</td>
+                                        <td className="environment-table-value">{renderValue(pair.value?.value)}</td>
+                                        <td className="environment-table-value">{renderValue(current?.value)}</td>
                                     </tr>
                                 );
                             })}

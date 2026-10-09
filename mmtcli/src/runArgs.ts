@@ -339,6 +339,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
   }
 
   let envvar: Record<string, any>|undefined = undefined;
+  let envvarFilePath: string|undefined = undefined;
   let networkConfig: NetworkConfig|undefined = undefined;
   const envFileOpt = opts.envFile as string | undefined;
   const presetNames = normalizePresetNames(opts.preset as string | string[] | undefined);
@@ -360,6 +361,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     let p = envFileOpt ? String(envFileOpt) : String(autoEnvFile);
     p = resolveUserPathPreferExisting(p, [process.cwd(), dir], path);
     envFileDir = path.dirname(p);
+    envvarFilePath = p;
     const doc = await loadEnvDoc(p, findProjectRootForCli(p) || undefined);
     const defaultEnv = resolveDefaultEnvVariables(doc.variables);
     const presetEnv = resolvePresetsEnv(doc, presetNames);
@@ -435,6 +437,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     exampleName: exampleNameOpt,
     manualInputs,
     envvar,
+    envvarFilePath,
     manualEnvvars,
     fileLoader: async (p: string) => {
       const rel = resolveCliFilePath(p);
