@@ -644,9 +644,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 reportPatches[targetId] = [];
             }
             reportPatches[targetId].push(normalized);
-            if (normalized.status === 'failed') {
-                runStatePatches[targetId] = 'failed';
-            }
         });
 
         setLastRunIdByEntryId(prev => {

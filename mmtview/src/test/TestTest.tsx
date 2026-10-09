@@ -308,10 +308,8 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                     cached: (message as any).cached === true ? true : undefined,
                 };
                 appendReport(normalized);
-                if (normalized.status === 'failed') {
-                    setRunState('failed');
-                }
-                // Update running duration on every step so it's never stale
+                // Update running duration on every step so it's never stale.
+                // Do not end runState here — checks can fail and still continue.
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
                 }
