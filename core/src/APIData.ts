@@ -136,6 +136,11 @@ export interface APIData extends MMTFile {
   tags?: string[];
   inputs?: JSONRecord;
   outputs?: Record<string, string>;
+  /**
+   * Optional reuse window for file-backed env values (`e:name` → `./this.mmt`)
+   * and similar callers that read `cache:` from the YAML. Not used by API Send.
+   */
+  cache?: string|number;
   /** Env var name → extraction expression (same DSL as outputs). Legacy: output key name. */
   setenv?: JSONRecord;
   url: string;

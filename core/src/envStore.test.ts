@@ -71,6 +71,9 @@ describe('envStore', () => {
         )).toBe(1);
     expect(firstEnvFileOutput({_: {status: 200}, session: 'x'}, ['session']))
         .toBe('x');
+    expect(firstEnvFileOutput(
+        {session: '__MMT_OMIT__', next: 'ok'}, ['session', 'next']))
+        .toBe('ok');
     expect(firstEnvFileOutput({})).toBe(null);
   });
 

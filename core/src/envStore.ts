@@ -1,5 +1,6 @@
 import {resolveRequestedAgainst} from './fileHelper';
 import {parseCacheExpiryAtMs} from './JSerHelper';
+import {isOmitSentinel} from './omitKeyword';
 import {applyValueAccessor} from './variableReplacer';
 
 /**
@@ -73,10 +74,11 @@ export function firstEnvFileOutput(
     if (!Object.prototype.hasOwnProperty.call(outputs, key)) {
       continue;
     }
-    if (typeof outputs[key] === 'undefined') {
+    const value = outputs[key];
+    if (typeof value === 'undefined' || value === null || isOmitSentinel(value)) {
       continue;
     }
-    return outputs[key];
+    return value;
   }
   return null;
 }

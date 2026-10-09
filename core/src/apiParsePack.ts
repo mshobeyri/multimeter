@@ -29,6 +29,8 @@ import {coerceYamlString} from './yamlIncompleteScalar';
 /** Valid root-level keys for type: api files. */
 const VALID_API_ROOT_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'setenv',
+  // `cache:` is honored by file-backed env getters (and ignored by API send).
+  'cache',
   'url', 'query', 'protocol', 'format', 'method', 'timeout', 'headers', 'cookies',
   'body', 'auth', 'graphql', 'grpc', 'examples',
 ]);

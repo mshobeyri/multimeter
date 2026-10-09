@@ -44,7 +44,8 @@ Notes
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern
 - A string that starts with `./` and ends with `.mmt` is a **file-backed** value.
   At run start it becomes a getter in the process env store. Each `e:name` read
-  runs that file (default inputs) and uses the **first key** declared under its
+  runs that file via the normal runner (any type with `outputs:` — typically
+  `api` or `test`, default inputs) and uses the **first key** declared under its
   `outputs:` (YAML order). The target file’s `cache:` controls reuse. A later
   `setenv` of `./x.mmt` stays a plain path string — only the original env copy
   converts paths to getters. The environment panel shows the path underlined;
