@@ -863,10 +863,10 @@ select.is-invalid {
   max-width: min(480px, 80vw);
   max-height: min(200px, 40vh);
   padding: 4px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 3px;
-  background: #000;
-  color: #e6e6e6;
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-widget-border, #454545));
+  border-radius: var(--mmt-control-radius, 4px);
+  background: var(--vscode-editorWidget-background, var(--vscode-editorHoverWidget-background, #252526));
+  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground, #cccccc));
   font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 11px;
   line-height: 1.35;
@@ -874,7 +874,7 @@ select.is-invalid {
   overflow-wrap: anywhere;
   overflow: auto;
   pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--vscode-widget-shadow, #000) 35%, transparent);
 }
 
 

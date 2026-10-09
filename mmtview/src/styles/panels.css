@@ -68,7 +68,7 @@
   position: relative;
 }
 
-/* Dimmed YAML error report: black boxes top-down, actions under last error. */
+/* Dimmed YAML error report: theme error panels top-down, actions under last error. */
 .mmt-yaml-error-dim {
   position: absolute;
   inset: 0;
@@ -115,10 +115,23 @@
   width: 100%;
   box-sizing: border-box;
   padding: 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  background: #000;
-  color: #e6e6e6;
+  border: 1px solid var(
+    --vscode-inputValidation-errorBorder,
+    color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 45%, transparent)
+  );
+  border-radius: var(--mmt-control-radius, 4px);
+  background: var(
+    --vscode-inputValidation-errorBackground,
+    color-mix(
+      in srgb,
+      var(--vscode-errorForeground, #f14c4c) 14%,
+      var(--vscode-editorWidget-background, var(--vscode-editor-background, #1e1e1e)) 86%
+    )
+  );
+  color: var(
+    --vscode-inputValidation-errorForeground,
+    var(--vscode-foreground, #cccccc)
+  );
   font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 12px;
   line-height: 1.45;
@@ -127,8 +140,11 @@
 }
 
 .mmt-yaml-error-dim-item:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  border-color: var(
+    --vscode-focusBorder,
+    var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground, #f14c4c))
+  );
+  color: var(--vscode-foreground, #ffffff);
 }
 
 .mmt-yaml-error-dim-item-title {
