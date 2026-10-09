@@ -93,22 +93,23 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
     }
   };
 
-  let rightPadding = 8;
-  if (showFilePicker) { rightPadding += 28; }
-  if (removable) { rightPadding += 28; }
-
   const inputClassName = ['file-picker-input', invalid ? 'mmt-line-error' : ''].filter(Boolean).join(' ');
   const kvAttr = kvField ? { [KV_FIELD_ATTR]: kvField } as Record<string, string> : undefined;
+  const wrapClass = [
+    'field-with-remove',
+    disabled ? 'is-disabled' : '',
+    showFilePicker ? 'has-picker' : '',
+    removable ? 'has-remove' : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
+    <div className={wrapClass}>
       {canContainToken && !disabled ? (
         <TokenFieldInput
           value={value}
           canContainToken
           valueContext={valueContext}
           placeholder={placeholder}
-          style={{ paddingRight: rightPadding }}
           className={inputClassName}
           title={value}
           {...kvAttr}
@@ -135,7 +136,6 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
               onEnterPressed && onEnterPressed((e.target as HTMLInputElement).value);
             }
           }}
-          style={{ paddingRight: rightPadding }}
           className={inputClassName}
           title={value}
           {...kvAttr}
@@ -153,8 +153,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
               : 'Open file picker'
           }
           aria-label="Open file picker"
-          className="field-button"
-          style={{ right: removable ? 32 : 4 }}
+          className="field-button is-picker"
         >
           <span className="action-button codicon codicon-folder-opened" />
         </button>
@@ -167,7 +166,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           disabled={disabled}
           title="Remove"
           aria-label="Remove"
-          className="field-button"
+          className="field-button is-remove"
         >
           <span className="action-button codicon codicon-close" />
         </button>

@@ -100,21 +100,38 @@
             background-color: rgba(255, 255, 255, 0.03);
         }
 
-        .env-table th {
+        .env-table th,
+        .env-table td {
             text-align: left;
+            padding: 2px 4px;
+            border: none;
+            vertical-align: middle;
+            overflow: hidden;
+        }
+
+        .env-table th:first-child,
+        .env-table td:first-child {
+            padding-left: var(--cell-padding-x);
+        }
+
+        .env-table th:last-child,
+        .env-table td:last-child {
+            padding-right: var(--cell-padding-x);
+        }
+
+        .env-table tbody tr:first-child td {
+            padding-top: 8px;
+        }
+
+        .env-table tbody tr:last-child td {
+            padding-bottom: 8px;
+        }
+
+        .env-table th {
             font-size: var(--table-header-font-size);
             color: var(--description-foreground);
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            padding: 6px var(--cell-padding-x);
-            border-bottom: 1px solid var(--panel-border);
-        }
-
-        .env-table td {
-            padding: 6px var(--cell-padding-x);
-            border-bottom: 1px solid var(--panel-border);
-            vertical-align: middle;
-            overflow: hidden;
         }
 
         /* Fixed share of width so long values / empty rows do not reflow columns. */
@@ -128,10 +145,6 @@
 
         .env-col-value {
             width: auto;
-        }
-
-        .env-table tr:last-child td {
-            border-bottom: none;
         }
 
         .env-name {
@@ -217,12 +230,19 @@
             border: none;
             padding: 0;
             margin: 0;
+            gap: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0.8;
+            opacity: 1;
             color: inherit;
+        }
+
+        .env-value-wrap .field-button .codicon {
             font-size: 16px;
+            line-height: 1;
         }
 
         .env-value-wrap .field-button:hover .action-button {

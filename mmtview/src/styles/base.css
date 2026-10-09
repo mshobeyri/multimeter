@@ -937,6 +937,25 @@ button:focus {
   opacity: 0.9;
 }
 
+/* Nested action-button / codicon must not keep toolbar padding or the icon
+   sits off-center inside the 28×24 hit target. */
+.field-button .action-button {
+  padding: 0;
+  margin: 0;
+  gap: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  line-height: 1;
+}
+
+.field-button .codicon {
+  font-size: 16px;
+  line-height: 1;
+  display: block;
+}
+
 .field-button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -1404,14 +1423,14 @@ button:focus {
 }
 
 .combo-table .combo-name {
-  padding: 8px;
+  padding: 2px 4px 2px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .combo-table .combo-value {
-  padding: 8px;
+  padding: 2px 0 2px 4px;
 }
 
 .if-join {

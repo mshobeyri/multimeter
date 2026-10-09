@@ -437,6 +437,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
               onRemovePressed={() => handleRemoveExport(i)}
               basePath={fileContext.mmtFilePath}
               placeholder="e.g., reports/load.html or +/reports/load.mmt"
+              showFilePicker
               removable
             />
           ))}

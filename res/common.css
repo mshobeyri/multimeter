@@ -377,11 +377,13 @@ input[type="checkbox"]:focus-visible {
   table-layout: fixed;
 }
 
+.table th,
 .table td {
-  padding: 8px;
-  border-bottom: 1px solid var(--panel-border);
-  vertical-align: top;
+  padding: 2px 4px;
+  border: none;
+  vertical-align: middle;
 }
+
 
 .table .label-cell {
   width: 120px;

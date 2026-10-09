@@ -95,7 +95,18 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
         if (isEnvFilePathDisplayValue(value)) {
             return <EnvFilePathValue value={value} />;
         }
-        return formatValue(value);
+        const text = formatValue(value);
+        return (
+            <input
+                type="text"
+                className="mmt-fill environment-readonly-value"
+                value={text}
+                readOnly
+                title={text || undefined}
+                tabIndex={-1}
+                onFocus={event => event.currentTarget.select()}
+            />
+        );
     };
 
     const handleSelectChange = (name: string, label: string) => {

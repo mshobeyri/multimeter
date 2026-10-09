@@ -44,6 +44,8 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
             onRemovePressed={() => update({ logo: '' })}
             basePath={fileCtx?.mmtFilePath}
             filters={[{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'] }]}
+            showFilePicker
+            removable
           />
         </div>
       </div>

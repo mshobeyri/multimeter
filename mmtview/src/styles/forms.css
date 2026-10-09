@@ -9,7 +9,7 @@
 }
 
 .field-pad {
-  padding: 5px;
+  padding: 2px 0;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -41,9 +41,26 @@
 
 .field-table td {
   width: 50%;
-  padding: 5px;
-  vertical-align: top;
+  /* Match header key/value density: tight gap between columns and rows. */
+  padding: 2px 4px;
+  vertical-align: middle;
   box-sizing: border-box;
+}
+
+.field-table td:first-child {
+  padding-left: 0;
+}
+
+.field-table td:last-child {
+  padding-right: 0;
+}
+
+.field-table tbody tr:first-child td {
+  padding-top: 4px;
+}
+
+.field-table tbody tr:last-child td {
+  padding-bottom: 4px;
 }
 
 .field-table input {
@@ -160,6 +177,8 @@
 
 .field-with-remove {
   position: relative;
+  display: flex;
+  align-items: center;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -171,7 +190,7 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  vertical-align: top;
+  min-width: 0;
 }
 
 .field-with-remove.is-disabled > input {
@@ -185,12 +204,24 @@
   transform: translateY(-50%);
 }
 
+.field-with-remove.has-remove .field-button.is-picker,
+.field-with-remove.has-remove .field-button.is-open,
 .field-with-remove.has-remove .field-button.is-copy {
-  right: 36px;
+  right: 32px;
 }
 
-.field-with-remove .action-button {
-  font-size: 16px;
+/* Keep top/bottom padding so text stays vertically centered (do not set
+   padding-right alone — that can leave text sitting high in the control). */
+.field-with-remove.has-picker > input,
+.field-with-remove.has-open > input,
+.field-with-remove.has-picker .token-field .token-field-input {
+  padding: 5px 36px 5px 8px;
+}
+
+.field-with-remove.has-picker.has-remove > input,
+.field-with-remove.has-open.has-remove > input,
+.field-with-remove.has-picker.has-remove .token-field .token-field-input {
+  padding: 5px 64px 5px 8px;
 }
 
 /* Type chip inside the input, end-right (left of X / picker / copy). */
@@ -851,14 +882,29 @@ select.is-invalid {
 
 .environment-table th,
 .environment-table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--vscode-editorWidget-border, #333);
+  padding: 2px 4px;
+  border: none;
   text-align: left;
   vertical-align: middle;
 }
 
+.environment-table th:first-child,
+.environment-table td:first-child {
+  padding-left: 8px;
+}
+
+.environment-table th:last-child,
+.environment-table td:last-child {
+  padding-right: 8px;
+}
+
+/* Breathing room under the header and above the table frame — not between rows. */
+.environment-table tbody tr:first-child td {
+  padding-top: 8px;
+}
+
 .environment-table tbody tr:last-child td {
-  border-bottom: none;
+  padding-bottom: 8px;
 }
 
 .environment-table-name {
@@ -871,19 +917,33 @@ select.is-invalid {
 .environment-file-path-field {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
 }
 
 .environment-file-path-field .file-picker-input {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
   color: var(--vscode-symbolIcon-stringForeground, var(--vscode-foreground, #d4d4d4));
 }
 
 .environment-table-value {
+  min-width: 0;
+  overflow: visible;
+}
+
+.environment-readonly-value {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
   color: var(--vscode-symbolIcon-stringForeground, var(--vscode-foreground, #d4d4d4));
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
 }
 
 .environment-table-empty {

@@ -665,6 +665,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
               onRemovePressed={() => handleRemoveExport(i)}
               basePath={fileContext.mmtFilePath}
               placeholder="e.g., reports/results.html or +/report.xml"
+              showFilePicker
               removable
             />
           ))}

@@ -14,20 +14,19 @@ export function isEnvFilePathDisplayValue(value: unknown): value is string {
 export const EnvFilePathValue: React.FC<{ value: string }> = ({ value }) => {
   const path = value.trim();
   return (
-    <div className="field-with-remove environment-file-path-field">
+    <div className="field-with-remove has-open environment-file-path-field">
       <input
         type="text"
         className="file-picker-input"
         value={path}
         readOnly
         title={path}
-        style={{ paddingRight: 36 }}
         onFocus={event => event.currentTarget.select()}
       />
       <button
         type="button"
         tabIndex={-1}
-        className="field-button"
+        className="field-button is-open"
         title="Open file"
         aria-label="Open file"
         onClick={() => openRelativeFile(path)}
