@@ -84,4 +84,19 @@ describe('envStore', () => {
       n: 1,
     });
   });
+
+  it('concurrent getter calls share one runEnvFile instead of returning null',
+     async () => {
+       const store = createEnvStore({session: './a.mmt'});
+       let runs = 0;
+       store.runEnvFile = async () => {
+         runs += 1;
+         await new Promise(r => setTimeout(r, 20));
+         return {outputs: {session: 'shared'}, outputKeys: ['session'], cache: '1h'};
+       };
+       const getter = store.values.session as () => Promise<any>;
+       const [a, b, c] = await Promise.all([getter(), getter(), getter()]);
+       expect([a, b, c]).toEqual(['shared', 'shared', 'shared']);
+       expect(runs).toBe(1);
+     });
 });

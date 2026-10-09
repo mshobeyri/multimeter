@@ -85,15 +85,20 @@ export function firstEnvFileOutput(
 
 function makeEnvFileGetter(store: EnvStore, rawPath: string): () => Promise<any> {
   let cached: {value: any; expiresAt: number}|undefined;
-  let resolving = false;
+  /**
+   * Parallel suite items / simultaneous `e:` reads share one run. A boolean
+   * `resolving` flag used to return `null` for the second caller — wrong.
+   * Cycle A→e:A is exotic; prefer sharing over nulling concurrent readers.
+   */
+  let inFlight: Promise<any>|undefined;
   const path = rawPath.trim();
   const getter = async () => {
     const now = Date.now();
     if (cached && now < cached.expiresAt) {
       return cached.value;
     }
-    if (resolving) {
-      return null;
+    if (inFlight) {
+      return inFlight;
     }
     const runner = store.runEnvFile;
     if (typeof runner !== 'function') {
@@ -101,21 +106,23 @@ function makeEnvFileGetter(store: EnvStore, rawPath: string): () => Promise<any>
     }
     const resolvedPath =
         store.resolveFilePath ? store.resolveFilePath(path) : path;
-    resolving = true;
-    try {
-      const result = await runner(resolvedPath);
-      const value = firstEnvFileOutput(result?.outputs, result?.outputKeys);
-      const expiresAt = parseCacheExpiryAtMs(result?.cache as any, Date.now());
-      if (typeof expiresAt === 'number' && Number.isFinite(expiresAt) &&
-          expiresAt > Date.now()) {
-        cached = {value, expiresAt};
-      } else {
-        cached = undefined;
+    inFlight = (async () => {
+      try {
+        const result = await runner(resolvedPath);
+        const value = firstEnvFileOutput(result?.outputs, result?.outputKeys);
+        const expiresAt = parseCacheExpiryAtMs(result?.cache as any, Date.now());
+        if (typeof expiresAt === 'number' && Number.isFinite(expiresAt) &&
+            expiresAt > Date.now()) {
+          cached = {value, expiresAt};
+        } else {
+          cached = undefined;
+        }
+        return value;
+      } finally {
+        inFlight = undefined;
       }
-      return value;
-    } finally {
-      resolving = false;
-    }
+    })();
+    return inFlight;
   };
   (getter as any)[ENV_FILE_PATH_KEY] = path;
   return getter;
