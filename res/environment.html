@@ -440,12 +440,13 @@
                     </svg>
                 </button>
                 <div class="env-menu">
-                    <button id="env-menu-btn" class="icon-button" title="More actions" aria-haspopup="true" aria-expanded="false">
-                        <span class="codicon codicon-menu" aria-hidden="true"></span>
+                    <button id="env-menu-btn" class="icon-button" title="Clear variables" aria-haspopup="true" aria-expanded="false">
+                        <span class="codicon codicon-clear-all" aria-hidden="true"></span>
                     </button>
                     <div id="env-menu-dropdown" class="env-menu-dropdown" role="menu">
+                        <button type="button" class="env-menu-item" data-clear="file" role="menuitem">Clear file variables</button>
+                        <button type="button" class="env-menu-item" data-clear="manual" role="menuitem">Clear manual variables</button>
                         <button type="button" class="env-menu-item" data-clear="runtime" role="menuitem">Clear runtime variables</button>
-                        <button type="button" class="env-menu-item" data-clear="manual" role="menuitem">Clear manual variable</button>
                         <button type="button" class="env-menu-item danger" data-clear="all" role="menuitem">Clear all</button>
                     </div>
                 </div>
@@ -821,7 +822,8 @@
                 return;
             }
             const scope = item.getAttribute('data-clear');
-            if (scope !== 'runtime' && scope !== 'manual' && scope !== 'all') {
+            if (scope !== 'file' && scope !== 'runtime' && scope !== 'manual' &&
+                scope !== 'all') {
                 return;
             }
             closeEnvMenu();

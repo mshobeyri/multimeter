@@ -9,7 +9,7 @@ Toolbar actions (top right of the view):
 | Control | What it does |
 |---|---|
 | {{btn:refresh:Reload}} | Re-read workspace environment variables and presets from storage |
-| {{btn:clear-all:Clear}} | Clear all workspace environment variables and presets (confirmation required) |
+| {{btn:clear-all:Clear}} | Opens a menu: clear **file**, **manual**, or **runtime** variables, or **Clear all** (presets too). Each action asks for confirmation. |
 
 ## Presets
 

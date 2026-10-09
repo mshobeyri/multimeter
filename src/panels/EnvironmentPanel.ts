@@ -69,8 +69,8 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           break;
         }
         case 'multimeter.environment.clear': {
-          const scope = message.scope === 'runtime' || message.scope === 'manual' ||
-                  message.scope === 'all' ?
+          const scope = message.scope === 'file' || message.scope === 'runtime' ||
+                  message.scope === 'manual' || message.scope === 'all' ?
               message.scope :
               'all';
           await this.clearEnvironments(scope);
@@ -310,7 +310,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     }
   }
 
-  async clearEnvironments(scope: 'runtime'|'manual'|'all' = 'all') {
+  async clearEnvironments(scope: 'file'|'runtime'|'manual'|'all' = 'all') {
     try {
       if (scope === 'all') {
         const result = await vscode.window.showWarningMessage(
@@ -331,10 +331,12 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
         return;
       }
 
-      const label = scope === 'runtime' ? 'runtime' : 'manual';
-      const confirmLabel = scope === 'runtime' ?
-          'Clear runtime variables' :
-          'Clear manual variable';
+      const label = scope === 'file' ? 'file' :
+          scope === 'runtime' ? 'runtime' :
+                                'manual';
+      const confirmLabel = scope === 'file' ? 'Clear file variables' :
+          scope === 'runtime'              ? 'Clear runtime variables' :
+                                             'Clear manual variables';
       const result = await vscode.window.showWarningMessage(
           `Are you sure you want to clear ${label} environment variables?`,
           {modal: true}, confirmLabel);
@@ -348,8 +350,9 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           v => resolveEnvVarSource(v) !== scope);
       await this.persistWorkspaceEnvironmentVars(remaining);
       vscode.window.showInformationMessage(
-          scope === 'runtime' ? 'Runtime variables cleared' :
-                                'Manual variables cleared');
+          scope === 'file' ? 'File variables cleared' :
+              scope === 'runtime' ? 'Runtime variables cleared' :
+                                    'Manual variables cleared');
       this.refreshEnvironmentVars();
     } catch (error) {
       vscode.window.showErrorMessage(
