@@ -44,6 +44,7 @@ import {
     materializeSpilledReports,
 } from '../../shared/reportSpillStore';
 import { spillExcessReports } from '../../shared/reportSpillRunner';
+import { setEnvironmentVariables } from '../../environment/environmentUtils';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -533,6 +534,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const reportFlushTimerRef = useRef<number | null>(null);
     const durationTimerRef = useRef<number | null>(null);
     const expandedReportNodeIdsRef = useRef<Set<string>>(new Set());
+    /** Latest setenv values for this suite run; flushed to the env panel once at end. */
+    const pendingSetenvRef = useRef<Map<string, {
+        name: string;
+        value: string | number | boolean;
+        label: string;
+        source: 'runtime';
+    }>>(new Map());
 
     const trimIgnoredSuiteRuns = useCallback(() => {
         if (ignoredSuiteRunIdsRef.current.size <= 10) {
@@ -552,7 +560,19 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         suiteRunIdRef.current = nextSuiteRunId;
         setSuiteRunId(nextSuiteRunId);
         reportQueueRef.current = [];
+        pendingSetenvRef.current.clear();
     }, [trimIgnoredSuiteRuns]);
+
+    /** One Environment-panel write per suite run (avoids refresh every report flush). */
+    const flushPendingSetenvToPanel = useCallback(() => {
+        const pending = pendingSetenvRef.current;
+        if (pending.size === 0) {
+            return;
+        }
+        const updates = Array.from(pending.values());
+        pending.clear();
+        setEnvironmentVariables(updates);
+    }, []);
 
     const clearReportSpillState = useCallback(async () => {
         runDataStore.clearSpillState();
@@ -604,15 +624,54 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
         const runStatePatches: Record<string, StepStatus> = {};
         const reportPatches: Record<string, StepReportItem[]> = {};
+        const setenvUpdates: Array<{
+            name: string;
+            value: string | number | boolean;
+            label: string;
+            source: 'runtime';
+        }> = [];
 
         queuedReports.forEach((message: any) => {
             const runId = typeof message.runId === 'string' ? message.runId : null;
             const reportedId = typeof message.id === 'string' ? message.id : null;
             const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
+            const scope = typeof message.scope === 'string' ? message.scope : '';
+
+            // Promote setenv into the VS Code Environment panel (same as standalone
+            // test/API runs). Partial suite runs only accept setenv from the target subtree.
+            if (scope === 'setenv') {
+                if (targetId && !allowed(targetId)) {
+                    return;
+                }
+                const variables = (message as any).variables;
+                if (!variables || typeof variables !== 'object') {
+                    return;
+                }
+                const testTitle = typeof (message as any).testTitle === 'string' ?
+                    (message as any).testTitle :
+                    undefined;
+                const label = testTitle ? `suite - ${testTitle}` : 'suite';
+                for (const [name, value] of Object.entries(variables)) {
+                    if (typeof name !== 'string' || !name || value == null || value === '') {
+                        continue;
+                    }
+                    if (typeof value !== 'string' && typeof value !== 'number' &&
+                        typeof value !== 'boolean') {
+                        continue;
+                    }
+                    setenvUpdates.push({
+                        name,
+                        value,
+                        label,
+                        source: 'runtime',
+                    });
+                }
+                return;
+            }
+
             if (!targetId || !allowed(targetId)) {
                 return;
             }
-            const scope = typeof message.scope === 'string' ? message.scope : '';
             if (scope === 'suite-item') {
                 const status = message.status as StepStatus | undefined;
                 if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled' || status === 'skipped') {
@@ -656,6 +715,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             });
             return next;
         });
+
+        // Coalesce into pending map; panel write happens once on suite end.
+        for (const update of setenvUpdates) {
+            pendingSetenvRef.current.set(update.name, update);
+        }
 
         if (Object.keys(runStatePatches).length > 0) {
             runDataStore.patchRunState(runStatePatches);
@@ -1001,6 +1065,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     suiteRunIdRef.current = nextSuiteRunId;
                 }
                 reportQueueRef.current = [];
+                pendingSetenvRef.current.clear();
                 // New suite run: clear per-run mappings so old runIds can't
                 // influence routing or step sequences.
                 setLastRunIdByEntryId({});
@@ -1038,6 +1103,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 }
                 const cancelled = Boolean((message as any).cancelled);
                 flushReportQueue();
+                flushPendingSetenvToPanel();
                 // Clear stuck "running" on own nodes only (no child→parent rollup).
                 runDataStore.replaceRunState((prev) => {
                     const next = { ...prev };
@@ -1099,6 +1165,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 });
                 partialRunTargetRef.current = null;
                 flushReportQueue();
+                flushPendingSetenvToPanel();
                 return;
             }
 
@@ -1136,7 +1203,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns, runDataStore]);
+    }, [groups, resetLeafState, flushReportQueue, flushPendingSetenvToPanel, mode, trimIgnoredSuiteRuns, runDataStore]);
 
     useEffect(() => {
         if (allPaths.length === 0) {

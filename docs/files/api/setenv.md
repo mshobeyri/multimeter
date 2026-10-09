@@ -14,7 +14,7 @@ setenv:
   user_id: body.user.id
 ```
 
-These become available immediately to subsequent steps, imported tests and later suite items as environment variables (`e:token`, `<<e:token>>`). This applies to a test calling the API, to the API tester, and to `testlight`. Values live in memory for the run (they are not written to env files) and win over `-e` values for later items.
+These become available immediately to subsequent steps, imported tests and later suite items as environment variables (`e:token`, `<<e:token>>`). This applies to a test calling the API, to the API tester, and to `testlight`. Values live in memory for the run (they are not written to env files) and win over `-e` values for later items. In VS Code, they are also written to the Environment panel (workspace storage); `testlight` has no durable env store.
 
 Example: [setenv chain](../../../examples/intermediate/31_setenv_chain/README.md).
 
