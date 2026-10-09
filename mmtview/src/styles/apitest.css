@@ -77,7 +77,8 @@
   min-width: 0;
   width: auto;
   max-width: none;
-  height: auto !important;
+  /* Fill the 28px pill (minus 1px borders) so text stays vertically centered. */
+  height: 100% !important;
   min-height: 0 !important;
   margin: 0;
   padding: 0 10px !important;
@@ -90,7 +91,8 @@
   color: var(--vscode-input-foreground, #d4d4d4);
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
   font-size: var(--vscode-font-size, 13px);
-  line-height: 26px;
+  /* Match the filled height so native caret text and the token mirror align. */
+  line-height: 26px !important;
   white-space: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
@@ -106,12 +108,17 @@
   flex: 1;
   min-width: 0;
   align-items: stretch;
+  align-self: stretch;
+  min-height: 0;
 }
 
 .method-url-bar-url-wrap > .token-field {
   flex: 1;
   min-width: 0;
   width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
 }
 
 .method-url-bar-url-wrap > input.method-url-bar-url,

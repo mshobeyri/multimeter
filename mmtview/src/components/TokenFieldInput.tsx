@@ -150,6 +150,12 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
       return;
     }
     const cs = getComputedStyle(el);
+    // Inputs often report line-height as "normal"; a short line box in a
+    // taller absolute backdrop leaves resolved token text sitting high.
+    const lineHeight =
+      !cs.lineHeight || cs.lineHeight === "normal"
+        ? `${Math.max(el.clientHeight, 1)}px`
+        : cs.lineHeight;
     setMirrorStyle({
       paddingTop: cs.paddingTop,
       paddingRight: cs.paddingRight,
@@ -164,7 +170,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
       fontWeight: cs.fontWeight,
       fontStyle: cs.fontStyle,
       letterSpacing: cs.letterSpacing,
-      lineHeight: cs.lineHeight,
+      lineHeight,
       boxSizing: cs.boxSizing as React.CSSProperties["boxSizing"],
       ...(style?.paddingRight !== undefined
         ? { clipPath: `inset(0 ${cs.paddingRight} 0 0)` }
