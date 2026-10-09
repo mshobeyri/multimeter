@@ -46,6 +46,17 @@ body {
   font-size: var(--font-size);
   margin: 0;
   padding: var(--spacing-xl);
+  /* Side panels: chrome/labels are not selectable; fields stay copyable. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* Layout Components */

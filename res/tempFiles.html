@@ -11,6 +11,16 @@
       font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
       font-size: 13px;
       color: var(--vscode-foreground, #ccc);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input,
+    textarea,
+    select,
+    [contenteditable="true"] {
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     .new-file-btn {
