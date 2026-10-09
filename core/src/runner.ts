@@ -222,6 +222,20 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     return executeLoadTest(prepared, options, preLogs, runFile);
   }
 
+  // File-backed env values may point at a missing or non-runnable path; soft
+  // empty result so the parent e: read becomes null instead of failing the run.
+  if (options.__mmtEnvValueRun) {
+    return {
+      js: '',
+      result: {success: true, durationMs: 0, errors: [], outputs: {}},
+      identifier: prepared.baseName,
+      displayName: prepared.baseName,
+      docType: docType,
+      inputsUsed: prepared.inputsUsed,
+      envVarsUsed: prepared.envVarsUsed,
+    } as RunFileResult;
+  }
+
   throw new Error('Run is currently supported for test or api documents only.');
 }
 

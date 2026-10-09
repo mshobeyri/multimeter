@@ -15,9 +15,9 @@ describe("request body format menu", () => {
       .filter(entry => entry.storageMode === "encoded")
       .map(entry => entry.label);
 
-    expect(rawFormats).toEqual(["json", "xml", "xmle", "text", "html", "urlencoded"]);
-    expect(formattedFormats).toEqual(["xml", "json", "html", "xmle", "urlencoded"]);
-    expect(formattedLabels).toEqual(["xml-yml", "json-yml", "html-yml", "xmle-yml", "urlencoded-yml"]);
+    expect(rawFormats).toEqual(["json", "xml", "xmle", "text", "urlencoded"]);
+    expect(formattedFormats).toEqual(["xml", "json", "xmle", "urlencoded"]);
+    expect(formattedLabels).toEqual(["xml-yml", "json-yml", "xmle-yml", "urlencoded-yml"]);
     expect(REQUEST_BODY_FORMAT_MENU).toContainEqual({ kind: "heading", label: "YAML-encoded" });
   });
 });

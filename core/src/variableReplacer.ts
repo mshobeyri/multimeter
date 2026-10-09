@@ -936,6 +936,57 @@ export function collectInputRefsFromObject(obj: any): string[] {
   return Array.from(refs);
 }
 
+/**
+ * Recursively scan an object for `e:name` env references and return the
+ * unique set of referenced env names.
+ * Detects `<<e:name>>` / `{{e:name}}` anywhere, and bare `e:name` only when
+ * it is the whole value.
+ */
+export function collectEnvRefsFromObject(obj: any): string[] {
+  const refs = new Set<string>();
+
+  function extractFromString(value: string): void {
+    const fullNone = new RegExp(`^e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*$`).exec(value);
+    if (fullNone) {
+      refs.add(fullNone[1]);
+      return;
+    }
+
+    const fullBrace = new RegExp(
+        `^(?:<<e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>|\\{\\{e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*\\}\\})$`,
+        'i').exec(value);
+    if (fullBrace) {
+      refs.add(fullBrace[1] || fullBrace[2]);
+      return;
+    }
+
+    const braceRe = new RegExp(
+        `<<e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>|\\{\\{e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*\\}\\}`,
+        'gi');
+    let m;
+    while ((m = braceRe.exec(value)) !== null) {
+      refs.add(m[1] || m[2]);
+    }
+  }
+
+  function scan(value: any): void {
+    if (typeof value === 'string') {
+      extractFromString(value);
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        scan(item);
+      }
+    } else if (value && typeof value === 'object') {
+      for (const v of Object.values(value)) {
+        scan(v);
+      }
+    }
+  }
+
+  scan(obj);
+  return Array.from(refs);
+}
+
 // Specific replacers using flags
 export function replaceInputRefsWithBrace(obj: any, inputs: any, resolver?: DynamicResolver): any {
   return replaceRefs(
@@ -1063,14 +1114,33 @@ export function resolveInputsMap(
   }
   return current;
 }
-/** Materialize file-backed env getters, then resolve inputs (sync passes). */
+/**
+ * Materialize only file-backed env getters that `inputs` actually references
+ * as `e:NAME`, then resolve inputs (sync passes).
+ *
+ * Eagerly awaiting every getter used to run unrelated `./…mmt` targets on
+ * every test/API that merely resolves its inputs map — and a missing target
+ * threw into the parent run.
+ */
 export async function resolveInputsMapAsync(
     inputs: Record<string, any>|null|undefined,
     envs: Record<string, any> = {},
     maxPasses = 8): Promise<Record<string, any>> {
+  const needed = new Set(collectEnvRefsFromObject(inputs));
   const plain: Record<string, any> = {};
   for (const [name, value] of Object.entries(envs || {})) {
-    plain[name] = typeof value === 'function' ? await value() : value;
+    if (typeof value === 'function') {
+      if (needed.has(name)) {
+        try {
+          plain[name] = await value();
+        } catch {
+          plain[name] = null;
+        }
+      }
+      // Leave unreferenced getters out of `plain` so they are never run here.
+      continue;
+    }
+    plain[name] = value;
   }
   return resolveInputsMap(inputs, plain, maxPasses);
 }

@@ -1,7 +1,24 @@
-import { APIData, AuthConfig } from './APIData';
+import {APIData, AuthConfig, ExampleData} from './APIData';
 import {Format, packFormatSpec, requestFormat, toResponseFormat} from './CommonData';
 import {OMIT_SENTINEL} from './omitKeyword';
 import {RANDOM_TOKEN_MAP} from './Random';
+
+/** Prefer Postman response name; fall back to example_N; uniquify collisions. */
+function allocateExampleId(
+    preferred: string | undefined, index: number, used: Set<string>): string {
+  const base = String(preferred || '').trim() || `example_${index + 1}`;
+  if (!used.has(base)) {
+    used.add(base);
+    return base;
+  }
+  let n = 2;
+  while (used.has(`${base}_${n}`)) {
+    n++;
+  }
+  const unique = `${base}_${n}`;
+  used.add(unique);
+  return unique;
+}
 
 // Map Postman dynamic random variables to Multimeter random token names
 // Only include those we support in RANDOM_TOKEN_MAP.
@@ -699,11 +716,13 @@ export function postmanToAPI(postmanJson: any): APIData[] {
         apiData.inputs = inputs as any;
 
         // Build examples overriding only changed inputs
+        const usedExampleIds = new Set<string>();
         const examples = pmResponses.map((resp, idx) => {
           const or = normalizePostmanRequest(resp && (resp.originalRequest || resp.request));
-          const example: any = {
-            id: resp?.name || `example_${idx + 1}`,
-            title: resp?.name || `example_${idx + 1}`,
+          const id = allocateExampleId(resp?.name, idx, usedExampleIds);
+          const example: ExampleData = {
+            id,
+            title: String(resp?.name || '').trim() || id,
             description: resp?.description || undefined,
             inputs: {} as Record<string, any>,
           };
@@ -769,7 +788,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
           }
 
           // Clean empty inputs if none changed
-          if (Object.keys(example.inputs).length === 0) {
+          if (!example.inputs || Object.keys(example.inputs).length === 0) {
             delete example.inputs;
           }
           if (!example.description) {
@@ -787,14 +806,17 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       }
       // Fallback: responses exist but no originalRequest/request examples captured
       if (!apiData.examples && pmResponses.length > 0) {
+        const usedFallbackIds = new Set<string>();
         apiData.examples = pmResponses
             .map((resp, idx) => {
               const responseOutputs = responseToOutputs(resp);
-              const id = resp?.name || `example_${idx + 1}`;
+              const id = allocateExampleId(resp?.name, idx, usedFallbackIds);
               return {
                 id,
-                title: id,
-                ...(Object.keys(responseOutputs.exampleOutputs).length > 0 ? {expect: responseOutputs.exampleOutputs} : {}),
+                title: String(resp?.name || '').trim() || id,
+                ...(Object.keys(responseOutputs.exampleOutputs).length > 0 ?
+                    {expect: responseOutputs.exampleOutputs} :
+                    {}),
               };
             })
             .filter(ex => ex.id);

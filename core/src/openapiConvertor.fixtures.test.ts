@@ -104,7 +104,7 @@ describe('openapiConvertor fixtures', () => {
       body: '<<i:body>>',
     });
     expect(JSON.parse(String(createRevision?.inputs?.body))).toEqual({name: 'Widget', active: true});
-    expect(createRevision?.examples?.map(example => example.name)).toEqual(['Draft']);
+    expect(createRevision?.examples?.map(example => example.id)).toEqual(['Draft']);
     expect(createRevision?.examples?.[0].inputs?.body && JSON.parse(String(createRevision.examples[0].inputs.body)))
         .toEqual({name: 'Draft widget', active: false});
   });

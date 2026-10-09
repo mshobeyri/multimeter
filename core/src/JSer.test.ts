@@ -3167,7 +3167,7 @@ describe('input defaults with e: references', () => {
         {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
     const js = await apiToJSfunc(ctx);
     // Parameter defaults stay sync (no await); root resolveInputsMapAsync
-    // materializes file-backed getters before the call.
+    // materializes only e:-referenced file-backed getters before the call.
     expect(js).toContain('mmtEnv_("test")');
     expect(js).not.toContain('await mmtEnv_("test")');
     // Should NOT contain literal 'e:test' as a default value

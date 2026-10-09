@@ -119,6 +119,6 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
     // Should still surface examples array (fallback path)
     expect(Array.isArray(ping!.examples)).toBe(true);
     expect(ping!.examples!.length).toBeGreaterThan(0);
-    expect(ping!.examples![0].name).toBeTruthy();
+    expect(ping!.examples![0].id).toBeTruthy();
   });
 });

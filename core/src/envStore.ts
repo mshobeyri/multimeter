@@ -118,6 +118,9 @@ function makeEnvFileGetter(store: EnvStore, rawPath: string): () => Promise<any>
           cached = undefined;
         }
         return value;
+      } catch {
+        // Missing / unsupported / failed target must not break the parent run.
+        return null;
       } finally {
         inFlight = undefined;
       }

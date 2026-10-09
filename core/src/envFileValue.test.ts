@@ -100,4 +100,62 @@ describe('file-backed env values (./…mmt)', () => {
     expect(runs).toBeGreaterThanOrEqual(1);
     expect(runs).toBeLessThanOrEqual(3);
   });
+
+  it('does not run unreferenced file-backed env getters during a test', async () => {
+    let createLoads = 0;
+    const countingLoader = async (p: string) => {
+      if (p.endsWith('create_session.mmt')) {
+        createLoads += 1;
+      }
+      return files[p] ?? '';
+    };
+    files['/tmp/live/unrelated.mmt'] = [
+      'type: test',
+      'steps:',
+      '  - check: 1 == 1',
+    ].join('\n');
+    const res = await runFile({
+      fileType: 'path',
+      file: '/tmp/live/unrelated.mmt',
+      filePath: '/tmp/live/unrelated.mmt',
+      fileLoader: countingLoader,
+      jsRunner: runJSCode,
+      logger: () => {},
+      reporter: () => {},
+      envvar: {
+        session: './create_session.mmt',
+        host: 'https://example.com',
+      },
+      envvarFilePath: '/tmp/live/env.mmt',
+    } as any);
+    expect(res.result.success).toBe(true);
+    expect(createLoads).toBe(0);
+  });
+
+  it('soft-fails when a referenced file-backed env target is missing', async () => {
+    files['/tmp/live/missing_target.mmt'] = [
+      'type: test',
+      'steps:',
+      '  - check: e:session == null',
+    ].join('\n');
+    const res = await runFile({
+      fileType: 'path',
+      file: '/tmp/live/missing_target.mmt',
+      filePath: '/tmp/live/missing_target.mmt',
+      fileLoader: async (p: string) => {
+        if (p.endsWith('create_session.mmt')) {
+          return '';
+        }
+        return files[p] ?? '';
+      },
+      jsRunner: runJSCode,
+      logger: () => {},
+      reporter: () => {},
+      envvar: {session: './create_session.mmt'},
+      envvarFilePath: '/tmp/live/env.mmt',
+    } as any);
+    expect(res.result.success).toBe(true);
+    expect(String(res.result.errors || [])).not.toContain(
+        'supported for test or api');
+  });
 });

@@ -1,4 +1,4 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations, replaceOutputTokenRefs, replaceOutputTokensPlain, rewriteOutputSetKey } from './variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, resolveInputsMapAsync, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, collectEnvRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations, replaceOutputTokenRefs, replaceOutputTokensPlain, rewriteOutputSetKey } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
   it('normalizes <<e:VAR>> to await mmtEnv_ lookup', () => {
@@ -838,5 +838,53 @@ describe('resolveInputsMap – interdependent input defaults', () => {
     expect(resolveInputsMap(undefined, {a: 1})).toEqual({});
     expect(resolveInputsMap(null as any, {a: 1})).toEqual({});
     expect(resolveInputsMap([] as any, {a: 1})).toEqual({});
+  });
+});
+
+describe('resolveInputsMapAsync – lazy file-backed getters', () => {
+  it('collectEnvRefsFromObject finds bare and braced e: names', () => {
+    expect(collectEnvRefsFromObject({
+      a: 'e:session',
+      b: 'https://<<e:host>>/x',
+      c: '{{e:token}}',
+    }).sort()).toEqual(['host', 'session', 'token']);
+  });
+
+  it('awaits only getters referenced as e: in inputs', async () => {
+    let sessionCalls = 0;
+    let otherCalls = 0;
+    const envs = {
+      session: async () => {
+        sessionCalls += 1;
+        return 'sid';
+      },
+      other: async () => {
+        otherCalls += 1;
+        return 'nope';
+      },
+      host: 'https://example.com',
+    };
+    const out = await resolveInputsMapAsync(
+        {token: 'e:session', url: 'e:host'},
+        envs,
+    );
+    expect(out).toEqual({token: 'sid', url: 'https://example.com'});
+    expect(sessionCalls).toBe(1);
+    expect(otherCalls).toBe(0);
+  });
+
+  it('does not await any getters when inputs have no e: refs', async () => {
+    let calls = 0;
+    const out = await resolveInputsMapAsync(
+        {x: 1},
+        {
+          session: async () => {
+            calls += 1;
+            return 'sid';
+          },
+        },
+    );
+    expect(out).toEqual({x: 1});
+    expect(calls).toBe(0);
   });
 });

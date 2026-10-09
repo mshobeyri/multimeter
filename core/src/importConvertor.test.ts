@@ -242,7 +242,7 @@ describe('importConvertor', () => {
         result.files.find(file => file.kind === 'api')!.content);
     expect(api.auth).toEqual({
       type: 'bearer',
-      token: '<<e:token>>',
+      token: 'e:token',
     });
 
     const test = parseYamlStrict(
@@ -651,6 +651,7 @@ tests {
     expect(apis[0].examples[0].exampleIndex).toBe(0);
     expect(apis[0].api.body).toBe('<<i:body>>');
     expect(apis[0].api.inputs?.body).toContain('Default');
+    expect(apis[0].api.examples?.[0].id).toBe('Cat');
     expect(apis[0].api.examples?.[0].inputs?.body).toContain('Whiskers');
     expect(apis[0].api.examples?.[1].inputs?.body).toContain('Rex');
 
@@ -731,10 +732,12 @@ tests {
     const result = convertToMmt(JSON.stringify(spec), {sourcePath: 'pets.openapi.json'});
     expect(result.files).toHaveLength(1);
     const api = parseYamlStrict(result.files[0].content);
-    expect(api.body).toBe('<<i:body>>');
+    // Whole-value tokens pack as bare form in YAML.
+    expect(api.body).toBe('i:body');
     expect(api.inputs.body).toContain('Default');
     expect(api.examples).toHaveLength(1);
-    expect(api.examples[0].name).toBe('Cat');
+    expect(api.examples[0].id).toBe('Cat');
+    expect(api.examples[0].title).toBe('Cat');
     expect(api.examples[0].inputs.body).toContain('Whiskers');
   });
 
@@ -769,7 +772,8 @@ tests {
     const result = convertToMmt(JSON.stringify(collection), {sourcePath: 'users.postman_collection.json'});
     const api = parseYamlStrict(result.files.find(file => file.path === 'api/create-user.mmt')!.content);
     expect(api.inputs.body).toContain('Ada');
-    expect(api.examples[0].name).toBe('Grace');
+    expect(api.examples[0].id).toBe('Grace');
+    expect(api.examples[0].title).toBe('Grace');
     expect(api.examples[0].inputs.body).toContain('Grace');
   });
 
