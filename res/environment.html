@@ -156,12 +156,14 @@
             align-items: center;
             gap: 6px;
             min-width: 0;
+            height: var(--cell-height);
         }
 
         .env-name-text {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            line-height: 1;
         }
 
         .env-source-icon {
@@ -169,14 +171,26 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             color: var(--description-foreground);
             opacity: 0.85;
         }
 
+        /* Codicon glyphs sit high in the em-box unless line-height is locked. */
         .env-source-icon .codicon {
-            font-size: 14px;
+            font-size: 14px !important;
+            line-height: 16px !important;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .env-source-icon .codicon::before {
+            display: block;
+            line-height: 1;
         }
 
         .env-source-icon svg {
@@ -196,8 +210,14 @@
             min-width: 0;
         }
 
-        .env-value-wrap.has-file-open .value-input {
-            padding-right: 36px;
+        /* Match FieldWithRemove: keep full padding (not padding-right alone)
+           so text and trailing icons stay vertically centered. */
+        .env-value-wrap.has-remove .value-input {
+            padding: 4px 36px 4px 8px;
+        }
+
+        .env-value-wrap.has-file-open.has-remove .value-input {
+            padding: 4px 64px 4px 8px;
         }
 
         .env-value-wrap .field-button {
@@ -220,6 +240,10 @@
             color: var(--foreground);
         }
 
+        .env-value-wrap.has-remove .field-button.is-open {
+            right: 32px;
+        }
+
         .env-value-wrap .field-button:hover {
             opacity: 1;
             background: transparent;
@@ -231,22 +255,29 @@
             padding: 0;
             margin: 0;
             gap: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             opacity: 1;
             color: inherit;
-        }
-
-        .env-value-wrap .field-button .codicon {
-            font-size: 16px;
             line-height: 1;
         }
 
-        .env-value-wrap .field-button:hover .action-button {
-            opacity: 1;
+        .env-value-wrap .field-button .codicon {
+            font-size: 16px !important;
+            line-height: 16px !important;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .env-value-wrap .field-button .codicon::before {
+            display: block;
+            line-height: 1;
         }
 
         /* VS Code codicon-chevron-down (not the filled OS triangle). */
@@ -315,11 +346,6 @@
             background: var(--input-background);
         }
 
-        .actions {
-            display: flex;
-            justify-content: flex-end;
-        }
-
         .icon-button {
             display: inline-flex;
             align-items: center;
@@ -338,23 +364,6 @@
         .icon-button:hover {
             background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
             opacity: 1;
-        }
-
-        .delete-btn {
-            opacity: 0.5;
-        }
-
-        .delete-btn:hover {
-            opacity: 1;
-            color: var(--vscode-errorForeground, #f48771);
-        }
-
-        .env-actions {
-            width: 32px;
-            min-width: 32px;
-            max-width: 32px;
-            text-align: center;
-            padding: 0 8px 0 0!important;
         }
 
         .add-env-row {
@@ -512,14 +521,12 @@
                     <col class="env-col-name" />
                     <col class="env-col-label" />
                     <col class="env-col-value" />
-                    <col class="env-actions" />
                 </colgroup>
                 <thead>
                     <tr>
                         <th class="env-col-name">Name</th>
                         <th class="env-col-label">Label</th>
                         <th class="env-col-value">Value</th>
-                        <th class="env-actions"></th>
                     </tr>
                 </thead>
                 <tbody id="env-table-body"></tbody>
@@ -575,6 +582,7 @@
                 row.className = 'env-row';
 
                 const source = resolveEnvSource(envVar);
+                const hasFileOpen = isEnvFilePathValue(envVar.value);
                 let optionsHtml = '';
                 if (source === 'manual') {
                     optionsHtml = `<option value="__manual__" selected disabled>Manual</option>`;
@@ -604,15 +612,13 @@
                         </select>
                     </td>
                     <td class="env-value env-col-value">
-                        <div class="env-value-wrap${isEnvFilePathValue(envVar.value) ? ' has-file-open' : ''}">
+                        <div class="env-value-wrap has-remove${hasFileOpen ? ' has-file-open' : ''}">
                             <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(String(envVar.value ?? ''))}" />
-                            ${isEnvFilePathValue(envVar.value) ? `<button type="button" class="field-button open-env-file-btn" data-path="${escapeHtml(String(envVar.value).trim())}" title="Open file" aria-label="Open file"><span class="action-button codicon codicon-symbol-method-arrow" aria-hidden="true"></span></button>` : ''}
+                            ${hasFileOpen ? `<button type="button" class="field-button is-open open-env-file-btn" data-path="${escapeHtml(String(envVar.value).trim())}" title="Open file" aria-label="Open file"><span class="action-button codicon codicon-symbol-method-arrow" aria-hidden="true"></span></button>` : ''}
+                            <button type="button" class="field-button is-remove" data-index="${index}" title="Remove field" aria-label="Remove field">
+                                <span class="action-button codicon codicon-close" aria-hidden="true"></span>
+                            </button>
                         </div>
-                    </td>
-                    <td class="env-actions">
-                        <button class="icon-button delete-btn" data-index="${index}" title="Delete variable">
-                            <span class="codicon codicon-close" aria-hidden="true"></span>
-                        </button>
                     </td>
                 `;
                 tableBody.appendChild(row);
@@ -733,8 +739,10 @@
                 });
             });
 
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', function () {
+            document.querySelectorAll('.env-value-wrap .field-button.is-remove').forEach(btn => {
+                btn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
                     const idx = this.getAttribute('data-index');
                     const envVar = environmentVars[idx];
                     vscode.postMessage({
