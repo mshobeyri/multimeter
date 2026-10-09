@@ -104,7 +104,8 @@ export async function runGeneratedJs(
   workerEligible?: boolean,
   checkLogMode?: CheckLogMode,
   runKind: RunKind = 'Test',
-  binaryFileLoader?: BinaryFileLoader): Promise<RunResult> {
+  binaryFileLoader?: BinaryFileLoader,
+  envValues?: Record<string, any>): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -169,6 +170,7 @@ export async function runGeneratedJs(
       workerEligible,
       checkLogMode,
       runKind,
+      envValues,
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;

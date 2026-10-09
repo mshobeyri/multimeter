@@ -116,7 +116,6 @@ export async function generateApiJs(options: GenerateApiJsOptions):
   const {
     api,
     name,
-    envVars,
     inputs,
     fileLoader,
     exampleName,
@@ -137,17 +136,16 @@ export async function generateApiJs(options: GenerateApiJsOptions):
     inputs: isPlainObject(api.inputs) ? {...api.inputs as Record<string, any>} :
                                         api.inputs
   };
+  // Do not substitute e: at codegen — process EnvStore / mmtEnv_ at runtime.
   const funcSource = await JSer.apiToJSfunc({
     api: apiClone,
     name,
     inputs: {},
-    envVars,
+    envVars: {},
   });
-  // Define the API function inside the runner IIFE so it closes over
-  // `envVariables` (e: tokens / input defaults resolve correctly).
   return buildApiRunnerWrapper({
     name,
-    envVars,
+    envVars: {},
     inputs,
     exampleName,
     exampleIndex,
@@ -169,15 +167,18 @@ interface ApiRunnerWrapperOptions {
 }
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
-  const resolvedInputs = resolveInputsMap(opts.inputs, opts.envVars ?? {});
-  // The generated function already resolved tokens. Scanning it again would
-  // turn a quoted header/query `"<<e:name>>"` back into the env value.
+  // Leave e: tokens in the script. jsRunner binds envVariables to the process
+  // store; inputs are resolved from that store at call time.
   const functionSource = opts.apiFunctionSource;
   const scanned = replaceAllRefs(
-      {...opts, apiFunctionSource: '', inputs: resolvedInputs},
-      {}, resolvedInputs, opts.envVars ?? {});
-  opts = {...scanned, apiFunctionSource: functionSource};
-  const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
+      {...opts, apiFunctionSource: '', envVars: {}},
+      {}, opts.inputs ?? {}, {});
+  opts = {
+    ...scanned,
+    inputs: opts.inputs,
+    envVars: {},
+    apiFunctionSource: functionSource,
+  };
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
   const exampleOutputs = isPlainObject(opts.exampleOutputs) ? opts.exampleOutputs : {};
   const exampleOutputsJson = JSON.stringify(exampleOutputs, null, 2);
@@ -230,10 +231,8 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
           `    }\n` :
       '';
   return `return (async () => {\n` +
-      `  const envVar = ${envJson};\n` +
-      `  const envVariables = envVar;\n` +
-      `  const __mmt_envVars = envVar;\n` +
-      `  const __mmt_inputs = ${inputsJson};\n` +
+      `  const __mmt_envVars = typeof envVariables !== 'undefined' ? envVariables : {};\n` +
+      `  let __mmt_inputs = ${inputsJson};\n` +
       `  const __mmt_exampleLabel = ${exampleLiteral};\n` + helperDestructure +
       '\n' +
       (opts.apiFunctionSource ?
@@ -333,6 +332,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  try {\n` +
       `    if (__mmt_exampleLabel) {\n` +
       `      console.log('Running ' + __mmt_exampleLabel);\n` +
+      `    }\n` +
+      `    if (typeof resolveInputsMap_ === 'function') {\n` +
+      `      __mmt_inputs = resolveInputsMap_(__mmt_inputs, __mmt_envVars);\n` +
       `    }\n` +
       `    const __mmt_hasEnv = Object.keys(__mmt_envVars || {}).length > 0;\n` +
       `    if (__mmt_hasEnv || __mmt_exampleLabel) {\n` +
@@ -696,12 +698,14 @@ export async function executeApi(
       exampleLabel ? `${fileDisplayName} (${exampleLabel})` : fileDisplayName;
   const identifier = sanitizeIdentifier(
       exampleLabel ? `${baseName}_${exampleLabel}` : baseName);
-  const resolvedInputs = resolveInputsMap(inputsUsed, envVars);
+  // Process store supplies e: at runtime; keep raw tokens in generated JS.
+  const processEnv = options.envStore?.values ?? envVars;
+  const resolvedInputs = resolveInputsMap(inputsUsed, processEnv);
   const js = await generateApiJs({
     api: apiDoc,
     name: identifier,
-    envVars,
-    inputs: resolvedInputs,
+    envVars: {},
+    inputs: inputsUsed,
     fileLoader,
     exampleName,
     exampleIndex,
@@ -721,7 +725,8 @@ export async function executeApi(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
       (options as any).id, fileLoader, apiSetenvReporter, undefined, undefined,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
-      undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader);
+      undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader,
+      processEnv);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }
@@ -729,7 +734,7 @@ export async function executeApi(
   // Evaluate the selected example's expect after outputs exist.
   // Soft failures log but keep success (examples have no require / hard fail).
   if (!result.cancelled && !result.syntaxError && exampleTest) {
-    const apiTest = evaluateApiTest(result.outputs, exampleTest, resolvedInputs, envVars);
+    const apiTest = evaluateApiTest(result.outputs, exampleTest, resolvedInputs, processEnv);
     result.apiTest = apiTest;
     if (apiTest.hasChecks) {
       const titlePart = displayName ? `"${displayName}" - ` : '';
@@ -754,7 +759,7 @@ export async function executeApi(
     displayName,
     docType,
     inputsUsed: resolvedInputs,
-    envVarsUsed: envVars,
+    envVarsUsed: processEnv,
     exampleName,
     exampleIndex,
   };

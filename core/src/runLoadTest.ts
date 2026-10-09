@@ -2,6 +2,7 @@ import {LogLevel} from './CommonData';
 import {yamlToLoadTest} from './loadtestParsePack';
 import {restoreOmitKeyword} from './omitKeyword';
 import {createReportCollector, LoadReportData} from './reportCollector';
+import {cloneEnvStore} from './envStore';
 import {basename, PreparedRun, resolveRelativeTo, RunFileResult, runGeneratedJs, sanitizeIdentifier, SuiteExportSpec} from './runCommon';
 import {generateTestJs, prepareTestRun} from './runTest';
 import {RunFileOptions, RunReporterMessage, RunResult, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
@@ -97,6 +98,9 @@ async function executeLoadTestBody(
 ): Promise<RunFileResult> {
   const loadtest = prepared.loadtestConfig ?? yamlToLoadTest(prepared.rawText);
   const envVars = prepared.envVarsUsed || options.envvar || {};
+  // Snapshot of process env at load-test start; each VU gets a clone so setenv
+  // cannot leak across parallel iterations.
+  const baseEnvValues = {...(options.envStore?.values || envVars)};
   const displayName = prepared.title || prepared.baseName;
   const identifier = sanitizeIdentifier(displayName);
   const childFilePath = resolveRelativeTo(loadtest.test, prepared.filePath, options.projectRoot);
@@ -306,7 +310,7 @@ async function executeLoadTestBody(
       rawText: childRawText,
       name: sanitizeIdentifier(childDisplayTitle),
       inputs: childInputsUsed,
-      envVars,
+      envVars: {},
       fileLoader: childFileLoader,
       filePath: childFilePath,
       projectRoot: options.projectRoot,
@@ -390,6 +394,7 @@ async function executeLoadTestBody(
         'none',
         'Test',
         childBinaryFileLoader,
+        cloneEnvStore(undefined, baseEnvValues).values,
       );
       completed += 1;
       if (!childResult.success) {

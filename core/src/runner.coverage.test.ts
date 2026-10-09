@@ -115,9 +115,10 @@ describe('runner extra paths', () => {
   it('refreshes cached current tokens for every run', async () => {
     jest.useFakeTimers();
     try {
+      const {runJSCode} = require('./jsRunner');
       const runAt = async (isoDate: string): Promise<string> => {
         jest.setSystemTime(new Date(isoDate));
-        let generated = '';
+        const logs: string[] = [];
         await runFile({
           file: [
             'type: test',
@@ -130,13 +131,12 @@ describe('runner extra paths', () => {
           fileType: 'raw',
           filePath: '/current-date.mmt',
           fileLoader: async () => '',
-          jsRunner: async (context: {code?: string; js?: string}) => {
-            generated = context.code || context.js || '';
-            return {success: true, logs: [], errors: []};
+          jsRunner: runJSCode,
+          logger: (_level: string, msg: string) => {
+            logs.push(String(msg));
           },
-          logger: () => {},
         } as any);
-        return generated;
+        return logs.join('\n');
       };
 
       const first = await runAt('2026-09-16T12:00:00Z');

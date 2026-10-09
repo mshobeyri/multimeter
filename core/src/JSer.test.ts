@@ -681,7 +681,7 @@ describe('toInputsParams env token handling', () => {
 });
 
 describe('interdependent input defaults', () => {
-  it('rootTestToJsfunc calls root with resolveInputsMap values (env + sibling + slice)', async () => {
+  it('rootTestToJsfunc defers resolveInputsMap to runtime (no env embed)', async () => {
     const js = await rootTestToJsfunc({
       name: 'composeInputs',
       test: {
@@ -699,14 +699,16 @@ describe('interdependent input defaults', () => {
       inputs: {},
       envVars: {card: '4111111111111111', seq: '42'},
     });
-    expect(js).toContain('"card": "4111111111111111"');
-    expect(js).toContain('"seq": "42"');
-    expect(js).toContain('"short": "4111"');
-    expect(js).toContain('"id": "4111_42"');
+    expect(js).not.toContain('const envVariables =');
+    expect(js).toContain('resolveInputsMap_(__mmtRawInputs, envVariables)');
+    expect(js).toContain('"card":"e:card"');
+    expect(js).toContain('"seq":"e:seq"');
+    expect(js).toContain('"short":"<<i:card[0:4]>>"');
+    expect(js).toContain('"id":"<<i:short>>_<<i:seq>>"');
     expect(js).not.toMatch(/return compose_inputs_\(\{\}\);/);
   });
 
-  it('manual overrides win before sibling composition', async () => {
+  it('manual overrides stay in raw inputs for runtime resolveInputsMap', async () => {
     const js = await rootTestToJsfunc({
       name: 'overrideInputs',
       test: {
@@ -723,9 +725,10 @@ describe('interdependent input defaults', () => {
       inputs: {card: '9999000011112222', seq: '7'},
       envVars: {card: '4111111111111111', seq: '42'},
     });
-    expect(js).toContain('"card": "9999000011112222"');
-    expect(js).toContain('"seq": "7"');
-    expect(js).toContain('"id": "9999000011112222_7"');
+    expect(js).toContain('resolveInputsMap_(__mmtRawInputs, envVariables)');
+    expect(js).toContain('"card":"9999000011112222"');
+    expect(js).toContain('"seq":"7"');
+    expect(js).toContain('"id":"<<i:card>>_<<i:seq>>"');
   });
 
   it('API codegen turns asd_<<i:message>> into asd_${message} default', async () => {
@@ -1199,8 +1202,9 @@ describe('rootTestToJsfunc + import tracker', () => {
       filePath: '/root/testflow.mmt',
     });
 
-    // Root imports object is emitted in the root test function.
-    expect(js).toContain('const envVariables =');
+    // Process store binds envVariables at runtime; codegen must not embed it.
+    expect(js).not.toContain('const envVariables =');
+    expect(js).toContain('resolveInputsMap_(__mmtRawInputs, envVariables)');
     expect(js).toContain('const testflow_ = async');
     expect(js).toContain('kxxx = txxx_;');
   });
@@ -3459,7 +3463,7 @@ describe('same-name file imports', () => {
     expect(js).toContain('const omit_keyword_ = async');
     expect(js).toContain('const omit_keyword_1_ = async');
     expect(js).toContain('const profile = omit_keyword_');
-    expect(js).toContain('return omit_keyword_1_({});');
+    expect(js).toContain('return omit_keyword_1_(resolveInputsMap_(__mmtRawInputs, envVariables));');
     expect(js.match(/const omit_keyword_ = async/g)?.length).toBe(1);
     expect(js.match(/const omit_keyword_1_ = async/g)?.length).toBe(1);
   });

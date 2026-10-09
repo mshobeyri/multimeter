@@ -10,7 +10,6 @@ import {
   normalizeEnvTokens,
   replaceAllRefs,
   replaceOutputTokenRefs,
-  resolveInputsMap,
   toTemplateWithEnvVars,
 } from './variableReplacer';
 
@@ -379,16 +378,16 @@ export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
       rootFuncName.slice(0, -1) :
       rootFuncName;
 
-  const test =
-      await testToJsfunc({...ctx, name: rootNameStem, importTracker: tracker}, true, tracker);
-  const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
-  const resolvedInputs = resolveInputsMap(
-      {...(ctx.test.inputs || {}), ...(ctx.inputs || {})},
-      ctx.envVars || {},
-  );
-  const inputsPretty = JSON.stringify(resolvedInputs, null, 2);
-
-  const full = `const envVariables = ${envPretty};\n\n${importedFuncs}\n${
-      test}\nreturn ${rootFuncName}(${inputsPretty});`;
+  // Do not substitute e: at codegen — the process EnvStore supplies values.
+  const test = await testToJsfunc(
+      {...ctx, envVars: {}, name: rootNameStem, importTracker: tracker}, true,
+      tracker);
+  const rawInputs = {...(ctx.test.inputs || {}), ...(ctx.inputs || {})};
+  const runRoot =
+      `return (async () => {\n` +
+      `  const __mmtRawInputs = ${JSON.stringify(rawInputs)};\n` +
+      `  return ${rootFuncName}(resolveInputsMap_(__mmtRawInputs, envVariables));\n` +
+      `})();`;
+  const full = `${importedFuncs}\n${test}\n${runRoot}`;
   return variableReplacer(full);
 };

@@ -270,6 +270,9 @@ async function runSuiteBundleNode(params: {
       id,
     });
 
+    // Children share the parent process EnvStore (same object). setenv mutates
+    // that store so later items in this run see updates; other top-level runs
+    // keep separate stores.
     const childRunOptions: RunFileOptions = {
       ...options,
       file: childRawText,
@@ -282,15 +285,6 @@ async function runSuiteBundleNode(params: {
       id,
       __mmtIsSuiteBundleChildRun: true,
     };
-    // Items that start after a setenv see its value, and it wins over manual env.
-    const setenvOverrides = options.__mmtSetenvOverrides;
-    if (setenvOverrides && Object.keys(setenvOverrides).length > 0) {
-      childRunOptions.envvar = {...(options.envvar || {}), ...setenvOverrides};
-      childRunOptions.manualEnvvars = {
-        ...(options.manualEnvvars || {}),
-        ...setenvOverrides,
-      };
-    }
 
     let childRun: RunFileResult;
     if (node.kind === 'test' || node.kind === 'api') {
@@ -616,18 +610,18 @@ export async function executeSuiteBundle(params: {
   const resolvedFilter = activeTagFilter(effectiveOptions, bundle);
   effectiveOptions = {...effectiveOptions, tagFilter: resolvedFilter};
 
-  // Only the outermost suite owns the shared setenv store; nested suites inherit it.
-  if (shouldEmitSuiteRunEvents) {
-    const setenvOverrides: Record<string, any> = {};
+  // Mirror setenv into the shared process store (belt-and-suspenders with
+  // setenv_ mutating envVariables in-process). Nested suites inherit the store.
+  if (shouldEmitSuiteRunEvents && effectiveOptions.envStore) {
+    const processEnv = effectiveOptions.envStore.values;
     const downstreamReporter = effectiveOptions.reporter;
     effectiveOptions = {
       ...effectiveOptions,
-      __mmtSetenvOverrides: setenvOverrides,
       reporter: (message: RunReporterMessage): void => {
         const event = message as any;
         if (event && event.scope === 'setenv' && event.variables &&
             typeof event.variables === 'object') {
-          Object.assign(setenvOverrides, event.variables);
+          Object.assign(processEnv, event.variables);
         }
         downstreamReporter && downstreamReporter(message);
       },

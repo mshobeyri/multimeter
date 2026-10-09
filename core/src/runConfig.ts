@@ -5,6 +5,7 @@ import {dirnamePath, joinPath, resolveRequestedAgainst} from './fileHelper';
 import parseYaml from './markupConvertor';
 import {processDataImportsInYaml} from './dataImportProcessor';
 import type {BinaryFileLoader, FileLoader} from './JSerFileLoader';
+import type {EnvStore} from './envStore';
 import type {SuiteEnvironment} from './SuiteData';
 
 export type {FileLoader, BinaryFileLoader} from './JSerFileLoader';
@@ -152,6 +153,12 @@ export interface RunFileOptions {
    */
   filePath?: string;
   /**
+   * Process environment for this run (copy of workspace/CLI env at start).
+   * Created by the top-level `runFile` and shared with suite children.
+   * Not embedded into generated JavaScript.
+   */
+  envStore?: EnvStore;
+  /**
    * Specifies whether `file` contains raw content or a filesystem path.
    */
   fileType: 'raw'|'path';
@@ -198,12 +205,6 @@ export interface RunFileOptions {
    * suppress duplicate suite-run lifecycle events (start/finished).
    */
   __mmtIsSuiteBundleChildRun?: boolean;
-
-  /**
-   * Internal: env values set by `setenv` during a suite run. Shared by
-   * reference across child runs so later items see earlier values.
-   */
-  __mmtSetenvOverrides?: Record<string, any>;
 
   /**
    * Optional callback for starting mock servers.

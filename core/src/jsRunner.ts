@@ -41,6 +41,11 @@ export interface RunJSCodeContext {
   checkLogMode?: CheckLogMode;
   /** Prefix for the finished/failed log line (Test / API / Suite). */
   runKind?: RunKind;
+  /**
+   * Process env object for this run (`EnvStore.values`). Bound as
+   * `envVariables` unless the script already declares that name.
+   */
+  envValues?: Record<string, any>;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -282,6 +287,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `const buildMultipartBodyFromParts_ = async (parts) => {` +
       `  return mmtHelper.buildMultipartBodyFromParts_(parts, readBinaryFile_);` +
       `};\n` +
+      // Bind process env store; generated scripts no longer embed env JSON.
+      `${/(?:^|[^\w$.])(?:const|let|var)\s+envVariables\b/.test(code) ? '' : 'const envVariables = (__mmtEnvValues && typeof __mmtEnvValues === "object") ? __mmtEnvValues : {};\n'}` +
       `${code}`;
     let fn = compiledFunctionCache.get(functionBody);
     if (!fn) {
@@ -289,7 +296,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
         '__reporter', '__runId', '__id', 'mmtRandom_', 'mmtCurrent_',
         'mmtAccess_', '__abortSignal', '__fileLoader', '__binaryFileLoader',
-        '__checkLogMode',
+        '__checkLogMode', '__mmtEnvValues',
         functionBody);
       if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
         const firstKey = compiledFunctionCache.keys().next().value;
@@ -353,7 +360,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
         context.abortSignal, context.fileLoader, context.binaryFileLoader,
-        context.checkLogMode || 'default');
+        context.checkLogMode || 'default', context.envValues);
     restoreReporterGlobals();
     // For API runs, prefer the network send/receive duration so the finish
     // log matches the toolbar. Fall back to wall-clock for tests/suites.

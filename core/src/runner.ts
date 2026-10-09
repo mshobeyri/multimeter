@@ -3,6 +3,7 @@ import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
 import {executeApi, prepareApiRun} from './runApi';
 import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
+import {createEnvStore} from './envStore';
 import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from './runConfig';
 import {prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
@@ -137,6 +138,11 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   
   const prepared = await prepareRunFromOptions(options, note);
   const {docType} = prepared;
+  // Process store: copy of resolved env for this run only. Source env is
+  // untouched. Suite children inherit the same store reference.
+  if (!options.envStore) {
+    options = {...options, envStore: createEnvStore(prepared.envVarsUsed)};
+  }
 
   if (docType === 'api') {
     return executeApi(prepared, options, preLogs);

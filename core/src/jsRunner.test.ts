@@ -140,3 +140,55 @@ describe('jsRunner setenv updates envVariables in scope', () => {
     expect(events.filter(e => e.scope === 'setenv')).toHaveLength(1);
   });
 });
+
+describe('jsRunner process env store binding', () => {
+  const logger = jest.fn();
+
+  afterEach(() => {
+    logger.mockReset();
+  });
+
+  it('binds envValues as envVariables when script does not declare it', async () => {
+    const store = {host: 'example.com', token: 'abc'};
+    const result = await runJSCode({
+      js: `return [envVariables.host, mmtEnv_("token")];`,
+      title: 'env-store-bind',
+      logger,
+      runId: 'run-env-store-bind',
+      envValues: store,
+    });
+    expect(result).toEqual(['example.com', 'abc']);
+  });
+
+  it('setenv_ mutates the shared envValues object', async () => {
+    const store = {name: 'old'};
+    const result = await runJSCode({
+      js: `
+        setenv_({ name: "new" });
+        return envVariables.name;
+      `,
+      title: 'env-store-setenv',
+      logger,
+      runId: 'run-env-store-setenv',
+      envValues: store,
+      reporter: () => {},
+    });
+    expect(result).toBe('new');
+    expect(store.name).toBe('new');
+  });
+
+  it('resolveInputsMap_ resolves e: from bound envValues', async () => {
+    const result = await runJSCode({
+      js: `
+        return resolveInputsMap_(
+          { card: "e:card", short: "<<i:card[0:4]>>" },
+          envVariables);
+      `,
+      title: 'env-store-resolve-inputs',
+      logger,
+      runId: 'run-env-store-resolve',
+      envValues: {card: '4111111111111111'},
+    });
+    expect(result).toEqual({card: '4111111111111111', short: '4111'});
+  });
+});
