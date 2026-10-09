@@ -283,7 +283,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        headers: __headers,\n` +
       `        body: __mmt_formatBodyValue(__body)\n` +
       `      };\n` +
-      `      console.debug(__mmt_formatSection('Response:', __resLog));\n` +
+      `      console.log(__mmt_formatSection('Response:', __resLog));\n` +
       `      if (__warning) {\n` +
       `        console.warn(__warning);\n` +
       `      }\n` +
@@ -310,7 +310,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `          headers: __res.headers,\n` +
       `          body: __mmt_formatBodyValue(__res.body)\n` +
       `        };\n` +
-      `        console.debug(__mmt_formatSection('Response:', __resLog));\n` +
+      `        console.log(__mmt_formatSection('Response:', __resLog));\n` +
       `        console.warn(__warning);\n` +
       `        return __res;\n` +
       `      }\n` +
