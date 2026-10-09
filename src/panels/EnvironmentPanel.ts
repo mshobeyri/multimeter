@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
 import type {EnvVariable, EnvVarSource} from 'mmt-core/EnvData';
+import {findProjectRootSync} from 'mmt-core/fileHelper';
 
 import {derivePresetSelections} from './envPresetMatch';
 
@@ -116,8 +117,64 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           }
           break;
         }
+        case 'openRelativeFile': {
+          const filename =
+              typeof message.filename === 'string' ? message.filename.trim() : '';
+          if (filename) {
+            await this.openEnvRelativeFile(filename);
+          }
+          break;
+        }
       }
     });
+  }
+
+  /** Open a `./…mmt` env value from the Environment side panel. */
+  private async openEnvRelativeFile(filename: string): Promise<void> {
+    const rel = filename.replace(/^\.\//, '');
+    const candidates: string[] = [];
+    const activePath = vscode.window.activeTextEditor?.document.uri.fsPath;
+    if (activePath) {
+      const projectRoot =
+          findProjectRootSync(activePath, fs.existsSync, path.dirname, path.join);
+      if (projectRoot) {
+        candidates.push(path.join(projectRoot, rel));
+      }
+      candidates.push(path.resolve(path.dirname(activePath), filename));
+    }
+    for (const folder of vscode.workspace.workspaceFolders || []) {
+      const root = folder.uri.fsPath;
+      candidates.push(path.join(root, rel));
+      const envRel = vscode.workspace.getConfiguration('multimeter')
+                         .get<string>('workspaceEnvFile', 'multimeter.mmt') ||
+          'multimeter.mmt';
+      const envPath = path.isAbsolute(envRel) ? envRel : path.join(root, envRel);
+      if (fs.existsSync(envPath)) {
+        candidates.push(path.resolve(path.dirname(envPath), filename));
+      }
+    }
+    let absolutePath = candidates.find(p => fs.existsSync(p));
+    if (!absolutePath) {
+      const base = path.basename(rel);
+      const found = await vscode.workspace.findFiles(`**/${base}`, null, 5);
+      absolutePath = found[0]?.fsPath;
+    }
+    if (!absolutePath) {
+      vscode.window.showWarningMessage(`Could not find file: ${filename}`);
+      return;
+    }
+    const uri = vscode.Uri.file(absolutePath);
+    try {
+      if (absolutePath.toLowerCase().endsWith('.mmt')) {
+        await vscode.commands.executeCommand(
+            'vscode.openWith', uri, 'mmt.editor', {preview: false});
+      } else {
+        await vscode.commands.executeCommand('vscode.open', uri);
+      }
+    } catch {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(doc, {preview: false});
+    }
   }
 
   private getHtmlForWebview(): string {

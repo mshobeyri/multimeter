@@ -162,6 +162,58 @@
             color: var(--vscode-symbolIcon-stringForeground, var(--foreground));
         }
 
+        .env-value-wrap {
+            position: relative;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .env-value-wrap.has-file-open .value-input {
+            padding-right: 36px;
+        }
+
+        .env-value-wrap .field-button {
+            position: absolute;
+            top: 50%;
+            right: 4px;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            z-index: 1;
+            opacity: 0.9;
+            color: var(--foreground);
+        }
+
+        .env-value-wrap .field-button:hover {
+            opacity: 1;
+            background: transparent;
+        }
+
+        .env-value-wrap .field-button .action-button {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.8;
+            color: inherit;
+            font-size: 16px;
+        }
+
+        .env-value-wrap .field-button:hover .action-button {
+            opacity: 1;
+        }
+
         .flat-select {
             border: 1px solid var(--input-border);
             background: var(--input-background);
@@ -497,7 +549,10 @@
                         </select>
                     </td>
                     <td class="env-value">
-                        <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(String(envVar.value ?? ''))}" />
+                        <div class="env-value-wrap${isEnvFilePathValue(envVar.value) ? ' has-file-open' : ''}">
+                            <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(String(envVar.value ?? ''))}" />
+                            ${isEnvFilePathValue(envVar.value) ? `<button type="button" class="field-button open-env-file-btn" data-path="${escapeHtml(String(envVar.value).trim())}" title="Open file" aria-label="Open file"><span class="action-button codicon codicon-symbol-method-arrow" aria-hidden="true"></span></button>` : ''}
+                        </div>
                     </td>
                     <td class="env-actions">
                         <button class="icon-button delete-btn" data-index="${index}" title="Delete variable">
@@ -509,6 +564,14 @@
             });
 
             registerEnvSelectHandlers();
+        }
+
+        function isEnvFilePathValue(value) {
+            if (typeof value !== 'string') {
+                return false;
+            }
+            const trimmed = value.trim();
+            return trimmed.startsWith('./') && /\.mmt$/i.test(trimmed);
         }
 
         function resolveEnvSource(envVar) {
@@ -577,6 +640,21 @@
                         value: optValue,
                         label: optLabel,
                         source: 'file'
+                    });
+                });
+            });
+
+            document.querySelectorAll('.open-env-file-btn').forEach(btn => {
+                btn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const filePath = this.getAttribute('data-path');
+                    if (!filePath) {
+                        return;
+                    }
+                    vscode.postMessage({
+                        type: 'openRelativeFile',
+                        filename: filePath
                     });
                 });
             });

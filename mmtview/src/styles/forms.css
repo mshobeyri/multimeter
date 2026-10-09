@@ -868,10 +868,16 @@ select.is-invalid {
   text-overflow: ellipsis;
 }
 
-.environment-file-path {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
+.environment-file-path-field {
+  width: 100%;
+  max-width: 100%;
+}
+
+.environment-file-path-field .file-picker-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
+  color: var(--vscode-symbolIcon-stringForeground, var(--vscode-foreground, #d4d4d4));
 }
 
 .environment-table-value {

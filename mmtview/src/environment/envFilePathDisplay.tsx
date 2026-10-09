@@ -1,6 +1,5 @@
 import React from "react";
 import { openRelativeFile } from "../vsAPI";
-import { isOpenFileModifier } from "../suite/test/suiteTreeLabelClick";
 
 /** Relative `./…mmt` path that becomes a file-backed env getter at run start. */
 export function isEnvFilePathDisplayValue(value: unknown): value is string {
@@ -11,31 +10,30 @@ export function isEnvFilePathDisplayValue(value: unknown): value is string {
   return trimmed.startsWith("./") && /\.mmt$/i.test(trimmed);
 }
 
-/** Underlined, Ctrl/Cmd+clickable path for file-backed env values. */
+/** Path value with trailing open button (same chrome as FilePickerInput). */
 export const EnvFilePathValue: React.FC<{ value: string }> = ({ value }) => {
   const path = value.trim();
   return (
-    <span
-      className="environment-file-path"
-      title={`${path}\nCtrl/Cmd+click to open`}
-      role="link"
-      tabIndex={0}
-      onClick={(event) => {
-        if (!isOpenFileModifier(event)) {
-          return;
-        }
-        event.preventDefault();
-        openRelativeFile(path);
-      }}
-      onKeyDown={(event) => {
-        if (event.key !== "Enter" || !isOpenFileModifier(event)) {
-          return;
-        }
-        event.preventDefault();
-        openRelativeFile(path);
-      }}
-    >
-      {path}
-    </span>
+    <div className="field-with-remove environment-file-path-field">
+      <input
+        type="text"
+        className="file-picker-input"
+        value={path}
+        readOnly
+        title={path}
+        style={{ paddingRight: 36 }}
+        onFocus={event => event.currentTarget.select()}
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        className="field-button"
+        title="Open file"
+        aria-label="Open file"
+        onClick={() => openRelativeFile(path)}
+      >
+        <span className="action-button codicon codicon-symbol-method-arrow" />
+      </button>
+    </div>
   );
 };
