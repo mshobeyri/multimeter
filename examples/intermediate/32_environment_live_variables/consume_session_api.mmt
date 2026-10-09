@@ -1,0 +1,10 @@
+type: api
+title: Echo both live sessions
+description: |-
+  Whole-field e: tokens stay unresolved until Send/run so file-backed getters can run. The echo body should contain two UUIDs, not ./…mmt paths.
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  session_api: e:session_api
+  session_test: e:session_test

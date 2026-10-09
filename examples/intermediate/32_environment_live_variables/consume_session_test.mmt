@@ -1,0 +1,9 @@
+type: test
+title: Read live env from a test
+description: |
+  e:session_* runs the linked .mmt files and yields their first output (a UUID). Assert shape with the regex operator (=*).
+steps:
+  - check: <<e:session_test>> =* ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+  - check: <<e:session_api>> =* ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+  # Within cache: 2s, a second read of session_test returns the same UUID.
+  - check: <<e:session_test>> == <<e:session_test>>
