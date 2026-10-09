@@ -107,20 +107,10 @@
   gap: 8px;
 }
 
+/* These are <button>s — must beat global `button` / `button:hover` primary chrome. */
+button.mmt-yaml-error-dim-item,
 .mmt-yaml-error-dim-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px 14px;
-  border: 1px solid var(
-    --vscode-inputValidation-errorBorder,
-    color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 45%, transparent)
-  );
-  border-radius: var(--mmt-control-radius, 4px);
-  background: var(
+  --mmt-yaml-error-bg: var(
     --vscode-inputValidation-errorBackground,
     color-mix(
       in srgb,
@@ -128,23 +118,51 @@
       var(--vscode-editorWidget-background, var(--vscode-editor-background, #1e1e1e)) 86%
     )
   );
-  color: var(
+  --mmt-yaml-error-border: var(
+    --vscode-inputValidation-errorBorder,
+    color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 45%, transparent)
+  );
+  --mmt-yaml-error-fg: var(
     --vscode-inputValidation-errorForeground,
     var(--vscode-foreground, #cccccc)
   );
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid var(--mmt-yaml-error-border);
+  border-radius: var(--mmt-control-radius, 4px);
+  background: var(--mmt-yaml-error-bg);
+  background-color: var(--mmt-yaml-error-bg);
+  color: var(--mmt-yaml-error-fg);
   font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 12px;
   line-height: 1.45;
   text-align: left;
   cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 0.12s ease;
+  box-shadow: none;
 }
 
-.mmt-yaml-error-dim-item:hover {
-  border-color: var(
-    --vscode-focusBorder,
-    var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground, #f14c4c))
-  );
-  color: var(--vscode-foreground, #ffffff);
+button.mmt-yaml-error-dim-item:hover,
+button.mmt-yaml-error-dim-item:focus,
+button.mmt-yaml-error-dim-item:focus-visible,
+button.mmt-yaml-error-dim-item:active,
+.mmt-yaml-error-dim-item:hover,
+.mmt-yaml-error-dim-item:focus,
+.mmt-yaml-error-dim-item:focus-visible,
+.mmt-yaml-error-dim-item:active {
+  /* Opacity only — lock error chrome so primary button blue cannot win. */
+  opacity: 1;
+  background: var(--mmt-yaml-error-bg) !important;
+  background-color: var(--mmt-yaml-error-bg) !important;
+  border-color: var(--mmt-yaml-error-border) !important;
+  color: var(--mmt-yaml-error-fg) !important;
+  box-shadow: none !important;
 }
 
 .mmt-yaml-error-dim-item-title {

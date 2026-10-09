@@ -250,6 +250,56 @@ const isSchemaBranchError = (error: any): boolean => {
         keyword === 'not' || keyword === 'pattern';
 };
 
+const ajvInstancePath = (error: any): string => {
+    return String((error as any)?.instancePath || (error as any)?.dataPath || '');
+};
+
+/**
+ * When an object fails `anyOf`/`oneOf` because of an unknown property, AJV also
+ * emits a `required` miss for every branch discriminator (call/http/check/…).
+ * Keep the actionable `additionalProperties` error; drop those sibling required
+ * errors at the same instance path. Empty objects (no additionalProperties) still
+ * surface their required errors.
+ */
+const filterRedundantAnyOfRequiredErrors = <T extends { keyword?: string }>(
+    ajvErrors: T[]
+): T[] => {
+    const pathsWithAdditional = new Set<string>();
+    for (const error of ajvErrors) {
+        if (error?.keyword === 'additionalProperties') {
+            pathsWithAdditional.add(ajvInstancePath(error));
+        }
+    }
+    if (pathsWithAdditional.size === 0) {
+        return ajvErrors;
+    }
+    return ajvErrors.filter(error => {
+        if (error?.keyword !== 'required') {
+            return true;
+        }
+        return !pathsWithAdditional.has(ajvInstancePath(error));
+    });
+};
+
+/** Collapse duplicate additionalProperties reports from each failed anyOf branch. */
+const dedupeAdditionalPropertyErrors = <T extends { keyword?: string; params?: any }>(
+    ajvErrors: T[]
+): T[] => {
+    const seen = new Set<string>();
+    return ajvErrors.filter(error => {
+        if (error?.keyword !== 'additionalProperties') {
+            return true;
+        }
+        const prop = String(error.params?.additionalProperty ?? '');
+        const key = `${ajvInstancePath(error)}\0${prop}`;
+        if (seen.has(key)) {
+            return false;
+        }
+        seen.add(key);
+        return true;
+    });
+};
+
 const DATA_IMPORT_EXTENSIONS = ['.json', '.yaml', '.yml', '.csv'];
 const WHOLE_DATA_IMPORT_REF_RE = /^\$\{\s*([A-Za-z_][A-Za-z0-9_-]*)(?:\.[A-Za-z_][A-Za-z0-9_-]*|\[(?:-?\d+(?::-?\d*)?|[A-Za-z_][A-Za-z0-9_]*)\])*\s*\}$/;
 
@@ -395,7 +445,10 @@ export const validateYamlContent = (content: string): any[] => {
         const isValid = validate(parsedContent);
 
         if (!isValid && validate.errors) {
-            validate.errors.forEach(error => {
+            const ajvErrors = dedupeAdditionalPropertyErrors(
+                filterRedundantAnyOfRequiredErrors(validate.errors)
+            );
+            ajvErrors.forEach(error => {
                 if (isSchemaBranchError(error)) {
                     return;
                 }
