@@ -68,20 +68,25 @@
   color: transparent;
 }
 
-.method-url-bar input.method-url-bar-url {
+/* Outer .method-url-bar owns the chrome. Beat the global
+   `input:not(...)` rule (high :not() specificity) so the URL
+   field never draws its own border/fill inside the pill. */
+.method-url-bar input.method-url-bar-url,
+.method-url-bar .token-field > input.method-url-bar-url {
   flex: 1;
   min-width: 0;
   width: auto;
   max-width: none;
-  height: auto;
-  min-height: 0;
+  height: auto !important;
+  min-height: 0 !important;
   margin: 0;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 0;
-  outline: none;
-  background: transparent;
-  box-shadow: none;
+  padding: 0 10px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
   color: var(--vscode-input-foreground, #d4d4d4);
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
   font-size: var(--vscode-font-size, 13px);
