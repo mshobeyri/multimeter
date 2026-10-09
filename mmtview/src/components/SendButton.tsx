@@ -25,8 +25,11 @@ const SEND_SEGMENT_WIDTH = 34;
 const MENU_SEGMENT_WIDTH = 20;
 const DEFAULT_CANCEL_REVEAL_MS: Record<SendButtonMode, number> = {
   send: 1500,
-  run: 500,
+  run: 1500,
 };
+
+/** Delay before the oversized load circle appears (no size animation). */
+const LOAD_DISC_DELAY_MS = 50;
 
 const SendButton: React.FC<{
   onClick: () => void;
@@ -67,6 +70,7 @@ const SendButton: React.FC<{
   const [showCancel, setShowCancel] = useState(false);
   const [menuPos, setMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [themeTick, setThemeTick] = useState(0);
+  const [showLoadDisc, setShowLoadDisc] = useState(false);
   const hasMenu = Boolean(contextMenuItems?.length);
   const openMenu = Boolean(menuPos && hasMenu);
   const revealMs = cancelRevealMs ?? DEFAULT_CANCEL_REVEAL_MS[mode];
@@ -99,6 +103,19 @@ const SendButton: React.FC<{
       }
     };
   }, [loading, revealMs]);
+
+  useEffect(() => {
+    if (!loading) {
+      setShowLoadDisc(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setShowLoadDisc(true);
+    }, LOAD_DISC_DELAY_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [loading]);
 
   const sendChrome = useMemo(
     () => harmonizeAccent(resolveAccent(accent), { fillAmount: hover ? 62 : 52 }),
@@ -261,12 +278,11 @@ const SendButton: React.FC<{
     </div>
   ) : null;
 
-  // Slightly oversized circular disc + rotator sit outside the pill clip so the
-  // send/run face reads as a round button while loading. Icon uses a fixed slot
-  // on the outer wrapper so glyphs never jump.
+  // Slightly oversized circular disc + rotator sit outside the pill clip.
+  // Shown after a short delay; no size animation. Icon uses a fixed slot.
   const sendSegmentWidth = hasMenu ? SEND_SEGMENT_WIDTH : MAIN_SIZE;
   const ringSize = MAIN_SIZE + 8;
-  const loadingRing = loading ? (
+  const loadingRing = showLoadDisc ? (
     <span
       aria-hidden
       style={{
