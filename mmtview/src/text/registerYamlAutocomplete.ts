@@ -625,12 +625,14 @@ export function registerYamlAutocomplete(monaco: any) {
                     suggestionList = getOutputTokenSuggestions(model, lineContent, tokenMatch);
                 } else {
                     const general = keySuggestionsByParent.general || [];
-                    suggestionList = general
-                        .filter((item: any) => String(item.label || '').startsWith(`${tokenMatch.prefix}:`))
-                        .map((item: any) => ({
-                            ...item,
-                            insertText: String(item.insertText || item.label || '').replace(/^\s+/, ''),
-                        }));
+                    suggestionList = deduplicateSuggestions(
+                        general
+                            .filter((item: any) => String(item.label || '').startsWith(`${tokenMatch.prefix}:`))
+                            .map((item: any) => ({
+                                ...item,
+                                insertText: String(item.insertText || item.label || '').replace(/^\s+/, ''),
+                            })),
+                    );
                 }
                 if (suggestionList.length > 0) {
                     return {

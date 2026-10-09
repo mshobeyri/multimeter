@@ -75,14 +75,26 @@ export const KeySuggestionsByParent = (monaco: any) => {
         }));
     variablesSuggestions.push(...aliasCurrentSuggestions);
 
+    // Env suggestions are rebuilt on every storage load (panel refresh, add,
+    // setenv). Replace the e: slice instead of appending or duplicates pile up.
+    const envSuggestionsStart = variablesSuggestions.length;
     loadEnvVariables((variables: { name: string; label: string; value: JSONValue }[]) => {
-        variablesSuggestions.push(...variables.map(envVar => ({
-            label: 'e:' + envVar.name,
-            kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: ' e:' + envVar.name,
-            documentation: envVar.label || `Environment variable: ${envVar.name}`,
-            detail: `${envVar.name}: ${envVar.value || 'undefined'}`,
-        })));
+        variablesSuggestions.length = envSuggestionsStart;
+        const seen = new Set<string>();
+        for (const envVar of variables || []) {
+            const name = typeof envVar?.name === 'string' ? envVar.name : '';
+            if (!name || seen.has(name)) {
+                continue;
+            }
+            seen.add(name);
+            variablesSuggestions.push({
+                label: 'e:' + name,
+                kind: monaco.languages.CompletionItemKind.Variable,
+                insertText: ' e:' + name,
+                documentation: envVar.label || `Environment variable: ${name}`,
+                detail: `${name}: ${envVar.value || 'undefined'}`,
+            });
+        }
     });
 
     const rootSuggestions = [
