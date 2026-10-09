@@ -91,6 +91,7 @@
 
         .env-table {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             font-size: var(--table-font-size);
         }
@@ -113,6 +114,20 @@
             padding: 6px var(--cell-padding-x);
             border-bottom: 1px solid var(--panel-border);
             vertical-align: middle;
+            overflow: hidden;
+        }
+
+        /* Fixed share of width so long values / empty rows do not reflow columns. */
+        .env-col-name {
+            width: 22%;
+        }
+
+        .env-col-label {
+            width: 24%;
+        }
+
+        .env-col-value {
+            width: auto;
         }
 
         .env-table tr:last-child td {
@@ -222,6 +237,8 @@
             padding: 4px 8px;
             border-radius: var(--mmt-control-radius);
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
             height: var(--cell-height);
             box-sizing: border-box;
             appearance: none;
@@ -253,8 +270,12 @@
             padding: 4px 8px;
             border-radius: var(--mmt-control-radius);
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
             height: var(--cell-height);
             box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .value-input:hover {
@@ -460,12 +481,18 @@
         </div>
         <div id="env-table-container" class="table-wrapper">
             <table class="env-table">
+                <colgroup>
+                    <col class="env-col-name" />
+                    <col class="env-col-label" />
+                    <col class="env-col-value" />
+                    <col class="env-actions" />
+                </colgroup>
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Label</th>
-                        <th>Value</th>
-                        <th class="env-actions" style="width: 32px;"></th>
+                        <th class="env-col-name">Name</th>
+                        <th class="env-col-label">Label</th>
+                        <th class="env-col-value">Value</th>
+                        <th class="env-actions"></th>
                     </tr>
                 </thead>
                 <tbody id="env-table-body"></tbody>
@@ -538,18 +565,18 @@
                 }
 
                 row.innerHTML = `
-                    <td class="env-name">
+                    <td class="env-name env-col-name">
                         <div class="env-name-inner">
                             ${sourceIconHtml(source)}
                             <span class="env-name-text">${escapeHtml(envVar.name)}</span>
                         </div>
                     </td>
-                    <td>
+                    <td class="env-col-label">
                         <select class="flat-select env-select" data-index="${index}">
                             ${optionsHtml}
                         </select>
                     </td>
-                    <td class="env-value">
+                    <td class="env-value env-col-value">
                         <div class="env-value-wrap${isEnvFilePathValue(envVar.value) ? ' has-file-open' : ''}">
                             <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(String(envVar.value ?? ''))}" />
                             ${isEnvFilePathValue(envVar.value) ? `<button type="button" class="field-button open-env-file-btn" data-path="${escapeHtml(String(envVar.value).trim())}" title="Open file" aria-label="Open file"><span class="action-button codicon codicon-symbol-method-arrow" aria-hidden="true"></span></button>` : ''}
