@@ -9,6 +9,7 @@ import {convertUriToMmt} from './mmtAPI/convertToMmt';
 import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
 import {MmtEditorProvider} from './mmtEditorProvider';
 import ConnectionsPanel from './panels/ConnectionsPanel';
+import {registerMultimeterDockTrees} from './panels/DockTreeProvider';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
@@ -113,6 +114,8 @@ function registerSidePanels(
   historyPanel: HistoryPanel; environmentPanel: EnvironmentPanel;
   connectionsPanel: ConnectionsPanel;
 } {
+  registerMultimeterDockTrees(context);
+
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       TempFilesPanel.viewType, new TempFilesPanel(context, tempFiles),
       {webviewOptions: {retainContextWhenHidden: true}}));

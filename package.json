@@ -475,6 +475,13 @@
     "views": {
       "multimeter-activitybar": [
         {
+          "id": "multimeter.activityDock",
+          "name": "Views",
+          "icon": "res/activity.png",
+          "visibility": "collapsed",
+          "order": 0
+        },
+        {
           "id": "multimeter.tempFiles",
           "name": "Temp Files",
           "icon": "res/activity.png",
@@ -524,6 +531,12 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "multimeter.activityDock",
+        "contents": "Drag Multimeter views onto this **Views** header to dock them in the Multimeter sidebar.\n\n[Open Environment Variables](command:multimeter.environment.focus)\n[Open History](command:multimeter.history.focus)"
+      }
+    ],
     "keybindings": [
       {
         "command": "multimeter.sendRequest",
