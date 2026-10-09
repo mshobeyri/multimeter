@@ -227,9 +227,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   );
   const [requestBodyToolbar, setRequestBodyToolbar] = useState<BodyViewToolbarState | null>(null);
   const [responseBodyToolbar, setResponseBodyToolbar] = useState<BodyViewToolbarState | null>(null);
-  const [selectedResponseHeader, setSelectedResponseHeader] = useState<string>("");
-  const [selectedResponseCookie, setSelectedResponseCookie] = useState<string>("");
-
   const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
     const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
     if (saved === "resolved" || saved === "tokens") {
@@ -625,28 +622,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const shouldShowResponseHeaders = () => responseTab === "headers";
   const shouldShowResponseCookies = () => responseTab === "cookies";
 
-  const selectedHeaderKey = responseData?.headers && selectedResponseHeader in responseData.headers
-    ? selectedResponseHeader : "";
-  const selectedCookieKey = responseData?.cookies && selectedResponseCookie in responseData.cookies
-    ? selectedResponseCookie : "";
-  const canExtractOutput = Boolean(responseData) && (
-    responseTab === "headers" ? selectedHeaderKey !== ""
-      : responseTab === "cookies" ? selectedCookieKey !== ""
-        : responseTab === "body" ? Boolean(responseBodyToolbar?.canInspect)
-          : false);
-  const extractTitle = responseTab === "headers"
-    ? "Select a header to extract it as an output"
-    : responseTab === "cookies"
-      ? "Select a cookie to extract it as an output"
-      : responseTab === "body"
-        ? "Place the cursor on a response value to extract it"
-        : "Extract output";
+  const canExtractOutput = Boolean(responseData) &&
+    responseTab === "body" &&
+    Boolean(responseBodyToolbar?.canInspect);
+  const extractTitle = responseTab === "body"
+    ? "Place the cursor on a response value to extract it"
+    : "Extract output";
   const extractOutput = () => {
-    if (responseTab === "headers" && selectedHeaderKey) {
-      handleAddOutputExpression(`headers.${selectedHeaderKey}`, selectedHeaderKey);
-    } else if (responseTab === "cookies" && selectedCookieKey) {
-      handleAddOutputExpression(`cookies.${selectedCookieKey}`, selectedCookieKey);
-    } else if (responseTab === "body") {
+    if (responseTab === "body") {
       responseBodyToolbar?.inspect();
     }
   };
@@ -1664,6 +1647,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           )}
           {responseData ? <span className="apitest-tabs-tools-divider" aria-hidden /> : null}
           <div className="bodyview-header-actions">
+            {responseTab === "body" ? (
             <button
               type="button"
               className="button-icon no-shrink section-edit-toggle"
@@ -1675,6 +1659,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             >
               <span className="codicon codicon-sign-out" aria-hidden />
             </button>
+            ) : null}
             <button
               type="button"
               className="button-icon no-shrink section-edit-toggle"
@@ -1797,8 +1782,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               value={responseData?.headers || {}}
               onChange={() => { }}
               deactivated={true}
-              onRowSelect={setSelectedResponseHeader}
-              selectedKey={selectedResponseHeader}
+              onExtractRow={key => handleAddOutputExpression(`headers.${key}`, key)}
             />
           ) : (
             <div className="apitest-empty">No response headers.</div>
@@ -1812,8 +1796,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               value={responseData?.cookies || {}}
               onChange={() => { }}
               deactivated={true}
-              onRowSelect={setSelectedResponseCookie}
-              selectedKey={selectedResponseCookie}
+              onExtractRow={key => handleAddOutputExpression(`cookies.${key}`, key)}
             />
           ) : (
             <div className="apitest-empty">No response cookies.</div>

@@ -202,12 +202,48 @@
   top: 50%;
   right: 4px;
   transform: translateY(-50%);
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
+}
+
+/* Keep room for the trailing extract icon when there is no remove control. */
+.field-with-remove.has-extract:not(.has-remove) > input,
+.field-with-remove.has-extract:not(.has-remove) .token-field .token-field-input {
+  padding-right: 36px !important;
+}
+
+.field-with-remove.has-extract .field-button.is-extract {
+  right: 4px;
+  z-index: 2;
+  opacity: 1;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
+}
+
+.field-with-remove.has-extract .field-button.is-extract .codicon {
+  font-size: 16px;
+  color: inherit;
+}
+
+/* Trailing icons stack from the right: remove → extract → copy/picker/open. */
+.field-with-remove.has-remove .field-button.is-extract {
+  right: 32px;
 }
 
 .field-with-remove.has-remove .field-button.is-picker,
 .field-with-remove.has-remove .field-button.is-open,
 .field-with-remove.has-remove .field-button.is-copy {
   right: 32px;
+}
+
+.field-with-remove.has-extract:not(.has-remove) .field-button.is-copy,
+.field-with-remove.has-extract:not(.has-remove) .field-button.is-picker,
+.field-with-remove.has-extract:not(.has-remove) .field-button.is-open {
+  right: 32px;
+}
+
+.field-with-remove.has-remove.has-extract .field-button.is-copy,
+.field-with-remove.has-remove.has-extract .field-button.is-picker,
+.field-with-remove.has-remove.has-extract .field-button.is-open {
+  right: 64px;
 }
 
 /* Keep top/bottom padding so text stays vertically centered (do not set

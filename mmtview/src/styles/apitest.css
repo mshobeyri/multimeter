@@ -1639,7 +1639,3 @@
   font-size: 11px !important;
   line-height: 1.2 !important;
 }
-
-.field-table tr.is-selected td input {
-  background: var(--vscode-list-inactiveSelectionBackground, transparent);
-}

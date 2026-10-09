@@ -16,6 +16,8 @@ interface FieldWithRemoveProps {
   readOnly?: boolean;
   removable?: boolean;
   copyable?: boolean;
+  /** Extract-as-output control inside the value field (response headers/cookies). */
+  onExtractPressed?: () => void;
   /** Opt into resolved/token dual-mode when the value contains tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
@@ -57,12 +59,15 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   readOnly = false,
   removable = true,
   copyable = false,
+  onExtractPressed,
   canContainToken = false,
   valueContext,
   typeLabel,
   kvField,
 }) => {
-  const buttonCount = (removable ? 1 : 0) + (copyable && value ? 1 : 0);
+  const extractable = typeof onExtractPressed === "function";
+  const buttonCount =
+    (removable ? 1 : 0) + (extractable ? 1 : 0) + (copyable && value ? 1 : 0);
   const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
     typeLabel,
     buttonCount,
@@ -70,9 +75,15 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   const kvAttr = kvField
     ? { [KV_FIELD_ATTR]: kvField } as Record<string, string>
     : undefined;
+  const wrapClass = [
+    "field-with-remove",
+    disabled ? "is-disabled" : "",
+    removable ? "has-remove" : "",
+    extractable ? "has-extract" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
+    <div className={wrapClass}>
       {canContainToken && !disabled && !readOnly ? (
         <TokenFieldInput
           value={value}
@@ -128,13 +139,26 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
           <span className="action-button codicon codicon-copy" />
         </button>
       )}
+      {extractable && (
+        <button
+          type="button"
+          tabIndex={-1}
+          onMouseDown={event => event.preventDefault()}
+          onClick={onExtractPressed}
+          title="Extract as output"
+          aria-label="Extract as output"
+          className="field-button is-extract"
+        >
+          <span className="codicon codicon-sign-out" aria-hidden />
+        </button>
+      )}
       {removable && <button
         type="button"
         tabIndex={-1}
         onClick={onRemovePressed}
         title="Remove field"
         disabled={disabled || readOnly}
-        className="field-button"
+        className="field-button is-remove"
       >
         <span className="action-button codicon codicon-close" />
       </button>}

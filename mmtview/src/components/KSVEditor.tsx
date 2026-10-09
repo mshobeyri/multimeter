@@ -36,9 +36,8 @@ type KSVEditorBaseProps = {
   /** Non-editable but visually normal (unlike disabled). */
   readOnly?: boolean;
   deactivated?: boolean;
-  /** Fired when a row is clicked or focused. */
-  onRowSelect?: (key: string) => void;
-  selectedKey?: string;
+  /** Per-row extract-as-output control on the value field. */
+  onExtractRow?: (key: string) => void;
   keysDisabled?: boolean;
   deletable?: boolean;
   expandable?: boolean;
@@ -103,8 +102,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   disabled,
   readOnly = false,
   deactivated = false,
-  onRowSelect,
-  selectedKey,
+  onExtractRow,
   keysDisabled = false,
   deletable = true,
   expandable = true,
@@ -235,12 +233,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
           {safeList(entries)
             .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
             .map(([k, v], i) => (
-              <tr
-                key={i}
-                className={onRowSelect && k !== "" && k === selectedKey ? "is-selected" : undefined}
-                onClick={onRowSelect && k !== "" ? () => onRowSelect(k) : undefined}
-                onFocus={onRowSelect && k !== "" ? () => onRowSelect(k) : undefined}
-              >
+              <tr key={i}>
                 <td>
                   <StableTextInput
                     value={k}
@@ -293,6 +286,11 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         readOnly={readOnly || deactivated}
                         removable={deletable && !deactivated && !readOnly}
                         copyable={copyable}
+                        onExtractPressed={
+                          onExtractRow
+                            ? () => onExtractRow(k)
+                            : undefined
+                        }
                         canContainToken={canContainToken}
                         valueContext={valueContext}
                         kvField={kvFieldId(i, "value")}
