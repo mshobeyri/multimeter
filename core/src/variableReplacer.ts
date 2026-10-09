@@ -562,7 +562,12 @@ export const resolveEnvTokenValues =
         replaceTokenForms(
             s, 'e',
             (name, accessor, match) => {
-              const value = applyValueAccessor(envParams[name], accessor);
+              const raw = envParams[name];
+              // Keep ./…mmt / getters for runtime mmtEnv_ (see isDeferredEnvValue).
+              if (isDeferredEnvValue(raw)) {
+                return match;
+              }
+              const value = applyValueAccessor(raw, accessor);
               return value !== undefined ? embedResolvedTokenText(value) : match;
             },
             {});
@@ -621,6 +626,22 @@ function resolveNestedInputTokens(
   return resolveNestedInputTokens(out, mergedInputs, envs, visiting, depth + 1);
 }
 
+/**
+ * File-backed env values (`./…mmt`) and process-store getters must stay as
+ * `e:` tokens through UI/`resolveApiRequest` so runtime `mmtEnv_` can await
+ * them. Sync substitution would bake the path string into the request body.
+ */
+function isDeferredEnvValue(value: unknown): boolean {
+  if (typeof value === 'function') {
+    return true;
+  }
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const trimmed = value.trim();
+  return trimmed.startsWith('./') && /\.mmt$/i.test(trimmed);
+}
+
 function resolveDynamicTokenValue(
     prefix: string, name: string, accessor: string,
     mergedInputs: Record<string, any>, envs: Record<string, any>,
@@ -653,8 +674,13 @@ function resolveDynamicTokenValue(
       visiting.delete(name);
       return applyValueAccessor(resolved, accessor);
     }
-    case 'e':
-      return applyValueAccessor(envs[name], accessor);
+    case 'e': {
+      const envValue = envs[name];
+      if (isDeferredEnvValue(envValue)) {
+        return undefined;
+      }
+      return applyValueAccessor(envValue, accessor);
+    }
     case 'r':
       return applyValueAccessor(generateRandomByName(name), accessor);
     case 'c':

@@ -68,6 +68,27 @@ describe('resolveApiRequest', () => {
     expect(formatBody('urlencoded', preview.body, false)).toBe('username=demo&role=admin');
   });
 
+  it('keeps e: tokens when env value is a ./…mmt file path (runtime getter)', () => {
+    const fileBackedApi = {
+      type: 'api',
+      url: 'https://example.com/echo',
+      method: 'post',
+      format: 'json',
+      body: {
+        session_api: 'e:session_api',
+        host: 'e:host',
+      },
+    } as APIData;
+    const request = resolveApiRequest(fileBackedApi, {}, {
+      session_api: './create_session_api.mmt',
+      host: 'https://example.com',
+    }, {preserveStructuredBody: true});
+    expect(request.body).toEqual({
+      session_api: 'e:session_api',
+      host: 'https://example.com',
+    });
+  });
+
   it('preserves structured bodies while resolving all tokens for UI preview', () => {
     const request = resolveApiRequest(api, {}, {}, {preserveStructuredBody: true});
     expect(typeof request.body).toBe('object');

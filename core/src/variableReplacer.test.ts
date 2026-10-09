@@ -267,6 +267,16 @@ describe('resolveEnvTokenValues', () => {
     expect(resolveEnvTokenValues('<<e:TOKEN[0:3]>>', env)).toBe('abc');
     expect(resolveEnvTokenValues('hello <<e:user.name>>', env)).toBe('hello mehrdad');
   });
+
+  it('does not substitute ./…mmt file-backed env values (runtime mmtEnv_)', () => {
+    const env = {session: './create_session.mmt', host: 'https://x'};
+    expect(resolveEnvTokenValues('e:session', env)).toBe('e:session');
+    expect(resolveEnvTokenValues('<<e:session>>', env)).toBe('<<e:session>>');
+    expect(resolveEnvTokenValues('e:host', env)).toBe('https://x');
+    expect(replaceAllRefs(
+        {body: {session: 'e:session', host: 'e:host'}}, {}, {}, env).body)
+        .toEqual({session: 'e:session', host: 'https://x'});
+  });
 });
 
 describe('variableReplacer', () => {
