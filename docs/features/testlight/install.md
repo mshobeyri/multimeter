@@ -56,6 +56,20 @@ Try it first on [testlight-action](https://github.com/mshobeyri/testlight-action
 
 See the [action README](https://github.com/mshobeyri/testlight-action).
 
+## Azure Pipelines
+
+Install the Testlight Azure Pipelines extension on the org, then use `Testlight@1` (same inputs as the GitHub Action `with:` block, as YAML `inputs:`):
+
+```yaml
+- task: Testlight@1
+  inputs:
+    file: tests/suite.mmt
+    report: junit
+    reportFile: results/junit.xml
+```
+
+Source and packaging live in `mmtazure/` in this repo. Full pipeline copy-paste: [Run in CI](../../tasks/run-in-ci.md#azure-pipelines).
+
 ## macOS (Homebrew)
 
 ```sh

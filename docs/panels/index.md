@@ -4,6 +4,15 @@ Multimeter’s VS Code panels sit in the activity bar (left) and in the bottom M
 
 Click the Multimeter activity icon in the sidebar to open the activity-bar views. Environment and History live in the bottom panel area (`View → Open View…` or the Multimeter panel tab).
 
+## Views dock
+
+The top of the Multimeter sidebar is a collapsed **Views** tree. Use it to relocate Multimeter panels between the activity bar and the bottom panel (or another sidebar):
+
+1. Drag a view’s title onto the **Views** header (or use the view’s context menu → **Move View**).
+2. Click a row in **Views** to focus that panel again.
+
+Listed views: Temp Files, Get Started, Mock Server, Connections, Environment Variables, and History. Welcome text on an empty dock also links to Environment and History.
+
 ## Activity bar
 
 | Control | What it does |

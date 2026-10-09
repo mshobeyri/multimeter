@@ -32,7 +32,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 
 ### Tabs
 
-**Request** (top pane) and **Response** (bottom pane) each have their own tabs. Drag the sash between them to resize.
+**Request** and **Response** each have their own tabs. By default they stack (request above response). Use the split toggle on the response toolbar to switch to side-by-side. Drag the sash between them to resize.
 
 | Request tab | What you see |
 |---|---|
@@ -40,7 +40,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 | **Auth** | `auth` (none, bearer, basic, API key, OAuth2) |
 | **Params** | Query parameters |
 | **Headers** | Request headers |
-| **Body** | Request body. Right-click a field or click {{btn:sign-out}} to add it to `outputs:` — see [Outputs](./outputs.md) |
+| **Body** | Request body (format bar, pretty/raw). Telescope toggles resolved values vs editable tokens — see below |
 | **Cookies** | Request cookies |
 | **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Badge shows input count |
 | **Doc** | **Title**, **tags**, and **description** (Markdown). Pencil per section to edit |
@@ -48,19 +48,26 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 
 | Response tab | What you see |
 |---|---|
-| **Body** | Response body (pretty / raw / preview) |
-| **Headers** | Response headers |
-| **Cookies** | Response cookies |
+| **Body** | Response body (pretty / raw / preview, including images). {{btn:sign-out}} extracts the value under the cursor into `outputs:` |
+| **Headers** | Response headers. {{btn:sign-out}} on a value adds that header to `outputs:` |
+| **Cookies** | Response cookies. {{btn:sign-out}} on a value adds that cookie to `outputs:` |
 | **Outputs** | Extracted **Outputs** and **Setenv** values after Send. Pencil edits extraction / setenv expressions. Badge shows outputs + setenv count |
 
-Send sits on the URL row (next to the method+URL control). Duration, status, and history sit at the right of the response tab bar.
+Send sits on the URL row (next to the method+URL control). Duration, status, history, clear-response, and the request/response layout toggle sit at the right of the response tab bar. See [Outputs](./outputs.md).
+
+### Request toolbar
+
+| Control | What it does |
+|---|---|
+| {{btn:telescope}} | Toggle **token mirror**: show resolved input/env values, or editable `{{…}}` / token text in request fields (including Body) |
+| {{btn:globe}} | Open the [Environment Variables](../env/ui.md) panel |
 
 ### Send
 
 | Control | What it does |
 |---|---|
-| {{btn:send:Send}} | Circular send button beside the URL — runs the current request (HTTP / GraphQL / gRPC). After ~1.5s while in flight it turns into **Cancel** |
-| Right-click Send | Context menu: **Run in Core**, and **Run in Curl** for HTTP ([Curl](../../integration/curl.md)) |
+| {{btn:send:Send}} | Circular send button beside the URL — runs the current request (HTTP / GraphQL / gRPC). After ~1.5s while in flight it turns into **Cancel**. Shortcut: **⌘Enter** (macOS) / **Ctrl+Enter** |
+| **More** (chevron next to Send) | **Run in Core**, and **Run in Curl** for HTTP ([Curl](../../integration/curl.md)) |
 | {{btn:plug:Connect}} | WebSocket only — connect first; Send stays disabled until connected |
 
 See also: [History](../../panels/history.md) · [Connections](../../panels/connections.md)

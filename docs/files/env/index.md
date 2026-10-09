@@ -46,10 +46,12 @@ Notes
   At run start it becomes a getter in the process env store. Each `e:name` read
   runs that file via the normal runner (any type with `outputs:` — typically
   `api` or `test`, default inputs) and uses the **first key** declared under its
-  `outputs:` (YAML order). The target file’s `cache:` controls reuse. A later
-  `setenv` of `./x.mmt` stays a plain path string — only the original env copy
-  converts paths to getters. The environment panel shows the path underlined;
-  Ctrl/Cmd+click opens the file.
+  `outputs:` (YAML order). The target file’s `cache:` controls reuse (`cache:` is
+  allowed on API files for this). A later `setenv` of `./x.mmt` stays a plain
+  path string — only the original env copy converts paths to getters. The
+  environment panel shows a file icon and an open control inside the value;
+  Ctrl/Cmd+click the path also opens the file. Example:
+  [Environment live variables](../../../examples/intermediate/32_environment_live_variables/README.md).
 
 ## Usage
 Supported token forms in tests and APIs:
@@ -58,6 +60,7 @@ Supported token forms in tests and APIs:
 |--------|-------------|---------------|
 | `<<e:var>>` | Anywhere in a string (URLs, `headers`, `body` text) | Always substituted as string |
 | `e:var` | As the entire value after `: ` (colon + space) | Preserves type (number, boolean, string) |
+| `{{e:var}}` | Unquoted whole value or inside strings (normalized to bare / `<<e:…>>` on parse) | Same as the form it rewrites to |
 
 What to use when
 - Use `<<e:var>>` when you want substitution anywhere in a string (inside URLs, headers, or other text).
@@ -69,8 +72,9 @@ What to use when
 
 Notes
 - `e:var` is not replaced inside plain text like `hi:e:var there`; it must follow `: `.
-- `{{var}}` is not supported — use `<<e:var>>` or `e:var` instead.
+- Bare `{{var}}` (no `e:` / `i:` / `r:` / `c:` prefix) is not an env token — use `<<e:var>>`, `e:var`, or `{{e:var}}`.
 - `<e:var>` and `e:{var}` are ordinary text, not tokens.
+- Full token rules: [Dynamic values — syntax](../../features/dynamic-values/syntax.md).
 - Slice form `[start:end]` uses normal JS `slice(start, end)` semantics.
 - Random (`r:`) and current (`c:`) tokens use the same syntax and accessors — see [Dynamic values](../../features/dynamic-values/index.md).
 

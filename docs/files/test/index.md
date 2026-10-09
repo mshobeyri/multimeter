@@ -33,8 +33,8 @@ See also: [Flow chart](../../features/flow-chart.md)
 
 | Control | What it does |
 |---|---|
-| {{btn:play:Run test}} | Runs the test flow. While running, turns into **Stop test** |
-| Right-click Run test | Context menu: **Run in Core** |
+| {{btn:play:Run test}} | Runs the test flow. While running, turns into **Stop test**. Shortcut: **⌘Enter** (macOS) / **Ctrl+Enter** |
+| **More** (chevron next to Run) | **Run in Core** |
 | {{btn:export:Export}} | Export the run report (HTML, MMT, Markdown, or JUnit XML). Disabled until a run completes |
 
 ### After a run

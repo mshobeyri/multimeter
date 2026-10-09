@@ -6,6 +6,7 @@
 - Optional — both sides default to `auto` when omitted
 - Explicit `format: json` pins the request to json; response stays `auto`
 - Affects default `Content-Type` and body handling
+- The request format picker omits `html` (use `text` for HTML request bodies). `format: html` in YAML still works; response `html` remains available for pretty/preview
 
 Use a single value to pin the **request** format; response stays `auto` unless you set it explicitly:
 
@@ -32,7 +33,7 @@ format:
 | `xml` | XML with self-closing empty tags (`<meta/>`) |
 | `xmle` | Expanded XML with explicit closing tags (`<meta></meta>`) |
 | `text` | Raw text body |
-| `html` | Raw HTML body (highlighting + `text/html`) |
+| `html` | Response HTML pretty/preview (`text/html`). Prefer `text` when authoring request bodies in the tester |
 | `urlencoded` | Form fields as `application/x-www-form-urlencoded` |
 | `binary` | File path relative to the `.mmt` file |
 | `multipart` | Form parts (`name` + text `value` or relative `file` path); Postman **form-data** (`multipart/form-data`) |
