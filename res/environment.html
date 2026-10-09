@@ -251,18 +251,24 @@
 
         .flat-select {
             border: 1px solid var(--input-border);
-            background: var(--input-background);
+            background-color: var(--input-background);
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23858585' d='m8 11-3-3h6l-3 3z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 12px;
             color: var(--input-foreground);
             font: inherit;
-            padding: 4px 8px;
+            padding: 4px 28px 4px 8px;
             border-radius: var(--mmt-control-radius);
             width: 100%;
             max-width: 100%;
             min-width: 0;
             height: var(--cell-height);
             box-sizing: border-box;
+            cursor: pointer;
             appearance: none;
             -webkit-appearance: none;
+            -moz-appearance: none;
         }
 
         .flat-select:focus {
