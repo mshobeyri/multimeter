@@ -11,8 +11,7 @@
         "mshobeyri.multimeter",
         "--extensionDevelopmentPath=${workspaceFolder}"
       ],
-      "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "preLaunchTask": "compile-webview"
+      "outFiles": ["${workspaceFolder}/out/**/*.js"]
     }
   ]
 }
