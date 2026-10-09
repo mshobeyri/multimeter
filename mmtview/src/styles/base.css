@@ -953,12 +953,17 @@ button:focus {
   font-size: 16px;
 }
 
-/* Field/inline small icon button used next to inputs */
+/* Field/inline small icon button used next to inputs.
+   Must beat the global `button` primary chrome (blue fill / white text). */
+button.field-button,
 .field-button {
   width: 28px;
   height: 24px;
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
+  border: none !important;
+  box-shadow: none !important;
   cursor: pointer;
   font-size: 14px;
   display: flex;
@@ -986,6 +991,7 @@ button:focus {
   font-size: 16px;
   line-height: 1;
   display: block;
+  color: inherit;
 }
 
 .field-button:disabled {
@@ -993,24 +999,33 @@ button:focus {
   opacity: 0.5;
 }
 
+button.field-button:hover,
 .field-button:hover {
   background: transparent !important;
+  background-color: transparent !important;
   border-color: transparent !important;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
   opacity: 1;
 }
 
+button.field-button:focus,
 .field-button:focus {
   outline: none;
   box-shadow: none;
 }
 
+button.field-button:active,
+button.field-button:focus,
+button.field-button:focus-visible,
 .field-button:active,
 .field-button:focus,
 .field-button:focus-visible {
   background: transparent !important;
+  background-color: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
   outline: none !important;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
 }
 
 .tab-bar {

@@ -197,12 +197,16 @@
   cursor: not-allowed;
 }
 
+.field-with-remove button.field-button,
 .field-with-remove .field-button {
   position: absolute;
   top: 50%;
   right: 4px;
   transform: translateY(-50%);
-  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc)) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
 }
 
 /* Keep room for the trailing extract icon when there is no remove control. */
@@ -211,11 +215,15 @@
   padding-right: 36px !important;
 }
 
+.field-with-remove.has-extract button.field-button.is-extract,
 .field-with-remove.has-extract .field-button.is-extract {
   right: 4px;
   z-index: 2;
   opacity: 1;
-  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc)) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
 }
 
 .field-with-remove.has-extract .field-button.is-extract .codicon {

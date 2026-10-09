@@ -9,12 +9,12 @@ const ResponseDuration: React.FC<ResponseDurationProps> = ({ duration, className
   if (duration == null || duration < 0) return null;
   const ms = Math.round(duration);
   return (
-    <div
-      className={`response-badge ${className || ''}`.trim()}
+    <span
+      className={`response-duration ${className || ''}`.trim()}
       title={`Duration: ${ms}ms`}
     >
       {ms}ms
-    </div>
+    </span>
   );
 };
 
