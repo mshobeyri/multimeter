@@ -311,19 +311,43 @@ textarea:focus {
   cursor: pointer;
 }
 
-/* Theme-aligned native checkboxes (VS Code checkbox tokens) */
+/* VS Code settings-style checkboxes (not OS native / accent-color). */
 input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
   margin: 0;
   flex-shrink: 0;
+  box-sizing: border-box;
   cursor: pointer;
-  accent-color: var(--vscode-checkbox-background, var(--vscode-focusBorder, #0e639c));
+  position: relative;
+  border-radius: 3px;
+  border: 1px solid var(--vscode-checkbox-border, #3c3c3c);
+  background: var(--vscode-checkbox-background, #3c3c3c);
+  color: var(--vscode-checkbox-foreground, #f0f0f0);
+}
+
+input[type="checkbox"]:hover:not(:disabled) {
+  border-color: var(--vscode-focusBorder, var(--vscode-checkbox-border, #3c3c3c));
+}
+
+input[type="checkbox"]:checked::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M14.354 3.646a.5.5 0 0 1 0 .708l-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.793l7.146-7.147a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E") center / 14px no-repeat;
+  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M14.354 3.646a.5.5 0 0 1 0 .708l-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.793l7.146-7.147a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 
 input[type="checkbox"]:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+input[type="checkbox"]:focus {
+  outline: none;
 }
 
 input[type="checkbox"]:focus-visible {
