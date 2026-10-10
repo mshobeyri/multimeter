@@ -8,6 +8,7 @@ import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
 import FileOverview from '../../shared/FileOverview';
 import FilePickerInput from '../../components/FilePickerInput';
+import StableTextInput from '../../components/StableTextInput';
 import KSVEditor from '../../components/KSVEditor';
 import SearchableTagInput from '../../components/SearchableTagInput';
 import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
@@ -613,11 +614,11 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     <div className="edit-section">
       <div className="label is-field">Preset</div>
       <div className="field-inset">
-        <input
+        <StableTextInput
           type="text"
           className="vscode-input mmt-fill"
           value={environment?.preset || ''}
-          onChange={(e) => handleEnvPresetChange(e.target.value)}
+          onChange={(next) => handleEnvPresetChange(next)}
           placeholder="preset name (from multimeter.mmt or env file)"
         />
       </div>
@@ -664,6 +665,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
               onRemovePressed={() => handleRemoveExport(i)}
               basePath={fileContext.mmtFilePath}
               placeholder="e.g., reports/results.html or +/report.xml"
+              showFilePicker
               removable
             />
           ))}

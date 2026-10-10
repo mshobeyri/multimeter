@@ -39,6 +39,7 @@ export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string; id?: string; childrenRangeLabel?: string }
   | { type: 'test'; path: string; id: string; title?: string; parentPath?: string }
+  | { type: 'api'; path: string; id: string; title?: string; parentPath?: string }
   | { type: 'server'; path: string; id: string; title?: string; parentPath?: string }
   | { type: 'suite'; path: string; id: string; title?: string; parentPath?: string };
 
@@ -183,7 +184,7 @@ export function collectSuiteExpandableIds(
         collect(uiId, n.children || []);
         continue;
       }
-      if (n.kind === 'suite' || n.kind === 'test' || n.kind === 'server') {
+      if (n.kind === 'suite' || n.kind === 'test' || n.kind === 'api' || n.kind === 'server') {
         ids.add(uiId);
         if (n.kind === 'suite') {
           collect(uiId, suiteTreeChildren(n));
@@ -289,15 +290,15 @@ export function buildSuiteTestTreeItems(
         continue;
       }
 
-      if (n.kind === 'test' || n.kind === 'server') {
+      if (n.kind === 'test' || n.kind === 'api' || n.kind === 'server') {
         const path = n.path;
         const itemId = uiId;
         items[itemId] = {
           index: itemId,
-          isFolder: n.kind === 'test',
+          isFolder: n.kind === 'test' || n.kind === 'api',
           children: [],
           data: {
-            type: n.kind === 'server' ? 'server' : 'test',
+            type: n.kind === 'server' ? 'server' : n.kind === 'api' ? 'api' : 'test',
             path,
             id: baseId,
             title: (n as any).title,
@@ -568,7 +569,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     // Prefer the explicit parentPath recorded in the tree node data.
     // This keeps relative label behavior stable even when the UI id doesn't
     // map 1:1 to a suite path (e.g. top-level suite entries).
-    const isFileRow = data && (data.type === 'test' || data.type === 'suite' || data.type === 'server');
+    const isFileRow = data && (data.type === 'test' || data.type === 'api' || data.type === 'suite' || data.type === 'server');
     const displayPath = isFileRow ? suiteTreeItemDisplayName(data) : undefined;
 
     if (data.type === 'group' || data.type === 'root') {
@@ -697,7 +698,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
       getItemTitle={(item) => {
         const data = item.data as SuiteTestTreeItemData;
         // Show the id in the accessible/title string for all node kinds.
-        if (data?.type === 'test' || data?.type === 'suite' || data?.type === 'server') {
+        if (data?.type === 'test' || data?.type === 'api' || data?.type === 'suite' || data?.type === 'server') {
           const id = (data as any).id || String(item.index);
           return `${data.path} [${id}]`;
         }

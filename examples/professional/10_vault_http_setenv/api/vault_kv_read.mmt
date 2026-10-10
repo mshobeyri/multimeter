@@ -15,7 +15,6 @@ url: <<e:vault_addr>>/v1/secret/data/<<e:vault_secret_path>>
 headers:
   X-Vault-Token: <<e:vault_token>>
   Accept: application/json
-format: json
 outputs:
   api_token: body.data.data.token
 setenv:

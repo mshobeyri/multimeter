@@ -6,6 +6,7 @@ import * as file from './file';
 import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
+import MockServerPanel from '../panels/MockServerPanel';
 import {keepMmtEditorSoon} from '../keepEditor';
 import {loadWorkspaceEnvFile, refreshWorkspaceCertificatesFromEnvFile} from '../workspaceEnvLoader';
 import {buildThemeTokenMessage} from '../themeTokenColors';
@@ -584,6 +585,14 @@ export const messageReceived = async (
       run.handleStopTestRun(message, webviewPanel, document, mmtProvider);
       break;
 
+    case 'pauseTestRun':
+      run.handlePauseTestRun(message, webviewPanel, document, mmtProvider);
+      break;
+
+    case 'resumeTestRun':
+      run.handleResumeTestRun(message, webviewPanel, document, mmtProvider);
+      break;
+
     case 'showLogOutputChannel':
       run.showLogOutputChannel();
       break;
@@ -627,6 +636,10 @@ export const messageReceived = async (
       });
       break;
 
+    case 'openEnvironmentPanel':
+      await vscode.commands.executeCommand('multimeter.environment.focus');
+      break;
+
     case 'updateConfig':
       await handleUpdateConfig(message, mmtProvider);
       break;
@@ -667,6 +680,21 @@ export const messageReceived = async (
         // Error already shown to user in mockRunner
       }
       break;
+
+    case 'startMockInPanel': {
+      const panel = MockServerPanel.getInstance();
+      if (!panel) {
+        vscode.window.showErrorMessage('Mock Server panel is not available.');
+        break;
+      }
+      try {
+        await panel.startMmtFile(document.uri.fsPath);
+      } catch (err: any) {
+        vscode.window.showErrorMessage(
+            `Could not start mock in panel: ${err?.message || err}`);
+      }
+      break;
+    }
 
     case 'stopMock':
       mockRunner.stopMockServer(document.uri.toString());

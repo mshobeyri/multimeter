@@ -119,27 +119,32 @@ export async function executeTest(
     }
     forwardReporter(event as any);
   } : undefined;
-  const resolvedInputs = resolveInputsMap(inputsUsed, envVars);
+  // Process store supplies e: at runtime; keep raw tokens in generated JS.
+  const processEnv = options.envStore?.values ?? envVars;
+  const resolvedInputs = resolveInputsMap(inputsUsed, processEnv);
   const js = await generateTestJs({
     rawText,
     name: identifier,
-    inputs: resolvedInputs,
-    envVars,
+    inputs: inputsUsed,
+    envVars: {},
     fileLoader: options.fileLoader,
     filePath: prepared.filePath,
     projectRoot: options.projectRoot,
     // Use external report settings when running as part of a suite
     isExternal: (options as any).__mmtIsSuiteBundleChildRun === true,
   });
-    const result = await runGeneratedJs(
+  const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
       (options as any).id, options.fileLoader, setenvReporter,
       options.abortSignal, true,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
       (options as any).__mmtIsSuiteBundleChildRun === true, undefined, options.checkLogMode, 'Test',
-      options.binaryFileLoader);
+      options.binaryFileLoader, processEnv, options.pauseGate);
+  const cancelled = result.cancelled === true || options.abortSignal?.aborted === true;
   if (forwardReporter) {
-    if (result.outputs && typeof result.outputs === 'object' && Object.keys(result.outputs).length > 0) {
+    // Skip outputs when stopped — UI should not fill after Stop.
+    if (!cancelled && result.outputs && typeof result.outputs === 'object' &&
+        Object.keys(result.outputs).length > 0) {
       const outputsEvent: TestOutputsReporterEvent = {
         scope: 'test-outputs',
         runId,
@@ -148,13 +153,18 @@ export async function executeTest(
       };
       forwardReporter(outputsEvent);
     }
-      const summary: TestRunSummaryEvent = {
-        scope: 'test-step-run',
-        runId,
-        result: result.success ? 'passed' : 'failed',
-        id: (options as any).id,
-      };
+    const summary: TestRunSummaryEvent = {
+      scope: 'test-step-run',
+      runId,
+      result: cancelled ? 'cancelled' :
+          (result.success ? 'passed' : 'failed'),
+      id: (options as any).id,
+    };
     forwardReporter(summary);
+  }
+  if (cancelled && !result.cancelled) {
+    result.cancelled = true;
+    result.success = false;
   }
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
@@ -166,7 +176,7 @@ export async function executeTest(
     displayName,
     docType,
     inputsUsed: resolvedInputs,
-    envVarsUsed: envVars,
+    envVarsUsed: processEnv,
     exampleName: prepared.exampleName,
     exampleIndex: prepared.exampleIndex,
   };

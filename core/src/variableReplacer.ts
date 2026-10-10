@@ -3,6 +3,7 @@ import {JSONRecord} from './CommonData';
 import {randomValueForToken} from './Random';
 import {currentValueForToken} from './Current';
 import {isOmitSentinel} from './omitKeyword';
+import {isLiteralTokenValue, unwrapLiteralToken, LITERAL_TOKEN_PREFIX} from './literalToken';
 import {safeList} from './safer';
 import {TestData} from './TestData';
 
@@ -10,10 +11,8 @@ import {TestData} from './TestData';
 // Shared token helpers
 //
 // Supported forms for env/input/random/current/output references in .mmt files:
-//   <<e:VAR>>          angle-bracket-wrapped
-//   <e:VAR>            single-angle-bracket-wrapped (env only)
-//   e:{VAR}            brace-wrapped (env only)
-//   e:VAR              plain
+//   <<e:VAR>>          angle-bracket-wrapped (required when mixed with other text)
+//   e:VAR              plain, only when the entire value is the token
 //   <<o:name>> / o:name  test outputs object (runtime; not API doc annotations)
 //
 // Optional accessor suffixes are supported after the base token name:
@@ -40,11 +39,11 @@ export const DYNAMIC_KEY_RE =
 
 function replaceTokenForms(
     s: string, prefix: string,
-    formatter: (name: string, accessor: string, match: string) => string,
+    formatter: (
+      name: string, accessor: string, match: string, offset: number, source: string,
+    ) => string,
     options: {
       includeAngles?: boolean,
-      includeSingleAngles?: boolean,
-      includeBraceForm?: boolean,
       includePlain?: boolean,
     } = {}): string {
   const source = String(s ?? '');
@@ -54,25 +53,115 @@ function replaceTokenForms(
   const capture = `(${tokenSpec})(${ACCESSOR_PATH_RE})`;
   let out = source;
 
+  // A YAML-quoted bare token is the whole JSON string or XML text node
+  // (`"i:name"`, `>i:name<`). Leave that text alone. A quoted whole
+  // `"<<token>>"` / `"{{token}}"` is stored with the literal marker, so the
+  // wrapper just after that marker stays text. Embedded `<<token>>` /
+  // `{{token}}` still resolve. `<e:name>` and `e:{name}` are ordinary text.
+  const keepQuotedLiteral = (
+      match: string, offset: number, text: string, plain: boolean): boolean => {
+    if (offset <= 0 || offset + match.length >= text.length) {
+      return false;
+    }
+    if (text.slice(Math.max(0, offset - LITERAL_TOKEN_PREFIX.length), offset) ===
+        LITERAL_TOKEN_PREFIX) {
+      return true;
+    }
+    if (!plain) {
+      return false;
+    }
+    const before = text[offset - 1];
+    const after = text[offset + match.length];
+    if (before === '"' && after === '"') {
+      return true;
+    }
+    if (before === '>' && after === '<') {
+      return true;
+    }
+    return false;
+  };
+
+  // `<e:name>` is not a token. Skip a plain `e:name` that sits inside one
+  // pair of angles so the inner name is not rewritten on its own.
+  const wrappedInSingleAngles = (
+      offset: number, length: number, text: string): boolean => {
+    let i = offset - 1;
+    while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) {
+      i--;
+    }
+    if (i < 0 || text[i] !== '<' || (i > 0 && text[i - 1] === '<')) {
+      return false;
+    }
+    let j = offset + length;
+    while (j < text.length && (text[j] === ' ' || text[j] === '\t')) {
+      j++;
+    }
+    return j < text.length && text[j] === '>' && text[j + 1] !== '>';
+  };
+
+  // A literal `"<<e:name>>"` / `"{{e:name}}"` keeps its wrapper. Do not also
+  // rewrite the inner name. Live `{{e:name}}` has no marker, so it still resolves.
+  const insideShieldedToken = (
+      offset: number, length: number, text: string): boolean => {
+    const shields: Array<[string, string]> = [['<<', '>>'], ['{{', '}}']];
+    for (const [open, close] of shields) {
+      if (offset < open.length + LITERAL_TOKEN_PREFIX.length) {
+        continue;
+      }
+      if (text.slice(offset - open.length, offset) !== open) {
+        continue;
+      }
+      if (!text.startsWith(close, offset + length)) {
+        continue;
+      }
+      const prefixAt = offset - open.length - LITERAL_TOKEN_PREFIX.length;
+      if (text.slice(prefixAt, prefixAt + LITERAL_TOKEN_PREFIX.length) ===
+          LITERAL_TOKEN_PREFIX) {
+        return true;
+      }
+    }
+    // XML escapes a quoted `<<c:day>>` to `&lt;&lt;c:day&gt;&gt;`.
+    const xmlOpen = '&lt;&lt;';
+    const xmlClose = '&gt;&gt;';
+    if (offset >= xmlOpen.length + LITERAL_TOKEN_PREFIX.length &&
+        text.slice(offset - xmlOpen.length, offset) === xmlOpen &&
+        text.startsWith(xmlClose, offset + length)) {
+      const prefixAt = offset - xmlOpen.length - LITERAL_TOKEN_PREFIX.length;
+      if (text.slice(prefixAt, prefixAt + LITERAL_TOKEN_PREFIX.length) ===
+          LITERAL_TOKEN_PREFIX) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const applyToken = (
+      match: string, name: string, accessor: string, offset: number,
+      source: string, plain: boolean): string =>
+    keepQuotedLiteral(match, offset, source, plain) ?
+      match :
+      formatter(name, accessor || '', match, offset, source);
+
   if (options.includeAngles !== false) {
     out = out.replace(
         new RegExp(`<<\\s*${prefix}:${capture}\\s*>>`, 'g'),
-        (match, name: string, accessor = '') => formatter(name, accessor || '', match));
-  }
-  if (options.includeSingleAngles) {
+        (match, name: string, accessor = '', offset: number, source: string) =>
+          applyToken(match, name, accessor, offset, source, false));
     out = out.replace(
-        new RegExp(`<\\s*${prefix}:${capture}\\s*>`, 'g'),
-        (match, name: string, accessor = '') => formatter(name, accessor || '', match));
-  }
-  if (options.includeBraceForm) {
-    out = out.replace(
-        new RegExp(`(?<![a-zA-Z0-9])${prefix}:\\{(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\}`, 'g'),
-        (match, name: string, accessor = '') => formatter(name, accessor || '', match));
+        new RegExp(`\\{\\{\\s*${prefix}:${capture}\\s*\\}\\}`, 'gi'),
+        (match, name: string, accessor = '', offset: number, source: string) =>
+          applyToken(match, name, accessor, offset, source, false));
   }
   if (options.includePlain !== false) {
     out = out.replace(
         new RegExp(`(?<![a-zA-Z0-9])${prefix}:${capture}(?![A-Za-z0-9_])`, 'g'),
-        (match, name: string, accessor = '') => formatter(name, accessor || '', match));
+        (match, name: string, accessor = '', offset: number, source: string) =>
+          keepQuotedLiteral(match, offset, source, true) ||
+              wrappedInSingleAngles(offset, match.length, source) ||
+              (options.includeAngles !== false &&
+               insideShieldedToken(offset, match.length, source)) ?
+            match :
+            formatter(name, accessor || '', match, offset, source));
   }
   return out;
 }
@@ -164,37 +253,108 @@ const toJsAccessorExpression = (baseExpression: string, accessor = ''): string =
     accessor ? `mmtAccess_(${baseExpression}, ${JSON.stringify(accessor)})` : baseExpression;
 
 /**
- * Normalize all env-token syntaxes to a JS expression rooted at `envVariables`.
+ * Names bound as input parameters while generating JS.
+ * An `i:` token whose name is not in the set becomes the token text
+ * (`i:name`, including any accessor) instead of a ReferenceError.
+ * Omit the set to keep emitting identifiers.
+ */
+export type JsTokenGenOptions = {
+  knownInputNames?: ReadonlySet<string>;
+  /**
+   * When false, emit `mmtEnv_(...)` without `await` (parameter defaults cannot
+   * be async). Default true for expressions/templates.
+   */
+  awaitEnv?: boolean;
+};
+
+function missingInputTokenText(name: string, accessor: string): string {
+  return `i:${name}${accessor}`;
+}
+
+function isDeclaredInput(name: string, options?: JsTokenGenOptions): boolean {
+  const known = options?.knownInputNames;
+  return !known || known.has(name);
+}
+
+/** JS expression for an `i:` token. Missing names are the token text. */
+function inputTokenJsExpr(
+    name: string, accessor: string, options?: JsTokenGenOptions): string {
+  if (!isDeclaredInput(name, options)) {
+    return JSON.stringify(missingInputTokenText(name, accessor));
+  }
+  return toJsAccessorExpression(name, accessor);
+}
+
+/**
+ * Text spliced into a larger string. Declared inputs become `${…}`.
+ * Missing inputs stay as the token text so later encoding does not see `${}`.
+ */
+function inputTokenInterpolation(
+    name: string, accessor: string, options?: JsTokenGenOptions): string {
+  if (!isDeclaredInput(name, options)) {
+    return missingInputTokenText(name, accessor);
+  }
+  return '${' + toJsAccessorExpression(name, accessor) + '}';
+}
+
+/**
+ * Normalize all env-token syntaxes to an async resolver call.
  * Used when generating JS code outside template literals.
  */
 export const normalizeEnvTokens = (s: string): string =>
     replaceTokenForms(
         s, 'e',
-        (name, accessor) => toJsAccessorExpression(`envVariables.${name}`, accessor),
-        {includeSingleAngles: true, includeBraceForm: true});
+        (name, accessor) => envTokenJsExpr(name, accessor || '', 'lookup', true),
+        {});
 
 /**
- * Simple word-boundary env-token replacement: `e:VAR` → `envVariables.VAR`.
+ * Simple word-boundary env-token replacement: `e:VAR` → `(await mmtEnv_(...))`.
  * Only handles the plain `e:VAR` form (no angle/brace wrappers).
  * Useful for short expressions like conditional checks.
  */
 export const replaceEnvTokensPlain = (s: string): string =>
     replaceTokenForms(
         s, 'e',
-        (name, accessor) => toJsAccessorExpression(`envVariables.${name}`, accessor),
-        {includeAngles: false, includeSingleAngles: false, includeBraceForm: false});
+        (name, accessor) => envTokenJsExpr(name, accessor || '', 'lookup', true),
+        {includeAngles: false});
+
+/**
+ * How a missing `e:` name is read.
+ * `lookup` — undefined when absent (comparisons stay falsy).
+ * `text` — token text `e:NAME` when absent (same idea as unknown `r:` / `c:` / `i:`).
+ * Both go through `mmtEnv_` so file-backed getters are awaited.
+ */
+export type EnvJsMode = 'lookup' | 'text';
+
+function envTokenJsExpr(
+    name: string, accessor: string, mode: EnvJsMode,
+    awaitable = true): string {
+  const nameLit = JSON.stringify(name);
+  let call: string;
+  if (mode === 'lookup') {
+    const accessorLit = accessor ? JSON.stringify(accessor) : 'null';
+    call = `mmtEnv_(${nameLit}, ${accessorLit}, 'lookup')`;
+  } else if (accessor) {
+    call = `mmtEnv_(${nameLit}, ${JSON.stringify(accessor)})`;
+  } else {
+    call = `mmtEnv_(${nameLit})`;
+  }
+  return awaitable ? `(await ${call})` : call;
+}
 
 /**
  * Replace all env-token syntaxes in `s` with `${...}` JS interpolations.
  * Exported so urlencoded body encoding can turn `e:` tokens into runtime
  * placeholders *before* percent-encoding (JSON/XML keep them readable).
+ * Value substitution uses `text` so a missing name stays `e:name`.
  */
-export const replaceEnvTokensToJs = (s: string): string =>
+export const replaceEnvTokensToJs = (
+    s: string, mode: EnvJsMode = 'lookup', awaitable = true): string =>
     replaceTokenForms(
         s, 'e',
-        (name, accessor) => '${' +
-            toJsAccessorExpression(`envVariables.${name}`, accessor) + '}',
-        {includeSingleAngles: true, includeBraceForm: true});
+        (name, accessor) =>
+            '${' + envTokenJsExpr(name, accessor || '', mode, awaitable) + '}',
+        {});
 
 /**
  * Replace all r: / c: token syntaxes in `s` with runtime call expressions.
@@ -204,12 +364,12 @@ export const replaceRandCurrentTokensToJs = (s: string): string => {
       s, 'r',
       (name, accessor) => '${' +
           toJsAccessorExpression(`mmtRandom_('${name}')`, accessor) + '}',
-      {includeSingleAngles: false, includeBraceForm: false});
+      {});
   out = replaceTokenForms(
       out, 'c',
       (name, accessor) => '${' +
           toJsAccessorExpression(`mmtCurrent_('${name}')`, accessor) + '}',
-      {includeSingleAngles: false, includeBraceForm: false});
+      {});
   return out;
 };
 
@@ -218,12 +378,12 @@ export const replaceRandCurrentTokensToJs = (s: string): string => {
  * interpolations so API/test default params can reference sibling inputs
  * (e.g. `xx: asd_<<i:message>>` → `` `asd_${message}` ``).
  */
-export const replaceInputTokensToJs = (s: string): string =>
+export const replaceInputTokensToJs = (
+    s: string, options?: JsTokenGenOptions): string =>
     replaceTokenForms(
         s, 'i',
-        (name, accessor) =>
-            '${' + toJsAccessorExpression(name, accessor) + '}',
-        {includeSingleAngles: false, includeBraceForm: false});
+        (name, accessor) => inputTokenInterpolation(name, accessor, options),
+        {});
 
 /**
  * Replace `o:` / `<<o:…>>` tokens with `${outputs.…}` interpolations for
@@ -235,7 +395,7 @@ export const replaceOutputTokensToJs = (s: string): string =>
         s, 'o',
         (name, accessor) => '${' +
             toJsAccessorExpression(`outputs.${name}`, accessor) + '}',
-        {includeSingleAngles: false, includeBraceForm: false});
+        {});
 
 /**
  * Plain `o:name` → `outputs.name` (no `${…}`), for check/if expressions.
@@ -244,7 +404,7 @@ export const replaceOutputTokensPlain = (s: string): string =>
     replaceTokenForms(
         s, 'o',
         (name, accessor) => toJsAccessorExpression(`outputs.${name}`, accessor),
-        {includeAngles: false, includeSingleAngles: false, includeBraceForm: false});
+        {includeAngles: false});
 
 /**
  * Rewrite a `set` step key `o:user.name` to assignment LHS `outputs.user.name`.
@@ -282,10 +442,11 @@ export function replaceOutputTokenRefs(value: any): any {
  * Convert remaining `e:` / `r:` / `c:` / `i:` / `o:` tokens in a string to `${...}`
  * interpolations (without wrapping in backticks).
  */
-export const replaceDynamicTokensToJsInterpolations = (s: string): string => {
-  let out = replaceEnvTokensToJs(String(s ?? ''));
+export const replaceDynamicTokensToJsInterpolations = (
+    s: string, options?: JsTokenGenOptions): string => {
+  let out = replaceEnvTokensToJs(String(s ?? ''), 'text');
   out = replaceRandCurrentTokensToJs(out);
-  out = replaceInputTokensToJs(out);
+  out = replaceInputTokensToJs(out, options);
   out = replaceOutputTokensToJs(out);
   return out;
 };
@@ -295,16 +456,25 @@ export const replaceDynamicTokensToJsInterpolations = (s: string): string => {
  * to `${...}` interpolations. Used before urlencoded encoding so dynamic refs
  * survive URLSearchParams percent-encoding the same way JSON/XML bodies do.
  */
-export function embedDynamicTokensAsJsInterpolations(value: any): any {
+export function embedDynamicTokensAsJsInterpolations(
+    value: any, options?: JsTokenGenOptions): any {
   if (typeof value === 'string') {
-    return replaceDynamicTokensToJsInterpolations(value);
+    // Keep the quote marker. Unwrapping here makes `"i:user"` look like the
+    // bare token i:user, and the later JSON/XML scan resolves it.
+    if (isLiteralTokenValue(value)) {
+      return value;
+    }
+    return replaceDynamicTokensToJsInterpolations(value, options);
   }
   if (Array.isArray(value)) {
-    return value.map(embedDynamicTokensAsJsInterpolations);
+    return value.map(item => embedDynamicTokensAsJsInterpolations(item, options));
   }
   if (value && typeof value === 'object') {
     return Object.fromEntries(
-        Object.entries(value).map(([k, v]) => [k, embedDynamicTokensAsJsInterpolations(v)]));
+        Object.entries(value).map(([k, v]) => [
+          k,
+          embedDynamicTokensAsJsInterpolations(v, options),
+        ]));
   }
   return value;
 }
@@ -316,45 +486,57 @@ export function embedDynamicTokensAsJsInterpolations(value: any): any {
  * `<<i:message>>`, `<<o:token>>`), returns a bare JS expression. Otherwise
  * returns a backtick template literal with `${…}` interpolations.
  */
-export function toTemplateValueJs(value: string): string {
+export function toTemplateValueJs(
+    value: string, options?: JsTokenGenOptions): string {
   const s = String(value ?? '');
+  if (isLiteralTokenValue(s)) {
+    return JSON.stringify(unwrapLiteralToken(s));
+  }
 
   const fullEnvAngle = new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullEnvCurly = new RegExp(`^\\{\\{\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullEnvPlain = new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullRandAngle = new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullRandCurly = new RegExp(`^\\{\\{\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullRandPlain = new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
   const fullCurrAngle = new RegExp(`^<<\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullCurrCurly = new RegExp(`^\\{\\{\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullCurrPlain = new RegExp(`^c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`);
   const fullInputAngle = new RegExp(`^<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullInputCurly = new RegExp(`^\\{\\{\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullInputPlain = new RegExp(`^i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
   const fullOutputAngle = new RegExp(`^<<\\s*o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
+  const fullOutputCurly = new RegExp(`^\\{\\{\\s*o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i');
   const fullOutputPlain = new RegExp(`^o:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`);
 
-  let m = fullEnvAngle.exec(s) || fullEnvPlain.exec(s);
+  const awaitEnv = options?.awaitEnv !== false;
+  let m = fullEnvAngle.exec(s) || fullEnvCurly.exec(s) || fullEnvPlain.exec(s);
   if (m && m[1]) {
-    return toJsAccessorExpression(`envVariables.${m[1]}`, m[2] || '');
+    return envTokenJsExpr(m[1], m[2] || '', 'text', awaitEnv);
   }
-  m = fullRandAngle.exec(s) || fullRandPlain.exec(s);
+  m = fullRandAngle.exec(s) || fullRandCurly.exec(s) || fullRandPlain.exec(s);
   if (m && m[1]) {
     return toJsAccessorExpression(`mmtRandom_('${m[1]}')`, m[2] || '');
   }
-  m = fullCurrAngle.exec(s) || fullCurrPlain.exec(s);
+  m = fullCurrAngle.exec(s) || fullCurrCurly.exec(s) || fullCurrPlain.exec(s);
   if (m && m[1]) {
     return toJsAccessorExpression(`mmtCurrent_('${m[1]}')`, m[2] || '');
   }
-  m = fullInputAngle.exec(s) || fullInputPlain.exec(s);
+  m = fullInputAngle.exec(s) || fullInputCurly.exec(s) || fullInputPlain.exec(s);
   if (m && m[1]) {
-    return toJsAccessorExpression(m[1], m[2] || '');
+    return inputTokenJsExpr(m[1], m[2] || '', options);
   }
-  m = fullOutputAngle.exec(s) || fullOutputPlain.exec(s);
+  m = fullOutputAngle.exec(s) || fullOutputCurly.exec(s) || fullOutputPlain.exec(s);
   if (m && m[1]) {
     return toJsAccessorExpression(`outputs.${m[1]}`, m[2] || '');
   }
 
-  let result = replaceEnvTokensToJs(s);
+  let result = replaceEnvTokensToJs(s, 'text', awaitEnv);
   result = replaceRandCurrentTokensToJs(result);
-  result = replaceInputTokensToJs(result);
+  result = replaceInputTokensToJs(result, options);
   result = replaceOutputTokensToJs(result);
+  result = result.split(LITERAL_TOKEN_PREFIX).join('');
+  result = result.split(encodeURIComponent(LITERAL_TOKEN_PREFIX)).join('');
   return '`' + escapeBackticks(result) + '`';
 }
 
@@ -362,11 +544,11 @@ export function toTemplateValueJs(value: string): string {
  * Build a JS template literal that resolves env tokens at runtime.
  */
 export const toTemplateWithEnvVars = (s: string): string => {
-  let withEnv = replaceEnvTokensToJs(String(s ?? ''));
+  let withEnv = replaceEnvTokensToJs(String(s ?? ''), 'text', true);
   withEnv = replaceRandCurrentTokensToJs(withEnv);
   withEnv = withEnv.replace(
-      /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
-      '${envVariables.$1}');
+      /\$\{\s*\$\{\s*(?:await\s+)?mmtEnv_\([^)]*\)\s*\}\s*\}/g,
+      (match) => match.replace('$${', '${').replace('}$}', '}'));
   return '`' + escapeBackticks(withEnv) + '`';
 };
 
@@ -380,10 +562,15 @@ export const resolveEnvTokenValues =
         replaceTokenForms(
             s, 'e',
             (name, accessor, match) => {
-              const value = applyValueAccessor(envParams[name], accessor);
-              return value !== undefined ? String(value) : match;
+              const raw = envParams[name];
+              // Keep ./…mmt / getters for runtime mmtEnv_ (see isDeferredEnvValue).
+              if (isDeferredEnvValue(raw)) {
+                return match;
+              }
+              const value = applyValueAccessor(raw, accessor);
+              return value !== undefined ? embedResolvedTokenText(value) : match;
             },
-            {includeSingleAngles: true, includeBraceForm: true});
+            {});
 
 // Replacement modes enum
 enum ReplacementMode {
@@ -394,21 +581,11 @@ enum ReplacementMode {
 
 type DynamicResolver = (key: string) => any | undefined;
 
-// Cache for random token results to keep UI stable across re-renders
-const RANDOM_CACHE = new Map<string, any>();
-export function resetRandomTokenCache(): void { RANDOM_CACHE.clear(); }
+// Random tokens are unique per occurrence (two `r:uuid` → two values).
+export function resetRandomTokenCache(): void { /* no-op: r: is never cached */ }
 
 function generateRandomByName(name: string): any {
-  const cacheKey = `r:${name.trim()}`;
-  if (RANDOM_CACHE.has(cacheKey)) {
-    return RANDOM_CACHE.get(cacheKey);
-  }
-  const val = randomValueForToken(name);
-  if (val === undefined) {
-    return undefined;
-  }
-  RANDOM_CACHE.set(cacheKey, val);
-  return val;
+  return randomValueForToken(name);
 }
 
 // Cache for current token results to keep UI stable across re-renders (single evaluation per render cycle)
@@ -449,6 +626,22 @@ function resolveNestedInputTokens(
   return resolveNestedInputTokens(out, mergedInputs, envs, visiting, depth + 1);
 }
 
+/**
+ * File-backed env values (`./…mmt`) and process-store getters must stay as
+ * `e:` tokens through UI/`resolveApiRequest` so runtime `mmtEnv_` can await
+ * them. Sync substitution would bake the path string into the request body.
+ */
+function isDeferredEnvValue(value: unknown): boolean {
+  if (typeof value === 'function') {
+    return true;
+  }
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const trimmed = value.trim();
+  return trimmed.startsWith('./') && /\.mmt$/i.test(trimmed);
+}
+
 function resolveDynamicTokenValue(
     prefix: string, name: string, accessor: string,
     mergedInputs: Record<string, any>, envs: Record<string, any>,
@@ -481,8 +674,13 @@ function resolveDynamicTokenValue(
       visiting.delete(name);
       return applyValueAccessor(resolved, accessor);
     }
-    case 'e':
-      return applyValueAccessor(envs[name], accessor);
+    case 'e': {
+      const envValue = envs[name];
+      if (isDeferredEnvValue(envValue)) {
+        return undefined;
+      }
+      return applyValueAccessor(envValue, accessor);
+    }
     case 'r':
       return applyValueAccessor(generateRandomByName(name), accessor);
     case 'c':
@@ -494,13 +692,19 @@ function resolveDynamicTokenValue(
 
 export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any {
   if (typeof val === 'string') {
+    if (isLiteralTokenValue(val)) {
+      return unwrapLiteralToken(val);
+    }
     const exactMatchers = [
       {re: new RegExp(`^<<\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'r'},
       {re: new RegExp(`^r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'r'},
       {re: new RegExp(`^<<\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'c'},
       {re: new RegExp(`^c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'c'},
       {re: new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`), prefix: 'e'},
+      {re: new RegExp(`^\\{\\{\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i'), prefix: 'e'},
       {re: new RegExp(`^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`), prefix: 'e'},
+      {re: new RegExp(`^\\{\\{\\s*r:(${RANDOM_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i'), prefix: 'r'},
+      {re: new RegExp(`^\\{\\{\\s*c:(${CURRENT_TOKEN_SPEC_RE})(${ACCESSOR_PATH_RE})\\s*\\}\\}$`, 'i'), prefix: 'c'},
     ];
 
     for (const {re, prefix} of exactMatchers) {
@@ -511,27 +715,35 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
       }
     }
 
+    // Bare r:/c:/e: count only when the whole string is the token (handled
+    // above). Mixed text must use <<…>>.
     let out = replaceTokenForms(
         val, 'r',
-        (name, accessor, match) => {
+        (name, accessor, match, offset, source) => {
           const resolved = resolveDynamicTokenValue('r', name, accessor, {}, envs);
-          return resolved !== undefined ? String(resolved) : match;
+          return resolved !== undefined ?
+            embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
+            match;
         },
-        {includeSingleAngles: false, includeBraceForm: false});
+        {includePlain: false});
     out = replaceTokenForms(
         out, 'c',
-        (name, accessor, match) => {
+        (name, accessor, match, offset, source) => {
           const resolved = resolveDynamicTokenValue('c', name, accessor, {}, envs);
-          return resolved !== undefined ? String(resolved) : match;
+          return resolved !== undefined ?
+            embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
+            match;
         },
-        {includeSingleAngles: false, includeBraceForm: false});
+        {includePlain: false});
     out = replaceTokenForms(
         out, 'e',
-        (name, accessor, match) => {
+        (name, accessor, match, offset, source) => {
           const resolved = resolveDynamicTokenValue('e', name, accessor, {}, envs);
-          return resolved !== undefined ? String(resolved) : match;
+          return resolved !== undefined ?
+            embedResolvedTokenText(resolved, isInsideDoubleQuotes(source, offset)) :
+            match;
         },
-        {includeSingleAngles: true, includeBraceForm: true});
+        {includePlain: false});
     return out;
   }
   if (Array.isArray(val)) {
@@ -544,18 +756,81 @@ export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any 
   return val;
 }
 
+function jsonText(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/** Escape text so it can sit inside an existing JSON string. */
+function escapeJsonStringContent(text: string): string {
+  return text
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t');
+}
+
+/**
+ * True when `index` is inside a double-quoted span.
+ * `"<<i:zz>>"` is the string form of the token; unquoted `<<i:zz>>` is JSON.
+ */
+function isInsideDoubleQuotes(source: string, index: number): boolean {
+  let inside = false;
+  const text = String(source ?? '');
+  const end = Math.max(0, Math.min(index, text.length));
+  for (let i = 0; i < end; i++) {
+    const ch = text[i];
+    if (ch === '\\') {
+      i += 1;
+      continue;
+    }
+    if (ch === '"') {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/**
+ * Drop a resolved token into surrounding text.
+ * Unquoted: objects and lists become JSON (`"obj": <<i:zz>>`).
+ * Inside quotes (`"<<i:zz>>"`): the value is a string — objects and lists
+ * are JSON text, not `[object Object]` or a comma join.
+ */
+function embedResolvedTokenText(value: unknown, insideString = false): string {
+  if (insideString) {
+    const text = value !== null && typeof value === 'object' ?
+      jsonText(value) :
+      String(value);
+    return escapeJsonStringContent(text);
+  }
+  if (value !== null && typeof value === 'object') {
+    return jsonText(value);
+  }
+  return String(value);
+}
+
 function replaceRefs(
     obj: any, pattern: RegExp, mode: ReplacementMode,
     inputs: Record<string, any>, resolver?: DynamicResolver): any {
   if (typeof obj === 'string') {
+    // Quoted token scalars stay literal (see literalToken.ts) — do not resolve.
+    if (isLiteralTokenValue(obj)) {
+      return obj;
+    }
     // Build anchored (non-global) pattern for full-string variable match based
     const anchored = mode === ReplacementMode.BRACE ?
-      new RegExp(`^<<(${DYNAMIC_KEY_RE})>>$`) :
+      new RegExp(`^(?:<<(${DYNAMIC_KEY_RE})>>|\\{\\{(${DYNAMIC_KEY_RE})\\}\\})$`) :
       new RegExp(`^(${DYNAMIC_KEY_RE})$`);
 
     const full = anchored.exec(obj);
-    if (full && full[1]) {
-      const key = full[1];
+    const fullKey = full ? (full[1] || full[2]) : '';
+    if (full && fullKey) {
+      const key = fullKey;
       let found = inputs[key];
       if (found === undefined && resolver) {
         found = resolver(key);
@@ -568,23 +843,17 @@ function replaceRefs(
       return obj;
     }
 
-    // For partial replacements or multiple matches, convert to string.
+    // A bare token is only a token when the entire value is that token.
+    // Mixed text such as `username: i:xxx` or `"i:xxx"` stays literal.
     if (mode === ReplacementMode.NONE) {
-      // Pattern is `(:\s*)(key)` – only replace values after a colon+space.
-      return obj.replace(pattern, (match, prefix: string, key: string) => {
-        let found = inputs[key];
-        if (found === undefined && resolver) {
-          found = resolver(key);
-        }
-        if (found === undefined) {
-          return prefix + key;
-        }
-        return prefix + String(found);
-      });
+      return obj;
     }
 
-    // BRACE mode keeps the previous behavior (no prefix group).
-    return obj.replace(pattern, (match, key: string) => {
+    // BRACE mode: `<<token>>` and `{{token}}` anywhere. Inside quotes the
+    // value is a string. A whole quoted token never reaches here: parse
+    // stores it as a literal marker, which returned above.
+    return obj.replace(pattern, (match, angleKey: string, curlyKey: string, offset: number) => {
+      const key = angleKey || curlyKey;
       let found = inputs[key];
       if (found === undefined && resolver) {
         found = resolver(key);
@@ -592,7 +861,7 @@ function replaceRefs(
       if (found === undefined) {
         return match;
       }
-      return String(found);
+      return embedResolvedTokenText(found, isInsideDoubleQuotes(obj, offset));
     });
   }
 
@@ -616,7 +885,7 @@ function replaceRefs(
 /**
  * Recursively scan an object for `i:name` input references and return the
  * unique set of referenced input names.
- * Detects both `<<i:name>>` (brace form) and standalone `i:name` (value form).
+ * Detects `<<i:name>>` anywhere, and bare `i:name` only when it is the whole value.
  */
 export function collectInputRefsFromObject(obj: any): string[] {
   const refs = new Set<string>();
@@ -629,24 +898,74 @@ export function collectInputRefsFromObject(obj: any): string[] {
       return;
     }
 
-    // Full-string brace match: value is exactly `<<i:name>>` (optionally with accessors)
-    const fullBrace = new RegExp(`^<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>$`).exec(value);
+    // Full-string brace match: value is exactly `<<i:name>>` or `{{i:name}}`.
+    const fullBrace = new RegExp(
+        `^(?:<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>|\\{\\{i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*\\}\\})$`,
+        'i').exec(value);
     if (fullBrace) {
-      refs.add(fullBrace[1]);
+      refs.add(fullBrace[1] || fullBrace[2]);
       return;
     }
 
-    // Partial brace matches: <<i:name>> anywhere in string
-    const braceRe = new RegExp(`<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>`, 'g');
+    // Partial brace matches: <<i:name>> / {{i:name}} anywhere in string.
+    // Bare `i:name` mixed with other text is not a token.
+    const braceRe = new RegExp(
+        `<<i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>|\\{\\{i:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*\\}\\}`,
+        'gi');
     let m;
     while ((m = braceRe.exec(value)) !== null) {
-      refs.add(m[1]);
+      refs.add(m[1] || m[2]);
+    }
+  }
+
+  function scan(value: any): void {
+    if (typeof value === 'string') {
+      extractFromString(value);
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        scan(item);
+      }
+    } else if (value && typeof value === 'object') {
+      for (const v of Object.values(value)) {
+        scan(v);
+      }
+    }
+  }
+
+  scan(obj);
+  return Array.from(refs);
+}
+
+/**
+ * Recursively scan an object for `e:name` env references and return the
+ * unique set of referenced env names.
+ * Detects `<<e:name>>` / `{{e:name}}` anywhere, and bare `e:name` only when
+ * it is the whole value.
+ */
+export function collectEnvRefsFromObject(obj: any): string[] {
+  const refs = new Set<string>();
+
+  function extractFromString(value: string): void {
+    const fullNone = new RegExp(`^e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*$`).exec(value);
+    if (fullNone) {
+      refs.add(fullNone[1]);
+      return;
     }
 
-    // After colon-space: `: i:name` (matches the NONE-mode global pattern)
-    const afterColonRe = new RegExp(`:\\si:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*`, 'g');
-    while ((m = afterColonRe.exec(value)) !== null) {
-      refs.add(m[1]);
+    const fullBrace = new RegExp(
+        `^(?:<<e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>|\\{\\{e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*\\}\\})$`,
+        'i').exec(value);
+    if (fullBrace) {
+      refs.add(fullBrace[1] || fullBrace[2]);
+      return;
+    }
+
+    const braceRe = new RegExp(
+        `<<e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*>>|\\{\\{e:([a-zA-Z0-9_]+)(?:${ACCESSOR_SEGMENT_RE})*\\}\\}`,
+        'gi');
+    let m;
+    while ((m = braceRe.exec(value)) !== null) {
+      refs.add(m[1] || m[2]);
     }
   }
 
@@ -671,15 +990,17 @@ export function collectInputRefsFromObject(obj: any): string[] {
 // Specific replacers using flags
 export function replaceInputRefsWithBrace(obj: any, inputs: any, resolver?: DynamicResolver): any {
   return replaceRefs(
-      obj, new RegExp(`<<(${DYNAMIC_KEY_RE})>>`, 'g'), ReplacementMode.BRACE, inputs, resolver);
+      obj,
+      new RegExp(`<<(${DYNAMIC_KEY_RE})>>|\\{\\{(${DYNAMIC_KEY_RE})\\}\\}`, 'g'),
+      ReplacementMode.BRACE, inputs, resolver);
 }
 
 export function replaceInputRefsWithNone(obj: any, inputs: any, resolver?: DynamicResolver): any {
-  // Only replace plain tokens when they occur as values after a literal
-  // colon+space (" : "), e.g. "key: i:foo". This ensures patterns like
-  // "hi:i:foo" are not touched.
+  // Bare tokens resolve only when the whole string is the token (`i:foo`).
+  // The pattern is unused for partial scans; the anchored full match in
+  // replaceRefs does the work.
   return replaceRefs(
-      obj, new RegExp(`(:\\s)(${DYNAMIC_KEY_RE})`, 'g'), ReplacementMode.NONE,
+      obj, new RegExp(`(${DYNAMIC_KEY_RE})`, 'g'), ReplacementMode.NONE,
       inputs, resolver);
 }
 
@@ -689,7 +1010,7 @@ export interface ReplaceAllRefsOptions {
    * values; code generators disable it so every execution gets fresh values.
    */
   resolveRuntimeTokens?: boolean;
-  /** Clear r:/c: caches before resolving so each call gets fresh runtime values. */
+  /** Clear c: caches before resolving so each call gets a fresh "current" snapshot. */
   refreshRuntimeTokens?: boolean;
 }
 
@@ -730,6 +1051,8 @@ export function replaceAllRefs(
   let replacedIface = replaceInputRefsWithBrace(iface, {}, dynamicResolver);
   replacedIface = replaceInputRefsWithNone(replacedIface, {}, dynamicResolver);
 
+  // Quoted YAML (`"i:name"`) stays a literal marker. Unwrapping it here makes
+  // the text `i:name`, and the next send/format pass treats that as a token.
   return replacedIface;
 }
 
@@ -790,4 +1113,34 @@ export function resolveInputsMap(
     current = next;
   }
   return current;
+}
+/**
+ * Materialize only file-backed env getters that `inputs` actually references
+ * as `e:NAME`, then resolve inputs (sync passes).
+ *
+ * Eagerly awaiting every getter used to run unrelated `./…mmt` targets on
+ * every test/API that merely resolves its inputs map — and a missing target
+ * threw into the parent run.
+ */
+export async function resolveInputsMapAsync(
+    inputs: Record<string, any>|null|undefined,
+    envs: Record<string, any> = {},
+    maxPasses = 8): Promise<Record<string, any>> {
+  const needed = new Set(collectEnvRefsFromObject(inputs));
+  const plain: Record<string, any> = {};
+  for (const [name, value] of Object.entries(envs || {})) {
+    if (typeof value === 'function') {
+      if (needed.has(name)) {
+        try {
+          plain[name] = await value();
+        } catch {
+          plain[name] = null;
+        }
+      }
+      // Leave unreferenced getters out of `plain` so they are never run here.
+      continue;
+    }
+    plain[name] = value;
+  }
+  return resolveInputsMap(inputs, plain, maxPasses);
 }

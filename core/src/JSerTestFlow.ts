@@ -5,6 +5,7 @@ import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} fr
 import {Comparison, ComparisonObject, comparisonOperatorPattern, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, isTimeAnyOperator, normalizeReportConfig, ReportConfig, ReportLevel, ScalarExpectValue, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
+import {isLiteralTokenValue, unwrapLiteralToken} from './literalToken';
 import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from './omitKeyword';
 import {replaceEnvTokensToJs, replaceOutputTokensToJs, rewriteOutputSetKey, toTemplateValueJs, toTemplateWithEnvVars} from './variableReplacer';
 import * as YAML from 'yaml';
@@ -15,6 +16,10 @@ function randomName(): string {
 }
 
 const toTemplateWithVars = toTemplateWithEnvVars;
+
+function jsTokenOptions(knownInputNames?: ReadonlySet<string>) {
+  return knownInputNames ? {knownInputNames} : undefined;
+}
 const DEFAULT_OUTPUT_KEY_SET = new Set(DEFAULT_OUTPUT_KEYS);
 
 /** Parse a comparison string "actual operator expected" where either side may contain spaces. */
@@ -39,7 +44,8 @@ export const parseComparisonParts = (comp: string): { actual: string; operator: 
  * `${…}` is a JS reference; everything else is parsed as a YAML value
  * (number / bool / null / string / object / array).
  */
-const toConditionJsExpr = (value: string): string => {
+const toConditionJsExpr = (
+    value: string, knownInputNames?: ReadonlySet<string>): string => {
   const trimmed = String(value ?? '').trim();
   if (!trimmed) {
     return 'undefined';
@@ -56,7 +62,7 @@ const toConditionJsExpr = (value: string): string => {
       return String(parsed);
     }
     if (typeof parsed === 'string') {
-      const templated = toTemplateValueJs(parsed);
+      const templated = toTemplateValueJs(parsed, jsTokenOptions(knownInputNames));
       if (templated.startsWith('`') && templated.endsWith('`') && !templated.includes('${')) {
         return JSON.stringify(parsed);
       }
@@ -71,10 +77,13 @@ const toConditionJsExpr = (value: string): string => {
   return JSON.stringify(trimmed);
 };
 
-const toRuntimeArg = (value: string): string => toConditionJsExpr(value);
+const toRuntimeArg = (
+    value: string, knownInputNames?: ReadonlySet<string>): string =>
+    toConditionJsExpr(value, knownInputNames);
 
 /** Convert a single comparison (no && / ||) into a JS boolean expression. */
-const singleComparisonToJSfunc = (check: string): string => {
+const singleComparisonToJSfunc = (
+    check: string, knownInputNames?: ReadonlySet<string>): string => {
   const parsed = parseComparisonParts(check);
   if (!parsed) {
     return 'true';
@@ -85,14 +94,14 @@ const singleComparisonToJSfunc = (check: string): string => {
   if (!isQuotedExpectLiteral(expectedRaw) &&
       (expectedRaw === OMIT_KEYWORD || isOmitSentinel(expectedRaw))) {
     if (operator === '==') {
-      return `isOmitted_(${toRuntimeArg(actual)})`;
+      return `isOmitted_(${toRuntimeArg(actual, knownInputNames)})`;
     }
     if (operator === '!=') {
-      return `isNotOmitted_(${toRuntimeArg(actual)})`;
+      return `isNotOmitted_(${toRuntimeArg(actual, knownInputNames)})`;
     }
   }
-  const actualExpr = toConditionJsExpr(actual);
-  const expectedExpr = toConditionJsExpr(expectedRaw);
+  const actualExpr = toConditionJsExpr(actual, knownInputNames);
+  const expectedExpr = toConditionJsExpr(expectedRaw, knownInputNames);
 
   if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
     const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
@@ -216,7 +225,8 @@ export const formatLogicalCondition = (
   return out.trim();
 };
 
-export const conditionalStatementToJSfunc = (check: string): string => {
+export const conditionalStatementToJSfunc = (
+    check: string, knownInputNames?: ReadonlySet<string>): string => {
   // e:/o: → ${…}; each comparison side is then a YAML value or ${expr}.
   const normalized = replaceOutputTokensToJs(replaceEnvTokensToJs(String(check ?? '')));
   const { clauses, joins } = parseLogicalCondition(normalized);
@@ -224,13 +234,13 @@ export const conditionalStatementToJSfunc = (check: string): string => {
     return 'true';
   }
   if (clauses.length === 1) {
-    return singleComparisonToJSfunc(clauses[0]);
+    return singleComparisonToJSfunc(clauses[0], knownInputNames);
   }
   // Rebuild with standard precedence: group AND chains, join groups with OR.
   const orGroups: string[] = [];
-  let currentAnd: string[] = [singleComparisonToJSfunc(clauses[0])];
+  let currentAnd: string[] = [singleComparisonToJSfunc(clauses[0], knownInputNames)];
   for (let i = 0; i < joins.length; i++) {
-    const next = singleComparisonToJSfunc(clauses[i + 1]);
+    const next = singleComparisonToJSfunc(clauses[i + 1], knownInputNames);
     if (joins[i] === '&&') {
       currentAnd.push(next);
     } else {
@@ -284,6 +294,9 @@ const parseScalarComparisonExpected = (raw: string): ExpectValue => {
 };
 
 const expectValueToDisplay = (value: ExpectValue): string => {
+  if (isLiteralTokenValue(value)) {
+    return unwrapLiteralToken(String(value));
+  }
   if (isOmitSentinel(value)) {
     return 'omit';
   }
@@ -336,14 +349,17 @@ const normalizeComparison =
 export const ifToJSfunc = async (
     condition: TestFlowCondition, useExternalReport: boolean,
     importTitleMap?: Record<string, string>,
-    hoistedIds?: Set<string>): Promise<string> => {
+    hoistedIds?: Set<string>,
+    knownInputNames?: ReadonlySet<string>): Promise<string> => {
   const cond = typeof condition.if === 'string' ? condition.if : '';
-  const conditionStatement = conditionalStatementToJSfunc(cond);
+  const conditionStatement = conditionalStatementToJSfunc(cond, knownInputNames);
   const thenBlock = await flowStepsToJsfunc(
-      condition.steps, true, useExternalReport, importTitleMap, true, hoistedIds);
+      condition.steps, true, useExternalReport, importTitleMap, true, hoistedIds,
+      knownInputNames);
   const elseBlock =
       condition.else ? await flowStepsToJsfunc(
-          condition.else, true, useExternalReport, importTitleMap, true, hoistedIds) :
+          condition.else, true, useExternalReport, importTitleMap, true, hoistedIds,
+          knownInputNames) :
                        undefined;
 
   if (!elseBlock) {
@@ -362,11 +378,13 @@ export const ifToJSfunc = async (
 export const repeatToJSfunc = async (
     loop: TestFlowRepeat, useExternalReport: boolean,
     importTitleMap?: Record<string, string>,
-    hoistedIds?: Set<string>): Promise<string> => {
+    hoistedIds?: Set<string>,
+    knownInputNames?: ReadonlySet<string>): Promise<string> => {
   const loopCondition = typeof loop.repeat === 'string' ? loop.repeat.trim() :
                                                           String(loop.repeat);
   const loopBody = await flowStepsToJsfunc(
-      loop.steps, true, useExternalReport, importTitleMap, true, hoistedIds);
+      loop.steps, true, useExternalReport, importTitleMap, true, hoistedIds,
+      knownInputNames);
 
   const durationMs = parseDurationString(loopCondition);
   if (durationMs !== undefined) {
@@ -394,7 +412,7 @@ export function delayToJSfunc(d: string|number): string {
   return `{
   let __delayLeft = ${durationToJsMsExpr(d)};
   while (__delayLeft > 0) {
-    checkAbort_();
+    await checkAbort_();
     const __wait = Math.min(__delayLeft, ${DELAY_ABORT_CHECK_MS});
     await new Promise(r => setTimeout(r, __wait));
     __delayLeft -= __wait;
@@ -405,9 +423,11 @@ export function delayToJSfunc(d: string|number): string {
 export const forToJSfunc = async (
     loop: TestFlowLoop, useExternalReport: boolean,
     importTitleMap?: Record<string, string>,
-    hoistedIds?: Set<string>): Promise<string> => {
+    hoistedIds?: Set<string>,
+    knownInputNames?: ReadonlySet<string>): Promise<string> => {
   const loopBody = await flowStepsToJsfunc(
-      loop.steps, true, useExternalReport, importTitleMap, true, hoistedIds);
+      loop.steps, true, useExternalReport, importTitleMap, true, hoistedIds,
+      knownInputNames);
   // Ensure the loop variable is declared with `const` so it is block-scoped.
   // Without a declaration keyword, `for (x of y)` creates an implicit global,
   // which causes race conditions when tests run in parallel (suite without `then`).
@@ -423,7 +443,9 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 };
 
 
-const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useExternalReport: boolean): string => {
+const comparisonToJSfunc = (
+    type: 'check'|'assert', comparison: Comparison, useExternalReport: boolean,
+    knownInputNames?: ReadonlySet<string>): string => {
   const normalized = normalizeComparison(comparison, type);
   if (!normalized) {
     return '';
@@ -439,8 +461,8 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
     ? normalizeRuntimeActualExpression(actualTrimmed.slice(2, -1))
     : undefined;
   const conditionStatement = actualRuntimeExpr
-    ? comparisonFromPartsToJSfunc(actualRuntimeExpr, operator, expected)
-    : conditionalStatementToJSfunc(raw);
+    ? comparisonFromPartsToJSfunc(actualRuntimeExpr, operator, expected, knownInputNames)
+    : conditionalStatementToJSfunc(raw, knownInputNames);
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   // For actual: if it's a ${...} variable reference, pass the raw JS expression so
@@ -450,7 +472,7 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
     : (typeof actual === 'string' ? toTemplateWithVars(actual) : undefined);
   const finalExpected = isOmitSentinel(expected)
     ? JSON.stringify('omit')
-    : expectValueToJs(expected);
+    : expectValueToJs(expected, knownInputNames);
   // Strip ${...} from comparison display string so UI shows clean field names
   const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1')
                          .split(OMIT_SENTINEL)
@@ -474,19 +496,24 @@ function normalizeRuntimeActualExpression(expression: string): string {
   return outputAccessExpression(resultVar, `${root}${rest}`);
 }
 
-export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): string =>
-  comparisonToJSfunc('check', check, useExternalReport);
+export const checkToJSfunc = (
+    check: Comparison, useExternalReport: boolean,
+    knownInputNames?: ReadonlySet<string>): string =>
+  comparisonToJSfunc('check', check, useExternalReport, knownInputNames);
 
-export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): string =>
-  comparisonToJSfunc('assert', assert, useExternalReport);
+export const assertToJSfunc = (
+    assert: Comparison, useExternalReport: boolean,
+    knownInputNames?: ReadonlySet<string>): string =>
+  comparisonToJSfunc('assert', assert, useExternalReport, knownInputNames);
 
 /** Serialize a YAML value for judge step fields (context / expect / require), preserving ${} refs. */
-const judgeValueToJs = (value: unknown): string => {
+const judgeValueToJs = (
+    value: unknown, knownInputNames?: ReadonlySet<string>): string => {
   if (typeof value === 'string') {
     if (/^\$\{[\s\S]+\}$/.test(value.trim())) {
       return value.trim().slice(2, -1).trim() || 'undefined';
     }
-    return toTemplateValueJs(value);
+    return toTemplateValueJs(value, jsTokenOptions(knownInputNames));
   }
   if (value === null || value === undefined) {
     return 'null';
@@ -495,11 +522,11 @@ const judgeValueToJs = (value: unknown): string => {
     return String(value);
   }
   if (Array.isArray(value)) {
-    return `[${value.map(judgeValueToJs).join(', ')}]`;
+    return `[${value.map(item => judgeValueToJs(item, knownInputNames)).join(', ')}]`;
   }
   if (typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>)
-        .map(([k, v]) => `${JSON.stringify(k)}: ${judgeValueToJs(v)}`);
+        .map(([k, v]) => `${JSON.stringify(k)}: ${judgeValueToJs(v, knownInputNames)}`);
     return `{${entries.join(', ')}}`;
   }
   return JSON.stringify(value);
@@ -510,6 +537,7 @@ const judgeStepToJSfunc = (
     useExternalReport: boolean,
     stepIdx: number,
     hoistedIds?: Set<string>,
+    knownInputNames?: ReadonlySet<string>,
     ): string => {
   const alias = step.judge;
   if (typeof alias !== 'string' || !alias.trim()) {
@@ -518,11 +546,13 @@ const judgeStepToJSfunc = (
 
   const reportCfg = normalizeReportConfig(step.report);
   const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
-  const title = step.title ? toTemplateValueJs(step.title) : 'undefined';
+  const title = step.title ?
+      toTemplateValueJs(step.title, jsTokenOptions(knownInputNames)) :
+      'undefined';
 
-  const contextJs = judgeValueToJs(step.context ?? {});
-  const expectJs = step.expect ? judgeValueToJs(step.expect) : 'undefined';
-  const requireJs = step.require ? judgeValueToJs(step.require) : 'undefined';
+  const contextJs = judgeValueToJs(step.context ?? {}, knownInputNames);
+  const expectJs = step.expect ? judgeValueToJs(step.expect, knownInputNames) : 'undefined';
+  const requireJs = step.require ? judgeValueToJs(step.require, knownInputNames) : 'undefined';
 
   const safeName = alias.replace(/[^a-zA-Z0-9_]/g, '_') || 'judge';
   const resultVar = step.id || `_${safeName}_${stepIdx}`;
@@ -544,6 +574,8 @@ const judgeStepToJSfunc = (
  * (unquoted `omit` / `null` arrive as the omit sentinel / JS null).
  */
 export const parseExpectValue = (value: ExpectValue): { operator: string; expected: ExpectValue } => {
+  // A YAML-quoted token stays marked here. Codegen stringifies that marker as
+  // text (`"<<e:name>>"`). Runtime compare and the check label unwrap it.
   if (isOmitSentinel(value)) {
     return {operator: '==', expected: null};
   }
@@ -580,14 +612,17 @@ const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[]
       value.some(item => typeof item === 'string' && !!splitCheckOperatorPrefix(item.trim()));
 };
 
-const expectValueToJs = (value: ExpectValue): string => {
+const expectValueToJs = (
+    value: ExpectValue, knownInputNames?: ReadonlySet<string>): string => {
   const normalized = normalizeOmitToNull(value);
   return typeof normalized === 'string'
-    ? toTemplateValueJs(normalized)
+    ? toTemplateValueJs(normalized, jsTokenOptions(knownInputNames))
     : JSON.stringify(normalized);
 };
 
-const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expected: ExpectValue): string => {
+const comparisonFromPartsToJSfunc = (
+    actualExpr: string, operator: string, expected: ExpectValue,
+    knownInputNames?: ReadonlySet<string>): string => {
   // Only sentinel / null mean omit. The literal string "omit" (from `"omit"`) compares as text.
   if (isOmitSentinel(expected) || expected === null) {
     switch (operator) {
@@ -599,7 +634,7 @@ const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expec
         break;
     }
   }
-  const expectedExpr = expectValueToJs(expected);
+  const expectedExpr = expectValueToJs(expected, knownInputNames);
   if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
     const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
     const helper = operator.startsWith('<') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
@@ -739,6 +774,7 @@ const buildExpectMapItems = (
     level: 'expect' | 'require',
     resultVar: string,
     actualForField: (resultVar: string, field: string) => string,
+    knownInputNames?: ReadonlySet<string>,
     ): string[] => {
   if (!map) {
     return [];
@@ -751,8 +787,9 @@ const buildExpectMapItems = (
       const actualExpr = actualForField(resultVar, field);
       const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
       const displayComparison = `${field} ${operator} ${displayExpected}`;
-      const conditionStatement = comparisonFromPartsToJSfunc(actualExpr, operator, expected);
-      const expectedExpr = expectValueToJs(expected);
+      const conditionStatement = comparisonFromPartsToJSfunc(
+          actualExpr, operator, expected, knownInputNames);
+      const expectedExpr = expectValueToJs(expected, knownInputNames);
       items.push(
           `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr}, level: ${JSON.stringify(level)} }`);
     }
@@ -771,13 +808,16 @@ const appendExpectAndDebugChecks = (
       id?: string;
     },
     resultVar: string|undefined, title: string, useExternalReport: boolean,
-    actualForField: (resultVar: string, field: string) => string = outputAccessExpression):
+    actualForField: (resultVar: string, field: string) => string = outputAccessExpression,
+    knownInputNames?: ReadonlySet<string>):
     string => {
   if (!resultVar) {
     return result;
   }
-  const softItems = buildExpectMapItems(step.expect, 'expect', resultVar, actualForField);
-  const hardItems = buildExpectMapItems(step.require, 'require', resultVar, actualForField);
+  const softItems = buildExpectMapItems(
+      step.expect, 'expect', resultVar, actualForField, knownInputNames);
+  const hardItems = buildExpectMapItems(
+      step.require, 'require', resultVar, actualForField, knownInputNames);
   if (softItems.length > 0 || hardItems.length > 0) {
     const details = `\${JSON.stringify(${resultVar})}`;
     const reportCfg = normalizeReportConfig(step.report);
@@ -785,7 +825,7 @@ const appendExpectAndDebugChecks = (
     const finalTitle = toTemplateWithVars(title);
     const finalDetails = toTemplateWithVars(details);
     const allItems = [...softItems, ...hardItems];
-    result += '\ncheckAbort_();\n';
+    result += '\nawait checkAbort_();\n';
     result += `{\n`;
     result += `  const __mmtExpectItems = [\n${allItems.join(',\n')}\n  ];\n`;
     result += `  const __mmtHardFailed = __mmtExpectItems.some(i => i.level === 'require' && !i.passed);\n`;
@@ -799,7 +839,7 @@ const appendExpectAndDebugChecks = (
     const finalDetails = toTemplateWithVars(details);
 
     if (step.debug === true) {
-      result += '\ncheckAbort_();\n';
+      result += '\nawait checkAbort_();\n';
       result += `checkExpects_(Object.keys(${resultVar}).filter(k => k !== '_').map(k => ({ passed: true, comparison: k + ' = ' + JSON.stringify(${resultVar}[k]), actual: ${resultVar}[k], expected: undefined })), 'debug', 'all', ${finalTitle}, ${finalDetails});\n`;
     } else {
       const debugItems: string[] = [];
@@ -810,14 +850,15 @@ const appendExpectAndDebugChecks = (
           const actualExpr = actualForField(resultVar, field);
           const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
           const displayComparison = `${field} ${operator} ${displayExpected}`;
-          const conditionStatement = comparisonFromPartsToJSfunc(actualExpr, operator, expected);
-          const expectedExpr = expectValueToJs(expected);
+          const conditionStatement = comparisonFromPartsToJSfunc(
+              actualExpr, operator, expected, knownInputNames);
+          const expectedExpr = expectValueToJs(expected, knownInputNames);
           debugItems.push(
               `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`);
         }
       }
 
-      result += '\ncheckAbort_();\n';
+      result += '\nawait checkAbort_();\n';
       result += `checkExpects_([\n${debugItems.join(',\n')}\n], 'debug', 'all', ${finalTitle}, ${finalDetails});\n`;
     }
   }
@@ -866,13 +907,14 @@ function assignResultVar(resultVar: string, awaitExpr: string, hoisted: boolean)
 const callToJSfunc = async (
     step: TestFlowCall, useExternalReport: boolean, stepIdx: number,
     importTitleMap?: Record<string, string>,
-    hoistedIds?: Set<string>): Promise<string> => {
+    hoistedIds?: Set<string>,
+    knownInputNames?: ReadonlySet<string>): Promise<string> => {
   // Guard against incomplete/partial YAML (e.g. `- call:` while the user is typing)
   // where `step.call` is null/undefined. Emit nothing so code generation doesn't crash.
   if (typeof step.call !== 'string' || !step.call.trim()) {
     return '';
   }
-  let inputParams = toInputsParams(step.inputs || {}, ': ');
+  let inputParams = toInputsParams(step.inputs || {}, ': ', knownInputNames);
   if (inputParams.length > 0) {
     inputParams = ' ' + inputParams + ' ';
   }
@@ -891,14 +933,16 @@ const callToJSfunc = async (
 
   let result = callExpr;
   const title = step.title || importTitleMap?.[step.call] || step.call || step.id || 'call';
-  result = appendExpectAndDebugChecks(result, step, resultVar, title, useExternalReport);
+  result = appendExpectAndDebugChecks(
+      result, step, resultVar, title, useExternalReport, undefined, knownInputNames);
 
   return result;
 };
 
 const httpToJSfunc = async (
     step: TestFlowHttp, useExternalReport: boolean, stepIdx: number,
-    hoistedIds?: Set<string>): Promise<string> => {
+    hoistedIds?: Set<string>,
+    knownInputNames?: ReadonlySet<string>): Promise<string> => {
   if (typeof step.http !== 'string' || !step.http.trim()) {
     return '';
   }
@@ -938,7 +982,7 @@ try {
   const title = step.title || step.id ||
       `${resolveApiHttpMethod(step.method, step.body)} ${step.http}`;
   result = appendExpectAndDebugChecks(
-      result, step, resultVar, title, useExternalReport);
+      result, step, resultVar, title, useExternalReport, undefined, knownInputNames);
   return result;
 };
 
@@ -955,10 +999,8 @@ const varToJSfunc = (decl: string, step: any, rewriteOutputKeys = false): string
       .join('\n');
 };
 
-export const setenvToJSfunc = (setenv: Record<string, any>, root: boolean): string => {
-  // setenv only takes effect when running the test directly (root=true),
-  // not when imported into another test or suite
-  if (!root) {
+export const setenvToJSfunc = (setenv: Record<string, any>, enabled: boolean): string => {
+  if (!enabled) {
     return '';
   }
   const entries = Object.entries(setenv || {});
@@ -989,7 +1031,8 @@ export const runToJSfunc = (step: TestFlowRun): string => {
 export const flowStepsToJsfunc = async (
     flow: TestFlowSteps, root: boolean, useExternalReport: boolean = !root,
     importTitleMap?: Record<string, string>, emitSetenv: boolean = root,
-    hoistedIds?: Set<string>): Promise<string> => {
+    hoistedIds?: Set<string>,
+    knownInputNames?: ReadonlySet<string>): Promise<string> => {
       const generated: string[] = [];
       for (let idx = 0; idx < (flow ?? []).length; idx++) {
             const step = (flow ?? [])[idx];
@@ -997,46 +1040,55 @@ export const flowStepsToJsfunc = async (
             switch (getTestFlowStepType(step)) {
               case 'call':
                 stepJs = await callToJSfunc(
-                    step as TestFlowCall, useExternalReport, idx, importTitleMap, hoistedIds);
+                    step as TestFlowCall, useExternalReport, idx, importTitleMap,
+                    hoistedIds, knownInputNames);
                 break;
               case 'http':
                 stepJs = await httpToJSfunc(
-                    step as TestFlowHttp, useExternalReport, idx, hoistedIds);
+                    step as TestFlowHttp, useExternalReport, idx, hoistedIds,
+                    knownInputNames);
                 break;
               case 'run':
                 stepJs = runToJSfunc(step as TestFlowRun);
                 break;
               case 'check':
-                stepJs = checkToJSfunc((step as TestFlowCheck).check, useExternalReport);
+                stepJs = checkToJSfunc(
+                    (step as TestFlowCheck).check, useExternalReport, knownInputNames);
                 break;
               case 'assert':
-                stepJs = assertToJSfunc((step as TestFlowAssert).assert, useExternalReport);
+                stepJs = assertToJSfunc(
+                    (step as TestFlowAssert).assert, useExternalReport, knownInputNames);
                 break;
               case 'judge':
                 stepJs = judgeStepToJSfunc(
-                    step as TestFlowJudge, useExternalReport, idx, hoistedIds);
+                    step as TestFlowJudge, useExternalReport, idx, hoistedIds,
+                    knownInputNames);
                 break;
               case 'if':
                 stepJs = await ifToJSfunc(
-                    step as TestFlowCondition, useExternalReport, importTitleMap, hoistedIds);
+                    step as TestFlowCondition, useExternalReport, importTitleMap,
+                    hoistedIds, knownInputNames);
                 break;
               case 'repeat':
                 stepJs = await repeatToJSfunc(
-                    step as TestFlowRepeat, useExternalReport, importTitleMap, hoistedIds);
+                    step as TestFlowRepeat, useExternalReport, importTitleMap,
+                    hoistedIds, knownInputNames);
                 break;
               case 'delay':
                 stepJs = delayToJSfunc((step as any).delay);
                 break;
               case 'for':
                 stepJs = await forToJSfunc(
-                    step as TestFlowLoop, useExternalReport, importTitleMap, hoistedIds);
+                    step as TestFlowLoop, useExternalReport, importTitleMap,
+                    hoistedIds, knownInputNames);
                 break;
               case 'js':
                 stepJs = (step as any).js;
                 break;
               case 'print':
                 {
-                  const printExpr = toTemplateValueJs(String((step as any).print ?? ''));
+                  const printExpr = toTemplateValueJs(
+                      String((step as any).print ?? ''), jsTokenOptions(knownInputNames));
                   stepJs = root ? `console.log(${printExpr});` : `console.debug(${printExpr});`;
                 }
                 break;
@@ -1059,16 +1111,17 @@ export const flowStepsToJsfunc = async (
                 stepJs = '';
                 break;
             }
-            // Inject cooperative abort check before each step so a stopped
-            // test run can bail out between steps.
-            generated.push(stepJs ? `checkAbort_();\n${stepJs}` : stepJs);
+            // Inject cooperative abort/pause check before each step so Stop
+            // and Pause can take effect between steps.
+            generated.push(stepJs ? `await checkAbort_();\n${stepJs}` : stepJs);
           }
       return generated.join('\n');
     };
 
 export const flowStagesToJsfunc = async (
     flow: TestFlowStages, root: boolean, useExternalReport: boolean = !root,
-  importTitleMap?: Record<string, string>, emitSetenv: boolean = root): Promise<string> => {
+  importTitleMap?: Record<string, string>, emitSetenv: boolean = root,
+  knownInputNames?: ReadonlySet<string>): Promise<string> => {
       if (!Array.isArray(flow) || flow.length === 0) {
         return '';
       };
@@ -1100,12 +1153,13 @@ export const flowStagesToJsfunc = async (
         // Build stage code with optional early-return condition
         let code = '';
         if (stage.condition && String(stage.condition).trim().length > 0) {
-          const cond = conditionalStatementToJSfunc(String(stage.condition));
+          const cond = conditionalStatementToJSfunc(
+              String(stage.condition), knownInputNames);
           code += `if (!(${cond})) {\n  return;\n}\n`;
         }
         code += await flowStepsToJsfunc(
             stage.steps ?? [], root, useExternalReport, importTitleMap, emitSetenv,
-            hoistedIds);
+            hoistedIds, knownInputNames);
         stageMap.set(stageName, {code, dependsOn});
       }
 
@@ -1170,10 +1224,12 @@ export const flowStagesToJsfunc = async (
       return generated.join('\n');
     };
 
-export const flowToJsFunc = async (testData: TestData, root: boolean, useExternalReport: boolean = !root, importTitleMap?: Record<string, string>, emitSetenv: boolean = root): Promise<string> => {
+export const flowToJsFunc = async (testData: TestData, root: boolean, useExternalReport: boolean = !root, importTitleMap?: Record<string, string>, emitSetenv: boolean = root, knownInputNames?: ReadonlySet<string>): Promise<string> => {
   let flow = '';
   if (Array.isArray(testData.stages) && testData.stages.length > 0) {
-    flow += await flowStagesToJsfunc(testData.stages, root, useExternalReport, importTitleMap, emitSetenv);
+    flow += await flowStagesToJsfunc(
+        testData.stages, root, useExternalReport, importTitleMap, emitSetenv,
+        knownInputNames);
   } else if (Array.isArray(testData.steps) && testData.steps.length > 0) {
     // Same high-scope lets as stages: ids stay reachable from later steps,
     // js, and after leaving if/for/repeat blocks.
@@ -1183,7 +1239,7 @@ export const flowToJsFunc = async (testData: TestData, root: boolean, useExterna
     }
     flow += await flowStepsToJsfunc(
         testData.steps, root, useExternalReport, importTitleMap, emitSetenv,
-        hoistedIds);
+        hoistedIds, knownInputNames);
   }
   return flow;
 };

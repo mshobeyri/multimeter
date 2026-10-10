@@ -3,7 +3,13 @@ import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
 import {executeApi, prepareApiRun} from './runApi';
 import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
+import {
+  createEnvStoreFromRun,
+  envFilePathOfGetter,
+  type EnvStore,
+} from './envStore';
 import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from './runConfig';
+import parseYaml from './markupConvertor';
 import {prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
 import {buildSuiteHierarchyFromSuiteFile} from './suiteHierarchy';
@@ -137,6 +143,20 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   
   const prepared = await prepareRunFromOptions(options, note);
   const {docType} = prepared;
+  // Process store: copy of resolved env for this run only. `./…mmt` strings
+  // become getters at copy time. Suite children inherit the same store.
+  if (!options.envStore) {
+    options = {
+      ...options,
+      envStore: createEnvStoreFromRun({
+        initial: prepared.envVarsUsed,
+        envvarFilePath: options.envvarFilePath,
+        filePath: options.filePath || prepared.filePath,
+        projectRoot: options.projectRoot,
+      }),
+    };
+  }
+  attachEnvFileRunner(options.envStore, options);
 
   if (docType === 'api') {
     return executeApi(prepared, options, preLogs);
@@ -202,5 +222,102 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     return executeLoadTest(prepared, options, preLogs, runFile);
   }
 
+  // File-backed env values may point at a missing or non-runnable path; soft
+  // empty result so the parent e: read becomes null instead of failing the run.
+  if (options.__mmtEnvValueRun) {
+    return {
+      js: '',
+      result: {success: true, durationMs: 0, errors: [], outputs: {}},
+      identifier: prepared.baseName,
+      displayName: prepared.baseName,
+      docType: docType,
+      inputsUsed: prepared.inputsUsed,
+      envVarsUsed: prepared.envVarsUsed,
+    } as RunFileResult;
+  }
+
   throw new Error('Run is currently supported for test or api documents only.');
+}
+
+function outputKeysFromYaml(rawText: string): string[] {
+  try {
+    const doc = parseYaml(rawText);
+    const outputs = doc && typeof doc === 'object' ? (doc as any).outputs : undefined;
+    if (!outputs || typeof outputs !== 'object' || Array.isArray(outputs)) {
+      return [];
+    }
+    return Object.keys(outputs).filter(key => key && key !== '_');
+  } catch {
+    return [];
+  }
+}
+
+function cacheSpecFromYaml(rawText: string): unknown {
+  try {
+    const doc = parseYaml(rawText);
+    return doc && typeof doc === 'object' ? (doc as any).cache : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function attachEnvFileRunner(
+    store: EnvStore|undefined, options: RunFileOptions): void {
+  if (!store || typeof store.runEnvFile === 'function') {
+    return;
+  }
+  store.runEnvFile = async (resolvedPath: string) => {
+    let rawText = '';
+    try {
+      rawText = await options.fileLoader(resolvedPath);
+    } catch {
+      rawText = '';
+    }
+    const outputKeys = outputKeysFromYaml(rawText);
+    const cache = cacheSpecFromYaml(rawText);
+    // Break A→e:A cycles: while this path runs, same-path getters return null
+    // instead of awaiting the in-flight promise (which would deadlock).
+    const stubs: Array<{name: string; prev: any}> = [];
+    for (const [name, value] of Object.entries(store.values)) {
+      const raw = envFilePathOfGetter(value);
+      if (!raw) {
+        continue;
+      }
+      const resolved = store.resolveFilePath ? store.resolveFilePath(raw) : raw;
+      if (resolved === resolvedPath) {
+        stubs.push({name, prev: value});
+        store.values[name] = async () => null;
+      }
+    }
+    try {
+      const child = await runFile({
+        ...options,
+        file: resolvedPath,
+        fileType: 'path',
+        filePath: resolvedPath,
+        envStore: store,
+        suiteBundle: undefined,
+        exampleIndex: undefined,
+        exampleName: undefined,
+        manualInputs: {},
+        // Import-style cache hits skip re-execution inside the target file.
+        __mmtEnvValueRun: true,
+        // Never forward nested steps/logs into the parent run UI.
+        reporter: () => undefined,
+        logger: () => undefined,
+        checkLogMode: 'none',
+        id: undefined,
+        runId: undefined,
+      } as RunFileOptions);
+      return {
+        outputs: child.result?.outputs,
+        outputKeys,
+        cache,
+      };
+    } finally {
+      for (const stub of stubs) {
+        store.values[stub.name] = stub.prev;
+      }
+    }
+  };
 }

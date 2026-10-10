@@ -84,6 +84,26 @@ describe('runGeneratedJs', () => {
     expect(seen[0].workerEligible).toBe(true);
   });
 
+  it('marks the run cancelled when abortSignal is set after JS completes', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const result = await runGeneratedJs(
+      'run-1',
+      'return {ok: true};',
+      'aborted after success',
+      () => {},
+      async () => ({ok: true}),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      controller.signal,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.cancelled).toBe(true);
+  });
+
   it('uses reporter failures for success accounting when check logs are silent', async () => {
     const result = await runGeneratedJs(
       'run-1',

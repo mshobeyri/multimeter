@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
+import { formatMmtYaml } from "mmt-core/mmtFormat";
 import { curlToAPI, isCurlCommand } from "mmt-core/curlConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
@@ -13,6 +14,10 @@ import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
 import { isSpecSourceFormat, type SourceFormat } from "../sourceFormat";
 import { getFileLinkTargetAtPosition } from "./yamlLinks";
+import {
+  dispatchSelectExample,
+  getExampleNameTargetAtPosition,
+} from "./exampleSelect";
 import {
   findHttpStepAtPosition,
   httpStepApiPreviewYamlAtPosition,
@@ -36,6 +41,9 @@ import {
   findInputRefProblems,
   getUndefinedEnvRefDecorations,
   findEnvRefProblems,
+  getUnknownRuntimeRefDecorations,
+  findUnknownRuntimeRefProblems,
+  findDiscouragedBareEmbeddedTokenProblems,
   findMultilineDescriptionProblems,
   findAuthProblems,
   computeStageAfterMarkers,
@@ -54,9 +62,10 @@ import { REVEAL_YAML_EVENT } from './yamlEditorErrors';
 // formatting and ordering helper moved to `useFormatAndOrder`
 
 import {
-  ENV_BRACE_TOKEN_HIGHLIGHT_RE,
   INLINE_ANGLE_TOKEN_HIGHLIGHT_RE,
-  INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE,
+  CURLY_TOKEN_HIGHLIGHT_RE,
+  isHighlightableToken,
+  isInsideYamlBlockScalar,
   OUTPUT_KEY_TOKEN_HIGHLIGHT_RE,
   PLAIN_TOKEN_HIGHLIGHT_RE,
 } from './tokenHighlightPatterns';
@@ -93,7 +102,7 @@ function pushCapturedTokenHighlight(
   className: string
 ): void {
   const token = match[tokenGroupIndex];
-  if (!token) {
+  if (!token || !isHighlightableToken(token)) {
     return;
   }
   const tokenOffset = match.index + match[0].indexOf(token);
@@ -198,6 +207,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const undefinedExampleKeyDecorationsRef = useRef<string[]>([]);
   const undefinedInputRefDecorationsRef = useRef<string[]>([]);
   const undefinedEnvRefDecorationsRef = useRef<string[]>([]);
+  const unknownRuntimeRefDecorationsRef = useRef<string[]>([]);
   const undefinedOutputValueDecorationsRef = useRef<string[]>([]);
   const invalidStageAfterDecorationsRef = useRef<string[]>([]);
   const compatibilityDecorationsRef = useRef<string[]>([]);
@@ -223,7 +233,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [exampleKeyProblems, setExampleKeyProblems] = useState<ProblemEntry[]>([]);
   const [inputRefProblems, setInputRefProblems] = useState<ProblemEntry[]>([]);
   const [envRefProblems, setEnvRefProblems] = useState<ProblemEntry[]>([]);
+  const [runtimeRefProblems, setRuntimeRefProblems] = useState<ProblemEntry[]>([]);
   const [descriptionProblems, setDescriptionProblems] = useState<ProblemEntry[]>([]);
+  const [bareTokenProblems, setBareTokenProblems] = useState<ProblemEntry[]>([]);
   const [stageAfterProblems, setStageAfterProblems] = useState<ProblemEntry[]>([]);
   const [authProblems, setAuthProblems] = useState<ProblemEntry[]>([]);
   const [compatibilityProblems, setCompatibilityProblems] = useState<ProblemEntry[]>([]);
@@ -292,6 +304,28 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   });
 
   const { reorderDocument } = useFormatAndOrder({ contentRef, docType, setContent });
+
+  const needsYamlBeautify = useMemo(() => {
+    if (sourceFormat !== "mmt") {
+      return false;
+    }
+    try {
+      return formatMmtYaml(content).changed;
+    } catch {
+      return false;
+    }
+  }, [content, sourceFormat]);
+
+  const beautifyYaml = () => {
+    try {
+      const { formatted, changed } = formatMmtYaml(content);
+      if (changed) {
+        setContent(formatted);
+      }
+    } catch {
+      // Invalid YAML — keep editor as-is (markers already show the error).
+    }
+  };
 
   const transformPastedText = (text: string): string | null => {
     if (!isCurlCommand(text)) {
@@ -822,6 +856,45 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-description", markers);
   }, [content, editorReady]);
 
+  // Warn on bare e:/i:/r:/c: embedded in other text (prefer <<…>>)
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      setBareTokenProblems([]);
+      return;
+    }
+    if (sourceFormat === "http" || sourceFormat === "bruno" ||
+        isSpecSourceFormat(sourceFormat)) {
+      setBareTokenProblems([]);
+      const model = editorRef.current.getModel();
+      if (model && monacoRef.current) {
+        monacoRef.current.editor.setModelMarkers(model, "mmt-bare-token", []);
+      }
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      setBareTokenProblems([]);
+      return;
+    }
+    const problems = findDiscouragedBareEmbeddedTokenProblems(content);
+    setBareTokenProblems(problems);
+    const markers = problems.map((p) => {
+      const lineNumber = Math.min(Math.max(p.line ?? 1, 1), model.getLineCount());
+      const col = Math.max(p.column ?? 1, 1);
+      return {
+        startLineNumber: lineNumber,
+        startColumn: col,
+        endLineNumber: lineNumber,
+        endColumn: model.getLineMaxColumn(lineNumber),
+        message: p.message,
+        severity: monaco.MarkerSeverity.Warning,
+      };
+    });
+    monaco.editor.setModelMarkers(model, "mmt-bare-token", markers);
+  }, [content, editorReady, sourceFormat]);
+
   // Validate auth field in API documents
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -934,6 +1007,38 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     );
   }, [content, editorReady, knownEnvNames]);
 
+  // Warn on unknown r:xxx / c:xxx generator names (same underline as i:/e:)
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      setRuntimeRefProblems([]);
+      unknownRuntimeRefDecorationsRef.current = editor.deltaDecorations(
+        unknownRuntimeRefDecorationsRef.current,
+        [],
+      );
+      return;
+    }
+
+    const problems = findUnknownRuntimeRefProblems(content);
+    setRuntimeRefProblems(problems);
+
+    const decos = getUnknownRuntimeRefDecorations(
+      monaco,
+      model,
+      content,
+      UNDEFINED_INPUT_CLASS,
+    );
+    unknownRuntimeRefDecorationsRef.current = editor.deltaDecorations(
+      unknownRuntimeRefDecorationsRef.current,
+      decos,
+    );
+  }, [content, editorReady]);
+
   useEffect(() => {
     if (!editorReady || !editorRef.current || !monacoRef.current) {
       return;
@@ -955,7 +1060,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     };
   }, [editorReady, reorderDocument]);
 
-  // Ctrl/Cmd hover + click to open imported files or call names
+  // Ctrl/Cmd hover + click: open imports/calls, or select API example by name
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
     const monaco = monacoRef.current;
@@ -973,14 +1078,31 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
     const getLinkContent = () => model.getValue();
 
-    const updateUnderline = (pos: any, withModifier: boolean) => {
-      const target = withModifier
-        ? getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos)
+    const resolveClickTarget = (pos: any, withModifier: boolean) => {
+      if (!withModifier) {
+        return { example: null, file: null };
+      }
+      const example = docType === 'api'
+        ? getExampleNameTargetAtPosition(monaco, model, getLinkContent(), pos)
         : null;
+      if (example) {
+        return { example, file: null };
+      }
+      return {
+        example: null,
+        file: getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos),
+      };
+    };
+
+    const updateUnderline = (pos: any, withModifier: boolean) => {
+      const { example, file } = resolveClickTarget(pos, withModifier);
+      const range = example?.range || file?.range;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
-      if (!target) return;
+      if (!range) {
+        return;
+      }
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, [{
-        range: target.range,
+        range,
         options: {
           inlineClassName: 'mmt-link-underline',
           stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
@@ -994,8 +1116,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
       updateUnderline(pos, withMod);
-      const target = withMod ? getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos) : null;
-      editor.updateOptions({ mouseStyle: target ? 'pointer' : 'text' });
+      const { example, file } = resolveClickTarget(pos, withMod);
+      editor.updateOptions({ mouseStyle: (example || file) ? 'pointer' : 'text' });
     });
 
     const onKeyDown = editor.onKeyDown((e: any) => {
@@ -1015,7 +1137,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
       if (withMod) {
-        const target = getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos);
+        const { example, file: target } = resolveClickTarget(pos, true);
+        if (example) {
+          evt.preventDefault?.();
+          evt.stopPropagation?.();
+          dispatchSelectExample(example.exampleIndex);
+          return;
+        }
         if (target?.httpStepPreview) {
           try {
             const yaml = httpStepApiPreviewYamlAtPosition(
@@ -1088,6 +1216,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const value = model.getValue();
       let match;
       while ((match = INLINE_ANGLE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        if (!isHighlightableToken(match[1] || '')) {
+          continue;
+        }
         pushHighlightRange(
           matches, monaco, model, match.index, match.index + match[0].length, I_PREFIX_CLASS
         );
@@ -1096,7 +1227,11 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     {
       const value = model.getValue();
       let match;
-      while ((match = INLINE_SINGLE_ANGLE_ENV_HIGHLIGHT_RE.exec(value)) !== null) {
+      CURLY_TOKEN_HIGHLIGHT_RE.lastIndex = 0;
+      while ((match = CURLY_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        if (!isHighlightableToken(match[1] || '')) {
+          continue;
+        }
         pushHighlightRange(
           matches, monaco, model, match.index, match.index + match[0].length, I_PREFIX_CLASS
         );
@@ -1106,13 +1241,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const value = model.getValue();
       let match;
       while ((match = PLAIN_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
-        pushCapturedTokenHighlight(matches, monaco, model, match, 1, I_PREFIX_CLASS);
-      }
-    }
-    {
-      const value = model.getValue();
-      let match;
-      while ((match = ENV_BRACE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        const token = match[1];
+        if (!token || isInsideYamlBlockScalar(value, match.index + match[0].indexOf(token))) {
+          continue;
+        }
         pushCapturedTokenHighlight(matches, monaco, model, match, 1, I_PREFIX_CLASS);
       }
     }
@@ -1298,7 +1430,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...exampleKeyProblems,
       ...inputRefProblems,
       ...envRefProblems,
+      ...runtimeRefProblems,
       ...descriptionProblems,
+      ...bareTokenProblems,
       ...stageAfterProblems,
       ...authProblems,
       ...compatibilityProblems,
@@ -1307,7 +1441,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, duplicateServerProblems, suiteThenSeparatorProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems, compatibilityProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, duplicateServerProblems, suiteThenSeparatorProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, runtimeRefProblems, descriptionProblems, bareTokenProblems, stageAfterProblems, authProblems, compatibilityProblems]);
 
   return (
     <div className="yaml-host">
@@ -1325,6 +1459,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         showGlyphMargin={true}
         fontSize={fontSize}
       />
+      {needsYamlBeautify && (
+        <div className="bodyview-toolbar">
+          <button
+            type="button"
+            className="button-icon no-shrink section-edit-toggle"
+            title="Beautify"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={beautifyYaml}
+          >
+            <span className="codicon codicon-wand" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

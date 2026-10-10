@@ -1,6 +1,6 @@
 type: api
 title: Extract with regex
-description: |
+description: |-
   Extract values from the response using regular expressions.
   Use `body[/pattern/]` or `body./pattern/` to extract from the body.
   Use `headers[/pattern/]` or `headers./pattern/` to extract from headers.
@@ -17,7 +17,6 @@ outputs:
   result_code: 'body[/\sResult:\s(.*)\s\[\s/]'
 url: https://test.mmt.dev/echo
 method: post
-format: json
 body:
   username: i:username
   email: i:email

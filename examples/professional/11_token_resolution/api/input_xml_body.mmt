@@ -1,0 +1,96 @@
+type: api
+title: Input tokens in an XML body
+description: XML element text is always a string, including numeric and boolean inputs.
+inputs:
+  username: alice
+  age: 100
+  active: true
+  city: Berlin
+  version: "1.0"
+  price: 9.5
+outputs:
+  username: body.body.username
+  age: body.body.age
+  active: body.body.active
+  city: body.body.city
+  missing_nickname: body.body.missing_nickname
+  literal_token: body.body.literal_token
+  literal_omit: body.body.literal_omit
+  angle_whole: body.body.angle_whole
+  quoted_angle: body.body.quoted_angle
+  angle_prefix: body.body.angle_prefix
+  angle_suffix: body.body.angle_suffix
+  angle_both: body.body.angle_both
+  quoted_curly: body.body.quoted_curly
+  curly_whole: body.body.curly_whole
+  text_slice: body.body.text_slice
+  missing_embed: body.body.missing_embed
+  attr_number: body.body.item.number
+  attr_bool: body.body.item.flag
+  attr_text: body.body.item.version
+  attr_angle: body.body.item.angle
+  attr_embedded: body.body.item.embedded
+  attr_literal: body.body.item.literal
+  attr_decimal: body.body.item.decimal
+  price_text: body.body.price
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: xml
+body:
+  body:
+    username: i:username
+    age: i:age
+    active: i:active
+    city: i:city
+    missing_nickname: i:nickname
+    literal_token: "i:username"
+    literal_omit: "omit"
+    angle_whole: <<i:age>>
+    quoted_angle: "<<i:username>>"
+    angle_prefix: "asda<<i:username>>"
+    angle_suffix: "<<i:age>>asas"
+    angle_both: "asda<<i:active>>asas"
+    quoted_curly: "{{i:username}}"
+    curly_whole: {{i:city}}
+    text_slice: <<i:city[0:3]>>
+    missing_embed: "x<<i:nickname>>y"
+    item:
+      _attributes:
+        number: i:age
+        flag: i:active
+        version: i:version
+        angle: <<i:age>>
+        embedded: "n<<i:age>>"
+        literal: "1.0"
+        decimal: i:price
+    price: i:price
+examples:
+  - id: defaults
+    title: Check outputs
+    expect:
+      status_code: 200
+      username: i:username
+      age: =S <<i:age>>
+      active: =S <<i:active>>
+      city: i:city
+      missing_nickname: "i:nickname"
+      literal_token: "i:username"
+      literal_omit: "omit"
+      angle_whole: =S <<i:age>>
+      quoted_angle: i:username
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: i:username
+      curly_whole: i:city
+      text_slice: i:city[0:3]
+      missing_embed: "xi:nicknamey"
+      attr_number: "100"
+      attr_bool: "true"
+      attr_text: "1.0"
+      attr_angle: "100"
+      attr_embedded: "n100"
+      attr_literal: "1.0"
+      attr_decimal: "9.5"
+      price_text: "9.5"

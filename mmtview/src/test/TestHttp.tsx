@@ -7,12 +7,23 @@ import {
   uiRowsToExpectMap,
 } from "mmt-core/expectUi";
 import { REQUEST_FORMAT_VALUES, RequestFormat, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
+import { resolveRequestFormat } from "mmt-core/formatResolve";
+import { bodyEditTokenTemplate, saveEditorBody } from "mmt-core/apiBodyEdit";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
+import StableTextInput, { StableTextArea } from "../components/StableTextInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
-import CheckClauseList, { CheckClauseFieldInput } from "../components/CheckClauseList";
+import CheckClauseList, {
+  newCheckClauseRowId,
+  stripCheckClauseRowIds,
+  type CheckClauseRow,
+} from "../components/CheckClauseList";
 import ReportLevelFields from "../components/ReportLevelFields";
 import { FileContext } from "../fileContext";
+import {
+  stringFieldToYamlWithLiveTokens,
+  yamlValueToInputBoxWithTokens,
+} from "../components/convertor";
 
 interface ExpectRow extends ExpectUiRow {}
 
@@ -36,14 +47,36 @@ const parseTimeoutInput = (value: string): number | undefined => {
 const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const { mmtFilePath } = useContext(FileContext);
   const step = value && typeof value === 'object' ? value : {};
-  const expectList = React.useMemo(() => expectMapToUiRows(step.expect), [step.expect]);
-  const requireList = React.useMemo(() => expectMapToUiRows(step.require), [step.require]);
+  const expectIdsRef = React.useRef<string[]>([]);
+  const requireIdsRef = React.useRef<string[]>([]);
+
+  const bindRowIds = (
+    rows: ExpectRow[],
+    idsRef: React.MutableRefObject<string[]>,
+  ): CheckClauseRow[] => {
+    while (idsRef.current.length < rows.length) {
+      idsRef.current.push(newCheckClauseRowId());
+    }
+    if (idsRef.current.length > rows.length) {
+      idsRef.current = idsRef.current.slice(0, rows.length);
+    }
+    return rows.map((row, i) => ({ ...row, rowId: idsRef.current[i] }));
+  };
+
+  const expectList = React.useMemo(
+    () => bindRowIds(expectMapToUiRows(step.expect), expectIdsRef),
+    [step.expect],
+  );
+  const requireList = React.useMemo(
+    () => bindRowIds(expectMapToUiRows(step.require), requireIdsRef),
+    [step.require],
+  );
   const callReport = step.report;
 
   const emit = (
       patch: Record<string, any>,
-      nextExpect?: ExpectRow[],
-      nextRequire?: ExpectRow[],
+      nextExpect?: ExpectRow[] | CheckClauseRow[],
+      nextRequire?: ExpectRow[] | CheckClauseRow[],
       nextReport?: any,
   ) => {
     const next: any = {
@@ -72,13 +105,17 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     if (next.body === '' || next.body === undefined) {
       delete next.body;
     }
-    const expectMap = uiRowsToExpectMap(nextExpect ?? expectList);
+    const expectMap = uiRowsToExpectMap(
+      stripCheckClauseRowIds((nextExpect ?? expectList) as CheckClauseRow[]),
+    );
     if (expectMap) {
       next.expect = expectMap;
     } else {
       delete next.expect;
     }
-    const requireMap = uiRowsToExpectMap(nextRequire ?? requireList);
+    const requireMap = uiRowsToExpectMap(
+      stripCheckClauseRowIds((nextRequire ?? requireList) as CheckClauseRow[]),
+    );
     if (requireMap) {
       next.require = requireMap;
     } else {
@@ -97,7 +134,10 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     const defaultField = expectList.length > 0
       ? expectList[expectList.length - 1].field
       : 'body.message';
-    emit({}, [...expectList, createEmptyExpectUiRow(defaultField)]);
+    emit({}, [
+      ...expectList,
+      { ...createEmptyExpectUiRow(defaultField), rowId: newCheckClauseRowId() },
+    ]);
   };
 
   const handleRemoveExpect = (index: number) => {
@@ -106,7 +146,9 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
 
   const handleExpectPartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
     const updated = expectList.map((row, i) => (
-      i === index ? applyExpectUiRowChange(row, part, val) : row
+      i === index
+        ? { ...applyExpectUiRowChange(row, part, val), rowId: row.rowId }
+        : row
     ));
     emit({}, updated);
   };
@@ -115,7 +157,10 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     const defaultField = requireList.length > 0
       ? requireList[requireList.length - 1].field
       : 'status';
-    emit({}, undefined, [...requireList, createEmptyExpectUiRow(defaultField)]);
+    emit({}, undefined, [
+      ...requireList,
+      { ...createEmptyExpectUiRow(defaultField), rowId: newCheckClauseRowId() },
+    ]);
   };
 
   const handleRemoveRequire = (index: number) => {
@@ -124,20 +169,27 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
 
   const handleRequirePartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
     const updated = requireList.map((row, i) => (
-      i === index ? applyExpectUiRowChange(row, part, val) : row
+      i === index
+        ? { ...applyExpectUiRowChange(row, part, val), rowId: row.rowId }
+        : row
     ));
     emit({}, undefined, updated);
   };
 
   const selectedMethod = String(step.method || 'get').toLowerCase();
+  const bodyFormat = resolveRequestFormat(
+    requestFormat(step.format),
+    step.headers,
+    selectedMethod,
+  );
 
   return (
     <div className="mmt-fill">
       <div className="field-pad">
-        <input
+        <StableTextInput
           type="text"
-          value={step.http || ''}
-          onChange={e => emit({ http: e.target.value })}
+          value={yamlValueToInputBoxWithTokens(step.http || "", true, true)}
+          onChange={next => emit({ http: stringFieldToYamlWithLiveTokens(next) })}
           placeholder="URL"
         />
       </div>
@@ -145,20 +197,20 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
         <>
           <div className="label">Id</div>
           <div className="field-pad">
-            <input
+            <StableTextInput
               type="text"
               value={step.id || ''}
-              onChange={e => emit({ id: e.target.value })}
+              onChange={next => emit({ id: next })}
               placeholder="Optional id to capture response"
             />
           </div>
 
           <div className="label">Title</div>
           <div className="field-pad">
-            <input
+            <StableTextInput
               type="text"
               value={step.title || ''}
-              onChange={e => emit({ title: e.target.value })}
+              onChange={next => emit({ title: next })}
               placeholder="Optional display title"
             />
           </div>
@@ -177,12 +229,12 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
 
           <div className="label">Timeout (ms)</div>
           <div className="field-pad">
-            <input
+            <StableTextInput
               type="number"
               min={0}
               step={100}
-              value={step.timeout ?? ''}
-              onChange={e => emit({ timeout: parseTimeoutInput(e.target.value) })}
+              value={step.timeout == null ? "" : String(step.timeout)}
+              onChange={next => emit({ timeout: parseTimeoutInput(next) })}
               placeholder="Default network timeout"
             />
           </div>
@@ -225,36 +277,54 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             label="Headers"
             value={step.headers || {}}
             onChange={headers => emit({ headers })}
+            canContainToken
+            typedValues
+            liveAngleTokens
           />
 
           <KSVEditor
             label="Query"
             value={step.query || {}}
             onChange={query => emit({ query })}
+            canContainToken
+            typedValues
+            liveAngleTokens
           />
 
-          {selectedMethod !== 'get' && requestFormat(step.format) !== 'none' && (
+          {bodyFormat !== 'none' && (
             <>
               <div className="label">Body</div>
               <div className="field-pad">
-                {requestFormat(step.format) === 'binary' ? (
+                {bodyFormat === 'binary' ? (
                   <FilePickerInput
-                    value={typeof step.body === 'string' ? step.body : ''}
+                    value={yamlValueToInputBoxWithTokens(
+                      typeof step.body === 'string' ? step.body : '',
+                      true,
+                      true,
+                    )}
                     basePath={mmtFilePath}
                     showFilePicker
                     placeholder="Relative path to binary file"
-                    onChange={path => emit({ body: path })}
-                    onEnterPressed={path => emit({ body: path })}
+                    canContainToken
+                    onChange={path => emit({ body: stringFieldToYamlWithLiveTokens(path) })}
+                    onEnterPressed={path => emit({ body: stringFieldToYamlWithLiveTokens(path) })}
                   />
-                ) : requestFormat(step.format) === 'multipart' ? (
+                ) : bodyFormat === 'multipart' ? (
                   <MultipartPartsEditor
                     value={step.body}
                     onChange={parts => emit({ body: parts })}
+                    canContainToken
                   />
                 ) : (
-                  <textarea
-                    value={typeof step.body === 'string' ? step.body : JSON.stringify(step.body || '', null, 2)}
-                    onChange={e => emit({ body: e.target.value })}
+                  <StableTextArea
+                    value={bodyEditTokenTemplate(step.body ?? '', bodyFormat)}
+                    onChange={next => {
+                      const saved = saveEditorBody(step.body, next, bodyFormat);
+                      if (saved === step.body) {
+                        return;
+                      }
+                      emit({ body: saved });
+                    }}
                     placeholder="Request body"
                   />
                 )}
@@ -265,48 +335,22 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
           <CheckClauseList
             kind="expect"
             rows={expectList}
+            fieldOptions={responseFields}
             onPartChange={handleExpectPartChange}
             onRemove={handleRemoveExpect}
             onAdd={handleAddExpect}
-            renderField={(row, i) => (
-              <CheckClauseFieldInput
-                list="http-response-fields"
-                value={row.field}
-                onChange={val => handleExpectPartChange(i, "field", val)}
-                title="Response path to check"
-                placeholder="body.message"
-              />
-            )}
-          >
-            <datalist id="http-response-fields">
-              {responseFields.map(field => (
-                <option key={field} value={field} />
-              ))}
-            </datalist>
-          </CheckClauseList>
+            canContainToken
+          />
 
           <CheckClauseList
             kind="require"
             rows={requireList}
+            fieldOptions={responseFields}
             onPartChange={handleRequirePartChange}
             onRemove={handleRemoveRequire}
             onAdd={handleAddRequire}
-            renderField={(row, i) => (
-              <CheckClauseFieldInput
-                list="http-require-response-fields"
-                value={row.field}
-                onChange={val => handleRequirePartChange(i, "field", val)}
-                title="Response path to require"
-                placeholder="status"
-              />
-            )}
-          >
-            <datalist id="http-require-response-fields">
-              {responseFields.map(field => (
-                <option key={field} value={field} />
-              ))}
-            </datalist>
-          </CheckClauseList>
+            canContainToken
+          />
 
           {(expectList.length > 0 || requireList.length > 0) && (
             <ReportLevelFields

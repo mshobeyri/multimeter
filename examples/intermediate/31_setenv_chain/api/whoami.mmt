@@ -1,0 +1,10 @@
+type: api
+title: Who am I
+description: Reads the current user using the token stored by `setenv`
+protocol: http
+method: get
+url: <<e:base_url>>/whoami
+headers:
+  Authorization: Bearer <<e:session_token>>
+outputs:
+  user: body.user

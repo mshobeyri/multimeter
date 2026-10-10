@@ -215,7 +215,8 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(Array.isArray(api.examples)).toBe(true);
     expect(api.examples!.length).toBe(1);
     const ex = api.examples![0];
-    expect(ex.name).toBe('example-override');
+    expect(ex.id).toBe('example-override');
+    expect(ex.title).toBe('example-override');
     expect(ex.inputs).toBeTruthy();
     expect(ex.inputs!.url).toBe('https://test.mmt.dev/echo?mode=demo');
     expect(ex.inputs!['hdr_x_env']).toBe('staging');

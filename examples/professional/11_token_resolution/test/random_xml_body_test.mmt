@@ -1,0 +1,27 @@
+type: test
+title: Random token resolution (XML body)
+description: "Echoes r: values as XML text."
+import:
+  api: ../api/random_xml_body.mmt
+steps:
+  - call: api
+    id: call
+    expect:
+      status_code: 200
+      request_id: != null
+      lucky_number: != null
+      active: != null
+      missing_token: "r:not_a_token"
+      literal_token: "r:uuid"
+      literal_omit: "omit"
+      angle_whole: =* ^(1[0-9]|20)$
+      quoted_angle: =* ^(1[0-9]|20)$
+      angle_prefix: =* ^asda(1[0-9]|20)$
+      angle_suffix: =* ^(1[0-9]|20)asas$
+      angle_both: =* ^asda(true|false)asas$
+      quoted_curly:
+        - "!= null"
+        - "!C r:"
+      curly_whole:
+        - "!= null"
+        - "!C r:"

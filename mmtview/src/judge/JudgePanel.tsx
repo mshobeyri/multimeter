@@ -4,6 +4,7 @@ import { JudgeData, JudgeEngineId } from 'mmt-core/JudgeData';
 import { yamlToJudge } from 'mmt-core/judgeParsePack';
 import { resolveEnvTokenValues } from 'mmt-core/variableReplacer';
 import DescriptionEditor from '../components/DescriptionEditor';
+import StableTextInput from '../components/StableTextInput';
 import SearchableTagInput from '../components/SearchableTagInput';
 import TabBar from '../components/TabBar';
 import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
@@ -438,10 +439,10 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                     <>
                       <div className="label">Title</div>
                       <div className="field-pad">
-                        <input
+                        <StableTextInput
                           className="mmt-fill"
                           value={judge.title || ''}
-                          onChange={(e) => update({ title: e.target.value })}
+                          onChange={(next) => update({ title: next })}
                           placeholder="title"
                         />
                       </div>
@@ -553,11 +554,11 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                         </select>
 
                         {auth && auth !== 'none' && auth.type === 'bearer' && (
-                          <input
+                          <StableTextInput
                             className="mmt-fill"
                             value={auth.token || ''}
-                            onChange={(e) => update({
-                              auth: { type: 'bearer', token: e.target.value },
+                            onChange={(next) => update({
+                              auth: { type: 'bearer', token: next },
                             })}
                             placeholder="e:openai_api_key"
                           />
@@ -565,26 +566,26 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
 
                         {auth && auth !== 'none' && auth.type === 'basic' && (
                           <>
-                            <input
+                            <StableTextInput
                               className="mmt-fill"
                               value={auth.username || ''}
-                              onChange={(e) => update({
+                              onChange={(next) => update({
                                 auth: {
                                   type: 'basic',
-                                  username: e.target.value,
+                                  username: next,
                                   password: auth.password || '',
                                 },
                               })}
                               placeholder="username"
                             />
-                            <input
+                            <StableTextInput
                               className="mmt-fill"
                               value={auth.password || ''}
-                              onChange={(e) => update({
+                              onChange={(next) => update({
                                 auth: {
                                   type: 'basic',
                                   username: auth.username || '',
-                                  password: e.target.value,
+                                  password: next,
                                 },
                               })}
                               placeholder="password"
@@ -594,10 +595,10 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
 
                         {auth && auth !== 'none' && auth.type === 'api-key' && (
                           <>
-                            <input
+                            <StableTextInput
                               className="mmt-fill"
                               value={auth.header || auth.query || ''}
-                              onChange={(e) => {
+                              onChange={(next) => {
                                 const current = auth as {
                                   type: 'api-key'; header?: string; query?: string; value: string;
                                 };
@@ -605,7 +606,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                                   update({
                                     auth: {
                                       type: 'api-key',
-                                      query: e.target.value,
+                                      query: next,
                                       value: current.value || '',
                                     },
                                   });
@@ -613,7 +614,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                                   update({
                                     auth: {
                                       type: 'api-key',
-                                      header: e.target.value,
+                                      header: next,
                                       value: current.value || '',
                                     },
                                   });
@@ -621,10 +622,10 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                               }}
                               placeholder="header or query name"
                             />
-                            <input
+                            <StableTextInput
                               className="mmt-fill"
                               value={auth.value || ''}
-                              onChange={(e) => {
+                              onChange={(next) => {
                                 const current = auth as {
                                   type: 'api-key'; header?: string; query?: string; value: string;
                                 };
@@ -633,7 +634,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                                     auth: {
                                       type: 'api-key',
                                       query: current.query,
-                                      value: e.target.value,
+                                      value: next,
                                     },
                                   });
                                 } else {
@@ -641,7 +642,7 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
                                     auth: {
                                       type: 'api-key',
                                       header: current.header || 'Authorization',
-                                      value: e.target.value,
+                                      value: next,
                                     },
                                   });
                                 }
@@ -654,11 +655,11 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
 
                       <div className="label">Temperature</div>
                       <div className="field-pad">
-                        <input
+                        <StableTextInput
                           className="mmt-fill"
                           value={temperature == null ? '' : String(temperature)}
-                          onChange={(e) => {
-                            const raw = e.target.value.trim();
+                          onChange={(next) => {
+                            const raw = next.trim();
                             const options = { ...(judge.options || {}) };
                             if (!raw) {
                               delete options.temperature;
@@ -674,11 +675,11 @@ const JudgePanel: React.FC<JudgePanelProps> = ({ content, setContent }) => {
 
                       <div className="label">Timeout</div>
                       <div className="field-pad">
-                        <input
+                        <StableTextInput
                           className="mmt-fill"
                           value={timeout == null ? '' : String(timeout)}
-                          onChange={(e) => {
-                            const raw = e.target.value.trim();
+                          onChange={(next) => {
+                            const raw = next.trim();
                             const options = { ...(judge.options || {}) };
                             if (!raw) {
                               delete options.timeout;

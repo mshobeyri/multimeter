@@ -1,0 +1,11 @@
+type: api
+title: Echo status
+outputs:
+  status_code: status
+url: https://test.mmt.dev/json
+method: get
+examples:
+  - id: ok
+    title: Happy path
+    expect:
+      status_code: 200

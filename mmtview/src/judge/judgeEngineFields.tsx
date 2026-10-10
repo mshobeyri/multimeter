@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import StableTextInput from '../components/StableTextInput';
 import {JudgeModelInfo} from './judgeProbeHelpers';
 
 type UrlFieldProps = {
@@ -21,10 +22,10 @@ export const JudgeUrlField: React.FC<UrlFieldProps> = ({
 }) => {
   return (
     <div className="judge-affix-field">
-      <input
+      <StableTextInput
         className="judge-affix-field__input"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
         placeholder={placeholder || defaultUrl || 'https://…'}
         spellCheck={false}
       />
@@ -89,10 +90,10 @@ export const JudgeModelCombo: React.FC<ModelComboProps> = ({
 
   return (
     <div ref={rootRef} className="judge-affix-field judge-model-combo">
-      <input
+      <StableTextInput
         className="judge-affix-field__input"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
         placeholder={placeholder || 'Select or type a model'}
         spellCheck={false}
         onKeyDown={(e) => {

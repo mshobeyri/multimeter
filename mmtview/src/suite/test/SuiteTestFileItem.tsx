@@ -13,7 +13,7 @@ import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
 import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
 import { TreeDepthContainer } from '../../components/TreeChevron';
 
-export type SuiteTestFileItemData = { type: 'test' | 'server'; path: string; id: string }
+export type SuiteTestFileItemData = { type: 'test' | 'api' | 'server'; path: string; id: string }
 
 interface SuiteTestFileItemProps {
     item: TreeItem<any>;

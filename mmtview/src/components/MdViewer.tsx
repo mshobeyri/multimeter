@@ -9,6 +9,8 @@ interface MdViewerProps {
   outputs?: Record<string, string>;
   /** Source file path of the API (used to resolve relative ref paths). */
   basePath?: string;
+  /** When false, skip the inner "Description" heading (outer section already has one). */
+  showDescriptionLabel?: boolean;
 }
 
 function escapeHtml(s: string): string {
@@ -53,7 +55,13 @@ function renderDescriptionParts(desc: string, inputs?: JSONRecord, outputs?: Rec
   return { descHtml, inputsHtml, outputsHtml };
 }
 
-const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs, basePath }) => {
+const MdViewer: React.FC<MdViewerProps> = ({
+  description,
+  inputs,
+  outputs,
+  basePath,
+  showDescriptionLabel = true,
+}) => {
   const ref = useMemo(() => parseRefDescription(description), [description]);
   const resolvedRefHref = useMemo(() => {
     if (!ref) { return ''; }
@@ -110,7 +118,9 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs, baseP
     >
       {descHtml && (
         <>
-          <div className="label is-flush">Description</div>
+          {showDescriptionLabel ? (
+            <div className="label is-flush">Description</div>
+          ) : null}
           {ref && (
             <div className="doc-preview-ref">
               <a

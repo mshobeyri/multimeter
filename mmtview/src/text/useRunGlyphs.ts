@@ -1,3 +1,4 @@
+import {exampleId, exampleTitle} from 'mmt-core/APIData';
 import {yamlToAPI} from 'mmt-core/apiParsePack';
 import {parseYamlDoc} from 'mmt-core/markupConvertor';
 import {safeList} from 'mmt-core/safer';
@@ -174,15 +175,16 @@ export function useRunGlyphs(params: {
             extractExampleLineInfo(doc, content).filter(info => info.line > 0);
 
         const filteredPositions = positions.filter(info => {
-          const name = examplesList[info.index]?.name;
-          return name && typeof name === 'string' && name.trim() !== '';
+          const id = exampleId(examplesList[info.index]);
+          return !!id;
         });
 
         exampleRunInfoRef.current =
             filteredPositions.map(info => ({
                                     line: info.line,
                                     index: info.index,
-                                    name: examplesList[info.index]?.name
+                                    name: exampleId(examplesList[info.index]) ||
+                                        exampleTitle(examplesList[info.index])
                                   }));
 
         exampleRunDecorationsRef.current = editor.deltaDecorations(
@@ -193,8 +195,8 @@ export function useRunGlyphs(params: {
                       if (!example) {
                         return null;
                       }
-                      const name = example?.name;
-                      const label = name ? `Run example: ${name}` :
+                      const labelText = exampleTitle(example) || exampleId(example);
+                      const label = labelText ? `Run example: ${labelText}` :
                                            `Run example ${info.index + 1}`;
                       return {
                         range: new monaco.Range(info.line, 1, info.line, 1),

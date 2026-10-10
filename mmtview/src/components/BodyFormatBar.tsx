@@ -1,65 +1,49 @@
-import React, { useEffect, useState } from "react";
-import { Format, RequestFormat } from "mmt-core/CommonData";
+import React from "react";
+import { RequestFormat } from "mmt-core/CommonData";
 import {
-  BODY_FORMAT_TOP_LEVEL,
-  DEFAULT_RAW_FORMAT,
-  FormatChip,
-  RawFormatSelect,
-  isRawFormat,
-  topLevelForFormat,
-  type BodyFormatTopLevel,
+  BodyFormatSelect,
+  REQUEST_BODY_FORMAT_MENU,
 } from "./BodyFormatControls";
 
 type BodyFormatBarProps = {
   value: RequestFormat;
-  onChange: (format: RequestFormat) => void;
+  storageMode: "plain" | "encoded";
+  encodeError?: boolean;
+  onChange: (format: RequestFormat, storageMode?: "plain" | "encoded") => void;
 };
 
-const BodyFormatBar: React.FC<BodyFormatBarProps> = ({ value, onChange }) => {
-  const rawSelected = value !== "auto" && isRawFormat(value);
-  const [lastRawFormat, setLastRawFormat] = useState<Format>(
-    rawSelected ? value : DEFAULT_RAW_FORMAT
-  );
-
-  useEffect(() => {
-    if (rawSelected) {
-      setLastRawFormat(value);
-    }
-  }, [rawSelected, value]);
-
-  const selectTopLevel = (level: BodyFormatTopLevel) => {
-    if (level === "raw") {
-      onChange(rawSelected ? value : lastRawFormat);
-      return;
-    }
-    onChange(level);
-  };
+const BodyFormatBar: React.FC<BodyFormatBarProps> = ({
+  value,
+  storageMode,
+  encodeError = false,
+  onChange,
+}) => {
+  const selectedEntryId = ["json", "xml", "xmle", "text", "html", "urlencoded"].includes(value)
+    ? `${storageMode}-${value}`
+    : undefined;
+  const triggerSuffix = selectedEntryId && storageMode === "encoded" ? "-yml" : undefined;
+  const triggerValue = value;
+  const triggerTitle = encodeError
+    ? "YAML encoding is unavailable; the body is currently stored as raw text."
+    : selectedEntryId && storageMode === "encoded"
+      ? `${value}-yml`
+      : selectedEntryId
+        ? value
+        : value;
 
   return (
-    <div className="apitest-body-format-bar" role="tablist" aria-label="Body format">
-      <FormatChip
-        label="auto"
-        selected={value === "auto"}
-        onClick={() => onChange("auto")}
+    <div className="apitest-body-format-bar" aria-label="Body format">
+      <BodyFormatSelect
+        value={value}
+        menu={REQUEST_BODY_FORMAT_MENU}
+        selectedEntryId={selectedEntryId}
+        triggerValue={triggerValue}
+        triggerSuffix={triggerSuffix}
+        strikeTriggerSuffix={encodeError && Boolean(triggerSuffix)}
+        triggerTitle={triggerTitle}
+        onChange={(format, entry) => onChange(format, entry?.storageMode)}
+        ariaLabel="Body format"
       />
-      {BODY_FORMAT_TOP_LEVEL.map(level => (
-        <FormatChip
-          key={level}
-          label={level}
-          selected={value !== "auto" && topLevelForFormat(value) === level}
-          title={level === "multipart" ? "multipart/form-data (Postman form-data)" : undefined}
-          onClick={() => selectTopLevel(level)}
-        />
-      ))}
-      {rawSelected ? (
-        <RawFormatSelect
-          value={value}
-          onChange={format => {
-            setLastRawFormat(format);
-            onChange(format);
-          }}
-        />
-      ) : null}
     </div>
   );
 };

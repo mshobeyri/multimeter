@@ -62,6 +62,8 @@ describe('omit keyword transformations', () => {
     };
     expect(stripOmitFromRequest(request)).toEqual({
       headers: {
+        // Whole-value omit stays so the network layer can block defaults.
+        'X-Trace': OMIT_SENTINEL,
         'Content-Type': 'application/json',
       },
       body: {
@@ -189,12 +191,13 @@ describe('omit in a request built at runtime', () => {
     expect(stripOmitFromBody(body, 'json')).toBe(body);
   });
 
-  it('drops omitted headers, query, and url query pairs', () => {
+  it('keeps whole-value header omit, drops embedded omit and query pairs', () => {
     const req = applyOmitToOutgoingRequest(
         {
           url: `https://example.com/items?limit=10&cursor=${OMIT_SENTINEL}`,
           headers: {
             'Content-Type': 'application/json',
+            'User-Agent': OMIT_SENTINEL,
             Authorization: `Bearer ${OMIT_SENTINEL}`,
           },
           query: {page: '2', filter: OMIT_SENTINEL},
@@ -203,7 +206,10 @@ describe('omit in a request built at runtime', () => {
         'json');
 
     expect(req.url).toBe('https://example.com/items?limit=10');
-    expect(req.headers).toEqual({'Content-Type': 'application/json'});
+    expect(req.headers).toEqual({
+      'Content-Type': 'application/json',
+      'User-Agent': OMIT_SENTINEL,
+    });
     expect(req.query).toEqual({page: '2'});
     expect(JSON.parse(req.body)).toEqual({});
   });

@@ -1,3 +1,5 @@
+import { LITERAL_TOKEN_PREFIX } from "mmt-core/literalToken";
+import { OMIT_SENTINEL } from "mmt-core/omitKeyword";
 import {
   bodyToMultipartRows,
   emptyMultipartPartRow,
@@ -71,6 +73,50 @@ describe("multipartPartsUi", () => {
   it("omits body when no named parts exist", () => {
     expect(multipartRowsToBody([emptyMultipartPartRow()])).toBeUndefined();
     expect(multipartRowsToBody([])).toBeUndefined();
+  });
+
+  it("round-trips typed part values and live angle tokens", () => {
+    const body = [
+      { name: "n", value: 100 },
+      { name: "ok", value: true },
+      { name: "z", value: null },
+      { name: "qn", value: "112" },
+      { name: "note", value: OMIT_SENTINEL },
+      { name: "keep", value: "omit" },
+      { name: "city", value: `${LITERAL_TOKEN_PREFIX}<<c:city>>` },
+      { name: "live", value: "c:city" },
+      { name: "file", file: "./a.bin" },
+    ];
+    const rows = bodyToMultipartRows(body, false);
+    expect(rows.find(row => row.name === "qn")?.value).toBe('"112"');
+    expect(rows.find(row => row.name === "note")?.value).toBe("omit");
+    expect(rows.find(row => row.name === "city")?.value).toBe("{{c:city}}");
+    expect(rows.find(row => row.name === "z")?.value).toBe("null");
+    expect(multipartRowsToBody(rows)).toEqual([
+      { name: "n", value: 100 },
+      { name: "ok", value: true },
+      { name: "z", value: null },
+      { name: "qn", value: "112" },
+      { name: "note", value: OMIT_SENTINEL },
+      { name: "keep", value: "omit" },
+      { name: "city", value: "c:city" },
+      { name: "live", value: "c:city" },
+      { name: "file", file: "./a.bin" },
+    ]);
+  });
+
+  it("saves a whole angle file path as a bare token", () => {
+    const body = [
+      { name: "upload", file: `${LITERAL_TOKEN_PREFIX}<<e:file>>` },
+      { name: "other", file: "files/<<e:name>>.bin" },
+    ];
+    const rows = bodyToMultipartRows(body, false);
+    expect(rows.find(row => row.name === "upload")?.value).toBe("{{e:file}}");
+    expect(rows.find(row => row.name === "other")?.value).toBe("files/{{e:name}}.bin");
+    expect(multipartRowsToBody(rows)).toEqual([
+      { name: "upload", file: "e:file" },
+      { name: "other", file: "files/<<e:name>>.bin" },
+    ]);
   });
 
   it("keeps a stable signature across trailing-empty display rows", () => {

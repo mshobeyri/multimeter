@@ -1,6 +1,26 @@
 import React, { useState } from "react";
 import { EnvVariable } from "./EnvironmentData";
 import SettingsTable, { SettingsTableColumn, SettingsTableRow } from "../components/SettingsTable";
+import type { JSONValue } from "mmt-core/CommonData";
+import { yamlValueToInputBox } from "mmt-core/yamlValueConvert";
+import { EnvFilePathValue, isEnvFilePathDisplayValue } from "./envFilePathDisplay";
+
+function formatEnvDisplayValue(value: JSONValue | undefined): React.ReactNode {
+  if (value === undefined) {
+    return "";
+  }
+  if (isEnvFilePathDisplayValue(value)) {
+    return <EnvFilePathValue value={value} />;
+  }
+  if (value !== null && typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return yamlValueToInputBox(value);
+}
 
 interface EnvironmentViewProps {
   vars: EnvVariable[];
@@ -41,7 +61,7 @@ const EnvironmentView: React.FC<EnvironmentViewProps> = ({
     cells: {
       name: v.name,
       label: v.label,
-      value: String(v.value ?? "")
+      value: formatEnvDisplayValue(v.value),
     }
   }));
 

@@ -3,6 +3,7 @@ import FLEditor from "../components/FLEditor";
 import { DocData } from "mmt-core/DocData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import FieldWithRemove from "../components/FieldWithRemove";
+import StableTextInput from "../components/StableTextInput";
 import FilePickerInput from "../components/FilePickerInput";
 import { FileContext } from '../fileContext';
 
@@ -19,9 +20,9 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
     <div className="panel-form">
       <div className="panel-form-row">
         <div className="label">Title</div>
-        <input
+        <StableTextInput
           value={doc.title || ""}
-          onChange={e => update({ title: e.target.value })}
+          onChange={next => update({ title: next })}
           placeholder="title"
         />
       </div>
@@ -43,6 +44,8 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
             onRemovePressed={() => update({ logo: '' })}
             basePath={fileCtx?.mmtFilePath}
             filters={[{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'] }]}
+            showFilePicker
+            removable
           />
         </div>
       </div>
@@ -76,12 +79,12 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
                 update({ services: next });
               }}
             />
-            <input
+            <StableTextInput
               value={(svc as any)?.description || ''}
               placeholder="service description (optional)"
-              onChange={e => {
+              onChange={nextValue => {
                 const next = services.slice();
-                next[idx] = { ...next[idx], description: e.target.value } as any;
+                next[idx] = { ...next[idx], description: nextValue } as any;
                 update({ services: next });
               }}
             />
@@ -125,11 +128,11 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
           </div>
           <div className="field-inline is-gap">
             <span className="field-label-col">CORS Proxy:</span>
-            <input
+            <StableTextInput
               className="field-grow"
               value={doc.html?.cors_proxy || ''}
-              onChange={e => {
-                const html = { ...(doc.html || {}), cors_proxy: e.target.value };
+              onChange={next => {
+                const html = { ...(doc.html || {}), cors_proxy: next };
                 update({ html });
               }}
               placeholder="https://corsproxy.io/?"

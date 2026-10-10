@@ -53,8 +53,6 @@ Notes:
 - The `for` expression is standard JavaScript — `const row of messages`, `let i = 0; i < messages.length; i++`, and similar headers all work.
 - Use `${row.field}` in inputs, checks, and asserts to reference the current row.
 
-Optional: a `data` step can bind an imported CSV alias explicitly before loops. See [data](../files/test/steps/variables.md#data).
-
 ## JSON / YAML — substitute values
 
 JSON and YAML imports load as objects or arrays. Reference nested values with `${alias.path}` dot notation:
@@ -77,10 +75,9 @@ When a field value is **exactly** `${alias.path}`, Multimeter keeps the imported
 |-----------|---------|
 | `import:` | Load CSV, JSON, or YAML by alias |
 | `for` | Iterate CSV rows (or any JS iterable) |
-| `data` | Bind an imported CSV alias into scope |
 | `${alias.field}` | Row field or nested path from imported data |
 
-Full references: [Control flow — for/repeat](../files/test/steps/control-flow.md#for-repeat) · [Variables — data](../files/test/steps/variables.md#data) · [import](../files/test/import.md)
+Full references: [Control flow — for/repeat](../files/test/steps/control-flow.md#for-repeat) · [import](../files/test/import.md)
 
 ## Examples
 
@@ -101,5 +98,5 @@ npx testlight run examples/intermediate/09_csv_data_driven_test/echo_csv_test.mm
 - [import](../files/test/import.md) — all importable file types
 - [Data imports](./data-imports.md) — JSON/YAML/CSV in API, env, suite, and other file types
 - [Control flow](../files/test/steps/control-flow.md) — `for`, `repeat`, `if`
-- [Variables](../files/test/steps/variables.md) — `data`, `set`, `setenv`
+- [Variables](../files/test/steps/variables.md) — `set`, `setenv`
 - [Browse examples](/docs/examples) — sample Multimeter projects

@@ -116,23 +116,25 @@
   font-size: 12px;
 }
 
-.judge-model-combo__table th {
+.judge-model-combo__table th,
+.judge-model-combo__table td {
   text-align: left;
+  padding: 2px 4px;
+  border: none;
+  vertical-align: middle;
+}
+
+.judge-model-combo__table th {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 6px 8px;
   color: var(--vscode-descriptionForeground);
-  border-bottom: 1px solid var(--vscode-editorWidget-border, #333);
   position: sticky;
   top: 0;
   background: var(--vscode-dropdown-background, var(--vscode-editor-background));
 }
 
 .judge-model-combo__table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--vscode-editorWidget-border, rgba(255, 255, 255, 0.06));
-  vertical-align: top;
   color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
 }
 

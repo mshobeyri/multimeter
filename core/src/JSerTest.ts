@@ -7,11 +7,9 @@ import {flowToJsFunc} from './JSerTestFlow';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {TestData} from './TestData';
 import {
-  collectInputRefsFromObject,
   normalizeEnvTokens,
   replaceAllRefs,
   replaceOutputTokenRefs,
-  resolveInputsMap,
   toTemplateWithEnvVars,
 } from './variableReplacer';
 
@@ -120,15 +118,9 @@ export const testToJsfunc = async(
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
-  // Validate that all i:xxx references point to declared inputs
-  const declaredInputKeys = new Set(Object.keys(paramsAsObj));
-  const inputRefs = collectInputRefsFromObject(ctx.test);
-  const undefinedRefs = inputRefs.filter(name => !declaredInputKeys.has(name));
-  if (undefinedRefs.length > 0) {
-    throw new Error(
-      `Undefined input(s): ${undefinedRefs.map(r => `"${r}"`).join(', ')}. Define them in the 'inputs' section of the test file.`
-    );
-  }
+  // Missing i: names stay as the token text (same as unknown r:/c:).
+  // The editor already warns; do not fail the run.
+  const knownInputNames = new Set(Object.keys(paramsAsObj));
 
   // Keep `${input}` placeholders in the generated function. Concrete values
   // (including interdependent input defaults) are supplied at the call site
@@ -140,13 +132,13 @@ export const testToJsfunc = async(
   // Test-only: o:/<<o:…>> → ${outputs.…}. Do not run on APIs (doc annotations).
   replaced = replaceOutputTokenRefs(replaced);
 
-  let inputParams = toInputsParams(replaced.inputs || {}, ' = ');
+  let inputParams = toInputsParams(replaced.inputs || {}, ' = ', knownInputNames);
   if (inputParams.length > 0) {
     inputParams += ' ';
   }
 
   let flow = '';
-  let outputParams = toInputsParams(replaced.outputs || {}, ': ');
+  let outputParams = toInputsParams(replaced.outputs || {}, ': ', knownInputNames);
   if (outputParams.length > 0) {
     outputParams = ' ' + outputParams + ' ';
   }
@@ -231,8 +223,10 @@ export const testToJsfunc = async(
     }
   }
 
-  const emitSetenv = root || (Array.isArray(ctx.test.tags) && ctx.test.tags.includes('http'));
-  flow += await flowToJsFunc(replaced, root, useExternalReport, importTitleMap, emitSetenv);
+  // setenv also applies in imported tests so later steps of the caller see it.
+  const emitSetenv = true;
+  flow += await flowToJsFunc(
+      replaced, root, useExternalReport, importTitleMap, emitSetenv, knownInputNames);
 
   const fnName = `${toLowerUnderscore(ctx.name)}${root ? '_' : ''}`;
   const cacheSpec = ctx.test.cache;
@@ -292,28 +286,70 @@ export const testToJsfunc = async(
 export const variableReplacer = (full: string): string => {
   const replaceOutside = normalizeEnvTokens;
 
+  // Quoted `"<<token>>"` / `"{{token}}"` and XML-escaped `&lt;&lt;token&gt;&gt;`
+  // are already final text. A second scan must not turn them into env or
+  // random calls. Unquoted `<<token>>` in the same template still resolves.
+  const quotedLiteralSpan =
+      /("<<\s*(?:e|i|r|c|o):[^"]*>>"|"\{\{\s*(?:e|i|r|c|o):[^"]*\}\}"|&lt;&lt;\s*(?:e|i|r|c|o):[\s\S]*?&gt;&gt;|%3C%3C\s*(?:e|i|r|c|o):[\s\S]*?%3E%3E|%7B%7B\s*(?:e|i|r|c|o):[\s\S]*?%7D%7D|>\s*\{\{\s*(?:e|i|r|c|o):[^<]*\}\}\s*<)/gi;
+
   const replaceInsideTpl = (s: string) => {
-    const templated = toTemplateWithEnvVars(s);
-    return templated.slice(1, -1);
+    const slots: string[] = [];
+    const shielded = s.replace(quotedLiteralSpan, (match) => {
+      const id = `__MMT_HOLD_${slots.length}__`;
+      slots.push(match);
+      return id;
+    });
+    const templated = toTemplateWithEnvVars(shielded);
+    let inner = templated.slice(1, -1);
+    for (let n = 0; n < slots.length; n++) {
+      inner = inner.split(`__MMT_HOLD_${n}__`).join(slots[n]);
+    }
+    return inner;
+  };
+
+  const endOfQuoted = (source: string, start: number): number => {
+    const quote = source[start];
+    let i = start + 1;
+    while (i < source.length) {
+      if (source[i] === '\\') {
+        i += 2;
+        continue;
+      }
+      if (source[i] === quote) {
+        return i + 1;
+      }
+      i++;
+    }
+    return source.length;
   };
 
   let out = '';
   let i = 0;
   while (i < full.length) {
-    const start = full.indexOf('`', i);
-    if (start === -1) {
+    const startBt = full.indexOf('`', i);
+    const startDq = full.indexOf('"', i);
+    const startSq = full.indexOf('\'', i);
+    const candidates = [startBt, startDq, startSq].filter(n => n >= 0);
+    if (candidates.length === 0) {
       out += replaceOutside(full.slice(i));
       break;
     }
+    const start = Math.min(...candidates);
     out += replaceOutside(full.slice(i, start));
-    const end = full.indexOf('`', start + 1);
-    if (end === -1) {
-      out += replaceOutside(full.slice(start));
-      break;
+    if (full[start] === '`') {
+      const end = full.indexOf('`', start + 1);
+      if (end === -1) {
+        out += replaceOutside(full.slice(start));
+        break;
+      }
+      const inner = full.slice(start + 1, end);
+      out += '`' + replaceInsideTpl(inner) + '`';
+      i = end + 1;
+      continue;
     }
-    const inner = full.slice(start + 1, end);
-    out += '`' + replaceInsideTpl(inner) + '`';
-    i = end + 1;
+    const end = endOfQuoted(full, start);
+    out += full.slice(start, end);
+    i = end;
   }
   return out;
 };
@@ -342,16 +378,19 @@ export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
       rootFuncName.slice(0, -1) :
       rootFuncName;
 
-  const test =
-      await testToJsfunc({...ctx, name: rootNameStem, importTracker: tracker}, true, tracker);
-  const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
-  const resolvedInputs = resolveInputsMap(
-      {...(ctx.test.inputs || {}), ...(ctx.inputs || {})},
-      ctx.envVars || {},
-  );
-  const inputsPretty = JSON.stringify(resolvedInputs, null, 2);
-
-  const full = `const envVariables = ${envPretty};\n\n${importedFuncs}\n${
-      test}\nreturn ${rootFuncName}(${inputsPretty});`;
+  // Do not substitute e: at codegen — the process EnvStore supplies values.
+  const test = await testToJsfunc(
+      {...ctx, envVars: {}, name: rootNameStem, importTracker: tracker}, true,
+      tracker);
+  const rawInputs = {...(ctx.test.inputs || {}), ...(ctx.inputs || {})};
+  const runRoot =
+      `return (async () => {\n` +
+      `  const __mmtRawInputs = ${JSON.stringify(rawInputs)};\n` +
+      `  const __mmtResolvedInputs = typeof resolveInputsMapAsync_ === 'function'\n` +
+      `    ? await resolveInputsMapAsync_(__mmtRawInputs, envVariables)\n` +
+      `    : resolveInputsMap_(__mmtRawInputs, envVariables);\n` +
+      `  return ${rootFuncName}(__mmtResolvedInputs);\n` +
+      `})();`;
+  const full = `${importedFuncs}\n${test}\n${runRoot}`;
   return variableReplacer(full);
 };

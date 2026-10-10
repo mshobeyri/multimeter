@@ -28,6 +28,15 @@ const features: FeatureRow[] = [
     },
   },
   {
+    feature: 'Editor UI',
+    values: {
+      multimeter: 'VS Code visual editor',
+      postman: 'Desktop / web app',
+      bruno: 'Desktop app',
+      restClient: '.http text',
+    },
+  },
+  {
     feature: 'VS Code native',
     values: { multimeter: true, postman: false, bruno: false, restClient: false },
   },
@@ -59,22 +68,8 @@ const features: FeatureRow[] = [
     },
   },
   {
-    feature: 'Parallel runs',
-    values: {
-      multimeter: 'Tests and suites',
-      postman: 'No (Newman sequential)',
-      bruno: 'Sequential',
-      restClient: false,
-    },
-  },
-  {
-    feature: 'Sequential CLI speed',
-    values: {
-      multimeter: '~10% faster than Newman',
-      postman: 'Newman',
-      bruno: '—',
-      restClient: '—',
-    },
+    feature: 'Parallel runs / call cache',
+    values: { multimeter: true, postman: false, bruno: false, restClient: false },
   },
   {
     feature: 'AI judges fuzzy replies',

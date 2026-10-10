@@ -9,7 +9,7 @@
 - `cache:` number \| string (optional; duration like `5m`, epoch number, or date/time text containing `:`)
 - `steps:` array of step (`alias:` `flow`)
 - `stages:` array of { id, title?, steps, condition?, after? }
-- step types: `call`, `http`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`, `run`
+- step types: `call`, `http`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `run`
 
 Notes:
 - `flow` is accepted as a backward-compatible alias for `steps`.

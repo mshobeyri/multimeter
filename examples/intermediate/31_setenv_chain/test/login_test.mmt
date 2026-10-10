@@ -1,0 +1,24 @@
+type: test
+title: Login then use the token
+description: |-
+  The API-level `setenv` (login) and a test-level `setenv` step are both read
+  by the very next step in the same run.
+import:
+  login: ../api/login.mmt
+  whoami: ../api/whoami.mmt
+  prepare: ./prepare_test.mmt
+steps:
+  - call: login
+    expect:
+      status: 200
+  - call: whoami
+    expect:
+      status: 200
+      user: alice
+    report: all
+  - call: prepare
+  - check:
+      title: Setenv from an imported test is visible
+      actual: e:greeting
+      operator: ==
+      expected: hello-from-import

@@ -25,6 +25,9 @@ export type PrimaryButtonProps = {
    * theme-harmonized fill instead of plain VS Code button tokens.
    */
   accent?: string;
+  'aria-label'?: string;
+  'aria-haspopup'?: React.AriaAttributes['aria-haspopup'];
+  'aria-expanded'?: boolean;
 };
 
 function useThemeTick(): number {
@@ -73,6 +76,9 @@ const PrimaryButton = forwardRef<HTMLButtonElement, PrimaryButtonProps>(
       className,
       style,
       accent,
+      'aria-label': ariaLabel,
+      'aria-haspopup': ariaHaspopup,
+      'aria-expanded': ariaExpanded,
     },
     ref,
   ) {
@@ -104,6 +110,9 @@ const PrimaryButton = forwardRef<HTMLButtonElement, PrimaryButtonProps>(
         onPointerUp={onPointerUp}
         disabled={disabled}
         title={title}
+        aria-label={ariaLabel}
+        aria-haspopup={ariaHaspopup}
+        aria-expanded={ariaExpanded}
         style={{ ...accentStyle, ...style }}
       >
         {iconName && (

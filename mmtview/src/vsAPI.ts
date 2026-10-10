@@ -130,7 +130,7 @@ export function showVSCodeMessage(level: LogLevel, message: string) {
   });
 }
 
-export type YamlUiConflictChoice = 'discard-ui' | 'cancel';
+export type YamlUiConflictChoice = 'discard-ui' | 'keep-ui';
 
 /** Native VS Code modal dialog; returns the clicked button label, or undefined if dismissed. */
 export function showVSCodeModalDialog(options: {
@@ -164,14 +164,13 @@ export async function showYamlUiConflictDialog(): Promise<YamlUiConflictChoice> 
   const choice = await showVSCodeModalDialog({
     level: 'warning',
     message: 'Unsaved changes in UI',
-    detail: 'The UI is temporary and has unsaved edits. Discard them to apply this YAML.',
-    // Modal dialogs already provide a system Cancel / Escape dismiss.
-    buttons: ['Discard UI changes'],
+    detail: 'The YAML changed while the UI has unsaved edits. Discard the UI to apply the new YAML, or keep the UI edits.',
+    buttons: ['Discard UI', 'Keep UI'],
   });
-  if (choice === 'Discard UI changes') {
+  if (choice === 'Discard UI') {
     return 'discard-ui';
   }
-  return 'cancel';
+  return 'keep-ui';
 }
 
 export function logToOutput(level: LogLevel, message: string) {
@@ -339,6 +338,10 @@ function normalizeOpenFilePath(filename: string): string {
       command: 'openHistoryPanel',
       openLatest: !!options?.openLatest,
     });
+  }
+
+  export function showEnvironmentPanel() {
+    window.vscode?.postMessage({command: 'openEnvironmentPanel'});
   }
 
   /** Pin the current preview tab so the next single-click open won't replace it. */

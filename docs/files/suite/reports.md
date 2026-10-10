@@ -23,7 +23,7 @@ Before the first run, the Overview section is hidden.
 
 Below the overview and metadata blocks, the **Items** section groups runnable entries by execution stage. Use the **filter** control on the **Items** header to show **All**, **Passed**, **Failed**, **Skipped**, or **Errors** (ancestors of matching children stay visible). This is view-only — exports still include the full run.
 
-Expand a test to see the same step **Report** list and status icons documented in [Reports (Test)](../test/reports.md#report-list). The nested **Report** list has its own **All / Passed / Failed** filter on the **Report** header.
+Expand a test to see the same step **Report** list and status icons documented in [Reports (Test)](../test/reports.md#report-list). The nested **Report** list has its own **All / Passed / Failed** filter on the **Report** header. Step details for large runs may load lazily on expand (see [Large reports](#large-reports) below).
 
 Each item row also shows:
 
@@ -42,6 +42,12 @@ When the suite file has `filter.only` and/or `filter.skip`, a read-only **Filter
 | **Total: N skipped** | After a run, how many suite items were skipped by the filter (shown only when `N > 0`) |
 
 Edit tags in the {{btn:filter:Filter}} tab of [Edit Suite](./edit.md#filter). See [Tag filter](./execution.md#tag-filter).
+
+## Large reports
+
+Very large suite runs keep overview counts in memory and may spill step details to internal browser storage when the in-memory budget is exceeded (default **2 MB**, setting `multimeter.suite.reportSpillBytes`). Expand a test row to reload spilled steps. Export still materializes the full report. Set the setting to `0` to disable spill.
+
+Stress example: [Suite memory stress](../../../examples/intermediate/30_suite_memory_stress/README.md).
 
 ## YAML warnings
 

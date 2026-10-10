@@ -55,6 +55,8 @@ export interface PreparedRun {
   exampleName?: string;
   exampleIndex?: number;
   exampleOutputs?: Record<string, any>;
+  /** expect/require from the selected example (API runs). */
+  exampleTest?: import('./APIData').ApiTestBlock;
   loadtestConfig?: LoadTestPreparedConfig;
 }
 
@@ -102,7 +104,9 @@ export async function runGeneratedJs(
   workerEligible?: boolean,
   checkLogMode?: CheckLogMode,
   runKind: RunKind = 'Test',
-  binaryFileLoader?: BinaryFileLoader): Promise<RunResult> {
+  binaryFileLoader?: BinaryFileLoader,
+  envValues?: Record<string, any>,
+  pauseGate?: import('./runPause').RunPauseGate): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -162,20 +166,24 @@ export async function runGeneratedJs(
       reporter: wrappedReporter,
       id,
       abortSignal,
+      pauseGate,
       traceSend,
       basePath,
       workerEligible,
       checkLogMode,
       runKind,
+      envValues,
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;
+    const cancelled = abortSignal?.aborted === true;
     return {
-      success: errors.length === 0,
+      success: !cancelled && errors.length === 0,
       durationMs: Date.now() - start,
       errors,
       logs,
       outputs,
+      cancelled: cancelled ? true : undefined,
     };
   } catch (e: any) {
     const isCancelled = isTestAbortError(e);

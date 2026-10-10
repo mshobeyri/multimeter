@@ -269,4 +269,36 @@ describe('suiteHierarchy (core)', () => {
       title: 'Auth test',
     });
   });
+
+  test('includes type: api leaves', async () => {
+    const files: Record<string, string> = {
+      '/repo/suite.mmt': ['type: suite', 'items:', '  - ./get.mmt'].join('\n'),
+      '/repo/get.mmt': [
+        'type: api',
+        'title: Get JSON',
+        'tags:',
+        '  - smoke',
+        'url: https://test.mmt.dev/json',
+        'examples:',
+        '  - name: ok',
+        '    expect:',
+        '      status: 200',
+      ].join('\n'),
+    };
+    const fileLoader = async (p: string) => files[p] ?? '';
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/repo/suite.mmt',
+      suiteRawText: files['/repo/suite.mmt'],
+      fileLoader,
+    });
+    expect(tree.children[0]).toMatchObject({
+      kind: 'group',
+      children: [{
+        kind: 'api',
+        path: '/repo/get.mmt',
+        title: 'Get JSON',
+        tags: ['smoke'],
+      }],
+    });
+  });
 });

@@ -1,4 +1,4 @@
-# Testlight CLI
+# Multimeter CLI (Testlight)
 
 Run Multimeter APIs, tests, suites, load tests, and documentation from the command line and in CI/CD.
 

@@ -1,0 +1,28 @@
+type: test
+title: Env token resolution (JSON body)
+description: "Echoes e: values in JSON. Keeps the environment type."
+import:
+  api: ../api/env_json_body.mmt
+steps:
+  - call: api
+    id: call
+    expect:
+      status_code: 200
+      account_age: 42
+      feature_enabled: true
+      plan_code: 10
+      plan_label: "10"
+      service_url: https://test.mmt.dev
+      missing_region: "e:region"
+      literal_token: "e:account_age"
+      literal_omit: "omit"
+      removed_note: omit
+      angle_whole: 42
+      quoted_angle: 42
+      angle_prefix: "asda42"
+      angle_suffix: "42asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: 42
+      curly_whole: "10"
+      text_slice: "https://"
+      missing_embed: "xe:regiony"

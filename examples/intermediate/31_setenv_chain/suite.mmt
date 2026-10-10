@@ -1,0 +1,12 @@
+type: suite
+title: Setenv across suite items
+description: The first item sets `session_token`; the second item consumes it without logging in
+tags:
+  - example
+  - setenv
+servers:
+  - server/auth_server.mmt
+items:
+  - test/login_test.mmt
+  - then
+  - test/whoami_test.mmt

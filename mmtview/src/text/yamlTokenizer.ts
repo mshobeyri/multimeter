@@ -62,6 +62,7 @@ const mmtYamlLanguage = {
 
       { include: '@anchor' },
       { include: '@tagHandle' },
+      { include: '@curlyToken' },
       { include: '@flowCollections' },
       { include: '@blockStyle' },
 
@@ -97,6 +98,7 @@ const mmtYamlLanguage = {
 
       [/(?:".*?"|'.*?'|[^[{,]+?)(?=: )/, 'type'],
 
+      { include: '@curlyToken' },
       { include: '@flowCollections' },
       { include: '@flowScalars' },
 
@@ -120,6 +122,7 @@ const mmtYamlLanguage = {
 
       [/,/, 'delimiter.comma'],
 
+      { include: '@curlyToken' },
       { include: '@flowCollections' },
       { include: '@flowScalars' },
 
@@ -154,6 +157,11 @@ const mmtYamlLanguage = {
 
     comment: [
       [/#.*$/, 'comment']
+    ],
+
+    // Whole {{i|e|r|c:…}} before `{`, so the YAML editor does not treat it as a flow map.
+    curlyToken: [
+      [/\{\{\s*[iercoIERCO]:(?:[^{}]|\([^)]*\))+?\s*\}\}/, 'string'],
     ],
 
     flowCollections: [
@@ -205,4 +213,33 @@ export function registerMmtYamlTokenizer(monaco: any): void {
   }
   registered = true;
   monaco.languages.setMonarchTokensProvider('yaml', mmtYamlLanguage);
+  // `{` `}` auto-close fights `{{i:name}}` (an extra `}` is inserted).
+  // Square brackets and quotes still close. Real flow maps are rare in .mmt.
+  const IndentAction = monaco.languages?.IndentAction;
+  monaco.languages.setLanguageConfiguration('yaml', {
+    comments: {lineComment: '#'},
+    brackets: [
+      ['[', ']'],
+      ['(', ')'],
+    ],
+    autoClosingPairs: [
+      {open: '[', close: ']'},
+      {open: '(', close: ')'},
+      {open: '"', close: '"'},
+      {open: "'", close: "'"},
+    ],
+    surroundingPairs: [
+      {open: '[', close: ']'},
+      {open: '(', close: ')'},
+      {open: '"', close: '"'},
+      {open: "'", close: "'"},
+    ],
+    folding: {offSide: true},
+    onEnterRules: IndentAction ? [
+      {
+        beforeText: /:\s*$/,
+        action: {indentAction: IndentAction.Indent},
+      },
+    ] : [],
+  });
 }

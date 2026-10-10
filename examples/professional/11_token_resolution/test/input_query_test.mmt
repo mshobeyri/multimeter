@@ -1,0 +1,28 @@
+type: test
+title: Input token resolution (query)
+description: "Echoes i: values as query text."
+import:
+  api: ../api/input_query.mmt
+inputs:
+  username: alice
+steps:
+  - call: api
+    id: call
+    expect:
+      status_code: 200
+      username: i:username
+      age: "100"
+      active: "true"
+      city: Berlin
+      missing_nickname: "i:nickname"
+      literal_token: "i:username"
+      literal_omit: "omit"
+      angle_whole: "100"
+      quoted_angle: i:username
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: i:username
+      curly_whole: "Berlin"
+      text_slice: "Ber"
+      missing_embed: "xi:nicknamey"

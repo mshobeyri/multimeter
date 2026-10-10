@@ -8,6 +8,9 @@ export interface FileContextValue {
   yamlErrors?: YamlEditorError[];
   yamlStale?: boolean;
   restoreValidYaml?: () => void;
+  /** True after the user clicks Keep on the YAML error dim overlay. */
+  yamlErrorDimDismissed?: boolean;
+  dismissYamlErrorDim?: () => void;
   collectionFiles?: BrunoSourceFile[];
   collectionName?: string;
 }

@@ -3,6 +3,7 @@ import { DocData } from "mmt-core/DocData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import KSVEditor from "../components/KSVEditor";
+import StableTextInput from "../components/StableTextInput";
 import { FileContext } from '../fileContext';
 
 interface DocOverviewProps {
@@ -17,9 +18,9 @@ const DocOverview: React.FC<DocOverviewProps> = ({ doc, update }) => {
     <div className="panel-form">
       <div className="panel-form-row">
         <div className="label">Title</div>
-        <input
+        <StableTextInput
           value={doc.title || ""}
-          onChange={e => update({ title: e.target.value })}
+          onChange={next => update({ title: next })}
           placeholder="title"
         />
       </div>
@@ -80,11 +81,11 @@ const DocOverview: React.FC<DocOverviewProps> = ({ doc, update }) => {
           </div>
           <div className="field-inline is-gap">
             <span className="field-label-col is-quarter">CORS Proxy:</span>
-            <input
+            <StableTextInput
               className="field-grow"
               value={doc.html?.cors_proxy || ''}
-              onChange={e => {
-                const html = { ...(doc.html || {}), cors_proxy: e.target.value };
+              onChange={next => {
+                const html = { ...(doc.html || {}), cors_proxy: next };
                 update({ html });
               }}
               placeholder="https://corsproxy.io/?"

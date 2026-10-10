@@ -5,11 +5,14 @@ import {dirnamePath, joinPath, resolveRequestedAgainst} from './fileHelper';
 import parseYaml from './markupConvertor';
 import {processDataImportsInYaml} from './dataImportProcessor';
 import type {BinaryFileLoader, FileLoader} from './JSerFileLoader';
+import type {EnvStore} from './envStore';
 import type {SuiteEnvironment} from './SuiteData';
 
 export type {FileLoader, BinaryFileLoader} from './JSerFileLoader';
+export type {RunPauseGate} from './runPause';
+export {createRunPauseGate} from './runPause';
 
-export type TestStepStatus = 'passed'|'failed';
+export type TestStepStatus = 'passed'|'failed'|'cancelled';
 export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending'|'invalid'|'skipped';
 
 export interface ExpectItemEvent {
@@ -113,6 +116,8 @@ export interface RunResult {
   threw?: boolean;
   outputs?: Record<string, any>;
   cancelled?: boolean;
+  /** Structured API `test.expect` / `test.require` results (API runs only). */
+  apiTest?: import('./apiTestEval').ApiTestEvalResult;
   /** True when the generated JS failed syntax validation (bad .mmt syntax). */
   syntaxError?: boolean;
   /** Set when generated JS threw during execution (e.g. ReferenceError). Assert throws use this too. */
@@ -150,6 +155,21 @@ export interface RunFileOptions {
    */
   filePath?: string;
   /**
+   * Process environment for this run (copy of workspace/CLI env at start).
+   * Created by the top-level `runFile` and shared with suite children.
+   * Not embedded into generated JavaScript.
+   */
+  envStore?: EnvStore;
+  /**
+   * Path of the env file that produced `envvar` (for resolving `./…mmt`
+   * file-backed variable values).
+   */
+  envvarFilePath?: string;
+  /**
+   * Internal: this `runFile` is resolving a file-backed env value.
+   */
+  __mmtEnvValueRun?: boolean;
+  /**
    * Specifies whether `file` contains raw content or a filesystem path.
    */
   fileType: 'raw'|'path';
@@ -167,6 +187,9 @@ export interface RunFileOptions {
 
   /** Optional signal for cooperative cancellation (suite/test/api runs). */
   abortSignal?: AbortSignal;
+
+  /** Optional pause gate; wait at checkAbort_ boundaries until resumed. */
+  pauseGate?: import('./runPause').RunPauseGate;
 
   /** Optional identifier passed through reporter events and JS globals. */
   id?: string;

@@ -1,4 +1,5 @@
 import React from "react";
+import StableTextInput from "../components/StableTextInput";
 
 type VarKind = 'set' | 'var' | 'const' | 'let';
 
@@ -35,13 +36,11 @@ const TestFlowVar: React.FC<TestFlowVarProps> = ({ type, stepData, onChange }) =
     const nextObj = key ? { [newKind]: { [key]: parseLiteral(val) } } : { [newKind]: {} } as any;
     onChange(nextObj);
   };
-  const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newKey = e.target.value;
+  const handleKeyChange = (newKey: string) => {
     const nextPayload = newKey ? { [newKey]: parseLiteral(val) } : {};
     onChange({ [currentType]: nextPayload });
   };
-  const handleValChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = e.target.value;
+  const handleValChange = (newVal: string) => {
     const nextPayload = key ? { [key]: parseLiteral(newVal) } : {};
     onChange({ [currentType]: nextPayload });
   };
@@ -54,13 +53,13 @@ const TestFlowVar: React.FC<TestFlowVarProps> = ({ type, stepData, onChange }) =
         <option value="const">const</option>
         <option value="let">let</option>
       </select>
-      <input
+      <StableTextInput
         className="field-col-35"
         placeholder="property (e.g., outputs.name)"
         value={key}
         onChange={handleKeyChange}
       />
-      <input
+      <StableTextInput
         className="field-col-35"
         placeholder="value (e.g., user_info.name or 'text')"
         value={val}

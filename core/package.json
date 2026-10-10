@@ -40,6 +40,11 @@
       "require": "./dist/apiRunResult.js",
       "default": "./dist/apiRunResult.js"
     },
+    "./apiTestEval": {
+      "types": "./dist/apiTestEval.d.ts",
+      "require": "./dist/apiTestEval.js",
+      "default": "./dist/apiTestEval.js"
+    },
     "./CommonData": {
       "types": "./dist/CommonData.d.ts",
       "require": "./dist/CommonData.js",
@@ -64,6 +69,26 @@
       "types": "./dist/formatResolve.d.ts",
       "require": "./dist/formatResolve.js",
       "default": "./dist/formatResolve.js"
+    },
+    "./apiBodyEdit": {
+      "types": "./dist/apiBodyEdit.d.ts",
+      "require": "./dist/apiBodyEdit.js",
+      "default": "./dist/apiBodyEdit.js"
+    },
+    "./apiFormatEdit": {
+      "types": "./dist/apiFormatEdit.d.ts",
+      "require": "./dist/apiFormatEdit.js",
+      "default": "./dist/apiFormatEdit.js"
+    },
+    "./runtimeTokenUi": {
+      "types": "./dist/runtimeTokenUi.d.ts",
+      "require": "./dist/runtimeTokenUi.js",
+      "default": "./dist/runtimeTokenUi.js"
+    },
+    "./bodyRuntimeTokens": {
+      "types": "./dist/bodyRuntimeTokens.d.ts",
+      "require": "./dist/bodyRuntimeTokens.js",
+      "default": "./dist/bodyRuntimeTokens.js"
     },
     "./NetworkData": {
       "types": "./dist/NetworkData.d.ts",
@@ -234,6 +259,16 @@
       "types": "./dist/omitKeyword.d.ts",
       "require": "./dist/omitKeyword.js",
       "default": "./dist/omitKeyword.js"
+    },
+    "./literalToken": {
+      "types": "./dist/literalToken.d.ts",
+      "require": "./dist/literalToken.js",
+      "default": "./dist/literalToken.js"
+    },
+    "./yamlValueConvert": {
+      "types": "./dist/yamlValueConvert.d.ts",
+      "require": "./dist/yamlValueConvert.js",
+      "default": "./dist/yamlValueConvert.js"
     },
     "./multipartBody": {
       "types": "./dist/multipartBody.d.ts",

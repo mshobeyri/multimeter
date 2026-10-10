@@ -21,6 +21,10 @@ function pairKey(pair: {key: unknown}): string | undefined {
  * Same model as formatMmtYamlAst: keep map pairs and scalars in place so
  * `#` comments stay stuck to the following key / end of the same line.
  * Only replace a node when the YAML type actually changes (e.g. scalar → map).
+ *
+ * New map keys are inserted by `Object.keys(next)` order (callers like
+ * apiToYaml build that object in canonical field order), so adding `body`
+ * lands before `examples` instead of always appending at the end.
  */
 export function mergeYamlValue(
     doc: YAML.Document, existing: unknown, next: unknown): unknown {
@@ -39,10 +43,42 @@ export function mergeYamlValue(
   return doc.createNode(next);
 }
 
+function insertMapKeyInOrder(
+    doc: YAML.Document,
+    map: YAMLMap,
+    key: string,
+    value: unknown,
+    preferredOrder: string[],
+): void {
+  const pair = doc.createPair(key, value);
+  const keyRank = preferredOrder.indexOf(key);
+  if (keyRank < 0) {
+    map.items.push(pair);
+    return;
+  }
+  let insertAt = map.items.length;
+  for (let i = 0; i < map.items.length; i++) {
+    const item = map.items[i];
+    if (!isPair(item)) {
+      continue;
+    }
+    const existingKey = pairKey(item);
+    if (existingKey === undefined) {
+      continue;
+    }
+    const existingRank = preferredOrder.indexOf(existingKey);
+    if (existingRank === -1 || existingRank > keyRank) {
+      insertAt = i;
+      break;
+    }
+  }
+  map.items.splice(insertAt, 0, pair);
+}
+
 function mergeMap(
     doc: YAML.Document, map: YAMLMap, next: Record<string, unknown>): void {
-  const keep = new Set(
-      Object.keys(next).filter((key) => next[key] !== undefined));
+  const preferredOrder = Object.keys(next).filter((key) => next[key] !== undefined);
+  const keep = new Set(preferredOrder);
   for (const item of [...map.items]) {
     if (!isPair(item)) {
       continue;
@@ -52,11 +88,11 @@ function mergeMap(
       map.delete(key);
     }
   }
-  for (const key of keep) {
+  for (const key of preferredOrder) {
     const nextVal = next[key];
     const existing = map.get(key, true);
     if (existing === undefined) {
-      map.set(key, doc.createNode(nextVal));
+      insertMapKeyInOrder(doc, map, key, nextVal, preferredOrder);
       continue;
     }
     const merged = mergeYamlValue(doc, existing, nextVal);

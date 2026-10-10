@@ -17,7 +17,7 @@ export function hasApiRequestBody(body: unknown): boolean {
   return true;
 }
 
-/** GET has no request body in the UI (HEAD/OPTIONS still allow one). */
+/** GET defaults to no body under format auto; explicit formats still allow a body. */
 export function httpMethodAllowsRequestBody(method: string | undefined | null): boolean {
   const trimmed = typeof method === 'string' ? method.trim().toLowerCase() : '';
   return trimmed !== 'get';

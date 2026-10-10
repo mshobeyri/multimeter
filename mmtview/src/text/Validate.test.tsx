@@ -512,4 +512,59 @@ describe('validateYamlContent API method requirements', () => {
     expect(errors.some(error => String(error.message).includes('/endpoints/0/body'))).toBe(false);
     expect(errors.length).toBe(0);
   });
+
+  it('accepts scalar format: auto on API files', () => {
+    const errors = validateYamlContent([
+      'type: api',
+      'url: https://example.com/echo',
+      'method: post',
+      'format: auto',
+      'body:',
+      '  message: hi',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('.format'))).toBe(false);
+    expect(errors.some(error => /expected one of/i.test(String(error.message)))).toBe(false);
+    expect(errors.length).toBe(0);
+  });
+
+  it('reports invalid step property once without anyOf required-property noise', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: Simple HTTP test',
+      'steps:',
+      '  - http: https://test.mmt.dev/echo',
+      '    method: post',
+      '    body:',
+      '      message: hello world',
+      '    expect:',
+      '      status: 200',
+      '  - s:',
+    ].join('\n'));
+
+    const invalidS = errors.filter(error =>
+      String(error.message).includes('Invalid property "s"')
+    );
+    expect(invalidS).toHaveLength(1);
+    expect(invalidS[0]?.startLineNumber).toBe(10);
+
+    const requiredNoise = errors.filter(error =>
+      /must have required property|should have required property/i.test(String(error.message))
+    );
+    expect(requiredNoise).toHaveLength(0);
+  });
+
+  it('still reports required discriminator errors for an empty step object', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: Empty step',
+      'steps:',
+      '  - {}',
+    ].join('\n'));
+
+    expect(errors.some(error =>
+      /must have required property|should have required property/i.test(String(error.message))
+    )).toBe(true);
+    expect(errors.some(error => String(error.message).includes('Invalid property'))).toBe(false);
+  });
 });

@@ -161,32 +161,162 @@ function buildStepHtml(step: TestStepResult): string {
 
 const ICON_LAYERS_INLINE = `<svg class="suite-layers-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.4 14.2 4.6 8 7.8 1.8 4.6 8 1.4Zm0 1.8L4.7 4.6 8 6.3l3.3-1.7L8 3.2Zm-5.4 4 1.1-.6L8 8.8l4.3-2.2 1.1.6L8 10 2.6 7.2Zm0 2.6 1.1-.6L8 11.4l4.3-2.2 1.1.6L8 12.6 2.6 9.8Z"/></svg>`;
 
-function buildSuiteSection(run: TestRunResult, index: number): string {
-  const name = escapeHtml(run.displayName || run.filePath || `test-${index}`);
-  const steps = run.steps.filter(s => s.stepType !== 'debug');
-  const isSuiteOnly = run.docType === 'suite' && steps.length === 0;
-  const passCount = steps.filter(s => s.status === 'passed').length;
-  const failCount = steps.filter(s => s.status === 'failed').length;
-  const badge = failCount > 0
-    ? ` <span class="badge failed">${failCount} failed</span>`
-    : ` <span class="badge passed">${isSuiteOnly ? run.result : 'all passed'}</span>`;
+interface HtmlReportTreeNode {
+  run: TestRunResult;
+  index: number;
+  children: HtmlReportTreeNode[];
+}
 
-  let html = `      <section class="suite">\n`;
-  if (isSuiteOnly) {
-    html += `        <h2><span class="suite-icon" title="Suite">${ICON_LAYERS_INLINE}</span> ${name}${badge}</h2>\n`;
-    html += `      </section>\n`;
-    return html;
+/** Parent of `suite-node:0.1.2` is `suite-node:0.1`; `suite-node:0` → `suite-node:root`. */
+export function parentSuiteNodeId(id: string | undefined): string | undefined {
+  if (!id || !id.includes(':')) {
+    return undefined;
   }
-  html += `        <h2><span class="toggle collapsed" id="toggle-${index}" onclick="toggleSuite(${index})" aria-expanded="false"><svg class="chevron" width="10" height="10" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span> ${name}${badge} <span class="suite-count">${passCount + failCount} steps</span></h2>\n`;
-  html += `        <div class="suite-steps" id="suite-steps-${index}" style="display: none">\n`;
-  for (const step of steps) {
-    html += buildStepHtml(step);
+  const colon = id.lastIndexOf(':');
+  const prefix = id.slice(0, colon);
+  const path = id.slice(colon + 1);
+  if (!path || path === 'root') {
+    return undefined;
   }
-  if (steps.length === 0) {
-    html += `        <div class="empty">No test steps</div>\n`;
+  const parts = path.split('.');
+  if (parts.length === 1) {
+    return `${prefix}:root`;
   }
-  html += `        </div>\n`;
-  html += `      </section>\n`;
+  return `${prefix}:${parts.slice(0, -1).join('.')}`;
+}
+
+function findAncestorId(
+    id: string | undefined,
+    byId: Map<string, HtmlReportTreeNode>,
+): string | undefined {
+  const seen = new Set<string>();
+  let current = parentSuiteNodeId(id);
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    if (byId.has(current)) {
+      return current;
+    }
+    current = parentSuiteNodeId(current);
+  }
+  return undefined;
+}
+
+function buildHtmlReportTree(runs: TestRunResult[]): HtmlReportTreeNode[] {
+  const nodes: HtmlReportTreeNode[] = runs.map((run, index) => ({
+    run,
+    index,
+    children: [],
+  }));
+  const byId = new Map<string, HtmlReportTreeNode>();
+  for (const node of nodes) {
+    if (node.run.id) {
+      byId.set(node.run.id, node);
+    }
+  }
+  const roots: HtmlReportTreeNode[] = [];
+  for (const node of nodes) {
+    const parentKey = findAncestorId(node.run.id, byId);
+    if (parentKey) {
+      byId.get(parentKey)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
+}
+
+function visibleSteps(run: TestRunResult): TestStepResult[] {
+  return run.steps.filter(s => s.stepType !== 'debug');
+}
+
+function isSuiteOnlyRun(run: TestRunResult): boolean {
+  return run.docType === 'suite' && visibleSteps(run).length === 0;
+}
+
+function buildStatusIconHtml(run: TestRunResult, folder: boolean): string {
+  if (folder || isSuiteOnlyRun(run)) {
+    return `<span class="suite-icon" title="Suite">${ICON_LAYERS_INLINE}</span>`;
+  }
+  const passed = run.result !== 'failed';
+  const iconColor = passed ? 'var(--passed)' : 'var(--failed)';
+  return `<span class="status-icon" style="color: ${iconColor}" title="${escapeHtml(run.result)}">${
+    passed ? '✓' : '✗'
+  }</span>`;
+}
+
+function buildTreeMetaHtml(run: TestRunResult, childCount: number): string {
+  const steps = visibleSteps(run);
+  const failCount = steps.filter(s => s.status === 'failed').length;
+  const stepLabel = steps.length > 0
+    ? `<span class="tree-meta">${steps.length} step${steps.length === 1 ? '' : 's'}</span>`
+    : '';
+  if (failCount > 0) {
+    return `<span class="badge failed">${failCount} failed</span>${stepLabel}`;
+  }
+  if (steps.length > 0) {
+    return `<span class="badge passed">all passed</span>${stepLabel}`;
+  }
+  if (isSuiteOnlyRun(run) && run.result) {
+    return `<span class="badge passed">${escapeHtml(run.result)}</span>`;
+  }
+  if (childCount > 0) {
+    return `<span class="tree-meta">${childCount} item${childCount === 1 ? '' : 's'}</span>`;
+  }
+  return '';
+}
+
+function buildTreeNodeHtml(node: HtmlReportTreeNode, depth: number): string {
+  const run = node.run;
+  const steps = visibleSteps(run);
+  const folder = node.children.length > 0;
+  const showSteps = steps.length > 0 && !isSuiteOnlyRun(run);
+  const canExpand = folder || showSteps;
+  const name = escapeHtml(run.displayName || run.filePath || `test-${node.index}`);
+  const indent = '        ' + '  '.repeat(depth);
+  const toggle = canExpand
+    ? `<span class="toggle collapsed" id="toggle-${node.index}" aria-expanded="false">` +
+      `<svg class="chevron" width="10" height="10" viewBox="0 0 10 10">` +
+      `<path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>` +
+      `</svg></span>`
+    : `<span class="tree-toggle-spacer"></span>`;
+
+  let html = `${indent}<div class="tree-node" data-depth="${depth}">\n`;
+  html += `${indent}  <div class="tree-row${canExpand ? ' is-expandable' : ''}"` +
+      `${canExpand ? ` onclick="onTreeRowActivate(event, ${node.index})"` : ''}>\n`;
+  html += `${indent}    ${toggle}${buildStatusIconHtml(run, folder && !showSteps)}` +
+      `<span class="tree-title" title="${name}">${name}</span>` +
+      `${buildTreeMetaHtml(run, node.children.length)}\n`;
+  html += `${indent}  </div>\n`;
+  if (canExpand) {
+    html += `${indent}  <div class="tree-children" id="suite-steps-${node.index}" style="display: none">\n`;
+    for (const child of node.children) {
+      html += buildTreeNodeHtml(child, depth + 1);
+    }
+    if (showSteps) {
+      html += `${indent}    <div class="report-steps">\n`;
+      for (const step of steps) {
+        html += buildStepHtml(step);
+      }
+      html += `${indent}    </div>\n`;
+    } else if (!folder) {
+      html += `${indent}    <div class="empty">No test steps</div>\n`;
+    }
+    html += `${indent}  </div>\n`;
+  }
+  html += `${indent}</div>\n`;
+  return html;
+}
+
+function buildReportTreeHtml(runs: TestRunResult[]): string {
+  const roots = buildHtmlReportTree(runs);
+  if (roots.length === 0) {
+    return '      <div class="empty">No test results</div>\n';
+  }
+  let html = '      <div class="report-tree">\n';
+  for (const root of roots) {
+    html += buildTreeNodeHtml(root, 0);
+  }
+  html += '      </div>\n';
   return html;
 }
 
@@ -360,7 +490,6 @@ const MULTIMETER_LOGO_SVG = `<svg width="28" height="28" viewBox="0 0 1024 1024"
 const CSS = `
   html, body { height: 100%; }
 
-  /* Dark theme (default) */
   :root {
     --fg: #e5e5e5;
     --bg: #1a1a1a;
@@ -383,7 +512,6 @@ const CSS = `
     --duration-fg: #8b949e;
   }
 
-  /* Light theme */
   [data-theme="light"] {
     --fg: #374151;
     --bg: #f9fafb;
@@ -425,11 +553,8 @@ const CSS = `
     letter-spacing: 0.5px;
     color: var(--muted);
   }
-  .section-label.report-section {
-    padding-top: 10px;
-  }
+  .section-label.report-section { padding-top: 10px; }
 
-  /* Sticky header */
   .report-header {
     position: sticky;
     top: 0;
@@ -451,17 +576,16 @@ const CSS = `
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
   }
-  .report-head-left .logo {
-    color: var(--fg);
-    flex-shrink: 0;
-  }
+  .report-head-left .logo { color: var(--fg); flex-shrink: 0; }
   .report-head-left h1 {
     margin: 0;
     font-size: 18px;
     line-height: 28px;
-    display: flex;
-    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     background: linear-gradient(135deg, #888888 0%, #d0d0d0 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -521,7 +645,6 @@ const CSS = `
   }
   .search-input::placeholder { color: var(--muted); }
 
-  /* Summary boxes */
   .summary-boxes {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -569,10 +692,7 @@ const CSS = `
     font-weight: 700;
     line-height: 1.2;
   }
-  .summary-box .box-sub {
-    font-size: 11px;
-    margin-top: 2px;
-  }
+  .summary-box .box-sub { font-size: 11px; margin-top: 2px; }
   .box-passed .box-icon { background: var(--passed-bg); color: var(--passed); }
   .box-passed .box-value { color: var(--passed); }
   .box-failed .box-icon { background: var(--failed-bg); color: var(--failed); }
@@ -582,7 +702,6 @@ const CSS = `
   .box-duration .box-icon { background: var(--duration-bg); color: var(--duration-fg); }
   .box-duration .box-value { color: var(--duration-fg); }
 
-  /* Suite sections */
   .suite {
     background: var(--card);
     border: 1px solid var(--glass-border);
@@ -605,7 +724,56 @@ const CSS = `
     font-size: 14px;
     margin: 0;
     font-weight: 600;
-    cursor: pointer;
+    min-width: 0;
+  }
+
+  .report-tree {
+    background: var(--card);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 8px;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .tree-node { min-width: 0; }
+  .tree-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tree-row.is-expandable { cursor: pointer; }
+  .tree-row:hover { background: var(--card-hover); }
+  .tree-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .tree-meta {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .tree-toggle-spacer {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  .tree-children {
+    margin-left: 16px;
+    padding-left: 10px;
+    border-left: 1px solid var(--border);
   }
   .suite-icon {
     color: var(--muted);
@@ -621,24 +789,11 @@ const CSS = `
     height: 16px;
     display: block;
   }
-  .load-section h2 {
-    margin-bottom: 12px;
-  }
-  .load-chart-title {
-    margin: 22px 0 10px;
-    padding-top: 4px;
-  }
-  .load-chart-legend {
-    margin-top: 0;
-    margin-bottom: 14px;
-  }
-  .load-chart {
-    display: block;
-    margin-bottom: 22px;
-  }
-  .load-section table {
-    margin-top: 10px;
-  }
+  .load-section h2 { margin-bottom: 12px; }
+  .load-chart-title { margin: 22px 0 10px; padding-top: 4px; }
+  .load-chart-legend { margin-top: 0; margin-bottom: 14px; }
+  .load-chart { display: block; margin-bottom: 22px; }
+  .load-section table { margin-top: 10px; }
   .suite-count {
     font-size: 11px;
     color: var(--muted);
@@ -660,12 +815,11 @@ const CSS = `
     flex-shrink: 0;
   }
   .toggle:hover { background: var(--accent); color: white; }
-  .toggle .chevron {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    transform: rotate(90deg);
-  }
+  .toggle .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: rotate(90deg); }
   .toggle.collapsed .chevron { transform: rotate(0deg); }
   .badge {
+    flex-shrink: 0;
+    white-space: nowrap;
     font-size: 10px;
     padding: 4px 10px;
     border-radius: 12px;
@@ -676,13 +830,6 @@ const CSS = `
   }
   .badge.passed { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; }
   .badge.failed { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; }
-  .suite-steps {
-    animation: slideDown 0.3s ease;
-  }
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
   .testcase {
     padding: 8px 12px;
     border-radius: 10px;
@@ -705,11 +852,7 @@ const CSS = `
     height: 1em;
     margin-right: 0.25em;
   }
-  .status-icon svg {
-    width: 1em;
-    height: 1em;
-    display: block;
-  }
+  .status-icon svg { width: 1em; height: 1em; display: block; }
   .testcase.passed { color: var(--passed); }
   .testcase.passed:hover { background: var(--passed-bg); border-color: var(--glass-border); }
   .testcase.failed { color: var(--fg); }
@@ -731,7 +874,6 @@ const CSS = `
   .duration { color: var(--muted); font-size: 12px; }
   .empty { color: var(--muted); font-style: italic; font-size: 12px; }
 
-  /* Footer */
   .report-footer {
     margin: 32px 0 0;
     padding: 16px 20px;
@@ -750,7 +892,6 @@ const CSS = `
     background-clip: text;
     text-decoration: none;
     font-weight: 600;
-    transition: opacity 0.3s ease;
   }
   .report-footer a:hover { opacity: 0.8; }
   [data-theme="light"] .report-footer a {
@@ -760,7 +901,6 @@ const CSS = `
     background-clip: text;
   }
 
-  /* Smooth transitions for theme switching */
   * { transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
 
   @media (max-width: 700px) {
@@ -777,16 +917,79 @@ const ICON_CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 
 const SCRIPT = `
   <script>
-    function toggleSuite(idx) {
+    function toggleSuite(idx, forceOpen) {
       var steps = document.getElementById('suite-steps-' + idx);
       var toggle = document.getElementById('toggle-' + idx);
       if (!steps) { return; }
-      if (steps.style.display === 'none') {
-        steps.style.display = 'block';
-        if (toggle) { toggle.classList.remove('collapsed'); }
-      } else {
-        steps.style.display = 'none';
-        if (toggle) { toggle.classList.add('collapsed'); }
+      var open = forceOpen === true ? true : forceOpen === false ? false : steps.style.display === 'none';
+      steps.style.display = open ? 'block' : 'none';
+      if (toggle) {
+        if (open) { toggle.classList.remove('collapsed'); }
+        else { toggle.classList.add('collapsed'); }
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+    }
+    function onTreeRowActivate(event, idx) {
+      var sel = window.getSelection && window.getSelection();
+      if (sel && !sel.isCollapsed && String(sel).trim()) { return; }
+      toggleSuite(idx);
+    }
+    function treeNodeOwnText(node) {
+      var text = '';
+      var row = null;
+      var kids = null;
+      for (var i = 0; i < node.children.length; i++) {
+        var child = node.children[i];
+        if (child.classList && child.classList.contains('tree-row')) { row = child; }
+        if (child.classList && child.classList.contains('tree-children')) { kids = child; }
+      }
+      if (row) { text += row.textContent || ''; }
+      if (kids) {
+        for (var j = 0; j < kids.children.length; j++) {
+          if (!kids.children[j].classList.contains('tree-node')) {
+            text += ' ' + (kids.children[j].textContent || '');
+          }
+        }
+      }
+      return text.toLowerCase();
+    }
+    function treeNodeMatches(node, q) {
+      if (treeNodeOwnText(node).indexOf(q) !== -1) { return true; }
+      for (var i = 0; i < node.children.length; i++) {
+        var child = node.children[i];
+        if (child.classList && child.classList.contains('tree-children')) {
+          for (var j = 0; j < child.children.length; j++) {
+            if (child.children[j].classList.contains('tree-node') && treeNodeMatches(child.children[j], q)) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+    function applyTreeNodeFilter(node, q) {
+      var show = !q || treeNodeMatches(node, q);
+      node.style.display = show ? '' : 'none';
+      if (!show) { return; }
+      var kids = null;
+      var toggle = null;
+      for (var i = 0; i < node.children.length; i++) {
+        var child = node.children[i];
+        if (child.classList && child.classList.contains('tree-children')) { kids = child; }
+        if (child.classList && child.classList.contains('tree-row')) {
+          toggle = child.querySelector('.toggle');
+        }
+      }
+      if (kids) {
+        if (q) {
+          kids.style.display = 'block';
+          if (toggle) { toggle.classList.remove('collapsed'); }
+        }
+        for (var j = 0; j < kids.children.length; j++) {
+          if (kids.children[j].classList.contains('tree-node')) {
+            applyTreeNodeFilter(kids.children[j], q);
+          }
+        }
       }
     }
     (function setUpSearch(){
@@ -794,6 +997,13 @@ const SCRIPT = `
       if (!input) { return; }
       function applyFilter(){
         var q = (input.value || '').toLowerCase().trim();
+        var treeRoots = document.querySelectorAll('.report-tree > .tree-node');
+        if (treeRoots.length) {
+          for (var i = 0; i < treeRoots.length; i++){
+            applyTreeNodeFilter(treeRoots[i], q);
+          }
+          return;
+        }
         var nodes = document.querySelectorAll('section.suite');
         for (var i = 0; i < nodes.length; i++){
           var sec = nodes[i];
@@ -1001,9 +1211,7 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
   html += buildLoadSection(results);
 
   if (!isLoad) {
-    for (let i = 0; i < runs.length; i++) {
-      html += buildSuiteSection(runs[i], i);
-    }
+    html += buildReportTreeHtml(runs);
   }
 
   html += `  </div>

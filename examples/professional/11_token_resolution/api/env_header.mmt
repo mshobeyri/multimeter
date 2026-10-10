@@ -1,0 +1,64 @@
+type: api
+title: Env tokens in headers
+description: Header values are strings. A number env value is sent as its text.
+outputs:
+  account_age: body[headers][x-account-age]
+  feature_enabled: body[headers][x-feature-enabled]
+  plan_code: body[headers][x-plan-code]
+  plan_label: body[headers][x-plan-label]
+  service_url: body[headers][x-service-url]
+  missing_region: body[headers][x-missing-region]
+  literal_token: body[headers][x-literal-token]
+  literal_omit: body[headers][x-literal-omit]
+  angle_whole: body[headers][x-angle-whole]
+  quoted_angle: body[headers][x-quoted-angle]
+  angle_prefix: body[headers][x-angle-prefix]
+  angle_suffix: body[headers][x-angle-suffix]
+  angle_both: body[headers][x-angle-both]
+  quoted_curly: body[headers][x-quoted-curly]
+  curly_whole: body[headers][x-curly-whole]
+  text_slice: body[headers][x-text-slice]
+  missing_embed: body[headers][x-missing-embed]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: get
+headers:
+  X-Account-Age: e:account_age
+  X-Feature-Enabled: e:feature_enabled
+  X-Plan-Code: e:plan_code
+  X-Plan-Label: e:plan_label
+  X-Service-Url: e:service_url
+  X-Missing-Region: e:region
+  X-Literal-Token: "e:account_age"
+  X-Literal-Omit: "omit"
+  X-Angle-Whole: <<e:account_age>>
+  X-Quoted-Angle: "<<e:account_age>>"
+  X-Angle-Prefix: "asda<<e:account_age>>"
+  X-Angle-Suffix: "<<e:account_age>>asas"
+  X-Angle-Both: asda<<e:feature_enabled>>asas
+  X-Quoted-Curly: "{{e:account_age}}"
+  X-Curly-Whole: {{e:plan_label}}
+  X-Text-Slice: <<e:service_url[0:8]>>
+  X-Missing-Embed: "x<<e:region>>y"
+examples:
+  - id: defaults
+    title: Check outputs
+    expect:
+      status_code: 200
+      account_age: =S <<e:account_age>>
+      feature_enabled: =S <<e:feature_enabled>>
+      plan_code: =S <<e:plan_code>>
+      plan_label: e:plan_label
+      service_url: e:service_url
+      missing_region: "e:region"
+      literal_token: "e:account_age"
+      literal_omit: "omit"
+      angle_whole: =S <<e:account_age>>
+      quoted_angle: =S <<e:account_age>>
+      angle_prefix: "asda42"
+      angle_suffix: "42asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: =S <<e:account_age>>
+      curly_whole: e:plan_label
+      text_slice: e:service_url[0:8]
+      missing_embed: "xe:regiony"

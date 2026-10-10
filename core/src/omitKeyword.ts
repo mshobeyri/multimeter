@@ -1,4 +1,5 @@
 import * as YAML from 'yaml';
+import {markQuotedTokenLiterals} from './literalToken';
 import {preserveMultilineDescriptionScalars} from './multilineDescriptionYaml';
 import {stripOmitFromMultipartParts} from './multipartBody';
 
@@ -50,6 +51,7 @@ export function parseYamlWithOmitKeyword(
   }
   preserveMultilineDescriptionScalars(doc.contents, yamlString);
   walkYamlNode(doc.contents);
+  markQuotedTokenLiterals(doc.contents);
   return doc.toJS();
 }
 
@@ -86,6 +88,12 @@ export function restoreOmitKeywordInText(text: string): string {
   return String(text ?? '').split(OMIT_SENTINEL).join(OMIT_KEYWORD);
 }
 
+/**
+ * Drop omit-marked fields from a request tree.
+ * Whole-value omit in `headers` is kept as the sentinel so the HTTP client
+ * can block Multimeter/axios defaults (same as deprecated `_`).
+ * Embedded omit inside a header string still removes that header.
+ */
 export function stripOmitFromRequest(value: any): any {
   if (isOmitSentinel(value)) {
     return undefined;
@@ -99,6 +107,10 @@ export function stripOmitFromRequest(value: any): any {
   if (value && typeof value === 'object') {
     const out: Record<string, any> = {};
     for (const [k, v] of Object.entries(value)) {
+      if (k === 'headers' && v && typeof v === 'object' && !Array.isArray(v)) {
+        out[k] = keepHeaderOmitBlocks(v as Record<string, any>);
+        continue;
+      }
       const next = stripOmitFromRequest(v);
       if (next !== undefined) {
         out[k] = next;
@@ -109,12 +121,40 @@ export function stripOmitFromRequest(value: any): any {
   return value;
 }
 
-function dropOmittedEntries(record: any): any {
+/** Keep whole-value header omit; drop headers that embed the sentinel. */
+function keepHeaderOmitBlocks(headers: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    if (isOmitSentinel(v)) {
+      out[k] = v;
+      continue;
+    }
+    if (typeof v === 'string' && v.includes(OMIT_SENTINEL)) {
+      continue;
+    }
+    const next = stripOmitFromRequest(v);
+    if (next !== undefined) {
+      out[k] = next;
+    }
+  }
+  return out;
+}
+
+function dropOmittedEntries(
+    record: any,
+    keepWholeValueOmit = false,
+): any {
   if (!record || typeof record !== 'object' || Array.isArray(record)) {
     return record;
   }
   const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(record)) {
+    if (isOmitSentinel(v)) {
+      if (keepWholeValueOmit) {
+        out[k] = v;
+      }
+      continue;
+    }
     if (typeof v === 'string' && v.includes(OMIT_SENTINEL)) {
       continue;
     }
@@ -218,7 +258,11 @@ export function applyOmitToOutgoingRequest(req: any, format?: string): any {
   if (typeof req.url === 'string') {
     req.url = stripOmitFromUrl(req.url);
   }
-  for (const key of ['headers', 'query', 'cookies', 'metadata']) {
+  // Headers: keep whole-value omit so the network layer can block defaults.
+  if (req.headers) {
+    req.headers = dropOmittedEntries(req.headers, true);
+  }
+  for (const key of ['query', 'cookies', 'metadata']) {
     if (req[key]) {
       req[key] = dropOmittedEntries(req[key]);
     }

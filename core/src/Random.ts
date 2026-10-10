@@ -647,6 +647,41 @@ export const RANDOM_TOKEN_MAP: Record<string, RandomTokenGenerator> = {
   int: randomInt,
 };
 
+/** Resolved JS typeof for each random generator (JSON UI quoting / docs). */
+export type TokenValueType = 'string'|'number'|'boolean';
+
+const RANDOM_NON_STRING: Record<string, TokenValueType> = {
+  int: 'number',
+  float: 'number',
+  bool: 'boolean',
+  latitude: 'number',
+  longitude: 'number',
+  epoch: 'number',
+  epoch_ms: 'number',
+  epoch_now: 'number',
+  epoch_now_ms: 'number',
+  epoch_future: 'number',
+  epoch_future_ms: 'number',
+  epoch_past: 'number',
+  epoch_past_ms: 'number',
+};
+
+/** Return type of `r:name` (args ignored). Unknown names → undefined. */
+export function randomTokenValueType(name: string): TokenValueType|undefined {
+  const key = String(name || '');
+  if (!Object.prototype.hasOwnProperty.call(RANDOM_TOKEN_MAP, key)) {
+    return undefined;
+  }
+  return RANDOM_NON_STRING[key] || 'string';
+}
+
+/** Every RANDOM_TOKEN_MAP key → value type (for tests / docs sync). */
+export const RANDOM_TOKEN_VALUE_TYPES: Record<string, TokenValueType> =
+    Object.fromEntries(
+        Object.keys(RANDOM_TOKEN_MAP).map(
+            (k) => [k, randomTokenValueType(k) as TokenValueType]),
+    );
+
 export interface RandomTokenParameterSpec {
   min: number;
   max: number;
@@ -924,4 +959,348 @@ export function randomValueForToken(spec: string): any|undefined {
     return undefined;
   }
   return generator(...numericArgs);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function alt(values: readonly string[]): string {
+  return values.map(escapeRegExp).join('|');
+}
+
+/**
+ * Inclusive integer range as a regex source. Wide ranges stay a digit
+ * pattern; a second bounds check keeps those exact.
+ */
+function intRangeSource(min: number, max: number): string {
+  if (!Number.isInteger(min) || !Number.isInteger(max)) {
+    return '-?\\d+';
+  }
+  if (max < min) {
+    return intRangeSource(max, min);
+  }
+  if (max - min > 2000) {
+    return '-?\\d+';
+  }
+  const parts: string[] = [];
+  if (min < 0) {
+    parts.push('-(?:' + positiveIntRangeSource(-Math.min(max, -1), -min) + ')');
+  }
+  if (min <= 0 && max >= 0) {
+    parts.push('0');
+  }
+  if (max > 0) {
+    parts.push(positiveIntRangeSource(Math.max(min, 1), max));
+  }
+  return parts.join('|');
+}
+
+function positiveIntRangeSource(min: number, max: number): string {
+  const parts: string[] = [];
+  let n = min;
+  while (n <= max) {
+    let step = 1;
+    while (n % (step * 10) === 0 && n + step * 10 - 1 <= max) {
+      step *= 10;
+    }
+    const end = n + step - 1;
+    if (step === 1) {
+      parts.push(String(n));
+    } else {
+      const text = String(n);
+      const zeros = String(step).length - 1;
+      parts.push(text.slice(0, text.length - zeros) + '\\d'.repeat(zeros));
+    }
+    n = end + 1;
+  }
+  return parts.join('|');
+}
+
+const TIME_SRC = '(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d';
+const DATE_SRC = '\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])';
+const DATE_TIME_SRC = `${DATE_SRC}T${TIME_SRC}`;
+const NUMBER_SRC = '-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:[eE][+-]?\\d+)?';
+const WEEKDAY_ABBR = '(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)';
+const MONTH_ABBR =
+    '(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
+const JS_DATE_SRC =
+    `${WEEKDAY_ABBR} ${MONTH_ABBR} [\\d ]\\d \\d{4} ${TIME_SRC} GMT.+`;
+
+function lengthFrom(args: string[] | null, fallback: number): number {
+  if (!args || args.length === 0) {
+    return fallback;
+  }
+  const n = Number(args[0]);
+  return Number.isInteger(n) && n >= 0 ? n : fallback;
+}
+
+function intBounds(args: string[] | null): {min: number, max: number} {
+  if (!args || args.length === 0) {
+    return {min: 0, max: 1000};
+  }
+  const first = Number(args[0]);
+  const second = args.length > 1 ? Number(args[1]) : undefined;
+  let min = second === undefined ? 0 : Math.ceil(first);
+  let max = second === undefined ? Math.floor(first) : Math.floor(second);
+  if (max < min) {
+    const swap = min;
+    min = max;
+    max = swap;
+  }
+  return {min, max};
+}
+
+function floatBounds(args: string[] | null): {min: number, max: number} {
+  if (!args || args.length === 0) {
+    return {min: 0, max: 1000};
+  }
+  const first = Number(args[0]);
+  const second = args.length > 1 ? Number(args[1]) : undefined;
+  let min = second === undefined ? 0 : first;
+  let max = second === undefined ? first : second;
+  if (max < min) {
+    const swap = min;
+    min = max;
+    max = swap;
+  }
+  return {min, max};
+}
+
+interface ParsedRandomSpec {
+  name: string;
+  args: string[] | null;
+}
+
+function parseRandomTokenSpec(spec: string): ParsedRandomSpec | undefined {
+  const match = /^([A-Za-z_][A-Za-z0-9_-]*)(?:\(([^()]*)\))?$/.exec(
+      String(spec || '').trim());
+  if (!match || !match[1]) {
+    return undefined;
+  }
+  const name = match[1]
+      .replace(/([a-z])([A-Z])/g, '$1_$2')
+      .replace(/[-\s]+/g, '_')
+      .toLowerCase();
+  if (!Object.prototype.hasOwnProperty.call(RANDOM_TOKEN_MAP, name)) {
+    return undefined;
+  }
+  if (match[2] === undefined) {
+    return {name, args: null};
+  }
+  const args = match[2].split(',').map(value => value.trim());
+  const arity = RANDOM_TOKEN_PARAMETER_ARITY[name];
+  if (!arity || args.length < arity.min || args.length > arity.max) {
+    return undefined;
+  }
+  if (arity.kind === 'integer' || arity.kind === 'length' ||
+      arity.kind === 'number') {
+    if (args.some(value => !/^-?\d+(?:\.\d+)?$/.test(value))) {
+      return undefined;
+    }
+    if ((arity.kind === 'integer' || arity.kind === 'length') &&
+        args.some(value => !Number.isInteger(Number(value)))) {
+      return undefined;
+    }
+    if (arity.kind === 'length' &&
+        (Number(args[0]) < 0 || Number(args[0]) > 10000)) {
+      return undefined;
+    }
+  }
+  return {name, args};
+}
+
+function listPattern(name: string, args: string[] | null): string | undefined {
+  const domains = alt(EMAIL_DOMAINS);
+  const first = alt(FIRST_NAMES);
+  const last = alt(LAST_NAMES);
+  const firstLocal = alt(
+      [...new Set(FIRST_NAMES.map(value =>
+        value.toLowerCase().replace(/[^a-z0-9]/g, '')))].filter(Boolean));
+  const lastLocal = alt(
+      [...new Set(LAST_NAMES.map(value =>
+        value.toLowerCase().replace(/[^a-z0-9]/g, '')))].filter(Boolean));
+  const firstLower = alt(FIRST_NAMES.map(value => value.toLowerCase()));
+  const lastLower = alt(LAST_NAMES.map(value => value.toLowerCase()));
+  const words = alt(LOREM_WORDS);
+  const sentence =
+      `(?:${alt(LOREM_WORDS.map(word => word.charAt(0).toUpperCase() + word.slice(1)))})(?: (?:${words})){5,11}\\.`;
+  switch (name) {
+    case 'bool':
+      return 'true|false';
+    case 'uuid':
+      return '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
+    case 'hex_color':
+      return '#[0-9a-f]{6}';
+    case 'color':
+      return alt(COLOR_PALETTE);
+    case 'weekday':
+      return alt(WEEKDAYS);
+    case 'month':
+      return alt(MONTHS);
+    case 'word':
+      return words;
+    case 'first_name':
+      return first;
+    case 'last_name':
+      return last;
+    case 'full_name':
+      return `(?:${first}) (?:${last})`;
+    case 'city':
+      return alt(CITY_LIST);
+    case 'country':
+      return alt(COUNTRY_LIST);
+    case 'domain':
+      return domains;
+    case 'job_title':
+      return alt(JOB_TITLES);
+    case 'user_agent':
+      return alt(USER_AGENTS);
+    case 'company':
+      return `(?:${last}) (?:${alt(COMPANY_SUFFIXES)})`;
+    case 'email':
+      return `(?:${firstLocal})\\.?(?:${lastLocal})\\d{0,4}@(?:${domains})`;
+    case 'username':
+      return `(?:${firstLower})\\.(?:${lastLower})[1-9]\\d{0,3}`;
+    case 'ip':
+      return '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}';
+    case 'ipv6':
+      return '[0-9a-f]{4}(?::[0-9a-f]{4}){7}';
+    case 'mac':
+      return '[0-9a-f]{2}(?::[0-9a-f]{2}){5}';
+    case 'phone':
+    case 'phone_number':
+      return '\\+\\d{8,15}';
+    case 'postal_code':
+      return '[1-9]\\d{4}';
+    case 'street_address':
+      return `[1-9]\\d{0,3} (?:${last}) Street`;
+    case 'string':
+      return `[A-Za-z]{${lengthFrom(args, 16)}}`;
+    case 'alphanumeric':
+      return `[A-Za-z0-9]{${lengthFrom(args, 16)}}`;
+    case 'password':
+      return `[A-Za-z0-9!@#$%^&*_+=-]{${lengthFrom(args, 16)}}`;
+    case 'hostname':
+      return `api-[a-z0-9]{8}\\.(?:${domains})`;
+    case 'url':
+      return `https://api-[a-z0-9]{8}\\.(?:${domains})/[A-Za-z0-9]{10}`;
+    case 'time':
+    case 'utc_time':
+    case 'time_future':
+    case 'time_past':
+    case 'utc_time_future':
+    case 'utc_time_past':
+      return TIME_SRC;
+    case 'date':
+    case 'utc_date':
+    case 'utc_date_future':
+    case 'utc_date_past':
+      return DATE_SRC;
+    case 'datetime':
+    case 'datetime_now':
+    case 'datetime_future':
+    case 'datetime_past':
+      return DATE_TIME_SRC;
+    case 'utc_datetime':
+    case 'utc_datetime_now':
+    case 'utc_datetime_future':
+    case 'utc_datetime_past':
+      return `${DATE_TIME_SRC}Z`;
+    case 'date_future':
+    case 'date_past':
+      return JS_DATE_SRC;
+    case 'sentence':
+      return sentence;
+    case 'paragraph':
+      return `(?:${sentence})(?: (?:${sentence})){2,5}`;
+    case 'int': {
+      const {min, max} = intBounds(args);
+      return intRangeSource(min, max);
+    }
+    case 'float':
+    case 'latitude':
+    case 'longitude':
+      return NUMBER_SRC;
+    case 'epoch':
+    case 'epoch_now':
+    case 'epoch_future':
+    case 'epoch_past':
+      return '\\d{9,11}';
+    case 'epoch_ms':
+    case 'epoch_now_ms':
+    case 'epoch_future_ms':
+    case 'epoch_past_ms':
+      return '\\d{12,14}';
+    default:
+      return undefined;
+  }
+}
+
+function numericExpectBounds(
+    name: string, args: string[] | null): {min: number, max: number} | undefined {
+  if (name === 'int') {
+    return intBounds(args);
+  }
+  if (name === 'float') {
+    return floatBounds(args);
+  }
+  if (name === 'latitude') {
+    return {min: -90, max: 90};
+  }
+  if (name === 'longitude') {
+    return {min: -180, max: 180};
+  }
+  if (name === 'epoch' && args && args.length === 2) {
+    return intBounds(args);
+  }
+  if (name === 'epoch_ms' && args && args.length === 2) {
+    return intBounds(args);
+  }
+  return undefined;
+}
+
+/**
+ * Regex source (no anchors) for values `r:spec` can produce.
+ * Unknown or invalid specs return undefined so the token text stays as text.
+ */
+export function randomTokenExpectPattern(spec: string): string | undefined {
+  const parsed = parseRandomTokenSpec(spec);
+  if (!parsed) {
+    return undefined;
+  }
+  return listPattern(parsed.name, parsed.args);
+}
+
+/**
+ * True when `actual` matches the generator's regex. Undefined when `spec`
+ * is not a random token. Numbers and booleans match their text form, which
+ * is what headers, query, form, and XML send.
+ */
+export function valueMatchesRandomToken(spec: string, actual: unknown): boolean | undefined {
+  const parsed = parseRandomTokenSpec(spec);
+  const source = parsed ? listPattern(parsed.name, parsed.args) : undefined;
+  if (!parsed || !source) {
+    return undefined;
+  }
+  if (typeof actual !== 'string' && typeof actual !== 'number' &&
+      typeof actual !== 'boolean') {
+    return false;
+  }
+  const text = String(actual);
+  if (!new RegExp(`^(?:${source})$`).test(text)) {
+    return false;
+  }
+  const bounds = numericExpectBounds(parsed.name, parsed.args);
+  if (!bounds) {
+    return true;
+  }
+  const n = Number(text);
+  if (!Number.isFinite(n) || n < bounds.min || n > bounds.max) {
+    return false;
+  }
+  if (parsed.name === 'int' && (!Number.isInteger(n) || text !== String(n))) {
+    return false;
+  }
+  return true;
 }

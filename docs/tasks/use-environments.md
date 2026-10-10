@@ -33,4 +33,5 @@ Select the environment / preset in the Environment panel (or pass `--preset` / `
 ## Learn more
 
 - [Environment files](../files/env/index.md)
+- [Live variables](../files/env/live-variables.md) — `./….mmt` values that run another file on each read
 - Example: [Environment Variables](/docs/examples/basic/03_environment_variables)

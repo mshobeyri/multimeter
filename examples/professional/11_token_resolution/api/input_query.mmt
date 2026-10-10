@@ -1,0 +1,66 @@
+type: api
+title: Input tokens in the query string
+description: Query values are strings. A numeric input is sent as its text.
+inputs:
+  username: alice
+  age: 100
+  active: true
+  city: Berlin
+outputs:
+  username: body.query.username
+  age: body.query.age
+  active: body.query.active
+  city: body.query.city
+  missing_nickname: body.query.missing_nickname
+  literal_token: body.query.literal_token
+  literal_omit: body.query.literal_omit
+  angle_whole: body.query.angle_whole
+  quoted_angle: body.query.quoted_angle
+  angle_prefix: body.query.angle_prefix
+  angle_suffix: body.query.angle_suffix
+  angle_both: body.query.angle_both
+  quoted_curly: body.query.quoted_curly
+  curly_whole: body.query.curly_whole
+  text_slice: body.query.text_slice
+  missing_embed: body.query.missing_embed
+  status_code: status
+url: https://test.mmt.dev/echo
+method: get
+query:
+  username: i:username
+  age: i:age
+  active: i:active
+  city: i:city
+  missing_nickname: i:nickname
+  literal_token: "i:username"
+  literal_omit: "omit"
+  angle_whole: <<i:age>>
+  quoted_angle: "<<i:username>>"
+  angle_prefix: "asda<<i:username>>"
+  angle_suffix: "<<i:age>>asas"
+  angle_both: "asda<<i:active>>asas"
+  quoted_curly: "{{i:username}}"
+  curly_whole: {{i:city}}
+  text_slice: <<i:city[0:3]>>
+  missing_embed: "x<<i:nickname>>y"
+examples:
+  - id: defaults
+    title: Check outputs
+    expect:
+      status_code: 200
+      username: i:username
+      age: =S <<i:age>>
+      active: =S <<i:active>>
+      city: i:city
+      missing_nickname: "i:nickname"
+      literal_token: "i:username"
+      literal_omit: "omit"
+      angle_whole: =S <<i:age>>
+      quoted_angle: i:username
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: i:username
+      curly_whole: i:city
+      text_slice: i:city[0:3]
+      missing_embed: "xi:nicknamey"

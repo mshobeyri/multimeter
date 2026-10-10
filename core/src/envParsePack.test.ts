@@ -160,4 +160,64 @@ certificates:
     expect(env.extra).toEqual({foo: 'bar'});
     expect(envToYaml({type: 'env'} as any)).toContain('type: env');
   });
+
+  it('round-trips numeric and boolean variable fields without quoting', () => {
+    const input = `type: env
+variables:
+  port:
+    local: 8080
+    secure: true
+`;
+    const patched = patchEnvYaml(input, {
+      variables: {
+        port: {local: 8080, secure: true},
+        name: {local: 'api'},
+      },
+    });
+    expect(patched).toMatch(/local: 8080/);
+    expect(patched).toMatch(/secure: true/);
+    expect(patched).not.toMatch(/local: ["']8080["']/);
+    const parsed = yamlToEnv(patched);
+    expect(parsed.variables?.port).toEqual({local: 8080, secure: true});
+  });
+
+  it('does not leave a dangling flow-map brace for empty variable objects', () => {
+    const input = `type: env
+variables:
+  api_url:
+    local: https://example.com
+`;
+    const patched = patchEnvYaml(input, {
+      variables: {
+        api_url: {local: 'https://example.com'},
+        draft: {},
+        tags: [],
+      },
+    });
+    expect(patched).toContain('api_url:');
+    expect(patched).toContain('draft: {}');
+    expect(patched).toMatch(/tags:\s*\[\]/);
+    expect(patched.trim().endsWith('{')).toBe(false);
+    expect(() => yamlToEnv(patched)).not.toThrow();
+  });
+
+  it('drops nested object and list choice values when parsing', () => {
+    const input = `type: env
+variables:
+  config:
+    local:
+      host: localhost
+      port: 8080
+    plain: https://x
+  flags:
+    - true
+    - {debug: true}
+    - 2
+`;
+    const env = yamlToEnv(input);
+    expect(env.variables?.config).toEqual({
+      plain: 'https://x',
+    });
+    expect(env.variables?.flags).toEqual([true, 2]);
+  });
 });

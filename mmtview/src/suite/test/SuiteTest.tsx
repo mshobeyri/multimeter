@@ -25,17 +25,18 @@ import {
     remapSuiteTargetId,
 } from './suiteHierarchyFingerprint';
 import { statusIconFor } from '../../shared/Common';
-import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
+import type { ReportFormat } from '../../shared/ExportReportButton';
+import { buildReportRunMenuEntries } from '../../shared/reportRunMenu';
 import ReportStatusFilterButton from '../../shared/ReportStatusFilterButton';
 import ReportCollapseButton from '../../shared/ReportCollapseButton';
 import { ReportStatusFilter } from '../../shared/reportStatusFilter';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
-import YamlErrorWarning, { HideWhenYamlError } from '../../api/YamlErrorWarning';
+import YamlErrorWarning from '../../api/YamlErrorWarning';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
-import { runInCoreMenuItem } from '../../components/ContextMenuHost';
 import { duplicateSuiteServerPaths, isDuplicateSuiteServerPath } from '../../text/validator';
-import RunStopToggle from '../../components/RunStopToggle';
+import SendButton from '../../components/SendButton';
+import { usePrimaryAction } from '../../primaryAction';
 import { expandedTreeItemsToReportNodeIds } from '../../shared/reportSpillLogic';
 import {
     deleteSpilledReportsForFile,
@@ -43,6 +44,7 @@ import {
     materializeSpilledReports,
 } from '../../shared/reportSpillStore';
 import { spillExcessReports } from '../../shared/reportSpillRunner';
+import { setEnvironmentVariables } from '../../environment/environmentUtils';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -56,7 +58,7 @@ function countSuiteRunnableItems(
 ): number {
     let count = 0;
     const walk = (node: SuiteTreeNode): void => {
-        if (node.kind === 'test' || node.kind === 'suite') {
+        if (node.kind === 'test' || node.kind === 'api' || node.kind === 'suite') {
             count += 1;
         }
         if (node.kind === 'group' || node.kind === 'suite') {
@@ -104,7 +106,7 @@ function buildDisplayNamesFromHierarchy(
         const label = getNodeLabel(node);
         const currentPath = node.kind === 'group' ? pathParts : [...pathParts, label];
 
-        if (node.kind === 'test' || node.kind === 'suite' || node.kind === 'server' || node.kind === 'missing' || node.kind === 'cycle') {
+        if (node.kind === 'test' || node.kind === 'api' || node.kind === 'suite' || node.kind === 'server' || node.kind === 'missing' || node.kind === 'cycle') {
             result[node.id] = currentPath.join(' / ');
         }
 
@@ -516,6 +518,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const suiteRunIdRef = useRef<string | null>(null);
     const ignoredSuiteRunIdsRef = useRef<Set<string>>(new Set());
     const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
+    const [isPaused, setIsPaused] = useState(false);
     const [loadRunSummary, setLoadRunSummary] = useState<LoadRunSummary | null>(null);
     const runDataStoreRef = useRef(createSuiteRunDataStore());
     const runDataStore = runDataStoreRef.current;
@@ -532,6 +535,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const reportFlushTimerRef = useRef<number | null>(null);
     const durationTimerRef = useRef<number | null>(null);
     const expandedReportNodeIdsRef = useRef<Set<string>>(new Set());
+    /** Latest setenv values for this suite run; flushed to the env panel once at end. */
+    const pendingSetenvRef = useRef<Map<string, {
+        name: string;
+        value: string | number | boolean;
+        label: string;
+        source: 'runtime';
+    }>>(new Map());
 
     const trimIgnoredSuiteRuns = useCallback(() => {
         if (ignoredSuiteRunIdsRef.current.size <= 10) {
@@ -551,7 +561,19 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         suiteRunIdRef.current = nextSuiteRunId;
         setSuiteRunId(nextSuiteRunId);
         reportQueueRef.current = [];
+        pendingSetenvRef.current.clear();
     }, [trimIgnoredSuiteRuns]);
+
+    /** One Environment-panel write per suite run (avoids refresh every report flush). */
+    const flushPendingSetenvToPanel = useCallback(() => {
+        const pending = pendingSetenvRef.current;
+        if (pending.size === 0) {
+            return;
+        }
+        const updates = Array.from(pending.values());
+        pending.clear();
+        setEnvironmentVariables(updates);
+    }, []);
 
     const clearReportSpillState = useCallback(async () => {
         runDataStore.clearSpillState();
@@ -603,15 +625,54 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
         const runStatePatches: Record<string, StepStatus> = {};
         const reportPatches: Record<string, StepReportItem[]> = {};
+        const setenvUpdates: Array<{
+            name: string;
+            value: string | number | boolean;
+            label: string;
+            source: 'runtime';
+        }> = [];
 
         queuedReports.forEach((message: any) => {
             const runId = typeof message.runId === 'string' ? message.runId : null;
             const reportedId = typeof message.id === 'string' ? message.id : null;
             const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
+            const scope = typeof message.scope === 'string' ? message.scope : '';
+
+            // Promote setenv into the VS Code Environment panel (same as standalone
+            // test/API runs). Partial suite runs only accept setenv from the target subtree.
+            if (scope === 'setenv') {
+                if (targetId && !allowed(targetId)) {
+                    return;
+                }
+                const variables = (message as any).variables;
+                if (!variables || typeof variables !== 'object') {
+                    return;
+                }
+                const testTitle = typeof (message as any).testTitle === 'string' ?
+                    (message as any).testTitle :
+                    undefined;
+                const label = testTitle ? `suite - ${testTitle}` : 'suite';
+                for (const [name, value] of Object.entries(variables)) {
+                    if (typeof name !== 'string' || !name || value == null || value === '') {
+                        continue;
+                    }
+                    if (typeof value !== 'string' && typeof value !== 'number' &&
+                        typeof value !== 'boolean') {
+                        continue;
+                    }
+                    setenvUpdates.push({
+                        name,
+                        value,
+                        label,
+                        source: 'runtime',
+                    });
+                }
+                return;
+            }
+
             if (!targetId || !allowed(targetId)) {
                 return;
             }
-            const scope = typeof message.scope === 'string' ? message.scope : '';
             if (scope === 'suite-item') {
                 const status = message.status as StepStatus | undefined;
                 if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled' || status === 'skipped') {
@@ -643,9 +704,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 reportPatches[targetId] = [];
             }
             reportPatches[targetId].push(normalized);
-            if (normalized.status === 'failed') {
-                runStatePatches[targetId] = 'failed';
-            }
         });
 
         setLastRunIdByEntryId(prev => {
@@ -658,6 +716,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             });
             return next;
         });
+
+        // Coalesce into pending map; panel write happens once on suite end.
+        for (const update of setenvUpdates) {
+            pendingSetenvRef.current.set(update.name, update);
+        }
 
         if (Object.keys(runStatePatches).length > 0) {
             runDataStore.patchRunState(runStatePatches);
@@ -1003,6 +1066,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     suiteRunIdRef.current = nextSuiteRunId;
                 }
                 reportQueueRef.current = [];
+                pendingSetenvRef.current.clear();
                 // New suite run: clear per-run mappings so old runIds can't
                 // influence routing or step sequences.
                 setLastRunIdByEntryId({});
@@ -1040,6 +1104,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 }
                 const cancelled = Boolean((message as any).cancelled);
                 flushReportQueue();
+                flushPendingSetenvToPanel();
                 // Clear stuck "running" on own nodes only (no child→parent rollup).
                 runDataStore.replaceRunState((prev) => {
                     const next = { ...prev };
@@ -1057,6 +1122,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     return changed ? next : prev;
                 });
                 partialRunTargetRef.current = null;
+                setIsPaused(false);
                 if (cancelled) {
                     setSuiteRunState('cancelled');
                 } else if (mode === 'loadtest' && typeof (message as any).success === 'boolean') {
@@ -1089,6 +1155,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 if (stoppedId && suiteRunIdRef.current && stoppedId !== suiteRunIdRef.current) {
                     return;
                 }
+                setIsPaused(false);
                 setSuiteRunState('cancelled');
                 runDataStore.replaceRunState((prev) => {
                     const next: typeof prev = { ...prev };
@@ -1101,6 +1168,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 });
                 partialRunTargetRef.current = null;
                 flushReportQueue();
+                flushPendingSetenvToPanel();
+                return;
+            }
+
+            if (message.command === 'testRunPaused') {
+                setIsPaused(true);
+                return;
+            }
+            if (message.command === 'testRunResumed') {
+                setIsPaused(false);
                 return;
             }
 
@@ -1138,7 +1215,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns, runDataStore]);
+    }, [groups, resetLeafState, flushReportQueue, flushPendingSetenvToPanel, mode, trimIgnoredSuiteRuns, runDataStore]);
 
     useEffect(() => {
         if (allPaths.length === 0) {
@@ -1171,6 +1248,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             partialRunTargetRef.current = null;
             // Use whatever hierarchy is already loaded; refresh pending icons in the background.
             runDataStore.setRunState(buildFullSuitePendingState(groups, hierarchy));
+            setIsPaused(false);
             setSuiteRunState('running');
         });
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
@@ -1180,6 +1258,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             });
         }
     }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, clearReportSpillState, runDataStore, suiteRunState]);
+
+    usePrimaryAction(canRun ? onRunSuite : null);
 
     const onRunTargets = useCallback((target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
@@ -1205,6 +1285,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 beginSuiteRun(nextSuiteRunId);
                 suiteRunStartTimeRef.current = startedAt;
                 setSuiteRunStartedAt(startedAt);
+                setIsPaused(false);
                 setSuiteRunState('running');
             });
             window.vscode?.postMessage({
@@ -1260,8 +1341,19 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (!suiteRunId) {
             return;
         }
+        setIsPaused(false);
         window.vscode?.postMessage({ command: 'stopSuiteRun', suiteRunId });
     }, [suiteRunId]);
+
+    const handlePause = useCallback(() => {
+        window.vscode?.postMessage({ command: 'pauseTestRun' });
+        setIsPaused(true);
+    }, []);
+
+    const handleResume = useCallback(() => {
+        window.vscode?.postMessage({ command: 'resumeTestRun' });
+        setIsPaused(false);
+    }, []);
 
     const displayNameById = useMemo(() => {
         return buildDisplayNamesFromHierarchy(groups, hierarchyByEntryId);
@@ -1300,6 +1392,65 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         suiteRunState === 'pending' ||
         suiteRunState === 'running' ||
         (mode === 'loadtest' ? !loadRunSummary : !hasSuiteReportData);
+
+    const handleClearReport = useCallback(() => {
+        if (suiteRunState === 'pending' || suiteRunState === 'running') {
+            return;
+        }
+        if (suiteRunIdRef.current) {
+            ignoredSuiteRunIdsRef.current.add(suiteRunIdRef.current);
+            trimIgnoredSuiteRuns();
+        }
+        suiteRunIdRef.current = null;
+        setSuiteRunId(null);
+        setIsPaused(false);
+        setSuiteRunState('default');
+        setLoadRunSummary(null);
+        setSuiteRunStartedAt(null);
+        setSuiteRunDurationMs(null);
+        suiteRunStartTimeRef.current = null;
+        pendingLeafResetRef.current = null;
+        partialRunTargetRef.current = null;
+        reportQueueRef.current = [];
+        resetLeafState('all');
+    }, [suiteRunState, trimIgnoredSuiteRuns, resetLeafState]);
+
+    const suiteClearDisabled =
+        suiteRunState === 'pending' ||
+        suiteRunState === 'running' ||
+        (mode === 'loadtest'
+            ? !loadRunSummary && suiteRunState === 'default'
+            : !hasSuiteReportData && suiteRunState === 'default');
+
+    const runMenuItems = useMemo(
+        () => buildReportRunMenuEntries({
+            onPause: handlePause,
+            onResume: handleResume,
+            paused: isPaused,
+            canPause: suiteRunState === 'pending' || suiteRunState === 'running',
+            onRunInCore: onRunSuiteInCore,
+            runInCoreDisabled: !canRun,
+            onClear: handleClearReport,
+            clearDisabled: suiteClearDisabled,
+            onExport: (format) => {
+                void handleExportReport(format);
+            },
+            exportDisabled: suiteExportDisabled,
+        }),
+        [
+            handlePause,
+            handleResume,
+            isPaused,
+            suiteRunState,
+            onRunSuiteInCore,
+            canRun,
+            handleClearReport,
+            suiteClearDisabled,
+            handleExportReport,
+            suiteExportDisabled,
+        ],
+    );
+
     const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
     const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
 
@@ -1513,22 +1664,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     return (
         <div className="panel-page">
             <div className="run-action-bar">
-                <RunStopToggle
-                    preparing={suiteRunState === 'pending'}
-                    running={suiteRunState === 'running'}
-                    onRun={onRunSuite}
-                    onStop={onStopSuite}
-                    runLabel={runLabel}
-                    preparingLabel="Starting…"
-                    stopLabel={stopLabel}
+                <SendButton
+                    mode="run"
+                    onClick={onRunSuite}
+                    onCancel={onStopSuite}
+                    loading={suiteRunState === 'pending' || suiteRunState === 'running'}
                     disabled={!canRun}
-                    runTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
-                    runContextMenuItems={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
+                    actionTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
+                    cancelTitle={stopLabel}
+                    contextMenuItems={runMenuItems}
                 />
                 <YamlErrorWarning />
-                <HideWhenYamlError>
-                    <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
-                </HideWhenYamlError>
             </div>
             <div className="panel-view-stack">
                 {noItems ? (

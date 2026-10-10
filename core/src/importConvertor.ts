@@ -1,4 +1,4 @@
-import {APIData, ExampleData} from './APIData';
+import {APIData, ExampleData, exampleTitle} from './APIData';
 import {apiToYaml} from './apiParsePack';
 import {brunoToAPI, brunoToTest, isBrunoFilePath, isBrunoRequestFilePath, sortBrunoSourceFiles} from './brunoParsePack';
 import type {BrunoSourceFile} from './brunoParsePack';
@@ -101,8 +101,7 @@ export interface SpecApiSelection {
 }
 
 function specExampleTitle(example: ExampleData | undefined, index: number): string {
-  const name = String(example?.name || '').trim();
-  return name || `Example ${index + 1}`;
+  return exampleTitle(example) || `Example ${index + 1}`;
 }
 
 export function findSpecApiSelection(

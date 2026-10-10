@@ -20,6 +20,20 @@ Write a single comparison string: `actual operator expected`. Combine clauses wi
 - check: ${a.status} == 200 && ${a.token} != omit
 ```
 
+> **Important:** The inline form is the whole value of `check`. `title`, `details` and `report` are **not** sibling keys of `check:` — to use any of them, switch to the [object form](#object-form):
+> ```yaml
+> # Wrong: title next to an inline check
+> - check: ${doLogin.status} == 200
+>   title: Login status
+>
+> # Right: object form
+> - check:
+>     title: Login status
+>     actual: ${doLogin.status}
+>     operator: ==
+>     expected: 200
+> ```
+
 > **Note:** Values referencing step ids, loop variables, or JS-scoped variables must use `${...}`:
 > ```yaml
 > - call: myApi

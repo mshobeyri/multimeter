@@ -1,52 +1,40 @@
-# Edit API
+# Edit API fields in the tester
 
-Open an API file in VS Code and click {{btn:edit:Edit API}} in the tester top bar to switch from the **API tester** to **edit mode**. Use the back control on the edit header to return to the tester.
+API fields are edited inline in the **API tester** — there is no separate Edit API page. Edits write directly to the YAML.
 
-Edits in edit mode write directly to the YAML. The tester UI is temporary until you **Save to YAML** or **Discard** (see [Unsaved Changes](./index.md#unsaved-changes)).
+## Where to edit
 
-## Tabs
-
-| Tab | What you edit |
+| Place | Fields |
 |---|---|
-| {{btn:search:Overview}} | `title`, `tags`, `description` (with optional Markdown preview), `import`, `inputs`, `outputs`, `setenv` |
-| {{btn:symbol-interface:Interface}} | `protocol`, `url`, `method`, `timeout`, `headers`, `query`, `cookies`, `body`, `auth`, request/response `format` |
-| {{btn:lightbulb:Examples}} | Named examples — add, edit, or remove example blocks |
+| {{btn:settings-gear:Settings}} (first tab) | `timeout`, `import` |
+| **Auth** | `auth` — none, bearer, basic, API key, or OAuth2 |
+| **Doc** | `title`, `tags`, `description` — click the pencil next to a section to edit |
+| **Inputs** (request) | Declared `inputs` (pencil), runtime example values, soft **Expect** |
+| **Outputs** (response) | Declared `outputs` / `setenv` (pencil); view mode shows extracted / env values after Send |
+| **Params** / **Headers** / **Body** / **Cookies** | Request message fields (same as Send) |
 
-### Overview
+### Settings
 
-| Field | Notes |
-|---|---|
-| `title` | Maps to `title:` |
-| `tags` | Searchable tag chips; maps to `tags:` |
-| `description` | Markdown editor with optional preview; maps to `description:` |
-| `import` | Key/value alias → path pairs with file picker (JSON, YAML, CSV data files) |
-| `inputs` | Parameter definitions used by `<<i:>>` tokens and the In / Out tab |
-| `outputs` | Extraction expressions for response values |
-| `setenv` | Capture response values into environment variables |
-
-See [Documentation](./documentation.md) for description annotations and [Inputs](./inputs.md) / [Outputs](./outputs.md) for token syntax.
-
-### Interface
-
-The Interface tab is the structured editor for the request definition:
-
-- `protocol` — HTTP, WebSocket, GraphQL, or gRPC
-- `url` — base URL (query string is edited separately)
-- `method` — HTTP verb when applicable
 - `timeout` — per-request timeout in milliseconds
-- `headers`, `query`, `cookies` — key/value editors
-- `body` — request body with format selector (`json`, `xml`, `text`, `urlencoded`, `binary`, …)
-- `auth` — none, bearer, basic, API key, or OAuth2
-- `format` — separate request and response format pickers
+- `import` — alias → path pairs with file picker (JSON, YAML, CSV)
 
-Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear when that protocol is selected. See [Protocols](./protocols/index.md).
+### Auth
 
-### Examples
+- `auth` — none, bearer, basic, API key, or OAuth2 (see [Auth](./auth.md))
 
-Each example block has a **name**, optional **inputs**, and optional **outputs**. Use **Add Example** to create a new block; remove with the delete control on each example.
+### Doc
 
-Named examples appear in the tester **In / Out** tab dropdown and get run glyphs in the YAML editor when `name:` is non-empty. See [Examples](./examples.md).
+Each of **Title**, **Tags**, and **Description** has a pencil control. View mode shows the rendered value (Markdown for description); edit mode shows the same boxes formerly on the Edit API page.
+
+See [Documentation](./documentation.md) for description annotations.
+
+### Inputs / Outputs
+
+- **Inputs** (request pane): Example dropdown, soft **Expect**, and declared/runtime inputs
+- **Outputs** (response pane): pencil switches between extraction paths and values after Send; **Setenv** works the same way (edit expressions / view env values written after Send)
+
+Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear on their protocol tabs. See [Protocols](./protocols/index.md).
 
 ---
 
-See also: [API overview](./index.md) · [Quick start](./quick-start.md) · [Reference](./reference.md)
+See also: [API overview](./index.md) · [Quick start](./quick-start.md) · [Reference](./reference.md) · [Examples](./examples.md)

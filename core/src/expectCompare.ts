@@ -40,7 +40,10 @@ import {
   trimEquals_,
   trimEqualsIgnoreCase_,
 } from './testHelper';
+import {currentValueForToken} from './Current';
+import {randomTokenExpectPattern, valueMatchesRandomToken} from './Random';
 import {parseExpectValue} from './JSerTestFlow';
+import {isLiteralTokenValue, unwrapLiteralToken} from './literalToken';
 import {isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isTimeAnyOperator, getTimeOperatorBase, getTimeOperatorVelocity, DEFAULT_FUZZY_PERCENT, ExpectValue} from './TestData';
 import {isOmitSentinel} from './omitKeyword';
 import {applyValueAccessor} from './variableReplacer';
@@ -50,6 +53,9 @@ import {applyValueAccessor} from './variableReplacer';
  */
 export function evaluateComparison(
     actual: any, operator: string, expected: any): boolean {
+  if (isLiteralTokenValue(expected)) {
+    expected = unwrapLiteralToken(String(expected));
+  }
   if (isOmitSentinel(expected) || expected === null) {
     if (operator === '==') {
       return isOmitted_(actual);
@@ -143,10 +149,98 @@ export function evaluateComparison(
   }
 }
 
+const LIVE_EXPECT_TOKEN_RE =
+    /^(?:<<\s*|\{\{\s*)?([eic]):([A-Za-z_][A-Za-z0-9_-]*(?:\([^()]*\))?)((?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]]+\])*)\s*(?:>>|\}\})?$/i;
+
+const RANDOM_EXPECT_TOKEN_RE =
+    /^(?:<<\s*|\{\{\s*)?r:([A-Za-z_][A-Za-z0-9_-]*(?:\([^()]*\))?)(?:\s*(?:>>|\}\})?)?$/i;
+
+/**
+ * A whole `r:uuid` / `<<r:int(10,20)>>` / `{{r:color}}` expect is a regex of
+ * that generator. A fresh draw would not equal the value that was sent.
+ * Quoted `"r:uuid"` stays text. An unknown name stays the token text.
+ */
+export function randomExpectPattern(expected: any): string | undefined {
+  if (typeof expected !== 'string' || isLiteralTokenValue(expected)) {
+    return undefined;
+  }
+  const match = RANDOM_EXPECT_TOKEN_RE.exec(expected.trim());
+  if (!match || !match[1]) {
+    return undefined;
+  }
+  const source = randomTokenExpectPattern(match[1]);
+  return source ? `^(?:${source})$` : undefined;
+}
+
+/**
+ * A whole `e:` / `i:` / `c:` expect, including `<< >>`, `{{ }}`, and an
+ * accessor such as `i:city[0:3]`, is that value. Quoted `"e:name"` stays
+ * text. An unknown name stays the token text.
+ */
+export function resolveLiveExpectValue(
+    expected: any,
+    inputs?: Record<string, any> | null,
+    envVars?: Record<string, any> | null,
+    ): any {
+  if (typeof expected !== 'string' || isLiteralTokenValue(expected)) {
+    return expected;
+  }
+  const match = LIVE_EXPECT_TOKEN_RE.exec(expected.trim());
+  if (!match || !match[1] || !match[2]) {
+    return expected;
+  }
+  const prefix = match[1].toLowerCase();
+  const spec = match[2];
+  const accessor = match[3] || '';
+  let value: any;
+  if (prefix === 'c') {
+    value = currentValueForToken(spec);
+    if (value === undefined) {
+      return expected;
+    }
+  } else if (prefix === 'i') {
+    if (!inputs || !Object.prototype.hasOwnProperty.call(inputs, spec)) {
+      return expected;
+    }
+    value = inputs[spec];
+  } else {
+    if (!envVars || !Object.prototype.hasOwnProperty.call(envVars, spec)) {
+      return expected;
+    }
+    value = envVars[spec];
+  }
+  return accessor ? applyValueAccessor(value, accessor) : value;
+}
+
 /** Parse an expect/check value and compare against `actual`. */
-export function evaluateExpectValue(actual: any, value: ExpectValue): boolean {
+export function evaluateExpectValue(
+    actual: any,
+    value: ExpectValue,
+    inputs?: Record<string, any> | null,
+    envVars?: Record<string, any> | null,
+    ): boolean {
   const {operator, expected} = parseExpectValue(value);
-  return evaluateComparison(actual, operator, expected);
+  if (operator === '==') {
+    const randomMatch = RANDOM_EXPECT_TOKEN_RE.exec(
+        typeof expected === 'string' && !isLiteralTokenValue(expected) ?
+            expected.trim() : '');
+    if (randomMatch && randomMatch[1]) {
+      const matched = valueMatchesRandomToken(randomMatch[1], actual);
+      if (matched !== undefined) {
+        return matched;
+      }
+    }
+  }
+  const resolved = resolveLiveExpectValue(expected, inputs, envVars);
+  if (evaluateComparison(actual, operator, resolved)) {
+    return true;
+  }
+  // Headers, query, form, and XML send numbers and bools as text.
+  if (operator === '==' && resolved !== expected && typeof actual === 'string' &&
+      (typeof resolved === 'number' || typeof resolved === 'boolean')) {
+    return actual === String(resolved);
+  }
+  return false;
 }
 
 function toAccessor(path: string): string {

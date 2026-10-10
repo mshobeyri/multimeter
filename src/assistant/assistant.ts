@@ -152,10 +152,8 @@ async function handleChatRequest(
         const header = exampleLabelParts.length ?
             `${kindLabel} ${nameOnly} (example ${exampleLabelParts.join(' ')})` :
             `${kindLabel} ${nameOnly}`;
-        const logsBlock = (result.logs && result.logs.length) ?
-            `Logs:\n\n\`\`\`\n${result.logs.join('\n')}\n\`\`\`` :
-            '';
-        // Separate assertion/check failures from actual errors
+        // Separate assertion/check failures from actual errors.
+        // Full run logs stay in the Multimeter Output channel, not chat.
         const allErrors: string[] = result.errors || [];
         const failures = allErrors.filter((e: string) => /[\u00D7].*failed/.test(e));
         const errors = allErrors.filter((e: string) => !/[\u00D7].*failed/.test(e));
@@ -166,7 +164,7 @@ async function handleChatRequest(
             ['Errors:', ...errors.map((e: any) => ` - ${e}`)].join('\n') :
             '';
         const out = [
-                         `Running ${header}...`, logsBlock,
+                         `Running ${header}...`,
                          `Success: ${result.success}`,
                          `Duration: ${mmtcore.CommonData.formatDuration(result.durationMs)}`,
                          failuresBlock,

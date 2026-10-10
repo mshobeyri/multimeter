@@ -2,6 +2,7 @@ import React from "react";
 import { EnvCertificates, EnvClientCertificate, EnvCaCertificate } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
 import FieldWithRemove from "../components/FieldWithRemove";
+import StableTextInput from "../components/StableTextInput";
 import FilePickerInput from "../components/FilePickerInput";
 import { FileContext } from "../fileContext";
 import PrimaryButton from "../components/PrimaryButton";
@@ -155,11 +156,11 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
 
               <div className="field-block">
                 <div className="label label-sm">Host Pattern</div>
-                <input
+                <StableTextInput
                   type="text"
                   className="input-field mmt-fill"
                   value={client.host}
-                  onChange={(e) => handleClientChange(idx, { host: e.target.value })}
+                  onChange={(next) => handleClientChange(idx, { host: next })}
                   placeholder="e.g., *.api.example.com"
                 />
               </div>
@@ -231,11 +232,11 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
 
               <div className="field-block">
                 <div className={envEnabled ? "label label-sm" : "label label-sm label-disabled"}>Passphrase env</div>
-                <input
+                <StableTextInput
                   type="text"
                   className="input-field mmt-fill"
                   value={client.passphrase_env || ""}
-                  onChange={(e) => handleClientChange(idx, { passphrase_env: e.target.value || undefined })}
+                  onChange={(next) => handleClientChange(idx, { passphrase_env: next || undefined })}
                   placeholder="e.g., CERT_PASSPHRASE"
                   disabled={!envEnabled}
                 />
@@ -243,11 +244,11 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
 
               <div className="field-block">
                 <div className={plainEnabled ? "label label-sm" : "label label-sm label-disabled"}>Passphrase plain</div>
-                <input
+                <StableTextInput
                   type="password"
                   className="input-field mmt-fill"
                   value={client.passphrase_plain || ""}
-                  onChange={(e) => handleClientChange(idx, { passphrase_plain: e.target.value || undefined })}
+                  onChange={(next) => handleClientChange(idx, { passphrase_plain: next || undefined })}
                   placeholder="Leave empty if not encrypted"
                   disabled={!plainEnabled}
                 />

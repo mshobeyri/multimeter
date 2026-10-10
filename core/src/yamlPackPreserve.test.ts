@@ -327,6 +327,23 @@ method: get
     const twice = apiToYaml(yamlToAPI(once), once);
     expect(yamlToAPI(twice)).toEqual(yamlToAPI(once));
   });
+
+  it('does not keep quote style when a query token finishes as r:uuid', () => {
+    // Mid-edit `{{r:u}}` is YAML-quoted; completing the token must emit plain
+    // `r:uuid` (resolving), not a quoted literal.
+    const midEdit = `type: api
+url: https://x
+query:
+  id: "{{r:u}}"
+`;
+    const api = yamlToAPI(midEdit);
+    api.query = {id: 'r:uuid'};
+    const out = apiToYaml(api, midEdit);
+    expect(out).toMatch(/id: r:uuid\b/);
+    expect(out).not.toMatch(/id: ["']r:uuid["']/);
+    const roundTrip = yamlToAPI(out);
+    expect(roundTrip.query?.id).toBe('r:uuid');
+  });
 });
 
 describe('mergeYamlValue', () => {
@@ -354,9 +371,83 @@ describe('mergeYamlValue', () => {
     expect(text).toContain('extra: true');
   });
 
+  it('inserts new map keys in Object.keys order (canonical pack order)', () => {
+    const doc = YAML.parseDocument('type: api\nurl: https://x\nmethod: get\nexamples: []\n');
+    mergeYamlValue(doc, doc.contents, {
+      type: 'api',
+      url: 'https://x',
+      method: 'get',
+      body: {ok: true},
+      examples: [],
+    });
+    const keys = (doc.contents as any).items.map((item: any) => String(item.key.value));
+    expect(keys).toEqual(['type', 'url', 'method', 'body', 'examples']);
+  });
+
   it('replaces a scalar with a map when the type changes', () => {
     const doc = YAML.parseDocument('value: old\n');
     mergeYamlValue(doc, doc.contents, {value: {nested: 1}});
     expect(YAML.parse(doc.toString())).toEqual({value: {nested: 1}});
+  });
+});
+
+describe('header scalar round-trip', () => {
+  it('keeps bool and number headers typed and quoted strings quoted', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com',
+      'method: get',
+      'headers:',
+      '  flag: true',
+      '  qflag: "true"',
+      '  n: 100',
+      '  qn: "112"',
+    ].join('\n');
+    const api = yamlToAPI(yaml);
+    expect(api.headers).toEqual({
+      flag: true,
+      qflag: 'true',
+      n: 100,
+      qn: '112',
+    });
+    const again = apiToYaml(api, yaml);
+    expect(again).toMatch(/flag: true\b/);
+    expect(again).toMatch(/qflag: "true"/);
+    expect(again).toMatch(/\bn: 100\b/);
+    expect(again).toMatch(/qn: "112"/);
+    expect(yamlToAPI(again).headers).toEqual(api.headers);
+  });
+});
+
+describe('query and cookie scalar round-trip', () => {
+  it('keeps bool and number query and cookies typed', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com',
+      'method: get',
+      'query:',
+      '  flag: true',
+      '  qflag: "true"',
+      '  n: 100',
+      '  qn: "112"',
+      'cookies:',
+      '  flag: false',
+      '  n: 7',
+      '  qn: "8"',
+    ].join('\n');
+    const api = yamlToAPI(yaml);
+    expect(api.query).toEqual({flag: true, qflag: 'true', n: 100, qn: '112'});
+    expect(api.cookies).toEqual({flag: false, n: 7, qn: '8'});
+    const again = apiToYaml(api, yaml);
+    expect(again).toMatch(/flag: true\b/);
+    expect(again).toMatch(/qflag: "true"/);
+    expect(again).toMatch(/\bn: 100\b/);
+    expect(again).toMatch(/qn: "112"/);
+    expect(again).toMatch(/flag: false\b/);
+    expect(again).toMatch(/\bn: 7\b/);
+    expect(again).toMatch(/qn: "8"/);
+    const parsed = yamlToAPI(again);
+    expect(parsed.query).toEqual(api.query);
+    expect(parsed.cookies).toEqual(api.cookies);
   });
 });

@@ -1,0 +1,9 @@
+type: test
+title: Create session (test)
+description: File-backed env target with a short cache window.
+outputs:
+  session: ''
+cache: 2s
+steps:
+  - set:
+      o:session: r:uuid

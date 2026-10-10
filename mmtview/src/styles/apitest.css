@@ -11,7 +11,7 @@
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid var(--vscode-input-border, #3c3c3c);
-  border-radius: var(--mmt-control-radius);
+  border-radius: 999px;
   background-color: var(--vscode-input-background, #1e1e1e);
 }
 
@@ -68,24 +68,31 @@
   color: transparent;
 }
 
-.method-url-bar input.method-url-bar-url {
+/* Outer .method-url-bar owns the chrome. Beat the global
+   `input:not(...)` rule (high :not() specificity) so the URL
+   field never draws its own border/fill inside the pill. */
+.method-url-bar input.method-url-bar-url,
+.method-url-bar .token-field > input.method-url-bar-url {
   flex: 1;
   min-width: 0;
   width: auto;
   max-width: none;
-  height: auto;
-  min-height: 0;
+  /* Fill the 28px pill (minus 1px borders) so text stays vertically centered. */
+  height: 100% !important;
+  min-height: 0 !important;
   margin: 0;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 0;
-  outline: none;
-  background: transparent;
-  box-shadow: none;
+  padding: 0 10px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
   color: var(--vscode-input-foreground, #d4d4d4);
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
   font-size: var(--vscode-font-size, 13px);
-  line-height: 26px;
+  /* Match the filled height so native caret text and the token mirror align. */
+  line-height: 26px !important;
   white-space: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
@@ -93,6 +100,57 @@
   cursor: text;
   user-select: text;
   -webkit-user-select: text;
+}
+
+.method-url-bar-url-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: stretch;
+  align-self: stretch;
+  min-height: 0;
+}
+
+.method-url-bar-url-wrap > .token-field {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+}
+
+.method-url-bar-url-wrap > input.method-url-bar-url,
+.method-url-bar-url-wrap .token-field > input.method-url-bar-url {
+  width: 100%;
+  min-width: 0;
+}
+
+.method-url-bar-url-wrap > input.method-url-bar-url {
+  width: 100%;
+}
+
+.method-url-bar-url-wrap > input.method-url-bar-url.is-token-preview {
+  color: var(--vscode-input-foreground, #d4d4d4);
+}
+
+.method-url-bar-url-wrap .token-field.has-highlights {
+  background: transparent;
+  border-radius: 0;
+}
+
+.method-url-bar-url-wrap .token-field.has-highlights .token-field-input.is-highlight-overlay {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--vscode-input-foreground, #d4d4d4) !important;
+}
+
+/* URL bar already has chrome; keep token backdrop transparent so it doesn't chip. */
+.method-url-bar-url-wrap .token-field-backdrop {
+  background: transparent;
+  border-radius: 0;
+  color: var(--vscode-input-foreground, #d4d4d4);
 }
 
 .method-url-bar-url::-webkit-scrollbar {
@@ -130,7 +188,6 @@
   width: 100%;
   height: 100%;
   padding: 16px;
-  padding-bottom: 0;
   box-sizing: border-box;
   min-height: 0;
   min-width: 0;
@@ -144,7 +201,7 @@
 
 .apitest-url-row {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 8px;
   padding: 0 0 8px;
 }
@@ -153,14 +210,141 @@
   flex-shrink: 0;
 }
 
+.apitest-url-send {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0;
+}
+
 .apitest-tabs-row {
-  padding: 0 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px 8px 0;
+  flex-shrink: 0;
+  min-width: 0;
+  /* Keep row height stable when Body tools mount/unmount. */
+  min-height: 28px;
+}
+
+.apitest-tabs-row > .tab-bar,
+.apitest-tabs-row > .overflow-tab-bar {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.apitest-response-tabs-row > .tab-bar,
+.apitest-response-tabs-row > .overflow-tab-bar {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.apitest-tabs-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 55%;
+}
+
+.apitest-response-tabs-row > .apitest-tabs-tools {
+  width: max-content;
+  flex: 0 1 auto;
+}
+
+.apitest-response-tabs-row .apitest-body-toolbar {
+  width: 100%;
+  min-width: 0;
+}
+
+.apitest-response-tabs-row .apitest-body-toolbar-main {
+  width: 100%;
+  min-width: 0;
+  gap: 6px;
+}
+
+.apitest-response-tabs-row .apitest-body-format-bar-group {
+  flex-wrap: nowrap;
+}
+
+.apitest-body-toolbar.is-compact .apitest-body-toolbar-main {
+  gap: 6px;
+}
+
+.apitest-body-toolbar.is-compact .apitest-body-format-raw-select {
+  min-width: 0;
+}
+
+.apitest-body-toolbar.is-compact .bodyview-header-kebab {
+  margin-left: auto;
+}
+
+.apitest-tabs-tools.is-hidden,
+.apitest-tabs-tools-divider.is-hidden {
+  /* Collapse fully so the tab strip gets the whole row (no needless ≫ overflow). */
+  display: none;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.apitest-tabs-tools .apitest-body-toolbar,
+.apitest-tabs-tools .apitest-body-format-bar,
+.apitest-tabs-tools .apitest-body-toolbar-main {
+  gap: 6px;
+  padding: 0;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+.apitest-tabs-tools-divider {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  align-self: center;
+  margin: 0;
+  background: var(--vscode-editorWidget-border, #454545);
+  flex-shrink: 0;
+}
+
+.apitest-response-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .apitest-empty {
   padding: 12px;
   color: var(--vscode-disabledForeground, #666);
   font-size: 12px;
+}
+
+.apitest-empty-send-link {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.apitest-empty-send-link:hover {
+  color: var(--vscode-textLink-activeForeground, #4daafc);
+}
+
+.apitest-empty-send-link:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .apitest-example {
@@ -177,6 +361,27 @@
   vertical-align: super;
 }
 
+/* Fixed-width slot so pass/fail icons don't reflow expect/require rows. */
+.apitest-result-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.apitest-result-slot.is-pass {
+  color: var(--vscode-testing-iconPassed);
+}
+
+.apitest-result-slot.is-fail {
+  color: var(--vscode-testing-iconFailed);
+}
+
 .apitest-body-pane {
   display: flex;
   flex-direction: column;
@@ -184,9 +389,17 @@
   min-height: 0;
 }
 
+.apitest-body-pane > .apitest-body-toolbar,
+.apitest-body-pane > .apitest-body-format-bar {
+  flex: 0 0 auto;
+}
+
 .apitest-section > .apitest-body-pane {
   flex: 1 1 auto;
   min-height: 150px;
+  /* Cancel section horizontal inset so Body stays edge-to-edge. */
+  margin-left: -20px;
+  margin-right: -20px;
 }
 
 .apitest-body-format-bar {
@@ -198,8 +411,117 @@
   padding: 2px 6px 8px;
 }
 
+.apitest-body-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  flex-shrink: 0;
+  padding: 2px 6px 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.apitest-body-toolbar-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bodyview-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.bodyview-header-error {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  height: 16px;
+  color: var(--vscode-errorForeground, #f48771);
+  flex: 0 0 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: width 140ms ease, flex-basis 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+
+.apitest-tabs-tools .bodyview-header-error:not(.is-invalid) {
+  /* Zero-width item still adds a flex gap; cancel it. */
+  margin-right: -6px;
+}
+
+.bodyview-header-error.is-invalid {
+  width: 16px;
+  flex-basis: 16px;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bodyview-header-error .codicon {
+  font-size: 13px;
+}
+
+.bodyview-header-kebab {
+  display: inline-flex;
+  align-items: center;
+}
+
+.bodyview-header-kebab > .action-button {
+  padding: 2px 4px;
+  min-width: 20px;
+  background: transparent;
+}
+
+.bodyview-header-menu {
+  min-width: 150px;
+  padding: 4px;
+}
+
+.bodyview-header-menu .action-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  text-align: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bodyview-header-error {
+    transition: none;
+  }
+}
+
+.apitest-graphql-operation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.apitest-body-toolbar-main .apitest-body-format-bar {
+  padding: 0;
+}
+
+.apitest-body-mode-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 12px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .apitest-body-format-raw-select {
   position: relative;
+  z-index: 2;
 }
 
 .apitest-body-format-raw-trigger,
@@ -211,10 +533,19 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--vscode-textLink-foreground, #3794ff);
+  color: var(--vscode-foreground, #cccccc);
   font-size: 12px;
   line-height: 16px;
   cursor: pointer;
+}
+
+.apitest-body-format-raw-trigger:hover {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.apitest-body-format-raw-trigger .is-struck {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
 }
 
 .apitest-body-format-raw-trigger .codicon {
@@ -224,9 +555,10 @@
 .apitest-body-format-raw-menu {
   position: absolute;
   top: calc(100% + 4px);
-  right: 0;
-  z-index: 20;
-  min-width: 112px;
+  left: 0;
+  right: auto;
+  z-index: 40;
+  min-width: max(112px, 100%);
   padding: 4px 0;
   border: 1px solid var(--vscode-editorWidget-border, #454545);
   border-radius: var(--mmt-control-radius);
@@ -234,8 +566,33 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
+.apitest-body-format-raw-menu.is-portal {
+  position: fixed;
+  top: auto;
+  left: auto;
+  right: auto;
+  z-index: 1000;
+}
+
+.apitest-body-format-raw-heading {
+  padding: 6px 10px 2px;
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground, #999);
+  pointer-events: none;
+  user-select: none;
+}
+
+.apitest-body-format-raw-option.is-group-child {
+  padding-left: 18px;
+}
+
 .apitest-body-format-raw-option {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
   padding: 4px 10px;
   border: none;
@@ -244,6 +601,15 @@
   font-size: 12px;
   text-align: left;
   cursor: pointer;
+}
+
+.apitest-body-format-raw-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.send-button-menu.apitest-body-format-raw-menu {
+  padding: 4px 0;
 }
 
 .apitest-body-format-raw-option:hover,
@@ -306,6 +672,11 @@
   background: currentColor;
 }
 
+.apitest-body-format-chip.is-overlined {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
 .apitest-body-format-bar-group {
   display: flex;
   flex-wrap: wrap;
@@ -364,7 +735,8 @@
   object-fit: contain;
 }
 
-.apitest-fixed-header .tab-bar {
+.apitest-fixed-header .tab-bar,
+.apitest-tabs-row .tab-bar {
   margin-bottom: 0;
 }
 
@@ -382,6 +754,73 @@
   flex-direction: column;
   gap: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.apitest-split {
+  height: 100% !important;
+  width: 100%;
+  position: relative !important;
+}
+
+.apitest-split > .Pane,
+.apitest-split > .Pane1,
+.apitest-split > .Pane2 {
+  overflow: hidden !important;
+}
+
+.apitest-split-pane,
+.apitest-request-pane,
+.apitest-response-pane {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.apitest-pane-fill {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Pin tab panel content to the flex area so swaps cannot resize the pane. */
+.apitest-pane-fill > * {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+}
+
+.apitest-fade-pane {
+  transition: opacity var(--apitest-fade-ms, 120ms) ease;
+  will-change: opacity;
+}
+
+.apitest-fade-pane.is-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.apitest-fade-pane.is-in {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apitest-fade-pane {
+    transition: none;
+  }
+
+  .apitest-fade-pane.is-out,
+  .apitest-fade-pane.is-in {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .apitest-section {
@@ -390,58 +829,149 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Single inset for Params/Headers/Auth/Doc/Settings/Inputs. */
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+/* Doc / Auth / Settings fill the request pane. */
+.apitest-section--doc,
+.apitest-section--auth,
+.apitest-section--settings {
+  gap: 0;
+}
+
+/* Match Auth/Settings fields to Params/Headers vertical start + tighter stacks. */
+.apitest-section .panel-form,
+.apitest-section.panel-form {
+  gap: 6px;
+  padding-top: 3px;
+  box-sizing: border-box;
+}
+
+.apitest-section .panel-form-row {
+  gap: 4px;
+}
+
+.apitest-section .field-table td {
+  padding: 2px 4px;
+}
+
+.apitest-section .field-stack {
+  gap: 4px;
+}
+
+.apitest-doc-plain {
+  /* Match MdViewer: .doc-preview (12px) + .doc-preview-body (12px). */
+  padding: 8px 12px 8px 24px;
+  color: var(--vscode-foreground, #cccccc);
+  word-break: break-word;
+}
+
+.apitest-section .apitest-empty {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.apitest-section--doc .apitest-empty {
+  padding: 8px 12px 8px 24px;
+}
+
+.button-icon.is-active {
+  color: var(--vscode-button-background, #0e639c);
+}
+
+.section-edit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-start;
+  width: auto;
+}
+
+.section-edit-toggle {
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  line-height: 1;
+  justify-content: center;
+  align-items: center;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  opacity: 0.75;
+}
+
+.section-edit-toggle .codicon {
+  font-size: 9.6px;
+}
+
+.section-edit-toggle.apitest-header-tool-btn .codicon {
+  font-size: 19.2px;
+}
+
+.section-edit-toggle:hover,
+.section-edit-toggle:focus {
+  background: transparent !important;
+  border: none !important;
+  opacity: 1;
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.section-edit-toggle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: var(--vscode-disabledForeground, #666);
+}
+
+.section-edit-done-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+
+.section-edit-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: transparent !important;
+  border: 1px solid var(--vscode-input-border, #3c3c3c) !important;
+  border-radius: var(--mmt-control-radius, 4px);
+  color: var(--vscode-foreground, #cccccc) !important;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.section-edit-done .codicon {
+  font-size: 12px;
+}
+
+.section-edit-done:hover,
+.section-edit-done:focus {
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.08)) !important;
+  border-color: var(--vscode-focusBorder, #007fd4) !important;
+}
+
+.tab-button-small.apitest-tab-settings {
+  padding: 4px 6px;
+}
+
+.tab-button-small.apitest-tab-settings .tab-button-icon {
+  font-size: 12px;
 }
 
 /* Section children keep their natural height so the section scrolls
    when combined content exceeds the available space. */
 .apitest-section > * {
   flex-shrink: 0;
-}
-
-.apitest-send-row {
-  flex-shrink: 0;
-  position: relative;
-  height: 46px;
-}
-
-.apitest-send-row .horizontal-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  margin: 0;
-  transform: translateY(-50%);
-}
-
-.apitest-send-controls {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translate(-10px, -50%);
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  z-index: 5;
-}
-
-.apitest-toolbar {
-  flex-shrink: 0;
-  background: var(--vscode-editor-background, #232323);
-  padding: 0;
-  z-index: 5;
-  overflow: visible;
-}
-
-.apitest-toolbar-inner {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  min-height: 32px;
 }
 
 /* Body wrapper: grows to fill section, minimum 150px triggers scroll.
@@ -453,6 +983,57 @@
   padding: 5px;
   box-sizing: border-box;
   position: relative;
+}
+
+.apitest-body-none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 150px;
+  margin: 5px;
+  padding: 28px 20px;
+  box-sizing: border-box;
+  text-align: center;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--vscode-descriptionForeground, #999);
+}
+
+.apitest-body-none-icon {
+  font-size: 40px;
+  line-height: 1;
+  opacity: 0.45;
+}
+
+.apitest-body-none-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  max-width: 28em;
+}
+
+.apitest-body-none-title {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.apitest-body-none-hint {
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.85;
+}
+
+.apitest-no-response {
+  /* Fill the response section like the no-body pane. */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .apitest-body-wrapper.is-disabled {
@@ -975,9 +1556,18 @@
   /* Use VS Code font size */
 }
 
-/* Common response metric badge (status, duration, etc.) */
+/* Plain duration label — theme foreground only, not a badge. */
+.response-duration {
+  color: var(--vscode-foreground, #cccccc);
+  font-size: 11px;
+  font-weight: normal;
+  line-height: 1;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Status badge layout; fill/text come from inline accent chrome. */
 .response-badge {
-  color: white;
   display: inline-flex;
   align-items: center;
   justify-content: center;

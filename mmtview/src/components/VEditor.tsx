@@ -1,12 +1,17 @@
-import React from "react";
+import React, { useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import FieldWithOptionsPicker from "./FieldWithOptionsPicker";
 import SelectWithRemove from "./SelectWithRemove";
 import { ParamConstraintOption } from "mmt-core/paramConstraints";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
-import { valueToString, stringToValue } from "./convertor";
-import { isOmitSentinel } from "mmt-core/omitKeyword";
+import {
+  yamlValueToInputBoxWithTokens,
+  inputBoxToYamlValueWithTokens,
+} from "./convertor";
+import { yamlValueTypeLabel } from "mmt-core/yamlValueConvert";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { handleKvEditorTab, kvFieldId } from "./kvFieldNav";
 
 interface VEditorProps {
   label: string;
@@ -17,10 +22,17 @@ interface VEditorProps {
   /** Per-input options from `<<i:name>> [a, b]` description annotations */
   inputConstraints?: Record<string, ParamConstraintOption[]>;
   disabled?: boolean;
+  /** Non-editable but visually normal (unlike disabled). */
+  readOnly?: boolean;
   deletable?: boolean;
   copyable?: boolean;
   /** Per-key match status vs selected example expected outputs (shown beside the field). */
   matchStatus?: ReadonlyMap<string, "match" | "mismatch">;
+  /** Value fields: resolved/token dual-mode when a value contains tokens. */
+  canContainToken?: boolean;
+  /** Whole `<<c:city>>` shows as `{{c:city}}` and saves as `c:city`. */
+  liveAngleTokens?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 }
 
 const VEditor: React.FC<VEditorProps> = ({
@@ -31,10 +43,15 @@ const VEditor: React.FC<VEditorProps> = ({
   valueOptions,
   inputConstraints,
   disabled,
+  readOnly = false,
   deletable = true,
   copyable = false,
-  matchStatus
+  matchStatus,
+  canContainToken = false,
+  liveAngleTokens = false,
+  valueContext,
 }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const keys = typeof keyOptions === "string" ? [keyOptions]: keyOptions;
 
   const handleValueChange = (keyIndex: number, newVal: string) => {
@@ -47,8 +64,7 @@ const VEditor: React.FC<VEditorProps> = ({
       // Remove the key if value is empty
       delete updated[key];
     } else {
-      // Convert string input to match original type
-      updated[key] = stringToValue(newVal);
+      updated[key] = inputBoxToYamlValueWithTokens(newVal, canContainToken, liveAngleTokens);
     }
     onChange(updated);
   };
@@ -72,24 +88,31 @@ const VEditor: React.FC<VEditorProps> = ({
   };
 
   return (
-    <div className="mmt-fill">
-      <div className={disabled ? "label label-disabled is-gap" : "label is-gap"}>
-        {label}
-      </div>
+    <div
+      className="mmt-fill"
+      ref={rootRef}
+      onKeyDown={e => {
+        handleKvEditorTab(e, rootRef.current);
+      }}
+    >
+      {label ? (
+        <div className={disabled ? "label label-disabled is-gap" : "label is-gap"}>
+          {label}
+        </div>
+      ) : null}
       <div>
         {safeList(keys).map((key, index) => {
           const currentValue = value?.[key];
-          const displayValue = valueToString(currentValue);
+          const displayValue = yamlValueToInputBoxWithTokens(
+            currentValue,
+            canContainToken,
+            liveAngleTokens,
+          );
           const hasValue = currentValue !== undefined;
-          const typeLabel = currentValue === null
-            ? "null"
-            : isOmitSentinel(currentValue)
-              ? "omit"
-              : Array.isArray(currentValue)
-                ? "array"
-                : typeof currentValue;
+          const typeLabel = yamlValueTypeLabel(currentValue);
           const pickerOptions = inputConstraints?.[key];
           const fieldMatch = matchStatus?.get(key);
+          const valueField = kvFieldId(index, "value");
 
           const fieldControl = valueOptions && valueOptions.length > 0 ? (
             <SelectWithRemove
@@ -98,8 +121,10 @@ const VEditor: React.FC<VEditorProps> = ({
               onRemovePressed={() => handleRemove(index)}
               options={valueOptions}
               placeholder="Value"
-              disabled={disabled}
-              removable={deletable}
+              disabled={disabled || readOnly}
+              removable={deletable && !readOnly}
+              typeLabel={hasValue ? typeLabel : undefined}
+              kvField={valueField}
             />
           ) : pickerOptions && pickerOptions.length > 0 ? (
             <FieldWithOptionsPicker
@@ -109,9 +134,11 @@ const VEditor: React.FC<VEditorProps> = ({
               onRemovePressed={() => handleRemove(index)}
               options={pickerOptions}
               placeholder="Value"
-              disabled={disabled}
-              removable={deletable && hasValue}
+              disabled={disabled || readOnly}
+              removable={deletable && hasValue && !readOnly}
               copyable={copyable}
+              typeLabel={hasValue ? typeLabel : undefined}
+              kvField={valueField}
             />
           ) : (
             <FieldWithRemove
@@ -120,39 +147,60 @@ const VEditor: React.FC<VEditorProps> = ({
               onRemovePressed={() => handleRemove(index)}
               placeholder="Value"
               disabled={disabled}
-              removable={deletable && hasValue}
+              readOnly={readOnly}
+              removable={deletable && hasValue && !readOnly}
               copyable={copyable}
+              canContainToken={canContainToken && !readOnly}
+              valueContext={valueContext}
+              typeLabel={hasValue ? typeLabel : undefined}
+              kvField={valueField}
             />
           );
 
+          // Fixed-width slot before the value field (same size as expect rows).
+          // Empty twin on the key row keeps header/value aligned with no jump.
+          const showMatchGutter = matchStatus != null;
+
           return (
-            <div key={key} className="veditor-row">
-              <div className="veditor-key-row">
+            <div
+              key={key}
+              className={`veditor-row${showMatchGutter ? " has-match-gutter" : ""}`}
+            >
+              <div className="veditor-key-row field-inline">
+                {showMatchGutter ? (
+                  <span className="apitest-result-slot no-shrink" aria-hidden />
+                ) : null}
                 <span className="veditor-key">{key}</span>
-                {hasValue && (
-                  <span className="veditor-type">
-                    ({typeLabel})
-                  </span>
-                )}
               </div>
               <div className="field-inline">
+                {showMatchGutter ? (
+                  <span
+                    className={`apitest-result-slot no-shrink${
+                      fieldMatch === "match" ? " is-pass" : ""
+                    }${fieldMatch === "mismatch" ? " is-fail" : ""}`}
+                    title={fieldMatch === "match"
+                      ? "Matches example expect"
+                      : fieldMatch === "mismatch"
+                        ? "Does not match example expect"
+                        : undefined}
+                    aria-label={fieldMatch === "match"
+                      ? "Matches example expect"
+                      : fieldMatch === "mismatch"
+                        ? "Does not match example expect"
+                        : undefined}
+                    aria-hidden={!fieldMatch}
+                  >
+                    {fieldMatch === "match"
+                      ? <span className="codicon codicon-check" />
+                      : null}
+                    {fieldMatch === "mismatch"
+                      ? <span className="codicon codicon-close" />
+                      : null}
+                  </span>
+                ) : null}
                 <div className="field-grow">
                   {fieldControl}
                 </div>
-                {fieldMatch === "match" && (
-                  <span
-                    className="codicon codicon-check match-icon is-pass"
-                    title="Matches example output"
-                    aria-label="Matches example output"
-                  />
-                )}
-                {fieldMatch === "mismatch" && (
-                  <span
-                    className="codicon codicon-close match-icon is-fail"
-                    title="Does not match example output"
-                    aria-label="Does not match example output"
-                  />
-                )}
               </div>
             </div>
           );

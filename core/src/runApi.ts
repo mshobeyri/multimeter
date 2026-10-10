@@ -1,6 +1,7 @@
-import {APIData} from './APIData';
-import {yamlToAPI, yamlToAPIStrict} from './apiParsePack';
+import {APIData, ApiTestBlock, exampleId, exampleTitle} from './APIData';
+import {exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 import {CREATE_API_LOG_HELPERS_SOURCE} from './apiLogHelpersFactorySource';
+import {evaluateApiTest} from './apiTestEval';
 import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
@@ -10,6 +11,7 @@ import {replaceAllRefs, resolveInputsMap} from './variableReplacer';
 export interface ResolveExampleResult {
   exampleInputs: Record<string, any>;
   exampleOutputs?: Record<string, any>;
+  exampleTest?: ApiTestBlock;
   resolvedExampleName?: string;
   resolvedExampleIndex?: number;
 }
@@ -23,25 +25,26 @@ export function resolveApiExample(
     return {exampleInputs: {}};
   }
   const toResult = (ex: any, idx?: number): ResolveExampleResult => {
-    const name =
-        typeof ex?.name === 'string' && ex.name.trim() ? ex.name : undefined;
+    const label = exampleTitle(ex) || exampleId(ex);
     const inputs =
         isPlainObject(ex?.inputs) ? {...ex.inputs as Record<string, any>} : {};
-    const outputs = isPlainObject(ex?.outputs) ?
-        {...ex.outputs as Record<string, any>} :
-        undefined;
+    // Soft checks go through exampleTest (expect, with deprecated outputs folded in).
+    // Do not also feed exampleOutputs into formatExpects — that would double-log.
+    const exampleTest = exampleToApiTestBlock(ex);
     return {
       exampleInputs: inputs,
-      exampleOutputs: outputs,
-      resolvedExampleName: name,
+      exampleTest,
+      resolvedExampleName: label,
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,
     };
   };
   if (requestedName) {
     const target = requestedName.trim().toLowerCase();
     const idx = examples.findIndex(ex => {
-      const nm = typeof ex?.name === 'string' ? ex.name.trim() : '';
-      return nm.toLowerCase() === target;
+      const id = exampleId(ex);
+      const title = exampleTitle(ex);
+      return (id && id.toLowerCase() === target) ||
+          (title && title.toLowerCase() === target);
     });
     if (idx >= 0) {
       return toResult(examples[idx], idx);
@@ -77,7 +80,7 @@ export function prepareApiRun(
       typeof options.exampleName === 'string' && options.exampleName.trim() ?
       options.exampleName.trim() :
       undefined;
-  const {exampleInputs, exampleOutputs, resolvedExampleName, resolvedExampleIndex} =
+  const {exampleInputs, exampleOutputs, exampleTest, resolvedExampleName, resolvedExampleIndex} =
       resolveApiExample(
           apiDoc, requestedExampleIndex, requestedExampleName, log);
   const inputsUsed = mergeInputs({
@@ -92,6 +95,7 @@ export function prepareApiRun(
     exampleName: resolvedExampleName,
     exampleIndex: resolvedExampleIndex,
     exampleOutputs,
+    exampleTest,
   };
 }
 
@@ -112,7 +116,6 @@ export async function generateApiJs(options: GenerateApiJsOptions):
   const {
     api,
     name,
-    envVars,
     inputs,
     fileLoader,
     exampleName,
@@ -133,17 +136,16 @@ export async function generateApiJs(options: GenerateApiJsOptions):
     inputs: isPlainObject(api.inputs) ? {...api.inputs as Record<string, any>} :
                                         api.inputs
   };
+  // Do not substitute e: at codegen — process EnvStore / mmtEnv_ at runtime.
   const funcSource = await JSer.apiToJSfunc({
     api: apiClone,
     name,
     inputs: {},
-    envVars,
+    envVars: {},
   });
-  // Define the API function inside the runner IIFE so it closes over
-  // `envVariables` (e: tokens / input defaults resolve correctly).
   return buildApiRunnerWrapper({
     name,
-    envVars,
+    envVars: {},
     inputs,
     exampleName,
     exampleIndex,
@@ -165,10 +167,18 @@ interface ApiRunnerWrapperOptions {
 }
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
-  const resolvedInputs = resolveInputsMap(opts.inputs, opts.envVars ?? {});
-  opts = replaceAllRefs(
-      {...opts, inputs: resolvedInputs}, {}, resolvedInputs, opts.envVars ?? {});
-  const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
+  // Leave e: tokens in the script. jsRunner binds envVariables to the process
+  // store; inputs are resolved from that store at call time.
+  const functionSource = opts.apiFunctionSource;
+  const scanned = replaceAllRefs(
+      {...opts, apiFunctionSource: '', envVars: {}},
+      {}, opts.inputs ?? {}, {});
+  opts = {
+    ...scanned,
+    inputs: opts.inputs,
+    envVars: {},
+    apiFunctionSource: functionSource,
+  };
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
   const exampleOutputs = isPlainObject(opts.exampleOutputs) ? opts.exampleOutputs : {};
   const exampleOutputsJson = JSON.stringify(exampleOutputs, null, 2);
@@ -221,10 +231,8 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
           `    }\n` :
       '';
   return `return (async () => {\n` +
-      `  const envVar = ${envJson};\n` +
-      `  const envVariables = envVar;\n` +
-      `  const __mmt_envVars = envVar;\n` +
-      `  const __mmt_inputs = ${inputsJson};\n` +
+      `  const __mmt_envVars = typeof envVariables !== 'undefined' ? envVariables : {};\n` +
+      `  let __mmt_inputs = ${inputsJson};\n` +
       `  const __mmt_exampleLabel = ${exampleLiteral};\n` + helperDestructure +
       '\n' +
       (opts.apiFunctionSource ?
@@ -232,6 +240,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
            '') +
       `  const __mmt_originalSend = send_;\n` +
       `  send_ = async function(req) {\n` +
+      `    await checkAbort_();\n` +
       `    const __req = req || {};\n` +
       `    const __maskedHeaders = {};\n` +
       `    for (const [k, v] of Object.entries(__req.headers || {})) {\n` +
@@ -262,6 +271,8 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    console.debug(__mmt_formatSection('Request:', __reqLog));\n` +
       `    try {\n` +
       `      const __res = await __mmt_originalSend(req);\n` +
+      `      // Stop before Response logging when the user cancelled mid-request.\n` +
+      `      await checkAbort_();\n` +
       `      const __status = __res && typeof __res.status === 'number' ? __res.status : '';\n` +
       `      const __statusText = __res && typeof __res.statusText !== 'undefined' ? __res.statusText : '';\n` +
       `      const __duration = __res && typeof __res.duration === 'number' ? __res.duration : undefined;\n` +
@@ -275,7 +286,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        headers: __headers,\n` +
       `        body: __mmt_formatBodyValue(__body)\n` +
       `      };\n` +
-      `      console.debug(__mmt_formatSection('Response:', __resLog));\n` +
+      `      console.log(__mmt_formatSection('Response:', __resLog));\n` +
       `      if (__warning) {\n` +
       `        console.warn(__warning);\n` +
       `      }\n` +
@@ -284,6 +295,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      // marks the run failed after outputs are built.\n` +
       `      return __res;\n` +
       `    } catch (err) {\n` +
+      `      if (err && (err.kind === 'test-abort' || (typeof isTestAbortError === 'function' && isTestAbortError(err)))) {\n` +
+      `        throw err;\n` +
+      `      }\n` +
       `      if (err && err.response) {\n` +
       `        const __response = err.response;\n` +
       `        const __warning = err.message ? String(err.message) : 'Server returned an error response';\n` +
@@ -302,7 +316,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `          headers: __res.headers,\n` +
       `          body: __mmt_formatBodyValue(__res.body)\n` +
       `        };\n` +
-      `        console.debug(__mmt_formatSection('Response:', __resLog));\n` +
+      `        console.log(__mmt_formatSection('Response:', __resLog));\n` +
       `        console.warn(__warning);\n` +
       `        return __res;\n` +
       `      }\n` +
@@ -324,6 +338,11 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  try {\n` +
       `    if (__mmt_exampleLabel) {\n` +
       `      console.log('Running ' + __mmt_exampleLabel);\n` +
+      `    }\n` +
+      `    if (typeof resolveInputsMapAsync_ === 'function') {\n` +
+      `      __mmt_inputs = await resolveInputsMapAsync_(__mmt_inputs, __mmt_envVars);\n` +
+      `    } else if (typeof resolveInputsMap_ === 'function') {\n` +
+      `      __mmt_inputs = resolveInputsMap_(__mmt_inputs, __mmt_envVars);\n` +
       `    }\n` +
       `    const __mmt_hasEnv = Object.keys(__mmt_envVars || {}).length > 0;\n` +
       `    if (__mmt_hasEnv || __mmt_exampleLabel) {\n` +
@@ -665,6 +684,7 @@ export async function executeApi(
     exampleName,
     exampleIndex,
     exampleOutputs,
+    exampleTest,
   } = prepared;
   const {fileLoader, jsRunner} = options;
 
@@ -686,26 +706,61 @@ export async function executeApi(
       exampleLabel ? `${fileDisplayName} (${exampleLabel})` : fileDisplayName;
   const identifier = sanitizeIdentifier(
       exampleLabel ? `${baseName}_${exampleLabel}` : baseName);
-  const resolvedInputs = resolveInputsMap(inputsUsed, envVars);
+  // Process store supplies e: at runtime; keep raw tokens in generated JS.
+  const processEnv = options.envStore?.values ?? envVars;
+  const resolvedInputs = resolveInputsMap(inputsUsed, processEnv);
   const js = await generateApiJs({
     api: apiDoc,
     name: identifier,
-    envVars,
-    inputs: resolvedInputs,
+    envVars: {},
+    inputs: inputsUsed,
     fileLoader,
     exampleName,
     exampleIndex,
     exampleOutputs,
     checkTitle: fileDisplayName,
   });
+  // Suite items hand `setenv` to the suite so later items can consume it.
+  const apiSetenvReporter = (options as any).__mmtIsSuiteBundleChildRun === true &&
+      typeof options.reporter === 'function' ?
+      (event: Record<string, any>) => {
+        if (event && event.scope === 'setenv') {
+          options.reporter({...event, id: event.id || (options as any).id} as any);
+        }
+      } :
+      undefined;
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
-      (options as any).id, fileLoader, undefined, undefined, undefined,
+      (options as any).id, fileLoader, apiSetenvReporter, options.abortSignal,
+      undefined,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
-      undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader);
+      undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader,
+      processEnv, options.pauseGate);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }
+
+  // Evaluate the selected example's expect after outputs exist.
+  // Soft failures log but keep success (examples have no require / hard fail).
+  if (!result.cancelled && !result.syntaxError && exampleTest) {
+    const apiTest = evaluateApiTest(result.outputs, exampleTest, resolvedInputs, processEnv);
+    result.apiTest = apiTest;
+    if (apiTest.hasChecks) {
+      const titlePart = displayName ? `"${displayName}" - ` : '';
+      for (const item of apiTest.items) {
+        if (item.status === 'passed') {
+          options.logger('info', `\u2713 Expect ${titlePart}"${item.comparison}"`);
+        } else {
+          const got = item.actual === undefined ? 'undefined' :
+              (typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual));
+          options.logger(
+              'error',
+              `\u00D7 Expect ${titlePart}"${item.comparison}" (${got})`);
+        }
+      }
+    }
+  }
+
   return {
     js,
     result,
@@ -713,7 +768,7 @@ export async function executeApi(
     displayName,
     docType,
     inputsUsed: resolvedInputs,
-    envVarsUsed: envVars,
+    envVarsUsed: processEnv,
     exampleName,
     exampleIndex,
   };

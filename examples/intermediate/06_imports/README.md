@@ -44,7 +44,7 @@ import:
 |---|---|---|
 | API definition | `.mmt` (`type: api`) | `call` step |
 | Test flow | `.mmt` (`type: test`) | `call` step (runs as a nested test) |
-| CSV data | `.csv` | `data` + `for` steps |
+| CSV data | `.csv` | `for` steps |
 | JavaScript module | `.js` / `.cjs` / `.mjs` | `js` steps |
 | Mock server | `.mmt` (`type: server`) | `run` step |
 

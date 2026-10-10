@@ -1,0 +1,59 @@
+type: api
+title: Random tokens in a JSON body
+description: "A whole-field r: value keeps the generator type. The example expects r:uuid, r:int(10,20), r:bool, and r:color, checked as the shape of that generator."
+outputs:
+  request_id: body.body.request_id
+  lucky_number: body.body.lucky_number
+  active: body.body.active
+  missing_token: body.body.missing_token
+  literal_token: body.body.literal_token
+  literal_omit: body.body.literal_omit
+  removed_note: body.body.removed_note
+  angle_whole: body.body.angle_whole
+  quoted_angle: body.body.quoted_angle
+  angle_prefix: body.body.angle_prefix
+  angle_suffix: body.body.angle_suffix
+  angle_both: body.body.angle_both
+  quoted_curly: body.body.quoted_curly
+  curly_whole: body.body.curly_whole
+  missing_embed: body.body.missing_embed
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  request_id: r:uuid
+  lucky_number: r:int(10,20)
+  active: r:bool
+  missing_token: r:not_a_token
+  literal_token: "r:uuid"
+  removed_note: omit
+  literal_omit: "omit"
+  angle_whole: <<r:int(10,20)>>
+  quoted_angle: "<<r:int(10,20)>>"
+  angle_prefix: "asda<<r:int(10,20)>>"
+  angle_suffix: "<<r:int(10,20)>>asas"
+  angle_both: "asda<<r:bool>>asas"
+  quoted_curly: "{{r:color}}"
+  curly_whole: {{r:color}}
+  missing_embed: "x<<r:not_a_token>>y"
+examples:
+  - id: defaults
+    title: Check outputs
+    expect:
+      status_code: 200
+      request_id: != null
+      lucky_number: =* [0-9]{2}
+      active: =* true|false
+      missing_token: "r:not_a_token"
+      literal_token: "r:uuid"
+      literal_omit: "omit"
+      removed_note: omit
+      angle_whole: =* [0-9]{2}
+      quoted_angle: =* [0-9]{2}
+      angle_prefix: =* ^asda(1[0-9]|20)$
+      angle_suffix: =* ^(1[0-9]|20)asas$
+      angle_both: =* ^asda(true|false)asas$
+      quoted_curly: =* [a-z]+
+      curly_whole: =* [a-z]+
+      missing_embed: "xr:not_a_tokeny"

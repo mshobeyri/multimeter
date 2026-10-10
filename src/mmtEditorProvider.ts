@@ -6,7 +6,12 @@ import {withNewline} from 'mmt-core/textLines';
 import {HistoryManager} from './historyManager';
 import {keepMmtEditorSoon} from './keepEditor';
 import {messageReceived} from './mmtAPI/mmtAPI';
-import {handleRunCurrentDocument} from './mmtAPI/run';
+import {
+  abortRunsForPanel,
+  handleRunCurrentDocument,
+  panelHasActiveRun,
+} from './mmtAPI/run';
+import {stopMocksBoundToEditor} from './mmtAPI/mockRunner';
 import {buildThemeTokenMessage} from './themeTokenColors';
 import {getOnboarding, coachTargetForTask, OnboardingTaskId} from './onboarding';
 import {resolveSourceFormat} from './mmtSourceFormat';
@@ -57,6 +62,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     try {
       const config = vscode.workspace.getConfiguration('multimeter');
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
+      const bodyLineNumbers = !!config.get<boolean>('body.lineNumbers');
       const editorFontSize = config.get<number>('editor.fontSize');
       const defaultPanel = config.get<string>('editor.defaultPanel') || 'yaml-ui';
       const collapseDescription = !!config.get<boolean>('editor.collapseDescription');
@@ -64,6 +70,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       return {
         command: 'config',
         bodyAutoFormat,
+        bodyLineNumbers,
         editorFontSize,
         defaultPanel,
         collapseDescription,
@@ -75,6 +82,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       return {
         command: 'config',
         bodyAutoFormat: false,
+        bodyLineNumbers: false,
         editorFontSize: 12,
         defaultPanel: 'yaml-ui',
         collapseDescription: false,
@@ -102,6 +110,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   public refreshEnvironmentVars() {
     const message = {command: 'multimeter.environment.refresh'};
     this.sendMessageToAllPanels(message);
+  }
+
+  public postToActivePanel(message: any) {
+    const activePanel =
+        Array.from(this.activeWebviewPanels).find(panel => panel.active);
+    this.postMessageToPanel(activePanel, message);
   }
 
   public showPanel(panelId: 'full'|'ui'|'yaml') {
@@ -161,6 +175,13 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
     // Remove panel when it's disposed
     webviewPanel.onDidDispose(() => {
+      // Dirty-while-running makes Cancel keep the tab open. If we still get
+      // here with an active run (Don't Save / Save), abort it.
+      if (panelHasActiveRun(webviewPanel)) {
+        abortRunsForPanel(webviewPanel);
+      }
+      // UI-started mocks are bound to this editor; panel-started ones are not.
+      stopMocksBoundToEditor(document.uri);
       this.activeWebviewPanels.delete(webviewPanel);
       if (this.lastOpened?.panel === webviewPanel) {
         this.lastOpened = undefined;
@@ -252,7 +273,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
   updateTextDocument(
       document: vscode.TextDocument, text: string,
-      origin: 'webview'|'host' = 'webview') {
+      origin: 'webview'|'host'|'silent' = 'webview') {
     // Monaco / webview always speak LF; VS Code documents on Windows are often
     // CRLF. Convert to the document EOL before compare/replace so we do not
     // full-rewrite on every keystroke (that races echo and jumps the cursor).
@@ -265,9 +286,13 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       return Promise.resolve(true);
     }
     // UI/YAML edits should keep a preview tab open (same idea as a dirty file).
-    keepMmtEditorSoon(document.uri);
+    // Silent = run-owned dirty marker; tab is already kept by the run path.
+    if (origin !== 'silent') {
+      keepMmtEditorSoon(document.uri);
+    }
     const key = document.uri.toString();
-    if (origin === 'webview') {
+    // webview + silent: skip onDidChangeTextDocument echo into the webview.
+    if (origin === 'webview' || origin === 'silent') {
       this._webviewEditCount.set(
           key, (this._webviewEditCount.get(key) || 0) + 1);
     }
@@ -276,7 +301,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         document.positionAt(0), document.positionAt(document.getText().length));
     edit.replace(document.uri, fullRange, normalized);
     return vscode.workspace.applyEdit(edit).then(applied => {
-      if (!applied && origin === 'webview') {
+      if (!applied && (origin === 'webview' || origin === 'silent')) {
         const current = this._webviewEditCount.get(key) || 0;
         if (current > 0) {
           this._webviewEditCount.set(key, current - 1);

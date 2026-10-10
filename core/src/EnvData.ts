@@ -29,11 +29,15 @@ export interface EnvSetting {
   http?: EnvHttpSettings;
 }
 
-export type EnvVariableValue =
-  | {[label: string]: string | number | boolean | null | undefined}
-  | Array<string | number | boolean | null>;
+export type EnvScalar = string | number | boolean | null;
 
-export type EnvPresetValue = string | number | boolean | null;
+/** Choice map or allowed-value list — values are scalars only (no nested object/list). */
+export type EnvVariableValue =
+  | {[label: string]: EnvScalar | undefined}
+  | EnvScalar[];
+
+/** Preset entries are choice keys or scalar literals. */
+export type EnvPresetValue = EnvScalar;
 export type EnvPresetMapping = Record<string, EnvPresetValue>;
 export type EnvPresetGroup = Record<string, EnvPresetMapping>;
 export type EnvPresets = Record<string, EnvPresetGroup>;

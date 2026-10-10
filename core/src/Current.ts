@@ -1,5 +1,6 @@
 import { MONTHS, WEEKDAYS } from './RandomResources';
 import {signedDurationMs, unsignedDurationMs} from './durationParse';
+import type {TokenValueType} from './Random';
 
 function pad2(n: number): string { return n.toString().padStart(2, '0'); }
 function pad3(n: number): string { return n.toString().padStart(3, '0'); }
@@ -179,6 +180,33 @@ export const CURRENT_FUTURE_PAST_ALIASES: Record<
   epoch_ms_future: {base: 'epoch_ms', direction: 'future'},
   epoch_ms_past: {base: 'epoch_ms', direction: 'past'},
 };
+
+const CURRENT_NON_STRING: Record<string, TokenValueType> = {
+  weekday_number: 'number',
+  year: 'number',
+  epoch: 'number',
+  epoch_ms: 'number',
+};
+
+/** Return type of `c:name` (aliases resolve to base). Unknown → undefined. */
+export function currentTokenValueType(name: string): TokenValueType|undefined {
+  let key = String(name || '');
+  const alias = CURRENT_FUTURE_PAST_ALIASES[key];
+  if (alias) {
+    key = alias.base;
+  }
+  if (!Object.prototype.hasOwnProperty.call(CURRENT_TOKEN_MAP, key)) {
+    return undefined;
+  }
+  return CURRENT_NON_STRING[key] || 'string';
+}
+
+/** Every CURRENT_TOKEN_MAP key → value type (for tests / docs sync). */
+export const CURRENT_TOKEN_VALUE_TYPES: Record<string, TokenValueType> =
+    Object.fromEntries(
+        Object.keys(CURRENT_TOKEN_MAP).map(
+            (k) => [k, currentTokenValueType(k) as TokenValueType]),
+    );
 
 /** Resolve a current token name with an optional signed duration offset. */
 export function currentValueForToken(spec: string): any|undefined {

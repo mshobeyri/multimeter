@@ -19,6 +19,8 @@ import {
   currentWeekdayNumber,
   currentYear,
   CURRENT_TOKEN_MAP,
+  currentTokenValueType,
+  CURRENT_TOKEN_VALUE_TYPES,
 } from './Current';
 
 function within(now: number, target: number, windowMs: number): boolean {
@@ -195,5 +197,24 @@ describe('Current tokens', () => {
       (Intl as any).DateTimeFormat = orig;
       (Intl as any).DisplayNames = origDn;
     }
+  });
+});
+
+describe('currentTokenValueType metadata', () => {
+  test('covers every CURRENT_TOKEN_MAP key and matches sample typeof', () => {
+    for (const [name, gen] of Object.entries(CURRENT_TOKEN_MAP)) {
+      const declared = currentTokenValueType(name);
+      expect(declared).toBeDefined();
+      expect(CURRENT_TOKEN_VALUE_TYPES[name]).toBe(declared);
+      expect(typeof gen()).toBe(declared);
+    }
+  });
+
+  test('day/month are strings; epoch/year are numbers', () => {
+    expect(currentTokenValueType('day')).toBe('string');
+    expect(currentTokenValueType('month')).toBe('string');
+    expect(currentTokenValueType('epoch')).toBe('number');
+    expect(currentTokenValueType('year')).toBe('number');
+    expect(currentTokenValueType('epoch_future')).toBe('number');
   });
 });

@@ -22,9 +22,10 @@ import { FileContext } from "./fileContext";
 import PanelErrorBoundary from "./shared/PanelErrorBoundary";
 import { ensureThemeSync } from "./text/Theme";
 import { cacheBodyAutoFormat } from "./api/bodyAutoFormatConfig";
+import { cacheBodyLineNumbers } from "./api/bodyLineNumbersConfig";
 import { collectYamlEditorErrors } from "./text/yamlEditorErrors";
 import { cacheReportSpillBytes } from "./shared/reportSpillConfig";
-import YamlErrorWarning from "./api/YamlErrorWarning";
+import YamlErrorWarning, { YamlErrorDim } from "./api/YamlErrorWarning";
 import SpecApiPanel from "./spec/SpecApiPanel";
 import {
   SourceFormat,
@@ -33,6 +34,8 @@ import {
   parseCollectionFiles,
   parseSourceFormat,
 } from "./sourceFormat";
+import { hasPrimaryAction, invokePrimaryAction } from "./primaryAction";
+import { patchWebviewState } from "./shared/webviewState";
 
 /** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
 function toEditorText(text: string): string {
@@ -239,7 +242,6 @@ const App: React.FC = () => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
       if (message.command === "viewDocumentContent") {
-        isInitLoad.current = true;
         setDocumentContentLoaded(true);
         if (typeof message.uri === "string") {
           const savedViewState = readSavedViewState(message.uri);
@@ -260,7 +262,16 @@ const App: React.FC = () => {
               message.sourceFormat
         );
         setSourceFormat(nextSourceFormat);
-        setContent(toEditorText(message.content));
+        const loadedText = toEditorText(message.content);
+        setContent(prev => {
+          if (prev === loadedText) {
+            return prev;
+          }
+          // Skip echoing the loaded text back; an unchanged value would never
+          // consume this flag and would swallow the user's first edit.
+          isInitLoad.current = true;
+          return loadedText;
+        });
 
         // Only seed validContent if the initial document is valid;
         // otherwise leave it as-is (so UI doesn't see "{}" or "")
@@ -355,6 +366,10 @@ const App: React.FC = () => {
         }
       }
 
+      if (message.command === "sendRequest") {
+        invokePrimaryAction();
+      }
+
       if (message.command === "multimeter.mmt.show.panel") {
         const width = getLayoutWidth();
         if (message.panelId === "full") {
@@ -375,10 +390,17 @@ const App: React.FC = () => {
         if (typeof message.bodyAutoFormat === "boolean") {
           cacheBodyAutoFormat(message.bodyAutoFormat);
         }
+        if (typeof message.bodyLineNumbers === "boolean") {
+          cacheBodyLineNumbers(message.bodyLineNumbers);
+        }
         if (typeof message.reportSpillBytes === "number" && message.reportSpillBytes >= 0) {
           cacheReportSpillBytes(message.reportSpillBytes);
         }
-        if (typeof message.bodyAutoFormat === "boolean" || typeof message.reportSpillBytes === "number") {
+        if (
+          typeof message.bodyAutoFormat === "boolean"
+          || typeof message.bodyLineNumbers === "boolean"
+          || typeof message.reportSpillBytes === "number"
+        ) {
           window.dispatchEvent(new CustomEvent("multimeter.config", { detail: message }));
         }
         const size = Number(message.editorFontSize);
@@ -440,9 +462,22 @@ const App: React.FC = () => {
 
   const yamlStale = sourceFormat === "mmt" && content !== validContent && yamlErrors.length > 0;
 
+  const [yamlErrorDimDismissed, setYamlErrorDimDismissed] = useState(false);
+
+  useEffect(() => {
+    if (yamlErrors.length === 0) {
+      setYamlErrorDimDismissed(false);
+    }
+  }, [yamlErrors.length]);
+
   const restoreValidYaml = useCallback(() => {
     setContent(validContent);
+    setYamlErrorDimDismissed(false);
   }, [validContent]);
+
+  const dismissYamlErrorDim = useCallback(() => {
+    setYamlErrorDimDismissed(true);
+  }, []);
 
   useEffect(() => {
     if (isInitLoad.current) {
@@ -454,6 +489,25 @@ const App: React.FC = () => {
 
   useEffect(() => {
     window.vscode?.postMessage({ command: "loadDocumentContent" });
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Enter" || event.repeat || event.isComposing) {
+        return;
+      }
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (!hasPrimaryAction()) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      invokePrimaryAction();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
 
   useEffect(() => {
@@ -473,7 +527,7 @@ const App: React.FC = () => {
       lastFullPanelSizeRef.current = panelSize;
       lastFullPanelRatioRef.current = clampPanelRatio(panelSize / width, width);
     }
-    (window.vscode as any)?.setState?.({
+    patchWebviewState({
       documentUri: mmtFilePath,
       panelSize: lastFullPanelSizeRef.current,
       panelRatio: lastFullPanelRatioRef.current,
@@ -530,7 +584,17 @@ const App: React.FC = () => {
     : { display: "none", width: 0, minWidth: 0, margin: 0, padding: 0, pointerEvents: "none" };
 
   return (
-    <FileContext.Provider value={{ mmtFilePath, projectRoot, yamlErrors, yamlStale, restoreValidYaml, collectionFiles, collectionName }}>
+    <FileContext.Provider value={{
+      mmtFilePath,
+      projectRoot,
+      yamlErrors,
+      yamlStale,
+      restoreValidYaml,
+      yamlErrorDimDismissed,
+      dismissYamlErrorDim,
+      collectionFiles,
+      collectionName,
+    }}>
       <div ref={splitHostRef} className="split-host">
         <SplitPane
           split="vertical"
@@ -579,6 +643,7 @@ const App: React.FC = () => {
               className="ui-pane-inner"
               style={isSplitMode ? { minWidth: 450 } : undefined}
             >
+              <YamlErrorDim />
               <PanelErrorBoundary resetKey={`${docType || "none"}::${validContent}`}>
                 {docType === "env" && (
                   <EnvironmentPanel content={validContent} setContent={uiSetContent} />

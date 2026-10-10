@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react';
 import { openOsFilePicker } from '../vsAPI';
 import fileHelper from 'mmt-core/fileHelper';
+import type { RuntimeTokenValueContext } from 'mmt-core/apiBodyEdit';
+import StableTextInput from './StableTextInput';
+import TokenFieldInput from './TokenFieldInput';
+import { KV_FIELD_ATTR } from './kvFieldNav';
 
 type FileFilter = { name?: string; extensions?: string[] };
 
@@ -21,6 +25,9 @@ interface FilePickerInputProps {
   placeholder?: string;
   /** Wavy red underline for a line-level validation error. */
   invalid?: boolean;
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
+  kvField?: string;
 }
 
 const FilePickerInput: React.FC<FilePickerInputProps> = ({
@@ -37,6 +44,9 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
   removable = false,
   placeholder,
   invalid = false,
+  canContainToken = false,
+  valueContext,
+  kvField,
 }) => {
   const filterPayload = useMemo(() => {
     if (!filters || filters.length === 0) { return undefined; }
@@ -83,34 +93,58 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
     }
   };
 
-  let rightPadding = 8;
-  if (showFilePicker) { rightPadding += 28; }
-  if (removable) { rightPadding += 28; }
+  const inputClassName = ['file-picker-input', invalid ? 'mmt-line-error' : ''].filter(Boolean).join(' ');
+  const kvAttr = kvField ? { [KV_FIELD_ATTR]: kvField } as Record<string, string> : undefined;
+  const wrapClass = [
+    'field-with-remove',
+    disabled ? 'is-disabled' : '',
+    showFilePicker ? 'has-picker' : '',
+    removable ? 'has-remove' : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <div className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}>
-      <input
-        ref={ref}
-        type="text"
-        value={value}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={e => {
-          onChange && onChange(e.target.value);
-        }}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            (e.target as HTMLInputElement).blur();
-            onEnterPressed && onEnterPressed(value);
-          }
-        }}
-        style={{ paddingRight: rightPadding }}
-        className={['file-picker-input', invalid ? 'mmt-line-error' : ''].filter(Boolean).join(' ')}
-        title={value}
-      />
+    <div className={wrapClass}>
+      {canContainToken && !disabled ? (
+        <TokenFieldInput
+          value={value}
+          canContainToken
+          valueContext={valueContext}
+          placeholder={placeholder}
+          className={inputClassName}
+          title={value}
+          {...kvAttr}
+          onCommit={next => {
+            onChange?.(next);
+            onEnterPressed?.(next);
+          }}
+          onDraftChange={next => onChange?.(next)}
+        />
+      ) : (
+        <StableTextInput
+          ref={ref}
+          type="text"
+          value={value}
+          disabled={disabled}
+          placeholder={placeholder}
+          onChange={next => {
+            onChange && onChange(next);
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+              onEnterPressed && onEnterPressed((e.target as HTMLInputElement).value);
+            }
+          }}
+          className={inputClassName}
+          title={value}
+          {...kvAttr}
+        />
+      )}
       {showFilePicker && (
         <button
+          type="button"
+          tabIndex={-1}
           onClick={handleOpenPicker}
           disabled={disabled}
           title={
@@ -119,19 +153,20 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
               : 'Open file picker'
           }
           aria-label="Open file picker"
-          className="field-button"
-          style={{ right: removable ? 32 : 4 }}
+          className="field-button is-picker"
         >
           <span className="action-button codicon codicon-folder-opened" />
         </button>
       )}
       {removable && (
         <button
+          type="button"
+          tabIndex={-1}
           onClick={handleRemove}
           disabled={disabled}
           title="Remove"
           aria-label="Remove"
-          className="field-button"
+          className="field-button is-remove"
         >
           <span className="action-button codicon codicon-close" />
         </button>

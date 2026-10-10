@@ -752,6 +752,25 @@ describe('extractOutputs extra sections and auto type', () => {
     expect(result.regexCookie).toBe('2');
   });
 
+  it('reads fields inside an XML string stored on a JSON body', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: JSON.stringify({
+        body: '<body><account_age>42</account_age><name>ada</name></body>',
+      }),
+      headers: {'Content-Type': 'application/json'},
+      cookies: {},
+    };
+    const res = extractOutputs(response, {
+      account_age: 'body.body.account_age',
+      name: 'body.body.name',
+      viaRoot: 'body.body.body.account_age',
+    });
+    expect(res.account_age).toBe('42');
+    expect(res.name).toBe('ada');
+    expect(res.viaRoot).toBe('42');
+  });
+
   it('auto-detects xml vs json and handles omit/invalid regex', () => {
     const xml = extractOutputs({
       type: 'auto',

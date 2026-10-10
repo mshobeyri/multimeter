@@ -50,6 +50,66 @@ describe('networkCore request timeout', () => {
     });
   });
 
+  it('retries once when a keep-alive socket resets before a response', async () => {
+    mockedAxios.request
+        .mockRejectedValueOnce(Object.assign(new Error('socket hang up'), {
+          code: 'ECONNRESET',
+          request: {socket: {destroyed: false, destroy: jest.fn(), removeAllListeners: jest.fn(), on: jest.fn()}},
+        }))
+        .mockResolvedValueOnce({
+          data: new TextEncoder().encode('ok').buffer,
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        });
+
+    const response = await sendHttpRequest(
+        {url: 'http://example.com/echo', method: 'post', body: '{"xxx":12}'},
+        DEFAULT_NETWORK_CONFIG,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedAxios.request).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry an HTTP error that already has a response', async () => {
+    mockedAxios.request.mockRejectedValueOnce(Object.assign(
+        new Error('Request failed with status code 400'),
+        {
+          response: {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: {},
+            data: new TextEncoder().encode('no').buffer,
+          },
+          request: {socket: {destroyed: false, destroy: jest.fn(), removeAllListeners: jest.fn(), on: jest.fn()}},
+        },
+    ));
+
+    const response = await sendHttpRequest(
+        {url: 'http://example.com/echo', method: 'post', body: '{"xxx":"asdasd"}'},
+        DEFAULT_NETWORK_CONFIG,
+    );
+
+    expect(response.status).toBe(400);
+    expect(mockedAxios.request).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry a refused connection', async () => {
+    mockedAxios.request.mockRejectedValue(Object.assign(
+        new Error('connect ECONNREFUSED'),
+        {code: 'ECONNREFUSED'},
+    ));
+
+    const response = await sendHttpRequest(
+        {url: 'http://example.com/echo', method: 'get'},
+        DEFAULT_NETWORK_CONFIG,
+    );
+
+    expect(response.status).toBe(-1);
+    expect(mockedAxios.request).toHaveBeenCalledTimes(1);
+  });
+
   it('uses request timeout when provided', async () => {
     await sendHttpRequest(
         {url: 'http://example.com', method: 'get', timeout: 5000},

@@ -30,6 +30,8 @@
   - `networkCore.ts`, `network.ts`, `NetworkData.ts`: HTTP/WebSocket client, message routing, and shared network config types.
   - `outputExtractor.ts` + `pathAtPosition.test.ts`: JSON/XML/xpath/jsonpath/regex extraction and “path at cursor” helpers.
   - `variableReplacer.ts`: **single source of truth** for all token-matching regex and replacement logic. All regex patterns and token accessor handling for `e:`, `i:`, `r:`, `c:` tokens (including forms like `[0]`, `[0:3]`, and `.field`) live here. Other modules (`JSerHelper`, `JSerTestFlow`, `JSerAPI`, etc.) import helpers from `variableReplacer` — they must NOT define their own token-matching regexes.
+  - YAML on disk: bare whole-value tokens (`r:int`) and embedded `<<prefix:name>>`. API tester UI uses `{{prefix:name}}`; that curly form is also accepted in YAML and normalized to bare / `<<>>` on parse (`markupConvertor` + `reviveDisplayRuntimeTokensInValue`). See `AI/sdd/sdd-token-form-consistency.md`.
+  - Return types for JSON UI quoting: `randomTokenValueType` / `currentTokenValueType` in `Random.ts` / `Current.ts` (not hardcoded allowlists in the UI layer).
 - When extending behavior:
   - First update the relevant data model types in `core/src/*Data.ts` (e.g. `APIData`, `TestData`, `NetworkConfig`).
   - Add/adjust unit tests in `core/src/*.test.ts` that cover the new pure logic.
@@ -73,8 +75,9 @@
 
 ## Workflow / agent rules
 
-- After completing a coding request that changes source, run `npm run compile` at the repo root and fix any compile errors before finishing (or before committing when a commit was requested).
+- **Compile on every finished coding task.** Whenever you finish a coding task with the user (task complete, “done”, wrapping up a multi-step change, or handing work back), run `npm run compile` at the repo root, fix any compile errors, and only then treat the work as finished. Do this even if tests already passed. Skip only when no source files were changed (docs-only / SDD-only / config-only with no code).
 - Do **NOT** create, stage, or push git commits unless the user explicitly asks you to do so. Always ask for confirmation before running any `git add`, `git commit`, or `git push` operations. You may edit files in the workspace to make suggested changes, but do not record those changes in version control until the user gives explicit permission. When edits are made without committing, clearly list the modified files and the intended commit message so the user can approve.
+- Do **NOT** add a VS Code `preLaunchTask` (or similar) that rebuilds webview/extension on every Extension Development Host F5/restart — compile explicitly via `npm run compile` / watch instead. Reloading the target while a heavy preLaunch rebuild runs is a common cause of the debug host stopping.
 - Do **NOT** touch `CHANGELOG.md` for regular fixes or features. It is written only as part of the release workflow, from the commits included in that release.
 
 ### Release workflow
@@ -84,11 +87,17 @@ Ask for the exact version. Do not invent one.
 - **"release X.Y.Z"** → stable. `package.json`, `mmtcli/package.json`, and `mmtmcp/package.json` are all `X.Y.Z`. Tag `vX.Y.Z`.
 - **"pre-release X.Y.Z"** → extension `package.json` is `X.Y.Z` (Marketplace cannot have `-pre`). CLI and MCP are `X.Y.Z-pre`. Tag `vX.Y.Z-pre`.
 
-CLI (`mmt-testlight`) and MCP (`mmt-mcp`) share one npm version and dist-tag: stable → `@latest`, pre → `@pre`. `mmtmcp/server.json` must match that same MCP version (CI `--check` enforces it). Then CHANGELOG, always pack a local VSIX (`npm run pack` or `npm run pack-pre-release`), commit `Release version …`, push the tag. CI builds binaries, creates the GitHub Release, then publishes npm (both packages), Docker, Homebrew (stable), and the GitHub Action (stable only). Marketplace and Open VSX are not published from CI. After a **stable** release, publish the same VSIX to Marketplace and to Open VSX (`npx ovsx publish ./multimeter-X.Y.Z.vsix`), then check https://open-vsx.org/user-settings/extensions/mshobeyri/multimeter matches `X.Y.Z`. Skip Open VSX on pre-releases.
+CLI (`mmt-testlight`) and MCP (`mmt-mcp`) share one npm version and dist-tag: stable → `@latest`, pre → `@pre`. `mmtmcp/server.json` must match that same MCP version (CI `--check` enforces it). Then CHANGELOG, always pack a local VSIX (`npm run pack` or `npm run pack-pre-release`), commit `Release version …`, push the tag.
+
+GitHub Actions (`.github/workflows/release-testlight.yml`) builds binaries, creates the GitHub Release, then publishes npm (both packages), Docker, Homebrew (stable), and the GitHub Action (stable only).
+
+**VS Code Marketplace pre-releases** are published from Azure Pipelines (`azure-pipelines.yml` in Azure DevOps project `mehrdadshobeyri` / `multimeter`), not from GitHub Actions. Pushing `vX.Y.Z-pre` packs the VSIX and runs `vsce publish --pre-release` (publisher `mshobeyri`; secret `VSCE_PAT` on that pipeline). Manual pipeline runs on a branch only pack. `v1.44.0-pre` is skipped. After a pre-release tag, confirm that Azure run succeeded.
+
+Stable Marketplace, Open VSX, and the official MCP Registry are not published from GitHub CI. After a **stable** release, publish the same VSIX to Marketplace and to Open VSX (`npx ovsx publish ./multimeter-X.Y.Z.vsix`), then check https://open-vsx.org/user-settings/extensions/mshobeyri/multimeter matches `X.Y.Z`. After npm `mmt-mcp@X.Y.Z` is on `@latest`, publish `mmtmcp/server.json` with `mcp-publisher publish` and confirm https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.mshobeyri/multimeter shows `X.Y.Z`. Skip Open VSX and the MCP Registry on pre-releases.
 
 Never ship a VSIX whose version contains a hyphen.
 
-Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN`.
+Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOKEN`. Marketplace pre-release: Azure DevOps pipeline secret `VSCE_PAT`.
 
 ## Build, test, and packaging
 - From repo root:

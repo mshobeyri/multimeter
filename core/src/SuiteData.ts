@@ -47,6 +47,7 @@ export type SuiteHierarchyNode =
     filter?: SuiteYamlFilter;
   }
   | {kind: 'test'; id: string; path: string; title?: string; tags?: string[]}
+  | {kind: 'api'; id: string; path: string; title?: string; tags?: string[]}
   | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
@@ -57,7 +58,7 @@ export type SuiteHierarchyRootNode = Extract<SuiteHierarchyNode, {kind: 'suite'}
   export?: string[];
 };
 
-/** Cached tree: a suite root, or a single test/server leaf. */
+/** Cached tree: a suite root, or a single test/server/api leaf. */
 export type SuiteHierarchyTree =
   | SuiteHierarchyRootNode
-  | Extract<SuiteHierarchyNode, {kind: 'test'|'server'}>;
+  | Extract<SuiteHierarchyNode, {kind: 'test'|'api'|'server'}>;

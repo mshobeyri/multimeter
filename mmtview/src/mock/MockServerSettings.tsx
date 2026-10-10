@@ -1,6 +1,7 @@
 import React from "react";
 import { MockConnectionConfig, MockConnectionMode, MockData } from "mmt-core/MockData";
 import FilePickerInput from "../components/FilePickerInput";
+import StableTextInput from "../components/StableTextInput";
 import KSVEditor from "../components/KSVEditor";
 import { FileContext } from "../fileContext";
 import { patchMockYaml } from "./mockYaml";
@@ -103,12 +104,12 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
   return (
     <div className="mock-edit-tab-content">
       <div className="label is-field">Port</div>
-      <input
+      <StableTextInput
         type="text"
         className="vscode-input field-control"
-        value={data.port ?? ''}
-        onChange={e => {
-          const raw = e.target.value.trim();
+        value={data.port == null ? '' : String(data.port)}
+        onChange={next => {
+          const raw = next.trim();
           if (!raw) {
             updateField('port', undefined);
             return;
@@ -188,11 +189,11 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
 
       <div className="label is-field">Delay</div>
       <div className="delay-row">
-        <input
+        <StableTextInput
           type="number"
           className="vscode-input field-grow"
-          value={data.delay || ''}
-          onChange={e => updateField('delay', parseInt(e.target.value, 10) || undefined)}
+          value={data.delay ? String(data.delay) : ''}
+          onChange={next => updateField('delay', parseInt(next, 10) || undefined)}
           min={0}
           placeholder="0"
         />
@@ -220,11 +221,11 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
       />
 
       <div className="label is-field">Proxy</div>
-      <input
+      <StableTextInput
         type="text"
         className="vscode-input mmt-fill"
         value={data.proxy || ''}
-        onChange={e => updateField('proxy', e.target.value || undefined)}
+        onChange={next => updateField('proxy', next || undefined)}
         placeholder="Forward unmatched requests to URL"
       />
     </div>

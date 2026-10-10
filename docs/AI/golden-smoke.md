@@ -14,7 +14,6 @@ outputs:
   echoed: body.body.message
 url: https://test.mmt.dev/echo
 method: post
-format: json
 body:
   message: i:message
 ```

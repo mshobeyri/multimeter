@@ -91,7 +91,7 @@ function sniffFormatFromBody(raw: string): Format {
 
 /**
  * Resolve request format: explicit value wins; `auto` uses Content-Type, else `json`.
- * Body-less methods (GET) resolve `auto` to `none`.
+ * Method only affects `auto` (body-less methods like GET resolve to `none`).
  */
 export function resolveRequestFormat(
     declared: RequestFormat,

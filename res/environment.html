@@ -91,6 +91,7 @@
 
         .env-table {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             font-size: var(--table-font-size);
         }
@@ -99,24 +100,51 @@
             background-color: rgba(255, 255, 255, 0.03);
         }
 
-        .env-table th {
+        .env-table th,
+        .env-table td {
             text-align: left;
+            padding: 2px 4px;
+            border: none;
+            vertical-align: middle;
+            overflow: hidden;
+        }
+
+        .env-table th:first-child,
+        .env-table td:first-child {
+            padding-left: var(--cell-padding-x);
+        }
+
+        .env-table th:last-child,
+        .env-table td:last-child {
+            padding-right: var(--cell-padding-x);
+        }
+
+        .env-table tbody tr:first-child td {
+            padding-top: 8px;
+        }
+
+        .env-table tbody tr:last-child td {
+            padding-bottom: 8px;
+        }
+
+        .env-table th {
             font-size: var(--table-header-font-size);
             color: var(--description-foreground);
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            padding: 6px var(--cell-padding-x);
-            border-bottom: 1px solid var(--panel-border);
         }
 
-        .env-table td {
-            padding: 6px var(--cell-padding-x);
-            border-bottom: 1px solid var(--panel-border);
-            vertical-align: middle;
+        /* Fixed share of width so long values / empty rows do not reflow columns. */
+        .env-col-name {
+            width: 22%;
         }
 
-        .env-table tr:last-child td {
-            border-bottom: none;
+        .env-col-label {
+            width: 24%;
+        }
+
+        .env-col-value {
+            width: auto;
         }
 
         .env-name {
@@ -128,12 +156,14 @@
             align-items: center;
             gap: 6px;
             min-width: 0;
+            height: var(--cell-height);
         }
 
         .env-name-text {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            line-height: 1;
         }
 
         .env-source-icon {
@@ -141,14 +171,26 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             color: var(--description-foreground);
             opacity: 0.85;
         }
 
+        /* Codicon glyphs sit high in the em-box unless line-height is locked. */
         .env-source-icon .codicon {
-            font-size: 14px;
+            font-size: 14px !important;
+            line-height: 16px !important;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .env-source-icon .codicon::before {
+            display: block;
+            line-height: 1;
         }
 
         .env-source-icon svg {
@@ -162,18 +204,103 @@
             color: var(--vscode-symbolIcon-stringForeground, var(--foreground));
         }
 
+        .env-value-wrap {
+            position: relative;
+            width: 100%;
+            min-width: 0;
+        }
+
+        /* Match FieldWithRemove: keep full padding (not padding-right alone)
+           so text and trailing icons stay vertically centered. */
+        .env-value-wrap.has-remove .value-input {
+            padding: 4px 36px 4px 8px;
+        }
+
+        .env-value-wrap.has-file-open.has-remove .value-input {
+            padding: 4px 64px 4px 8px;
+        }
+
+        .env-value-wrap .field-button {
+            position: absolute;
+            top: 50%;
+            right: 4px;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            z-index: 1;
+            opacity: 0.9;
+            color: var(--foreground);
+        }
+
+        .env-value-wrap.has-remove .field-button.is-open {
+            right: 32px;
+        }
+
+        .env-value-wrap .field-button:hover {
+            opacity: 1;
+            background: transparent;
+        }
+
+        .env-value-wrap .field-button .action-button {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            gap: 0;
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            color: inherit;
+            line-height: 1;
+        }
+
+        .env-value-wrap .field-button .codicon {
+            font-size: 16px !important;
+            line-height: 16px !important;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .env-value-wrap .field-button .codicon::before {
+            display: block;
+            line-height: 1;
+        }
+
+        /* VS Code codicon-chevron-down (not the filled OS triangle). */
         .flat-select {
             border: 1px solid var(--input-border);
-            background: var(--input-background);
+            background-color: var(--input-background);
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23c5c5c5'%3E%3Cpath d='M3.14598 5.85423L7.64598 10.3542C7.84098 10.5492 8.15798 10.5492 8.35298 10.3542L12.853 5.85423C13.048 5.65923 13.048 5.34223 12.853 5.14723C12.658 4.95223 12.341 4.95223 12.146 5.14723L7.99998 9.29323L3.85398 5.14723C3.65898 4.95223 3.34198 4.95223 3.14698 5.14723C2.95198 5.34223 2.95098 5.65923 3.14598 5.85423Z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 6px center;
+            background-size: 16px;
             color: var(--input-foreground);
             font: inherit;
-            padding: 4px 8px;
+            padding: 4px 28px 4px 8px;
             border-radius: var(--mmt-control-radius);
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
             height: var(--cell-height);
             box-sizing: border-box;
+            cursor: pointer;
             appearance: none;
             -webkit-appearance: none;
+            -moz-appearance: none;
         }
 
         .flat-select:focus {
@@ -201,8 +328,12 @@
             padding: 4px 8px;
             border-radius: var(--mmt-control-radius);
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
             height: var(--cell-height);
             box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .value-input:hover {
@@ -213,11 +344,6 @@
             outline: 1px solid var(--vscode-focusBorder);
             border-color: var(--input-border);
             background: var(--input-background);
-        }
-
-        .actions {
-            display: flex;
-            justify-content: flex-end;
         }
 
         .icon-button {
@@ -238,23 +364,6 @@
         .icon-button:hover {
             background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
             opacity: 1;
-        }
-
-        .delete-btn {
-            opacity: 0.5;
-        }
-
-        .delete-btn:hover {
-            opacity: 1;
-            color: var(--vscode-errorForeground, #f48771);
-        }
-
-        .env-actions {
-            width: 32px;
-            min-width: 32px;
-            max-width: 32px;
-            text-align: center;
-            padding: 0 8px 0 0!important;
         }
 
         .add-env-row {
@@ -388,12 +497,13 @@
                     </svg>
                 </button>
                 <div class="env-menu">
-                    <button id="env-menu-btn" class="icon-button" title="More actions" aria-haspopup="true" aria-expanded="false">
-                        <span class="codicon codicon-menu" aria-hidden="true"></span>
+                    <button id="env-menu-btn" class="icon-button" title="Clear variables" aria-haspopup="true" aria-expanded="false">
+                        <span class="codicon codicon-clear-all" aria-hidden="true"></span>
                     </button>
                     <div id="env-menu-dropdown" class="env-menu-dropdown" role="menu">
+                        <button type="button" class="env-menu-item" data-clear="file" role="menuitem">Clear file variables</button>
+                        <button type="button" class="env-menu-item" data-clear="manual" role="menuitem">Clear manual variables</button>
                         <button type="button" class="env-menu-item" data-clear="runtime" role="menuitem">Clear runtime variables</button>
-                        <button type="button" class="env-menu-item" data-clear="manual" role="menuitem">Clear manual variable</button>
                         <button type="button" class="env-menu-item danger" data-clear="all" role="menuitem">Clear all</button>
                     </div>
                 </div>
@@ -407,12 +517,16 @@
         </div>
         <div id="env-table-container" class="table-wrapper">
             <table class="env-table">
+                <colgroup>
+                    <col class="env-col-name" />
+                    <col class="env-col-label" />
+                    <col class="env-col-value" />
+                </colgroup>
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Label</th>
-                        <th>Value</th>
-                        <th class="env-actions" style="width: 32px;"></th>
+                        <th class="env-col-name">Name</th>
+                        <th class="env-col-label">Label</th>
+                        <th class="env-col-value">Value</th>
                     </tr>
                 </thead>
                 <tbody id="env-table-body"></tbody>
@@ -468,6 +582,7 @@
                 row.className = 'env-row';
 
                 const source = resolveEnvSource(envVar);
+                const hasFileOpen = isEnvFilePathValue(envVar.value);
                 let optionsHtml = '';
                 if (source === 'manual') {
                     optionsHtml = `<option value="__manual__" selected disabled>Manual</option>`;
@@ -485,30 +600,39 @@
                 }
 
                 row.innerHTML = `
-                    <td class="env-name">
+                    <td class="env-name env-col-name">
                         <div class="env-name-inner">
                             ${sourceIconHtml(source)}
                             <span class="env-name-text">${escapeHtml(envVar.name)}</span>
                         </div>
                     </td>
-                    <td>
+                    <td class="env-col-label">
                         <select class="flat-select env-select" data-index="${index}">
                             ${optionsHtml}
                         </select>
                     </td>
-                    <td class="env-value">
-                        <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(String(envVar.value ?? ''))}" />
-                    </td>
-                    <td class="env-actions">
-                        <button class="icon-button delete-btn" data-index="${index}" title="Delete variable">
-                            <span class="codicon codicon-close" aria-hidden="true"></span>
-                        </button>
+                    <td class="env-value env-col-value">
+                        <div class="env-value-wrap has-remove${hasFileOpen ? ' has-file-open' : ''}">
+                            <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(String(envVar.value ?? ''))}" />
+                            ${hasFileOpen ? `<button type="button" class="field-button is-open open-env-file-btn" data-path="${escapeHtml(String(envVar.value).trim())}" title="Open file" aria-label="Open file"><span class="action-button codicon codicon-symbol-method-arrow" aria-hidden="true"></span></button>` : ''}
+                            <button type="button" class="field-button is-remove" data-index="${index}" title="Remove field" aria-label="Remove field">
+                                <span class="action-button codicon codicon-close" aria-hidden="true"></span>
+                            </button>
+                        </div>
                     </td>
                 `;
                 tableBody.appendChild(row);
             });
 
             registerEnvSelectHandlers();
+        }
+
+        function isEnvFilePathValue(value) {
+            if (typeof value !== 'string') {
+                return false;
+            }
+            const trimmed = value.trim();
+            return trimmed.startsWith('./') && /\.mmt$/i.test(trimmed);
         }
 
         function resolveEnvSource(envVar) {
@@ -553,7 +677,7 @@
                 </span>`;
             }
             return `<span class="env-source-icon" title="From environment file" aria-label="From environment file">
-                <span class="codicon codicon-globe" aria-hidden="true"></span>
+                <span class="codicon codicon-file" aria-hidden="true"></span>
             </span>`;
         }
 
@@ -581,6 +705,21 @@
                 });
             });
 
+            document.querySelectorAll('.open-env-file-btn').forEach(btn => {
+                btn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const filePath = this.getAttribute('data-path');
+                    if (!filePath) {
+                        return;
+                    }
+                    vscode.postMessage({
+                        type: 'openRelativeFile',
+                        filename: filePath
+                    });
+                });
+            });
+
             document.querySelectorAll('.value-input').forEach(input => {
                 input.addEventListener('change', function () {
                     const idx = this.getAttribute('data-index');
@@ -600,8 +739,10 @@
                 });
             });
 
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', function () {
+            document.querySelectorAll('.env-value-wrap .field-button.is-remove').forEach(btn => {
+                btn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
                     const idx = this.getAttribute('data-index');
                     const envVar = environmentVars[idx];
                     vscode.postMessage({
@@ -743,7 +884,8 @@
                 return;
             }
             const scope = item.getAttribute('data-clear');
-            if (scope !== 'runtime' && scope !== 'manual' && scope !== 'all') {
+            if (scope !== 'file' && scope !== 'runtime' && scope !== 'manual' &&
+                scope !== 'all') {
                 return;
             }
             closeEnvMenu();

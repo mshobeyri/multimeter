@@ -1,29 +1,78 @@
-import React, { useMemo, useContext } from "react";
+import React, { useMemo, useContext, useState, useEffect, useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
-import { JSONRecord } from "mmt-core/CommonData";
+import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from '../fileContext';
+import {
+  inputBoxToYamlString,
+  inputBoxToYamlValueWithTokens,
+  yamlValueToInputBoxWithTokens,
+} from "./convertor";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
+import {
+  entriesToUniqueRecord,
+  findDuplicateKeyIndexes,
+  resolveKvDraftSync,
+  withTrailingEmptyRow,
+  type KvEntry,
+} from "./kvEntryDraft";
+import StableTextInput from "./StableTextInput";
+import {
+  handleKvEditorTab,
+  KV_FIELD_ATTR,
+  kvFieldId,
+} from "./kvFieldNav";
 
-interface KSVEditorProps {
+type KSVEditorBaseProps = {
   label: string;
   value?: string | Record<string, string> | JSONRecord;
-  onChange: (v: Record<string, string>) => void;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
   options?: string[];
   disabled?: boolean;
+  /** Non-editable but visually normal (unlike disabled). */
+  readOnly?: boolean;
   deactivated?: boolean;
+  /** Per-row extract-as-output control on the value field. */
+  onExtractRow?: (key: string) => void;
   keysDisabled?: boolean;
   deletable?: boolean;
   expandable?: boolean;
+  /** Show copy buttons on value fields (useful for read-only outputs). */
+  copyable?: boolean;
   filePicker?: boolean;
   filePickerFilters?: Array<{ name?: string; extensions?: string[] }>;
-}
+  /** Value fields: resolved/token dual-mode when a value contains tokens. */
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
+  /**
+   * Whole `<<c:city>>` shows as `{{c:city}}` and saves as `c:city`.
+   * Quoted `i:username` stays a literal.
+   */
+  liveAngleTokens?: boolean;
+};
 
-// Utility to ensure an empty key is always at the end
-function withTrailingEmptyKey(obj?: string | Record<string, string> | JSONRecord, addEmpty: boolean = true): Array<[string, string]> {
+type KSVEditorProps = KSVEditorBaseProps & (
+  | {
+    /** Keep YAML types (number / bool / null) in values. */
+    typedValues: true;
+    onChange: (v: JSONRecord) => void;
+  }
+  | {
+    typedValues?: false;
+    onChange: (v: Record<string, string>) => void;
+  }
+);
+
+function withTrailingEmptyKey(
+  obj: string | Record<string, string> | JSONRecord | undefined,
+  tokens: boolean,
+  addEmpty: boolean = true,
+  liveAngleTokens: boolean = false,
+): KvEntry[] {
   if (!obj) {
     return addEmpty ? [["", ""]] : [];
   }
@@ -32,19 +81,17 @@ function withTrailingEmptyKey(obj?: string | Record<string, string> | JSONRecord
     return addEmpty ? [["", ""]] : [];
   }
 
-  // Convert JSONRecord or Record<string, string> to entries
-  const entries = Object.entries(obj).map(([key, value]): [string, string] => [
+  const entries = Object.entries(obj).map(([key, value]): KvEntry => [
     key,
-    typeof value === 'string' ? value : String(value || '')
+    yamlValueToInputBoxWithTokens(value as JSONValue, tokens, liveAngleTokens),
   ]);
 
-  // Ensure there's always an empty entry at the end for adding new items
   if (addEmpty && (entries.length === 0 || entries[entries.length - 1][0] !== "")) {
     return [...entries, ["", ""]];
   }
   return entries;
 }
-// Key Select Value
+
 const KSVEditor: React.FC<KSVEditorProps> = ({
   label,
   value,
@@ -53,66 +100,121 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   valuePlaceholder = "value",
   options,
   disabled,
+  readOnly = false,
   deactivated = false,
+  onExtractRow,
   keysDisabled = false,
   deletable = true,
   expandable = true,
+  copyable = false,
   filePicker = false,
-  filePickerFilters
+  filePickerFilters,
+  canContainToken = false,
+  valueContext,
+  typedValues = false,
+  liveAngleTokens = false,
 }) => {
-  // Use an array of entries to preserve order and handle the object format
-  const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const propEntries = useMemo(
+    () => withTrailingEmptyKey(value, canContainToken, expandable, liveAngleTokens),
+    [value, canContainToken, expandable, liveAngleTokens],
+  );
+  const [draft, setDraft] = useState<KvEntry[] | null>(null);
+  const entries = draft ?? propEntries;
+  const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
+  const publishedRef = useRef<KvEntry[] | null>(null);
+  const prevPropEntriesRef = useRef(propEntries);
 
-  // Ensure options is always an array - safety check
+  // Drop local draft once keys are unique and the echoed text matches.
+  // Keep the draft while a value is mid-edit incomplete JSON, or while we are
+  // waiting for our own YAML round-trip. If props change to something else
+  // (left YAML editor), drop the draft so the UI follows the file.
+  useEffect(() => {
+    const prevProps = prevPropEntriesRef.current;
+
+    if (!draft) {
+      prevPropEntriesRef.current = propEntries;
+      return;
+    }
+
+    const action = resolveKvDraftSync({
+      draft,
+      propEntries,
+      prevPropEntries: prevProps,
+      published: publishedRef.current,
+      expandable,
+      blockWhileIncomplete: typedValues &&
+        draft.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v)),
+    });
+
+    if (action.type === 'keep') {
+      prevPropEntriesRef.current = propEntries;
+      return;
+    }
+    if (action.type === 'normalizeTrailing') {
+      publishedRef.current = action.entries;
+      setDraft(action.entries);
+      prevPropEntriesRef.current = propEntries;
+      return;
+    }
+    publishedRef.current = null;
+    setDraft(null);
+    prevPropEntriesRef.current = propEntries;
+  }, [propEntries, draft, typedValues, expandable]);
+
   const safeOptions = Array.isArray(options) ? options : [];
 
-  // File context (avoid calling hooks inside callbacks)
   const fileCtx = useContext(FileContext);
   const effectiveFilePickerFilters = filePickerFilters || [{
     name: 'MMT, data, HTTP, Bruno, and JS files',
     extensions: ['mmt', 'csv', 'json', 'yaml', 'yml', 'http', 'https', 'bru', 'bruno', 'js', 'cjs', 'mjs'],
   }];
 
-  // Helper to convert entries array back to object
-  const toObject = (arr: Array<[string, string]>): Record<string, string> =>
-    safeList(arr).reduce<Record<string, string>>((acc, [k, v]) => {
-      if (k.trim()) { // Only include non-empty keys
-        acc[k] = v;
-      }
-      return acc;
-    }, {});
+  const publish = (next: KvEntry[]) => {
+    const shown = withTrailingEmptyRow(next, expandable);
+    publishedRef.current = shown;
+    setDraft(shown);
+    if (typedValues &&
+        next.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
+      // Draft only — do not overwrite structured YAML with "{".
+      return;
+    }
+    if (typedValues) {
+      const typedOnChange = onChange as (v: JSONRecord) => void;
+      typedOnChange(entriesToUniqueRecord(
+        next,
+        (display) => inputBoxToYamlValueWithTokens(display, canContainToken, liveAngleTokens),
+      ));
+      return;
+    }
+    const stringOnChange = onChange as (v: Record<string, string>) => void;
+    stringOnChange(entriesToUniqueRecord(
+      next,
+      (display) => inputBoxToYamlString(display, canContainToken),
+    ));
+  };
 
   const handleKeyChange = (idx: number, newKey: string) => {
-    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
+    const newEntries = safeList(entries).map(([k, v], i): KvEntry =>
       i === idx ? [newKey, v] : [k, v]
     );
-
-    // Remove duplicate keys except for the current one
-    const seen = new Set<string>();
-    const filtered = newEntries.filter(([k], i) => {
-      if (!k.trim()) return true; // Keep empty keys
-      if (seen.has(k) && i !== idx) return false; // Remove duplicates
-      seen.add(k);
-      return true;
-    });
-
-    onChange(toObject(filtered));
+    publish(newEntries);
   };
 
   const handleValueChange = (idx: number, newVal: string) => {
-    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
+    const newEntries = safeList(entries).map(([k, v], i): KvEntry =>
       i === idx ? [k, newVal] : [k, v]
     );
-    onChange(toObject(newEntries));
+    publish(newEntries);
   };
 
   const handleRemove = (idx: number) => {
     const newEntries = safeList(entries).filter((_, i) => i !== idx);
-    onChange(toObject(newEntries));
+    publish(newEntries);
   };
 
   return (
-    <div className="mmt-fill">
+    <div className={`mmt-fill${deactivated ? " is-deactivated" : ""}`}>
       {label ? (
         <div
           className={disabled ? "label label-disabled" : "label"}
@@ -120,18 +222,29 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
           {label}
         </div>
       ) : null}
-      <table className="field-table">
+      <table
+        ref={tableRef}
+        className="field-table"
+        onKeyDown={e => {
+          handleKvEditorTab(e, tableRef.current);
+        }}
+      >
         <tbody>
           {safeList(entries)
             .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
             .map(([k, v], i) => (
               <tr key={i}>
                 <td>
-                  <input
+                  <StableTextInput
                     value={k}
-                    onChange={e => handleKeyChange(i, e.target.value)}
+                    onChange={next => handleKeyChange(i, next)}
                     placeholder={keyPlaceholder}
                     disabled={disabled || keysDisabled}
+                    readOnly={readOnly || deactivated}
+                    className={duplicateIndexes.has(i) ? "is-invalid" : undefined}
+                    title={duplicateIndexes.has(i) ? "Duplicate key" : undefined}
+                    aria-invalid={duplicateIndexes.has(i)}
+                    {...{ [KV_FIELD_ATTR]: kvFieldId(i, "key") }}
                   />
                 </td>
                 <td>
@@ -144,17 +257,24 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         basePath={fileCtx?.mmtFilePath}
                         filters={effectiveFilePickerFilters}
                         showFilePicker={true}
-                        removable={deletable && !deactivated}
+                        removable={deletable && !deactivated && !readOnly}
+                        kvField={kvFieldId(i, "value")}
                       />
                     ) : safeOptions.length > 0 ? (
                       <SelectWithRemove
                         value={v}
-                        onChange={newVal => handleValueChange(i, newVal)}
+                        onChange={newVal => {
+                          const newEntries = safeList(entries).map(([key, val], idx): KvEntry =>
+                            idx === i ? [key, newVal] : [key, val]
+                          );
+                          publish(newEntries);
+                        }}
                         onRemovePressed={() => handleRemove(i)}
                         options={safeOptions}
                         placeholder={valuePlaceholder}
-                        disabled={disabled}
-                        removable={deletable && !deactivated}
+                        disabled={disabled || readOnly || deactivated}
+                        removable={deletable && !deactivated && !readOnly}
+                        kvField={kvFieldId(i, "value")}
                       />
                     ) : (
                       <FieldWithRemove
@@ -163,7 +283,17 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         onRemovePressed={() => handleRemove(i)}
                         placeholder={valuePlaceholder}
                         disabled={disabled}
-                        removable={deletable && !deactivated}
+                        readOnly={readOnly || deactivated}
+                        removable={deletable && !deactivated && !readOnly}
+                        copyable={copyable}
+                        onExtractPressed={
+                          onExtractRow
+                            ? () => onExtractRow(k)
+                            : undefined
+                        }
+                        canContainToken={canContainToken}
+                        valueContext={valueContext}
+                        kvField={kvFieldId(i, "value")}
                       />
                     )
                   )}

@@ -155,17 +155,17 @@ describe('durationToJsMsExpr', () => {
 describe('toInputsParams – env token handling', () => {
   test('two <<e:VAR>> tokens separated by underscore', () => {
     const result = toInputsParams({message: '<<e:base_url>>_<<e:base_url>>'}, ': ');
-    expect(result).toBe('message: `${envVariables.base_url}_${envVariables.base_url}`');
+    expect(result).toBe('message: `${mmtEnv_("base_url")}_${mmtEnv_("base_url")}`');
   });
 
-  test('single <<e:VAR>> as full value returns bare reference', () => {
+  test('single <<e:VAR>> as full value returns an mmtEnv_ call', () => {
     const result = toInputsParams({host: '<<e:base_url>>'}, ': ');
-    expect(result).toBe('host: envVariables.base_url');
+    expect(result).toBe('host: mmtEnv_("base_url")');
   });
 
   test('e:VAR mixed with static text', () => {
     const result = toInputsParams({url: 'https://<<e:host>>/api'}, ': ');
-    expect(result).toBe('url: `https://${envVariables.host}/api`');
+    expect(result).toBe('url: `https://${mmtEnv_("host")}/api`');
   });
 
   test('sibling i: refs become ${name} interpolations', () => {

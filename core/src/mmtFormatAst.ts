@@ -1,4 +1,8 @@
 import YAML, {isMap, isPair, isScalar, isSeq, Pair, YAMLMap} from 'yaml';
+import {
+  restoreShieldedCurlyTokens,
+  shieldCurlyTokensInYamlSource,
+} from './markupConvertor';
 import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
 import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
 import {JUDGE_KEY_ORDER} from './judgeParsePack';
@@ -59,7 +63,9 @@ const SETTING_KEY_ORDER = ['http'];
 const SETTING_HTTP_KEY_ORDER = ['version', 'timeout'];
 const HTML_KEY_ORDER = ['triable', 'cors_proxy'];
 const SERVICE_KEY_ORDER = ['name', 'description', 'sources'];
-const EXAMPLE_KEY_ORDER = ['name', 'description', 'inputs', 'outputs'];
+export const EXAMPLE_KEY_ORDER = [
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect',
+];
 const JUDGE_OPTIONS_KEY_ORDER = ['temperature', 'timeout'];
 const JUDGE_DEFAULTS_KEY_ORDER = ['checks', 'criteria'];
 
@@ -185,6 +191,9 @@ function visit(node: unknown, kind: VisitKind, rootOrder?: string[]): void {
       } else if (key === 'examples' && isSeq(value)) {
         for (const example of value.items) {
           if (isMap(example)) {
+            // Examples are soft-expect only — drop legacy require on format.
+            example.items = example.items.filter(
+                item => !(isPair(item) && pairKey(item) === 'require'));
             reorderMapPairs(example, EXAMPLE_KEY_ORDER);
             visit(example, 'generic');
           }
@@ -219,7 +228,10 @@ function visit(node: unknown, kind: VisitKind, rootOrder?: string[]): void {
  * or rewrite structure (unlike yamlToX → xToYaml).
  */
 export function formatMmtYamlAst(content: string, docType: string): string {
-  const prepared = quoteExpectOperators(content || '');
+  // Unquoted {{i:name}} is a flow map to the YAML library (`{ ? { i:name } }`).
+  // Shield those tokens so format keeps the scalar spelling.
+  const shielded = shieldCurlyTokensInYamlSource(content || '');
+  const prepared = quoteExpectOperators(shielded.text);
   const doc = YAML.parseDocument(prepared);
   if (doc.errors?.length) {
     doc.errors = filterOperatorYamlErrors(content, doc.errors);
@@ -240,5 +252,5 @@ export function formatMmtYamlAst(content: string, docType: string): string {
     blockQuote: 'literal',
     lineWidth: 0,
   } as any);
-  return emitUnquotedOperators(formatted);
+  return restoreShieldedCurlyTokens(emitUnquotedOperators(formatted), shielded);
 }

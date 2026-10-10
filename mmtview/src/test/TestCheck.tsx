@@ -1,6 +1,7 @@
 import React from "react";
 import { CheckOps } from "mmt-core/TestData";
 import OperatorSelect from "../components/OperatorSelect";
+import StableTextInput, { StableTextArea } from "../components/StableTextInput";
 import ReportLevelFields, { type ReportValue } from "../components/ReportLevelFields";
 
 export type { ReportValue };
@@ -30,11 +31,11 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
   return (
     <div className="mmt-fill">
       <div className="field-inline">
-        <input
+        <StableTextInput
           value={actual}
           placeholder="actual"
           className="mmt-fill"
-          onChange={e => update({ actual: e.target.value })}
+          onChange={next => update({ actual: next })}
         />
         <OperatorSelect
           value={op}
@@ -42,30 +43,30 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
           className="is-fixed"
           title="Comparison operator"
         />
-        <input
+        <StableTextInput
           value={expected}
           placeholder="expected"
           className="mmt-fill"
-          onChange={e => update({ expected: e.target.value })}
+          onChange={next => update({ expected: next })}
         />
       </div>
       {expanded && (
         <>
           <div className="label">Title</div>
           <div className="field-pad">
-            <input
+            <StableTextInput
               value={title}
               placeholder="Title (shown inline)"
-              onChange={e => update({ title: e.target.value })}
+              onChange={next => update({ title: next })}
             />
           </div>
           <div className="label">Details</div>
           <div className="field-pad">
-            <textarea
+            <StableTextArea
               value={details}
               placeholder="Details (shown in the details panel)"
               className="field-details"
-              onChange={e => update({ details: e.target.value })}
+              onChange={next => update({ details: next })}
             />
           </div>
           <ReportLevelFields

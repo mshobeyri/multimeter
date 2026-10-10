@@ -10,7 +10,7 @@ import {replaceAllRefs} from './variableReplacer';
 export interface ResolveApiRequestOptions {
   /** Clear r:/c: caches so each resolve gets fresh runtime values. */
   refreshRuntimeTokens?: boolean;
-  /** Keep YAML/JSON object bodies structured for UI format switching. */
+  /** Keep YAML/JSON object bodies structured for UI format switching (still resolves e:/i:/r:/c:). */
   preserveStructuredBody?: boolean;
 }
 
@@ -32,7 +32,6 @@ export function resolveApiRequest(
       new Set(),
       {
         refreshRuntimeTokens: options.refreshRuntimeTokens,
-        resolveRuntimeTokens: options.preserveStructuredBody ? false : undefined,
       }) as Request & {auth?: unknown};
   request = stripOmitFromRequest(request) as Request & {auth?: unknown};
 

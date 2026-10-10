@@ -53,19 +53,43 @@ button,
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
 }
 
-/* Theme-aligned native checkboxes (VS Code checkbox tokens) */
+/* VS Code settings-style checkboxes (not OS native / accent-color). */
 input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
   margin: 0;
   flex-shrink: 0;
+  box-sizing: border-box;
   cursor: pointer;
-  accent-color: var(--vscode-checkbox-background, var(--vscode-focusBorder, #0e639c));
+  position: relative;
+  border-radius: 3px;
+  border: 1px solid var(--vscode-checkbox-border, #3c3c3c);
+  background: var(--vscode-checkbox-background, #3c3c3c);
+  color: var(--vscode-checkbox-foreground, #f0f0f0);
+}
+
+input[type="checkbox"]:hover:not(:disabled) {
+  border-color: var(--vscode-focusBorder, var(--vscode-checkbox-border, #3c3c3c));
+}
+
+input[type="checkbox"]:checked::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M14.354 3.646a.5.5 0 0 1 0 .708l-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.793l7.146-7.147a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E") center / 14px no-repeat;
+  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M14.354 3.646a.5.5 0 0 1 0 .708l-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.793l7.146-7.147a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 
 input[type="checkbox"]:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+input[type="checkbox"]:focus {
+  outline: none;
 }
 
 input[type="checkbox"]:focus-visible {
@@ -115,7 +139,11 @@ input[type="checkbox"]:focus-visible {
   height: 1px;
   min-height: 1px;
   max-height: 1px;
+  /* Match vertical: 1 + 1 + 2 = 4px footprint so hover thickening does not jump layout. */
+  margin-top: 1px;
+  margin-bottom: 2px;
   cursor: row-resize;
+  transition: background-color 0.1s ease, height 0.1s ease;
 }
 
 .Resizer.horizontal:hover,
@@ -123,6 +151,8 @@ input[type="checkbox"]:focus-visible {
   height: 4px;
   min-height: 4px;
   max-height: 4px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 /* Hidden when a panel is fully closed (yaml-only / ui-only); do not leave a drag handle.
@@ -231,22 +261,87 @@ span.vertical.disabled:active {
   background: var(--vscode-button-hoverBackground, #1177bb);
 }
 
+/* Export uses an invisible <select> over PrimaryButtonFace — hover the
+   wrapper so the face gets the same primary hover fill as Run. */
+.export-report-button:hover:not(.is-disabled) .primary-button,
+.export-report-button:focus-within:not(.is-disabled) .primary-button {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+
 .primary-button:disabled,
 .primary-button.is-disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* Joined Run + More: sharp inner corners so the pair reads as one control. */
+.run-toggle-group {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.run-toggle-group .run-toggle-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-color: transparent;
+}
+
+.run-toggle-group .run-toggle-more {
+  position: relative;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left-color: transparent;
+  padding-left: 10px;
+  padding-right: 6px;
+  min-width: 28px;
+}
+
+.run-toggle-group .run-toggle-more::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: color-mix(in srgb, var(--vscode-button-foreground, #ffffff) 35%, transparent);
+  pointer-events: none;
+}
+
+.run-toggle-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--vscode-editorWidget-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  min-width: 180px;
+  padding: 2px;
+}
+
+.run-toggle-menu .action-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .bodyview {
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border: none;
   overflow: hidden;
-  /* Prevents content from bleeding outside border */
+  /* Prevents content from bleeding outside */
   position: relative;
   width: 100%;
   height: 250px;
   overflow: auto;
   border-radius: var(--mmt-control-radius);
-  transition: border-color 0.2s;
+}
+
+.bodyview-toolbar {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
 }
 
 /* Fullscreen mode for request/response body editors */
@@ -263,19 +358,6 @@ span.vertical.disabled:active {
   border-radius: 0;
 }
 
-/* Right-side glassy toolbar inside body editors */
-.bodyview-toolbar {
-  position: absolute;
-  right: 14px;
-  bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  background-color: transparent;
-}
-
 .bodyview-btn {
   border: none;
   border-radius: 4px;
@@ -284,33 +366,6 @@ span.vertical.disabled:active {
   cursor: pointer;
   color: var(--vscode-foreground, #d4d4d4);
   background-color: transparent;
-}
-
-.bodyview-btn-icon {
-  border: none;
-  border-radius: 4px;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background-color: transparent;
-  color: var(--vscode-foreground, #d4d4d4);
-}
-
-.bodyview-btn-icon .codicon {
-  font-size: 16px;
-}
-
-.bodyview-error-indicator {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
 }
 
 /* Read-only highlighted body (history / report / step details) */
@@ -606,6 +661,7 @@ span.vertical.disabled:active {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   padding: 8px 4px;
   border-radius: 4px;
   background: transparent;
@@ -633,6 +689,7 @@ span.vertical.disabled:active {
 }
 
 .report-tree-badge {
+  flex-shrink: 0;
   font-size: 0.85em;
   opacity: 0.7;
   white-space: nowrap;
@@ -713,6 +770,11 @@ select,
 select:focus {
   box-sizing: border-box;
   background-color: var(--vscode-input-background, #1e1e1e);
+  /* VS Code codicon-chevron-down */
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23c5c5c5'%3E%3Cpath d='M3.14598 5.85423L7.64598 10.3542C7.84098 10.5492 8.15798 10.5492 8.35298 10.3542L12.853 5.85423C13.048 5.65923 13.048 5.34223 12.853 5.14723C12.658 4.95223 12.341 4.95223 12.146 5.14723L7.99998 9.29323L3.85398 5.14723C3.65898 4.95223 3.34198 4.95223 3.14698 5.14723C2.95198 5.34223 2.95098 5.65923 3.14598 5.85423Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 16px;
   color: var(--vscode-input-foreground, #d4d4d4);
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   border-radius: var(--mmt-control-radius);
@@ -726,6 +788,9 @@ select:focus {
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   cursor: pointer;
   vertical-align: middle;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 .tag {
@@ -895,12 +960,17 @@ button:focus {
   font-size: 16px;
 }
 
-/* Field/inline small icon button used next to inputs */
+/* Field/inline small icon button used next to inputs.
+   Must beat the global `button` primary chrome (blue fill / white text). */
+button.field-button,
 .field-button {
   width: 28px;
   height: 24px;
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
+  border: none !important;
+  box-shadow: none !important;
   cursor: pointer;
   font-size: 14px;
   display: flex;
@@ -911,29 +981,58 @@ button:focus {
   opacity: 0.9;
 }
 
+/* Nested action-button / codicon must not keep toolbar padding or the icon
+   sits off-center inside the 28×24 hit target. */
+.field-button .action-button {
+  padding: 0;
+  margin: 0;
+  gap: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  line-height: 1;
+}
+
+.field-button .codicon {
+  font-size: 16px;
+  line-height: 1;
+  display: block;
+  color: inherit;
+}
+
 .field-button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
+button.field-button:hover,
 .field-button:hover {
   background: transparent !important;
+  background-color: transparent !important;
   border-color: transparent !important;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
   opacity: 1;
 }
 
+button.field-button:focus,
 .field-button:focus {
   outline: none;
   box-shadow: none;
 }
 
+button.field-button:active,
+button.field-button:focus,
+button.field-button:focus-visible,
 .field-button:active,
 .field-button:focus,
 .field-button:focus-visible {
   background: transparent !important;
+  background-color: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
   outline: none !important;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground, #cccccc));
 }
 
 .tab-bar {
@@ -946,6 +1045,46 @@ button:focus {
 
 .tab-bar.is-gap {
   gap: 8px;
+}
+
+/* Optional: hide the full-width rule under the strip (active tab underline stays). */
+.tab-bar.is-no-rule {
+  border-bottom: none;
+}
+
+/* Overflow tab strip: no wrap; clipped tabs move into ≫ menu. */
+.overflow-tab-bar {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 100%;
+}
+
+.overflow-tab-bar-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  flex-wrap: nowrap;
+  margin: 0;
+  border: none;
+}
+
+.tab-bar.is-overflow {
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.tab-overflow-more {
+  flex-shrink: 0;
+  letter-spacing: -0.05em;
+  font-weight: 600;
 }
 
 .tab-button {
@@ -1338,14 +1477,14 @@ button:focus {
 }
 
 .combo-table .combo-name {
-  padding: 8px;
+  padding: 2px 4px 2px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .combo-table .combo-value {
-  padding: 8px;
+  padding: 2px 0 2px 4px;
 }
 
 .if-join {
@@ -1865,31 +2004,17 @@ button:focus {
   padding-left: 20px;
 }
 
+/* Match expect result-slot gutter: fixed 16px before value (and key spacer). */
+.veditor-row.has-match-gutter {
+  padding-left: 0;
+}
+
 .veditor-key-row {
   margin-bottom: 2px;
 }
 
 .veditor-key {
   font-weight: 500;
-}
-
-.veditor-type {
-  font-size: 8px;
-  color: var(--vscode-descriptionForeground, #888);
-  margin-left: 4px;
-}
-
-.match-icon {
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.match-icon.is-pass {
-  color: var(--vscode-testing-iconPassed, #73c991);
-}
-
-.match-icon.is-fail {
-  color: var(--vscode-testing-iconFailed, #f14c4c);
 }
 
 .panel-form {
@@ -1913,4 +2038,27 @@ button:focus {
 .panel-form-row select {
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Inline rows (e.g. username/password, key placement/name) share the width instead of each taking 100%. */
+.panel-form-row .field-inline {
+  width: 100%;
+  min-width: 0;
+}
+
+.panel-form-row .field-inline > .token-field,
+.panel-form-row .field-inline > input.field-grow {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.panel-form-row .field-inline > select.field-narrow {
+  width: 90px;
+  flex: 0 0 90px;
+}
+
+.panel-form-row .field-stack {
+  width: 100%;
+  min-width: 0;
 }

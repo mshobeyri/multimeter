@@ -239,6 +239,19 @@ function parseBracketPath(path: string): {section: string; parts: string[]} {
   return {section, parts};
 }
 
+function xmlStringToObject(value: string): any | undefined {
+  const text = value.trim();
+  if (!text.startsWith('<') || /^<!DOCTYPE\s+html/i.test(text) ||
+      /^<html[\s>]/i.test(text)) {
+    return undefined;
+  }
+  try {
+    return xmlBodyToExtractable(xml2js(text, {compact: true}));
+  } catch {
+    return undefined;
+  }
+}
+
 function navigatePathParts(current: any, parts: string[]): any {
   for (const part of parts) {
     if (isOmitSentinel(current)) {
@@ -246,6 +259,24 @@ function navigatePathParts(current: any, parts: string[]): any {
     }
     if (current === undefined || current === null) {
       return OMIT_SENTINEL;
+    }
+
+    if (typeof current === 'string') {
+      const parsed = xmlStringToObject(current);
+      if (parsed && typeof parsed === 'object') {
+        if (Object.prototype.hasOwnProperty.call(parsed, part)) {
+          current = parsed[part];
+          continue;
+        }
+        const roots = Object.keys(parsed);
+        const root = roots.length === 1 ? parsed[roots[0]] : undefined;
+        if (root && typeof root === 'object' &&
+            Object.prototype.hasOwnProperty.call(root, part)) {
+          current = root[part];
+          continue;
+        }
+        return OMIT_SENTINEL;
+      }
     }
 
     if (/^\d+$/.test(part)) {

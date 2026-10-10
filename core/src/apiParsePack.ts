@@ -1,5 +1,15 @@
 
-import {APIData, AuthConfig, GraphQLConfig, GrpcConfig} from './APIData';
+import {resolveProtocolFromUrl} from './protocolResolver';
+import {
+  APIData,
+  ApiTestBlock,
+  AuthConfig,
+  ExampleData,
+  GraphQLConfig,
+  GrpcConfig,
+  exampleExpect,
+  exampleId,
+} from './APIData';
 import {
   FORMAT_VALUES,
   Format,
@@ -13,11 +23,14 @@ import {
 } from './CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
+import type {ExpectMap} from './TestData';
 import {coerceYamlString} from './yamlIncompleteScalar';
 
 /** Valid root-level keys for type: api files. */
 const VALID_API_ROOT_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'setenv',
+  // `cache:` is honored by file-backed env getters (and ignored by API send).
+  'cache',
   'url', 'query', 'protocol', 'format', 'method', 'timeout', 'headers', 'cookies',
   'body', 'auth', 'graphql', 'grpc', 'examples',
 ]);
@@ -94,6 +107,145 @@ function parseGrpcConfig(raw: any): GrpcConfig | undefined {
 }
 
 const VALID_AUTH_TYPES = new Set(['bearer', 'basic', 'api-key', 'oauth2']);
+
+function parseExpectMap(raw: any): ExpectMap | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  return raw as ExpectMap;
+}
+
+function parseExample(raw: any): ExampleData | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const example: ExampleData = {};
+  if (typeof raw.id === 'string') {
+    example.id = raw.id;
+  }
+  if (typeof raw.title === 'string') {
+    example.title = raw.title;
+  }
+  if (typeof raw.name === 'string') {
+    example.name = raw.name;
+  }
+  if (typeof raw.description === 'string') {
+    example.description = raw.description;
+  }
+  if (raw.inputs && typeof raw.inputs === 'object') {
+    example.inputs = raw.inputs;
+  }
+  if (raw.outputs && typeof raw.outputs === 'object') {
+    example.outputs = raw.outputs;
+  }
+  const expect = parseExpectMap(raw.expect);
+  if (expect) {
+    example.expect = expect;
+  }
+  return example;
+}
+
+/** Allowed keys on each `examples:` entry (strict parse + pack). */
+const VALID_EXAMPLE_KEYS = new Set([
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect',
+]);
+
+function assertExampleKeys(examplesRaw: any): void {
+  const list = safeList(examplesRaw);
+  for (let i = 0; i < list.length; i++) {
+    const ex = list[i];
+    if (!ex || typeof ex !== 'object' || Array.isArray(ex)) {
+      continue;
+    }
+    const unknown = Object.keys(ex).filter(k => !VALID_EXAMPLE_KEYS.has(k));
+    if (unknown.length > 0) {
+      throw new Error(
+          `Invalid API file: unknown key(s) in examples #${i + 1}: ${
+              unknown.map(k => `"${k}"`).join(', ')}`);
+    }
+  }
+}
+
+function parseExamples(raw: any): ExampleData[] {
+  return safeList(raw).map(parseExample).filter((ex): ex is ExampleData => !!ex);
+}
+
+function packExample(example: ExampleData): Record<string, any> {
+  const out: Record<string, any> = {};
+  const id = typeof example.id === 'string' && example.id.trim() ? example.id.trim() : undefined;
+  const title = typeof example.title === 'string' && example.title.trim() ? example.title.trim() : undefined;
+  const name = typeof example.name === 'string' && example.name.trim() ? example.name.trim() : undefined;
+  // Prefer id/title. Keep deprecated name only when id is still missing.
+  if (id) {
+    out.id = id;
+  } else if (name) {
+    out.name = name;
+  }
+  if (title) {
+    out.title = title;
+  } else if (id && name && name !== id) {
+    // Unlikely; title already covers display.
+  }
+  if (example.description) {
+    out.description = example.description;
+  }
+  if (isNonEmptyObject(example.inputs)) {
+    out.inputs = example.inputs;
+  }
+  // Prefer expect; fold deprecated outputs into expect and never rewrite outputs.
+  const expect = exampleExpect(example);
+  if (isNonEmptyObject(expect)) {
+    out.expect = expect;
+  }
+  return out;
+}
+
+function assertUniqueExampleIds(examples: ExampleData[]): void {
+  const seen = new Map<string, number>();
+  for (let i = 0; i < examples.length; i++) {
+    const id = exampleId(examples[i]);
+    if (!id) {
+      continue;
+    }
+    const prev = seen.get(id);
+    if (typeof prev === 'number') {
+      throw new Error(
+          `Invalid API file: duplicate example id "${id}" (examples #${prev + 1} and #${i + 1})`);
+    }
+    seen.set(id, i);
+  }
+}
+
+/** Expect map from an example (for eval helpers). Examples are soft-expect only. */
+export function exampleToApiTestBlock(example: ExampleData | undefined | null): ApiTestBlock | undefined {
+  if (!example) {
+    return undefined;
+  }
+  const expect = exampleExpect(example);
+  if (!isNonEmptyObject(expect)) {
+    return undefined;
+  }
+  return { expect };
+}
+
+/** Lightweight title/tags peek for suite hierarchy (no full validation). */
+export function peekApiMetaFromYaml(yamlContent: string): {title?: string; tags?: string[]} {
+  try {
+    const doc = parseYaml(yamlContent) as any;
+    if (!doc || typeof doc !== 'object') {
+      return {};
+    }
+    const title = typeof doc.title === 'string' && doc.title.trim() ? doc.title.trim() : undefined;
+    let tags: string[] | undefined;
+    if (Array.isArray(doc.tags)) {
+      const out = doc.tags.map((t: any) => String(t).trim()).filter(Boolean);
+      tags = out.length ? out : undefined;
+    }
+    return {title, tags};
+  } catch {
+    return {};
+  }
+}
 
 export function validateAuth(raw: any): AuthConfig | undefined {
   if (raw === undefined || raw === null) {
@@ -231,13 +383,13 @@ export function yamlToAPI(yamlContent: string): APIData {
       method: coerceYamlString(doc.method) as APIData['method'],
       timeout: typeof doc.timeout === 'number' ? doc.timeout : undefined,
       headers: doc.headers || {},
-      body: doc.body || '',
+      body: doc.body ?? undefined,
       query: doc.query || {},
       cookies: doc.cookies || {},
       auth,
       graphql: parseGraphQLConfig(doc.graphql),
       grpc: parseGrpcConfig(doc.grpc),
-      examples: safeList(doc.examples),
+      examples: parseExamples(doc.examples),
     };
   } catch {
     return {} as APIData;
@@ -302,6 +454,9 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     throw new Error(`Invalid API file: "grpc" block is ignored for protocol "${doc.protocol}"`);
   }
   const auth = validateAuth(doc.auth);
+  assertExampleKeys(doc.examples);
+  const examples = parseExamples(doc.examples);
+  assertUniqueExampleIds(examples);
   return {
     type: doc.type || '',
     title: doc.title || '',
@@ -317,14 +472,26 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     method: doc.method || '',
     timeout: doc.timeout,
     headers: doc.headers || {},
-    body: doc.body || '',
+    body: doc.body ?? undefined,
     query: doc.query || {},
     cookies: doc.cookies || {},
     auth,
     graphql,
     grpc,
-    examples: safeList(doc.examples),
+    examples,
   };
+}
+
+function originalDeclaresKey(key: string, originalYaml?: string): boolean {
+  if (!originalYaml) {
+    return false;
+  }
+  try {
+    const doc = parseYamlStrict(originalYaml) as any;
+    return !!doc && typeof doc === 'object' && Object.prototype.hasOwnProperty.call(doc, key);
+  } catch {
+    return false;
+  }
 }
 
 export function apiToYaml(api: APIData, originalYaml?: string): string {
@@ -359,7 +526,11 @@ export function apiToYaml(api: APIData, originalYaml?: string): string {
   if (isNonEmptyObject(api.query)) {
     yamlObj.query = api.query;
   };
-  if (api.protocol) {
+  // A protocol equal to the URL-inferred default is only written when the
+  // original file already declared it.
+  if (api.protocol &&
+      (api.protocol !== resolveProtocolFromUrl(api.url) ||
+       originalDeclaresKey('protocol', originalYaml))) {
     yamlObj.protocol = api.protocol;
   };
   if (api.method) {
@@ -380,8 +551,10 @@ export function apiToYaml(api: APIData, originalYaml?: string): string {
   if (isNonEmptyObject(api.cookies)) {
     yamlObj.cookies = api.cookies;
   };
-  if (api.body && api.body !== '') {
-    yamlObj.body = api.body;
+  // An empty body is only written back when the original file declared it.
+  const bodyIsEmpty = api.body === '' || api.body === null;
+  if (api.body !== undefined && (!bodyIsEmpty || originalDeclaresKey('body', originalYaml))) {
+    yamlObj.body = api.body ?? '';
   };
   if (api.graphql) {
     const gqlObj: Record<string, any> = {};
@@ -420,7 +593,7 @@ export function apiToYaml(api: APIData, originalYaml?: string): string {
     }
   };
   if (isNonEmptyList(api.examples)) {
-    yamlObj.examples = api.examples;
+    yamlObj.examples = api.examples.map(packExample).filter(ex => Object.keys(ex).length > 0);
   };
   return packYaml(yamlObj, originalYaml);
 }

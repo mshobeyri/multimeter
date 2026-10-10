@@ -3,7 +3,7 @@
 Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter.
 
 - Files: YAML `.mmt` (`type: api | test | env | suite | server | loadtest | doc | report | judge`)
-- Editor: VS Code / Cursor extension `mshobeyri.multimeter`
+- Editor: VS Code / Cursor extension `mshobeyri.multimeter` (visual UI)
 - CLI: `testlight` from npm package `mmt-testlight`
 - CI: GitHub Action `mshobeyri/testlight-action@v1`
 - MCP: `mmt-mcp` (`npx -y mmt-mcp`) plus a server bundled in the extension
@@ -71,8 +71,8 @@ testlight run path/to/test.mmt
 
 ## Compare
 
-- vs Postman: Git YAML, no cloud account, same files in CI — https://mmt.dev/compare/postman
-- vs Bruno: stays in VS Code; adds suites, mocks, docs, reports — https://mmt.dev/compare/bruno
+- vs Postman: Git YAML, no cloud account, same files in CI; parallel runs and same-run call cache — https://mmt.dev/compare/postman
+- vs Bruno: stays in VS Code; adds suites, mocks, docs, reports, parallel runs, call cache — https://mmt.dev/compare/bruno
 - vs Promptfoo: AI judges live in the API test, not a separate eval stack — https://mmt.dev/compare/promptfoo
 - vs Thunder Client: Git-friendly YAML instead of a VS Code-only collection — https://mmt.dev/compare/thunder-client
 
@@ -85,6 +85,8 @@ https://mmt.dev/raw/docs/files/api/index.md
 https://mmt.dev/raw/docs/files/test/index.md
 https://mmt.dev/raw/docs/files/test/steps/index.md
 https://mmt.dev/raw/docs/features/testlight/install.md
+https://mmt.dev/raw/docs/features/parallel-runs.md
+https://mmt.dev/raw/docs/features/call-cache.md
 https://mmt.dev/raw/docs/files/judge/index.md
 https://mmt.dev/raw/docs/features/mcp/index.md
 https://mmt.dev/raw/docs/features/mcp/mcp-tools.md

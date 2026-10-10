@@ -41,8 +41,9 @@ Notes
 - `variables` values must be one of:
   - **key-value map** (named choices) — a preset selects a choice by key
   - **array list** (allowed values) — a preset or user picks from the list
+  - **live variable** — a `./….mmt` path that runs another file on each `e:name` read (see [Live variables](./live-variables.md))
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern
- 
+
 ## Usage
 Supported token forms in tests and APIs:
 
@@ -50,6 +51,7 @@ Supported token forms in tests and APIs:
 |--------|-------------|---------------|
 | `<<e:var>>` | Anywhere in a string (URLs, `headers`, `body` text) | Always substituted as string |
 | `e:var` | As the entire value after `: ` (colon + space) | Preserves type (number, boolean, string) |
+| `{{e:var}}` | Unquoted whole value or inside strings (normalized to bare / `<<e:…>>` on parse) | Same as the form it rewrites to |
 
 What to use when
 - Use `<<e:var>>` when you want substitution anywhere in a string (inside URLs, headers, or other text).
@@ -61,7 +63,9 @@ What to use when
 
 Notes
 - `e:var` is not replaced inside plain text like `hi:e:var there`; it must follow `: `.
-- `{{var}}` is not supported — use `<<e:var>>` or `e:var` instead.
+- Bare `{{var}}` (no `e:` / `i:` / `r:` / `c:` prefix) is not an env token — use `<<e:var>>`, `e:var`, or `{{e:var}}`.
+- `<e:var>` and `e:{var}` are ordinary text, not tokens.
+- Full token rules: [Dynamic values — syntax](../../features/dynamic-values/syntax.md).
 - Slice form `[start:end]` uses normal JS `slice(start, end)` semantics.
 - Random (`r:`) and current (`c:`) tokens use the same syntax and accessors — see [Dynamic values](../../features/dynamic-values/index.md).
 
@@ -80,5 +84,5 @@ body:
 
 ## Environment elements
 
-- [Quick start](./quick-start.md) · [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [Use environments](../../tasks/use-environments.md)
-- [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
+- [Quick start](./quick-start.md) · [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [Live variables](./live-variables.md)
+- [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md) · [Use environments](../../tasks/use-environments.md)

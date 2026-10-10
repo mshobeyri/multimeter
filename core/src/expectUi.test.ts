@@ -1,11 +1,15 @@
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
+  expectDisplayToStored,
   expectMapToUiRows,
+  expectStoredToDisplay,
+  expectTextUnchanged,
   expectValueToUiRow,
   uiRowToExpectValue,
   uiRowsToExpectMap,
 } from './expectUi';
+import {OMIT_SENTINEL} from './omitKeyword';
 import { testToYaml, yamlToTest } from './testParsePack';
 
 describe('expectUi', () => {
@@ -65,7 +69,46 @@ steps:
     expect(expectValueToUiRow('msg', 'hello')).toMatchObject({
       op: '==', expected: 'hello', explicitOperator: false,
     });
-    expect(expectValueToUiRow('msg', null)).toMatchObject({expected: ''});
+    expect(expectValueToUiRow('msg', null)).toMatchObject({
+      expected: 'null',
+      valueKind: 'null',
+    });
+    expect(expectValueToUiRow('code', '112')).toMatchObject({
+      expected: '"112"',
+      valueKind: 'string',
+    });
+    expect(expectValueToUiRow('code', 112)).toMatchObject({
+      expected: '112',
+      valueKind: 'number',
+    });
+    expect(expectValueToUiRow('skip', OMIT_SENTINEL)).toMatchObject({
+      expected: 'omit',
+      valueKind: 'omit',
+    });
+    expect(applyExpectUiRowChange(
+        createEmptyExpectUiRow('x'), 'expected', 'omit',
+    )).toMatchObject({
+      expected: 'omit',
+      valueKind: 'omit',
+    });
+    expect(applyExpectUiRowChange(
+        createEmptyExpectUiRow('x'), 'expected', 'null',
+    )).toMatchObject({
+      expected: 'null',
+      valueKind: 'null',
+    });
+    expect(uiRowToExpectValue({
+      field: 'skip', op: '==', expected: 'omit', explicitOperator: false, valueKind: 'omit',
+    })).toBe(OMIT_SENTINEL);
+    expect(uiRowToExpectValue({
+      field: 'n', op: '==', expected: 'null', explicitOperator: false, valueKind: 'null',
+    })).toBe(null);
+    expect(uiRowToExpectValue({
+      field: 'code', op: '==', expected: '"112"', explicitOperator: false, valueKind: 'string',
+    })).toBe('112');
+    expect(typeof uiRowToExpectValue({
+      field: 'code', op: '==', expected: '"112"', explicitOperator: false, valueKind: 'string',
+    })).toBe('string');
     expect(uiRowToExpectValue({
       field: 'n', op: '==', expected: 'nope', explicitOperator: false, valueKind: 'number',
     })).toBe('nope');
@@ -83,12 +126,40 @@ steps:
     expect(applyExpectUiRowChange(empty, 'op', '!=')).toMatchObject({
       op: '!=', explicitOperator: true,
     });
-    expect(applyExpectUiRowChange(empty, 'expected', '201').expected).toBe('201');
+    expect(applyExpectUiRowChange(empty, 'expected', '201')).toMatchObject({
+      expected: '201',
+      valueKind: 'number',
+    });
+    expect(applyExpectUiRowChange(empty, 'expected', 'true')).toMatchObject({
+      valueKind: 'boolean',
+    });
+    expect(applyExpectUiRowChange(empty, 'expected', '112m')).toMatchObject({
+      valueKind: 'string',
+    });
     const merged = uiRowsToExpectMap([
       {field: 'a', op: '==', expected: '1', explicitOperator: true},
       {field: 'a', op: '=C', expected: 'x', explicitOperator: true},
       {field: 'a', op: '!=', expected: '9', explicitOperator: true},
     ]);
     expect(merged?.a).toEqual(['== 1', '=C x', '!= 9']);
+  });
+
+  it('keeps echo expects literal and whole tokens bare', () => {
+    expect(expectStoredToDisplay('xc:not_a_tokeny')).toBe('xc:not_a_tokeny');
+    expect(expectDisplayToStored('xc:not_a_tokeny')).toBe('xc:not_a_tokeny');
+    expect(expectDisplayToStored(expectStoredToDisplay('xc:not_a_tokeny')))
+        .toBe('xc:not_a_tokeny');
+    expect(expectStoredToDisplay('c:day')).toBe('{{c:day}}');
+    expect(expectDisplayToStored('{{c:day}}')).toBe('c:day');
+    expect(expectDisplayToStored('<<c:day>>')).toBe('c:day');
+    expect(expectTextUnchanged('c:day', '{{c:day}}')).toBe(true);
+    expect(expectTextUnchanged('xc:not_a_tokeny', 'x<<c:not_a_token>>y')).toBe(false);
+    expect(expectStoredToDisplay('"c:not_a_token"')).toBe('"c:not_a_token"');
+    expect(expectDisplayToStored('"c:not_a_token"')).toBe('"c:not_a_token"');
+    expect(expectStoredToDisplay('omit')).toBe('omit');
+    expect(expectDisplayToStored('x{{c:day}}y')).toBe('x<<c:day>>y');
+    expect(expectDisplayToStored('xr:not_a_tokeny')).toBe('xr:not_a_tokeny');
+    expect(expectDisplayToStored('xi:nicknamey')).toBe('xi:nicknamey');
+    expect(expectDisplayToStored('xe:regiony')).toBe('xe:regiony');
   });
 });

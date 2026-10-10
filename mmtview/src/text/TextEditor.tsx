@@ -17,8 +17,15 @@ interface TextEditorProps {
   onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
   onToggleRunButton?: () => void;
   onPasteTextTransform?: (text: string) => string | null | undefined;
+  /**
+   * Rewrite the buffer after a keystroke. Used to wrap `i:x` as `{{i:x}}`
+   * and return the caret offset in the rewritten text.
+   */
+  rewriteTypedValue?: (text: string, cursor: number) => { text: string; cursor: number };
   showGlyphMargin?: boolean;
   readOnly?: boolean;
+  /** Monaco built-in context menu. Default true. */
+  enableContextMenu?: boolean;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -77,6 +84,61 @@ function registerUrlEncodedLanguage(monaco: any) {
         // bare key (no = yet)
         [/[^&\s=]+/, "key"],
         [/[=&]/, "delimiter"],
+      ],
+    },
+  });
+}
+
+/**
+ * JSON body language: emit the same scopes as Monaco's built-in JSON tokenizer
+ * (`string.key.json`, `string.value.json`, …) so Theme key colors apply, plus
+ * bare `{{random …}}` / `{{current …}}` as values. Built-in `json` breaks on
+ * those and loses key highlighting for the rest of the document.
+ *
+ * tokenPostfix must be "" — default would be `.mmt-json`, which would make
+ * keys `string.key.mmt-json` and fall through to the generic `string` color.
+ */
+let mmtJsonLanguageIdRegistered = false;
+export const MMT_JSON_LANGUAGE_ID = "mmt-json";
+function registerMmtJsonLanguage(monaco: any) {
+  if (!mmtJsonLanguageIdRegistered) {
+    if (!monaco.languages.getLanguages().some((l: { id: string }) => l.id === MMT_JSON_LANGUAGE_ID)) {
+      monaco.languages.register({ id: MMT_JSON_LANGUAGE_ID });
+    }
+    mmtJsonLanguageIdRegistered = true;
+  }
+  monaco.languages.setLanguageConfiguration(MMT_JSON_LANGUAGE_ID, {
+    brackets: [
+      ["{", "}"],
+      ["[", "]"],
+    ],
+    autoClosingPairs: [
+      { open: "{", close: "}" },
+      { open: "[", close: "]" },
+      { open: '"', close: '"' },
+    ],
+  });
+  // Full scope names (same as monaco jsonMode.js). Empty postfix is required.
+  monaco.languages.setMonarchTokensProvider(MMT_JSON_LANGUAGE_ID, {
+    defaultToken: "",
+    tokenPostfix: "",
+    tokenizer: {
+      root: [
+        [/\s+/, ""],
+        // Whole {{…}} as one token (before `{`) so braces/words/numbers stay uniform.
+        // Allow parenthesized args; stop at first `}` that isn't inside `(…)`.
+        [/\{\{\s*(?:random|current)\s+(?:[^{}]|\([^)]*\))+?\s*\}\}/i, "namespace.json"],
+        [/\{/, "delimiter.bracket.json"],
+        [/\}/, "delimiter.bracket.json"],
+        [/\[/, "delimiter.array.json"],
+        [/\]/, "delimiter.array.json"],
+        [/,/, "delimiter.comma.json"],
+        [/:/, "delimiter.colon.json"],
+        // Same key regex as Monaco's JSON monarch / common samples.
+        [/"([^"\\]|\\.)*"(?=\s*:)/, "string.key.json"],
+        [/"([^"\\]|\\.)*"/, "string.value.json"],
+        [/-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/, "number.json"],
+        [/\b(?:true|false|null)\b/, "keyword.json"],
       ],
     },
   });
@@ -165,8 +227,10 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onInspectPosition,
   onToggleRunButton,
   onPasteTextTransform,
+  rewriteTypedValue,
   showGlyphMargin = false,
   readOnly = false,
+  enableContextMenu = true,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -193,6 +257,13 @@ const TextEditor: React.FC<TextEditorProps> = ({
   useEffect(() => {
     pasteTextTransformRef.current = onPasteTextTransform;
   }, [onPasteTextTransform]);
+
+  const rewriteTypedValueRef = useRef(rewriteTypedValue);
+  useEffect(() => {
+    rewriteTypedValueRef.current = rewriteTypedValue;
+  }, [rewriteTypedValue]);
+  /** Caret offset in the rewritten buffer (`{{i:x|}}`, before `}}`). */
+  const pendingTypedCaretRef = useRef<number | null>(null);
 
   // Keep Monaco React theme prop in sync with flip-flop theme names from Theme.tsx.
   const [monacoTheme, setMonacoTheme] = useState(getMonacoThemeName);
@@ -319,6 +390,49 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  // Body {{random …}} / {{current …}}: one foreground color + soft glass fill
+  // (same glass as the old e:/i: highlight — not wordHighlightStrong).
+  useEffect(() => {
+    let style = document.getElementById("mmt-body-runtime-token-style") as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "mmt-body-runtime-token-style";
+      document.head.appendChild(style);
+    }
+    style.innerHTML = `
+      .monaco-editor .mmt-body-runtime-token {
+        color: var(--mmt-token-variable, var(--mmt-token-anchor, #4ec9b0)) !important;
+        background: color-mix(in srgb, var(--vscode-editorInfo-foreground, #75beff) 28%, transparent);
+        border-radius: 2px;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+    `;
+  }, []);
+
+  // Red dot after resolved r:/c: body values (legacy; URL/KSV still use .mmt-runtime-dot)
+  useEffect(() => {
+    if (document.getElementById("mmt-runtime-value-dot-style")) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = "mmt-runtime-value-dot-style";
+    style.innerHTML = `
+      .monaco-editor .mmt-runtime-value-dot::after {
+        content: "";
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        margin-left: 3px;
+        border-radius: 50%;
+        background: var(--vscode-errorForeground, #f14c4c);
+        vertical-align: text-top;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   /**
    * Apply parent `content` without Monaco React's controlled `value` sync.
    * That path uses executeEdits(..., forceMoveMarkers: true) on the full range,
@@ -334,9 +448,23 @@ const TextEditor: React.FC<TextEditorProps> = ({
     if (!model) {
       return;
     }
+    const placePendingCaret = () => {
+      const pending = pendingTypedCaretRef.current;
+      const liveModel = editor.getModel?.();
+      if (pending == null || !liveModel || editor.getValue() !== next) {
+        return;
+      }
+      pendingTypedCaretRef.current = null;
+      if (typeof liveModel.getPositionAt !== "function") {
+        return;
+      }
+      const caret = liveModel.getPositionAt(Math.max(0, Math.min(pending, next.length)));
+      editor.setPosition?.(caret);
+    };
     const current = editor.getValue();
     const plan = planExternalMonacoApply(current, next);
     if (plan === "noop") {
+      placePendingCaret();
       return;
     }
     const scrollTop = editor.getScrollTop?.() ?? 0;
@@ -351,6 +479,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
       }
       editor.setScrollTop?.(scrollTop);
       editor.setScrollLeft?.(scrollLeft);
+      placePendingCaret();
     } finally {
       // Monaco may notify listeners asynchronously; keep suppress flags until
       // after the current turn so onChange cannot echo the sync as a user edit.
@@ -516,6 +645,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         defineTheme(monaco);
         registerGraphQLLanguage(monaco);
         registerUrlEncodedLanguage(monaco);
+        registerMmtJsonLanguage(monaco);
         patchXmlValueHighlighting(monaco);
         beforeMount?.(monaco);
       }}
@@ -524,7 +654,54 @@ const TextEditor: React.FC<TextEditorProps> = ({
         if (applyingExternalContentRef.current) {
           return;
         }
-        setContent(value ?? "");
+        const raw = value ?? "";
+        const rewriter = rewriteTypedValueRef.current;
+        const editor = editorRefToUse.current;
+        const model = editor?.getModel?.();
+        const pos = editor?.getPosition?.();
+        if (
+          rewriter &&
+          model &&
+          pos &&
+          typeof model.getOffsetAt === "function" &&
+          typeof model.getPositionAt === "function"
+        ) {
+          const wrapped = rewriter(raw, model.getOffsetAt(pos));
+          if (wrapped.text !== raw) {
+            pendingTypedCaretRef.current = wrapped.cursor;
+            const span = computeMinimalEditSpan(raw, wrapped.text);
+            applyingExternalContentRef.current = true;
+            applyingPasteTransformRef.current = true;
+            try {
+              if (span && typeof editor.executeEdits === "function") {
+                const start = model.getPositionAt(span.start);
+                const end = model.getPositionAt(span.end);
+                editor.executeEdits("mmt-token-wrap", [{
+                  range: {
+                    startLineNumber: start.lineNumber,
+                    startColumn: start.column,
+                    endLineNumber: end.lineNumber,
+                    endColumn: end.column,
+                  },
+                  text: span.text,
+                  forceMoveMarkers: false,
+                }]);
+              }
+              const caret = model.getPositionAt(
+                Math.max(0, Math.min(wrapped.cursor, wrapped.text.length)),
+              );
+              editor.setPosition?.(caret);
+            } finally {
+              queueMicrotask(() => {
+                applyingExternalContentRef.current = false;
+                applyingPasteTransformRef.current = false;
+              });
+            }
+            setContent(wrapped.text);
+            return;
+          }
+        }
+        setContent(raw);
       }}
       options={{
         fontSize,
@@ -537,6 +714,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         glyphMargin: showGlyphMargin,
         readOnly,
         domReadOnly: readOnly,
+        contextmenu: enableContextMenu,
         lineDecorationsWidth: 0,
         scrollbar: {
           horizontal: "auto",

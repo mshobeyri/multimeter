@@ -1,5 +1,6 @@
 import React from 'react';
 import DescriptionEditor from '../components/DescriptionEditor';
+import StableTextInput from '../components/StableTextInput';
 import SearchableTagInput from '../components/SearchableTagInput';
 
 interface FileOverviewProps {
@@ -21,10 +22,10 @@ const FileOverview: React.FC<FileOverviewProps> = ({
     <div className="panel-form file-overview">
       <div className="panel-form-row">
         <div className="label">Title</div>
-        <input
+        <StableTextInput
           className="vscode-input"
           value={title || ''}
-          onChange={(e) => onChange({ title: e.target.value || undefined })}
+          onChange={(next) => onChange({ title: next || undefined })}
           placeholder="title"
         />
       </div>

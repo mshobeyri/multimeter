@@ -1,52 +1,51 @@
 import React from "react";
 import type { ExpectUiRow } from "mmt-core/expectUi";
+import {
+  expectDisplayToStored,
+  expectStoredToDisplay,
+  expectTextUnchanged,
+} from "mmt-core/expectUi";
+import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import OperatorSelect from "./OperatorSelect";
+import StableTextInput from "./StableTextInput";
+import TokenFieldInput from "./TokenFieldInput";
+import { fieldTrailingLayout } from "./FieldWithRemove";
+import { shortValueTypeLabel } from "mmt-core/yamlValueConvert";
 
 export type CheckClauseKind = "expect" | "require";
 
 const CLAUSE_COPY: Record<CheckClauseKind, {
-  empty: string;
   add: string;
   remove: string;
   expected: string;
 }> = {
   expect: {
-    empty: "No expectations",
     add: "+ Add expect",
     remove: "Remove expect",
     expected: "expected value",
   },
   require: {
-    empty: "No requirements",
     add: "+ Add require",
     remove: "Remove require",
     expected: "required value",
   },
 };
 
-export function CheckClauseFieldInput({
-  list,
-  value,
-  onChange,
-  title,
-  placeholder,
-}: {
-  list?: string;
-  value: string;
-  onChange: (value: string) => void;
-  title?: string;
-  placeholder?: string;
-}) {
-  return (
-    <input
-      list={list}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      className="field-flex-2"
-      title={title}
-      placeholder={placeholder}
-    />
-  );
+/** Stable row identity for list rendering (avoids jump on field rename). */
+export type CheckClauseRow = ExpectUiRow & { rowId: string };
+
+let nextRowId = 1;
+export function newCheckClauseRowId(): string {
+  nextRowId += 1;
+  return `cc-${nextRowId}`;
+}
+
+export function withCheckClauseRowIds(rows: ExpectUiRow[]): CheckClauseRow[] {
+  return rows.map(row => ({ ...row, rowId: newCheckClauseRowId() }));
+}
+
+export function stripCheckClauseRowIds(rows: CheckClauseRow[]): ExpectUiRow[] {
+  return rows.map(({ rowId: _rowId, ...row }) => row);
 }
 
 export function CheckClauseFieldSelect({
@@ -60,42 +59,50 @@ export function CheckClauseFieldSelect({
   onChange: (value: string) => void;
   title?: string;
 }) {
+  const opts = [...options];
+  if (value && !opts.includes(value)) {
+    opts.unshift(value);
+  }
+  if (opts.length === 0) {
+    opts.push("status");
+  }
+  const effective = opts.includes(value) ? value : opts[0];
   return (
     <select
-      value={value}
+      value={effective}
       onChange={e => onChange(e.target.value)}
-      className="field-flex-2"
+      className="check-clause-key"
       title={title}
     >
-      <option value="" disabled>-- field --</option>
-      {options.map(option => (
+      {opts.map(option => (
         <option key={option} value={option}>{option}</option>
       ))}
-      {value && !options.includes(value) && (
-        <option key={value} value={value}>{value}</option>
-      )}
     </select>
   );
 }
 
 type CheckClauseListProps = {
   kind: CheckClauseKind;
-  rows: ExpectUiRow[];
+  rows: CheckClauseRow[];
+  fieldOptions: string[];
   onPartChange: (index: number, part: "field" | "op" | "expected", value: string) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
-  renderField: (row: ExpectUiRow, index: number) => React.ReactNode;
-  children?: React.ReactNode;
+  renderStatus?: (row: CheckClauseRow, index: number) => React.ReactNode;
+  canContainToken?: boolean;
+  valueContext?: RuntimeTokenValueContext;
 };
 
 const CheckClauseList: React.FC<CheckClauseListProps> = ({
   kind,
   rows,
+  fieldOptions,
   onPartChange,
   onRemove,
   onAdd,
-  renderField,
-  children,
+  renderStatus,
+  canContainToken = false,
+  valueContext,
 }) => {
   const copy = CLAUSE_COPY[kind];
   const label = kind === "expect" ? "Expect" : "Require";
@@ -104,37 +111,92 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
     <>
       <div className="label">{label}</div>
       <div className="field-pad">
-        {children}
-        {rows.length ? (
-          <div className="field-stack is-loose">
-            {rows.map((row, i) => (
-              <div key={i} className="field-inline">
-                {renderField(row, i)}
-                <OperatorSelect
-                  value={row.op as any}
-                  onChange={nextOp => onPartChange(i, "op", nextOp)}
-                  className="is-grow"
-                  title="Comparison operator"
-                />
-                <input
-                  type="text"
-                  value={row.expected}
-                  onChange={e => onPartChange(i, "expected", e.target.value)}
-                  className="field-flex-2"
-                  placeholder={copy.expected}
-                />
-                <button
-                  type="button"
-                  onClick={() => onRemove(i)}
-                  className="action-button codicon codicon-close no-shrink"
-                  title={copy.remove}
-                  aria-label={copy.remove}
-                />
-              </div>
-            ))}
+        {rows.length > 0 && (
+          <div className="check-clause-table">
+            {rows.map((row, i) => {
+              const typeLabel = row.expected.trim() !== ""
+                ? shortValueTypeLabel(row.valueKind || "string")
+                : undefined;
+              const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
+                typeLabel,
+                buttonCount: 1,
+              });
+              const expectedDisplay = canContainToken
+                ? expectStoredToDisplay(row.expected)
+                : row.expected;
+              const commitExpected = (val: string) => {
+                const stored = canContainToken ? expectDisplayToStored(val) : val;
+                // Display {{c:day}} is not an edit of c:day. Echo text such as
+                // xc:not_a_tokeny is not rewritten into <<c:…>>.
+                if (expectTextUnchanged(row.expected, stored)) {
+                  return;
+                }
+                onPartChange(i, "expected", stored);
+              };
+              return (
+                <div key={row.rowId} className="check-clause-row">
+                  <div className="check-clause-status">
+                    {renderStatus ? renderStatus(row, i) : (
+                      <span className="apitest-result-slot" aria-hidden />
+                    )}
+                  </div>
+                  <CheckClauseFieldSelect
+                    value={row.field}
+                    options={fieldOptions}
+                    onChange={val => onPartChange(i, "field", val)}
+                    title="Output field"
+                  />
+                  <div className="check-clause-op">
+                    <OperatorSelect
+                      value={row.op as any}
+                      onChange={nextOp => onPartChange(i, "op", nextOp)}
+                      compact
+                      title="Comparison operator"
+                    />
+                  </div>
+                  <div className="check-clause-value field-with-remove has-remove">
+                    {canContainToken ? (
+                      <TokenFieldInput
+                        value={expectedDisplay}
+                        canContainToken
+                        valueContext={valueContext}
+                        placeholder={copy.expected}
+                        style={{ paddingRight }}
+                        onCommit={commitExpected}
+                        onDraftChange={commitExpected}
+                      />
+                    ) : (
+                      <StableTextInput
+                        type="text"
+                        value={row.expected}
+                        onChange={next => onPartChange(i, "expected", next)}
+                        placeholder={copy.expected}
+                        style={{ paddingRight }}
+                      />
+                    )}
+                    {typeText ? (
+                      <span
+                        className="field-type-affix"
+                        style={{ right: typeRight }}
+                        title="Value type"
+                      >
+                        {typeText}
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => onRemove(i)}
+                      title={copy.remove}
+                      aria-label={copy.remove}
+                      className="field-button"
+                    >
+                      <span className="action-button codicon codicon-close" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          <div className="muted">{copy.empty}</div>
         )}
         <div className="field-block">
           <button

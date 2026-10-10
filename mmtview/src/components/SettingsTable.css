@@ -19,25 +19,41 @@
   background: var(--vscode-sideBarSectionHeader-background, rgba(255, 255, 255, 0.05));
 }
 
-.settings-table th {
+.settings-table th,
+.settings-table td {
   text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 11px;
-  padding: 8px 12px;
-  color: var(--vscode-descriptionForeground, #9da5b4);
-  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+  padding: 2px 4px;
+  border: none;
+  vertical-align: middle;
 }
 
-.settings-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
-  color: var(--vscode-foreground, #f3f3f3);
-  vertical-align: top;
+.settings-table th:first-child,
+.settings-table td:first-child {
+  padding-left: 8px;
+}
+
+.settings-table th:last-child,
+.settings-table td:last-child {
+  padding-right: 8px;
+}
+
+.settings-table tbody tr:first-child td {
+  padding-top: 8px;
 }
 
 .settings-table tbody tr:last-child td {
-  border-bottom: none;
+  padding-bottom: 8px;
+}
+
+.settings-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #9da5b4);
+}
+
+.settings-table td {
+  color: var(--vscode-foreground, #f3f3f3);
 }
 
 .settings-table tbody tr:hover {

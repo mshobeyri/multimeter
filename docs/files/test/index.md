@@ -33,9 +33,13 @@ See also: [Flow chart](../../features/flow-chart.md)
 
 | Control | What it does |
 |---|---|
-| {{btn:play:Run test}} | Runs the test flow. While running, turns into **Stop test** |
-| Right-click Run test | Context menu: **Run in Core** |
+| {{btn:play:Run test}} | Runs the test flow. While running, turns into **Stop test**. Shortcut: **⌘Enter** (macOS) / **Ctrl+Enter** |
+| **More** (chevron next to Run) | While idle: **Run in Core**. While running: **Pause** / **Resume** (first), then the other More actions |
 | {{btn:export:Export}} | Export the run report (HTML, MMT, Markdown, or JUnit XML). Disabled until a run completes |
+
+**Run in Core** runs through the same engine but only shows start/stop in the UI (full step reports go to the Multimeter log). Use the status-bar badge menu for **Stop** or **Open file** while that run is active — see [Panels — Status bar](../../panels/index.md#status-bar).
+
+**Pause** holds the run at the next abort checkpoint (same places **Stop** can cancel); **Resume** continues. Closing the tab while a UI run is in progress prompts to save — **Cancel** keeps the run; discarding or saving closes the tab and aborts.
 
 ### After a run
 
@@ -51,7 +55,7 @@ See also: [Flow chart](../../features/flow-chart.md)
 - Step types: [call](./steps/call.md), [http](./steps/http.md), [run](./steps/run.md), [check](./steps/check.md), [assert](./steps/assert.md), [expect](./steps/run-expect.md)
 - [Control flow](./steps/control-flow.md): `if`, `for`, `repeat`, `delay`
 - [Stages](./stages/index.md) with parallel execution
-- [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md)
+- [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md) · [setenv](./steps/setenv.md)
 
 Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP file](../../integration/http-file.md) and [Bruno](../../integration/bruno.md).
 

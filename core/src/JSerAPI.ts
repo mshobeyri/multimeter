@@ -4,9 +4,10 @@ import {JSONRecord, requestFormat} from './CommonData';
 import {resolveRequestFormat} from './formatResolve';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
-import {coerceMultipartPartsInput, MultipartPartSpec} from './multipartBody';
-import {stripOmitFromRequest} from './omitKeyword';
+import {coerceMultipartPartsInput, MultipartPartSpec, partValueToWire} from './multipartBody';
+import {isOmitSentinel, stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
+import {buildSetenvExtractRules} from './setenvResolve';
 import {
   embedDynamicTokensAsJsInterpolations,
   replaceAllRefs,
@@ -18,8 +19,27 @@ export interface APIContext {
   reportOutputKeys?: string[]
 }
 
+/** Apply the API's `setenv` right after the response so later steps can read it. */
+const buildSetenvJs = (api: APIData): string => {
+  const rules = buildSetenvExtractRules(
+      api.setenv as Record<string, any>,
+      api.outputs as Record<string, string>);
+  if (Object.keys(rules).length === 0) {
+    return '';
+  }
+  return `  {
+    const __setenv_ = setenvValues_(extractOutputs_(__extractSource_, ${JSON.stringify(rules)}));
+    if (Object.keys(__setenv_).length > 0) {
+      setenv_(__setenv_);
+    }
+  }
+`;
+};
+
 export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
-  const inputParams = toInputsParams(ctx.api.inputs || {}, ' = ');
+  const knownInputNames = new Set(Object.keys(ctx.api.inputs ?? {}));
+  const tokenOptions = {knownInputNames};
+  const inputParams = toInputsParams(ctx.api.inputs || {}, ' = ', knownInputNames);
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.api.inputs ?? {}).map(key => [key, `\${${key}}`]));
@@ -52,12 +72,12 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   if (reqFormatForBody !== 'binary' && replaced.body != null) {
     replaced = {
       ...replaced,
-      body: embedDynamicTokensAsJsInterpolations(replaced.body),
+      body: embedDynamicTokensAsJsInterpolations(replaced.body, tokenOptions),
     };
   }
 
   let formattedBody =
-      formatBody(reqFormatForBody, replaced.body || '', false);
+      formatBody(reqFormatForBody, replaced.body || '', false, undefined, true);
   // Replace placeholders with JSON.stringify(var) so non-strings are not quoted
   try {
     if (typeof formattedBody === 'string') {
@@ -68,28 +88,47 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
         formattedBody = restoreUrlEncodedJsPlaceholders(formattedBody);
       } else if (reqFormat === 'json') {
         // A full-field runtime token must retain its native JSON type. Embedded
-        // tokens remain string interpolations.
+        // tokens remain string interpolations. Env is included with r:/c:
+        // because the stored type is only known when the request runs.
+        // Whole-field runtime tokens (optionally awaited mmtEnv_) keep JSON type.
         formattedBody = formattedBody.replace(
-            /"\$\{((?:mmt(?:Random|Current)_\([^{}]*\)|mmtAccess_\([^{}]*\)))}"/g,
+            /"\$\{((?:\(await\s+mmtEnv_\([^{}]*\)\))|(?:mmt(?:Random|Current|Env)_\([^{}]*\))|(?:mmtAccess_\([^{}]*\)))}"/g,
             '${JSON.stringify($1)}');
       }
-      const entries = Object.entries(ctx.api.inputs ?? {});
+      // Only JSON drops the quotes around a whole-field number/boolean input.
+      // XML attributes and other text formats must keep them.
+      const entries = reqFormat === 'json' ?
+          Object.entries(ctx.api.inputs ?? {}) :
+          [];
       for (const [name, value] of entries) {
-        // Replace "${name}" -> ${JSON.stringify(name)}
+        // A whole-field "${name}" follows the input default's JSON type.
+        // Strings stay quoted interpolations. Numbers, booleans, null, and
+        // objects go through JSON.stringify so a string override is still
+        // valid JSON. A raw ${name} splice turns {"xxx":${xxx}} into
+        // {"xxx":asdasd}, which makes the server close the connection and
+        // the next keep-alive call hang.
         const quoted = new RegExp(`\"\\$\\{${name}\\}\"`, 'g');
-        if (typeof value === 'string') {
-          formattedBody =
-              (formattedBody as string).replace(quoted, '"${' + name + '}"');
-        } else {
-          formattedBody =
-              (formattedBody as string).replace(quoted, '${' + name + '}');
+        if (typeof value !== 'string') {
+          formattedBody = (formattedBody as string).replace(
+              quoted, () => '${JSON.stringify(' + name + ')}');
         }
+      }
+      if (reqFormat === 'json') {
+        // JSON.stringify of a placeholder escapes inner double quotes
+        // (`mmtEnv_(\"name\")`). Those backslashes are a syntax error once the
+        // body is a template literal, and the call never runs. Quotes inside
+        // ${…} must be real string quotes so JSON.stringify returns the value's
+        // own JSON type (10 stays 10, "10" stays "10").
+        formattedBody = (formattedBody as string).replace(
+            /\$\{([^{}]*)\}/g,
+            (_match, expr) => '${' + String(expr).replace(/\\"/g, '"') + '}');
       }
     }
   } catch {
   }
 
-  const toTemplateWithEnvs = toTemplateValueJs;
+  const toTemplateWithEnvs = (value: string): string =>
+      toTemplateValueJs(value, tokenOptions);
 
   if (replaced.cookies && Object.keys(replaced.cookies).length > 0) {
     let cookies = Object.entries(replaced.cookies || {})
@@ -129,6 +168,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   // Generate protocol resolution: use explicit protocol if provided,
   // otherwise infer from the resolved URL at runtime
+  const setenvCode = buildSetenvJs(ctx.api);
   const explicitProtocol = ctx.api.protocol;
   const isGraphQL = explicitProtocol === 'graphql';
   const isGrpc = explicitProtocol === 'grpc';
@@ -273,7 +313,7 @@ ${multipartBuildLines}  const res_ = await send_(req_);
     duration: res_?.duration || 0,
     reportOutputKeys: ${JSON.stringify(reportOutputKeys)}
   };
-${isGraphQL ? `
+${setenvCode}${isGraphQL ? `
   // GraphQL error detection: if response contains errors array, mark as failed
   try {
     const __gqlBody = typeof res_?.body === 'string' ? JSON.parse(res_.body) : res_?.body;
@@ -334,6 +374,7 @@ function generateGrpcFunction(
   const serviceExpr = toTpl(grpc.service);
   const methodExpr = toTpl(grpc.method);
   const streamExpr = grpc.stream ? `'${grpc.stream}'` : 'undefined';
+  const setenvCode = buildSetenvJs(ctx.api);
 
   // Build message object
   let messageExpr = '{}';
@@ -402,7 +443,7 @@ ${authCode}
     duration: __grpcRes.duration || 0,
     reportOutputKeys: ${JSON.stringify(reportOutputKeys)}
   };
-
+${setenvCode}
   return output_;
 };`;
 }
@@ -420,8 +461,8 @@ function multipartPartsToJs(
     const fields: string[] = [`name: ${JSON.stringify(String(part.name ?? ''))}`];
     if (part.file != null && String(part.file).trim() !== '') {
       fields.push(`file: ${toTpl(String(part.file).trim())}`);
-    } else if (part.value != null) {
-      fields.push(`value: ${toTpl(String(part.value))}`);
+    } else if (part.value != null && !isOmitSentinel(part.value)) {
+      fields.push(`value: ${toTpl(partValueToWire(part.value))}`);
     }
     if (part.contentType != null && String(part.contentType).trim() !== '') {
       fields.push(`contentType: ${JSON.stringify(String(part.contentType))}`);

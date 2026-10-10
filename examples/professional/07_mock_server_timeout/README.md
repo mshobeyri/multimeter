@@ -23,4 +23,4 @@ This professional example demonstrates a request timeout against a delayed local
 npx testlight run examples/professional/07_mock_server_timeout/test/slow_timeout_test.mmt
 ```
 
-This example is expected to fail with a request timeout because the request timeout is shorter than the mock response delay.
+This example should pass: the request times out (`status: -1`) because the request timeout is shorter than the mock response delay.

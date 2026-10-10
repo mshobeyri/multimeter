@@ -17,6 +17,7 @@ Use `call` when the request or flow already lives in a reusable imported file, a
 | [judge](./judge.md) | AI judgment (`expect` / `require`) |
 | [Control flow](./control-flow.md) | `if`, `for`, `repeat`, `delay` |
 | [js](./js.md) | Inline JavaScript |
-| [Variables](./variables.md) | `print`, `set`, `var`, `const`, `let`, `setenv`, `data` |
+| [Variables](./variables.md) | `print`, `set`, `var`, `const`, `let` |
+| [setenv](./setenv.md) | Set environment variables at runtime for later steps and items |
 
 For multi-stage flows with parallel execution, see [Stages](../stages/index.md).

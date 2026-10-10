@@ -1,8 +1,10 @@
+import {LITERAL_TOKEN_PREFIX} from './literalToken';
 import {
   isQuotedExpectLiteral,
   opsList,
   unquoteExpectLiteral,
 } from './TestData';
+import {evaluateExpectValue} from './expectCompare';
 import {
   checkToJSfunc,
   conditionalStatementToJSfunc,
@@ -76,6 +78,16 @@ describe('isQuotedExpectLiteral', () => {
 });
 
 describe('parseExpectValue quotes and omit', () => {
+  it('compares a quoted token expect as its text', () => {
+    const region = `${LITERAL_TOKEN_PREFIX}e:region`;
+    const angle = `${LITERAL_TOKEN_PREFIX}<<e:account_age>>`;
+    expect(parseExpectValue(region)).toEqual({operator: '==', expected: region});
+    expect(parseExpectValue(angle)).toEqual({operator: '==', expected: angle});
+    expect(evaluateExpectValue('e:region', region)).toBe(true);
+    expect(evaluateExpectValue('<<e:account_age>>', angle)).toBe(true);
+    expect(evaluateExpectValue('42', angle)).toBe(false);
+  });
+
   it('unquotes "" and \'\' for every operator', () => {
     for (const op of STRING_OPS) {
       expect(parseExpectValue(`${op} ""`)).toEqual({ operator: op, expected: '' });

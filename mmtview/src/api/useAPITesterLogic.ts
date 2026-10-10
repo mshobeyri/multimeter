@@ -4,7 +4,8 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
-import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
+import { fieldForYamlSave, requestForSend } from "mmt-core/apiBodyEdit";
+import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
@@ -119,9 +120,12 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   );
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
   const currentInputsRef = useRef<JSONRecord>({});
+  const [envValues, setEnvValues] = useState<JSONRecord>({});
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
   const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
   const [outputs, setOutputs] = useState<JSONRecord>({});
+  const [setenvValues, setSetenvValues] = useState<JSONRecord>({});
+  const [apiTestResults, setApiTestResults] = useState<import("mmt-core/apiTestEval").ApiTestExpectItem[] | null>(null);
 
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
 
@@ -147,31 +151,64 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     }
   }, []);
 
+  /** Pack UI edit buffers into YAML forms and write the file immediately. */
+  const writeYamlPatch = useCallback((patch: Partial<Request>) => {
+    if (!onUpdateApi || Object.keys(patch).length === 0) {
+      return;
+    }
+    const yamlPatch: Partial<APIData> = {};
+    (Object.keys(patch) as (keyof Request)[]).forEach((field) => {
+      (yamlPatch as Record<string, unknown>)[field as string] = fieldForYamlSave(
+        patch[field],
+      );
+    });
+    onUpdateApi(yamlPatch);
+  }, [onUpdateApi]);
+
+  /** Update one or more request fields and write them to YAML immediately. */
+  const updateFields = useCallback((patch: Partial<Request>) => {
+    const keys = Object.keys(patch) as (keyof Request)[];
+    if (keys.length === 0) {
+      return;
+    }
+    keys.forEach((field) => markFieldTouched(field));
+    setRequestData((prev) => ({
+      ...(prev ?? {}),
+      ...patch,
+    } as Request));
+    writeYamlPatch(patch);
+  }, [markFieldTouched, writeYamlPatch]);
+
   const updateField = useCallback((field: keyof Request, value: unknown) => {
-    markFieldTouched(field);
+    updateFields({ [field]: value } as Partial<Request>);
+  }, [updateFields]);
+
+  /** Set a field and drop it from touched (e.g. format reverted to YAML baseline). */
+  const restoreField = useCallback((field: keyof Request, value: unknown) => {
+    if (touchedFieldsRef.current.has(field)) {
+      touchedFieldsRef.current.delete(field);
+      setTouchedFields(new Set(touchedFieldsRef.current));
+    }
     setRequestData(prev => ({
       ...(prev ?? {}),
       [field]: value
     } as Request));
-  }, [markFieldTouched]);
+    writeYamlPatch({ [field]: value } as Partial<Request>);
+  }, [writeYamlPatch]);
 
   const handleUrlChange = useCallback((newUrl: string) => {
     if (newUrl !== requestData?.url) {
-      markFieldTouched("url");
-      setRequestData(prev => ({
-        ...(prev ?? {}),
-        url: newUrl
-      } as Request));
+      updateFields({ url: newUrl });
     }
-  }, [requestData?.url, markFieldTouched]);
+  }, [requestData?.url, updateFields]);
 
   const handleQueryChange = useCallback((query: Record<string, string>) => {
     const prevQuery = JSON.stringify(requestData?.query || {});
     const nextQuery = JSON.stringify(query || {});
     if (prevQuery !== nextQuery) {
-      updateField("query", query);
+      updateFields({ query });
     }
-  }, [requestData?.query, updateField]);
+  }, [requestData?.query, updateFields]);
 
   const loadEnvParameters = useCallback(async (): Promise<JSONRecord> => {
     const envVars = await new Promise<any[]>(resolve => {
@@ -193,6 +230,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   ): Promise<Request> => {
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const envParameters = await loadEnvParameters();
+    setEnvValues(envParameters);
     return resolveApiRequest(
       api,
       resolvedInputs,
@@ -248,19 +286,15 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       merged.headers,
       merged.method ?? apiRef.current.method,
     );
-    if (merged.body != null && typeof merged.body !== "string" && reqFormat !== "multipart") {
-      return {
-        ...merged,
-        body: formatBody(reqFormat, merged.body, false),
-      };
-    }
-    return merged;
+    return {
+      ...requestForSend(merged, reqFormat),
+    };
   }, [resolveFreshRequestData]);
 
-  // Rebuild request UI only for scopes that actually changed (url / body / headers / …).
+  // Rebuild request UI when YAML/`api` changes. Example dropdown applies inputs
+  // itself; input edits only sync the selected index (no reload).
   useEffect(() => {
     const prevApi = prevApiRef.current;
-    const exampleChanged = prevExampleIdxRef.current !== selectedExampleIdx;
     prevExampleIdxRef.current = selectedExampleIdx;
 
     let scopes: ApiUiRefreshScope[];
@@ -272,39 +306,57 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       forceReset = true;
     } else if (prevApi !== api) {
       scopes = diffApiRefreshScopes(prevApi, api);
-      if (scopes.length === 0 && !exampleChanged) {
+      if (scopes.length === 0) {
         prevApiRef.current = api;
         return;
       }
 
-      const inputsChanged =
-        JSON.stringify(prevApi.inputs) !== JSON.stringify(api.inputs);
-
-      // Examples-only edits do not affect request values — skip rebuild via isDocOnlyRefresh.
-      if (inputsChanged) {
-        forceReset = true;
-        scopes = ["all"];
-        exampleIdx = -1;
-        if (selectedExampleIdx !== -1) {
-          prevExampleIdxRef.current = -1;
-          setSelectedExampleIdx(-1);
-        }
-      } else if (scopes.includes("all")) {
-        forceReset = true;
+      // Examples / doc-only YAML edits leave the live request alone.
+      if (isDocOnlyRefresh(scopes)) {
+        prevApiRef.current = api;
+        return;
       }
-    } else if (exampleChanged) {
-      scopes = ["all"];
+
+      // Body-only YAML edits (e.g. live token editor): re-resolve body without
+      // resetting inputs / example selection.
+      if (scopes.length === 1 && scopes[0] === "body") {
+        prevApiRef.current = api;
+        prepareRequestData(currentInputsRef.current, {
+          respectTouched: false,
+          scopes: ["body"],
+        });
+        return;
+      }
+
+      // Live tester writes for url/headers/meta (and multi-scope combos of those
+      // with body): refresh in place. Keep edit buffers for touched fields so
+      // {{…}} display mode survives the YAML echo.
+      const liveOnly = scopes.every(
+        (s) => s === "url" || s === "body" || s === "headers" || s === "meta" || s === "doc" || s === "examples",
+      );
+      if (liveOnly && scopes.some((s) => s === "url" || s === "body" || s === "headers" || s === "meta")) {
+        prevApiRef.current = api;
+        prepareRequestData(currentInputsRef.current, {
+          respectTouched: true,
+          scopes,
+        });
+        return;
+      }
+
+      // Any other YAML change resets inputs to defaults and clears example
+      // selection (Select...), matching preset-style behavior.
       forceReset = true;
+      scopes = ["all"];
+      exampleIdx = -1;
+      if (selectedExampleIdx !== -1) {
+        setSelectedExampleIdx(-1);
+      }
     } else {
-      prevApiRef.current = api;
+      // Same API: example index sync from inputs must not rewrite inputs.
       return;
     }
 
     prevApiRef.current = api;
-
-    if (isDocOnlyRefresh(scopes)) {
-      return;
-    }
 
     const baseInputs = exampleIdx === -1
       ? (api.inputs || {})
@@ -347,10 +399,34 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
         }
       });
       setOutputs(finalOutputs);
+    } else {
+      setOutputs({});
     }
 
-    void handleSetEnvVariables(api, extractSource, finalOutputs);
+    const resolvedSetenv = resolveSetenvValues({
+      response: extractSource,
+      setenv: api.setenv,
+      outputs: api.outputs,
+      extractedOutputs: finalOutputs,
+    });
+    const nextSetenv: JSONRecord = {};
+    for (const item of resolvedSetenv) {
+      nextSetenv[item.name] = item.value;
+    }
+    setSetenvValues(nextSetenv);
+    void applyResolvedSetenvVariables(api, resolvedSetenv);
   }, [responseData?.body, responseData?.headers, responseData?.cookies, responseData?.status, responseData?.duration, api.outputs, api.setenv, api]);
+
+  const addOutputEntry = useCallback((suggestedKey: string, expr: string) => {
+    const existing = { ...(apiRef.current.outputs || {}) };
+    let key = suggestedKey;
+    let counter = 1;
+    while (Object.prototype.hasOwnProperty.call(existing, key)) {
+      key = `${suggestedKey}_${counter++}`;
+    }
+    existing[key] = expr;
+    onUpdateApi?.({ outputs: existing });
+  }, [onUpdateApi]);
 
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
@@ -383,16 +459,12 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       }
     }
 
-    const existing = { ...(apiRef.current.outputs || {}) };
-    let key = suggestedKey;
-    let counter = 1;
-    while (Object.prototype.hasOwnProperty.call(existing, key)) {
-      key = `${suggestedKey}_${counter++}`;
-    }
+    addOutputEntry(suggestedKey, expr);
+  }, [addOutputEntry, requestData?.format, requestData?.headers, responseData]);
 
-    existing[key] = expr;
-    onUpdateApi?.({ outputs: existing });
-  }, [onUpdateApi, requestData?.format, requestData?.headers, responseData]);
+  const handleAddOutputExpression = useCallback((expr: string, suggestedKey: string) => {
+    addOutputEntry(suggestedKey, expr);
+  }, [addOutputEntry]);
 
   // HTTP/GraphQL/gRPC Send / Run in Core from the right panel: always send the
   // UI request as rawFile. Glyphs omit rawFile and use the editor file only.
@@ -444,6 +516,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   const handleSend = useCallback(async () => {
     setResponseData(undefined);
     setResponseRevision(prev => prev + 1);
+    setApiTestResults(null);
 
     const req = await buildRequestForSend();
     const protocol = protocolResolver.getEffectiveProtocol(
@@ -473,6 +546,14 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     }
     window.vscode?.postMessage({ command: "stopTestRun" });
   }, [network]);
+
+  const clearResponse = useCallback(() => {
+    setResponseData(undefined);
+    setResponseRevision(prev => prev + 1);
+    setApiTestResults(null);
+    setOutputs({});
+    setSetenvValues({});
+  }, []);
 
   const handleConnect = useCallback(() => {
     setResponseData(undefined);
@@ -550,11 +631,20 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       if (message.uri && filePath && message.uri !== filePath) {
         return;
       }
+      // Stale Cancel from a previous send that finished after a new Send started.
+      if (message.cancelled && sendPendingRef.current) {
+        return;
+      }
       setIsSending(false);
       const fromSend = sendPendingRef.current;
       sendPendingRef.current = false;
       if (message.cancelled) {
         return;
+      }
+      if (message.apiTest && Array.isArray(message.apiTest.items)) {
+        setApiTestResults(message.apiTest.items);
+      } else {
+        setApiTestResults(null);
       }
       if (typeof message.response !== "undefined" && message.response !== null) {
         let response = message.response as Response;
@@ -606,18 +696,25 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     setSelectedExampleIdx,
     currentInputs,
     setCurrentInputs,
+    envValues,
     autoFormatBody,
     setAutoFormatBody,
     outputs,
+    setenvValues,
+    apiTestResults,
     isSending,
     updateField,
+    updateFields,
+    restoreField,
     handleUrlChange,
     handleQueryChange,
     handleAddOutputVariable,
+    handleAddOutputExpression,
     prepareRequestData,
     handleSend,
     handleRunInCore,
     handleCancel,
+    clearResponse,
     handleConnect,
     network,
     examples,
@@ -640,28 +737,10 @@ function toContentString(data: any): string {
   return responseBodyToRawString(data);
 }
 
-async function handleSetEnvVariables(
+async function applyResolvedSetenvVariables(
   api: APIData,
-  response: {
-    type: "auto";
-    body: any;
-    headers: Record<string, any>;
-    cookies: Record<string, any>;
-    status?: number;
-    duration?: number;
-  },
-  finalOutputs: JSONRecord
+  resolved: Array<{ name: string; value: string | number | boolean }>,
 ) {
-  if (!api.setenv || typeof api.setenv !== "object" || Object.keys(api.setenv).length === 0) {
-    return;
-  }
-
-  const resolved = resolveSetenvValues({
-    response,
-    setenv: api.setenv,
-    outputs: api.outputs,
-    extractedOutputs: finalOutputs,
-  });
   if (resolved.length === 0) {
     return;
   }

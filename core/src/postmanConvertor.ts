@@ -1,7 +1,24 @@
-import { APIData, AuthConfig } from './APIData';
+import {APIData, AuthConfig, ExampleData} from './APIData';
 import {Format, packFormatSpec, requestFormat, toResponseFormat} from './CommonData';
 import {OMIT_SENTINEL} from './omitKeyword';
 import {RANDOM_TOKEN_MAP} from './Random';
+
+/** Prefer Postman response name; fall back to example_N; uniquify collisions. */
+function allocateExampleId(
+    preferred: string | undefined, index: number, used: Set<string>): string {
+  const base = String(preferred || '').trim() || `example_${index + 1}`;
+  if (!used.has(base)) {
+    used.add(base);
+    return base;
+  }
+  let n = 2;
+  while (used.has(`${base}_${n}`)) {
+    n++;
+  }
+  const unique = `${base}_${n}`;
+  used.add(unique);
+  return unique;
+}
 
 // Map Postman dynamic random variables to Multimeter random token names
 // Only include those we support in RANDOM_TOKEN_MAP.
@@ -54,11 +71,30 @@ const POSTMAN_RANDOM_TOKEN_NAMES = new Set(Object.values(POSTMAN_RANDOM_MAP));
 export function translatePostmanTemplate(str: string): string {
   return str.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_m, inner) => {
     const name = String(inner).trim();
-    if (POSTMAN_RANDOM_MAP[name]) {
-      return `r:${POSTMAN_RANDOM_MAP[name]}`;
+    const mapped = lookupPostmanDynamicName(name);
+    if (mapped) {
+      return `r:${mapped}`;
     }
     return `<<e:${name}>>`;
   });
+}
+
+/** Map a Postman/Bruno `{{$…}}` name to an MMT random token name, if known. */
+export function lookupPostmanDynamicName(name: string): string | undefined {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (POSTMAN_RANDOM_MAP[trimmed]) {
+    return POSTMAN_RANDOM_MAP[trimmed];
+  }
+  const lower = trimmed.toLowerCase();
+  for (const [key, value] of Object.entries(POSTMAN_RANDOM_MAP)) {
+    if (key.toLowerCase() === lower) {
+      return value;
+    }
+  }
+  return undefined;
 }
 
 function replacePostmanVars(str: string): string {
@@ -140,7 +176,7 @@ export function parsePostmanRawJsonBody(raw: string): string | object {
       unquotedPattern,
       (_match, _token, inner, suffix) => {
         const key = `$${String(inner).trim()}`;
-        const mapped = POSTMAN_RANDOM_MAP[key];
+        const mapped = lookupPostmanDynamicName(key);
         if (mapped) {
           return `: "__MMT_UNQUOTED_${mapped}__"${suffix}`;
         }
@@ -680,10 +716,13 @@ export function postmanToAPI(postmanJson: any): APIData[] {
         apiData.inputs = inputs as any;
 
         // Build examples overriding only changed inputs
+        const usedExampleIds = new Set<string>();
         const examples = pmResponses.map((resp, idx) => {
           const or = normalizePostmanRequest(resp && (resp.originalRequest || resp.request));
-          const example: any = {
-            name: resp?.name || `example_${idx + 1}`,
+          const id = allocateExampleId(resp?.name, idx, usedExampleIds);
+          const example: ExampleData = {
+            id,
+            title: String(resp?.name || '').trim() || id,
             description: resp?.description || undefined,
             inputs: {} as Record<string, any>,
           };
@@ -749,7 +788,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
           }
 
           // Clean empty inputs if none changed
-          if (Object.keys(example.inputs).length === 0) {
+          if (!example.inputs || Object.keys(example.inputs).length === 0) {
             delete example.inputs;
           }
           if (!example.description) {
@@ -757,25 +796,30 @@ export function postmanToAPI(postmanJson: any): APIData[] {
           }
           const responseOutputs = responseToOutputs(resp);
           if (Object.keys(responseOutputs.exampleOutputs).length > 0) {
-            example.outputs = responseOutputs.exampleOutputs;
+            example.expect = responseOutputs.exampleOutputs;
           }
           return example;
         });
 
-        // Keep only examples that have a name or inputs/description
-        apiData.examples = examples.filter(ex => ex && (ex.name || ex.inputs || ex.description));
+        // Keep only examples that have an id or inputs/description
+        apiData.examples = examples.filter(ex => ex && (ex.id || ex.inputs || ex.description));
       }
       // Fallback: responses exist but no originalRequest/request examples captured
       if (!apiData.examples && pmResponses.length > 0) {
+        const usedFallbackIds = new Set<string>();
         apiData.examples = pmResponses
             .map((resp, idx) => {
               const responseOutputs = responseToOutputs(resp);
+              const id = allocateExampleId(resp?.name, idx, usedFallbackIds);
               return {
-                name: resp?.name || `example_${idx + 1}`,
-                ...(Object.keys(responseOutputs.exampleOutputs).length > 0 ? {outputs: responseOutputs.exampleOutputs} : {}),
+                id,
+                title: String(resp?.name || '').trim() || id,
+                ...(Object.keys(responseOutputs.exampleOutputs).length > 0 ?
+                    {expect: responseOutputs.exampleOutputs} :
+                    {}),
               };
             })
-            .filter(ex => ex.name);
+            .filter(ex => ex.id);
       }
     } catch (e) {
       // Non-fatal: if examples parsing fails, return base apiData

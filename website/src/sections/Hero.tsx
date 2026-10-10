@@ -27,7 +27,7 @@ export default function Hero() {
             <span className="gradient-text">API tests</span> in VS Code
           </h1>
           <p className="text-lg sm:text-xl text-slate-400 mb-10 leading-relaxed mx-auto max-w-xl">
-            Requests, tests, mocks, and docs are YAML in Git — same files in VS Code and in CI.
+            Requests, tests, mocks, and docs are YAML in Git — same files in the VS Code editor and in CI.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mb-10 justify-center">
             <a

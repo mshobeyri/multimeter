@@ -7,7 +7,7 @@ export const statusIconFor = (status: StepStatus) => {
         return { icon: 'codicon-play-circle', color: '#0ABAB5', title: 'Running' };
     }
     if (status === 'cancelled') {
-        return { icon: 'codicon-stop-circle', color: ' #7c4545', title: 'Cancelled' };
+        return { icon: 'codicon-stop-circle', color: '#7c4545', title: 'Stopped' };
     }
     if (status === 'passed') {
         return { icon: 'codicon-pass', color: '#23d18b', title: 'Passed' };

@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
+import { useStableFieldDraft } from "./StableTextInput";
 
 export type mode = "interface" | "test";
 
@@ -9,12 +10,7 @@ export type DescriptionEditorProps = {
 
 const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ value, onChange }) => {
     const bodyRef = useRef<HTMLTextAreaElement>(null);
-    const [localValue, setLocalValue] = useState(value);
-
-    // Keep localValue in sync with parent value (when parent changes)
-    useEffect(() => {
-        setLocalValue(value);
-    }, [value]);
+    const { draft: localValue, setDraft: setLocalValue, focusProps } = useStableFieldDraft(value);
 
     // Auto-resize textarea height based on content
     useEffect(() => {
@@ -30,6 +26,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ value, onChange }
                 ref={bodyRef}
                 className="mmt-fill description-editor"
                 value={localValue}
+                onFocus={() => focusProps.onFocus()}
+                onBlur={() => focusProps.onBlur()}
                 onChange={e => {
                     setLocalValue(e.target.value);
                     onChange(e.target.value);

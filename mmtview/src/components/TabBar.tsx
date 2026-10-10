@@ -22,6 +22,11 @@ export type TabBarProps<T extends string = string> = {
   style?: React.CSSProperties;
   /** `default` → `.tab-button`; `small` → `.tab-button-small`. */
   variant?: 'default' | 'small';
+  /**
+   * When true (default), draw the full-width rule under the strip.
+   * Active tab underline is unaffected.
+   */
+  showRule?: boolean;
 };
 
 /**
@@ -36,6 +41,7 @@ export default function TabBar<T extends string>({
   className,
   style,
   variant = 'default',
+  showRule = true,
 }: TabBarProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
   const [iconsOnly, setIconsOnly] = useState(false);
@@ -65,7 +71,9 @@ export default function TabBar<T extends string>({
   return (
     <div
       ref={ref}
-      className={['tab-bar', className].filter(Boolean).join(' ')}
+      className={['tab-bar', !showRule ? 'is-no-rule' : undefined, className]
+        .filter(Boolean)
+        .join(' ')}
       style={style}
     >
       {tabs.map((tab) => {

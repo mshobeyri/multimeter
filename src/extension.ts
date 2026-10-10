@@ -9,6 +9,7 @@ import {convertUriToMmt} from './mmtAPI/convertToMmt';
 import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
 import {MmtEditorProvider} from './mmtEditorProvider';
 import ConnectionsPanel from './panels/ConnectionsPanel';
+import {registerMultimeterDockTrees} from './panels/DockTreeProvider';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
@@ -80,6 +81,7 @@ function registerEditorProvider(
   context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(event => {
         if (event.affectsConfiguration('multimeter.body.auto.format') ||
+            event.affectsConfiguration('multimeter.body.lineNumbers') ||
             event.affectsConfiguration('multimeter.editor.fontSize') ||
             event.affectsConfiguration(
                 'multimeter.editor.collapseDescription')) {
@@ -99,6 +101,10 @@ function registerEditorProvider(
       vscode.commands.registerCommand('multimeter.mmt.show.ui', () => {
         mmtviewPanel.showPanel('ui');
       }));
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.sendRequest', () => {
+        mmtviewPanel.postToActivePanel({command: 'sendRequest'});
+      }));
 }
 
 function registerSidePanels(
@@ -108,6 +114,8 @@ function registerSidePanels(
   historyPanel: HistoryPanel; environmentPanel: EnvironmentPanel;
   connectionsPanel: ConnectionsPanel;
 } {
+  registerMultimeterDockTrees(context);
+
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       TempFilesPanel.viewType, new TempFilesPanel(context, tempFiles),
       {webviewOptions: {retainContextWhenHidden: true}}));

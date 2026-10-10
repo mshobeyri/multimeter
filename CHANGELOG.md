@@ -2,6 +2,159 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.45.0-pre]
+
+Pre-release. VS Code extension `1.45.0`; Testlight CLI and MCP `1.45.0-pre` on `@pre`.
+
+### Headers and omit
+
+- Block default headers with `omit` and stop axios from re-adding them
+- Preserve literal `omit` in XML and urlencoded body editors
+
+### Run controls
+
+- Add Pause/Resume for test and suite runs
+- Keep editors dirty while a run is active so close Cancel preserves the run
+- Offer Stop/Open from the status bar for Run in Core only
+- Open the running file from the status bar
+- Keep Run/Stop active until the test finishes and join More beside Run
+- Delay revealing cancel/stop on send and run buttons; match the load rotator to the codicon spin
+- Stop Cancel from finishing as failed or leaking into the next run
+
+### Mock server
+
+- Add Run in the mock server panel and stop UI mocks on editor close
+- Use SendButton for mock server run/stop control
+
+### Environment
+
+- Resolve `./…mmt` env values by running the file for the first output; allow `cache:` on API files so file-backed env works for all types
+- Use a per-run process EnvStore instead of embedding env in generated JS
+- Share in-flight file-backed env resolves; keep `./…mmt` tokens unresolved until runtime
+- Soft-fail file-backed env resolves and fix convertor regressions
+- Promote suite `setenv` into the Environment panel once per run
+- Add scoped clear actions; rebuild `e:` autocomplete suggestions
+- Put file-backed env open and remove controls inside value fields; show a file icon for env vars loaded from a file
+- Fix Environment panel table column widths and tighten table chrome
+
+### setenv and API
+
+- Add `setenv` chaining across API, test, and suite runs
+- Make API body optional and stop adding an empty body or default protocol
+- Log API Response at info for direct runs
+- Fix Auth tab layout and api-key placement
+- Remove the unused `data` test step
+
+### API tester and UI
+
+- Add a sidebar Views dock for relocating Multimeter panels
+- Add extract buttons on response header and cookie values
+- Center method URL text including token previews; remove nested border from the method URL field
+- Theme response duration, field icon buttons, YAML error panels, and token hover tips
+- Improve YAML error overlay hover and step validation noise
+- Style checkboxes like VS Code settings; restore dropdown chevrons; disable text selection on side panel chrome
+
+### Docs
+
+- Document status bar actions, Pause, and mock panel run options
+- Document `setenv` as its own test step page
+- Document 1.43–1.44 UI and env changes; refresh roadmap
+- Add a file-backed env live-variables example
+
+## [1.44.5]
+
+Stable release of the 1.44.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.44.5` on `@latest`.
+
+- API tester: request/response split with Settings, Doc, and inline edit; split layout toggle; global token mirror mode; reworked header and body controls
+- Tokens: a bare token is a token only when it is the whole value; `{{ }}` accepted like `<< >>`; type-aware quoting in XML, urlencoded, and JSON bodies
+- HTTP: keep-alive retry after resets; safer JSON encoding of number, boolean, and object inputs
+- Fix the first sample or template pick on a new temp file not being saved
+- Add a border around the New MMT file button
+
+## [1.44.4-pre]
+
+Pre-release. VS Code extension `1.44.4`; Testlight CLI and MCP `1.44.4-pre` on `@pre`.
+
+### API tester
+
+- Add a request/response split layout toggle
+- Add global token mirror mode for request fields
+- Improve header controls and dividers, and move body formatting actions into the body view
+- Remove HTML from the available request body formats
+
+### Examples
+
+- Remove unintended title and description metadata from the Vault HTTP `setenv` example
+
+## [1.44.3-pre]
+
+Pre-release. VS Code extension `1.44.3`; Testlight CLI and MCP `1.44.3-pre` on `@pre`.
+
+### API tester
+
+- Rework the response header controls
+- Improve switching between body formats
+
+### YAML editor
+
+- Show XML and urlencoded values without quotes in the editor
+- Highlight `{{ }}` curly tokens
+
+## [1.44.2-pre]
+
+Pre-release. VS Code extension `1.44.2`; Testlight CLI and MCP `1.44.2-pre` on `@pre`.
+
+### Tokens
+
+- Keep quotes around numeric and boolean inputs in XML attributes and other text formats; only JSON drops them
+- Show attribute values and numeric-looking strings such as `1.0` as plain text in XML and urlencoded bodies, and keep them strings
+- Extend the token resolution example with attributes, decimals, and numeric strings
+
+## [1.44.1-pre]
+
+Pre-release. VS Code extension `1.44.1`; Testlight CLI and MCP `1.44.1-pre` on `@pre`.
+
+### API tester
+
+- Reshape the tester into a request/response split with Settings, Doc, and inline edit
+- Move auth into its own tab; rename Tests to Examples; show Outputs before Send
+- Split Send; run the open request, test, or suite with Cmd or Ctrl+Enter
+- Keep the caret stable while YAML echoes, and tab through key and value fields
+
+### Tokens and expects
+
+- Treat a bare token as a token only when it is the whole value; quoted tokens stay literal text
+- Accept `{{ }}` the same way as `<< >>`
+- Keep authored expects when a file is opened
+- Resolve example expects from live `e:`, `i:`, `c:`, and `r:` tokens
+- Give each `r:` occurrence its own value
+- Round-trip headers, multipart, GraphQL, gRPC, and text bodies without rewriting their spelling
+
+### Run controls
+
+- Open Run in Core and Run in Curl from More instead of a right-click
+- Keep Run and Stop as one button, with Stop centered while a run is in progress
+
+### Environment
+
+- Keep number, boolean, object, and list values in JSON requests and the environment panel
+
+## [1.44.0-pre]
+
+Pre-release. VS Code extension `1.44.0`; Testlight CLI and MCP `1.44.0-pre` on `@pre`.
+
+### HTTP
+
+- Encode number, boolean, and object JSON inputs with `JSON.stringify` so a string override stays valid JSON
+- Drop a keep-alive socket after an HTTP error and retry once on reset, so the next sequential call is not written onto a closed connection (Windows timeouts after a type mismatch)
+
+### Docs and website
+
+- Document parallel runs and call cache; move Testlight (Multimeter CLI) and MCP out of Features
+- Mention the VS Code visual editor and parallel runs / call cache on compare pages
+- Remove Open as Text from the editor title bar; document Open With
+- Document Open VSX and MCP Registry publish for stable releases; list Open VSX on Downloads
+
 ## [1.43.3]
 
 Stable release of the 1.43.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.43.3` on `@latest`.

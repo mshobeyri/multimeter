@@ -63,24 +63,151 @@
   min-width: 0;
 }
 
-.apitest-panel-wrapper {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-}
-
 /* Top status bar: one rectangle on the panel; yellow unsaved, red YAML error. */
 .mmt-yaml-error {
   position: relative;
 }
 
-.panel-box:has(.unsaved-warning-btn) {
-  --mmt-status-bar: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+/* Dimmed YAML error report: theme error panels top-down, actions under last error. */
+.mmt-yaml-error-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 55%, transparent);
+  backdrop-filter: blur(1px);
+  cursor: default;
+  overflow: auto;
 }
 
-.panel-box:has(.yaml-error-btn) {
-  --mmt-status-bar: var(--vscode-errorForeground, #f14c4c);
+.mmt-yaml-error-dim-body {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.mmt-yaml-error-dim-item,
+.mmt-yaml-error-dim-actions,
+.mmt-yaml-error-dim-link {
+  pointer-events: auto;
+}
+
+.mmt-yaml-error-dim-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* These are <button>s — must beat global `button` / `button:hover` primary chrome. */
+button.mmt-yaml-error-dim-item,
+.mmt-yaml-error-dim-item {
+  --mmt-yaml-error-bg: var(
+    --vscode-inputValidation-errorBackground,
+    color-mix(
+      in srgb,
+      var(--vscode-errorForeground, #f14c4c) 14%,
+      var(--vscode-editorWidget-background, var(--vscode-editor-background, #1e1e1e)) 86%
+    )
+  );
+  --mmt-yaml-error-border: var(
+    --vscode-inputValidation-errorBorder,
+    color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 45%, transparent)
+  );
+  --mmt-yaml-error-fg: var(
+    --vscode-inputValidation-errorForeground,
+    var(--vscode-foreground, #cccccc)
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid var(--mmt-yaml-error-border);
+  border-radius: var(--mmt-control-radius, 4px);
+  background: var(--mmt-yaml-error-bg);
+  background-color: var(--mmt-yaml-error-bg);
+  color: var(--mmt-yaml-error-fg);
+  font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 0.12s ease;
+  box-shadow: none;
+}
+
+button.mmt-yaml-error-dim-item:hover,
+button.mmt-yaml-error-dim-item:focus,
+button.mmt-yaml-error-dim-item:focus-visible,
+button.mmt-yaml-error-dim-item:active,
+.mmt-yaml-error-dim-item:hover,
+.mmt-yaml-error-dim-item:focus,
+.mmt-yaml-error-dim-item:focus-visible,
+.mmt-yaml-error-dim-item:active {
+  /* Opacity only — lock error chrome so primary button blue cannot win. */
+  opacity: 1;
+  background: var(--mmt-yaml-error-bg) !important;
+  background-color: var(--mmt-yaml-error-bg) !important;
+  border-color: var(--mmt-yaml-error-border) !important;
+  color: var(--mmt-yaml-error-fg) !important;
+  box-shadow: none !important;
+}
+
+.mmt-yaml-error-dim-item-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--vscode-font-family, sans-serif);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.mmt-yaml-error-dim-item-msg {
+  display: block;
+  width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mmt-yaml-error-dim-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  padding: 2px 2px 0;
+}
+
+.mmt-yaml-error-dim-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.mmt-yaml-error-dim-link:hover {
+  color: var(--vscode-textLink-activeForeground, #3794ff);
+}
+
+.panel-box:has(.unsaved-warning-btn) {
+  --mmt-status-bar: var(--vscode-notificationsWarningIcon-foreground, #cca700);
 }
 
 .panel-box:has(.unsaved-warning-btn)::before {
@@ -106,6 +233,8 @@
 
 .yaml-error-btn {
   --mmt-status-accent: var(--vscode-errorForeground, #f14c4c);
+  color: var(--mmt-status-accent) !important;
+  white-space: nowrap;
 }
 
 .panel-run-header {
@@ -289,8 +418,7 @@
 
 .apitest-url-row-actions {
   display: flex;
-  align-items: flex-start;
-  padding-top: 2px;
+  align-items: center;
   flex-shrink: 0;
 }
 
@@ -510,6 +638,10 @@
   gap: 8px;
 }
 
+.unsaved-changes-popup--simple {
+  width: 320px;
+}
+
 .unsaved-changes-popup-header {
   display: flex;
   align-items: center;
@@ -566,6 +698,10 @@
   display: flex;
   gap: 4px;
   margin-left: auto;
+}
+
+.unsaved-changes-popup--simple .unsaved-changes-popup-actions {
+  margin-left: 0;
 }
 
 .unsaved-changes-popup-yaml {
@@ -667,11 +803,16 @@ select.method-select:focus-visible {
 }
 
 .ui-pane-inner {
+  position: relative;
   width: 100%;
   height: 100%;
   max-width: 1200px;
   margin: 0 auto;
   overflow: auto;
+}
+
+.ui-pane-inner:has(.apitest-root--side-by-side) {
+  max-width: 2400px;
 }
 
 .yaml-host {

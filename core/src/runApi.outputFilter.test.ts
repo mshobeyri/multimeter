@@ -17,6 +17,7 @@ describe('runApi output printing', () => {
     });
 
     expect(js).toContain("console.log(__mmt_formatSection('Outputs:', __outputLog))");
+    expect(js).toContain("console.log(__mmt_formatSection('Response:', __resLog))");
     // _ internal properties are auto-injected but filtered from the output log
     expect(js).toContain("delete copy['_']");
   });

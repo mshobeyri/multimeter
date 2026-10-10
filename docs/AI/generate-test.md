@@ -121,10 +121,7 @@ Supported step forms:
 - let:
     <name>: <value>
 
-# 13) data: bind CSV alias (from import)
-- data: <alias>
-
-# 14) setenv: promote values into environment variables
+# 13) setenv: promote values into environment variables
 - setenv:
     <env_name>: <value>       # e.g. token: ${loginStep.token}
 ```
@@ -291,7 +288,6 @@ import:
   login: ./login.mmt
 
 steps:
-  - data: users
   - for: const user of users
     steps:
       - call: login

@@ -1,31 +1,32 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations, replaceOutputTokenRefs, replaceOutputTokensPlain, rewriteOutputSetKey } from './variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, resolveInputsMapAsync, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, collectEnvRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations, replaceOutputTokenRefs, replaceOutputTokensPlain, rewriteOutputSetKey } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
-  it('normalizes <<e:VAR>> to envVariables.VAR', () => {
-    expect(normalizeEnvTokens('url=<<e:HOST>>')).toBe('url=envVariables.HOST');
+  it('normalizes <<e:VAR>> to await mmtEnv_ lookup', () => {
+    expect(normalizeEnvTokens('url=<<e:HOST>>')).toBe(
+        'url=(await mmtEnv_("HOST", null, \'lookup\'))');
   });
 
-  it('normalizes <e:VAR> to envVariables.VAR', () => {
-    expect(normalizeEnvTokens('url=<e:HOST>')).toBe('url=envVariables.HOST');
+  it('leaves single-angle and brace spellings as text', () => {
+    expect(normalizeEnvTokens('url=<e:HOST>')).toBe('url=<e:HOST>');
+    expect(normalizeEnvTokens('url=e:{HOST}')).toBe('url=e:{HOST}');
+    expect(normalizeEnvTokens('< e:HOST >')).toBe('< e:HOST >');
   });
 
-  it('normalizes e:{VAR} to envVariables.VAR', () => {
-    expect(normalizeEnvTokens('url=e:{HOST}')).toBe('url=envVariables.HOST');
+  it('normalizes plain e:VAR to await mmtEnv_ lookup', () => {
+    expect(normalizeEnvTokens('url=e:HOST/path')).toBe(
+        'url=(await mmtEnv_("HOST", null, \'lookup\'))/path');
   });
 
-  it('normalizes plain e:VAR to envVariables.VAR', () => {
-    expect(normalizeEnvTokens('url=e:HOST/path')).toBe('url=envVariables.HOST/path');
-  });
-
-  it('normalizes multiple mixed forms in one string', () => {
-    const input = '<<e:A>> and <e:B> and e:{C} and e:D';
+  it('normalizes multiple forms in one string', () => {
+    const input = '<<e:A>> and e:D';
     const out = normalizeEnvTokens(input);
-    expect(out).toBe('envVariables.A and envVariables.B and envVariables.C and envVariables.D');
+    expect(out).toBe(
+        '(await mmtEnv_("A", null, \'lookup\')) and (await mmtEnv_("D", null, \'lookup\'))');
   });
 
   it('handles whitespace in angle brackets', () => {
-    expect(normalizeEnvTokens('<< e:HOST >>')).toBe('envVariables.HOST');
-    expect(normalizeEnvTokens('< e:HOST >')).toBe('envVariables.HOST');
+    expect(normalizeEnvTokens('<< e:HOST >>')).toBe(
+        '(await mmtEnv_("HOST", null, \'lookup\'))');
   });
 
   it('leaves strings without env tokens unchanged', () => {
@@ -35,12 +36,12 @@ describe('normalizeEnvTokens', () => {
 });
 
 describe('toTemplateWithEnvVars', () => {
-  it('converts e:VAR to template literal with ${envVariables.VAR}', () => {
-    expect(toTemplateWithEnvVars('hello e:NAME')).toBe('`hello ${envVariables.NAME}`');
+  it('converts e:VAR to template literal with ${(await mmtEnv_("VAR"))}', () => {
+    expect(toTemplateWithEnvVars('hello e:NAME')).toBe('`hello ${(await mmtEnv_("NAME"))}`');
   });
 
   it('converts <<e:VAR>> to template literal', () => {
-    expect(toTemplateWithEnvVars('<<e:NAME>>')).toBe('`${envVariables.NAME}`');
+    expect(toTemplateWithEnvVars('<<e:NAME>>')).toBe('`${(await mmtEnv_("NAME"))}`');
   });
 
   it('does not double-wrap existing ${envVariables.VAR}', () => {
@@ -58,23 +59,25 @@ describe('toTemplateWithEnvVars', () => {
     expect(result).not.toContain('${${');
   });
 
-  it('collapses nested ${ ${envVariables.VAR} } patterns', () => {
+  it('leaves pre-existing ${envVariables.VAR} nested forms readable', () => {
     const input = '${${envVariables.NAME}}';
     const result = toTemplateWithEnvVars(input);
-    expect(result).toBe('`${envVariables.NAME}`');
+    // Legacy envVariables refs are not rewritten; only e: tokens become mmtEnv_.
+    expect(result).toContain('envVariables.NAME');
+    expect(result).not.toContain('mmtEnv_');
   });
 
   it('handles multiple env tokens in one string', () => {
     const result = toTemplateWithEnvVars('http://e:HOST:e:PORT/path');
-    expect(result).toContain('${envVariables.HOST}');
-    expect(result).toContain('${envVariables.PORT}');
+    expect(result).toContain('${(await mmtEnv_("HOST"))}');
+    expect(result).toContain('${(await mmtEnv_("PORT"))}');
     expect(result).not.toContain('${${');
   });
 
   it('preserves non-env ${...} expressions', () => {
     const result = toTemplateWithEnvVars('${callId.result} and e:HOST');
     expect(result).toContain('${callId.result}');
-    expect(result).toContain('${envVariables.HOST}');
+    expect(result).toContain('${(await mmtEnv_("HOST"))}');
   });
 
   it('escapes backticks in the value', () => {
@@ -95,12 +98,26 @@ describe('toTemplateWithEnvVars', () => {
 });
 
 describe('toTemplateValueJs', () => {
-  it('full <<e:VAR>> returns bare envVariables reference', () => {
-    expect(toTemplateValueJs('<<e:HOST>>')).toBe('envVariables.HOST');
+  it('full <<e:VAR>> returns an mmtEnv_ call', () => {
+    expect(toTemplateValueJs('<<e:HOST>>')).toBe('(await mmtEnv_("HOST"))');
   });
 
-  it('full e:VAR returns bare envVariables reference', () => {
-    expect(toTemplateValueJs('e:HOST')).toBe('envVariables.HOST');
+  it('full e:VAR returns an mmtEnv_ call', () => {
+    expect(toTemplateValueJs('e:HOST')).toBe('(await mmtEnv_("HOST"))');
+  });
+
+  it('treats {{ }} like << >> and keeps a quoted whole token literal', () => {
+    expect(toTemplateValueJs('{{e:HOST}}')).toBe('(await mmtEnv_("HOST"))');
+    expect(toTemplateValueJs('{{o:token}}')).toBe('outputs.token');
+    expect(toTemplateValueJs('pre {{e:HOST}} post'))
+        .toBe('`pre ${(await mmtEnv_("HOST"))} post`');
+    const literal = '__MMT_LITERAL__:';
+    expect(toTemplateValueJs(`{"age":"${literal}<<e:HOST>>"}`))
+        .toBe('`{"age":"<<e:HOST>>"}`');
+    expect(toTemplateValueJs(`{"age":"${literal}{{e:HOST}}"}`))
+        .toBe('`{"age":"{{e:HOST}}"}`');
+    expect(toTemplateValueJs('{"age":"asda<<e:HOST>>"}'))
+        .toBe('`{"age":"asda${(await mmtEnv_("HOST"))}"}`');
   });
 
   it('full <<r:VAR>> returns bare random call', () => {
@@ -113,27 +130,27 @@ describe('toTemplateValueJs', () => {
 
   it('two <<e:VAR>> tokens separated by underscore', () => {
     expect(toTemplateValueJs('<<e:base_url>>_<<e:base_url>>'))
-        .toBe('`${envVariables.base_url}_${envVariables.base_url}`');
+        .toBe('`${(await mmtEnv_("base_url"))}_${(await mmtEnv_("base_url"))}`');
   });
 
   it('supports env index access in full-token form', () => {
     expect(toTemplateValueJs('<<e:HOST[0]>>'))
-        .toBe('mmtAccess_(envVariables.HOST, "[0]")');
+        .toBe('(await mmtEnv_("HOST", "[0]"))');
   });
 
   it('supports env slice access inside template values', () => {
     expect(toTemplateValueJs('https://<<e:HOST[0:3]>>/api'))
-        .toBe('`https://${mmtAccess_(envVariables.HOST, "[0:3]")}/api`');
+        .toBe('`https://${(await mmtEnv_("HOST", "[0:3]"))}/api`');
   });
 
   it('mixed env and static text', () => {
     expect(toTemplateValueJs('https://<<e:host>>/api'))
-        .toBe('`https://${envVariables.host}/api`');
+        .toBe('`https://${(await mmtEnv_("host"))}/api`');
   });
 
   it('mixed e: and r: tokens', () => {
     const result = toTemplateValueJs('<<e:host>>-<<r:email>>');
-    expect(result).toBe("`${envVariables.host}-${mmtRandom_('email')}`");
+    expect(result).toBe('`${(await mmtEnv_("host"))}-${mmtRandom_(\'email\')}`');
   });
 
   it('full <<i:name>> returns bare input identifier', () => {
@@ -144,7 +161,7 @@ describe('toTemplateValueJs', () => {
   it('embeds sibling i: refs in default templates', () => {
     expect(toTemplateValueJs('asd_<<i:message>>')).toBe('`asd_${message}`');
     expect(toTemplateValueJs('<<i:name>>_<<e:base_url>>'))
-        .toBe('`${name}_${envVariables.base_url}`');
+        .toBe('`${name}_${(await mmtEnv_("base_url"))}`');
   });
 
   it('supports slice accessors on sibling i: refs', () => {
@@ -152,6 +169,18 @@ describe('toTemplateValueJs', () => {
         .toBe('`asd_${mmtAccess_(message, "[0:4]")}`');
     expect(toTemplateValueJs('<<i:message[1:2]>>'))
         .toBe('mmtAccess_(message, "[1:2]")');
+  });
+
+  it('uses the token text when an i: name is not a declared input', () => {
+    const known = new Set(['message']);
+    expect(toTemplateValueJs('i:missing', {knownInputNames: known}))
+        .toBe('"i:missing"');
+    expect(toTemplateValueJs('<<i:missing[0]>>', {knownInputNames: known}))
+        .toBe('"i:missing[0]"');
+    expect(toTemplateValueJs('hello <<i:missing>>', {knownInputNames: known}))
+        .toBe('`hello i:missing`');
+    expect(toTemplateValueJs('<<i:message>>', {knownInputNames: known}))
+        .toBe('message');
   });
 
   it('full <<o:name>> returns outputs expression', () => {
@@ -195,8 +224,9 @@ describe('replaceOutputTokens / rewriteOutputSetKey', () => {
 });
 
 describe('replaceEnvTokensPlain', () => {
-  it('replaces plain e:VAR with envVariables.VAR', () => {
-    expect(replaceEnvTokensPlain('e:FOO')).toBe('envVariables.FOO');
+  it('replaces plain e:VAR with await mmtEnv_ lookup', () => {
+    expect(replaceEnvTokensPlain('e:FOO')).toBe(
+        '(await mmtEnv_("FOO", null, \'lookup\'))');
   });
 
   it('uses word boundary so mid-word tokens are not touched', () => {
@@ -204,8 +234,11 @@ describe('replaceEnvTokensPlain', () => {
   });
 
   it('does not handle angle-bracket or brace forms', () => {
-    expect(replaceEnvTokensPlain('<<e:FOO>>')).toBe('<<envVariables.FOO>>');
-    // \b doesn't match before {, so e:{FOO} is left untouched
+    // Angle form is left for replaceTokenForms with includeAngles:false —
+    // the inner e:FOO still matches as a plain token.
+    expect(replaceEnvTokensPlain('<<e:FOO>>')).toBe(
+        '<<(await mmtEnv_("FOO", null, \'lookup\'))>>');
+    expect(replaceEnvTokensPlain('<e:FOO>')).toBe('<e:FOO>');
     expect(replaceEnvTokensPlain('e:{FOO}')).toBe('e:{FOO}');
   });
 });
@@ -214,8 +247,8 @@ describe('resolveEnvTokenValues', () => {
   it('resolves all env token forms against provided values', () => {
     const env = { HOST: 'localhost', PORT: '8080' };
     expect(resolveEnvTokenValues('<<e:HOST>>:<<e:PORT>>', env)).toBe('localhost:8080');
-    expect(resolveEnvTokenValues('<e:HOST>:<e:PORT>', env)).toBe('localhost:8080');
-    expect(resolveEnvTokenValues('e:{HOST}:e:{PORT}', env)).toBe('localhost:8080');
+    expect(resolveEnvTokenValues('<e:HOST>:<e:PORT>', env)).toBe('<e:HOST>:<e:PORT>');
+    expect(resolveEnvTokenValues('e:{HOST}:e:{PORT}', env)).toBe('e:{HOST}:e:{PORT}');
     expect(resolveEnvTokenValues('e:HOST:e:PORT', env)).toBe('localhost:8080');
   });
 
@@ -233,6 +266,16 @@ describe('resolveEnvTokenValues', () => {
     const env = { TOKEN: 'abcdef', user: {name: 'mehrdad'} } as any;
     expect(resolveEnvTokenValues('<<e:TOKEN[0:3]>>', env)).toBe('abc');
     expect(resolveEnvTokenValues('hello <<e:user.name>>', env)).toBe('hello mehrdad');
+  });
+
+  it('does not substitute ./…mmt file-backed env values (runtime mmtEnv_)', () => {
+    const env = {session: './create_session.mmt', host: 'https://x'};
+    expect(resolveEnvTokenValues('e:session', env)).toBe('e:session');
+    expect(resolveEnvTokenValues('<<e:session>>', env)).toBe('<<e:session>>');
+    expect(resolveEnvTokenValues('e:host', env)).toBe('https://x');
+    expect(replaceAllRefs(
+        {body: {session: 'e:session', host: 'e:host'}}, {}, {}, env).body)
+        .toEqual({session: 'e:session', host: 'https://x'});
   });
 });
 
@@ -253,14 +296,30 @@ describe('variableReplacer', () => {
     expect(out).toEqual({ a: 'mehrdad', b: ['X', 'mehrdad', 1], c: { n: 35 } });
   });
 
-  it('replaceInputRefsWithNone replaces plain tokens only after colon-space', () => {
+  it('replaceAllRefs resolves {{ }} the same way as << >>', () => {
+    const out = replaceAllRefs(
+        {
+          whole: '{{e:HOST}}',
+          mixed: 'id={{i:name}}',
+          quoted: '__MMT_LITERAL__:{{e:HOST}}',
+        },
+        {},
+        {name: 'ada'},
+        {HOST: 'api.local'},
+    );
+    expect(out.whole).toBe('api.local');
+    expect(out.mixed).toBe('id=ada');
+    expect(out.quoted).toBe('__MMT_LITERAL__:{{e:HOST}}');
+  });
+
+  it('replaceInputRefsWithNone replaces a bare token only when it is the whole value', () => {
     const inputs = { 'i:key': 'VAL', 'e:HOST': 'api.local' } as any;
+    expect(replaceInputRefsWithNone('i:key', inputs)).toBe('VAL');
+    expect(replaceInputRefsWithNone('e:HOST', inputs)).toBe('api.local');
     expect(replaceInputRefsWithNone('url: i:key host: e:HOST', inputs))
-        .toBe('url: VAL host: api.local');
-    // Should not touch plain tokens that are not values after colon-space,
-    // but allow replacing when prefixed with a colon and space in mid-string.
+        .toBe('url: i:key host: e:HOST');
     expect(replaceInputRefsWithNone('hi:i:key there e:HOST', inputs))
-		.toBe('hi:i:key there e:HOST');
+        .toBe('hi:i:key there e:HOST');
   });
 
   it('replaceAllRefs merges defaults, inputs and envs with prefixes', () => {
@@ -290,8 +349,8 @@ describe('variableReplacer', () => {
     } as any;
     const out = replaceAllRefs(iface, defaults, inputs, envs);
     expect(out.url).toBe('http://i:host/users');
-    expect(out.meta).toMatch(/User .*@.* at api\.local/);
-    expect(out.meta).not.toMatch(/r:email|e:HOST/);
+    // Bare `r:email` mixed into other text stays literal. `<<e:HOST>>` resolves.
+    expect(out.meta).toBe('User r:email at api.local');
     expect(out.id).toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/);
   });
 
@@ -309,16 +368,23 @@ describe('variableReplacer', () => {
     expect(out.body.username).toBe('actualValue');
   });
 
-  it('resolves chained i: -> e: references with plain token syntax', () => {
-    // Same scenario but using plain i:xxx syntax (after colon-space)
+  it('resolves chained i: -> e: when the plain token is the whole value', () => {
     const defaults = { xxx: 'e:test' } as any;
     const inputs = {} as any;
     const envs = { test: 'envValue' } as any;
     const iface = {
-      body: 'username: i:xxx'
+      body: { username: 'i:xxx' }
     } as any;
     const out = replaceAllRefs(iface, defaults, inputs, envs);
-    expect(out.body).toBe('username: envValue');
+    expect(out.body.username).toBe('envValue');
+  });
+
+  it('does not resolve a bare token mixed into other text', () => {
+    const defaults = { xxx: 'e:test' } as any;
+    const envs = { test: 'envValue' } as any;
+    const iface = { body: 'username: i:xxx' } as any;
+    const out = replaceAllRefs(iface, defaults, {}, envs);
+    expect(out.body).toBe('username: i:xxx');
   });
 
   it('supports string index and slice access on input values', () => {
@@ -326,10 +392,16 @@ describe('variableReplacer', () => {
     const iface = {
       first: '<<i:message[0]>>',
       short: '<<i:message[0:2]>>',
-      body: 'value: i:message[1:4]'
+      body: 'value: i:message[1:4]',
+      slice: 'i:message[1:4]'
     } as any;
     const out = replaceAllRefs(iface, defaults, {}, {} as any);
-    expect(out).toEqual({ first: 'h', short: 'he', body: 'value: ell' });
+    expect(out).toEqual({
+      first: 'h',
+      short: 'he',
+      body: 'value: i:message[1:4]',
+      slice: 'ell',
+    });
   });
 
   it('supports open-ended slice accessors on both ends', () => {
@@ -337,10 +409,10 @@ describe('variableReplacer', () => {
     const iface = {
       tail: '<<i:message[1:]>>',
       head: '<<i:message[:4]>>',
-      plain: 'value: i:message[:2]'
+      plain: 'i:message[:2]'
     } as any;
     const out = replaceAllRefs(iface, defaults, {}, {} as any);
-    expect(out).toEqual({ tail: 'ello', head: 'hell', plain: 'value: he' });
+    expect(out).toEqual({ tail: 'ello', head: 'hell', plain: 'he' });
   });
 
   it('keeps accessor replacements as runtime expressions for ${input} placeholders', () => {
@@ -365,6 +437,44 @@ describe('variableReplacer', () => {
     } as any;
     const out = replaceAllRefs(iface, {}, {}, envs);
     expect(out).toEqual({ first: 'a', prefix: 'Bearer abc', userName: 'mehrdad' });
+  });
+
+  it('embeds object and list tokens as JSON inside a body string', () => {
+    const iface = {
+      body: [
+        '{',
+        '  "dd": <<i:xxx>>,',
+        '  "name": "<<e:url>>",',
+        '  "obj": <<i:zz>>,',
+        '  "list": <<i:list>>,',
+        '  "ddStr": "<<i:xxx>>",',
+        '  "objStr": "<<i:zz>>",',
+        '  "listStr": "<<i:list>>",',
+        '  "bare": "i:xxx"',
+        '}',
+      ].join('\n'),
+      whole: '<<i:zz>>',
+      mixed: 'hello i:xxx',
+    } as any;
+    const out = replaceAllRefs(iface, {
+      xxx: 10,
+      zz: {xx: 'yy'},
+      list: ['ls', 'nl'],
+    } as any, {}, {url: 'https://test.mmt.dev'} as any);
+    expect(out.whole).toEqual({xx: 'yy'});
+    expect(out.mixed).toBe('hello i:xxx');
+    expect(out.body).toBe([
+      '{',
+      '  "dd": 10,',
+      '  "name": "https://test.mmt.dev",',
+      '  "obj": {"xx":"yy"},',
+      '  "list": ["ls","nl"],',
+      '  "ddStr": "10",',
+      '  "objStr": "{\\"xx\\":\\"yy\\"}",',
+      '  "listStr": "[\\"ls\\",\\"nl\\"]",',
+      '  "bare": "i:xxx"',
+      '}',
+    ].join('\n'));
   });
 
   it('resolves chained i: -> e: in nested objects', () => {
@@ -401,9 +511,9 @@ describe('collectInputRefsFromObject', () => {
     expect(collectInputRefsFromObject(obj)).toEqual(['auth_token']);
   });
 
-  it('finds after-colon-space references', () => {
+  it('does not treat a bare token mixed into other text as an input ref', () => {
     const obj = { body: 'username: i:user' };
-    expect(collectInputRefsFromObject(obj)).toEqual(['user']);
+    expect(collectInputRefsFromObject(obj)).toEqual([]);
   });
 
   it('finds refs in nested objects and arrays', () => {
@@ -427,7 +537,7 @@ describe('collectInputRefsFromObject', () => {
   });
 
   it('collects base input names from accessor forms', () => {
-    const obj = { a: '<<i:name[0:1]>>', b: 'user: i:profile.name' };
+    const obj = { a: '<<i:name[0:1]>>', b: 'i:profile.name' };
     expect(collectInputRefsFromObject(obj).sort()).toEqual(['name', 'profile']);
   });
 
@@ -464,7 +574,8 @@ describe('multiple template vars in one string', () => {
   });
 
   it('normalizeEnvTokens handles e:VAR after underscore', () => {
-    expect(normalizeEnvTokens('${msg}_e:HOST')).toBe('${msg}_envVariables.HOST');
+    expect(normalizeEnvTokens('${msg}_e:HOST')).toBe(
+        '${msg}_(await mmtEnv_("HOST", null, \'lookup\'))');
   });
 
   it('resolveEnvTokenValues handles e:VAR after underscore', () => {
@@ -472,7 +583,8 @@ describe('multiple template vars in one string', () => {
   });
 
   it('replaceEnvTokensPlain handles e:VAR after underscore', () => {
-    expect(replaceEnvTokensPlain('${msg}_e:HOST')).toBe('${msg}_envVariables.HOST');
+    expect(replaceEnvTokensPlain('${msg}_e:HOST')).toBe(
+        '${msg}_(await mmtEnv_("HOST", null, \'lookup\'))');
   });
 
   it('replaceAllRefs handles three tokens concatenated', () => {
@@ -505,13 +617,30 @@ describe('multiple template vars in one string', () => {
     });
   });
 
-  it('refreshRuntimeTokens clears r:/c: caches between resolves', () => {
+  it('refreshRuntimeTokens clears c: caches between resolves', () => {
     const iface = {id: 'r:uuid'};
     const first = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
     const second = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
     expect(first.id).not.toBe('r:uuid');
     expect(second.id).not.toBe('r:uuid');
     expect(first.id).not.toBe(second.id);
+  });
+
+  it('gives each r: occurrence a unique value in the same resolve', () => {
+    const iface = {
+      a: 'r:uuid',
+      b: 'r:uuid',
+      c: '<<r:uuid>>',
+      d: 'r:int(1,1000000)',
+      e: 'r:int(1,1000000)',
+    };
+    const result = replaceAllRefs(iface, {}, {}, {}, new Set(), {refreshRuntimeTokens: true});
+    expect(result.a).not.toBe(result.b);
+    expect(result.a).not.toBe(result.c);
+    expect(result.b).not.toBe(result.c);
+    expect(result.d).not.toBe(result.e);
+    expect(typeof result.d).toBe('number');
+    expect(typeof result.e).toBe('number');
   });
 
   it('resolves parameterized random tokens and preserves invalid forms', () => {
@@ -549,15 +678,15 @@ describe('multiple template vars in one string', () => {
 describe('embedDynamicTokensAsJsInterpolations', () => {
   it('converts e: / r: / c: forms (including accessors) to ${...}', () => {
     expect(replaceDynamicTokensToJsInterpolations('e:HOST'))
-        .toBe('${envVariables.HOST}');
+        .toBe('${(await mmtEnv_("HOST"))}');
     expect(replaceDynamicTokensToJsInterpolations('user=<<e:USER[0:2]>>'))
-        .toBe('user=${mmtAccess_(envVariables.USER, "[0:2]")}');
+        .toBe('user=${(await mmtEnv_("USER", "[0:2]"))}');
     expect(replaceDynamicTokensToJsInterpolations('r:customToken'))
         .toBe("${mmtRandom_('customToken')}");
     expect(replaceDynamicTokensToJsInterpolations('c:customNow'))
         .toBe("${mmtCurrent_('customNow')}");
     expect(replaceDynamicTokensToJsInterpolations('<e:HOST> and e:{PORT}'))
-        .toBe('${envVariables.HOST} and ${envVariables.PORT}');
+        .toBe('<e:HOST> and e:{PORT}');
   });
 
   it('deep-walks objects and arrays without touching non-strings', () => {
@@ -568,10 +697,10 @@ describe('embedDynamicTokensAsJsInterpolations', () => {
       d: ['<<e:X>>', { nested: 'r:custom' }],
     });
     expect(out).toEqual({
-      a: '${envVariables.HOST}',
+      a: '${(await mmtEnv_("HOST"))}',
       b: 12,
       c: true,
-      d: ['${envVariables.X}', { nested: "${mmtRandom_('custom')}" }],
+      d: ['${(await mmtEnv_("X"))}', { nested: "${mmtRandom_('custom')}" }],
     });
   });
 
@@ -709,5 +838,53 @@ describe('resolveInputsMap – interdependent input defaults', () => {
     expect(resolveInputsMap(undefined, {a: 1})).toEqual({});
     expect(resolveInputsMap(null as any, {a: 1})).toEqual({});
     expect(resolveInputsMap([] as any, {a: 1})).toEqual({});
+  });
+});
+
+describe('resolveInputsMapAsync – lazy file-backed getters', () => {
+  it('collectEnvRefsFromObject finds bare and braced e: names', () => {
+    expect(collectEnvRefsFromObject({
+      a: 'e:session',
+      b: 'https://<<e:host>>/x',
+      c: '{{e:token}}',
+    }).sort()).toEqual(['host', 'session', 'token']);
+  });
+
+  it('awaits only getters referenced as e: in inputs', async () => {
+    let sessionCalls = 0;
+    let otherCalls = 0;
+    const envs = {
+      session: async () => {
+        sessionCalls += 1;
+        return 'sid';
+      },
+      other: async () => {
+        otherCalls += 1;
+        return 'nope';
+      },
+      host: 'https://example.com',
+    };
+    const out = await resolveInputsMapAsync(
+        {token: 'e:session', url: 'e:host'},
+        envs,
+    );
+    expect(out).toEqual({token: 'sid', url: 'https://example.com'});
+    expect(sessionCalls).toBe(1);
+    expect(otherCalls).toBe(0);
+  });
+
+  it('does not await any getters when inputs have no e: refs', async () => {
+    let calls = 0;
+    const out = await resolveInputsMapAsync(
+        {x: 1},
+        {
+          session: async () => {
+            calls += 1;
+            return 'sid';
+          },
+        },
+    );
+    expect(out).toEqual({x: 1});
+    expect(calls).toBe(0);
   });
 });

@@ -31,7 +31,6 @@ export const STEP_KEY_ORDER: Record<string, string[]> = {
   var:    ['var'],
   const:  ['const'],
   let:    ['let'],
-  data:   ['data'],
   setenv: ['setenv'],
 };
 
@@ -70,7 +69,6 @@ const VALID_STEP_KEYS: Record<string, Set<string>> = {
   var:     new Set(['var']),
   const:   new Set(['const']),
   let:     new Set(['let']),
-  data:    new Set(['data']),
   setenv:  new Set(['setenv']),
 };
 
@@ -345,9 +343,6 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   }
   if ('print' in step) {
     return 'print';
-  }
-  if ('data' in step) {
-    return 'data' as FlowType;
   }
   if ('setenv' in step) {
     return 'setenv' as FlowType;

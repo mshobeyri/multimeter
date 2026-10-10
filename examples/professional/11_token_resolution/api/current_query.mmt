@@ -1,0 +1,58 @@
+type: api
+title: Current tokens in the query string
+description: "Query values are strings. c:epoch is sent as digits, not a JSON number."
+outputs:
+  day_name: body.query.day_name
+  epoch_seconds: body.query.epoch_seconds
+  city: body.query.city
+  missing_token: body.query.missing_token
+  literal_token: body.query.literal_token
+  literal_omit: body.query.literal_omit
+  angle_whole: body.query.angle_whole
+  quoted_angle: body.query.quoted_angle
+  angle_prefix: body.query.angle_prefix
+  angle_suffix: body.query.angle_suffix
+  angle_both: body.query.angle_both
+  quoted_curly: body.query.quoted_curly
+  curly_whole: body.query.curly_whole
+  text_slice: body.query.text_slice
+  missing_embed: body.query.missing_embed
+  status_code: status
+url: https://test.mmt.dev/echo
+query:
+  day_name: c:day
+  epoch_seconds: c:epoch
+  city: c:city
+  missing_token: c:not_a_token
+  literal_token: "c:day"
+  literal_omit: "omit"
+  angle_whole: <<c:epoch>>
+  quoted_angle: "<<c:day>>"
+  angle_prefix: "asda<<c:day>>"
+  angle_suffix: "<<c:city>>asas"
+  angle_both: "asda<<c:day>>asas"
+  quoted_curly: "{{c:day}}"
+  curly_whole: {{c:city}}
+  text_slice: <<c:city[0:1]>>
+  missing_embed: "x<<c:not_a_token>>y"
+method: get
+examples:
+  - id: defaults
+    title: Check outputs
+    expect:
+      status_code: 200
+      day_name: c:day
+      epoch_seconds: != null
+      city: c:city
+      missing_token: "c:not_a_token"
+      literal_token: "c:day"
+      literal_omit: "omit"
+      angle_whole: "=* ^[0-9]{10}$"
+      quoted_angle: c:day
+      angle_prefix: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$
+      angle_suffix: =$ asas
+      angle_both: =* ^asda(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)asas$
+      quoted_curly: c:day
+      curly_whole: c:city
+      text_slice: c:city[0:1]
+      missing_embed: "xc:not_a_tokeny"

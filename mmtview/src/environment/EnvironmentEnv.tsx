@@ -3,7 +3,9 @@ import { ComboTablePair } from "../components/ComboTable";
 import { EnvClientCertificate, EnvVariable, CertificateSettings } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
+import { yamlValueToInputBox } from "mmt-core/yamlValueConvert";
 import { loadCertificateSettings, saveCertificateSettings } from "../workspaceStorage";
+import { EnvFilePathValue, isEnvFilePathDisplayValue } from "./envFilePathDisplay";
 
 interface EnvironmentEnvProps {
     variables: ComboTablePair[];
@@ -86,7 +88,25 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                 return String(value);
             }
         }
-        return String(value);
+        return yamlValueToInputBox(value);
+    };
+
+    const renderValue = (value: JSONValue | undefined): React.ReactNode => {
+        if (isEnvFilePathDisplayValue(value)) {
+            return <EnvFilePathValue value={value} />;
+        }
+        const text = formatValue(value);
+        return (
+            <input
+                type="text"
+                className="mmt-fill environment-readonly-value"
+                value={text}
+                readOnly
+                title={text || undefined}
+                tabIndex={-1}
+                onFocus={event => event.currentTarget.select()}
+            />
+        );
     };
 
     const handleSelectChange = (name: string, label: string) => {
@@ -151,8 +171,8 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                                 )}
                                             </select>
                                         </td>
-                                        <td className="environment-table-value">{formatValue(pair.value?.value)}</td>
-                                        <td className="environment-table-value">{formatValue(current?.value)}</td>
+                                        <td className="environment-table-value">{renderValue(pair.value?.value)}</td>
+                                        <td className="environment-table-value">{renderValue(current?.value)}</td>
                                     </tr>
                                 );
                             })}

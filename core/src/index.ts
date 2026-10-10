@@ -45,6 +45,7 @@ export * as Current from "./Current";
 export * as runner from "./runner";
 export * as runFileCache from "./runFileCache";
 export * as apiRunResult from "./apiRunResult";
+export * as apiTestEval from "./apiTestEval";
 export * as runConfig from "./runConfig";
 export * as suiteHierarchy from "./suiteHierarchy";
 export * as suiteBundle from "./suiteBundle";

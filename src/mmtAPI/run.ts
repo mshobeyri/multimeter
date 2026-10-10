@@ -1,5 +1,5 @@
 import {runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
-import type {FileLoader} from 'mmt-core/runConfig';
+import {createRunPauseGate, type FileLoader, type RunPauseGate} from 'mmt-core/runConfig';
 import type {SuiteEnvironment} from 'mmt-core/SuiteData';
 import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
 import {LogLevel} from 'mmt-core/CommonData';
@@ -23,6 +23,7 @@ import {getOnboarding} from '../onboarding';
 import {
   createWebviewRunReporter,
   resolveWebviewReportType,
+  type WebviewPanelRef,
 } from './webviewReporter';
 
 const logOutputChannel =
@@ -49,19 +50,47 @@ function findProjectRoot(startPath: string): string | undefined {
   return findProjectRootSync(startPath, fs.existsSync, path.dirname, path.join) ?? findWorkspaceProjectRoot();
 }
 
-let activeSuiteRun:
-  {suiteRunId: string; controller: AbortController; panelId: string;}|null =
-    null;
+function workspaceEnvFilePath(projectRoot?: string): string|undefined {
+  if (!projectRoot) {
+    return undefined;
+  }
+  const envRel = vscode.workspace.getConfiguration('multimeter')
+                     .get<string>('workspaceEnvFile', 'multimeter.mmt') ||
+      'multimeter.mmt';
+  return path.isAbsolute(envRel) ? envRel : path.join(projectRoot, envRel);
+}
 
-let activeTestRun:
-  {controller: AbortController; panelId: string;}|null = null;
+type ActiveRunUi = {
+  controller: AbortController;
+  pauseGate: RunPauseGate;
+  panelId: string;
+  fileUri: string;
+  panelRef: WebviewPanelRef;
+};
+
+let activeSuiteRun:
+  (ActiveRunUi & {suiteRunId: string;})|null = null;
+
+let activeTestRun: ActiveRunUi|null = null;
 
 /** Per-suite-run state so concurrent/re-runs stay isolated. */
-const suiteRuns = new Map<string, {
-  controller: AbortController;
-  panelId: string;
+const suiteRuns = new Map<string, ActiveRunUi & {
   childIds: Map<string, string>;
 }>();
+
+/**
+ * Mark a clean document dirty for the run so close shows Save / Don't Save /
+ * Cancel (Cancel keeps the run). Same path as YAML edits; left dirty afterward.
+ */
+async function markDirtyForRun(
+    document: vscode.TextDocument, mmtProvider: any): Promise<void> {
+  if (document.isDirty) {
+    return;
+  }
+  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
+  await mmtProvider.updateTextDocument(
+      document, document.getText() + eol, 'silent');
+}
 
 function createSuiteRunId(document: vscode.TextDocument) {
   return `suite:${document.uri.fsPath}:${Date.now()}`;
@@ -292,34 +321,62 @@ export async function handleRunCurrentDocument(
 
   const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);
+  const envvarFilePath = workspaceEnvFilePath(projectRoot);
   applyNetworkConfig(document.uri.fsPath, envVars, mmtProvider.context);
 
+  const panelId = getPanelId(webviewPanel);
+  // A previous Cancel can still be unwinding when the user starts again. Abort
+  // that controller and never let its late completion touch this run's UI.
+  const previous = activeTestRun;
+  if (previous && previous.panelId === panelId) {
+    previous.controller.abort();
+  }
+
   const controller = new AbortController();
+  const pauseGate = createRunPauseGate(controller.signal);
+  const panelRef: WebviewPanelRef = {current: webviewPanel};
   activeTestRun = {
     controller,
-    panelId: getPanelId(webviewPanel),
+    pauseGate,
+    panelId,
+    fileUri: document.uri.toString(),
+    panelRef,
   };
+  const isCurrentRun = () => activeTestRun?.controller === controller;
 
+  const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({
-    type: resolveWebviewReportType(message),
+    type: reportType,
     webviewPanel,
-    isAborted: () => controller.signal.aborted,
+    panelRef,
+    isAborted: () => controller.signal.aborted || !isCurrentRun(),
   });
 
-  const statusBarRunId = onRunStarted(`Running ${fileName}`, () => controller.abort());
+  const statusBarRunId = onRunStarted(`Running ${fileName}`, {
+    uri: document.uri,
+    onStop: () => {
+      pauseGate.resume();
+      controller.abort();
+    },
+    // Run in Core: Stop/Open via click menu (never a separate stop badge).
+    actionsMenu: reportType === 'lifecycle',
+  });
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
     // filePath is the resolved absolute path to the mock server file
     forwardLog('info', `Starting mock server from ${alias}`);
     return startMockServerFromPath(filePath, envVars);
   };
 
+  // Prefer right-panel UI YAML when present; glyphs omit rawFile and use the file.
+  // Capture before the run-owned dirty marker mutates the buffer.
+  const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
+      ? message.rawFile
+      : document.getText();
+  await markDirtyForRun(document, mmtProvider);
+
   try {
     const fileLoader = createFileLoader(document.uri.fsPath);
     const binaryFileLoader = createBinaryFileLoader(document.uri.fsPath);
-    // Prefer right-panel UI YAML when present; glyphs omit rawFile and use the file.
-    const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
-      ? message.rawFile
-      : document.getText();
     const runOutcome = await runner.runFile({
       file: rawFile,
       fileType: 'raw',
@@ -327,6 +384,7 @@ export async function handleRunCurrentDocument(
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: message?.inputs?.manualInputs || {},
       envvar: envVars,
+      envvarFilePath,
       manualEnvvars: {},
       fileStamp: stampFile,
       fileLoader,
@@ -339,6 +397,7 @@ export async function handleRunCurrentDocument(
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
+      pauseGate,
       reporter: (msg: any) => {
         uiReporter.report({
           ...msg,
@@ -349,6 +408,11 @@ export async function handleRunCurrentDocument(
       serverRunner,
     });
 
+    // Superseded by a newer run on this panel — drop all UI side effects.
+    if (!isCurrentRun()) {
+      return;
+    }
+
     const {docType, displayName, result} = runOutcome;
     const label = docType === 'api' ? 'API' :
         docType === 'test'          ? 'Test' :
@@ -356,19 +420,24 @@ export async function handleRunCurrentDocument(
       docType === 'loadtest'      ? 'Load Test' :
                                       'Document';
 
+    // Prefer live abort over the core result flag: Cancel can arrive after JS
+    // finished but before we post to the Response panel.
+    const cancelled = !!result.cancelled || controller.signal.aborted;
+
     // API Send contract: one core round-trip. Post the same response the finish
     // log used so the Response panel / toolbar duration stay in sync.
     if (docType === 'api') {
       postApiRunResult(
           webviewPanel, document.uri.toString(),
-          result.cancelled ? null : buildApiTesterResponse(result.outputs),
-          !!result.cancelled);
-      if (!result.cancelled) {
+          cancelled ? null : buildApiTesterResponse(result.outputs),
+          cancelled,
+          cancelled ? null : (result.apiTest ?? null));
+      if (!cancelled) {
         getOnboarding()?.onApiRun(rawFile);
       }
     }
 
-    if (uiReporter.notifyHost) {
+    if (uiReporter.notifyHost && !cancelled) {
       if (result.syntaxError) {
         const errorMsg = result.errors?.[0] || 'Generated code has a syntax error';
         await promptViewGeneratedCode(
@@ -385,13 +454,16 @@ export async function handleRunCurrentDocument(
     // Runtime errors/failures are already logged via the run logger; avoid
     // duplicating status lines like `API X: API "X" failed`.
 
-    if (result.cancelled) {
+    if (cancelled) {
       uiReporter.onCancelled({
         command: 'testRunStopped',
         filePath: document.uri.toString(),
       });
     }
   } catch (err: any) {
+    if (!isCurrentRun()) {
+      return;
+    }
     if (controller.signal.aborted) {
       postApiRunResult(webviewPanel, document.uri.toString(), null, true);
       uiReporter.onCancelled({
@@ -427,12 +499,14 @@ export async function handleRunCurrentDocument(
 /** Post API run result to the webview Response panel (Send / Run in Core). */
 function postApiRunResult(
     webviewPanel: vscode.WebviewPanel, uri: string,
-    response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean) {
+    response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean,
+    apiTest?: import('mmt-core/apiTestEval').ApiTestEvalResult | null) {
   webviewPanel.webview.postMessage({
     command: 'multimeter.api.run.result',
     uri,
     response,
     cancelled,
+    apiTest: apiTest ?? null,
   });
 }
 
@@ -462,18 +536,35 @@ export async function handleRunSuite(
   // while an earlier run finishes. Each run keeps its own suiteRunId; the
   // webview ignores superseded run ids so UI reports stay correct.
   const controller = new AbortController();
+  const pauseGate = createRunPauseGate(controller.signal);
   const childIds = new Map<string, string>();
   const panelId = getPanelId(webviewPanel);
-  suiteRuns.set(suiteRunId, {controller, panelId, childIds});
+  const fileUri = document.uri.toString();
+  const panelRef: WebviewPanelRef = {current: webviewPanel};
+  suiteRuns.set(suiteRunId, {
+    controller,
+    pauseGate,
+    panelId,
+    fileUri,
+    panelRef,
+    childIds,
+  });
   activeSuiteRun = {
     suiteRunId,
     controller,
+    pauseGate,
     panelId,
+    fileUri,
+    panelRef,
   };
 
+  await markDirtyForRun(document, mmtProvider);
+
+  const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({
-    type: resolveWebviewReportType(message),
+    type: reportType,
     webviewPanel,
+    panelRef,
     suiteRunId,
     isAborted: () => controller.signal.aborted,
     resolveChildId: (runId) => childIds.get(runId),
@@ -482,7 +573,14 @@ export async function handleRunSuite(
     },
   });
 
-  const statusBarRunId = onRunStarted(`Running suite ${fileName}`, () => controller.abort());
+  const statusBarRunId = onRunStarted(`Running suite ${fileName}`, {
+    uri: document.uri,
+    onStop: () => {
+      pauseGate.resume();
+      controller.abort();
+    },
+    actionsMenu: reportType === 'lifecycle',
+  });
   const startedAt = Date.now();
 
   uiReporter.onRunStart({
@@ -515,6 +613,7 @@ export async function handleRunSuite(
         exampleIndex: message?.inputs?.exampleIndex,
         manualInputs: {},
         envvar: envVars,
+        envvarFilePath: workspaceEnvFilePath(projectRootLoadTest),
         manualEnvvars: {},
         fileStamp: stampFile,
         fileLoader,
@@ -527,6 +626,7 @@ export async function handleRunSuite(
         }),
         logger: forwardLog,
         abortSignal: controller.signal,
+        pauseGate,
         suiteRunId,
         projectRoot: projectRootLoadTest,
         reporter: uiReporter.report,
@@ -604,6 +704,15 @@ export async function handleRunSuite(
       return startMockServerFromPath(filePath, mergedEnvVars);
     };
 
+    const suiteEnvFile = typeof bundle.environment?.file === 'string' ?
+        bundle.environment.file.trim() :
+        '';
+    const suiteEnvvarFilePath = suiteEnvFile ?
+        (path.isAbsolute(suiteEnvFile) ?
+             suiteEnvFile :
+             path.resolve(path.dirname(runFilePath), suiteEnvFile)) :
+        workspaceEnvFilePath(projectRootSuite);
+
     const runOutcome = await runner.runFile({
       file: rawSuite,
       fileType: 'raw',
@@ -611,6 +720,7 @@ export async function handleRunSuite(
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: {},
       envvar: mergedEnvVars,
+      envvarFilePath: suiteEnvvarFilePath,
       manualEnvvars: {},
       fileStamp: stampFile,
       fileLoader,
@@ -627,6 +737,7 @@ export async function handleRunSuite(
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
+      pauseGate,
       suiteBundle: bundle,
       suiteRunId: suiteRunId,
       projectRoot: projectRootSuite,
@@ -684,6 +795,7 @@ export function handleStopSuiteRun(
     if (!tracked || tracked.panelId !== panelId) {
       return;
     }
+    tracked.pauseGate.resume();
     tracked.controller.abort();
     webviewPanel.webview.postMessage({
       command: 'suiteRunStopped',
@@ -696,6 +808,7 @@ export function handleStopSuiteRun(
   if (!current || current.panelId !== panelId) {
     return;
   }
+  current.pauseGate.resume();
   current.controller.abort();
   webviewPanel.webview.postMessage({
     command: 'suiteRunStopped',
@@ -713,9 +826,93 @@ export function handleStopTestRun(
   if (current.panelId !== getPanelId(webviewPanel)) {
     return;
   }
+  current.pauseGate.resume();
   current.controller.abort();
   webviewPanel.webview.postMessage({
     command: 'testRunStopped',
+    filePath: _document.uri.toString(),
+  });
+}
+
+export function panelHasActiveRun(webviewPanel: vscode.WebviewPanel): boolean {
+  const panelId = getPanelId(webviewPanel);
+  if (activeTestRun?.panelId === panelId) {
+    return true;
+  }
+  if (activeSuiteRun?.panelId === panelId) {
+    return true;
+  }
+  for (const tracked of suiteRuns.values()) {
+    if (tracked.panelId === panelId) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function abortRunHandles(
+    handles: Array<{controller: AbortController; pauseGate: RunPauseGate}>):
+    void {
+  for (const handle of handles) {
+    handle.pauseGate.resume();
+    handle.controller.abort();
+  }
+}
+
+/** Abort any in-flight test/suite run owned by this panel. */
+export function abortRunsForPanel(webviewPanel: vscode.WebviewPanel): void {
+  const panelId = getPanelId(webviewPanel);
+  const handles: Array<{controller: AbortController; pauseGate: RunPauseGate}> =
+      [];
+  if (activeTestRun && activeTestRun.panelId === panelId) {
+    handles.push(activeTestRun);
+  }
+  if (activeSuiteRun && activeSuiteRun.panelId === panelId) {
+    handles.push(activeSuiteRun);
+  }
+  for (const tracked of suiteRuns.values()) {
+    if (tracked.panelId === panelId) {
+      handles.push(tracked);
+    }
+  }
+  abortRunHandles(handles);
+}
+
+function pauseGateForPanel(webviewPanel: vscode.WebviewPanel): RunPauseGate|undefined {
+  const panelId = getPanelId(webviewPanel);
+  if (activeTestRun && activeTestRun.panelId === panelId) {
+    return activeTestRun.pauseGate;
+  }
+  if (activeSuiteRun && activeSuiteRun.panelId === panelId) {
+    return activeSuiteRun.pauseGate;
+  }
+  return undefined;
+}
+
+export function handlePauseTestRun(
+    _message: any, webviewPanel: vscode.WebviewPanel,
+    _document: vscode.TextDocument, _mmtProvider: any) {
+  const gate = pauseGateForPanel(webviewPanel);
+  if (!gate || gate.paused) {
+    return;
+  }
+  gate.pause();
+  webviewPanel.webview.postMessage({
+    command: 'testRunPaused',
+    filePath: _document.uri.toString(),
+  });
+}
+
+export function handleResumeTestRun(
+    _message: any, webviewPanel: vscode.WebviewPanel,
+    _document: vscode.TextDocument, _mmtProvider: any) {
+  const gate = pauseGateForPanel(webviewPanel);
+  if (!gate || !gate.paused) {
+    return;
+  }
+  gate.resume();
+  webviewPanel.webview.postMessage({
+    command: 'testRunResumed',
     filePath: _document.uri.toString(),
   });
 }

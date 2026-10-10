@@ -52,7 +52,7 @@ const AutoResponseFormatEnumSchema = {
 /** Scalar format or `{ request, response }` when they differ. */
 const FormatSpecSchema = {
     anyOf: [
-        FormatEnumSchema,
+        AutoFormatEnumSchema,
         {
             type: 'object',
             properties: {
@@ -316,8 +316,9 @@ export const APISchema = {
             type: 'array',
             items: {
                 type: 'object',
-                required: ['name'],
                 properties: {
+                    id: { type: 'string' },
+                    title: { type: 'string' },
                     name: { type: 'string' },
                     description: { type: 'string' },
                     inputs: {
@@ -345,24 +346,43 @@ export const APISchema = {
                                 { type: 'null' }
                             ]
                         }
+                    },
+                    expect: {
+                        type: 'object',
+                        additionalProperties: {
+                            anyOf: [
+                                { type: 'string' },
+                                { type: 'number' },
+                                { type: 'boolean' },
+                                { type: 'object' },
+                                { type: 'array' },
+                                { type: 'null' }
+                            ]
+                        }
+                    },
+                    require: {
+                        type: 'object',
+                        additionalProperties: {
+                            anyOf: [
+                                { type: 'string' },
+                                { type: 'number' },
+                                { type: 'boolean' },
+                                { type: 'object' },
+                                { type: 'array' },
+                                { type: 'null' }
+                            ]
+                        }
                     }
                 },
+                anyOf: [
+                    { required: ['id'] },
+                    { required: ['name'] }
+                ],
                 additionalProperties: false
             }
         }
     },
     allOf: [
-        {
-            if: {
-                properties: {
-                    method: { enum: ['post', 'put', 'patch'] }
-                },
-                required: ['method']
-            },
-            then: {
-                required: ['body']
-            }
-        },
         {
             if: {
                 properties: {
@@ -778,15 +798,6 @@ export const TestSchema = {
                                     }
                                 ]
                             },
-                        },
-                        additionalProperties: false
-                    },
-                    // data step
-                    {
-                        type: 'object',
-                        required: ['data'],
-                        properties: {
-                            data: { type: 'string' }
                         },
                         additionalProperties: false
                     },

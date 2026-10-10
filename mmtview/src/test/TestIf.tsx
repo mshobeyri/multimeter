@@ -1,6 +1,7 @@
 import React from "react";
 import { CheckOps } from "mmt-core/TestData";
 import OperatorSelect from "../components/OperatorSelect";
+import StableTextInput from "../components/StableTextInput";
 import type { LogicalJoin } from "mmt-core/JSerTestFlow";
 
 export interface IfClause {
@@ -31,10 +32,10 @@ const TestIf: React.FC<TestIfProps> = ({
     onClauseChange: (next: IfClause) => void,
   ) => (
     <div className="field-inline is-flush">
-      <input
+      <StableTextInput
         value={clause.actual}
         className="mmt-fill"
-        onChange={v => onClauseChange({ ...clause, actual: v.target.value })}
+        onChange={next => onClauseChange({ ...clause, actual: next })}
         placeholder="actual"
       />
       <OperatorSelect
@@ -43,10 +44,10 @@ const TestIf: React.FC<TestIfProps> = ({
         className="is-fixed"
         title="Comparison operator"
       />
-      <input
+      <StableTextInput
         value={clause.expected}
         className="mmt-fill"
-        onChange={e => onClauseChange({ ...clause, expected: e.target.value })}
+        onChange={next => onClauseChange({ ...clause, expected: next })}
         placeholder="expected"
       />
     </div>

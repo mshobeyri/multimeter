@@ -1,0 +1,66 @@
+type: api
+title: Input tokens in headers
+description: Header values are strings. A numeric input is sent as its text.
+inputs:
+  username: alice
+  age: 100
+  active: true
+  city: Berlin
+outputs:
+  username: body[headers][x-user-name]
+  age: body[headers][x-age]
+  active: body[headers][x-active]
+  city: body[headers][x-city]
+  missing_nickname: body[headers][x-missing-nickname]
+  literal_token: body[headers][x-literal-token]
+  literal_omit: body[headers][x-literal-omit]
+  angle_whole: body[headers][x-angle-whole]
+  quoted_angle: body[headers][x-quoted-angle]
+  angle_prefix: body[headers][x-angle-prefix]
+  angle_suffix: body[headers][x-angle-suffix]
+  angle_both: body[headers][x-angle-both]
+  quoted_curly: body[headers][x-quoted-curly]
+  curly_whole: body[headers][x-curly-whole]
+  text_slice: body[headers][x-text-slice]
+  missing_embed: body[headers][x-missing-embed]
+  status_code: status
+url: https://test.mmt.dev/echo
+method: get
+headers:
+  X-User-Name: i:username
+  X-Age: i:age
+  X-Active: i:active
+  X-City: i:city
+  X-Missing-Nickname: i:nickname
+  X-Literal-Token: "i:username"
+  X-Literal-Omit: "omit"
+  X-Angle-Whole: <<i:age>>
+  X-Quoted-Angle: "<<i:username>>"
+  X-Angle-Prefix: "asda<<i:username>>"
+  X-Angle-Suffix: "<<i:age>>asas"
+  X-Angle-Both: "asda<<i:active>>asas"
+  X-Quoted-Curly: "{{i:username}}"
+  X-Curly-Whole: {{i:city}}
+  X-Text-Slice: <<i:city[0:3]>>
+  X-Missing-Embed: "x<<i:nickname>>y"
+examples:
+  - id: defaults
+    title: Check outputs
+    expect:
+      status_code: 200
+      username: i:username
+      age: =S <<i:age>>
+      active: =S <<i:active>>
+      city: i:city
+      missing_nickname: "i:nickname"
+      literal_token: "i:username"
+      literal_omit: "omit"
+      angle_whole: =S <<i:age>>
+      quoted_angle: i:username
+      angle_prefix: "asdaalice"
+      angle_suffix: "100asas"
+      angle_both: "asdatrueasas"
+      quoted_curly: i:username
+      curly_whole: i:city
+      text_slice: i:city[0:3]
+      missing_embed: "xi:nicknamey"

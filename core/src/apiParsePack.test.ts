@@ -327,4 +327,21 @@ describe('yamlToAPIStrict and auth failures', () => {
     expect(packed).toContain('proto:');
     expect(packed).toContain('examples:');
   });
+
+  it('keeps an explicit empty body and does not require body for post', () => {
+    const withEmpty = yamlToAPIStrict('type: api\nurl: http://a\nmethod: post\nbody: \'\'\n');
+    expect(withEmpty.body).toBe('');
+    expect(apiToYaml(withEmpty)).not.toContain('body');
+    expect(apiToYaml(withEmpty, 'type: api\nurl: http://a\nbody: ""\n')).toContain('body: ""');
+    const without = yamlToAPIStrict('type: api\nurl: http://a\nmethod: post\n');
+    expect(apiToYaml(without)).not.toContain('body');
+  });
+
+  it('omits a default protocol unless the original declared it', () => {
+    const api = yamlToAPIStrict('type: api\nurl: http://a\nprotocol: http\n');
+    expect(apiToYaml(api)).not.toContain('protocol');
+    expect(apiToYaml(api, 'type: api\nurl: http://a\nprotocol: http\n')).toContain('protocol: http');
+    const ws = yamlToAPIStrict('type: api\nurl: http://a\nprotocol: ws\n');
+    expect(apiToYaml(ws)).toContain('protocol: ws');
+  });
 });

@@ -5,17 +5,17 @@ import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraints';
 import { FileContext } from '../fileContext';
-import { HideWhenYamlError } from '../api/YamlErrorWarning';
 import { setEnvironmentVariables } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import { StepStatus } from '../shared/types';
-import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
+import type { ReportFormat } from '../shared/ExportReportButton';
+import { buildReportRunMenuEntries } from '../shared/reportRunMenu';
 import OverviewBoxes, { OverviewStats } from '../shared/OverviewBoxes';
 import VEditor from '../components/VEditor';
-import { runInCoreMenuItem } from '../components/ContextMenuHost';
-import RunStopToggle from '../components/RunStopToggle';
+import SendButton from '../components/SendButton';
 import { loadEnvVariables } from '../workspaceStorage';
 import { keepEditor } from '../vsAPI';
+import { usePrimaryAction } from '../primaryAction';
 import {
     applyEnvRefreshToInputs,
     applyYamlInputsRefresh,
@@ -29,16 +29,16 @@ interface TestTestProps {
     testData: TestData;
     /** YAML sent to the runner; avoids re-serializing large tests on every Run click. */
     runYaml: string;
-    onInputsModificationChange?: (currentInputs: JSONRecord, dirtyKeys: Set<string>) => void;
-    onInputsReset?: (reset: () => void) => void;
 }
 
-const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, onInputsModificationChange }) => {
+const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
     const [runState, setRunState] = useState<StepStatus>('default');
+    const [isPaused, setIsPaused] = useState(false);
     const latestRunIdRef = useRef<string | null>(null);
     const ignoredRunIdsRef = useRef<Set<string>>(new Set());
+    const runStoppedRef = useRef(false);
     const stepCountRef = useRef(0);
 
     // Inputs/outputs state
@@ -105,7 +105,6 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
         const wasClean = dirtyKeysRef.current.size === 0;
         dirtyKeysRef.current = nextDirty;
         setDirtyKeys(new Set(nextDirty));
-        // Runtime input edits don't dirty the file; pin the preview tab instead.
         if (wasClean && nextDirty.size > 0) {
             keepEditor();
         }
@@ -119,27 +118,6 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
         currentInputsRef.current = next;
         setCurrentInputs(next);
     }, []);
-
-    const resetInputsFromYaml = useCallback(() => {
-        clearDirtyKeys();
-        const cleanup = loadEnvVariables((envVars) => {
-            cleanup();
-            const resolved = resolveInputDefaults(
-                yamlInputsRef.current,
-                envVarsToParameters(envVars),
-            );
-            resolvedBaselineRef.current = resolved;
-            applyInputs(resolved);
-        });
-    }, [applyInputs, clearDirtyKeys]);
-
-    useEffect(() => {
-        onInputsReset?.(resetInputsFromYaml);
-    }, [onInputsReset, resetInputsFromYaml]);
-
-    useEffect(() => {
-        onInputsModificationChange?.(currentInputs, dirtyKeys);
-    }, [currentInputs, dirtyKeys, onInputsModificationChange]);
 
     // YAML inputs changed (from applied panel content): rebuild, preserving dirty keys.
     useEffect(() => {
@@ -232,20 +210,35 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
         latestRunIdRef.current = null;
         const startedAt = Date.now();
         runStartTimeRef.current = startedAt;
+        runStoppedRef.current = false;
         flushSync(() => {
             setStepReports([]);
             setOutputs({});
             setRunStartedAt(startedAt);
             setRunDurationMs(null);
+            setIsPaused(false);
             setRunState('running');
         });
         postRunCurrentDocument();
     }, [runState, trimIgnoredRuns, postRunCurrentDocument]);
 
+    usePrimaryAction(handleRun);
+
     const handleStop = useCallback(() => {
+        setIsPaused(false);
         window.vscode?.postMessage({
             command: 'stopTestRun',
         });
+    }, []);
+
+    const handlePause = useCallback(() => {
+        window.vscode?.postMessage({ command: 'pauseTestRun' });
+        setIsPaused(true);
+    }, []);
+
+    const handleResume = useCallback(() => {
+        window.vscode?.postMessage({ command: 'resumeTestRun' });
+        setIsPaused(false);
     }, []);
 
     const appendReport = useCallback((report: StepReportItem) => {
@@ -279,6 +272,11 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
             }
             const scope = typeof message.scope === 'string' ? message.scope : undefined;
             if (scope !== 'test-step' && scope !== 'test-step-run' && scope !== 'test-finished' && scope !== 'setenv' && scope !== 'test-outputs') {
+                return;
+            }
+            if (runStoppedRef.current &&
+                (scope === 'test-step' || scope === 'test-step-run' ||
+                 scope === 'test-outputs' || scope === 'test-finished')) {
                 return;
             }
             const runId = typeof message.runId === 'string' ? message.runId : null;
@@ -329,10 +327,8 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
                     cached: (message as any).cached === true ? true : undefined,
                 };
                 appendReport(normalized);
-                if (normalized.status === 'failed') {
-                    setRunState('failed');
-                }
-                // Update running duration on every step so it's never stale
+                // Update running duration on every step so it's never stale.
+                // Do not end runState here — checks can fail and still continue.
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
                 }
@@ -340,7 +336,11 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
             }
 
             if (scope === 'test-step-run') {
-                setRunState(message.result === 'passed' ? 'passed' : 'failed');
+                setIsPaused(false);
+                setRunState(
+                    message.result === 'passed' ? 'passed' :
+                    message.result === 'cancelled' ? 'cancelled' :
+                    'failed');
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
                     runStartTimeRef.current = null;
@@ -349,6 +349,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
             }
 
             if (scope === 'test-finished') {
+                setIsPaused(false);
                 setRunState(message.success ? 'passed' : 'failed');
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
@@ -364,11 +365,19 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
                 return;
             }
             if (message.command === 'testRunStopped') {
+                runStoppedRef.current = true;
+                setIsPaused(false);
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
                     runStartTimeRef.current = null;
                 }
-                setRunState('default');
+                setRunState('cancelled');
+            }
+            if (message.command === 'testRunPaused') {
+                setIsPaused(true);
+            }
+            if (message.command === 'testRunResumed') {
+                setIsPaused(false);
             }
         };
 
@@ -397,14 +406,66 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
         });
     }, [stepReports, runState, outputs, mmtFilePath, runStartedAt, runDurationMs, testData.title]);
 
+    const handleClearReport = useCallback(() => {
+        if (runState === 'pending' || runState === 'running') {
+            return;
+        }
+        if (latestRunIdRef.current) {
+            ignoredRunIdsRef.current.add(latestRunIdRef.current);
+            trimIgnoredRuns();
+        }
+        latestRunIdRef.current = null;
+        runStoppedRef.current = false;
+        setIsPaused(false);
+        setStepReports([]);
+        setOutputs({});
+        setRunState('default');
+        setRunStartedAt(null);
+        setRunDurationMs(null);
+        runStartTimeRef.current = null;
+    }, [runState, trimIgnoredRuns]);
+
     const exportDisabled =
         runState === 'pending' || runState === 'running' || stepReports.length === 0;
+    const clearDisabled =
+        runState === 'pending' || runState === 'running' ||
+        (stepReports.length === 0 &&
+            (runState === 'default' || runState === 'cancelled'));
 
     const isPreparing = runState === 'pending';
     const isRunning = runState === 'running';
 
+    const runMenuItems = useMemo(
+        () => buildReportRunMenuEntries({
+            onPause: handlePause,
+            onResume: handleResume,
+            paused: isPaused,
+            canPause: isPreparing || isRunning,
+            onRunInCore: () => {
+                postRunCurrentDocument({ reportLifecycle: true });
+            },
+            onClear: handleClearReport,
+            clearDisabled,
+            onExport: handleExportReport,
+            exportDisabled,
+        }),
+        [
+            handlePause,
+            handleResume,
+            isPaused,
+            isPreparing,
+            isRunning,
+            postRunCurrentDocument,
+            handleClearReport,
+            clearDisabled,
+            handleExportReport,
+            exportDisabled,
+        ],
+    );
+
     const overviewStats = useMemo((): OverviewStats | null => {
-        if (stepReports.length === 0 && (runState === 'default' || runState === 'pending')) {
+        if (stepReports.length === 0 &&
+            (runState === 'default' || runState === 'pending' || runState === 'cancelled')) {
             return null;
         }
         const passed = stepReports.filter(r => r.status === 'passed').length;
@@ -425,29 +486,15 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
     return (
         <div className="panel-page">
             <div className="run-action-bar">
-                <RunStopToggle
-                    preparing={isPreparing}
-                    running={isRunning}
-                    onRun={handleRun}
-                    onStop={handleStop}
-                    runLabel="Run test"
-                    preparingLabel="Starting…"
-                    stopLabel="Stop test"
-                    runContextMenuItems={[runInCoreMenuItem(() => {
-                        if (runState === 'pending' || runState === 'running') {
-                            return;
-                        }
-                        flushSync(() => {
-                            setStepReports([]);
-                            setOutputs({});
-                            setRunState('running');
-                        });
-                        postRunCurrentDocument({ reportLifecycle: true });
-                    })]}
+                <SendButton
+                    mode="run"
+                    onClick={handleRun}
+                    onCancel={handleStop}
+                    loading={isPreparing || isRunning}
+                    actionTitle="Run test"
+                    cancelTitle="Stop test"
+                    contextMenuItems={runMenuItems}
                 />
-                <HideWhenYamlError>
-                    <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
-                </HideWhenYamlError>
             </div>
             <div className="panel-view-stack">
                 <div className="panel-view-fixed">
@@ -485,13 +532,11 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml, onInputsReset, o
                     scrollBody
                     stepReports={stepReports}
                     runState={
-                        runState === 'pending' || runState === 'running'
+                        runState === 'pending' || runState === 'running' ||
+                        runState === 'passed' || runState === 'failed' ||
+                        runState === 'cancelled'
                             ? runState
-                            : runState === 'passed'
-                                ? 'passed'
-                                : runState === 'failed'
-                                    ? 'failed'
-                                    : 'default'
+                            : 'default'
                     }
                     onRun={handleRun}
                     runButtonLabel="Run test"

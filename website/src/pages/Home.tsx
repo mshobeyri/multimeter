@@ -22,7 +22,7 @@ export default function Home() {
     <>
       <Seo
         title="Multimeter — Git-native REST client and API tests in VS Code"
-        description="Requests, tests, mocks, and docs are YAML in Git — same files in VS Code and in CI. Apache 2.0. No account."
+        description="Requests, tests, mocks, and docs are YAML in Git — same files in the VS Code editor and in CI. Apache 2.0. No account."
         path="/"
       />
       <Hero />

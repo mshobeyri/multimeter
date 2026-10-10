@@ -8,6 +8,7 @@ import {
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {createSuiteNodeId} from './suiteNodeId';
 import {peekTestMetaFromYaml} from './testParsePack';
+import {peekApiMetaFromYaml} from './apiParsePack';
 import {brunoToTest, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, isHttpFilePath} from './httpParsePack';
 import {yamlToMock} from './mockParsePack';
@@ -173,6 +174,28 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
         testNode.tags = tags;
       }
       return testNode;
+    }
+
+    if (type === 'api') {
+      let title: string | undefined;
+      let tags: string[] | undefined;
+      try {
+        const meta = peekApiMetaFromYaml(raw);
+        title = meta.title;
+        tags = optionalTags(meta.tags);
+      } catch {
+        // ignore
+      }
+      const apiNode: Extract<SuiteHierarchyNode, {kind: 'api'}> = {
+        kind: 'api',
+        id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
+        path: resolvedPath,
+        title,
+      };
+      if (tags) {
+        apiNode.tags = tags;
+      }
+      return apiNode;
     }
 
     if (type === 'server') {

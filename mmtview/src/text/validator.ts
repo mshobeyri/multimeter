@@ -1,4 +1,6 @@
 import {outputExtractor} from 'mmt-core';
+import {isKnownRuntimeTokenName} from 'mmt-core/runtimeTokenUi';
+import {isInsideYamlBlockScalar} from './tokenHighlightPatterns';
 
 export type MissingImportEntry = { alias: string; path: string };
 
@@ -95,7 +97,7 @@ export type ExampleLineInfo = {
 
 /**
  * Line numbers for each entry in the top-level `examples:` array.
- * Prefers the `name:` key line so run glyphs align with the example name
+ * Prefers `id:` (then legacy `name:`) so run glyphs align with the identifier
  * even when `description` or a block `-` precedes it in YAML.
  */
 export function extractExampleLineInfo(
@@ -113,13 +115,14 @@ export function extractExampleLineInfo(
       Array.isArray(examplesPair.value?.items) ? examplesPair.value.items : [];
   const positions: ExampleLineInfo[] = [];
   seqItems.forEach((exampleNode, idx) => {
-    const namePair = Array.isArray(exampleNode?.items) ?
-        exampleNode.items.find((pair: any) => pair?.key?.value === 'name') :
-        undefined;
+    const pairs: any[] = Array.isArray(exampleNode?.items) ? exampleNode.items : [];
+    const idPair = pairs.find((pair: any) => pair?.key?.value === 'id');
+    const namePair = pairs.find((pair: any) => pair?.key?.value === 'name');
+    const labelPair = idPair || namePair;
     let offset: number|undefined;
-    if (namePair?.key && Array.isArray(namePair.key.range) &&
-        typeof namePair.key.range[0] === 'number') {
-      offset = namePair.key.range[0];
+    if (labelPair?.key && Array.isArray(labelPair.key.range) &&
+        typeof labelPair.key.range[0] === 'number') {
+      offset = labelPair.key.range[0];
     } else if (Array.isArray(exampleNode?.range) &&
         typeof exampleNode.range[0] === 'number') {
       offset = exampleNode.range[0];
@@ -790,6 +793,33 @@ function detectServerEndpointOrderingIssue(doc: any, content: string): OrderingI
   return null;
 }
 
+/** Canonical example entry key order (must match core/mmtFormatAst EXAMPLE_KEY_ORDER). */
+const API_EXAMPLE_KEY_ORDER = [
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect',
+];
+
+/**
+ * Detect the first example-entry ordering issue in an API document.
+ */
+function detectApiExampleOrderingIssue(doc: any, content: string): OrderingIssue | null {
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const examplesPair = rootItems.find((item: any) => item?.key?.value === 'examples');
+  if (!examplesPair?.value?.items) {
+    return null;
+  }
+  const examplesSeq: any[] = Array.isArray(examplesPair.value.items) ? examplesPair.value.items : [];
+  for (const exNode of examplesSeq) {
+    const pairs: any[] = Array.isArray(exNode?.items) ? exNode.items : [];
+    if (pairs.length > 1) {
+      const issue = detectKeysOutOfOrder(pairs, API_EXAMPLE_KEY_ORDER, content, 'Example');
+      if (issue) {
+        return issue;
+      }
+    }
+  }
+  return null;
+}
+
 const VALID_REPORT_ROOT_KEYS = new Set(getCanonicalOrder('report') ?? []);
 
 export function findReportUnknownRootKeyProblems(
@@ -839,7 +869,12 @@ export function computeOrderingMarkers(
     ? detectServerEndpointOrderingIssue(yamlDoc, content)
     : null;
 
-  const effectiveIssue = issue || stepIssue || endpointIssue;
+  // If no root-level issue, check example-entry ordering for API documents
+  const exampleIssue = !issue && !stepIssue && !endpointIssue && docType === 'api'
+    ? detectApiExampleOrderingIssue(yamlDoc, content)
+    : null;
+
+  const effectiveIssue = issue || stepIssue || endpointIssue || exampleIssue;
 
   const markers = [
     ...reportKeyProblems.map(problem => ({
@@ -1605,7 +1640,7 @@ export function getUndefinedExampleKeyDecorations(
 
 /**
  * Produce ProblemEntry items for example keys that don't match API-level
- * inputs/outputs (for the problems panel).
+ * inputs/outputs (for the problems panel), plus duplicate example ids.
  */
 export function findExampleKeyProblems(
   content: string,
@@ -1616,28 +1651,82 @@ export function findExampleKeyProblems(
     return [];
   }
 
+  const problems: ProblemEntry[] = [];
+
+  // Unknown example keys + duplicate example id / legacy name
+  try {
+    const rootItems: any[] = Array.isArray(yamlDoc?.contents?.items) ? yamlDoc.contents.items : [];
+    const examplesPair = rootItems.find((item: any) => item?.key?.value === "examples");
+    const seqItems: any[] =
+        Array.isArray(examplesPair?.value?.items) ? examplesPair.value.items : [];
+    const allowedExampleKeys = new Set(API_EXAMPLE_KEY_ORDER);
+    const seen = new Map<string, { line: number }>();
+    seqItems.forEach((exampleNode: any) => {
+      if (!exampleNode || !Array.isArray(exampleNode.items)) {
+        return;
+      }
+      for (const keyPair of exampleNode.items) {
+        const key = keyPair?.key?.value;
+        if (typeof key !== "string" || allowedExampleKeys.has(key)) {
+          continue;
+        }
+        const range = Array.isArray(keyPair?.key?.range) ? keyPair.key.range : null;
+        const offset = range && typeof range[0] === "number" ? range[0] : 0;
+        problems.push({
+          message: `Unknown example field "${key}"`,
+          severity: "error",
+          line: offsetToLineNumber(content, offset),
+          column: 1,
+        });
+      }
+      const idPair = exampleNode.items.find((pair: any) => pair?.key?.value === "id");
+      const namePair = exampleNode.items.find((pair: any) => pair?.key?.value === "name");
+      const pair = idPair || namePair;
+      const value = pair?.value?.value;
+      if (typeof value !== "string" || !value.trim()) {
+        return;
+      }
+      const id = value.trim();
+      const range = Array.isArray(pair?.key?.range) ? pair.key.range : null;
+      const offset = range && typeof range[0] === "number" ? range[0] : 0;
+      const line = offsetToLineNumber(content, offset);
+      const prev = seen.get(id);
+      if (prev) {
+        problems.push({
+          message: `Duplicate example id "${id}"`,
+          severity: "error",
+          line,
+          column: 1,
+        });
+      } else {
+        seen.set(id, { line });
+      }
+    });
+  } catch {
+    // ignore AST issues
+  }
+
   const apiInputs = extractApiLevelKeys(yamlDoc, "inputs");
   const apiOutputs = extractApiLevelKeys(yamlDoc, "outputs");
 
   if (apiInputs.size === 0 && apiOutputs.size === 0) {
-    return [];
+    return problems;
   }
 
   const sites = extractApiExampleKeySites(yamlDoc, content);
-  return sites
-    .filter((site) => {
-      const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
-      return allowed.size > 0 && !allowed.has(site.key);
-    })
-    .map((site) => {
+  for (const site of sites) {
+    const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
+    if (allowed.size > 0 && !allowed.has(site.key)) {
       const sectionLabel = site.section === "inputs" ? "inputs" : "outputs";
-      return {
+      problems.push({
         message: `"${site.key}" is not defined in API ${sectionLabel}`,
-        severity: "warning" as const,
+        severity: "warning",
         line: site.line,
         column: 1,
-      };
-    });
+      });
+    }
+  }
+  return problems;
 }
 
 export type InputRefSiteInfo = {
@@ -1656,9 +1745,80 @@ const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
 const INPUT_REF_BRACE_RE = new RegExp(`<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>`, 'g');
 const INPUT_REF_PLAIN_RE = new RegExp(`(?<![A-Za-z0-9])i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`, 'g');
 const ENV_REF_BRACE_RE = new RegExp(`<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>`, 'g');
-const ENV_REF_SINGLE_ANGLE_RE = new RegExp(`<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>`, 'g');
-const ENV_REF_CURLY_RE = new RegExp(`(?<![A-Za-z0-9])e:\\{(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\}`, 'g');
 const ENV_REF_PLAIN_RE = new RegExp(`(?<![A-Za-z0-9])e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`, 'g');
+
+/**
+ * True when `offset` sits inside a single- or double-quoted span on its line.
+ * Used so quoted `"i:name"` literals are not treated as input refs (same idea
+ * as quoted token scalars staying literal text). `<<i:name>>` is checked
+ * separately and always counts.
+ */
+function isOffsetInsideQuotedYamlScalar(content: string, offset: number): boolean {
+  if (offset < 0 || offset >= content.length) {
+    return false;
+  }
+  const lineStart = content.lastIndexOf('\n', offset - 1) + 1;
+  let lineEnd = content.indexOf('\n', offset);
+  if (lineEnd < 0) {
+    lineEnd = content.length;
+  }
+  const line = content.slice(lineStart, lineEnd);
+  const local = offset - lineStart;
+
+  let inDouble = false;
+  let inSingle = false;
+  for (let i = 0; i < local; i++) {
+    const ch = line[i];
+    if (inDouble) {
+      if (ch === '\\') {
+        i += 1;
+        continue;
+      }
+      if (ch === '"') {
+        inDouble = false;
+      }
+      continue;
+    }
+    if (inSingle) {
+      // YAML single-quoted escape is doubled ''
+      if (ch === "'" && line[i + 1] === "'") {
+        i += 1;
+        continue;
+      }
+      if (ch === "'") {
+        inSingle = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = true;
+    } else if (ch === "'") {
+      inSingle = true;
+    }
+  }
+  return inDouble || inSingle;
+}
+
+/**
+ * Bare `i:` / `e:` count only when they are the entire YAML value
+ * (`key: i:name` or `- e:HOST`). Mixed text and block-scalar lines do not.
+ */
+function isBareTokenWholeYamlValue(content: string, offset: number, length: number): boolean {
+  if (offset < 0 || isInsideYamlBlockScalar(content, offset)) {
+    return false;
+  }
+  const lineStart = content.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
+  let lineEnd = content.indexOf('\n', offset);
+  if (lineEnd < 0) {
+    lineEnd = content.length;
+  }
+  const before = content.slice(lineStart, offset);
+  const after = content.slice(offset + length, lineEnd);
+  if (!/^[ \t]*(?:-[ \t]+|[A-Za-z_][\w.-]*[ \t]*:[ \t]+)$/.test(before)) {
+    return false;
+  }
+  return /^[ \t]*(?:#.*)?$/.test(after);
+}
 
 /**
  * Scan the raw YAML content for `i:xxx` and `<<i:xxx>>` references and
@@ -1666,6 +1826,8 @@ const ENV_REF_PLAIN_RE = new RegExp(`(?<![A-Za-z0-9])e:(${TOKEN_NAME_RE})(${ACCE
  * `i:user.name` are also recognised.
  *
  * Comment lines (starting with `#`) are skipped.
+ * Plain `i:xxx` inside YAML quotes (`"i:xxx"`) is skipped — those are
+ * literal text. Angle-wrapped `<<i:xxx>>` is always included.
  */
 export function extractInputRefSites(content: string): InputRefSiteInfo[] {
   const results: InputRefSiteInfo[] = [];
@@ -1693,6 +1855,12 @@ export function extractInputRefSites(content: string): InputRefSiteInfo[] {
     const fullMatchOffset = m.index;
     const before = content.slice(Math.max(0, fullMatchOffset - 10), fullMatchOffset);
     if (/<<\s*$/.test(before)) {
+      continue;
+    }
+    if (isOffsetInsideQuotedYamlScalar(content, fullMatchOffset)) {
+      continue;
+    }
+    if (!isBareTokenWholeYamlValue(content, fullMatchOffset, m[0].length)) {
       continue;
     }
     const line = offsetToLineNumber(content, fullMatchOffset);
@@ -1794,10 +1962,13 @@ export type EnvRefSiteInfo = {
 };
 
 /**
- * Scan the raw YAML content for `e:xxx`, `<<e:xxx>>`, `<e:xxx>`, and `e:{xxx}`
- * references and return their positions. Accessor forms like `[0]`, `[0:3]`,
- * and `.field` are also recognised.
+ * Scan the raw YAML content for `e:xxx` and `<<e:xxx>>` references and
+ * return their positions. Accessor forms like `[0]`, `[0:3]`, and `.field`
+ * are also recognised.
  * Comment lines (starting with `#`) are skipped.
+ * Plain `e:xxx` inside YAML quotes (`"e:xxx"`) is skipped — those are
+ * literal text (same as plain `i:`). `<<e:…>>` is always included.
+ * `<e:name>` and `e:{name}` are ordinary text.
  */
 export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
   const results: EnvRefSiteInfo[] = [];
@@ -1823,37 +1994,18 @@ export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
     results.push({ name, offset: underlineOffset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
   }
 
-  while ((m = ENV_REF_SINGLE_ANGLE_RE.exec(content)) !== null) {
-    if (isCommentLine(m.index)) {
-      continue;
-    }
-    const name = m[1];
-    const accessor = m[2] || '';
-    const tokenText = 'e:' + name + accessor;
-    const innerOffset = content.indexOf(tokenText, m.index);
-    const offset = innerOffset >= 0 ? innerOffset : m.index;
-    if (seen.has(offset)) {
-      continue;
-    }
-    seen.add(offset);
-    const underlineLength = innerOffset >= 0 ? tokenText.length : m[0].length;
-    results.push({ name, offset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
-  }
-
-  while ((m = ENV_REF_CURLY_RE.exec(content)) !== null) {
-    if (isCommentLine(m.index) || seen.has(m.index)) {
-      continue;
-    }
-    seen.add(m.index);
-    results.push({ name: m[1], offset: m.index, length: m[0].length, line: offsetToLineNumber(content, m.index) });
-  }
-
   while ((m = ENV_REF_PLAIN_RE.exec(content)) !== null) {
     if (isCommentLine(m.index) || seen.has(m.index)) {
       continue;
     }
     const before = content.slice(Math.max(0, m.index - 10), m.index);
     if (/<<\s*$/.test(before) || /<\s*$/.test(before)) {
+      continue;
+    }
+    if (isOffsetInsideQuotedYamlScalar(content, m.index)) {
+      continue;
+    }
+    if (!isBareTokenWholeYamlValue(content, m.index, m[0].length)) {
       continue;
     }
     seen.add(m.index);
@@ -1927,6 +2079,205 @@ export function findEnvRefProblems(
     }));
 }
 
+export type RuntimeRefSiteInfo = {
+  prefix: 'r' | 'c';
+  name: string;
+  offset: number;
+  length: number;
+  line: number;
+};
+
+const RUNTIME_REF_BRACE_RE = new RegExp(
+  `<<\\s*(r|c):(${TOKEN_NAME_RE})(?:\\([^)]*\\))?(${ACCESSOR_PATH_RE})\\s*>>`,
+  'g',
+);
+const RUNTIME_REF_PLAIN_RE = new RegExp(
+  `(?<![A-Za-z0-9_])(r|c):(${TOKEN_NAME_RE})(?:\\([^)]*\\))?(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`,
+  'g',
+);
+
+function unknownRuntimeTokenMessage(prefix: 'r' | 'c', name: string): string {
+  if (prefix === 'r') {
+    return `Unknown random token "${name}"`;
+  }
+  return `Unknown current token "${name}"`;
+}
+
+/**
+ * Scan YAML for `r:xxx` / `c:xxx` and `<<r:/c:…>>` sites (same bare/angle
+ * rules as i:/e:). Used to warn on names that are not built-in generators.
+ */
+export function extractRuntimeRefSites(content: string): RuntimeRefSiteInfo[] {
+  const results: RuntimeRefSiteInfo[] = [];
+  const seen = new Set<number>();
+
+  function isCommentLine(offset: number): boolean {
+    const lineStart = content.lastIndexOf('\n', offset) + 1;
+    return content.slice(lineStart, offset).trimStart().startsWith('#');
+  }
+
+  let m: RegExpExecArray | null;
+  RUNTIME_REF_BRACE_RE.lastIndex = 0;
+  while ((m = RUNTIME_REF_BRACE_RE.exec(content)) !== null) {
+    if (isCommentLine(m.index)) {
+      continue;
+    }
+    const prefix = m[1].toLowerCase() as 'r' | 'c';
+    const name = m[2];
+    const accessor = m[3] || '';
+    // Underline keyword (+ accessor); args may sit between name and accessor.
+    const innerOffset = content.indexOf(`${prefix}:${name}`, m.index);
+    const underlineOffset = innerOffset >= 0 ? innerOffset : m.index;
+    const underlineLength = innerOffset >= 0
+      ? `${prefix}:${name}${accessor}`.length
+      : m[0].length;
+    seen.add(underlineOffset);
+    results.push({
+      prefix,
+      name,
+      offset: underlineOffset,
+      length: underlineLength,
+      line: offsetToLineNumber(content, m.index),
+    });
+  }
+
+  RUNTIME_REF_PLAIN_RE.lastIndex = 0;
+  while ((m = RUNTIME_REF_PLAIN_RE.exec(content)) !== null) {
+    if (isCommentLine(m.index) || seen.has(m.index)) {
+      continue;
+    }
+    const before = content.slice(Math.max(0, m.index - 10), m.index);
+    if (/<<\s*$/.test(before)) {
+      continue;
+    }
+    if (isOffsetInsideQuotedYamlScalar(content, m.index)) {
+      continue;
+    }
+    if (!isBareTokenWholeYamlValue(content, m.index, m[0].length)) {
+      continue;
+    }
+    seen.add(m.index);
+    results.push({
+      prefix: m[1].toLowerCase() as 'r' | 'c',
+      name: m[2],
+      offset: m.index,
+      length: m[0].length,
+      line: offsetToLineNumber(content, m.index),
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Yellow wavy underline for `r:` / `c:` tokens whose name is not a built-in
+ * generator (same presentation as undefined i:/e: refs).
+ */
+export function getUnknownRuntimeRefDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  inlineClassName: string,
+): any[] {
+  if (!model) {
+    return [];
+  }
+
+  const decorations: any[] = [];
+  for (const site of extractRuntimeRefSites(content)) {
+    if (isKnownRuntimeTokenName(site.prefix, site.name)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+    const hoverMessage = {value: unknownRuntimeTokenMessage(site.prefix, site.name)};
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+  return decorations;
+}
+
+/** Problem panel entries for unknown `r:` / `c:` generator names. */
+export function findUnknownRuntimeRefProblems(content: string): ProblemEntry[] {
+  return extractRuntimeRefSites(content)
+    .filter((site) => !isKnownRuntimeTokenName(site.prefix, site.name))
+    .map((site) => ({
+      message: unknownRuntimeTokenMessage(site.prefix, site.name),
+      severity: 'warning' as const,
+      line: site.line,
+      column: 1,
+    }));
+}
+
+
+/**
+ * Warn when a bare `e:`/`i:`/`r:`/`c:` token appears *inside* other text on a
+ * simple `key: value` line. Whole-value bare tokens are fine; mixed text should
+ * use `<<prefix:name>>` (SDD token-form-consistency L2 / Phase 3).
+ * Quoted scalars and tokens already inside `<<…>>` / `{{…}}` are skipped.
+ */
+export function findDiscouragedBareEmbeddedTokenProblems(
+    content: string,
+): ProblemEntry[] {
+  const lines = String(content ?? '').split(/\r?\n/);
+  const results: ProblemEntry[] = [];
+  const bareRe =
+      /(?<![{<A-Za-z0-9_])([eirc]):([A-Za-z_][A-Za-z0-9_-]*)(?![A-Za-z0-9_])/g;
+  const wholeBareRe =
+      /^(?:[eirc]):[A-Za-z_][A-Za-z0-9_-]*(?:\([^)]*\))?(?:\.[A-Za-z_][A-Za-z0-9_]*|\[-?\d*(?::-?\d*)?\])*$/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedStart = line.trimStart();
+    if (!trimmedStart || trimmedStart.startsWith('#')) {
+      continue;
+    }
+    const colonMatch = /:\s+/.exec(line);
+    if (!colonMatch || colonMatch.index == null) {
+      continue;
+    }
+    const valueStart = colonMatch.index + colonMatch[0].length;
+    let value = line.slice(valueStart);
+    const valueTrim = value.trim();
+    if (!valueTrim) {
+      continue;
+    }
+    if ((valueTrim.startsWith('"') && valueTrim.endsWith('"')) ||
+        (valueTrim.startsWith('\'') && valueTrim.endsWith('\''))) {
+      continue;
+    }
+    if (wholeBareRe.test(valueTrim)) {
+      continue;
+    }
+    const masked = valueTrim
+        .replace(/<<[\s\S]*?>>/g, (m) => ' '.repeat(m.length))
+        .replace(/\{\{[\s\S]*?\}\}/g, (m) => ' '.repeat(m.length));
+    bareRe.lastIndex = 0;
+    let match: RegExpExecArray|null;
+    while ((match = bareRe.exec(masked)) !== null) {
+      const prefix = match[1];
+      const name = match[2];
+      results.push({
+        message:
+            `Bare ${prefix}:${name} inside other text is discouraged; ` +
+            `use <<${prefix}:${name}>> (canonical YAML). ` +
+            `UI form {{${prefix}:${name}}} is also accepted and normalized on save.`,
+        severity: 'warning',
+        line: i + 1,
+        column: valueStart + match.index + 1,
+      });
+    }
+  }
+  return results;
+}
 
 /**
  * Detect root-level `description:` keys whose value spans multiple lines

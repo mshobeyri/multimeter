@@ -123,7 +123,7 @@ export function matchesSkip(tags: readonly string[]|undefined, filter: TagFilter
  * (whole subtree except skip).
  */
 export function decideTagRun(
-    kind: 'test'|'suite',
+    kind: 'test'|'api'|'suite',
     tags: readonly string[]|undefined,
     filter: TagFilter,
     parentSelected: boolean,

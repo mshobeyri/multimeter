@@ -34,11 +34,14 @@ describe('curlConvertor', () => {
   });
 
   it('keeps simple https curl as an http protocol api', () => {
-    const yaml = apiToYaml(curlToAPI('curl https://test.mmt.dev/echo'));
+    const api = curlToAPI('curl https://test.mmt.dev/echo');
+    const yaml = apiToYaml(api);
 
+    expect(api.protocol).toBe('http');
     expect(yaml).toContain('type: api');
     expect(yaml).toContain('url: https://test.mmt.dev/echo');
-    expect(yaml).toContain('protocol: http');
+    // Default http (inferred from the URL) is omitted from packed YAML.
+    expect(yaml).not.toContain('protocol:');
     expect(yaml).toContain('method: get');
   });
 

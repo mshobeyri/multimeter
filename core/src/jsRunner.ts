@@ -10,6 +10,7 @@ import * as Current from './Current';
 import * as mmtHelper from './testHelper';
 import type {ServerRunner} from './testHelper';
 import {isAssertionFailedError, isTestAbortError} from './testHelper';
+import type {RunPauseGate} from './runPause';
 import {logRunFinished, RunKind} from './runLog';
 import {setJudgeHttpPost_} from './judgeEngine';
 import {formatHttpTraceRequest, formatHttpTraceResponse} from './httpTraceLog';
@@ -29,6 +30,8 @@ export interface RunJSCodeContext {
   reporter?: (message: any) => void;
   id?: string;
   abortSignal?: AbortSignal;
+  /** Cooperative pause; awaited inside checkAbort_ between steps. */
+  pauseGate?: RunPauseGate;
   /** When true, wrap send_ with trace-level request/response logging (used by test runs). */
   traceSend?: boolean;
   /** Optional server runner for starting mock servers in tests. */
@@ -41,6 +44,11 @@ export interface RunJSCodeContext {
   checkLogMode?: CheckLogMode;
   /** Prefix for the finished/failed log line (Test / API / Suite). */
   runKind?: RunKind;
+  /**
+   * Process env object for this run (`EnvStore.values`). Bound as
+   * `envVariables` unless the script already declares that name.
+   */
+  envValues?: Record<string, any>;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -243,6 +251,26 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // setenv_ must update the in-scope envVariables object so that
       // subsequent e: references read the new value within the same run.
       `const setenv_ = (vars) => { if (typeof envVariables !== 'undefined' && vars && typeof vars === 'object') { for (const [k, v] of Object.entries(vars)) { try { envVariables[k] = v; } catch (_e) {} } } mmtHelper.setenvWithContext_(__reporter, __runId, __id, vars); };\n` +
+      // Missing e: names stay the token text (same as unknown r:/c:/i:).
+      // File-backed getters (functions from process EnvStore copy) are awaited.
+      // mode === 'lookup' → undefined when missing (comparisons stay falsy).
+      `const mmtEnv_ = (name, accessor, mode) => {\n` +
+      `  const lookup = mode === 'lookup';\n` +
+      `  const missing = () => lookup ? undefined : ('e:' + name + (accessor || ''));\n` +
+      `  const finish = (value) => {\n` +
+      `    if (value === undefined) { return missing(); }\n` +
+      `    return accessor ? mmtAccess_(value, accessor) : value;\n` +
+      `  };\n` +
+      `  if (typeof envVariables === 'undefined' || !envVariables ||\n` +
+      `      !Object.prototype.hasOwnProperty.call(envVariables, name)) {\n` +
+      `    return missing();\n` +
+      `  }\n` +
+      `  const raw = envVariables[name];\n` +
+      `  if (typeof raw === 'function') {\n` +
+      `    return Promise.resolve(raw()).then(finish);\n` +
+      `  }\n` +
+      `  return finish(raw);\n` +
+      `};\n` +
       // Override check_ to pass the closure-based report_ so that under
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.
@@ -251,8 +279,12 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // Override checkExpects_ with a closure-based version for parallel execution.
       `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests
-      // each check their own abort signal instead of the global.
-      `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); } };\n` +
+      // each check their own abort/pause gate instead of the global.
+      `const checkAbort_ = async () => {\n` +
+      `  if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); }\n` +
+      `  if (__pauseGate && typeof __pauseGate.waitIfPaused === 'function') { await __pauseGate.waitIfPaused(); }\n` +
+      `  if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); }\n` +
+      `};\n` +
       // Override importJsModule_ with a closure-based wrapper that ensures
       // the file loader is set to this test's loader before each import,
       // protecting against parallel tests overwriting the global loader.
@@ -269,14 +301,16 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `const buildMultipartBodyFromParts_ = async (parts) => {` +
       `  return mmtHelper.buildMultipartBodyFromParts_(parts, readBinaryFile_);` +
       `};\n` +
+      // Bind process env store; generated scripts no longer embed env JSON.
+      `${/(?:^|[^\w$.])(?:const|let|var)\s+envVariables\b/.test(code) ? '' : 'const envVariables = (__mmtEnvValues && typeof __mmtEnvValues === "object") ? __mmtEnvValues : {};\n'}` +
       `${code}`;
     let fn = compiledFunctionCache.get(functionBody);
     if (!fn) {
       fn = new Function(
         'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
         '__reporter', '__runId', '__id', 'mmtRandom_', 'mmtCurrent_',
-        'mmtAccess_', '__abortSignal', '__fileLoader', '__binaryFileLoader',
-        '__checkLogMode',
+        'mmtAccess_', '__abortSignal', '__pauseGate', '__fileLoader',
+        '__binaryFileLoader', '__checkLogMode', '__mmtEnvValues',
         functionBody);
       if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
         const firstKey = compiledFunctionCache.keys().next().value;
@@ -295,6 +329,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       }
     };
     const sendFn = async (req: any) => {
+      if (context.abortSignal?.aborted) {
+        throw new mmtHelper.TestAbortError();
+      }
       if (context.traceSend) {
         lg('trace', formatHttpTraceRequest({
           method: req?.method,
@@ -305,7 +342,13 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         }));
       }
       try {
-        const res = await send(req);
+        const res = await send({
+          ...(req || {}),
+          abortSignal: context.abortSignal,
+        });
+        if (context.abortSignal?.aborted) {
+          throw new mmtHelper.TestAbortError();
+        }
         recordNetworkDuration(res);
         if (context.traceSend) {
           lg('trace', formatHttpTraceResponse({
@@ -319,6 +362,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         }
         return res;
       } catch (err: any) {
+        if (isTestAbortError(err) || context.abortSignal?.aborted) {
+          throw isTestAbortError(err) ? err : new mmtHelper.TestAbortError();
+        }
         if (context.traceSend) {
           lg('trace', formatHttpTraceResponse({
             error: err?.message || String(err),
@@ -339,9 +385,13 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
-        context.abortSignal, context.fileLoader, context.binaryFileLoader,
-        context.checkLogMode || 'default');
+        context.abortSignal, context.pauseGate, context.fileLoader,
+        context.binaryFileLoader, context.checkLogMode || 'default',
+        context.envValues);
     restoreReporterGlobals();
+    if (context.abortSignal?.aborted) {
+      throw new mmtHelper.TestAbortError();
+    }
     // For API runs, prefer the network send/receive duration so the finish
     // log matches the toolbar. Fall back to wall-clock for tests/suites.
     const wallClockMs = Date.now() - startTime;
@@ -352,9 +402,13 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     return returnValue;
   } catch (e: any) {
     restoreReporterGlobals();
-    const isControlFlow = isAssertionFailedError(e) || isTestAbortError(e);
-    logRunFinished(lg, runKind, title, false, undefined, {hasError: !isControlFlow});
-    throw e;
+    const cancelled = isTestAbortError(e) || !!context.abortSignal?.aborted;
+    const isControlFlow = isAssertionFailedError(e) || cancelled;
+    logRunFinished(lg, runKind, title, false, undefined, {
+      hasError: !isControlFlow,
+      cancelled,
+    });
+    throw cancelled && !isTestAbortError(e) ? new mmtHelper.TestAbortError() : e;
   } finally {
     const ended =
         'endServerSession_' in mmtHelper &&
@@ -362,8 +416,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         (mmtHelper as any).endServerSession_() as {outermost: boolean} :
         {outermost: true};
     if (ended.outermost) {
-      if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
-        (mmtHelper as any).setAbortSignal_(undefined);
+      if (typeof (mmtHelper as any).clearAbortSignalIf_ === 'function') {
+        (mmtHelper as any).clearAbortSignalIf_(context.abortSignal);
       }
       if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
         (mmtHelper as any).setServerRunner_(undefined);

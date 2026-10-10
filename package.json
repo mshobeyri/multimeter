@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman.",
-	"version": "1.43.3",
+	"version": "1.45.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -153,6 +153,11 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically format the body of the responses"
+        },
+        "multimeter.body.lineNumbers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show line numbers in API request/response body editors"
         },
         "multimeter.editor.fontSize": {
           "type": "number",
@@ -393,6 +398,12 @@
         "icon": "$(send)"
       },
       {
+        "command": "multimeter.sendRequest",
+        "title": "Send Request",
+        "category": "Multimeter",
+        "icon": "$(send)"
+      },
+      {
         "command": "multimeter.getStarted.reset",
         "title": "Reset Get Started",
         "category": "Multimeter"
@@ -464,6 +475,13 @@
     "views": {
       "multimeter-activitybar": [
         {
+          "id": "multimeter.activityDock",
+          "name": "Views",
+          "icon": "res/activity.png",
+          "visibility": "collapsed",
+          "order": 0
+        },
+        {
           "id": "multimeter.tempFiles",
           "name": "Temp Files",
           "icon": "res/activity.png",
@@ -513,6 +531,20 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "multimeter.activityDock",
+        "contents": "Drag Multimeter views onto this **Views** header to dock them in the Multimeter sidebar.\n\n[Open Environment Variables](command:multimeter.environment.focus)\n[Open History](command:multimeter.history.focus)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "multimeter.sendRequest",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.httpEditor || activeCustomEditorId == mmt.brunoEditor || activeCustomEditorId == mmt.specEditor"
+      }
+    ],
     "menus": {
       "view/title": [
         {
@@ -545,27 +577,22 @@
         {
           "command": "multimeter.mmt.show.ui",
           "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation"
-        },
-        {
-          "command": "multimeter.mmt.show.yaml",
-          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "multimeter.mmt.show.full",
           "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
-          "command": "multimeter.mmt.show.as.text",
-          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.httpEditor || activeCustomEditorId == mmt.brunoEditor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation"
+          "command": "multimeter.mmt.show.yaml",
+          "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
+          "group": "navigation@3"
         },
         {
           "command": "multimeter.mmt.show.as.mmt",
           "when": "(resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno || resourceExtname == .json || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .xml || resourceExtname == .wsdl) && activeCustomEditorId != mmt.editor && activeCustomEditorId != mmt.httpEditor && activeCustomEditorId != mmt.brunoEditor && activeCustomEditorId != mmt.specEditor",
-          "group": "navigation"
+          "group": "navigation@4"
         }
       ],
       "explorer/context": [

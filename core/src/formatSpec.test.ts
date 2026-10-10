@@ -76,8 +76,12 @@ describe('FormatSpec helpers', () => {
     });
   });
 
-  it('packs matching formats back to a scalar', () => {
-    expect(packFormatSpec({request: 'json', response: 'json'})).toBe('json');
+  it('packs explicit matching formats as a split object', () => {
+    // Scalar `format: json` means response:auto; keep request===response explicit.
+    expect(packFormatSpec({request: 'json', response: 'json'})).toEqual({
+      request: 'json',
+      response: 'json',
+    });
     expect(packFormatSpec({request: 'xml', response: 'json'})).toEqual({
       request: 'xml',
       response: 'json',
@@ -146,11 +150,13 @@ describe('API format parse/pack', () => {
     expect(packed).toContain('response: xml');
   });
 
-  it('keeps scalar format when request and response match', () => {
+  it('keeps explicit matching request/response as a split format', () => {
     const api = yamlToAPI('type: api\nurl: https://example.com\nformat: text');
     expect(api.format).toBe('text');
     expect(apiToYaml({...api, format: {request: 'text', response: 'text'}}))
-        .toMatch(/format: text/);
+        .toContain('request: text');
+    expect(apiToYaml({...api, format: {request: 'text', response: 'text'}}))
+        .toContain('response: text');
   });
 
   it('parses format: binary with a path body', () => {
@@ -170,8 +176,11 @@ describe('API format parse/pack', () => {
     expect(packed).toContain('body: ./payload.bin');
   });
 
-  it('packs matching binary request/response as scalar format: binary', () => {
-    expect(packFormatSpec({request: 'binary', response: 'binary'})).toBe('binary');
+  it('packs matching binary request/response as a split format', () => {
+    expect(packFormatSpec({request: 'binary', response: 'binary'})).toEqual({
+      request: 'binary',
+      response: 'binary',
+    });
   });
 
   it('parses format: none', () => {

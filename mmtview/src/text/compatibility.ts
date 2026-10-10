@@ -156,6 +156,82 @@ function findApiSetenvLegacyOutputRefIssues(content: string, yamlDoc: any): Comp
   return issues;
 }
 
+function findApiExampleNameDeprecatedIssues(content: string, yamlDoc: any): CompatibilityIssue[] {
+  if (!yamlDoc || yamlDoc.errors?.length) {
+    return [];
+  }
+  const examplesPair = findRootMapPair(yamlDoc, 'examples');
+  const seqItems: any[] =
+      Array.isArray(examplesPair?.value?.items) ? examplesPair.value.items : [];
+  if (seqItems.length === 0) {
+    return [];
+  }
+
+  const issues: CompatibilityIssue[] = [];
+  seqItems.forEach((exampleNode, idx) => {
+    if (!exampleNode || !Array.isArray(exampleNode.items)) {
+      return;
+    }
+    const namePair = exampleNode.items.find((pair: any) => pair?.key?.value === 'name');
+    if (!namePair?.key || !namePair?.value) {
+      return;
+    }
+    const nameValue = typeof namePair.value.value === 'string' ? namePair.value.value : '';
+    if (!nameValue.trim()) {
+      return;
+    }
+    const hasId = exampleNode.items.some((pair: any) => pair?.key?.value === 'id');
+    const hasTitle = exampleNode.items.some((pair: any) => pair?.key?.value === 'title');
+
+    // Replace the whole `name: …` pair (key through value).
+    const keyRange = Array.isArray(namePair.key.range) ? namePair.key.range : null;
+    const valueRange = Array.isArray(namePair.value.range) ? namePair.value.range : null;
+    if (!keyRange || typeof keyRange[0] !== 'number' || !valueRange || typeof valueRange[1] !== 'number') {
+      return;
+    }
+    const startOffset = keyRange[0];
+    let endOffset = valueRange[1];
+    // Include a trailing newline so deleting `name` when id+title exist leaves clean spacing.
+    if (content[endOffset] === '\n') {
+      endOffset += 1;
+    }
+
+    const lineStart = content.lastIndexOf('\n', Math.max(0, startOffset - 1)) + 1;
+    const linePrefix = content.slice(lineStart, startOffset);
+    const sequencePrefix = /^(\s*)-\s+$/.exec(linePrefix);
+    const indent = sequencePrefix ? `${sequencePrefix[1]}  ` : linePrefix;
+    let replacement: string;
+    if (hasId && hasTitle) {
+      replacement = '';
+    } else if (hasId && !hasTitle) {
+      replacement = `title: ${nameValue}\n`;
+    } else if (!hasId && hasTitle) {
+      replacement = `id: ${nameValue}\n`;
+    } else {
+      replacement = `id: ${nameValue}\n${indent}title: ${nameValue}\n`;
+    }
+
+    const line = offsetToLineNumber(content, startOffset);
+    const column = offsetToColumn(content, startOffset);
+    const keyText = String(namePair.key.value ?? 'name');
+    issues.push({
+      id: `api-example-name-deprecated:${idx}`,
+      message:
+          '`name:` on examples is deprecated. Use `id:` and `title:` (click to expand)',
+      line,
+      column,
+      endColumn: column + keyText.length,
+      applyFix: {
+        kind: 'replaceRange',
+        startOffset,
+        endOffset,
+        text: replacement,
+      },
+    });
+  });
+  return issues;
+}
+
 const DEPRECATED_AS_STRING_RE = /[=!]~/g;
 
 /** Bare `=~` / `!~` are the old as-string operators. Time compare requires a duration (`=5s~`). */
@@ -187,6 +263,78 @@ function findDeprecatedAsStringOperatorIssues(content: string): CompatibilityIss
   return issues;
 }
 
+function findApiExampleOutputsDeprecatedIssues(content: string, yamlDoc: any): CompatibilityIssue[] {
+  if (!yamlDoc || yamlDoc.errors?.length) {
+    return [];
+  }
+  const examplesPair = findRootMapPair(yamlDoc, 'examples');
+  const seqItems: any[] =
+      Array.isArray(examplesPair?.value?.items) ? examplesPair.value.items : [];
+  if (seqItems.length === 0) {
+    return [];
+  }
+
+  const issues: CompatibilityIssue[] = [];
+  seqItems.forEach((exampleNode, idx) => {
+    if (!exampleNode || !Array.isArray(exampleNode.items)) {
+      return;
+    }
+    const outputsPair = exampleNode.items.find((pair: any) => pair?.key?.value === 'outputs');
+    if (!outputsPair?.key) {
+      return;
+    }
+    const hasExpect = exampleNode.items.some((pair: any) => pair?.key?.value === 'expect');
+    const keyRange = Array.isArray(outputsPair.key.range) ? outputsPair.key.range : null;
+    if (!keyRange || typeof keyRange[0] !== 'number') {
+      return;
+    }
+    const startOffset = keyRange[0];
+    const line = offsetToLineNumber(content, startOffset);
+    const column = offsetToColumn(content, startOffset);
+    const keyText = String(outputsPair.key.value ?? 'outputs');
+
+    if (!hasExpect) {
+      // Simple rename: outputs → expect
+      issues.push({
+        id: `api-example-outputs-deprecated:${idx}`,
+        message:
+            '`outputs:` on examples is deprecated. Use `expect:` (click to rename)',
+        line,
+        column,
+        endColumn: column + keyText.length,
+        applyFix: {kind: 'renameYamlKey', from: 'outputs', to: 'expect'},
+      });
+      return;
+    }
+
+    // Both present: drop the deprecated outputs block (expect wins).
+    const valueNode = outputsPair.value;
+    const valueRange = Array.isArray(valueNode?.range) ? valueNode.range : null;
+    if (!valueRange || typeof valueRange[1] !== 'number') {
+      return;
+    }
+    let endOffset = valueRange[1];
+    if (content[endOffset] === '\n') {
+      endOffset += 1;
+    }
+    issues.push({
+      id: `api-example-outputs-deprecated:${idx}`,
+      message:
+          '`outputs:` on examples is deprecated. Prefer `expect:` (click to remove outputs)',
+      line,
+      column,
+      endColumn: column + keyText.length,
+      applyFix: {
+        kind: 'replaceRange',
+        startOffset,
+        endOffset,
+        text: '',
+      },
+    });
+  });
+  return issues;
+}
+
 export function findCompatibilityIssues(content: string, yamlDoc: any, docType: string | null): CompatibilityIssue[] {
   const issues: CompatibilityIssue[] = findDeprecatedAsStringOperatorIssues(content);
   if (!docType || !yamlDoc || yamlDoc.errors?.length) {
@@ -200,6 +348,8 @@ export function findCompatibilityIssues(content: string, yamlDoc: any, docType: 
   }
   if (docType === 'api') {
     issues.push(...findApiSetenvLegacyOutputRefIssues(content, yamlDoc));
+    issues.push(...findApiExampleNameDeprecatedIssues(content, yamlDoc));
+    issues.push(...findApiExampleOutputsDeprecatedIssues(content, yamlDoc));
   }
   return issues;
 }

@@ -24,7 +24,7 @@ Notes
   - `<<i:message[0:3]>>` — string/array slice (end-exclusive)
 
 Input keyword values:
-- `omit` (unquoted) removes the target field from request objects (headers/query/cookies/body). In arrays it keeps index shape by writing `null`.
+- `omit` (unquoted) removes the target field from request objects (headers/query/cookies/body). In arrays it keeps index shape by writing `null`. For headers, bare `omit` also blocks Multimeter/axios defaults for that name (preferred over deprecated `_`).
 - `null` (unquoted) sends a JSON/YAML null value.
 - `"omit"` and `"null"` are literal strings (quoted on purpose) and stay strings after formatting.
 - This applies to top-level `inputs`, call-time `inputs`, CLI `-e key=value`, and API Tester input overrides.
