@@ -13,11 +13,12 @@ Click {{btn:edit:Edit Mock}} in the top bar to switch to edit mode. Use the back
 
 | Control | What it does |
 |---|---|
-| {{btn:play:Run mock}} / **Stop mock** | Start or stop the local mock server |
+| {{btn:play:Run mock}} / **Stop mock** | Start or stop the local mock server from this editor |
+| **More** (chevron next to Run) | **Run in mock server panel** — start via the sidebar panel without binding the editor tab |
 | **Configuration chips** | Base URL, protocol, CORS, connection mode, delay |
 | **Endpoint list** | Method, path, status, format, and tags for each endpoint |
 
-The server icon turns green while the mock is running.
+The server icon turns green while the mock is running. UI-started mocks stop when you close the tab; panel-started mocks do not — see [Mock Server overview](./index.md#run-bar).
 
 ## Tabs
 

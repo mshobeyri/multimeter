@@ -21,9 +21,11 @@ See also: [Flow chart](../../features/flow-chart.md)
 | Control | What it does |
 |---|---|
 | {{btn:play:Run suite}} | Runs all suite items. While running, turns into **Stop suite**. Shortcut: **⌘Enter** (macOS) / **Ctrl+Enter** |
-| **More** (chevron next to Run) | **Run in Core** |
+| **More** (chevron next to Run) | While idle: **Run in Core**. While running: **Pause** / **Resume** (first), then the other More actions |
 | {{btn:export:Export}} | Export the run report (HTML, MMT, Markdown, or JUnit XML). Disabled until a run completes |
 | **YAML ERROR** | Shown when the suite YAML has parse, schema, or formatting (key-order) problems — click to jump to the issue |
+
+**Run in Core** and **Pause** / **Resume** behave like the [test runner](../test/index.md#run-bar). Closing the tab while a UI suite run is active prompts to save — **Cancel** keeps the run; see [Panels — Status bar](../../panels/index.md#status-bar).
 
 ### Before and after a run
 

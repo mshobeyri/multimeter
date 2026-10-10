@@ -55,6 +55,8 @@ The panel records each incoming request. Inspect method, URL, headers, body, and
 
 The server starts with full routing — requests match your endpoints and responses use Multimeter dynamic tokens. See [Edit Mock](./edit.md) and [Endpoints](./endpoints.md).
 
+From a `type: server` editor, **More → Run in mock server panel** does the same: focuses this panel, selects the file, and starts. That path does not dirty the editor tab, so you can close the file while the mock keeps running. The status-bar badge then offers **Open mock server panel** or **Open file** — see [Panels — Status bar](../../panels/index.md#status-bar).
+
 ## HTTPS and mTLS
 
 The panel can run HTTPS on localhost (`127.0.0.1`).

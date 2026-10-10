@@ -19,8 +19,11 @@ For the lightweight **Mock Server** sidebar panel (reflect mode, quick prototypi
 
 | Control | What it does |
 |---|---|
-| {{btn:play:Run mock}} / **Stop mock** | Start or stop the local mock server |
+| {{btn:play:Run mock}} | Starts the mock from this editor. While running, turns into **Stop mock** |
+| **More** (chevron next to Run) | **Run in mock server panel** — opens the sidebar Mock Server panel, binds this file, and starts there |
 | Server icon | Turns green while the mock is running |
+
+**Run mock** (UI) marks the tab dirty so closing it prompts Save / Don't Save / Cancel. Closing the tab stops that UI-started server. **Run in mock server panel** does not dirty the editor — you can close the file while the server keeps running. Stop panel-started mocks from the [Mock Server sidebar](./panel.md) (or its status-bar menu: open panel / open file). See [Panels — Status bar](../../panels/index.md#status-bar).
 
 ### Run view
 

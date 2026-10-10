@@ -70,6 +70,8 @@ Send sits on the URL row (next to the method+URL control). Duration, status, his
 | **More** (chevron next to Send) | **Run in Core**, and **Run in Curl** for HTTP ([Curl](../../integration/curl.md)) |
 | {{btn:plug:Connect}} | WebSocket only — connect first; Send stays disabled until connected |
 
+While a request is in flight, the status-bar badge opens the file on click for a normal Send; **Run in Core** uses the status-bar menu for **Stop** or **Open file**. Closing the tab during a UI send prompts to save — see [Panels — Status bar](../../panels/index.md#status-bar).
+
 See also: [History](../../panels/history.md) · [Connections](../../panels/connections.md)
 
 ## Supported

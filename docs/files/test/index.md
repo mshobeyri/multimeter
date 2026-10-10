@@ -34,8 +34,12 @@ See also: [Flow chart](../../features/flow-chart.md)
 | Control | What it does |
 |---|---|
 | {{btn:play:Run test}} | Runs the test flow. While running, turns into **Stop test**. Shortcut: **⌘Enter** (macOS) / **Ctrl+Enter** |
-| **More** (chevron next to Run) | **Run in Core** |
+| **More** (chevron next to Run) | While idle: **Run in Core**. While running: **Pause** / **Resume** (first), then the other More actions |
 | {{btn:export:Export}} | Export the run report (HTML, MMT, Markdown, or JUnit XML). Disabled until a run completes |
+
+**Run in Core** runs through the same engine but only shows start/stop in the UI (full step reports go to the Multimeter log). Use the status-bar badge menu for **Stop** or **Open file** while that run is active — see [Panels — Status bar](../../panels/index.md#status-bar).
+
+**Pause** holds the run at the next abort checkpoint (same places **Stop** can cancel); **Resume** continues. Closing the tab while a UI run is in progress prompts to save — **Cancel** keeps the run; discarding or saving closes the tab and aborts.
 
 ### After a run
 
