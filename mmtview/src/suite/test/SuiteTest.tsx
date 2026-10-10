@@ -518,6 +518,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const suiteRunIdRef = useRef<string | null>(null);
     const ignoredSuiteRunIdsRef = useRef<Set<string>>(new Set());
     const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
+    const [isPaused, setIsPaused] = useState(false);
     const [loadRunSummary, setLoadRunSummary] = useState<LoadRunSummary | null>(null);
     const runDataStoreRef = useRef(createSuiteRunDataStore());
     const runDataStore = runDataStoreRef.current;
@@ -1121,6 +1122,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     return changed ? next : prev;
                 });
                 partialRunTargetRef.current = null;
+                setIsPaused(false);
                 if (cancelled) {
                     setSuiteRunState('cancelled');
                 } else if (mode === 'loadtest' && typeof (message as any).success === 'boolean') {
@@ -1153,6 +1155,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 if (stoppedId && suiteRunIdRef.current && stoppedId !== suiteRunIdRef.current) {
                     return;
                 }
+                setIsPaused(false);
                 setSuiteRunState('cancelled');
                 runDataStore.replaceRunState((prev) => {
                     const next: typeof prev = { ...prev };
@@ -1166,6 +1169,15 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 partialRunTargetRef.current = null;
                 flushReportQueue();
                 flushPendingSetenvToPanel();
+                return;
+            }
+
+            if (message.command === 'testRunPaused') {
+                setIsPaused(true);
+                return;
+            }
+            if (message.command === 'testRunResumed') {
+                setIsPaused(false);
                 return;
             }
 
@@ -1236,6 +1248,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             partialRunTargetRef.current = null;
             // Use whatever hierarchy is already loaded; refresh pending icons in the background.
             runDataStore.setRunState(buildFullSuitePendingState(groups, hierarchy));
+            setIsPaused(false);
             setSuiteRunState('running');
         });
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
@@ -1272,6 +1285,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 beginSuiteRun(nextSuiteRunId);
                 suiteRunStartTimeRef.current = startedAt;
                 setSuiteRunStartedAt(startedAt);
+                setIsPaused(false);
                 setSuiteRunState('running');
             });
             window.vscode?.postMessage({
@@ -1327,8 +1341,19 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (!suiteRunId) {
             return;
         }
+        setIsPaused(false);
         window.vscode?.postMessage({ command: 'stopSuiteRun', suiteRunId });
     }, [suiteRunId]);
+
+    const handlePause = useCallback(() => {
+        window.vscode?.postMessage({ command: 'pauseTestRun' });
+        setIsPaused(true);
+    }, []);
+
+    const handleResume = useCallback(() => {
+        window.vscode?.postMessage({ command: 'resumeTestRun' });
+        setIsPaused(false);
+    }, []);
 
     const displayNameById = useMemo(() => {
         return buildDisplayNamesFromHierarchy(groups, hierarchyByEntryId);
@@ -1378,6 +1403,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }
         suiteRunIdRef.current = null;
         setSuiteRunId(null);
+        setIsPaused(false);
         setSuiteRunState('default');
         setLoadRunSummary(null);
         setSuiteRunStartedAt(null);
@@ -1398,6 +1424,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
     const runMenuItems = useMemo(
         () => buildReportRunMenuEntries({
+            onPause: handlePause,
+            onResume: handleResume,
+            paused: isPaused,
+            canPause: suiteRunState === 'pending' || suiteRunState === 'running',
             onRunInCore: onRunSuiteInCore,
             runInCoreDisabled: !canRun,
             onClear: handleClearReport,
@@ -1408,6 +1438,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             exportDisabled: suiteExportDisabled,
         }),
         [
+            handlePause,
+            handleResume,
+            isPaused,
+            suiteRunState,
             onRunSuiteInCore,
             canRun,
             handleClearReport,

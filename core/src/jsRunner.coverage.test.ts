@@ -185,7 +185,7 @@ describe('jsRunner extra runtime paths', () => {
     const ac = new AbortController();
     ac.abort();
     await expect(runJSCode({
-      js: `checkAbort_();`,
+      js: `await checkAbort_();`,
       title: 'abort',
       runId: 'r8',
       logger,

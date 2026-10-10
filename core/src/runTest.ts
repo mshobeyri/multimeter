@@ -139,7 +139,7 @@ export async function executeTest(
       options.abortSignal, true,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
       (options as any).__mmtIsSuiteBundleChildRun === true, undefined, options.checkLogMode, 'Test',
-      options.binaryFileLoader, processEnv);
+      options.binaryFileLoader, processEnv, options.pauseGate);
   const cancelled = result.cancelled === true || options.abortSignal?.aborted === true;
   if (forwardReporter) {
     // Skip outputs when stopped — UI should not fill after Stop.

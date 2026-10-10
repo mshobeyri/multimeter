@@ -412,7 +412,7 @@ export function delayToJSfunc(d: string|number): string {
   return `{
   let __delayLeft = ${durationToJsMsExpr(d)};
   while (__delayLeft > 0) {
-    checkAbort_();
+    await checkAbort_();
     const __wait = Math.min(__delayLeft, ${DELAY_ABORT_CHECK_MS});
     await new Promise(r => setTimeout(r, __wait));
     __delayLeft -= __wait;
@@ -825,7 +825,7 @@ const appendExpectAndDebugChecks = (
     const finalTitle = toTemplateWithVars(title);
     const finalDetails = toTemplateWithVars(details);
     const allItems = [...softItems, ...hardItems];
-    result += '\ncheckAbort_();\n';
+    result += '\nawait checkAbort_();\n';
     result += `{\n`;
     result += `  const __mmtExpectItems = [\n${allItems.join(',\n')}\n  ];\n`;
     result += `  const __mmtHardFailed = __mmtExpectItems.some(i => i.level === 'require' && !i.passed);\n`;
@@ -839,7 +839,7 @@ const appendExpectAndDebugChecks = (
     const finalDetails = toTemplateWithVars(details);
 
     if (step.debug === true) {
-      result += '\ncheckAbort_();\n';
+      result += '\nawait checkAbort_();\n';
       result += `checkExpects_(Object.keys(${resultVar}).filter(k => k !== '_').map(k => ({ passed: true, comparison: k + ' = ' + JSON.stringify(${resultVar}[k]), actual: ${resultVar}[k], expected: undefined })), 'debug', 'all', ${finalTitle}, ${finalDetails});\n`;
     } else {
       const debugItems: string[] = [];
@@ -858,7 +858,7 @@ const appendExpectAndDebugChecks = (
         }
       }
 
-      result += '\ncheckAbort_();\n';
+      result += '\nawait checkAbort_();\n';
       result += `checkExpects_([\n${debugItems.join(',\n')}\n], 'debug', 'all', ${finalTitle}, ${finalDetails});\n`;
     }
   }
@@ -1111,9 +1111,9 @@ export const flowStepsToJsfunc = async (
                 stepJs = '';
                 break;
             }
-            // Inject cooperative abort check before each step so a stopped
-            // test run can bail out between steps.
-            generated.push(stepJs ? `checkAbort_();\n${stepJs}` : stepJs);
+            // Inject cooperative abort/pause check before each step so Stop
+            // and Pause can take effect between steps.
+            generated.push(stepJs ? `await checkAbort_();\n${stepJs}` : stepJs);
           }
       return generated.join('\n');
     };

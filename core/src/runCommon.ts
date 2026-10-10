@@ -105,7 +105,8 @@ export async function runGeneratedJs(
   checkLogMode?: CheckLogMode,
   runKind: RunKind = 'Test',
   binaryFileLoader?: BinaryFileLoader,
-  envValues?: Record<string, any>): Promise<RunResult> {
+  envValues?: Record<string, any>,
+  pauseGate?: import('./runPause').RunPauseGate): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -165,6 +166,7 @@ export async function runGeneratedJs(
       reporter: wrappedReporter,
       id,
       abortSignal,
+      pauseGate,
       traceSend,
       basePath,
       workerEligible,

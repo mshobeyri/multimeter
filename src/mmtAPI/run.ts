@@ -1,5 +1,5 @@
 import {runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
-import type {FileLoader} from 'mmt-core/runConfig';
+import {createRunPauseGate, type FileLoader, type RunPauseGate} from 'mmt-core/runConfig';
 import type {SuiteEnvironment} from 'mmt-core/SuiteData';
 import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
 import {LogLevel} from 'mmt-core/CommonData';
@@ -60,15 +60,17 @@ function workspaceEnvFilePath(projectRoot?: string): string|undefined {
 }
 
 let activeSuiteRun:
-  {suiteRunId: string; controller: AbortController; panelId: string;}|null =
-    null;
+  {suiteRunId: string; controller: AbortController; pauseGate: RunPauseGate;
+   panelId: string;}|null = null;
 
 let activeTestRun:
-  {controller: AbortController; panelId: string;}|null = null;
+  {controller: AbortController; pauseGate: RunPauseGate; panelId: string;}|
+  null = null;
 
 /** Per-suite-run state so concurrent/re-runs stay isolated. */
 const suiteRuns = new Map<string, {
   controller: AbortController;
+  pauseGate: RunPauseGate;
   panelId: string;
   childIds: Map<string, string>;
 }>();
@@ -314,8 +316,10 @@ export async function handleRunCurrentDocument(
   }
 
   const controller = new AbortController();
+  const pauseGate = createRunPauseGate(controller.signal);
   activeTestRun = {
     controller,
+    pauseGate,
     panelId,
   };
   const isCurrentRun = () => activeTestRun?.controller === controller;
@@ -360,6 +364,7 @@ export async function handleRunCurrentDocument(
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
+      pauseGate,
       reporter: (msg: any) => {
         uiReporter.report({
           ...msg,
@@ -498,12 +503,14 @@ export async function handleRunSuite(
   // while an earlier run finishes. Each run keeps its own suiteRunId; the
   // webview ignores superseded run ids so UI reports stay correct.
   const controller = new AbortController();
+  const pauseGate = createRunPauseGate(controller.signal);
   const childIds = new Map<string, string>();
   const panelId = getPanelId(webviewPanel);
-  suiteRuns.set(suiteRunId, {controller, panelId, childIds});
+  suiteRuns.set(suiteRunId, {controller, pauseGate, panelId, childIds});
   activeSuiteRun = {
     suiteRunId,
     controller,
+    pauseGate,
     panelId,
   };
 
@@ -564,6 +571,7 @@ export async function handleRunSuite(
         }),
         logger: forwardLog,
         abortSignal: controller.signal,
+        pauseGate,
         suiteRunId,
         projectRoot: projectRootLoadTest,
         reporter: uiReporter.report,
@@ -674,6 +682,7 @@ export async function handleRunSuite(
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
+      pauseGate,
       suiteBundle: bundle,
       suiteRunId: suiteRunId,
       projectRoot: projectRootSuite,
@@ -731,6 +740,7 @@ export function handleStopSuiteRun(
     if (!tracked || tracked.panelId !== panelId) {
       return;
     }
+    tracked.pauseGate.resume();
     tracked.controller.abort();
     webviewPanel.webview.postMessage({
       command: 'suiteRunStopped',
@@ -743,6 +753,7 @@ export function handleStopSuiteRun(
   if (!current || current.panelId !== panelId) {
     return;
   }
+  current.pauseGate.resume();
   current.controller.abort();
   webviewPanel.webview.postMessage({
     command: 'suiteRunStopped',
@@ -760,9 +771,49 @@ export function handleStopTestRun(
   if (current.panelId !== getPanelId(webviewPanel)) {
     return;
   }
+  current.pauseGate.resume();
   current.controller.abort();
   webviewPanel.webview.postMessage({
     command: 'testRunStopped',
+    filePath: _document.uri.toString(),
+  });
+}
+
+function pauseGateForPanel(webviewPanel: vscode.WebviewPanel): RunPauseGate|undefined {
+  const panelId = getPanelId(webviewPanel);
+  if (activeTestRun && activeTestRun.panelId === panelId) {
+    return activeTestRun.pauseGate;
+  }
+  if (activeSuiteRun && activeSuiteRun.panelId === panelId) {
+    return activeSuiteRun.pauseGate;
+  }
+  return undefined;
+}
+
+export function handlePauseTestRun(
+    _message: any, webviewPanel: vscode.WebviewPanel,
+    _document: vscode.TextDocument, _mmtProvider: any) {
+  const gate = pauseGateForPanel(webviewPanel);
+  if (!gate || gate.paused) {
+    return;
+  }
+  gate.pause();
+  webviewPanel.webview.postMessage({
+    command: 'testRunPaused',
+    filePath: _document.uri.toString(),
+  });
+}
+
+export function handleResumeTestRun(
+    _message: any, webviewPanel: vscode.WebviewPanel,
+    _document: vscode.TextDocument, _mmtProvider: any) {
+  const gate = pauseGateForPanel(webviewPanel);
+  if (!gate || !gate.paused) {
+    return;
+  }
+  gate.resume();
+  webviewPanel.webview.postMessage({
+    command: 'testRunResumed',
     filePath: _document.uri.toString(),
   });
 }

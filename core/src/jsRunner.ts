@@ -10,6 +10,7 @@ import * as Current from './Current';
 import * as mmtHelper from './testHelper';
 import type {ServerRunner} from './testHelper';
 import {isAssertionFailedError, isTestAbortError} from './testHelper';
+import type {RunPauseGate} from './runPause';
 import {logRunFinished, RunKind} from './runLog';
 import {setJudgeHttpPost_} from './judgeEngine';
 import {formatHttpTraceRequest, formatHttpTraceResponse} from './httpTraceLog';
@@ -29,6 +30,8 @@ export interface RunJSCodeContext {
   reporter?: (message: any) => void;
   id?: string;
   abortSignal?: AbortSignal;
+  /** Cooperative pause; awaited inside checkAbort_ between steps. */
+  pauseGate?: RunPauseGate;
   /** When true, wrap send_ with trace-level request/response logging (used by test runs). */
   traceSend?: boolean;
   /** Optional server runner for starting mock servers in tests. */
@@ -276,8 +279,12 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // Override checkExpects_ with a closure-based version for parallel execution.
       `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests
-      // each check their own abort signal instead of the global.
-      `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); } };\n` +
+      // each check their own abort/pause gate instead of the global.
+      `const checkAbort_ = async () => {\n` +
+      `  if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); }\n` +
+      `  if (__pauseGate && typeof __pauseGate.waitIfPaused === 'function') { await __pauseGate.waitIfPaused(); }\n` +
+      `  if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); }\n` +
+      `};\n` +
       // Override importJsModule_ with a closure-based wrapper that ensures
       // the file loader is set to this test's loader before each import,
       // protecting against parallel tests overwriting the global loader.
@@ -302,8 +309,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       fn = new Function(
         'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
         '__reporter', '__runId', '__id', 'mmtRandom_', 'mmtCurrent_',
-        'mmtAccess_', '__abortSignal', '__fileLoader', '__binaryFileLoader',
-        '__checkLogMode', '__mmtEnvValues',
+        'mmtAccess_', '__abortSignal', '__pauseGate', '__fileLoader',
+        '__binaryFileLoader', '__checkLogMode', '__mmtEnvValues',
         functionBody);
       if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
         const firstKey = compiledFunctionCache.keys().next().value;
@@ -378,8 +385,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
-        context.abortSignal, context.fileLoader, context.binaryFileLoader,
-        context.checkLogMode || 'default', context.envValues);
+        context.abortSignal, context.pauseGate, context.fileLoader,
+        context.binaryFileLoader, context.checkLogMode || 'default',
+        context.envValues);
     restoreReporterGlobals();
     if (context.abortSignal?.aborted) {
       throw new mmtHelper.TestAbortError();

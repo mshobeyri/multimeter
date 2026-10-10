@@ -688,6 +688,9 @@ export async function executeSuiteBundle(params: {
 
   const runNodesSequentially = async (nodes: readonly SuiteBundleNode[]) => {
     for (const n of nodes) {
+      if (effectiveOptions.pauseGate) {
+        await effectiveOptions.pauseGate.waitIfPaused();
+      }
       if (effectiveOptions.abortSignal?.aborted) {
         suiteLogger('warn', 'Suite run cancelled.');
         overallSuccess = false;

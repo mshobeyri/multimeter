@@ -35,6 +35,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
     const [runState, setRunState] = useState<StepStatus>('default');
+    const [isPaused, setIsPaused] = useState(false);
     const latestRunIdRef = useRef<string | null>(null);
     const ignoredRunIdsRef = useRef<Set<string>>(new Set());
     const runStoppedRef = useRef(false);
@@ -215,6 +216,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             setOutputs({});
             setRunStartedAt(startedAt);
             setRunDurationMs(null);
+            setIsPaused(false);
             setRunState('running');
         });
         postRunCurrentDocument();
@@ -223,9 +225,20 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     usePrimaryAction(handleRun);
 
     const handleStop = useCallback(() => {
+        setIsPaused(false);
         window.vscode?.postMessage({
             command: 'stopTestRun',
         });
+    }, []);
+
+    const handlePause = useCallback(() => {
+        window.vscode?.postMessage({ command: 'pauseTestRun' });
+        setIsPaused(true);
+    }, []);
+
+    const handleResume = useCallback(() => {
+        window.vscode?.postMessage({ command: 'resumeTestRun' });
+        setIsPaused(false);
     }, []);
 
     const appendReport = useCallback((report: StepReportItem) => {
@@ -323,6 +336,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             }
 
             if (scope === 'test-step-run') {
+                setIsPaused(false);
                 setRunState(
                     message.result === 'passed' ? 'passed' :
                     message.result === 'cancelled' ? 'cancelled' :
@@ -335,6 +349,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             }
 
             if (scope === 'test-finished') {
+                setIsPaused(false);
                 setRunState(message.success ? 'passed' : 'failed');
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
@@ -351,11 +366,18 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             }
             if (message.command === 'testRunStopped') {
                 runStoppedRef.current = true;
+                setIsPaused(false);
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
                     runStartTimeRef.current = null;
                 }
                 setRunState('cancelled');
+            }
+            if (message.command === 'testRunPaused') {
+                setIsPaused(true);
+            }
+            if (message.command === 'testRunResumed') {
+                setIsPaused(false);
             }
         };
 
@@ -394,6 +416,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
         }
         latestRunIdRef.current = null;
         runStoppedRef.current = false;
+        setIsPaused(false);
         setStepReports([]);
         setOutputs({});
         setRunState('default');
@@ -409,8 +432,15 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
         (stepReports.length === 0 &&
             (runState === 'default' || runState === 'cancelled'));
 
+    const isPreparing = runState === 'pending';
+    const isRunning = runState === 'running';
+
     const runMenuItems = useMemo(
         () => buildReportRunMenuEntries({
+            onPause: handlePause,
+            onResume: handleResume,
+            paused: isPaused,
+            canPause: isPreparing || isRunning,
             onRunInCore: () => {
                 postRunCurrentDocument({ reportLifecycle: true });
             },
@@ -420,6 +450,11 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             exportDisabled,
         }),
         [
+            handlePause,
+            handleResume,
+            isPaused,
+            isPreparing,
+            isRunning,
             postRunCurrentDocument,
             handleClearReport,
             clearDisabled,
@@ -427,9 +462,6 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             exportDisabled,
         ],
     );
-
-    const isPreparing = runState === 'pending';
-    const isRunning = runState === 'running';
 
     const overviewStats = useMemo((): OverviewStats | null => {
         if (stepReports.length === 0 &&

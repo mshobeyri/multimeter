@@ -584,6 +584,14 @@ export const messageReceived = async (
       run.handleStopTestRun(message, webviewPanel, document, mmtProvider);
       break;
 
+    case 'pauseTestRun':
+      run.handlePauseTestRun(message, webviewPanel, document, mmtProvider);
+      break;
+
+    case 'resumeTestRun':
+      run.handleResumeTestRun(message, webviewPanel, document, mmtProvider);
+      break;
+
     case 'showLogOutputChannel':
       run.showLogOutputChannel();
       break;

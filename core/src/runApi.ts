@@ -240,7 +240,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
            '') +
       `  const __mmt_originalSend = send_;\n` +
       `  send_ = async function(req) {\n` +
-      `    checkAbort_();\n` +
+      `    await checkAbort_();\n` +
       `    const __req = req || {};\n` +
       `    const __maskedHeaders = {};\n` +
       `    for (const [k, v] of Object.entries(__req.headers || {})) {\n` +
@@ -272,7 +272,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    try {\n` +
       `      const __res = await __mmt_originalSend(req);\n` +
       `      // Stop before Response logging when the user cancelled mid-request.\n` +
-      `      checkAbort_();\n` +
+      `      await checkAbort_();\n` +
       `      const __status = __res && typeof __res.status === 'number' ? __res.status : '';\n` +
       `      const __statusText = __res && typeof __res.statusText !== 'undefined' ? __res.statusText : '';\n` +
       `      const __duration = __res && typeof __res.duration === 'number' ? __res.duration : undefined;\n` +
@@ -735,7 +735,7 @@ export async function executeApi(
       undefined,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
       undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader,
-      processEnv);
+      processEnv, options.pauseGate);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }
