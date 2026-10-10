@@ -259,7 +259,7 @@ function ApiPanel() {
       </div>
 
       {/* Request tabs */}
-      <div className="flex items-center gap-2 px-2 border-b border-border">
+      <div className="flex items-center gap-2 px-2">
         <div className="min-w-0 flex-1">
           <TabStrip tabs={REQUEST_TABS} />
         </div>
@@ -270,7 +270,7 @@ function ApiPanel() {
       </div>
 
       {/* Response tabs + duration / status / tools (matches apitest-response-tabs-row) */}
-      <div className="flex items-center gap-2 px-2 border-t border-b border-border min-h-8">
+      <div className="flex items-center gap-2 px-2 min-h-8">
         <div className="min-w-0 flex-1">
           <TabStrip tabs={RESPONSE_TABS} />
         </div>
@@ -373,7 +373,7 @@ function RunnerPanel({ mode }: { mode: 'test' | 'suite' }) {
         <ActionControl mode="run" title={runTitle} />
       </div>
 
-      <div className="px-3 pb-3 border-b border-border">
+      <div className="px-3 pb-3">
         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Overview</div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           <OverviewBox label="Passed" value="3" sub="100%" tone="pass" />

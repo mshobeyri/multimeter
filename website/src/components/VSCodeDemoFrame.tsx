@@ -1,7 +1,19 @@
 import type { ReactNode } from 'react'
 import Codicon from './Codicon'
 
-const ACTIVITY_ICONS = ['files', 'search', 'source-control', 'debug-alt', 'extensions'] as const
+type ActivityItem =
+  | { kind: 'codicon'; name: string; title: string; active?: boolean }
+  | { kind: 'image'; src: string; title: string; active?: boolean }
+
+/** Explorer / Search / Git + Multimeter (matches installed extension activity bar). */
+const ACTIVITY_ITEMS: ActivityItem[] = [
+  { kind: 'codicon', name: 'files', title: 'Explorer', active: true },
+  { kind: 'codicon', name: 'search', title: 'Search' },
+  { kind: 'codicon', name: 'source-control', title: 'Source Control' },
+  { kind: 'image', src: '/activity.png', title: 'Multimeter' },
+  { kind: 'codicon', name: 'debug-alt', title: 'Run and Debug' },
+  { kind: 'codicon', name: 'extensions', title: 'Extensions' },
+]
 
 export function VSCodeLogo() {
   return (
@@ -22,19 +34,39 @@ export function VSCodeActivityBar() {
       <div className="mb-4 flex h-9 w-9 items-center justify-center" title="VS Code">
         <VSCodeLogo />
       </div>
-      {ACTIVITY_ICONS.map((name, index) => (
-        <span
-          key={name}
-          className={`flex h-8 w-8 items-center justify-center ${
-            index === 0
-              ? 'text-slate-200 border-l-2 border-primary-light bg-white/5'
-              : 'text-slate-500'
-          }`}
-          aria-hidden="true"
-        >
-          <Codicon name={name} className="text-base" />
-        </span>
-      ))}
+      {ACTIVITY_ITEMS.map((item) => {
+        const active = Boolean(item.active)
+        return (
+          <span
+            key={item.title}
+            className={`flex h-8 w-8 items-center justify-center ${
+              active
+                ? 'text-slate-200 border-l-2 border-primary-light bg-white/5'
+                : 'text-slate-500'
+            }`}
+            title={item.title}
+            aria-hidden="true"
+          >
+            {item.kind === 'codicon' ? (
+              <Codicon name={item.name} className="text-base" />
+            ) : (
+              <span
+                className="block h-4 w-4 bg-current"
+                style={{
+                  maskImage: `url(${item.src})`,
+                  WebkitMaskImage: `url(${item.src})`,
+                  maskSize: 'contain',
+                  WebkitMaskSize: 'contain',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskPosition: 'center',
+                  WebkitMaskPosition: 'center',
+                }}
+              />
+            )}
+          </span>
+        )
+      })}
     </div>
   )
 }
