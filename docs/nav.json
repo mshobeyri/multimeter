@@ -292,6 +292,10 @@
             "path": "files/env/edit.md"
           },
           {
+            "title": "Live variables",
+            "path": "files/env/live-variables.md"
+          },
+          {
             "title": "CLI",
             "path": "files/env/cli.md"
           },

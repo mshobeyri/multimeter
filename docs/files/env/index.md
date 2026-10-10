@@ -41,17 +41,8 @@ Notes
 - `variables` values must be one of:
   - **key-value map** (named choices) — a preset selects a choice by key
   - **array list** (allowed values) — a preset or user picks from the list
+  - **live variable** — a `./….mmt` path that runs another file on each `e:name` read (see [Live variables](./live-variables.md))
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern
-- A string that starts with `./` and ends with `.mmt` is a **file-backed** value.
-  At run start it becomes a getter in the process env store. Each `e:name` read
-  runs that file via the normal runner (any type with `outputs:` — typically
-  `api` or `test`, default inputs) and uses the **first key** declared under its
-  `outputs:` (YAML order). The target file’s `cache:` controls reuse (`cache:` is
-  allowed on API files for this). A later `setenv` of `./x.mmt` stays a plain
-  path string — only the original env copy converts paths to getters. The
-  environment panel shows a file icon and an open control inside the value;
-  Ctrl/Cmd+click the path also opens the file. Example:
-  [Environment live variables](../../../examples/intermediate/32_environment_live_variables/README.md).
 
 ## Usage
 Supported token forms in tests and APIs:
@@ -93,5 +84,5 @@ body:
 
 ## Environment elements
 
-- [Quick start](./quick-start.md) · [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [Use environments](../../tasks/use-environments.md)
-- [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md)
+- [Quick start](./quick-start.md) · [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [Live variables](./live-variables.md)
+- [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md) · [Use environments](../../tasks/use-environments.md)
