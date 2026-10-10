@@ -10,7 +10,7 @@ import { patchMockYaml } from "./mockYaml";
 import { methodTextColor } from "../shared/themeAccent";
 import { useAccentChrome } from "../shared/useAccentChrome";
 import TabBar from "../components/TabBar";
-import RunStopToggle from "../components/RunStopToggle";
+import SendButton from "../components/SendButton";
 import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
 import PanelEditHeader from "../components/PanelEditHeader";
 import { usePanelPage } from "../usePanelPage";
@@ -145,13 +145,14 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   }
                 />
                 <div className="run-action-bar">
-                  <RunStopToggle
-                    running={running}
-                    onRun={handleStart}
-                    onStop={handleStop}
-                    runLabel="Run mock"
-                    stopLabel="Stop mock"
-                    runContextMenuItems={[
+                  <SendButton
+                    mode="run"
+                    onClick={handleStart}
+                    onCancel={handleStop}
+                    loading={running}
+                    actionTitle="Run mock"
+                    cancelTitle="Stop mock"
+                    contextMenuItems={[
                       {
                         label: 'Run in mock server panel',
                         icon: 'codicon-server-environment',
