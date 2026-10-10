@@ -31,6 +31,13 @@ const DEFAULT_CANCEL_REVEAL_MS: Record<SendButtonMode, number> = {
 /** Delay before the oversized load circle appears (no size animation). */
 const LOAD_DISC_DELAY_MS = 50;
 
+/**
+ * Match `.codicon-loading` + `.codicon-modifier-spin` (see vendor/codicons/codicon.css):
+ * base spin keyframes, 1s duration, loading easing (not linear / not 1.5s steps).
+ */
+const LOAD_ROTATOR_ANIMATION =
+  "codicon-spin 1s cubic-bezier(0.53, 0.21, 0.29, 0.67) infinite";
+
 const SendButton: React.FC<{
   onClick: () => void;
   onCancel?: () => void;
@@ -315,7 +322,7 @@ const SendButton: React.FC<{
         viewBox={`0 0 ${ringSize} ${ringSize}`}
         style={{
           position: "relative",
-          animation: "spin 1s linear infinite",
+          animation: LOAD_ROTATOR_ANIMATION,
         }}
       >
         <circle
@@ -331,9 +338,6 @@ const SendButton: React.FC<{
           opacity="0.7"
         />
       </svg>
-      <style>
-        {`@keyframes spin { 100% { transform: rotate(360deg); } }`}
-      </style>
     </span>
   ) : null;
 
