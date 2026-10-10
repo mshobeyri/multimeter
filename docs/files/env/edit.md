@@ -2,6 +2,8 @@
 
 Open an environment file (`type: env`) in VS Code and click {{btn:edit:Edit Environment}} in the panel top bar to switch to **edit mode**. Use the back control to return to the runner view.
 
+On the runner view, {{btn:check:Apply}} merges this file’s variables into the workspace Environment panel (without wiping other keys). {{btn:clear-all:Clear}} removes only the keys defined in this file. See [Environment overview](./index.md).
+
 For workspace runtime variables and presets in the Multimeter bottom panel, see [Environment variables panel](./ui.md).
 
 ## Tabs

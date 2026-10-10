@@ -4,7 +4,14 @@ Acts as a global store for variables to read and write across tests. Like any gl
 
 Open a `type: env` file in VS Code to get the **environment panel** on the right (YAML stays on the left). Click {{btn:edit:Edit Environment}} to edit variables, presets, settings, and certificates — see [Edit Environment](./edit.md).
 
-Use {{btn:check:Apply}} to push variables from the open env file into the workspace Environment panel (applies current preset selections; existing manual and runtime values are kept). Use {{btn:clear-all:Clear}} to remove only the keys defined in this env file from the workspace panel (other manual/runtime values stay). The same runtime values are also available in the [Environment variables panel](./ui.md) in the Multimeter bottom panel.
+Toolbar actions on the environment panel:
+
+| Control | What it does |
+|---|---|
+| {{btn:check:Apply}} | Push variables from this env file into the workspace Environment panel (uses current preset selections). Existing manual and runtime values are kept; matching keys are updated. |
+| {{btn:clear-all:Clear}} | Remove only the keys defined in this env file from the workspace panel. Other manual/runtime values stay. |
+
+The same runtime values are also available in the [Environment variables panel](./ui.md) in the Multimeter bottom panel.
 
 ![Environment panel — Edit Environment, Variables, Presets, and Certificates](../../screenshots/environment-panel.png)
 
