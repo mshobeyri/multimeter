@@ -373,8 +373,9 @@ function isNonCanonicalNumberText(text: string): boolean {
 
 /**
  * Editor form text uses the input-box spelling: `100`, `true`, `null`,
- * `"112"`, `"true"`. The wire spelling stays in {@link formValueToString}
- * (`null` is an empty field, strings are not wrapped in quotes).
+ * `112`, `omit`. The wire spelling stays in {@link formValueToString}
+ * (`null` is an empty field, strings are not wrapped in quotes). Keyword omit
+ * fields are skipped by {@link objectToUrlEncoded}, same as XML.
  */
 function editorFormValue(value: unknown): string {
   if (typeof value === 'string' && value !== '') {
@@ -402,6 +403,10 @@ function objectToUrlEncoded(
 ): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(obj)) {
+    // Keyword omit is not a form field (same as XML). Quoted `"omit"` stays.
+    if (editor && isOmitSentinel(value)) {
+      continue;
+    }
     params.append(
         key,
         editor ? editorFormValue(value) : formValueToString(value, keepLiteralMarkers));
@@ -414,9 +419,13 @@ function objectToUrlEncoded(
 /**
  * Form text → YAML value, same rules as an input box.
  * `100` / `true` / `false` / `null` stay typed. `"112"` / `"true"` stay strings.
+ * Bare `omit` is the string (keyword omit fields are absent from the form UI).
  * A JSON object or list stays the one form-field string.
  */
 function urlEncodedScalarToYaml(text: string): unknown {
+  if (text.trim() === 'omit') {
+    return 'omit';
+  }
   const typed = inputBoxToYamlValue(text);
   if (typed !== null && typeof typed === 'object') {
     return text;
@@ -539,12 +548,17 @@ function restoreEmptyTextMarker(value: unknown): unknown {
 /**
  * XML element text → YAML value, same rules as an input box.
  * Live tokens and quoted token literals are left for the revive that already
- * ran. `100` / `true` / `null` / `omit` are typed. `"112"` stays a string.
+ * ran. `100` / `true` / `null` are typed. `"112"` / `"omit"` stay strings.
+ * Bare `omit` is also the string (keyword omit fields are absent from XML UI).
  */
 function coerceXmlScalars(value: unknown): unknown {
   if (typeof value === 'string') {
     if (isLiteralTokenValue(value) || isTokenLikeScalar(value)) {
       return value;
+    }
+    // Keyword omit is not shown as element text; any `omit` here is the word.
+    if (value.trim() === 'omit') {
+      return 'omit';
     }
     const typed = inputBoxToYamlValue(value);
     if (typed !== null && typeof typed === 'object') {
@@ -628,7 +642,9 @@ function xmlEditorLeaf(value: JSONValue, expanded: boolean): string {
   if (isLiteralTokenValue(value)) {
     return unwrapLiteralToken(value);
   }
-  // Element text is always a string on the wire. Quotes are a JSON-only spelling.
+  // Element text is always a string on the wire. Quotes are a JSON-only
+  // spelling. Bare `omit` is the word (keyword omit fields are dropped);
+  // pack maps it to the string so YAML emits `xxx: "omit"`.
   return peerStringToDisplay(value);
 }
 

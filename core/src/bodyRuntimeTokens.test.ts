@@ -46,6 +46,7 @@ import {
 } from './bodyRuntimeTokens';
 import {beautify, formatBody} from './markupConvertor';
 import {xml2js} from 'xml-js';
+import {OMIT_SENTINEL} from './omitKeyword';
 
 describe('toDisplayRuntimeToken', () => {
   it('maps r:/c:/i:/e: markers to {{prefix:…}}', () => {
@@ -1005,7 +1006,7 @@ describe('xml scalar yaml policy', () => {
     '    keep: "omit"',
   ].join('\n');
 
-  it('types leaves, keeps quoted tokens, and drops omit', () => {
+  it('types leaves, keeps quoted tokens, and preserves quoted omit', () => {
     const api = yamlToAPI(yaml);
     const ui = bodyEditTokenTemplate(api.body, 'xml');
     expect(ui).toContain('<id>{{i:username}}</id>');
@@ -1022,6 +1023,7 @@ describe('xml scalar yaml policy', () => {
     expect(ui).toContain('<list>1</list>');
     expect(ui).toContain('<list>2</list>');
     expect(ui).toContain('<keep>omit</keep>');
+    expect(ui).not.toContain('<keep>"omit"</keep>');
     expect(ui).not.toContain('note');
     expect(ui).not.toContain('__MMT_OMIT__');
 
@@ -1040,7 +1042,7 @@ describe('xml scalar yaml policy', () => {
     expect(saved.user.blank).toBe('');
     expect(saved.user.empty).toEqual({});
     expect(saved.user.list).toEqual([1, 2]);
-    expect(saved.user.keep).toBeUndefined();
+    expect(saved.user.keep).toBe('omit');
     expect(saved.user.note).toBeUndefined();
 
     const again = apiToYaml({...api, body: saved}, yaml);
@@ -1182,26 +1184,29 @@ describe('urlencoded scalar yaml policy', () => {
       qn: '112',
       qflag: 'true',
       blank: '',
+      omitstr: 'omit',
+      omitkey: OMIT_SENTINEL,
     };
     const shown = displayRequestBody(source, 'urlencoded');
     expect(shown).toBe(
-        'n=100&ok=true&off=false&z=null&name=ada&qn=112&qflag=true&blank=',
+        'n=100&ok=true&off=false&z=null&name=ada&qn=112&qflag=true&blank=&omitstr=omit',
     );
   });
 
   it('coerces form text on save', () => {
     expect(bodyForYamlSave(
         {n: 'x'},
-        'n=100&ok=true&off=false&z=null&qn="112"&qflag="true"&blank=',
+        'n=100&ok=true&off=false&z=null&qn=112&qflag=true&blank=&omitstr=omit',
         'urlencoded',
     )).toEqual({
       n: 100,
       ok: true,
       off: false,
       z: null,
-      qn: '112',
-      qflag: 'true',
+      qn: 112,
+      qflag: true,
       blank: '',
+      omitstr: 'omit',
     });
   });
 
