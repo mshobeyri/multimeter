@@ -1074,6 +1074,10 @@
   box-sizing: border-box;
 }
 
+.apitest-no-response.is-sending .apitest-body-none-icon {
+  opacity: 0.85;
+}
+
 .apitest-body-wrapper.is-disabled {
   opacity: 0.55;
 }

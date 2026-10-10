@@ -105,26 +105,47 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
   return Object.keys(record).filter(key => key.trim().length > 0).length;
 }
 
-/** Empty state for response tabs before the first Send. */
-const NoResponseYet: React.FC<{ onSend: () => void }> = ({ onSend }) => (
-  <div className="apitest-body-none apitest-no-response" role="status">
-    <span className="codicon codicon-send apitest-body-none-icon" aria-hidden />
+/** Empty / in-flight state for response tabs. */
+const NoResponseYet: React.FC<{ onSend: () => void; sending?: boolean }> = ({
+  onSend,
+  sending = false,
+}) => (
+  <div
+    className={`apitest-body-none apitest-no-response${sending ? " is-sending" : ""}`}
+    role="status"
+    aria-live="polite"
+  >
+    <span
+      className={`codicon apitest-body-none-icon${
+        sending ? " codicon-loading codicon-modifier-spin" : " codicon-send"
+      }`}
+      aria-hidden
+    />
     <div className="apitest-body-none-message">
-      <div className="apitest-body-none-title">No response yet.</div>
-      <div className="apitest-body-none-hint">
-        <div>
-          Click{" "}
-          <button
-            type="button"
-            className="apitest-empty-send-link"
-            onClick={onSend}
-          >
-            Send
-          </button>
-          {" "}or press {sendShortcutLabel()}
-        </div>
-        <div>to run the request.</div>
-      </div>
+      {sending ? (
+        <>
+          <div className="apitest-body-none-title">Sending request…</div>
+          <div className="apitest-body-none-hint">Waiting for the response.</div>
+        </>
+      ) : (
+        <>
+          <div className="apitest-body-none-title">No response yet.</div>
+          <div className="apitest-body-none-hint">
+            <div>
+              Click{" "}
+              <button
+                type="button"
+                className="apitest-empty-send-link"
+                onClick={onSend}
+              >
+                Send
+              </button>
+              {" "}or press {sendShortcutLabel()}
+            </div>
+            <div>to run the request.</div>
+          </div>
+        </>
+      )}
     </div>
   </div>
 );
@@ -1772,7 +1793,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         )}
 
         {!responseData && (shouldShowResponse() || shouldShowResponseHeaders() || shouldShowResponseCookies()) ? (
-          <NoResponseYet onSend={sendWithResolvedBody} />
+          <NoResponseYet
+            onSend={sendWithResolvedBody}
+            sending={isSending || network.loading}
+          />
         ) : (
           <>
         {shouldShowResponseHeaders() && (
