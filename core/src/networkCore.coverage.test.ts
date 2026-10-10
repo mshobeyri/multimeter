@@ -115,6 +115,7 @@ jest.mock('ws', () => {
 import {EventEmitter} from 'events';
 import {connectionTracker} from './connectionTracker';
 import {DEFAULT_NETWORK_CONFIG} from './NetworkData';
+import {OMIT_SENTINEL} from './omitKeyword';
 import {
   addWsConnection,
   closeAllHttpConnections,
@@ -165,7 +166,7 @@ describe('networkCore extra coverage', () => {
     closeAllHttpConnections();
   });
 
-  it('applies cookies, drops empty/_ headers, and sniffs json/xml bodies', async () => {
+  it('applies cookies, drops empty/omit/_ headers, and sniffs json/xml bodies', async () => {
     await sendHttpRequest({
       url: 'http://example.com/x',
       method: 'post',
@@ -173,7 +174,9 @@ describe('networkCore extra coverage', () => {
       headers: {
         'X-Empty': '',
         'X-Null': null as any,
-        'User-Agent': '_',
+        'User-Agent': OMIT_SENTINEL,
+        'content-length': '_',
+        'X-Literal': 'omit',
         Accept: '*/*',
       },
       body: '{"ok":true}',
@@ -181,7 +184,10 @@ describe('networkCore extra coverage', () => {
 
     const cfg = mockedAxios.request.mock.calls[0][0];
     expect(cfg.headers.Cookie).toBe('a=1; b=2');
-    expect(cfg.headers['User-Agent']).toBeUndefined();
+    // `false` tells axios not to re-inject its own defaults for these names.
+    expect(cfg.headers['user-agent']).toBe(false);
+    expect(cfg.headers['content-length']).toBe(false);
+    expect(cfg.headers['X-Literal']).toBe('omit');
     expect(cfg.headers['Content-Type']).toBe('application/json; charset=utf-8');
 
     mockedAxios.request.mockClear();

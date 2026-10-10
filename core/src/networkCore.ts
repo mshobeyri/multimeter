@@ -13,6 +13,7 @@ import {BinaryBodyPayload, normalizeHttpResponseBody} from './binaryBody';
 import {connectionTracker} from './connectionTracker';
 import {resolveApiHttpMethod} from './apiMethod';
 import {DEFAULT_NETWORK_CONFIG, findMatchingClientCertificate, HttpRequest, HttpResponse, NetworkConfig, Request, Response,} from './NetworkData';
+import {isOmitSentinel} from './omitKeyword';
 import {isTestAbortError, TestAbortError} from './testHelper';
 
 // Re-export connectionTracker for use by extension
@@ -643,11 +644,12 @@ export async function sendHttpRequest(
   const parsedUrl = new URL(req.url);
   const hostname = parsedUrl.hostname;
   let reqHeaders = {...req.headers};
-  // Remove any headers where user explicitly set value to '_' (opt-out) or left
-  // empty/null, and remember opt-out blocks by lower-cased name.
+  // Remove headers opted out with bare `omit` (or deprecated `_`) or left
+  // empty/null, and remember blocks by lower-cased name so defaults cannot
+  // reappear. Quoted `"omit"` is a normal string and is sent as-is.
   const blocked = new Set<string>();
   for (const [k, v] of Object.entries({...reqHeaders})) {
-    if (v === '_') {
+    if (isOmitSentinel(v) || v === '_') {
       delete (reqHeaders as any)[k];
       blocked.add(k.toLowerCase());
       continue;
@@ -749,13 +751,19 @@ export async function sendHttpRequest(
       return toNetworkError(err, config, Date.now() - start);
     }
   }
+  // Axios re-injects User-Agent / Accept / Content-Length / etc. when a header
+  // is merely absent. `false` is its opt-out so `_` blocks those defaults too.
+  const axiosHeaders: Record<string, string|false> = {...reqHeaders};
+  for (const name of blocked) {
+    axiosHeaders[name] = false;
+  }
   const baseRequestConfig = {
     url: req.url,
     method: resolveApiHttpMethod(req.method, req.body),
     data: req.body,
     params: req.query,
     withCredentials: true,
-    headers: reqHeaders,
+    headers: axiosHeaders,
     timeout: requestTimeout,
     responseType: 'arraybuffer' as const,
     transformResponse: [(data: ArrayBuffer) => data],
