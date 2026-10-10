@@ -220,14 +220,6 @@
             padding: 4px 56px 4px 8px;
         }
 
-        .env-value-wrap.has-file-open.has-remove .value-input {
-            padding: 4px 64px 4px 8px;
-        }
-
-        .env-value-wrap.has-type.has-file-open.has-remove .value-input {
-            padding: 4px 84px 4px 8px;
-        }
-
         .env-value-wrap .field-type-affix {
             position: absolute;
             top: 50%;
@@ -244,8 +236,21 @@
             right: 36px;
         }
 
-        .env-value-wrap.has-file-open.has-remove .field-type-affix {
-            right: 64px;
+        .env-value-wrap .field-type-affix.is-live {
+            pointer-events: auto;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            font: inherit;
+            font-size: 8px;
+            line-height: 1;
+            color: inherit;
+        }
+
+        .env-value-wrap .field-type-affix.is-live:hover {
+            text-decoration: underline;
         }
 
         .env-value-wrap .field-button {
@@ -266,10 +271,6 @@
             z-index: 1;
             opacity: 0.9;
             color: var(--foreground);
-        }
-
-        .env-value-wrap.has-remove .field-button.is-open {
-            right: 32px;
         }
 
         .env-value-wrap .field-button:hover {
@@ -610,7 +611,6 @@
                 row.className = 'env-row';
 
                 const source = resolveEnvSource(envVar);
-                const hasFileOpen = isEnvFilePathValue(envVar.value);
                 const displayValue = typeof envVar.displayValue === 'string'
                     ? envVar.displayValue
                     : formatEnvValueForInput(envVar.value);
@@ -618,6 +618,10 @@
                     ? envVar.typeLabel
                     : '';
                 const hasType = typeLabel.length > 0;
+                const isLive = typeLabel === 'live';
+                const livePath = isEnvFilePathValue(envVar.value)
+                    ? String(envVar.value).trim()
+                    : '';
                 let optionsHtml = '';
                 if (source === 'manual') {
                     optionsHtml = `<option value="__manual__" selected disabled>Manual</option>`;
@@ -637,9 +641,12 @@
                 const wrapClass = [
                     'env-value-wrap',
                     'has-remove',
-                    hasFileOpen ? 'has-file-open' : '',
                     hasType ? 'has-type' : '',
                 ].filter(Boolean).join(' ');
+
+                const typeAffixHtml = !hasType ? '' : isLive
+                    ? `<button type="button" class="field-type-affix is-live" data-path="${escapeHtml(livePath)}" title="Open live variable file" aria-label="Open live variable file">(live)</button>`
+                    : `<span class="field-type-affix" title="Value type">(${escapeHtml(typeLabel)})</span>`;
 
                 row.innerHTML = `
                     <td class="env-name env-col-name">
@@ -656,8 +663,7 @@
                     <td class="env-value env-col-value">
                         <div class="${wrapClass}">
                             <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(displayValue)}" />
-                            ${hasType ? `<span class="field-type-affix" title="Value type">(${escapeHtml(typeLabel)})</span>` : ''}
-                            ${hasFileOpen ? `<button type="button" class="field-button is-open open-env-file-btn" data-path="${escapeHtml(String(envVar.value).trim())}" title="Open file" aria-label="Open file"><span class="action-button codicon codicon-symbol-method-arrow" aria-hidden="true"></span></button>` : ''}
+                            ${typeAffixHtml}
                             <button type="button" class="field-button is-remove" data-index="${index}" title="Remove field" aria-label="Remove field">
                                 <span class="action-button codicon codicon-close" aria-hidden="true"></span>
                             </button>
@@ -779,7 +785,7 @@
                 });
             });
 
-            document.querySelectorAll('.open-env-file-btn').forEach(btn => {
+            document.querySelectorAll('.field-type-affix.is-live').forEach(btn => {
                 btn.addEventListener('click', function (event) {
                     event.preventDefault();
                     event.stopPropagation();

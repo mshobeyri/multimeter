@@ -2,7 +2,13 @@ import React, { useCallback, useContext, useEffect, useState } from "react";
 import parseYaml from "mmt-core/markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
-import { readEnvironmentVariables, writeEnvironmentVariables, clearEnvironmentVariables } from "./environmentUtils";
+import {
+  readEnvironmentVariables,
+  mergeEnvVariableLists,
+  mergeEnvironmentVariables,
+  removeEnvVariablesByNames,
+  removeEnvironmentVariablesByNames,
+} from "./environmentUtils";
 import { ComboTablePair } from "../components/ComboTable";
 import { isList, safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
@@ -147,8 +153,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         });
       });
 
-      writeEnvironmentVariables(flatVars);
-      setWorkspaceVars(flatVars);
+      mergeEnvironmentVariables(flatVars);
+      setWorkspaceVars(ws => mergeEnvVariableLists(ws, flatVars));
       return updated;
     });
   };
@@ -180,8 +186,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           return fallback ? { ...pair, value: fallback } : pair;
         });
         const flatVars = toEnvVariables(updated);
-        writeEnvironmentVariables(flatVars);
-        setWorkspaceVars(flatVars);
+        mergeEnvironmentVariables(flatVars);
+        setWorkspaceVars(ws => mergeEnvVariableLists(ws, flatVars));
         return updated;
       });
     }
@@ -236,16 +242,32 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     return cleanup;
   }, []);
 
-  // Add these handler functions in EnvironmentPanel component
-  const handleClearCache = () => {
-    clearEnvironmentVariables();
-    saveEnvPresets({});
-    loadedVarsRef.current = [];
-    setWorkspaceVars([]);
+  // Clear only keys defined in this env file — keep manual/runtime/other vars.
+  const handleClearFileKeys = () => {
+    const yaml = parseYaml(resolvedContent);
+    const variablesObj =
+      yaml?.variables && typeof yaml.variables === "object" ? yaml.variables : {};
+    const fileKeys = Object.keys(variablesObj);
+    if (fileKeys.length === 0) {
+      return;
+    }
+    removeEnvironmentVariablesByNames(fileKeys);
+    setWorkspaceVars(ws => {
+      const remaining = removeEnvVariablesByNames(ws, fileKeys);
+      loadedVarsRef.current = remaining.map(v => ({
+        name: v.name,
+        value: v.value,
+        options: Array.isArray(v.options) ? v.options : [],
+      }));
+      return remaining;
+    });
+    if (window.vscode) {
+      window.vscode.postMessage({ command: 'multimeter.environment.refresh' });
+    }
     refreshWorkspaceVars();
   };
 
-  const handleSaveToCache = () => {
+  const handleApplyToPanel = () => {
     const yaml = parseYaml(resolvedContent);
     if (!yaml) {
       return;
@@ -296,17 +318,21 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       });
     });
     const flatVars = toEnvVariables(applied);
-    writeEnvironmentVariables(flatVars);
+    // Merge into workspace storage — keep manual / runtime / other vars.
+    mergeEnvironmentVariables(flatVars);
     saveEnvPresets(presetData);
-    setWorkspaceVars(flatVars);
-    loadedVarsRef.current = flatVars.map(v => ({
-      name: v.name,
-      value: v.value,
-      options: Array.isArray(v.options) ? v.options : [],
-    }));
+    setWorkspaceVars(ws => {
+      const merged = mergeEnvVariableLists(ws, flatVars);
+      loadedVarsRef.current = merged.map(v => ({
+        name: v.name,
+        value: v.value,
+        options: Array.isArray(v.options) ? v.options : [],
+      }));
+      return merged;
+    });
     setVariables(applied);
     if (window.vscode) {
-      window.vscode.postMessage({ command: 'reloadWorkspaceEnv' });
+      window.vscode.postMessage({ command: 'multimeter.environment.refresh' });
     }
     refreshWorkspaceVars();
   };
@@ -333,10 +359,10 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                   }
                 />
                 <div className="run-action-bar">
-                  <PrimaryButton icon="refresh" onClick={handleSaveToCache}>
-                    Reload
+                  <PrimaryButton icon="check" onClick={handleApplyToPanel}>
+                    Apply
                   </PrimaryButton>
-                  <PrimaryButton icon="clear-all" onClick={handleClearCache}>
+                  <PrimaryButton icon="clear-all" onClick={handleClearFileKeys}>
                     Clear
                   </PrimaryButton>
                 </div>

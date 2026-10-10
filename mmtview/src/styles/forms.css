@@ -283,6 +283,24 @@
   z-index: 1;
 }
 
+/* Clickable (live) chip — opens the ./….mmt backing file. */
+.field-type-affix.is-live {
+  pointer-events: auto;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 8px;
+  line-height: 1;
+  color: inherit;
+}
+
+.field-type-affix.is-live:hover {
+  text-decoration: underline;
+}
+
 /* Small red dot: r:/c: preview that refreshes on Send */
 .mmt-runtime-dot {
   position: absolute;
@@ -964,6 +982,15 @@ select.is-invalid {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+}
+
+.environment-file-path-field.has-live-chip > input {
+  /* Room for the trailing (live) chip — beat base.css input padding. */
+  padding: 5px 40px 5px 8px !important;
+}
+
+.environment-file-path-field.has-live-chip .field-type-affix.is-live {
+  right: 8px;
 }
 
 .environment-file-path-field .file-picker-input {

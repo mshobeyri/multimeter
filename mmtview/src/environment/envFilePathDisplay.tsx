@@ -10,11 +10,11 @@ export function isEnvFilePathDisplayValue(value: unknown): value is string {
   return trimmed.startsWith("./") && /\.mmt$/i.test(trimmed);
 }
 
-/** Path value with trailing open button (same chrome as FilePickerInput). */
+/** Path value with a clickable `(live)` chip that opens the backing file. */
 export const EnvFilePathValue: React.FC<{ value: string }> = ({ value }) => {
   const path = value.trim();
   return (
-    <div className="field-with-remove has-open environment-file-path-field">
+    <div className="field-with-remove environment-file-path-field has-live-chip">
       <input
         type="text"
         className="file-picker-input"
@@ -25,13 +25,12 @@ export const EnvFilePathValue: React.FC<{ value: string }> = ({ value }) => {
       />
       <button
         type="button"
-        tabIndex={-1}
-        className="field-button is-open"
-        title="Open file"
-        aria-label="Open file"
+        className="field-type-affix is-live"
+        title="Open live variable file"
+        aria-label="Open live variable file"
         onClick={() => openRelativeFile(path)}
       >
-        <span className="action-button codicon codicon-symbol-method-arrow" />
+        (live)
       </button>
     </div>
   );
