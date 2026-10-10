@@ -11,13 +11,17 @@ export function logRunFinished(
     title: string|undefined,
     success: boolean,
     durationMs?: number,
-    options?: {hasError?: boolean}): void {
+    options?: {hasError?: boolean; cancelled?: boolean}): void {
   const kind = runKind || 'Test';
   const name = typeof title === 'string' ? title.trim() : '';
   const label = name ? `${kind} "${name}"` : kind;
   if (success) {
     const elapsed = typeof durationMs === 'number' ? durationMs : 0;
     logger('info', `${label} finished in ${elapsed} ms successfully`);
+    return;
+  }
+  if (options?.cancelled) {
+    logger('warn', `${label} stopped`);
     return;
   }
   // Runtime/exception path vs assertion/check failure path.

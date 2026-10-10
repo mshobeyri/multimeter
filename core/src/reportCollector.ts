@@ -37,7 +37,7 @@ export interface TestRunResult {
   filePath?: string;
   displayName?: string;
   docType?: string;
-  result: 'passed' | 'failed' | 'skipped';
+  result: TestStepStatus | 'skipped';
   durationMs?: number;
   steps: TestStepResult[];
   outputs?: Record<string, any>;

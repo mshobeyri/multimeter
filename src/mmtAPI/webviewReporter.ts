@@ -83,7 +83,19 @@ export function createWebviewRunReporter(
   const pendingReports: Record<string, any>[] = [];
   let flushTimer: ReturnType<typeof setTimeout> | undefined;
 
+  const clearPendingReports = () => {
+    if (flushTimer !== undefined) {
+      clearTimeout(flushTimer);
+      flushTimer = undefined;
+    }
+    pendingReports.length = 0;
+  };
+
   const flushReports = () => {
+    if (options.isAborted?.()) {
+      clearPendingReports();
+      return;
+    }
     if (flushTimer !== undefined) {
       clearTimeout(flushTimer);
       flushTimer = undefined;
@@ -133,6 +145,7 @@ export function createWebviewRunReporter(
         return;
       }
       if (options.isAborted?.()) {
+        clearPendingReports();
         return;
       }
       if (options.suiteRunId) {
@@ -169,7 +182,7 @@ export function createWebviewRunReporter(
       post(payload);
     },
     onCancelled: (payload) => {
-      flushReports();
+      clearPendingReports();
       post(payload);
     },
   };

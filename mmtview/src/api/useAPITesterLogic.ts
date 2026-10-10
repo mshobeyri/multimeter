@@ -631,6 +631,10 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       if (message.uri && filePath && message.uri !== filePath) {
         return;
       }
+      // Stale Cancel from a previous send that finished after a new Send started.
+      if (message.cancelled && sendPendingRef.current) {
+        return;
+      }
       setIsSending(false);
       const fromSend = sendPendingRef.current;
       sendPendingRef.current = false;

@@ -240,6 +240,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
            '') +
       `  const __mmt_originalSend = send_;\n` +
       `  send_ = async function(req) {\n` +
+      `    checkAbort_();\n` +
       `    const __req = req || {};\n` +
       `    const __maskedHeaders = {};\n` +
       `    for (const [k, v] of Object.entries(__req.headers || {})) {\n` +
@@ -270,6 +271,8 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    console.debug(__mmt_formatSection('Request:', __reqLog));\n` +
       `    try {\n` +
       `      const __res = await __mmt_originalSend(req);\n` +
+      `      // Stop before Response logging when the user cancelled mid-request.\n` +
+      `      checkAbort_();\n` +
       `      const __status = __res && typeof __res.status === 'number' ? __res.status : '';\n` +
       `      const __statusText = __res && typeof __res.statusText !== 'undefined' ? __res.statusText : '';\n` +
       `      const __duration = __res && typeof __res.duration === 'number' ? __res.duration : undefined;\n` +
@@ -292,6 +295,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      // marks the run failed after outputs are built.\n` +
       `      return __res;\n` +
       `    } catch (err) {\n` +
+      `      if (err && (err.kind === 'test-abort' || (typeof isTestAbortError === 'function' && isTestAbortError(err)))) {\n` +
+      `        throw err;\n` +
+      `      }\n` +
       `      if (err && err.response) {\n` +
       `        const __response = err.response;\n` +
       `        const __warning = err.message ? String(err.message) : 'Server returned an error response';\n` +
@@ -725,7 +731,8 @@ export async function executeApi(
       undefined;
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
-      (options as any).id, fileLoader, apiSetenvReporter, undefined, undefined,
+      (options as any).id, fileLoader, apiSetenvReporter, options.abortSignal,
+      undefined,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
       undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader,
       processEnv);

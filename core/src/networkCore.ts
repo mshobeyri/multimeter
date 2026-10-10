@@ -13,10 +13,46 @@ import {BinaryBodyPayload, normalizeHttpResponseBody} from './binaryBody';
 import {connectionTracker} from './connectionTracker';
 import {resolveApiHttpMethod} from './apiMethod';
 import {DEFAULT_NETWORK_CONFIG, findMatchingClientCertificate, HttpRequest, HttpResponse, NetworkConfig, Request, Response,} from './NetworkData';
+import {isTestAbortError, TestAbortError} from './testHelper';
 
 // Re-export connectionTracker for use by extension
 export {connectionTracker} from './connectionTracker';
 export type{ActiveConnection, ConnectionEvent, ConnectionEventListener} from './connectionTracker';
+
+/** True when the caller aborted the request (AbortSignal or Axios cancel). */
+function isAbortError(err: any, signal?: AbortSignal): boolean {
+  if (signal?.aborted || isTestAbortError(err)) {
+    return true;
+  }
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  if (err.code === 'ERR_CANCELED' || err.name === 'CanceledError' ||
+      err.name === 'AbortError') {
+    return true;
+  }
+  // Axios legacy cancel / message variants.
+  return typeof axios.isCancel === 'function' && axios.isCancel(err);
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new TestAbortError();
+  }
+}
+
+function attachAbortSignal(
+    signal: AbortSignal|undefined, onAbort: () => void): () => void {
+  if (!signal) {
+    return () => {};
+  }
+  if (signal.aborted) {
+    onAbort();
+    return () => {};
+  }
+  signal.addEventListener('abort', onAbort, {once: true});
+  return () => signal.removeEventListener('abort', onAbort);
+}
 
 // Shared agent pools for connection reuse and tracking
 const httpAgentPool: Map<string, http.Agent> = new Map();
@@ -385,11 +421,14 @@ function sendHttp2Request(
             parsedUrl.hostname, parsedUrl.port, parsedUrl.protocol, config,
             skipCertificateValidation));
     let settled = false;
+    let stream: http2.ClientHttp2Stream|undefined;
+    let detachAbort = () => {};
     const settle = (fn: () => void) => {
       if (settled) {
         return;
       }
       settled = true;
+      detachAbort();
       try {
         session.close();
       } catch {
@@ -406,6 +445,16 @@ function sendHttp2Request(
       });
     }, requestTimeout);
 
+    detachAbort = attachAbortSignal(req.abortSignal, () => {
+      clearTimeout(timer);
+      try {
+        stream?.close(http2.constants.NGHTTP2_CANCEL);
+      } catch {
+        // ignore close races
+      }
+      settle(() => reject(new TestAbortError()));
+    });
+
     session.once('error', (err) => {
       clearTimeout(timer);
       settle(() => reject(err));
@@ -418,7 +467,7 @@ function sendHttp2Request(
       ':authority': parsedUrl.host,
       ...normalizeHttp2RequestHeaders(reqHeaders),
     };
-    const stream = session.request(headers);
+    stream = session.request(headers);
     const chunks: Buffer[] = [];
     let responseHeaders: http2.IncomingHttpHeaders = {};
 
@@ -448,7 +497,7 @@ function sendHttp2Request(
       settle(() => reject(err));
     });
     stream.setTimeout(requestTimeout, () => {
-      stream.close(http2.constants.NGHTTP2_CANCEL);
+      stream?.close(http2.constants.NGHTTP2_CANCEL);
       clearTimeout(timer);
       settle(() => {
         reject(Object.assign(new Error('HTTP/2 request timed out'), {
@@ -516,6 +565,7 @@ function sendNativeHttpsRequest(
         chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
       });
       res.on('end', () => {
+        detachAbort();
         const headersOut: Record<string, string> = {};
         for (const [key, value] of Object.entries(res.headers)) {
           if (value !== undefined) {
@@ -533,8 +583,15 @@ function sendNativeHttpsRequest(
         });
       });
     });
-    nativeReq.on('error', reject);
+    const detachAbort = attachAbortSignal(req.abortSignal, () => {
+      nativeReq.destroy(new TestAbortError());
+    });
+    nativeReq.on('error', (err) => {
+      detachAbort();
+      reject(isAbortError(err, req.abortSignal) ? new TestAbortError() : err);
+    });
     nativeReq.setTimeout(requestTimeout, () => {
+      detachAbort();
       nativeReq.destroy(Object.assign(new Error('HTTPS request timed out'), {
         code: 'TIMEOUT',
       }));
@@ -582,6 +639,7 @@ export function closeAllHttpConnections(): void {
 
 export async function sendHttpRequest(
     req: HttpRequest, config: NetworkConfig): Promise<HttpResponse> {
+  throwIfAborted(req.abortSignal);
   const parsedUrl = new URL(req.url);
   const hostname = parsedUrl.hostname;
   let reqHeaders = {...req.headers};
@@ -673,12 +731,18 @@ export async function sendHttpRequest(
       return await sendHttp2Request(
           req, config, reqHeaders, parsedUrl, requestTimeout, false);
     } catch (err: any) {
+      if (isAbortError(err, req.abortSignal)) {
+        throw new TestAbortError();
+      }
       if (canRetrySelfSigned && isSelfSignedTlsError(err)) {
         const warning = formatSelfSignedWarning(err);
         try {
           return await sendHttp2Request(
               req, config, reqHeaders, parsedUrl, requestTimeout, true);
         } catch (retryErr: any) {
+          if (isAbortError(retryErr, req.abortSignal)) {
+            throw new TestAbortError();
+          }
           return toNetworkError(retryErr, config, Date.now() - start, warning);
         }
       }
@@ -695,6 +759,7 @@ export async function sendHttpRequest(
     timeout: requestTimeout,
     responseType: 'arraybuffer' as const,
     transformResponse: [(data: ArrayBuffer) => data],
+    signal: req.abortSignal,
   };
   const executeRequest =
       (skipValidation = false, fallbackClientCertId?: string,
@@ -788,15 +853,23 @@ export async function sendHttpRequest(
   }
   try {
     const response = await executeRequest(false);
+    throwIfAborted(req.abortSignal);
     return toSuccess(response);
   } catch (err: any) {
+    if (isAbortError(err, req.abortSignal)) {
+      throw new TestAbortError();
+    }
     let responseErr = err;
     if (isDeadKeepAliveError(err)) {
       dropKeepAliveSocket(err);
       try {
         const retryResponse = await executeRequest(false);
+        throwIfAborted(req.abortSignal);
         return toSuccess(retryResponse);
       } catch (retryErr: any) {
+        if (isAbortError(retryErr, req.abortSignal)) {
+          throw new TestAbortError();
+        }
         responseErr = retryErr;
       }
     }
@@ -804,8 +877,12 @@ export async function sendHttpRequest(
       const warning = formatSelfSignedWarning(responseErr);
       try {
         const retryResponse = await executeRequest(true);
+        throwIfAborted(req.abortSignal);
         return toSuccess(retryResponse, warning);
       } catch (retryErr: any) {
+        if (isAbortError(retryErr, req.abortSignal)) {
+          throw new TestAbortError();
+        }
         return toError(retryErr, warning);
       }
     }
@@ -817,12 +894,16 @@ export async function sendHttpRequest(
         try {
           const retryResponse =
               await executeRequest(false, retryClient.id, {forceTls12: true});
+          throwIfAborted(req.abortSignal);
           return toSuccess(
               retryResponse,
               `Server requested a client certificate; retried with "${
                   retryClient.name || retryClient.host ||
                   retryClient.id}" using legacy mTLS compatibility.`);
         } catch (retryErr: any) {
+          if (isAbortError(retryErr, req.abortSignal)) {
+            throw new TestAbortError();
+          }
           return toError(retryErr);
         }
       }
@@ -836,6 +917,7 @@ export async function sendHttpRequest(
           const retryResponse = await sendNativeHttpsRequest(
               req, config, reqHeaders, parsedUrl, requestTimeout,
               retryClient.id);
+          throwIfAborted(req.abortSignal);
           return {
             ...retryResponse,
             warning: `Server requested a client certificate; retried with "${
@@ -843,6 +925,9 @@ export async function sendHttpRequest(
                 retryClient.id}" using native mTLS transport.`,
           };
         } catch (retryErr: any) {
+          if (isAbortError(retryErr, req.abortSignal)) {
+            throw new TestAbortError();
+          }
           return toError(retryErr);
         }
       }
@@ -1273,6 +1358,7 @@ export async function send(req: Request): Promise<Response> {
           (req.body == null ? undefined : JSON.stringify(req.body)),
       query: req.query,
       cookies: req.cookies,
+      abortSignal: req.abortSignal,
     };
     const httpRes = await sendHttpRequest(httpReq, runnerNetworkConfig);
     return {

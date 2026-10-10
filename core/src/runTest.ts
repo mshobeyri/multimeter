@@ -140,8 +140,11 @@ export async function executeTest(
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
       (options as any).__mmtIsSuiteBundleChildRun === true, undefined, options.checkLogMode, 'Test',
       options.binaryFileLoader, processEnv);
+  const cancelled = result.cancelled === true || options.abortSignal?.aborted === true;
   if (forwardReporter) {
-    if (result.outputs && typeof result.outputs === 'object' && Object.keys(result.outputs).length > 0) {
+    // Skip outputs when stopped — UI should not fill after Stop.
+    if (!cancelled && result.outputs && typeof result.outputs === 'object' &&
+        Object.keys(result.outputs).length > 0) {
       const outputsEvent: TestOutputsReporterEvent = {
         scope: 'test-outputs',
         runId,
@@ -153,10 +156,15 @@ export async function executeTest(
     const summary: TestRunSummaryEvent = {
       scope: 'test-step-run',
       runId,
-      result: result.success ? 'passed' : 'failed',
+      result: cancelled ? 'cancelled' :
+          (result.success ? 'passed' : 'failed'),
       id: (options as any).id,
     };
     forwardReporter(summary);
+  }
+  if (cancelled && !result.cancelled) {
+    result.cancelled = true;
+    result.success = false;
   }
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];

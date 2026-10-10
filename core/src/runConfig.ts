@@ -10,7 +10,7 @@ import type {SuiteEnvironment} from './SuiteData';
 
 export type {FileLoader, BinaryFileLoader} from './JSerFileLoader';
 
-export type TestStepStatus = 'passed'|'failed';
+export type TestStepStatus = 'passed'|'failed'|'cancelled';
 export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending'|'invalid'|'skipped';
 
 export interface ExpectItemEvent {

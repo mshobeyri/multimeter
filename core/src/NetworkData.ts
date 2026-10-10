@@ -19,6 +19,8 @@ export interface Request {
   body?: any;
   graphql?: GraphQLConfig;
   grpc?: GrpcConfig;
+  /** Optional run-scoped cancel signal (not part of YAML request data). */
+  abortSignal?: AbortSignal;
 }
 
 export interface GrpcRequest {
@@ -105,6 +107,8 @@ export interface HttpRequest {
   body?: string | Buffer;
   query?: Record<string, string>;
   cookies?: Record<string, string>;
+  /** When aborted, in-flight HTTP is cancelled (Axios / HTTP/2 / native). */
+  abortSignal?: AbortSignal;
 }
 
 export interface HttpResponse {

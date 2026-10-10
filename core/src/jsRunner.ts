@@ -322,6 +322,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       }
     };
     const sendFn = async (req: any) => {
+      if (context.abortSignal?.aborted) {
+        throw new mmtHelper.TestAbortError();
+      }
       if (context.traceSend) {
         lg('trace', formatHttpTraceRequest({
           method: req?.method,
@@ -332,7 +335,13 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         }));
       }
       try {
-        const res = await send(req);
+        const res = await send({
+          ...(req || {}),
+          abortSignal: context.abortSignal,
+        });
+        if (context.abortSignal?.aborted) {
+          throw new mmtHelper.TestAbortError();
+        }
         recordNetworkDuration(res);
         if (context.traceSend) {
           lg('trace', formatHttpTraceResponse({
@@ -346,6 +355,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         }
         return res;
       } catch (err: any) {
+        if (isTestAbortError(err) || context.abortSignal?.aborted) {
+          throw isTestAbortError(err) ? err : new mmtHelper.TestAbortError();
+        }
         if (context.traceSend) {
           lg('trace', formatHttpTraceResponse({
             error: err?.message || String(err),
@@ -369,6 +381,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         context.abortSignal, context.fileLoader, context.binaryFileLoader,
         context.checkLogMode || 'default', context.envValues);
     restoreReporterGlobals();
+    if (context.abortSignal?.aborted) {
+      throw new mmtHelper.TestAbortError();
+    }
     // For API runs, prefer the network send/receive duration so the finish
     // log matches the toolbar. Fall back to wall-clock for tests/suites.
     const wallClockMs = Date.now() - startTime;
@@ -379,9 +394,13 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     return returnValue;
   } catch (e: any) {
     restoreReporterGlobals();
-    const isControlFlow = isAssertionFailedError(e) || isTestAbortError(e);
-    logRunFinished(lg, runKind, title, false, undefined, {hasError: !isControlFlow});
-    throw e;
+    const cancelled = isTestAbortError(e) || !!context.abortSignal?.aborted;
+    const isControlFlow = isAssertionFailedError(e) || cancelled;
+    logRunFinished(lg, runKind, title, false, undefined, {
+      hasError: !isControlFlow,
+      cancelled,
+    });
+    throw cancelled && !isTestAbortError(e) ? new mmtHelper.TestAbortError() : e;
   } finally {
     const ended =
         'endServerSession_' in mmtHelper &&
@@ -389,8 +408,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         (mmtHelper as any).endServerSession_() as {outermost: boolean} :
         {outermost: true};
     if (ended.outermost) {
-      if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
-        (mmtHelper as any).setAbortSignal_(undefined);
+      if (typeof (mmtHelper as any).clearAbortSignalIf_ === 'function') {
+        (mmtHelper as any).clearAbortSignalIf_(context.abortSignal);
       }
       if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
         (mmtHelper as any).setServerRunner_(undefined);

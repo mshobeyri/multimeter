@@ -174,12 +174,14 @@ export async function runGeneratedJs(
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;
+    const cancelled = abortSignal?.aborted === true;
     return {
-      success: errors.length === 0,
+      success: !cancelled && errors.length === 0,
       durationMs: Date.now() - start,
       errors,
       logs,
       outputs,
+      cancelled: cancelled ? true : undefined,
     };
   } catch (e: any) {
     const isCancelled = isTestAbortError(e);

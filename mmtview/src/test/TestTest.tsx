@@ -37,6 +37,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const [runState, setRunState] = useState<StepStatus>('default');
     const latestRunIdRef = useRef<string | null>(null);
     const ignoredRunIdsRef = useRef<Set<string>>(new Set());
+    const runStoppedRef = useRef(false);
     const stepCountRef = useRef(0);
 
     // Inputs/outputs state
@@ -208,6 +209,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
         latestRunIdRef.current = null;
         const startedAt = Date.now();
         runStartTimeRef.current = startedAt;
+        runStoppedRef.current = false;
         flushSync(() => {
             setStepReports([]);
             setOutputs({});
@@ -257,6 +259,11 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             }
             const scope = typeof message.scope === 'string' ? message.scope : undefined;
             if (scope !== 'test-step' && scope !== 'test-step-run' && scope !== 'test-finished' && scope !== 'setenv' && scope !== 'test-outputs') {
+                return;
+            }
+            if (runStoppedRef.current &&
+                (scope === 'test-step' || scope === 'test-step-run' ||
+                 scope === 'test-outputs' || scope === 'test-finished')) {
                 return;
             }
             const runId = typeof message.runId === 'string' ? message.runId : null;
@@ -316,7 +323,10 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             }
 
             if (scope === 'test-step-run') {
-                setRunState(message.result === 'passed' ? 'passed' : 'failed');
+                setRunState(
+                    message.result === 'passed' ? 'passed' :
+                    message.result === 'cancelled' ? 'cancelled' :
+                    'failed');
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
                     runStartTimeRef.current = null;
@@ -340,11 +350,12 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                 return;
             }
             if (message.command === 'testRunStopped') {
+                runStoppedRef.current = true;
                 if (runStartTimeRef.current) {
                     setRunDurationMs(Date.now() - runStartTimeRef.current);
                     runStartTimeRef.current = null;
                 }
-                setRunState('default');
+                setRunState('cancelled');
             }
         };
 
@@ -382,6 +393,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
             trimIgnoredRuns();
         }
         latestRunIdRef.current = null;
+        runStoppedRef.current = false;
         setStepReports([]);
         setOutputs({});
         setRunState('default');
@@ -394,7 +406,8 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
         runState === 'pending' || runState === 'running' || stepReports.length === 0;
     const clearDisabled =
         runState === 'pending' || runState === 'running' ||
-        (stepReports.length === 0 && runState === 'default');
+        (stepReports.length === 0 &&
+            (runState === 'default' || runState === 'cancelled'));
 
     const runMenuItems = useMemo(
         () => buildReportRunMenuEntries({
@@ -419,7 +432,8 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const isRunning = runState === 'running';
 
     const overviewStats = useMemo((): OverviewStats | null => {
-        if (stepReports.length === 0 && (runState === 'default' || runState === 'pending')) {
+        if (stepReports.length === 0 &&
+            (runState === 'default' || runState === 'pending' || runState === 'cancelled')) {
             return null;
         }
         const passed = stepReports.filter(r => r.status === 'passed').length;
@@ -486,13 +500,11 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                     scrollBody
                     stepReports={stepReports}
                     runState={
-                        runState === 'pending' || runState === 'running'
+                        runState === 'pending' || runState === 'running' ||
+                        runState === 'passed' || runState === 'failed' ||
+                        runState === 'cancelled'
                             ? runState
-                            : runState === 'passed'
-                                ? 'passed'
-                                : runState === 'failed'
-                                    ? 'failed'
-                                    : 'default'
+                            : 'default'
                     }
                     onRun={handleRun}
                     runButtonLabel="Run test"

@@ -59,6 +59,13 @@ export const setAbortSignal_ = (signal: AbortSignal|undefined) => {
   __mmtAbortSignal = signal;
 };
 
+/** Clear only if this run still owns the global signal (avoids wiping a newer run). */
+export const clearAbortSignalIf_ = (signal: AbortSignal|undefined) => {
+  if (__mmtAbortSignal === signal) {
+    __mmtAbortSignal = undefined;
+  }
+};
+
 export const checkAbort_ = () => {
   if (__mmtAbortSignal?.aborted) {
     throw new TestAbortError();

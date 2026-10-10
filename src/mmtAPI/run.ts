@@ -305,16 +305,25 @@ export async function handleRunCurrentDocument(
   const envvarFilePath = workspaceEnvFilePath(projectRoot);
   applyNetworkConfig(document.uri.fsPath, envVars, mmtProvider.context);
 
+  const panelId = getPanelId(webviewPanel);
+  // A previous Cancel can still be unwinding when the user starts again. Abort
+  // that controller and never let its late completion touch this run's UI.
+  const previous = activeTestRun;
+  if (previous && previous.panelId === panelId) {
+    previous.controller.abort();
+  }
+
   const controller = new AbortController();
   activeTestRun = {
     controller,
-    panelId: getPanelId(webviewPanel),
+    panelId,
   };
+  const isCurrentRun = () => activeTestRun?.controller === controller;
 
   const uiReporter = createWebviewRunReporter({
     type: resolveWebviewReportType(message),
     webviewPanel,
-    isAborted: () => controller.signal.aborted,
+    isAborted: () => controller.signal.aborted || !isCurrentRun(),
   });
 
   const statusBarRunId = onRunStarted(`Running ${fileName}`, () => controller.abort());
@@ -361,6 +370,11 @@ export async function handleRunCurrentDocument(
       serverRunner,
     });
 
+    // Superseded by a newer run on this panel — drop all UI side effects.
+    if (!isCurrentRun()) {
+      return;
+    }
+
     const {docType, displayName, result} = runOutcome;
     const label = docType === 'api' ? 'API' :
         docType === 'test'          ? 'Test' :
@@ -368,20 +382,24 @@ export async function handleRunCurrentDocument(
       docType === 'loadtest'      ? 'Load Test' :
                                       'Document';
 
+    // Prefer live abort over the core result flag: Cancel can arrive after JS
+    // finished but before we post to the Response panel.
+    const cancelled = !!result.cancelled || controller.signal.aborted;
+
     // API Send contract: one core round-trip. Post the same response the finish
     // log used so the Response panel / toolbar duration stay in sync.
     if (docType === 'api') {
       postApiRunResult(
           webviewPanel, document.uri.toString(),
-          result.cancelled ? null : buildApiTesterResponse(result.outputs),
-          !!result.cancelled,
-          result.cancelled ? null : (result.apiTest ?? null));
-      if (!result.cancelled) {
+          cancelled ? null : buildApiTesterResponse(result.outputs),
+          cancelled,
+          cancelled ? null : (result.apiTest ?? null));
+      if (!cancelled) {
         getOnboarding()?.onApiRun(rawFile);
       }
     }
 
-    if (uiReporter.notifyHost) {
+    if (uiReporter.notifyHost && !cancelled) {
       if (result.syntaxError) {
         const errorMsg = result.errors?.[0] || 'Generated code has a syntax error';
         await promptViewGeneratedCode(
@@ -398,13 +416,16 @@ export async function handleRunCurrentDocument(
     // Runtime errors/failures are already logged via the run logger; avoid
     // duplicating status lines like `API X: API "X" failed`.
 
-    if (result.cancelled) {
+    if (cancelled) {
       uiReporter.onCancelled({
         command: 'testRunStopped',
         filePath: document.uri.toString(),
       });
     }
   } catch (err: any) {
+    if (!isCurrentRun()) {
+      return;
+    }
     if (controller.signal.aborted) {
       postApiRunResult(webviewPanel, document.uri.toString(), null, true);
       uiReporter.onCancelled({

@@ -26,4 +26,14 @@ describe('logRunFinished', () => {
       {level: 'error', message: 'API "Get sample JSON" has error'},
     ]);
   });
+
+  it('logs stopped when cancelled', () => {
+    const lines: Array<{level: string; message: string}> = [];
+    logRunFinished(
+        (level, message) => lines.push({level, message}), 'API', 'Get sample', false,
+        undefined, {cancelled: true});
+    expect(lines).toEqual([
+      {level: 'warn', message: 'API "Get sample" stopped'},
+    ]);
+  });
 });
