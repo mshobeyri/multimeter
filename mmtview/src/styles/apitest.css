@@ -881,7 +881,18 @@
 }
 
 .button-icon.is-active {
-  color: var(--vscode-button-background, #0e639c);
+  /* Squircle tint of the icon color (no border — avoids layout shift). */
+  color: var(--vscode-foreground, #cccccc);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  border: none;
+  border-radius: 6px;
+  opacity: 1;
+}
+
+.button-icon.is-active:hover,
+.button-icon.is-active:focus {
+  color: var(--vscode-foreground, #cccccc);
+  background: color-mix(in srgb, currentColor 26%, transparent);
 }
 
 .section-edit-label {
@@ -912,6 +923,13 @@
   font-size: 9.6px;
 }
 
+/* Same padding idle/active so the tint bg does not shift neighbors. */
+.section-edit-toggle.apitest-header-tool-btn {
+  padding: 2px;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
 .section-edit-toggle.apitest-header-tool-btn .codicon {
   font-size: 19.2px;
 }
@@ -922,6 +940,26 @@
   border: none !important;
   opacity: 1;
   color: var(--vscode-foreground, #cccccc);
+}
+
+/* Active header tools (e.g. telescope): icon-colored curved bg at low opacity. */
+.section-edit-toggle.is-active,
+.section-edit-toggle.button-icon.is-active {
+  color: var(--vscode-foreground, #cccccc);
+  background: color-mix(in srgb, currentColor 18%, transparent) !important;
+  border: none !important;
+  border-radius: 6px;
+  opacity: 1;
+}
+
+.section-edit-toggle.is-active:hover,
+.section-edit-toggle.is-active:focus,
+.section-edit-toggle.button-icon.is-active:hover,
+.section-edit-toggle.button-icon.is-active:focus {
+  color: var(--vscode-foreground, #cccccc);
+  background: color-mix(in srgb, currentColor 26%, transparent) !important;
+  border: none !important;
+  opacity: 1;
 }
 
 .section-edit-toggle:disabled {
