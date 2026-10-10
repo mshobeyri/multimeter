@@ -351,7 +351,7 @@ export async function handleRunCurrentDocument(
     isAborted: () => controller.signal.aborted || !isCurrentRun(),
   });
 
-  const statusBarRunId = onRunStarted(`Running ${fileName}`, () => controller.abort());
+  const statusBarRunId = onRunStarted(`Running ${fileName}`, {uri: document.uri});
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
     // filePath is the resolved absolute path to the mock server file
     forwardLog('info', `Starting mock server from ${alias}`);
@@ -563,7 +563,8 @@ export async function handleRunSuite(
     },
   });
 
-  const statusBarRunId = onRunStarted(`Running suite ${fileName}`, () => controller.abort());
+  const statusBarRunId =
+      onRunStarted(`Running suite ${fileName}`, {uri: document.uri});
   const startedAt = Date.now();
 
   uiReporter.onRunStart({
