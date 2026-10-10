@@ -7,13 +7,19 @@ import WebSocket = require('ws');
 
 import {resolveCertFilePath} from 'mmt-core/fileHelper';
 import {HistoryManager} from '../historyManager';
-import {getDefaultMockTlsMaterial, startMockServerFromPath} from '../mmtAPI/mockRunner';
+import {
+  getDefaultMockTlsMaterial,
+  startMockServerFromPath,
+  stopMockServer,
+} from '../mmtAPI/mockRunner';
 import {onRunFinished, onRunStarted} from '../runStatusBar';
 
 type ServerType = 'http' | 'https' | 'ws' | 'mmt';
 
 export default class MockServerPanel implements vscode.WebviewViewProvider,
                                                 vscode.Disposable {
+  private static instance: MockServerPanel|null = null;
+
   private _view?: vscode.WebviewView;
   private serverType: ServerType = 'http';
   private port = 8080;
@@ -40,7 +46,43 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
 
   constructor(
       private readonly context: vscode.ExtensionContext,
-      private readonly historyManager: HistoryManager) {}
+      private readonly historyManager: HistoryManager) {
+    MockServerPanel.instance = this;
+  }
+
+  static getInstance(): MockServerPanel|null {
+    return MockServerPanel.instance;
+  }
+
+  /**
+   * Open/focus the Mock Server panel, bind it to this .mmt file, and start.
+   * Does not dirty the editor tab — the file can be closed freely.
+   */
+  async startMmtFile(filePath: string): Promise<void> {
+    const resolved = path.isAbsolute(filePath) ? filePath :
+                                                path.resolve(filePath);
+    if (!fs.existsSync(resolved)) {
+      vscode.window.showErrorMessage(`Mock server file not found: ${resolved}`);
+      return;
+    }
+    if (this.running) {
+      this.stopServer();
+    }
+    // UI-started mocks key by URI string; panel/fromPath by fsPath.
+    stopMockServer(resolved);
+    stopMockServer(vscode.Uri.file(resolved).toString());
+    this.serverType = 'mmt';
+    this.mmtFilePath = resolved;
+    await this.context.workspaceState.update(
+        'multimeter.mockServer.mmtFilePath', resolved);
+    try {
+      await vscode.commands.executeCommand('multimeter.mock.server.focus');
+    } catch {
+      // Panel may still start even if focus fails.
+    }
+    this._doStartServer();
+    this.updateViewHtml();
+  }
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -218,10 +260,13 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         }
       }
 
-      startMockServerFromPath(filePath, envVars, () => {
-        this.running = false;
-        this.mmtServerCleanup = undefined;
-        this.updateViewHtml();
+      startMockServerFromPath(filePath, envVars, {
+        onClose: () => {
+          this.running = false;
+          this.mmtServerCleanup = undefined;
+          this.updateViewHtml();
+        },
+        statusBar: 'panel',
       }).then((cleanup) => {
         this.mmtServerCleanup = cleanup;
         updateAndNotify();
@@ -471,7 +516,27 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     this.statusBarRunId = onRunStarted(label, {
       uri,
       icon: 'server',
-      onStop: () => this.stopServer(),
+      menuItems: [
+        {label: '$(server) Open mock server panel', id: 'openPanel'},
+        ...(uri ? [{label: '$(file) Open file', id: 'open'}] : []),
+      ],
+      onMenuAction: async (id: string) => {
+        if (id === 'openPanel') {
+          try {
+            await vscode.commands.executeCommand('multimeter.mock.server.focus');
+          } catch {
+            // Best-effort.
+          }
+          return;
+        }
+        if (id === 'open' && uri) {
+          try {
+            await vscode.commands.executeCommand('vscode.open', uri);
+          } catch {
+            // Best-effort.
+          }
+        }
+      },
     });
   }
 

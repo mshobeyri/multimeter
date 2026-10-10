@@ -358,7 +358,7 @@ export async function handleRunCurrentDocument(
       pauseGate.resume();
       controller.abort();
     },
-    // Run in Core has no UI Stop — offer Stop/Open from the status bar.
+    // Run in Core: Stop/Open via click menu (never a separate stop badge).
     actionsMenu: reportType === 'lifecycle',
   });
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {

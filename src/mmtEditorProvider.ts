@@ -11,6 +11,7 @@ import {
   handleRunCurrentDocument,
   panelHasActiveRun,
 } from './mmtAPI/run';
+import {stopMocksBoundToEditor} from './mmtAPI/mockRunner';
 import {buildThemeTokenMessage} from './themeTokenColors';
 import {getOnboarding, coachTargetForTask, OnboardingTaskId} from './onboarding';
 import {resolveSourceFormat} from './mmtSourceFormat';
@@ -179,6 +180,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       if (panelHasActiveRun(webviewPanel)) {
         abortRunsForPanel(webviewPanel);
       }
+      // UI-started mocks are bound to this editor; panel-started ones are not.
+      stopMocksBoundToEditor(document.uri);
       this.activeWebviewPanels.delete(webviewPanel);
       if (this.lastOpened?.panel === webviewPanel) {
         this.lastOpened = undefined;

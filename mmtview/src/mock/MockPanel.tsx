@@ -151,6 +151,15 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                     onStop={handleStop}
                     runLabel="Run mock"
                     stopLabel="Stop mock"
+                    runContextMenuItems={[
+                      {
+                        label: 'Run in mock server panel',
+                        icon: 'codicon-server-environment',
+                        onClick: () => {
+                          window.vscode?.postMessage({ command: 'startMockInPanel' });
+                        },
+                      },
+                    ]}
                   />
                 </div>
                 <div className="panel-scroll">

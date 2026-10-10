@@ -1,11 +1,16 @@
 import * as vscode from 'vscode';
 
+export type RunStatusMenuItem = {label: string; id: string};
+
 interface ActiveRun {
   label: string;
   uri?: vscode.Uri;
   onStop?: () => void;
-  /** Run in Core: click shows Stop/Open. UI runs: click opens the file. */
+  /** Run in Core: click shows Stop/Open (no separate stop badge). */
   actionsMenu: boolean;
+  /** Custom click menu (e.g. panel-started mock). Overrides actionsMenu. */
+  menuItems?: RunStatusMenuItem[];
+  onMenuAction?: (id: string) => void|Promise<void>;
   statusBarItem: vscode.StatusBarItem;
 }
 
@@ -42,6 +47,21 @@ function resolveRun(runId?: string): ActiveRun|undefined {
 }
 
 async function runActiveRunAction(run: ActiveRun): Promise<void> {
+  if (run.menuItems && run.menuItems.length > 0) {
+    if (run.menuItems.length === 1) {
+      await run.onMenuAction?.(run.menuItems[0].id);
+      return;
+    }
+    const pick = await vscode.window.showQuickPick(
+        run.menuItems.map(item => ({label: item.label, id: item.id})),
+        {title: run.label, placeHolder: 'Choose an action'});
+    if (!pick) {
+      return;
+    }
+    await run.onMenuAction?.(pick.id);
+    return;
+  }
+
   if (!run.actionsMenu) {
     if (run.uri) {
       await openRunUri(run.uri);
@@ -49,6 +69,7 @@ async function runActiveRunAction(run: ActiveRun): Promise<void> {
     return;
   }
 
+  // Run in Core only: Stop + Open as commands (never a separate stop badge).
   const items: Array<{label: string; action: 'stop'|'open'}> = [];
   if (typeof run.onStop === 'function') {
     items.push({label: '$(debug-stop) Stop', action: 'stop'});
@@ -63,7 +84,6 @@ async function runActiveRunAction(run: ActiveRun): Promise<void> {
     await applyRunAction(run, items[0].action);
     return;
   }
-
   const pick = await vscode.window.showQuickPick(items, {
     title: run.label,
     placeHolder: 'Choose an action',
@@ -99,12 +119,17 @@ export function onRunStarted(
       uri?: vscode.Uri;
       icon?: string;
       onStop?: () => void;
-      /** True for Run in Core — click opens Stop/Open commands. */
+      /** True for Run in Core — click opens Stop/Open commands (no stop badge). */
       actionsMenu?: boolean;
+      /** Custom menu (e.g. panel mock: Open panel / Open file). */
+      menuItems?: RunStatusMenuItem[];
+      onMenuAction?: (id: string) => void|Promise<void>;
     }): string {
   const runId = `run-${++runCounter}`;
   const icon = options?.icon || 'sync~spin';
-  const actionsMenu = options?.actionsMenu === true;
+  const hasCustomMenu = Boolean(options?.menuItems?.length);
+  const actionsMenu = !hasCustomMenu && options?.actionsMenu === true;
+  const hasMenu = hasCustomMenu || actionsMenu;
 
   const item = vscode.window.createStatusBarItem(
       `run.${runId}`, vscode.StatusBarAlignment.Left, RUN_STATUS_PRIORITY);
@@ -113,10 +138,10 @@ export function onRunStarted(
   item.command = {
     command: ACTION_COMMAND_ID,
     arguments: [runId],
-    title: actionsMenu ? 'Run actions' : 'Open File',
+    title: hasMenu ? 'Run actions' : 'Open File',
   };
-  item.tooltip = actionsMenu ? `${label} — click for actions` :
-                               `${label} — click to open`;
+  item.tooltip = hasMenu ? `${label} — click for actions` :
+                           `${label} — click to open`;
   item.show();
   extensionContext.subscriptions.push(item);
 
@@ -125,6 +150,8 @@ export function onRunStarted(
     uri: options?.uri,
     onStop: options?.onStop,
     actionsMenu,
+    menuItems: options?.menuItems,
+    onMenuAction: options?.onMenuAction,
     statusBarItem: item,
   });
   return runId;

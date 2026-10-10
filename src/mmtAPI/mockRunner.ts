@@ -9,7 +9,7 @@ import { mockParsePack, mockServer, variableReplacer, MockData as MockDataNS } f
 import {dispatchMockHttpRequest} from 'mmt-core/mockDispatch';
 import {buildMockHttpsOptions, getDefaultMockTlsMaterial} from 'mmt-core/mockTlsMaterial';
 
-import {onRunFinished, onRunStarted} from '../runStatusBar';
+import {onRunFinished, onRunStarted, type RunStatusMenuItem} from '../runStatusBar';
 import {keepMmtEditorSoon} from '../keepEditor';
 
 type MockData = MockDataNS.MockData;
@@ -19,11 +19,70 @@ interface MockServerHandle {
   port: number;
   dispose: () => void;
   statusBarRunId?: string;
+  /**
+   * When set, closing this editor tab stops the server (UI-started mocks).
+   * Panel/suite mocks omit this so the file can close while the server runs.
+   */
+  editorUri?: string;
 }
+
+/** How the mock status-bar badge behaves on click. */
+export type MockStatusBarMode = 'ui'|'panel'|'silent';
+
+export type StartMockFromPathOptions = {
+  onClose?: () => void;
+  /** ui: open file; panel: Open panel / Open file; silent: no status bar. */
+  statusBar?: MockStatusBarMode;
+};
 
 const activeServers = new Map<string, MockServerHandle>();
 
 export {getDefaultMockTlsMaterial};
+
+const MOCK_PANEL_VIEW_ID = 'multimeter.mock.server';
+
+async function focusMockServerPanel(): Promise<void> {
+  try {
+    await vscode.commands.executeCommand(`${MOCK_PANEL_VIEW_ID}.focus`);
+  } catch {
+    // Best-effort.
+  }
+}
+
+function panelMockMenuItems(): RunStatusMenuItem[] {
+  return [
+    {label: '$(server) Open mock server panel', id: 'openPanel'},
+    {label: '$(file) Open file', id: 'open'},
+  ];
+}
+
+function panelMockMenuAction(fileUri?: vscode.Uri):
+    (id: string) => Promise<void> {
+  return async (id: string) => {
+    if (id === 'openPanel') {
+      await focusMockServerPanel();
+      return;
+    }
+    if (id === 'open' && fileUri) {
+      try {
+        await vscode.commands.executeCommand('vscode.open', fileUri);
+      } catch {
+        // Best-effort.
+      }
+    }
+  };
+}
+
+/** Dirty the editor so close prompts while a UI-started mock is running. */
+async function markDirtyForMock(
+    document: vscode.TextDocument, mmtProvider: any): Promise<void> {
+  if (document.isDirty || !mmtProvider?.updateTextDocument) {
+    return;
+  }
+  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
+  await mmtProvider.updateTextDocument(
+      document, document.getText() + eol, 'silent');
+}
 
 function resolveFilePath(filePath: string, basePath: string): string {
   return resolveCertFilePath(filePath, {baseFilePath: basePath});
@@ -60,6 +119,16 @@ export function stopMockServer(documentUri: string): void {
     if (activeServers.get(documentUri) === handle) {
       activeServers.delete(documentUri);
       finishMockServerStatus(handle);
+    }
+  }
+}
+
+/** Stop mocks that were started from this editor tab (not panel/suite). */
+export function stopMocksBoundToEditor(editorUri: vscode.Uri): void {
+  const key = editorUri.toString();
+  for (const [id, handle] of [...activeServers.entries()]) {
+    if (handle.editorUri === key) {
+      stopMockServer(id);
     }
   }
 }
@@ -120,8 +189,9 @@ export async function startMockServer(
 ): Promise<void> {
   const documentUri = document.uri.toString();
 
-  // Stop existing server on this document if any
+  // Stop existing server on this document if any (URI or fsPath key).
   stopMockServer(documentUri);
+  stopMockServer(document.uri.fsPath);
 
   const rawContent = document.getText();
   const { data, errors } = mockParsePack.loadMockFromYaml(rawContent);
@@ -255,6 +325,7 @@ export async function startMockServer(
       const handle: MockServerHandle = {
         server,
         port: listenPort,
+        editorUri: documentUri,
         dispose: () => {
           try {
             server.close();
@@ -264,15 +335,16 @@ export async function startMockServer(
         },
       };
       const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${listenPort}`;
+      // UI-started: click opens the file; dirty keeps close from aborting silently.
       handle.statusBarRunId = onRunStarted(label, {
         uri: document.uri,
         icon: 'server',
-        onStop: () => stopMockServer(documentUri),
       });
       activeServers.set(documentUri, handle);
 
       // Keep preview tab open while the mock server is bound to this file.
       keepMmtEditorSoon(document.uri);
+      void markDirtyForMock(document, mmtProvider);
 
       webviewPanel.webview.postMessage({
         command: 'mockServerStatus',
@@ -319,20 +391,28 @@ export async function startMockServer(
 }
 
 /**
- * Start a mock server from a file path (for use in test/suite `run` steps).
- * Returns a cleanup function to stop the server.
+ * Start a mock server from a file path (for use in test/suite `run` steps,
+ * or the Mock Server panel). Returns a cleanup function to stop the server.
  */
 export async function startMockServerFromPath(
   filePath: string,
   envVars: Record<string, any> = {},
-  onClose?: () => void,
+  onCloseOrOptions?: (() => void)|StartMockFromPathOptions,
 ): Promise<() => void> {
+  const options: StartMockFromPathOptions =
+      typeof onCloseOrOptions === 'function' ?
+      {onClose: onCloseOrOptions} :
+      (onCloseOrOptions || {});
+  const onClose = options.onClose;
+  const statusBarMode: MockStatusBarMode = options.statusBar || 'ui';
+
   // Use the file path as the identifier
   const documentUri = filePath;
+  const fileUriKey = vscode.Uri.file(filePath).toString();
 
   // Already serving this file (parent suite or an earlier item). Restarting
   // would close it and race the port; nested suites may share the same mock.
-  if (activeServers.has(documentUri)) {
+  if (activeServers.has(documentUri) || activeServers.has(fileUriKey)) {
     return () => {};
   }
 
@@ -467,13 +547,21 @@ export async function startMockServerFromPath(
       };
       const protocol = data.protocol || 'http';
       const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${listenPort}`;
-      handle.statusBarRunId = onRunStarted(label, {
-        uri: vscode.Uri.file(filePath),
-        icon: 'server',
-        onStop: () => stopMockServer(documentUri),
-      });
+      const fileUri = vscode.Uri.file(filePath);
+      if (statusBarMode !== 'silent') {
+        handle.statusBarRunId = onRunStarted(label, {
+          uri: fileUri,
+          icon: 'server',
+          ...(statusBarMode === 'panel' ? {
+            menuItems: panelMockMenuItems(),
+            onMenuAction: panelMockMenuAction(fileUri),
+          } : {}),
+        });
+      }
       activeServers.set(documentUri, handle);
-      keepMmtEditorSoon(vscode.Uri.file(filePath));
+      if (statusBarMode === 'ui') {
+        keepMmtEditorSoon(fileUri);
+      }
       resolve(dispose);
     });
 
