@@ -1,11 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import type {JSONValue} from 'mmt-core/CommonData';
 import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
 import type {EnvVariable, EnvVarSource} from 'mmt-core/EnvData';
 import {findProjectRootSync} from 'mmt-core/fileHelper';
 
 import {derivePresetSelections} from './envPresetMatch';
+import {envPanelValueView, resolveEnvPanelIncomingValue} from './envPanelValue';
 
 export type {EnvVarSource} from 'mmt-core/EnvData';
 
@@ -50,10 +52,12 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           const environmentVars = this.getWorkspaceEnvironmentVars();
           const idx = environmentVars.findIndex(v => v.name === message.name);
           if (idx !== -1) {
-            environmentVars[idx].value = message.value;
-            environmentVars[idx].label = message.label;
-            environmentVars[idx].source = parseEnvVarSource(message.source) ??
+            const source = parseEnvVarSource(message.source) ??
                 environmentVars[idx].source ?? 'file';
+            environmentVars[idx].value =
+                resolveEnvPanelIncomingValue(message.value, source);
+            environmentVars[idx].label = message.label;
+            environmentVars[idx].source = source;
             await this.persistWorkspaceEnvironmentVars(environmentVars);
             await vscode.commands.executeCommand('multimeter.environment.refresh');
           }
@@ -92,7 +96,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           const newVar: EnvVariable = {
             name,
             label: 'Manual',
-            value: message.value ?? '',
+            value: resolveEnvPanelIncomingValue(message.value ?? '', 'manual'),
             options: [],
             source: 'manual'
           };
@@ -207,7 +211,14 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     const presetSelections = derivePresetSelections(environmentVars, presets);
     this.view?.webview.postMessage({
       command: 'multimeter.environment.panel.refresh',
-      data: environmentVars,
+      data: environmentVars.map(envVar => {
+        const view = envPanelValueView(envVar.value as JSONValue|undefined);
+        return {
+          ...envVar,
+          displayValue: view.displayValue,
+          typeLabel: view.typeLabel,
+        };
+      }),
       presets,
       presetSelections,
     });

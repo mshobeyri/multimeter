@@ -255,17 +255,19 @@
 }
 
 /* Keep top/bottom padding so text stays vertically centered (do not set
-   padding-right alone — that can leave text sitting high in the control). */
+   padding-right alone — that can leave text sitting high in the control).
+   !important: base.css input:not([type=…]) padding (0,8,1) would otherwise
+   win and let path text run under the open/picker icon. */
 .field-with-remove.has-picker > input,
 .field-with-remove.has-open > input,
 .field-with-remove.has-picker .token-field .token-field-input {
-  padding: 5px 36px 5px 8px;
+  padding: 5px 36px 5px 8px !important;
 }
 
 .field-with-remove.has-picker.has-remove > input,
 .field-with-remove.has-open.has-remove > input,
 .field-with-remove.has-picker.has-remove .token-field .token-field-input {
-  padding: 5px 64px 5px 8px;
+  padding: 5px 64px 5px 8px !important;
 }
 
 /* Type chip inside the input, end-right (left of X / picker / copy). */
@@ -971,6 +973,8 @@ select.is-invalid {
   box-sizing: border-box;
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
   color: var(--vscode-symbolIcon-stringForeground, var(--vscode-foreground, #d4d4d4));
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .environment-table-value {

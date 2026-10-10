@@ -216,8 +216,36 @@
             padding: 4px 36px 4px 8px;
         }
 
+        .env-value-wrap.has-type.has-remove .value-input {
+            padding: 4px 56px 4px 8px;
+        }
+
         .env-value-wrap.has-file-open.has-remove .value-input {
             padding: 4px 64px 4px 8px;
+        }
+
+        .env-value-wrap.has-type.has-file-open.has-remove .value-input {
+            padding: 4px 84px 4px 8px;
+        }
+
+        .env-value-wrap .field-type-affix {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            font-size: 8px;
+            line-height: 1;
+            color: var(--vscode-descriptionForeground, #888);
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        .env-value-wrap.has-remove .field-type-affix {
+            right: 36px;
+        }
+
+        .env-value-wrap.has-file-open.has-remove .field-type-affix {
+            right: 64px;
         }
 
         .env-value-wrap .field-button {
@@ -583,21 +611,35 @@
 
                 const source = resolveEnvSource(envVar);
                 const hasFileOpen = isEnvFilePathValue(envVar.value);
+                const displayValue = typeof envVar.displayValue === 'string'
+                    ? envVar.displayValue
+                    : formatEnvValueForInput(envVar.value);
+                const typeLabel = typeof envVar.typeLabel === 'string'
+                    ? envVar.typeLabel
+                    : '';
+                const hasType = typeLabel.length > 0;
                 let optionsHtml = '';
                 if (source === 'manual') {
                     optionsHtml = `<option value="__manual__" selected disabled>Manual</option>`;
                     if (Array.isArray(envVar.options) && envVar.options.length > 0) {
                         optionsHtml += envVar.options.map(opt =>
-                            `<option value="${escapeHtml(String(opt.label))}" data-opt-value="${escapeHtml(String(opt.value))}">${escapeHtml(String(opt.label))}</option>`
+                            `<option value="${escapeHtml(String(opt.label))}">${escapeHtml(String(opt.label))}</option>`
                         ).join('');
                     }
                 } else if (Array.isArray(envVar.options) && envVar.options.length > 0) {
                     optionsHtml = envVar.options.map(opt =>
-                        `<option value="${escapeHtml(String(opt.label))}" data-opt-value="${escapeHtml(String(opt.value))}"${envVar.label === opt.label ? ' selected' : ''}>${escapeHtml(String(opt.label))}</option>`
+                        `<option value="${escapeHtml(String(opt.label))}"${envVar.label === opt.label ? ' selected' : ''}>${escapeHtml(String(opt.label))}</option>`
                     ).join('');
                 } else {
                     optionsHtml = `<option value="${escapeHtml(String(envVar.label || envVar.name))}" selected>${escapeHtml(String(envVar.label || envVar.name))}</option>`;
                 }
+
+                const wrapClass = [
+                    'env-value-wrap',
+                    'has-remove',
+                    hasFileOpen ? 'has-file-open' : '',
+                    hasType ? 'has-type' : '',
+                ].filter(Boolean).join(' ');
 
                 row.innerHTML = `
                     <td class="env-name env-col-name">
@@ -612,8 +654,9 @@
                         </select>
                     </td>
                     <td class="env-value env-col-value">
-                        <div class="env-value-wrap has-remove${hasFileOpen ? ' has-file-open' : ''}">
-                            <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(String(envVar.value ?? ''))}" />
+                        <div class="${wrapClass}">
+                            <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(displayValue)}" />
+                            ${hasType ? `<span class="field-type-affix" title="Value type">(${escapeHtml(typeLabel)})</span>` : ''}
                             ${hasFileOpen ? `<button type="button" class="field-button is-open open-env-file-btn" data-path="${escapeHtml(String(envVar.value).trim())}" title="Open file" aria-label="Open file"><span class="action-button codicon codicon-symbol-method-arrow" aria-hidden="true"></span></button>` : ''}
                             <button type="button" class="field-button is-remove" data-index="${index}" title="Remove field" aria-label="Remove field">
                                 <span class="action-button codicon codicon-close" aria-hidden="true"></span>
@@ -681,24 +724,55 @@
             </span>`;
         }
 
+        function formatEnvValueForInput(value) {
+            if (value === undefined) {
+                return '';
+            }
+            if (value === null) {
+                return 'null';
+            }
+            if (typeof value === 'boolean' || typeof value === 'number') {
+                return String(value);
+            }
+            if (typeof value === 'string') {
+                const lower = value.toLowerCase();
+                if (lower === 'true' || lower === 'false' || lower === 'null' ||
+                    lower === 'omit' ||
+                    (value.trim() !== '' && !Number.isNaN(Number(value)))) {
+                    return `"${value}"`;
+                }
+                return value;
+            }
+            if (typeof value === 'object') {
+                try {
+                    return JSON.stringify(value);
+                } catch {
+                    return String(value);
+                }
+            }
+            return String(value);
+        }
+
         function registerEnvSelectHandlers() {
             document.querySelectorAll('.env-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const idx = this.getAttribute('data-index');
                     const optLabel = this.value;
-                    const selectedOption = this.options[this.selectedIndex];
-                    const optValue = selectedOption.getAttribute('data-opt-value');
                     const envVar = environmentVars[idx];
+                    const match = Array.isArray(envVar.options)
+                        ? envVar.options.find(opt => opt && opt.label === optLabel)
+                        : undefined;
+                    const typedValue = match ? match.value : undefined;
                     envVar.label = optLabel;
                     envVar.source = 'file';
-                    if (typeof optValue !== 'undefined') {
-                        envVar.value = optValue;
+                    if (typeof typedValue !== 'undefined') {
+                        envVar.value = typedValue;
                     }
                     updateUI();
                     vscode.postMessage({
                         type: 'multimeter.environment.set',
                         name: envVar.name,
-                        value: optValue,
+                        value: typedValue,
                         label: optLabel,
                         source: 'file'
                     });
@@ -725,10 +799,10 @@
                     const idx = this.getAttribute('data-index');
                     const newValue = this.value;
                     const envVar = environmentVars[idx];
-                    envVar.value = newValue;
                     envVar.label = 'Manual';
                     envVar.source = 'manual';
-                    updateUI();
+                    // Host coerces with inputBoxToYamlValue and refreshes the row
+                    // (display text + type chip). Keep the typed text in the input.
                     vscode.postMessage({
                         type: 'multimeter.environment.set',
                         name: envVar.name,
@@ -836,9 +910,14 @@
         }
 
         function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            // Must escape quotes: display values like `"12"` are put in
+            // value="..." attributes. div.textContent→innerHTML does not.
+            return String(text ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         function requestRefresh() {
