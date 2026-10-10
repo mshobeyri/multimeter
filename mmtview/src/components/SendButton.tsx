@@ -24,8 +24,8 @@ const MAIN_SIZE = 28;
 const SEND_SEGMENT_WIDTH = 34;
 const MENU_SEGMENT_WIDTH = 20;
 const DEFAULT_CANCEL_REVEAL_MS: Record<SendButtonMode, number> = {
-  send: 1500,
-  run: 1500,
+  send: 500,
+  run: 500,
 };
 
 /** Delay before the oversized load circle appears (no size animation). */
@@ -40,8 +40,8 @@ const SendButton: React.FC<{
   accent?: string;
   contextMenuItems?: SendButtonMenuEntry[];
   /**
-   * Visual/action variant. `run` uses run/stop icons and a shorter cancel
-   * reveal (500ms) unless `cancelRevealMs` overrides.
+   * Visual/action variant. `run` uses run/stop icons; cancel/stop reveal is
+   * 500ms unless `cancelRevealMs` overrides.
    */
   mode?: SendButtonMode;
   /** Delay before the loading control becomes cancel/stop. */
