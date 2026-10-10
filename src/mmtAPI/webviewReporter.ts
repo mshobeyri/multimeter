@@ -35,9 +35,16 @@ export interface WebviewRunReporter {
   readonly notifyHost: boolean;
 }
 
+/** Mutable webview target for the active run panel. */
+export interface WebviewPanelRef {
+  current: vscode.WebviewPanel;
+}
+
 export interface CreateWebviewRunReporterOptions {
   type: WebviewReportType;
   webviewPanel: vscode.WebviewPanel;
+  /** Optional shared ref; posts go to `panelRef.current` when provided. */
+  panelRef?: WebviewPanelRef;
   /** When set, all report posts are tagged with this suite run id. */
   suiteRunId?: string;
   isAborted?: () => boolean;
@@ -71,13 +78,18 @@ export function createWebviewRunReporter(
     options: CreateWebviewRunReporterOptions): WebviewRunReporter {
   const type = options.type === 'lifecycle' ? 'lifecycle' : 'full';
   const updatesPanel = type === 'full';
-  const {webviewPanel} = options;
+  const panelRef: WebviewPanelRef =
+      options.panelRef || {current: options.webviewPanel};
 
   const post = (payload: Record<string, any>) => {
     if (!updatesPanel) {
       return;
     }
-    webviewPanel.webview.postMessage(payload);
+    try {
+      panelRef.current.webview.postMessage(payload);
+    } catch {
+      // Panel may already be disposed (e.g. Don't Save while a run is finishing).
+    }
   };
 
   const pendingReports: Record<string, any>[] = [];

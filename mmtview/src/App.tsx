@@ -35,6 +35,7 @@ import {
   parseSourceFormat,
 } from "./sourceFormat";
 import { hasPrimaryAction, invokePrimaryAction } from "./primaryAction";
+import { patchWebviewState } from "./shared/webviewState";
 
 /** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
 function toEditorText(text: string): string {
@@ -526,7 +527,7 @@ const App: React.FC = () => {
       lastFullPanelSizeRef.current = panelSize;
       lastFullPanelRatioRef.current = clampPanelRatio(panelSize / width, width);
     }
-    (window.vscode as any)?.setState?.({
+    patchWebviewState({
       documentUri: mmtFilePath,
       panelSize: lastFullPanelSizeRef.current,
       panelRatio: lastFullPanelRatioRef.current,
