@@ -468,7 +468,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     const scheme = this.serverType === 'https' ? 'https' : this.serverType === 'ws' ? 'ws' : 'http';
     const label = `Mock server ${scheme}://localhost:${this.port}`;
     const uri = this.mmtFilePath ? vscode.Uri.file(this.mmtFilePath) : undefined;
-    this.statusBarRunId = onRunStarted(label, {uri, icon: 'server'});
+    this.statusBarRunId = onRunStarted(label, {
+      uri,
+      icon: 'server',
+      onStop: () => this.stopServer(),
+    });
   }
 
   private finishPanelServerStatus(): void {

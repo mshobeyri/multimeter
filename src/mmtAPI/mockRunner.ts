@@ -264,8 +264,11 @@ export async function startMockServer(
         },
       };
       const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${listenPort}`;
-      handle.statusBarRunId =
-          onRunStarted(label, {uri: document.uri, icon: 'server'});
+      handle.statusBarRunId = onRunStarted(label, {
+        uri: document.uri,
+        icon: 'server',
+        onStop: () => stopMockServer(documentUri),
+      });
       activeServers.set(documentUri, handle);
 
       // Keep preview tab open while the mock server is bound to this file.
@@ -464,8 +467,11 @@ export async function startMockServerFromPath(
       };
       const protocol = data.protocol || 'http';
       const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${listenPort}`;
-      handle.statusBarRunId =
-          onRunStarted(label, {uri: vscode.Uri.file(filePath), icon: 'server'});
+      handle.statusBarRunId = onRunStarted(label, {
+        uri: vscode.Uri.file(filePath),
+        icon: 'server',
+        onStop: () => stopMockServer(documentUri),
+      });
       activeServers.set(documentUri, handle);
       keepMmtEditorSoon(vscode.Uri.file(filePath));
       resolve(dispose);

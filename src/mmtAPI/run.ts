@@ -344,14 +344,23 @@ export async function handleRunCurrentDocument(
   };
   const isCurrentRun = () => activeTestRun?.controller === controller;
 
+  const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({
-    type: resolveWebviewReportType(message),
+    type: reportType,
     webviewPanel,
     panelRef,
     isAborted: () => controller.signal.aborted || !isCurrentRun(),
   });
 
-  const statusBarRunId = onRunStarted(`Running ${fileName}`, {uri: document.uri});
+  const statusBarRunId = onRunStarted(`Running ${fileName}`, {
+    uri: document.uri,
+    onStop: () => {
+      pauseGate.resume();
+      controller.abort();
+    },
+    // Run in Core has no UI Stop — offer Stop/Open from the status bar.
+    actionsMenu: reportType === 'lifecycle',
+  });
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
     // filePath is the resolved absolute path to the mock server file
     forwardLog('info', `Starting mock server from ${alias}`);
@@ -551,8 +560,9 @@ export async function handleRunSuite(
 
   await markDirtyForRun(document, mmtProvider);
 
+  const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({
-    type: resolveWebviewReportType(message),
+    type: reportType,
     webviewPanel,
     panelRef,
     suiteRunId,
@@ -563,8 +573,14 @@ export async function handleRunSuite(
     },
   });
 
-  const statusBarRunId =
-      onRunStarted(`Running suite ${fileName}`, {uri: document.uri});
+  const statusBarRunId = onRunStarted(`Running suite ${fileName}`, {
+    uri: document.uri,
+    onStop: () => {
+      pauseGate.resume();
+      controller.abort();
+    },
+    actionsMenu: reportType === 'lifecycle',
+  });
   const startedAt = Date.now();
 
   uiReporter.onRunStart({
