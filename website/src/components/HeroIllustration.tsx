@@ -81,7 +81,27 @@ const RESPONSE_BODY_LINES = [
   '}',
 ]
 
-const TESTER_TABS = ['In / Out', 'Body', 'Params', 'Headers', 'Cookies', 'Doc']
+/** Match mmtview API tester request tabs (settings is icon-only). */
+const REQUEST_TABS = [
+  { label: 'Auth' },
+  { label: 'Params' },
+  { label: 'Headers' },
+  { label: 'Body', active: true },
+  { label: 'Cookies' },
+  { label: 'Inputs' },
+  { label: 'Doc' },
+  { label: 'Settings', icon: 'settings-gear' },
+] as const
+
+const RESPONSE_TABS = [
+  { label: 'Body', active: true },
+  { label: 'Headers' },
+  { label: 'Cookies' },
+  { label: 'Outputs' },
+] as const
+
+/** Brand POST accent from mmtview `METHOD_PROTOCOL_COLORS.post`. */
+const POST_ACCENT = '#49cc90'
 
 function YamlPanel({
   tab,
@@ -131,7 +151,7 @@ function YamlPanel({
 
 function JsonBlock({ lines }: { lines: string[] }) {
   return (
-    <div className="px-3 pb-2 font-mono text-[10px] sm:text-xs leading-5 text-left">
+    <div className="px-3 py-2 font-mono text-[10px] sm:text-xs leading-5 text-left">
       {lines.map((line, i) => (
         <div key={i} className="whitespace-pre">
           {line.includes('"') ? (
@@ -155,18 +175,64 @@ function JsonBlock({ lines }: { lines: string[] }) {
   )
 }
 
-function SendControl() {
+function TabStrip({
+  tabs,
+}: {
+  tabs: ReadonlyArray<{ label: string; active?: boolean; icon?: string }>
+}) {
   return (
-    <div className="relative h-11 shrink-0">
-      <div className="absolute inset-x-0 top-1/2 border-t border-border" />
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
-        <div
-          className="w-[30px] h-[30px] rounded-full bg-emerald-600 border border-emerald-400/40 flex items-center justify-center shadow-lg shadow-emerald-500/20"
-          title="Send"
-        >
-          <Codicon name="send" className="text-white text-base ml-0.5" />
-        </div>
-      </div>
+    <div className="flex items-center gap-0 min-w-0 overflow-x-auto">
+      {tabs.map((tab) => {
+        const active = Boolean(tab.active)
+        return (
+          <div
+            key={tab.label}
+            className={`flex items-center gap-1 px-2 py-1.5 text-[10px] sm:text-[11px] font-medium shrink-0 ${
+              active
+                ? 'text-slate-200 border-b border-slate-200'
+                : 'text-slate-500 opacity-60'
+            }`}
+            title={tab.icon ? tab.label : undefined}
+            aria-label={tab.icon ? tab.label : undefined}
+          >
+            {tab.icon ? <Codicon name={tab.icon} className="text-xs" /> : tab.label}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Circular send/run + more chevron — mirrors mmtview SendButton. */
+function ActionControl({
+  mode,
+  title,
+}: {
+  mode: 'send' | 'run'
+  title?: string
+}) {
+  const label = title ?? (mode === 'run' ? 'Run' : 'Send')
+  const icon = mode === 'run' ? 'run' : 'send'
+  return (
+    <div
+      className="inline-flex h-[28px] shrink-0 overflow-hidden rounded-full border shadow-lg shadow-emerald-500/15"
+      style={{
+        backgroundColor: `color-mix(in oklab, ${POST_ACCENT} 52%, #0b1220)`,
+        borderColor: `color-mix(in oklab, ${POST_ACCENT} 55%, transparent)`,
+      }}
+      title={label}
+    >
+      <span className="flex w-[28px] items-center justify-center">
+        <Codicon name={icon} className={`text-white text-sm${mode === 'send' ? ' ml-0.5' : ''}`} />
+      </span>
+      <span
+        className="w-px self-stretch my-1"
+        style={{ backgroundColor: 'color-mix(in srgb, white 45%, transparent)' }}
+        aria-hidden
+      />
+      <span className="flex w-5 items-center justify-center">
+        <Codicon name="chevron-down" className="text-white text-[11px]" />
+      </span>
     </div>
   )
 }
@@ -174,53 +240,66 @@ function SendControl() {
 function ApiPanel() {
   return (
     <div className="flex-1 flex flex-col min-w-0 border-t sm:border-t-0 sm:border-l border-border text-left bg-surface">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-        <span className="px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 shrink-0">
-          POST
-        </span>
-        <div className="flex-1 bg-surface-light rounded px-2 py-1 text-[10px] sm:text-xs text-slate-400 font-mono truncate">
-          https://test.mmt.dev/echo
+      {/* Fixed header: method+URL pill + Send (matches apitest-url-row) */}
+      <div className="flex items-center gap-2 px-3 pt-2 pb-2">
+        <div className="flex flex-1 min-w-0 h-7 items-stretch overflow-hidden rounded-full border border-border bg-[#0b1220]">
+          <span
+            className="flex w-[4.5rem] shrink-0 items-center justify-center text-[10px] sm:text-[11px] font-semibold text-white"
+            style={{
+              backgroundColor: `color-mix(in oklab, ${POST_ACCENT} 52%, #0b1220)`,
+            }}
+          >
+            POST
+          </span>
+          <div className="flex-1 min-w-0 px-2.5 flex items-center text-[10px] sm:text-xs text-slate-300 font-mono truncate">
+            https://test.mmt.dev/echo
+          </div>
+        </div>
+        <ActionControl mode="send" />
+      </div>
+
+      {/* Request tabs */}
+      <div className="flex items-center gap-2 px-2 border-b border-border">
+        <div className="min-w-0 flex-1">
+          <TabStrip tabs={REQUEST_TABS} />
         </div>
       </div>
 
-      <div className="flex items-center gap-0 px-2 border-b border-border overflow-x-auto">
-        {TESTER_TABS.map((tab) => {
-          const active = tab === 'Body'
-          return (
-            <div
-              key={tab}
-              className={`px-2.5 py-1.5 text-[10px] sm:text-[11px] font-medium shrink-0 ${
-                active
-                  ? 'text-slate-200 border-b border-slate-200'
-                  : 'text-slate-500 opacity-60'
-              }`}
-            >
-              {tab}
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="flex-1 min-h-0">
+      <div className="min-h-[72px] flex-1 overflow-hidden">
         <JsonBlock lines={REQUEST_BODY_LINES} />
       </div>
 
-      <SendControl />
-
-      <div className="shrink-0">
-        <JsonBlock lines={RESPONSE_BODY_LINES} />
+      {/* Response tabs + duration / status / tools (matches apitest-response-tabs-row) */}
+      <div className="flex items-center gap-2 px-2 border-t border-b border-border min-h-8">
+        <div className="min-w-0 flex-1">
+          <TabStrip tabs={RESPONSE_TABS} />
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] sm:text-[11px] text-slate-300 whitespace-nowrap">142ms</span>
+          <span
+            className="inline-flex h-4 min-w-[1.5rem] items-center justify-center rounded px-1 text-[9px] font-bold text-white"
+            style={{
+              backgroundColor: `color-mix(in oklab, ${POST_ACCENT} 70%, #0b1220)`,
+              border: `1px solid color-mix(in oklab, ${POST_ACCENT} 55%, transparent)`,
+            }}
+          >
+            200
+          </span>
+          <span className="mx-0.5 h-3 w-px bg-border" aria-hidden />
+          <span className="flex h-5 w-5 items-center justify-center text-slate-500" aria-hidden>
+            <Codicon name="eraser" className="text-xs" />
+          </span>
+          <span className="flex h-5 w-5 items-center justify-center text-slate-500" aria-hidden>
+            <Codicon name="history" className="text-xs" />
+          </span>
+          <span className="flex h-5 w-5 items-center justify-center text-slate-500" aria-hidden>
+            <Codicon name="split-horizontal" className="text-xs" />
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center justify-end gap-1.5 px-3 py-1.5 border-t border-border">
-        <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-surface-light text-slate-300 border border-border">
-          142ms
-        </span>
-        <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-          200
-        </span>
-        <span className="flex h-6 w-6 items-center justify-center text-slate-500" aria-hidden="true">
-          <Codicon name="history" className="text-sm" />
-        </span>
+      <div className="min-h-[120px] flex-1 overflow-hidden">
+        <JsonBlock lines={RESPONSE_BODY_LINES} />
       </div>
     </div>
   )
@@ -285,20 +364,16 @@ function RunnerPanel({ mode }: { mode: 'test' | 'suite' }) {
   const isSuite = mode === 'suite'
   const rows = isSuite ? SUITE_RUN_STEPS : TEST_RUN_STEPS
   const title = isSuite ? 'Simple Suite' : 'Simple HTTP test'
-  const runLabel = isSuite ? 'Run suite' : 'Run test'
+  const runTitle = isSuite ? 'Run suite' : 'Run test'
 
   return (
-    <VSCodeSidePanel
-      title={title}
-      icon={isSuite ? 'layers' : 'beaker'}
-      action={
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] sm:text-xs font-medium bg-primary text-white shrink-0">
-          <Codicon name="run" className="text-sm" />
-          {runLabel}
-        </div>
-      }
-    >
-      <div className="px-3 py-3 border-b border-border">
+    <VSCodeSidePanel title={title} icon={isSuite ? 'layers' : 'beaker'}>
+      {/* Matches mmtview `.run-action-bar` — circular Run + more, right-aligned */}
+      <div className="flex items-center justify-end gap-2 px-3 pt-2 pb-2">
+        <ActionControl mode="run" title={runTitle} />
+      </div>
+
+      <div className="px-3 pb-3 border-b border-border">
         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Overview</div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           <OverviewBox label="Passed" value="3" sub="100%" tone="pass" />
