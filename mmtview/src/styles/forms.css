@@ -976,6 +976,8 @@ select.is-invalid {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .environment-file-path-field {

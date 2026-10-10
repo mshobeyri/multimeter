@@ -54,7 +54,9 @@ body {
 input,
 textarea,
 select,
-[contenteditable="true"] {
+[contenteditable="true"],
+/* Env side panel: variable names are copyable. */
+.env-name-text {
   user-select: text;
   -webkit-user-select: text;
 }

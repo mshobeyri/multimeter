@@ -35,7 +35,8 @@ button,
 .mmt-ui-panel .highlighted-body,
 .mmt-ui-panel .highlighted-body-pre,
 .mmt-ui-panel .report-headers-content,
-.mmt-ui-panel .report-headers-table {
+.mmt-ui-panel .report-headers-table,
+.mmt-ui-panel .environment-table-name {
   user-select: text;
   -webkit-user-select: text;
 }
