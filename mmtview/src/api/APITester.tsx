@@ -67,9 +67,27 @@ import {
 import { findMatchingExampleIndex } from "./apiExampleMatch";
 import { SELECT_EXAMPLE_EVENT } from "../text/exampleSelect";
 import { selectBodyFormatStorage } from "./bodyFormatSelection";
+import { useKeptTabs } from "../useKeptTabs";
 
 /** Body pane: resolved values vs editable {{…}} tokens. */
 type BodyTokenMode = "resolved" | "tokens";
+
+function KeptTabPanel({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={["apitest-tab-panel", active ? "is-active" : undefined].filter(Boolean).join(" ")}
+      aria-hidden={!active}
+    >
+      {children}
+    </div>
+  );
+}
 
 function isStructuredYamlBody(body: unknown): boolean {
   return body != null && body !== "" && typeof body === "object";
@@ -695,15 +713,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
   };
 
-  const shouldShowQuery = () => editorTab === "params";
-  const shouldShowHeaders = () => editorTab === "headers";
-  const shouldShowCookies = () => editorTab === "cookies";
   const shouldShowBody = () => editorTab === "body";
-  const shouldShowInputs = () => editorTab === "inputs";
-  const shouldShowOutputs = () => responseTab === "outputs";
   const shouldShowResponse = () => responseTab === "body";
-  const shouldShowResponseHeaders = () => responseTab === "headers";
-  const shouldShowResponseCookies = () => responseTab === "cookies";
 
   const canExtractOutput = Boolean(responseData) &&
     responseTab === "body" &&
@@ -716,11 +727,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       responseBodyToolbar?.inspect();
     }
   };
-  const shouldShowDoc = () => editorTab === "doc";
-  const shouldShowSettings = () => editorTab === "settings";
-  const shouldShowAuth = () => editorTab === "auth";
-  const shouldShowGraphql = () => editorTab === "graphql";
-  const shouldShowGrpc = () => editorTab === "grpc";
   const isWsUrl = isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
   const setBodyFormat = (side: "request" | "response", format: RequestFormat | ResponseFormat) => {
     // Format chips write straight to YAML. applyFormatSideEdit keeps
@@ -1172,6 +1178,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     });
   }, [outputKeys.length, responseData?.cookies, responseData?.headers, setenvKeys.length]);
 
+  // Keep/warm only request+response data tabs — not Doc / Auth / Settings.
+  const requestTabIds = useMemo(
+    () => requestOverflowTabs
+      .map(tab => tab.id)
+      .filter((id): id is EditorTab => (
+        id !== "doc" && id !== "auth" && id !== "settings"
+      )),
+    [requestOverflowTabs],
+  );
+  const responseTabIds = useMemo(
+    () => responseOverflowTabs.map(tab => tab.id),
+    [responseOverflowTabs],
+  );
+  const keepEditorTab = useKeptTabs(editorTab, requestTabIds, mmtFilePath || "");
+  const keepResponseTab = useKeptTabs(responseTab, responseTabIds, mmtFilePath || "");
+
   return (
     <TokenModeContext.Provider value={bodyTokenMode}>
     <div className={`apitest-root${selector ? " apitest-root--source" : ""}${
@@ -1297,7 +1319,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       </div>
       <FadePane paneKey={editorTab} className="apitest-pane-fill" durationMs={100}>
 
-      {shouldShowDoc() ? (
+      {editorTab === "doc" && (
+        <KeptTabPanel key="doc" active>
         <div className="apitest-section apitest-section--doc panel-form">
           <div className="panel-form-row">
             <SectionEditLabel
@@ -1372,7 +1395,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             )}
           </div>
         </div>
-      ) : shouldShowSettings() ? (
+        </KeptTabPanel>
+      )}
+
+      {editorTab === "settings" && (
+        <KeptTabPanel key="settings" active>
         <div className="apitest-section apitest-section--settings">
           {onUpdateApi ? (
             <ApiSettingsEditor api={api} update={onUpdateApi} />
@@ -1380,7 +1407,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <div className="apitest-empty">Settings are read-only.</div>
           )}
         </div>
-      ) : shouldShowAuth() ? (
+        </KeptTabPanel>
+      )}
+
+      {editorTab === "auth" && (
+        <KeptTabPanel key="auth" active>
         <div className="apitest-section apitest-section--auth">
           {onUpdateApi ? (
             <ApiAuthEditor
@@ -1392,9 +1423,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             <div className="apitest-empty">Auth is read-only.</div>
           )}
         </div>
-      ) : (
+        </KeptTabPanel>
+      )}
+
+      {keepEditorTab("params") && (
+        <KeptTabPanel key="params" active={editorTab === "params"}>
         <div className="apitest-section">
-        {shouldShowQuery() && <KSVEditor
+        <KSVEditor
           label=""
           value={api.query}
           onChange={onQueryChange}
@@ -1403,8 +1438,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           liveAngleTokens
           valueContext={bodyValueContext}
           hideOmittedWhenResolved
-        />}
-        {shouldShowHeaders() && <KSVEditor
+        />
+        </div>
+        </KeptTabPanel>
+      )}
+
+      {keepEditorTab("headers") && (
+        <KeptTabPanel key="headers" active={editorTab === "headers"}>
+        <div className="apitest-section">
+        <KSVEditor
           label=""
           value={api.headers}
           onChange={onHeadersChange}
@@ -1413,8 +1455,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           liveAngleTokens
           valueContext={bodyValueContext}
           hideOmittedWhenResolved
-        />}
-        {shouldShowCookies() && <KSVEditor
+        />
+        </div>
+        </KeptTabPanel>
+      )}
+
+      {keepEditorTab("cookies") && (
+        <KeptTabPanel key="cookies" active={editorTab === "cookies"}>
+        <div className="apitest-section">
+        <KSVEditor
           label=""
           value={api.cookies}
           onChange={onCookiesChange}
@@ -1423,8 +1472,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           liveAngleTokens
           valueContext={bodyValueContext}
           hideOmittedWhenResolved
-        />}
-        {shouldShowBody() && (
+        />
+        </div>
+        </KeptTabPanel>
+      )}
+
+      {keepEditorTab("body") && (
+        <KeptTabPanel key="body" active={editorTab === "body"}>
+        <div className="apitest-section">
           <div className="apitest-body-pane">
             {requestBodyDisabled ? (
               <div className="apitest-body-none" role="status">
@@ -1485,10 +1540,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 )}              </div>
             )}
           </div>
-        )}
+        </div>
+        </KeptTabPanel>
+      )}
 
-        {shouldShowGraphql() && (
-          <>
+      {keepEditorTab("graphql") && (
+        <KeptTabPanel key="graphql" active={editorTab === "graphql"}>
+        <div className="apitest-section">
             <div className="label apitest-graphql-operation-header">
               Operation
             </div>
@@ -1525,11 +1583,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 });
               }}
             />
-          </>
-        )}
+        </div>
+        </KeptTabPanel>
+      )}
 
-        {shouldShowGrpc() && (
-          <>
+      {keepEditorTab("grpc") && (
+        <KeptTabPanel key="grpc" active={editorTab === "grpc"}>
+        <div className="apitest-section">
             <div className="field-inline is-gap is-spaced">
               <div className="field-grow">
                 <div className="label">Service</div>
@@ -1591,11 +1651,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 });
               }}
             />
-          </>
-        )}
+        </div>
+        </KeptTabPanel>
+      )}
 
-        {shouldShowInputs() && (
-          <>
+      {keepEditorTab("inputs") && (
+        <KeptTabPanel key="inputs" active={editorTab === "inputs"}>
+        <div className="apitest-section">
             <div className="apitest-example">
               <div className="label">Example</div>
               <div className="field-inline is-gap">
@@ -1699,10 +1761,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 }}
               />
             ) : null}
-          </>
-        )}
-
         </div>
+        </KeptTabPanel>
       )}
 
       </FadePane>
@@ -1812,9 +1872,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       </div>
       <div className="apitest-pane-fill">
       <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={100}>
-      <div className="apitest-section">
-        {shouldShowOutputs() && (
-          <>
+        {keepResponseTab("outputs") && (
+          <KeptTabPanel key="outputs" active={responseTab === "outputs"}>
+          <div className="apitest-section">
             <SectionEditLabel
               label="Outputs"
               editing={editOutputsDecl}
@@ -1876,11 +1936,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             ) : (
               <div className="apitest-empty">No setenv variables defined.</div>
             )}
-          </>
+          </div>
+          </KeptTabPanel>
         )}
 
-        {responseData && shouldShowResponseHeaders() && (
-          countNamedEntries(responseData.headers) > 0 ? (
+        {keepResponseTab("headers") && (
+          <KeptTabPanel key="resp-headers" active={responseTab === "headers"}>
+          <div className="apitest-section">
+          {responseData && countNamedEntries(responseData.headers) > 0 ? (
             <KSVEditor
               label=""
               value={responseData.headers || {}}
@@ -1890,11 +1953,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             />
           ) : (
             <div className="apitest-empty">No response headers.</div>
-          )
+          )}
+          </div>
+          </KeptTabPanel>
         )}
 
-        {responseData && shouldShowResponseCookies() && (
-          countNamedEntries(responseData.cookies) > 0 ? (
+        {keepResponseTab("cookies") && (
+          <KeptTabPanel key="resp-cookies" active={responseTab === "cookies"}>
+          <div className="apitest-section">
+          {responseData && countNamedEntries(responseData.cookies) > 0 ? (
             <KSVEditor
               label=""
               value={responseData.cookies || {}}
@@ -1904,12 +1971,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             />
           ) : (
             <div className="apitest-empty">No response cookies.</div>
-          )
+          )}
+          </div>
+          </KeptTabPanel>
         )}
 
         {/* Keep BodyView mounted (empty) under the idle/sending overlay so the
-            first response does not pay Monaco cold-start. */}
-        {shouldShowResponse() && (
+            first response does not pay Monaco cold-start; also kept across tab switches. */}
+        {keepResponseTab("body") && (
+          <KeptTabPanel key="resp-body" active={responseTab === "body"}>
+          <div className="apitest-section">
           <div className="apitest-body-pane">
             <div className="apitest-body-wrapper">
               <ResponseBodyContent
@@ -1921,8 +1992,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               />
             </div>
           </div>
+          </div>
+          </KeptTabPanel>
         )}
-      </div>
       </FadePane>
       {(requestInFlight || (!responseData && responseTab !== "outputs")) ? (
         <NoResponseYet

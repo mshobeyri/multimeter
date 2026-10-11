@@ -824,8 +824,25 @@
 }
 
 .apitest-fade-pane {
+  display: flex;
+  flex-direction: column;
   transition: opacity var(--apitest-fade-ms, 120ms) ease;
   will-change: opacity;
+}
+
+/* Kept API tabs: mount once, hide inactive (avoids Monaco/editor remount). */
+.apitest-tab-panel {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.apitest-tab-panel.is-active {
+  display: flex;
 }
 
 .apitest-fade-pane.is-out {
