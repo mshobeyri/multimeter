@@ -407,6 +407,42 @@ const appendClientCertificateFieldErrors = (
     });
 };
 
+/** Map Monaco validation markers to ProblemEntry-shaped diagnostics for VS Code. */
+export function validationMarkersToProblems(markers: any[]): Array<{
+    message: string;
+    severity: 'error' | 'warning';
+    line: number;
+    column: number;
+    endColumn?: number;
+}> {
+    return (Array.isArray(markers) ? markers : []).map((marker) => {
+        // Monaco MarkerSeverity.Warning = 4; Error = 8.
+        const severity =
+            marker?.severity === 4 || marker?.severity === 'Warning' ?
+            'warning' as const :
+            'error' as const;
+        const line = typeof marker?.startLineNumber === 'number' &&
+                marker.startLineNumber > 0 ?
+            marker.startLineNumber :
+            1;
+        const column = typeof marker?.startColumn === 'number' &&
+                marker.startColumn > 0 ?
+            marker.startColumn :
+            1;
+        const endColumn = typeof marker?.endColumn === 'number' &&
+                marker.endColumn > column ?
+            marker.endColumn :
+            undefined;
+        return {
+            message: String(marker?.message || 'Validation error'),
+            severity,
+            line,
+            column,
+            ...(endColumn !== undefined ? {endColumn} : {}),
+        };
+    });
+}
+
 export const validateYamlContent = (content: string): any[] => {
     const errors: any[] = [];
 

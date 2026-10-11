@@ -5,6 +5,7 @@ import { formatMmtYaml } from "mmt-core/mmtFormat";
 import { curlToAPI, isCurlCommand } from "mmt-core/curlConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
+import { validateYamlContent, validationMarkersToProblems } from "./Validate";
 import { safeList } from "mmt-core/safer";
 import { opsList } from "mmt-core/TestData";
 import { openRelativeFile, openUntitledMmt } from "../vsAPI";
@@ -410,7 +411,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         setYamlProblems(problems);
       } else {
         monaco.editor.setModelMarkers(model, "yaml", []);
-        setYamlProblems([]);
+        // Schema / AJV errors already paint Monaco via BeforeMount (mmt-validation).
+        // Forward them to VS Code diagnostics so the file shows as errored too.
+        setYamlProblems(validationMarkersToProblems(validateYamlContent(content)));
       }
     } catch (e: any) {
       setYamlProblems([{
@@ -1427,6 +1430,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...missingSuiteFileProblems,
       ...duplicateServerProblems,
       ...suiteThenSeparatorProblems,
+      ...missingDocFileProblems,
       ...exampleKeyProblems,
       ...inputRefProblems,
       ...envRefProblems,

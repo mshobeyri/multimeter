@@ -14,8 +14,7 @@ import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,
-  kvEntriesContentEqual,
-  kvEntriesEqual,
+  resolveKvDraftSync,
   withTrailingEmptyRow,
   type KvEntry,
 } from "./kvEntryDraft";
@@ -88,35 +87,40 @@ const KVEditor: React.FC<KVEditorProps> = ({
   const entries = draft ?? propEntries;
   const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
   const publishedRef = useRef<KvEntry[] | null>(null);
+  const prevPropEntriesRef = useRef(propEntries);
 
   useEffect(() => {
+    const prevProps = prevPropEntriesRef.current;
+
     if (!draft) {
+      prevPropEntriesRef.current = propEntries;
       return;
     }
-    if (draft.some(([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v))) {
+
+    const action = resolveKvDraftSync({
+      draft,
+      propEntries,
+      prevPropEntries: prevProps,
+      published: publishedRef.current,
+      expandable,
+      blockWhileIncomplete: draft.some(
+        ([k, v]) => k.trim() !== "" && isIncompleteJsonLiteral(v),
+      ),
+    });
+
+    if (action.type === "keep") {
+      prevPropEntriesRef.current = propEntries;
       return;
     }
-    if (findDuplicateKeyIndexes(draft).size > 0) {
-      return;
-    }
-    // Same keys and values came back. Drop the draft so the blank next-key
-    // row from props is shown. The placeholder row is not part of the compare.
-    if (kvEntriesContentEqual(draft, propEntries)) {
-      publishedRef.current = null;
-      setDraft(null);
-      return;
-    }
-    const echo = publishedRef.current;
-    if (echo && kvEntriesContentEqual(draft, echo)) {
-      const shown = withTrailingEmptyRow(draft, expandable);
-      if (!kvEntriesEqual(draft, shown)) {
-        publishedRef.current = shown;
-        setDraft(shown);
-      }
+    if (action.type === "normalizeTrailing") {
+      publishedRef.current = action.entries;
+      setDraft(action.entries);
+      prevPropEntriesRef.current = propEntries;
       return;
     }
     publishedRef.current = null;
     setDraft(null);
+    prevPropEntriesRef.current = propEntries;
   }, [propEntries, draft, expandable]);
 
   const publish = (next: KvEntry[]) => {

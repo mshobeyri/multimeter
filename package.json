@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman.",
-	"version": "1.45.0",
+	"version": "1.45.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -166,20 +166,46 @@
           "minimum": 8,
           "maximum": 40
         },
-        "multimeter.editor.defaultPanel": {
+        "multimeter.editor.yamlPaneSize": {
           "type": "string",
-          "default": "yaml-ui",
+          "default": "50%-50%",
           "enum": [
-            "yaml-ui",
-            "yaml",
-            "ui"
+            "Only UI",
+            "10%-90%",
+            "20%-80%",
+            "30%-70%",
+            "40%-60%",
+            "50%-50%",
+            "60%-40%",
+            "70%-30%",
+            "80%-20%",
+            "90%-10%",
+            "Only YAML",
+            "400px",
+            "500px",
+            "750px",
+            "1000px",
+            "1300px"
           ],
           "enumDescriptions": [
-            "Show both YAML editor and UI panel (split view)",
+            "Show only the UI panel",
+            "YAML 10% / UI 90%",
+            "YAML 20% / UI 80%",
+            "YAML 30% / UI 70%",
+            "YAML 40% / UI 60%",
+            "YAML 50% / UI 50%",
+            "YAML 60% / UI 40%",
+            "YAML 70% / UI 30%",
+            "YAML 80% / UI 20%",
+            "YAML 90% / UI 10%",
             "Show only the YAML editor",
-            "Show only the UI panel"
+            "YAML fixed at 400px",
+            "YAML fixed at 500px",
+            "YAML fixed at 750px",
+            "YAML fixed at 1000px",
+            "YAML fixed at 1300px"
           ],
-          "description": "Default panel layout when opening MMT files"
+          "description": "Default editor layout when opening MMT files. Percentage options are YAML%-UI%; Only YAML / Only UI hide one pane; px options fix the YAML pane width. Split button uses the selected split size (or 50%-50% if Only YAML / Only UI is selected)."
         },
         "multimeter.editor.collapseDescription": {
           "type": "boolean",
@@ -577,22 +603,22 @@
         {
           "command": "multimeter.mmt.show.ui",
           "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation@1"
+          "group": "navigation@10"
         },
         {
           "command": "multimeter.mmt.show.full",
           "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation@2"
+          "group": "navigation@11"
         },
         {
           "command": "multimeter.mmt.show.yaml",
           "when": "activeCustomEditorId == mmt.editor || activeCustomEditorId == mmt.specEditor",
-          "group": "navigation@3"
+          "group": "navigation@12"
         },
         {
           "command": "multimeter.mmt.show.as.mmt",
           "when": "(resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno || resourceExtname == .json || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .xml || resourceExtname == .wsdl) && activeCustomEditorId != mmt.editor && activeCustomEditorId != mmt.httpEditor && activeCustomEditorId != mmt.brunoEditor && activeCustomEditorId != mmt.specEditor",
-          "group": "navigation@4"
+          "group": "navigation@20"
         }
       ],
       "explorer/context": [

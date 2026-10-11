@@ -22,6 +22,73 @@ export const writeEnvironmentVariables =
     };
 
 /**
+ * Upsert `incoming` by name; keep other existing vars (manual / runtime /
+ * vars from other env files). Incoming order is preserved first.
+ */
+export function mergeEnvVariableLists(
+    existing: EnvVariable[]|undefined|null,
+    incoming: EnvVariable[]|undefined|null,
+): EnvVariable[] {
+  const safeExisting = Array.isArray(existing) ? existing : [];
+  const safeIncoming = Array.isArray(incoming) ? incoming : [];
+  const incomingNames = new Set(
+      safeIncoming.map(v => v?.name).filter((n): n is string => !!n));
+  return [
+    ...safeIncoming,
+    ...safeExisting.filter(v => v?.name && !incomingNames.has(v.name)),
+  ];
+}
+
+/**
+ * Merge incoming vars into current workspace storage (does not wipe others).
+ */
+export const mergeEnvironmentVariables =
+    (incoming: EnvVariable[]): void => {
+      if (!Array.isArray(incoming) || incoming.length === 0) {
+        return;
+      }
+      const cleanup = loadEnvVariables((existingVars) => {
+        saveEnvVariablesFromObject(
+            mergeEnvVariableLists(existingVars, incoming));
+        cleanup();
+      });
+    };
+
+/** Drop vars whose names are in `names`; keep everything else. */
+export function removeEnvVariablesByNames(
+    existing: EnvVariable[]|undefined|null,
+    names: string[],
+): EnvVariable[] {
+  const safeExisting = Array.isArray(existing) ? existing : [];
+  const drop = new Set(
+      (Array.isArray(names) ? names : [])
+          .map(n => String(n ?? '').trim())
+          .filter(Boolean));
+  if (drop.size === 0) {
+    return safeExisting;
+  }
+  return safeExisting.filter(v => !v?.name || !drop.has(v.name));
+}
+
+/**
+ * Remove named vars from workspace storage; leave other keys untouched.
+ */
+export const removeEnvironmentVariablesByNames =
+    (names: string[]): void => {
+      const drop = (Array.isArray(names) ? names : [])
+                       .map(n => String(n ?? '').trim())
+                       .filter(Boolean);
+      if (drop.length === 0) {
+        return;
+      }
+      const cleanup = loadEnvVariables((existingVars) => {
+        saveEnvVariablesFromObject(
+            removeEnvVariablesByNames(existingVars, drop));
+        cleanup();
+      });
+    };
+
+/**
  * Sets a single environment variable in storage
  * @param name Variable name
  * @param value Variable value

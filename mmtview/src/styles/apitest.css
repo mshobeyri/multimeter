@@ -325,26 +325,52 @@
   font-size: 12px;
 }
 
-.apitest-empty-send-link {
-  display: inline;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--vscode-textLink-foreground, #3794ff);
-  cursor: pointer;
+/* Match website docs `{{btn:icon:Label}}` chips, sized to the hint text. */
+.apitest-empty-ui-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+  margin: 0 0.1em;
+  padding: 0 5px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, #334155));
+  border-radius: 4px;
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #1e293b)) 80%,
+    transparent
+  );
+  color: var(--vscode-foreground, #e2e8f0);
   font: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-size: inherit;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  cursor: pointer;
 }
 
-.apitest-empty-send-link:hover {
-  color: var(--vscode-textLink-activeForeground, #4daafc);
+.apitest-empty-ui-btn .codicon {
+  font-size: 11px;
+  line-height: 1;
 }
 
-.apitest-empty-send-link:focus-visible {
+.apitest-empty-ui-btn-label {
+  letter-spacing: 0.01em;
+}
+
+.apitest-empty-ui-btn:hover {
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #1e293b)) 100%,
+    transparent
+  );
+  border-color: var(--vscode-focusBorder, var(--vscode-widget-border, #475569));
+}
+
+.apitest-empty-ui-btn:focus-visible {
   outline: 1px solid var(--vscode-focusBorder, #007fd4);
   outline-offset: 2px;
-  border-radius: 2px;
 }
 
 .apitest-example {
@@ -798,8 +824,25 @@
 }
 
 .apitest-fade-pane {
+  display: flex;
+  flex-direction: column;
   transition: opacity var(--apitest-fade-ms, 120ms) ease;
   will-change: opacity;
+}
+
+/* Kept API tabs: mount once, hide inactive (avoids Monaco/editor remount). */
+.apitest-tab-panel {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.apitest-tab-panel.is-active {
+  display: flex;
 }
 
 .apitest-fade-pane.is-out {
@@ -881,7 +924,18 @@
 }
 
 .button-icon.is-active {
-  color: var(--vscode-button-background, #0e639c);
+  /* Squircle tint of the icon color (no border — avoids layout shift). */
+  color: var(--vscode-foreground, #cccccc);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  border: none;
+  border-radius: 6px;
+  opacity: 1;
+}
+
+.button-icon.is-active:hover,
+.button-icon.is-active:focus {
+  color: var(--vscode-foreground, #cccccc);
+  background: color-mix(in srgb, currentColor 26%, transparent);
 }
 
 .section-edit-label {
@@ -912,6 +966,13 @@
   font-size: 9.6px;
 }
 
+/* Same padding idle/active so the tint bg does not shift neighbors. */
+.section-edit-toggle.apitest-header-tool-btn {
+  padding: 2px;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
 .section-edit-toggle.apitest-header-tool-btn .codicon {
   font-size: 19.2px;
 }
@@ -922,6 +983,26 @@
   border: none !important;
   opacity: 1;
   color: var(--vscode-foreground, #cccccc);
+}
+
+/* Active header tools (e.g. telescope): icon-colored curved bg at low opacity. */
+.section-edit-toggle.is-active,
+.section-edit-toggle.button-icon.is-active {
+  color: var(--vscode-foreground, #cccccc);
+  background: color-mix(in srgb, currentColor 18%, transparent) !important;
+  border: none !important;
+  border-radius: 6px;
+  opacity: 1;
+}
+
+.section-edit-toggle.is-active:hover,
+.section-edit-toggle.is-active:focus,
+.section-edit-toggle.button-icon.is-active:hover,
+.section-edit-toggle.button-icon.is-active:focus {
+  color: var(--vscode-foreground, #cccccc);
+  background: color-mix(in srgb, currentColor 26%, transparent) !important;
+  border: none !important;
+  opacity: 1;
 }
 
 .section-edit-toggle:disabled {
@@ -1034,6 +1115,30 @@
   /* Fill the response section like the no-body pane. */
   width: 100%;
   box-sizing: border-box;
+}
+
+.apitest-response-overlay {
+  z-index: 2;
+  flex: none;
+  margin: 0;
+  min-height: 0;
+  width: auto;
+  height: auto;
+  pointer-events: auto;
+}
+
+.apitest-response-overlay.is-opaque {
+  background: var(--vscode-editor-background, var(--vscode-sideBar-background, #1e1e1e));
+}
+
+/* Match `.mmt-yaml-error-dim` so in-flight wait feels the same as YAML error dim. */
+.apitest-response-overlay.is-dimmed {
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 55%, transparent);
+  backdrop-filter: blur(1px);
+}
+
+.apitest-no-response.is-sending .apitest-body-none-icon {
+  opacity: 0.85;
 }
 
 .apitest-body-wrapper.is-disabled {

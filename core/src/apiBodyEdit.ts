@@ -23,13 +23,13 @@ import {
 } from './markupConvertor';
 import {normalizeNewlines} from './textLines';
 import {isIncompleteJsonLiteral} from './yamlValueConvert';
-
 export {
   displayRuntimeString,
   displayRuntimeStringRecord,
   enterEditStringBuffer,
   enterEditStringRecord,
   findDisplayTokenCharRanges,
+  leafResolvesToOmit,
   peerRecordToDisplay,
   peerRecordToYaml,
   peerStringToDisplay,

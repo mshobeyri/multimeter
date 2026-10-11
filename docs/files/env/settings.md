@@ -37,6 +37,6 @@ Multimeter exposes the following VS Code settings (accessible via Settings or `s
 | `multimeter.body.lineNumbers` | `false` | Show line numbers in the API tester body editor |
 | `multimeter.suite.reportSpillBytes` | `2097152` | In-memory suite report budget (bytes) before spilling step details; `0` disables spill — see [Large reports](../suite/reports.md#large-reports) |
 | `multimeter.editor.fontSize` | `12` | Font size for the YAML editor (range: 8-40) |
-| `multimeter.editor.defaultPanel` | `yaml-ui` | Default panel when opening `.mmt` files: `yaml-ui`, `yaml`, or `ui` |
+| `multimeter.editor.yamlPaneSize` | `50%-50%` | Default layout when opening `.mmt` files: YAML%/UI% split, `Only YAML`, `Only UI`, or a fixed YAML width (`400px`…`1300px`) |
 | `multimeter.editor.collapseDescription` | `false` | Auto-collapse multi-line description fields when opening files |
 | `multimeter.workspaceEnvFile` | `multimeter.mmt` | Path to the workspace environment file loaded on project open |

@@ -15,7 +15,13 @@ const YAML_UNSAFE_OPS = opsList
   .filter(op => op.startsWith('!') || op.startsWith('>'))
   .sort((a, b) => b.length - a.length);
 
+/** All comparison ops, longest first — used when stripping quotes on emit. */
+const EMIT_UNQUOTE_OPS = [...opsList].sort((a, b) => b.length - a.length);
+
+/** `>` fuzzy forms need YAML quoting; `<N%` is already a safe plain scalar. */
 const FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
+/** Emit may strip quotes from either fuzzy direction. */
+const EMIT_FUZZY_PERCENT_OP_RE = /^[<>](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
 const TIME_TILDE_OP_RE = new RegExp(`^${TIME_OPERATOR_PATTERN}(?:\\s|$)`);
 const EXACT_TIME_TILDE_OP_RE = new RegExp(`^${TIME_OPERATOR_PATTERN}$`);
 
@@ -73,13 +79,13 @@ export function quoteExpectOperators(yaml: string): string {
   return joinLines(lines, eol);
 }
 
-const YAML_BANG_UNSAFE_OPS = YAML_UNSAFE_OPS.filter(op => op.startsWith('!'));
 const QUOTED_SCALAR_RE = /^"((?:\\.|[^"\\])*)"$/;
 
 /**
- * After YAML.stringify, remove double quotes from `!` operator scalars that our
- * parser accepts unquoted via {@link quoteExpectOperators}. Keeps `>` / `>=`
- * quoted because unquoted block-scalar syntax breaks parsing.
+ * After YAML.stringify, remove double quotes from expect/match/operator
+ * scalars. Needed for YAML-unsafe ops (`!=`, `>`) that were pre-quoted on
+ * parse, and for safe ops (`<=`, `==`, …) that keep QUOTE_DOUBLE style when
+ * the UI changes the operator on a formerly quoted scalar.
  */
 export function emitUnquotedOperators(yaml: string): string {
   const eol = detectNewline(yaml);
@@ -123,14 +129,15 @@ function unescapeQuotedScalar(value: string): string | undefined {
   return match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
 }
 
-function needsBangOperatorQuoting(value: string): boolean {
+/** True when an expect/match scalar should be emitted without double quotes. */
+function canEmitUnquotedOperatorValue(value: string): boolean {
   if (/^["']/.test(value)) {
     return false;
   }
-  if (FUZZY_PERCENT_OP_RE.test(value) || TIME_TILDE_OP_RE.test(value)) {
+  if (EMIT_FUZZY_PERCENT_OP_RE.test(value) || TIME_TILDE_OP_RE.test(value)) {
     return true;
   }
-  for (const op of YAML_BANG_UNSAFE_OPS) {
+  for (const op of EMIT_UNQUOTE_OPS) {
     if (value === op || value.startsWith(op + ' ')) {
       return true;
     }
@@ -142,10 +149,10 @@ function canEmitUnquotedExactOperator(value: string): boolean {
   if (/^["']/.test(value)) {
     return false;
   }
-  if (EXACT_FUZZY_PERCENT_OP_RE.test(value) || EXACT_TIME_TILDE_OP_RE.test(value)) {
+  if (EXACT_EMIT_FUZZY_PERCENT_OP_RE.test(value) || EXACT_TIME_TILDE_OP_RE.test(value)) {
     return true;
   }
-  return YAML_BANG_UNSAFE_OPS.some(op => op === value);
+  return EMIT_UNQUOTE_OPS.some(op => op === value);
 }
 
 function unquoteExpectLineIfNeeded(line: string): string {
@@ -156,7 +163,7 @@ function unquoteExpectLineIfNeeded(line: string): string {
   if (mapMatch) {
     const [, prefix, value] = mapMatch;
     const inner = unescapeQuotedScalar(value.trim());
-    if (inner !== undefined && needsBangOperatorQuoting(inner)) {
+    if (inner !== undefined && canEmitUnquotedOperatorValue(inner)) {
       return leadingWS + prefix + inner;
     }
     return line;
@@ -166,7 +173,7 @@ function unquoteExpectLineIfNeeded(line: string): string {
   if (arrayMatch) {
     const [, prefix, value] = arrayMatch;
     const inner = unescapeQuotedScalar(value.trim());
-    if (inner !== undefined && needsBangOperatorQuoting(inner)) {
+    if (inner !== undefined && canEmitUnquotedOperatorValue(inner)) {
       return leadingWS + prefix + inner;
     }
   }
@@ -233,6 +240,7 @@ function needsOperatorQuoting(value: string): boolean {
 }
 
 const EXACT_FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%$/;
+const EXACT_EMIT_FUZZY_PERCENT_OP_RE = /^[<>](?:0|[1-9][0-9]?|100)%$/;
 
 function needsExactOperatorQuoting(value: string): boolean {
   if (/^["']/.test(value)) {

@@ -2,6 +2,47 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.45.1-pre]
+
+Pre-release. VS Code extension `1.45.1`; Testlight CLI and MCP `1.45.1-pre` on `@pre`.
+
+### API tester
+
+- Keep request and response data tabs mounted after a background warm so later switches skip remount cost (Doc / Auth / Settings stay on demand)
+- Fade in the editor shell on open
+- Overlay empty and in-flight states on the response pane; keep the previous response while a new Send is in flight
+- Hide omit headers, query, and cookies in the resolved tester view
+- Show auth secrets as plain token fields and fix token padding
+- Keep KV draft order when numeric keys reorder Record echoes
+- Use a tinted squircle for the active telescope tool
+
+### Editor and layout
+
+- Add a YAML pane layout setting for open and split
+- Move layout title actions after Open Changes
+- Forward schema validation errors to VS Code diagnostics
+- Badge running files in Explorer via file decorations
+- Dirty test and suite editors via insert-delete markModified; stop dirtying while tests or mocks run
+- Block text selection on UI chrome except copy surfaces
+
+### Expect operators and format
+
+- Keep `>` and `>=` expect operators unquoted after format
+- Unquote all expect operators after UI edits and format
+
+### Environment
+
+- Make Environment panel values type-aware with type chips
+- Make env Apply/Clear merge-safe and open live files via `(live)`
+- Use variable name as label for bare scalar env defs
+- Allow selecting env names and history request metadata
+- Document live environment variables and Apply / Clear
+
+### Website
+
+- Match hero API and run controls to the current tester UI
+- Add Multimeter to the demo activity bar and tidy hero dividers
+
 ## [1.45.0-pre]
 
 Pre-release. VS Code extension `1.45.0`; Testlight CLI and MCP `1.45.0-pre` on `@pre`.

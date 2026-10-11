@@ -64,7 +64,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
       const bodyLineNumbers = !!config.get<boolean>('body.lineNumbers');
       const editorFontSize = config.get<number>('editor.fontSize');
-      const defaultPanel = config.get<string>('editor.defaultPanel') || 'yaml-ui';
+      const yamlPaneSizeRaw = config.get<string|number>('editor.yamlPaneSize');
+      const yamlPaneSize = typeof yamlPaneSizeRaw === 'string' && yamlPaneSizeRaw.trim() ?
+          yamlPaneSizeRaw.trim() :
+          typeof yamlPaneSizeRaw === 'number' && Number.isFinite(yamlPaneSizeRaw) && yamlPaneSizeRaw > 0 ?
+          `${yamlPaneSizeRaw}%-${100 - yamlPaneSizeRaw}%` :
+          '50%-50%';
       const collapseDescription = !!config.get<boolean>('editor.collapseDescription');
       const reportSpillBytes = config.get<number>('suite.reportSpillBytes');
       return {
@@ -72,7 +77,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         bodyAutoFormat,
         bodyLineNumbers,
         editorFontSize,
-        defaultPanel,
+        yamlPaneSize,
         collapseDescription,
         reportSpillBytes: typeof reportSpillBytes === 'number' && reportSpillBytes >= 0 ?
             reportSpillBytes :
@@ -84,7 +89,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         bodyAutoFormat: false,
         bodyLineNumbers: false,
         editorFontSize: 12,
-        defaultPanel: 'yaml-ui',
+        yamlPaneSize: '50%-50%',
         collapseDescription: false,
         reportSpillBytes: 2097152,
       };
@@ -175,8 +180,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
     // Remove panel when it's disposed
     webviewPanel.onDidDispose(() => {
-      // Dirty-while-running makes Cancel keep the tab open. If we still get
-      // here with an active run (Don't Save / Save), abort it.
+      // Closing the editor aborts any run still bound to this panel.
       if (panelHasActiveRun(webviewPanel)) {
         abortRunsForPanel(webviewPanel);
       }
@@ -273,7 +277,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
   updateTextDocument(
       document: vscode.TextDocument, text: string,
-      origin: 'webview'|'host'|'silent' = 'webview') {
+      origin: 'webview'|'host' = 'webview') {
     // Monaco / webview always speak LF; VS Code documents on Windows are often
     // CRLF. Convert to the document EOL before compare/replace so we do not
     // full-rewrite on every keystroke (that races echo and jumps the cursor).
@@ -286,13 +290,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       return Promise.resolve(true);
     }
     // UI/YAML edits should keep a preview tab open (same idea as a dirty file).
-    // Silent = run-owned dirty marker; tab is already kept by the run path.
-    if (origin !== 'silent') {
-      keepMmtEditorSoon(document.uri);
-    }
+    keepMmtEditorSoon(document.uri);
     const key = document.uri.toString();
-    // webview + silent: skip onDidChangeTextDocument echo into the webview.
-    if (origin === 'webview' || origin === 'silent') {
+    // webview: skip onDidChangeTextDocument echo into the webview.
+    if (origin === 'webview') {
       this._webviewEditCount.set(
           key, (this._webviewEditCount.get(key) || 0) + 1);
     }
@@ -301,7 +302,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         document.positionAt(0), document.positionAt(document.getText().length));
     edit.replace(document.uri, fullRange, normalized);
     return vscode.workspace.applyEdit(edit).then(applied => {
-      if (!applied && (origin === 'webview' || origin === 'silent')) {
+      if (!applied && origin === 'webview') {
         const current = this._webviewEditCount.get(key) || 0;
         if (current > 0) {
           this._webviewEditCount.set(key, current - 1);

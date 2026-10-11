@@ -1,21 +1,18 @@
 import React from "react";
 import { APIData } from "mmt-core/APIData";
-import { JSONRecord } from "mmt-core/CommonData";
-import {
-  stringContainsFieldToken,
-} from "mmt-core/apiBodyEdit";
 import {
   stringFieldToYamlWithLiveTokens,
   yamlValueToInputBoxWithTokens,
 } from "../components/convertor";
 import StableTextInput from "../components/StableTextInput";
 import TokenFieldInput from "../components/TokenFieldInput";
-import { useEnvTokenValueContext } from "../components/useEnvTokenValueContext";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 
 interface ApiAuthEditorProps {
   api: APIData;
   update: (patch: Partial<APIData>) => void;
+  /** Same inputs/env context as headers/query so token preview matches. */
+  valueContext: RuntimeTokenValueContext;
 }
 
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
@@ -33,48 +30,37 @@ function AuthValueField({
   onCommit,
   valueContext,
   placeholder,
-  password,
   className,
 }: {
   value: string;
   onCommit: (yaml: string) => void;
   valueContext: RuntimeTokenValueContext;
   placeholder?: string;
-  password?: boolean;
   className?: string;
 }) {
   const display = yamlValueToInputBoxWithTokens(value ?? "", true, true);
-  const hasTokens = stringContainsFieldToken(display);
-  if (password && !hasTokens) {
-    return (
-      <StableTextInput
-        className={className}
-        type="password"
-        placeholder={placeholder}
-        value={value ?? ""}
-        onChange={onCommit}
-      />
-    );
-  }
-  return (
+  // Layout classes (e.g. field-grow) belong on a wrapper: TokenFieldInput puts
+  // className on the inner <input>, which is not the flex child of field-inline.
+  const field = (
     <TokenFieldInput
-      className={className}
       value={display}
       canContainToken
       valueContext={valueContext}
       placeholder={placeholder}
+      spellCheck={false}
+      autoComplete="off"
       onCommit={v => onCommit(stringFieldToYamlWithLiveTokens(v))}
       onDraftChange={v => onCommit(stringFieldToYamlWithLiveTokens(v))}
     />
   );
+  if (!className) {
+    return field;
+  }
+  return <div className={className}>{field}</div>;
 }
 
 /** Auth type and credentials — Auth tab. */
-const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
-  const valueContext = useEnvTokenValueContext(
-    typeof api.inputs === "object" ? (api.inputs as JSONRecord) : {},
-  );
-
+const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update, valueContext }) => {
   return (
     <div className="panel-form">
       <div className="panel-form-row">
@@ -132,7 +118,6 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
             <AuthValueField
               className="field-grow"
               placeholder="Password"
-              password
               value={api.auth.password}
               valueContext={valueContext}
               onCommit={password => update({ auth: { ...api.auth as any, password } })}
@@ -214,7 +199,6 @@ const ApiAuthEditor: React.FC<ApiAuthEditorProps> = ({ api, update }) => {
               <AuthValueField
                 className="field-grow"
                 placeholder="Client Secret"
-                password
                 value={api.auth.client_secret}
                 valueContext={valueContext}
                 onCommit={client_secret => update({ auth: { ...api.auth as any, client_secret } })}

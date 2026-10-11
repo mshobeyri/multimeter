@@ -514,8 +514,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   }, [buildRequestForSend, runViaCore]);
 
   const handleSend = useCallback(async () => {
-    setResponseData(undefined);
-    setResponseRevision(prev => prev + 1);
+    // Keep the previous response visible until the new result arrives so the
+    // body pane does not jump to the empty/sending state on every Send.
     setApiTestResults(null);
 
     const req = await buildRequestForSend();

@@ -21,7 +21,7 @@ When an environment file defines preset groups, they appear under **Presets**. E
 |---|---|
 | **Name** | Variable name — referenced as `e:name` or `<<e:name>>` in tests and APIs |
 | **Label** | Selected choice from the env file definition (dropdown when the variable has choices) |
-| **Value** | Resolved runtime value — edit inline when the variable allows it. File-backed `./….mmt` [live variables](./live-variables.md) show a file icon and an open control inside the field |
+| **Value** | Resolved runtime value — edit inline when the variable allows it. File-backed `./….mmt` [live variables](./live-variables.md) show a clickable `(live)` chip that opens the target file |
 
 Number, boolean, object, and list values keep their types in JSON requests and in this panel. Suite and API `setenv` writes appear here as runtime variables after a run.
 

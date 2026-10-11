@@ -1,5 +1,6 @@
 import {
   kvEntriesContentEqual,
+  kvEntriesContentEqualUnordered,
   resolveKvDraftSync,
   withTrailingEmptyRow,
   withoutTrailingEmptyKey,
@@ -93,5 +94,37 @@ describe("resolveKvDraftSync", () => {
         expandable: true,
       }),
     ).toEqual({type: "clear"});
+  });
+
+  it("keeps draft order when an integer-index key reorders the Record echo", () => {
+    // Typing "1…" as a new header/cookie key: Object.entries puts "1" first.
+    const fromUi: [string, string][] = [
+      ["Authorization", "Bearer x"],
+      ["Content-Type", "application/json"],
+      ["1", ""],
+      ["", ""],
+    ];
+    const reorderedEcho: [string, string][] = [
+      ["1", ""],
+      ["Authorization", "Bearer x"],
+      ["Content-Type", "application/json"],
+      ["", ""],
+    ];
+    const prevProps: [string, string][] = [
+      ["Authorization", "Bearer x"],
+      ["Content-Type", "application/json"],
+      ["", ""],
+    ];
+    expect(kvEntriesContentEqualUnordered(fromUi, reorderedEcho)).toBe(true);
+    expect(kvEntriesContentEqual(fromUi, reorderedEcho)).toBe(false);
+    expect(
+      resolveKvDraftSync({
+        draft: fromUi,
+        propEntries: reorderedEcho,
+        prevPropEntries: prevProps,
+        published: fromUi,
+        expandable: true,
+      }),
+    ).toEqual({type: "keep"});
   });
 });

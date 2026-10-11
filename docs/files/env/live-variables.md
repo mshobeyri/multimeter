@@ -72,7 +72,7 @@ body:
 
 ## Environment panel
 
-In the environment variables UI, file-backed values show a **file** icon and an open control inside the value field. Ctrl/Cmd+click the path also opens the target file. See [Environment variables panel](./ui.md).
+In the environment variables UI, file-backed values show a clickable `(live)` chip in the value field; click it to open the target file. See [Environment variables panel](./ui.md).
 
 ## setenv vs live variables
 

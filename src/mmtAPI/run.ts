@@ -78,20 +78,6 @@ const suiteRuns = new Map<string, ActiveRunUi & {
   childIds: Map<string, string>;
 }>();
 
-/**
- * Mark a clean document dirty for the run so close shows Save / Don't Save /
- * Cancel (Cancel keeps the run). Same path as YAML edits; left dirty afterward.
- */
-async function markDirtyForRun(
-    document: vscode.TextDocument, mmtProvider: any): Promise<void> {
-  if (document.isDirty) {
-    return;
-  }
-  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-  await mmtProvider.updateTextDocument(
-      document, document.getText() + eol, 'silent');
-}
-
 function createSuiteRunId(document: vscode.TextDocument) {
   return `suite:${document.uri.fsPath}:${Date.now()}`;
 }
@@ -368,11 +354,9 @@ export async function handleRunCurrentDocument(
   };
 
   // Prefer right-panel UI YAML when present; glyphs omit rawFile and use the file.
-  // Capture before the run-owned dirty marker mutates the buffer.
   const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
       ? message.rawFile
       : document.getText();
-  await markDirtyForRun(document, mmtProvider);
 
   try {
     const fileLoader = createFileLoader(document.uri.fsPath);
@@ -557,8 +541,6 @@ export async function handleRunSuite(
     fileUri,
     panelRef,
   };
-
-  await markDirtyForRun(document, mmtProvider);
 
   const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({

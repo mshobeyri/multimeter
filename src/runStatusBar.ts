@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+import {decorateRunFinished, decorateRunStarted} from './runFileDecoration';
+
 export type RunStatusMenuItem = {label: string; id: string};
 
 interface ActiveRun {
@@ -154,6 +156,7 @@ export function onRunStarted(
     onMenuAction: options?.onMenuAction,
     statusBarItem: item,
   });
+  decorateRunStarted(runId, options?.uri, label);
   return runId;
 }
 
@@ -165,4 +168,5 @@ export function onRunFinished(runId: string): void {
   run.statusBarItem.hide();
   run.statusBarItem.dispose();
   activeRuns.delete(runId);
+  decorateRunFinished(runId);
 }

@@ -788,6 +788,27 @@ select.method-select:focus-visible {
   overflow: hidden;
 }
 
+.split-host {
+  /* 50ms hold at 0, then 150ms rise to 1 */
+  animation: mmt-ui-fade-in 200ms ease-out both;
+}
+
+@keyframes mmt-ui-fade-in {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .split-host {
+    animation: none;
+  }
+}
+
 .mmt-split {
   background-color: var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);

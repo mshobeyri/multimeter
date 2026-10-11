@@ -35,8 +35,6 @@ import {
   parseSourceFormat,
 } from "./sourceFormat";
 import { hasPrimaryAction, invokePrimaryAction } from "./primaryAction";
-import { patchWebviewState } from "./shared/webviewState";
-
 /** Monaco always uses LF; normalize so controlled value never flip-flops CRLF↔LF. */
 function toEditorText(text: string): string {
   return normalizeNewlines(text ?? "");
@@ -64,21 +62,15 @@ declare global {
 }
 
 type PanelMode = "full" | "yaml" | "ui";
-
-type WebviewViewState = {
-  documentUri?: string;
-  panelMode?: PanelMode;
-  panelSize?: number;
-  panelRatio?: number;
-  windowWidth?: number;
-};
+type YamlPaneSizeSpec =
+  | { kind: "percent"; value: number }
+  | { kind: "px"; value: number }
+  | { kind: "yaml" }
+  | { kind: "ui" };
 
 const minPanelSize = 420;
 const defaultPanelRatio = 0.5;
-
-function isPanelMode(value: unknown): value is PanelMode {
-  return value === "full" || value === "yaml" || value === "ui";
-}
+const defaultYamlPaneSizeSpec: YamlPaneSizeSpec = { kind: "percent", value: 50 };
 
 function clampPanelSize(size: number, mode: PanelMode, width: number) {
   if (mode === "yaml") {
@@ -118,39 +110,60 @@ function panelSizeFromRatio(ratio: number, width: number) {
   return clampPanelSize(Math.round(clampPanelRatio(ratio, width) * width), "full", width);
 }
 
-function readSavedViewState(documentUri?: string) {
-  const savedState = (window.vscode as any)?.getState?.() as WebviewViewState | undefined;
-  const savedPanelMode = savedState?.panelMode;
-  const hasSavedState = !!documentUri && savedState?.documentUri === documentUri &&
-    (!savedPanelMode || savedPanelMode === "full");
-  const panelMode = hasSavedState && isPanelMode(savedPanelMode) ? savedPanelMode : "full";
-  const width = window.innerWidth;
-  let panelSize = defaultPanelSize(panelMode, width);
-
-  if (hasSavedState && typeof savedState?.panelRatio === "number" && Number.isFinite(savedState.panelRatio)) {
-    panelSize = panelSizeFromRatio(savedState.panelRatio, width);
-  } else if (hasSavedState && typeof savedState?.panelSize === "number" && Number.isFinite(savedState.panelSize)) {
-    if (panelMode === "full" && typeof savedState.windowWidth === "number" && savedState.windowWidth > 0) {
-      panelSize = (savedState.panelSize / savedState.windowWidth) * width;
-    } else {
-      panelSize = savedState.panelSize;
-    }
+function parseYamlPaneSize(raw: unknown): YamlPaneSizeSpec {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return { kind: "percent", value: raw };
   }
+  const text = String(raw ?? "").trim().toLowerCase();
+  if (text === "only yaml" || text === "yaml") {
+    return { kind: "yaml" };
+  }
+  if (text === "only ui" || text === "ui") {
+    return { kind: "ui" };
+  }
+  const splitMatch = text.match(/^(\d+(?:\.\d+)?)\s*%\s*-\s*(\d+(?:\.\d+)?)\s*%$/);
+  if (splitMatch) {
+    return { kind: "percent", value: Number(splitMatch[1]) };
+  }
+  const pxMatch = text.match(/^(\d+(?:\.\d+)?)\s*px$/);
+  if (pxMatch) {
+    return { kind: "px", value: Number(pxMatch[1]) };
+  }
+  const percentMatch = text.match(/^(\d+(?:\.\d+)?)\s*%$/);
+  if (percentMatch) {
+    return { kind: "percent", value: Number(percentMatch[1]) };
+  }
+  const bareMatch = text.match(/^(\d+(?:\.\d+)?)$/);
+  if (bareMatch) {
+    return { kind: "percent", value: Number(bareMatch[1]) };
+  }
+  return defaultYamlPaneSizeSpec;
+}
 
-  return {
-    hasSavedState,
-    panelMode,
-    panelSize: clampPanelSize(panelSize, panelMode, width),
-  };
+function splitSizeFromYamlSetting(width: number, spec: YamlPaneSizeSpec): number {
+  if (spec.kind === "px") {
+    if (!Number.isFinite(spec.value) || spec.value <= 0) {
+      return defaultPanelSize("full", width);
+    }
+    return clampPanelSize(Math.round(spec.value), "full", width);
+  }
+  if (spec.kind === "percent") {
+    if (!Number.isFinite(spec.value) || spec.value <= 0) {
+      return defaultPanelSize("full", width);
+    }
+    return panelSizeFromRatio(spec.value / 100, width);
+  }
+  // Only YAML / Only UI: split button falls back to 50%-50%
+  return panelSizeFromRatio(defaultPanelRatio, width);
 }
 
 const App: React.FC = () => {
   const splitHostRef = useRef<HTMLDivElement | null>(null);
-  const initialViewState = useRef(readSavedViewState());
-  const [panelSize, setPanelSize] = useState(() => initialViewState.current.panelSize);
-  const [panelMode, setPanelMode] = useState<PanelMode>(() => initialViewState.current.panelMode);
-  const panelSizeRef = useRef(initialViewState.current.panelSize);
-  const lastFullPanelSizeRef = useRef(initialViewState.current.panelSize);
+  const initialWidth = typeof window !== "undefined" ? window.innerWidth : minPanelSize * 2;
+  const [panelSize, setPanelSize] = useState(() => defaultPanelSize("full", initialWidth));
+  const [panelMode, setPanelMode] = useState<PanelMode>("full");
+  const panelSizeRef = useRef(defaultPanelSize("full", initialWidth));
+  const lastFullPanelSizeRef = useRef(defaultPanelSize("full", initialWidth));
   const lastFullPanelRatioRef = useRef(defaultPanelRatio);
   const lastPanelDebugRef = useRef<{message: string; time: number} | null>(null);
 
@@ -164,10 +177,43 @@ const App: React.FC = () => {
   const [collectionName, setCollectionName] = useState<string | undefined>(undefined);
   const [yamlFontSize, setYamlFontSize] = useState<number>(12);
   const [collapseDescription, setCollapseDescription] = useState<boolean>(false);
+  const yamlPaneSizeRef = useRef<YamlPaneSizeSpec>(defaultYamlPaneSizeSpec);
+  const configReadyRef = useRef(false);
+  const pendingOpenLayoutRef = useRef(true);
 
   const isInitLoad = useRef(true);
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
   const lastWindowWidthRef = useRef(window.innerWidth);
+
+  function applyConfiguredSplit(width: number) {
+    const size = splitSizeFromYamlSetting(width, yamlPaneSizeRef.current);
+    setPanelMode("full");
+    lastFullPanelRatioRef.current = clampPanelRatio(size / width, width);
+    lastFullPanelSizeRef.current = size;
+    setPanelSize(size);
+  }
+
+  function applyOpenLayout(width = getLayoutWidth()) {
+    const spec = yamlPaneSizeRef.current;
+    if (spec.kind === "yaml") {
+      setPanelMode("yaml");
+      setPanelSize(defaultPanelSize("yaml", width));
+    } else if (spec.kind === "ui") {
+      setPanelMode("ui");
+      setPanelSize(defaultPanelSize("ui", width));
+    } else {
+      applyConfiguredSplit(width);
+    }
+    lastWindowWidthRef.current = window.innerWidth;
+  }
+
+  function tryApplyOpenLayout() {
+    if (!pendingOpenLayoutRef.current || !configReadyRef.current) {
+      return;
+    }
+    applyOpenLayout();
+    pendingOpenLayoutRef.current = false;
+  }
 
   useEffect(() => {
     ensureThemeSync();
@@ -243,19 +289,8 @@ const App: React.FC = () => {
       const message = event.data;
       if (message.command === "viewDocumentContent") {
         setDocumentContentLoaded(true);
-        if (typeof message.uri === "string") {
-          const savedViewState = readSavedViewState(message.uri);
-          initialViewState.current = savedViewState;
-          if (savedViewState.hasSavedState) {
-            setPanelMode(savedViewState.panelMode);
-            setPanelSize(savedViewState.panelSize);
-            const width = getLayoutWidth();
-            if (savedViewState.panelMode === "full" && isUsableLayoutWidth(width)) {
-              lastFullPanelRatioRef.current = clampPanelRatio(savedViewState.panelSize / width, width);
-            }
-            lastWindowWidthRef.current = window.innerWidth;
-          }
-        }
+        pendingOpenLayoutRef.current = true;
+        tryApplyOpenLayout();
         const nextSourceFormat = parseSourceFormat(
           message.sourceFormat === "http" || isHttpFilePath(message.uri || "") ? "http" :
             message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") || isBrunoCollectionFilePath(message.uri || "") ? "bruno" :
@@ -373,9 +408,7 @@ const App: React.FC = () => {
       if (message.command === "multimeter.mmt.show.panel") {
         const width = getLayoutWidth();
         if (message.panelId === "full") {
-          setPanelMode("full");
-          lastFullPanelRatioRef.current = defaultPanelRatio;
-          setPanelSize(defaultPanelSize("full", width));
+          applyConfiguredSplit(width);
         } else if (message.panelId === "yaml") {
           setPanelMode("yaml");
           setPanelSize(width);
@@ -409,22 +442,11 @@ const App: React.FC = () => {
         } else {
           setYamlFontSize(12);
         }
-        // Apply default panel mode on initial load
-        if (isInitLoad.current && !initialViewState.current.hasSavedState && message.defaultPanel) {
-          const width = getLayoutWidth();
-          if (message.defaultPanel === "yaml-ui") {
-            setPanelMode("full");
-            lastFullPanelRatioRef.current = defaultPanelRatio;
-            setPanelSize(defaultPanelSize("full", width));
-          } else if (message.defaultPanel === "yaml") {
-            setPanelMode("yaml");
-            setPanelSize(defaultPanelSize("yaml", width));
-          } else if (message.defaultPanel === "ui") {
-            setPanelMode("ui");
-            setPanelSize(defaultPanelSize("ui", width));
-          }
-          lastWindowWidthRef.current = window.innerWidth;
-        }
+        yamlPaneSizeRef.current = parseYamlPaneSize(message.yamlPaneSize);
+        configReadyRef.current = true;
+        // Open layout uses settings once; later config broadcasts only refresh refs
+        // (split button / next file open apply them). Avoid live rebinding the sash.
+        tryApplyOpenLayout();
         if (typeof message.collapseDescription === "boolean") {
           setCollapseDescription(message.collapseDescription);
         }
@@ -512,28 +534,16 @@ const App: React.FC = () => {
 
   useEffect(() => {
     panelSizeRef.current = panelSize;
-  }, [panelSize]);
-
-  useEffect(() => {
-    if (!mmtFilePath) {
+    if (panelMode !== "full") {
       return;
     }
     const width = getLayoutWidth();
-    if (document.hidden || !isUsableLayoutWidth(width)) {
-      debugPanelState(`ignore save while hidden/narrow width=${width} mode=${panelMode} size=${panelSize}`);
+    if (!isUsableLayoutWidth(width)) {
       return;
     }
-    if (panelMode === "full") {
-      lastFullPanelSizeRef.current = panelSize;
-      lastFullPanelRatioRef.current = clampPanelRatio(panelSize / width, width);
-    }
-    patchWebviewState({
-      documentUri: mmtFilePath,
-      panelSize: lastFullPanelSizeRef.current,
-      panelRatio: lastFullPanelRatioRef.current,
-      windowWidth: width,
-    });
-  }, [mmtFilePath, panelMode, panelSize]);
+    lastFullPanelSizeRef.current = panelSize;
+    lastFullPanelRatioRef.current = clampPanelRatio(panelSize / width, width);
+  }, [panelMode, panelSize]);
 
   useEffect(() => {
     const handleLayoutChange = () => {

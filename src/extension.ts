@@ -15,6 +15,7 @@ import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
 import StartPanel, {openSimplePostRequest} from './panels/StartPanel';
 import {initOnboarding, OnboardingController, getOnboarding} from './onboarding';
+import {registerRunFileDecoration} from './runFileDecoration';
 import {registerRunStatusBar} from './runStatusBar';
 import TempFilesPanel from './panels/TempFilesPanel';
 import {TempFilesController} from './tempFiles/tempFilesController';
@@ -41,6 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerMiscCommands(context);
 
   registerRunStatusBar(context);
+  registerRunFileDecoration(context);
 
   setupChatParticipants(context);
   registerMcpProvider(context);
@@ -83,6 +85,7 @@ function registerEditorProvider(
         if (event.affectsConfiguration('multimeter.body.auto.format') ||
             event.affectsConfiguration('multimeter.body.lineNumbers') ||
             event.affectsConfiguration('multimeter.editor.fontSize') ||
+            event.affectsConfiguration('multimeter.editor.yamlPaneSize') ||
             event.affectsConfiguration(
                 'multimeter.editor.collapseDescription')) {
           mmtviewPanel.broadcastConfig();

@@ -1,5 +1,36 @@
 import {describe, expect, it} from '@jest/globals';
-import {validateYamlContent} from './Validate';
+import {validateYamlContent, validationMarkersToProblems} from './Validate';
+
+describe('validationMarkersToProblems', () => {
+  it('maps Monaco error markers to error diagnostics', () => {
+    expect(validationMarkersToProblems([
+      {
+        severity: 8,
+        startLineNumber: 4,
+        startColumn: 1,
+        endColumn: 12,
+        message: 'must NOT have additional properties',
+      },
+    ])).toEqual([{
+      message: 'must NOT have additional properties',
+      severity: 'error',
+      line: 4,
+      column: 1,
+      endColumn: 12,
+    }]);
+  });
+
+  it('maps Monaco warning markers to warning diagnostics', () => {
+    expect(validationMarkersToProblems([
+      {severity: 4, startLineNumber: 2, startColumn: 3, message: 'soft'},
+    ])).toEqual([{
+      message: 'soft',
+      severity: 'warning',
+      line: 2,
+      column: 3,
+    }]);
+  });
+});
 
 describe('validateYamlContent API method requirements', () => {
   it('accepts data imports on API files', () => {

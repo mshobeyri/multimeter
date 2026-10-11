@@ -73,17 +73,6 @@ function panelMockMenuAction(fileUri?: vscode.Uri):
   };
 }
 
-/** Dirty the editor so close prompts while a UI-started mock is running. */
-async function markDirtyForMock(
-    document: vscode.TextDocument, mmtProvider: any): Promise<void> {
-  if (document.isDirty || !mmtProvider?.updateTextDocument) {
-    return;
-  }
-  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-  await mmtProvider.updateTextDocument(
-      document, document.getText() + eol, 'silent');
-}
-
 function resolveFilePath(filePath: string, basePath: string): string {
   return resolveCertFilePath(filePath, {baseFilePath: basePath});
 }
@@ -335,7 +324,7 @@ export async function startMockServer(
         },
       };
       const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${listenPort}`;
-      // UI-started: click opens the file; dirty keeps close from aborting silently.
+      // UI-started: click opens the file; closing the editor stops this mock.
       handle.statusBarRunId = onRunStarted(label, {
         uri: document.uri,
         icon: 'server',
@@ -344,7 +333,6 @@ export async function startMockServer(
 
       // Keep preview tab open while the mock server is bound to this file.
       keepMmtEditorSoon(document.uri);
-      void markDirtyForMock(document, mmtProvider);
 
       webviewPanel.webview.postMessage({
         command: 'mockServerStatus',

@@ -130,9 +130,10 @@ export type EnvChoice = {label: string; value: JSONValue};
 /**
  * Choices for one env variable. The stored value keeps its YAML type.
  * List labels use input-box text so `10` and `"10"` stay distinct.
- * Object labels are the field names. A scalar is a single choice.
+ * Object labels are the field names.
+ * A bare scalar (`name: value`) is a single choice labeled with `name`.
  */
-export function envVariableChoices(value: unknown): EnvChoice[] {
+export function envVariableChoices(value: unknown, name?: string): EnvChoice[] {
   if (Array.isArray(value)) {
     return envScalarChoices(value);
   }
@@ -143,7 +144,10 @@ export function envVariableChoices(value: unknown): EnvChoice[] {
     }));
   }
   if (isEnvScalar(value)) {
-    return [{label: yamlValueToInputBox(value), value}];
+    const label = (typeof name === 'string' && name.trim()) ?
+      name :
+      yamlValueToInputBox(value);
+    return [{label, value}];
   }
   return [];
 }

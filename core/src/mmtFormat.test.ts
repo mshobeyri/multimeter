@@ -1,5 +1,7 @@
+import {EXPECT_OPERATOR_SAMPLES} from './expectOperatorSamples';
 import {detectMmtDocType, formatMmtYaml} from './mmtFormat';
 import {formatMmtYamlAst, reorderMapPairs} from './mmtFormatAst';
+import {opsList} from './TestData';
 import YAML, {isMap} from 'yaml';
 import fs from 'fs';
 import path from 'path';
@@ -491,6 +493,66 @@ describe('mmtFormat comment preservation', () => {
       const {formatted} = formatMmtYaml(content, rel);
       expect(formatted).toBe(content);
     }
+  });
+
+  describe('does not quote each expect operator scalar on format', () => {
+    const opSet = new Set<string>(opsList);
+    it.each(EXPECT_OPERATOR_SAMPLES)(
+        '$op → $value',
+        ({op, value}) => {
+          const yaml = [
+            'type: test',
+            'steps:',
+            '  - call: sample',
+            '    expect:',
+            `      field: ${value}`,
+            ...(opSet.has(op) ? [
+              '  - check:',
+              '      actual: x',
+              `      operator: ${op}`,
+              '      expected: y',
+            ] : []),
+          ].join('\n');
+          const {formatted} = formatMmtYaml(yaml, 'ops.mmt');
+          expect(formatted).toContain(`field: ${value}`);
+          expect(formatted).not.toContain(`field: "${value}"`);
+          if (opSet.has(op)) {
+            expect(formatted).toContain(`operator: ${op}`);
+            expect(formatted).not.toContain(`operator: "${op}"`);
+          }
+        },
+    );
+
+    it('is idempotent for a multi-operator expect block', () => {
+      const yaml = [
+        'type: test',
+        'steps:',
+        '  - call: sample',
+        '    expect:',
+        ...EXPECT_OPERATOR_SAMPLES.map(({value}, i) => `      k${i}: ${value}`),
+        '      scores:',
+        '        - > 0',
+        '        - >= 2026',
+        '        - != null',
+      ].join('\n');
+      const {formatted} = formatMmtYaml(yaml, 'ops.mmt');
+      const again = formatMmtYaml(formatted, 'ops.mmt');
+      expect(again.formatted).toBe(formatted);
+    });
+  });
+
+  it('keeps current_test expect operators unquoted after format', () => {
+    const root = path.resolve(__dirname, '../..');
+    const rel = 'examples/intermediate/12_dynamic_values/current_test.mmt';
+    const content = fs.readFileSync(path.join(root, rel), 'utf8');
+    expect(content).toContain('year: >= 2026');
+    const {formatted} = formatMmtYaml(content, rel);
+    expect(formatted).toContain('year: >= 2026');
+    expect(formatted).not.toContain('year: ">= 2026"');
+    expect(formatted).toContain('created_local: != null');
+    expect(formatted).not.toContain('created_local: "!= null"');
+    expect(formatted).toContain('=5s~');
+    expect(formatted).toContain('!5s~');
   });
 });
 

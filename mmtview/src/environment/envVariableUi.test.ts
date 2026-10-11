@@ -63,7 +63,14 @@ describe('envVariableUi', () => {
     ]);
     expect(envVariableChoices(10)).toEqual([{label: '10', value: 10}]);
     expect(envVariableChoices('10')).toEqual([{label: '"10"', value: '10'}]);
+    expect(envVariableChoices('https://test.mmt.dev', 'base_url')).toEqual([
+      {label: 'base_url', value: 'https://test.mmt.dev'},
+    ]);
     expect(envVariableChoices({local: 10, quoted: '10'})).toEqual([
+      {label: 'local', value: 10},
+      {label: 'quoted', value: '10'},
+    ]);
+    expect(envVariableChoices({local: 10, quoted: '10'}, 'base_url')).toEqual([
       {label: 'local', value: 10},
       {label: 'quoted', value: '10'},
     ]);
