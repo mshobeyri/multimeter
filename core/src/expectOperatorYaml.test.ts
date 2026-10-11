@@ -111,11 +111,15 @@ describe('expectOperatorYaml', () => {
     expect(emitted).not.toContain('operator: "!="');
   });
 
-  it('keeps block-scalar operators quoted on emit', () => {
-    const yaml = 'expect:\n  count: "> 0"\nsteps:\n  - check:\n      operator: ">"\n      actual: x\n      expected: 1';
+  it('emits unquoted block-scalar operators (pre-quoted again on parse)', () => {
+    const yaml = 'expect:\n  count: "> 0"\n  year: ">= 2026"\nsteps:\n  - check:\n      operator: ">"\n      actual: x\n      expected: 1';
     const emitted = emitUnquotedOperators(yaml);
-    expect(emitted).toContain('count: "> 0"');
-    expect(emitted).toContain('operator: ">"');
+    expect(emitted).toContain('count: > 0');
+    expect(emitted).toContain('year: >= 2026');
+    expect(emitted).toContain('operator: >');
+    expect(emitted).not.toContain('count: "> 0"');
+    expect(emitted).not.toContain('year: ">= 2026"');
+    expect(emitted).not.toContain('operator: ">"');
   });
 
   it('quotes operator field on check/assert object forms', () => {

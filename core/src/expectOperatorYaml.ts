@@ -73,13 +73,13 @@ export function quoteExpectOperators(yaml: string): string {
   return joinLines(lines, eol);
 }
 
-const YAML_BANG_UNSAFE_OPS = YAML_UNSAFE_OPS.filter(op => op.startsWith('!'));
 const QUOTED_SCALAR_RE = /^"((?:\\.|[^"\\])*)"$/;
 
 /**
- * After YAML.stringify, remove double quotes from `!` operator scalars that our
- * parser accepts unquoted via {@link quoteExpectOperators}. Keeps `>` / `>=`
- * quoted because unquoted block-scalar syntax breaks parsing.
+ * After YAML.stringify, remove double quotes from operator scalars that our
+ * parser accepts unquoted via {@link quoteExpectOperators} (`!=`, `>`, `>=`,
+ * `>%`, time tilde, …). Raw YAML would reject those forms; every parse path
+ * pre-quotes first, so authored/format output can stay unquoted.
  */
 export function emitUnquotedOperators(yaml: string): string {
   const eol = detectNewline(yaml);
@@ -123,14 +123,15 @@ function unescapeQuotedScalar(value: string): string | undefined {
   return match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
 }
 
-function needsBangOperatorQuoting(value: string): boolean {
+/** True when an unquoted expect/match scalar is safe to emit (pre-quoted on parse). */
+function canEmitUnquotedOperatorValue(value: string): boolean {
   if (/^["']/.test(value)) {
     return false;
   }
   if (FUZZY_PERCENT_OP_RE.test(value) || TIME_TILDE_OP_RE.test(value)) {
     return true;
   }
-  for (const op of YAML_BANG_UNSAFE_OPS) {
+  for (const op of YAML_UNSAFE_OPS) {
     if (value === op || value.startsWith(op + ' ')) {
       return true;
     }
@@ -145,7 +146,7 @@ function canEmitUnquotedExactOperator(value: string): boolean {
   if (EXACT_FUZZY_PERCENT_OP_RE.test(value) || EXACT_TIME_TILDE_OP_RE.test(value)) {
     return true;
   }
-  return YAML_BANG_UNSAFE_OPS.some(op => op === value);
+  return YAML_UNSAFE_OPS.some(op => op === value);
 }
 
 function unquoteExpectLineIfNeeded(line: string): string {
@@ -156,7 +157,7 @@ function unquoteExpectLineIfNeeded(line: string): string {
   if (mapMatch) {
     const [, prefix, value] = mapMatch;
     const inner = unescapeQuotedScalar(value.trim());
-    if (inner !== undefined && needsBangOperatorQuoting(inner)) {
+    if (inner !== undefined && canEmitUnquotedOperatorValue(inner)) {
       return leadingWS + prefix + inner;
     }
     return line;
@@ -166,7 +167,7 @@ function unquoteExpectLineIfNeeded(line: string): string {
   if (arrayMatch) {
     const [, prefix, value] = arrayMatch;
     const inner = unescapeQuotedScalar(value.trim());
-    if (inner !== undefined && needsBangOperatorQuoting(inner)) {
+    if (inner !== undefined && canEmitUnquotedOperatorValue(inner)) {
       return leadingWS + prefix + inner;
     }
   }

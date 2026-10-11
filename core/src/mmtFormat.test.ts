@@ -1,8 +1,35 @@
 import {detectMmtDocType, formatMmtYaml} from './mmtFormat';
 import {formatMmtYamlAst, reorderMapPairs} from './mmtFormatAst';
+import {opsList} from './TestData';
 import YAML, {isMap} from 'yaml';
 import fs from 'fs';
 import path from 'path';
+
+/** Representative expect scalar per operator — format must not wrap these in quotes. */
+const EXPECT_OPERATOR_SAMPLES: Array<{op: string; value: string}> = [
+  ...opsList.map((op) => {
+    if (op === '=*' || op === '!*') {
+      return {op, value: `${op} /x/`};
+    }
+    if (op === '>%' || op === '<%') {
+      return {op, value: `${op} Jon`};
+    }
+    if (op === '=s~') {
+      return {op, value: '=5s~ 2026-01-01T00:00:00Z'};
+    }
+    if (op === '!s~') {
+      return {op, value: '!5s~ 2026-01-01T00:00:00Z'};
+    }
+    if (op === '>' || op === '>=' || op === '<' || op === '<=' ||
+        op === '>#' || op === '>=#' || op === '<#' || op === '<=#' ||
+        op === '=#' || op === '!#') {
+      return {op, value: `${op} 2026`};
+    }
+    return {op, value: `${op} sample`};
+  }),
+  {op: '>75%', value: '>75% Jon'},
+  {op: '<60%', value: '<60% Jon'},
+];
 
 const apiYaml = `type: api
 title: Echo
@@ -491,6 +518,61 @@ describe('mmtFormat comment preservation', () => {
       const {formatted} = formatMmtYaml(content, rel);
       expect(formatted).toBe(content);
     }
+  });
+
+  it('does not quote expect operator scalars (including >= / >)', () => {
+    const expectLines = EXPECT_OPERATOR_SAMPLES.map(
+        ({op, value}, i) => `      k${i}: ${value}`,
+    );
+    const opSet = new Set<string>(opsList);
+    const operatorLines = EXPECT_OPERATOR_SAMPLES.filter(({op}) => opSet.has(op))
+        .map(({op}, i) => [
+          `  - check:`,
+          `      actual: a${i}`,
+          `      operator: ${op}`,
+          `      expected: e${i}`,
+        ].join('\n'));
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - call: sample',
+      '    expect:',
+      ...expectLines,
+      '      scores:',
+      '        - > 0',
+      '        - >= 2026',
+      '        - != null',
+      ...operatorLines,
+    ].join('\n');
+
+    const {formatted} = formatMmtYaml(yaml, 'ops.mmt');
+    for (const {value} of EXPECT_OPERATOR_SAMPLES) {
+      expect(formatted).toContain(`: ${value}`);
+      expect(formatted).not.toContain(`: "${value}"`);
+    }
+    expect(formatted).toContain('- > 0');
+    expect(formatted).toContain('- >= 2026');
+    expect(formatted).toContain('- != null');
+    expect(formatted).not.toContain('- "> 0"');
+    expect(formatted).not.toContain('- ">= 2026"');
+    expect(formatted).not.toContain('- "!= null"');
+
+    const again = formatMmtYaml(formatted, 'ops.mmt');
+    expect(again.formatted).toBe(formatted);
+  });
+
+  it('keeps current_test expect operators unquoted after format', () => {
+    const root = path.resolve(__dirname, '../..');
+    const rel = 'examples/intermediate/12_dynamic_values/current_test.mmt';
+    const content = fs.readFileSync(path.join(root, rel), 'utf8');
+    expect(content).toContain('year: >= 2026');
+    const {formatted} = formatMmtYaml(content, rel);
+    expect(formatted).toContain('year: >= 2026');
+    expect(formatted).not.toContain('year: ">= 2026"');
+    expect(formatted).toContain('created_local: != null');
+    expect(formatted).not.toContain('created_local: "!= null"');
+    expect(formatted).toContain('=5s~');
+    expect(formatted).toContain('!5s~');
   });
 });
 
