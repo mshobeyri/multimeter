@@ -348,11 +348,3 @@ function normalizeOpenFilePath(filename: string): string {
   export function keepEditor() {
     window.vscode?.postMessage({command: 'keepEditor'});
   }
-
-  /**
-   * Dirty the open document without leaving text changed (insert then delete).
-   * Separate from normal YAML updateDocumentContent edits.
-   */
-  export function markModified() {
-    window.vscode?.postMessage({command: 'markModified'});
-  }

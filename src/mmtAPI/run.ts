@@ -1,4 +1,4 @@
-import {JSer, runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
+import {runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
 import {createRunPauseGate, type FileLoader, type RunPauseGate} from 'mmt-core/runConfig';
 import type {SuiteEnvironment} from 'mmt-core/SuiteData';
 import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
@@ -77,19 +77,6 @@ let activeTestRun: ActiveRunUi|null = null;
 const suiteRuns = new Map<string, ActiveRunUi & {
   childIds: Map<string, string>;
 }>();
-
-/** Test/suite/loadtest only — API runs do not dirty the editor. */
-function shouldMarkModifiedForRun(filePath: string, raw: string): boolean {
-  const kind = JSer.fileType(filePath, raw);
-  return kind === 'test' || kind === 'suite' || kind === 'loadtest';
-}
-
-async function markModifiedForRun(
-    document: vscode.TextDocument, mmtProvider: any): Promise<void> {
-  if (typeof mmtProvider?.markModified === 'function') {
-    await mmtProvider.markModified(document);
-  }
-}
 
 function createSuiteRunId(document: vscode.TextDocument) {
   return `suite:${document.uri.fsPath}:${Date.now()}`;
@@ -370,10 +357,6 @@ export async function handleRunCurrentDocument(
   const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
       ? message.rawFile
       : document.getText();
-  // Dirty only tests (not API): close Cancel keeps the run.
-  if (shouldMarkModifiedForRun(document.uri.fsPath, rawFile)) {
-    await markModifiedForRun(document, mmtProvider);
-  }
 
   try {
     const fileLoader = createFileLoader(document.uri.fsPath);
@@ -558,8 +541,6 @@ export async function handleRunSuite(
     fileUri,
     panelRef,
   };
-
-  await markModifiedForRun(document, mmtProvider);
 
   const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({

@@ -180,8 +180,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
     // Remove panel when it's disposed
     webviewPanel.onDidDispose(() => {
-      // Dirty-while-running makes Cancel keep the tab open. If we still get
-      // here with an active run (Don't Save / Save), abort it.
+      // Closing the editor aborts any run still bound to this panel.
       if (panelHasActiveRun(webviewPanel)) {
         abortRunsForPanel(webviewPanel);
       }
@@ -274,51 +273,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       changeDocumentSubscription.dispose();
       themeListener.dispose();
     });
-  }
-
-  /**
-   * Dirty a clean document without leaving content changed: insert a marker
-   * then delete it. Separate from {@link updateTextDocument} (normal YAML edits).
-   * Used so close during test/suite runs shows Save / Don't Save / Cancel.
-   *
-   * VS Code has no setDirty API and WorkspaceEdit always joins the undo stack;
-   * there is no public way to skip that.
-   */
-  async markModified(document: vscode.TextDocument): Promise<void> {
-    if (document.isDirty) {
-      return;
-    }
-    const key = document.uri.toString();
-    // Insert + delete each fire onDidChangeTextDocument.
-    this._webviewEditCount.set(
-        key, (this._webviewEditCount.get(key) || 0) + 2);
-
-    const marker = ' ';
-    const insert = new vscode.WorkspaceEdit();
-    insert.insert(document.uri, new vscode.Position(0, 0), marker);
-    if (!(await vscode.workspace.applyEdit(insert))) {
-      this.releaseSilentEditCredits(key, 2);
-      return;
-    }
-
-    const remove = new vscode.WorkspaceEdit();
-    remove.delete(
-        document.uri,
-        new vscode.Range(
-            new vscode.Position(0, 0),
-            new vscode.Position(0, marker.length)));
-    if (!(await vscode.workspace.applyEdit(remove))) {
-      // Insert stuck; drop remaining silent credit (one event already consumed).
-      this.releaseSilentEditCredits(key, 1);
-    }
-  }
-
-  private releaseSilentEditCredits(key: string, n: number): void {
-    const current = this._webviewEditCount.get(key) || 0;
-    if (current <= 0) {
-      return;
-    }
-    this._webviewEditCount.set(key, Math.max(0, current - n));
   }
 
   updateTextDocument(
