@@ -9,6 +9,7 @@ import {
   uiRowToExpectValue,
   uiRowsToExpectMap,
 } from './expectUi';
+import {EXPECT_OPERATOR_SAMPLES} from './expectOperatorSamples';
 import {OMIT_SENTINEL} from './omitKeyword';
 import { testToYaml, yamlToTest } from './testParsePack';
 
@@ -24,6 +25,71 @@ describe('expectUi', () => {
     const original = ['!= 201', 200, '== 200', '=* 2.*', '!* 1.*'];
     const map = uiRowsToExpectMap(expectMapToUiRows({ status: original }));
     expect(map?.status).toEqual(original);
+  });
+
+  it('does not quote expects when UI changes operator away from a bang op', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - call: api',
+      '    expect:',
+      '      year: != null',
+      '      score: >= 80',
+      '',
+    ].join('\n');
+    const test = yamlToTest(yaml);
+    const step = test.steps?.[0] as any;
+    const rows = expectMapToUiRows(step.expect).map((row) => {
+      if (row.field === 'year') {
+        return applyExpectUiRowChange(
+            applyExpectUiRowChange(row, 'op', '<='),
+            'expected',
+            '2026',
+        );
+      }
+      if (row.field === 'score') {
+        return applyExpectUiRowChange(row, 'op', '<=');
+      }
+      return row;
+    });
+    step.expect = uiRowsToExpectMap(rows);
+    const out = testToYaml(test, yaml);
+    expect(out).toContain('year: <= 2026');
+    expect(out).toContain('score: <= 80');
+    expect(out).not.toContain('year: "<= 2026"');
+    expect(out).not.toContain('score: "<= 80"');
+  });
+
+  describe('keeps each operator unquoted after UI change from a bang expect', () => {
+    const baseYaml = [
+      'type: test',
+      'steps:',
+      '  - call: api',
+      '    expect:',
+      '      field: != null',
+      '',
+    ].join('\n');
+
+    it.each(EXPECT_OPERATOR_SAMPLES)(
+        '$op → $value',
+        ({value}) => {
+          const test = yamlToTest(baseYaml);
+          const step = test.steps?.[0] as any;
+          const row = expectMapToUiRows(step.expect)[0];
+          const [nextOp, ...rest] = value.split(' ');
+          const expected = rest.join(' ');
+          step.expect = uiRowsToExpectMap([
+            applyExpectUiRowChange(
+                applyExpectUiRowChange(row, 'op', nextOp),
+                'expected',
+                expected,
+            ),
+          ]);
+          const out = testToYaml(test, baseYaml);
+          expect(out).toContain(`field: ${value}`);
+          expect(out).not.toContain(`field: "${value}"`);
+        },
+    );
   });
 
   it('round-trips a multi-check expect block through edit-mode serialization', () => {

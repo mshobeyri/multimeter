@@ -1,35 +1,10 @@
+import {EXPECT_OPERATOR_SAMPLES} from './expectOperatorSamples';
 import {detectMmtDocType, formatMmtYaml} from './mmtFormat';
 import {formatMmtYamlAst, reorderMapPairs} from './mmtFormatAst';
 import {opsList} from './TestData';
 import YAML, {isMap} from 'yaml';
 import fs from 'fs';
 import path from 'path';
-
-/** Representative expect scalar per operator — format must not wrap these in quotes. */
-const EXPECT_OPERATOR_SAMPLES: Array<{op: string; value: string}> = [
-  ...opsList.map((op) => {
-    if (op === '=*' || op === '!*') {
-      return {op, value: `${op} /x/`};
-    }
-    if (op === '>%' || op === '<%') {
-      return {op, value: `${op} Jon`};
-    }
-    if (op === '=s~') {
-      return {op, value: '=5s~ 2026-01-01T00:00:00Z'};
-    }
-    if (op === '!s~') {
-      return {op, value: '!5s~ 2026-01-01T00:00:00Z'};
-    }
-    if (op === '>' || op === '>=' || op === '<' || op === '<=' ||
-        op === '>#' || op === '>=#' || op === '<#' || op === '<=#' ||
-        op === '=#' || op === '!#') {
-      return {op, value: `${op} 2026`};
-    }
-    return {op, value: `${op} sample`};
-  }),
-  {op: '>75%', value: '>75% Jon'},
-  {op: '<60%', value: '<60% Jon'},
-];
 
 const apiYaml = `type: api
 title: Echo
@@ -520,45 +495,50 @@ describe('mmtFormat comment preservation', () => {
     }
   });
 
-  it('does not quote expect operator scalars (including >= / >)', () => {
-    const expectLines = EXPECT_OPERATOR_SAMPLES.map(
-        ({op, value}, i) => `      k${i}: ${value}`,
-    );
+  describe('does not quote each expect operator scalar on format', () => {
     const opSet = new Set<string>(opsList);
-    const operatorLines = EXPECT_OPERATOR_SAMPLES.filter(({op}) => opSet.has(op))
-        .map(({op}, i) => [
-          `  - check:`,
-          `      actual: a${i}`,
-          `      operator: ${op}`,
-          `      expected: e${i}`,
-        ].join('\n'));
-    const yaml = [
-      'type: test',
-      'steps:',
-      '  - call: sample',
-      '    expect:',
-      ...expectLines,
-      '      scores:',
-      '        - > 0',
-      '        - >= 2026',
-      '        - != null',
-      ...operatorLines,
-    ].join('\n');
+    it.each(EXPECT_OPERATOR_SAMPLES)(
+        '$op → $value',
+        ({op, value}) => {
+          const yaml = [
+            'type: test',
+            'steps:',
+            '  - call: sample',
+            '    expect:',
+            `      field: ${value}`,
+            ...(opSet.has(op) ? [
+              '  - check:',
+              '      actual: x',
+              `      operator: ${op}`,
+              '      expected: y',
+            ] : []),
+          ].join('\n');
+          const {formatted} = formatMmtYaml(yaml, 'ops.mmt');
+          expect(formatted).toContain(`field: ${value}`);
+          expect(formatted).not.toContain(`field: "${value}"`);
+          if (opSet.has(op)) {
+            expect(formatted).toContain(`operator: ${op}`);
+            expect(formatted).not.toContain(`operator: "${op}"`);
+          }
+        },
+    );
 
-    const {formatted} = formatMmtYaml(yaml, 'ops.mmt');
-    for (const {value} of EXPECT_OPERATOR_SAMPLES) {
-      expect(formatted).toContain(`: ${value}`);
-      expect(formatted).not.toContain(`: "${value}"`);
-    }
-    expect(formatted).toContain('- > 0');
-    expect(formatted).toContain('- >= 2026');
-    expect(formatted).toContain('- != null');
-    expect(formatted).not.toContain('- "> 0"');
-    expect(formatted).not.toContain('- ">= 2026"');
-    expect(formatted).not.toContain('- "!= null"');
-
-    const again = formatMmtYaml(formatted, 'ops.mmt');
-    expect(again.formatted).toBe(formatted);
+    it('is idempotent for a multi-operator expect block', () => {
+      const yaml = [
+        'type: test',
+        'steps:',
+        '  - call: sample',
+        '    expect:',
+        ...EXPECT_OPERATOR_SAMPLES.map(({value}, i) => `      k${i}: ${value}`),
+        '      scores:',
+        '        - > 0',
+        '        - >= 2026',
+        '        - != null',
+      ].join('\n');
+      const {formatted} = formatMmtYaml(yaml, 'ops.mmt');
+      const again = formatMmtYaml(formatted, 'ops.mmt');
+      expect(again.formatted).toBe(formatted);
+    });
   });
 
   it('keeps current_test expect operators unquoted after format', () => {

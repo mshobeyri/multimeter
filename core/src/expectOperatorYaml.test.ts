@@ -1,5 +1,7 @@
 import * as YAML from 'yaml';
+import {EXPECT_OPERATOR_SAMPLES} from './expectOperatorSamples';
 import { emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators } from './expectOperatorYaml';
+import {opsList} from './TestData';
 
 describe('expectOperatorYaml', () => {
   it('quotes !^ operator in expect block', () => {
@@ -120,6 +122,31 @@ describe('expectOperatorYaml', () => {
     expect(emitted).not.toContain('count: "> 0"');
     expect(emitted).not.toContain('year: ">= 2026"');
     expect(emitted).not.toContain('operator: ">"');
+  });
+
+  describe('emits each operator unquoted from a double-quoted scalar', () => {
+    it.each(EXPECT_OPERATOR_SAMPLES)(
+        'expect value $op → $value',
+        ({value}) => {
+          const yaml = `expect:\n  field: "${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+          const emitted = emitUnquotedOperators(yaml);
+          expect(emitted).toContain(`field: ${value}`);
+          expect(emitted).not.toContain(`field: "${value}"`);
+        },
+    );
+
+    it.each(opsList)('operator field %s', (op) => {
+      const yaml = [
+        'steps:',
+        '  - check:',
+        `      operator: "${op}"`,
+        '      actual: x',
+        '      expected: 1',
+      ].join('\n');
+      const emitted = emitUnquotedOperators(yaml);
+      expect(emitted).toContain(`operator: ${op}`);
+      expect(emitted).not.toContain(`operator: "${op}"`);
+    });
   });
 
   it('quotes operator field on check/assert object forms', () => {
