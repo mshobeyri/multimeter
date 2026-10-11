@@ -85,7 +85,7 @@ const SendButton: React.FC<{
   const cancelIcon = mode === "run" ? "codicon-debug-stop" : "codicon-close";
   const idleTitle =
     actionTitle ?? (mode === "run" ? "Run" : `Send (${sendShortcutLabel()})`);
-  const activeTitle = cancelTitle ?? (mode === "run" ? "Stop" : "Cancel");
+  const activeTitle = cancelTitle ?? (mode === "run" ? "Stop" : "Cancel (Esc)");
 
   useEffect(() => {
     const onTheme = () => setThemeTick((n) => n + 1);

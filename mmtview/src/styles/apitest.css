@@ -325,26 +325,52 @@
   font-size: 12px;
 }
 
-.apitest-empty-send-link {
-  display: inline;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--vscode-textLink-foreground, #3794ff);
-  cursor: pointer;
+/* Match website docs `{{btn:icon:Label}}` chips, sized to the hint text. */
+.apitest-empty-ui-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+  margin: 0 0.1em;
+  padding: 0 5px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, #334155));
+  border-radius: 4px;
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #1e293b)) 80%,
+    transparent
+  );
+  color: var(--vscode-foreground, #e2e8f0);
   font: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-size: inherit;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  cursor: pointer;
 }
 
-.apitest-empty-send-link:hover {
-  color: var(--vscode-textLink-activeForeground, #4daafc);
+.apitest-empty-ui-btn .codicon {
+  font-size: 11px;
+  line-height: 1;
 }
 
-.apitest-empty-send-link:focus-visible {
+.apitest-empty-ui-btn-label {
+  letter-spacing: 0.01em;
+}
+
+.apitest-empty-ui-btn:hover {
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #1e293b)) 100%,
+    transparent
+  );
+  border-color: var(--vscode-focusBorder, var(--vscode-widget-border, #475569));
+}
+
+.apitest-empty-ui-btn:focus-visible {
   outline: 1px solid var(--vscode-focusBorder, #007fd4);
   outline-offset: 2px;
-  border-radius: 2px;
 }
 
 .apitest-example {

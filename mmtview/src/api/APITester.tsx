@@ -106,8 +106,13 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
 }
 
 /** Empty / in-flight state for response tabs. */
-const NoResponseYet: React.FC<{ onSend: () => void; sending?: boolean }> = ({
+const NoResponseYet: React.FC<{
+  onSend: () => void;
+  onCancel?: () => void;
+  sending?: boolean;
+}> = ({
   onSend,
+  onCancel,
   sending = false,
 }) => (
   <div
@@ -125,7 +130,22 @@ const NoResponseYet: React.FC<{ onSend: () => void; sending?: boolean }> = ({
       {sending ? (
         <>
           <div className="apitest-body-none-title">Sending request…</div>
-          <div className="apitest-body-none-hint">Waiting for the response.</div>
+          <div className="apitest-body-none-hint">
+            <div>
+              Click{" "}
+              <button
+                type="button"
+                className="apitest-empty-ui-btn"
+                onClick={onCancel}
+                title="Cancel (Esc)"
+              >
+                <span className="codicon codicon-close" aria-hidden />
+                <span className="apitest-empty-ui-btn-label">Cancel</span>
+              </button>
+              {" "}or press Esc
+            </div>
+            <div>to cancel.</div>
+          </div>
         </>
       ) : (
         <>
@@ -135,10 +155,12 @@ const NoResponseYet: React.FC<{ onSend: () => void; sending?: boolean }> = ({
               Click{" "}
               <button
                 type="button"
-                className="apitest-empty-send-link"
+                className="apitest-empty-ui-btn"
                 onClick={onSend}
+                title={`Send (${sendShortcutLabel()})`}
               >
-                Send
+                <span className="codicon codicon-send" aria-hidden />
+                <span className="apitest-empty-ui-btn-label">Send</span>
               </button>
               {" "}or press {sendShortcutLabel()}
             </div>
@@ -899,6 +921,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const sendShortcutEnabled =
     (!yamlErrors || yamlErrors.length === 0) && !(isWsUrl && !network.connected);
   usePrimaryAction(sendShortcutEnabled ? sendWithResolvedBody : null);
+
+  const requestInFlight = isSending || network.loading;
+  useEffect(() => {
+    if (!requestInFlight) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.repeat || event.isComposing) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      void handleCancel();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [requestInFlight, handleCancel]);
 
   const runWithResolvedBody = useCallback(async () => {
     if (bodyTokenMode === "tokens") {
@@ -1795,7 +1834,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         {!responseData && (shouldShowResponse() || shouldShowResponseHeaders() || shouldShowResponseCookies()) ? (
           <NoResponseYet
             onSend={sendWithResolvedBody}
-            sending={isSending || network.loading}
+            onCancel={handleCancel}
+            sending={requestInFlight}
           />
         ) : (
           <>
