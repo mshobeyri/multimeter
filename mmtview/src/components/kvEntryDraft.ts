@@ -28,6 +28,32 @@ export function kvEntriesContentEqual(a: KvEntry[], b: KvEntry[]): boolean {
   return kvEntriesEqual(withoutTrailingEmptyKey(a), withoutTrailingEmptyKey(b));
 }
 
+/**
+ * Same key/value pairs as a bag (order ignored). Used when JS integer-index
+ * keys (`"0"`, `"1"`, …) make `Object.entries` reorder a Record echo so it no
+ * longer matches the draft row order.
+ */
+export function kvEntriesContentEqualUnordered(
+  a: KvEntry[],
+  b: KvEntry[],
+): boolean {
+  const left = withoutTrailingEmptyKey(a);
+  const right = withoutTrailingEmptyKey(b);
+  if (left.length !== right.length) {
+    return false;
+  }
+  const norm = (entries: KvEntry[]): string[] =>
+    entries.map(([key, value]) => `${key}\0${value}`).sort();
+  const na = norm(left);
+  const nb = norm(right);
+  for (let i = 0; i < na.length; i++) {
+    if (na[i] !== nb[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export type KvDraftSyncAction =
   | {type: 'keep'}
   | {type: 'clear'}
@@ -76,6 +102,11 @@ export function resolveKvDraftSync(args: {
       return {type: 'keep'};
     }
     if (kvEntriesContentEqual(propEntries, prevPropEntries)) {
+      return {type: 'keep'};
+    }
+    // Record echo reordered integer-index keys; keep draft row order so the
+    // focused key cell is not remapped onto a previous header/cookie.
+    if (kvEntriesContentEqualUnordered(propEntries, echo)) {
       return {type: 'keep'};
     }
   }
