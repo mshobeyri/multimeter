@@ -15,6 +15,7 @@ import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
   displayRequestBody,
+  leafResolvesToOmit,
   packBodyAsYamlEncoded,
   tokensTextToYamlBody,
   valueForYamlSave,
@@ -329,10 +330,28 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     () => yamlValueToInputBoxWithTokens(api.url, true, true),
     [api.url],
   );
-  const urlQuery = useMemo(
-    () => queryForUrlBar(api.query as Record<string, unknown> | undefined),
-    [api.query],
-  );
+  // Tokens mode: authored query (incl. omit). Resolved: post-strip requestData
+  // so omitted params disappear from the URL the same way they leave Send.
+  const urlQuery = useMemo(() => {
+    if (bodyTokenMode === "resolved") {
+      if (requestData?.query && typeof requestData.query === "object") {
+        return queryForUrlBar(requestData.query as Record<string, unknown>);
+      }
+      const filtered: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(api.query ?? {})) {
+        if (!leafResolvesToOmit(value, bodyValueContext)) {
+          filtered[key] = value;
+        }
+      }
+      return queryForUrlBar(filtered);
+    }
+    return queryForUrlBar(api.query as Record<string, unknown> | undefined);
+  }, [
+    api.query,
+    bodyTokenMode,
+    bodyValueContext,
+    requestData?.query,
+  ]);
   const peerGraphqlOperation = useMemo(
     () => yamlValueToInputBoxWithTokens(api.graphql?.operation, true, true),
     [api.graphql?.operation],
@@ -414,6 +433,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   );
   // Resolved preview shows substituted i:/e:/r:/c: values. Token mode uses a
   // separate BodyView with {{…}} markers (own Ctrl+Z stack).
+  // Omit leaves are already dropped by resolveApiRequest → requestData.body.
   const requestBodyDisplay = useMemo(() => {
     return displayRequestBody(
       requestData?.body ?? api.body ?? "",
@@ -438,8 +458,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   }, [onUpdateApi]);
 
   const onUrlQueryChange = useCallback((query: Record<string, string>) => {
-    onQueryChange(queryFromUrlBar(query));
-  }, [onQueryChange]);
+    const next = queryFromUrlBar(query);
+    // Resolved URL omits omit-params; put authored omit keys back so a URL
+    // edit does not delete them from YAML.
+    if (bodyTokenMode === "resolved") {
+      for (const [key, value] of Object.entries(api.query ?? {})) {
+        if (leafResolvesToOmit(value, bodyValueContext) &&
+            !Object.prototype.hasOwnProperty.call(next, key)) {
+          next[key] = value as JSONValue;
+        }
+      }
+    }
+    onQueryChange(next);
+  }, [api.query, bodyTokenMode, bodyValueContext, onQueryChange]);
 
   const onHeadersChange = useCallback((headers: JSONRecord) => {
     onUpdateApi?.({ headers: headers as APIData["headers"] });
@@ -1371,6 +1402,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          hideOmittedWhenResolved
         />}
         {shouldShowHeaders() && <KSVEditor
           label=""
@@ -1380,6 +1412,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          hideOmittedWhenResolved
         />}
         {shouldShowCookies() && <KSVEditor
           label=""
@@ -1389,6 +1422,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          hideOmittedWhenResolved
         />}
         {shouldShowBody() && (
           <div className="apitest-body-pane">

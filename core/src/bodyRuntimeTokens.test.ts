@@ -39,6 +39,7 @@ import {
   peerRecordToDisplay,
   peerRecordToYaml,
   projectTokenFieldPreview,
+  leafResolvesToOmit,
   stringContainsFieldToken,
   wrapTypedTokenAtCursor,
   findDisplayTokenCharRanges,
@@ -253,6 +254,26 @@ describe('wrapTypedTokenAtCursor', () => {
       cursor: 8,
     });
     expect(wrapTypedTokenAtCursor('<<i:x>>', 5)).toEqual({text: '<<i:x>>', cursor: 5});
+  });
+});
+
+describe('leafResolvesToOmit', () => {
+  it('treats the omit sentinel as omit', () => {
+    expect(leafResolvesToOmit(OMIT_SENTINEL)).toBe(true);
+    expect(leafResolvesToOmit('omit')).toBe(false);
+    expect(leafResolvesToOmit('"omit"')).toBe(false);
+  });
+
+  it('resolves i:/e: tokens that point at omit inputs/env', () => {
+    const ctx = {
+      inputs: {middle_name: OMIT_SENTINEL, nick: 'omit'},
+      env: {gone: OMIT_SENTINEL},
+    };
+    expect(leafResolvesToOmit('i:middle_name', ctx)).toBe(true);
+    expect(leafResolvesToOmit('{{i:middle_name}}', ctx)).toBe(true);
+    expect(leafResolvesToOmit('e:gone', ctx)).toBe(true);
+    expect(leafResolvesToOmit('i:nick', ctx)).toBe(false);
+    expect(leafResolvesToOmit('plain', ctx)).toBe(false);
   });
 });
 

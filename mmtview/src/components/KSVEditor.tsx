@@ -10,7 +10,7 @@ import {
   inputBoxToYamlValueWithTokens,
   yamlValueToInputBoxWithTokens,
 } from "./convertor";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { leafResolvesToOmit, type RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
 import {
   entriesToUniqueRecord,
@@ -25,6 +25,7 @@ import {
   KV_FIELD_ATTR,
   kvFieldId,
 } from "./kvFieldNav";
+import { useTokenMode } from "./TokenModeContext";
 
 type KSVEditorBaseProps = {
   label: string;
@@ -48,6 +49,11 @@ type KSVEditorBaseProps = {
   /** Value fields: resolved/token dual-mode when a value contains tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
+  /**
+   * When token mode is resolved, hide rows whose value is / resolves to omit
+   * (API tester headers/query/cookies — matches Send / body omit behavior).
+   */
+  hideOmittedWhenResolved?: boolean;
   /**
    * Whole `<<c:city>>` shows as `{{c:city}}` and saves as `c:city`.
    * Quoted `i:username` stays a literal.
@@ -111,17 +117,39 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   filePickerFilters,
   canContainToken = false,
   valueContext,
+  hideOmittedWhenResolved = false,
   typedValues = false,
   liveAngleTokens = false,
 }) => {
   const tableRef = useRef<HTMLTableElement>(null);
+  const tokenMode = useTokenMode();
   const propEntries = useMemo(
     () => withTrailingEmptyKey(value, canContainToken, expandable, liveAngleTokens),
     [value, canContainToken, expandable, liveAngleTokens],
   );
   const [draft, setDraft] = useState<KvEntry[] | null>(null);
   const entries = draft ?? propEntries;
+  const hideResolvedOmit =
+    hideOmittedWhenResolved && canContainToken && tokenMode === "resolved";
   const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
+
+  const rowHiddenInResolved = (key: string, display: string): boolean => {
+    if (!hideResolvedOmit || !key.trim()) {
+      return false;
+    }
+    if (value && typeof value === "object" && !Array.isArray(value) &&
+        Object.prototype.hasOwnProperty.call(value, key)) {
+      return leafResolvesToOmit(
+        (value as Record<string, unknown>)[key],
+        valueContext,
+      );
+    }
+    // Draft-only row: bare `omit` is the keyword; `"omit"` stays visible.
+    if (display.trim() === "omit") {
+      return true;
+    }
+    return leafResolvesToOmit(display, valueContext);
+  };
   const publishedRef = useRef<KvEntry[] | null>(null);
   const prevPropEntriesRef = useRef(propEntries);
 
@@ -231,8 +259,11 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
       >
         <tbody>
           {safeList(entries)
-            .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
-            .map(([k, v], i) => (
+            .map((entry, i) => ({ entry, i }))
+            .filter(({ entry: [k, v], i }) =>
+              !(deactivated && k === "" && i === entries.length - 1) &&
+              !rowHiddenInResolved(k, v ?? ""))
+            .map(({ entry: [k, v], i }) => (
               <tr key={i}>
                 <td>
                   <StableTextInput

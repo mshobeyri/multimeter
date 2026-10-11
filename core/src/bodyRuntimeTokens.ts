@@ -1281,6 +1281,9 @@ function ieResolvedToDisplayText(resolved: unknown): string {
   if (resolved === undefined) {
     return '';
   }
+  if (isOmitSentinel(resolved)) {
+    return 'omit';
+  }
   if (resolved === null) {
     return 'null';
   }
@@ -1319,6 +1322,47 @@ function lookupRuntimeResolvedValue(plainSpec: string): unknown {
     return out?.v;
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * True when a request leaf is / resolves to the omit sentinel (Send drops it).
+ * Literal `"omit"` strings are not omit.
+ */
+export function leafResolvesToOmit(
+    value: unknown,
+    ctx?: RuntimeTokenValueContext,
+): boolean {
+  if (isOmitSentinel(value)) {
+    return true;
+  }
+  if (typeof value !== 'string' || !value) {
+    return false;
+  }
+  if (!ctx) {
+    return false;
+  }
+  if (!stringContainsFieldToken(value) && !stringContainsRuntimeToken(value)) {
+    return false;
+  }
+  try {
+    const out = replaceAllRefs(
+        {v: value},
+        {},
+        (ctx.inputs || {}) as Record<string, any>,
+        (ctx.env || {}) as Record<string, any>,
+        new Set(),
+    );
+    const resolved = out?.v;
+    if (isOmitSentinel(resolved)) {
+      return true;
+    }
+    if (typeof resolved === 'string' && resolved.includes(OMIT_SENTINEL)) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
   }
 }
 
