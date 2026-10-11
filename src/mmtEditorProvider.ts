@@ -64,7 +64,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
       const bodyLineNumbers = !!config.get<boolean>('body.lineNumbers');
       const editorFontSize = config.get<number>('editor.fontSize');
-      const defaultPanel = config.get<string>('editor.defaultPanel') || 'yaml-ui';
+      const yamlPaneSizeRaw = config.get<string|number>('editor.yamlPaneSize');
+      const yamlPaneSize = typeof yamlPaneSizeRaw === 'string' && yamlPaneSizeRaw.trim() ?
+          yamlPaneSizeRaw.trim() :
+          typeof yamlPaneSizeRaw === 'number' && Number.isFinite(yamlPaneSizeRaw) && yamlPaneSizeRaw > 0 ?
+          `${yamlPaneSizeRaw}%-${100 - yamlPaneSizeRaw}%` :
+          '50%-50%';
       const collapseDescription = !!config.get<boolean>('editor.collapseDescription');
       const reportSpillBytes = config.get<number>('suite.reportSpillBytes');
       return {
@@ -72,7 +77,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         bodyAutoFormat,
         bodyLineNumbers,
         editorFontSize,
-        defaultPanel,
+        yamlPaneSize,
         collapseDescription,
         reportSpillBytes: typeof reportSpillBytes === 'number' && reportSpillBytes >= 0 ?
             reportSpillBytes :
@@ -84,7 +89,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         bodyAutoFormat: false,
         bodyLineNumbers: false,
         editorFontSize: 12,
-        defaultPanel: 'yaml-ui',
+        yamlPaneSize: '50%-50%',
         collapseDescription: false,
         reportSpillBytes: 2097152,
       };
