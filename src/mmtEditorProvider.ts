@@ -276,9 +276,54 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     });
   }
 
+  /**
+   * Dirty a clean document without leaving content changed: insert a marker
+   * then delete it. Separate from {@link updateTextDocument} (normal YAML edits).
+   * Used so close during test/suite runs shows Save / Don't Save / Cancel.
+   *
+   * VS Code has no setDirty API and WorkspaceEdit always joins the undo stack;
+   * there is no public way to skip that.
+   */
+  async markModified(document: vscode.TextDocument): Promise<void> {
+    if (document.isDirty) {
+      return;
+    }
+    const key = document.uri.toString();
+    // Insert + delete each fire onDidChangeTextDocument.
+    this._webviewEditCount.set(
+        key, (this._webviewEditCount.get(key) || 0) + 2);
+
+    const marker = ' ';
+    const insert = new vscode.WorkspaceEdit();
+    insert.insert(document.uri, new vscode.Position(0, 0), marker);
+    if (!(await vscode.workspace.applyEdit(insert))) {
+      this.releaseSilentEditCredits(key, 2);
+      return;
+    }
+
+    const remove = new vscode.WorkspaceEdit();
+    remove.delete(
+        document.uri,
+        new vscode.Range(
+            new vscode.Position(0, 0),
+            new vscode.Position(0, marker.length)));
+    if (!(await vscode.workspace.applyEdit(remove))) {
+      // Insert stuck; drop remaining silent credit (one event already consumed).
+      this.releaseSilentEditCredits(key, 1);
+    }
+  }
+
+  private releaseSilentEditCredits(key: string, n: number): void {
+    const current = this._webviewEditCount.get(key) || 0;
+    if (current <= 0) {
+      return;
+    }
+    this._webviewEditCount.set(key, Math.max(0, current - n));
+  }
+
   updateTextDocument(
       document: vscode.TextDocument, text: string,
-      origin: 'webview'|'host'|'silent' = 'webview') {
+      origin: 'webview'|'host' = 'webview') {
     // Monaco / webview always speak LF; VS Code documents on Windows are often
     // CRLF. Convert to the document EOL before compare/replace so we do not
     // full-rewrite on every keystroke (that races echo and jumps the cursor).
@@ -291,13 +336,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       return Promise.resolve(true);
     }
     // UI/YAML edits should keep a preview tab open (same idea as a dirty file).
-    // Silent = run-owned dirty marker; tab is already kept by the run path.
-    if (origin !== 'silent') {
-      keepMmtEditorSoon(document.uri);
-    }
+    keepMmtEditorSoon(document.uri);
     const key = document.uri.toString();
-    // webview + silent: skip onDidChangeTextDocument echo into the webview.
-    if (origin === 'webview' || origin === 'silent') {
+    // webview: skip onDidChangeTextDocument echo into the webview.
+    if (origin === 'webview') {
       this._webviewEditCount.set(
           key, (this._webviewEditCount.get(key) || 0) + 1);
     }
@@ -306,7 +348,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         document.positionAt(0), document.positionAt(document.getText().length));
     edit.replace(document.uri, fullRange, normalized);
     return vscode.workspace.applyEdit(edit).then(applied => {
-      if (!applied && (origin === 'webview' || origin === 'silent')) {
+      if (!applied && origin === 'webview') {
         const current = this._webviewEditCount.get(key) || 0;
         if (current > 0) {
           this._webviewEditCount.set(key, current - 1);

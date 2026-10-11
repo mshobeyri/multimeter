@@ -1,4 +1,4 @@
-import {runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
+import {JSer, runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
 import {createRunPauseGate, type FileLoader, type RunPauseGate} from 'mmt-core/runConfig';
 import type {SuiteEnvironment} from 'mmt-core/SuiteData';
 import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
@@ -78,18 +78,17 @@ const suiteRuns = new Map<string, ActiveRunUi & {
   childIds: Map<string, string>;
 }>();
 
-/**
- * Mark a clean document dirty for the run so close shows Save / Don't Save /
- * Cancel (Cancel keeps the run). Same path as YAML edits; left dirty afterward.
- */
-async function markDirtyForRun(
+/** Test/suite/loadtest only — API runs do not dirty the editor. */
+function shouldMarkModifiedForRun(filePath: string, raw: string): boolean {
+  const kind = JSer.fileType(filePath, raw);
+  return kind === 'test' || kind === 'suite' || kind === 'loadtest';
+}
+
+async function markModifiedForRun(
     document: vscode.TextDocument, mmtProvider: any): Promise<void> {
-  if (document.isDirty) {
-    return;
+  if (typeof mmtProvider?.markModified === 'function') {
+    await mmtProvider.markModified(document);
   }
-  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-  await mmtProvider.updateTextDocument(
-      document, document.getText() + eol, 'silent');
 }
 
 function createSuiteRunId(document: vscode.TextDocument) {
@@ -368,11 +367,13 @@ export async function handleRunCurrentDocument(
   };
 
   // Prefer right-panel UI YAML when present; glyphs omit rawFile and use the file.
-  // Capture before the run-owned dirty marker mutates the buffer.
   const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
       ? message.rawFile
       : document.getText();
-  await markDirtyForRun(document, mmtProvider);
+  // Dirty only tests (not API): close Cancel keeps the run.
+  if (shouldMarkModifiedForRun(document.uri.fsPath, rawFile)) {
+    await markModifiedForRun(document, mmtProvider);
+  }
 
   try {
     const fileLoader = createFileLoader(document.uri.fsPath);
@@ -558,7 +559,7 @@ export async function handleRunSuite(
     panelRef,
   };
 
-  await markDirtyForRun(document, mmtProvider);
+  await markModifiedForRun(document, mmtProvider);
 
   const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({

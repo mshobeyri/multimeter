@@ -76,12 +76,10 @@ function panelMockMenuAction(fileUri?: vscode.Uri):
 /** Dirty the editor so close prompts while a UI-started mock is running. */
 async function markDirtyForMock(
     document: vscode.TextDocument, mmtProvider: any): Promise<void> {
-  if (document.isDirty || !mmtProvider?.updateTextDocument) {
+  if (!mmtProvider?.markModified) {
     return;
   }
-  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-  await mmtProvider.updateTextDocument(
-      document, document.getText() + eol, 'silent');
+  await mmtProvider.markModified(document);
 }
 
 function resolveFilePath(filePath: string, basePath: string): string {

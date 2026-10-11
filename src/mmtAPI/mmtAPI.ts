@@ -711,5 +711,11 @@ export const messageReceived = async (
       // Webview asks to pin a preview tab (e.g. unsaved UI input edits).
       keepMmtEditorSoon(document.uri);
       break;
+
+    case 'markModified':
+      if (typeof mmtProvider?.markModified === 'function') {
+        await mmtProvider.markModified(document);
+      }
+      break;
   }
 };
