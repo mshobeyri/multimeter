@@ -2048,9 +2048,15 @@ button.field-button:focus-visible,
 }
 
 .panel-form-row .field-inline > .token-field,
+.panel-form-row .field-inline > .field-grow,
 .panel-form-row .field-inline > input.field-grow {
   flex: 1 1 0;
   width: auto;
+  min-width: 0;
+}
+
+.panel-form-row .field-inline > .field-grow > .token-field {
+  width: 100%;
   min-width: 0;
 }
 

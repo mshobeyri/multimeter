@@ -1352,7 +1352,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       ) : shouldShowAuth() ? (
         <div className="apitest-section apitest-section--auth">
           {onUpdateApi ? (
-            <ApiAuthEditor api={api} update={onUpdateApi} />
+            <ApiAuthEditor
+              api={api}
+              update={onUpdateApi}
+              valueContext={bodyValueContext}
+            />
           ) : (
             <div className="apitest-empty">Auth is read-only.</div>
           )}

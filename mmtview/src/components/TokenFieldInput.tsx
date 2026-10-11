@@ -150,11 +150,16 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
       return;
     }
     const cs = getComputedStyle(el);
-    // Inputs often report line-height as "normal"; a short line box in a
-    // taller absolute backdrop leaves resolved token text sitting high.
+    // Inputs often report line-height as "normal". Use the content-box
+    // height (clientHeight minus vertical padding), not the full control
+    // height — padding is also copied onto the mirror, so using
+    // clientHeight double-counts and pushes token text too high on
+    // normal padded fields (URL bar sets an explicit line-height).
+    const padTop = Number.parseFloat(cs.paddingTop) || 0;
+    const padBottom = Number.parseFloat(cs.paddingBottom) || 0;
     const lineHeight =
       !cs.lineHeight || cs.lineHeight === "normal"
-        ? `${Math.max(el.clientHeight, 1)}px`
+        ? `${Math.max(el.clientHeight - padTop - padBottom, 1)}px`
         : cs.lineHeight;
     setMirrorStyle({
       paddingTop: cs.paddingTop,
