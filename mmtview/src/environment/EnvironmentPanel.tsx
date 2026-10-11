@@ -94,7 +94,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     const variablesObj = (yaml.variables && typeof yaml.variables === "object") ? yaml.variables : {};
     setVariableDefinitions(variablesObj as Record<string, any>);
     Object.entries(variablesObj).forEach(([name, value]) => {
-      const options = envVariableChoices(value);
+      const options = envVariableChoices(value, name);
       if (options.length === 0) {
         return;
       }
@@ -276,7 +276,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     setVariableDefinitions(variablesObj as Record<string, any>);
     const rebuiltPairs: ComboTablePair[] = [];
     Object.entries(variablesObj).forEach(([name, value]) => {
-      const options = envVariableChoices(value);
+      const options = envVariableChoices(value, name);
       if (options.length === 0) {
         return;
       }
