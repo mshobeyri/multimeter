@@ -1100,6 +1100,26 @@
   box-sizing: border-box;
 }
 
+.apitest-response-overlay {
+  z-index: 2;
+  flex: none;
+  margin: 0;
+  min-height: 0;
+  width: auto;
+  height: auto;
+  pointer-events: auto;
+}
+
+.apitest-response-overlay.is-opaque {
+  background: var(--vscode-editor-background, var(--vscode-sideBar-background, #1e1e1e));
+}
+
+/* Match `.mmt-yaml-error-dim` so in-flight wait feels the same as YAML error dim. */
+.apitest-response-overlay.is-dimmed {
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 55%, transparent);
+  backdrop-filter: blur(1px);
+}
+
 .apitest-no-response.is-sending .apitest-body-none-icon {
   opacity: 0.85;
 }

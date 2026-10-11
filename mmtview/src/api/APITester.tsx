@@ -105,18 +105,27 @@ function countNamedEntries(record?: Record<string, unknown> | null): number {
   return Object.keys(record).filter(key => key.trim().length > 0).length;
 }
 
-/** Empty / in-flight state for response tabs. */
+/** Empty / in-flight overlay for the response pane. */
 const NoResponseYet: React.FC<{
   onSend: () => void;
   onCancel?: () => void;
   sending?: boolean;
+  /** Dim previous response; opaque when there is nothing underneath. */
+  dimmed?: boolean;
 }> = ({
   onSend,
   onCancel,
   sending = false,
+  dimmed = false,
 }) => (
   <div
-    className={`apitest-body-none apitest-no-response${sending ? " is-sending" : ""}`}
+    className={[
+      "apitest-body-none",
+      "apitest-no-response",
+      "apitest-response-overlay",
+      sending ? "is-sending" : "",
+      dimmed ? "is-dimmed" : "is-opaque",
+    ].filter(Boolean).join(" ")}
     role="status"
     aria-live="polite"
   >
@@ -1763,6 +1772,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </div>
         </div>
       </div>
+      <div className="apitest-pane-fill">
       <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={100}>
       <div className="apitest-section">
         {shouldShowOutputs() && (
@@ -1831,19 +1841,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </>
         )}
 
-        {!responseData && (shouldShowResponse() || shouldShowResponseHeaders() || shouldShowResponseCookies()) ? (
-          <NoResponseYet
-            onSend={sendWithResolvedBody}
-            onCancel={handleCancel}
-            sending={requestInFlight}
-          />
-        ) : (
-          <>
-        {shouldShowResponseHeaders() && (
-          countNamedEntries(responseData?.headers) > 0 ? (
+        {responseData && shouldShowResponseHeaders() && (
+          countNamedEntries(responseData.headers) > 0 ? (
             <KSVEditor
               label=""
-              value={responseData?.headers || {}}
+              value={responseData.headers || {}}
               onChange={() => { }}
               deactivated={true}
               onExtractRow={key => handleAddOutputExpression(`headers.${key}`, key)}
@@ -1853,11 +1855,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           )
         )}
 
-        {shouldShowResponseCookies() && (
-          countNamedEntries(responseData?.cookies) > 0 ? (
+        {responseData && shouldShowResponseCookies() && (
+          countNamedEntries(responseData.cookies) > 0 ? (
             <KSVEditor
               label=""
-              value={responseData?.cookies || {}}
+              value={responseData.cookies || {}}
               onChange={() => { }}
               deactivated={true}
               onExtractRow={key => handleAddOutputExpression(`cookies.${key}`, key)}
@@ -1867,6 +1869,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           )
         )}
 
+        {/* Keep BodyView mounted (empty) under the idle/sending overlay so the
+            first response does not pay Monaco cold-start. */}
         {shouldShowResponse() && (
           <div className="apitest-body-pane">
             <div className="apitest-body-wrapper">
@@ -1880,10 +1884,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             </div>
           </div>
         )}
-          </>
-        )}
       </div>
       </FadePane>
+      {(requestInFlight || (!responseData && responseTab !== "outputs")) ? (
+        <NoResponseYet
+          onSend={sendWithResolvedBody}
+          onCancel={handleCancel}
+          sending={requestInFlight}
+          dimmed={Boolean(responseData) && requestInFlight}
+        />
+      ) : null}
+      </div>
       </div>
       </SplitPane>
       </div>
