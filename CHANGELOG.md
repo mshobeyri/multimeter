@@ -2,6 +2,30 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.45.2-pre]
+
+Pre-release. VS Code extension `1.45.2`; Testlight CLI and MCP `1.45.2-pre` on `@pre`.
+
+### Temp files
+
+- Rename temp files from the YAML `title` as lowercase snake_case (`Echo Login` → `echo_login.mmt`), with numeric collision suffixes (`echo_login1.mmt`, …)
+
+### Examples and validation
+
+- Warn on invalid example ids; slug spaces when expanding deprecated `name`
+
+### Mock server
+
+- Add copy server address command to the Mock Server panel
+
+### API Send and History
+
+- Run API Send from YAML and record History from wire requests
+
+### Test server / docs
+
+- Add `/echo/xml` on the Cloudflare test server and point XML format examples at it
+
 ## [1.45.1-pre]
 
 Pre-release. VS Code extension `1.45.1`; Testlight CLI and MCP `1.45.1-pre` on `@pre`.
