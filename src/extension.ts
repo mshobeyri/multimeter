@@ -33,12 +33,13 @@ export function activate(context: vscode.ExtensionContext) {
   registerEditorProvider(context, mmtviewPanel);
   registerDocumentLinks(context);
 
-  const {historyPanel, environmentPanel, connectionsPanel} =
+  const {historyPanel, environmentPanel, connectionsPanel, mockServerPanel} =
       registerSidePanels(context, historyManager, onboarding, tempFiles);
 
   registerConnectionsCommands(context, connectionsPanel);
   registerHistoryCommands(context, historyPanel, historyManager);
   registerEnvironmentCommands(context, environmentPanel, mmtviewPanel);
+  registerMockServerCommands(context, mockServerPanel);
   registerMiscCommands(context);
 
   registerRunStatusBar(context);
@@ -115,7 +116,7 @@ function registerSidePanels(
     onboarding: OnboardingController,
     tempFiles: TempFilesController): {
   historyPanel: HistoryPanel; environmentPanel: EnvironmentPanel;
-  connectionsPanel: ConnectionsPanel;
+  connectionsPanel: ConnectionsPanel; mockServerPanel: MockServerPanel;
 } {
   registerMultimeterDockTrees(context);
 
@@ -127,8 +128,9 @@ function registerSidePanels(
       StartPanel.viewType, new StartPanel(context, onboarding),
       {webviewOptions: {retainContextWhenHidden: true}}));
 
+  const mockServerPanel = new MockServerPanel(context, historyManager);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.mock.server', new MockServerPanel(context, historyManager),
+      'multimeter.mock.server', mockServerPanel,
       {webviewOptions: {retainContextWhenHidden: true}}));
 
   const environmentPanel = new EnvironmentPanel(context);
@@ -146,7 +148,7 @@ function registerSidePanels(
       'multimeter.connections', connectionsPanel,
       {webviewOptions: {retainContextWhenHidden: true}}));
 
-  return {historyPanel, environmentPanel, connectionsPanel};
+  return {historyPanel, environmentPanel, connectionsPanel, mockServerPanel};
 }
 
 function registerConnectionsCommands(
@@ -161,6 +163,14 @@ function registerConnectionsCommands(
       vscode.commands.registerCommand('multimeter.connections.closeAll', () => {
         connectionTracker.closeAll();
       }));
+}
+
+function registerMockServerCommands(
+    context: vscode.ExtensionContext,
+    mockServerPanel: MockServerPanel): void {
+  context.subscriptions.push(vscode.commands.registerCommand(
+      'multimeter.mock.server.copyAddress',
+      () => mockServerPanel.copyServerAddress()));
 }
 
 function registerHistoryCommands(
