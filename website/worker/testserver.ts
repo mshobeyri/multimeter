@@ -6,7 +6,8 @@
  *
  * Endpoints:
  *   GET  /                     → help page listing all endpoints
- *   ANY  /echo                 → echo back request details
+ *   ANY  /echo                 → echo back request details (JSON)
+ *   ANY  /echo/xml             → echo back request details as XML
  *   GET  /status/:code         → respond with the given HTTP status code
  *   ANY  /delay/:ms            → delay response (max 10000ms)
  *   GET  /headers              → return request headers as JSON
@@ -68,6 +69,7 @@ function matchRoute(path: string): Handler | null {
   const p = path === '/' ? '/' : path.replace(/\/+$/, '');
 
   if (p === '/' || p === '') { return handleIndex; }
+  if (p === '/echo/xml') { return handleEchoXml; }
   if (p === '/echo' || p === '/anything') { return handleEcho; }
   if (p === '/headers') { return handleHeaders; }
   if (p === '/ip') { return handleIp; }
@@ -130,6 +132,47 @@ async function handleEcho(request: Request, url: URL): Promise<Response> {
     headers,
     body: body ?? undefined,
     timestamp: new Date().toISOString(),
+  });
+}
+
+async function handleEchoXml(request: Request, url: URL): Promise<Response> {
+  const body = await parseBody(request);
+  const query = queryToObject(url);
+  const headers = requestHeaders(request);
+  const indent = '  ';
+
+  const lines: string[] = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<echo>',
+    `${indent}<method>${escapeXml(request.method)}</method>`,
+    `${indent}<url>${escapeXml(request.url)}</url>`,
+    `${indent}<path>${escapeXml(url.pathname)}</path>`,
+  ];
+
+  if (Object.keys(query).length > 0) {
+    lines.push(`${indent}<query>`);
+    for (const [k, v] of Object.entries(query)) {
+      lines.push(`${indent}${indent}<${safeXmlTag(k)}>${escapeXml(v)}</${safeXmlTag(k)}>`);
+    }
+    lines.push(`${indent}</query>`);
+  }
+
+  lines.push(`${indent}<headers>`);
+  for (const [k, v] of Object.entries(headers)) {
+    lines.push(`${indent}${indent}<${safeXmlTag(k)}>${escapeXml(v)}</${safeXmlTag(k)}>`);
+  }
+  lines.push(`${indent}</headers>`);
+
+  if (body !== null && body !== undefined) {
+    lines.push(...valueToXmlLines('body', body, 1));
+  }
+
+  lines.push(`${indent}<timestamp>${escapeXml(new Date().toISOString())}</timestamp>`);
+  lines.push('</echo>');
+
+  return new Response(lines.join('\n'), {
+    status: 200,
+    headers: { 'Content-Type': 'application/xml', ...corsHeaders() },
   });
 }
 
@@ -430,6 +473,66 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/** Make a string safe as an XML element name (headers / query keys). */
+function safeXmlTag(name: string): string {
+  const cleaned = name.replace(/[^A-Za-z0-9_.-]/g, '_');
+  if (!cleaned || !/^[A-Za-z_]/.test(cleaned)) {
+    return `_${cleaned || 'key'}`;
+  }
+  return cleaned;
+}
+
+function valueToXmlLines(tag: string, value: unknown, depth: number): string[] {
+  const pad = '  '.repeat(depth);
+  const name = safeXmlTag(tag);
+
+  if (value === null || value === undefined) {
+    return [`${pad}<${name}/>`];
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    // Embed well-formed XML fragments as nested markup; otherwise escape text.
+    if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+      return [`${pad}<${name}>`, value, `${pad}</${name}>`];
+    }
+    return [`${pad}<${name}>${escapeXml(value)}</${name}>`];
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return [`${pad}<${name}>${escapeXml(String(value))}</${name}>`];
+  }
+
+  if (Array.isArray(value)) {
+    const lines = [`${pad}<${name}>`];
+    for (const item of value) {
+      lines.push(...valueToXmlLines('item', item, depth + 1));
+    }
+    lines.push(`${pad}</${name}>`);
+    return lines;
+  }
+
+  if (typeof value === 'object') {
+    const lines = [`${pad}<${name}>`];
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      lines.push(...valueToXmlLines(k, v, depth + 1));
+    }
+    lines.push(`${pad}</${name}>`);
+    return lines;
+  }
+
+  return [`${pad}<${name}>${escapeXml(String(value))}</${name}>`];
+}
+
 // ---------------------------------------------------------------------------
 // WebSocket
 // ---------------------------------------------------------------------------
@@ -472,7 +575,8 @@ function handleWebSocket(_request: Request, url: URL): Response {
 function endpointList(): string[] {
   return [
     'GET  /                     → this help page',
-    'ANY  /echo                 → echo back request details',
+    'ANY  /echo                 → echo back request details (JSON)',
+    'ANY  /echo/xml             → echo back request details as XML',
     'ANY  /anything             → alias for /echo',
     'GET  /status/:code         → respond with the given HTTP status code (100-599)',
     'ANY  /delay/:ms            → delay response up to 10000ms',

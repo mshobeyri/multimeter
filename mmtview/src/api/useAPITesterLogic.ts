@@ -5,17 +5,15 @@ import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
 import { fieldForYamlSave, requestForSend } from "mmt-core/apiBodyEdit";
-import { formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
 import { resolveSetenvValues } from "mmt-core/setenvResolve";
 import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
-import { pushHistory } from "../vsAPI";
 import { protocolResolver } from "mmt-core";
 import { resolveApiHttpMethod } from "mmt-core/apiMethod";
-import { resolveResponseViewType, responseBodyToRawString } from "./responseBodyDisplay";
+import { resolveResponseViewType } from "./responseBodyDisplay";
 import {
   cacheBodyAutoFormat,
   readCachedBodyAutoFormat,
@@ -29,44 +27,12 @@ import {
 } from "./apiUiRefresh";
 import { resolveApiRequest } from "mmt-core/resolveApiRequest";
 
-/** Always prefer the right-panel API Tester request over file YAML. */
-function packUiRequestBody(api: APIData, requestData: Request): unknown {
-  const format = resolveRequestFormat(
-    requestFormat(requestData.format ?? api.format),
-    requestData.headers,
-    requestData.method ?? api.method,
-  );
-  const body = requestData.body;
-  if (format !== "multipart") {
-    return body;
-  }
-  if (Array.isArray(body)) {
-    return body;
-  }
-  if (typeof body === "string") {
-    const packed = formattedBodyToYamlObject("multipart", body);
-    if (Array.isArray(packed)) {
-      return packed;
-    }
-  }
-  return body;
-}
-
-function buildUiApiRawFile(api: APIData, requestData: Request | undefined): string {
+/**
+ * Serialize the live-synced API YAML model for Send / Run in Core.
+ * No resolved-token overlay — same outcome as running the file (glyph).
+ */
+function buildYamlRawFile(api: APIData): string {
   let merged = api;
-  if (requestData) {
-    const overrides: Record<string, unknown> = {};
-    (Object.keys(requestData) as (keyof Request)[]).forEach((field) => {
-      const val = requestData[field];
-      if (val !== undefined) {
-        overrides[field as string] = val;
-      }
-    });
-    merged = { ...api, ...overrides } as APIData;
-    merged.body = packUiRequestBody(api, requestData) as APIData["body"];
-    // prepareRequestData already applied auth into headers/query.
-    delete (merged as { auth?: unknown }).auth;
-  }
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(
     merged.protocol, merged.url);
   if (effectiveProtocol === "http" && !merged.method) {
@@ -466,40 +432,20 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     addOutputEntry(suggestedKey, expr);
   }, [addOutputEntry]);
 
-  // HTTP/GraphQL/gRPC Send / Run in Core from the right panel: always send the
-  // UI request as rawFile. Glyphs omit rawFile and use the editor file only.
-  // The extension posts multimeter.api.run.result so the Response panel and
-  // finish log share the same network duration. WS still uses the live socket.
-  const runViaCore = useCallback((opts: {
-    forSend: boolean;
-    requestOverride?: Request;
-  }) => {
-    const req = opts.requestOverride ?? requestDataRef.current;
+  // HTTP/GraphQL/gRPC: run the live-synced YAML (same as glyph). History comes
+  // from core network-* reporter events on the extension. WS still uses the
+  // live socket with a resolved request.
+  const runViaCore = useCallback((opts: { forSend: boolean }) => {
     if (opts.forSend) {
       setIsSending(true);
       sendPendingRef.current = true;
-      const protocol = protocolResolver.getEffectiveProtocol(
-        req?.protocol as any, req?.url) || "http";
-      const methodRaw = resolveApiHttpMethod(
-        req?.method || apiRef.current?.method,
-        req?.body ?? apiRef.current?.body);
-      const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
-      const url = req?.url ?? "";
-      pushHistory({
-        type: "send",
-        method: method.toUpperCase(),
-        protocol,
-        title: url,
-        cookies: req?.cookies,
-        headers: req?.headers,
-        query: req?.query,
-        content: method === "get" ? "" : toContentString(req?.body),
-      });
     }
     window.vscode?.postMessage({
       command: "runCurrentDocument",
       report: { type: "lifecycle" },
-      rawFile: buildUiApiRawFile(apiRef.current, req),
+      // History panel only for API Tester Send — not glyph / Run in Core.
+      history: opts.forSend === true,
+      rawFile: buildYamlRawFile(apiRef.current),
       inputs: {
         exampleIndex: selectedExampleIdx,
         manualInputs: currentInputsRef.current,
@@ -507,29 +453,28 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     });
   }, [selectedExampleIdx]);
 
-  const handleRunInCore = useCallback(async () => {
-    const req = await buildRequestForSend();
-    runViaCore({ forSend: false, requestOverride: req });
+  const handleRunInCore = useCallback(() => {
+    runViaCore({ forSend: false });
     window.vscode?.postMessage({ command: "showLogOutputChannel" });
-  }, [buildRequestForSend, runViaCore]);
+  }, [runViaCore]);
 
   const handleSend = useCallback(async () => {
     // Keep the previous response visible until the new result arrives so the
     // body pane does not jump to the empty/sending state on every Send.
     setApiTestResults(null);
 
-    const req = await buildRequestForSend();
     const protocol = protocolResolver.getEffectiveProtocol(
-      req?.protocol as any, req?.url);
+      apiRef.current?.protocol as any, apiRef.current?.url);
 
     if (protocol === "ws") {
+      const req = await buildRequestForSend();
       const res = await network.send(req);
       setResponseData(res);
       setResponseRevision(prev => prev + 1);
       return;
     }
 
-    runViaCore({ forSend: true, requestOverride: req });
+    runViaCore({ forSend: true });
   }, [network, buildRequestForSend, runViaCore]);
 
   const handleCancel = useCallback(async () => {
@@ -636,7 +581,6 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
         return;
       }
       setIsSending(false);
-      const fromSend = sendPendingRef.current;
       sendPendingRef.current = false;
       if (message.cancelled) {
         return;
@@ -655,34 +599,9 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
         }
         setResponseData(response);
         setResponseRevision(prev => prev + 1);
-
-        if (fromSend) {
-          const req = requestDataRef.current;
-          const methodRaw = resolveApiHttpMethod(
-            req?.method || apiRef.current?.method,
-            req?.body ?? apiRef.current?.body);
-          const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
-          const url = req?.url ?? "";
-          const protocol = protocolResolver.getEffectiveProtocol(
-            req?.protocol as any, req?.url) || "http";
-          const status = typeof response.status === "number" ? response.status : -1;
-          const statusText = String(response.errorMessage || response.statusText || "").trim();
-          const body = toContentString(response.body);
-          pushHistory({
-            type: status < 0 ? "error" : "recv",
-            method: method.toUpperCase(),
-            protocol,
-            title: url,
-            cookies: response.cookies,
-            headers: response.headers,
-            content: body || statusText,
-            duration: response.duration,
-            status,
-            statusText: statusText || undefined,
-          });
-        }
       }
     };
+
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
   }, [filePath]);
@@ -731,10 +650,6 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   } catch {
     return { ...source };
   }
-}
-
-function toContentString(data: any): string {
-  return responseBodyToRawString(data);
 }
 
 async function applyResolvedSetenvVariables(

@@ -950,7 +950,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
   const sendWithResolvedBody = useCallback(async () => {
     if (bodyTokenMode === "tokens") {
-      // Commit YAML before send so resolveApiRequest sees the draft tokens.
+      // Commit token draft into YAML before Send (Send runs the YAML model).
       flushSync(() => {
         writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
       });

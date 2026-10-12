@@ -238,7 +238,18 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       (opts.apiFunctionSource ?
            `${indentMultiline(opts.apiFunctionSource, '  ')}\n\n` :
            '') +
+      // Direct API runs only (this wrapper). Report wire request/response for
+      // History; imported call: from tests does not use this wrap.
+      `  const __mmt_reportNetwork = (scope, request, response) => {\n` +
+      `    if (typeof __reporter !== 'function') { return; }\n` +
+      `    try {\n` +
+      `      const payload = { scope: scope, request: request || {} };\n` +
+      `      if (response !== undefined) { payload.response = response; }\n` +
+      `      __reporter(payload);\n` +
+      `    } catch (_e) {}\n` +
+      `  };\n` +
       `  const __mmt_originalSend = send_;\n` +
+      `  const __mmt_originalSendGrpc = typeof sendGrpc_ === 'function' ? sendGrpc_ : null;\n` +
       `  send_ = async function(req) {\n` +
       `    await checkAbort_();\n` +
       `    const __req = req || {};\n` +
@@ -269,6 +280,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      body: __mmt_formatBodyValue(__req.body)\n` +
       `    };\n` +
       `    console.debug(__mmt_formatSection('Request:', __reqLog));\n` +
+      `    __mmt_reportNetwork('network-request', __req);\n` +
       `    try {\n` +
       `      const __res = await __mmt_originalSend(req);\n` +
       `      // Stop before Response logging when the user cancelled mid-request.\n` +
@@ -290,6 +302,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      if (__warning) {\n` +
       `        console.warn(__warning);\n` +
       `      }\n` +
+      `      __mmt_reportNetwork(\n` +
+      `        (typeof __status === 'number' && __status < 0) ? 'network-error' : 'network-response',\n` +
+      `        __req, __res);\n` +
       `      // Return network failures to the API function so outputs (and the\n` +
       `      // tester Response panel) still receive the response; the wrapper\n` +
       `      // marks the run failed after outputs are built.\n` +
@@ -318,6 +333,8 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        };\n` +
       `        console.log(__mmt_formatSection('Response:', __resLog));\n` +
       `        console.warn(__warning);\n` +
+      `        __mmt_reportNetwork(\n` +
+      `          __res.status < 0 ? 'network-error' : 'network-response', __req, __res);\n` +
       `        return __res;\n` +
       `      }\n` +
       `      const __errorLog = {\n` +
@@ -332,9 +349,41 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        }\n` +
       `      }\n` +
       `      console.error(__mmt_formatSection('Response:', __errorLog));\n` +
+      `      __mmt_reportNetwork('network-error', __req, {\n` +
+      `        status: err && typeof err.status === 'number' ? err.status : -1,\n` +
+      `        statusText: err && err.message ? String(err.message) : String(err),\n` +
+      `        body: err && err.body,\n` +
+      `        headers: err && err.headers || {},\n` +
+      `        duration: err && typeof err.duration === 'number' ? err.duration : -1\n` +
+      `      });\n` +
       `      throw err;\n` +
       `    }\n` +
-      `  };\n\n` +
+      `  };\n` +
+      `  if (__mmt_originalSendGrpc) {\n` +
+      `    sendGrpc_ = async function(req) {\n` +
+      `      await checkAbort_();\n` +
+      `      const __req = req || {};\n` +
+      `      __mmt_reportNetwork('network-request', __req);\n` +
+      `      try {\n` +
+      `        const __res = await __mmt_originalSendGrpc(req);\n` +
+      `        await checkAbort_();\n` +
+      `        __mmt_reportNetwork('network-response', __req, __res);\n` +
+      `        return __res;\n` +
+      `      } catch (err) {\n` +
+      `        if (err && (err.kind === 'test-abort' || (typeof isTestAbortError === 'function' && isTestAbortError(err)))) {\n` +
+      `          throw err;\n` +
+      `        }\n` +
+      `        __mmt_reportNetwork('network-error', __req, {\n` +
+      `          status: err && typeof err.status === 'number' ? err.status : -1,\n` +
+      `          statusText: err && err.message ? String(err.message) : String(err),\n` +
+      `          body: err && err.body,\n` +
+      `          headers: err && err.headers || {},\n` +
+      `          duration: err && typeof err.duration === 'number' ? err.duration : -1\n` +
+      `        });\n` +
+      `        throw err;\n` +
+      `      }\n` +
+      `    };\n` +
+      `  }\n\n` +
       `  try {\n` +
       `    if (__mmt_exampleLabel) {\n` +
       `      console.log('Running ' + __mmt_exampleLabel);\n` +
@@ -396,6 +445,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    return result;\n` +
       `  } finally {\n` +
       `    send_ = __mmt_originalSend;\n` +
+      `    if (__mmt_originalSendGrpc) { sendGrpc_ = __mmt_originalSendGrpc; }\n` +
       `  }\n})();`;
 }
 
@@ -720,18 +770,24 @@ export async function executeApi(
     exampleOutputs,
     checkTitle: fileDisplayName,
   });
-  // Suite items hand `setenv` to the suite so later items can consume it.
-  const apiSetenvReporter = (options as any).__mmtIsSuiteBundleChildRun === true &&
-      typeof options.reporter === 'function' ?
+  // Forward reporter for direct API runs (network-request/response → History)
+  // and suite-child setenv. Imported API call: from tests does not use this
+  // executeApi wrapper path for the child function body.
+  const apiReporter = typeof options.reporter === 'function' ?
       (event: Record<string, any>) => {
-        if (event && event.scope === 'setenv') {
-          options.reporter({...event, id: event.id || (options as any).id} as any);
+        const isSuiteChild = (options as any).__mmtIsSuiteBundleChildRun === true;
+        if (isSuiteChild && event && event.scope !== 'setenv') {
+          return;
         }
+        options.reporter!({
+          ...event,
+          id: event.id || (options as any).id,
+        } as any);
       } :
       undefined;
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
-      (options as any).id, fileLoader, apiSetenvReporter, options.abortSignal,
+      (options as any).id, fileLoader, apiReporter, options.abortSignal,
       undefined,
       prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
       undefined, undefined, options.checkLogMode, 'API', options.binaryFileLoader,

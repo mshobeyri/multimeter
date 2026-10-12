@@ -18,6 +18,8 @@ describe('runApi output printing', () => {
 
     expect(js).toContain("console.log(__mmt_formatSection('Outputs:', __outputLog))");
     expect(js).toContain("console.log(__mmt_formatSection('Response:', __resLog))");
+    expect(js).toContain("__mmt_reportNetwork('network-request'");
+    expect(js).toContain("scope: scope, request: request");
     // _ internal properties are auto-injected but filtered from the output log
     expect(js).toContain("delete copy['_']");
   });
@@ -66,11 +68,12 @@ describe('runApi output printing', () => {
       'extractOutputs_',
       'console',
       'applyOmitToRequest_',
+      'checkAbort_',
       `const protocolFromUrl_ = () => 'http';\n${js}`,
     );
 
     const result =
-        await execute(send, extractOutputs, consoleMock, applyOmitToRequest_);
+        await execute(send, extractOutputs, consoleMock, applyOmitToRequest_, async () => {});
     const outputLog = logs.find(log => log.includes('Outputs:')) || '';
 
     expect(result.body).toBe('hello world');
