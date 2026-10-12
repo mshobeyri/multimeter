@@ -11,7 +11,7 @@ Use {{btn:list-tree}} in the header to pick **All** (one test) or a single reque
 - `get_profile.bru`: a simple Bruno GET request with variables, headers, bearer auth, query params, and assertions.
 - `create_user_json.bru`: a POST request with a JSON body and bearer auth.
 - `update_profile_form.bru`: a PUT request with a form-urlencoded body.
-- `xml_echo.bru`: a POST request with an XML text body.
+- `xml_echo.bru`: a POST request with an XML text body to `test.mmt.dev/echo/xml`.
 - `import_bruno_in_test.mmt`: a Multimeter test that imports a `.bru` file and calls it like any other test import.
 
 ## Importing Bruno Files From MMT

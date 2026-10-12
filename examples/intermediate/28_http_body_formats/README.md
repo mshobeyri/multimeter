@@ -2,7 +2,7 @@
 
 Intermediate example covering every HTTP request `format:` — `json`, `xml`, `xmle`, `text`, `urlencoded`, `binary`, and `multipart`.
 
-All requests POST to [test.mmt.dev/echo](https://test.mmt.dev/echo) and read fields back from the echoed payload.
+Most requests POST to [test.mmt.dev/echo](https://test.mmt.dev/echo). XML formats (`post_xml.mmt`, `post_xmle.mmt`) use [test.mmt.dev/echo/xml](https://test.mmt.dev/echo/xml) so the response is `application/xml`.
 
 ## Files
 

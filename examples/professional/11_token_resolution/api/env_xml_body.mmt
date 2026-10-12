@@ -2,24 +2,24 @@ type: api
 title: Env tokens in an XML body
 description: "XML element text is always a string, including numbers and booleans from e:."
 outputs:
-  account_age: body.body.account_age
-  feature_enabled: body.body.feature_enabled
-  plan_code: body.body.plan_code
-  plan_label: body.body.plan_label
-  service_url: body.body.service_url
-  missing_region: body.body.missing_region
-  literal_token: body.body.literal_token
-  literal_omit: body.body.literal_omit
-  angle_whole: body.body.angle_whole
-  quoted_angle: body.body.quoted_angle
-  angle_prefix: body.body.angle_prefix
-  angle_suffix: body.body.angle_suffix
-  angle_both: body.body.angle_both
-  quoted_curly: body.body.quoted_curly
-  curly_whole: body.body.curly_whole
-  text_slice: body.body.text_slice
+  account_age: body.echo.body.body.account_age
+  feature_enabled: body.echo.body.body.feature_enabled
+  plan_code: body.echo.body.body.plan_code
+  plan_label: body.echo.body.body.plan_label
+  service_url: body.echo.body.body.service_url
+  missing_region: body.echo.body.body.missing_region
+  literal_token: body.echo.body.body.literal_token
+  literal_omit: body.echo.body.body.literal_omit
+  angle_whole: body.echo.body.body.angle_whole
+  quoted_angle: body.echo.body.body.quoted_angle
+  angle_prefix: body.echo.body.body.angle_prefix
+  angle_suffix: body.echo.body.body.angle_suffix
+  angle_both: body.echo.body.body.angle_both
+  quoted_curly: body.echo.body.body.quoted_curly
+  curly_whole: body.echo.body.body.curly_whole
+  text_slice: body.echo.body.body.text_slice
   status_code: status
-url: https://test.mmt.dev/echo
+url: https://test.mmt.dev/echo/xml
 method: post
 format: xml
 body:
