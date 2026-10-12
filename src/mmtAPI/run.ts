@@ -25,6 +25,7 @@ import {
   resolveWebviewReportType,
   type WebviewPanelRef,
 } from './webviewReporter';
+import {addHistoryFromApiNetworkReport} from './apiHistory';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -383,6 +384,10 @@ export async function handleRunCurrentDocument(
       abortSignal: controller.signal,
       pauseGate,
       reporter: (msg: any) => {
+        // API Tester Send only (`history: true`). Glyph / Run in Core skip History.
+        if (message?.history === true) {
+          addHistoryFromApiNetworkReport(mmtProvider?.historyManager, msg);
+        }
         uiReporter.report({
           ...msg,
           filePath: document.uri.toString(),
