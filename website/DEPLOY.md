@@ -130,8 +130,13 @@ npx wrangler deploy -c wrangler-testserver.toml
 ### Test it
 
 ```bash
-# Echo
+# Echo (JSON)
 curl https://test.mmt.dev/echo
+
+# Echo as XML
+curl -X POST https://test.mmt.dev/echo/xml \
+  -H 'Content-Type: application/xml' \
+  -d '<user><name>ada</name></user>'
 
 # Status code
 curl https://test.mmt.dev/status/201
@@ -157,7 +162,8 @@ curl https://test.mmt.dev/
 | Endpoint | Method | Description |
 |---|---|---|
 | `/` | GET | Help page listing all endpoints |
-| `/echo` | ANY | Echo back request details |
+| `/echo` | ANY | Echo back request details (JSON) |
+| `/echo/xml` | ANY | Echo back request details as XML |
 | `/anything` | ANY | Alias for `/echo` |
 | `/status/:code` | GET | Respond with given HTTP status (100-599) |
 | `/delay/:ms` | ANY | Delay response up to 10000ms |

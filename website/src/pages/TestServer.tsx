@@ -13,7 +13,8 @@ interface Endpoint {
 
 const endpoints: Endpoint[] = [
   { method: 'GET', path: '/', description: 'Help page listing all endpoints' },
-  { method: 'ANY', path: '/echo', description: 'Echo back request details (method, headers, body, query)' },
+  { method: 'ANY', path: '/echo', description: 'Echo back request details as JSON (method, headers, body, query)' },
+  { method: 'ANY', path: '/echo/xml', description: 'Echo back request details as XML (application/xml)' },
   { method: 'ANY', path: '/anything', description: 'Alias for /echo' },
   { method: 'GET', path: '/status/200', description: 'Respond with the given HTTP status code (100–599)', example: '/status/200' },
   { method: 'ANY', path: '/delay/1000', description: 'Delay response up to 10,000 ms', example: '/delay/1000' },
