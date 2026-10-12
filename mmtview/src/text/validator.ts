@@ -1,4 +1,5 @@
 import {outputExtractor} from 'mmt-core';
+import {isValidExampleId} from 'mmt-core/APIData';
 import {isKnownRuntimeTokenName} from 'mmt-core/runtimeTokenUi';
 import {isInsideYamlBlockScalar} from './tokenHighlightPatterns';
 
@@ -88,6 +89,12 @@ export function offsetToLineNumber(content: string, offset: number): number {
     }
   }
   return line;
+}
+
+function offsetToColumn(content: string, offset: number): number {
+  const pre = content.slice(0, Math.max(0, offset));
+  const lastNl = pre.lastIndexOf('\n');
+  return lastNl >= 0 ? pre.length - lastNl : pre.length + 1;
 }
 
 export type ExampleLineInfo = {
@@ -1681,6 +1688,29 @@ export function findExampleKeyProblems(
       }
       const idPair = exampleNode.items.find((pair: any) => pair?.key?.value === "id");
       const namePair = exampleNode.items.find((pair: any) => pair?.key?.value === "name");
+      if (idPair?.value && typeof idPair.value.value === "string" && idPair.value.value.trim()) {
+        const rawId = idPair.value.value.trim();
+        if (!isValidExampleId(rawId)) {
+          const valueRange = Array.isArray(idPair.value.range) ? idPair.value.range : null;
+          const keyRange = Array.isArray(idPair.key?.range) ? idPair.key.range : null;
+          const offset =
+              valueRange && typeof valueRange[0] === "number" ?
+                  valueRange[0] :
+                  (keyRange && typeof keyRange[0] === "number" ? keyRange[0] : 0);
+          const line = offsetToLineNumber(content, offset);
+          const column = offsetToColumn(content, offset);
+          const endOffset =
+              valueRange && typeof valueRange[1] === "number" ? valueRange[1] : offset + rawId.length;
+          problems.push({
+            message:
+                `Example id "${rawId}" should use only ASCII letters, digits, underscores, and hyphens (no spaces or other characters)`,
+            severity: "warning",
+            line,
+            column,
+            endColumn: column + Math.max(1, endOffset - offset),
+          });
+        }
+      }
       const pair = idPair || namePair;
       const value = pair?.value?.value;
       if (typeof value !== "string" || !value.trim()) {

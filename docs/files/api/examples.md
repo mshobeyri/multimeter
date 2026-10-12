@@ -27,7 +27,7 @@ examples:
       status: 401
 ```
 
-Prefer `id` + `title`. Deprecated `name` still works as a fallback for both — click struck-through `name:` to expand. Deprecated example `outputs:` is an alias for soft `expect` — click to rename. Duplicate ids fail validation.
+Prefer `id` + `title`. Example `id` should use only ASCII letters, digits, `_`, and `-` (no spaces); the editor warns otherwise. Deprecated `name` still works as a fallback for both — click struck-through `name:` to expand (`id` gets spaces replaced with `_`, `title` keeps the original). Deprecated example `outputs:` is an alias for soft `expect` — click to rename. Duplicate ids fail validation.
 
 
 ## Validation and requirements

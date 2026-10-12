@@ -21,6 +21,7 @@ import {
   computeSuiteThenSeparatorMarkers,
   findSuiteThenSeparatorProblems,
   findDiscouragedBareEmbeddedTokenProblems,
+  findExampleKeyProblems,
 } from './validator';
 
 describe('offsetToLineNumber', () => {
@@ -914,5 +915,56 @@ describe('findDiscouragedBareEmbeddedTokenProblems', () => {
       '  t: c:epoch',
     ].join('\n');
     expect(findDiscouragedBareEmbeddedTokenProblems(content)).toEqual([]);
+  });
+});
+
+describe('findExampleKeyProblems', () => {
+  it('warns when example id has spaces or non-ASCII characters', () => {
+    const withSpace = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - id: Get Admin',
+      '    title: Get Admin',
+    ].join('\n');
+    const spaceProblems = findExampleKeyProblems(withSpace, parseDocument(withSpace), 'api');
+    expect(spaceProblems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          severity: 'warning',
+          message: expect.stringContaining('Get Admin'),
+          line: 4,
+        }),
+      ])
+    );
+
+    const withNonAscii = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - id: café',
+      '    title: Cafe',
+    ].join('\n');
+    const nonAsciiProblems = findExampleKeyProblems(withNonAscii, parseDocument(withNonAscii), 'api');
+    expect(nonAsciiProblems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          severity: 'warning',
+          message: expect.stringContaining('café'),
+        }),
+      ])
+    );
+  });
+
+  it('does not warn for valid example ids', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - id: Get_Admin-1',
+      '    title: Get Admin',
+    ].join('\n');
+    const problems = findExampleKeyProblems(content, parseDocument(content), 'api');
+    expect(problems.filter((p) => p.message.includes('should use only ASCII'))).toEqual([]);
   });
 });

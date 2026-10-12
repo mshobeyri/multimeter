@@ -727,7 +727,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     );
   }, [content, docType, editorReady]);
 
-  // Warn on example input/output keys that don't match API-level inputs/outputs
+  // Warn on example input/output keys that don't match API-level inputs/outputs,
+  // duplicate/invalid example ids, and unknown example fields.
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
       return;
@@ -739,24 +740,45 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       return;
     }
 
+    const clearExampleMarkers = () => {
+      setExampleKeyProblems([]);
+      monaco.editor.setModelMarkers(model, "mmt-example-keys", []);
+      undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(undefinedExampleKeyDecorationsRef.current, []);
+      undefinedOutputValueDecorationsRef.current = editor.deltaDecorations(undefinedOutputValueDecorationsRef.current, []);
+    };
+
     let doc: any = null;
     try {
       doc = parseYamlDoc(content);
       if (doc.errors && doc.errors.length > 0) {
-        setExampleKeyProblems([]);
-        undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(undefinedExampleKeyDecorationsRef.current, []);
-        undefinedOutputValueDecorationsRef.current = editor.deltaDecorations(undefinedOutputValueDecorationsRef.current, []);
+        clearExampleMarkers();
         return;
       }
     } catch {
-      setExampleKeyProblems([]);
-      undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(undefinedExampleKeyDecorationsRef.current, []);
-      undefinedOutputValueDecorationsRef.current = editor.deltaDecorations(undefinedOutputValueDecorationsRef.current, []);
+      clearExampleMarkers();
       return;
     }
 
     const problems = findExampleKeyProblems(content, doc, docType);
     setExampleKeyProblems(problems);
+
+    const markers = problems.map((p) => {
+      const lineNumber = Math.min(Math.max(p.line ?? 1, 1), model.getLineCount());
+      const col = Math.max(p.column ?? 1, 1);
+      const endCol =
+          typeof p.endColumn === "number" && p.endColumn > col ?
+              p.endColumn :
+              model.getLineMaxColumn(lineNumber);
+      return {
+        startLineNumber: lineNumber,
+        startColumn: col,
+        endLineNumber: lineNumber,
+        endColumn: endCol,
+        message: p.message,
+        severity: p.severity === "error" ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+      };
+    });
+    monaco.editor.setModelMarkers(model, "mmt-example-keys", markers);
 
     const decos = getUndefinedExampleKeyDecorations(
       monaco,

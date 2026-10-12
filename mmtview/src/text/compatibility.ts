@@ -1,5 +1,6 @@
-import {offsetToLineNumber} from './validator';
+import {exampleIdFromLegacyName} from 'mmt-core/APIData';
 import {findLegacySetenvOutputRefs} from 'mmt-core/setenvResolve';
+import {offsetToLineNumber} from './validator';
 
 export type CompatibilityFix =
   | {
@@ -200,15 +201,16 @@ function findApiExampleNameDeprecatedIssues(content: string, yamlDoc: any): Comp
     const linePrefix = content.slice(lineStart, startOffset);
     const sequencePrefix = /^(\s*)-\s+$/.exec(linePrefix);
     const indent = sequencePrefix ? `${sequencePrefix[1]}  ` : linePrefix;
+    const idValue = exampleIdFromLegacyName(nameValue);
     let replacement: string;
     if (hasId && hasTitle) {
       replacement = '';
     } else if (hasId && !hasTitle) {
       replacement = `title: ${nameValue}\n`;
     } else if (!hasId && hasTitle) {
-      replacement = `id: ${nameValue}\n`;
+      replacement = `id: ${idValue}\n`;
     } else {
-      replacement = `id: ${nameValue}\n${indent}title: ${nameValue}\n`;
+      replacement = `id: ${idValue}\n${indent}title: ${nameValue}\n`;
     }
 
     const line = offsetToLineNumber(content, startOffset);
