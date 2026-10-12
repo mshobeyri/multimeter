@@ -3,6 +3,7 @@ import {
   parseTempFileMeta,
   sanitizeTempFileName,
   sortTempFiles,
+  tempFileNameFromTitle,
   uniqueTempFileName,
 } from './tempFileMeta';
 import {buildTempMmtUriParts, parseTempMmtPath, parseTempMmtUriParts} from './tempMmtUri';
@@ -44,9 +45,21 @@ describe('temp file names', () => {
     expect(sanitizeTempFileName('post')).toBe('post.mmt');
   });
 
-  it('increments duplicate names', () => {
-    expect(uniqueTempFileName('untitled.mmt', ['untitled.mmt', 'untitled-2.mmt']))
-        .toBe('untitled-3.mmt');
+  it('builds snake_case names from titles', () => {
+    expect(tempFileNameFromTitle('Echo Login')).toBe('echo_login.mmt');
+    expect(tempFileNameFromTitle('My API (v2)!')).toBe('my_api_v2.mmt');
+    expect(tempFileNameFromTitle('  ')).toBe('untitled.mmt');
+    expect(tempFileNameFromTitle('!!!')).toBe('untitled.mmt');
+  });
+
+  it('increments duplicate names without a separator', () => {
+    expect(uniqueTempFileName('untitled.mmt', ['untitled.mmt', 'untitled1.mmt']))
+        .toBe('untitled2.mmt');
+    expect(uniqueTempFileName('echo_login.mmt', ['echo_login.mmt']))
+        .toBe('echo_login1.mmt');
+    expect(uniqueTempFileName(
+               'echo_login.mmt', ['echo_login.mmt', 'echo_login1.mmt']))
+        .toBe('echo_login2.mmt');
   });
 });
 

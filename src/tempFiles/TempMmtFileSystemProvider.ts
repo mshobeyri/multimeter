@@ -7,7 +7,11 @@ export class TempMmtFileSystemProvider implements vscode.FileSystemProvider {
   private readonly emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   readonly onDidChangeFile = this.emitter.event;
 
-  constructor(private readonly store: TempFileStore) {}
+  constructor(
+      private readonly store: TempFileStore,
+      private readonly onRenamed?: (
+          oldUri: vscode.Uri, newUri: vscode.Uri) => void,
+  ) {}
 
   watch(_uri: vscode.Uri, _options: {
     readonly recursive: boolean;
@@ -65,6 +69,18 @@ export class TempMmtFileSystemProvider implements vscode.FileSystemProvider {
     const updated = await this.store.updateContent(parsed.id, text);
     if (!updated) {
       throw vscode.FileSystemError.FileNotFound(uri);
+    }
+    if (updated.renamedFrom) {
+      const newUri = vscode.Uri.parse(updated.record.uri);
+      this.emitter.fire([
+        {type: vscode.FileChangeType.Deleted, uri: updated.renamedFrom},
+        {type: vscode.FileChangeType.Created, uri: newUri},
+      ]);
+      const oldUri = updated.renamedFrom;
+      queueMicrotask(() => {
+        this.onRenamed?.(oldUri, newUri);
+      });
+      return;
     }
     this.emitter.fire([{type: vscode.FileChangeType.Changed, uri}]);
   }

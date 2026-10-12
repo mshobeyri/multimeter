@@ -60,6 +60,15 @@ export function sanitizeTempFileName(name: string): string {
   return `${base}.mmt`;
 }
 
+/** Lowercase snake_case file name from a YAML title ("Echo Login" → echo_login.mmt). */
+export function tempFileNameFromTitle(title: string): string {
+  const stem = String(title || '')
+                   .toLowerCase()
+                   .replace(/[^a-z0-9]+/g, '_')
+                   .replace(/^_+|_+$/g, '');
+  return sanitizeTempFileName(stem || 'untitled');
+}
+
 export function uniqueTempFileName(
     desired: string, existing: string[]): string {
   const sanitized = sanitizeTempFileName(desired);
@@ -68,9 +77,9 @@ export function uniqueTempFileName(
   const stem = dot >= 0 ? sanitized.slice(0, dot) : sanitized;
   const used = new Set(existing.map(item => item.toLowerCase()));
   let candidate = sanitized;
-  let n = 2;
+  let n = 1;
   while (used.has(candidate.toLowerCase())) {
-    candidate = `${stem}-${n}${ext}`;
+    candidate = `${stem}${n}${ext}`;
     n += 1;
   }
   return candidate;
