@@ -77,7 +77,7 @@ When a field value is **exactly** `${alias.path}`, Multimeter keeps the imported
 | `for` | Iterate CSV rows (or any JS iterable) |
 | `${alias.field}` | Row field or nested path from imported data |
 
-Full references: [Control flow — for/repeat](../files/test/steps/control-flow.md#for-repeat) · [import](../files/test/import.md)
+Full references: [for](../files/test/steps/for.md) · [repeat](../files/test/steps/repeat.md) · [import](../files/test/import.md)
 
 ## Examples
 
@@ -97,6 +97,6 @@ npx testlight run examples/intermediate/09_csv_data_driven_test/echo_csv_test.mm
 ## See also
 - [import](../files/test/import.md) — all importable file types
 - [Data imports](./data-imports.md) — JSON/YAML/CSV in API, env, suite, and other file types
-- [Control flow](../files/test/steps/control-flow.md) — `for`, `repeat`, `if`
-- [Variables](../files/test/steps/variables.md) — `set`, `setenv`
+- [for](../files/test/steps/for.md) · [repeat](../files/test/steps/repeat.md) · [if](../files/test/steps/if.md)
+- [var, const, let](../files/test/steps/variables.md) · [setenv](../files/test/steps/setenv.md)
 - [Browse examples](/docs/examples) — sample Multimeter projects

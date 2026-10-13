@@ -28,6 +28,8 @@ Most authored file types share the same documentation fields:
 
 They appear on **API**, **Test**, **Suite**, **Load Test**, and **Mock Server** files.
 
+On **API** and **Test** files, `description` can also document inputs/outputs with `<<i:>>` / `<<o:>>` annotations (allowed values, ranges, Doc tables, Inputs ⋯ picker) — see [Input and output documentation](./files/input-output-docs.md).
+
 **Doc** files use `title` and `description` (no `tags`). **Environment** and **Report** files do not use this trio.
 
 ```yaml

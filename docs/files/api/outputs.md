@@ -105,4 +105,6 @@ outputs:
   result_code: 'body[/\sResult:\s(.*)\s\[\s/]'
 ```
 
-Next: [Inputs](./inputs.md) · [setenv](./setenv.md) · [check operators](../test/steps/check.md#operators)
+Document outputs in `description` with `<<o:name>>` — see [Input and output documentation](../input-output-docs.md).
+
+Next: [Inputs](./inputs.md) · [setenv](./setenv.md) · [Operators](../test/operators.md)

@@ -23,4 +23,4 @@ An intermediate `type: doc` example that documents input parameters with options
 - **`html.triable: true`** enables interactive Try buttons in rendered docs.
 - Open the API file’s **Inputs** tab to pick values with the ⋯ menu on constrained fields.
 
-See [Parameter annotations](../../../docs/files/doc/annotations.md) and [API → Documentation](../../../docs/files/api/documentation.md) for details.
+See [Input and output documentation](../../../docs/files/input-output-docs.md) for details.

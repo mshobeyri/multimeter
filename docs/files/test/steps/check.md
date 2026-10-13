@@ -2,9 +2,11 @@
 
 Use `check` to validate a value during a test run. A failed check is logged and reported, but **execution continues**. To stop the flow on failure, use [assert](./assert.md).
 
-For AI / non-deterministic evaluation (semantic quality, rubrics), use [judge](./judge.md) with nested `check` / `assert` blocks instead of fuzzy operators alone.
+For AI / non-deterministic evaluation (semantic quality, rubrics), use [judge](./judge.md) with nested `expect` / `require` blocks instead of fuzzy operators alone.
 
-Checks also power inline `expect` on [call](./call.md) and [http](./http.md) steps (non-throwing) and `condition` on [stages](../stages/stage-condition.md) and [if](./control-flow.md) steps.
+Checks also power inline `expect` on [call](./call.md) and [http](./http.md) steps (non-throwing) and `condition` on [stages](../stages/stage-condition.md) and [if](./if.md) steps.
+
+Comparison operators are documented in [Operators](../operators.md); missing values use [omit](../omit.md). Report levels (`all` / `fails` / `none`) are documented in [Reports — Report levels](../reports.md#report-levels-all-fails-none).
 
 ## Inline form
 
@@ -62,92 +64,20 @@ Use an object when you need explicit fields, a custom title, details, or per-che
 |-------|----------|-------------|
 | `actual` | yes | Left-hand value — usually a `${...}` reference or literal. |
 | `expected` | yes | Right-hand value to compare against. |
-| `operator` | no | Comparison operator (default `==`). See [Operators](#operators). |
+| `operator` | no | Comparison operator (default `==`). See [Operators](../operators.md). |
 | `title` | no | Label shown in reports instead of the raw comparison. |
 | `details` | no | Extra context shown when the check fails. |
-| `report` | no | When to emit this result. See [Report configuration](#report-configuration). |
+| `report` | no | When to emit this result: `all`, `fails`, `none`, or `{ internal, external }`. See [Reports — Report levels](../reports.md#report-levels-all-fails-none). |
 
 ## Operators
 
-Operators used by `check`, [assert](./assert.md), and call-level [`expect`](./call.md#expect) / [`require`](./call.md#require):
-
-| Operator | Meaning |
-|----------|---------|
-| `<`, `>`, `<=`, `>=`, `==`, `!=` | Numeric / equality comparisons |
-| `=i`, `!i` | Equal / not equal, ignore case |
-| `=X`, `!X` | Equal / not equal after trim |
-| `=iX`, `!iX` | Trim + ignore case |
-| `=@`, `!@` | Left is in / not in right (both sides coerced to string; objects/arrays via JSON) |
-| `=C`, `!C` | Left contains / does not contain right |
-| `=^`, `!^` | Starts with / does not start with |
-| `=$`, `!$` | Ends with / does not end with |
-| `=*`, `!*` | Regex match / does not match |
-| `=S`, `!S` | Equal / not equal as string — use for XML/text outputs vs YAML `true` / `42` |
-| `=#`, `!#` | String/number/list/object length equals / not equals |
-| `<#`, `<=#`, `>#`, `>=#` | Length/count comparisons |
-| `>N%`, `<N%` | Fuzzy match at least / less than N% similar (0–100, e.g. `>80%`). In the visual UI these appear as `>%` and `<%` with a separate percentage selector. |
-| `=Ns~`, `!Ns~` | Times within / not within velocity (e.g. `=5s~`, `!1m~`). A duration is required — bare `=~` is not a time operator. Combined durations work (`=1m30s~`, `=100ms~`). Both sides parse as ISO datetime, epoch seconds/ms, or `HH:mm[:ss]`. Quote clock times (`"14:30:00"`) so YAML does not treat them as numbers. In the visual UI these appear as `=s~` / `!s~` with a velocity field. |
-
-Legacy `=~` / `!~` still run as as-string compares (`=S` / `!S`) so old files keep working. The YAML editor strikes them through; click to replace with `=S` / `!S`.
-
-### `omit`
-
-Use unquoted `omit` with `==` / `!=` to test that a value is missing, `null`, or the omit sentinel (for example after a missing output path):
-
-```yaml
-- check: ${result.missingField} == omit
-- check: ${result.token} != omit
-```
-
-Object form:
-
-- `expected: omit` (unquoted) — assert that the value/path is missing.
-- For `operator: ==`, a missing path (`undefined`) is treated as `omit` and passes.
-- For `operator: !=`, the check passes only when the value is present and not omit/null.
-
-```yaml
-- check:
-    title: username exists
-    actual: ${xxx.body.body.username}
-    operator: "!="
-    expected: omit
-
-- check:
-    title: nickname missing
-    actual: ${xxx.body.body.nickname}
-    operator: "=="
-    expected: omit
-```
-
-### Output-path behavior
-
-Runtime references like `${stepId.body.body.username}` and `${stepId.status}` use the same output fallback behavior as `expect`. Checks can read default output roots (`body`, `status`, `headers`, `cookies`, `duration`, `details`) from call results consistently. See [Outputs](../../api/outputs.md).
+Full operator table and output-path rules: [Operators](../operators.md). Missing values: [omit](../omit.md).
 
 ## Report configuration
 
-The `report` field controls when check results are emitted. Useful when tests are imported or added to suites.
+`report: all` | `fails` | `none` (or `{ internal, external }`) controls which results appear in the Report list. Default: `internal: all`, `external: fails`.
 
-Values:
-
-- `all` — report both passes and failures
-- `fails` — report only failures (default for external)
-- `none` — silent, no reporting
-
-```yaml
-- check:
-    actual: ${doLogin.status}
-    expected: 200
-    report: all
-
-- check:
-    actual: ${doLogin.status}
-    expected: 200
-    report:
-      internal: all    # when running this test directly
-      external: fails  # when imported or added to a suite
-```
-
-Default if omitted: `internal: all`, `external: fails`.
+Full explanation and examples: [Reports — Report levels](../reports.md#report-levels-all-fails-none).
 
 Checks and assertions appear in the Log panel while the flow runs. The report level also determines the [log level](../../../features/logging/test-logging.md#checks-and-asserts) for each result.
 
@@ -157,4 +87,4 @@ For run-summary cards and step reports, see [Reports](../reports.md).
 
 ---
 
-See also: [assert](./assert.md) · [call — expect](./call.md#expect) · [Inline expect](./run-expect.md) · [Outputs](../../api/outputs.md) · [Logging (Output panel)](../../../features/logging.md)
+See also: [Operators](../operators.md) · [omit](../omit.md) · [assert](./assert.md) · [call — expect](./call.md#expect) · [Inline expect](../inline-expect.md) · [Outputs](../../api/outputs.md) · [Logging (Output panel)](../../../features/logging.md)

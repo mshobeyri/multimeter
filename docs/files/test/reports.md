@@ -46,12 +46,65 @@ When a step reused a cached call result, the pass/fail icon switches to a databa
 | Control | What it does |
 |---|---|
 | Step title | From the step's `title:` in YAML, or **Check** / **Assert** / **Debug** when no title is set |
-| {{btn:circle-outline}} / {{btn:circle-filled}} | Expand or collapse expect comparisons, request/response details, and other output |
+| {{btn:chevron-right}} / {{btn:chevron-down}} | Expand or collapse expect comparisons, request/response details, and other output |
 | Timestamp | Local time when the step reported (right side of the row) |
 
 Expanded **Expect** rows show the comparison expression (for example `status == 200`) with a per-expect pass/fail icon. Failed expects also show **got:** actual vs expected values, and similarity or count when relevant.
 
 For **call** steps, expanded details can include status code, request, response headers/body, and extracted outputs.
+
+## Report levels (`all`, `fails`, `none`)
+
+The YAML `report` field on [check](./steps/check.md), [assert](./steps/assert.md), [judge](./steps/judge.md), and call/http [`expect`](./steps/call.md#expect) / [`require`](./steps/call.md#require) controls **which results are emitted** into the Report list (and related logs/exports). This is separate from the UI filter above — the filter only hides rows that were already emitted.
+
+| Value | What gets reported |
+|---|---|
+| `all` | Passes and failures |
+| `fails` | Failures only |
+| `none` | Nothing — silent even when the comparison fails |
+
+```yaml
+- check:
+    actual: ${doLogin.status}
+    expected: 200
+    report: all
+
+- check:
+    actual: ${doLogin.status}
+    expected: 200
+    report: fails
+
+- check:
+    actual: ${doLogin.status}
+    expected: 200
+    report: none
+```
+
+A string sets both contexts to the same level. You can also split **internal** (running this test file directly) vs **external** (when the test is imported or run as part of a suite):
+
+```yaml
+- check:
+    actual: ${doLogin.status}
+    expected: 200
+    report:
+      internal: all    # when running this test directly
+      external: fails  # when imported or added to a suite
+
+- call: login
+  expect:
+    status_code: 200
+  report:
+    internal: all
+    external: fails
+```
+
+**Default** when `report` is omitted: `internal: all`, `external: fails`.
+
+Notes:
+
+- A failed `assert` / `require` still **stops** the flow even when `report: none` (silence only affects reporting, not control flow).
+- Soft `check` / `expect` failures never stop the flow; `report` only controls whether they appear in the Report list.
+- The same levels drive [check/assert log output](../../features/logging/test-logging.md#checks-and-asserts) in the Output panel.
 
 ## Export
 
@@ -59,4 +112,4 @@ Use {{btn:export:Export}} on the run bar to save the full report (HTML, MMT, Mar
 
 ---
 
-See also: [Test overview](./index.md) · [Report overview](../report/index.md) · [Edit Test](./edit.md)
+See also: [Test overview](./index.md) · [Operators](./operators.md) · [Report overview](../report/index.md) · [Edit Test](./edit.md)

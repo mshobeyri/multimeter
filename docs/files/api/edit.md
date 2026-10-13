@@ -26,7 +26,7 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 
 Each of **Title**, **Tags**, and **Description** has a pencil control. View mode shows the rendered value (Markdown for description); edit mode shows the same boxes formerly on the Edit API page.
 
-See [Documentation](./documentation.md) for description annotations.
+See [Documentation](./documentation.md) and [Input and output documentation](../input-output-docs.md) for description annotations.
 
 ### Inputs / Outputs
 

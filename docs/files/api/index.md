@@ -119,6 +119,7 @@ cookies:
 - [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP examples](./protocols/http-bodies.md)
 - [Headers](./headers.md) · [Auth](./auth.md)
 - [Inputs](./inputs.md) · [Outputs](./outputs.md)
-- [Documentation](./documentation.md) — `title`, `tags`, `description`, `<<i:>>` / `<<o:>>` annotations
+- [Documentation](./documentation.md) — `title`, `tags`, `description`
+- [Input and output documentation](../input-output-docs.md) — `<<i:>>` / `<<o:>>` annotations, allowed values, ranges, Doc tables, and Inputs ⋯ picker
 - [setenv](./setenv.md) · [Examples](./examples.md) · [Dynamic values](../../features/dynamic-values/index.md)
 - [Complete examples](./complete-examples.md) · [CLI](./cli.md) · [Reference](./reference.md)

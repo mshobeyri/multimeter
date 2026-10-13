@@ -65,6 +65,7 @@ Notes for the AI:
 ## When to use which fields
 
 - Use **`title`** and **`description`** whenever the user describes intent or business meaning (`"login endpoint"`, `"create user"`, etc.).
+- When documenting parameters, prefer `<<i:name>>` / `<<o:name>>` in `description`, with `[a, b]` or `[1-5]` for allowed values / ranges on inputs (⋯ picker + Doc tables).
 - Use **`tags`** when the user mentions categories like "smoke", "load", "auth", "payments".
 - Use **`inputs`** when the user expects to change parameters between runs (username, pagination, filters, ids, etc.).
 - Use **`outputs`** + **`setenv`** when the user wants to **capture response data** for later steps (e.g. tokens, IDs).

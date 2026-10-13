@@ -27,7 +27,7 @@ steps:
 - Use `steps` **or** `stages`, not both
 - Every `call` needs unique `id`
 - Import aliases before calling them
-- Assert with `expect` on call, or `assert` / `check` steps
+- Prefer `expect` / `require` **on the call** when validating that step only; use `assert` / `check` steps for cross-step conditions
 - No YAML comments (`#`)
 - Tokens: `e:`, `i:`, `r:`, `c:` (snake_case)
 

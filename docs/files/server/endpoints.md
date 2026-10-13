@@ -20,7 +20,7 @@ Each entry under `endpoints:` supports method, path, name, match rules, status, 
 
 Use `match:` to pick among several endpoints with the same method and path. Filtered endpoints win over a bare catch-all (even if the catch-all is listed first).
 
-`match.body` / `match.query` accept nested maps or **dotted paths**, and values use the same [operators as check/expect](../test/steps/check.md#operators) (`!=`, `=C`, `=*`, …). Extra request fields are ignored. `match.headers` is the same for values (names are case-insensitive).
+`match.body` / `match.query` accept nested maps or **dotted paths**, and values use the same [operators as check/expect](../test/operators.md) (`!=`, `=C`, `=*`, …). Extra request fields are ignored. `match.headers` is the same for values (names are case-insensitive).
 
 YAML-unsafe prefixes such as `!=` / `!C` / `>` may be written unquoted under `match:` — Multimeter quotes them before parsing (same as `expect:`).
 

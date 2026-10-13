@@ -8,18 +8,12 @@ These fields make APIs searchable and auto-documentable:
 
 ## Parameter annotations
 
-Inside `description`, document inputs and outputs with annotations (not plain Markdown bullets alone):
+Document inputs and outputs inside `description` with `<<i:name>>` / `<<o:name>>`. Optional `[...]` on inputs defines **allowed values** (enums) and **ranges**, which:
 
-- `<<i:param_name>> description text` — input parameter
-- `<<o:param_name>> description text` — output parameter
+- Appear in generated docs and the **Doc** tab
+- Enable a ⋯ picker on matching fields in the **Inputs** tab
 
-Optional leading `[...]` on an **input** annotation documents allowed values (ranges / enums) and enables an options menu (⋯) on that field in the API **Inputs** tab — the same control used on test runner inputs:
-
-- `[a, b, c]` — discrete options (comma-separated; double-quoted tokens allowed)
-- `[1-5]` — integer range, inclusive (picker hidden if more than 10 values)
-- `["1", "2"]` keeps numeric-looking values as strings; `[1, 2]` stores them as numbers
-
-Example: `<<i:role>> [admin, editor, viewer] User role`
+Full syntax, rules, and examples for API and test files: [Input and output documentation](../input-output-docs.md).
 
 ```yaml
 type: api
@@ -27,8 +21,8 @@ title: generate session
 description: |-
   Create a session from username and password.
 
-  <<i:username>> Account username
-  <<i:password>> Account password
+  <<i:username>> Required account username
+  <<i:password>> Required account password
   <<i:role>> [admin, editor, viewer] Optional role for the session
 
   <<o:token>> JWT session token

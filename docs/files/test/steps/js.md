@@ -66,8 +66,8 @@ The following globals are available inside `js` `steps:`
 | `mmtCurrent_(name)` | Resolve a current token by name (e.g. `mmtCurrent_('date')`) |
 | `outputs` | Test `outputs` object (also `o:name` / `<<o:name>>`) |
 | step `id` vars | Call/http results hoisted as `let` (e.g. `doLogin` from `id: doLogin`) |
-| `equals_()`, `less_()`, `greater_()`, `contains_()`, `matches_()`, … | Comparison helpers matching [check operators](./check.md#operators) |
+| `equals_()`, `less_()`, `greater_()`, `contains_()`, `matches_()`, … | Comparison helpers matching [operators](../operators.md) |
 
 Use `report_()` when you need a custom pass/fail line in the log; use the comparison helpers when you want the same semantics as YAML `check` / `assert` inside JavaScript.
 
-See also: [Variables](./variables.md) · [import](../import.md) · [check](./check.md)
+See also: [var, const, let](./variables.md) · [print](./print.md) · [import](../import.md) · [check](./check.md)

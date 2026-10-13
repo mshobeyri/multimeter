@@ -50,38 +50,18 @@ See also: [Flow chart](../../features/flow-chart.md)
 | **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards — see [Reports](./reports.md) |
 | **Report** | Step-by-step results with pass/fail status and timestamps — see [Reports](./reports.md#report-list) |
 
-### Input options from description
+### Input and output documentation
 
-Document allowed values on inputs in `description` the same way as API files. A leading `[...]` after `<<i:name>>` enables a ⋯ options menu on that runner input field:
+Document test `inputs` / `outputs` in `description` with `<<i:name>>` / `<<o:name>>`. Leading `[...]` on inputs defines allowed values and ranges and enables a ⋯ picker on runner input fields — same syntax as API files.
 
-```yaml
-type: test
-title: Create session
-description: |-
-  <<i:role>> [admin, editor, viewer] Role for the session
-  <<i:page>> [1-5] Page number
-inputs:
-  role: viewer
-  page: 1
-steps:
-  - http: https://test.mmt.dev/echo
-    method: post
-    body:
-      role: i:role
-      page: i:page
-```
-
-- `[a, b, c]` — discrete options (comma-separated; double-quoted tokens allowed)
-- `[1-5]` — integer range, inclusive (menu hidden if more than 10 values)
-
-API files use the same annotations on the **Inputs** tab — see [API → Documentation](../api/documentation.md).
+Full guide (syntax, ranges, Doc tables, and UI effects): [Input and output documentation](../input-output-docs.md).
 
 ## Supported
 
-- Step types: [call](./steps/call.md), [http](./steps/http.md), [run](./steps/run.md), [check](./steps/check.md), [assert](./steps/assert.md), [expect](./steps/run-expect.md)
-- [Control flow](./steps/control-flow.md): `if`, `for`, `repeat`, `delay`
+- Step types: [call](./steps/call.md), [http](./steps/http.md), [run](./steps/run.md), [check](./steps/check.md), [assert](./steps/assert.md), [judge](./steps/judge.md), [if](./steps/if.md), [for](./steps/for.md), [repeat](./steps/repeat.md), [delay](./steps/delay.md), [js](./steps/js.md), [print](./steps/print.md), [var, const, let](./steps/variables.md), [setenv](./steps/setenv.md)
+- Inline validation: [expect / require](./inline-expect.md) · [Operators](./operators.md) · [omit](./omit.md)
 - [Stages](./stages/index.md) with parallel execution
-- [import](./import.md) · [cache](./cache.md) · [js](./steps/js.md) · [Variables](./steps/variables.md) · [setenv](./steps/setenv.md)
+- [import](./import.md) · [cache](./cache.md)
 
 Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP file](../../integration/http-file.md) and [Bruno](../../integration/bruno.md).
 
@@ -104,7 +84,7 @@ steps:
 
 ## Test elements
 
-- [Quick start](./quick-start.md) · [Edit Test](./edit.md) · [Reports](./reports.md) · [Report overview](../report/index.md) · [Write a test flow](../../tasks/write-test-flow.md)
+- [Quick start](./quick-start.md) · [Edit Test](./edit.md) · [Reports](./reports.md) · [Input and output documentation](../input-output-docs.md) · [Operators](./operators.md) · [omit](./omit.md) · [Inline expect](./inline-expect.md) · [Report overview](../report/index.md) · [Write a test flow](../../tasks/write-test-flow.md)
 - [import](./import.md) · [cache](./cache.md)
 - [Steps](./steps/index.md) · [Stages](./stages/index.md)
 - [Stage condition](./stages/stage-condition.md) · [Complete example](./complete-example.md) · [CLI](./cli.md) · [Reference](./reference.md)

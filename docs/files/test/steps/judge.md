@@ -53,7 +53,7 @@ At least one of `expect` / `require` is required. One model call scores metrics 
 | `require` | one of expect/require | Hard metrics + optional `criteria` |
 | `id` | no | Capture result (`passed`, `checks`, `criteria`, …) |
 | `title` | no | Report label |
-| `report` | no | Same as check/assert |
+| `report` | no | Same as check/assert: `all`, `fails`, `none`, or `{ internal, external }` — see [Reports — Report levels](../reports.md#report-levels-all-fails-none) |
 
 Inside `expect` / `require`:
 
@@ -87,4 +87,4 @@ One batched report listing each expect/require item. The step stops only if a **
 ## Related
 
 - [Judge files](../../judge/index.md)
-- [check](./check.md) · [assert](./assert.md) · [call expect / require](./call.md#expect)
+- [check](./check.md) · [assert](./assert.md) · [call expect / require](./call.md#expect) · [Reports — Report levels](../reports.md#report-levels-all-fails-none)

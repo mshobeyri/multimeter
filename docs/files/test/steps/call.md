@@ -31,10 +31,10 @@ See [import](../import.md) for supported import types and path rules.
 | `id` | no | Variable name for the call result. Use `${id.field}` in later steps. When `expect`, `require`, or `debug` is set and `id` is omitted, Multimeter assigns an internal name (for example `_login_0`). |
 | `title` | no | Label in reports and the Flow view. Defaults to the imported file's title, then the alias, then `id`. |
 | `inputs` | no | Key-value map passed to the callee's `inputs:`. Values support tokens (`i:`, `e:`, `r:`, `c:`), `${...}` expressions, and literals. |
-| `expect` | no | Soft inline output validation. Failures are reported but execution continues. Uses the same [operators](./check.md#operators) as `check`. See [expect](#expect) below. |
+| `expect` | no | Soft inline output validation. Failures are reported but execution continues. Uses the same [operators](../operators.md) as `check`. See [expect](#expect) below. |
 | `require` | no | Hard inline output validation. Same map shape as `expect`, but failures **stop** the test (like [assert](./assert.md)). Soft and hard share one report box. See [require](#require) below. |
 | `debug` | no | Same syntax as `expect`, but rows show a debug icon and are excluded from exported reports. Set `debug: true` to dump all top-level output keys. |
-| `report` | no | Controls when `expect` / `require` results are emitted: `all`, `fails`, `none`, or `{ internal, external }`. Default: `internal: all`, `external: fails`. See [check — Report configuration](./check.md#report-configuration). |
+| `report` | no | Controls when `expect` / `require` results are emitted: `all`, `fails`, `none`, or `{ internal, external }`. Default: `internal: all`, `external: fails`. See [Reports — Report levels](../reports.md#report-levels-all-fails-none). |
 
 ## `inputs`
 
@@ -126,11 +126,11 @@ Expected values use the same YAML typing as `if` / `check`: unquoted `200` is a 
     external: fails
 ```
 
-Operator reference: [check — Operators](./check.md#operators).
+Operator reference: [Operators](../operators.md). Report levels: [Reports — Report levels](../reports.md#report-levels-all-fails-none).
 
 ## `require`
 
-`require` uses the same map syntax as `expect`, but a failed item **stops** the test (same as [assert](./assert.md)). Prefer `require` on the call for hard gates; keep standalone `- assert:` for comparisons that are not tied to a single call's outputs.
+`require` uses the same map syntax as `expect`, but a failed item **stops** the test (same as [assert](./assert.md)). Prefer `require` on the call for hard gates; keep standalone `- assert:` for comparisons that are not tied to a single call's outputs. Same [operators](../operators.md) as `expect`.
 
 ```yaml
 - call: login
@@ -140,19 +140,9 @@ Operator reference: [check — Operators](./check.md#operators).
     token: != null
 ```
 
-`omit` in `expect:` / `require:`
-- Unquoted `omit` — field/path is missing.
-- `null` — field exists with a null value.
-- `!= omit` — field is present.
+`omit` in `expect:` / `require:` and call `inputs:` — see [omit](../omit.md).
 
-```yaml
-- call: getUser
-  expect:
-    body.user.middle_name: omit
-    body.user.first_name: != omit
-```
-
-For more expect/require/debug examples, see [Inline expect, require, and debug](./run-expect.md).
+For more expect/require/debug examples, see [Inline expect](../inline-expect.md).
 
 ## `debug`
 
@@ -178,4 +168,4 @@ Example: [Imports — API and nested test calls](../../../../examples/intermedia
 
 ---
 
-See also: [check](./check.md) · [assert](./assert.md) · [Inline expect](./run-expect.md) · [import](../import.md)
+See also: [Operators](../operators.md) · [check](./check.md) · [assert](./assert.md) · [Inline expect](../inline-expect.md) · [Reports — Report levels](../reports.md#report-levels-all-fails-none) · [import](../import.md)

@@ -1,13 +1,6 @@
-# Variables and data
+# var, const, let
 
-## `print`
-Write a message to the log output.
-```yaml
-- print: "Starting flow"
-```
-
-## set, var, const, or let
-Create or change variables for later steps. `set` mutates existing (or creates new); `var`/`const`/`let` follow JS scoping.
+Create or change variables for later steps. `set` mutates existing values (or creates new ones); `var` / `const` / `let` follow JavaScript scoping.
 
 ```yaml
 - set:
@@ -28,10 +21,16 @@ Create or change variables for later steps. `set` mutates existing (or creates n
 Use `o:name` (or nested `o:user.name`) as a **`set` key** to assign the test’s `outputs` object. Read the same fields anywhere with `o:name`, `<<o:name>>`, or `${outputs.name}` — see [Dynamic values](../../../features/dynamic-values/index.md).
 
 When to use which:
-- `set`: creates or updates a variable in the current scope (mutable). Use for values that change across steps.
-- `var`: function-scoped variable (hoisted). Rarely needed; prefer `let`.
-- `const`: block-scoped, cannot be reassigned. Use for values that shouldn't change.
-- `let`: block-scoped, can be reassigned. Use for loop counters or temporary values.
 
-## `setenv`
-Set environment variables at runtime. See [setenv](./setenv.md).
+| Step | Behavior |
+|------|----------|
+| `set` | Creates or updates a variable in the current scope (mutable). Use for values that change across steps. |
+| `var` | Function-scoped variable (hoisted). Rarely needed; prefer `let`. |
+| `const` | Block-scoped, cannot be reassigned. Use for values that should not change. |
+| `let` | Block-scoped, can be reassigned. Use for loop counters or temporary values. |
+
+For log messages, use [print](./print.md). For environment variables at runtime, use [setenv](./setenv.md).
+
+---
+
+See also: [print](./print.md) · [setenv](./setenv.md) · [js](./js.md) · [for](./for.md) · [Dynamic values](../../../features/dynamic-values/index.md)

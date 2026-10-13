@@ -75,5 +75,5 @@ The flow chart is **read-only**. To change steps or items, use **Edit Test**, **
 - [Suite](../files/suite/index.md) — hierarchy view of suite items
 - [Load Test](../files/loadtest/index.md) — flow chart for the referenced test scenario
 - [Edit Test](../files/test/edit.md) — edit-mode Flow tab is separate from Flow chart
-- [Control flow](../files/test/steps/control-flow.md) — `if`, `for`, `repeat`, and `delay` in tests
+- [if](../files/test/steps/if.md) · [for](../files/test/steps/for.md) · [repeat](../files/test/steps/repeat.md) · [delay](../files/test/steps/delay.md) — control-flow steps in tests
 - [Execution](../files/suite/execution.md) — parallel stages and partial runs in suites
