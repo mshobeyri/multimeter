@@ -2,6 +2,20 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.45.3]
+
+Stable release of the 1.45.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.45.3` on `@latest`.
+
+- API tester: custom cross-platform method menu; keep request/response tabs mounted after warm; fade-in editor shell; overlay empty and in-flight response states; hide omit headers/query/cookies in resolved view; auth secrets as plain token fields
+- Expects: show resolved expected under got for token RHS; keep `>` / `>=` and other operators unquoted after format
+- Environment: type-aware values with type chips; merge-safe Apply/Clear; live `(live)` file open; file-backed env resolves; setenv chaining across API, test, and suite
+- Editor: YAML pane layout setting; schema validation diagnostics; running-file Explorer badges; Pause/Resume for test and suite; Run/Stop and cancel timing improvements
+- Headers: block default headers with `omit`; preserve literal `omit` in XML and urlencoded bodies
+- Temp files: rename from YAML `title` as snake_case; warn on invalid example ids
+- Docs: restructure test step docs; input/output parameter docs; input options picker; XML format examples via `/echo/xml`
+- Mock server: copy server address; Run in mock server panel
+- Website: change intro image; match hero controls to current tester UI
+
 ## [1.45.2-pre]
 
 Pre-release. VS Code extension `1.45.2`; Testlight CLI and MCP `1.45.2-pre` on `@pre`.
