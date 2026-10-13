@@ -1,7 +1,10 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
 import { beautifyWithContentType } from './markupConvertor';
-import { isOmitSentinel, OMIT_KEYWORD, restoreOmitKeywordInText } from './omitKeyword';
+import {
+  formatExpectMetaValue,
+  shouldShowResolvedExpected,
+} from './reportExpectMeta';
 import {formatReportDateTime, formatReportNumber, formatReportPercent} from './reportFormat';
 
 export interface ReportMarkdownOptions {
@@ -239,20 +242,7 @@ function buildStepRow(step: TestStepResult, index: number): string {
 }
 
 function displayValue(v: any): string {
-  if (v === null || v === undefined) {
-    return String(v);
-  }
-  if (isOmitSentinel(v)) {
-    return OMIT_KEYWORD;
-  }
-  if (typeof v === 'object') {
-    try {
-      return restoreOmitKeywordInText(JSON.stringify(v));
-    } catch {
-      return String(v);
-    }
-  }
-  return restoreOmitKeywordInText(String(v));
+  return formatExpectMetaValue(v);
 }
 
 function stepHasSimilarity(step: TestStepResult): boolean {
@@ -295,6 +285,9 @@ function buildStepDetails(step: TestStepResult): string {
       md += `- ${eIcon} ${e.comparison}`;
       if ((e.status === 'failed' || typeof e.similarity === 'number' || typeof e.count === 'number') && e.actual != null && e.expected != null) {
         md += `\n  - got: ${displayValue(e.actual)}`;
+        if (shouldShowResolvedExpected(e.comparison)) {
+          md += `\n  - expected: ${displayValue(e.expected)}`;
+        }
         if (typeof e.similarity === 'number') {
           md += `\n  - similarity: ${e.similarity}%`;
         }
