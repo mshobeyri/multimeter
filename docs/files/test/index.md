@@ -50,6 +50,32 @@ See also: [Flow chart](../../features/flow-chart.md)
 | **Overview** | **PASSED**, **FAILED**, **TOTAL**, and **DURATION** summary cards — see [Reports](./reports.md) |
 | **Report** | Step-by-step results with pass/fail status and timestamps — see [Reports](./reports.md#report-list) |
 
+### Input options from description
+
+Document allowed values on inputs in `description` the same way as API files. A leading `[...]` after `<<i:name>>` enables a ⋯ options menu on that runner input field:
+
+```yaml
+type: test
+title: Create session
+description: |-
+  <<i:role>> [admin, editor, viewer] Role for the session
+  <<i:page>> [1-5] Page number
+inputs:
+  role: viewer
+  page: 1
+steps:
+  - http: https://test.mmt.dev/echo
+    method: post
+    body:
+      role: i:role
+      page: i:page
+```
+
+- `[a, b, c]` — discrete options (comma-separated; double-quoted tokens allowed)
+- `[1-5]` — integer range, inclusive (menu hidden if more than 10 values)
+
+API files use the same annotations on the **Inputs** tab — see [API → Documentation](../api/documentation.md).
+
 ## Supported
 
 - Step types: [call](./steps/call.md), [http](./steps/http.md), [run](./steps/run.md), [check](./steps/check.md), [assert](./steps/assert.md), [expect](./steps/run-expect.md)

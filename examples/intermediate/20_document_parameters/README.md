@@ -21,5 +21,6 @@ An intermediate `type: doc` example that documents input parameters with options
 - **Ranges** use syntax like `<<i:page>> [1-5] Page number`.
 - **Output annotations** use `<<o:name>> Description`.
 - **`html.triable: true`** enables interactive Try buttons in rendered docs.
+- Open the API file’s **Inputs** tab to pick values with the ⋯ menu on constrained fields.
 
-See [Doc docs](../../../docs/files/doc/index.md#parameter-annotations-in-api-descriptions) for details.
+See [Parameter annotations](../../../docs/files/doc/annotations.md) and [API → Documentation](../../../docs/files/api/documentation.md) for details.

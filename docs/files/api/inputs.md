@@ -17,6 +17,7 @@ You can also write `i:name` if it doesn’t conflict with surrounding text. When
 Notes
 - `<<i:key>>` can appear inside `url`, `headers`, and `body`
 - Declare input names under `inputs:` (string/number/boolean/null)
+- Document allowed values in `description` with `<<i:name>> [a, b]` or `[1-5]` — the **Inputs** tab shows a ⋯ menu on those fields (see [Documentation](./documentation.md))
 - Input defaults may reference environment (`e:`), random (`r:`), current (`c:`), or sibling inputs (`i:`) — see [Dynamic values](../../features/dynamic-values/index.md)
 - You can append **accessors** when only part of a value is needed:
   - `<<i:user.name>>` — property access

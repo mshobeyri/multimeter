@@ -42,7 +42,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 | **Headers** | Request headers |
 | **Body** | Request body (format bar, pretty/raw). Telescope toggles resolved values vs editable tokens — see below |
 | **Cookies** | Request cookies |
-| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Badge shows input count |
+| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Fields with `<<i:name>> [options]` in `description` show a ⋯ value picker. Badge shows input count |
 | **Doc** | **Title**, **tags**, and **description** (Markdown). Pencil per section to edit |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
