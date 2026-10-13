@@ -65,4 +65,4 @@ steps:
       token: == ${a.token}
 ```
 
-See also: [import](./import.md) · [call](./steps/call.md) · [Inline expect](./steps/run-expect.md)
+See also: [import](./import.md) · [call](./steps/call.md) · [Inline expect](./inline-expect.md)

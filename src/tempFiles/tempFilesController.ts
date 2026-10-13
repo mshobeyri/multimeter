@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import {TempFileStore, parseTempMmtUri} from './TempFileStore';
 import {TempMmtFileSystemProvider} from './TempMmtFileSystemProvider';
 import {TEMP_MMT_SCHEME} from './tempMmtUri';
-import {parseTempFileMeta, sanitizeTempFileName} from './tempFileMeta';
+import {parseTitle, tempFileNameFromTitle} from './tempFileMeta';
 
 let instance: TempFilesController|undefined;
 
@@ -21,7 +21,10 @@ export class TempFilesController {
 
   constructor(context: vscode.ExtensionContext) {
     this.store = new TempFileStore(context.globalStorageUri);
-    this.provider = new TempMmtFileSystemProvider(this.store);
+    this.provider = new TempMmtFileSystemProvider(
+        this.store, (oldUri, newUri) => {
+          void this.reopenRenamed(oldUri, newUri);
+        });
     instance = this;
 
     context.subscriptions.push(
@@ -136,9 +139,10 @@ export class TempFilesController {
     const uri = vscode.Uri.parse(record.uri);
     await saveOpenDocument(uri);
     const latest = this.store.get(id) || record;
-    const meta = parseTempFileMeta(
-        latest.content, latest.fileName.replace(/\.mmt$/i, ''));
-    const defaultName = sanitizeTempFileName(meta.title || latest.fileName);
+    const yamlTitle = parseTitle(latest.content);
+    const defaultName = yamlTitle ?
+        tempFileNameFromTitle(yamlTitle) :
+        latest.fileName;
     const folder = vscode.workspace.workspaceFolders?.[0]?.uri;
     const defaultUri = folder ?
         vscode.Uri.joinPath(folder, defaultName) :
@@ -156,6 +160,13 @@ export class TempFilesController {
     await this.remove(id);
     await vscode.commands.executeCommand(
         'vscode.openWith', target, 'mmt.editor', {preview: false});
+  }
+
+  private async reopenRenamed(
+      oldUri: vscode.Uri, newUri: vscode.Uri): Promise<void> {
+    await closeTabsForUri(oldUri);
+    await vscode.commands.executeCommand(
+        'vscode.openWith', newUri, 'mmt.editor', {preview: false});
   }
 }
 

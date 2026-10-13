@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman.",
-	"version": "1.45.1",
+	"version": "1.45.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -480,6 +480,11 @@
         "command": "multimeter.connections.closeAll",
         "title": "Close All Connections",
         "icon": "$(trash)"
+      },
+      {
+        "command": "multimeter.mock.server.copyAddress",
+        "title": "Copy Server Address",
+        "icon": "$(copy)"
       }
     ],
     "viewsContainers": {
@@ -596,6 +601,11 @@
         {
           "command": "multimeter.connections.closeAll",
           "when": "view == multimeter.connections",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.mock.server.copyAddress",
+          "when": "view == multimeter.mock.server",
           "group": "navigation"
         }
       ],

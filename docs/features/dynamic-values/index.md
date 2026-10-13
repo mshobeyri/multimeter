@@ -18,7 +18,7 @@ See also: [Environment](../../files/env/index.md) · [Inputs](../../files/api/in
 |--------|---------|------------|
 | `e:` | Environment variable from a `type: env` file or runtime env | [Environment](../../files/env/index.md) |
 | `i:` | Input declared under `inputs:` on the current API or test | [Inputs](../../files/api/inputs.md) |
-| `o:` | Test `outputs` object (read anywhere; write via `set` keys) | [Variables](../../files/test/steps/variables.md) |
+| `o:` | Test `outputs` object (read anywhere; write via `set` keys) | [var, const, let](../../files/test/steps/variables.md) |
 | `r:` | Random value (new per evaluation; see caching below) | [Random tokens](./random.md) |
 | `c:` | Current date/time/locale value | [Current tokens](./current.md) |
 

@@ -2,7 +2,7 @@
 - `type:` `test`
 - `title:` string
 - `tags:` string[]
-- `description:` string (supports Markdown; use `|-` for multiline)
+- `description:` string (supports Markdown; use `|-` for multiline). Optional `<<i:name>>` / `<<o:name>>` annotations (and `[...]` allowed values / ranges) — see [Input and output documentation](../input-output-docs.md)
 - `import:` record&lt;string, string&gt; — see [import](./import.md) (`.mmt`, `.http`/`.https`, `.bru`, CSV / JSON / YAML data files; `.js`/`.cjs`/`.mjs`: [js helper modules](./steps/js.md#js-helper-modules))
 - `inputs:` record&lt;string, string | number | boolean | null&gt;
 - `outputs:` record&lt;string, string | number | boolean | null&gt;
@@ -13,7 +13,7 @@
 
 Notes:
 - `flow` is accepted as a backward-compatible alias for `steps`.
-- The YAML editor provides autocomplete for `call` step names, check/assert operators, and input references.
+- The YAML editor provides autocomplete for `call` step names, check/assert [operators](./operators.md), and input references. `report:` on checks/expects accepts `all` | `fails` | `none` — see [Reports — Report levels](./reports.md#report-levels-all-fails-none).
 - YAML comments (`#`) are preserved when you format the file (Format Document). Prefer `description` / step `title` for structured docs that survive UI edits.
 
 ---

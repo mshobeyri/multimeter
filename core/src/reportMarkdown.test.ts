@@ -111,6 +111,58 @@ describe('generateReportMarkdown', () => {
     expect(md).toContain('✗ failed');
   });
 
+  it('shows resolved expected under got when the authored RHS is a token', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'check-token',
+              status: 'failed',
+              expects: [{
+                comparison: 'token == c:uuid',
+                actual: 'aaa',
+                expected: 'bbb',
+                status: 'failed',
+              }],
+            }),
+          ],
+        }),
+      ],
+    };
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('got: aaa');
+    expect(md).toContain('expected: bbb');
+  });
+
+  it('does not show expected under got for plain RHS', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'check-plain',
+              status: 'failed',
+              expects: [{
+                comparison: 'status == 200',
+                actual: '400',
+                expected: '200',
+                status: 'failed',
+              }],
+            }),
+          ],
+        }),
+      ],
+    };
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('got: 400');
+    expect(md).not.toContain('expected: 200');
+  });
+
   it('includes passed fuzzy details with got and similarity', () => {
     const results: CollectedResults = {
       type: 'test',

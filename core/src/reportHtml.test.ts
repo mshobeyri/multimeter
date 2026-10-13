@@ -145,6 +145,32 @@ describe('generateReportHtml', () => {
     expect(html).toContain('similarity: 25%');
   });
 
+  it('shows resolved expected under got when the authored RHS is a token', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'check-token',
+              status: 'failed',
+              expects: [{
+                comparison: 'token == c:uuid',
+                actual: 'aaa',
+                expected: 'bbb',
+                status: 'failed',
+              }],
+            }),
+          ],
+        }),
+      ],
+    };
+    const html = generateReportHtml(results);
+    expect(html).toContain('got: aaa');
+    expect(html).toContain('expected: bbb');
+  });
+
   it('includes passed fuzzy details with got and similarity', () => {
     const results: CollectedResults = {
       type: 'test',

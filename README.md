@@ -38,7 +38,7 @@
 </div>
 
 <p align="center">
-  <img src="res/intro.png" alt="Multimeter — Get Started, YAML, and API tester" width="640" />
+  <img src="res/intro.png" alt="Multimeter — Get Started, YAML, and API tester" width="1200" />
 </p>
 
 ## 🚀 Start with a request. Grow into a platform.

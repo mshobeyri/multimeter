@@ -1,5 +1,9 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
+import {
+  formatExpectMetaValue,
+  shouldShowResolvedExpected,
+} from './reportExpectMeta';
 import {formatReportDateTime, formatReportNumber, formatReportPercent, formatReportRelativeTime} from './reportFormat';
 import { DB_ERROR_SVG, DB_PASS_SVG } from './statusIcons';
 
@@ -65,17 +69,7 @@ function parseStepCallDetails(details?: string): ParsedCallDetails | null {
 }
 
 function displayValue(v: any): string {
-  if (v === null || v === undefined) {
-    return String(v);
-  }
-  if (typeof v === 'object') {
-    try {
-      return JSON.stringify(v);
-    } catch {
-      return String(v);
-    }
-  }
-  return String(v);
+  return formatExpectMetaValue(v);
 }
 
 function buildStepHtml(step: TestStepResult): string {
@@ -110,6 +104,9 @@ function buildStepHtml(step: TestStepResult): string {
       html += `            <div style="color: var(--fg)"><span style="color: ${iconColor}">${eIcon}</span> ${escapeHtml(e.comparison)}`;
       if ((e.status === 'failed' || typeof e.similarity === 'number' || typeof e.count === 'number') && hasValue(e.actual) && hasValue(e.expected)) {
         html += `<br/><span class="expect-got">got: ${escapeHtml(displayValue(e.actual))}</span>`;
+        if (shouldShowResolvedExpected(e.comparison)) {
+          html += `<br/><span class="expect-got">expected: ${escapeHtml(displayValue(e.expected))}</span>`;
+        }
         if (typeof e.similarity === 'number') {
           html += `<br/><span class="expect-got">similarity: ${escapeHtml(String(e.similarity))}%</span>`;
         }

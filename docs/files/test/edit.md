@@ -20,7 +20,7 @@ The separate {{btn:type-hierarchy-sub:Flow chart}} control opens a read-only flo
 |---|---|
 | `title` | Maps to `title:` |
 | `tags` | Searchable tag chips; maps to `tags:` |
-| `description` | Markdown editor; maps to `description:` |
+| `description` | Markdown editor; maps to `description:`. Use `<<i:name>>` / `<<o:name>>` annotations (and `[...]` allowed values) — see [Input and output documentation](../input-output-docs.md) |
 | `import` | Alias → path pairs with file picker (`.mmt`, CSV/JSON/YAML data, JS helper modules). Missing paths are highlighted |
 | `inputs` | Default input values for `i:` tokens |
 | `outputs` | Output variable declarations |

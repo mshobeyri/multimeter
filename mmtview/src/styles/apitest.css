@@ -45,27 +45,102 @@
   user-select: none;
 }
 
-.method-url-bar select.method-url-bar-select,
-.method-url-bar select.method-url-bar-select:hover,
-.method-url-bar select.method-url-bar-select:focus,
-.method-url-bar select.method-url-bar-select:focus-visible {
-  position: absolute;
-  inset: 0;
+.method-url-bar-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  min-height: 0;
   margin: 0;
   padding: 0;
-  opacity: 0;
-  cursor: pointer;
   border: none;
   border-radius: 0;
   background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  outline: none;
+  box-shadow: none;
+  transition: none;
+}
+
+/* Beat global `button:hover` / `button:focus` (VS Code blue) so open/active
+   stay on the method accent fill from the parent chip. */
+.method-url-bar-trigger:hover,
+.method-url-bar-trigger:focus,
+.method-url-bar-trigger:focus-visible,
+.method-url-bar-trigger:active,
+.method-url-bar-trigger.is-open {
+  background: transparent;
+  background-color: transparent;
+  border-color: transparent;
+  color: inherit;
   box-shadow: none;
   outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  color: transparent;
+}
+
+.method-url-bar-method-label {
+  pointer-events: none;
+}
+
+.method-url-bar-menu {
+  max-height: min(360px, 70vh);
+  overflow: auto;
+  padding: 4px 0;
+  border: 1px solid var(--vscode-menu-border, var(--vscode-dropdown-border, #3c3c3c));
+  border-radius: 6px;
+  background: var(--vscode-menu-background, var(--vscode-dropdown-background, #252526));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.method-url-bar-option {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-menu-foreground, var(--vscode-dropdown-foreground, inherit));
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: none;
+}
+
+.method-url-bar-option:hover,
+.method-url-bar-option:focus,
+.method-url-bar-option:focus-visible,
+.method-url-bar-option:active {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.08));
+  background-color: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.08));
+  border-color: transparent;
+  color: var(--vscode-menu-foreground, var(--vscode-dropdown-foreground, inherit));
+  box-shadow: none;
+  outline: none;
+}
+
+.method-url-bar-option.is-selected,
+.method-url-bar-option.is-selected:hover,
+.method-url-bar-option.is-selected:focus,
+.method-url-bar-option.is-selected:focus-visible,
+.method-url-bar-option.is-selected:active {
+  background: var(--mmt-accent-fill, var(--vscode-list-activeSelectionBackground, #094771));
+  background-color: var(--mmt-accent-fill, var(--vscode-list-activeSelectionBackground, #094771));
+  border-color: transparent;
+  color: var(--mmt-accent-on-fill, var(--vscode-list-activeSelectionForeground, #fff));
+  box-shadow: none;
+  outline: none;
+}
+
+.method-url-bar-menu-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--vscode-menu-separatorBackground, var(--vscode-widget-border, #454545));
 }
 
 /* Outer .method-url-bar owns the chrome. Beat the global

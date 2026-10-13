@@ -27,7 +27,7 @@
 - `path:` string — required (supports `:param` segments)
 - `name:` string (optional label; must be unique within the file)
 - `match:` object (all listed rules must match)
-  - `body:` record&lt;string, JSONValue&gt; — dotted paths + [check/expect operators](../test/steps/check.md#operators) (nested maps still work)
+  - `body:` record&lt;string, JSONValue&gt; — dotted paths + [check/expect operators](../test/operators.md) (nested maps still work)
   - `headers:` record&lt;string, string&gt; — same operators; header names are case-insensitive
   - `query:` record&lt;string, string&gt; — same path/operator rules as `body`
   - When several endpoints share method+path, a successful `match` wins over a bare (no-`match`) endpoint even if the catch-all is listed first. Among successful filters, file order wins.

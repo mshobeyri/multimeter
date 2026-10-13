@@ -2,6 +2,44 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.45.3]
+
+Stable release of the 1.45.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.45.3` on `@latest`.
+
+- API tester: custom cross-platform method menu; keep request/response tabs mounted after warm; fade-in editor shell; overlay empty and in-flight response states; hide omit headers/query/cookies in resolved view; auth secrets as plain token fields
+- Expects: show resolved expected under got for token RHS; keep `>` / `>=` and other operators unquoted after format
+- Environment: type-aware values with type chips; merge-safe Apply/Clear; live `(live)` file open; file-backed env resolves; setenv chaining across API, test, and suite
+- Editor: YAML pane layout setting; schema validation diagnostics; running-file Explorer badges; Pause/Resume for test and suite; Run/Stop and cancel timing improvements
+- Headers: block default headers with `omit`; preserve literal `omit` in XML and urlencoded bodies
+- Temp files: rename from YAML `title` as snake_case; warn on invalid example ids
+- Docs: restructure test step docs; input/output parameter docs; input options picker; XML format examples via `/echo/xml`
+- Mock server: copy server address; Run in mock server panel
+- Website: change intro image; match hero controls to current tester UI
+
+## [1.45.2-pre]
+
+Pre-release. VS Code extension `1.45.2`; Testlight CLI and MCP `1.45.2-pre` on `@pre`.
+
+### Temp files
+
+- Rename temp files from the YAML `title` as lowercase snake_case (`Echo Login` → `echo_login.mmt`), with numeric collision suffixes (`echo_login1.mmt`, …)
+
+### Examples and validation
+
+- Warn on invalid example ids; slug spaces when expanding deprecated `name`
+
+### Mock server
+
+- Add copy server address command to the Mock Server panel
+
+### API Send and History
+
+- Run API Send from YAML and record History from wire requests
+
+### Test server / docs
+
+- Add `/echo/xml` on the Cloudflare test server and point XML format examples at it
+
 ## [1.45.1-pre]
 
 Pre-release. VS Code extension `1.45.1`; Testlight CLI and MCP `1.45.1-pre` on `@pre`.

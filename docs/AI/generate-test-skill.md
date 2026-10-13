@@ -53,6 +53,8 @@ steps:
       status: 200
 ```
 
+Prefer **inline `expect` / `require` on the `call`** for assertions about that step’s outputs. Use separate `check` / `assert` steps only for cross-step conditions.
+
 ## When to use this skill
 
 - “Generate a test for this API.”

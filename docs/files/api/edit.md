@@ -26,11 +26,11 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 
 Each of **Title**, **Tags**, and **Description** has a pencil control. View mode shows the rendered value (Markdown for description); edit mode shows the same boxes formerly on the Edit API page.
 
-See [Documentation](./documentation.md) for description annotations.
+See [Documentation](./documentation.md) and [Input and output documentation](../input-output-docs.md) for description annotations.
 
 ### Inputs / Outputs
 
-- **Inputs** (request pane): Example dropdown, soft **Expect**, and declared/runtime inputs
+- **Inputs** (request pane): Example dropdown, soft **Expect**, and declared/runtime inputs. When `description` lists allowed values with `<<i:name>> [...]`, those fields show a ⋯ options menu (same as the test runner)
 - **Outputs** (response pane): pencil switches between extraction paths and values after Send; **Setenv** works the same way (edit expressions / view env values written after Send)
 
 Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear on their protocol tabs. See [Protocols](./protocols/index.md).

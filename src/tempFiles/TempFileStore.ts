@@ -3,7 +3,9 @@ import {randomUUID} from 'crypto';
 
 import {
   parseTempFileMeta,
+  parseTitle,
   sortTempFiles,
+  tempFileNameFromTitle,
   uniqueTempFileName,
 } from './tempFileMeta';
 import {TEMP_MMT_SCHEME, buildTempMmtUriParts, parseTempMmtUriParts} from './tempMmtUri';
@@ -17,6 +19,11 @@ export interface TempMmtRecord {
   archived: boolean;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface TempContentUpdateResult {
+  record: TempMmtRecord;
+  renamedFrom?: vscode.Uri;
 }
 
 export interface TempMmtListItem {
@@ -97,14 +104,18 @@ export class TempFileStore {
     await this.ensureLoaded();
     const now = Date.now();
     const id = randomUUID();
+    const content = String(options.content ?? '');
+    const title = parseTitle(content);
+    const desired = title ?
+        tempFileNameFromTitle(title) :
+        (options.fileName || 'untitled.mmt');
     const fileName = uniqueTempFileName(
-        options.fileName || 'untitled.mmt',
-        this.files.map(file => file.fileName));
+        desired, this.files.map(file => file.fileName));
     const record: TempMmtRecord = {
       id,
       uri: buildTempMmtUri(id, fileName).toString(),
       fileName,
-      content: String(options.content ?? ''),
+      content,
       pinned: false,
       archived: false,
       createdAt: now,
@@ -115,19 +126,23 @@ export class TempFileStore {
     return record;
   }
 
-  async updateContent(id: string, content: string): Promise<TempMmtRecord|undefined> {
+  async updateContent(
+      id: string, content: string): Promise<TempContentUpdateResult|undefined> {
     await this.ensureLoaded();
     const file = this.get(id);
     if (!file) {
       return undefined;
     }
-    if (file.content === content) {
-      return file;
+    const contentChanged = file.content !== content;
+    if (contentChanged) {
+      file.content = content;
+      file.updatedAt = Date.now();
     }
-    file.content = content;
-    file.updatedAt = Date.now();
-    await this.persist();
-    return file;
+    const renamedFrom = applyTitleFileName(file, this.files);
+    if (contentChanged || renamedFrom) {
+      await this.persist();
+    }
+    return {record: file, renamedFrom};
   }
 
   async setPinned(id: string, pinned: boolean): Promise<TempMmtRecord|undefined> {
@@ -195,6 +210,26 @@ export function buildTempMmtUri(id: string, fileName: string): vscode.Uri {
     authority: parts.authority,
     path: parts.path,
   });
+}
+
+function applyTitleFileName(
+    file: TempMmtRecord, files: TempMmtRecord[]): vscode.Uri|undefined {
+  const title = parseTitle(file.content);
+  if (!title) {
+    return undefined;
+  }
+  const desired = tempFileNameFromTitle(title);
+  const existing = files
+                       .filter(item => item.id !== file.id)
+                       .map(item => item.fileName);
+  const nextName = uniqueTempFileName(desired, existing);
+  if (nextName === file.fileName) {
+    return undefined;
+  }
+  const oldUri = vscode.Uri.parse(file.uri);
+  file.fileName = nextName;
+  file.uri = buildTempMmtUri(file.id, nextName).toString();
+  return oldUri;
 }
 
 function toListItem(file: TempMmtRecord): TempMmtListItem {

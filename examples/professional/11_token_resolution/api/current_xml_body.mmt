@@ -2,22 +2,22 @@ type: api
 title: Current tokens in an XML body
 description: "XML element text is always a string, including c:epoch."
 outputs:
-  day_name: body.body.day_name
-  epoch_seconds: body.body.epoch_seconds
-  city: body.body.city
-  missing_token: body.body.missing_token
-  literal_token: body.body.literal_token
-  literal_omit: body.body.literal_omit
-  angle_whole: body.body.angle_whole
-  quoted_angle: body.body.quoted_angle
-  angle_prefix: body.body.angle_prefix
-  angle_suffix: body.body.angle_suffix
-  angle_both: body.body.angle_both
-  quoted_curly: body.body.quoted_curly
-  curly_whole: body.body.curly_whole
-  text_slice: body.body.text_slice
+  day_name: body.echo.body.body.day_name
+  epoch_seconds: body.echo.body.body.epoch_seconds
+  city: body.echo.body.body.city
+  missing_token: body.echo.body.body.missing_token
+  literal_token: body.echo.body.body.literal_token
+  literal_omit: body.echo.body.body.literal_omit
+  angle_whole: body.echo.body.body.angle_whole
+  quoted_angle: body.echo.body.body.quoted_angle
+  angle_prefix: body.echo.body.body.angle_prefix
+  angle_suffix: body.echo.body.body.angle_suffix
+  angle_both: body.echo.body.body.angle_both
+  quoted_curly: body.echo.body.body.quoted_curly
+  curly_whole: body.echo.body.body.curly_whole
+  text_slice: body.echo.body.body.text_slice
   status_code: status
-url: https://test.mmt.dev/echo
+url: https://test.mmt.dev/echo/xml
 method: post
 format: xml
 body:

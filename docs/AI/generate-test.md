@@ -142,7 +142,9 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
   report?: all | fails | none # controls pass/fail reporting level
 ```
 
-`expect` is a shorthand for common assertions — each key is a dotted path into the response, and the value is compared with `==` by default. You can prefix with an operator (e.g. `>= 1`, `!= null`).
+`expect` is a shorthand for common assertions — each key is a dotted path into the response, and the value is compared with `==` by default. You can prefix with an operator (e.g. `>= 1`, `!= null`). Use `require` instead of `expect` when a failed comparison must **stop** the test (same map shape).
+
+**Prefer inline `expect` / `require` on the `call` or `http` step** when the comparison is only about that step’s outputs (status, body fields, headers, …). Do **not** add a separate `- check:` / `- assert:` step for those. Reserve standalone `check` / `assert` for multi-step or cross-step conditions (comparing two step ids, values set earlier, loop state, etc.).
 
 `debug` uses the same syntax as `expect` but never fails the test — it always logs results with a debug icon for troubleshooting. Debug entries are excluded from exported reports.
 
@@ -328,5 +330,6 @@ steps:
 - Prefer small, readable tests focused on a single behavior.
 - Prefer `steps` for simple linear flows; only use `stages` when explicit parallelism is needed.
 - Always include `title` and `tags` (even if tags is a small list like `[smoke]`).
+- Prefer **inline `expect` / `require` on `call` / `http`** over a following `check` / `assert` when validating only that step’s result.
 - Avoid adding `js` steps unless the user needs custom logic that can’t be expressed with other constructs. YAML comments (`#`) are fine — Format Document preserves them. Prefer `title` / `description` for structured documentation.
-When unsure, generate a **minimal valid test** that clearly calls the described APIs and asserts the most important property (typically HTTP status or a key field in the response).
+When unsure, generate a **minimal valid test** that clearly calls the described APIs and asserts the most important property (typically HTTP status or a key field in the response) via inline `expect` on the call.

@@ -9,32 +9,32 @@ inputs:
   version: "1.0"
   price: 9.5
 outputs:
-  username: body.body.username
-  age: body.body.age
-  active: body.body.active
-  city: body.body.city
-  missing_nickname: body.body.missing_nickname
-  literal_token: body.body.literal_token
-  literal_omit: body.body.literal_omit
-  angle_whole: body.body.angle_whole
-  quoted_angle: body.body.quoted_angle
-  angle_prefix: body.body.angle_prefix
-  angle_suffix: body.body.angle_suffix
-  angle_both: body.body.angle_both
-  quoted_curly: body.body.quoted_curly
-  curly_whole: body.body.curly_whole
-  text_slice: body.body.text_slice
-  missing_embed: body.body.missing_embed
-  attr_number: body.body.item.number
-  attr_bool: body.body.item.flag
-  attr_text: body.body.item.version
-  attr_angle: body.body.item.angle
-  attr_embedded: body.body.item.embedded
-  attr_literal: body.body.item.literal
-  attr_decimal: body.body.item.decimal
-  price_text: body.body.price
+  username: body.echo.body.body.username
+  age: body.echo.body.body.age
+  active: body.echo.body.body.active
+  city: body.echo.body.body.city
+  missing_nickname: body.echo.body.body.missing_nickname
+  literal_token: body.echo.body.body.literal_token
+  literal_omit: body.echo.body.body.literal_omit
+  angle_whole: body.echo.body.body.angle_whole
+  quoted_angle: body.echo.body.body.quoted_angle
+  angle_prefix: body.echo.body.body.angle_prefix
+  angle_suffix: body.echo.body.body.angle_suffix
+  angle_both: body.echo.body.body.angle_both
+  quoted_curly: body.echo.body.body.quoted_curly
+  curly_whole: body.echo.body.body.curly_whole
+  text_slice: body.echo.body.body.text_slice
+  missing_embed: body.echo.body.body.missing_embed
+  attr_number: body.echo.body.body.item.number
+  attr_bool: body.echo.body.body.item.flag
+  attr_text: body.echo.body.body.item.version
+  attr_angle: body.echo.body.body.item.angle
+  attr_embedded: body.echo.body.body.item.embedded
+  attr_literal: body.echo.body.body.item.literal
+  attr_decimal: body.echo.body.body.item.decimal
+  price_text: body.echo.body.body.price
   status_code: status
-url: https://test.mmt.dev/echo
+url: https://test.mmt.dev/echo/xml
 method: post
 format: xml
 body:

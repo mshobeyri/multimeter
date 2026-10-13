@@ -1,6 +1,6 @@
 # Token resolution
 
-Professional samples of `e:`, `i:`, `r:`, and `c:` against [test.mmt.dev/echo](https://test.mmt.dev/echo).
+Professional samples of `e:`, `i:`, `r:`, and `c:` against [test.mmt.dev/echo](https://test.mmt.dev/echo). XML body samples use [test.mmt.dev/echo/xml](https://test.mmt.dev/echo/xml) and read fields from the XML echo (`body.echo.body.body…`).
 
 A whole field in a **JSON** body keeps the value's type. **XML**, **urlencoded**, **headers**, and **query** always send text. A quoted token such as `"e:account_age"` is the literal text. `omit` removes the field. `"omit"` sends the word omit. A missing `e:`, `i:`, `r:`, or `c:` token is sent as its own text, for example `e:region` or `i:nickname`.
 

@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import WebSocket = require('ws');
 
 import {resolveCertFilePath} from 'mmt-core/fileHelper';
+import {mockParsePack} from 'mmt-core';
 import {HistoryManager} from '../historyManager';
 import {
   getDefaultMockTlsMaterial,
@@ -184,6 +185,70 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     }
   }
 
+  /** Copy the resolved server address (scheme://localhost:port) to the clipboard. */
+  async copyServerAddress(): Promise<void> {
+    if (!this.running) {
+      this.mmtFilePath = this.context.workspaceState.get<string>(
+          'multimeter.mockServer.mmtFilePath', this.mmtFilePath) || '';
+    }
+    const address = this.resolveServerAddress();
+    if (!address) {
+      vscode.window.showWarningMessage(
+          'Mock server address is not available. Choose a server type/port or an MMT server file first.');
+      return;
+    }
+    await vscode.env.clipboard.writeText(address);
+    vscode.window.setStatusBarMessage(`Copied ${address}`, 2000);
+  }
+
+  private getEnvVars(): Record<string, any> {
+    const envStorage = this.context.workspaceState.get<any[]>(
+        'multimeter.environment.storage', []);
+    const envVars: Record<string, any> = {};
+    if (Array.isArray(envStorage)) {
+      for (const item of envStorage) {
+        if (item && typeof item === 'object' && typeof item.name === 'string' &&
+            item.name) {
+          envVars[item.name] = item.value;
+        }
+      }
+    }
+    return envVars;
+  }
+
+  private formatServerAddress(protocol: string, port: number): string {
+    const scheme = protocol === 'https' ? 'https' :
+        protocol === 'ws'               ? 'ws' :
+                                          'http';
+    return `${scheme}://localhost:${port}`;
+  }
+
+  /** Resolve the full server URL (scheme://localhost:port), including MMT files. */
+  private resolveServerAddress(): string {
+    if (this.serverType === 'http' || this.serverType === 'https' ||
+        this.serverType === 'ws') {
+      return this.formatServerAddress(this.serverType, this.port);
+    }
+
+    const filePath = this.resolvePathMaybeRelative(this.mmtFilePath);
+    if (!filePath || !fs.existsSync(filePath)) {
+      return '';
+    }
+    try {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const {data} = mockParsePack.loadMockFromYaml(raw);
+      if (!data) {
+        return '';
+      }
+      const envVars = this.getEnvVars();
+      const port = mockParsePack.resolveMockPort(data.port, envVars);
+      const protocol = mockParsePack.resolveMockProtocol(data.protocol, envVars);
+      return this.formatServerAddress(protocol, port);
+    } catch {
+      return '';
+    }
+  }
+
   private updateViewHtml() {
     if (!this._view) {
       return;
@@ -248,19 +313,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         return;
       }
 
-      // Load environment variables from workspace state
-      const envStorage = this.context.workspaceState.get<any[]>(
-          'multimeter.environment.storage', []);
-      const envVars: Record<string, any> = {};
-      if (Array.isArray(envStorage)) {
-        for (const item of envStorage) {
-          if (item && typeof item === 'object' && typeof item.name === 'string' && item.name) {
-            envVars[item.name] = item.value;
-          }
-        }
-      }
-
-      startMockServerFromPath(filePath, envVars, {
+      startMockServerFromPath(filePath, this.getEnvVars(), {
         onClose: () => {
           this.running = false;
           this.mmtServerCleanup = undefined;

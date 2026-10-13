@@ -37,7 +37,8 @@ export interface ExampleData {
   title?: string;
   /**
    * @deprecated Use `id` and `title`. When `id` is missing, `name` is used as both
-   * id and title. Click the struck-through `name:` in the editor to expand to id/title.
+   * id and title. Click the struck-through `name:` in the editor to expand to id/title
+   * (spaces in `name` become `_` in `id`; `title` keeps the original).
    */
   name?: string;
   description?: string;
@@ -76,6 +77,19 @@ export function exampleExpect(example: ExampleData | null | undefined): ExpectMa
   // Prefer explicit expect entries; fill gaps from deprecated outputs.
   const merged: ExpectMap = {...fromOutputs, ...fromExpect};
   return merged;
+}
+
+/**
+ * Example `id` should be ASCII letters, digits, `_`, and `-` only (no spaces
+ * or other characters). Used for selection (`--example`, future `call: alias.id`).
+ */
+export function isValidExampleId(id: string): boolean {
+  return /^[A-Za-z0-9_-]+$/.test(id);
+}
+
+/** Derive an example id from a legacy `name` by replacing spaces with `_`. */
+export function exampleIdFromLegacyName(name: string): string {
+  return name.replace(/ /g, '_');
 }
 
 /** Effective example id: `id`, else deprecated `name`. */

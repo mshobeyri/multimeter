@@ -210,6 +210,24 @@ describe('compatibility deprecations', () => {
     expect(updated).not.toContain('name: legacy');
   });
 
+  it('replaces spaces with underscores in id when expanding deprecated name', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - name: Get Admin User',
+      '    inputs:',
+      '      x: 1',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const issue = findCompatibilityIssueAtPosition(content, doc, 'api', 4, 5);
+    expect(issue).not.toBeNull();
+    const updated = applyCompatibilityFix(content, issue!.applyFix, issue!.line);
+    expect(updated).toContain('id: Get_Admin_User');
+    expect(updated).toContain('title: Get Admin User');
+    expect(updated).not.toContain('name: Get Admin User');
+  });
+
   it('preserves the example list marker when expanding name on its first field', () => {
     const content = [
       'type: api',
@@ -265,6 +283,20 @@ describe('compatibility deprecations', () => {
     expect(fixedId).toContain('id: keep');
     expect(fixedId).toContain('title: only-title');
     expect(fixedId).not.toContain('name:');
+
+    const withTitle = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - title: Get Admin',
+      '    name: Get Admin',
+    ].join('\n');
+    const docTitle = parseDocument(withTitle);
+    const issueTitle = findCompatibilityIssueAtPosition(withTitle, docTitle, 'api', 5, 5);
+    const fixedTitle = applyCompatibilityFix(withTitle, issueTitle!.applyFix, issueTitle!.line);
+    expect(fixedTitle).toContain('id: Get_Admin');
+    expect(fixedTitle).toContain('title: Get Admin');
+    expect(fixedTitle).not.toContain('name:');
 
     const withBoth = [
       'type: api',

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Method, Protocol } from "mmt-core/CommonData";
 import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
 import StableTextInput from "./StableTextInput";
@@ -12,6 +13,21 @@ const PROTOCOL_LABELS: Record<string, string> = {
   graphql: "GraphQL",
   grpc: "gRPC",
 };
+
+type MethodMenuOption = {
+  value: string;
+  label: string;
+};
+
+const METHOD_OPTIONS: MethodMenuOption[] = HTTP_METHODS.map(method => ({
+  value: `method:${method}`,
+  label: method.toUpperCase(),
+}));
+
+const PROTOCOL_OPTIONS: MethodMenuOption[] = OTHER_PROTOCOLS.map(protocol => ({
+  value: `protocol:${protocol}`,
+  label: PROTOCOL_LABELS[protocol] || protocol.toUpperCase(),
+}));
 
 /** Join query for the URL editor without percent-encoding `{{…}}` tokens. */
 function joinQueryForEditor(query: Record<string, string> = {}): string {
@@ -83,28 +99,139 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
   valueContext,
 }) => {
   const urlValue = url + joinQueryForEditor(query);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{
+    left: number;
+    top: number;
+    minWidth: number;
+    accentFill: string;
+    accentOnFill: string;
+  } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!menuOpen || !triggerRef.current) {
+      setMenuPos(null);
+      return;
+    }
+    const place = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+      const minWidth = Math.max(112, rect.width);
+      const margin = 8;
+      const left = Math.min(
+        Math.max(margin, rect.left),
+        window.innerWidth - minWidth - margin,
+      );
+      const top = Math.min(rect.bottom + 4, window.innerHeight - margin);
+      const accentSource = rootRef.current || triggerRef.current;
+      const accentStyle = accentSource ? getComputedStyle(accentSource) : null;
+      setMenuPos({
+        left,
+        top,
+        minWidth,
+        accentFill: accentStyle?.getPropertyValue("--mmt-accent-fill").trim() || "",
+        accentOnFill: accentStyle?.getPropertyValue("--mmt-accent-on-fill").trim() || "",
+      });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [menuOpen, methodValue]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
+      }
+      setMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  const renderOption = (option: MethodMenuOption) => {
+    const selected = option.value === methodValue;
+    return (
+      <button
+        key={option.value}
+        type="button"
+        role="option"
+        aria-selected={selected}
+        className={`method-url-bar-option${selected ? " is-selected" : ""}`}
+        onMouseDown={event => event.preventDefault()}
+        onClick={() => {
+          setMenuOpen(false);
+          onMethodChange(option.value);
+        }}
+      >
+        {option.label}
+      </button>
+    );
+  };
+
+  const menuNode = menuOpen && menuPos ? (
+    <div
+      ref={menuRef}
+      className="method-url-bar-menu"
+      role="listbox"
+      aria-label="HTTP method or protocol"
+      style={{
+        position: "fixed",
+        left: menuPos.left,
+        top: menuPos.top,
+        minWidth: menuPos.minWidth,
+        zIndex: 1000,
+        ["--mmt-accent-fill" as string]: menuPos.accentFill || undefined,
+        ["--mmt-accent-on-fill" as string]: menuPos.accentOnFill || undefined,
+      }}
+    >
+      {METHOD_OPTIONS.map(renderOption)}
+      <div className="method-url-bar-menu-sep" role="separator" />
+      {PROTOCOL_OPTIONS.map(renderOption)}
+    </div>
+  ) : null;
 
   return (
     <div className="method-url-bar">
-      <div className="method-url-bar-method">
-        <span className="method-url-bar-method-label">{methodUrlBarLabel(methodValue)}</span>
-        <select
-          className="method-url-bar-select"
-          value={methodValue}
-          onChange={e => onMethodChange(e.target.value)}
+      <div className="method-url-bar-method" ref={rootRef}>
+        <button
+          ref={triggerRef}
+          type="button"
+          className={`method-url-bar-trigger${menuOpen ? " is-open" : ""}`}
           title="HTTP method or protocol"
           aria-label="HTTP method or protocol"
+          aria-haspopup="listbox"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(current => !current)}
         >
-          {HTTP_METHODS.map(method => (
-            <option key={method} value={`method:${method}`}>{method.toUpperCase()}</option>
-          ))}
-          <option disabled value="__sep__">────────</option>
-          {OTHER_PROTOCOLS.map(protocol => (
-            <option key={protocol} value={`protocol:${protocol}`}>
-              {PROTOCOL_LABELS[protocol] || protocol}
-            </option>
-          ))}
-        </select>
+          <span className="method-url-bar-method-label">{methodUrlBarLabel(methodValue)}</span>
+        </button>
+        {menuNode ? createPortal(menuNode, document.body) : null}
       </div>
       <div className="method-url-bar-url-wrap">
         {canContainToken ? (

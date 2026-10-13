@@ -42,7 +42,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 | **Headers** | Request headers |
 | **Body** | Request body (format bar, pretty/raw). Telescope toggles resolved values vs editable tokens — see below |
 | **Cookies** | Request cookies |
-| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Badge shows input count |
+| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Fields with `<<i:name>> [options]` in `description` show a ⋯ value picker. Badge shows input count |
 | **Doc** | **Title**, **tags**, and **description** (Markdown). Pencil per section to edit |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
@@ -119,6 +119,7 @@ cookies:
 - [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP examples](./protocols/http-bodies.md)
 - [Headers](./headers.md) · [Auth](./auth.md)
 - [Inputs](./inputs.md) · [Outputs](./outputs.md)
-- [Documentation](./documentation.md) — `title`, `tags`, `description`, `<<i:>>` / `<<o:>>` annotations
+- [Documentation](./documentation.md) — `title`, `tags`, `description`
+- [Input and output documentation](../input-output-docs.md) — `<<i:>>` / `<<o:>>` annotations, allowed values, ranges, Doc tables, and Inputs ⋯ picker
 - [setenv](./setenv.md) · [Examples](./examples.md) · [Dynamic values](../../features/dynamic-values/index.md)
 - [Complete examples](./complete-examples.md) · [CLI](./cli.md) · [Reference](./reference.md)

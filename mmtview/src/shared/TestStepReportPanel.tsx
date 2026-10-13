@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {ExpectItemEvent} from 'mmt-core/runConfig';
 import type {TestStepResult} from 'mmt-core/reportCollector';
+import {
+  formatExpectMetaValue,
+  shouldShowResolvedExpected,
+} from 'mmt-core/reportExpectMeta';
 import { StepStatus } from './types';
 import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
@@ -299,7 +303,10 @@ const ReportStepDetailsBody: React.FC<{
                       </div>
                       {(showActualDetails || showFailureDetails) && (
                         <>
-                          <span className="report-expect-meta">got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
+                          <span className="report-expect-meta">got: {formatExpectMetaValue(item.actual)}</span>
+                          {shouldShowResolvedExpected(item.comparison) && (
+                            <span className="report-expect-meta">expected: {formatExpectMetaValue(item.expected)}</span>
+                          )}
                           {typeof item.similarity === 'number' && (
                             <span className="report-expect-meta">similarity: {item.similarity}%</span>
                           )}

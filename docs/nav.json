@@ -205,10 +205,6 @@
                 "path": "files/test/steps/run.md"
               },
               {
-                "title": "run expect",
-                "path": "files/test/steps/run-expect.md"
-              },
-              {
                 "title": "check",
                 "path": "files/test/steps/check.md"
               },
@@ -221,15 +217,31 @@
                 "path": "files/test/steps/judge.md"
               },
               {
-                "title": "Control flow",
-                "path": "files/test/steps/control-flow.md"
+                "title": "if",
+                "path": "files/test/steps/if.md"
+              },
+              {
+                "title": "for",
+                "path": "files/test/steps/for.md"
+              },
+              {
+                "title": "repeat",
+                "path": "files/test/steps/repeat.md"
+              },
+              {
+                "title": "delay",
+                "path": "files/test/steps/delay.md"
               },
               {
                 "title": "js",
                 "path": "files/test/steps/js.md"
               },
               {
-                "title": "Variables",
+                "title": "print",
+                "path": "files/test/steps/print.md"
+              },
+              {
+                "title": "var, const, let",
                 "path": "files/test/steps/variables.md"
               },
               {
@@ -251,6 +263,18 @@
                 "path": "files/test/stages/stage-condition.md"
               }
             ]
+          },
+          {
+            "title": "Inline expect",
+            "path": "files/test/inline-expect.md"
+          },
+          {
+            "title": "Operators",
+            "path": "files/test/operators.md"
+          },
+          {
+            "title": "omit",
+            "path": "files/test/omit.md"
           },
           {
             "title": "Reports",
@@ -384,6 +408,10 @@
           {
             "title": "Annotations",
             "path": "files/doc/annotations.md"
+          },
+          {
+            "title": "Input and output documentation",
+            "path": "files/input-output-docs.md"
           },
           {
             "title": "Markdown",
