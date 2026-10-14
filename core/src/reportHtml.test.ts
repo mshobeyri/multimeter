@@ -31,6 +31,34 @@ describe('parentSuiteNodeId', () => {
 });
 
 describe('generateReportHtml', () => {
+  it('renders skipped runs without failed styling', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'suite.mmt',
+        startedAt: 1709720000000,
+        durationMs: 1000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({
+          displayName: 'tagged-out.mmt',
+          result: 'skipped',
+          steps: [],
+        }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    expect(html).toContain('title="skipped"');
+    expect(html).toContain('badge skipped');
+    expect(html).not.toContain('badge failed');
+    expect(html).not.toContain('>✗<');
+  });
+
   it('generates valid HTML with summary boxes', () => {
     const results: CollectedResults = {
       type: 'test',

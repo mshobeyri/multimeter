@@ -23,6 +23,33 @@ function makeRun(overrides: Partial<TestRunResult> = {}): TestRunResult {
 }
 
 describe('generateReportMarkdown', () => {
+  it('marks skipped runs without treating them as failed', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'suite.mmt',
+        startedAt: 1709720000000,
+        durationMs: 1000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({
+          displayName: 'tagged-out.mmt',
+          result: 'skipped',
+          steps: [],
+        }),
+      ],
+    };
+
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('⊘ tagged-out.mmt');
+    expect(md).toContain('skipped');
+    expect(md).not.toContain('✗ tagged-out.mmt');
+  });
+
   it('generates Markdown with summary header and table', () => {
     const results: CollectedResults = {
       type: 'test',

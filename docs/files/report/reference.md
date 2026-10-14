@@ -22,7 +22,7 @@ Used for test and suite runs. Top-level `checks` lists suite and test entries.
   - `passed:` number
   - `failed:` number
   - `errors:` number (always `0` in current output)
-  - `skipped:` number (always `0` in current output)
+  - `skipped:` number — count of skipped suite/test entries (e.g. tag filter)
 - `checks:` array of check entries
 
 ### Check entry
@@ -33,8 +33,8 @@ Each item in `checks`:
 - `type:` `suite` | `test`
 - `file:` string (optional) — source `.mmt` path
 - `duration:` string (optional)
-- `result:` `passed` | `failed`
-- `checks:` array (optional) — nested step entries; omitted for `type: suite`
+- `result:` `passed` | `failed` | `skipped` | `cancelled`
+- `checks:` array (optional) — nested step entries; omitted for `type: suite` and for skipped tests
 
 Suite entries are status-only rows and are not expandable in the report panel or exported HTML.
 
@@ -68,11 +68,15 @@ overview:
   passed: 3
   failed: 1
   errors: 0
-  skipped: 0
+  skipped: 1
 checks:
   - name: nested-suite.mmt
     type: suite
     result: passed
+  - name: skipped-test.mmt
+    type: test
+    file: skipped-test.mmt
+    result: skipped
   - name: test-file.mmt
     type: test
     file: test-file.mmt

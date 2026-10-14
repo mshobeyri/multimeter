@@ -422,7 +422,7 @@ function buildFullDetailsSection(runs: TestRunResult[]): string {
 function buildTestRunSection(run: TestRunResult, index: number, includeDetails: boolean): string {
   const name = run.displayName || run.filePath || `test-${index}`;
   const steps = run.steps.filter(s => s.stepType !== 'debug');
-  const icon = run.result === 'passed' ? '✓' : '✗';
+  const icon = run.result === 'passed' ? '✓' : run.result === 'skipped' ? '⊘' : '✗';
   let md = `**${icon} ${name}** ${run.result}\n`;
   if (steps.length === 0) {
     return md;

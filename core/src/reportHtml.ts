@@ -234,7 +234,10 @@ function buildStatusIconHtml(run: TestRunResult, folder: boolean): string {
   if (folder || isSuiteOnlyRun(run)) {
     return `<span class="suite-icon" title="Suite">${ICON_LAYERS_INLINE}</span>`;
   }
-  const passed = run.result !== 'failed';
+  if (run.result === 'skipped') {
+    return `<span class="status-icon" style="color: var(--muted, #7c847e)" title="skipped">⊘</span>`;
+  }
+  const passed = run.result !== 'failed' && run.result !== 'cancelled';
   const iconColor = passed ? 'var(--passed)' : 'var(--failed)';
   return `<span class="status-icon" style="color: ${iconColor}" title="${escapeHtml(run.result)}">${
     passed ? '✓' : '✗'
@@ -247,6 +250,9 @@ function buildTreeMetaHtml(run: TestRunResult, childCount: number): string {
   const stepLabel = steps.length > 0
     ? `<span class="tree-meta">${steps.length} step${steps.length === 1 ? '' : 's'}</span>`
     : '';
+  if (run.result === 'skipped') {
+    return `<span class="badge skipped">skipped</span>${stepLabel}`;
+  }
   if (failCount > 0) {
     return `<span class="badge failed">${failCount} failed</span>${stepLabel}`;
   }
@@ -827,6 +833,7 @@ const CSS = `
   }
   .badge.passed { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; }
   .badge.failed { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; }
+  .badge.skipped { background: linear-gradient(135deg, #7c847e 0%, #5c645e 100%); color: #fff; }
   .testcase {
     padding: 8px 12px;
     border-radius: 10px;

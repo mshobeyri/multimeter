@@ -1,0 +1,14 @@
+type: test
+title: Skipped Test
+description: Tagged so the suite filter skips it — appears as skipped in reports
+tags:
+  - skip-demo
+import:
+  echo: ../api/echo.mmt
+steps:
+  - call: echo
+    id: result
+    inputs:
+      message: skip test
+    expect:
+      status_code: 200

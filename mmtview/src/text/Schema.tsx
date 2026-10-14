@@ -1542,7 +1542,7 @@ export const ReportSchema = {
                     type: { type: 'string', enum: ['suite', 'test', 'check'] },
                     file: { type: 'string' },
                     duration: { type: 'string' },
-                    result: { type: 'string', enum: ['passed', 'failed'] },
+                    result: { type: 'string', enum: ['passed', 'failed', 'skipped', 'cancelled'] },
                     step: { type: 'string', enum: ['check', 'assert', 'debug'] },
                     expects: {
                         type: 'array',
@@ -1550,7 +1550,7 @@ export const ReportSchema = {
                             type: 'object',
                             properties: {
                                 comparison: { type: 'string' },
-                                result: { type: 'string', enum: ['passed', 'failed'] },
+                                result: { type: 'string', enum: ['passed', 'failed', 'cancelled'] },
                                 actual: {},
                                 expected: {},
                                 status: { type: 'string' }
@@ -1576,7 +1576,7 @@ export const ReportSchema = {
                                 name: { type: 'string' },
                                 type: { type: 'string', enum: ['check'] },
                                 step: { type: 'string', enum: ['check', 'assert', 'debug'] },
-                                result: { type: 'string', enum: ['passed', 'failed'] },
+                                result: { type: 'string', enum: ['passed', 'failed', 'cancelled'] },
                                 duration: { type: 'string' },
                                 expects: {
                                     type: 'array',
@@ -1584,7 +1584,7 @@ export const ReportSchema = {
                                         type: 'object',
                                         properties: {
                                             comparison: { type: 'string' },
-                                            result: { type: 'string', enum: ['passed', 'failed'] },
+                                            result: { type: 'string', enum: ['passed', 'failed', 'cancelled'] },
                                             actual: {},
                                             expected: {},
                                             status: { type: 'string' }

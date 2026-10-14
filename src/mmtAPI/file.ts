@@ -10,6 +10,7 @@ import {generateMmtReport} from 'mmt-core/mmtReport';
 import {generateReportHtml} from 'mmt-core/reportHtml';
 import {generateReportMarkdown, generateReportMarkdownDetailed} from 'mmt-core/reportMarkdown';
 import type {CollectedResults, TestStepResult, TestRunResult} from 'mmt-core/reportCollector';
+import type {TestStepStatus} from 'mmt-core/runConfig';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -731,6 +732,39 @@ const reportDefaults: Record<ReportFormat, {name: string; filters: Record<string
   'md-detailed': {name: 'test-results-detailed.md', filters: {'Markdown': ['md', 'markdown']}},
 };
 
+function exportStepStatus(status: any): TestStepStatus {
+  if (status === 'failed' || status === 'cancelled' || status === 'passed') {
+    return status;
+  }
+  return 'passed';
+}
+
+function exportRunResult(status: any): TestRunResult['result'] {
+  if (status === 'failed' || status === 'cancelled' || status === 'passed' || status === 'skipped') {
+    return status;
+  }
+  return 'failed';
+}
+
+function mapExportStepReports(reports: any[]): TestStepResult[] {
+  return (Array.isArray(reports) ? reports : []).map((r: any, i: number) => ({
+    stepIndex: r.stepIndex ?? i,
+    stepType: r.stepType === 'assert' ? 'assert' as const : r.stepType === 'debug' ? 'debug' as const : 'check' as const,
+    status: exportStepStatus(r.status),
+    title: r.title,
+    details: r.details,
+    expects: Array.isArray(r.expects) ? r.expects.map((e: any) => ({
+      comparison: e.comparison || '',
+      actual: e.actual,
+      expected: e.expected,
+      similarity: typeof e.similarity === 'number' ? e.similarity : undefined,
+      count: typeof e.count === 'number' ? e.count : undefined,
+      status: exportStepStatus(e.status),
+    })) : [],
+    timestamp: r.timestamp || 0,
+  }));
+}
+
 function webviewDataToCollectedResults(data: any): CollectedResults {
   // Test view sends: { type: 'test', stepReports, runState, outputs, filePath }
   if (data.type === 'test' && Array.isArray(data.stepReports)) {
@@ -739,28 +773,13 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
       : typeof data.startedAt === 'number' && typeof data.durationMs === 'number'
         ? data.startedAt + data.durationMs
         : undefined;
-    const steps: TestStepResult[] = data.stepReports.map((r: any, i: number) => ({
-      stepIndex: r.stepIndex ?? i,
-      stepType: r.stepType === 'assert' ? 'assert' as const : r.stepType === 'debug' ? 'debug' as const : 'check' as const,
-      status: r.status === 'failed' ? 'failed' as const : 'passed' as const,
-      title: r.title,
-      details: r.details,
-      expects: Array.isArray(r.expects) ? r.expects.map((e: any) => ({
-        comparison: e.comparison || '',
-        actual: e.actual,
-        expected: e.expected,
-        similarity: typeof e.similarity === 'number' ? e.similarity : undefined,
-        count: typeof e.count === 'number' ? e.count : undefined,
-        status: e.status === 'failed' ? 'failed' as const : 'passed' as const,
-      })) : [],
-      timestamp: r.timestamp || 0,
-    }));
+    const runResult = exportRunResult(data.runState);
     const run: TestRunResult = {
       runId: 'export',
       filePath: data.filePath,
       displayName: data.testTitle || (data.filePath ? path.basename(data.filePath) : undefined),
-      result: data.runState === 'passed' ? 'passed' : 'failed',
-      steps,
+      result: runResult,
+      steps: mapExportStepReports(data.stepReports),
       outputs: data.outputs,
       durationMs: data.durationMs ?? undefined,
     };
@@ -770,7 +789,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         runId: 'export',
         startedAt: data.startedAt,
         finishedAt,
-        success: data.runState === 'passed',
+        success: runResult === 'passed' || runResult === 'skipped',
         totalRunnable: 1,
         testRuns: [run],
         durationMs: data.durationMs ?? undefined,
@@ -782,7 +801,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
   }
 
   // Suite/loadtest views send: { type: 'suite'|'loadtest', leafReportsById, leafRunStateById, displayNameById, ... }
-  if ((data.type === 'suite' || data.type === 'loadtest') && data.leafReportsById) {
+  if ((data.type === 'suite' || data.type === 'loadtest') && (data.leafReportsById || data.leafRunStateById)) {
     const isLoadTest = data.type === 'loadtest';
     const finishedAt = typeof data.finishedAt === 'number'
       ? data.finishedAt
@@ -790,43 +809,30 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         ? data.startedAt + data.durationMs
         : undefined;
     const displayNameById: Record<string, string> = data.displayNameById || {};
-    const testRuns: TestRunResult[] = Object.entries(data.leafReportsById).map(
-      ([id, reports]: [string, any]) => {
-        const steps: TestStepResult[] = (Array.isArray(reports) ? reports : []).map(
-          (r: any, i: number) => ({
-            stepIndex: r.stepIndex ?? i,
-            stepType: r.stepType === 'assert' ? 'assert' as const : r.stepType === 'debug' ? 'debug' as const : 'check' as const,
-            status: r.status === 'failed' ? 'failed' as const : 'passed' as const,
-            title: r.title,
-            details: r.details,
-            expects: Array.isArray(r.expects) ? r.expects.map((e: any) => ({
-              comparison: e.comparison || '',
-              actual: e.actual,
-              expected: e.expected,
-              similarity: typeof e.similarity === 'number' ? e.similarity : undefined,
-              count: typeof e.count === 'number' ? e.count : undefined,
-              status: e.status === 'failed' ? 'failed' as const : 'passed' as const,
-            })) : [],
-            timestamp: r.timestamp || 0,
-          }),
-        );
-        const runState = data.leafRunStateById?.[id];
-        return {
-          runId: id,
-          id,
-          displayName: displayNameById[id] || undefined,
-          result: (runState === 'passed' ? 'passed' : 'failed') as 'passed' | 'failed',
-          steps,
-        };
-      },
-    );
+    const leafReportsById = data.leafReportsById || {};
+    const leafRunStateById = data.leafRunStateById || {};
+    // Include skipped leaves that have run state but no step reports.
+    const allIds = Array.from(new Set([
+      ...Object.keys(leafReportsById),
+      ...Object.keys(leafRunStateById),
+    ]));
+    const testRuns: TestRunResult[] = allIds.map((id) => {
+      const steps = mapExportStepReports(leafReportsById[id] || []);
+      return {
+        runId: id,
+        id,
+        displayName: displayNameById[id] || undefined,
+        result: exportRunResult(leafRunStateById[id]),
+        steps,
+      };
+    });
     return {
       type: isLoadTest ? 'loadtest' : 'suite',
       suiteRun: {
         runId: 'export',
         startedAt: typeof data.startedAt === 'number' ? data.startedAt : Date.now(),
         finishedAt,
-        success: data.suiteRunState === 'passed',
+        success: data.suiteRunState === 'passed' || data.suiteRunState === 'skipped',
         totalRunnable: testRuns.length,
         testRuns,
         durationMs: data.durationMs ?? undefined,

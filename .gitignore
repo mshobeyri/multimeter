@@ -32,3 +32,4 @@ src/**/*.js
 src/**/*.js.map
 !.cursor-plugin/
 !.cursor-plugin/plugin.json
+*.DS_Store

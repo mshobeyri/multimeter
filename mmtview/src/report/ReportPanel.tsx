@@ -32,8 +32,11 @@ function mapToStepReports(run: TestRunResult): StepReportItem[] {
   }));
 }
 
-function runStateFromResult(run: TestRunResult): 'passed' | 'failed' {
-  return run.result === 'passed' ? 'passed' : 'failed';
+function runStateFromResult(run: TestRunResult): StepStatus {
+  if (run.result === 'passed' || run.result === 'failed' || run.result === 'skipped' || run.result === 'cancelled') {
+    return run.result;
+  }
+  return 'failed';
 }
 
 function formatOverviewDateTime(value: number | string | undefined): string | undefined {
@@ -274,7 +277,13 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
               </span>
               {/* Summary badge */}
               <span className="report-tree-badge">
-                {isSuiteOnly ? state : failedCount > 0 ? `${failedCount} failed` : `${passedCount} passed`}
+                {state === 'skipped'
+                  ? 'skipped'
+                  : isSuiteOnly
+                    ? state
+                    : failedCount > 0
+                      ? `${failedCount} failed`
+                      : `${passedCount} passed`}
               </span>
             </div>
 

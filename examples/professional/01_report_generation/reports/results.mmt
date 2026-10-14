@@ -1,0 +1,51 @@
+type: report
+kind: functional
+name: Report Generation Suite
+overview:
+  started_at: 2026-10-14T15:15:22.929Z
+  finished_at: 2026-10-14T15:15:23.141Z
+  duration: 211ms
+  checks: 2
+  passed: 1
+  failed: 1
+  errors: 0
+  skipped: 1
+checks:
+  - name: Group 1
+    type: test
+    file: /Users/mehrdad/Documents/multimeter/examples/professional/01_report_generation/suite.mmt
+    result: failed
+  - name: Skipped Test
+    type: test
+    file: /Users/mehrdad/Documents/multimeter/examples/professional/01_report_generation/test/skip_test.mmt
+    result: skipped
+  - name: Passing Test
+    type: test
+    file: /Users/mehrdad/Documents/multimeter/examples/professional/01_report_generation/test/pass_test.mmt
+    result: passed
+    checks:
+      - name: step-1
+        type: check
+        result: passed
+        step: assert
+        expects:
+          - comparison: result.status_code == 200
+            result: passed
+  - name: Failing Test
+    type: test
+    file: /Users/mehrdad/Documents/multimeter/examples/professional/01_report_generation/test/fail_test.mmt
+    result: failed
+    checks:
+      - name: step-1
+        type: check
+        result: failed
+        expects:
+          - comparison: result.status_code == 999
+            result: failed
+            actual: "200"
+            expected: "999"
+        failure:
+          message: "result.status_code == 999: expected 999 got 200"
+          actual: "200"
+          expected: "999"
+          operator: result.status_code == 999

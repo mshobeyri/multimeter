@@ -1,4 +1,5 @@
 import type { CollectedResults, TestStepResult, TestRunResult, SuiteRunResult } from './reportCollector';
+import type { TestStepStatus } from './runConfig';
 
 /**
  * Parse a `type: report` YAML object (already parsed from YAML string)
@@ -24,7 +25,9 @@ export function parseReportMmt(doc: Record<string, any>): CollectedResults {
       startedAt: startedAtValue ? new Date(startedAtValue).getTime() : 0,
       finishedAt: overview.finished_at ? new Date(overview.finished_at).getTime() : overview.ended_at ? new Date(overview.ended_at).getTime() : undefined,
       durationMs: parseDurationMs(overview.duration ?? doc.duration),
-      success: overview ? (overview.failed || overview.failures || 0) === 0 : testRuns.every(r => r.result === 'passed'),
+      success: overview
+        ? (overview.failed || overview.failures || 0) === 0
+        : testRuns.every(r => r.result === 'passed' || r.result === 'skipped'),
       cancelled: doc.cancelled === true ? true : undefined,
       totalRunnable: testRuns.length,
       testRuns,
@@ -33,6 +36,20 @@ export function parseReportMmt(doc: Record<string, any>): CollectedResults {
   }
 
   return { type: doc.kind === 'load' ? 'loadtest' : 'test', testRuns, load };
+}
+
+function parseStepStatus(result: any): TestStepStatus {
+  if (result === 'failed' || result === 'cancelled' || result === 'passed') {
+    return result;
+  }
+  return 'passed';
+}
+
+function parseRunResult(result: any, hasFailed: boolean): TestRunResult['result'] {
+  if (result === 'failed' || result === 'cancelled' || result === 'passed' || result === 'skipped') {
+    return result;
+  }
+  return hasFailed ? 'failed' : 'passed';
 }
 
 function parseSuiteEntry(suite: any, index: number): TestRunResult {
@@ -45,7 +62,7 @@ function parseSuiteEntry(suite: any, index: number): TestRunResult {
     filePath: suite.file,
     displayName: suite.name || `test-${index}`,
     docType: suite.type === 'suite' ? 'suite' : suite.type === 'test' ? 'test' : undefined,
-    result: suite.result || (hasFailed ? 'failed' : 'passed'),
+    result: parseRunResult(suite.result, hasFailed),
     durationMs: parseDurationMs(suite.duration),
     steps,
   };
@@ -55,7 +72,7 @@ function parseTestEntry(test: any, index: number): TestStepResult {
   const step: TestStepResult = {
     stepIndex: index,
     stepType: test.step === 'assert' || test.type === 'assert' ? 'assert' : test.step === 'debug' ? 'debug' : 'check',
-    status: test.result === 'failed' ? 'failed' : 'passed',
+    status: parseStepStatus(test.result),
     expects: [],
     timestamp: 0,
     durationMs: parseDurationMs(test.duration),
@@ -67,7 +84,7 @@ function parseTestEntry(test: any, index: number): TestStepResult {
       comparison: typeof e.comparison === 'string' ? e.comparison : '',
       actual: e.actual,
       expected: e.expected,
-      status: e.result === 'failed' ? 'failed' as const : 'passed' as const,
+      status: parseStepStatus(e.result),
     }));
   } else if (test.failure) {
     // Legacy format without expects array — build a single-item expects
