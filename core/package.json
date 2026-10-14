@@ -270,6 +270,16 @@
       "require": "./dist/reportGitCommit.js",
       "default": "./dist/reportGitCommit.js"
     },
+    "./Current": {
+      "types": "./dist/Current.d.ts",
+      "require": "./dist/Current.js",
+      "default": "./dist/Current.js"
+    },
+    "./CurrentGit": {
+      "types": "./dist/CurrentGit.d.ts",
+      "require": "./dist/CurrentGit.js",
+      "default": "./dist/CurrentGit.js"
+    },
     "./omitKeyword": {
       "types": "./dist/omitKeyword.d.ts",
       "require": "./dist/omitKeyword.js",

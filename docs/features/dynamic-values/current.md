@@ -22,7 +22,7 @@ Examples:
 - `c:epoch_future(30m)` — 30 minutes ahead
 - `c:time_past(15m)` — 15 minutes ago
 
-Offsets apply to date/time, weekday, month, year, epoch, and UTC-offset tokens. They are intentionally rejected for `c:city`, `c:country`, and `c:timezone`.
+Offsets apply to date/time, weekday, month, year, epoch, and UTC-offset tokens. They are intentionally rejected for `c:city`, `c:country`, `c:timezone`, and git tokens.
 
 ## Generators
 
@@ -47,6 +47,21 @@ Offsets apply to date/time, weekday, month, year, epoch, and UTC-offset tokens. 
 | `c:city` | City inferred from time zone (best effort) | `New York` |
 | `c:country` | Country inferred from locale (best effort) | `United States` |
 
+## Git (host-injected)
+
+Resolved from the project / working tree at run time. When git is unavailable, string tokens resolve to `""` and `c:git_dirty` to `false`.
+
+| Token | Returns | Example |
+|-------|---------|---------|
+| `c:git_branch` | Current branch name | `main` |
+| `c:git_commit` | Short HEAD SHA (8 hex chars) | `a4f5e463` |
+| `c:git_commit_hash` | Full HEAD SHA | `a4f5e463…` (40 hex) |
+| `c:git_tag` | Tag(s) pointing at HEAD (comma-separated if several) | `v1.45.3` |
+| `c:git_describe` | `git describe --tags --always` | `v1.45.3-12-ga4f5e463` |
+| `c:git_dirty` | Worktree has uncommitted changes (boolean) | `true` |
+
+Short aliases: `c:branch`, `c:commit`, `c:commit_short`, `c:commit_hash_short` → short SHA; `c:commit_hash` → full SHA; `c:tag` → tag(s).
+
 ## Future/past aliases
 
 These aliases accept one unsigned duration argument (for example `1h`, `2d4h`):
@@ -64,4 +79,4 @@ These aliases accept one unsigned duration argument (for example `1h`, `2d4h`):
 | `c:epoch_future` / `c:epoch_past` | Unix seconds |
 | `c:epoch_ms_future` / `c:epoch_ms_past` | Unix milliseconds |
 
-**Total:** 18 generators plus 20 future/past aliases.
+**Total:** 24 generators (plus 6 short git aliases) and 20 future/past aliases.

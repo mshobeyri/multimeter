@@ -10,6 +10,7 @@ import * as mmtcore from 'mmt-core';
 import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 import {dispatchMockHttpRequest} from 'mmt-core/mockDispatch';
 import {buildMockHttpsOptions} from 'mmt-core/mockTlsMaterial';
+import {applyGitCurrentSnapshot} from './gitCommitShort.js';
 
 const {mockParsePack, mockServer, variableReplacer} = mmtcore;
 
@@ -49,6 +50,10 @@ export async function startMockServerFromPath(
   if (activeServers.has(filePath)) {
     return () => {};
   }
+
+  applyGitCurrentSnapshot(
+      findProjectRootSync(filePath, fs.existsSync, path.dirname, path.join)
+      || path.dirname(filePath));
 
   const rawContent = fs.readFileSync(filePath, 'utf-8');
   let processedContent = rawContent;

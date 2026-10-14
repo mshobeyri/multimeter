@@ -1,10 +1,17 @@
 type: api
 title: Current tokens in a JSON body
-description: "A whole-field c: value keeps the generator type. The example expects c:day and c:city. c:epoch is a number that changes, so the example checks the range."
+description: "A whole-field c: value keeps the generator type. c:epoch is a number; c:git_dirty is a boolean. Git strings and clock/locale tokens stay text."
 outputs:
   day_name: body.body.day_name
   epoch_seconds: body.body.epoch_seconds
   city: body.body.city
+  git_branch: body.body.git_branch
+  git_commit: body.body.git_commit
+  git_commit_hash: body.body.git_commit_hash
+  git_tag: body.body.git_tag
+  git_describe: body.body.git_describe
+  git_dirty: body.body.git_dirty
+  commit_alias: body.body.commit_alias
   missing_token: body.body.missing_token
   literal_token: body.body.literal_token
   literal_omit: body.body.literal_omit
@@ -26,6 +33,13 @@ body:
   day_name: c:day
   epoch_seconds: c:epoch
   city: c:city
+  git_branch: c:git_branch
+  git_commit: c:git_commit
+  git_commit_hash: c:git_commit_hash
+  git_tag: c:git_tag
+  git_describe: c:git_describe
+  git_dirty: c:git_dirty
+  commit_alias: c:commit
   missing_token: c:not_a_token
   literal_token: "c:day"
   removed_note: omit
@@ -47,6 +61,13 @@ examples:
       day_name: c:day
       epoch_seconds: > 1700000000
       city: c:city
+      git_branch: c:git_branch
+      git_commit: c:git_commit
+      git_commit_hash: c:git_commit_hash
+      git_tag: c:git_tag
+      git_describe: c:git_describe
+      git_dirty: c:git_dirty
+      commit_alias: c:commit
       missing_token: "c:not_a_token"
       literal_token: "c:day"
       literal_omit: "omit"

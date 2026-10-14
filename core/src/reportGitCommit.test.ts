@@ -1,4 +1,10 @@
-import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
+import {
+  normalizeReportGitBranch,
+  normalizeReportGitCommit,
+  normalizeReportGitCommitHash,
+  normalizeReportGitDescribe,
+  normalizeReportGitTag,
+} from './reportGitCommit';
 
 describe('normalizeReportGitCommit', () => {
   it('returns the first 8 hex chars', () => {
@@ -26,6 +32,29 @@ describe('normalizeReportGitBranch', () => {
     expect(normalizeReportGitBranch('')).toBeUndefined();
     expect(normalizeReportGitBranch('HEAD')).toBeUndefined();
     expect(normalizeReportGitBranch('bad name')).toBeUndefined();
+  });
+});
+
+describe('normalizeReportGitCommitHash', () => {
+  it('lowercases a full SHA', () => {
+    expect(normalizeReportGitCommitHash('ABCDEF0123456789ABCDEF0123456789ABCDEF01'))
+        .toBe('abcdef0123456789abcdef0123456789abcdef01');
+  });
+
+  it('rejects invalid values', () => {
+    expect(normalizeReportGitCommitHash('')).toBeUndefined();
+    expect(normalizeReportGitCommitHash('not-a-sha')).toBeUndefined();
+  });
+});
+
+describe('normalizeReportGitDescribe', () => {
+  it('keeps describe strings', () => {
+    expect(normalizeReportGitDescribe('v1.0.0-12-gabcd1234')).toBe('v1.0.0-12-gabcd1234');
+  });
+
+  it('rejects blank or spaced values', () => {
+    expect(normalizeReportGitDescribe('')).toBeUndefined();
+    expect(normalizeReportGitDescribe('bad value')).toBeUndefined();
   });
 });
 

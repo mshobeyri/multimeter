@@ -1,8 +1,4 @@
-/**
- * Normalize a raw git SHA (or short SHA) to the first 8 hex chars.
- * Returns undefined when the value is missing or not a plausible commit id.
- */
-export function normalizeReportGitCommit(raw?: string | null): string | undefined {
+function extractGitHex(raw?: string | null): string | undefined {
   const s = String(raw ?? '').trim();
   if (!s) {
     return undefined;
@@ -11,7 +7,35 @@ export function normalizeReportGitCommit(raw?: string | null): string | undefine
   if (!/^[0-9a-fA-F]{7,40}$/.test(hex)) {
     return undefined;
   }
-  return hex.slice(0, 8).toLowerCase();
+  return hex.toLowerCase();
+}
+
+/**
+ * Normalize a raw git SHA (or short SHA) to the first 8 hex chars.
+ * Returns undefined when the value is missing or not a plausible commit id.
+ */
+export function normalizeReportGitCommit(raw?: string | null): string | undefined {
+  const hex = extractGitHex(raw);
+  return hex ? hex.slice(0, 8) : undefined;
+}
+
+/**
+ * Normalize a full git SHA (40 hex chars preferred; accepts 7–40).
+ * Returns undefined when the value is missing or not a plausible commit id.
+ */
+export function normalizeReportGitCommitHash(raw?: string | null): string | undefined {
+  return extractGitHex(raw);
+}
+
+/**
+ * Normalize `git describe` output for current tokens / reports.
+ */
+export function normalizeReportGitDescribe(raw?: string | null): string | undefined {
+  const s = String(raw ?? '').trim();
+  if (!s || s.length > 255 || /[\s\x00-\x1f\x7f]/.test(s)) {
+    return undefined;
+  }
+  return s;
 }
 
 /**

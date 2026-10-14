@@ -1,7 +1,11 @@
 import {execFileSync} from 'child_process';
+import type {GitCurrentSnapshot} from 'mmt-core/Current';
+import {setGitCurrentSnapshot} from 'mmt-core/Current';
 import {
   normalizeReportGitBranch,
   normalizeReportGitCommit,
+  normalizeReportGitCommitHash,
+  normalizeReportGitDescribe,
   normalizeReportGitTag,
 } from 'mmt-core/reportGitCommit';
 
@@ -41,4 +45,49 @@ export function tryGitBranch(cwd?: string): string | undefined {
  */
 export function tryGitTag(cwd?: string): string | undefined {
   return normalizeReportGitTag(gitExec(cwd, ['tag', '--points-at', 'HEAD']));
+}
+
+/**
+ * Resolve git metadata for reports and `c:git_*` current tokens.
+ * Missing fields are omitted; never throws.
+ */
+export function resolveGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
+  const commitHash = normalizeReportGitCommitHash(gitExec(cwd, ['rev-parse', 'HEAD']));
+  const commit = commitHash ? normalizeReportGitCommit(commitHash) : undefined;
+  const branch = tryGitBranch(cwd);
+  const tag = tryGitTag(cwd);
+  const describe = normalizeReportGitDescribe(
+      gitExec(cwd, ['describe', '--tags', '--always']));
+  const porcelain = gitExec(cwd, ['status', '--porcelain']);
+  const dirty = porcelain === undefined ? undefined : porcelain.length > 0;
+
+  const snapshot: GitCurrentSnapshot = {};
+  if (branch) {
+    snapshot.branch = branch;
+  }
+  if (commit) {
+    snapshot.commit = commit;
+  }
+  if (commitHash) {
+    snapshot.commitHash = commitHash;
+  }
+  if (tag) {
+    snapshot.tag = tag;
+  }
+  if (describe) {
+    snapshot.describe = describe;
+  }
+  if (dirty !== undefined) {
+    snapshot.dirty = dirty;
+  }
+  return snapshot;
+}
+
+/**
+ * Resolve git metadata and inject it for `c:git_*` / alias current tokens.
+ */
+export function applyGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
+  const snapshot = resolveGitCurrentSnapshot(cwd);
+  setGitCurrentSnapshot(snapshot);
+  return snapshot;
 }

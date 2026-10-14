@@ -26,7 +26,7 @@ import {
   type WebviewPanelRef,
 } from './webviewReporter';
 import {addHistoryFromApiNetworkReport} from './apiHistory';
-import {tryGitBranch, tryGitCommitShort, tryGitTag} from './gitCommitShort';
+import {applyGitCurrentSnapshot, resolveGitCurrentSnapshot} from './gitCommitShort';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -190,11 +190,13 @@ async function writeRunExports(params: {
       }
 
       forwardLog('info', `Exporting results to ${resolvedPath}`);
-      const gitCwd = projectRoot || path.dirname(runFilePath);
-      const gitCommit = tryGitCommitShort(gitCwd);
-      const gitBranch = tryGitBranch(gitCwd);
-      const gitTag = tryGitTag(gitCwd);
-      const content = serializer(suiteExports.collectedResults, {projectRoot, gitCommit, gitBranch, gitTag});
+      const git = resolveGitCurrentSnapshot(projectRoot || path.dirname(runFilePath));
+      const content = serializer(suiteExports.collectedResults, {
+        projectRoot,
+        gitCommit: git.commit,
+        gitBranch: git.branch,
+        gitTag: git.tag,
+      });
 
       const parentDir = path.dirname(resolvedPath);
       if (!fs.existsSync(parentDir)) {
@@ -365,6 +367,7 @@ export async function handleRunCurrentDocument(
       : document.getText();
 
   try {
+    applyGitCurrentSnapshot(projectRoot || path.dirname(document.uri.fsPath));
     const fileLoader = createFileLoader(document.uri.fsPath);
     const binaryFileLoader = createBinaryFileLoader(document.uri.fsPath);
     const runOutcome = await runner.runFile({
@@ -591,6 +594,7 @@ export async function handleRunSuite(
 
     if (isLoadTest) {
       const projectRootLoadTest = findProjectRoot(runFilePath);
+      applyGitCurrentSnapshot(projectRootLoadTest || path.dirname(runFilePath));
       const fileLoader = createFileLoader(runFilePath);
       const binaryFileLoader = createBinaryFileLoader(runFilePath);
       const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
@@ -650,6 +654,7 @@ export async function handleRunSuite(
     const fileLoader = fileCache.wrap(createFileLoader(runFilePath));
     const binaryFileLoader = createBinaryFileLoader(runFilePath);
     const projectRootSuite = findProjectRoot(runFilePath);
+    applyGitCurrentSnapshot(projectRootSuite || path.dirname(runFilePath));
     const {tree: hierarchyTree, fromCache} = await getCachedSuiteHierarchy({
       suiteFilePath: runFilePath,
       projectRoot: projectRootSuite,

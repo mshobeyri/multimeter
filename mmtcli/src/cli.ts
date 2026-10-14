@@ -17,7 +17,8 @@ import {buildCliRunArgs} from './runArgs.js';
 import {formatCliDocs, listCliDocTopics, resolveCliGuidesDir} from './aiDocs.js';
 import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
 import {detectInstallChannel, runUpdate} from './selfUpdate.js';
-import {tryGitBranch, tryGitCommitShort, tryGitTag} from './gitCommitShort.js';
+import {applyGitCurrentSnapshot, resolveGitCurrentSnapshot} from './gitCommitShort.js';
+import {setGitCurrentSnapshot} from 'mmt-core/Current';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -117,6 +118,9 @@ async function startJsRunnerWorkerThread(): Promise<void> {
   if (typeof setRunnerNetworkConfig === 'function' && workerData?.networkConfig) {
     setRunnerNetworkConfig(workerData.networkConfig);
   }
+  if (workerData?.gitSnapshot) {
+    setGitCurrentSnapshot(workerData.gitSnapshot);
+  }
   parentPort.on('message', async (request: WorkerJsRunnerRequest) => {
     const {id, context} = request;
     const basePath = typeof context.basePath === 'string' ? context.basePath : process.cwd();
@@ -150,7 +154,7 @@ async function startJsRunnerWorkerThread(): Promise<void> {
   });
 }
 
-function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any) {
+function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any, gitSnapshot?: any) {
   let nextId = 1;
   const idle: Worker[] = [];
   const allWorkers = new Set<Worker>();
@@ -160,7 +164,7 @@ function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any) {
 
   const createWorker = () => {
     const worker = new Worker(jsRunnerWorkerScript(), {
-      workerData: {mmtWorker: 'jsRunner', networkConfig},
+      workerData: {mmtWorker: 'jsRunner', networkConfig, gitSnapshot},
     });
     allWorkers.add(worker);
     worker.on('message', (message: any) => {
@@ -359,8 +363,13 @@ program.command('run')
           return startMockServerFromPath(filePath, runOpts.envvar || {});
         };
         runOpts.serverRunner = cliServerRunner;
+        const gitCwd = (runOpts as any).projectRoot
+          || path.dirname(path.resolve(process.cwd(), file));
+        const gitSnapshot = applyGitCurrentSnapshot(gitCwd);
         const localJsRunner = (ctx: any) => runJSCode({...ctx, serverRunner: cliServerRunner});
-        const workerJsRunner = (opts as any).realThreads === false ? undefined : createWorkerBackedJsRunner(localJsRunner, networkConfig);
+        const workerJsRunner = (opts as any).realThreads === false
+          ? undefined
+          : createWorkerBackedJsRunner(localJsRunner, networkConfig, gitSnapshot);
         runOpts.jsRunner = (ctx: any) => workerJsRunner ? workerJsRunner.run(ctx) : localJsRunner(ctx);
         let runOutcome: any;
         try {
@@ -407,9 +416,7 @@ program.command('run')
           const collectedResults = getReportResults();
           const reportProjectRoot = (runFileOptions as any).projectRoot;
           const reportGitCwd = reportProjectRoot || path.dirname(path.resolve(process.cwd(), file));
-          const reportGitCommit = tryGitCommitShort(reportGitCwd);
-          const reportGitBranch = tryGitBranch(reportGitCwd);
-          const reportGitTag = tryGitTag(reportGitCwd);
+          const reportGit = resolveGitCurrentSnapshot(reportGitCwd);
           let reportContent: string | undefined;
           const serializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
             junit: (mmtcore as any).junitXml?.generateJunitXml,
@@ -422,9 +429,9 @@ program.command('run')
           if (typeof serializer === 'function') {
             reportContent = serializer(collectedResults, {
               projectRoot: reportProjectRoot,
-              gitCommit: reportGitCommit,
-              gitBranch: reportGitBranch,
-              gitTag: reportGitTag,
+              gitCommit: reportGit.commit,
+              gitBranch: reportGit.branch,
+              gitTag: reportGit.tag,
             });
           }
           if (reportContent) {
@@ -494,11 +501,13 @@ program.command('run')
               if (!opts.quiet) {
                 console.log(`Exporting results to ${resolvedPath}`);
               }
-              const gitCwd = projectRoot || suiteDir;
-              const gitCommit = tryGitCommitShort(gitCwd);
-              const gitBranch = tryGitBranch(gitCwd);
-              const gitTag = tryGitTag(gitCwd);
-              const content = serializer(suiteExports.collectedResults, {projectRoot, gitCommit, gitBranch, gitTag});
+              const git = resolveGitCurrentSnapshot(projectRoot || suiteDir);
+              const content = serializer(suiteExports.collectedResults, {
+                projectRoot,
+                gitCommit: git.commit,
+                gitBranch: git.branch,
+                gitTag: git.tag,
+              });
 
               // Create parent directories if they don't exist
               const parentDir = path.dirname(resolvedPath);

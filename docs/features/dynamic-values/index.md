@@ -8,7 +8,7 @@ The single source of truth for token syntax and replacement is `core/src/variabl
 
 - [Syntax and accessors](./syntax.md) — token forms, accessors, name normalization
 - [Random tokens (`r:`)](./random.md) — full generator reference
-- [Current tokens (`c:`)](./current.md) — clock and locale generators
+- [Current tokens (`c:`)](./current.md) — clock, locale, and git generators
 
 See also: [Environment](../../files/env/index.md) · [Inputs](../../files/api/inputs.md) · [Server tokens](../../files/server/tokens.md) · [Example: Dynamic values](../../../examples/intermediate/12_dynamic_values/)
 
@@ -84,6 +84,8 @@ url: <<e:api_url>>/users
 headers:
   X-Request-Id: req-<<r:uuid>>
   X-Sent-At: <<c:date>>T<<c:time>>
+  X-Git-Commit: <<c:git_commit>>
+  X-Git-Branch: <<c:git_branch>>
 body:
   username: i:username
   email: i:email

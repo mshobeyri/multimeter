@@ -17,6 +17,7 @@ import {
   toolJson,
   walkMmtFiles,
 } from '../fsAdapter';
+import {applyGitCurrentSnapshot} from '../gitCommitShort';
 import {
   DocumentationPack,
   DocumentationTopic,
@@ -379,6 +380,7 @@ export async function handleRun(args: {
     }
   };
   try {
+    applyGitCurrentSnapshot(args.workspaceRoot || path.dirname(fullPath));
     const result = await runner.runFile({
       file: fullPath,
       filePath: fullPath,

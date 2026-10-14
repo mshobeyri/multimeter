@@ -1,6 +1,21 @@
 import { MONTHS, WEEKDAYS } from './RandomResources';
 import {signedDurationMs, unsignedDurationMs} from './durationParse';
 import type {TokenValueType} from './Random';
+import {
+  currentGitBranch,
+  currentGitCommit,
+  currentGitCommitHash,
+  currentGitDescribe,
+  currentGitDirty,
+  currentGitTag,
+} from './CurrentGit';
+
+export type {GitCurrentSnapshot} from './CurrentGit';
+export {
+  clearGitCurrentSnapshot,
+  getGitCurrentSnapshot,
+  setGitCurrentSnapshot,
+} from './CurrentGit';
 
 function pad2(n: number): string { return n.toString().padStart(2, '0'); }
 function pad3(n: number): string { return n.toString().padStart(3, '0'); }
@@ -137,6 +152,20 @@ export const CURRENT_TOKEN_MAP: Record<string, CurrentTokenGenerator> = {
   epoch_ms: currentEpochMs,
   city: currentCity,
   country: currentCountry,
+  // Git (host-injected snapshot; empty / false when unavailable)
+  git_branch: currentGitBranch,
+  git_commit: currentGitCommit,
+  git_commit_hash: currentGitCommitHash,
+  git_tag: currentGitTag,
+  git_describe: currentGitDescribe,
+  git_dirty: currentGitDirty,
+  // Short aliases
+  branch: currentGitBranch,
+  commit: currentGitCommit,
+  commit_short: currentGitCommit,
+  commit_hash_short: currentGitCommit,
+  commit_hash: currentGitCommitHash,
+  tag: currentGitTag,
 };
 
 export const CURRENT_TOKEN_OFFSET_NAMES = [
@@ -186,6 +215,7 @@ const CURRENT_NON_STRING: Record<string, TokenValueType> = {
   year: 'number',
   epoch: 'number',
   epoch_ms: 'number',
+  git_dirty: 'boolean',
 };
 
 /** Return type of `c:name` (aliases resolve to base). Unknown → undefined. */

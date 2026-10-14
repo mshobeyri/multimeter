@@ -11,6 +11,7 @@ import {buildMockHttpsOptions, getDefaultMockTlsMaterial} from 'mmt-core/mockTls
 
 import {onRunFinished, onRunStarted, type RunStatusMenuItem} from '../runStatusBar';
 import {keepMmtEditorSoon} from '../keepEditor';
+import {applyGitCurrentSnapshot} from './gitCommitShort';
 
 type MockData = MockDataNS.MockData;
 
@@ -403,6 +404,10 @@ export async function startMockServerFromPath(
   if (activeServers.has(documentUri) || activeServers.has(fileUriKey)) {
     return () => {};
   }
+
+  applyGitCurrentSnapshot(
+      findProjectRootSync(filePath, fs.existsSync, path.dirname, path.join)
+      || path.dirname(filePath));
 
   const rawContent = fs.readFileSync(filePath, 'utf-8');
   let processedContent = rawContent;

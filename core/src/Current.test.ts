@@ -1,4 +1,5 @@
 import {
+  clearGitCurrentSnapshot,
   currentCity,
   currentCountry,
   currentDate,
@@ -21,6 +22,7 @@ import {
   CURRENT_TOKEN_MAP,
   currentTokenValueType,
   CURRENT_TOKEN_VALUE_TYPES,
+  setGitCurrentSnapshot,
 } from './Current';
 
 function within(now: number, target: number, windowMs: number): boolean {
@@ -197,6 +199,51 @@ describe('Current tokens', () => {
       (Intl as any).DateTimeFormat = orig;
       (Intl as any).DisplayNames = origDn;
     }
+  });
+});
+
+describe('git current tokens', () => {
+  afterEach(() => {
+    clearGitCurrentSnapshot();
+  });
+
+  test('return empty / false when no snapshot is injected', () => {
+    expect(currentValueForToken('git_branch')).toBe('');
+    expect(currentValueForToken('git_commit')).toBe('');
+    expect(currentValueForToken('git_commit_hash')).toBe('');
+    expect(currentValueForToken('git_tag')).toBe('');
+    expect(currentValueForToken('git_describe')).toBe('');
+    expect(currentValueForToken('git_dirty')).toBe(false);
+  });
+
+  test('reads injected snapshot and short aliases', () => {
+    setGitCurrentSnapshot({
+      branch: 'dev',
+      commit: 'a4f5e463',
+      commitHash: 'a4f5e4630123456789abcdef0123456789abcdef',
+      tag: 'v1.0.0',
+      describe: 'v1.0.0-1-ga4f5e463',
+      dirty: true,
+    });
+    expect(currentValueForToken('git_branch')).toBe('dev');
+    expect(currentValueForToken('branch')).toBe('dev');
+    expect(currentValueForToken('git_commit')).toBe('a4f5e463');
+    expect(currentValueForToken('commit')).toBe('a4f5e463');
+    expect(currentValueForToken('commit_short')).toBe('a4f5e463');
+    expect(currentValueForToken('commit_hash_short')).toBe('a4f5e463');
+    expect(currentValueForToken('git_commit_hash')).toBe(
+        'a4f5e4630123456789abcdef0123456789abcdef');
+    expect(currentValueForToken('commit_hash')).toBe(
+        'a4f5e4630123456789abcdef0123456789abcdef');
+    expect(currentValueForToken('git_tag')).toBe('v1.0.0');
+    expect(currentValueForToken('tag')).toBe('v1.0.0');
+    expect(currentValueForToken('git_describe')).toBe('v1.0.0-1-ga4f5e463');
+    expect(currentValueForToken('git_dirty')).toBe(true);
+  });
+
+  test('rejects offsets on git tokens', () => {
+    expect(currentValueForToken('git_commit(+1h)')).toBeUndefined();
+    expect(currentValueForToken('branch(-1d)')).toBeUndefined();
   });
 });
 
