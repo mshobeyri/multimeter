@@ -24,9 +24,6 @@ checks:
         type: check
         result: passed
         step: assert
-        expects:
-          - comparison: result.status_code == 200
-            result: passed
   - name: Failing Test
     type: test
     file: +/test/fail_test.mmt

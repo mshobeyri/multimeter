@@ -50,11 +50,11 @@ Each suite/test item in `checks`:
 - `step:` `assert` | `debug` (optional; omitted for `check` steps)
 - `duration:` string (optional)
 - `result:` `passed` | `failed`
-- `expects:` array (optional) — per-comparison results
+- `expects:` array (optional) — **failed** comparisons only (passed expects / requires are omitted)
   - `comparison:` string
-  - `result:` `passed` | `failed`
-  - `actual:` any (on failure)
-  - `expected:` any (on failure)
+  - `result:` `failed`
+  - `actual:` any
+  - `expected:` any
 - `failure:` object (optional, on failed steps)
   - `message:` string
   - `actual:` string

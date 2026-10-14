@@ -44,19 +44,19 @@ function buildStepEntry(step: TestStepResult): Record<string, any> {
   if (step.durationMs != null) {
     entry.duration = formatDuration(step.durationMs);
   }
-  if (step.expects && step.expects.length > 0) {
-    entry.expects = step.expects.map(e => {
+  // Passed expects (soft or require) are omitted — step result alone is enough.
+  const failedExpects = (step.expects || []).filter(e => e.status === 'failed');
+  if (failedExpects.length > 0) {
+    entry.expects = failedExpects.map(e => {
       const item: Record<string, any> = {
         comparison: e.comparison,
         result: e.status,
       };
-      if (e.status === 'failed') {
-        if (e.actual != null) {
-          item.actual = displayValue(e.actual);
-        }
-        if (e.expected != null) {
-          item.expected = displayValue(e.expected);
-        }
+      if (e.actual != null) {
+        item.actual = displayValue(e.actual);
+      }
+      if (e.expected != null) {
+        item.expected = displayValue(e.expected);
       }
       return item;
     });

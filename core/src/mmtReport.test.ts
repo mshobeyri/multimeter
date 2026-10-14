@@ -53,6 +53,39 @@ describe('generateMmtReport', () => {
     expect(parsed.checks[0].checks).toHaveLength(2);
   });
 
+  it('omits expects for passed steps and keeps only failed expects', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'Assert',
+              stepType: 'assert',
+              status: 'passed',
+              expects: [{ comparison: 'status == 200', status: 'passed' }],
+            }),
+            makeStep({
+              title: 'mixed',
+              status: 'failed',
+              expects: [
+                { comparison: 'ok == true', status: 'passed' },
+                { comparison: 'code == 1', actual: '2', expected: '1', status: 'failed' },
+              ],
+            }),
+          ],
+        }),
+      ],
+    };
+    const parsed = YAML.parse(generateMmtReport(results));
+    expect(parsed.checks[0].checks[0].expects).toBeUndefined();
+    expect(parsed.checks[0].checks[0].result).toBe('passed');
+    expect(parsed.checks[0].checks[1].expects).toEqual([
+      { comparison: 'code == 1', result: 'failed', actual: '2', expected: '1' },
+    ]);
+  });
+
   it('uses Assert/Check defaults for untitled steps', () => {
     const results: CollectedResults = {
       type: 'test',

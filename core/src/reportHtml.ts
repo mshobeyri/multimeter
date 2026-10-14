@@ -124,7 +124,8 @@ function buildStepTreeHtml(steps: TestStepResult[], runPaneId: string, depth: nu
   const indent = '        ' + '  '.repeat(depth);
   for (let si = 0; si < steps.length; si++) {
     const step = steps[si];
-    const expects = step.expects || [];
+    // Match MMT storage: passed expects are omitted; only detail-worthy rows expand.
+    const expects = (step.expects || []).filter(e => expectNeedsDetail(e));
     const stepPaneId = `${runPaneId}-s${si}`;
     const canExpand = expects.length > 0;
     const toggle = canExpand ? buildToggleHtml(stepPaneId) : `<span class="tree-toggle-spacer"></span>`;
