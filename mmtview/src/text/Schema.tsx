@@ -1321,7 +1321,16 @@ export const ReportSchema = {
                 data_received: { type: 'number' },
                 data_sent: { type: 'number' },
                 errors: { type: 'integer' },
-                skipped: { type: 'integer' }
+                skipped: { type: 'integer' },
+                commit: { type: 'string' },
+                git_commit: { type: 'string' },
+                gitCommit: { type: 'string' },
+                branch: { type: 'string' },
+                git_branch: { type: 'string' },
+                gitBranch: { type: 'string' },
+                tag: { type: 'string' },
+                git_tag: { type: 'string' },
+                gitTag: { type: 'string' }
             },
             additionalProperties: false
         },
@@ -1347,7 +1356,16 @@ export const ReportSchema = {
                 data_received: { type: 'number' },
                 data_sent: { type: 'number' },
                 errors: { type: 'integer' },
-                skipped: { type: 'integer' }
+                skipped: { type: 'integer' },
+                commit: { type: 'string' },
+                git_commit: { type: 'string' },
+                gitCommit: { type: 'string' },
+                branch: { type: 'string' },
+                git_branch: { type: 'string' },
+                gitBranch: { type: 'string' },
+                tag: { type: 'string' },
+                git_tag: { type: 'string' },
+                gitTag: { type: 'string' }
             },
             additionalProperties: false
         },

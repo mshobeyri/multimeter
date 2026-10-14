@@ -2,6 +2,7 @@ import YAML from 'yaml';
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
 import {roundReportNumbersDeep} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
 import {applyProjectRootPaths} from './reportPaths';
 import {reportStepTitle} from './reportStepTitle';
 import {
@@ -16,6 +17,12 @@ export interface MmtReportOptions {
   suiteName?: string;
   /** Folder containing `multimeter.mmt` — rewrites `file` to `+/…`. */
   projectRoot?: string;
+  /** Optional git HEAD SHA; stored as overview.commit (first 8 chars). */
+  gitCommit?: string;
+  /** Optional git branch name; stored as overview.branch when available. */
+  gitBranch?: string;
+  /** Optional git tag(s) on HEAD; stored as overview.tag when available. */
+  gitTag?: string;
 }
 
 function displayValue(v: any): string {
@@ -171,6 +178,18 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
   overview.duration = formatDuration(
     results.suiteRun?.durationMs ?? counted.reduce((sum, r) => sum + (r.durationMs || 0), 0)
   );
+  const gitCommit = normalizeReportGitCommit(options?.gitCommit ?? results.suiteRun?.gitCommit);
+  if (gitCommit) {
+    overview.commit = gitCommit;
+  }
+  const gitBranch = normalizeReportGitBranch(options?.gitBranch ?? results.suiteRun?.gitBranch);
+  if (gitBranch) {
+    overview.branch = gitBranch;
+  }
+  const gitTag = normalizeReportGitTag(options?.gitTag ?? results.suiteRun?.gitTag);
+  if (gitTag) {
+    overview.tag = gitTag;
+  }
 
   if (isLoad && results.load) {
     report.overview = {

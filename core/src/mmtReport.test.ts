@@ -53,6 +53,32 @@ describe('generateMmtReport', () => {
     expect(parsed.checks[0].checks).toHaveLength(2);
   });
 
+  it('stores short git commit, branch, and tag in overview when provided', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [makeRun({displayName: 'test.mmt', steps: [makeStep({title: 'ok'})]})],
+    };
+    const parsed = YAML.parse(generateMmtReport(results, {
+      gitCommit: '0a8c2017abcdef0123456789abcdef0123456789',
+      gitBranch: 'feature/report-meta',
+      gitTag: 'v1.0.0',
+    }));
+    expect(parsed.overview.commit).toBe('0a8c2017');
+    expect(parsed.overview.branch).toBe('feature/report-meta');
+    expect(parsed.overview.tag).toBe('v1.0.0');
+  });
+
+  it('omits commit, branch, and tag from overview when git lookup is unavailable', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [makeRun({displayName: 'test.mmt', steps: [makeStep({title: 'ok'})]})],
+    };
+    const parsed = YAML.parse(generateMmtReport(results));
+    expect(parsed.overview.commit).toBeUndefined();
+    expect(parsed.overview.branch).toBeUndefined();
+    expect(parsed.overview.tag).toBeUndefined();
+  });
+
   it('omits expects for passed steps and keeps only failed expects', () => {
     const results: CollectedResults = {
       type: 'test',

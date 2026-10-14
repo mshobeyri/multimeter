@@ -265,6 +265,11 @@
       "require": "./dist/reportStepTitle.js",
       "default": "./dist/reportStepTitle.js"
     },
+    "./reportGitCommit": {
+      "types": "./dist/reportGitCommit.d.ts",
+      "require": "./dist/reportGitCommit.js",
+      "default": "./dist/reportGitCommit.js"
+    },
     "./omitKeyword": {
       "types": "./dist/omitKeyword.d.ts",
       "require": "./dist/omitKeyword.js",

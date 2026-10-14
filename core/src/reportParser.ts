@@ -20,6 +20,18 @@ export function parseReportMmt(doc: Record<string, any>): CollectedResults {
   const hasSuiteMeta = startedAtValue != null || overview.duration != null || doc.duration != null || overview.finished_at != null || overview.ended_at != null || checkEntries.length > 1;
 
   if (hasSuiteMeta || checkEntries.length > 1) {
+    const commitRaw = overview.commit ?? overview.git_commit ?? overview.gitCommit;
+    const gitCommit = typeof commitRaw === 'string' && commitRaw.trim()
+      ? commitRaw.trim().slice(0, 8)
+      : undefined;
+    const branchRaw = overview.branch ?? overview.git_branch ?? overview.gitBranch;
+    const gitBranch = typeof branchRaw === 'string' && branchRaw.trim()
+      ? branchRaw.trim()
+      : undefined;
+    const tagRaw = overview.tag ?? overview.git_tag ?? overview.gitTag;
+    const gitTag = typeof tagRaw === 'string' && tagRaw.trim()
+      ? tagRaw.trim()
+      : undefined;
     const suiteRun: SuiteRunResult = {
       runId: 'report',
       suitePath: doc.name,
@@ -32,6 +44,9 @@ export function parseReportMmt(doc: Record<string, any>): CollectedResults {
       cancelled: doc.cancelled === true ? true : undefined,
       totalRunnable: testRuns.length,
       testRuns,
+      gitCommit,
+      gitBranch,
+      gitTag,
     };
     return { type: doc.kind === 'load' ? 'loadtest' : 'suite', suiteRun, testRuns, load };
   }

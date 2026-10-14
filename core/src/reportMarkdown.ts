@@ -6,6 +6,7 @@ import {
   shouldShowResolvedExpected,
 } from './reportExpectMeta';
 import {formatReportDateTime, formatReportNumber, formatReportPercent} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
 import {applyProjectRootPaths} from './reportPaths';
 import {reportStepTitle} from './reportStepTitle';
 
@@ -20,6 +21,12 @@ export interface ReportMarkdownOptions {
   includeFullDetails?: boolean;
   /** Folder containing `multimeter.mmt` — rewrites stored paths to `+/…`. */
   projectRoot?: string;
+  /** Optional git HEAD SHA; shown in overview when available. */
+  gitCommit?: string;
+  /** Optional git branch name; shown in overview when available. */
+  gitBranch?: string;
+  /** Optional git tag(s) on HEAD; shown in overview when available. */
+  gitTag?: string;
 }
 
 interface ParsedCallDetails {
@@ -560,6 +567,9 @@ function buildLoadMermaidCharts(series: ReturnType<typeof getLoadPoints>): strin
 
 export function generateReportMarkdown(results: CollectedResults, options?: ReportMarkdownOptions): string {
   results = applyProjectRootPaths(results, options?.projectRoot);
+  const gitCommit = normalizeReportGitCommit(options?.gitCommit ?? results.suiteRun?.gitCommit);
+  const gitBranch = normalizeReportGitBranch(options?.gitBranch ?? results.suiteRun?.gitBranch);
+  const gitTag = normalizeReportGitTag(options?.gitTag ?? results.suiteRun?.gitTag);
   const runs = results.testRuns;
   const suiteName = options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report';
   const includeDetails = options?.includeDetails !== false;
@@ -586,6 +596,15 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
     md += `**Ended at:** ${formatReportDateTime(endedAt)}  \n`;
   }
   md += `**Duration:** ${totalTime}  \n`;
+  if (gitBranch) {
+    md += `**Branch:** ${gitBranch}  \n`;
+  }
+  if (gitCommit) {
+    md += `**Commit:** ${gitCommit}  \n`;
+  }
+  if (gitTag) {
+    md += `**Tag:** ${gitTag}  \n`;
+  }
   if (isLoad) {
     const summary = results.load?.summary;
     md += `**Result:** ${summary?.successes ?? 0} passed, ${summary?.failures ?? 0} failed, ${summary?.requests ?? summary?.iterations ?? 0} requests\n`;

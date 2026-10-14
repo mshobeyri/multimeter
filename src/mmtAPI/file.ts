@@ -20,6 +20,7 @@ import {resolveWorkspaceEnvFilePath} from './network';
 import {buildThemeTokenMessage} from '../themeTokenColors';
 import {resolveSourceFormat} from '../mmtSourceFormat';
 import {brunoWebviewExtras} from '../brunoCollection';
+import {tryGitBranch, tryGitCommitShort, tryGitTag} from './gitCommitShort';
 
 const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
   outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
@@ -716,7 +717,7 @@ export async function handleExportMarkdown(message: any) {
   }
 }
 
-const reportSerializers: Record<ReportFormat, (r: CollectedResults, o?: {projectRoot?: string}) => string> = {
+const reportSerializers: Record<ReportFormat, (r: CollectedResults, o?: {projectRoot?: string; gitCommit?: string; gitBranch?: string; gitTag?: string}) => string> = {
   junit: generateJunitXml,
   mmt: generateMmtReport,
   html: generateReportHtml,
@@ -868,7 +869,11 @@ export async function handleExportReport(message: any, document: vscode.TextDocu
     }
     const results = webviewDataToCollectedResults(message.data || {});
     const projectRoot = findProjectRoot(document.uri.fsPath);
-    const content = reportSerializers[format](results, {projectRoot});
+    const gitCwd = projectRoot || path.dirname(document.uri.fsPath);
+    const gitCommit = tryGitCommitShort(gitCwd);
+    const gitBranch = tryGitBranch(gitCwd);
+    const gitTag = tryGitTag(gitCwd);
+    const content = reportSerializers[format](results, {projectRoot, gitCommit, gitBranch, gitTag});
     const defaults = reportDefaults[format];
     const docDir = path.dirname(document.uri.fsPath);
     const uri = await vscode.window.showSaveDialog({

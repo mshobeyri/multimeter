@@ -17,6 +17,7 @@ import {buildCliRunArgs} from './runArgs.js';
 import {formatCliDocs, listCliDocTopics, resolveCliGuidesDir} from './aiDocs.js';
 import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
 import {detectInstallChannel, runUpdate} from './selfUpdate.js';
+import {tryGitBranch, tryGitCommitShort, tryGitTag} from './gitCommitShort.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -405,6 +406,10 @@ program.command('run')
         if (reportFormat && reportFile && getReportResults) {
           const collectedResults = getReportResults();
           const reportProjectRoot = (runFileOptions as any).projectRoot;
+          const reportGitCwd = reportProjectRoot || path.dirname(path.resolve(process.cwd(), file));
+          const reportGitCommit = tryGitCommitShort(reportGitCwd);
+          const reportGitBranch = tryGitBranch(reportGitCwd);
+          const reportGitTag = tryGitTag(reportGitCwd);
           let reportContent: string | undefined;
           const serializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
             junit: (mmtcore as any).junitXml?.generateJunitXml,
@@ -415,7 +420,12 @@ program.command('run')
           };
           const serializer = serializers[reportFormat];
           if (typeof serializer === 'function') {
-            reportContent = serializer(collectedResults, {projectRoot: reportProjectRoot});
+            reportContent = serializer(collectedResults, {
+              projectRoot: reportProjectRoot,
+              gitCommit: reportGitCommit,
+              gitBranch: reportGitBranch,
+              gitTag: reportGitTag,
+            });
           }
           if (reportContent) {
             const reportPath = writeTextFile(reportFile, reportContent);
@@ -484,7 +494,11 @@ program.command('run')
               if (!opts.quiet) {
                 console.log(`Exporting results to ${resolvedPath}`);
               }
-              const content = serializer(suiteExports.collectedResults, {projectRoot});
+              const gitCwd = projectRoot || suiteDir;
+              const gitCommit = tryGitCommitShort(gitCwd);
+              const gitBranch = tryGitBranch(gitCwd);
+              const gitTag = tryGitTag(gitCwd);
+              const content = serializer(suiteExports.collectedResults, {projectRoot, gitCommit, gitBranch, gitTag});
 
               // Create parent directories if they don't exist
               const parentDir = path.dirname(resolvedPath);

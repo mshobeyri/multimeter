@@ -26,6 +26,7 @@ import {
   type WebviewPanelRef,
 } from './webviewReporter';
 import {addHistoryFromApiNetworkReport} from './apiHistory';
+import {tryGitBranch, tryGitCommitShort, tryGitTag} from './gitCommitShort';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -189,7 +190,11 @@ async function writeRunExports(params: {
       }
 
       forwardLog('info', `Exporting results to ${resolvedPath}`);
-      const content = serializer(suiteExports.collectedResults, {projectRoot});
+      const gitCwd = projectRoot || path.dirname(runFilePath);
+      const gitCommit = tryGitCommitShort(gitCwd);
+      const gitBranch = tryGitBranch(gitCwd);
+      const gitTag = tryGitTag(gitCwd);
+      const content = serializer(suiteExports.collectedResults, {projectRoot, gitCommit, gitBranch, gitTag});
 
       const parentDir = path.dirname(resolvedPath);
       if (!fs.existsSync(parentDir)) {

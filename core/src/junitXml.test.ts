@@ -247,7 +247,7 @@ describe('generateJunitXml', () => {
     };
 
     const xml = generateJunitXml(results);
-    expect(xml).toContain('name="step-3"');
+    expect(xml).toContain('name="Check"');
   });
 
   it('emits load snapshots instead of series properties', () => {
@@ -315,7 +315,7 @@ describe('generateJunitXml', () => {
     };
     const xml = generateJunitXml(results);
     expect(xml).toContain('time="0.000"');
-    expect(xml).toContain('name="step-0"');
+    expect(xml).toContain('name="Check"');
     expect(xml).toContain('operator: ==');
     expect(xml).toContain('expected: {&quot;a&quot;:1}');
   });

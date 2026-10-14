@@ -54,6 +54,12 @@ export interface SuiteRunResult {
   cancelled?: boolean;
   totalRunnable: number;
   testRuns: TestRunResult[];
+  /** First 8 chars of the git commit when available at export time. */
+  gitCommit?: string;
+  /** Git branch name when available at export time (omitted when detached/unavailable). */
+  gitBranch?: string;
+  /** Tag(s) pointing at HEAD when available at export time (comma-separated if several). */
+  gitTag?: string;
 }
 
 export interface LoadReportData {

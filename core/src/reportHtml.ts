@@ -5,6 +5,7 @@ import {
   shouldShowResolvedExpected,
 } from './reportExpectMeta';
 import {formatReportDateTime, formatReportNumber, formatReportPercent, formatReportRelativeTime} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
 import {applyProjectRootPaths} from './reportPaths';
 import {reportStepTitle} from './reportStepTitle';
 import {
@@ -21,6 +22,12 @@ export interface ReportHtmlOptions {
   theme?: 'dark' | 'light' | 'auto';
   /** Folder containing `multimeter.mmt` — rewrites stored paths to `+/…`. */
   projectRoot?: string;
+  /** Optional git HEAD SHA; shown in overview when available. */
+  gitCommit?: string;
+  /** Optional git branch name; shown in overview when available. */
+  gitBranch?: string;
+  /** Optional git tag(s) on HEAD; shown in overview when available. */
+  gitTag?: string;
 }
 
 function escapeHtml(s: string): string {
@@ -384,6 +391,9 @@ function buildFunctionalOverviewSection(
   totalTests: number,
   totalSuites: number,
   totalTime: string,
+  gitCommit?: string,
+  gitBranch?: string,
+  gitTag?: string,
 ): string {
   const timestamp = results.suiteRun?.startedAt;
   const endedAt = results.suiteRun?.finishedAt;
@@ -391,6 +401,9 @@ function buildFunctionalOverviewSection(
     ['Started at', formatReportDateTime(timestamp)],
     ['Ended at', formatReportDateTime(endedAt)],
     ['Duration', totalTime],
+    ['Branch', gitBranch],
+    ['Commit', gitCommit],
+    ['Tag', gitTag],
     ['Passed', totalPassed],
     ['Failed', totalFailed],
     ['Skipped', totalSkipped],
@@ -1050,6 +1063,9 @@ const SCRIPT = `
 
 export function generateReportHtml(results: CollectedResults, options?: ReportHtmlOptions): string {
   results = applyProjectRootPaths(results, options?.projectRoot);
+  const gitCommit = normalizeReportGitCommit(options?.gitCommit ?? results.suiteRun?.gitCommit);
+  const gitBranch = normalizeReportGitBranch(options?.gitBranch ?? results.suiteRun?.gitBranch);
+  const gitTag = normalizeReportGitTag(options?.gitTag ?? results.suiteRun?.gitTag);
   const runs = results.testRuns;
   const suiteName = escapeHtml(
     options?.suiteName
@@ -1142,7 +1158,7 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
 `;
 
   if (!isLoad) {
-    html += buildFunctionalOverviewSection(results, totalPassed, totalFailed, totalSkipped, totalTests, totalSuites, totalTime);
+    html += buildFunctionalOverviewSection(results, totalPassed, totalFailed, totalSkipped, totalTests, totalSuites, totalTime, gitCommit, gitBranch, gitTag);
     html += '    <div class="section-label report-section">Report</div>\n';
   }
 

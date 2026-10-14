@@ -25,6 +25,9 @@ HTML and JUnit exports use the same tree rules.
   - `started_at:` ISO timestamp
   - `finished_at:` ISO timestamp (optional)
   - `duration:` string (e.g. `1.234s`)
+  - `commit:` string (optional) — first 8 chars of the git commit at export time (omitted when unavailable)
+  - `branch:` string (optional) — git branch name at export time (omitted when unavailable or detached HEAD)
+  - `tag:` string (optional) — tag(s) pointing at HEAD at export time; comma-separated if several (omitted when none)
   - `passed:` number
   - `failed:` number
   - `errors:` number (always `0` in current output)
@@ -69,6 +72,9 @@ overview:
   started_at: "2026-03-06T10:30:00.000Z"
   finished_at: "2026-03-06T10:30:01.234Z"
   duration: 1.234s
+  commit: a1b2c3d4
+  branch: main
+  tag: v1.0.0
   passed: 3
   failed: 1
   errors: 0

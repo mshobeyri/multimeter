@@ -1,5 +1,6 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import {formatReportNumber, roundReportNumbersDeep} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
 import {applyProjectRootPaths} from './reportPaths';
 import {reportStepTitle} from './reportStepTitle';
 import {
@@ -22,6 +23,12 @@ export interface JunitXmlOptions {
   suiteName?: string;
   /** Folder containing `multimeter.mmt` — rewrites `file` to `+/…`. */
   projectRoot?: string;
+  /** Optional git HEAD SHA; emitted as a testsuites property when available. */
+  gitCommit?: string;
+  /** Optional git branch name; emitted as a testsuites property when available. */
+  gitBranch?: string;
+  /** Optional git tag(s) on HEAD; emitted as a testsuites property when available. */
+  gitTag?: string;
 }
 
 function formatTime(ms?: number): string {
@@ -144,6 +151,9 @@ function getLoadSnapshots(results: CollectedResults): Array<Record<string, any>>
 
 export function generateJunitXml(results: CollectedResults, options?: JunitXmlOptions): string {
   results = applyProjectRootPaths(results, options?.projectRoot);
+  const gitCommit = normalizeReportGitCommit(options?.gitCommit ?? results.suiteRun?.gitCommit);
+  const gitBranch = normalizeReportGitBranch(options?.gitBranch ?? results.suiteRun?.gitBranch);
+  const gitTag = normalizeReportGitTag(options?.gitTag ?? results.suiteRun?.gitTag);
   const runs = results.testRuns;
   const counted = reportableRuns(runs);
   const suiteName = escapeXml(
@@ -177,10 +187,19 @@ export function generateJunitXml(results: CollectedResults, options?: JunitXmlOp
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<testsuites name="${suiteName}" tests="${totalTests}" failures="${totalFailures}" errors="0" skipped="${totalSkipped}" time="${totalTime}"${timestamp}>\n`;
 
-  if (results.suiteRun?.cancelled || results.load) {
+  if (results.suiteRun?.cancelled || results.load || gitCommit || gitBranch || gitTag) {
     xml += `    <properties>\n`;
     if (results.suiteRun?.cancelled) {
       xml += `        <property name="cancelled" value="true"/>\n`;
+    }
+    if (gitBranch) {
+      xml += `        <property name="branch" value="${escapeXml(gitBranch)}"/>\n`;
+    }
+    if (gitCommit) {
+      xml += `        <property name="commit" value="${escapeXml(gitCommit)}"/>\n`;
+    }
+    if (gitTag) {
+      xml += `        <property name="tag" value="${escapeXml(gitTag)}"/>\n`;
     }
     if (results.load) {
       const loadProps: Array<[string, any]> = [
