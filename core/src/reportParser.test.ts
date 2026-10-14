@@ -110,6 +110,113 @@ describe('parseReportMmt', () => {
     expect(results.testRuns).toHaveLength(0);
   });
 
+  it('parses nested suite/test checks into a flat run list with ids', () => {
+    const doc = {
+      type: 'report',
+      name: 'suite.mmt',
+      overview: { checks: 1, passed: 1, failed: 0, skipped: 0 },
+      checks: [
+        {
+          name: 'nested-suite.mmt',
+          type: 'suite',
+          result: 'passed',
+          checks: [
+            {
+              name: 'child.mmt',
+              type: 'test',
+              file: 'child.mmt',
+              result: 'passed',
+              checks: [{ name: 'ok', type: 'check', result: 'passed' }],
+            },
+          ],
+        },
+      ],
+    };
+
+    const results = parseReportMmt(doc);
+    expect(results.testRuns).toHaveLength(2);
+    expect(results.testRuns[0].displayName).toBe('nested-suite.mmt');
+    expect(results.testRuns[0].docType).toBe('suite');
+    expect(results.testRuns[0].id).toBe('suite-node:0');
+    expect(results.testRuns[1].displayName).toBe('child.mmt');
+    expect(results.testRuns[1].id).toBe('suite-node:0.0');
+    expect(results.testRuns[1].steps).toHaveLength(1);
+    expect(results.testRuns[1].steps[0].title).toBe('ok');
+  });
+
+  it('preserves skipped run results instead of treating them as failed', () => {
+    const doc = {
+      type: 'report',
+      name: 'suite-with-skip',
+      overview: {
+        checks: 1,
+        passed: 1,
+        failed: 0,
+        errors: 0,
+        skipped: 1,
+      },
+      checks: [
+        {
+          name: 'kept.mmt',
+          type: 'test',
+          file: 'tests/kept.mmt',
+          result: 'passed',
+          checks: [{ name: 'ok', type: 'check', result: 'passed' }],
+        },
+        {
+          name: 'tagged-out.mmt',
+          type: 'test',
+          file: 'tests/tagged-out.mmt',
+          result: 'skipped',
+        },
+      ],
+    };
+
+    const results = parseReportMmt(doc);
+    expect(results.testRuns).toHaveLength(2);
+    expect(results.testRuns[0].result).toBe('passed');
+    expect(results.testRuns[1].result).toBe('skipped');
+    expect(results.suiteRun?.success).toBe(true);
+  });
+
+  it('round-trips skipped runs through generateMmtReport and parseReportMmt', () => {
+    const original: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'suite.mmt',
+        startedAt: 1709720000000,
+        finishedAt: 1709720001000,
+        durationMs: 1000,
+        success: true,
+        totalRunnable: 2,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({
+          displayName: 'kept.mmt',
+          filePath: 'tests/kept.mmt',
+          result: 'passed',
+          steps: [makeStep({ title: 'ok', status: 'passed' })],
+        }),
+        makeRun({
+          displayName: 'tagged-out.mmt',
+          filePath: 'tests/tagged-out.mmt',
+          result: 'skipped',
+          steps: [],
+        }),
+      ],
+    };
+
+    const yamlStr = generateMmtReport(original);
+    const parsed = YAML.parse(yamlStr);
+    const results = parseReportMmt(parsed);
+
+    expect(results.testRuns.map(r => r.result)).toEqual(['passed', 'skipped']);
+    expect(results.suiteRun?.success).toBe(true);
+    expect(parsed.overview.skipped).toBe(1);
+  });
+
   it('throws for missing type field', () => {
     expect(() => parseReportMmt({ name: 'no-type' } as any)).toThrow('Not a valid MMT report');
   });

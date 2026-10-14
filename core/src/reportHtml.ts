@@ -5,11 +5,29 @@ import {
   shouldShowResolvedExpected,
 } from './reportExpectMeta';
 import {formatReportDateTime, formatReportNumber, formatReportPercent, formatReportRelativeTime} from './reportFormat';
-import { DB_ERROR_SVG, DB_PASS_SVG } from './statusIcons';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
+import {applyProjectRootPaths} from './reportPaths';
+import {reportStepTitle} from './reportStepTitle';
+import {
+  buildReportTree,
+  isSuiteOnlyRun,
+  reportableRuns,
+  visibleReportSteps,
+  type ReportTreeNode,
+} from './reportTree';
+export { parentSuiteNodeId } from './reportTree';
 
 export interface ReportHtmlOptions {
   suiteName?: string;
   theme?: 'dark' | 'light' | 'auto';
+  /** Folder containing `multimeter.mmt` — rewrites stored paths to `+/…`. */
+  projectRoot?: string;
+  /** Optional git HEAD SHA; shown in overview when available. */
+  gitCommit?: string;
+  /** Optional git branch name; shown in overview when available. */
+  gitBranch?: string;
+  /** Optional git tag(s) on HEAD; shown in overview when available. */
+  gitTag?: string;
 }
 
 function escapeHtml(s: string): string {
@@ -22,219 +40,132 @@ function hasValue<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
-interface ParsedCallDetails {
-  request?: { method?: string; url?: string; body?: any; headers?: Record<string, any> };
-  response?: { status?: number; statusText?: string; body?: any; headers?: Record<string, any> };
-}
-
-function tryFormatJson(value: any): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (typeof value !== 'string') {
-    try {
-      return JSON.stringify(value, null, 2);
-    } catch {
-      return String(value);
-    }
-  }
-  const s = value;
-  try {
-    return JSON.stringify(JSON.parse(s), null, 2);
-  } catch {
-    return s;
-  }
-}
-
-function hasEntries(value: Record<string, any> | undefined): boolean {
-  return !!value && typeof value === 'object' && Object.keys(value).length > 0;
-}
-
-function parseStepCallDetails(details?: string): ParsedCallDetails | null {
-  if (!details || typeof details !== 'string') { return null; }
-  try {
-    const parsed = JSON.parse(details);
-    if (!parsed || typeof parsed !== 'object') { return null; }
-    const underscore = parsed['_'];
-    if (!underscore || typeof underscore !== 'object' || typeof underscore.details !== 'string') { return null; }
-    const inner = JSON.parse(underscore.details);
-    if (!inner || typeof inner !== 'object') { return null; }
-    return {
-      request: inner.request,
-      response: inner.response,
-    };
-  } catch {
-    return null;
-  }
-}
-
 function displayValue(v: any): string {
   return formatExpectMetaValue(v);
 }
 
-function buildStepHtml(step: TestStepResult): string {
-  const name = escapeHtml(step.title || `step-${step.stepIndex}`);
-  const duration = hasValue(step.durationMs) ? ` <span class="duration">(${formatDuration(step.durationMs)})</span>` : '';
-  const passed = step.status === 'passed';
+function expectNeedsDetail(e: {status: string; similarity?: number; count?: number}): boolean {
+  return e.status === 'failed' || typeof e.similarity === 'number' || typeof e.count === 'number';
+}
+
+function stepStatusIconHtml(status: string): string {
+  if (status === 'skipped') {
+    return `<span class="status-icon" style="color: var(--muted, #7c847e)" title="skipped">⊘</span>`;
+  }
+  const passed = status === 'passed';
   const iconColor = passed ? 'var(--passed)' : 'var(--failed)';
-  const iconTitle = step.cached
-    ? `${step.status} (served from cache)`
-    : step.status;
-  const iconInner = step.cached
-    ? (passed ? DB_PASS_SVG : DB_ERROR_SVG)
-    : (passed ? '✓' : '✗');
-  const iconSpan =
-      `<span class="status-icon" style="color: ${iconColor}" title="${escapeHtml(iconTitle)}">` +
-      `${iconInner}</span>`;
-  const expects = step.expects || [];
-  const hasSimilarity = expects.some(e => typeof e.similarity === 'number');
-  const hasCount = expects.some(e => typeof e.count === 'number');
+  const icon = passed ? '✓' : '✗';
+  return `<span class="status-icon" style="color: ${iconColor}" title="${escapeHtml(status)}">${icon}</span>`;
+}
 
-  if (step.status === 'passed' && expects.length <= 1 && !hasSimilarity && !hasCount) {
-    return `        <div class="testcase passed">${iconSpan} ${name}${duration}</div>\n`;
+function buildToggleHtml(paneId: string): string {
+  return `<span class="toggle collapsed" id="toggle-${paneId}" aria-expanded="false">` +
+    `<svg class="chevron" width="10" height="10" viewBox="0 0 10 10">` +
+    `<path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>` +
+    `</svg></span>`;
+}
+
+function buildExpectDetailHtml(e: {
+  comparison: string;
+  status: string;
+  actual?: any;
+  expected?: any;
+  similarity?: number;
+  count?: number;
+}): string {
+  let html = '';
+  if (hasValue(e.actual)) {
+    html += `<div class="expect-got">got: ${escapeHtml(displayValue(e.actual))}</div>\n`;
   }
-
-  let html = `        <div class="testcase ${step.status === 'passed' ? 'passed' : 'failed'}">${iconSpan} ${name}${duration}\n`;
-
-  if (expects.length > 0) {
-    html += '          <div class="expects">\n';
-    for (const e of expects) {
-      const eIcon = e.status === 'passed' ? '✓' : '✗';
-      const iconColor = e.status === 'passed' ? 'var(--passed)' : 'var(--failed)';
-      html += `            <div style="color: var(--fg)"><span style="color: ${iconColor}">${eIcon}</span> ${escapeHtml(e.comparison)}`;
-      if ((e.status === 'failed' || typeof e.similarity === 'number' || typeof e.count === 'number') && hasValue(e.actual) && hasValue(e.expected)) {
-        html += `<br/><span class="expect-got">got: ${escapeHtml(displayValue(e.actual))}</span>`;
-        if (shouldShowResolvedExpected(e.comparison)) {
-          html += `<br/><span class="expect-got">expected: ${escapeHtml(displayValue(e.expected))}</span>`;
-        }
-        if (typeof e.similarity === 'number') {
-          html += `<br/><span class="expect-got">similarity: ${escapeHtml(String(e.similarity))}%</span>`;
-        }
-        if (typeof e.count === 'number') {
-          html += `<br/><span class="expect-got">count: ${escapeHtml(String(e.count))}</span>`;
-        }
-      }
-      html += `</div>\n`;
-    }
-    html += '          </div>\n';
+  if (hasValue(e.expected) && (e.status === 'failed' || shouldShowResolvedExpected(e.comparison))) {
+    html += `<div class="expect-got">expected: ${escapeHtml(displayValue(e.expected))}</div>\n`;
   }
-
-  // Include request/response details for failed tests
-  if (step.status === 'failed') {
-    const reqResp = parseStepCallDetails(step.details);
-    if (reqResp?.request) {
-      const req = reqResp.request;
-      html += '            <div style="margin-top:8px"><strong>Request:</strong></div>\n';
-      if (req.method && req.url) {
-        html += `            <div>${escapeHtml(req.method)} ${escapeHtml(req.url)}</div>\n`;
-      }
-      if (hasEntries(req.headers)) {
-        html += `            <div>Headers:</div>\n`;
-        html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(req.headers))}</pre>\n`;
-      }
-      if (req.body) {
-        html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(tryFormatJson(req.body))}</pre>\n`;
-      }
-    }
-    if (reqResp?.response) {
-      const resp = reqResp.response;
-      html += '            <div style="margin-top:8px"><strong>Response:</strong></div>\n';
-      if (resp.status !== undefined) {
-        html += `            <div>Status: ${resp.status}${resp.statusText ? ' ' + escapeHtml(resp.statusText) : ''}</div>\n`;
-      }
-      if (hasEntries(resp.headers)) {
-        html += `            <div>Headers:</div>\n`;
-        html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(resp.headers))}</pre>\n`;
-      }
-      if (resp.body) {
-        html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(resp.body))}</pre>\n`;
-      }
-    }
+  if (typeof e.similarity === 'number') {
+    html += `<div class="expect-got">similarity: ${escapeHtml(String(e.similarity))}%</div>\n`;
   }
+  if (typeof e.count === 'number') {
+    html += `<div class="expect-got">count: ${escapeHtml(String(e.count))}</div>\n`;
+  }
+  return html;
+}
 
-  html += `        </div>\n`;
+/** Expect row: comparison visible; got/expected behind expand (treeview-style). */
+function buildExpectNodeHtml(
+  e: {
+    comparison: string;
+    status: string;
+    actual?: any;
+    expected?: any;
+    similarity?: number;
+    count?: number;
+  },
+  paneId: string,
+  depth: number,
+): string {
+  const indent = '        ' + '  '.repeat(depth);
+  const detailHtml = expectNeedsDetail(e) && (hasValue(e.actual) || hasValue(e.expected))
+    ? buildExpectDetailHtml(e)
+    : '';
+  const canExpand = detailHtml.length > 0;
+  const toggle = canExpand ? buildToggleHtml(paneId) : `<span class="tree-toggle-spacer"></span>`;
+  const title = escapeHtml(e.comparison);
+
+  let html = `${indent}<div class="tree-node" data-depth="${depth}">\n`;
+  html += `${indent}  <div class="tree-row${canExpand ? ' is-expandable' : ''}"` +
+    `${canExpand ? ` onclick="onTreeRowActivate(event, '${paneId}')"` : ''}>\n`;
+  html += `${indent}    ${toggle}${stepStatusIconHtml(e.status)}` +
+    `<span class="tree-title" title="${title}">${title}</span>\n`;
+  html += `${indent}  </div>\n`;
+  if (canExpand) {
+    html += `${indent}  <div class="tree-children expect-detail" id="pane-${paneId}" style="display: none">\n`;
+    html += detailHtml;
+    html += `${indent}  </div>\n`;
+  }
+  html += `${indent}</div>\n`;
+  return html;
+}
+
+/** Step rows under a test — same hierarchy as the suite/report treeview. */
+function buildStepTreeHtml(steps: TestStepResult[], runPaneId: string, depth: number): string {
+  let html = '';
+  const indent = '        ' + '  '.repeat(depth);
+  for (let si = 0; si < steps.length; si++) {
+    const step = steps[si];
+    // Match MMT storage: passed expects are omitted; only detail-worthy rows expand.
+    const expects = (step.expects || []).filter(e => expectNeedsDetail(e));
+    const stepPaneId = `${runPaneId}-s${si}`;
+    const canExpand = expects.length > 0;
+    const toggle = canExpand ? buildToggleHtml(stepPaneId) : `<span class="tree-toggle-spacer"></span>`;
+    const name = escapeHtml(reportStepTitle(step));
+
+    html += `${indent}<div class="tree-node" data-depth="${depth}">\n`;
+    html += `${indent}  <div class="tree-row${canExpand ? ' is-expandable' : ''}"` +
+      `${canExpand ? ` onclick="onTreeRowActivate(event, '${stepPaneId}')"` : ''}>\n`;
+    html += `${indent}    ${toggle}${stepStatusIconHtml(step.status)}` +
+      `<span class="tree-title" title="${name}">${name}</span>\n`;
+    html += `${indent}  </div>\n`;
+    if (canExpand) {
+      html += `${indent}  <div class="tree-children" id="pane-${stepPaneId}" style="display: none">\n`;
+      for (let ei = 0; ei < expects.length; ei++) {
+        html += buildExpectNodeHtml(expects[ei], `${stepPaneId}-e${ei}`, depth + 1);
+      }
+      html += `${indent}  </div>\n`;
+    }
+    html += `${indent}</div>\n`;
+  }
   return html;
 }
 
 const ICON_LAYERS_INLINE = `<svg class="suite-layers-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.4 14.2 4.6 8 7.8 1.8 4.6 8 1.4Zm0 1.8L4.7 4.6 8 6.3l3.3-1.7L8 3.2Zm-5.4 4 1.1-.6L8 8.8l4.3-2.2 1.1.6L8 10 2.6 7.2Zm0 2.6 1.1-.6L8 11.4l4.3-2.2 1.1.6L8 12.6 2.6 9.8Z"/></svg>`;
 
-interface HtmlReportTreeNode {
-  run: TestRunResult;
-  index: number;
-  children: HtmlReportTreeNode[];
-}
-
-/** Parent of `suite-node:0.1.2` is `suite-node:0.1`; `suite-node:0` → `suite-node:root`. */
-export function parentSuiteNodeId(id: string | undefined): string | undefined {
-  if (!id || !id.includes(':')) {
-    return undefined;
-  }
-  const colon = id.lastIndexOf(':');
-  const prefix = id.slice(0, colon);
-  const path = id.slice(colon + 1);
-  if (!path || path === 'root') {
-    return undefined;
-  }
-  const parts = path.split('.');
-  if (parts.length === 1) {
-    return `${prefix}:root`;
-  }
-  return `${prefix}:${parts.slice(0, -1).join('.')}`;
-}
-
-function findAncestorId(
-    id: string | undefined,
-    byId: Map<string, HtmlReportTreeNode>,
-): string | undefined {
-  const seen = new Set<string>();
-  let current = parentSuiteNodeId(id);
-  while (current && !seen.has(current)) {
-    seen.add(current);
-    if (byId.has(current)) {
-      return current;
-    }
-    current = parentSuiteNodeId(current);
-  }
-  return undefined;
-}
-
-function buildHtmlReportTree(runs: TestRunResult[]): HtmlReportTreeNode[] {
-  const nodes: HtmlReportTreeNode[] = runs.map((run, index) => ({
-    run,
-    index,
-    children: [],
-  }));
-  const byId = new Map<string, HtmlReportTreeNode>();
-  for (const node of nodes) {
-    if (node.run.id) {
-      byId.set(node.run.id, node);
-    }
-  }
-  const roots: HtmlReportTreeNode[] = [];
-  for (const node of nodes) {
-    const parentKey = findAncestorId(node.run.id, byId);
-    if (parentKey) {
-      byId.get(parentKey)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  }
-  return roots;
-}
-
-function visibleSteps(run: TestRunResult): TestStepResult[] {
-  return run.steps.filter(s => s.stepType !== 'debug');
-}
-
-function isSuiteOnlyRun(run: TestRunResult): boolean {
-  return run.docType === 'suite' && visibleSteps(run).length === 0;
-}
-
 function buildStatusIconHtml(run: TestRunResult, folder: boolean): string {
   if (folder || isSuiteOnlyRun(run)) {
     return `<span class="suite-icon" title="Suite">${ICON_LAYERS_INLINE}</span>`;
   }
-  const passed = run.result !== 'failed';
+  if (run.result === 'skipped') {
+    return `<span class="status-icon" style="color: var(--muted, #7c847e)" title="skipped">⊘</span>`;
+  }
+  const passed = run.result !== 'failed' && run.result !== 'cancelled';
   const iconColor = passed ? 'var(--passed)' : 'var(--failed)';
   return `<span class="status-icon" style="color: ${iconColor}" title="${escapeHtml(run.result)}">${
     passed ? '✓' : '✗'
@@ -242,19 +173,27 @@ function buildStatusIconHtml(run: TestRunResult, folder: boolean): string {
 }
 
 function buildTreeMetaHtml(run: TestRunResult, childCount: number): string {
-  const steps = visibleSteps(run);
+  const steps = visibleReportSteps(run);
   const failCount = steps.filter(s => s.status === 'failed').length;
-  const stepLabel = steps.length > 0
-    ? `<span class="tree-meta">${steps.length} step${steps.length === 1 ? '' : 's'}</span>`
-    : '';
+  const passCount = steps.filter(s => s.status === 'passed').length;
+  if (run.result === 'skipped') {
+    return `<span class="badge skipped">Skipped</span>`;
+  }
   if (failCount > 0) {
-    return `<span class="badge failed">${failCount} failed</span>${stepLabel}`;
+    return `<span class="badge failed">${failCount}/${steps.length} Failed</span>`;
   }
   if (steps.length > 0) {
-    return `<span class="badge passed">all passed</span>${stepLabel}`;
+    return `<span class="badge passed">${passCount} Passed</span>`;
   }
   if (isSuiteOnlyRun(run) && run.result) {
-    return `<span class="badge passed">${escapeHtml(run.result)}</span>`;
+    // skipped already returned above; suite-only rows use result for the badge.
+    const badgeClass = run.result === 'failed' || run.result === 'cancelled' ? 'failed' : 'passed';
+    const label = run.result === 'failed'
+      ? 'Failed'
+      : run.result === 'cancelled'
+        ? 'Cancelled'
+        : escapeHtml(run.result.charAt(0).toUpperCase() + run.result.slice(1));
+    return `<span class="badge ${badgeClass}">${label}</span>`;
   }
   if (childCount > 0) {
     return `<span class="tree-meta">${childCount} item${childCount === 1 ? '' : 's'}</span>`;
@@ -262,41 +201,31 @@ function buildTreeMetaHtml(run: TestRunResult, childCount: number): string {
   return '';
 }
 
-function buildTreeNodeHtml(node: HtmlReportTreeNode, depth: number): string {
+function buildTreeNodeHtml(node: ReportTreeNode, depth: number): string {
   const run = node.run;
-  const steps = visibleSteps(run);
+  const steps = visibleReportSteps(run);
   const folder = node.children.length > 0;
-  const showSteps = steps.length > 0 && !isSuiteOnlyRun(run);
+  const showSteps = !isSuiteOnlyRun(run) && steps.length > 0;
   const canExpand = folder || showSteps;
+  const paneId = String(node.index);
   const name = escapeHtml(run.displayName || run.filePath || `test-${node.index}`);
   const indent = '        ' + '  '.repeat(depth);
-  const toggle = canExpand
-    ? `<span class="toggle collapsed" id="toggle-${node.index}" aria-expanded="false">` +
-      `<svg class="chevron" width="10" height="10" viewBox="0 0 10 10">` +
-      `<path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>` +
-      `</svg></span>`
-    : `<span class="tree-toggle-spacer"></span>`;
+  const toggle = canExpand ? buildToggleHtml(paneId) : `<span class="tree-toggle-spacer"></span>`;
 
   let html = `${indent}<div class="tree-node" data-depth="${depth}">\n`;
   html += `${indent}  <div class="tree-row${canExpand ? ' is-expandable' : ''}"` +
-      `${canExpand ? ` onclick="onTreeRowActivate(event, ${node.index})"` : ''}>\n`;
+      `${canExpand ? ` onclick="onTreeRowActivate(event, '${paneId}')"` : ''}>\n`;
   html += `${indent}    ${toggle}${buildStatusIconHtml(run, folder && !showSteps)}` +
       `<span class="tree-title" title="${name}">${name}</span>` +
       `${buildTreeMetaHtml(run, node.children.length)}\n`;
   html += `${indent}  </div>\n`;
   if (canExpand) {
-    html += `${indent}  <div class="tree-children" id="suite-steps-${node.index}" style="display: none">\n`;
+    html += `${indent}  <div class="tree-children" id="pane-${paneId}" style="display: none">\n`;
     for (const child of node.children) {
       html += buildTreeNodeHtml(child, depth + 1);
     }
     if (showSteps) {
-      html += `${indent}    <div class="report-steps">\n`;
-      for (const step of steps) {
-        html += buildStepHtml(step);
-      }
-      html += `${indent}    </div>\n`;
-    } else if (!folder) {
-      html += `${indent}    <div class="empty">No test steps</div>\n`;
+      html += buildStepTreeHtml(steps, paneId, depth + 1);
     }
     html += `${indent}  </div>\n`;
   }
@@ -305,7 +234,7 @@ function buildTreeNodeHtml(node: HtmlReportTreeNode, depth: number): string {
 }
 
 function buildReportTreeHtml(runs: TestRunResult[]): string {
-  const roots = buildHtmlReportTree(runs);
+  const roots = buildReportTree(runs);
   if (roots.length === 0) {
     return '      <div class="empty">No test results</div>\n';
   }
@@ -454,15 +383,30 @@ function buildLoadSection(results: CollectedResults): string {
   return html;
 }
 
-function buildFunctionalOverviewSection(results: CollectedResults, totalPassed: number, totalFailed: number, totalTests: number, totalSuites: number, totalTime: string): string {
+function buildFunctionalOverviewSection(
+  results: CollectedResults,
+  totalPassed: number,
+  totalFailed: number,
+  totalSkipped: number,
+  totalTests: number,
+  totalSuites: number,
+  totalTime: string,
+  gitCommit?: string,
+  gitBranch?: string,
+  gitTag?: string,
+): string {
   const timestamp = results.suiteRun?.startedAt;
   const endedAt = results.suiteRun?.finishedAt;
   const rows = ([
     ['Started at', formatReportDateTime(timestamp)],
     ['Ended at', formatReportDateTime(endedAt)],
     ['Duration', totalTime],
+    ['Branch', gitBranch],
+    ['Commit', gitCommit],
+    ['Tag', gitTag],
     ['Passed', totalPassed],
     ['Failed', totalFailed],
+    ['Skipped', totalSkipped],
     ['Total checks', totalTests],
     ['Tests', totalSuites],
   ] as Array<[string, any]>).filter(([, value]) => value !== undefined && value !== null && value !== '');
@@ -821,12 +765,12 @@ const CSS = `
     padding: 4px 10px;
     border-radius: 12px;
     font-weight: 600;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
   .badge.passed { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; }
   .badge.failed { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; }
+  .badge.skipped { background: linear-gradient(135deg, #7c847e 0%, #5c645e 100%); color: #fff; }
   .testcase {
     padding: 8px 12px;
     border-radius: 10px;
@@ -867,7 +811,8 @@ const CSS = `
   }
   .failure strong { color: var(--muted); }
   .expects { margin: 8px 0 4px 24px; font-size: 12px; color: var(--fg); overflow-wrap: break-word; word-break: break-word; }
-  .expect-got { color: var(--muted); margin-left: 24px; display: block; overflow-wrap: break-word; word-break: break-word; max-height: 200px; overflow: auto; }
+  .expect-got { color: var(--muted); display: block; padding: 2px 0 2px 4px; overflow-wrap: break-word; word-break: break-word; max-height: 200px; overflow: auto; font-size: 12px; font-weight: 400; }
+  .expect-detail { padding-bottom: 4px; }
   .duration { color: var(--muted); font-size: 12px; }
   .empty { color: var(--muted); font-style: italic; font-size: 12px; }
 
@@ -914,9 +859,9 @@ const ICON_CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 
 const SCRIPT = `
   <script>
-    function toggleSuite(idx, forceOpen) {
-      var steps = document.getElementById('suite-steps-' + idx);
-      var toggle = document.getElementById('toggle-' + idx);
+    function togglePane(paneId, forceOpen) {
+      var steps = document.getElementById('pane-' + paneId);
+      var toggle = document.getElementById('toggle-' + paneId);
       if (!steps) { return; }
       var open = forceOpen === true ? true : forceOpen === false ? false : steps.style.display === 'none';
       steps.style.display = open ? 'block' : 'none';
@@ -926,10 +871,10 @@ const SCRIPT = `
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       }
     }
-    function onTreeRowActivate(event, idx) {
+    function onTreeRowActivate(event, paneId) {
       var sel = window.getSelection && window.getSelection();
       if (sel && !sel.isCollapsed && String(sel).trim()) { return; }
-      toggleSuite(idx);
+      togglePane(paneId);
     }
     function treeNodeOwnText(node) {
       var text = '';
@@ -1117,13 +1062,25 @@ const SCRIPT = `
   </script>`;
 
 export function generateReportHtml(results: CollectedResults, options?: ReportHtmlOptions): string {
+  results = applyProjectRootPaths(results, options?.projectRoot);
+  const gitCommit = normalizeReportGitCommit(options?.gitCommit ?? results.suiteRun?.gitCommit);
+  const gitBranch = normalizeReportGitBranch(options?.gitBranch ?? results.suiteRun?.gitBranch);
+  const gitTag = normalizeReportGitTag(options?.gitTag ?? results.suiteRun?.gitTag);
   const runs = results.testRuns;
-  const suiteName = escapeHtml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
+  const suiteName = escapeHtml(
+    options?.suiteName
+      || results.suiteRun?.suiteTitle
+      || results.suiteRun?.suitePath
+      || reportableRuns(results.testRuns)[0]?.displayName
+      || 'Test Report',
+  );
   const isLoad = results.type === 'loadtest' || !!results.load;
-  const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
-  const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
-  const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
-  const totalSuites = runs.length;
+  const counted = reportableRuns(runs);
+  const totalTests = counted.reduce((sum, r) => sum + visibleReportSteps(r).length, 0);
+  const totalPassed = counted.reduce((sum, r) => sum + visibleReportSteps(r).filter(s => s.status === 'passed').length, 0);
+  const totalFailed = counted.reduce((sum, r) => sum + visibleReportSteps(r).filter(s => s.status === 'failed').length, 0);
+  const totalSkipped = counted.filter(r => r.result === 'skipped').length;
+  const totalSuites = counted.length;
   const totalTimeMs = results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0);
   const totalTime = formatDuration(totalTimeMs);
   const loadSummary = results.load?.summary;
@@ -1201,7 +1158,7 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
 `;
 
   if (!isLoad) {
-    html += buildFunctionalOverviewSection(results, totalPassed, totalFailed, totalTests, totalSuites, totalTime);
+    html += buildFunctionalOverviewSection(results, totalPassed, totalFailed, totalSkipped, totalTests, totalSuites, totalTime, gitCommit, gitBranch, gitTag);
     html += '    <div class="section-label report-section">Report</div>\n';
   }
 

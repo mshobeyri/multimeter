@@ -6,6 +6,9 @@ import {
   shouldShowResolvedExpected,
 } from './reportExpectMeta';
 import {formatReportDateTime, formatReportNumber, formatReportPercent} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
+import {applyProjectRootPaths} from './reportPaths';
+import {reportStepTitle} from './reportStepTitle';
 
 export interface ReportMarkdownOptions {
   suiteName?: string;
@@ -16,6 +19,14 @@ export interface ReportMarkdownOptions {
    * (request/response), attached after the normal Markdown report.
    */
   includeFullDetails?: boolean;
+  /** Folder containing `multimeter.mmt` — rewrites stored paths to `+/…`. */
+  projectRoot?: string;
+  /** Optional git HEAD SHA; shown in overview when available. */
+  gitCommit?: string;
+  /** Optional git branch name; shown in overview when available. */
+  gitBranch?: string;
+  /** Optional git tag(s) on HEAD; shown in overview when available. */
+  gitTag?: string;
 }
 
 interface ParsedCallDetails {
@@ -235,7 +246,7 @@ function escapeMdTable(s: string): string {
 }
 
 function buildStepRow(step: TestStepResult, index: number): string {
-  const name = escapeMdTable(step.title || `step-${step.stepIndex}`);
+  const name = escapeMdTable(reportStepTitle(step));
   const icon = stepStatusMark(step);
   const result = `${icon} ${step.status}${step.cached ? ' (cache)' : ''}`;
   return `| ${index + 1} | ${name} | ${result} |`;
@@ -275,7 +286,7 @@ function stepStatusMark(step: TestStepResult): string {
 }
 
 function buildStepDetails(step: TestStepResult): string {
-  const name = step.title || `step-${step.stepIndex}`;
+  const name = reportStepTitle(step);
   const stepIcon = stepStatusMark(step);
   let md = `\n<details>\n<summary>${stepIcon} ${name}</summary>\n\n`;
   const expects = step.expects || [];
@@ -341,7 +352,7 @@ function buildFullStepCallDetails(
   call: ParsedCallDetails,
   stepHeadingLevel: number,
 ): string {
-  const name = step.title || `step-${step.stepIndex}`;
+  const name = reportStepTitle(step);
   const stepIcon = stepStatusMark(step);
   const sectionLevel = stepHeadingLevel + 1;
   let md = `\n${mdHeading(stepHeadingLevel, `${stepIcon} ${name}`)}\n\n`;
@@ -422,7 +433,7 @@ function buildFullDetailsSection(runs: TestRunResult[]): string {
 function buildTestRunSection(run: TestRunResult, index: number, includeDetails: boolean): string {
   const name = run.displayName || run.filePath || `test-${index}`;
   const steps = run.steps.filter(s => s.stepType !== 'debug');
-  const icon = run.result === 'passed' ? '✓' : '✗';
+  const icon = run.result === 'passed' ? '✓' : run.result === 'skipped' ? '⊘' : '✗';
   let md = `**${icon} ${name}** ${run.result}\n`;
   if (steps.length === 0) {
     return md;
@@ -555,6 +566,10 @@ function buildLoadMermaidCharts(series: ReturnType<typeof getLoadPoints>): strin
 }
 
 export function generateReportMarkdown(results: CollectedResults, options?: ReportMarkdownOptions): string {
+  results = applyProjectRootPaths(results, options?.projectRoot);
+  const gitCommit = normalizeReportGitCommit(options?.gitCommit ?? results.suiteRun?.gitCommit);
+  const gitBranch = normalizeReportGitBranch(options?.gitBranch ?? results.suiteRun?.gitBranch);
+  const gitTag = normalizeReportGitTag(options?.gitTag ?? results.suiteRun?.gitTag);
   const runs = results.testRuns;
   const suiteName = options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report';
   const includeDetails = options?.includeDetails !== false;
@@ -563,6 +578,7 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
   const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
   const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
+  const totalSkipped = runs.filter(r => r.result === 'skipped').length;
   const totalTime = formatDuration(
     results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0)
   );
@@ -580,11 +596,20 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
     md += `**Ended at:** ${formatReportDateTime(endedAt)}  \n`;
   }
   md += `**Duration:** ${totalTime}  \n`;
+  if (gitBranch) {
+    md += `**Branch:** ${gitBranch}  \n`;
+  }
+  if (gitCommit) {
+    md += `**Commit:** ${gitCommit}  \n`;
+  }
+  if (gitTag) {
+    md += `**Tag:** ${gitTag}  \n`;
+  }
   if (isLoad) {
     const summary = results.load?.summary;
     md += `**Result:** ${summary?.successes ?? 0} passed, ${summary?.failures ?? 0} failed, ${summary?.requests ?? summary?.iterations ?? 0} requests\n`;
   } else {
-    md += `**Result:** ${totalPassed} passed, ${totalFailed} failed, ${totalTests} total checks\n`;
+    md += `**Result:** ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped, ${totalTests} total checks\n`;
   }
 
   if (results.suiteRun?.cancelled) {

@@ -13,6 +13,7 @@ import {
 } from './literalToken';
 import {apiToYaml, yamlToAPI} from './apiParsePack';
 import {
+  clearTokenFieldPreviewRandomCache,
   displayRuntimeTokensToResolvableText,
   displayRuntimeString,
   displayRuntimeStringRecord,
@@ -46,6 +47,7 @@ import {
   findBodyTokenHoverSpans,
 } from './bodyRuntimeTokens';
 import {beautify, formatBody} from './markupConvertor';
+import {clearGitCurrentSnapshot, setGitCurrentSnapshot} from './Current';
 import {xml2js} from 'xml-js';
 import {OMIT_SENTINEL} from './omitKeyword';
 
@@ -285,18 +287,74 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(stringContainsFieldToken('plain')).toBe(false);
   });
 
-  it('resolves i:/e: in idle preview but keeps r:/c: as display tokens', () => {
+  it('resolves i:/e:/c:/r: in idle preview and freezes r: until cache clear', () => {
+    clearTokenFieldPreviewRandomCache();
+    const source = 'Bearer {{e:token}} / {{r:uuid}} / {{c:day}}';
+    const ctx = {env: {token: 'secret'}, inputs: {}};
+    const first = projectTokenFieldPreview(source, ctx);
+    expect(first.text.startsWith('Bearer secret / ')).toBe(true);
+    expect(first.text).not.toContain('{{r:uuid}}');
+    expect(first.text).not.toContain('{{c:day}}');
+    expect(first.spans.length).toBe(3);
+    expect(first.spans[0]).toMatchObject({kind: 'resolved', tooltip: '{{e:token}}'});
+    expect(first.spans[1]).toMatchObject({kind: 'resolved', tooltip: '{{r:uuid}}'});
+    expect(first.spans[2]).toMatchObject({kind: 'resolved', tooltip: '{{c:day}}'});
+    const uuid = first.text.slice(first.spans[1].start, first.spans[1].end);
+    expect(uuid).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+    const second = projectTokenFieldPreview(source, ctx);
+    expect(second.text).toBe(first.text);
+
+    clearTokenFieldPreviewRandomCache();
+    const third = projectTokenFieldPreview(source, ctx);
+    const uuid3 = third.text.slice(third.spans[1].start, third.spans[1].end);
+    expect(uuid3).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    expect(uuid3).not.toBe(uuid);
+  });
+
+  it('keeps distinct r: samples per occurrence in one field', () => {
+    clearTokenFieldPreviewRandomCache();
     const {text, spans} = projectTokenFieldPreview(
-        'Bearer {{e:token}} / {{r:uuid}} / {{c:date}}',
-        {env: {token: 'secret'}, inputs: {}},
+        '{{r:uuid}}/{{r:uuid}}',
+        {env: {}, inputs: {}},
     );
-    expect(text).toBe('Bearer secret / {{r:uuid}} / {{c:date}}');
-    expect(spans.length).toBe(3);
-    expect(spans[0]).toMatchObject({kind: 'resolved', tooltip: '{{e:token}}'});
-    expect(spans[1]).toMatchObject({kind: 'token'});
-    expect(spans[2]).toMatchObject({kind: 'token'});
-    expect(text.slice(spans[1].start, spans[1].end)).toBe('{{r:uuid}}');
-    expect(text.slice(spans[2].start, spans[2].end)).toBe('{{c:date}}');
+    expect(spans).toHaveLength(2);
+    const a = text.slice(spans[0].start, spans[0].end);
+    const b = text.slice(spans[1].start, spans[1].end);
+    expect(a).not.toBe(b);
+    expect(projectTokenFieldPreview('{{r:uuid}}/{{r:uuid}}', {env: {}, inputs: {}}).text)
+        .toBe(text);
+  });
+
+  it('resolves c:git_* in idle preview when a git snapshot is injected', () => {
+    setGitCurrentSnapshot({
+      branch: 'main',
+      commit: 'a4f5e463',
+      commitHash: 'a4f5e4630123456789',
+      tag: 'v1.0.0',
+      describe: 'v1.0.0',
+      dirty: false,
+    });
+    try {
+      const {text, spans} = projectTokenFieldPreview(
+          '{{c:git_commit}} / {{c:git_branch}}',
+          {env: {}, inputs: {}},
+      );
+      expect(text).toBe('a4f5e463 / main');
+      expect(spans).toHaveLength(2);
+      expect(spans[0]).toMatchObject({
+        kind: 'resolved',
+        tooltip: '{{c:git_commit}}',
+      });
+      expect(spans[1]).toMatchObject({
+        kind: 'resolved',
+        tooltip: '{{c:git_branch}}',
+      });
+    } finally {
+      clearGitCurrentSnapshot();
+    }
   });
 
   it('shows nested r:/c: input values as {{…}} in i: idle preview', () => {
@@ -346,6 +404,69 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     const hit = resolved.find(s => s.tooltip === '{{r:uuid}}');
     expect(hit).toBeTruthy();
     expect(`{\n  "asd": "${uuid}"\n}`.slice(hit!.start, hit!.end)).toBe(uuid);
+  });
+
+  it('pins short c: slice highlights to their own JSON field, not a sibling prefix', () => {
+    const display =
+        '{\n  "curly_whole": "Amsterdam",\n  "text_slice": "Ams"\n}';
+    const spans = findBodyTokenHoverSpans(display, {
+      tokenSource: {
+        curly_whole: '{{c:city}}',
+        text_slice: '<<c:city[0:3]>>',
+      },
+      resolvedBody: {
+        curly_whole: 'Amsterdam',
+        text_slice: 'Ams',
+      },
+    });
+    const resolved = spans.filter(s => s.kind === 'resolved');
+    const whole = resolved.find(s => s.tooltip === '{{c:city}}');
+    const slice = resolved.find(s => s.tooltip === '{{c:city[0:3]}}');
+    expect(whole).toBeTruthy();
+    expect(slice).toBeTruthy();
+    expect(display.slice(whole!.start, whole!.end)).toBe('Amsterdam');
+    expect(display.slice(slice!.start, slice!.end)).toBe('Ams');
+  });
+
+  it('underlines embedded <<c:…>> / {{c:…}} inside mixed literal fields', () => {
+    const display = [
+      '{',
+      '  "angle_prefix": "asdaWednesday",',
+      '  "angle_suffix": "Amsterdamasas",',
+      '  "angle_both": "asdaWednesdayasas",',
+      '  "curly_embed": "xxAmsterdamyy"',
+      '}',
+    ].join('\n');
+    const spans = findBodyTokenHoverSpans(display, {
+      tokenSource: {
+        angle_prefix: 'asda<<c:day>>',
+        angle_suffix: '<<c:city>>asas',
+        angle_both: 'asda<<c:day>>asas',
+        curly_embed: 'xx{{c:city}}yy',
+      },
+      resolvedBody: {
+        angle_prefix: 'asdaWednesday',
+        angle_suffix: 'Amsterdamasas',
+        angle_both: 'asdaWednesdayasas',
+        curly_embed: 'xxAmsterdamyy',
+      },
+    });
+    const resolved = spans.filter(s => s.kind === 'resolved');
+    expect(resolved.map(s => display.slice(s.start, s.end)).sort()).toEqual(
+        ['Amsterdam', 'Amsterdam', 'Wednesday', 'Wednesday'].sort(),
+    );
+    expect(resolved.some(s =>
+      s.tooltip === '{{c:day}}' &&
+      display.slice(s.start, s.end) === 'Wednesday' &&
+      display.slice(s.end, s.end + 4) === 'asas')).toBe(true);
+    expect(resolved.some(s =>
+      s.tooltip === '{{c:city}}' &&
+      display.slice(s.start, s.end) === 'Amsterdam' &&
+      display.slice(s.end, s.end + 4) === 'asas')).toBe(true);
+    expect(resolved.some(s =>
+      s.tooltip === '{{c:city}}' &&
+      display.slice(s.start, s.end) === 'Amsterdam' &&
+      display.slice(Math.max(0, s.start - 2), s.start) === 'xx')).toBe(true);
   });
 });
 

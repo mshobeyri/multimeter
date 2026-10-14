@@ -1,10 +1,16 @@
 type: api
 title: Current tokens in a form body
-description: "Urlencoded fields are strings. c:epoch is sent as digits."
+description: "Urlencoded fields are strings. c:epoch and c:git_dirty are sent as text."
 outputs:
   day_name: body.body.day_name
   epoch_seconds: body.body.epoch_seconds
   city: body.body.city
+  git_branch: body.body.git_branch
+  git_commit: body.body.git_commit
+  git_commit_hash: body.body.git_commit_hash
+  git_describe: body.body.git_describe
+  git_dirty: body.body.git_dirty
+  commit_alias: body.body.commit_alias
   missing_token: body.body.missing_token
   literal_token: body.body.literal_token
   literal_omit: body.body.literal_omit
@@ -25,6 +31,12 @@ body:
   day_name: c:day
   epoch_seconds: c:epoch
   city: c:city
+  git_branch: c:git_branch
+  git_commit: c:git_commit
+  git_commit_hash: c:git_commit_hash
+  git_describe: c:git_describe
+  git_dirty: c:git_dirty
+  commit_alias: c:commit
   missing_token: c:not_a_token
   literal_token: "c:day"
   literal_omit: "omit"
@@ -45,6 +57,12 @@ examples:
       day_name: c:day
       epoch_seconds: != null
       city: c:city
+      git_branch: c:git_branch
+      git_commit: c:git_commit
+      git_commit_hash: c:git_commit_hash
+      git_describe: c:git_describe
+      git_dirty: c:git_dirty
+      commit_alias: c:commit
       missing_token: "c:not_a_token"
       literal_token: "c:day"
       literal_omit: "omit"

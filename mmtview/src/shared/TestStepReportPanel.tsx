@@ -5,6 +5,7 @@ import {
   formatExpectMetaValue,
   shouldShowResolvedExpected,
 } from 'mmt-core/reportExpectMeta';
+import {reportStepTitle} from 'mmt-core/reportStepTitle';
 import { StepStatus } from './types';
 import { statusIconFor, StatusIconWithCache } from './Common';
 import HighlightedBody from './HighlightedBody';
@@ -401,7 +402,7 @@ const ReportStepRow: React.FC<ReportStepRowProps> = ({
           cached={report.cached === true}
         />
         <span className="field-grow ellipsis">
-          {report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}
+          {reportStepTitle(report)}
         </span>
         {showTimestamps && (
           <span className="report-step-time">

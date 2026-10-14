@@ -1,10 +1,16 @@
 type: api
 title: Current tokens in an XML body
-description: "XML element text is always a string, including c:epoch."
+description: "XML element text is always a string, including c:epoch and c:git_dirty."
 outputs:
   day_name: body.echo.body.body.day_name
   epoch_seconds: body.echo.body.body.epoch_seconds
   city: body.echo.body.body.city
+  git_branch: body.echo.body.body.git_branch
+  git_commit: body.echo.body.body.git_commit
+  git_commit_hash: body.echo.body.body.git_commit_hash
+  git_describe: body.echo.body.body.git_describe
+  git_dirty: body.echo.body.body.git_dirty
+  commit_alias: body.echo.body.body.commit_alias
   missing_token: body.echo.body.body.missing_token
   literal_token: body.echo.body.body.literal_token
   literal_omit: body.echo.body.body.literal_omit
@@ -25,6 +31,12 @@ body:
     day_name: c:day
     epoch_seconds: c:epoch
     city: c:city
+    git_branch: c:git_branch
+    git_commit: c:git_commit
+    git_commit_hash: c:git_commit_hash
+    git_describe: c:git_describe
+    git_dirty: c:git_dirty
+    commit_alias: c:commit
     missing_token: c:not_a_token
     literal_token: "c:day"
     literal_omit: "omit"
@@ -44,6 +56,12 @@ examples:
       day_name: c:day
       epoch_seconds: != null
       city: c:city
+      git_branch: c:git_branch
+      git_commit: c:git_commit
+      git_commit_hash: c:git_commit_hash
+      git_describe: c:git_describe
+      git_dirty: c:git_dirty
+      commit_alias: c:commit
       missing_token: "c:not_a_token"
       literal_token: "c:day"
       literal_omit: "omit"

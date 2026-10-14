@@ -1,6 +1,6 @@
 type: api
 title: Current values
-description: "Sends c: clock and locale tokens, including offsets, and extracts the echoed values"
+description: "Sends c: clock, locale, and git tokens, including offsets, and extracts the echoed values"
 outputs:
   created_utc: body.body.created_utc
   created_utc_plus_2s: body.body.created_utc_plus_2s
@@ -12,6 +12,13 @@ outputs:
   timezone: body.body.timezone
   utc_offset: body.body.utc_offset
   year: body.body.year
+  git_branch: body.body.git_branch
+  git_commit: body.body.git_commit
+  git_commit_hash: body.body.git_commit_hash
+  git_tag: body.body.git_tag
+  git_describe: body.body.git_describe
+  git_dirty: body.body.git_dirty
+  commit_alias: body.body.commit_alias
   request_method: body.method
 url: https://test.mmt.dev/echo
 method: post
@@ -26,3 +33,10 @@ body:
   timezone: c:timezone
   utc_offset: c:utc_offset
   year: c:year
+  git_branch: c:git_branch
+  git_commit: c:git_commit
+  git_commit_hash: c:git_commit_hash
+  git_tag: c:git_tag
+  git_describe: c:git_describe
+  git_dirty: c:git_dirty
+  commit_alias: c:commit

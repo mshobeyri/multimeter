@@ -752,8 +752,17 @@ export async function sendHttpRequest(
     }
   }
   // Axios re-injects User-Agent / Accept / Content-Length / etc. when a header
-  // is merely absent. `false` is its opt-out so `_` blocks those defaults too.
-  const axiosHeaders: Record<string, string|false> = {...reqHeaders};
+  // is merely absent. `false` is its opt-out so `_` / omit blocks those defaults.
+  // Boolean/number runtime values (e.g. `c:git_dirty` → false, `c:epoch` → number)
+  // must be stringified — axios treats a header value of `false` as "do not send".
+  const axiosHeaders: Record<string, string|false> = {};
+  for (const [k, v] of Object.entries(reqHeaders)) {
+    if (typeof v === 'boolean' || typeof v === 'number') {
+      axiosHeaders[k] = String(v);
+    } else {
+      axiosHeaders[k] = v as string;
+    }
+  }
   for (const name of blocked) {
     axiosHeaders[name] = false;
   }

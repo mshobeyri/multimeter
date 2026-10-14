@@ -31,6 +31,34 @@ describe('parentSuiteNodeId', () => {
 });
 
 describe('generateReportHtml', () => {
+  it('renders skipped runs without failed styling', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'suite.mmt',
+        startedAt: 1709720000000,
+        durationMs: 1000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({
+          displayName: 'tagged-out.mmt',
+          result: 'skipped',
+          steps: [],
+        }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    expect(html).toContain('title="skipped"');
+    expect(html).toContain('badge skipped');
+    expect(html).not.toContain('badge failed');
+    expect(html).not.toContain('>✗<');
+  });
+
   it('generates valid HTML with summary boxes', () => {
     const results: CollectedResults = {
       type: 'test',
@@ -80,31 +108,36 @@ describe('generateReportHtml', () => {
     expect(html).toContain('test-b.mmt');
     expect(html).toContain('class="report-tree"');
     expect(html).toContain('class="tree-title"');
-    expect(html).toContain('all passed');
+    expect(html).toContain('1 Passed');
   });
 
-  it('nests suite items into a tree from node ids', () => {
+  it('nests suite items into a tree from node ids and omits groups', () => {
     const results: CollectedResults = {
       type: 'suite',
       testRuns: [
-        makeRun({ id: 'suite-node:0', displayName: 'Group 1', steps: [] }),
+        makeRun({ id: 'suite-node:0', displayName: 'Group 1', docType: 'group', steps: [] }),
         makeRun({
           id: 'suite-node:0.0',
+          displayName: 'nested-suite.mmt',
+          docType: 'suite',
+          steps: [],
+        }),
+        makeRun({
+          id: 'suite-node:0.0.0',
           displayName: 'authorise user for transaction 1U - long title that used to squash the badge',
+          docType: 'test',
           steps: [makeStep({ title: 'check status' })],
         }),
       ],
     };
 
     const html = generateReportHtml(results);
-    const groupAt = html.indexOf('>Group 1<');
-    const childAt = html.indexOf('authorise user for transaction 1U');
-    expect(groupAt).toBeGreaterThanOrEqual(0);
-    expect(childAt).toBeGreaterThan(groupAt);
-    expect(html).toContain('tree-children');
+    expect(html).not.toContain('Group 1');
+    expect(html).toContain('nested-suite.mmt');
+    expect(html).toContain('authorise user for transaction 1U');
     expect(html).toContain('tree-title');
-    expect(html).toContain('1 step');
-    expect(html).toContain('all passed');
+    expect(html).toContain('1 Passed');
+    expect(html).not.toContain('1 step');
   });
 
   it('uses a suite icon for suite-only rows', () => {
@@ -119,6 +152,39 @@ describe('generateReportHtml', () => {
     expect(html).toContain('title="Suite"');
     expect(html).toContain('suite-layers-icon');
     expect(html).not.toContain('>✓</span> nested-suite.mmt');
+  });
+
+  it('uses failed badge styling for failed nested suites', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      testRuns: [
+        makeRun({
+          id: 'suite-node:0',
+          displayName: 'child-suite.mmt',
+          docType: 'suite',
+          result: 'failed',
+          steps: [],
+        }),
+        makeRun({
+          id: 'suite-node:0.0',
+          displayName: 'fail.mmt',
+          docType: 'test',
+          result: 'failed',
+          steps: [
+            makeStep({
+              title: 'bad',
+              status: 'failed',
+              expects: [{ comparison: 'x == 1', actual: '0', expected: '1', status: 'failed' }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    expect(html).toContain('badge failed">Failed</span>');
+    expect(html).not.toContain('badge passed">Failed</span>');
+    expect(html).not.toContain('badge passed">failed</span>');
   });
 
   it('includes failure details with actual/expected', () => {
@@ -139,10 +205,58 @@ describe('generateReportHtml', () => {
     };
 
     const html = generateReportHtml(results);
-    expect(html).toContain('<div class="expects">');
-    expect(html).toContain('>✗</span> name &gt;80% John');
+    expect(html).toContain('1/1 Failed');
+    expect(html).toContain('name == John');
+    expect(html).toContain('name &gt;80% John');
     expect(html).toContain('got: Jane');
+    expect(html).toContain('expected: John');
     expect(html).toContain('similarity: 25%');
+    expect(html).toContain('id="pane-0-s0"');
+    expect(html).toContain('id="pane-0-s0-e0"');
+    expect(html).not.toContain('step-1');
+  });
+
+  it('nests expects under call/check steps instead of flattening', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'Failing Test',
+          result: 'failed',
+          steps: [
+            makeStep({
+              title: 'echo',
+              status: 'failed',
+              expects: [
+                { comparison: 'duration < 10', actual: 159, expected: 10, status: 'failed' },
+                { comparison: 'status == 100', actual: 200, expected: 100, status: 'failed' },
+              ],
+            }),
+            makeStep({
+              title: 'Check',
+              status: 'failed',
+              expects: [
+                { comparison: 'result.status_code == 999', actual: 200, expected: 999, status: 'failed' },
+              ],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    expect(html).toContain('>echo</span>');
+    expect(html).toContain('>Check</span>');
+    expect(html).toContain('duration &lt; 10');
+    expect(html).toContain('status == 100');
+    expect(html).toContain('result.status_code == 999');
+    expect(html).toContain('id="pane-0-s0"');
+    expect(html).toContain('id="pane-0-s1"');
+    expect(html).toContain('id="pane-0-s0-e0"');
+    expect(html).toContain('id="pane-0-s0-e1"');
+    expect(html).toContain('id="pane-0-s1-e0"');
+    expect(html).toContain('got: 159');
+    expect(html).toContain('got: 200');
   });
 
   it('shows resolved expected under got when the authored RHS is a token', () => {
@@ -189,8 +303,7 @@ describe('generateReportHtml', () => {
     };
 
     const html = generateReportHtml(results);
-    expect(html).toContain('<div class="expects">');
-    expect(html).toContain('>✓</span> name &gt;80% Jon');
+    expect(html).toContain('name &gt;80% Jon');
     expect(html).toContain('got: John');
     expect(html).toContain('similarity: 75%');
   });
@@ -213,13 +326,12 @@ describe('generateReportHtml', () => {
     };
 
     const html = generateReportHtml(results);
-    expect(html).toContain('<div class="expects">');
-    expect(html).toContain('>✓</span> users =# 3');
+    expect(html).toContain('users =# 3');
     expect(html).toContain('got: [&quot;a&quot;,&quot;b&quot;,&quot;c&quot;]');
     expect(html).toContain('count: 3');
   });
 
-  it('renders response headers and object bodies as JSON in failure details', () => {
+  it('keeps actual/expected on failures and omits request/response payloads', () => {
     const details = JSON.stringify({
       _: {
         details: JSON.stringify({
@@ -247,7 +359,7 @@ describe('generateReportHtml', () => {
               title: 'failing call',
               status: 'failed',
               details,
-              expects: [{ comparison: '==', actual: '400', expected: '200', status: 'failed' }],
+              expects: [{ comparison: 'status == 200', actual: '400', expected: '200', status: 'failed' }],
             }),
           ],
         }),
@@ -255,10 +367,12 @@ describe('generateReportHtml', () => {
     };
 
     const html = generateReportHtml(results);
-    expect(html).toContain('Headers:');
-    expect(html).toContain('&quot;content-type&quot;: &quot;application/json&quot;');
-    expect(html).toContain('&quot;nested&quot;: true');
-    expect(html).not.toContain('[object Object]');
+    expect(html).toContain('failing call');
+    expect(html).toContain('got: 400');
+    expect(html).toContain('status == 200');
+    expect(html).not.toContain('<strong>Request:</strong>');
+    expect(html).not.toContain('<strong>Response:</strong>');
+    expect(html).not.toContain('https://example.com');
   });
 
   it('escapes special characters in HTML', () => {
@@ -267,7 +381,14 @@ describe('generateReportHtml', () => {
       testRuns: [
         makeRun({
           displayName: 'test <script>',
-          steps: [makeStep({ title: 'a & b < c' })],
+          result: 'failed',
+          steps: [
+            makeStep({
+              title: 'a & b < c',
+              status: 'failed',
+              expects: [{ comparison: 'a & b < c', actual: 'x', expected: 'y', status: 'failed' }],
+            }),
+          ],
         }),
       ],
     };
@@ -401,8 +522,10 @@ describe('generateReportHtml', () => {
     expect(html).not.toContain('Overview Details');
     expect(html).toContain('Started at:');
     expect(html).toContain('Ended at:');
+    expect(html).toContain('Skipped:');
     expect(html).toContain('Total checks:');
     expect(html).toContain('Tests:');
+    expect(html.indexOf('Skipped:')).toBeLessThan(html.indexOf('Total checks:'));
     expect(html).toContain(new Date(startedAt).toISOString());
     expect(html).toContain(new Date(finishedAt).toISOString());
     expect(html).toContain(`data-relative-time="${new Date(startedAt).toISOString()}"`);

@@ -2,9 +2,27 @@ import YAML from 'yaml';
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
 import {roundReportNumbersDeep} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
+import {applyProjectRootPaths} from './reportPaths';
+import {reportStepTitle} from './reportStepTitle';
+import {
+  buildReportTree,
+  isSuiteOnlyRun,
+  reportableRuns,
+  visibleReportSteps,
+  type ReportTreeNode,
+} from './reportTree';
 
 export interface MmtReportOptions {
   suiteName?: string;
+  /** Folder containing `multimeter.mmt` — rewrites `file` to `+/…`. */
+  projectRoot?: string;
+  /** Optional git HEAD SHA; stored as overview.commit (first 8 chars). */
+  gitCommit?: string;
+  /** Optional git branch name; stored as overview.branch when available. */
+  gitBranch?: string;
+  /** Optional git tag(s) on HEAD; stored as overview.tag when available. */
+  gitTag?: string;
 }
 
 function displayValue(v: any): string {
@@ -23,7 +41,7 @@ function displayValue(v: any): string {
 
 function buildStepEntry(step: TestStepResult): Record<string, any> {
   const entry: Record<string, any> = {
-    name: step.title || `step-${step.stepIndex}`,
+    name: reportStepTitle(step),
     type: 'check',
     result: step.status,
   };
@@ -33,19 +51,19 @@ function buildStepEntry(step: TestStepResult): Record<string, any> {
   if (step.durationMs != null) {
     entry.duration = formatDuration(step.durationMs);
   }
-  if (step.expects && step.expects.length > 0) {
-    entry.expects = step.expects.map(e => {
+  // Passed expects (soft or require) are omitted — step result alone is enough.
+  const failedExpects = (step.expects || []).filter(e => e.status === 'failed');
+  if (failedExpects.length > 0) {
+    entry.expects = failedExpects.map(e => {
       const item: Record<string, any> = {
         comparison: e.comparison,
         result: e.status,
       };
-      if (e.status === 'failed') {
-        if (e.actual != null) {
-          item.actual = displayValue(e.actual);
-        }
-        if (e.expected != null) {
-          item.expected = displayValue(e.expected);
-        }
+      if (e.actual != null) {
+        item.actual = displayValue(e.actual);
+      }
+      if (e.expected != null) {
+        item.expected = displayValue(e.expected);
       }
       return item;
     });
@@ -79,11 +97,11 @@ function buildStepEntry(step: TestStepResult): Record<string, any> {
   return entry;
 }
 
-function buildCheckEntry(run: TestRunResult): Record<string, any> {
-  const steps = run.steps.filter(s => s.stepType !== 'debug');
+function buildRunEntry(run: TestRunResult, childEntries: Record<string, any>[]): Record<string, any> {
+  const steps = visibleReportSteps(run);
   const entry: Record<string, any> = {
     name: run.displayName || run.filePath || `test-${run.runId}`,
-    type: run.docType === 'suite' ? 'suite' : 'test',
+    type: run.docType === 'suite' || isSuiteOnlyRun(run) ? 'suite' : 'test',
   };
   if (run.filePath) {
     entry.file = run.filePath;
@@ -92,10 +110,19 @@ function buildCheckEntry(run: TestRunResult): Record<string, any> {
     entry.duration = formatDuration(run.durationMs);
   }
   entry.result = run.result;
-  if (entry.type !== 'suite' && steps.length > 0) {
-    entry.checks = steps.map(buildStepEntry);
+
+  const stepEntries = entry.type !== 'suite' && steps.length > 0
+    ? steps.map(buildStepEntry)
+    : [];
+  const nested = [...childEntries, ...stepEntries];
+  if (nested.length > 0) {
+    entry.checks = nested;
   }
   return entry;
+}
+
+function buildTreeEntry(node: ReportTreeNode): Record<string, any> {
+  return buildRunEntry(node.run, node.children.map(buildTreeEntry));
 }
 
 function buildLoadSnapshots(results: CollectedResults): Array<Record<string, any>> | undefined {
@@ -125,17 +152,20 @@ function buildLoadSnapshots(results: CollectedResults): Array<Record<string, any
 }
 
 export function generateMmtReport(results: CollectedResults, options?: MmtReportOptions): string {
+  results = applyProjectRootPaths(results, options?.projectRoot);
   const runs = results.testRuns;
-  const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
-  const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
-  const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
-  const skippedFiles = runs.filter(r => r.result === 'skipped').length;
+  const counted = reportableRuns(runs);
+  const totalTests = counted.reduce((sum, r) => sum + visibleReportSteps(r).length, 0);
+  const totalPassed = counted.reduce((sum, r) => sum + visibleReportSteps(r).filter(s => s.status === 'passed').length, 0);
+  const totalFailed = counted.reduce((sum, r) => sum + visibleReportSteps(r).filter(s => s.status === 'failed').length, 0);
+  const skippedFiles = counted.filter(r => r.result === 'skipped').length;
   const isLoad = results.type === 'loadtest' || !!results.load;
 
   const report: Record<string, any> = {
     type: 'report',
     kind: isLoad ? 'load' : 'functional',
-    name: options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report',
+    name: options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath
+      || reportableRuns(results.testRuns)[0]?.displayName || 'Test Report',
   };
 
   const overview: Record<string, any> = {};
@@ -146,8 +176,20 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
     overview.finished_at = new Date(results.suiteRun.finishedAt).toISOString();
   }
   overview.duration = formatDuration(
-    results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0)
+    results.suiteRun?.durationMs ?? counted.reduce((sum, r) => sum + (r.durationMs || 0), 0)
   );
+  const gitCommit = normalizeReportGitCommit(options?.gitCommit ?? results.suiteRun?.gitCommit);
+  if (gitCommit) {
+    overview.commit = gitCommit;
+  }
+  const gitBranch = normalizeReportGitBranch(options?.gitBranch ?? results.suiteRun?.gitBranch);
+  if (gitBranch) {
+    overview.branch = gitBranch;
+  }
+  const gitTag = normalizeReportGitTag(options?.gitTag ?? results.suiteRun?.gitTag);
+  if (gitTag) {
+    overview.tag = gitTag;
+  }
 
   if (isLoad && results.load) {
     report.overview = {
@@ -172,11 +214,11 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
   } else {
     report.overview = {
       ...overview,
-      checks: totalTests,
       passed: totalPassed,
       failed: totalFailed,
       errors: 0,
       skipped: skippedFiles,
+      checks: totalTests,
     };
   }
 
@@ -185,7 +227,8 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
   }
 
   if (!isLoad) {
-    report.checks = runs.map(buildCheckEntry);
+    const tree = buildReportTree(runs);
+    report.checks = tree.map(buildTreeEntry);
   }
 
   return YAML.stringify(report, { lineWidth: 0 });

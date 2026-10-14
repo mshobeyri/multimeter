@@ -23,6 +23,33 @@ function makeRun(overrides: Partial<TestRunResult> = {}): TestRunResult {
 }
 
 describe('generateReportMarkdown', () => {
+  it('marks skipped runs without treating them as failed', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'suite.mmt',
+        startedAt: 1709720000000,
+        durationMs: 1000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({
+          displayName: 'tagged-out.mmt',
+          result: 'skipped',
+          steps: [],
+        }),
+      ],
+    };
+
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('⊘ tagged-out.mmt');
+    expect(md).toContain('skipped');
+    expect(md).not.toContain('✗ tagged-out.mmt');
+  });
+
   it('generates Markdown with summary header and table', () => {
     const results: CollectedResults = {
       type: 'test',
@@ -40,7 +67,7 @@ describe('generateReportMarkdown', () => {
 
     const md = generateReportMarkdown(results);
     expect(md).toContain('# Test Report: test.mmt');
-    expect(md).toContain('2 passed, 0 failed, 2 total checks');
+    expect(md).toContain('2 passed, 0 failed, 0 skipped, 2 total checks');
     expect(md).toContain('## Tests');
     expect(md).toContain('**✓ test.mmt** passed');
     expect(md).toContain('| # | Check | Result|');
@@ -261,7 +288,7 @@ describe('generateReportMarkdown', () => {
 
     const md = generateReportMarkdown(results);
     expect(md).toContain('**✓ empty.mmt** passed');
-    expect(md).toContain('0 passed, 0 failed, 0 total checks');
+    expect(md).toContain('0 passed, 0 failed, 0 skipped, 0 total checks');
   });
 
   it('escapes pipe characters in table cells', () => {

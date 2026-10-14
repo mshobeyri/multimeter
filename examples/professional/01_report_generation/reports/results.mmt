@@ -1,0 +1,44 @@
+type: report
+kind: functional
+name: Report Generation Suite
+overview:
+  started_at: 2026-10-14T15:51:12.118Z
+  finished_at: 2026-10-14T15:51:12.460Z
+  duration: 342ms
+  passed: 1
+  failed: 1
+  errors: 0
+  skipped: 1
+  checks: 2
+checks:
+  - name: Skipped Test
+    type: test
+    file: +/test/skip_test.mmt
+    result: skipped
+  - name: Passing Test
+    type: test
+    file: +/test/pass_test.mmt
+    result: passed
+    checks:
+      - name: Assert
+        type: check
+        result: passed
+        step: assert
+  - name: Failing Test
+    type: test
+    file: +/test/fail_test.mmt
+    result: failed
+    checks:
+      - name: Check
+        type: check
+        result: failed
+        expects:
+          - comparison: result.status_code == 999
+            result: failed
+            actual: "200"
+            expected: "999"
+        failure:
+          message: "result.status_code == 999: expected 999 got 200"
+          actual: "200"
+          expected: "999"
+          operator: result.status_code == 999

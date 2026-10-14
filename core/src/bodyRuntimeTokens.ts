@@ -1326,6 +1326,36 @@ function lookupRuntimeResolvedValue(plainSpec: string): unknown {
 }
 
 /**
+ * Frozen `r:` samples for telescope field preview.
+ * Keyed by field source string → values in encounter order (unique per
+ * occurrence, same as Send). Cleared when telescope turns on or after Send.
+ */
+const tokenFieldPreviewRandomCache = new Map<string, unknown[]>();
+
+/** Drop frozen `r:` field-preview samples (telescope on / Send). */
+export function clearTokenFieldPreviewRandomCache(): void {
+  tokenFieldPreviewRandomCache.clear();
+}
+
+function lookupCachedRandomForFieldPreview(
+    sourceKey: string,
+    plain: string,
+    occurrenceIndex: number,
+    ): unknown {
+  let list = tokenFieldPreviewRandomCache.get(sourceKey);
+  if (!list) {
+    list = [];
+    tokenFieldPreviewRandomCache.set(sourceKey, list);
+  }
+  if (occurrenceIndex < list.length) {
+    return list[occurrenceIndex];
+  }
+  const resolved = lookupRuntimeResolvedValue(plain);
+  list.push(resolved);
+  return resolved;
+}
+
+/**
  * True when a request leaf is / resolves to the omit sentinel (Send drops it).
  * Literal `"omit"` strings are not omit.
  */
@@ -1367,9 +1397,11 @@ export function leafResolvesToOmit(
 }
 
 /**
- * Idle preview for a token-capable field (SDD token-form-consistency L3):
+ * Idle preview for a token-capable field (telescope / resolved mode):
  * - `{{i:}}` / `{{e:}}` → resolved values (span kind `resolved`)
- * - `{{r:}}` / `{{c:}}` → stay as display tokens (do not freeze a random/current sample)
+ * - `{{c:}}` → resolved current values (same as Send / body requestData preview)
+ * - `{{r:}}` → frozen samples (stable until
+ *   {@link clearTokenFieldPreviewRandomCache} — telescope on / Send)
  * - Unresolved i:/e: stay as the plain token text `i:name` / `e:name`
  */
 export function projectTokenFieldPreview(
@@ -1387,6 +1419,7 @@ export function projectTokenFieldPreview(
   const re = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
   let last = 0;
   let match: RegExpExecArray|null;
+  let randomOccurrence = 0;
   while ((match = re.exec(template)) !== null) {
     if (match.index > last) {
       text += template.slice(last, match.index);
@@ -1398,19 +1431,21 @@ export function projectTokenFieldPreview(
       continue;
     }
     const prefix = plain.charAt(0).toLowerCase();
-    // Match displayRuntimeString / L3: never expand r:/c: in idle preview.
-    if (prefix === 'r' || prefix === 'c') {
-      const piece = toDisplayRuntimeToken(plain);
-      const start = text.length;
-      text += piece;
-      spans.push({start, end: text.length, kind: 'token'});
-      last = match.index + match[0].length;
-      continue;
+    let resolved: unknown = undefined;
+    if (prefix === 'r') {
+      resolved = lookupCachedRandomForFieldPreview(
+          raw, plain, randomOccurrence);
+      randomOccurrence += 1;
+    } else if (prefix === 'c') {
+      resolved = lookupRuntimeResolvedValue(plain);
+    } else {
+      resolved = lookupIeResolvedValue(plain, ctx);
     }
-    const resolved = lookupIeResolvedValue(plain, ctx);
     if (resolved === undefined) {
       // Same fallback as a run: the plain token text, not {{…}} and not blank.
-      const piece = plain;
+      const piece = (prefix === 'c' || prefix === 'r') ?
+        toDisplayRuntimeToken(plain) :
+        plain;
       const start = text.length;
       text += piece;
       spans.push({start, end: text.length, kind: 'token'});
@@ -1509,7 +1544,165 @@ export function findBodyTokenHoverSpans(
   return merged;
 }
 
-type TokenResolvedLeaf = {plain: string; piece: string};
+type TokenResolvedLeaf = {
+  plain: string;
+  piece: string;
+  /** Object key when known — pins JSON highlights to the matching field. */
+  key?: string|number;
+  /**
+   * Full resolved field string when the token was embedded
+   * (`asda<<c:day>>asas` → `asdaWednesdayasas`).
+   */
+  fieldResolved?: string;
+  /** Index of `piece` inside `fieldResolved` (embedded tokens). */
+  pieceOffset?: number;
+};
+
+type EmbedPart =
+    {kind: 'text'; value: string}|
+    {kind: 'token'; plain: string};
+
+/** Split a mixed string into literal + token parts (`<<…>>` / `{{…}}`). */
+function splitEmbeddedTokenParts(source: string): EmbedPart[]|null {
+  const text = String(source ?? '');
+  if (!text) {
+    return null;
+  }
+  const parts: EmbedPart[] = [];
+  const angleRe = new RegExp(
+      `<<\\s*((?:i|e):(?:${TOKEN_NAME_RE})${ACCESSOR_PATH_RE}|` +
+          `(?:r|c):(?:${RUNTIME_TOKEN_SPEC_LOOSE_RE})${ACCESSOR_PATH_RE})\\s*>>`,
+      'gi',
+  );
+  const displayRe = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
+  type Hit = {start: number; end: number; plain: string};
+  const hits: Hit[] = [];
+  let match: RegExpExecArray|null;
+  while ((match = angleRe.exec(text)) !== null) {
+    const plain = String(match[1] ?? '').trim();
+    if (!plain) {
+      continue;
+    }
+    const prefix = plain.charAt(0).toLowerCase();
+    if (prefix !== 'i' && prefix !== 'e' && prefix !== 'r' && prefix !== 'c') {
+      continue;
+    }
+    hits.push({start: match.index, end: match.index + match[0].length, plain});
+  }
+  while ((match = displayRe.exec(text)) !== null) {
+    const plain = displayTokenToPlain(match[0]);
+    if (!plain) {
+      continue;
+    }
+    const prefix = plain.charAt(0).toLowerCase();
+    if (prefix !== 'i' && prefix !== 'e' && prefix !== 'r' && prefix !== 'c') {
+      continue;
+    }
+    hits.push({start: match.index, end: match.index + match[0].length, plain});
+  }
+  if (hits.length === 0) {
+    return null;
+  }
+  hits.sort((a, b) => a.start - b.start);
+  // Drop overlapping hits (prefer earlier / longer).
+  const picked: Hit[] = [];
+  for (const hit of hits) {
+    const last = picked[picked.length - 1];
+    if (last && hit.start < last.end) {
+      continue;
+    }
+    picked.push(hit);
+  }
+  let cursor = 0;
+  for (const hit of picked) {
+    if (hit.start > cursor) {
+      parts.push({kind: 'text', value: text.slice(cursor, hit.start)});
+    }
+    parts.push({kind: 'token', plain: hit.plain});
+    cursor = hit.end;
+  }
+  if (cursor < text.length) {
+    parts.push({kind: 'text', value: text.slice(cursor)});
+  }
+  return parts.some((p) => p.kind === 'token') ? parts : null;
+}
+
+/**
+ * Recover each embedded token's resolved slice by aligning literal prefix/suffix
+ * against the fully resolved field string.
+ */
+function collectEmbeddedResolvedLeaves(
+    source: string,
+    resolvedNode: unknown,
+    out: TokenResolvedLeaf[],
+    key?: string|number,
+    ): boolean {
+  const parts = splitEmbeddedTokenParts(source);
+  if (!parts) {
+    return false;
+  }
+  // Prefer the raw resolved string so offsets match the JSON display value.
+  const resolvedText = typeof resolvedNode === 'string' ?
+    resolvedNode :
+    ieResolvedToDisplayText(resolvedNode);
+  if (resolvedText === '') {
+    return false;
+  }
+  let cursor = 0;
+  let found = false;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.kind === 'text') {
+      if (!part.value) {
+        continue;
+      }
+      if (!resolvedText.startsWith(part.value, cursor)) {
+        return found;
+      }
+      cursor += part.value.length;
+      continue;
+    }
+    const nextText = parts.slice(i + 1).find(
+        (p): p is {kind: 'text'; value: string} =>
+          p.kind === 'text' && Boolean(p.value),
+    );
+    const restAfterNext = nextText ?
+      parts.slice(parts.indexOf(nextText) + 1) :
+      [];
+    const nextIsTrailingLiteral = Boolean(nextText) &&
+        restAfterNext.every((p) => p.kind === 'text');
+    let end = resolvedText.length;
+    if (nextText) {
+      let nextIdx = -1;
+      if (nextIsTrailingLiteral &&
+          resolvedText.endsWith(nextText.value) &&
+          resolvedText.length - nextText.value.length >= cursor) {
+        // Pin trailing literals from the end so a suffix like `asas` is not
+        // found inside `…Amsterdamasas` at an earlier overlapping offset.
+        nextIdx = resolvedText.length - nextText.value.length;
+      } else {
+        nextIdx = resolvedText.indexOf(nextText.value, cursor);
+      }
+      if (nextIdx < 0) {
+        return found;
+      }
+      end = nextIdx;
+    }
+    const piece = resolvedText.slice(cursor, end);
+    if (piece.length > 0) {
+      out.push({
+        plain: part.plain,
+        piece,
+        key,
+        fieldResolved: resolvedText,
+        pieceOffset: cursor,
+      });
+      found = true;
+    }
+    cursor = end;
+  }
+  return found;
+}
 
 function collectTokenResolvedLeaves(
     tokenSource: unknown,
@@ -1527,6 +1720,7 @@ function walkTokenResolvedLeaves(
     tokenNode: unknown,
     resolvedNode: unknown,
     out: TokenResolvedLeaf[],
+    key?: string|number,
     ): void {
   if (typeof tokenNode === 'string') {
     if (isLiteralTokenValue(tokenNode)) {
@@ -1535,24 +1729,26 @@ function walkTokenResolvedLeaves(
     const plain = plainTokenFromLeaf(tokenNode) ||
         displayTokenToPlain(tokenNode.trim()) ||
         angleToPlain(tokenNode.trim());
-    if (!plain) {
+    if (plain) {
+      const prefix = plain.charAt(0).toLowerCase();
+      if (prefix !== 'i' && prefix !== 'e' && prefix !== 'r' && prefix !== 'c') {
+        return;
+      }
+      const piece = ieResolvedToDisplayText(resolvedNode);
+      if (!piece) {
+        return;
+      }
+      out.push({plain, piece, key});
       return;
     }
-    const prefix = plain.charAt(0).toLowerCase();
-    if (prefix !== 'i' && prefix !== 'e' && prefix !== 'r' && prefix !== 'c') {
-      return;
-    }
-    const piece = ieResolvedToDisplayText(resolvedNode);
-    if (!piece) {
-      return;
-    }
-    out.push({plain, piece});
+    // Mixed literals + <<…>> / {{…}} (e.g. asda<<c:day>>asas).
+    collectEmbeddedResolvedLeaves(tokenNode, resolvedNode, out, key);
     return;
   }
   if (Array.isArray(tokenNode)) {
     const resolvedArr = Array.isArray(resolvedNode) ? resolvedNode : [];
     for (let i = 0; i < tokenNode.length; i++) {
-      walkTokenResolvedLeaves(tokenNode[i], resolvedArr[i], out);
+      walkTokenResolvedLeaves(tokenNode[i], resolvedArr[i], out, i);
     }
     return;
   }
@@ -1563,10 +1759,67 @@ function walkTokenResolvedLeaves(
                 !Array.isArray(resolvedNode) ?
         resolvedNode as Record<string, unknown> :
         {};
-    for (const key of Object.keys(tokenObj)) {
-      walkTokenResolvedLeaves(tokenObj[key], resolvedObj[key], out);
+    for (const objKey of Object.keys(tokenObj)) {
+      walkTokenResolvedLeaves(tokenObj[objKey], resolvedObj[objKey], out, objKey);
     }
   }
+}
+
+function escapeRegExpLocal(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Locate a resolved value under a specific JSON object key so short pieces
+ * (e.g. `Ams`) are not painted inside longer siblings (`Amsterdam`).
+ * When `fieldResolved` is set (embedded token), match the whole field value
+ * and underline `piece` at `pieceOffset` inside it.
+ */
+function indexOfKeyedJsonPiece(
+    displayText: string,
+    key: string,
+    piece: string,
+    fieldResolved?: string,
+    pieceOffset?: number,
+    ): {start: number; end: number}|null {
+  if (!piece || !key) {
+    return null;
+  }
+  const haystack = fieldResolved && fieldResolved.length > 0 ? fieldResolved : piece;
+  const quoted = JSON.stringify(haystack);
+  const keyedQuoted = new RegExp(
+      `"${escapeRegExpLocal(key)}"\\s*:\\s*(${escapeRegExpLocal(quoted)})`,
+  );
+  const quotedMatch = keyedQuoted.exec(displayText);
+  if (quotedMatch && quotedMatch.index != null) {
+    const valueStart =
+        quotedMatch.index + quotedMatch[0].length - quotedMatch[1].length;
+    // Underline the string contents (not the surrounding JSON quotes).
+    if (quoted.startsWith('"') && quoted.endsWith('"') && quoted.length >= 2) {
+      const contentStart = valueStart + 1;
+      if (fieldResolved && typeof pieceOffset === 'number' && pieceOffset >= 0) {
+        return {
+          start: contentStart + pieceOffset,
+          end: contentStart + pieceOffset + piece.length,
+        };
+      }
+      return {start: contentStart, end: contentStart + piece.length};
+    }
+    return {start: valueStart, end: valueStart + quotedMatch[1].length};
+  }
+  if (fieldResolved) {
+    return null;
+  }
+  const keyedBare = new RegExp(
+      `"${escapeRegExpLocal(key)}"\\s*:\\s*(${escapeRegExpLocal(piece)})(?=\\s*[,}\\]])`,
+  );
+  const bareMatch = keyedBare.exec(displayText);
+  if (bareMatch && bareMatch.index != null) {
+    const valueStart =
+        bareMatch.index + bareMatch[0].length - bareMatch[1].length;
+    return {start: valueStart, end: valueStart + bareMatch[1].length};
+  }
+  return null;
 }
 
 function locateLeafSpansInDisplay(
@@ -1574,19 +1827,51 @@ function locateLeafSpansInDisplay(
     leaves: TokenResolvedLeaf[],
     ): TokenFieldSpan[] {
   const spans: TokenFieldSpan[] = [];
+  const used = new Set<string>();
   let searchFrom = 0;
   for (const leaf of leaves) {
-    const located = indexOfResolvedPiece(displayText, leaf.piece, searchFrom);
+    let located: {start: number; end: number}|null = null;
+    if (typeof leaf.key === 'string' && leaf.key.length > 0) {
+      located = indexOfKeyedJsonPiece(
+          displayText,
+          leaf.key,
+          leaf.piece,
+          leaf.fieldResolved,
+          leaf.pieceOffset,
+      );
+    }
+    if (!located && leaf.fieldResolved && typeof leaf.pieceOffset === 'number') {
+      // Unkeyed / non-JSON: find the full resolved field, then offset into it.
+      const fieldIdx = displayText.indexOf(leaf.fieldResolved, searchFrom);
+      if (fieldIdx >= 0) {
+        located = {
+          start: fieldIdx + leaf.pieceOffset,
+          end: fieldIdx + leaf.pieceOffset + leaf.piece.length,
+        };
+      }
+    }
+    if (!located) {
+      located = indexOfResolvedPiece(displayText, leaf.piece, searchFrom);
+    }
     if (!located) {
       continue;
     }
+    const spanKey = `${located.start}:${located.end}`;
+    if (used.has(spanKey)) {
+      continue;
+    }
+    used.add(spanKey);
     spans.push({
       start: located.start,
       end: located.end,
       kind: 'resolved',
       tooltip: toDisplayRuntimeToken(leaf.plain),
     });
-    searchFrom = located.end;
+    // Only advance the sequential cursor for unkeyed fallbacks so keyed hits
+    // do not skip later fields that appear earlier in the document.
+    if (typeof leaf.key !== 'string' || leaf.key.length === 0) {
+      searchFrom = located.end;
+    }
   }
   return spans;
 }
@@ -1663,14 +1948,16 @@ function indexOfResolvedPiece(
   if (!piece) {
     return null;
   }
-  let idx = displayText.indexOf(piece, searchFrom);
-  if (idx >= 0) {
-    return {start: idx, end: idx + piece.length};
-  }
+  // Prefer JSON-quoted form first so a short value like `Ams` is not found as
+  // a prefix inside a longer sibling value like `Amsterdam`.
   const quoted = JSON.stringify(piece);
-  idx = displayText.indexOf(quoted, searchFrom);
+  let idx = displayText.indexOf(quoted, searchFrom);
   if (idx >= 0) {
     return {start: idx + 1, end: idx + 1 + piece.length};
+  }
+  idx = displayText.indexOf(piece, searchFrom);
+  if (idx >= 0) {
+    return {start: idx, end: idx + piece.length};
   }
   return null;
 }

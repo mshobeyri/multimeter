@@ -177,6 +177,8 @@ describe('networkCore extra coverage', () => {
         'User-Agent': OMIT_SENTINEL,
         'content-length': '_',
         'X-Literal': 'omit',
+        'X-Git-Dirty': false as any,
+        'X-Epoch': 1754165528 as any,
         Accept: '*/*',
       },
       body: '{"ok":true}',
@@ -188,6 +190,9 @@ describe('networkCore extra coverage', () => {
     expect(cfg.headers['user-agent']).toBe(false);
     expect(cfg.headers['content-length']).toBe(false);
     expect(cfg.headers['X-Literal']).toBe('omit');
+    // Runtime boolean/number header values must be sent as text (not axios omit).
+    expect(cfg.headers['X-Git-Dirty']).toBe('false');
+    expect(cfg.headers['X-Epoch']).toBe('1754165528');
     expect(cfg.headers['Content-Type']).toBe('application/json; charset=utf-8');
 
     mockedAxios.request.mockClear();

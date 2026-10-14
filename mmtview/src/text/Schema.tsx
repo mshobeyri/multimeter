@@ -1321,7 +1321,16 @@ export const ReportSchema = {
                 data_received: { type: 'number' },
                 data_sent: { type: 'number' },
                 errors: { type: 'integer' },
-                skipped: { type: 'integer' }
+                skipped: { type: 'integer' },
+                commit: { type: 'string' },
+                git_commit: { type: 'string' },
+                gitCommit: { type: 'string' },
+                branch: { type: 'string' },
+                git_branch: { type: 'string' },
+                gitBranch: { type: 'string' },
+                tag: { type: 'string' },
+                git_tag: { type: 'string' },
+                gitTag: { type: 'string' }
             },
             additionalProperties: false
         },
@@ -1347,7 +1356,16 @@ export const ReportSchema = {
                 data_received: { type: 'number' },
                 data_sent: { type: 'number' },
                 errors: { type: 'integer' },
-                skipped: { type: 'integer' }
+                skipped: { type: 'integer' },
+                commit: { type: 'string' },
+                git_commit: { type: 'string' },
+                gitCommit: { type: 'string' },
+                branch: { type: 'string' },
+                git_branch: { type: 'string' },
+                gitBranch: { type: 'string' },
+                tag: { type: 'string' },
+                git_tag: { type: 'string' },
+                gitTag: { type: 'string' }
             },
             additionalProperties: false
         },
@@ -1542,7 +1560,7 @@ export const ReportSchema = {
                     type: { type: 'string', enum: ['suite', 'test', 'check'] },
                     file: { type: 'string' },
                     duration: { type: 'string' },
-                    result: { type: 'string', enum: ['passed', 'failed'] },
+                    result: { type: 'string', enum: ['passed', 'failed', 'skipped', 'cancelled'] },
                     step: { type: 'string', enum: ['check', 'assert', 'debug'] },
                     expects: {
                         type: 'array',
@@ -1550,7 +1568,7 @@ export const ReportSchema = {
                             type: 'object',
                             properties: {
                                 comparison: { type: 'string' },
-                                result: { type: 'string', enum: ['passed', 'failed'] },
+                                result: { type: 'string', enum: ['passed', 'failed', 'cancelled'] },
                                 actual: {},
                                 expected: {},
                                 status: { type: 'string' }
@@ -1574,9 +1592,10 @@ export const ReportSchema = {
                             type: 'object',
                             properties: {
                                 name: { type: 'string' },
-                                type: { type: 'string', enum: ['check'] },
+                                type: { type: 'string', enum: ['suite', 'test', 'check'] },
+                                file: { type: 'string' },
                                 step: { type: 'string', enum: ['check', 'assert', 'debug'] },
-                                result: { type: 'string', enum: ['passed', 'failed'] },
+                                result: { type: 'string', enum: ['passed', 'failed', 'skipped', 'cancelled'] },
                                 duration: { type: 'string' },
                                 expects: {
                                     type: 'array',
@@ -1584,7 +1603,7 @@ export const ReportSchema = {
                                         type: 'object',
                                         properties: {
                                             comparison: { type: 'string' },
-                                            result: { type: 'string', enum: ['passed', 'failed'] },
+                                            result: { type: 'string', enum: ['passed', 'failed', 'cancelled'] },
                                             actual: {},
                                             expected: {},
                                             status: { type: 'string' }
@@ -1601,6 +1620,10 @@ export const ReportSchema = {
                                         operator: { type: 'string' }
                                     },
                                     additionalProperties: false
+                                },
+                                checks: {
+                                    type: 'array',
+                                    items: { type: 'object', additionalProperties: true }
                                 }
                             },
                             additionalProperties: false

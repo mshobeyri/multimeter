@@ -1,18 +1,22 @@
 # Report Generation
 
-Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and MMT YAML formats — both via CLI flags and via the suite `export` field.
+Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and MMT YAML formats — both via CLI flags and via the suite `export` field. Includes a **skipped** test (via suite tag filter) so reports show skipped results.
 
 ## Structure
 
 ```
 01_report_generation/
+├── multimeter.mmt               # Project root marker (enables +/ paths in reports)
 ├── api/
 │   └── echo.mmt                 # Simple echo API
 ├── test/
 │   ├── pass_test.mmt            # A test that passes
-│   └── fail_test.mmt            # A test with a deliberate failure (for demo)
+│   ├── fail_test.mmt            # A test with a deliberate failure (for demo)
+│   └── skip_test.mmt            # Tagged skip-demo; suite filter skips it
 ├── suite.mmt                    # Suite with export field for auto-report
-├── reports/                     # Generated reports appear here
+├── reports/                     # Static + git-structured exports land here
+│   ├── results.*                # Fixed overwrite targets
+│   └── branch/…/ or tags/…/     # From <<c:report_folder>>
 └── README.md
 ```
 
@@ -20,17 +24,18 @@ Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and 
 
 | File | Description |
 |---|---|
-| `api/echo.mmt` | Echo API used by both tests |
+| `api/echo.mmt` | Echo API used by the tests |
 | `test/pass_test.mmt` | Calls the echo API and asserts status 200 — should pass |
 | `test/fail_test.mmt` | Calls the echo API and checks for status 999 — deliberately fails |
-| `suite.mmt` | Suite with `export` field that auto-generates JUnit XML and HTML reports |
+| `test/skip_test.mmt` | Tagged `skip-demo`; suite `filter.skip` marks it skipped in reports |
+| `suite.mmt` | Suite with `export`: fixed `./reports/results.*` plus `./reports/<<c:report_folder>>/…` |
 
 ## Report formats
 
 | Format | Flag | Default file | Description |
 |--------|------|--------------|-------------|
 | JUnit XML | `--report junit` | `test-results.xml` | CI/CD standard (GitHub Actions, Jenkins, etc.) |
-| HTML | `--report html` | `test-results.html` | Self-contained page with pass/fail indicators |
+| HTML | `--report html` | `test-results.html` | Self-contained page with pass/fail/skipped indicators |
 | Markdown | `--report md` | `test-results.md` | GitHub-flavored tables, great for PRs |
 | MMT YAML | `--report mmt` | `test-results.mmt` | Native format, can be viewed in Multimeter |
 
@@ -38,8 +43,11 @@ Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and 
 
 - **`--report FORMAT`** — CLI flag to generate a report after a test/suite run.
 - **`--report-file PATH`** — custom output path for the report.
-- **Suite `export`** — list of file paths in the suite file. Reports are auto-generated after the suite completes, with the format inferred from the file extension.
+- **Suite `export`** — list of file paths in the suite file. Reports are auto-generated after the suite completes, with the format inferred from the file extension (`.xml`, `.html`, `.md`, `.mmt`).
+- **`c:` in export paths** — any current token expands at write time. This suite writes both fixed `./reports/results.*` and git-structured `./reports/<<c:report_folder>>/results.*` (`tags/<tag>`, `branch/<branch>/<commit>`, `detached/<commit>`, or `local`).
+- **`filter.skip`** — tag filter that skips matching tests; skipped items appear in reports with `result: skipped`.
 - **`report` on checks** — controls reporting level: `all` (pass + fail), `fails` (only failures), `none` (silent).
+- **`+/` file paths** — exported reports store source files as `+/…` relative to `multimeter.mmt` (portable; Ctrl+click in MMT reports opens from that root).
 
 ## How to use
 
@@ -48,10 +56,11 @@ Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and 
 1. Open `suite.mmt` and click **Run**.
 2. After the run completes, click the **Export** button in the toolbar.
 3. Choose a format (JUnit XML, HTML, Markdown, or MMT YAML).
+4. Or open `reports/results.mmt` in Multimeter to view the native report.
 
 ### With the CLI
 
-Run the suite with automatic export (uses the `export` field):
+Run the suite with automatic export (static `reports/results.*` plus `reports/<c:report_folder>/results.*`):
 
 ```sh
 npx testlight run examples/professional/01_report_generation/suite.mmt
@@ -73,11 +82,11 @@ npx testlight run examples/professional/01_report_generation/suite.mmt --report 
 npx testlight run examples/professional/01_report_generation/suite.mmt --report mmt
 ```
 
-Custom output path:
+Custom output path (also accepts `c:` tokens; quote for the shell):
 
 ```sh
 npx testlight run examples/professional/01_report_generation/suite.mmt \
-  --report junit --report-file ./my-reports/output.xml
+  --report junit --report-file './reports/<<c:report_folder>>/cli-output.xml'
 ```
 
 Run a single test with a report:

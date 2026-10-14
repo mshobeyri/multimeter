@@ -1,4 +1,4 @@
-import { useTokenMode } from "./TokenModeContext";
+import { useTokenMode, useTokenPreviewEpoch } from "./TokenModeContext";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -102,6 +102,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   ...rest
 }) => {
   const tokenMode = useTokenMode();
+  const previewEpoch = useTokenPreviewEpoch();
   const hasTokens = canContainToken && stringContainsFieldToken(value);
   const [draft, setDraft] = useState(value);
   const [tokenEdit, setTokenEdit] = useState(false);
@@ -125,7 +126,8 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
 
   const preview = useMemo(
     () => (hasTokens ? projectTokenFieldPreview(value, valueContext) : null),
-    [hasTokens, value, valueContext],
+    // previewEpoch: rebuild after clearTokenFieldPreviewRandomCache (telescope / Send).
+    [hasTokens, value, valueContext, previewEpoch],
   );
 
   const showPreview = hasTokens && !tokenEdit && tokenMode === "resolved";

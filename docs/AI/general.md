@@ -36,6 +36,7 @@ When you are the AI, follow these rules:
 	- Inputs: `i:user_id`, `<<i:user_id>>`.
 	- Random values: `r:uuid`, `r:first_name`, `r:last_name`, `r:epoch_ms`.
 	- Current/time values: `c:date`, `c:epoch`, `c:epoch_ms`.
+	- Git currents: `c:git_commit`, `c:git_commit_hash`, `c:git_branch`, `c:git_tag`, `c:git_describe`, `c:git_dirty` (aliases: `c:commit`, `c:branch`, `c:tag`).
 	- Use bare tokens as standalone YAML values; use `<< >>` only when embedding inside larger strings.
 
 3. **Answering common question types**

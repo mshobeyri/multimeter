@@ -17,6 +17,8 @@ import {buildCliRunArgs} from './runArgs.js';
 import {formatCliDocs, listCliDocTopics, resolveCliGuidesDir} from './aiDocs.js';
 import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
 import {detectInstallChannel, runUpdate} from './selfUpdate.js';
+import {applyGitCurrentSnapshot, resolveGitCurrentSnapshot} from './gitCommitShort.js';
+import {expandCurrentTokensInPath, setGitCurrentSnapshot} from 'mmt-core/Current';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -116,6 +118,9 @@ async function startJsRunnerWorkerThread(): Promise<void> {
   if (typeof setRunnerNetworkConfig === 'function' && workerData?.networkConfig) {
     setRunnerNetworkConfig(workerData.networkConfig);
   }
+  if (workerData?.gitSnapshot) {
+    setGitCurrentSnapshot(workerData.gitSnapshot);
+  }
   parentPort.on('message', async (request: WorkerJsRunnerRequest) => {
     const {id, context} = request;
     const basePath = typeof context.basePath === 'string' ? context.basePath : process.cwd();
@@ -149,7 +154,7 @@ async function startJsRunnerWorkerThread(): Promise<void> {
   });
 }
 
-function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any) {
+function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any, gitSnapshot?: any) {
   let nextId = 1;
   const idle: Worker[] = [];
   const allWorkers = new Set<Worker>();
@@ -159,7 +164,7 @@ function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any) {
 
   const createWorker = () => {
     const worker = new Worker(jsRunnerWorkerScript(), {
-      workerData: {mmtWorker: 'jsRunner', networkConfig},
+      workerData: {mmtWorker: 'jsRunner', networkConfig, gitSnapshot},
     });
     allWorkers.add(worker);
     worker.on('message', (message: any) => {
@@ -358,8 +363,13 @@ program.command('run')
           return startMockServerFromPath(filePath, runOpts.envvar || {});
         };
         runOpts.serverRunner = cliServerRunner;
+        const gitCwd = (runOpts as any).projectRoot
+          || path.dirname(path.resolve(process.cwd(), file));
+        const gitSnapshot = applyGitCurrentSnapshot(gitCwd);
         const localJsRunner = (ctx: any) => runJSCode({...ctx, serverRunner: cliServerRunner});
-        const workerJsRunner = (opts as any).realThreads === false ? undefined : createWorkerBackedJsRunner(localJsRunner, networkConfig);
+        const workerJsRunner = (opts as any).realThreads === false
+          ? undefined
+          : createWorkerBackedJsRunner(localJsRunner, networkConfig, gitSnapshot);
         runOpts.jsRunner = (ctx: any) => workerJsRunner ? workerJsRunner.run(ctx) : localJsRunner(ctx);
         let runOutcome: any;
         try {
@@ -404,6 +414,9 @@ program.command('run')
         // Generate and write test report if --report was specified
         if (reportFormat && reportFile && getReportResults) {
           const collectedResults = getReportResults();
+          const reportProjectRoot = (runFileOptions as any).projectRoot;
+          const reportGitCwd = reportProjectRoot || path.dirname(path.resolve(process.cwd(), file));
+          const reportGit = resolveGitCurrentSnapshot(reportGitCwd);
           let reportContent: string | undefined;
           const serializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
             junit: (mmtcore as any).junitXml?.generateJunitXml,
@@ -414,10 +427,17 @@ program.command('run')
           };
           const serializer = serializers[reportFormat];
           if (typeof serializer === 'function') {
-            reportContent = serializer(collectedResults);
+            reportContent = serializer(collectedResults, {
+              projectRoot: reportProjectRoot,
+              gitCommit: reportGit.commit,
+              gitBranch: reportGit.branch,
+              gitTag: reportGit.tag,
+            });
           }
           if (reportContent) {
-            const reportPath = writeTextFile(reportFile, reportContent);
+            applyGitCurrentSnapshot(reportGitCwd);
+            const expandedReportFile = expandCurrentTokensInPath(String(reportFile));
+            const reportPath = writeTextFile(expandedReportFile, reportContent);
             if (!opts.quiet) {
               console.log(`Report written: ${reportPath}`);
             }
@@ -431,22 +451,24 @@ program.command('run')
         if (suiteExports && Array.isArray(suiteExports.paths) && suiteExports.collectedResults) {
           const suiteDir = path.dirname(path.resolve(process.cwd(), file));
           const projectRoot = (runFileOptions as any).projectRoot;
+          applyGitCurrentSnapshot(projectRoot || suiteDir);
 
           for (const exportPath of suiteExports.paths) {
             try {
+              const expandedPath = expandCurrentTokensInPath(String(exportPath ?? ''));
               // Resolve path relative to suite file or +/ project root
               let resolvedPath: string;
-              if (exportPath.startsWith('+/')) {
+              if (expandedPath.startsWith('+/')) {
                 if (projectRoot) {
-                  resolvedPath = path.resolve(projectRoot, exportPath.slice(2));
+                  resolvedPath = path.resolve(projectRoot, expandedPath.slice(2));
                 } else {
                   if (!opts.quiet) {
-                    console.warn(`Cannot resolve +/ path without project root: ${exportPath}`);
+                    console.warn(`Cannot resolve +/ path without project root: ${expandedPath}`);
                   }
                   continue;
                 }
               } else {
-                resolvedPath = path.resolve(suiteDir, exportPath);
+                resolvedPath = path.resolve(suiteDir, expandedPath);
               }
 
               // Determine format from extension
@@ -460,7 +482,7 @@ program.command('run')
               const format = formatForExt[ext];
               if (!format) {
                 if (!opts.quiet) {
-                  console.warn(`Unknown export format for extension ${ext}: ${exportPath}`);
+                  console.warn(`Unknown export format for extension ${ext}: ${expandedPath}`);
                 }
                 continue;
               }
@@ -483,7 +505,13 @@ program.command('run')
               if (!opts.quiet) {
                 console.log(`Exporting results to ${resolvedPath}`);
               }
-              const content = serializer(suiteExports.collectedResults);
+              const git = resolveGitCurrentSnapshot(projectRoot || suiteDir);
+              const content = serializer(suiteExports.collectedResults, {
+                projectRoot,
+                gitCommit: git.commit,
+                gitBranch: git.branch,
+                gitTag: git.tag,
+              });
 
               // Create parent directories if they don't exist
               const parentDir = path.dirname(resolvedPath);

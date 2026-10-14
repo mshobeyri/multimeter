@@ -26,6 +26,8 @@ import {
   type WebviewPanelRef,
 } from './webviewReporter';
 import {addHistoryFromApiNetworkReport} from './apiHistory';
+import {expandCurrentTokensInPath} from 'mmt-core/Current';
+import {applyGitCurrentSnapshot, resolveGitCurrentSnapshot} from './gitCommitShort';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -149,18 +151,20 @@ async function writeRunExports(params: {
     return;
   }
   const suiteDir = path.dirname(runFilePath);
+  applyGitCurrentSnapshot(projectRoot || suiteDir);
   for (const exportPath of suiteExports.paths) {
     try {
+      const expandedPath = expandCurrentTokensInPath(String(exportPath ?? ''));
       let resolvedPath: string;
-      if (exportPath.startsWith('+/')) {
+      if (expandedPath.startsWith('+/')) {
         if (projectRoot) {
-          resolvedPath = path.resolve(projectRoot, exportPath.slice(2));
+          resolvedPath = path.resolve(projectRoot, expandedPath.slice(2));
         } else {
-          forwardLog('warn', `Cannot resolve +/ path without project root: ${exportPath}`);
+          forwardLog('warn', `Cannot resolve +/ path without project root: ${expandedPath}`);
           continue;
         }
       } else {
-        resolvedPath = path.resolve(suiteDir, exportPath);
+        resolvedPath = path.resolve(suiteDir, expandedPath);
       }
 
       const ext = path.extname(resolvedPath).toLowerCase();
@@ -172,7 +176,7 @@ async function writeRunExports(params: {
       };
       const format = formatForExt[ext];
       if (!format) {
-        forwardLog('warn', `Unknown export format for extension ${ext}: ${exportPath}`);
+        forwardLog('warn', `Unknown export format for extension ${ext}: ${expandedPath}`);
         continue;
       }
 
@@ -189,7 +193,13 @@ async function writeRunExports(params: {
       }
 
       forwardLog('info', `Exporting results to ${resolvedPath}`);
-      const content = serializer(suiteExports.collectedResults);
+      const git = resolveGitCurrentSnapshot(projectRoot || path.dirname(runFilePath));
+      const content = serializer(suiteExports.collectedResults, {
+        projectRoot,
+        gitCommit: git.commit,
+        gitBranch: git.branch,
+        gitTag: git.tag,
+      });
 
       const parentDir = path.dirname(resolvedPath);
       if (!fs.existsSync(parentDir)) {
@@ -360,6 +370,7 @@ export async function handleRunCurrentDocument(
       : document.getText();
 
   try {
+    applyGitCurrentSnapshot(projectRoot || path.dirname(document.uri.fsPath));
     const fileLoader = createFileLoader(document.uri.fsPath);
     const binaryFileLoader = createBinaryFileLoader(document.uri.fsPath);
     const runOutcome = await runner.runFile({
@@ -586,6 +597,7 @@ export async function handleRunSuite(
 
     if (isLoadTest) {
       const projectRootLoadTest = findProjectRoot(runFilePath);
+      applyGitCurrentSnapshot(projectRootLoadTest || path.dirname(runFilePath));
       const fileLoader = createFileLoader(runFilePath);
       const binaryFileLoader = createBinaryFileLoader(runFilePath);
       const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
@@ -645,6 +657,7 @@ export async function handleRunSuite(
     const fileLoader = fileCache.wrap(createFileLoader(runFilePath));
     const binaryFileLoader = createBinaryFileLoader(runFilePath);
     const projectRootSuite = findProjectRoot(runFilePath);
+    applyGitCurrentSnapshot(projectRootSuite || path.dirname(runFilePath));
     const {tree: hierarchyTree, fromCache} = await getCachedSuiteHierarchy({
       suiteFilePath: runFilePath,
       projectRoot: projectRootSuite,
