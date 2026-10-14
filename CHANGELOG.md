@@ -2,6 +2,32 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.46.0-pre]
+
+Pre-release. VS Code extension `1.46.0`; Testlight CLI and MCP `1.46.0-pre` on `@pre`.
+
+### Reports
+
+- Redesign reports as a suite-like tree with portable `+/` paths
+- Handle skipped results in MMT report parse, export, and schema
+- Omit passed expects from MMT report storage
+- Add optional git commit, branch, and tag to report overviews
+- Add `c:report_folder` and expand `c:` tokens in export paths
+- Add git-structured report exports to the report generation example
+
+### Current / git tokens
+
+- Add git current tokens (`c:git_*`) and update examples
+- Inject git snapshot into the API tester webview so telescope can resolve `c:git_*`
+- Stringify boolean and number HTTP header values before send (so `c:git_dirty` is not omitted)
+
+### API tester telescope
+
+- Resolve `c:` tokens in field preview (headers, params, cookies, URL)
+- Freeze `r:` field-preview samples until Send or telescope toggle again
+- Underline embedded `<<c:…>>` / `{{c:…}}` values inside mixed literal fields
+- Fix sibling field highlight collisions (short slices vs longer values)
+
 ## [1.45.3]
 
 Stable release of the 1.45.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.45.3` on `@latest`.
