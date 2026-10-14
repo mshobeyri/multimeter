@@ -8,9 +8,14 @@ filter:
   skip:
     - skip-demo
 export:
+  # Fixed paths (always overwrite the same files)
   - ./reports/results.xml
   - ./reports/results.html
   - ./reports/results.mmt
+  # Git-structured tree: tags/<tag> | branch/<branch>/<commit> | detached/<commit> | local
+  - ./reports/<<c:report_folder>>/results.xml
+  - ./reports/<<c:report_folder>>/results.html
+  - ./reports/<<c:report_folder>>/results.mmt
 items:
   - test/pass_test.mmt
   - test/fail_test.mmt
