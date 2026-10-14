@@ -46,6 +46,7 @@ import {
   findBodyTokenHoverSpans,
 } from './bodyRuntimeTokens';
 import {beautify, formatBody} from './markupConvertor';
+import {clearGitCurrentSnapshot, setGitCurrentSnapshot} from './Current';
 import {xml2js} from 'xml-js';
 import {OMIT_SENTINEL} from './omitKeyword';
 
@@ -285,18 +286,49 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(stringContainsFieldToken('plain')).toBe(false);
   });
 
-  it('resolves i:/e: in idle preview but keeps r:/c: as display tokens', () => {
+  it('resolves i:/e:/c: in idle preview but keeps r: as display tokens', () => {
     const {text, spans} = projectTokenFieldPreview(
-        'Bearer {{e:token}} / {{r:uuid}} / {{c:date}}',
+        'Bearer {{e:token}} / {{r:uuid}} / {{c:day}}',
         {env: {token: 'secret'}, inputs: {}},
     );
-    expect(text).toBe('Bearer secret / {{r:uuid}} / {{c:date}}');
+    expect(text.startsWith('Bearer secret / {{r:uuid}} / ')).toBe(true);
+    expect(text).not.toContain('{{c:day}}');
     expect(spans.length).toBe(3);
     expect(spans[0]).toMatchObject({kind: 'resolved', tooltip: '{{e:token}}'});
     expect(spans[1]).toMatchObject({kind: 'token'});
-    expect(spans[2]).toMatchObject({kind: 'token'});
+    expect(spans[2]).toMatchObject({kind: 'resolved', tooltip: '{{c:day}}'});
     expect(text.slice(spans[1].start, spans[1].end)).toBe('{{r:uuid}}');
-    expect(text.slice(spans[2].start, spans[2].end)).toBe('{{c:date}}');
+    expect(text.slice(spans[2].start, spans[2].end)).toMatch(
+        /^(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$/);
+  });
+
+  it('resolves c:git_* in idle preview when a git snapshot is injected', () => {
+    setGitCurrentSnapshot({
+      branch: 'main',
+      commit: 'a4f5e463',
+      commitHash: 'a4f5e4630123456789',
+      tag: 'v1.0.0',
+      describe: 'v1.0.0',
+      dirty: false,
+    });
+    try {
+      const {text, spans} = projectTokenFieldPreview(
+          '{{c:git_commit}} / {{c:git_branch}}',
+          {env: {}, inputs: {}},
+      );
+      expect(text).toBe('a4f5e463 / main');
+      expect(spans).toHaveLength(2);
+      expect(spans[0]).toMatchObject({
+        kind: 'resolved',
+        tooltip: '{{c:git_commit}}',
+      });
+      expect(spans[1]).toMatchObject({
+        kind: 'resolved',
+        tooltip: '{{c:git_branch}}',
+      });
+    } finally {
+      clearGitCurrentSnapshot();
+    }
   });
 
   it('shows nested r:/c: input values as {{…}} in i: idle preview', () => {
@@ -368,6 +400,47 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(slice).toBeTruthy();
     expect(display.slice(whole!.start, whole!.end)).toBe('Amsterdam');
     expect(display.slice(slice!.start, slice!.end)).toBe('Ams');
+  });
+
+  it('underlines embedded <<c:…>> / {{c:…}} inside mixed literal fields', () => {
+    const display = [
+      '{',
+      '  "angle_prefix": "asdaWednesday",',
+      '  "angle_suffix": "Amsterdamasas",',
+      '  "angle_both": "asdaWednesdayasas",',
+      '  "curly_embed": "xxAmsterdamyy"',
+      '}',
+    ].join('\n');
+    const spans = findBodyTokenHoverSpans(display, {
+      tokenSource: {
+        angle_prefix: 'asda<<c:day>>',
+        angle_suffix: '<<c:city>>asas',
+        angle_both: 'asda<<c:day>>asas',
+        curly_embed: 'xx{{c:city}}yy',
+      },
+      resolvedBody: {
+        angle_prefix: 'asdaWednesday',
+        angle_suffix: 'Amsterdamasas',
+        angle_both: 'asdaWednesdayasas',
+        curly_embed: 'xxAmsterdamyy',
+      },
+    });
+    const resolved = spans.filter(s => s.kind === 'resolved');
+    expect(resolved.map(s => display.slice(s.start, s.end)).sort()).toEqual(
+        ['Amsterdam', 'Amsterdam', 'Wednesday', 'Wednesday'].sort(),
+    );
+    expect(resolved.some(s =>
+      s.tooltip === '{{c:day}}' &&
+      display.slice(s.start, s.end) === 'Wednesday' &&
+      display.slice(s.end, s.end + 4) === 'asas')).toBe(true);
+    expect(resolved.some(s =>
+      s.tooltip === '{{c:city}}' &&
+      display.slice(s.start, s.end) === 'Amsterdam' &&
+      display.slice(s.end, s.end + 4) === 'asas')).toBe(true);
+    expect(resolved.some(s =>
+      s.tooltip === '{{c:city}}' &&
+      display.slice(s.start, s.end) === 'Amsterdam' &&
+      display.slice(Math.max(0, s.start - 2), s.start) === 'xx')).toBe(true);
   });
 });
 

@@ -196,6 +196,9 @@ export async function handleLoadDocumentContent(
   // Resolve project root for +/ imports (same logic used by run)
   const projectRoot = findProjectRoot(document.uri.fsPath);
   const sourceFormat = resolveSourceFormat(document.getText(), document.uri.fsPath);
+  // Injected into the webview so telescope / request preview can resolve c:git_*.
+  const gitSnapshot = resolveGitCurrentSnapshot(
+      projectRoot || path.dirname(document.uri.fsPath));
 
   // Send document data to the current panel
   webviewPanel.webview.postMessage({
@@ -203,6 +206,7 @@ export async function handleLoadDocumentContent(
     uri: document.uri.toString(),
     content: document.getText(),
     projectRoot,
+    gitSnapshot,
     ...brunoWebviewExtras(sourceFormat, document.uri.fsPath),
   });
 

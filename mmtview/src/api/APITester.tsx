@@ -1299,7 +1299,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             aria-pressed={bodyTokenMode === "resolved"}
             title={bodyTokenMode === "resolved"
               ? "Show tokens"
-              : "Show resolved input/env values"}
+              : "Show resolved input/env/current values"}
             onMouseDown={event => event.preventDefault()}
             onClick={() => handleBodyTokenModeChange(
               bodyTokenMode === "resolved" ? "tokens" : "resolved",
