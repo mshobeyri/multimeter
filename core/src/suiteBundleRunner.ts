@@ -168,7 +168,7 @@ function reportSkippedBundleNode(params: {
     filePath,
     entry: node.kind === 'group' ? node.label : node.path,
     title,
-    docType: node.kind === 'suite' ? 'suite' : node.kind === 'api' ? 'api' : node.kind === 'test' ? 'test' : undefined,
+    docType: node.kind === 'group' ? 'group' : node.kind === 'suite' ? 'suite' : node.kind === 'api' ? 'api' : node.kind === 'test' ? 'test' : undefined,
     id: node.id,
   });
   if (node.kind === 'suite' || node.kind === 'group') {
@@ -379,6 +379,7 @@ async function runSuiteGroup(params: {
     filePath: bundle.rootSuitePath,
     entry: node.label,
     title: groupTitle,
+    docType: 'group',
     id: node.id,
   });
 
@@ -411,6 +412,7 @@ async function runSuiteGroup(params: {
         filePath: bundle.rootSuitePath,
         entry: node.label,
         title: groupTitle,
+        docType: 'group',
         id: node.id,
       });
       return {
@@ -457,6 +459,7 @@ async function runSuiteGroup(params: {
         filePath: bundle.rootSuitePath,
         entry: node.label,
         title: groupTitle,
+        docType: 'group',
         id: node.id,
       });
       return {
@@ -535,6 +538,7 @@ async function runSuiteGroup(params: {
     filePath: bundle.rootSuitePath,
     entry: node.label,
     title: groupTitle,
+    docType: 'group',
     id: node.id,
   });
 

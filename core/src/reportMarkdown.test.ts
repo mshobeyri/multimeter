@@ -67,7 +67,7 @@ describe('generateReportMarkdown', () => {
 
     const md = generateReportMarkdown(results);
     expect(md).toContain('# Test Report: test.mmt');
-    expect(md).toContain('2 passed, 0 failed, 2 total checks');
+    expect(md).toContain('2 passed, 0 failed, 0 skipped, 2 total checks');
     expect(md).toContain('## Tests');
     expect(md).toContain('**✓ test.mmt** passed');
     expect(md).toContain('| # | Check | Result|');
@@ -288,7 +288,7 @@ describe('generateReportMarkdown', () => {
 
     const md = generateReportMarkdown(results);
     expect(md).toContain('**✓ empty.mmt** passed');
-    expect(md).toContain('0 passed, 0 failed, 0 total checks');
+    expect(md).toContain('0 passed, 0 failed, 0 skipped, 0 total checks');
   });
 
   it('escapes pipe characters in table cells', () => {

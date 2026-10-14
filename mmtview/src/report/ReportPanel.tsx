@@ -4,19 +4,37 @@ import { formatDuration } from 'mmt-core/CommonData';
 import { parseReportMmt } from 'mmt-core/reportParser';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import type { CollectedResults, TestRunResult } from 'mmt-core/reportCollector';
+import {
+  buildReportTree,
+  isSuiteOnlyRun,
+  visibleReportSteps,
+  type ReportTreeNode,
+} from 'mmt-core/reportTree';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import type { StepStatus } from '../shared/types';
-import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes from '../shared/OverviewBoxes';
 import { statusIconFor } from '../shared/Common';
 import LoadTestReport, { LoadMetricsOverview } from '../loadtest/LoadTestReport';
 import PanelRunHeader from '../components/PanelRunHeader';
-import TreeChevron from '../components/TreeChevron';
-import { StatusGlyph } from '../components/StatusGlyph';
+import { TreeChevron } from '../components/TreeChevron';
+import { StatusGlyph, SuiteKindIcon } from '../components/StatusGlyph';
+import ReportStatusFilterButton from '../shared/ReportStatusFilterButton';
+import ReportCollapseButton from '../shared/ReportCollapseButton';
+import ReportEmptyFilterPlaceholder from '../shared/ReportEmptyFilterPlaceholder';
+import {
+  ReportStatusFilter,
+  emptyReportFilterMessage,
+  stepMatchesReportFilter,
+} from '../shared/reportStatusFilter';
+import {
+  fileLabelTitle,
+  handleFileLabelActivate,
+  isOpenFileModifier,
+} from '../shared/treeLabelClick';
+import { openRelativeFile } from '../vsAPI';
 
 interface ReportPanelProps {
   content: string;
-  setContent: (c: string) => void;
 }
 
 function mapToStepReports(run: TestRunResult): StepReportItem[] {
@@ -39,6 +57,38 @@ function runStateFromResult(run: TestRunResult): StepStatus {
   return 'failed';
 }
 
+function nodeKey(node: ReportTreeNode): string {
+  return node.run.id || node.run.runId || `run-${node.index}`;
+}
+
+function filterReportTree(nodes: ReportTreeNode[], filter: ReportStatusFilter): ReportTreeNode[] {
+  if (filter === 'all') {
+    return nodes;
+  }
+  const out: ReportTreeNode[] = [];
+  for (const node of nodes) {
+    const children = filterReportTree(node.children, filter);
+    const selfMatch = stepMatchesReportFilter(runStateFromResult(node.run), filter);
+    if (selfMatch || children.length > 0) {
+      out.push({ ...node, children });
+    }
+  }
+  return out;
+}
+
+function collectExpandableKeys(nodes: ReportTreeNode[]): string[] {
+  const keys: string[] = [];
+  for (const node of nodes) {
+    const steps = visibleReportSteps(node.run);
+    const hasBody = node.children.length > 0 || (steps.length > 0 && !isSuiteOnlyRun(node.run));
+    if (hasBody) {
+      keys.push(nodeKey(node));
+    }
+    keys.push(...collectExpandableKeys(node.children));
+  }
+  return keys;
+}
+
 function formatOverviewDateTime(value: number | string | undefined): string | undefined {
   if (value === undefined || value === '') {
     return undefined;
@@ -57,8 +107,166 @@ function formatOverviewRelativeTime(value: number | string | undefined): string 
   return formatReportRelativeTime(value);
 }
 
+function capitalizeLabel(value: string): string {
+  if (!value) {
+    return value;
+  }
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function runBadgeLabel(run: TestRunResult, state: StepStatus): string {
+  const steps = visibleReportSteps(run);
+  const failedCount = steps.filter(s => s.status === 'failed').length;
+  const passedCount = steps.filter(s => s.status === 'passed').length;
+  if (state === 'skipped') {
+    return 'Skipped';
+  }
+  if (isSuiteOnlyRun(run) && steps.length === 0) {
+    return capitalizeLabel(state);
+  }
+  if (failedCount > 0) {
+    return `${failedCount}/${steps.length} Failed`;
+  }
+  if (steps.length > 0) {
+    return `${passedCount} Passed`;
+  }
+  return capitalizeLabel(state);
+}
+
+type ReportTreeRowProps = {
+  node: ReportTreeNode;
+  depth: number;
+  expandedById: Record<string, boolean>;
+  onToggle: (id: string) => void;
+};
+
+const ReportTreeRow: React.FC<ReportTreeRowProps> = ({
+  node,
+  depth,
+  expandedById,
+  onToggle,
+}) => {
+  const run = node.run;
+  const key = nodeKey(node);
+  const state = runStateFromResult(run);
+  const statusIcon = statusIconFor(state);
+  const name = run.displayName || run.filePath || `Test ${node.index + 1}`;
+  const filePath = typeof run.filePath === 'string' ? run.filePath.trim() : '';
+  const canOpen = filePath.length > 0;
+  const reports = mapToStepReports(run);
+  const isSuite = run.docType === 'suite' || isSuiteOnlyRun(run);
+  const hasChildren = node.children.length > 0;
+  const hasSteps = reports.length > 0 && !isSuiteOnlyRun(run);
+  const canExpand = hasChildren || hasSteps;
+  const isExpanded = expandedById[key] === true;
+  const kind = isSuite ? 'suite' : 'test';
+  const marginLeft = depth > 0 ? depth * 16 : 0;
+  const labelInteractive = canExpand || canOpen;
+  const labelTitle = canOpen ? fileLabelTitle(filePath) : name;
+
+  const activateLabel = (event: React.MouseEvent | React.KeyboardEvent, openFile: boolean) => {
+    if (openFile && canOpen) {
+      handleFileLabelActivate({
+        event,
+        path: filePath,
+        openFile: true,
+        toggleExpanded: undefined,
+        openRelativeFile,
+      });
+      return;
+    }
+    if (!canExpand) {
+      return;
+    }
+    if (!('key' in event)) {
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.toString().trim()) {
+        return;
+      }
+    }
+    onToggle(key);
+  };
+
+  return (
+    <div style={marginLeft > 0 ? { marginLeft } : undefined}>
+      <div className="tree-view-box tree-view-box-row">
+        <div className="tree-view-box-row-arrow">
+          {canExpand ? (
+            <button
+              type="button"
+              className="action-button"
+              aria-label={isExpanded ? 'Collapse' : 'Expand'}
+              title={isExpanded ? 'Collapse' : 'Expand'}
+              onClick={() => onToggle(key)}
+            >
+              <TreeChevron open={isExpanded} muted />
+            </button>
+          ) : (
+            <span className="tree-arrow-spacer" aria-hidden />
+          )}
+        </div>
+        <div className="tree-view-box-row-main">
+          <div
+            className={`tree-view-box-row-label${labelInteractive ? ' tree-view-box-row-label-link' : ''}`}
+            title={labelTitle}
+            role={labelInteractive ? 'button' : undefined}
+            tabIndex={labelInteractive ? 0 : undefined}
+            onClick={(e) => activateLabel(e, isOpenFileModifier(e))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                activateLabel(e, isOpenFileModifier(e));
+              }
+            }}
+          >
+            <StatusGlyph
+              icon={statusIcon.icon}
+              color={statusIcon.color}
+              title={statusIcon.title}
+            />
+            <SuiteKindIcon kind={kind} />
+            <span className="ellipsis is-clip">{name}</span>
+          </div>
+          <span className="report-tree-badge">{runBadgeLabel(run, state)}</span>
+        </div>
+      </div>
+      {isExpanded && hasChildren && (
+        <div>
+          {node.children.map((child) => (
+            <ReportTreeRow
+              key={nodeKey(child)}
+              node={child}
+              depth={depth + 1}
+              expandedById={expandedById}
+              onToggle={onToggle}
+            />
+          ))}
+        </div>
+      )}
+      {isExpanded && hasSteps && (
+        <div
+          className="report-selectable pad-b-8"
+          onMouseDownCapture={(e) => e.stopPropagation()}
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
+          <TestStepReportPanel
+            isExpanded={true}
+            stepReports={reports}
+            runState={state}
+            showHeader={false}
+            showTimestamps={false}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
-  const [expandedSuites, setExpandedSuites] = useState<Record<number, boolean>>({});
+  const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
 
   const parsed = useMemo((): { results: CollectedResults | null; error: string | null } => {
     try {
@@ -73,38 +281,25 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
     }
   }, [content]);
 
-  const handleExportReport = useCallback((format: ReportFormat) => {
-    if (!parsed.results) {
-      return;
+  const tree = useMemo(() => {
+    if (!parsed.results || parsed.results.type === 'loadtest') {
+      return [] as ReportTreeNode[];
     }
-    const runs = parsed.results.testRuns;
-    const leafReportsById: Record<string, StepReportItem[]> = {};
-    const leafRunStateById: Record<string, StepStatus> = {};
-    runs.forEach((run, i) => {
-      const key = run.id || run.runId || `run-${i}`;
-      leafReportsById[key] = mapToStepReports(run);
-      leafRunStateById[key] = runStateFromResult(run);
-    });
-
-    window.vscode?.postMessage({
-      command: 'exportReport',
-      format,
-      data: {
-        type: parsed.results.type === 'loadtest' ? 'loadtest' : parsed.results.type === 'suite' ? 'suite' : 'test',
-        leafReportsById,
-        leafRunStateById,
-        stepStatuses: leafRunStateById,
-        suiteRunState: parsed.results.suiteRun?.success ? 'passed' : 'failed',
-        stepReports: runs.length === 1 ? mapToStepReports(runs[0]) : [],
-        runState: runs.length === 1 ? runStateFromResult(runs[0]) : 'passed',
-        outputs: {},
-        load: parsed.results.load,
-        startedAt: parsed.results.suiteRun?.startedAt,
-        durationMs: parsed.results.suiteRun?.durationMs,
-        suiteName: parsed.results.suiteRun?.suiteTitle || parsed.results.suiteRun?.suitePath,
-      },
-    });
+    return buildReportTree(parsed.results.testRuns);
   }, [parsed.results]);
+
+  const filteredTree = useMemo(
+    () => filterReportTree(tree, statusFilter),
+    [tree, statusFilter],
+  );
+
+  const handleToggle = useCallback((id: string) => {
+    setExpandedById(prev => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  const handleCollapseAll = useCallback(() => {
+    setExpandedById({});
+  }, []);
 
   if (parsed.error) {
     return (
@@ -120,11 +315,12 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
 
   const { results } = parsed;
   const isLoadReport = results.type === 'loadtest' && !!results.load;
-  const totalTests = results.testRuns.reduce((s, r) => s + r.steps.length, 0);
-  const totalPassed = results.testRuns.reduce((s, r) => s + r.steps.filter(st => st.status === 'passed').length, 0);
-  const totalFailed = results.testRuns.reduce((s, r) => s + r.steps.filter(st => st.status === 'failed').length, 0);
-  const totalSuites = results.testRuns.length;
-  const suiteName = results.suiteRun?.suitePath || 'Test Report';
+  const totalTests = results.testRuns.reduce((s, r) => s + visibleReportSteps(r).length, 0);
+  const totalPassed = results.testRuns.reduce((s, r) => s + visibleReportSteps(r).filter(st => st.status === 'passed').length, 0);
+  const totalFailed = results.testRuns.reduce((s, r) => s + visibleReportSteps(r).filter(st => st.status === 'failed').length, 0);
+  const totalSkipped = results.testRuns.filter(r => r.result === 'skipped').length;
+  const totalSuites = results.testRuns.filter(r => r.docType !== 'group').length;
+  const suiteName = results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || 'Test Report';
   const duration = results.suiteRun?.durationMs != null
     ? formatDuration(results.suiteRun.durationMs)
     : undefined;
@@ -157,10 +353,13 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
     ['Duration', duration],
     ['Passed', String(totalPassed)],
     ['Failed', String(totalFailed)],
+    ['Skipped', String(totalSkipped)],
     ['Total checks', String(totalTests)],
     ['Tests', String(totalSuites)],
   ] as Array<[string, string | undefined]>).filter(([, value]) => value !== undefined && value !== '');
   const headerSubtitle = isLoadReport ? 'Load report' : 'Functional report';
+  const hasAnyExpandable = collectExpandableKeys(filteredTree).length > 0;
+  const filterEmpty = !isLoadReport && statusFilter !== 'all' && filteredTree.length === 0;
 
   return (
     <div className="panel">
@@ -176,145 +375,76 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
           }
         />
 
-        <div className="run-action-bar">
-          <ExportReportButton disabled={false} onExport={handleExportReport} />
-        </div>
-
-        <div className="panel-scroll">
-      <OverviewBoxes stats={overviewStats} />
-      {isLoadReport && results.load && (
-        <LoadMetricsOverview
-          load={results.load}
-          startedAt={results.suiteRun?.startedAt || results.load?.config?.started_at}
-          endedAt={results.suiteRun?.finishedAt || results.load?.config?.finished_at}
-        />
-      )}
-      {overviewDetails.length > 0 && !isLoadReport && (
-        <div className="stat-card is-nudge">
-          <div className="stat-grid is-wide">
-            {overviewDetails.map(([label, value]) => (
-              <div key={label}>
-                <div className="stat-label">{label}</div>
-                <div className="stat-value">{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {isLoadReport && results.load && (
-        <LoadTestReport load={results.load} />
-      )}
-
-      {!isLoadReport && (
-        <>
-          {/* Report section */}
-          <div className="label is-gap">Report</div>
-
-          {results.testRuns.map((run, i) => {
-        const reports = mapToStepReports(run);
-        const state = runStateFromResult(run);
-        const name = run.displayName || run.filePath || `Test ${i + 1}`;
-        const isExpanded = expandedSuites[i] === true;
-        const statusIcon = statusIconFor(state);
-        const passedCount = reports.filter(r => r.status === 'passed').length;
-        const failedCount = reports.filter(r => r.status === 'failed').length;
-        const isSuiteOnly = (run as any).docType === 'suite' && reports.length === 0;
-
-        return (
-          <div key={run.id || run.runId || i} className="report-tree-item">
-            {/* Tree item header — expand only via chevron so text selection is not cleared */}
-            <div
-              className={`report-tree-head${isSuiteOnly ? '' : ' is-clickable'}`}
-            >
-              {/* Expand/collapse arrow */}
-              {isSuiteOnly ? (
-                <span
-                  className="codicon codicon-layers report-suite-icon"
-                  title="Suite"
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="action-button report-tree-toggle"
-                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
-                  title={isExpanded ? 'Collapse' : 'Expand'}
-                  onClick={() => setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }))}
-                >
-                  <TreeChevron open={isExpanded} muted />
-                </button>
-              )}
-              {/* Status icon */}
-              <span
-                onClick={() => {
-                  if (!isSuiteOnly) {
-                    setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }));
-                  }
-                }}
-              >
-                <StatusGlyph
-                  icon={statusIcon.icon}
-                  color={statusIcon.color}
-                  title={statusIcon.title}
-                />
-              </span>
-              {/* Test name */}
-              <span
-                className="report-selectable field-grow ellipsis is-clip"
-                title={name}
-                onClick={() => {
-                  if (isSuiteOnly) {
-                    return;
-                  }
-                  const sel = window.getSelection();
-                  if (sel && !sel.isCollapsed && sel.toString().trim()) {
-                    return;
-                  }
-                  setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }));
-                }}
-              >
-                {name}
-              </span>
-              {/* Summary badge */}
-              <span className="report-tree-badge">
-                {state === 'skipped'
-                  ? 'skipped'
-                  : isSuiteOnly
-                    ? state
-                    : failedCount > 0
-                      ? `${failedCount} failed`
-                      : `${passedCount} passed`}
-              </span>
-            </div>
-
-            {/* Expanded content - check/assert results */}
-            {isExpanded && !isSuiteOnly && (
-              <div
-                className="report-selectable report-tree-body pad-b-8"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                onDoubleClick={(e) => e.stopPropagation()}
-              >
-                <TestStepReportPanel
-                  isExpanded={true}
-                  stepReports={reports}
-                  runState={state}
-                  showHeader={false}
-                  showTimestamps={false}
-                />
+        <div className="panel-view-stack">
+          <div className="panel-view-fixed">
+            <OverviewBoxes stats={overviewStats} />
+            {isLoadReport && results.load && (
+              <LoadMetricsOverview
+                load={results.load}
+                startedAt={results.suiteRun?.startedAt || results.load?.config?.started_at}
+                endedAt={results.suiteRun?.finishedAt || results.load?.config?.finished_at}
+              />
+            )}
+            {overviewDetails.length > 0 && !isLoadReport && (
+              <div className="stat-card is-nudge">
+                <div className="stat-grid is-wide">
+                  {overviewDetails.map(([label, value]) => (
+                    <div key={label}>
+                      <div className="stat-label">{label}</div>
+                      <div className="stat-value">{value}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        );
-      })}
 
-          {results.testRuns.length === 0 && (
-            <div className="muted italic">
-              No test results in this report.
+          {isLoadReport && results.load ? (
+            <div className="panel-scroll">
+              <LoadTestReport load={results.load} />
             </div>
+          ) : (
+            <>
+              <div className="report-section-header">
+                <div className="label">Report</div>
+                <div className="report-section-header-actions">
+                  <ReportStatusFilterButton
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    disabled={tree.length === 0}
+                  />
+                  <ReportCollapseButton
+                    onCollapseAll={handleCollapseAll}
+                    disabled={!hasAnyExpandable}
+                  />
+                </div>
+              </div>
+              <div className="panel-scroll is-x-clip">
+                <div className="test-flow-tree">
+                  {filterEmpty ? (
+                    <ReportEmptyFilterPlaceholder
+                      filter={statusFilter}
+                      onShowAll={() => setStatusFilter('all')}
+                    />
+                  ) : filteredTree.length === 0 ? (
+                    <div className="muted italic">
+                      {emptyReportFilterMessage('all')}
+                    </div>
+                  ) : (
+                    filteredTree.map((node) => (
+                      <ReportTreeRow
+                        key={nodeKey(node)}
+                        node={node}
+                        depth={0}
+                        expandedById={expandedById}
+                        onToggle={handleToggle}
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
           )}
-        </>
-      )}
         </div>
       </div>
     </div>

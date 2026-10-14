@@ -404,6 +404,7 @@ program.command('run')
         // Generate and write test report if --report was specified
         if (reportFormat && reportFile && getReportResults) {
           const collectedResults = getReportResults();
+          const reportProjectRoot = (runFileOptions as any).projectRoot;
           let reportContent: string | undefined;
           const serializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
             junit: (mmtcore as any).junitXml?.generateJunitXml,
@@ -414,7 +415,7 @@ program.command('run')
           };
           const serializer = serializers[reportFormat];
           if (typeof serializer === 'function') {
-            reportContent = serializer(collectedResults);
+            reportContent = serializer(collectedResults, {projectRoot: reportProjectRoot});
           }
           if (reportContent) {
             const reportPath = writeTextFile(reportFile, reportContent);
@@ -483,7 +484,7 @@ program.command('run')
               if (!opts.quiet) {
                 console.log(`Exporting results to ${resolvedPath}`);
               }
-              const content = serializer(suiteExports.collectedResults);
+              const content = serializer(suiteExports.collectedResults, {projectRoot});
 
               // Create parent directories if they don't exist
               const parentDir = path.dirname(resolvedPath);

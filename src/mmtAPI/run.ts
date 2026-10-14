@@ -189,7 +189,7 @@ async function writeRunExports(params: {
       }
 
       forwardLog('info', `Exporting results to ${resolvedPath}`);
-      const content = serializer(suiteExports.collectedResults);
+      const content = serializer(suiteExports.collectedResults, {projectRoot});
 
       const parentDir = path.dirname(resolvedPath);
       if (!fs.existsSync(parentDir)) {

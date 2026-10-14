@@ -93,4 +93,22 @@ describe('getFileLinkTargetAtPosition', () => {
         monaco, model, content, {lineNumber: 4, column: 10});
     expect(target).toBeNull();
   });
+
+  it('resolves report file: +/ project-root paths for opening', () => {
+    const content = [
+      'type: report',
+      'checks:',
+      '  - name: Failing Test',
+      '    type: test',
+      '    file: +/test/fail_test.mmt',
+      '    result: failed',
+    ].join('\n');
+    const model = createMockModel(content.split('\n'));
+    const target = getFileLinkTargetAtPosition(
+        monaco, model, content, {lineNumber: 5, column: 16});
+    expect(target).toEqual({
+      path: '+/test/fail_test.mmt',
+      range: expect.any(monaco.Range),
+    });
+  });
 });

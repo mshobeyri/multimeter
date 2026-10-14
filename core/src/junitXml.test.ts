@@ -63,6 +63,22 @@ describe('generateJunitXml', () => {
     expect(xml).toContain('</testsuites>');
   });
 
+  it('rewrites absolute file paths to +/ when projectRoot is set', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'fail.mmt',
+          filePath: '/proj/demo/test/fail.mmt',
+          steps: [makeStep({title: 'ok'})],
+        }),
+      ],
+    };
+    const xml = generateJunitXml(results, {projectRoot: '/proj/demo'});
+    expect(xml).toContain('file="+/test/fail.mmt"');
+    expect(xml).not.toContain('/proj/demo');
+  });
+
   it('generates failure elements for failed steps', () => {
     const results: CollectedResults = {
       type: 'test',
@@ -126,6 +142,38 @@ describe('generateJunitXml', () => {
     expect(xml).toContain('<testsuite name="test-a.mmt"');
     expect(xml).toContain('<testsuite name="test-b.mmt"');
     expect(xml).toContain('time="3.456"');
+  });
+
+  it('nests suite tree and omits group nodes', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'my-suite.mmt',
+        startedAt: 1709720000000,
+        durationMs: 1000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({ id: 'suite-node:0', displayName: 'Group 1', docType: 'group', result: 'passed' }),
+        makeRun({ id: 'suite-node:0.0', displayName: 'child-suite.mmt', docType: 'suite', result: 'passed' }),
+        makeRun({
+          id: 'suite-node:0.0.0',
+          displayName: 'nested-test.mmt',
+          docType: 'test',
+          steps: [makeStep({ title: 'ok' })],
+        }),
+      ],
+    };
+
+    const xml = generateJunitXml(results);
+    expect(xml).not.toContain('Group 1');
+    expect(xml).toContain('<testsuite name="child-suite.mmt"');
+    expect(xml).toContain('<testsuite name="nested-test.mmt"');
+    expect(xml).toContain('<testcase name="ok"');
+    expect(xml.indexOf('child-suite.mmt')).toBeLessThan(xml.indexOf('nested-test.mmt'));
   });
 
   it('handles empty test (no steps)', () => {

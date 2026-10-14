@@ -27,8 +27,8 @@ items:
 
 See [Suite exports](../suite/exports.md) for path rules and format mapping.
 
-## View and re-export
+## View a report
 
-Open a generated `.mmt` file with `type: report` in VS Code to view the read-only report panel and re-export to any format.
+Open a generated `.mmt` file with `type: report` in VS Code to view the read-only report panel.
 
 See also: [Overview](./index.md) · [CLI](./cli.md) · [Reference](./reference.md)

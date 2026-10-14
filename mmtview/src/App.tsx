@@ -687,7 +687,7 @@ const App: React.FC = () => {
                   <JudgePanel content={validContent} setContent={uiSetContent} />
                 )}
                 {docType === "report" && (
-                  <ReportPanel content={validContent} setContent={uiSetContent} />
+                  <ReportPanel content={validContent} />
                 )}
                 {documentContentLoaded && docType === null && (
                   <NotypePanel content={validContent} setContent={uiSetContent} />

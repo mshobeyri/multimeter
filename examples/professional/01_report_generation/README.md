@@ -6,6 +6,7 @@ Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and 
 
 ```
 01_report_generation/
+├── multimeter.mmt               # Project root marker (enables +/ paths in reports)
 ├── api/
 │   └── echo.mmt                 # Simple echo API
 ├── test/
@@ -43,6 +44,7 @@ Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and 
 - **Suite `export`** — list of file paths in the suite file. Reports are auto-generated after the suite completes, with the format inferred from the file extension (`.xml`, `.html`, `.md`, `.mmt`).
 - **`filter.skip`** — tag filter that skips matching tests; skipped items appear in reports with `result: skipped`.
 - **`report` on checks** — controls reporting level: `all` (pass + fail), `fails` (only failures), `none` (silent).
+- **`+/` file paths** — exported reports store source files as `+/…` relative to `multimeter.mmt` (portable; Ctrl+click in MMT reports opens from that root).
 
 ## How to use
 

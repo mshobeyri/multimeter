@@ -255,6 +255,16 @@
       "require": "./dist/reportParser.js",
       "default": "./dist/reportParser.js"
     },
+    "./reportTree": {
+      "types": "./dist/reportTree.d.ts",
+      "require": "./dist/reportTree.js",
+      "default": "./dist/reportTree.js"
+    },
+    "./reportStepTitle": {
+      "types": "./dist/reportStepTitle.d.ts",
+      "require": "./dist/reportStepTitle.js",
+      "default": "./dist/reportStepTitle.js"
+    },
     "./omitKeyword": {
       "types": "./dist/omitKeyword.d.ts",
       "require": "./dist/omitKeyword.js",

@@ -1574,9 +1574,10 @@ export const ReportSchema = {
                             type: 'object',
                             properties: {
                                 name: { type: 'string' },
-                                type: { type: 'string', enum: ['check'] },
+                                type: { type: 'string', enum: ['suite', 'test', 'check'] },
+                                file: { type: 'string' },
                                 step: { type: 'string', enum: ['check', 'assert', 'debug'] },
-                                result: { type: 'string', enum: ['passed', 'failed', 'cancelled'] },
+                                result: { type: 'string', enum: ['passed', 'failed', 'skipped', 'cancelled'] },
                                 duration: { type: 'string' },
                                 expects: {
                                     type: 'array',
@@ -1601,6 +1602,10 @@ export const ReportSchema = {
                                         operator: { type: 'string' }
                                     },
                                     additionalProperties: false
+                                },
+                                checks: {
+                                    type: 'array',
+                                    items: { type: 'object', additionalProperties: true }
                                 }
                             },
                             additionalProperties: false

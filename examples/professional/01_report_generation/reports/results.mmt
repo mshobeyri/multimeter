@@ -2,29 +2,25 @@ type: report
 kind: functional
 name: Report Generation Suite
 overview:
-  started_at: 2026-10-14T15:15:22.929Z
-  finished_at: 2026-10-14T15:15:23.141Z
-  duration: 211ms
-  checks: 2
+  started_at: 2026-10-14T15:51:12.118Z
+  finished_at: 2026-10-14T15:51:12.460Z
+  duration: 342ms
   passed: 1
   failed: 1
   errors: 0
   skipped: 1
+  checks: 2
 checks:
-  - name: Group 1
-    type: test
-    file: /Users/mehrdad/Documents/multimeter/examples/professional/01_report_generation/suite.mmt
-    result: failed
   - name: Skipped Test
     type: test
-    file: /Users/mehrdad/Documents/multimeter/examples/professional/01_report_generation/test/skip_test.mmt
+    file: +/test/skip_test.mmt
     result: skipped
   - name: Passing Test
     type: test
-    file: /Users/mehrdad/Documents/multimeter/examples/professional/01_report_generation/test/pass_test.mmt
+    file: +/test/pass_test.mmt
     result: passed
     checks:
-      - name: step-1
+      - name: Assert
         type: check
         result: passed
         step: assert
@@ -33,10 +29,10 @@ checks:
             result: passed
   - name: Failing Test
     type: test
-    file: /Users/mehrdad/Documents/multimeter/examples/professional/01_report_generation/test/fail_test.mmt
+    file: +/test/fail_test.mmt
     result: failed
     checks:
-      - name: step-1
+      - name: Check
         type: check
         result: failed
         expects:

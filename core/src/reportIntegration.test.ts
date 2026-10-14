@@ -109,11 +109,12 @@ steps:
     expect(steps.filter(s => s.status === 'failed')).toHaveLength(1);
 
     const {md, junit, mmt, html} = allReportTexts(collected);
-    expect(md).toContain('1 passed, 1 failed, 2 total checks');
+    expect(md).toContain('1 passed, 1 failed, 0 skipped, 2 total checks');
     expect(junit).toContain('failures="1"');
     expect(mmt).toContain('result: passed');
     expect(mmt).toContain('result: failed');
-    expect(html).toContain('1 failed');
+    expect(html).toContain('Failed:</strong> 1');
+    expect(html).toContain('Skipped:</strong> 0');
   });
 
   it('report: fails emits only failures', async () => {
@@ -139,7 +140,7 @@ steps:
     const steps = collected.testRuns.flatMap(r => r.steps);
     expect(steps).toHaveLength(1);
     expect(steps[0].status).toBe('failed');
-    expect(generateReportMarkdown(collected)).toContain('0 passed, 1 failed, 1 total checks');
+    expect(generateReportMarkdown(collected)).toContain('0 passed, 1 failed, 0 skipped, 1 total checks');
   });
 
   it('report: none emits nothing even for failures', async () => {
@@ -163,7 +164,7 @@ steps:
         'silent.mmt');
 
     expect(collected.testRuns.flatMap(r => r.steps)).toHaveLength(0);
-    expect(generateReportMarkdown(collected)).toContain('0 passed, 0 failed, 0 total checks');
+    expect(generateReportMarkdown(collected)).toContain('0 passed, 0 failed, 0 skipped, 0 total checks');
   });
 
   it('call expect report:none suppresses the expect event', async () => {

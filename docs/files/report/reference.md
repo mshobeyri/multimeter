@@ -12,31 +12,36 @@
 
 ## Functional report (`kind: functional`)
 
-Used for test and suite runs. Top-level `checks` lists suite and test entries.
+Used for test and suite runs. Top-level `checks` is a **tree** mirroring the suite/test run hierarchy:
+
+- Nested suites nest under their parent via `checks:`
+- Tests nest under suites; steps nest under tests
+- **Groups are omitted** (children are promoted to the parent)
+- **No request/response payloads** — failed steps keep comparison + actual/expected only
+
+HTML and JUnit exports use the same tree rules.
 
 - `overview:`
   - `started_at:` ISO timestamp
   - `finished_at:` ISO timestamp (optional)
   - `duration:` string (e.g. `1.234s`)
-  - `checks:` number — total check/assert steps
   - `passed:` number
   - `failed:` number
   - `errors:` number (always `0` in current output)
   - `skipped:` number — count of skipped suite/test entries (e.g. tag filter)
-- `checks:` array of check entries
+  - `checks:` number — total check/assert steps
+- `checks:` array of check entries (suite / test / step)
 
-### Check entry
+### Check entry (suite or test)
 
-Each item in `checks`:
+Each suite/test item in `checks`:
 
 - `name:` string
 - `type:` `suite` | `test`
-- `file:` string (optional) — source `.mmt` path
+- `file:` string (optional) — source `.mmt` path as `+/…` relative to the folder containing `multimeter.mmt` (absolute paths are rewritten on export when a project root is found)
 - `duration:` string (optional)
 - `result:` `passed` | `failed` | `skipped` | `cancelled`
-- `checks:` array (optional) — nested step entries; omitted for `type: suite` and for skipped tests
-
-Suite entries are status-only rows and are not expandable in the report panel or exported HTML.
+- `checks:` array (optional) — nested suite/test entries and/or step entries; omitted for skipped tests with no children
 
 ### Step entry (nested under a test)
 
@@ -64,15 +69,24 @@ overview:
   started_at: "2026-03-06T10:30:00.000Z"
   finished_at: "2026-03-06T10:30:01.234Z"
   duration: 1.234s
-  checks: 4
   passed: 3
   failed: 1
   errors: 0
   skipped: 1
+  checks: 4
 checks:
   - name: nested-suite.mmt
     type: suite
     result: passed
+    checks:
+      - name: nested-test.mmt
+        type: test
+        file: nested-test.mmt
+        result: passed
+        checks:
+          - name: status == 200
+            type: check
+            result: passed
   - name: skipped-test.mmt
     type: test
     file: skipped-test.mmt

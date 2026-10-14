@@ -53,6 +53,41 @@ describe('generateMmtReport', () => {
     expect(parsed.checks[0].checks).toHaveLength(2);
   });
 
+  it('uses Assert/Check defaults for untitled steps', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({ title: undefined, stepType: 'assert', stepIndex: 0 }),
+            makeStep({ title: '', stepType: 'check', stepIndex: 1, status: 'failed' }),
+          ],
+        }),
+      ],
+    };
+    const parsed = YAML.parse(generateMmtReport(results));
+    expect(parsed.checks[0].checks[0].name).toBe('Assert');
+    expect(parsed.checks[0].checks[1].name).toBe('Check');
+  });
+
+  it('rewrites absolute file paths to +/ when projectRoot is set', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'Failing Test',
+          filePath: '/proj/examples/demo/test/fail_test.mmt',
+          steps: [makeStep({title: 'ok'})],
+        }),
+      ],
+    };
+
+    const output = generateMmtReport(results, {projectRoot: '/proj/examples/demo'});
+    const parsed = YAML.parse(output);
+    expect(parsed.checks[0].file).toBe('+/test/fail_test.mmt');
+  });
+
   it('generates suite with multiple test files', () => {
     const results: CollectedResults = {
       type: 'suite',
@@ -92,16 +127,33 @@ describe('generateMmtReport', () => {
     expect(parsed.timestamp).toBeUndefined();
   });
 
-  it('generates non-expanded suite check entries for nested suites', () => {
+  it('generates nested suite check entries and omits groups', () => {
     const results: CollectedResults = {
       type: 'suite',
-      testRuns: [makeRun({ displayName: 'child-suite.mmt', docType: 'suite', result: 'passed' })],
+      testRuns: [
+        makeRun({ id: 'suite-node:0', displayName: 'Group 1', docType: 'group', result: 'passed' }),
+        makeRun({ id: 'suite-node:0.0', displayName: 'child-suite.mmt', docType: 'suite', result: 'passed' }),
+        makeRun({
+          id: 'suite-node:0.0.0',
+          displayName: 'nested-test.mmt',
+          docType: 'test',
+          result: 'passed',
+          steps: [makeStep({ title: 'ok' })],
+        }),
+      ],
     };
 
     const output = generateMmtReport(results);
     const parsed = YAML.parse(output);
 
-    expect(parsed.checks[0]).toEqual({name: 'child-suite.mmt', type: 'suite', result: 'passed'});
+    expect(parsed.checks).toHaveLength(1);
+    expect(parsed.checks[0].name).toBe('child-suite.mmt');
+    expect(parsed.checks[0].type).toBe('suite');
+    expect(parsed.checks[0].checks).toHaveLength(1);
+    expect(parsed.checks[0].checks[0].name).toBe('nested-test.mmt');
+    expect(parsed.checks[0].checks[0].checks[0].name).toBe('ok');
+    expect(parsed.name).not.toBe('Group 1');
+    expect(parsed.checks.map((c: any) => c.name)).not.toContain('Group 1');
   });
 
   it('includes failure details for failed steps', () => {

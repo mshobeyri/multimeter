@@ -110,6 +110,40 @@ describe('parseReportMmt', () => {
     expect(results.testRuns).toHaveLength(0);
   });
 
+  it('parses nested suite/test checks into a flat run list with ids', () => {
+    const doc = {
+      type: 'report',
+      name: 'suite.mmt',
+      overview: { checks: 1, passed: 1, failed: 0, skipped: 0 },
+      checks: [
+        {
+          name: 'nested-suite.mmt',
+          type: 'suite',
+          result: 'passed',
+          checks: [
+            {
+              name: 'child.mmt',
+              type: 'test',
+              file: 'child.mmt',
+              result: 'passed',
+              checks: [{ name: 'ok', type: 'check', result: 'passed' }],
+            },
+          ],
+        },
+      ],
+    };
+
+    const results = parseReportMmt(doc);
+    expect(results.testRuns).toHaveLength(2);
+    expect(results.testRuns[0].displayName).toBe('nested-suite.mmt');
+    expect(results.testRuns[0].docType).toBe('suite');
+    expect(results.testRuns[0].id).toBe('suite-node:0');
+    expect(results.testRuns[1].displayName).toBe('child.mmt');
+    expect(results.testRuns[1].id).toBe('suite-node:0.0');
+    expect(results.testRuns[1].steps).toHaveLength(1);
+    expect(results.testRuns[1].steps[0].title).toBe('ok');
+  });
+
   it('preserves skipped run results instead of treating them as failed', () => {
     const doc = {
       type: 'report',

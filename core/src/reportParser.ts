@@ -1,5 +1,6 @@
 import type { CollectedResults, TestStepResult, TestRunResult, SuiteRunResult } from './reportCollector';
 import type { TestStepStatus } from './runConfig';
+import { createSuiteNodeId } from './suiteNodeId';
 
 /**
  * Parse a `type: report` YAML object (already parsed from YAML string)
@@ -11,7 +12,7 @@ export function parseReportMmt(doc: Record<string, any>): CollectedResults {
   }
 
   const checkEntries: any[] = Array.isArray(doc.checks) ? doc.checks : (Array.isArray(doc.suites) ? doc.suites : []);
-  const testRuns: TestRunResult[] = checkEntries.map((suite, i) => parseSuiteEntry(suite, i));
+  const testRuns: TestRunResult[] = flattenCheckEntries(checkEntries);
   const load = doc.kind === 'load' ? parseLoadData(doc) : undefined;
   const overview = doc.overview && typeof doc.overview === 'object' ? doc.overview : (doc.summary || {});
   const startedAtValue = overview.started_at ?? overview.timestamp ?? doc.started_at ?? doc.timestamp;
@@ -52,20 +53,66 @@ function parseRunResult(result: any, hasFailed: boolean): TestRunResult['result'
   return hasFailed ? 'failed' : 'passed';
 }
 
-function parseSuiteEntry(suite: any, index: number): TestRunResult {
-  const tests: any[] = Array.isArray(suite.checks) ? suite.checks : (Array.isArray(suite.tests) ? suite.tests : []);
-  const steps: TestStepResult[] = tests.map((t, i) => parseTestEntry(t, i));
-  const hasFailed = steps.some(s => s.status === 'failed');
+function isRunEntry(entry: any): boolean {
+  if (!entry || typeof entry !== 'object') {
+    return false;
+  }
+  if (entry.type === 'suite' || entry.type === 'test') {
+    return true;
+  }
+  // Legacy suites[] items without type, or nested runs with nested checks of suite/test.
+  if (Array.isArray(entry.tests)) {
+    return true;
+  }
+  if (Array.isArray(entry.checks) && entry.checks.some((c: any) => c && (c.type === 'suite' || c.type === 'test'))) {
+    return true;
+  }
+  return false;
+}
 
-  return {
-    runId: `run-${index}`,
-    filePath: suite.file,
-    displayName: suite.name || `test-${index}`,
-    docType: suite.type === 'suite' ? 'suite' : suite.type === 'test' ? 'test' : undefined,
-    result: parseRunResult(suite.result, hasFailed),
-    durationMs: parseDurationMs(suite.duration),
-    steps,
-  };
+function isStepEntry(entry: any): boolean {
+  if (!entry || typeof entry !== 'object') {
+    return false;
+  }
+  if (entry.type === 'suite' || entry.type === 'test') {
+    return false;
+  }
+  return entry.type === 'check' || entry.step === 'assert' || entry.step === 'debug' || entry.step === 'check'
+    || Array.isArray(entry.expects) || !!entry.failure || entry.result != null;
+}
+
+function flattenCheckEntries(entries: any[], parentPath: number[] = []): TestRunResult[] {
+  const runs: TestRunResult[] = [];
+  entries.forEach((entry, i) => {
+    if (!isRunEntry(entry) && !isStepEntry(entry) && !entry?.name) {
+      return;
+    }
+    // Top-level legacy flat list: each entry is a run (even if type is check for old samples).
+    if (parentPath.length === 0 || isRunEntry(entry)) {
+      const path = [...parentPath, i];
+      const nested = Array.isArray(entry.checks) ? entry.checks : (Array.isArray(entry.tests) ? entry.tests : []);
+      const childRuns = nested.filter(isRunEntry);
+      const stepEntries = nested.filter((c: any) => !isRunEntry(c) && isStepEntry(c));
+      const steps = stepEntries.map((t: any, si: number) => parseTestEntry(t, si));
+      const hasFailed = steps.some((s: TestStepResult) => s.status === 'failed');
+      const docType = entry.type === 'suite' ? 'suite' : entry.type === 'test' ? 'test' : (childRuns.length > 0 ? 'suite' : 'test');
+      runs.push({
+        runId: `run-${path.join('-')}`,
+        id: createSuiteNodeId(path),
+        filePath: entry.file,
+        displayName: entry.name || `test-${path.join('.')}`,
+        docType,
+        result: parseRunResult(entry.result, hasFailed),
+        durationMs: parseDurationMs(entry.duration),
+        steps,
+      });
+      if (childRuns.length > 0) {
+        runs.push(...flattenCheckEntries(childRuns, path));
+      }
+      return;
+    }
+  });
+  return runs;
 }
 
 function parseTestEntry(test: any, index: number): TestStepResult {

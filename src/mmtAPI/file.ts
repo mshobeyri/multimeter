@@ -716,7 +716,7 @@ export async function handleExportMarkdown(message: any) {
   }
 }
 
-const reportSerializers: Record<ReportFormat, (r: CollectedResults) => string> = {
+const reportSerializers: Record<ReportFormat, (r: CollectedResults, o?: {projectRoot?: string}) => string> = {
   junit: generateJunitXml,
   mmt: generateMmtReport,
   html: generateReportHtml,
@@ -867,7 +867,8 @@ export async function handleExportReport(message: any, document: vscode.TextDocu
       return;
     }
     const results = webviewDataToCollectedResults(message.data || {});
-    const content = reportSerializers[format](results);
+    const projectRoot = findProjectRoot(document.uri.fsPath);
+    const content = reportSerializers[format](results, {projectRoot});
     const defaults = reportDefaults[format];
     const docDir = path.dirname(document.uri.fsPath);
     const uri = await vscode.window.showSaveDialog({

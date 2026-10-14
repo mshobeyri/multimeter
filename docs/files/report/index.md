@@ -4,7 +4,7 @@ Multimeter generates structured reports after running tests, suites, or load tes
 
 Open a generated `.mmt` file with `type: report` in VS Code to view the **report panel** (YAML stays on the left).
 
-![Report panel — overview cards, test rows, and export](../../screenshots/test-reports.png)
+![Report panel — overview cards and test rows](../../screenshots/test-reports.png)
 
 ## Report panel UI
 
@@ -13,7 +13,6 @@ Open a generated `.mmt` file with `type: report` in VS Code to view the **report
 | Control | What it does |
 |---|---|
 | `name` | Report title from the source run |
-| {{btn:export:Export}} | Re-export to JUnit XML, MMT, HTML, or Markdown |
 
 ### Functional reports (`kind: functional`)
 
@@ -36,7 +35,7 @@ After any test, suite, or load test run in VS Code, use {{btn:export:Export}} on
 
 | Extension | Format | Best for |
 |-----------|--------|----------|
-| `.mmt` | MMT Report YAML | Native review, diffing, and re-export — see [Reference](./reference.md) |
+| `.mmt` | MMT Report YAML | Native review and diffing — see [Reference](./reference.md) |
 | `.html` | HTML | Sharing visual reports — see [HTML](./html.md) |
 | `.md` | Markdown | PRs, issues, wikis — see [Markdown](./markdown.md) |
 | `.md` (detailed) | Markdown detailed | Markdown plus request/response IO per step |

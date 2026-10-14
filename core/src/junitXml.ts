@@ -1,5 +1,13 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import {formatReportNumber, roundReportNumbersDeep} from './reportFormat';
+import {applyProjectRootPaths} from './reportPaths';
+import {reportStepTitle} from './reportStepTitle';
+import {
+  buildReportTree,
+  reportableRuns,
+  visibleReportSteps,
+  type ReportTreeNode,
+} from './reportTree';
 
 export function escapeXml(s: string): string {
   return String(s)
@@ -12,6 +20,8 @@ export function escapeXml(s: string): string {
 
 export interface JunitXmlOptions {
   suiteName?: string;
+  /** Folder containing `multimeter.mmt` — rewrites `file` to `+/…`. */
+  projectRoot?: string;
 }
 
 function formatTime(ms?: number): string {
@@ -43,7 +53,7 @@ function displayValue(v: any): string {
 }
 
 function buildTestcase(step: TestStepResult, classname: string): string {
-  const name = escapeXml(step.title || `step-${step.stepIndex}`);
+  const name = escapeXml(reportStepTitle(step));
   const time = formatTime(step.durationMs);
   if (step.status === 'passed') {
     return `      <testcase name="${name}" classname="${classname}" time="${time}"/>\n`;
@@ -70,25 +80,42 @@ function buildTestcase(step: TestStepResult, classname: string): string {
   );
 }
 
-function buildTestsuite(run: TestRunResult, index: number): string {
-  const name = escapeXml(run.displayName || run.filePath || `test-${index}`);
-  const classname = escapeXml(run.displayName || run.filePath || `test-${index}`);
-  const nonDebugSteps = run.steps.filter(s => s.stepType !== 'debug');
-  const tests = run.result === 'skipped' ? 1 : nonDebugSteps.length;
-  const failures = nonDebugSteps.filter(s => s.status === 'failed').length;
-  const skipped = run.result === 'skipped' ? 1 : 0;
+function countNodeTests(node: ReportTreeNode): {tests: number; failures: number; skipped: number} {
+  const steps = visibleReportSteps(node.run);
+  let tests = node.run.result === 'skipped' ? 1 : steps.length;
+  let failures = steps.filter(s => s.status === 'failed').length;
+  let skipped = node.run.result === 'skipped' ? 1 : 0;
+  for (const child of node.children) {
+    const childCounts = countNodeTests(child);
+    tests += childCounts.tests;
+    failures += childCounts.failures;
+    skipped += childCounts.skipped;
+  }
+  return {tests, failures, skipped};
+}
+
+function buildTestsuiteFromNode(node: ReportTreeNode, depth: number): string {
+  const run = node.run;
+  const name = escapeXml(run.displayName || run.filePath || `test-${node.index}`);
+  const classname = escapeXml(run.displayName || run.filePath || `test-${node.index}`);
+  const steps = visibleReportSteps(run);
+  const counts = countNodeTests(node);
   const time = formatTime(run.durationMs);
   const file = run.filePath ? ` file="${escapeXml(run.filePath)}"` : '';
-  const timestamp = nonDebugSteps.length > 0 ? ` timestamp="${isoTimestamp(nonDebugSteps[0].timestamp)}"` : '';
+  const timestamp = steps.length > 0 ? ` timestamp="${isoTimestamp(steps[0].timestamp)}"` : '';
+  const indent = '    ' + '  '.repeat(depth);
 
-  let xml = `    <testsuite name="${name}" tests="${tests}" failures="${failures}" errors="0" skipped="${skipped}" time="${time}"${file}${timestamp}>\n`;
-  if (run.result === 'skipped') {
-    xml += `        <testcase name="${name}" classname="${classname}" time="0.000"><skipped/></testcase>\n`;
+  let xml = `${indent}<testsuite name="${name}" tests="${counts.tests}" failures="${counts.failures}" errors="0" skipped="${counts.skipped}" time="${time}"${file}${timestamp}>\n`;
+  if (run.result === 'skipped' && node.children.length === 0 && steps.length === 0) {
+    xml += `${indent}  <testcase name="${name}" classname="${classname}" time="0.000"><skipped/></testcase>\n`;
   }
-  for (const step of nonDebugSteps) {
-    xml += buildTestcase(step, classname);
+  for (const child of node.children) {
+    xml += buildTestsuiteFromNode(child, depth + 1);
   }
-  xml += `    </testsuite>\n`;
+  for (const step of steps) {
+    xml += `${indent}` + buildTestcase(step, classname).trimStart();
+  }
+  xml += `${indent}</testsuite>\n`;
   return xml;
 }
 
@@ -116,12 +143,33 @@ function getLoadSnapshots(results: CollectedResults): Array<Record<string, any>>
 }
 
 export function generateJunitXml(results: CollectedResults, options?: JunitXmlOptions): string {
+  results = applyProjectRootPaths(results, options?.projectRoot);
   const runs = results.testRuns;
-  const suiteName = escapeXml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
-  const totalTests = runs.reduce((sum, r) => sum + (r.result === 'skipped' ? 1 : r.steps.filter(s => s.stepType !== 'debug').length), 0);
-  const totalFailures = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
-  const totalSkipped = runs.filter(r => r.result === 'skipped').length;
-  const totalTime = formatTime(results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0));
+  const counted = reportableRuns(runs);
+  const suiteName = escapeXml(
+    options?.suiteName
+      || results.suiteRun?.suiteTitle
+      || results.suiteRun?.suitePath
+      || reportableRuns(results.testRuns)[0]?.displayName
+      || 'Test Report',
+  );
+  const tree = buildReportTree(runs);
+  const totals = tree.reduce(
+    (acc, node) => {
+      const c = countNodeTests(node);
+      return {
+        tests: acc.tests + c.tests,
+        failures: acc.failures + c.failures,
+        skipped: acc.skipped + c.skipped,
+      };
+    },
+    {tests: 0, failures: 0, skipped: 0},
+  );
+  // Fallback flat count when there is no id-based tree (standalone test).
+  const totalTests = totals.tests || counted.reduce((sum, r) => sum + (r.result === 'skipped' ? 1 : visibleReportSteps(r).length), 0);
+  const totalFailures = totals.failures || counted.reduce((sum, r) => sum + visibleReportSteps(r).filter(s => s.status === 'failed').length, 0);
+  const totalSkipped = totals.skipped || counted.filter(r => r.result === 'skipped').length;
+  const totalTime = formatTime(results.suiteRun?.durationMs ?? counted.reduce((sum, r) => sum + (r.durationMs || 0), 0));
   const timestamp = results.suiteRun?.startedAt
     ? ` timestamp="${isoTimestamp(results.suiteRun.startedAt)}"`
     : '';
@@ -169,8 +217,8 @@ export function generateJunitXml(results: CollectedResults, options?: JunitXmlOp
     xml += `    </properties>\n`;
   }
 
-  for (let i = 0; i < runs.length; i++) {
-    xml += buildTestsuite(runs[i], i);
+  for (const node of tree) {
+    xml += buildTestsuiteFromNode(node, 0);
   }
 
   xml += `</testsuites>\n`;
