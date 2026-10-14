@@ -13,6 +13,7 @@ import {
 } from './literalToken';
 import {apiToYaml, yamlToAPI} from './apiParsePack';
 import {
+  clearTokenFieldPreviewRandomCache,
   displayRuntimeTokensToResolvableText,
   displayRuntimeString,
   displayRuntimeStringRecord,
@@ -286,20 +287,45 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(stringContainsFieldToken('plain')).toBe(false);
   });
 
-  it('resolves i:/e:/c: in idle preview but keeps r: as display tokens', () => {
+  it('resolves i:/e:/c:/r: in idle preview and freezes r: until cache clear', () => {
+    clearTokenFieldPreviewRandomCache();
+    const source = 'Bearer {{e:token}} / {{r:uuid}} / {{c:day}}';
+    const ctx = {env: {token: 'secret'}, inputs: {}};
+    const first = projectTokenFieldPreview(source, ctx);
+    expect(first.text.startsWith('Bearer secret / ')).toBe(true);
+    expect(first.text).not.toContain('{{r:uuid}}');
+    expect(first.text).not.toContain('{{c:day}}');
+    expect(first.spans.length).toBe(3);
+    expect(first.spans[0]).toMatchObject({kind: 'resolved', tooltip: '{{e:token}}'});
+    expect(first.spans[1]).toMatchObject({kind: 'resolved', tooltip: '{{r:uuid}}'});
+    expect(first.spans[2]).toMatchObject({kind: 'resolved', tooltip: '{{c:day}}'});
+    const uuid = first.text.slice(first.spans[1].start, first.spans[1].end);
+    expect(uuid).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+    const second = projectTokenFieldPreview(source, ctx);
+    expect(second.text).toBe(first.text);
+
+    clearTokenFieldPreviewRandomCache();
+    const third = projectTokenFieldPreview(source, ctx);
+    const uuid3 = third.text.slice(third.spans[1].start, third.spans[1].end);
+    expect(uuid3).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    expect(uuid3).not.toBe(uuid);
+  });
+
+  it('keeps distinct r: samples per occurrence in one field', () => {
+    clearTokenFieldPreviewRandomCache();
     const {text, spans} = projectTokenFieldPreview(
-        'Bearer {{e:token}} / {{r:uuid}} / {{c:day}}',
-        {env: {token: 'secret'}, inputs: {}},
+        '{{r:uuid}}/{{r:uuid}}',
+        {env: {}, inputs: {}},
     );
-    expect(text.startsWith('Bearer secret / {{r:uuid}} / ')).toBe(true);
-    expect(text).not.toContain('{{c:day}}');
-    expect(spans.length).toBe(3);
-    expect(spans[0]).toMatchObject({kind: 'resolved', tooltip: '{{e:token}}'});
-    expect(spans[1]).toMatchObject({kind: 'token'});
-    expect(spans[2]).toMatchObject({kind: 'resolved', tooltip: '{{c:day}}'});
-    expect(text.slice(spans[1].start, spans[1].end)).toBe('{{r:uuid}}');
-    expect(text.slice(spans[2].start, spans[2].end)).toMatch(
-        /^(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$/);
+    expect(spans).toHaveLength(2);
+    const a = text.slice(spans[0].start, spans[0].end);
+    const b = text.slice(spans[1].start, spans[1].end);
+    expect(a).not.toBe(b);
+    expect(projectTokenFieldPreview('{{r:uuid}}/{{r:uuid}}', {env: {}, inputs: {}}).text)
+        .toBe(text);
   });
 
   it('resolves c:git_* in idle preview when a git snapshot is injected', () => {

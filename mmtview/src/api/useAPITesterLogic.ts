@@ -215,6 +215,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       respectTouched?: boolean;
       /** Which UI parts to rewrite. Default `['all']`. Prefer narrower scopes (`env` / `url` / `body`) for partial updates. */
       scopes?: ApiUiRefreshScope[];
+      /** Fresh r:/c: samples (telescope on / explicit refresh). */
+      refreshRuntimeTokens?: boolean;
     }
   ) => {
     const scopes: ApiUiRefreshScope[] = options?.scopes ?? ["all"];
@@ -230,7 +232,9 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     const respectTouched = options?.respectTouched ?? true;
 
     void (async () => {
-      const rface = await resolveFreshRequestData(resolvedInputs);
+      const rface = await resolveFreshRequestData(resolvedInputs, {
+        refreshRuntimeTokens: options?.refreshRuntimeTokens,
+      });
       setRequestData((prev) =>
         applyScopedRequestData(prev, rface, scopes, touchedFieldsRef.current, respectTouched)
       );

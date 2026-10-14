@@ -14,6 +14,7 @@ import { BodyViewValidationIndicator } from "../components/BodyViewToolbarContro
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
+  clearTokenFieldPreviewRandomCache,
   displayRequestBody,
   leafResolvesToOmit,
   packBodyAsYamlEncoded,
@@ -305,6 +306,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     return "tokens";
   });
+  /** Bumps TokenFieldInput r: preview after cache clear (telescope on / Send). */
+  const [tokenPreviewEpoch, setTokenPreviewEpoch] = useState(0);
+  const refreshResolvedTokenPreview = useCallback(() => {
+    clearTokenFieldPreviewRandomCache();
+    setTokenPreviewEpoch((n) => n + 1);
+  }, []);
+  const tokenModeState = useMemo(
+    () => ({ mode: bodyTokenMode, previewEpoch: tokenPreviewEpoch }),
+    [bodyTokenMode, tokenPreviewEpoch],
+  );
 
   useEffect(() => {
     onRequestReset?.(() => {
@@ -327,6 +338,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     bodyPackReadyRef.current = false;
     setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
     setBodyYamlEncodeError(false);
+    // Fresh r: field-preview samples for this document (telescope may already be on).
+    refreshResolvedTokenPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on file switch
   }, [mmtFilePath]);
 
@@ -939,6 +952,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     // Flush draft so resolved view / Send see the latest tokens.
     writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
+    // New r: samples for fields + body requestData (frozen until Send / toggle).
+    refreshResolvedTokenPreview();
+    prepareRequestData(undefined, {
+      respectTouched: false,
+      scopes: ["all"],
+      refreshRuntimeTokens: true,
+    });
     setBodyTokenMode("resolved");
   }, [
     bodyTokenMode,
@@ -946,6 +966,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     writeBodyStorage,
     bodyEditDraft,
     bodyYamlEncodedManual,
+    refreshResolvedTokenPreview,
+    prepareRequestData,
   ]);
 
   const sendWithResolvedBody = useCallback(async () => {
@@ -956,12 +978,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       });
     }
     await handleSend();
+    // Match Send: mint fresh r: field-preview samples for the next request.
+    if (bodyTokenMode === "resolved") {
+      refreshResolvedTokenPreview();
+    }
   }, [
     bodyTokenMode,
     bodyEditDraft,
     bodyYamlEncodedManual,
     writeBodyStorage,
     handleSend,
+    refreshResolvedTokenPreview,
   ]);
 
   const sendShortcutEnabled =
@@ -1195,7 +1222,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const keepResponseTab = useKeptTabs(responseTab, responseTabIds, mmtFilePath || "");
 
   return (
-    <TokenModeContext.Provider value={bodyTokenMode}>
+    <TokenModeContext.Provider value={tokenModeState}>
     <div className={`apitest-root${selector ? " apitest-root--source" : ""}${
       requestResponseLayout === "side-by-side" ? " apitest-root--side-by-side" : ""
     }`}>
@@ -1299,7 +1326,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             aria-pressed={bodyTokenMode === "resolved"}
             title={bodyTokenMode === "resolved"
               ? "Show tokens"
-              : "Show resolved input/env/current values"}
+              : "Show resolved input/env/current/random values"}
             onMouseDown={event => event.preventDefault()}
             onClick={() => handleBodyTokenModeChange(
               bodyTokenMode === "resolved" ? "tokens" : "resolved",

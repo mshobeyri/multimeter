@@ -1326,6 +1326,36 @@ function lookupRuntimeResolvedValue(plainSpec: string): unknown {
 }
 
 /**
+ * Frozen `r:` samples for telescope field preview.
+ * Keyed by field source string → values in encounter order (unique per
+ * occurrence, same as Send). Cleared when telescope turns on or after Send.
+ */
+const tokenFieldPreviewRandomCache = new Map<string, unknown[]>();
+
+/** Drop frozen `r:` field-preview samples (telescope on / Send). */
+export function clearTokenFieldPreviewRandomCache(): void {
+  tokenFieldPreviewRandomCache.clear();
+}
+
+function lookupCachedRandomForFieldPreview(
+    sourceKey: string,
+    plain: string,
+    occurrenceIndex: number,
+    ): unknown {
+  let list = tokenFieldPreviewRandomCache.get(sourceKey);
+  if (!list) {
+    list = [];
+    tokenFieldPreviewRandomCache.set(sourceKey, list);
+  }
+  if (occurrenceIndex < list.length) {
+    return list[occurrenceIndex];
+  }
+  const resolved = lookupRuntimeResolvedValue(plain);
+  list.push(resolved);
+  return resolved;
+}
+
+/**
  * True when a request leaf is / resolves to the omit sentinel (Send drops it).
  * Literal `"omit"` strings are not omit.
  */
@@ -1370,7 +1400,8 @@ export function leafResolvesToOmit(
  * Idle preview for a token-capable field (telescope / resolved mode):
  * - `{{i:}}` / `{{e:}}` → resolved values (span kind `resolved`)
  * - `{{c:}}` → resolved current values (same as Send / body requestData preview)
- * - `{{r:}}` → stay as display tokens (do not freeze a one-off random sample)
+ * - `{{r:}}` → frozen samples (stable until
+ *   {@link clearTokenFieldPreviewRandomCache} — telescope on / Send)
  * - Unresolved i:/e: stay as the plain token text `i:name` / `e:name`
  */
 export function projectTokenFieldPreview(
@@ -1388,6 +1419,7 @@ export function projectTokenFieldPreview(
   const re = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
   let last = 0;
   let match: RegExpExecArray|null;
+  let randomOccurrence = 0;
   while ((match = re.exec(template)) !== null) {
     if (match.index > last) {
       text += template.slice(last, match.index);
@@ -1399,24 +1431,21 @@ export function projectTokenFieldPreview(
       continue;
     }
     const prefix = plain.charAt(0).toLowerCase();
-    // Random samples change every Send — keep {{r:…}} in the idle mirror.
-    if (prefix === 'r') {
-      const piece = toDisplayRuntimeToken(plain);
-      const start = text.length;
-      text += piece;
-      spans.push({start, end: text.length, kind: 'token'});
-      last = match.index + match[0].length;
-      continue;
-    }
     let resolved: unknown = undefined;
-    if (prefix === 'c') {
+    if (prefix === 'r') {
+      resolved = lookupCachedRandomForFieldPreview(
+          raw, plain, randomOccurrence);
+      randomOccurrence += 1;
+    } else if (prefix === 'c') {
       resolved = lookupRuntimeResolvedValue(plain);
     } else {
       resolved = lookupIeResolvedValue(plain, ctx);
     }
     if (resolved === undefined) {
       // Same fallback as a run: the plain token text, not {{…}} and not blank.
-      const piece = prefix === 'c' ? toDisplayRuntimeToken(plain) : plain;
+      const piece = (prefix === 'c' || prefix === 'r') ?
+        toDisplayRuntimeToken(plain) :
+        plain;
       const start = text.length;
       text += piece;
       spans.push({start, end: text.length, kind: 'token'});
