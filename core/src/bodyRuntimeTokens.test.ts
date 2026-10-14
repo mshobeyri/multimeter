@@ -347,6 +347,28 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(hit).toBeTruthy();
     expect(`{\n  "asd": "${uuid}"\n}`.slice(hit!.start, hit!.end)).toBe(uuid);
   });
+
+  it('pins short c: slice highlights to their own JSON field, not a sibling prefix', () => {
+    const display =
+        '{\n  "curly_whole": "Amsterdam",\n  "text_slice": "Ams"\n}';
+    const spans = findBodyTokenHoverSpans(display, {
+      tokenSource: {
+        curly_whole: '{{c:city}}',
+        text_slice: '<<c:city[0:3]>>',
+      },
+      resolvedBody: {
+        curly_whole: 'Amsterdam',
+        text_slice: 'Ams',
+      },
+    });
+    const resolved = spans.filter(s => s.kind === 'resolved');
+    const whole = resolved.find(s => s.tooltip === '{{c:city}}');
+    const slice = resolved.find(s => s.tooltip === '{{c:city[0:3]}}');
+    expect(whole).toBeTruthy();
+    expect(slice).toBeTruthy();
+    expect(display.slice(whole!.start, whole!.end)).toBe('Amsterdam');
+    expect(display.slice(slice!.start, slice!.end)).toBe('Ams');
+  });
 });
 
 describe('runtimeTokenEmitsJsonString', () => {

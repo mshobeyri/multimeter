@@ -1509,7 +1509,12 @@ export function findBodyTokenHoverSpans(
   return merged;
 }
 
-type TokenResolvedLeaf = {plain: string; piece: string};
+type TokenResolvedLeaf = {
+  plain: string;
+  piece: string;
+  /** Object key when known — pins JSON highlights to the matching field. */
+  key?: string|number;
+};
 
 function collectTokenResolvedLeaves(
     tokenSource: unknown,
@@ -1527,6 +1532,7 @@ function walkTokenResolvedLeaves(
     tokenNode: unknown,
     resolvedNode: unknown,
     out: TokenResolvedLeaf[],
+    key?: string|number,
     ): void {
   if (typeof tokenNode === 'string') {
     if (isLiteralTokenValue(tokenNode)) {
@@ -1546,13 +1552,13 @@ function walkTokenResolvedLeaves(
     if (!piece) {
       return;
     }
-    out.push({plain, piece});
+    out.push({plain, piece, key});
     return;
   }
   if (Array.isArray(tokenNode)) {
     const resolvedArr = Array.isArray(resolvedNode) ? resolvedNode : [];
     for (let i = 0; i < tokenNode.length; i++) {
-      walkTokenResolvedLeaves(tokenNode[i], resolvedArr[i], out);
+      walkTokenResolvedLeaves(tokenNode[i], resolvedArr[i], out, i);
     }
     return;
   }
@@ -1563,10 +1569,52 @@ function walkTokenResolvedLeaves(
                 !Array.isArray(resolvedNode) ?
         resolvedNode as Record<string, unknown> :
         {};
-    for (const key of Object.keys(tokenObj)) {
-      walkTokenResolvedLeaves(tokenObj[key], resolvedObj[key], out);
+    for (const objKey of Object.keys(tokenObj)) {
+      walkTokenResolvedLeaves(tokenObj[objKey], resolvedObj[objKey], out, objKey);
     }
   }
+}
+
+function escapeRegExpLocal(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Locate a resolved value under a specific JSON object key so short pieces
+ * (e.g. `Ams`) are not painted inside longer siblings (`Amsterdam`).
+ */
+function indexOfKeyedJsonPiece(
+    displayText: string,
+    key: string,
+    piece: string,
+    ): {start: number; end: number}|null {
+  if (!piece || !key) {
+    return null;
+  }
+  const quoted = JSON.stringify(piece);
+  const keyedQuoted = new RegExp(
+      `"${escapeRegExpLocal(key)}"\\s*:\\s*(${escapeRegExpLocal(quoted)})`,
+  );
+  const quotedMatch = keyedQuoted.exec(displayText);
+  if (quotedMatch && quotedMatch.index != null) {
+    const valueStart =
+        quotedMatch.index + quotedMatch[0].length - quotedMatch[1].length;
+    // Underline the string contents (not the surrounding JSON quotes).
+    if (quoted.startsWith('"') && quoted.endsWith('"') && quoted.length >= 2) {
+      return {start: valueStart + 1, end: valueStart + 1 + piece.length};
+    }
+    return {start: valueStart, end: valueStart + quotedMatch[1].length};
+  }
+  const keyedBare = new RegExp(
+      `"${escapeRegExpLocal(key)}"\\s*:\\s*(${escapeRegExpLocal(piece)})(?=\\s*[,}\\]])`,
+  );
+  const bareMatch = keyedBare.exec(displayText);
+  if (bareMatch && bareMatch.index != null) {
+    const valueStart =
+        bareMatch.index + bareMatch[0].length - bareMatch[1].length;
+    return {start: valueStart, end: valueStart + bareMatch[1].length};
+  }
+  return null;
 }
 
 function locateLeafSpansInDisplay(
@@ -1574,19 +1622,35 @@ function locateLeafSpansInDisplay(
     leaves: TokenResolvedLeaf[],
     ): TokenFieldSpan[] {
   const spans: TokenFieldSpan[] = [];
+  const used = new Set<string>();
   let searchFrom = 0;
   for (const leaf of leaves) {
-    const located = indexOfResolvedPiece(displayText, leaf.piece, searchFrom);
+    let located: {start: number; end: number}|null = null;
+    if (typeof leaf.key === 'string' && leaf.key.length > 0) {
+      located = indexOfKeyedJsonPiece(displayText, leaf.key, leaf.piece);
+    }
+    if (!located) {
+      located = indexOfResolvedPiece(displayText, leaf.piece, searchFrom);
+    }
     if (!located) {
       continue;
     }
+    const spanKey = `${located.start}:${located.end}`;
+    if (used.has(spanKey)) {
+      continue;
+    }
+    used.add(spanKey);
     spans.push({
       start: located.start,
       end: located.end,
       kind: 'resolved',
       tooltip: toDisplayRuntimeToken(leaf.plain),
     });
-    searchFrom = located.end;
+    // Only advance the sequential cursor for unkeyed fallbacks so keyed hits
+    // do not skip later fields that appear earlier in the document.
+    if (typeof leaf.key !== 'string' || leaf.key.length === 0) {
+      searchFrom = located.end;
+    }
   }
   return spans;
 }
@@ -1663,14 +1727,16 @@ function indexOfResolvedPiece(
   if (!piece) {
     return null;
   }
-  let idx = displayText.indexOf(piece, searchFrom);
-  if (idx >= 0) {
-    return {start: idx, end: idx + piece.length};
-  }
+  // Prefer JSON-quoted form first so a short value like `Ams` is not found as
+  // a prefix inside a longer sibling value like `Amsterdam`.
   const quoted = JSON.stringify(piece);
-  idx = displayText.indexOf(quoted, searchFrom);
+  let idx = displayText.indexOf(quoted, searchFrom);
   if (idx >= 0) {
     return {start: idx + 1, end: idx + 1 + piece.length};
+  }
+  idx = displayText.indexOf(piece, searchFrom);
+  if (idx >= 0) {
+    return {start: idx, end: idx + piece.length};
   }
   return null;
 }
