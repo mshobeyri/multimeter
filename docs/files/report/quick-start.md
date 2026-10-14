@@ -21,9 +21,12 @@ type: suite
 title: CI Suite
 export:
   - ./reports/results.html
+  - +/reports/<<c:report_folder>>/results.html
 items:
   - tests/login.mmt
 ```
+
+`c:report_folder` expands to `tags/<tag>`, `branch/<branch>/<commit>`, `detached/<commit>`, or `local` — see [Current tokens](../../features/dynamic-values/current.md).
 
 See [Suite exports](../suite/exports.md) for path rules and format mapping.
 

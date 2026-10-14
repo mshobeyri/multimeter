@@ -18,7 +18,7 @@ import {formatCliDocs, listCliDocTopics, resolveCliGuidesDir} from './aiDocs.js'
 import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
 import {detectInstallChannel, runUpdate} from './selfUpdate.js';
 import {applyGitCurrentSnapshot, resolveGitCurrentSnapshot} from './gitCommitShort.js';
-import {setGitCurrentSnapshot} from 'mmt-core/Current';
+import {expandCurrentTokensInPath, setGitCurrentSnapshot} from 'mmt-core/Current';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -435,7 +435,9 @@ program.command('run')
             });
           }
           if (reportContent) {
-            const reportPath = writeTextFile(reportFile, reportContent);
+            applyGitCurrentSnapshot(reportGitCwd);
+            const expandedReportFile = expandCurrentTokensInPath(String(reportFile));
+            const reportPath = writeTextFile(expandedReportFile, reportContent);
             if (!opts.quiet) {
               console.log(`Report written: ${reportPath}`);
             }
@@ -449,22 +451,24 @@ program.command('run')
         if (suiteExports && Array.isArray(suiteExports.paths) && suiteExports.collectedResults) {
           const suiteDir = path.dirname(path.resolve(process.cwd(), file));
           const projectRoot = (runFileOptions as any).projectRoot;
+          applyGitCurrentSnapshot(projectRoot || suiteDir);
 
           for (const exportPath of suiteExports.paths) {
             try {
+              const expandedPath = expandCurrentTokensInPath(String(exportPath ?? ''));
               // Resolve path relative to suite file or +/ project root
               let resolvedPath: string;
-              if (exportPath.startsWith('+/')) {
+              if (expandedPath.startsWith('+/')) {
                 if (projectRoot) {
-                  resolvedPath = path.resolve(projectRoot, exportPath.slice(2));
+                  resolvedPath = path.resolve(projectRoot, expandedPath.slice(2));
                 } else {
                   if (!opts.quiet) {
-                    console.warn(`Cannot resolve +/ path without project root: ${exportPath}`);
+                    console.warn(`Cannot resolve +/ path without project root: ${expandedPath}`);
                   }
                   continue;
                 }
               } else {
-                resolvedPath = path.resolve(suiteDir, exportPath);
+                resolvedPath = path.resolve(suiteDir, expandedPath);
               }
 
               // Determine format from extension
@@ -478,7 +482,7 @@ program.command('run')
               const format = formatForExt[ext];
               if (!format) {
                 if (!opts.quiet) {
-                  console.warn(`Unknown export format for extension ${ext}: ${exportPath}`);
+                  console.warn(`Unknown export format for extension ${ext}: ${expandedPath}`);
                 }
                 continue;
               }

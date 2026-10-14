@@ -58,3 +58,50 @@ export function currentGitDescribe(): string {
 export function currentGitDirty(): boolean {
   return gitSnapshot?.dirty === true;
 }
+
+/** Sanitize one path segment (no empties, `.`, `..`, or control chars). */
+export function sanitizeReportPathSegment(raw: string): string {
+  const s = String(raw ?? '')
+      .trim()
+      .replace(/\\/g, '/')
+      .replace(/[\x00-\x1f\x7f]/g, '');
+  if (!s || s === '.' || s === '..') {
+    return '';
+  }
+  // Disallow path separators inside a single segment.
+  if (s.includes('/')) {
+    return s.split('/').map(sanitizeReportPathSegment).filter(Boolean).join('/');
+  }
+  return s;
+}
+
+/**
+ * Preferred report tree folder from git snapshot:
+ * - exact tag → `tags/<tag>` (first tag if several)
+ * - branch → `branch/<branch>/<commit>`
+ * - detached → `detached/<commit>`
+ * - no git → `local`
+ */
+export function currentReportFolder(): string {
+  const tagRaw = String(gitSnapshot?.tag ?? '').trim();
+  if (tagRaw) {
+    const firstTag = tagRaw.split(',')[0]?.trim() || '';
+    const tagSeg = sanitizeReportPathSegment(firstTag);
+    if (tagSeg) {
+      return `tags/${tagSeg}`;
+    }
+  }
+
+  const commit = sanitizeReportPathSegment(String(gitSnapshot?.commit ?? '').trim());
+  const branchRaw = String(gitSnapshot?.branch ?? '').trim();
+  if (branchRaw && commit) {
+    const branchSeg = sanitizeReportPathSegment(branchRaw);
+    if (branchSeg) {
+      return `branch/${branchSeg}/${commit}`;
+    }
+  }
+  if (commit) {
+    return `detached/${commit}`;
+  }
+  return 'local';
+}

@@ -59,8 +59,32 @@ Resolved from the project / working tree at run time. When git is unavailable, s
 | `c:git_tag` | Tag(s) pointing at HEAD (comma-separated if several) | `v1.45.3` |
 | `c:git_describe` | `git describe --tags --always` | `v1.45.3-12-ga4f5e463` |
 | `c:git_dirty` | Worktree has uncommitted changes (boolean) | `true` |
+| `c:report_folder` | Path-safe folder for git-structured reports (see below) | `branch/dev/a4f5e463` |
 
 Short aliases: `c:branch`, `c:commit`, `c:commit_short`, `c:commit_hash_short` → short SHA; `c:commit_hash` → full SHA; `c:tag` → tag(s).
+
+### `c:report_folder`
+
+Preferred relative folder for report trees:
+
+| Situation | Value | Example |
+|-----------|--------|---------|
+| Exact tag on HEAD | `tags/<tag>` (first tag if several) | `tags/v1.45.3` |
+| On a branch | `branch/<branch>/<commit>` | `branch/feature/x/a4f5e463` |
+| Detached HEAD | `detached/<commit>` | `detached/a4f5e463` |
+| No git | `local` | `local` |
+
+## In export / report file paths
+
+Any `c:` token can appear in suite/load `export:` paths and CLI `--report-file`. Tokens expand at write time; resolved values are path-sanitized (`:` → `-`, and other illegal filename characters).
+
+```yaml
+export:
+  - +/reports/<<c:report_folder>>/results.html
+  - +/reports/c:report_folder/results.xml
+  - +/reports/<<c:date>>/run-<<c:git_commit>>.html
+  - ./out-<<c:datetime>>.md
+```
 
 ## Future/past aliases
 
@@ -79,4 +103,4 @@ These aliases accept one unsigned duration argument (for example `1h`, `2d4h`):
 | `c:epoch_future` / `c:epoch_past` | Unix seconds |
 | `c:epoch_ms_future` / `c:epoch_ms_past` | Unix milliseconds |
 
-**Total:** 24 generators (plus 6 short git aliases) and 20 future/past aliases.
+**Total:** 25 generators (plus 6 short git aliases) and 20 future/past aliases.

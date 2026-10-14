@@ -9,6 +9,7 @@ import {
   currentEpoch,
   currentEpochMs,
   currentMonth,
+  currentReportFolder,
   currentTime,
   currentUtcDate,
   currentUtcDateTime,
@@ -22,6 +23,8 @@ import {
   CURRENT_TOKEN_MAP,
   currentTokenValueType,
   CURRENT_TOKEN_VALUE_TYPES,
+  expandCurrentTokensInPath,
+  pathSafeCurrentTokenValue,
   setGitCurrentSnapshot,
 } from './Current';
 
@@ -244,6 +247,50 @@ describe('git current tokens', () => {
   test('rejects offsets on git tokens', () => {
     expect(currentValueForToken('git_commit(+1h)')).toBeUndefined();
     expect(currentValueForToken('branch(-1d)')).toBeUndefined();
+  });
+
+  test('report_folder prefers tags/, then branch/…/commit, detached, local', () => {
+    expect(currentReportFolder()).toBe('local');
+    expect(currentValueForToken('report_folder')).toBe('local');
+
+    setGitCurrentSnapshot({commit: 'a4f5e463'});
+    expect(currentReportFolder()).toBe('detached/a4f5e463');
+
+    setGitCurrentSnapshot({branch: 'feature/exports', commit: 'a4f5e463'});
+    expect(currentReportFolder()).toBe('branch/feature/exports/a4f5e463');
+
+    setGitCurrentSnapshot({
+      branch: 'dev',
+      commit: 'a4f5e463',
+      tag: 'v1.45.3, v1.45.3-docs',
+    });
+    expect(currentReportFolder()).toBe('tags/v1.45.3');
+  });
+
+  test('expandCurrentTokensInPath substitutes any c: tokens in path templates', () => {
+    setGitCurrentSnapshot({branch: 'dev', commit: 'a4f5e463'});
+    expect(expandCurrentTokensInPath('+/reports/<<c:report_folder>>/out.html'))
+        .toBe('+/reports/branch/dev/a4f5e463/out.html');
+    expect(expandCurrentTokensInPath('+/reports/c:report_folder/out.html'))
+        .toBe('+/reports/branch/dev/a4f5e463/out.html');
+    expect(expandCurrentTokensInPath('out-<<c:git_commit>>.html'))
+        .toBe('out-a4f5e463.html');
+
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2026-09-17T12:34:56.000Z'));
+      expect(expandCurrentTokensInPath('+/reports/<<c:date>>/run.html'))
+          .toBe(`+/reports/${currentDate()}/run.html`);
+      // Colons from time/datetime are path-sanitized.
+      expect(expandCurrentTokensInPath('run-<<c:time>>.html'))
+          .toBe(`run-${pathSafeCurrentTokenValue(currentTime())}.html`);
+      expect(expandCurrentTokensInPath('run-<<c:datetime>>.html'))
+          .toContain('-');
+      expect(expandCurrentTokensInPath('run-<<c:datetime>>.html'))
+          .not.toMatch(/:\d/);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

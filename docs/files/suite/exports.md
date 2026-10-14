@@ -10,6 +10,9 @@ export:
   - ./reports/results.html    # HTML report
   - ./reports/results.md      # Markdown report
   - +/reports/results.mmt     # MMT format (project root)
+  # Any c: token works in paths (git folder, date, commit, …)
+  - +/reports/<<c:report_folder>>/results.html
+  - +/reports/<<c:date>>/suite-<<c:git_commit>>.html
 items:
   - tests/login.mmt
   - tests/profile.mmt
@@ -23,6 +26,14 @@ items:
 | `.mmt` | MMT | Structured result data in YAML |
 
 Exports are generated **after the entire suite finishes** (regardless of success or failure). Paths can be relative to the suite file or use `+/` for project root. Parent directories are created automatically if they don't exist.
+
+Any `c:` current token is expanded in export paths before write — clock/locale (`c:date`, `c:time`, `c:epoch`, …), git (`c:git_commit`, `c:git_branch`, …), and `c:report_folder`. Offsets work too (`<<c:date(+7d)>>`). Values are path-sanitized (e.g. `:` in times becomes `-`). Prefer `<<c:name>>` or a path segment `c:name`. See [Current tokens](../../features/dynamic-values/current.md).
+
+CLI `--report-file` expands the same way:
+
+```sh
+npx testlight run suite.mmt --report html --report-file './reports/<<c:report_folder>>/out.html'
+```
 
 ### Root-only fields
 

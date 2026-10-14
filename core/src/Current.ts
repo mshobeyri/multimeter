@@ -8,11 +8,13 @@ import {
   currentGitDescribe,
   currentGitDirty,
   currentGitTag,
+  currentReportFolder,
 } from './CurrentGit';
 
 export type {GitCurrentSnapshot} from './CurrentGit';
 export {
   clearGitCurrentSnapshot,
+  currentReportFolder,
   getGitCurrentSnapshot,
   setGitCurrentSnapshot,
 } from './CurrentGit';
@@ -159,6 +161,7 @@ export const CURRENT_TOKEN_MAP: Record<string, CurrentTokenGenerator> = {
   git_tag: currentGitTag,
   git_describe: currentGitDescribe,
   git_dirty: currentGitDirty,
+  report_folder: currentReportFolder,
   // Short aliases
   branch: currentGitBranch,
   commit: currentGitCommit,
@@ -280,4 +283,78 @@ export function currentValueForToken(spec: string): any|undefined {
     return undefined;
   }
   return generator(new Date(Date.now() + offset));
+}
+
+/**
+ * Make a resolved current-token value safe to embed in a filesystem path.
+ * Keeps `/` so multi-segment values like `c:report_folder` stay folders;
+ * replaces Windows-illegal chars (notably `:` from times) per segment.
+ */
+export function pathSafeCurrentTokenValue(value: unknown): string {
+  return String(value ?? '')
+      .replace(/\\/g, '/')
+      .split('/')
+      .map((seg) => {
+        const cleaned = seg
+            .replace(/[\x00-\x1f\x7f]/g, '')
+            .replace(/[:*?"<>|]/g, '-');
+        if (!cleaned || cleaned === '.' || cleaned === '..') {
+          return '';
+        }
+        return cleaned;
+      })
+      .filter(Boolean)
+      .join('/');
+}
+
+/** Spec body after `c:` — name plus optional `(…)` args / future-past aliases. */
+const CURRENT_PATH_TOKEN_SPEC_RE = '([A-Za-z_][A-Za-z0-9_-]*(?:\\([^()]*\\))?)';
+
+/**
+ * Expand any `c:` current token inside a filesystem path template
+ * (clock, locale, git, `report_folder`, offsets such as `c:date(+7d)`, …).
+ * Supports `<<c:…>>`, `{{c:…}}`, whole-value `c:…`, and path segments that are
+ * exactly `c:…` (e.g. `+/reports/c:report_folder/out-<<c:date>>.html`).
+ * Does not expand `r:` / `e:` (paths should stay deterministic / env-free here).
+ */
+export function expandCurrentTokensInPath(pathTemplate: string): string {
+  let s = String(pathTemplate ?? '');
+  if (!s) {
+    return s;
+  }
+
+  const replaceSpec = (spec: string, original: string): string => {
+    const resolved = currentValueForToken(spec);
+    if (resolved === undefined || resolved === null) {
+      return original;
+    }
+    const safe = pathSafeCurrentTokenValue(resolved);
+    return safe || original;
+  };
+
+  // Whole-value bare / angle / curly token.
+  const whole = new RegExp(
+      `^(?:<<\\s*c:${CURRENT_PATH_TOKEN_SPEC_RE}\\s*>>|\\{\\{\\s*c:${CURRENT_PATH_TOKEN_SPEC_RE}\\s*\\}\\}|c:${CURRENT_PATH_TOKEN_SPEC_RE})$`,
+      'i',
+  ).exec(s.trim());
+  if (whole) {
+    const spec = whole[1] || whole[2] || whole[3];
+    return replaceSpec(spec, s);
+  }
+
+  s = s.replace(
+      new RegExp(`<<\\s*c:${CURRENT_PATH_TOKEN_SPEC_RE}\\s*>>`, 'gi'),
+      (match, spec: string) => replaceSpec(spec, match));
+  s = s.replace(
+      new RegExp(`\\{\\{\\s*c:${CURRENT_PATH_TOKEN_SPEC_RE}\\s*\\}\\}`, 'gi'),
+      (match, spec: string) => replaceSpec(spec, match));
+
+  // Bare `c:name` / `c:name(+1d)` as a full path segment.
+  return s.split(/([/\\])/).map((part) => {
+    const m = new RegExp(`^c:${CURRENT_PATH_TOKEN_SPEC_RE}$`, 'i').exec(part);
+    if (!m) {
+      return part;
+    }
+    return replaceSpec(m[1], part);
+  }).join('');
 }
