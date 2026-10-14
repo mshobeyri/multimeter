@@ -4,7 +4,11 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
-import { fieldForYamlSave, requestForSend } from "mmt-core/apiBodyEdit";
+import {
+  fieldForYamlSave,
+  requestForSend,
+  seedTokenFieldPreviewFromRequest,
+} from "mmt-core/apiBodyEdit";
 import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
@@ -51,6 +55,8 @@ interface UseAPITesterLogicParams {
   onUpdateApi?: (patch: Partial<APIData>) => void;
   filePath?: string;
   initialExampleIndex?: number;
+  /** Bump TokenFieldInput preview after r:/c: cache seed (open / telescope / Send). */
+  onRuntimePreviewSeeded?: () => void;
 }
 
 function clampExampleIndex(examples: unknown[] | undefined, index: number | undefined): number {
@@ -64,10 +70,18 @@ function clampExampleIndex(examples: unknown[] | undefined, index: number | unde
   return index;
 }
 
-export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIndex }: UseAPITesterLogicParams) {
+export function useAPITesterLogic({
+  api,
+  onUpdateApi,
+  filePath,
+  initialExampleIndex,
+  onRuntimePreviewSeeded,
+}: UseAPITesterLogicParams) {
   const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(() => readCachedBodyAutoFormat());
   const autoFormatBodyRef = useRef(autoFormatBody);
   autoFormatBodyRef.current = autoFormatBody;
+  const onRuntimePreviewSeededRef = useRef(onRuntimePreviewSeeded);
+  onRuntimePreviewSeededRef.current = onRuntimePreviewSeeded;
   const network = useNetwork(autoFormatBody);
   const apiRef = useRef<APIData>(api);
   const [requestData, setRequestData] = useState<Request>();
@@ -208,6 +222,11 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     );
   }, [api, loadEnvParameters]);
 
+  const seedPreviewFromResolved = useCallback((resolved: Request) => {
+    seedTokenFieldPreviewFromRequest(apiRef.current, resolved);
+    onRuntimePreviewSeededRef.current?.();
+  }, []);
+
   const prepareRequestData = useCallback((
     inputs?: JSONRecord,
     options?: {
@@ -215,13 +234,13 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       respectTouched?: boolean;
       /** Which UI parts to rewrite. Default `['all']`. Prefer narrower scopes (`env` / `url` / `body`) for partial updates. */
       scopes?: ApiUiRefreshScope[];
-      /** Fresh r:/c: samples (telescope on / explicit refresh). */
+      /** Fresh r:/c: samples (telescope on / open / explicit refresh). */
       refreshRuntimeTokens?: boolean;
     }
-  ) => {
+  ): Promise<Request | undefined> => {
     const scopes: ApiUiRefreshScope[] = options?.scopes ?? ["all"];
     if (isDocOnlyRefresh(scopes)) {
-      return;
+      return Promise.resolve(undefined);
     }
 
     if (options?.forceReset) {
@@ -231,15 +250,20 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const respectTouched = options?.respectTouched ?? true;
 
-    void (async () => {
+    return (async () => {
       const rface = await resolveFreshRequestData(resolvedInputs, {
         refreshRuntimeTokens: options?.refreshRuntimeTokens,
       });
       setRequestData((prev) =>
         applyScopedRequestData(prev, rface, scopes, touchedFieldsRef.current, respectTouched)
       );
+      // Coherent telescope snapshot: field preview matches body/requestData.
+      if (options?.refreshRuntimeTokens) {
+        seedPreviewFromResolved(rface);
+      }
+      return rface;
     })();
-  }, [resetTouchedFields, resolveFreshRequestData]);
+  }, [resetTouchedFields, resolveFreshRequestData, seedPreviewFromResolved]);
 
   const buildRequestForSend = useCallback(async (): Promise<Request> => {
     const fresh = await resolveFreshRequestData(undefined, { refreshRuntimeTokens: true });
@@ -251,6 +275,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       true
     );
     setRequestData(merged);
+    // Telescope UI shows the same r:/c: values that leave on this Send.
+    seedPreviewFromResolved(merged);
     const reqFormat = resolveRequestFormat(
       requestFormat(merged.format ?? apiRef.current.format),
       merged.headers,
@@ -259,7 +285,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     return {
       ...requestForSend(merged, reqFormat),
     };
-  }, [resolveFreshRequestData]);
+  }, [resolveFreshRequestData, seedPreviewFromResolved]);
 
   // Rebuild request UI when YAML/`api` changes. Example dropdown applies inputs
   // itself; input edits only sync the selected index (no reload).
@@ -334,7 +360,12 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
 
     const clonedInputs = cloneInputs(baseInputs);
     setCurrentInputs(clonedInputs);
-    prepareRequestData(clonedInputs, { forceReset, scopes });
+    // Full resets (open / major YAML change) mint a fresh coherent r:/c: snapshot.
+    prepareRequestData(clonedInputs, {
+      forceReset,
+      scopes,
+      refreshRuntimeTokens: forceReset,
+    });
   }, [api, examples, selectedExampleIdx, prepareRequestData]);
 
   useEffect(() => {
@@ -571,6 +602,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   }, []);
 
   // Response panel is filled only via multimeter.api.run.result from the extension.
+  // Send also echoes the wire `request` so telescope fields match what went out.
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       const message = event.data;
@@ -588,6 +620,27 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       sendPendingRef.current = false;
       if (message.cancelled) {
         return;
+      }
+      if (message.request && typeof message.request === "object") {
+        const wire = message.request as Request;
+        // Merge wire fields only — keep UI-only keys (format, graphql, …).
+        setRequestData((prev) => {
+          if (!prev) {
+            return wire;
+          }
+          return {
+            ...prev,
+            ...(wire.url != null ? { url: wire.url } : {}),
+            ...(wire.method != null ? { method: wire.method } : {}),
+            ...(wire.protocol != null ? { protocol: wire.protocol } : {}),
+            ...(wire.headers != null ? { headers: wire.headers } : {}),
+            ...(wire.query != null ? { query: wire.query } : {}),
+            ...(wire.cookies != null ? { cookies: wire.cookies } : {}),
+            ...(wire.body !== undefined ? { body: wire.body } : {}),
+            ...(typeof wire.timeout === "number" ? { timeout: wire.timeout } : {}),
+          };
+        });
+        seedPreviewFromResolved(wire);
       }
       if (message.apiTest && Array.isArray(message.apiTest.items)) {
         setApiTestResults(message.apiTest.items);
@@ -608,7 +661,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
 
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [filePath]);
+  }, [filePath, seedPreviewFromResolved]);
 
   return {
     requestData,

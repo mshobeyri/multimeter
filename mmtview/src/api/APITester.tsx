@@ -14,7 +14,6 @@ import { BodyViewValidationIndicator } from "../components/BodyViewToolbarContro
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
-  clearTokenFieldPreviewRandomCache,
   displayRequestBody,
   leafResolvesToOmit,
   packBodyAsYamlEncoded,
@@ -267,6 +266,18 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
   const { mmtFilePath, yamlErrors } = useContext(FileContext);
+  const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
+    const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
+    if (saved === "resolved" || saved === "tokens") {
+      return saved;
+    }
+    return "tokens";
+  });
+  /** Bumps TokenFieldInput after r:/c: preview cache seed (open / telescope / Send). */
+  const [tokenPreviewEpoch, setTokenPreviewEpoch] = useState(0);
+  const onRuntimePreviewSeeded = useCallback(() => {
+    setTokenPreviewEpoch((n) => n + 1);
+  }, []);
   const {
     requestData,
     responseData,
@@ -291,7 +302,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     network,
     examples,
     isSending,
-  } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath, initialExampleIndex });
+  } = useAPITesterLogic({
+    api,
+    onUpdateApi,
+    filePath: mmtFilePath,
+    initialExampleIndex,
+    onRuntimePreviewSeeded,
+  });
 
   const bodyValueContext = useMemo(
     () => ({ inputs: currentInputs, env: envValues }),
@@ -299,19 +316,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   );
   const [requestBodyToolbar, setRequestBodyToolbar] = useState<BodyViewToolbarState | null>(null);
   const [responseBodyToolbar, setResponseBodyToolbar] = useState<BodyViewToolbarState | null>(null);
-  const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
-    const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
-    if (saved === "resolved" || saved === "tokens") {
-      return saved;
-    }
-    return "tokens";
-  });
-  /** Bumps TokenFieldInput r: preview after cache clear (telescope on / Send). */
-  const [tokenPreviewEpoch, setTokenPreviewEpoch] = useState(0);
-  const refreshResolvedTokenPreview = useCallback(() => {
-    clearTokenFieldPreviewRandomCache();
-    setTokenPreviewEpoch((n) => n + 1);
-  }, []);
   const tokenModeState = useMemo(
     () => ({ mode: bodyTokenMode, previewEpoch: tokenPreviewEpoch }),
     [bodyTokenMode, tokenPreviewEpoch],
@@ -338,8 +342,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     bodyPackReadyRef.current = false;
     setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
     setBodyYamlEncodeError(false);
-    // Fresh r: field-preview samples for this document (telescope may already be on).
-    refreshResolvedTokenPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on file switch
   }, [mmtFilePath]);
 
@@ -952,8 +954,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     // Flush draft so resolved view / Send see the latest tokens.
     writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
-    // New r: samples for fields + body requestData (frozen until Send / toggle).
-    refreshResolvedTokenPreview();
+    // Fresh coherent r:/c: for body + field preview (frozen until next refresh/Send).
     prepareRequestData(undefined, {
       respectTouched: false,
       scopes: ["all"],
@@ -966,7 +967,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     writeBodyStorage,
     bodyEditDraft,
     bodyYamlEncodedManual,
-    refreshResolvedTokenPreview,
     prepareRequestData,
   ]);
 
@@ -977,18 +977,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
       });
     }
+    // After Send, telescope keeps the wire values (seeded from buildRequestForSend
+    // or host-echoed network-request) — do not mint new r:/c: here.
     await handleSend();
-    // Match Send: mint fresh r: field-preview samples for the next request.
-    if (bodyTokenMode === "resolved") {
-      refreshResolvedTokenPreview();
-    }
   }, [
     bodyTokenMode,
     bodyEditDraft,
     bodyYamlEncodedManual,
     writeBodyStorage,
     handleSend,
-    refreshResolvedTokenPreview,
   ]);
 
   const sendShortcutEnabled =

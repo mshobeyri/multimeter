@@ -36,6 +36,8 @@ export {
   peerStringToYaml,
   clearTokenFieldPreviewRandomCache,
   projectTokenFieldPreview,
+  seedTokenFieldPreviewFromResolved,
+  seedTokenFieldPreviewFromRequest,
   sourceToDisplayTokenTemplate,
   stringContainsFieldToken,
   wrapTypedTokenAtCursor,

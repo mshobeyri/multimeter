@@ -368,6 +368,8 @@ export async function handleRunCurrentDocument(
   const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
       ? message.rawFile
       : document.getText();
+  /** Last network-request payload for API Tester Send → telescope UI sync. */
+  let lastSentRequest: Record<string, unknown>|null = null;
 
   try {
     applyGitCurrentSnapshot(projectRoot || path.dirname(document.uri.fsPath));
@@ -397,6 +399,10 @@ export async function handleRunCurrentDocument(
       reporter: (msg: any) => {
         // API Tester Send only (`history: true`). Glyph / Run in Core skip History.
         if (message?.history === true) {
+          if (msg?.scope === 'network-request' && msg?.request &&
+              typeof msg.request === 'object') {
+            lastSentRequest = msg.request;
+          }
           addHistoryFromApiNetworkReport(mmtProvider?.historyManager, msg);
         }
         uiReporter.report({
@@ -426,12 +432,14 @@ export async function handleRunCurrentDocument(
 
     // API Send contract: one core round-trip. Post the same response the finish
     // log used so the Response panel / toolbar duration stay in sync.
+    // Echo the wire request on Send so telescope UI can show sent r:/c: values.
     if (docType === 'api') {
       postApiRunResult(
           webviewPanel, document.uri.toString(),
           cancelled ? null : buildApiTesterResponse(result.outputs),
           cancelled,
-          cancelled ? null : (result.apiTest ?? null));
+          cancelled ? null : (result.apiTest ?? null),
+          message?.history === true && !cancelled ? lastSentRequest : null);
       if (!cancelled) {
         getOnboarding()?.onApiRun(rawFile);
       }
@@ -500,13 +508,16 @@ export async function handleRunCurrentDocument(
 function postApiRunResult(
     webviewPanel: vscode.WebviewPanel, uri: string,
     response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean,
-    apiTest?: import('mmt-core/apiTestEval').ApiTestEvalResult | null) {
+    apiTest?: import('mmt-core/apiTestEval').ApiTestEvalResult | null,
+    request?: Record<string, unknown>|null) {
   webviewPanel.webview.postMessage({
     command: 'multimeter.api.run.result',
     uri,
     response,
     cancelled,
     apiTest: apiTest ?? null,
+    // Wire request from network-request (Send only) so telescope matches sent values.
+    request: request ?? null,
   });
 }
 

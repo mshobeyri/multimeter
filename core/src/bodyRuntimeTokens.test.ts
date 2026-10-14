@@ -40,6 +40,8 @@ import {
   peerRecordToDisplay,
   peerRecordToYaml,
   projectTokenFieldPreview,
+  seedTokenFieldPreviewFromResolved,
+  seedTokenFieldPreviewFromRequest,
   leafResolvesToOmit,
   stringContainsFieldToken,
   wrapTypedTokenAtCursor,
@@ -326,6 +328,40 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(a).not.toBe(b);
     expect(projectTokenFieldPreview('{{r:uuid}}/{{r:uuid}}', {env: {}, inputs: {}}).text)
         .toBe(text);
+  });
+
+  it('seeds r:/c: preview from resolved (wire) values', () => {
+    clearTokenFieldPreviewRandomCache();
+    seedTokenFieldPreviewFromResolved(
+        'Bearer {{r:uuid}} / {{c:day}}',
+        'Bearer wire-uuid / Monday',
+    );
+    const {text, spans} = projectTokenFieldPreview(
+        'Bearer {{r:uuid}} / {{c:day}}',
+        {env: {}, inputs: {}},
+    );
+    expect(text).toBe('Bearer wire-uuid / Monday');
+    expect(spans).toHaveLength(2);
+    expect(text.slice(spans[0].start, spans[0].end)).toBe('wire-uuid');
+    expect(text.slice(spans[1].start, spans[1].end)).toBe('Monday');
+  });
+
+  it('seeds from bare YAML source using display-form cache keys', () => {
+    clearTokenFieldPreviewRandomCache();
+    seedTokenFieldPreviewFromRequest(
+        {
+          url: 'https://x/{{r:uuid}}',
+          headers: {id: 'r:uuid'},
+        },
+        {
+          url: 'https://x/sent-url-id',
+          headers: {id: 'sent-header-id'},
+        },
+    );
+    expect(projectTokenFieldPreview('https://x/{{r:uuid}}', {env: {}, inputs: {}}).text)
+        .toBe('https://x/sent-url-id');
+    expect(projectTokenFieldPreview('{{r:uuid}}', {env: {}, inputs: {}}).text)
+        .toBe('sent-header-id');
   });
 
   it('resolves c:git_* in idle preview when a git snapshot is injected', () => {

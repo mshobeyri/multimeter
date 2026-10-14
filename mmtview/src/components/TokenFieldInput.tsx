@@ -126,7 +126,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
 
   const preview = useMemo(
     () => (hasTokens ? projectTokenFieldPreview(value, valueContext) : null),
-    // previewEpoch: rebuild after clearTokenFieldPreviewRandomCache (telescope / Send).
+    // previewEpoch: rebuild after r:/c: preview re-seed (open / telescope / Send).
     [hasTokens, value, valueContext, previewEpoch],
   );
 

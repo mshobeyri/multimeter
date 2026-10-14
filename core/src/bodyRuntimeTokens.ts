@@ -1326,15 +1326,31 @@ function lookupRuntimeResolvedValue(plainSpec: string): unknown {
 }
 
 /**
- * Frozen `r:` samples for telescope field preview.
- * Keyed by field source string → values in encounter order (unique per
- * occurrence, same as Send). Cleared when telescope turns on or after Send.
+ * Frozen runtime samples for telescope field preview.
+ * Keyed by field display/source string → r: (and optional seeded c:) values
+ * in encounter order. Cleared on telescope-on / open; replaced by seed after
+ * a coherent resolve or Send (wire values).
  */
-const tokenFieldPreviewRandomCache = new Map<string, unknown[]>();
+type TokenFieldPreviewCacheEntry = {
+  r: unknown[];
+  /** When set, `c:` uses these instead of live current values. */
+  c?: unknown[];
+};
 
-/** Drop frozen `r:` field-preview samples (telescope on / Send). */
+const tokenFieldPreviewRandomCache =
+    new Map<string, TokenFieldPreviewCacheEntry>();
+
+/** Drop frozen field-preview samples (telescope on / open / before re-seed). */
 export function clearTokenFieldPreviewRandomCache(): void {
   tokenFieldPreviewRandomCache.clear();
+}
+
+function cacheKeyForFieldSource(source: string): string {
+  const raw = String(source ?? '');
+  if (isLiteralTokenValue(raw)) {
+    return `"${unwrapLiteralToken(raw)}"`;
+  }
+  return peerStringToDisplay(raw);
 }
 
 function lookupCachedRandomForFieldPreview(
@@ -1342,17 +1358,122 @@ function lookupCachedRandomForFieldPreview(
     plain: string,
     occurrenceIndex: number,
     ): unknown {
-  let list = tokenFieldPreviewRandomCache.get(sourceKey);
-  if (!list) {
-    list = [];
-    tokenFieldPreviewRandomCache.set(sourceKey, list);
+  let entry = tokenFieldPreviewRandomCache.get(sourceKey);
+  if (!entry) {
+    entry = {r: []};
+    tokenFieldPreviewRandomCache.set(sourceKey, entry);
   }
-  if (occurrenceIndex < list.length) {
-    return list[occurrenceIndex];
+  if (occurrenceIndex < entry.r.length) {
+    return entry.r[occurrenceIndex];
   }
   const resolved = lookupRuntimeResolvedValue(plain);
-  list.push(resolved);
+  entry.r.push(resolved);
   return resolved;
+}
+
+function lookupCachedCurrentForFieldPreview(
+    sourceKey: string,
+    plain: string,
+    occurrenceIndex: number,
+    ): unknown {
+  const entry = tokenFieldPreviewRandomCache.get(sourceKey);
+  if (entry?.c && occurrenceIndex < entry.c.length) {
+    return entry.c[occurrenceIndex];
+  }
+  return lookupRuntimeResolvedValue(plain);
+}
+
+/**
+ * Seed frozen `r:` / `c:` preview values from a field's YAML (or display)
+ * source and the matching resolved value (wire or `resolveApiRequest`).
+ * Cache key matches {@link projectTokenFieldPreview} / TokenFieldInput.
+ */
+export function seedTokenFieldPreviewFromResolved(
+    source: unknown,
+    resolved: unknown,
+    ): void {
+  if (source == null || typeof source === 'object') {
+    return;
+  }
+  const sourceText = String(source);
+  if (!sourceText || isLiteralTokenValue(sourceText)) {
+    return;
+  }
+  const cacheKey = cacheKeyForFieldSource(sourceText);
+  const leaves: TokenResolvedLeaf[] = [];
+  walkTokenResolvedLeaves(sourceText, resolved, leaves);
+  const rList: unknown[] = [];
+  const cList: unknown[] = [];
+  let sawCurrent = false;
+  for (const leaf of leaves) {
+    const prefix = leaf.plain.charAt(0).toLowerCase();
+    if (prefix === 'r') {
+      rList.push(leaf.piece);
+    } else if (prefix === 'c') {
+      sawCurrent = true;
+      cList.push(leaf.piece);
+    }
+  }
+  if (rList.length === 0 && !sawCurrent) {
+    return;
+  }
+  tokenFieldPreviewRandomCache.set(cacheKey, {
+    r: rList,
+    ...(sawCurrent ? {c: cList} : {}),
+  });
+}
+
+function seedTokenFieldPreviewRecord(
+    source?: Record<string, unknown>|null,
+    resolved?: Record<string, unknown>|null,
+    ): void {
+  if (!source || typeof source !== 'object') {
+    return;
+  }
+  const res = resolved && typeof resolved === 'object' ? resolved : {};
+  for (const key of Object.keys(source)) {
+    if (!Object.prototype.hasOwnProperty.call(res, key)) {
+      continue;
+    }
+    seedTokenFieldPreviewFromResolved(source[key], res[key]);
+  }
+}
+
+/**
+ * Clear and re-seed field-preview caches from an API YAML model + resolved
+ * request so telescope fields match body/`requestData` (open / telescope-on /
+ * Send).
+ */
+export function seedTokenFieldPreviewFromRequest(
+    source: {
+      url?: unknown;
+      headers?: Record<string, unknown>|null;
+      query?: Record<string, unknown>|null;
+      cookies?: Record<string, unknown>|null;
+      graphql?: {operation?: unknown}|null;
+    }|null|undefined,
+    resolved: {
+      url?: unknown;
+      headers?: Record<string, unknown>|null;
+      query?: Record<string, unknown>|null;
+      cookies?: Record<string, unknown>|null;
+      graphql?: {operation?: unknown}|null;
+    }|null|undefined,
+    ): void {
+  clearTokenFieldPreviewRandomCache();
+  if (!source || !resolved) {
+    return;
+  }
+  if (source.url != null) {
+    seedTokenFieldPreviewFromResolved(source.url, resolved.url);
+  }
+  seedTokenFieldPreviewRecord(source.headers, resolved.headers);
+  seedTokenFieldPreviewRecord(source.query, resolved.query);
+  seedTokenFieldPreviewRecord(source.cookies, resolved.cookies);
+  if (source.graphql?.operation != null) {
+    seedTokenFieldPreviewFromResolved(
+        source.graphql.operation, resolved.graphql?.operation);
+  }
 }
 
 /**
@@ -1399,9 +1520,10 @@ export function leafResolvesToOmit(
 /**
  * Idle preview for a token-capable field (telescope / resolved mode):
  * - `{{i:}}` / `{{e:}}` → resolved values (span kind `resolved`)
- * - `{{c:}}` → resolved current values (same as Send / body requestData preview)
+ * - `{{c:}}` → live current values, or seeded wire/resolve snapshot when
+ *   {@link seedTokenFieldPreviewFromResolved} ran
  * - `{{r:}}` → frozen samples (stable until
- *   {@link clearTokenFieldPreviewRandomCache} — telescope on / Send)
+ *   {@link clearTokenFieldPreviewRandomCache} — telescope on / open)
  * - Unresolved i:/e: stay as the plain token text `i:name` / `e:name`
  */
 export function projectTokenFieldPreview(
@@ -1420,6 +1542,7 @@ export function projectTokenFieldPreview(
   let last = 0;
   let match: RegExpExecArray|null;
   let randomOccurrence = 0;
+  let currentOccurrence = 0;
   while ((match = re.exec(template)) !== null) {
     if (match.index > last) {
       text += template.slice(last, match.index);
@@ -1437,7 +1560,9 @@ export function projectTokenFieldPreview(
           raw, plain, randomOccurrence);
       randomOccurrence += 1;
     } else if (prefix === 'c') {
-      resolved = lookupRuntimeResolvedValue(plain);
+      resolved = lookupCachedCurrentForFieldPreview(
+          raw, plain, currentOccurrence);
+      currentOccurrence += 1;
     } else {
       resolved = lookupIeResolvedValue(plain, ctx);
     }
