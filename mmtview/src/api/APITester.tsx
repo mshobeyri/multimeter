@@ -467,7 +467,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   // Resolved preview shows substituted i:/e:/r:/c: values. Token mode uses a
   // separate BodyView with {{…}} markers (own Ctrl+Z stack).
   // Omit leaves are already dropped by resolveApiRequest → requestData.body.
-  // Send uses this same requestData snapshot (no remint) so telescope stays true.
+  // After Send, requestData holds the reminted snapshot that was sent.
   const requestBodyDisplay = useMemo(() => {
     return displayRequestBody(
       requestData?.body ?? api.body ?? "",
@@ -978,7 +978,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
       });
     }
-    // Send uses the frozen telescope snapshot (no remint on click).
+    // Send remints r:/c: into the snapshot, then sends those values.
     await handleSend();
   }, [
     bodyTokenMode,

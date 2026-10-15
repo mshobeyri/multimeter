@@ -5,8 +5,8 @@ import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
 import {
+  buildApiTesterSendRequest,
   fieldForYamlSave,
-  requestForSend,
   seedTokenFieldPreviewFromRequest,
 } from "mmt-core/apiBodyEdit";
 import { apiToYaml } from "mmt-core/apiParsePack";
@@ -268,25 +268,22 @@ export function useAPITesterLogic({
   }, [resetTouchedFields, resolveFreshRequestData, seedPreviewFromResolved]);
 
   /**
-   * Telescope snapshot for Send — same r:/c: values the UI shows.
-   * Remint only when no snapshot exists yet (before open/telescope resolve).
+   * Remint r:/c: into the telescope snapshot, then return the wire request.
+   * Each Send gets fresh samples; UI preview is seeded to those same values
+   * so telescope matches what leaves on the wire (no second core remint).
    */
   const buildRequestForSend = useCallback(async (): Promise<Request> => {
-    let snapshot = requestDataRef.current;
-    if (!snapshot) {
-      snapshot = await resolveFreshRequestData(undefined, { refreshRuntimeTokens: true });
-      setRequestData(snapshot);
-      seedPreviewFromResolved(snapshot);
-    }
-    const reqFormat = resolveRequestFormat(
-      requestFormat(snapshot.format ?? apiRef.current.format),
-      snapshot.headers,
-      snapshot.method ?? apiRef.current.method,
+    const envParameters = await loadEnvParameters();
+    setEnvValues(envParameters);
+    const { resolved, sendRequest } = buildApiTesterSendRequest(
+      apiRef.current,
+      currentInputsRef.current,
+      envParameters,
     );
-    return {
-      ...requestForSend(snapshot, reqFormat),
-    };
-  }, [resolveFreshRequestData, seedPreviewFromResolved]);
+    setRequestData(resolved);
+    onRuntimePreviewSeededRef.current?.();
+    return sendRequest;
+  }, [loadEnvParameters]);
 
   // Rebuild request UI when YAML/`api` changes. Example dropdown applies inputs
   // itself; input edits only sync the selected index (no reload).
@@ -471,7 +468,8 @@ export function useAPITesterLogic({
   // HTTP/GraphQL/gRPC: run the live-synced YAML (same as glyph). History comes
   // from core network-* reporter events on the extension. WS still uses the
   // live socket with a resolved request.
-  // API Tester Send also passes resolvedRequest = telescope snapshot (no remint).
+  // API Tester Send passes resolvedRequest (reminted snapshot) so core does
+  // not mint a second set of r:/c: values.
   const runViaCore = useCallback(async (opts: {
     forSend: boolean;
     resolvedRequest?: Request;

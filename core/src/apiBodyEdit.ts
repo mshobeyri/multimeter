@@ -1,7 +1,9 @@
-import {Format} from './CommonData';
-import {AuthConfig} from './APIData';
+import {Format, JSONRecord, requestFormat} from './CommonData';
+import {APIData, AuthConfig} from './APIData';
 import {Request} from './NetworkData';
 import {applyAuthToRequest} from './apiParsePack';
+import {resolveRequestFormat} from './formatResolve';
+import {resolveApiRequest} from './resolveApiRequest';
 import {
   projectBodyKeepingRuntimeTokens,
   rewriteAllLeavesToDisplayText,
@@ -11,6 +13,7 @@ import {
   displayTokensToResolvableDeep,
   displayRuntimeStringRecord,
   displayRuntimeString,
+  seedTokenFieldPreviewFromRequest,
   sourceToDisplayTokenTemplate,
   valueForYamlSave,
   type RuntimeTokenValueContext,
@@ -411,4 +414,39 @@ export function displayRequestStringRecord(
     return displayRuntimeStringRecord(resolved, undefined);
   }
   return displayRuntimeStringRecord(resolved, source);
+}
+
+/**
+ * Mint a fresh API Tester Send snapshot.
+ * Always remints r:/c: and seeds telescope preview to those values.
+ */
+export function mintApiTesterResolvedRequest(
+    api: APIData,
+    inputs: JSONRecord = {},
+    env: JSONRecord = {},
+    ): Request {
+  const resolved = resolveApiRequest(api, inputs, env, {
+    refreshRuntimeTokens: true,
+    preserveStructuredBody: true,
+  });
+  seedTokenFieldPreviewFromRequest(api, resolved);
+  return resolved;
+}
+
+/** Wire payload for Send — reminted + telescope-seeded. */
+export function buildApiTesterSendRequest(
+    api: APIData,
+    inputs: JSONRecord = {},
+    env: JSONRecord = {},
+    ): {resolved: Request; sendRequest: Request} {
+  const resolved = mintApiTesterResolvedRequest(api, inputs, env);
+  const reqFormat = resolveRequestFormat(
+      requestFormat(resolved.format ?? api.format),
+      resolved.headers as Record<string, string>|undefined,
+      resolved.method ?? api.method,
+  );
+  return {
+    resolved,
+    sendRequest: requestForSend(resolved, reqFormat),
+  };
 }
