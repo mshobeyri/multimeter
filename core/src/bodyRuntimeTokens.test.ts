@@ -564,6 +564,78 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(rTips).toEqual([rw, rws]);
   });
 
+  it('body hover tips match the wire in xml and urlencoded, not a reminted sample', () => {
+    const rw = 'ee063e87-bde6-4b14-a134-9be627222e82';
+    const rws = '9fb2a5b5-cfe8-484e-84a3-5658c800faf6';
+    const stamp = '2026-10-15T20:04:17Z';
+    const tokenSource = {
+      created_utc: 'c:utc_datetime',
+      rw: 'r:uuid',
+      rws: 'r:uuid',
+    };
+    const resolvedBody = {created_utc: stamp, rw, rws};
+
+    const xmlDisplay = [
+      '<request>',
+      '  <created_utc>{{c:utc_datetime}}</created_utc>',
+      '  <rw>{{r:uuid}}</rw>',
+      '  <rws>{{r:uuid}}</rws>',
+      '</request>',
+    ].join('\n');
+    const xmlSpans = findBodyTokenHoverSpans(xmlDisplay, {
+      tokenSource,
+      resolvedBody,
+    });
+    expect(xmlSpans.some(
+               (s) => xmlDisplay.slice(s.start, s.end) === '{{r:uuid}}' &&
+                   s.tooltip === rw))
+        .toBe(true);
+    expect(xmlSpans.some(
+               (s) => xmlDisplay.slice(s.start, s.end) === '{{r:uuid}}' &&
+                   s.tooltip === rws))
+        .toBe(true);
+    expect(xmlSpans.some(
+               (s) => xmlDisplay.slice(s.start, s.end) === '{{c:utc_datetime}}' &&
+                   s.tooltip === stamp))
+        .toBe(true);
+
+    const urlDisplay =
+        'created_utc={{c:utc_datetime}}&rw={{r:uuid}}&rws={{r:uuid}}';
+    const urlSpans = findBodyTokenHoverSpans(urlDisplay, {
+      tokenSource,
+      resolvedBody,
+    });
+    expect(urlSpans.some(
+               (s) => urlDisplay.slice(s.start, s.end) === '{{r:uuid}}' &&
+                   s.tooltip === rw))
+        .toBe(true);
+    expect(urlSpans.some(
+               (s) => urlDisplay.slice(s.start, s.end) === '{{r:uuid}}' &&
+                   s.tooltip === rws))
+        .toBe(true);
+  });
+
+  it('seeded body cache is format-independent (xml and urlencoded buffers)', () => {
+    clearTokenFieldPreviewRandomCache();
+    const rw = 'ee063e87-bde6-4b14-a134-9be627222e82';
+    const rws = '9fb2a5b5-cfe8-484e-84a3-5658c800faf6';
+    const stamp = '2026-10-15T20:04:17Z';
+    seedTokenFieldPreviewFromRequest(
+        {body: {stamp: 'c:time', rw: 'r:uuid', rws: 'r:uuid'}},
+        {body: {stamp, rw, rws}},
+    );
+    const xmlDisplay = '<rw>{{r:uuid}}</rw><rws>{{r:uuid}}</rws>';
+    expect(findDisplayTokenCharRanges(xmlDisplay, {inputs: {}, env: {}})
+               .filter((s) => xmlDisplay.slice(s.start, s.end) === '{{r:uuid}}')
+               .map((s) => s.tooltip))
+        .toEqual([rw, rws]);
+    const urlDisplay = 'rw={{r:uuid}}&rws={{r:uuid}}';
+    expect(findDisplayTokenCharRanges(urlDisplay, {inputs: {}, env: {}})
+               .filter((s) => urlDisplay.slice(s.start, s.end) === '{{r:uuid}}')
+               .map((s) => s.tooltip))
+        .toEqual([rw, rws]);
+  });
+
   it('pins short c: slice highlights to their own JSON field, not a sibling prefix', () => {
     const display =
         '{\n  "curly_whole": "Amsterdam",\n  "text_slice": "Ams"\n}';
