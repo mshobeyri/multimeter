@@ -1,5 +1,5 @@
-import {LogLevel} from 'mmt-core/CommonData';
-import type {GitCurrentSnapshot} from 'mmt-core/Current';
+import {LogLevel} from 'mmt-core/data/CommonData';
+import type {GitCurrentSnapshot} from 'mmt-core/tokens/Current';
 import {SuiteTreeNode} from './suite/test/suiteHierarchy';
 
 let lastFileContentResolver: ((content: string) => void)|null = null;

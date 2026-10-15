@@ -1,4 +1,4 @@
-import {durationToJsMsExpr, fileType, isDurationExpression, normalizeTokenName, orderInputKeysForDefaults, parseDurationString, timeUnitToMs, toInputsParams, toLowerUnderscore} from '../JSerHelper';
+import {durationToJsMsExpr, fileType, isDurationExpression, normalizeTokenName, orderInputKeysForDefaults, parseDurationString, timeUnitToMs, toInputsParams, toLowerUnderscore} from './JSerHelper';
 
 describe('fileType', () => {
   test('reads the document type line, not auth type: api-key', () => {

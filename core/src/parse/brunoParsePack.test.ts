@@ -1,6 +1,6 @@
-import {detectDocType} from '../runCommon';
-import {generateTestJs, isSerializedMmtTest} from '../runTest';
-import {testToYaml} from '../testParsePack';
+import {detectDocType} from '../runner/runCommon';
+import {generateTestJs, isSerializedMmtTest} from '../runner/runTest';
+import {testToYaml} from './testParsePack';
 import {
   brunoCollectionToTest,
   brunoRequestSeq,
@@ -13,7 +13,7 @@ import {
   parseBrunoDocument,
   sortBrunoSourceFiles,
   validateBrunoDocument,
-} from '../brunoParsePack';
+} from './brunoParsePack';
 
 const SOURCE_BRU = `meta {
   name: Create user

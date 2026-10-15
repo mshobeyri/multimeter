@@ -1,4 +1,4 @@
-import { opsList } from 'mmt-core/TestData';
+import { opsList } from 'mmt-core/data/TestData';
 
 type TagHandleRule = [RegExp, string];
 

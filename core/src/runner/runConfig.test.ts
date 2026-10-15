@@ -1,4 +1,4 @@
-import * as runConfig from '../runConfig';
+import * as runConfig from './runConfig';
 
 describe('runConfig helpers', () => {
   it('merges inputs with correct priority', () => {

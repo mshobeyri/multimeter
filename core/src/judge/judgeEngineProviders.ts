@@ -1,5 +1,5 @@
-import {JudgeData, JudgeRequest, JudgeResult} from '../JudgeData';
-import {appendQuery, buildJudgeAuth, resolveJudgeBaseUrl} from '../judgeAuth';
+import {JudgeData, JudgeRequest, JudgeResult} from '../data/JudgeData';
+import {appendQuery, buildJudgeAuth, resolveJudgeBaseUrl} from './judgeAuth';
 import {
   JudgeEngine,
   JudgeHttpPost,
@@ -9,7 +9,7 @@ import {
   registerJudgeEngine,
   resolveJudgeHttpPost,
   resolveJudgeTimeoutMs,
-} from '../judgeEngine';
+} from './judgeEngine';
 
 export function extractJudgeHttpErrorMessage(body: unknown): string {
   let parsed = body;

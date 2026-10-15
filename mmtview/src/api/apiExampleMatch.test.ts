@@ -1,4 +1,4 @@
-import { ExampleData } from "mmt-core/APIData";
+import { ExampleData } from "mmt-core/data/APIData";
 import { findMatchingExampleIndex, inputsEqual } from "./apiExampleMatch";
 
 describe("inputsEqual", () => {

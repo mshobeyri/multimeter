@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as tls from 'tls';
 
-import {yamlToEnv} from '../envParsePack';
+import {yamlToEnv} from '../parse/envParsePack';
 
 describe('PKCS#12 certificate examples', () => {
   const mockCertDir = path.resolve(

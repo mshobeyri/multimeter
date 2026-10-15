@@ -1,7 +1,7 @@
-import parseYaml, {packYaml, parseYamlStrict} from '../markupConvertor';
-import {quoteExpectOperators} from '../expectOperatorYaml';
-import {isNonEmptyList, isNonEmptyObject} from '../safer';
-import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from '../TestData';
+import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
+import {quoteExpectOperators} from './expectOperatorYaml';
+import {isNonEmptyList, isNonEmptyObject} from '../util/safer';
+import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from '../data/TestData';
 
 /**
  * Canonical key orders for each step type.
@@ -75,7 +75,7 @@ const VALID_STEP_KEYS: Record<string, Set<string>> = {
 /** Canonical key order for stage items. */
 export const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'after', 'steps'];
 
-export {quoteExpectOperators} from '../expectOperatorYaml';
+export {quoteExpectOperators} from './expectOperatorYaml';
 
 /**
  * Reorder the keys of an object according to a canonical order.
@@ -147,7 +147,7 @@ function reorderStages(stages: any[]): any[] {
   });
 }
 
-import {normalizeIncompleteYamlScalar} from '../yamlIncompleteScalar';
+import {normalizeIncompleteYamlScalar} from './yamlIncompleteScalar';
 
 /**
  * Recover partial/incomplete YAML scalar values for call/http step fields.

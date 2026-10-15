@@ -1,6 +1,6 @@
-import {generateApiJs} from '../runApi';
-import {extractOutputs} from '../outputExtractor';
-import {applyOmitToRequest_} from '../testHelper';
+import {generateApiJs} from './runApi';
+import {extractOutputs} from '../extract/outputExtractor';
+import {applyOmitToRequest_} from './testHelper';
 
 describe('runApi output printing', () => {
   it('logs Outputs section in generated API JS', async () => {

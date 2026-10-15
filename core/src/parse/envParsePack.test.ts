@@ -1,5 +1,5 @@
-import {envToYaml, patchEnvYaml, yamlToEnv} from '../envParsePack';
-import {formatMmtYaml} from '../mmtFormat';
+import {envToYaml, patchEnvYaml, yamlToEnv} from './envParsePack';
+import {formatMmtYaml} from './mmtFormat';
 
 describe('envParsePack', () => {
   it('serializes env files in canonical root order', () => {

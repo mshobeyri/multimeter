@@ -2,7 +2,7 @@ import {
   CURRENT_FUTURE_PAST_ALIASES,
   CURRENT_TOKEN_MAP,
   currentTokenValueType,
-} from '../Current';
+} from './Current';
 import {
   isLiteralTokenValue,
   isPlainTokenScalar,
@@ -10,19 +10,19 @@ import {
   unwrapLiteralToken,
   unwrapQuotedTokenText,
   wrapLiteralToken,
-} from '../literalToken';
-import {isOmitSentinel, OMIT_SENTINEL} from '../omitKeyword';
-import {randomTokenValueType} from '../Random';
+} from './literalToken';
+import {isOmitSentinel, OMIT_SENTINEL} from './omitKeyword';
+import {randomTokenValueType} from './Random';
 import {
   ACCESSOR_PATH_RE,
   TOKEN_NAME_RE,
   applyValueAccessor,
   replaceAllRefs,
-} from '../variableReplacer';
+} from './variableReplacer';
 import {
   stringContainsRuntimeToken,
   type TextPositionRange,
-} from '../runtimeTokenUi';
+} from './runtimeTokenUi';
 
 /** Loose `(...)` so display/parse accept any args on r:/c: keyword shapes. */
 const RUNTIME_TOKEN_ARGS_LOOSE_RE = '(?:\\([^)]*\\))?';

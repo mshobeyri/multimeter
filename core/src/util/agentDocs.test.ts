@@ -3,7 +3,7 @@ import {
   formatAgentDocs,
   listAgentDocTopics,
   loadAgentDocSections,
-} from '../agentDocs';
+} from './agentDocs';
 
 describe('agentDocs', () => {
   it('lists the same topics for CLI and MCP (MCP omits offline)', () => {

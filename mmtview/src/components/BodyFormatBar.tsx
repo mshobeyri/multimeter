@@ -1,5 +1,5 @@
 import React from "react";
-import { RequestFormat } from "mmt-core/CommonData";
+import { RequestFormat } from "mmt-core/data/CommonData";
 import {
   BodyFormatSelect,
   REQUEST_BODY_FORMAT_MENU,

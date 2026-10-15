@@ -1,8 +1,8 @@
 import {xml2js} from 'xml-js';
 
-import {JSONRecord} from '../CommonData';
-import {OMIT_SENTINEL, isOmitSentinel} from '../omitKeyword';
-import {findXmlPathAtOffset, xmlBodyToExtractable} from '../xmlPath';
+import {JSONRecord} from '../data/CommonData';
+import {OMIT_SENTINEL, isOmitSentinel} from '../tokens/omitKeyword';
+import {findXmlPathAtOffset, xmlBodyToExtractable} from './xmlPath';
 
 export interface ResponseData {
   type: 'xml'|'json'|'text'|'auto';

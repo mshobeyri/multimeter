@@ -3,7 +3,7 @@
  * imports here so this file is trivially unit-testable.
  */
 
-import type { TestData } from 'mmt-core/TestData';
+import type { TestData } from 'mmt-core/data/TestData';
 
 export type NodeKind =
   | 'start'

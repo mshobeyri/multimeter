@@ -4,8 +4,8 @@ import {
   packFormatSpec,
   requestFormat,
   responseFormat,
-} from '../CommonData';
-import {apiToYaml, yamlToAPI, yamlToAPIStrict} from '../apiParsePack';
+} from '../data/CommonData';
+import {apiToYaml, yamlToAPI, yamlToAPIStrict} from '../parse/apiParsePack';
 
 describe('FormatSpec helpers', () => {
   it('treats a scalar format as request-only; response defaults to auto', () => {

@@ -1,14 +1,14 @@
-import { APIData } from "mmt-core/APIData";
-import { JSONRecord } from "mmt-core/CommonData";
-import { Request } from "mmt-core/NetworkData";
-import { buildApiTesterSendRequest } from "mmt-core/apiBodyEdit";
-import { apiToYaml } from "mmt-core/apiParsePack";
-import { resolveApiHttpMethod } from "mmt-core/apiMethod";
+import { APIData } from "mmt-core/data/APIData";
+import { JSONRecord } from "mmt-core/data/CommonData";
+import { Request } from "mmt-core/data/NetworkData";
+import { buildApiTesterSendRequest } from "mmt-core/api-edit/apiBodyEdit";
+import { apiToYaml } from "mmt-core/parse/apiParsePack";
+import { resolveApiHttpMethod } from "mmt-core/network/apiMethod";
 import {
   setGitCurrentSnapshot,
   textMayNeedGitCurrentSnapshot,
   type GitCurrentSnapshot,
-} from "mmt-core/Current";
+} from "mmt-core/tokens/Current";
 import { protocolResolver } from "mmt-core";
 
 /** Resolves `null` on timeout / no reply (keep the previous snapshot). */

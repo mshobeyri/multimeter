@@ -1,5 +1,5 @@
 
-import {resolveProtocolFromUrl} from '../protocolResolver';
+import {resolveProtocolFromUrl} from '../network/protocolResolver';
 import {
   APIData,
   ApiTestBlock,
@@ -9,7 +9,7 @@ import {
   GrpcConfig,
   exampleExpect,
   exampleId,
-} from '../APIData';
+} from '../data/APIData';
 import {
   FORMAT_VALUES,
   Format,
@@ -20,11 +20,11 @@ import {
   RequestFormat,
   RESPONSE_FORMAT_VALUES,
   ResponseFormat,
-} from '../CommonData';
-import parseYaml, {packYaml, parseYamlStrict} from '../markupConvertor';
-import {isNonEmptyList, isNonEmptyObject, safeList} from '../safer';
-import type {ExpectMap} from '../TestData';
-import {coerceYamlString} from '../yamlIncompleteScalar';
+} from '../data/CommonData';
+import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
+import {isNonEmptyList, isNonEmptyObject, safeList} from '../util/safer';
+import type {ExpectMap} from '../data/TestData';
+import {coerceYamlString} from './yamlIncompleteScalar';
 
 /** Valid root-level keys for type: api files. */
 const VALID_API_ROOT_KEYS = new Set([

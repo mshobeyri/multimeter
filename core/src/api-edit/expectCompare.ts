@@ -39,14 +39,14 @@ import {
   timeEquals_,
   trimEquals_,
   trimEqualsIgnoreCase_,
-} from '../testHelper';
-import {currentValueForToken} from '../Current';
-import {randomTokenExpectPattern, valueMatchesRandomToken} from '../Random';
-import {parseExpectValue} from '../JSerTestFlow';
-import {isLiteralTokenValue, unwrapLiteralToken} from '../literalToken';
-import {isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isTimeAnyOperator, getTimeOperatorBase, getTimeOperatorVelocity, DEFAULT_FUZZY_PERCENT, ExpectValue} from '../TestData';
-import {isOmitSentinel} from '../omitKeyword';
-import {applyValueAccessor} from '../variableReplacer';
+} from '../runner/testHelper';
+import {currentValueForToken} from '../tokens/Current';
+import {randomTokenExpectPattern, valueMatchesRandomToken} from '../tokens/Random';
+import {parseExpectValue} from '../jser/JSerTestFlow';
+import {isLiteralTokenValue, unwrapLiteralToken} from '../tokens/literalToken';
+import {isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isTimeAnyOperator, getTimeOperatorBase, getTimeOperatorVelocity, DEFAULT_FUZZY_PERCENT, ExpectValue} from '../data/TestData';
+import {isOmitSentinel} from '../tokens/omitKeyword';
+import {applyValueAccessor} from '../tokens/variableReplacer';
 
 /**
  * Evaluate `actual <op> expected` using the same helpers as generated check/expect code.

@@ -1,7 +1,7 @@
-import {OMIT_SENTINEL} from '../omitKeyword';
-import {yamlToAPI} from '../apiParsePack';
-import {CREATE_API_LOG_HELPERS_SOURCE} from '../apiLogHelpersFactorySource';
-import {ApiLogRawValue, createApiLogHelpers, executeApi, generateApiJs, prepareApiRun, resolveApiExample} from '../runApi';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
+import {yamlToAPI} from '../parse/apiParsePack';
+import {CREATE_API_LOG_HELPERS_SOURCE} from '../api-edit/apiLogHelpersFactorySource';
+import {ApiLogRawValue, createApiLogHelpers, executeApi, generateApiJs, prepareApiRun, resolveApiExample} from './runApi';
 
 describe('createApiLogHelpers', () => {
   it('keeps baked factory source in sync for pkg embedding', () => {

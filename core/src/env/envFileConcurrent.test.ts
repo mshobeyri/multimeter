@@ -1,4 +1,4 @@
-jest.mock('../networkCoreNode', () => {
+jest.mock('../network/networkCoreNode', () => {
   const sentRequests: any[] = [];
   return {
     sentRequests,
@@ -21,9 +21,9 @@ jest.mock('../networkCoreNode', () => {
   };
 });
 
-import {createEnvStore} from '../envStore';
-import {runFile} from '../runner';
-import {runJSCode} from '../jsRunner';
+import {createEnvStore} from './envStore';
+import {runFile} from '../runner/runner';
+import {runJSCode} from '../runner/jsRunner';
 
 describe('concurrent file-backed env reads', () => {
   it('sequential e:session_test then e:session_api both resolve', async () => {

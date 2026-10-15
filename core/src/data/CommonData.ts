@@ -124,7 +124,7 @@ export const jsonTypes = [
 ];
 
 /** Gallery / new-file type picker — labels and values from shared {@link MMT_FILE_TYPES}. */
-export {MMT_FILE_TYPE_OPTIONS as typeOptions} from '../mmtFileType';
+export {MMT_FILE_TYPE_OPTIONS as typeOptions} from '../parse/mmtFileType';
 
 export interface MMTFile {
   type: Type;

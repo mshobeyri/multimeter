@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
-import { safeList } from "mmt-core/safer";
-import { JSONRecord } from "mmt-core/CommonData";
+import { safeList } from "mmt-core/util/safer";
+import { JSONRecord } from "mmt-core/data/CommonData";
 import {
   yamlValueToInputBoxWithTokens,
   inputBoxToYamlValueWithTokens,
@@ -9,8 +9,8 @@ import {
 import {
   isIncompleteJsonLiteral,
   yamlValueTypeLabel,
-} from "mmt-core/yamlValueConvert";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+} from "mmt-core/parse/yamlValueConvert";
+import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,

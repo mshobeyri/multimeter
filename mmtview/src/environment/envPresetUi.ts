@@ -1,5 +1,5 @@
-import type {JSONValue} from 'mmt-core/CommonData';
-import type {EnvPresetMapping, EnvPresets, EnvPresetValue} from 'mmt-core/EnvData';
+import type {JSONValue} from 'mmt-core/data/CommonData';
+import type {EnvPresetMapping, EnvPresets, EnvPresetValue} from 'mmt-core/data/EnvData';
 import {coerceEnvScalar, isEnvScalar} from './envVariableUi';
 
 export type EnvPresetEnvBoard = {

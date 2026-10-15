@@ -1,5 +1,5 @@
-import { buildReportTree, parentSuiteNodeId, isGroupRun } from '../reportTree';
-import type { TestRunResult } from '../reportCollector';
+import { buildReportTree, parentSuiteNodeId, isGroupRun } from './reportTree';
+import type { TestRunResult } from './reportCollector';
 
 function makeRun(overrides: Partial<TestRunResult> = {}): TestRunResult {
   return {

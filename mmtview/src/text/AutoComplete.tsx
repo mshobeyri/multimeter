@@ -1,11 +1,11 @@
 import { loadEnvVariables } from '../workspaceStorage';
-import { JSONValue } from 'mmt-core/CommonData';
+import { JSONValue } from 'mmt-core/data/CommonData';
 import { Random, Current } from 'mmt-core';
 import {
     builtinJudgeCheckIdsCsv,
     builtinJudgeDefaultsChecksYaml,
     builtinJudgeEvalSuggestions,
-} from 'mmt-core/judgeChecks';
+} from 'mmt-core/judge/judgeChecks';
 import { buildOperatorSuggestions, operatorListText } from './operatorSuggestions';
 
 export const KeySuggestionsByParent = (monaco: any) => {

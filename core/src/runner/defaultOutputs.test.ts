@@ -1,6 +1,6 @@
-import {apiToJSfunc} from '../JSerAPI';
-import {DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules} from '../outputExtractor';
-import {ImportTracker} from '../importTracker';
+import {apiToJSfunc} from '../jser/JSerAPI';
+import {DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules} from '../extract/outputExtractor';
+import {ImportTracker} from '../util/importTracker';
 
 describe('API default outputs in generated code', () => {
   it('generated API function includes default extraction rules', async () => {

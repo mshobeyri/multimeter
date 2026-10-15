@@ -1,11 +1,11 @@
-import {APIData} from '../APIData';
+import {APIData} from '../data/APIData';
 import {
   buildApiDetailsSummary,
   scaffoldTestFromApi,
   suggestAliasFromPath,
   suggestTestPath,
-} from '../testScaffold';
-import {validateTestData} from '../testParsePack';
+} from './testScaffold';
+import {validateTestData} from '../parse/testParsePack';
 
 const loginApi: APIData = {
   type: 'api',

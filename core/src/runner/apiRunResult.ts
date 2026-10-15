@@ -1,4 +1,4 @@
-import {Response} from '../NetworkData';
+import {Response} from '../data/NetworkData';
 
 /**
  * Build a webview/API-tester Response from API run outputs (`output_['_']`).

@@ -1,17 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import KSVEditor from "../components/KSVEditor";
-import { safeList } from "mmt-core/safer";
+import { safeList } from "mmt-core/util/safer";
 import PrimaryButton from "../components/PrimaryButton";
 import type { EnvPresets } from "./EnvironmentData";
-import type { JSONRecord } from "mmt-core/CommonData";
+import type { JSONRecord } from "mmt-core/data/CommonData";
 import {
   boardsToPresets,
   envPresetsSignature,
   presetsToBoards,
   type EnvPresetBoard,
 } from "./envPresetUi";
-import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
+import { isIncompleteJsonLiteral } from "mmt-core/parse/yamlValueConvert";
 
 interface EnvironmentPresetEditProps {
   presets: EnvPresets;

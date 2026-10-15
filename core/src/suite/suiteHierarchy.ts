@@ -1,23 +1,23 @@
-import type {FileLoader} from '../JSerFileLoader';
-import {detectDocType, resolveRelativeTo} from '../runCommon';
+import type {FileLoader} from '../jser/JSerFileLoader';
+import {detectDocType, resolveRelativeTo} from '../runner/runCommon';
 import {
   SuiteHierarchyNode,
   SuiteHierarchyRootNode,
   SuiteServerItemNode,
-} from '../SuiteData';
-import {splitSuiteGroups, yamlToSuite} from '../suiteParsePack';
-import {createSuiteNodeId} from '../suiteNodeId';
-import {peekTestMetaFromYaml} from '../testParsePack';
-import {peekApiMetaFromYaml} from '../apiParsePack';
-import {brunoToTest, isBrunoFilePath} from '../brunoParsePack';
-import {httpToTest, isHttpFilePath} from '../httpParsePack';
-import {yamlToMock} from '../mockParsePack';
+} from '../data/SuiteData';
+import {splitSuiteGroups, yamlToSuite} from '../parse/suiteParsePack';
+import {createSuiteNodeId} from './suiteNodeId';
+import {peekTestMetaFromYaml} from '../parse/testParsePack';
+import {peekApiMetaFromYaml} from '../parse/apiParsePack';
+import {brunoToTest, isBrunoFilePath} from '../parse/brunoParsePack';
+import {httpToTest, isHttpFilePath} from '../parse/httpParsePack';
+import {yamlToMock} from '../parse/mockParsePack';
 
 export type {
   SuiteHierarchyNode,
   SuiteHierarchyRootNode,
   SuiteServerItemNode,
-} from '../SuiteData';
+} from '../data/SuiteData';
 
 export type SuiteHierarchyFileLoader = FileLoader;
 

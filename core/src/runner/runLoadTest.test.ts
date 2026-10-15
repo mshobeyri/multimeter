@@ -1,6 +1,6 @@
-import {executeLoadTest} from '../runLoadTest';
-import {PreparedRun, RunFileResult} from '../runCommon';
-import {RunFileOptions} from '../runConfig';
+import {executeLoadTest} from './runLoadTest';
+import {PreparedRun, RunFileResult} from './runCommon';
+import {RunFileOptions} from './runConfig';
 
 function makePrepared(rawText: string): PreparedRun {
   return {

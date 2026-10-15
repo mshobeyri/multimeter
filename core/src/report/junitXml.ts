@@ -1,14 +1,14 @@
-import type { CollectedResults, TestRunResult, TestStepResult } from '../reportCollector';
-import {formatReportNumber, roundReportNumbersDeep} from '../reportFormat';
-import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from '../reportGitCommit';
-import {applyProjectRootPaths} from '../reportPaths';
-import {reportStepTitle} from '../reportStepTitle';
+import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import {formatReportNumber, roundReportNumbersDeep} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
+import {applyProjectRootPaths} from './reportPaths';
+import {reportStepTitle} from './reportStepTitle';
 import {
   buildReportTree,
   reportableRuns,
   visibleReportSteps,
   type ReportTreeNode,
-} from '../reportTree';
+} from './reportTree';
 
 export function escapeXml(s: string): string {
   return String(s)

@@ -1,6 +1,6 @@
-import {APIData} from '../APIData';
-import {formatBody} from '../markupConvertor';
-import {resolveApiRequest} from '../resolveApiRequest';
+import {APIData} from '../data/APIData';
+import {formatBody} from '../parse/markupConvertor';
+import {resolveApiRequest} from './resolveApiRequest';
 
 describe('resolveApiRequest', () => {
   const api = {

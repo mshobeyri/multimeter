@@ -29,7 +29,7 @@ import {
   setGitCurrentSnapshot,
   setGitCurrentSnapshotProvider,
   textMayNeedGitCurrentSnapshot,
-} from '../Current';
+} from './Current';
 
 function within(now: number, target: number, windowMs: number): boolean {
   return Math.abs(now - target) <= windowMs;

@@ -7,7 +7,7 @@ import {
   MockRequest,
   MockResponse,
   parseRequestBody,
-} from '../mockServer';
+} from './mockServer';
 
 export function parseMockUrl(urlStr: string): {
   pathname: string;

@@ -1,10 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import {convertToMmt, detectImportSource} from '../importConvertor';
-import {openApiToAPI} from '../openapiConvertor';
-import {yamlToAPIStrict} from '../apiParsePack';
-import {parseYamlStrict} from '../markupConvertor';
-import {apiToJSfunc} from '../JSerAPI';
+import {convertToMmt, detectImportSource} from './importConvertor';
+import {openApiToAPI} from './openapiConvertor';
+import {yamlToAPIStrict} from '../parse/apiParsePack';
+import {parseYamlStrict} from '../parse/markupConvertor';
+import {apiToJSfunc} from '../jser/JSerAPI';
 
 const fixturesDir = path.join(__dirname, '../fixtures/openapi/companies');
 

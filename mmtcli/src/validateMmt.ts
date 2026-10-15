@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import * as validateMmt from 'mmt-core/validateMmt';
+import * as validateMmt from 'mmt-core/util/validateMmt';
 
 export function validateMmtFile(filePath: string, expectedType?: string) {
   const content = fs.readFileSync(filePath, 'utf8');

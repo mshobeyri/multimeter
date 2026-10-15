@@ -1,4 +1,4 @@
-import {isMockEnvToken, isMockPortEnvToken, loadMockFromYaml, mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from '../mockParsePack';
+import {isMockEnvToken, isMockPortEnvToken, loadMockFromYaml, mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from './mockParsePack';
 
 describe('mockParsePack', () => {
   it('mockToYaml does not add title when missing', () => {

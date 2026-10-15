@@ -1,4 +1,4 @@
-import { TestData } from 'mmt-core/TestData';
+import { TestData } from 'mmt-core/data/TestData';
 import { buildTestGraph } from './buildTestGraph';
 import { FlowCallImportMap, FlowEdge, FlowGraph, FlowNode } from './types';
 

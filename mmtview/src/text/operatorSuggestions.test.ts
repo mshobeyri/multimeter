@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { selectableOpsList } from "mmt-core/TestData";
+import { selectableOpsList } from "mmt-core/data/TestData";
 import { buildOperatorSuggestions, operatorListText } from "./operatorSuggestions";
 
 describe("operator autocomplete suggestions", () => {

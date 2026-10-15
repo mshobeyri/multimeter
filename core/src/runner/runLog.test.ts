@@ -1,4 +1,4 @@
-import {logRunFinished} from '../runLog';
+import {logRunFinished} from './runLog';
 
 describe('logRunFinished', () => {
   it('logs success with duration', () => {

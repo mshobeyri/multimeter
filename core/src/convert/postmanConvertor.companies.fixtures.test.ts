@@ -1,14 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import {convertToMmt, detectImportSource} from '../importConvertor';
-import {postmanToAPI} from '../postmanConvertor';
-import {yamlToAPIStrict} from '../apiParsePack';
-import {parseYamlStrict} from '../markupConvertor';
-import {OMIT_SENTINEL} from '../omitKeyword';
-import {apiToJSfunc} from '../JSerAPI';
-import {yamlToTestStrict} from '../testParsePack';
-import {yamlToSuite} from '../suiteParsePack';
-import {yamlToEnv} from '../envParsePack';
+import {convertToMmt, detectImportSource} from './importConvertor';
+import {postmanToAPI} from './postmanConvertor';
+import {yamlToAPIStrict} from '../parse/apiParsePack';
+import {parseYamlStrict} from '../parse/markupConvertor';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
+import {apiToJSfunc} from '../jser/JSerAPI';
+import {yamlToTestStrict} from '../parse/testParsePack';
+import {yamlToSuite} from '../parse/suiteParsePack';
+import {yamlToEnv} from '../parse/envParsePack';
 
 const fixturesDir = path.join(__dirname, '../fixtures/postman/companies');
 

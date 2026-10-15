@@ -1,4 +1,4 @@
-import type { MmtFileType } from "mmt-core/mmtFileType";
+import type { MmtFileType } from "mmt-core/parse/mmtFileType";
 
 export type NotypeSampleType = MmtFileType;
 export type NotypeStarterType = Exclude<NotypeSampleType, "report">;

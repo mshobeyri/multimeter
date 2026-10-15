@@ -1,5 +1,5 @@
-import { APIData } from "mmt-core/APIData";
-import { Request } from "mmt-core/NetworkData";
+import { APIData } from "mmt-core/data/APIData";
+import { Request } from "mmt-core/data/NetworkData";
 
 /**
  * Scoped refresh for the API tester (right panel).

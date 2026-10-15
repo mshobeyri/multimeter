@@ -9,16 +9,16 @@ import * as http2 from 'http2';
 import * as https from 'https';
 import WebSocket from 'ws';
 
-import {BinaryBodyPayload, normalizeHttpResponseBody} from '../binaryBody';
-import {connectionTracker} from '../connectionTracker';
-import {resolveApiHttpMethod} from '../apiMethod';
-import {DEFAULT_NETWORK_CONFIG, findMatchingClientCertificate, HttpRequest, HttpResponse, NetworkConfig, Request, Response,} from '../NetworkData';
-import {isOmitSentinel} from '../omitKeyword';
-import {isTestAbortError, TestAbortError} from '../testHelper';
+import {BinaryBodyPayload, normalizeHttpResponseBody} from './binaryBody';
+import {connectionTracker} from './connectionTracker';
+import {resolveApiHttpMethod} from './apiMethod';
+import {DEFAULT_NETWORK_CONFIG, findMatchingClientCertificate, HttpRequest, HttpResponse, NetworkConfig, Request, Response,} from '../data/NetworkData';
+import {isOmitSentinel} from '../tokens/omitKeyword';
+import {isTestAbortError, TestAbortError} from '../runner/testHelper';
 
 // Re-export connectionTracker for use by extension
-export {connectionTracker} from '../connectionTracker';
-export type{ActiveConnection, ConnectionEvent, ConnectionEventListener} from '../connectionTracker';
+export {connectionTracker} from './connectionTracker';
+export type{ActiveConnection, ConnectionEvent, ConnectionEventListener} from './connectionTracker';
 
 /** True when the caller aborted the request (AbortSignal or Axios cancel). */
 function isAbortError(err: any, signal?: AbortSignal): boolean {

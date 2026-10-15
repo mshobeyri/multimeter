@@ -1,8 +1,8 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { parseYaml } from 'mmt-core/markupConvertor';
-import { suiteToYaml, yamlToSuite } from 'mmt-core/suiteParsePack';
-import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
-import { SuiteData, SuiteEnvironment, SuiteYamlFilter } from 'mmt-core/SuiteData';
+import { parseYaml } from 'mmt-core/parse/markupConvertor';
+import { suiteToYaml, yamlToSuite } from 'mmt-core/parse/suiteParsePack';
+import { parseSuiteYamlFilter } from 'mmt-core/suite/suiteTagFilter';
+import { SuiteData, SuiteEnvironment, SuiteYamlFilter } from 'mmt-core/data/SuiteData';
 import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';

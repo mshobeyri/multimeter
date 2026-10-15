@@ -1,7 +1,7 @@
 import * as YAML from 'yaml';
-import {EXPECT_OPERATOR_SAMPLES} from '../expectOperatorSamples';
-import { emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators } from '../expectOperatorYaml';
-import {opsList} from '../TestData';
+import {EXPECT_OPERATOR_SAMPLES} from './expectOperatorSamples';
+import { emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators } from './expectOperatorYaml';
+import {opsList} from '../data/TestData';
 
 describe('expectOperatorYaml', () => {
   it('quotes !^ operator in expect block', () => {

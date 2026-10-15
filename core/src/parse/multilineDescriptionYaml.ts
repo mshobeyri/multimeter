@@ -1,5 +1,5 @@
 import * as YAML from 'yaml';
-import { splitNormalizedLines } from '../textLines';
+import { splitNormalizedLines } from '../util/textLines';
 
 function isDescriptionKey(node: any): boolean {
   return node?.type === 'PLAIN' && node.value === 'description';

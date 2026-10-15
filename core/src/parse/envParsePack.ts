@@ -1,5 +1,5 @@
-import parseYaml, {packYaml, parseYamlDoc, stringifyYamlDocument} from '../markupConvertor';
-import {setYamlRoot} from '../yamlAstMerge';
+import parseYaml, {packYaml, parseYamlDoc, stringifyYamlDocument} from './markupConvertor';
+import {setYamlRoot} from './yamlAstMerge';
 import {
   EnvCaCertificate,
   EnvCertificates,
@@ -8,8 +8,8 @@ import {
   EnvScalar,
   EnvSetting,
   EnvVariableValue,
-} from '../EnvData';
-import {isNonEmptyObject} from '../safer';
+} from '../data/EnvData';
+import {isNonEmptyObject} from '../util/safer';
 
 const VALID_ENV_ROOT_KEYS = new Set([
   'type', 'import', 'variables', 'presets', 'setting', 'certificates',

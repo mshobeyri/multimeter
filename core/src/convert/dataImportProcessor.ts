@@ -1,9 +1,9 @@
-import {parseCsv} from '../csvConvertor';
-import {resolveRequestedAgainst} from '../fileHelper';
-import parseYaml, {packYaml, parseYamlStrict} from '../markupConvertor';
-import {applyValueAccessor, ACCESSOR_PATH_RE, TOKEN_NAME_RE} from '../variableReplacer';
+import {parseCsv} from './csvConvertor';
+import {resolveRequestedAgainst} from '../util/fileHelper';
+import parseYaml, {packYaml, parseYamlStrict} from '../parse/markupConvertor';
+import {applyValueAccessor, ACCESSOR_PATH_RE, TOKEN_NAME_RE} from '../tokens/variableReplacer';
 
-import type {FileLoader} from '../JSerFileLoader';
+import type {FileLoader} from '../jser/JSerFileLoader';
 
 export type DataFileLoader = FileLoader;
 export type SyncDataFileLoader = (path: string) => string;

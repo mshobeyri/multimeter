@@ -1,6 +1,6 @@
-import {runJSCode} from '../jsRunner';
+import {runJSCode} from './jsRunner';
 
-jest.mock('../networkCoreNode', () => ({
+jest.mock('../network/networkCoreNode', () => ({
   send: jest.fn(async () => ({
     status: 200,
     statusText: 'OK',

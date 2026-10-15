@@ -1,4 +1,4 @@
-import {formatHtmlBody, formatHtmlLenient} from '../htmlFormat';
+import {formatHtmlBody, formatHtmlLenient} from './htmlFormat';
 
 describe('htmlFormat', () => {
   it('pretty-prints well-formed HTML', () => {

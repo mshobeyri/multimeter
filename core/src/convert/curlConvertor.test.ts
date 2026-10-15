@@ -1,5 +1,5 @@
-import {apiToYaml, yamlToAPI} from '../apiParsePack';
-import {curlToAPI, isCurlCommand} from '../curlConvertor';
+import {apiToYaml, yamlToAPI} from '../parse/apiParsePack';
+import {curlToAPI, isCurlCommand} from './curlConvertor';
 
 describe('curlConvertor', () => {
   it('detects curl commands only at the start', () => {

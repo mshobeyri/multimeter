@@ -1,4 +1,4 @@
-import {RunResult, SuiteStepStatus} from '../runConfig';
+import {RunResult, SuiteStepStatus} from '../runner/runConfig';
 
 /** Patterns that indicate a validation/structural error rather than a test-case failure. */
 const INVALID_ERROR_PATTERNS = [

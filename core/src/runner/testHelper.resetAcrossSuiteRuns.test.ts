@@ -1,4 +1,4 @@
-import {reportWithContext_} from '../testHelper';
+import {reportWithContext_} from './testHelper';
 
 describe('testHelper stepIndex reset', () => {
   it('resets stepIndex when runId changes (suite reruns)', () => {

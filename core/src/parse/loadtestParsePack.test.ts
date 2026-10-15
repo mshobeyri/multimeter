@@ -1,4 +1,4 @@
-import {loadtestToYaml, yamlToLoadTest} from '../loadtestParsePack';
+import {loadtestToYaml, yamlToLoadTest} from './loadtestParsePack';
 
 describe('loadtestParsePack', () => {
   it('parses loadtest with single test and load fields', () => {

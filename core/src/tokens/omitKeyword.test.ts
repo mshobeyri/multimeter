@@ -1,5 +1,5 @@
-import {yamlToAPIStrict} from '../apiParsePack';
-import {parseExpectValue} from '../JSerTestFlow';
+import {yamlToAPIStrict} from '../parse/apiParsePack';
+import {parseExpectValue} from '../jser/JSerTestFlow';
 import {
   applyOmitToOutgoingRequest,
   isOmitSentinel,
@@ -9,10 +9,10 @@ import {
   restoreOmitKeywordInText,
   stripOmitFromBody,
   stripOmitFromRequest,
-} from '../omitKeyword';
-import {yamlToTestStrict} from '../testParsePack';
-import {replaceAllRefs} from '../variableReplacer';
-import {apiToYaml} from '../apiParsePack';
+} from './omitKeyword';
+import {yamlToTestStrict} from '../parse/testParsePack';
+import {replaceAllRefs} from './variableReplacer';
+import {apiToYaml} from '../parse/apiParsePack';
 
 describe('omit keyword parsing', () => {
   it('parses unquoted omit as sentinel and keeps quoted omit as string', () => {

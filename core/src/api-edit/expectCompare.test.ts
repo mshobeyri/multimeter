@@ -3,8 +3,8 @@ import {
   evaluateExpectValue,
   matchExpectMap,
   matchHeaderExpectMap,
-} from '../expectCompare';
-import {OMIT_SENTINEL} from '../omitKeyword';
+} from './expectCompare';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
 
 describe('evaluateComparison', () => {
   it('covers equality family', () => {

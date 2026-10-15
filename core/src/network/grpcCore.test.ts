@@ -1,6 +1,6 @@
 import {EventEmitter} from 'events';
 
-import {DEFAULT_NETWORK_CONFIG, NetworkConfig} from '../NetworkData';
+import {DEFAULT_NETWORK_CONFIG, NetworkConfig} from '../data/NetworkData';
 
 jest.mock('@grpc/grpc-js', () => {
   const {EventEmitter: EE} = require('events');
@@ -288,7 +288,7 @@ import {
   grpcStatusName,
   grpcStatusToHttp,
   sendGrpcRequest,
-} from '../grpcCore';
+} from './grpcCore';
 
 const grpcMock = grpc as any;
 const protoLoaderMock = protoLoader as any;

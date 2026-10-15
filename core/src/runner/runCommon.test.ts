@@ -1,5 +1,5 @@
-import {resolveRelativeTo, runGeneratedJs, validateJsSyntax} from '../runCommon';
-import {AssertionFailedError} from '../testHelper';
+import {resolveRelativeTo, runGeneratedJs, validateJsSyntax} from './runCommon';
+import {AssertionFailedError} from './testHelper';
 
 describe('validateJsSyntax', () => {
   it('returns undefined for valid JS', () => {

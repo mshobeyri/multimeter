@@ -8,7 +8,7 @@ import type {
   TestOutputsReporterEvent,
   LoadTestSummaryEvent,
   TestStepStatus,
-} from '../runConfig';
+} from '../runner/runConfig';
 
 export interface ExpectItemResult {
   comparison: string;

@@ -3,7 +3,7 @@ import {
   DEFAULT_NETWORK_CONFIG,
   DEFAULT_CERT_SETTINGS,
   matchesCertificateHost,
-} from '../NetworkData';
+} from './NetworkData';
 
 describe('resolvePassphrase', () => {
   it('returns plain passphrase when provided', () => {

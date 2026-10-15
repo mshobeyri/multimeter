@@ -4,7 +4,7 @@ import {
   RequestFormat,
   ResponseFormat,
   normalizeFormat,
-} from '../CommonData';
+} from '../data/CommonData';
 
 export type FormatEditResult =
   | {kind: 'exitTemp'; format: FormatSpec|undefined}

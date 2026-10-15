@@ -1,17 +1,17 @@
-import {APIData, ExampleData, exampleTitle} from '../APIData';
-import {apiToYaml} from '../apiParsePack';
-import {brunoToAPI, brunoToTest, isBrunoFilePath, isBrunoRequestFilePath, sortBrunoSourceFiles} from '../brunoParsePack';
-import type {BrunoSourceFile} from '../brunoParsePack';
-import {safeStepIdFromAlias, slugToCamel, slugValue} from '../identifierUtils';
-import {httpRequestCallExtras, httpRequestToAPI, isHttpFilePath, parseHttpDocument} from '../httpParsePack';
-import {packYaml, parseYamlStrict} from '../markupConvertor';
-import {buildOpenApiEnvFromSpec, openApiToAPI} from '../openapiConvertor';
-import {postmanToAPI, translatePostmanTemplate} from '../postmanConvertor';
-import {SuiteData} from '../SuiteData';
-import {suiteToYaml} from '../suiteParsePack';
-import {TestData, TestFlowStep} from '../TestData';
-import {testToYaml} from '../testParsePack';
-import {wsdlToAPI} from '../wsdlConvertor';
+import {APIData, ExampleData, exampleTitle} from '../data/APIData';
+import {apiToYaml} from '../parse/apiParsePack';
+import {brunoToAPI, brunoToTest, isBrunoFilePath, isBrunoRequestFilePath, sortBrunoSourceFiles} from '../parse/brunoParsePack';
+import type {BrunoSourceFile} from '../parse/brunoParsePack';
+import {safeStepIdFromAlias, slugToCamel, slugValue} from '../util/identifierUtils';
+import {httpRequestCallExtras, httpRequestToAPI, isHttpFilePath, parseHttpDocument} from '../parse/httpParsePack';
+import {packYaml, parseYamlStrict} from '../parse/markupConvertor';
+import {buildOpenApiEnvFromSpec, openApiToAPI} from './openapiConvertor';
+import {postmanToAPI, translatePostmanTemplate} from './postmanConvertor';
+import {SuiteData} from '../data/SuiteData';
+import {suiteToYaml} from '../parse/suiteParsePack';
+import {TestData, TestFlowStep} from '../data/TestData';
+import {testToYaml} from '../parse/testParsePack';
+import {wsdlToAPI} from './wsdlConvertor';
 
 export type ImportSourceKind = 'postman' | 'openapi' | 'wsdl' | 'http' | 'bruno';
 

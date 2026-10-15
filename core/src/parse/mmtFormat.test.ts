@@ -1,7 +1,7 @@
-import {EXPECT_OPERATOR_SAMPLES} from '../expectOperatorSamples';
-import {detectMmtDocType, formatMmtYaml} from '../mmtFormat';
-import {formatMmtYamlAst, reorderMapPairs} from '../mmtFormatAst';
-import {opsList} from '../TestData';
+import {EXPECT_OPERATOR_SAMPLES} from './expectOperatorSamples';
+import {detectMmtDocType, formatMmtYaml} from './mmtFormat';
+import {formatMmtYamlAst, reorderMapPairs} from './mmtFormatAst';
+import {opsList} from '../data/TestData';
 import YAML, {isMap} from 'yaml';
 import fs from 'fs';
 import path from 'path';

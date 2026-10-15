@@ -1,5 +1,5 @@
-import {detectImportSource, isSpecSourceKind} from 'mmt-core/importConvertor';
-import {connectionTracker} from 'mmt-core/networkCoreNode';
+import {detectImportSource, isSpecSourceKind} from 'mmt-core/convert/importConvertor';
+import {connectionTracker} from 'mmt-core/network/networkCoreNode';
 import * as vscode from 'vscode';
 
 import {setupChatParticipants} from './assistant/assistant';

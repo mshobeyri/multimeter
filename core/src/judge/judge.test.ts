@@ -2,23 +2,23 @@ import {
   mergeJudgeStepConfig,
   normalizeJudgeCheckValue,
   unionJudgeChecksForModel,
-} from '../JudgeData';
+} from '../data/JudgeData';
 import {
   buildJudgeSystemPrompt,
   evaluateJudge,
   parseJudgeModelJson,
   registerJudgeEngine,
-} from '../judgeEngine';
-import {JUDGE_BUILTIN_CHECK_IDS} from '../judgeChecks';
-import '../judgeEngineOllama';
-import '../judgeEngineProviders';
-import {objectToJudge, validateJudgeObject, yamlToJudgeStrict} from '../judgeParsePack';
-import {fileType} from '../JSerHelper';
-import {setFileLoader} from '../JSerFileLoader';
-import {importsToJsfunc} from '../JSerImports';
-import {getTestFlowStepType, yamlToTestStrict} from '../testParsePack';
-import {flowStepsToJsfunc} from '../JSerTestFlow';
-import {judge_, isAssertionFailedError} from '../testHelper';
+} from './judgeEngine';
+import {JUDGE_BUILTIN_CHECK_IDS} from './judgeChecks';
+import './judgeEngineOllama';
+import './judgeEngineProviders';
+import {objectToJudge, validateJudgeObject, yamlToJudgeStrict} from '../parse/judgeParsePack';
+import {fileType} from '../jser/JSerHelper';
+import {setFileLoader} from '../jser/JSerFileLoader';
+import {importsToJsfunc} from '../jser/JSerImports';
+import {getTestFlowStepType, yamlToTestStrict} from '../parse/testParsePack';
+import {flowStepsToJsfunc} from '../jser/JSerTestFlow';
+import {judge_, isAssertionFailedError} from '../runner/testHelper';
 
 describe('judge parse pack', () => {
   it('parses ollama judge yaml', () => {

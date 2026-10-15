@@ -2,16 +2,16 @@ import YAML, {isMap, isPair, isScalar, isSeq, Pair, YAMLMap} from 'yaml';
 import {
   restoreShieldedCurlyTokens,
   shieldCurlyTokensInYamlSource,
-} from '../markupConvertor';
-import {forceBlockStyleForStepSequences} from '../yamlBlockSteps';
-import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from '../expectOperatorYaml';
-import {JUDGE_KEY_ORDER} from '../judgeParsePack';
+} from './markupConvertor';
+import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
+import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
+import {JUDGE_KEY_ORDER} from './judgeParsePack';
 import {
   CHECK_ASSERT_VALUE_ORDER,
   getTestFlowStepType,
   STAGE_KEY_ORDER,
   STEP_KEY_ORDER,
-} from '../testParsePack';
+} from './testParsePack';
 
 /** Canonical root key order per Multimeter document type (matches *ToYaml packs). */
 export const ROOT_KEY_ORDER: Record<string, string[]> = {

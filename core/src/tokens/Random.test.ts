@@ -1,6 +1,6 @@
-import {randomCity, randomColor, randomCountry, randomDateFuture, randomDatePast, randomEmail, randomEpoch, randomEpochFuture, randomEpochFutureMs, randomEpochMs, randomEpochPast, randomEpochPastMs, randomFirstName, randomFullName, randomHexColor, randomIP, randomIPv6, randomLastName, randomLatitude, randomLongitude, randomMonth, randomPhoneNumber, randomWeekday} from '../Random';
-import * as Random from '../Random';
-import {FIRST_NAMES, LAST_NAMES} from '../RandomResources';
+import {randomCity, randomColor, randomCountry, randomDateFuture, randomDatePast, randomEmail, randomEpoch, randomEpochFuture, randomEpochFutureMs, randomEpochMs, randomEpochPast, randomEpochPastMs, randomFirstName, randomFullName, randomHexColor, randomIP, randomIPv6, randomLastName, randomLatitude, randomLongitude, randomMonth, randomPhoneNumber, randomWeekday} from './Random';
+import * as Random from './Random';
+import {FIRST_NAMES, LAST_NAMES} from './RandomResources';
 
 describe('Random color generators', () => {
   const PALETTE = new Set([

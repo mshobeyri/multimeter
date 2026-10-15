@@ -1,4 +1,4 @@
-import {JSONValue} from 'mmt-core/CommonData';
+import {JSONValue} from 'mmt-core/data/CommonData';
 import {EnvVariable, EnvVarSource, EnvCertificates, CertificateSettings} from './EnvironmentData';
 import {clearEnvPresets, loadEnvVariables, saveEnvVariablesFromObject, saveCertificatesFromObject, loadCertificates, clearCertificates, saveCertificateSettings, loadCertificateSettings, clearCertificateSettings as clearCertSettingsStorage} from '../workspaceStorage';
 

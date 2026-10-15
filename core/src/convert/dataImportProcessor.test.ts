@@ -1,15 +1,15 @@
-import {yamlToAPIStrict} from '../apiParsePack';
+import {yamlToAPIStrict} from '../parse/apiParsePack';
 import {
   isImportAutocompletePath,
   processDataImportsInYaml,
   processDataImportsInYamlSync,
-} from '../dataImportProcessor';
-import {setFileLoader} from '../JSerFileLoader';
-import {rootTestToJsfunc} from '../JSerTest';
-import parseYaml from '../markupConvertor';
-import * as runConfig from '../runConfig';
-import {yamlToSuite} from '../suiteParsePack';
-import {yamlToTestStrict} from '../testParsePack';
+} from './dataImportProcessor';
+import {setFileLoader} from '../jser/JSerFileLoader';
+import {rootTestToJsfunc} from '../jser/JSerTest';
+import parseYaml from '../parse/markupConvertor';
+import * as runConfig from '../runner/runConfig';
+import {yamlToSuite} from '../parse/suiteParsePack';
+import {yamlToTestStrict} from '../parse/testParsePack';
 
 const createLoader = (files: Record<string, string>) =>
   async (path: string): Promise<string> => {

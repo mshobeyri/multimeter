@@ -1,4 +1,4 @@
-import {buildApiTesterResponse, parseSetCookieHeader} from '../apiRunResult';
+import {buildApiTesterResponse, parseSetCookieHeader} from './apiRunResult';
 
 describe('parseSetCookieHeader', () => {
   it('parses a single Set-Cookie string', () => {

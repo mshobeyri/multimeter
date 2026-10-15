@@ -4,10 +4,10 @@ import {
   needsYamlDoubleQuotes,
   yamlValueToInputBox,
   yamlValueTypeLabel,
-} from '../yamlValueConvert';
-import {OMIT_SENTINEL} from '../omitKeyword';
-import {LITERAL_TOKEN_PREFIX} from '../literalToken';
-import {apiToYaml, yamlToAPIStrict} from '../apiParsePack';
+} from './yamlValueConvert';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
+import {LITERAL_TOKEN_PREFIX} from '../tokens/literalToken';
+import {apiToYaml, yamlToAPIStrict} from './apiParsePack';
 
 describe('yamlValueConvert', () => {
   it('keeps quoted numeric strings quoted in the input box', () => {

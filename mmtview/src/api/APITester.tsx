@@ -2,10 +2,10 @@ import { TokenModeContext } from "../components/TokenModeContext";
 import React, { useState, useContext, useEffect, useMemo, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { SplitPane } from "@rexxars/react-split-pane";
-import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
-import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIData";
-import { JSONRecord, JSONValue, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
-import { resolveRequestFormat } from "mmt-core/formatResolve";
+import { extractInputConstraintsFromDescription } from "mmt-core/api-edit/paramConstraints";
+import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/data/APIData";
+import { JSONRecord, JSONValue, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/data/CommonData";
+import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
 import BodyView, { type BodyViewCursor } from "../components/BodyView";
@@ -20,9 +20,9 @@ import {
   tokensTextToYamlBody,
   valueForYamlSave,
   yamlBodyToTokensText,
-} from "mmt-core/apiBodyEdit";
-import { normalizeNewlines } from "mmt-core/textLines";
-import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
+} from "mmt-core/api-edit/apiBodyEdit";
+import { normalizeNewlines } from "mmt-core/util/textLines";
+import { applyFormatSideEdit } from "mmt-core/api-edit/apiFormatEdit";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import { HideWhenYamlError } from "./YamlErrorWarning";
@@ -47,18 +47,18 @@ import {
   type ResponseViewMode,
 } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
-import { resolveApiHttpMethod } from "mmt-core/apiMethod";
+import { resolveApiHttpMethod } from "mmt-core/network/apiMethod";
 import MdViewer from "../components/MdViewer";
 import DescriptionEditor from "../components/DescriptionEditor";
 import SearchableTagInput from "../components/SearchableTagInput";
 import SectionEditLabel, { SectionEditDone } from "../components/SectionEditLabel";
 import FadePane from "../components/FadePane";
 import KVEditor from "../components/KVEditor";
-import { safeList } from "mmt-core/safer";
+import { safeList } from "mmt-core/util/safer";
 import ApiTestsEditor from "./ApiTestsEditor";
 import ApiSettingsEditor from "./ApiSettingsEditor";
 import ApiAuthEditor from "./ApiAuthEditor";
-import { formatBody } from "mmt-core/markupConvertor";
+import { formatBody } from "mmt-core/parse/markupConvertor";
 import OverflowTabBar, { type OverflowTabItem } from "../components/OverflowTabBar";
 import {
   accentChromeCssVars,

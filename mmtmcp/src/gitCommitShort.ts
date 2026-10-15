@@ -1,17 +1,17 @@
 import {execFileSync} from 'child_process';
-import type {GitCurrentSnapshot} from 'mmt-core/Current';
+import type {GitCurrentSnapshot} from 'mmt-core/tokens/Current';
 import {
   clearGitCurrentSnapshot,
   setGitCurrentSnapshot,
   setGitCurrentSnapshotProvider,
-} from 'mmt-core/Current';
+} from 'mmt-core/tokens/Current';
 import {
   normalizeReportGitBranch,
   normalizeReportGitCommit,
   normalizeReportGitCommitHash,
   normalizeReportGitDescribe,
   normalizeReportGitTag,
-} from 'mmt-core/reportGitCommit';
+} from 'mmt-core/report/reportGitCommit';
 
 function gitExec(cwd: string | undefined, args: string[]): string | undefined {
   try {

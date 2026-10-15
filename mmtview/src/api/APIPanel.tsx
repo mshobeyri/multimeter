@@ -1,8 +1,8 @@
-import { yamlToAPI, apiToYaml } from "mmt-core/apiParsePack";
+import { yamlToAPI, apiToYaml } from "mmt-core/parse/apiParsePack";
 import React, { useContext, useEffect, useState, useRef, useMemo, useCallback } from "react";
 import APITest from "./APITester";
 import YamlErrorWarning from "./YamlErrorWarning";
-import { APIData } from "mmt-core/APIData";
+import { APIData } from "mmt-core/data/APIData";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { FileContext } from "../fileContext";
 

@@ -1,14 +1,14 @@
 import WebSocket = require('ws');
-import {connectionTracker} from '../connectionTracker';
-import {addWsConnection, createWebSocket, deleteWsConnection, sendHttpRequest, wsConnections} from '../networkCoreNode';
+import {connectionTracker} from './connectionTracker';
+import {addWsConnection, createWebSocket, deleteWsConnection, sendHttpRequest, wsConnections} from './networkCoreNode';
 import {
   findMatchingClientCertificate,
   HttpRequest,
   NetworkConfig,
   GrpcRequest,
-} from '../NetworkData';
-import type {FileLoader} from '../JSerFileLoader';
-import {sendGrpcRequest} from '../grpcCore';
+} from '../data/NetworkData';
+import type {FileLoader} from '../jser/JSerFileLoader';
+import {sendGrpcRequest} from './grpcCore';
 
 // Map wsId to connection tracker ID
 const wsConnectionTrackerIds: Map<string, string> = new Map();

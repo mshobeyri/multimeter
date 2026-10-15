@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import 'react-complex-tree/lib/style.css';
 import SuiteEdit from './edit/SuiteEdit';
 import SuiteTest, { SuiteFlowchartState } from './test/SuiteTest';
-import { parseYaml } from 'mmt-core/markupConvertor';
+import { parseYaml } from 'mmt-core/parse/markupConvertor';
 import { FlowchartView } from '../flowchart';
 import { FileContext } from '../fileContext';
 import { usePanelPage } from '../usePanelPage';

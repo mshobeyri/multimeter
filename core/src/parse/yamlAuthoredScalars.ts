@@ -1,6 +1,6 @@
-import {reviveDisplayRuntimeTokensInValue} from '../bodyRuntimeTokens';
-import {isPlainTokenScalar} from '../literalToken';
-import {detectNewline, joinLines, splitNormalizedLines} from '../textLines';
+import {reviveDisplayRuntimeTokensInValue} from '../tokens/bodyRuntimeTokens';
+import {isPlainTokenScalar} from '../tokens/literalToken';
+import {detectNewline, joinLines, splitNormalizedLines} from '../util/textLines';
 
 /**
  * Keep the file the user wrote when a resave does not change the parsed model.

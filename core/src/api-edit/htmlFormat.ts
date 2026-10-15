@@ -1,5 +1,5 @@
 import {js2xml, xml2js} from 'xml-js';
-import {normalizeNewlines} from '../textLines';
+import {normalizeNewlines} from '../util/textLines';
 
 const HTML_VOID_ELEMENTS = new Set([
   'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta',

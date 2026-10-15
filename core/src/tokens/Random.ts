@@ -1,5 +1,5 @@
-import {CITY_LIST, COLOR_PALETTE, COUNTRY_LIST, EMAIL_DOMAINS, FIRST_NAMES, LAST_NAMES, MONTHS, WEEKDAYS} from '../RandomResources';
-import {parseRelativeAmountMs, resolveRelativeWindow, unsignedDurationMs} from '../durationParse';
+import {CITY_LIST, COLOR_PALETTE, COUNTRY_LIST, EMAIL_DOMAINS, FIRST_NAMES, LAST_NAMES, MONTHS, WEEKDAYS} from './RandomResources';
+import {parseRelativeAmountMs, resolveRelativeWindow, unsignedDurationMs} from '../util/durationParse';
 
 // Internal helper to get random int in range [min, max]
 function randInt(min: number, max: number): number {

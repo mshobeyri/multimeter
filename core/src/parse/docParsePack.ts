@@ -1,6 +1,6 @@
-import {DocData, DocHtmlOptions, DocService} from '../DocData';
-import parseYaml, {packYaml} from '../markupConvertor';
-import {isNonEmptyList} from '../safer';
+import {DocData, DocHtmlOptions, DocService} from '../data/DocData';
+import parseYaml, {packYaml} from './markupConvertor';
+import {isNonEmptyList} from '../util/safer';
 
 export function yamlToDoc(yamlContent: string): DocData {
   try {

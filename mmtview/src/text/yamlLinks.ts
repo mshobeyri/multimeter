@@ -1,5 +1,5 @@
-import { findHttpStepAtPosition } from "mmt-core/httpStepApiPreview";
-import { parseYamlDoc } from "mmt-core/markupConvertor";
+import { findHttpStepAtPosition } from "mmt-core/api-edit/httpStepApiPreview";
+import { parseYamlDoc } from "mmt-core/parse/markupConvertor";
 
 export type YamlLinkTarget = {
   range: any;

@@ -1,5 +1,5 @@
-import { TestData, TestFlowStep, TestFlowSteps, TestFlowStage } from 'mmt-core/TestData';
-import { getTestFlowStepType } from 'mmt-core/testParsePack';
+import { TestData, TestFlowStep, TestFlowSteps, TestFlowStage } from 'mmt-core/data/TestData';
+import { getTestFlowStepType } from 'mmt-core/parse/testParsePack';
 import { FlowCallImportInfo, FlowCallImportMap, FlowEdge, FlowGraph, FlowNode, NodeKind } from './types';
 
 export interface BuildTestGraphInput {

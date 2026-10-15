@@ -7,7 +7,7 @@ import {
   normalizeHttpResponseBody,
   resolveBinaryPreviewMime,
   sniffImageMime,
-} from '../binaryBody';
+} from './binaryBody';
 
 describe('binaryBody', () => {
   it('detects binary content types', () => {

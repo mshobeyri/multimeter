@@ -1,4 +1,4 @@
-import {applyEnvVarLastUpdates, asEnvVarList} from '../envVarLastUpdate';
+import {applyEnvVarLastUpdates, asEnvVarList} from './envVarLastUpdate';
 
 describe('asEnvVarList', () => {
   it('returns arrays as-is', () => {

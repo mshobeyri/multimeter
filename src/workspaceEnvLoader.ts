@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as YAML from 'yaml';
-import {CertificateSettings, DEFAULT_CERT_SETTINGS} from 'mmt-core/NetworkData';
-import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
-import type {EnvCertificates, EnvOption, EnvVariable} from 'mmt-core/EnvData';
+import {CertificateSettings, DEFAULT_CERT_SETTINGS} from 'mmt-core/data/NetworkData';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/env/envVarLastUpdate';
+import type {EnvCertificates, EnvOption, EnvVariable} from 'mmt-core/data/EnvData';
 import * as mmtcore from 'mmt-core';
 
 /**

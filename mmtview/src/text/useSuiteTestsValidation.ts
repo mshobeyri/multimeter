@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {parseYamlDoc} from 'mmt-core/markupConvertor';
+import {parseYamlDoc} from 'mmt-core/parse/markupConvertor';
 
 export type MissingSuiteFileEntry = {path: string; line: number; column: number};
 

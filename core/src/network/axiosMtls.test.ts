@@ -4,7 +4,7 @@ import * as https from 'https';
 import * as path from 'path';
 import * as tls from 'tls';
 
-import {send, setRunnerNetworkConfig} from '../networkCore';
+import {send, setRunnerNetworkConfig} from './networkCore';
 
 function asPlainError(e: unknown): Error {
   if (e instanceof Error) {

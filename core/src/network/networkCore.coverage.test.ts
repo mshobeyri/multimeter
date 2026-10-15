@@ -113,9 +113,9 @@ jest.mock('ws', () => {
 });
 
 import {EventEmitter} from 'events';
-import {connectionTracker} from '../connectionTracker';
-import {DEFAULT_NETWORK_CONFIG} from '../NetworkData';
-import {OMIT_SENTINEL} from '../omitKeyword';
+import {connectionTracker} from './connectionTracker';
+import {DEFAULT_NETWORK_CONFIG} from '../data/NetworkData';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
 import {
   addWsConnection,
   closeAllHttpConnections,
@@ -132,7 +132,7 @@ import {
   sendWsRequest,
   setRunnerNetworkConfig,
   wsConnections,
-} from '../networkCore';
+} from './networkCore';
 
 const axios = require('axios/dist/node/axios.cjs');
 const http = require('http');

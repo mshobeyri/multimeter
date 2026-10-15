@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { DocData } from 'mmt-core/DocData';
-import { yamlToAPI } from 'mmt-core/apiParsePack';
-import parseYaml from 'mmt-core/markupConvertor';
+import { DocData } from 'mmt-core/data/DocData';
+import { yamlToAPI } from 'mmt-core/parse/apiParsePack';
+import parseYaml from 'mmt-core/parse/markupConvertor';
 import * as mmtcore from 'mmt-core';
-import { parseRefDescription, extractMarkdownSection, resolveRefPath } from 'mmt-core/docHtml';
+import { parseRefDescription, extractMarkdownSection, resolveRefPath } from 'mmt-core/doc/docHtml';
 import { readFile, readFileAsDataUrl } from '../vsAPI';
 import PrimaryButton from '../components/PrimaryButton';
 import { HideWhenYamlError } from '../api/YamlErrorWarning';

@@ -1,4 +1,4 @@
-jest.mock('../networkCoreNode', () => {
+jest.mock('./networkCoreNode', () => {
   const connections: Record<string, any> = {};
   return {
     connections,
@@ -14,7 +14,7 @@ jest.mock('../networkCoreNode', () => {
   };
 });
 
-jest.mock('../grpcCore', () => ({
+jest.mock('./grpcCore', () => ({
   sendGrpcRequest: jest.fn(),
 }));
 
@@ -27,17 +27,17 @@ jest.mock('ws', () => {
   return WebSocket;
 });
 
-import {connectionTracker} from '../connectionTracker';
-import {sendGrpcRequest} from '../grpcCore';
-import {handleNetworkMessage, getCertificateStatusForUrl} from '../network';
-import {DEFAULT_NETWORK_CONFIG, NetworkConfig} from '../NetworkData';
+import {connectionTracker} from './connectionTracker';
+import {sendGrpcRequest} from './grpcCore';
+import {handleNetworkMessage, getCertificateStatusForUrl} from './network';
+import {DEFAULT_NETWORK_CONFIG, NetworkConfig} from '../data/NetworkData';
 import {
   addWsConnection,
   createWebSocket,
   deleteWsConnection,
   sendHttpRequest,
   wsConnections,
-} from '../networkCoreNode';
+} from './networkCoreNode';
 
 function createFakeWs(readyState = 1) {
   const handlers: Record<string, Function[]> = {};
@@ -69,7 +69,7 @@ async function flush() {
 const mockedSendHttp = sendHttpRequest as jest.Mock;
 const mockedCreateWebSocket = createWebSocket as jest.Mock;
 const mockedSendGrpc = sendGrpcRequest as jest.Mock;
-const connections = (require('../networkCoreNode') as any).connections as Record<string, any>;
+const connections = (require('./networkCoreNode') as any).connections as Record<string, any>;
 
 function baseConfig(overrides: Partial<NetworkConfig> = {}): NetworkConfig {
   return {

@@ -1,7 +1,7 @@
 import {
   applyDescriptionBlockLiteralStyles,
   preserveMultilineDescriptionScalars,
-} from '../multilineDescriptionYaml';
+} from './multilineDescriptionYaml';
 import * as YAML from 'yaml';
 
 describe('multilineDescriptionYaml', () => {

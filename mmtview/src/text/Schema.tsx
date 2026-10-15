@@ -1,5 +1,5 @@
-import { opsList } from 'mmt-core/TestData';
-import { builtinJudgeCheckSchemaProperties } from 'mmt-core/judgeChecks';
+import { opsList } from 'mmt-core/data/TestData';
+import { builtinJudgeCheckSchemaProperties } from 'mmt-core/judge/judgeChecks';
 
 export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',

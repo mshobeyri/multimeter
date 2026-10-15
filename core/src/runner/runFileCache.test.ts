@@ -1,12 +1,12 @@
-import {importsToJsfunc} from '../JSerImports';
-import {setFileLoader} from '../JSerFileLoader';
+import {importsToJsfunc} from '../jser/JSerImports';
+import {setFileLoader} from '../jser/JSerFileLoader';
 import {
   bindCachedImportFn,
   CACHED_IMPORT_FN,
   getRunFileCache,
   resetRunFileCache,
-} from '../runFileCache';
-import {createTestFileLoaderMock} from '../testFileLoaderMock';
+} from './runFileCache';
+import {createTestFileLoaderMock} from './testFileLoaderMock';
 
 describe('runFileCache', () => {
   beforeEach(() => {

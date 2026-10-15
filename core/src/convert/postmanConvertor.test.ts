@@ -4,8 +4,8 @@ import {
   parsePostmanRawJsonBody,
   postmanToAPI,
   translatePostmanTemplate,
-} from '../postmanConvertor';
-import {OMIT_SENTINEL} from '../omitKeyword';
+} from './postmanConvertor';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
 
 describe('postmanConvertor.postmanToAPI', () => {
   it('returns empty array for invalid input', () => {

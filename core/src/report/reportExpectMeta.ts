@@ -1,6 +1,6 @@
-import {isTokenLikeScalar} from '../literalToken';
-import {isOmitSentinel, OMIT_KEYWORD, restoreOmitKeywordInText} from '../omitKeyword';
-import {comparisonOperatorPattern} from '../TestData';
+import {isTokenLikeScalar} from '../tokens/literalToken';
+import {isOmitSentinel, OMIT_KEYWORD, restoreOmitKeywordInText} from '../tokens/omitKeyword';
+import {comparisonOperatorPattern} from '../data/TestData';
 
 /**
  * Expected RHS from a report comparison line (`field == c:token`).

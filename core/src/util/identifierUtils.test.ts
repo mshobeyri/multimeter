@@ -1,4 +1,4 @@
-import {applyRunDebugToRequestSteps, safeStepId, safeStepIdFromAlias, slugToCamel} from '../identifierUtils';
+import {applyRunDebugToRequestSteps, safeStepId, safeStepIdFromAlias, slugToCamel} from './identifierUtils';
 
 describe('identifierUtils', () => {
   it('keeps safe camel aliases unchanged', () => {

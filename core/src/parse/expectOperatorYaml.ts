@@ -1,5 +1,5 @@
-import { opsList, TIME_OPERATOR_PATTERN } from '../TestData';
-import { detectNewline, joinLines, splitNormalizedLines } from '../textLines';
+import { opsList, TIME_OPERATOR_PATTERN } from '../data/TestData';
+import { detectNewline, joinLines, splitNormalizedLines } from '../util/textLines';
 
 /**
  * Operators that need quoting in YAML because they start with a character that

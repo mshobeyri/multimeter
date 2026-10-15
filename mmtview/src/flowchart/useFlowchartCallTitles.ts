@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { parseYaml } from 'mmt-core/markupConvertor';
-import { TestData } from 'mmt-core/TestData';
-import { yamlToTest } from 'mmt-core/testParsePack';
+import { parseYaml } from 'mmt-core/parse/markupConvertor';
+import { TestData } from 'mmt-core/data/TestData';
+import { yamlToTest } from 'mmt-core/parse/testParsePack';
 import { readFile } from '../vsAPI';
 import { FlowCallImportMap } from './graph/types';
 

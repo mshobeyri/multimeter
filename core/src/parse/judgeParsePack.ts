@@ -1,6 +1,6 @@
-import {AuthConfig} from '../APIData';
-import {JudgeData, JudgeDefaults, JudgeEngineId, JudgeOptions} from '../JudgeData';
-import parseYaml, {packYaml, parseYamlStrict} from '../markupConvertor';
+import {AuthConfig} from '../data/APIData';
+import {JudgeData, JudgeDefaults, JudgeEngineId, JudgeOptions} from '../data/JudgeData';
+import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 
 const VALID_JUDGE_ROOT_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'engine', 'model', 'url', 'auth',

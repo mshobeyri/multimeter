@@ -1,5 +1,5 @@
-import { LITERAL_TOKEN_PREFIX } from "mmt-core/literalToken";
-import { OMIT_SENTINEL } from "mmt-core/omitKeyword";
+import { LITERAL_TOKEN_PREFIX } from "mmt-core/tokens/literalToken";
+import { OMIT_SENTINEL } from "mmt-core/tokens/omitKeyword";
 import {
   bodyToMultipartRows,
   emptyMultipartPartRow,

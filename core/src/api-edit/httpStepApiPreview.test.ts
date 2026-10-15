@@ -8,9 +8,9 @@ import {
   resolveOutputNameForExpectField,
   suggestHttpStepApiFilename,
   listHttpStepUrlLinkRanges,
-} from '../httpStepApiPreview';
-import {yamlToAPI} from '../apiParsePack';
-import {TestFlowHttp} from '../TestData';
+} from './httpStepApiPreview';
+import {yamlToAPI} from '../parse/apiParsePack';
+import {TestFlowHttp} from '../data/TestData';
 
 describe('httpStepApiPreview', () => {
   test('maps http step fields into a type: api document', () => {

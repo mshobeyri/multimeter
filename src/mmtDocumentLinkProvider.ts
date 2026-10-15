@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {findProjectRootSync} from 'mmt-core/util/fileHelper';
 
 function findProjectRoot(startPath: string): string | undefined {
   return findProjectRootSync(startPath, fs.existsSync, path.dirname, path.join)

@@ -1,6 +1,6 @@
-import { yamlToTest, testToYaml, peekTestMetaFromYaml, getTestFlowStepType, quoteExpectOperators, yamlToTestStrict, validateTestData } from '../testParsePack';
-import parseYaml from '../markupConvertor';
-import { TestData, TestFlowStep } from '../TestData';
+import { yamlToTest, testToYaml, peekTestMetaFromYaml, getTestFlowStepType, quoteExpectOperators, yamlToTestStrict, validateTestData } from './testParsePack';
+import parseYaml from './markupConvertor';
+import { TestData, TestFlowStep } from '../data/TestData';
 
 describe('testParsePack', () => {
   it('peekTestMetaFromYaml reads title and tags without normalizing steps', () => {

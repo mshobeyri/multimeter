@@ -1,4 +1,4 @@
-import {runFile} from '../runner';
+import {runFile} from './runner';
 
 describe('runner suite import base', () => {
   it('resolves imported paths relative to each suite item file', async () => {

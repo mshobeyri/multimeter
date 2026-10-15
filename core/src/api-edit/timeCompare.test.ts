@@ -6,11 +6,11 @@ import {
   makeTimeOperator,
   normalizeTimeVelocity,
   splitCheckOperatorPrefix,
-} from '../TestData';
-import {evaluateComparison} from '../expectCompare';
-import {quoteExpectOperators} from '../expectOperatorYaml';
-import {parseComparisonParts} from '../JSerTestFlow';
-import {notTimeEquals_, timeDeltaMs_, timeEquals_, toEpochMs_} from '../testHelper';
+} from '../data/TestData';
+import {evaluateComparison} from './expectCompare';
+import {quoteExpectOperators} from '../parse/expectOperatorYaml';
+import {parseComparisonParts} from '../jser/JSerTestFlow';
+import {notTimeEquals_, timeDeltaMs_, timeEquals_, toEpochMs_} from '../runner/testHelper';
 
 describe('time operator helpers', () => {
   it('embeds velocity as =5s~ / !5s~', () => {

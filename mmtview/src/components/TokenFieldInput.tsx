@@ -10,7 +10,7 @@ import {
   type RuntimeTokenValueContext,
   type TokenFieldSpan,
   type TokenPreviewCacheScope,
-} from "mmt-core/apiBodyEdit";
+} from "mmt-core/api-edit/apiBodyEdit";
 import { shouldAdoptFieldValue } from "./fieldValueSync";
 
 type TokenFieldInputProps = Omit<

@@ -5,13 +5,13 @@ import {
   bodyForYamlSave,
   displayRequestBody,
   saveEditorBody,
-} from '../apiBodyEdit';
+} from '../api-edit/apiBodyEdit';
 import {
   isLiteralTokenValue,
   unwrapLiteralToken,
   wrapLiteralToken,
-} from '../literalToken';
-import {apiToYaml, yamlToAPI} from '../apiParsePack';
+} from './literalToken';
+import {apiToYaml, yamlToAPI} from '../parse/apiParsePack';
 import {
   clearTokenFieldPreviewRandomCache,
   displayRuntimeTokensToResolvableText,
@@ -51,11 +51,11 @@ import {
   wrapTypedTokenAtCursor,
   findDisplayTokenCharRanges,
   findBodyTokenHoverSpans,
-} from '../bodyRuntimeTokens';
-import {beautify, formatBody} from '../markupConvertor';
-import {clearGitCurrentSnapshot, setGitCurrentSnapshot} from '../Current';
+} from './bodyRuntimeTokens';
+import {beautify, formatBody} from '../parse/markupConvertor';
+import {clearGitCurrentSnapshot, setGitCurrentSnapshot} from './Current';
 import {xml2js} from 'xml-js';
-import {OMIT_SENTINEL} from '../omitKeyword';
+import {OMIT_SENTINEL} from './omitKeyword';
 
 describe('toDisplayRuntimeToken', () => {
   it('maps r:/c:/i:/e: markers to {{prefix:…}}', () => {

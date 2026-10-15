@@ -1,4 +1,4 @@
-import {flowTypeOptions, TestFlowHttp, TestFlowStep} from '../TestData';
+import {flowTypeOptions, TestFlowHttp, TestFlowStep} from '../data/TestData';
 
 const JS_RESERVED = new Set([
   'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default',

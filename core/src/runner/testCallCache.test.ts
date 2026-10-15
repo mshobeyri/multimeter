@@ -2,13 +2,13 @@ import {
   clearTestCallCache_,
   getTestCallCache_,
   setTestCallCache_,
-} from '../testHelper';
-import {runFile} from '../runner';
-import {runJSCode} from '../jsRunner';
-import {buildSuiteHierarchyFromSuiteFile} from '../suiteHierarchy';
-import {createSuiteBundle} from '../suiteBundle';
+} from './testHelper';
+import {runFile} from './runner';
+import {runJSCode} from './jsRunner';
+import {buildSuiteHierarchyFromSuiteFile} from '../suite/suiteHierarchy';
+import {createSuiteBundle} from '../suite/suiteBundle';
 
-jest.mock('../networkCoreNode', () => {
+jest.mock('../network/networkCoreNode', () => {
   const sentRequests: any[] = [];
   return {
     sentRequests,
@@ -34,7 +34,7 @@ jest.mock('../networkCoreNode', () => {
 });
 
 const sentRequests =
-    (require('../networkCoreNode') as any).sentRequests as any[];
+    (require('../network/networkCoreNode') as any).sentRequests as any[];
 
 const loginApi = `type: api
 title: Login echo

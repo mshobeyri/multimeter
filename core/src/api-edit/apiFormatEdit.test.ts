@@ -1,5 +1,5 @@
-import {applyFormatSideEdit} from '../apiFormatEdit';
-import {normalizeFormat} from '../CommonData';
+import {applyFormatSideEdit} from './apiFormatEdit';
+import {normalizeFormat} from '../data/CommonData';
 
 describe('applyFormatSideEdit', () => {
   it('enters temp with an explicit object when changing response on scalar yaml', () => {

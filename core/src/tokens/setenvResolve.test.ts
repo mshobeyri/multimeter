@@ -3,7 +3,7 @@ import {
   findLegacySetenvOutputRefs,
   isLegacySetenvOutputRef,
   resolveSetenvValues,
-} from '../setenvResolve';
+} from './setenvResolve';
 
 describe('setenvResolve', () => {
   const response = {

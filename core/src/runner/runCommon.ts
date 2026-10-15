@@ -1,14 +1,14 @@
-import {APIData} from '../APIData';
-import {CheckLogMode, LogLevel, Type} from '../CommonData';
-import type {BinaryFileLoader, FileLoader} from '../JSerFileLoader';
-import {isProjectRootImport, resolveProjectRootImport} from '../fileHelper';
-import * as JSer from '../JSer';
-import {RunJSCodeContext} from '../jsRunner';
-import type {RunKind} from '../runLog';
-import type {CollectedResults, LoadReportData} from '../reportCollector';
-import {RunResult, TestStepReporterEvent} from '../runConfig';
-import type {SuiteEnvironment} from '../SuiteData';
-import {isAssertionFailedError, isTestAbortError} from '../testHelper';
+import {APIData} from '../data/APIData';
+import {CheckLogMode, LogLevel, Type} from '../data/CommonData';
+import type {BinaryFileLoader, FileLoader} from '../jser/JSerFileLoader';
+import {isProjectRootImport, resolveProjectRootImport} from '../util/fileHelper';
+import * as JSer from '../jser/JSer';
+import {RunJSCodeContext} from './jsRunner';
+import type {RunKind} from './runLog';
+import type {CollectedResults, LoadReportData} from '../report/reportCollector';
+import {RunResult, TestStepReporterEvent} from './runConfig';
+import type {SuiteEnvironment} from '../data/SuiteData';
+import {isAssertionFailedError, isTestAbortError} from './testHelper';
 
 export interface SuiteExportSpec {
   /** Export file paths from the suite file's `export` field. */
@@ -56,7 +56,7 @@ export interface PreparedRun {
   exampleIndex?: number;
   exampleOutputs?: Record<string, any>;
   /** expect/require from the selected example (API runs). */
-  exampleTest?: import('../APIData').ApiTestBlock;
+  exampleTest?: import('../data/APIData').ApiTestBlock;
   loadtestConfig?: LoadTestPreparedConfig;
 }
 
@@ -106,7 +106,7 @@ export async function runGeneratedJs(
   runKind: RunKind = 'Test',
   binaryFileLoader?: BinaryFileLoader,
   envValues?: Record<string, any>,
-  pauseGate?: import('../runPause').RunPauseGate): Promise<RunResult> {
+  pauseGate?: import('./runPause').RunPauseGate): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];

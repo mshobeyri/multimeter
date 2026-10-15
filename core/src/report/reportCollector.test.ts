@@ -1,4 +1,4 @@
-import {createReportCollector} from '../reportCollector';
+import {createReportCollector} from './reportCollector';
 import type {
   RunReporterMessage,
   TestStepReporterEvent,
@@ -7,7 +7,7 @@ import type {
   SuiteRunStartEvent,
   SuiteRunFinishedEvent,
   TestOutputsReporterEvent,
-} from '../runConfig';
+} from '../runner/runConfig';
 
 describe('reportCollector', () => {
   it('accumulates test-step events into a TestRunResult', () => {

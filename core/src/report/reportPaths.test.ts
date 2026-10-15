@@ -1,5 +1,5 @@
-import {applyProjectRootPaths, toProjectRootPath} from '../reportPaths';
-import type {CollectedResults, TestRunResult} from '../reportCollector';
+import {applyProjectRootPaths, toProjectRootPath} from './reportPaths';
+import type {CollectedResults, TestRunResult} from './reportCollector';
 
 function makeRun(overrides: Partial<TestRunResult> = {}): TestRunResult {
   return {

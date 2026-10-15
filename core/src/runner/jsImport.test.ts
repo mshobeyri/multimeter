@@ -1,5 +1,5 @@
-import {generateTestJs} from '../runTest';
-import {runJSCode} from '../jsRunner';
+import {generateTestJs} from './runTest';
+import {runJSCode} from './jsRunner';
 
 const createLoader = (files: Record<string, string>) => {
   return async (p: string) => {

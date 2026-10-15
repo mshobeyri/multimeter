@@ -1,9 +1,9 @@
 import React, { useMemo, useEffect, useState } from "react";
 import { ComboTablePair } from "../components/ComboTable";
 import { EnvClientCertificate, EnvVariable, CertificateSettings } from "./EnvironmentData";
-import { safeList } from "mmt-core/safer";
-import { JSONValue } from "mmt-core/CommonData";
-import { yamlValueToInputBox } from "mmt-core/yamlValueConvert";
+import { safeList } from "mmt-core/util/safer";
+import { JSONValue } from "mmt-core/data/CommonData";
+import { yamlValueToInputBox } from "mmt-core/parse/yamlValueConvert";
 import { loadCertificateSettings, saveCertificateSettings } from "../workspaceStorage";
 import { EnvFilePathValue, isEnvFilePathDisplayValue } from "./envFilePathDisplay";
 

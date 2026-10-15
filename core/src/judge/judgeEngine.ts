@@ -6,9 +6,9 @@ import {
   JudgeResult,
   mergeJudgeStepConfig,
   normalizeJudgeCheckValue,
-} from '../JudgeData';
-import {buildJudgeBuiltinChecksPrompt} from '../judgeChecks';
-import {parseDurationString} from '../JSerHelper';
+} from '../data/JudgeData';
+import {buildJudgeBuiltinChecksPrompt} from './judgeChecks';
+import {parseDurationString} from '../jser/JSerHelper';
 
 export type JudgeHttpPost = (args: {
   url: string;

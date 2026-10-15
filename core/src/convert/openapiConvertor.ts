@@ -1,7 +1,7 @@
-import { APIData, AuthConfig, ExampleData } from '../APIData';
-import { EnvData, EnvVariableValue } from '../EnvData';
-import { slugValue } from '../identifierUtils';
-import { formatBody } from '../markupConvertor';
+import { APIData, AuthConfig, ExampleData } from '../data/APIData';
+import { EnvData, EnvVariableValue } from '../data/EnvData';
+import { slugValue } from '../util/identifierUtils';
+import { formatBody } from '../parse/markupConvertor';
 
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 const SERVER_VAR_RE = /\{([a-zA-Z0-9._-]+)\}/g;

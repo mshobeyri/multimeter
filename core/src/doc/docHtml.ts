@@ -1,8 +1,8 @@
-import { DOC_TEMPLATE_HTML } from '../docTemplate';
-import { formatBody } from '../markupConvertor';
-import { requestFormat } from '../CommonData';
-import { resolveEnvTokenValues } from '../variableReplacer';
-import { splitNormalizedLines } from '../textLines';
+import { DOC_TEMPLATE_HTML } from './docTemplate';
+import { formatBody } from '../parse/markupConvertor';
+import { requestFormat } from '../data/CommonData';
+import { resolveEnvTokenValues } from '../tokens/variableReplacer';
+import { splitNormalizedLines } from '../util/textLines';
 // Shared HTML renderer for documentation pages
 // Framework-free and safe to use in Node and browser contexts
 

@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import WebSocket = require('ws');
 
-import {resolveCertFilePath} from 'mmt-core/fileHelper';
+import {resolveCertFilePath} from 'mmt-core/util/fileHelper';
 import {mockParsePack} from 'mmt-core';
 import {HistoryManager} from '../historyManager';
 import {

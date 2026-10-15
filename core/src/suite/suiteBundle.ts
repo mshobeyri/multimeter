@@ -3,8 +3,8 @@ import {
   SuiteHierarchyNode,
   SuiteHierarchyRootNode,
   SuiteYamlFilter,
-} from '../SuiteData';
-import {createSuiteNodeId} from '../suiteNodeId';
+} from '../data/SuiteData';
+import {createSuiteNodeId} from './suiteNodeId';
 
 export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'api'|'server'|'missing'|'cycle';
 

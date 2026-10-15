@@ -1,13 +1,13 @@
-import {parseJsonWithRuntimeTokens} from '../bodyRuntimeTokens';
-import {JSONValue} from '../CommonData';
-import {isOmitSentinel, OMIT_SENTINEL} from '../omitKeyword';
+import {parseJsonWithRuntimeTokens} from '../tokens/bodyRuntimeTokens';
+import {JSONValue} from '../data/CommonData';
+import {isOmitSentinel, OMIT_SENTINEL} from '../tokens/omitKeyword';
 import {
   isLiteralTokenValue,
   isPlainTokenScalar,
   isTokenLikeScalar,
   unwrapLiteralToken,
   wrapLiteralToken,
-} from '../literalToken';
+} from '../tokens/literalToken';
 
 /**
  * True when a plain string must be YAML-double-quoted so a reparse keeps it as

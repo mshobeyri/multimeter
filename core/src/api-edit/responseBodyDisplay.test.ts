@@ -1,4 +1,4 @@
-import {encodeBinaryBody} from '../binaryBody';
+import {encodeBinaryBody} from '../network/binaryBody';
 import {
   coerceResponseView,
   detectResponseFormat,
@@ -10,7 +10,7 @@ import {
   responseBodyToRawString,
   responseTypeSupportsPreview,
   responseTypeSupportsPretty,
-} from '../responseBodyDisplay';
+} from './responseBodyDisplay';
 
 describe('responseBodyDisplay', () => {
   it('serializes objects compactly without pretty-print', () => {

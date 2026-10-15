@@ -1,9 +1,9 @@
-import {MockConnectionConfig, MockConnectionMode, MockData, MockEndpoint, MockFallback, MockProtocol} from '../MockData';
-import {Format, Method} from '../CommonData';
-import parseYaml, {packYaml} from '../markupConvertor';
-import {isNonEmptyList, isNonEmptyObject} from '../safer';
-import {resolveEmbeddedTokens} from '../variableReplacer';
-import {coerceYamlString} from '../yamlIncompleteScalar';
+import {MockConnectionConfig, MockConnectionMode, MockData, MockEndpoint, MockFallback, MockProtocol} from '../data/MockData';
+import {Format, Method} from '../data/CommonData';
+import parseYaml, {packYaml} from './markupConvertor';
+import {isNonEmptyList, isNonEmptyObject} from '../util/safer';
+import {resolveEmbeddedTokens} from '../tokens/variableReplacer';
+import {coerceYamlString} from './yamlIncompleteScalar';
 
 const VALID_PROTOCOLS: MockProtocol[] = ['http', 'https', 'ws'];
 const VALID_CONNECTION_MODES: MockConnectionMode[] = ['plain', 'tls', 'mtls'];

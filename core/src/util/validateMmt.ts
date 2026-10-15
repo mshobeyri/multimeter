@@ -1,6 +1,6 @@
-import {yamlToAPIStrict} from '../apiParsePack';
-import {fileType} from '../JSerHelper';
-import {yamlToTestStrict} from '../testParsePack';
+import {yamlToAPIStrict} from '../parse/apiParsePack';
+import {fileType} from '../jser/JSerHelper';
+import {yamlToTestStrict} from '../parse/testParsePack';
 
 export interface ValidateMmtResult {
   valid: boolean;

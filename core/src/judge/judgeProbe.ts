@@ -3,8 +3,8 @@
  * Shared by the webview probe UI and unit tests.
  */
 
-import {AuthConfig} from '../APIData';
-import {buildJudgeAuth} from '../judgeAuth';
+import {AuthConfig} from '../data/APIData';
+import {buildJudgeAuth} from './judgeAuth';
 
 export type JudgeModelInfo = {
   name: string;

@@ -1,4 +1,4 @@
-import {SuiteYamlFilter} from '../SuiteData';
+import {SuiteYamlFilter} from '../data/SuiteData';
 
 export interface TagFilter {
   /** AND across layers; OR within a layer. Absent/empty = all. */

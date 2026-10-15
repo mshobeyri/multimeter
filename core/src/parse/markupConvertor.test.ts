@@ -1,5 +1,5 @@
-import {beautify, beautifyWithContentType, contentTypeForFormat, formatBody, formattedBodyToYamlObject, packBodyForYamlCompare, packYaml} from '../markupConvertor';
-import {apiToYaml} from '../apiParsePack';
+import {beautify, beautifyWithContentType, contentTypeForFormat, formatBody, formattedBodyToYamlObject, packBodyForYamlCompare, packYaml} from './markupConvertor';
+import {apiToYaml} from './apiParsePack';
 
 describe('markupConvertor XML formats', () => {
   it('keeps normal xml self-closing for empty elements', () => {

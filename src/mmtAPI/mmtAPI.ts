@@ -30,9 +30,9 @@ import {
   formatCurlCommandSet,
   type CurlCertificateOptions,
   type CurlShellKind,
-} from 'mmt-core/curlGenerator';
-import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/NetworkData';
-import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
+} from 'mmt-core/convert/curlGenerator';
+import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/data/NetworkData';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/env/envVarLastUpdate';
 
 let curlTerminal: vscode.Terminal|null = null;
 

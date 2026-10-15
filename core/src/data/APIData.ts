@@ -1,5 +1,5 @@
-import {Format, FormatSpec, GrpcStream, JSONRecord, JSONValue, Method, MMTFile, Protocol} from '../CommonData';
-import type {ExpectMap} from '../TestData';
+import {Format, FormatSpec, GrpcStream, JSONRecord, JSONValue, Method, MMTFile, Protocol} from './CommonData';
+import type {ExpectMap} from './TestData';
 
 export interface AuthBearer {
   type: 'bearer';

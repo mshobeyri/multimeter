@@ -4,7 +4,7 @@ import {
   normalizeReportGitCommitHash,
   normalizeReportGitDescribe,
   normalizeReportGitTag,
-} from '../reportGitCommit';
+} from './reportGitCommit';
 
 describe('normalizeReportGitCommit', () => {
   it('returns the first 8 hex chars', () => {

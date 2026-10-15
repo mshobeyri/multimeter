@@ -1,4 +1,4 @@
-import {parseCacheExpiryAtMs} from '../JSerHelper';
+import {parseCacheExpiryAtMs} from './JSerHelper';
 
 describe('parseCacheExpiryAtMs', () => {
   const now = Date.UTC(2026, 0, 1, 12, 0, 0); // fixed

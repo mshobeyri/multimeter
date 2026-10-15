@@ -1,4 +1,4 @@
-import {__testOnlyCreateRunId} from '../runTest';
+import {__testOnlyCreateRunId} from './runTest';
 
 describe('runTest runId', () => {
   it('generates a new runId for each call', () => {

@@ -1,7 +1,7 @@
-import {exampleId, exampleTitle} from 'mmt-core/APIData';
-import {yamlToAPI} from 'mmt-core/apiParsePack';
-import {parseYamlDoc} from 'mmt-core/markupConvertor';
-import {safeList} from 'mmt-core/safer';
+import {exampleId, exampleTitle} from 'mmt-core/data/APIData';
+import {yamlToAPI} from 'mmt-core/parse/apiParsePack';
+import {parseYamlDoc} from 'mmt-core/parse/markupConvertor';
+import {safeList} from 'mmt-core/util/safer';
 import {useCallback, useEffect, useRef} from 'react';
 
 import {showVSCodeMessage} from '../vsAPI';

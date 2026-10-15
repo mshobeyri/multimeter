@@ -1,6 +1,6 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
-import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
+import { createSuiteNodeId } from 'mmt-core/suite/suiteNodeId';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
 import SuiteTestFileItem from './SuiteTestFileItem';
 import SuiteSuiteFileItem from './SuiteSuiteFileItem';

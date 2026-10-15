@@ -28,8 +28,8 @@ jest.mock('http2', () => {
   };
 });
 
-import {DEFAULT_NETWORK_CONFIG} from '../NetworkData';
-import {createHttpsAgentWithCertificates, sendHttpRequest} from '../networkCore';
+import {DEFAULT_NETWORK_CONFIG} from '../data/NetworkData';
+import {createHttpsAgentWithCertificates, sendHttpRequest} from './networkCore';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const axios = require('axios/dist/node/axios.cjs');

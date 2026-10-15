@@ -1,4 +1,4 @@
-import {createSuiteNodeId} from '../suiteNodeId';
+import {createSuiteNodeId} from './suiteNodeId';
 
 describe('createSuiteNodeId', () => {
   test('uses suite-node prefix and joins index path', () => {

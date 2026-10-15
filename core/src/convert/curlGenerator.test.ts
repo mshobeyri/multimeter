@@ -3,7 +3,7 @@ import {
   buildCurlCommandSet,
   formatCurlCommandSet,
   quoteCurlArgument,
-} from '../curlGenerator';
+} from './curlGenerator';
 
 describe('curlGenerator', () => {
   const sample = {

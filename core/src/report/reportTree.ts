@@ -1,4 +1,4 @@
-import type { TestRunResult, TestStepResult } from '../reportCollector';
+import type { TestRunResult, TestStepResult } from './reportCollector';
 
 export interface ReportTreeNode {
   run: TestRunResult;

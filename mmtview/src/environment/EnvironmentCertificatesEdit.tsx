@@ -1,6 +1,6 @@
 import React from "react";
 import { EnvCertificates, EnvClientCertificate, EnvCaCertificate } from "./EnvironmentData";
-import { safeList } from "mmt-core/safer";
+import { safeList } from "mmt-core/util/safer";
 import FieldWithRemove from "../components/FieldWithRemove";
 import StableTextInput from "../components/StableTextInput";
 import FilePickerInput from "../components/FilePickerInput";

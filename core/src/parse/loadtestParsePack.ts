@@ -1,6 +1,6 @@
-import parseYaml, {packYaml} from '../markupConvertor';
-import {LoadTestData} from '../LoadTestData';
-import {SuiteEnvironment} from '../SuiteData';
+import parseYaml, {packYaml} from './markupConvertor';
+import {LoadTestData} from '../data/LoadTestData';
+import {SuiteEnvironment} from '../data/SuiteData';
 
 function intoStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {

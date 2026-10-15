@@ -3,7 +3,7 @@ import {
   headerContentType,
   resolveRequestFormat,
   resolveResponseFormat,
-} from '../formatResolve';
+} from './formatResolve';
 
 describe('formatFromContentType', () => {
   it('maps content-type substrings to formats', () => {

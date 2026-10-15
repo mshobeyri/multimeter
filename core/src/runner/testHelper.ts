@@ -1,21 +1,21 @@
-import type {CheckLogMode} from '../CommonData';
-import type {FileLoader} from '../JSerFileLoader';
-import {parseCacheExpiryAtMs} from '../JSerHelper';
-import {applyOmitToOutgoingRequest, isOmitSentinel, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from '../omitKeyword';
-import {buildMultipartBodyFromParts} from '../multipartBody';
-import {comparisonOperatorPattern, DEFAULT_TIME_VELOCITY} from '../TestData';
-import {unsignedDurationMs} from '../durationParse';
-import {wrapJsHelperModuleSource} from '../jsModuleExport';
-import type {JudgeData, JudgeResult} from '../JudgeData';
+import type {CheckLogMode} from '../data/CommonData';
+import type {FileLoader} from '../jser/JSerFileLoader';
+import {parseCacheExpiryAtMs} from '../jser/JSerHelper';
+import {applyOmitToOutgoingRequest, isOmitSentinel, normalizeOmitToNull, OMIT_SENTINEL, restoreOmitKeyword, restoreOmitKeywordInText} from '../tokens/omitKeyword';
+import {buildMultipartBodyFromParts} from '../network/multipartBody';
+import {comparisonOperatorPattern, DEFAULT_TIME_VELOCITY} from '../data/TestData';
+import {unsignedDurationMs} from '../util/durationParse';
+import {wrapJsHelperModuleSource} from './jsModuleExport';
+import type {JudgeData, JudgeResult} from '../data/JudgeData';
 import {
   normalizeJudgeCheckValue,
   splitJudgeEvalBlock,
   unionJudgeChecksForModel,
-} from '../JudgeData';
-import {evaluateJudge} from '../judgeEngine';
-import {resolveInputsMap, resolveInputsMapAsync} from '../variableReplacer';
-import '../judgeEngineOllama';
-import '../judgeEngineProviders';
+} from '../data/JudgeData';
+import {evaluateJudge} from '../judge/judgeEngine';
+import {resolveInputsMap, resolveInputsMapAsync} from '../tokens/variableReplacer';
+import '../judge/judgeEngineOllama';
+import '../judge/judgeEngineProviders';
 
 /** Used by generated root wrappers to resolve e:/i: in inputs at runtime. */
 export const resolveInputsMap_ = resolveInputsMap;
@@ -158,7 +158,7 @@ export function applyOmitToRequest_(req: any, format?: string): any {
   return applyOmitToOutgoingRequest(req, format);
 }
 
-export {resolveRequestFormat as resolveRequestFormat_} from '../formatResolve';
+export {resolveRequestFormat as resolveRequestFormat_} from '../tokens/formatResolve';
 
 export async function buildMultipartBodyFromParts_(
     parts: unknown,
@@ -628,7 +628,7 @@ declare const __mmtRunId: string|undefined;
 declare const __mmtId: string|undefined;
 
 type StepType = 'check'|'assert'|'debug';
-export type {CheckLogMode} from '../CommonData';
+export type {CheckLogMode} from '../data/CommonData';
 
 const resolveReporter = () =>
     (typeof __mmtReportStep === 'function' ? __mmtReportStep : undefined);

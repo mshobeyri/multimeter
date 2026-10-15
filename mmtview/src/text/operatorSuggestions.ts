@@ -1,5 +1,5 @@
-import { getOpOptionLabel, selectableOpsList } from "mmt-core/TestData";
-import { safeList } from "mmt-core/safer";
+import { getOpOptionLabel, selectableOpsList } from "mmt-core/data/TestData";
+import { safeList } from "mmt-core/util/safer";
 
 /** Monaco-agnostic completion item (the caller adds `kind` and `range`). */
 export interface OperatorSuggestion {

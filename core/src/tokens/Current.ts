@@ -1,6 +1,6 @@
-import { MONTHS, WEEKDAYS } from '../RandomResources';
-import {signedDurationMs, unsignedDurationMs} from '../durationParse';
-import type {TokenValueType} from '../Random';
+import { MONTHS, WEEKDAYS } from './RandomResources';
+import {signedDurationMs, unsignedDurationMs} from '../util/durationParse';
+import type {TokenValueType} from './Random';
 import {
   currentGitBranch,
   currentGitCommit,
@@ -9,9 +9,9 @@ import {
   currentGitDirty,
   currentGitTag,
   currentReportFolder,
-} from '../CurrentGit';
+} from './CurrentGit';
 
-export type {GitCurrentSnapshot, GitCurrentSnapshotProvider} from '../CurrentGit';
+export type {GitCurrentSnapshot, GitCurrentSnapshotProvider} from './CurrentGit';
 export {
   clearGitCurrentSnapshot,
   clearGitCurrentSnapshotProvider,
@@ -21,7 +21,7 @@ export {
   setGitCurrentSnapshot,
   setGitCurrentSnapshotProvider,
   textMayNeedGitCurrentSnapshot,
-} from '../CurrentGit';
+} from './CurrentGit';
 
 function pad2(n: number): string { return n.toString().padStart(2, '0'); }
 function pad3(n: number): string { return n.toString().padStart(3, '0'); }

@@ -55,7 +55,7 @@ import {
   TestAbortError,
   trimEquals_,
   trimEqualsIgnoreCase_,
-} from '../testHelper';
+} from './testHelper';
 
 describe('testHelper checkLogMode', () => {
   function makeConsole() {

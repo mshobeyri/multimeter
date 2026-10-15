@@ -1,4 +1,4 @@
-import {APIData} from '../APIData';
+import {APIData} from '../data/APIData';
 
 interface WsdlOperationInfo {
   name: string;

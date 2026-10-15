@@ -1,4 +1,4 @@
-import type { ReportFormat } from 'mmt-core/CommonData';
+import type { ReportFormat } from 'mmt-core/data/CommonData';
 import type { SendButtonMenuEntry } from '../components/SendButton';
 
 export const REPORT_EXPORT_FORMATS: readonly { value: ReportFormat; label: string }[] = [

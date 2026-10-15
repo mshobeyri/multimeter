@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { APIData } from "mmt-core/APIData";
-import { Request, Response } from "mmt-core/NetworkData";
-import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
-import { resolveRequestFormat } from "mmt-core/formatResolve";
-import { safeList } from "mmt-core/safer";
+import { APIData } from "mmt-core/data/APIData";
+import { Request, Response } from "mmt-core/data/NetworkData";
+import { JSONRecord, requestFormat, responseFormat } from "mmt-core/data/CommonData";
+import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
+import { safeList } from "mmt-core/util/safer";
 import {
   fieldForYamlSave,
   seedTokenFieldPreviewFromRequest,
-} from "mmt-core/apiBodyEdit";
+} from "mmt-core/api-edit/apiBodyEdit";
 import { loadEnvVariables } from "../workspaceStorage";
-import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
-import { resolveSetenvValues } from "mmt-core/setenvResolve";
+import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/extract/outputExtractor";
+import { resolveSetenvValues } from "mmt-core/tokens/setenvResolve";
 import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { protocolResolver } from "mmt-core";
@@ -26,7 +26,7 @@ import {
   diffApiRefreshScopes,
   isDocOnlyRefresh,
 } from "./apiUiRefresh";
-import { resolveApiRequest } from "mmt-core/resolveApiRequest";
+import { resolveApiRequest } from "mmt-core/runner/resolveApiRequest";
 import { requestGitSnapshot } from "../vsAPI";
 import {
   buildApiTesterRunMessage,
@@ -79,7 +79,7 @@ export function useAPITesterLogic({
   // Bumps when a new response arrives so the Response BodyView remounts even if
   // consecutive Send results share the same body text.
   const [responseRevision, setResponseRevision] = useState(0);
-  const [apiTestResults, setApiTestResults] = useState<import("mmt-core/apiTestEval").ApiTestExpectItem[] | null>(null);
+  const [apiTestResults, setApiTestResults] = useState<import("mmt-core/runner/apiTestEval").ApiTestExpectItem[] | null>(null);
   // Touched request fields: keep the user's live edits when a refresh would
   // otherwise overwrite them (e.g. env change). Reset on force-reset / open.
   const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());

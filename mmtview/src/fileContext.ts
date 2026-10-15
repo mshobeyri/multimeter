@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { BrunoSourceFile } from "mmt-core/brunoParsePack";
+import type { BrunoSourceFile } from "mmt-core/parse/brunoParsePack";
 import type { YamlEditorError } from "./text/yamlEditorErrors";
 
 export interface FileContextValue {

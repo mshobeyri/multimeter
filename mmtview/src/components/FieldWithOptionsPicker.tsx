@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ParamConstraintOption } from "mmt-core/paramConstraints";
-import { safeList } from "mmt-core/safer";
+import { ParamConstraintOption } from "mmt-core/api-edit/paramConstraints";
+import { safeList } from "mmt-core/util/safer";
 import { fieldTrailingLayout } from "./FieldWithRemove";
 import StableTextInput from "./StableTextInput";
 import { KV_FIELD_ATTR } from "./kvFieldNav";

@@ -1,4 +1,4 @@
-import type {Method} from '../CommonData';
+import type {Method} from '../data/CommonData';
 
 /** True when the request carries a non-empty body payload. */
 export function hasApiRequestBody(body: unknown): boolean {

@@ -1,6 +1,6 @@
-import { generateReportMarkdown, generateReportMarkdownDetailed } from '../reportMarkdown';
-import type { CollectedResults, TestRunResult, TestStepResult } from '../reportCollector';
-import { OMIT_SENTINEL } from '../omitKeyword';
+import { generateReportMarkdown, generateReportMarkdownDetailed } from './reportMarkdown';
+import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import { OMIT_SENTINEL } from '../tokens/omitKeyword';
 
 function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
   return {

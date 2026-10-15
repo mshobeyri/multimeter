@@ -1,4 +1,4 @@
-import { postmanToAPI } from '../postmanConvertor';
+import { postmanToAPI } from './postmanConvertor';
 
 describe('postmanConvertor.postmanToAPI real collection features', () => {
   it('handles websocket, env variable placeholders, nested items, urlencoded, xml and response-only entries', () => {

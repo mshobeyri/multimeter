@@ -1,4 +1,4 @@
-import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
+import { createSuiteNodeId } from 'mmt-core/suite/suiteNodeId';
 import {
   ownRunStatus,
   isUnderSuiteTarget,

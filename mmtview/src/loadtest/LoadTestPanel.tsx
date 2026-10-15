@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { parseYaml } from 'mmt-core/markupConvertor';
+import { parseYaml } from 'mmt-core/parse/markupConvertor';
 import SuiteTest, { SuiteFlowchartState } from '../suite/test/SuiteTest';
 import LoadTestEdit from './LoadTestEdit';
 import { FlowchartView } from '../flowchart';

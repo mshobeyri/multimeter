@@ -5,7 +5,7 @@ import {
   parseSuiteYamlFilter,
   tagFilterFromLists,
   tagFilterFromYaml,
-} from '../suiteTagFilter';
+} from './suiteTagFilter';
 
 describe('suiteTagFilter', () => {
   it('parses object and list-shorthand YAML filter', () => {

@@ -1,4 +1,4 @@
-import {Protocol} from '../CommonData';
+import {Protocol} from '../data/CommonData';
 
 /**
  * Determines the protocol from a URL string.

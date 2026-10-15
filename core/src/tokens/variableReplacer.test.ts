@@ -1,4 +1,4 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, resolveInputsMapAsync, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, collectEnvRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations, replaceOutputTokenRefs, replaceOutputTokensPlain, rewriteOutputSetKey } from '../variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, resolveInputsMapAsync, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, collectEnvRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations, replaceOutputTokenRefs, replaceOutputTokensPlain, rewriteOutputSetKey } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
   it('normalizes <<e:VAR>> to await mmtEnv_ lookup', () => {

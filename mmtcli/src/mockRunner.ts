@@ -7,9 +7,9 @@ import http from 'http';
 import https from 'https';
 import path from 'path';
 import * as mmtcore from 'mmt-core';
-import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
-import {dispatchMockHttpRequest} from 'mmt-core/mockDispatch';
-import {buildMockHttpsOptions} from 'mmt-core/mockTlsMaterial';
+import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/util/fileHelper';
+import {dispatchMockHttpRequest} from 'mmt-core/mock/mockDispatch';
+import {buildMockHttpsOptions} from 'mmt-core/mock/mockTlsMaterial';
 import {installGitCurrentSnapshotProvider} from './gitCommitShort.js';
 
 const {mockParsePack, mockServer, variableReplacer} = mmtcore;

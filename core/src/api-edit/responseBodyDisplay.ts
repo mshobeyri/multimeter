@@ -2,15 +2,15 @@ import {
   binaryBodyDataUrl,
   binaryBodyRawText,
   isBinaryBodyPayload,
-} from '../binaryBody';
-import {Format, RequestFormat, ResponseFormat} from '../CommonData';
+} from '../network/binaryBody';
+import {Format, RequestFormat, ResponseFormat} from '../data/CommonData';
 import {
   headerContentType,
   resolveRequestFormat,
   resolveResponseFormat,
-} from '../formatResolve';
-import {beautify, beautifyWithContentType} from '../markupConvertor';
-import type {Response} from '../NetworkData';
+} from '../tokens/formatResolve';
+import {beautify, beautifyWithContentType} from '../parse/markupConvertor';
+import type {Response} from '../data/NetworkData';
 
 export type ResponseTypeChoice = ResponseFormat;
 export type ResponseViewMode = 'raw' | 'pretty' | 'preview';

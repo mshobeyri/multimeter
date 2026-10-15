@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import {convertToMmt, detectImportSource, listSpecApis} from '../importConvertor';
-import {openApiToAPI} from '../openapiConvertor';
-import {parseYamlStrict} from '../markupConvertor';
+import {convertToMmt, detectImportSource, listSpecApis} from './importConvertor';
+import {openApiToAPI} from './openapiConvertor';
+import {parseYamlStrict} from '../parse/markupConvertor';
 
 const fixturesDir = path.join(__dirname, '../fixtures/openapi');
 

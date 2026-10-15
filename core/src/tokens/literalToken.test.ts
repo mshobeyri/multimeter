@@ -1,14 +1,14 @@
-import {yamlToAPIStrict, apiToYaml, yamlToAPI} from '../apiParsePack';
-import {requestForSend} from '../apiBodyEdit';
-import {apiToJSfunc} from '../JSerAPI';
+import {yamlToAPIStrict, apiToYaml, yamlToAPI} from '../parse/apiParsePack';
+import {requestForSend} from '../api-edit/apiBodyEdit';
+import {apiToJSfunc} from '../jser/JSerAPI';
 import {
   isLiteralTokenValue,
   isTokenLikeScalar,
   LITERAL_TOKEN_PREFIX,
   unwrapLiteralToken,
-} from '../literalToken';
-import {replaceAllRefs, toTemplateValueJs} from '../variableReplacer';
-import {resolveApiRequest} from '../resolveApiRequest';
+} from './literalToken';
+import {replaceAllRefs, toTemplateValueJs} from './variableReplacer';
+import {resolveApiRequest} from '../runner/resolveApiRequest';
 
 describe('quoted token literals', () => {
   it('detects token-like whole scalars', () => {

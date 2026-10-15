@@ -5,7 +5,7 @@ import {
   validateJudgeObject,
   yamlToJudge,
   yamlToJudgeStrict,
-} from '../judgeParsePack';
+} from './judgeParsePack';
 
 describe('judgeParsePack', () => {
   it('parses and serializes auth none, tags, and defaults criteria', () => {

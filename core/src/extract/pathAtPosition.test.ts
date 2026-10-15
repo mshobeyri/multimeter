@@ -1,4 +1,4 @@
-import {extractPathAtPosition} from '../outputExtractor';
+import {extractPathAtPosition} from './outputExtractor';
 
 function posOf(content: string, needle: string) {
   const idx = content.indexOf(needle);

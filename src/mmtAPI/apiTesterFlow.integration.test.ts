@@ -54,7 +54,7 @@ jest.mock('../keepEditor', () => ({
 jest.mock('../onboarding', () => ({getOnboarding: () => undefined}));
 jest.mock('./mockRunner', () => ({startMockServerFromPath: jest.fn()}));
 jest.mock('./network', () => {
-  const {DEFAULT_NETWORK_CONFIG} = jest.requireActual('mmt-core/NetworkData');
+  const {DEFAULT_NETWORK_CONFIG} = jest.requireActual('mmt-core/data/NetworkData');
   return {
     prepareNetworkConfigForFile: () => DEFAULT_NETWORK_CONFIG,
     parseEnvFileForRun: () => undefined,
@@ -68,7 +68,7 @@ import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
 
-import {closeAllHttpConnections} from '../../core/src/networkCore';
+import {closeAllHttpConnections} from '../../core/src/network/networkCore';
 import type {HistoryItem} from '../historyManager';
 import {handleLoadDocumentContent, handleRequestGitSnapshot} from './file';
 import {handleRunCurrentDocument} from './run';
@@ -83,9 +83,9 @@ type EchoRecord = {
 
 type WebviewModules = {
   send: typeof import('../../mmtview/src/api/apiTesterSend');
-  parse: typeof import('../../core/src/apiParsePack');
-  bodyEdit: typeof import('../../core/src/apiBodyEdit');
-  current: typeof import('../../core/src/Current');
+  parse: typeof import('../../core/src/parse/apiParsePack');
+  bodyEdit: typeof import('../../core/src/api-edit/apiBodyEdit');
+  current: typeof import('../../core/src/tokens/Current');
 };
 
 const BRANCH = 'feature/flow-test';
@@ -114,9 +114,9 @@ function loadWebview(): WebviewModules {
   jest.isolateModules(() => {
     mods = {
       send: require('../../mmtview/src/api/apiTesterSend'),
-      parse: require('mmt-core/apiParsePack'),
-      bodyEdit: require('mmt-core/apiBodyEdit'),
-      current: require('mmt-core/Current'),
+      parse: require('mmt-core/parse/apiParsePack'),
+      bodyEdit: require('mmt-core/api-edit/apiBodyEdit'),
+      current: require('mmt-core/tokens/Current'),
     };
   });
   return mods;

@@ -1,8 +1,8 @@
-import {Format, JSONValue} from '../CommonData';
-import {contentTypeForFormat, formatBody, formattedBodyToYamlObject} from '../markupConvertor';
-import {MockData, MockEndpoint, MockFallback, MockMatch} from '../MockData';
-import {matchExpectMap, matchHeaderExpectMap} from '../expectCompare';
-import {applyValueAccessor} from '../variableReplacer';
+import {Format, JSONValue} from '../data/CommonData';
+import {contentTypeForFormat, formatBody, formattedBodyToYamlObject} from '../parse/markupConvertor';
+import {MockData, MockEndpoint, MockFallback, MockMatch} from '../data/MockData';
+import {matchExpectMap, matchHeaderExpectMap} from '../api-edit/expectCompare';
+import {applyValueAccessor} from '../tokens/variableReplacer';
 
 /**
  * Platform-neutral mock request router.

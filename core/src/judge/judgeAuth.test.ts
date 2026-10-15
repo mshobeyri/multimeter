@@ -1,4 +1,4 @@
-import {buildJudgeAuth, appendQuery, resolveJudgeBaseUrl} from '../judgeAuth';
+import {buildJudgeAuth, appendQuery, resolveJudgeBaseUrl} from './judgeAuth';
 
 describe('buildJudgeAuth', () => {
   test('bearer becomes Authorization for openai-style engines', () => {

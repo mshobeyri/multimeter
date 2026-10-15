@@ -5,7 +5,7 @@ import {
   resolveCertFilePath,
   resolveDotSegments,
   resolveRequestedAgainst,
-} from '../fileHelper';
+} from './fileHelper';
 
 describe('computeRelative', () => {
   test('returns empty for missing full', () => {

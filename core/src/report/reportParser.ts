@@ -1,6 +1,6 @@
-import type { CollectedResults, TestStepResult, TestRunResult, SuiteRunResult } from '../reportCollector';
-import type { TestStepStatus } from '../runConfig';
-import { createSuiteNodeId } from '../suiteNodeId';
+import type { CollectedResults, TestStepResult, TestRunResult, SuiteRunResult } from './reportCollector';
+import type { TestStepStatus } from '../runner/runConfig';
+import { createSuiteNodeId } from '../suite/suiteNodeId';
 
 /**
  * Parse a `type: report` YAML object (already parsed from YAML string)

@@ -1,9 +1,9 @@
 import {JSer, apiParsePack, runner, testParsePack} from 'mmt-core';
-import * as validateMmt from 'mmt-core/validateMmt';
-import {formatMmtYaml} from 'mmt-core/mmtFormat';
-import {runJSCode} from 'mmt-core/jsRunner';
-import * as testScaffold from 'mmt-core/testScaffold';
-import {suggestAssertions} from 'mmt-core/suggestAssertions';
+import * as validateMmt from 'mmt-core/util/validateMmt';
+import {formatMmtYaml} from 'mmt-core/parse/mmtFormat';
+import {runJSCode} from 'mmt-core/runner/jsRunner';
+import * as testScaffold from 'mmt-core/util/testScaffold';
+import {suggestAssertions} from 'mmt-core/api-edit/suggestAssertions';
 import fs from 'fs';
 import path from 'path';
 

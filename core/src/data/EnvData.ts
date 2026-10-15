@@ -1,4 +1,4 @@
-import type {JSONValue} from '../CommonData';
+import type {JSONValue} from './CommonData';
 
 export interface EnvClientCertificate {
   name: string;

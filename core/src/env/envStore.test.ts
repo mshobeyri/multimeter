@@ -5,7 +5,7 @@ import {
   firstEnvFileOutput,
   isEnvFilePathValue,
   plainEnvValuesForClone,
-} from '../envStore';
+} from './envStore';
 
 describe('envStore', () => {
   it('copies initial values so the source stays untouched', () => {

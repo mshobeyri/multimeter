@@ -2,7 +2,7 @@ import {
   parseBracketConstraintPrefix,
   extractInputConstraintsFromDescription,
   PARAM_CONSTRAINT_PICKER_MAX,
-} from '../paramConstraints';
+} from './paramConstraints';
 
 describe('parseBracketConstraintPrefix', () => {
   test('parses bare option list', () => {

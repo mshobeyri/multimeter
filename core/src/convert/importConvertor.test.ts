@@ -1,5 +1,5 @@
-import {convertToMmt, detectImportSource, findSpecApiSelection, listSpecApis, listSpecApisFromFiles} from '../importConvertor';
-import {parseYamlStrict} from '../markupConvertor';
+import {convertToMmt, detectImportSource, findSpecApiSelection, listSpecApis, listSpecApisFromFiles} from './importConvertor';
+import {parseYamlStrict} from '../parse/markupConvertor';
 
 describe('importConvertor', () => {
   it('detects supported import sources', () => {

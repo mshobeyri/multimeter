@@ -1,6 +1,6 @@
-import {MMTFile} from '../CommonData';
-import {AuthConfig} from '../APIData';
-import {Timestr} from '../TestData';
+import {MMTFile} from './CommonData';
+import {AuthConfig} from './APIData';
+import {Timestr} from './TestData';
 
 /** Supported judge engine ids (v1). */
 export type JudgeEngineId =

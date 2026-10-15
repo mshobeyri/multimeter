@@ -1,6 +1,6 @@
-import {httpMethodAllowsRequestBody} from '../apiMethod';
-import {isBinaryBodyPayload} from '../binaryBody';
-import {Format, RequestFormat, ResponseFormat} from '../CommonData';
+import {httpMethodAllowsRequestBody} from '../network/apiMethod';
+import {isBinaryBodyPayload} from '../network/binaryBody';
+import {Format, RequestFormat, ResponseFormat} from '../data/CommonData';
 
 export function headerContentType(headers?: Record<string, string>): string {
   if (!headers) {

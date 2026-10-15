@@ -1,4 +1,4 @@
-import type {FileLoader} from '../JSerFileLoader';
+import type {FileLoader} from '../jser/JSerFileLoader';
 
 export class FileImportError extends Error {
   readonly kind: 'missing-file'|'circular-import'|'invalid-path'|'load-failed';

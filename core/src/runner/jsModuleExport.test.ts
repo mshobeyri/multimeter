@@ -1,7 +1,7 @@
 import {
   extractTopLevelFunctionNames,
   wrapJsHelperModuleSource,
-} from '../jsModuleExport';
+} from './jsModuleExport';
 
 describe('jsModuleExport', () => {
   test('extracts function declarations and const arrows', () => {

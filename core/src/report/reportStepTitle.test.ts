@@ -1,4 +1,4 @@
-import {reportStepTitle} from '../reportStepTitle';
+import {reportStepTitle} from './reportStepTitle';
 
 describe('reportStepTitle', () => {
   it('prefers an explicit title', () => {

@@ -1,11 +1,11 @@
-import {APIData} from '../APIData';
-import {JSONRecord} from '../CommonData';
-import {randomValueForToken} from '../Random';
-import {currentValueForToken} from '../Current';
-import {isOmitSentinel} from '../omitKeyword';
-import {isLiteralTokenValue, unwrapLiteralToken, LITERAL_TOKEN_PREFIX} from '../literalToken';
-import {safeList} from '../safer';
-import {TestData} from '../TestData';
+import {APIData} from '../data/APIData';
+import {JSONRecord} from '../data/CommonData';
+import {randomValueForToken} from './Random';
+import {currentValueForToken} from './Current';
+import {isOmitSentinel} from './omitKeyword';
+import {isLiteralTokenValue, unwrapLiteralToken, LITERAL_TOKEN_PREFIX} from './literalToken';
+import {safeList} from '../util/safer';
+import {TestData} from '../data/TestData';
 
 // ---------------------------------------------------------------------------
 // Shared token helpers

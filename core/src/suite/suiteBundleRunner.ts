@@ -1,20 +1,20 @@
-import {LogLevel} from '../CommonData';
-import {createReportCollector, CollectedResults} from '../reportCollector';
-import {basename, detectDocType, resolveRelativeTo, RunFileResult, sanitizeIdentifier, SuiteExportSpec} from '../runCommon';
-import {RunFileOptions, RunReporterMessage, RunResult, SuiteStepStatus} from '../runConfig';
-import {logRunFinished} from '../runLog';
-import {SuiteBundle, SuiteBundleNode} from '../suiteBundle';
+import {LogLevel} from '../data/CommonData';
+import {createReportCollector, CollectedResults} from '../report/reportCollector';
+import {basename, detectDocType, resolveRelativeTo, RunFileResult, sanitizeIdentifier, SuiteExportSpec} from '../runner/runCommon';
+import {RunFileOptions, RunReporterMessage, RunResult, SuiteStepStatus} from '../runner/runConfig';
+import {logRunFinished} from '../runner/runLog';
+import {SuiteBundle, SuiteBundleNode} from './suiteBundle';
 import {
   classifySuiteItemStatus,
   worstSuiteItemStatus,
-} from '../suiteItemStatus';
+} from './suiteItemStatus';
 import {
   decideTagRun,
   mergeTagFilter,
   tagFilterFromYaml,
   type TagFilter,
-} from '../suiteTagFilter';
-import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from '../testHelper';
+} from './suiteTagFilter';
+import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from '../runner/testHelper';
 
 function resolveSuitePath(targetPath: string, baseFilePath: string, options: RunFileOptions): string {
   return resolveRelativeTo(targetPath, baseFilePath, options.projectRoot);

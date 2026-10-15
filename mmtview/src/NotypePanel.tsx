@@ -1,11 +1,11 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import { typeOptions } from "mmt-core/CommonData";
-import { isMmtFileType } from "mmt-core/mmtFileType";
+import { typeOptions } from "mmt-core/data/CommonData";
+import { isMmtFileType } from "mmt-core/parse/mmtFileType";
 import {
   mmtFileTypeColor,
   mmtFileTypeIcon,
   mmtFileTypeLabel,
-} from "mmt-core/mmtFileType";
+} from "mmt-core/parse/mmtFileType";
 import MultimeterLogo from "./components/MultimeterLogo";
 import {
   notypeHelpLinks,

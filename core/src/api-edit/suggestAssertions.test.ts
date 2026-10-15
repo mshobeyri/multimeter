@@ -1,4 +1,4 @@
-import {suggestAssertions} from '../suggestAssertions';
+import {suggestAssertions} from './suggestAssertions';
 
 describe('suggestAssertions', () => {
   it('suggests expect and assert from API outputs', () => {

@@ -1,6 +1,6 @@
 import path from 'path';
 
-import {formatMmtYaml} from 'mmt-core/mmtFormat';
+import {formatMmtYaml} from 'mmt-core/parse/mmtFormat';
 import {
   handleApiCard,
   handleDiscoverApi,

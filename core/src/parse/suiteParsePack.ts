@@ -1,6 +1,6 @@
-import parseYaml, {packYaml} from '../markupConvertor';
-import {SuiteData, SuiteEnvironment} from '../SuiteData';
-import {parseSuiteYamlFilter} from '../suiteTagFilter';
+import parseYaml, {packYaml} from './markupConvertor';
+import {SuiteData, SuiteEnvironment} from '../data/SuiteData';
+import {parseSuiteYamlFilter} from '../suite/suiteTagFilter';
 
 function readSuiteItems(doc: any): string[] {
   const items = intoStringArray(doc?.items);

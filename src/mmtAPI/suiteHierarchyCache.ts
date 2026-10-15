@@ -2,9 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import {suiteHierarchy} from 'mmt-core';
-import {findProjectRootSync} from 'mmt-core/fileHelper';
-import type {FileLoader} from 'mmt-core/runConfig';
-import type {SuiteHierarchyTree} from 'mmt-core/SuiteData';
+import {findProjectRootSync} from 'mmt-core/util/fileHelper';
+import type {FileLoader} from 'mmt-core/runner/runConfig';
+import type {SuiteHierarchyTree} from 'mmt-core/data/SuiteData';
 
 export type {SuiteHierarchyTree};
 

@@ -1,9 +1,9 @@
-import {APIData, AuthConfig} from '../APIData';
-import {Method} from '../CommonData';
-import {applyRunDebugToRequestSteps, safeStepId} from '../identifierUtils';
-import {lookupPostmanDynamicName} from '../postmanConvertor';
-import {TestData, TestFlowHttp, TestFlowStep} from '../TestData';
-import {validateTestData} from '../testParsePack';
+import {APIData, AuthConfig} from '../data/APIData';
+import {Method} from '../data/CommonData';
+import {applyRunDebugToRequestSteps, safeStepId} from '../util/identifierUtils';
+import {lookupPostmanDynamicName} from '../convert/postmanConvertor';
+import {TestData, TestFlowHttp, TestFlowStep} from '../data/TestData';
+import {validateTestData} from './testParsePack';
 
 const HTTP_METHODS = new Set([
   'get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect',

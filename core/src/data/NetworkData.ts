@@ -1,9 +1,9 @@
-import { GraphQLConfig, GrpcConfig } from '../APIData';
-import {BinaryBodyPayload} from '../binaryBody';
-import { Format, FormatSpec, GrpcStream, Protocol } from '../CommonData';
-import type {EnvCertificates} from '../EnvData';
+import { GraphQLConfig, GrpcConfig } from './APIData';
+import {BinaryBodyPayload} from '../network/binaryBody';
+import { Format, FormatSpec, GrpcStream, Protocol } from './CommonData';
+import type {EnvCertificates} from './EnvData';
 
-export type {EnvCertificates, EnvHttpSettings, EnvSetting} from '../EnvData';
+export type {EnvCertificates, EnvHttpSettings, EnvSetting} from './EnvData';
 /** YAML certificate block. Prefer EnvCertificates from EnvData. */
 export type EnvCertificateSettings = EnvCertificates;
 

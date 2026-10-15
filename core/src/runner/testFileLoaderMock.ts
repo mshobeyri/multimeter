@@ -1,4 +1,4 @@
-import type {FileLoader} from '../JSerFileLoader';
+import type {FileLoader} from '../jser/JSerFileLoader';
 
 export interface TestFileLoaderMock {
   fileLoader: FileLoader;

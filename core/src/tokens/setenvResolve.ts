@@ -1,5 +1,5 @@
-import {isOmitSentinel, OMIT_SENTINEL} from '../omitKeyword';
-import {extractOutputs, ResponseData} from '../outputExtractor';
+import {isOmitSentinel, OMIT_SENTINEL} from './omitKeyword';
+import {extractOutputs, ResponseData} from '../extract/outputExtractor';
 
 export type SetenvLegacyRef = {
   envKey: string;

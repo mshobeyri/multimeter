@@ -1,4 +1,4 @@
-import {splitSuiteGroups, suiteToYaml, yamlToSuite} from '../suiteParsePack';
+import {splitSuiteGroups, suiteToYaml, yamlToSuite} from './suiteParsePack';
 
 describe('suiteParsePack', () => {
   it('parses suite and keeps then tokens', () => {

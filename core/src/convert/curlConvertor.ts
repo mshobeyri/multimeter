@@ -1,5 +1,5 @@
-import {APIData} from '../APIData';
-import {Method} from '../CommonData';
+import {APIData} from '../data/APIData';
+import {Method} from '../data/CommonData';
 
 const DATA_FLAGS = new Set([
   '-d', '--data', '--data-raw', '--data-binary', '--data-ascii', '--data-urlencode',

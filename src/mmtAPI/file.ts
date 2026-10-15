@@ -1,16 +1,16 @@
 import {dataImportProcessor, markupConvertor, outputExtractor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
-import type {ReportFormat} from 'mmt-core/CommonData';
-import {findProjectRootSync, isProjectRootImport} from 'mmt-core/fileHelper';
-import {splitNormalizedLines} from 'mmt-core/textLines';
-import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
-import {httpToTest, isHttpFilePath} from 'mmt-core/httpParsePack';
-import {generateJunitXml} from 'mmt-core/junitXml';
-import {generateMmtReport} from 'mmt-core/mmtReport';
-import {generateReportHtml} from 'mmt-core/reportHtml';
-import {generateReportMarkdown, generateReportMarkdownDetailed} from 'mmt-core/reportMarkdown';
-import type {CollectedResults, TestStepResult, TestRunResult} from 'mmt-core/reportCollector';
-import type {TestStepStatus} from 'mmt-core/runConfig';
+import type {ReportFormat} from 'mmt-core/data/CommonData';
+import {findProjectRootSync, isProjectRootImport} from 'mmt-core/util/fileHelper';
+import {splitNormalizedLines} from 'mmt-core/util/textLines';
+import {brunoToTest, isBrunoFilePath} from 'mmt-core/parse/brunoParsePack';
+import {httpToTest, isHttpFilePath} from 'mmt-core/parse/httpParsePack';
+import {generateJunitXml} from 'mmt-core/report/junitXml';
+import {generateMmtReport} from 'mmt-core/report/mmtReport';
+import {generateReportHtml} from 'mmt-core/report/reportHtml';
+import {generateReportMarkdown, generateReportMarkdownDetailed} from 'mmt-core/report/reportMarkdown';
+import type {CollectedResults, TestStepResult, TestRunResult} from 'mmt-core/report/reportCollector';
+import type {TestStepStatus} from 'mmt-core/runner/runConfig';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -21,7 +21,7 @@ import {buildThemeTokenMessage} from '../themeTokenColors';
 import {resolveSourceFormat} from '../mmtSourceFormat';
 import {brunoWebviewExtras} from '../brunoCollection';
 import {resolveGitCurrentSnapshot} from './gitCommitShort';
-import {textMayNeedGitCurrentSnapshot} from 'mmt-core/Current';
+import {textMayNeedGitCurrentSnapshot} from 'mmt-core/tokens/Current';
 
 const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
   outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];

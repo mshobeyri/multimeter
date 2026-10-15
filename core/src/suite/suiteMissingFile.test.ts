@@ -1,6 +1,6 @@
-import {runFile} from '../runner';
-import {buildSuiteHierarchyFromSuiteFile} from '../suiteHierarchy';
-import {createSuiteBundle} from '../suiteBundle';
+import {runFile} from '../runner/runner';
+import {buildSuiteHierarchyFromSuiteFile} from './suiteHierarchy';
+import {createSuiteBundle} from './suiteBundle';
 
 describe('suite missing file reporting', () => {
   it('emits invalid suite-item status for missing files', async () => {

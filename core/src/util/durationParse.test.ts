@@ -3,7 +3,7 @@ import {
   resolveRelativeWindow,
   signedDurationMs,
   unsignedDurationMs,
-} from '../durationParse';
+} from './durationParse';
 
 describe('durationParse', () => {
   test('parses unsigned combined durations', () => {

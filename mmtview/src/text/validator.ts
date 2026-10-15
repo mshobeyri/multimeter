@@ -1,6 +1,6 @@
 import {outputExtractor} from 'mmt-core';
-import {isValidExampleId} from 'mmt-core/APIData';
-import {isKnownRuntimeTokenName} from 'mmt-core/runtimeTokenUi';
+import {isValidExampleId} from 'mmt-core/data/APIData';
+import {isKnownRuntimeTokenName} from 'mmt-core/tokens/runtimeTokenUi';
 import {isInsideYamlBlockScalar} from './tokenHighlightPatterns';
 
 export type MissingImportEntry = { alias: string; path: string };
@@ -1766,7 +1766,7 @@ export type InputRefSiteInfo = {
   line: number;
 };
 
-// Keep these viewer-side patterns in sync with `core/src/variableReplacer.ts`.
+// Keep these viewer-side patterns in sync with `core/src/tokens/variableReplacer.ts`.
 const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
 const ACCESSOR_SEGMENT_RE =
   '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|[A-Za-z_][A-Za-z0-9_]*)\\])';

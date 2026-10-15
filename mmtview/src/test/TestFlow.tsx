@@ -1,7 +1,7 @@
 import React from "react";
-import { TestFlowSteps, FlowType, TestData } from "mmt-core/TestData";
+import { TestFlowSteps, FlowType, TestData } from "mmt-core/data/TestData";
 import TestFlowBox from "./TestFlowBox";
-import { getTestFlowStepType } from "mmt-core/testParsePack";
+import { getTestFlowStepType } from "mmt-core/parse/testParsePack";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { type MissingImportEntry } from "../text/validator";
 import { codiconForStepType } from "./stepPresentation";

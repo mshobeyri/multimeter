@@ -1,4 +1,4 @@
-import {runJSCode} from '../jsRunner';
+import {runJSCode} from './jsRunner';
 import {
   AssertionFailedError,
   beginServerSession_,
@@ -6,9 +6,9 @@ import {
   isServerRunning_,
   stopAllServers_,
   TestAbortError,
-} from '../testHelper';
+} from './testHelper';
 
-jest.mock('../networkCoreNode', () => ({
+jest.mock('../network/networkCoreNode', () => ({
   send: jest.fn(async (req: any) => {
     if (req?.url === 'fail') {
       throw new Error('send failed');
@@ -25,7 +25,7 @@ jest.mock('../networkCoreNode', () => ({
   getRunnerNetworkConfig: jest.fn(() => ({})),
 }));
 
-jest.mock('../grpcCore', () => ({
+jest.mock('../network/grpcCore', () => ({
   sendGrpcRequest: jest.fn(async () => ({
     body: '{"n":1}',
     metadata: {m: '1'},

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { safeList } from "mmt-core/safer";
+import { safeList } from "mmt-core/util/safer";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from "../fileContext";
 

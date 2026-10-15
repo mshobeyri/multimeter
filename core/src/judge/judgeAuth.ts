@@ -1,5 +1,5 @@
-import {AuthConfig} from '../APIData';
-import {applyAuthToRequest} from '../apiParsePack';
+import {AuthConfig} from '../data/APIData';
+import {applyAuthToRequest} from '../parse/apiParsePack';
 
 function headerKey(headers: Record<string, string>, name: string): string|undefined {
   const lower = name.toLowerCase();

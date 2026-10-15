@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import type {ReportFormat} from 'mmt-core/CommonData';
+import type {ReportFormat} from 'mmt-core/data/CommonData';
 import { PrimaryButtonFace } from '../components/PrimaryButton';
 
 export type {ReportFormat};

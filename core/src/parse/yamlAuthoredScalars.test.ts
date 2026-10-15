@@ -1,7 +1,7 @@
 import {readFileSync} from 'fs';
-import {apiToYaml, yamlToAPI} from '../apiParsePack';
-import {testToYaml, yamlToTest} from '../testParsePack';
-import {scalarFingerprint} from '../yamlAuthoredScalars';
+import {apiToYaml, yamlToAPI} from './apiParsePack';
+import {testToYaml, yamlToTest} from './testParsePack';
+import {scalarFingerprint} from './yamlAuthoredScalars';
 
 describe('scalarFingerprint', () => {
   it('treats token spellings as the same value and quoted keywords as different', () => {

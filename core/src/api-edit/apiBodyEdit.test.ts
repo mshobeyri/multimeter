@@ -10,9 +10,9 @@ import {
   requestForSend,
   tokensTextToYamlBody,
   yamlBodyToTokensText,
-} from '../apiBodyEdit';
-import {formatBody} from '../markupConvertor';
-import {resolveRequestFormat} from '../formatResolve';
+} from './apiBodyEdit';
+import {formatBody} from '../parse/markupConvertor';
+import {resolveRequestFormat} from '../tokens/formatResolve';
 
 describe('displayRequestBody', () => {
   it('returns strings as-is without re-pretty', () => {

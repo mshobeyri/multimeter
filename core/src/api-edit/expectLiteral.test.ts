@@ -1,15 +1,15 @@
-import {LITERAL_TOKEN_PREFIX} from '../literalToken';
+import {LITERAL_TOKEN_PREFIX} from '../tokens/literalToken';
 import {
   isQuotedExpectLiteral,
   opsList,
   unquoteExpectLiteral,
-} from '../TestData';
-import {evaluateExpectValue} from '../expectCompare';
+} from '../data/TestData';
+import {evaluateExpectValue} from './expectCompare';
 import {
   checkToJSfunc,
   conditionalStatementToJSfunc,
   parseExpectValue,
-} from '../JSerTestFlow';
+} from '../jser/JSerTestFlow';
 import {
   equals_,
   equalsAsString_,
@@ -20,9 +20,9 @@ import {
   notEqualsAsString_,
   trimEquals_,
   trimEqualsIgnoreCase_,
-} from '../testHelper';
-import { OMIT_KEYWORD, OMIT_SENTINEL } from '../omitKeyword';
-import { expectMapToUiRows, uiRowToExpectValue } from '../expectUi';
+} from '../runner/testHelper';
+import { OMIT_KEYWORD, OMIT_SENTINEL } from '../tokens/omitKeyword';
+import { expectMapToUiRows, uiRowToExpectValue } from './expectUi';
 
 /** Static ops that take a string expected (exclude fuzzy select bases covered separately). */
 const STRING_OPS = opsList.filter(op => op !== '>%' && op !== '<%');

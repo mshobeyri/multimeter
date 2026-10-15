@@ -1,16 +1,16 @@
-import {displayRuntimeTokensToResolvableText} from '../bodyRuntimeTokens';
-import {JSONValue} from '../CommonData';
+import {displayRuntimeTokensToResolvableText} from '../tokens/bodyRuntimeTokens';
+import {JSONValue} from '../data/CommonData';
 import {
   isPlainTokenScalar,
   isTokenLikeScalar,
   wholeAngleTokenPlain,
-} from '../literalToken';
-import {isOmitSentinel} from '../omitKeyword';
-import {splitCheckOperatorPrefix, unquoteExpectLiteral} from '../TestData';
+} from '../tokens/literalToken';
+import {isOmitSentinel} from '../tokens/omitKeyword';
+import {splitCheckOperatorPrefix, unquoteExpectLiteral} from '../data/TestData';
 import {
   inputBoxToYamlValue,
   yamlValueToInputBox,
-} from '../yamlValueConvert';
+} from '../parse/yamlValueConvert';
 
 /** Internal value kind for expect rows (full names). Display via shortValueTypeLabel. */
 export type ExpectUiValueKind =

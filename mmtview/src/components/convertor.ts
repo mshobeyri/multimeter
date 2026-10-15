@@ -1,15 +1,15 @@
 import {
   inputBoxToYamlValue,
   yamlValueToInputBox,
-} from 'mmt-core/yamlValueConvert';
-import {peerStringToDisplay, peerStringToYaml} from 'mmt-core/apiBodyEdit';
+} from 'mmt-core/parse/yamlValueConvert';
+import {peerStringToDisplay, peerStringToYaml} from 'mmt-core/api-edit/apiBodyEdit';
 import {
   parseJsonWithRuntimeTokens,
   stringifyJsonWithRuntimeTokens,
-} from 'mmt-core/bodyRuntimeTokens';
-import {isLiteralTokenValue, unwrapLiteralToken, wholeAngleTokenPlain} from 'mmt-core/literalToken';
-import {isOmitSentinel} from 'mmt-core/omitKeyword';
-import {JSONValue} from 'mmt-core/CommonData';
+} from 'mmt-core/tokens/bodyRuntimeTokens';
+import {isLiteralTokenValue, unwrapLiteralToken, wholeAngleTokenPlain} from 'mmt-core/tokens/literalToken';
+import {isOmitSentinel} from 'mmt-core/tokens/omitKeyword';
+import {JSONValue} from 'mmt-core/data/CommonData';
 
 export {
   inputBoxToYamlValue,
@@ -18,7 +18,7 @@ export {
   yamlValueToInputBox,
   yamlValueTypeLabel,
   shortValueTypeLabel,
-} from 'mmt-core/yamlValueConvert';
+} from 'mmt-core/parse/yamlValueConvert';
 
 /**
  * Shared UI → YAML write step 1: optional peer token normalize.

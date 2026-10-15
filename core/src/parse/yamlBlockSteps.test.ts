@@ -1,5 +1,5 @@
-import { formatMmtYaml } from '../mmtFormat';
-import { testToYaml, yamlToTest } from '../testParsePack';
+import { formatMmtYaml } from './mmtFormat';
+import { testToYaml, yamlToTest } from './testParsePack';
 
 describe('yamlBlockSteps', () => {
   it('packs nested step lists as block sequences, not flow arrays', () => {

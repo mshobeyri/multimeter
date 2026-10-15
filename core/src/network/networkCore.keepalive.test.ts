@@ -1,7 +1,7 @@
 import * as http from 'http';
 
-import {DEFAULT_NETWORK_CONFIG} from '../NetworkData';
-import {closeAllHttpConnections, sendHttpRequest} from '../networkCore';
+import {DEFAULT_NETWORK_CONFIG} from '../data/NetworkData';
+import {closeAllHttpConnections, sendHttpRequest} from './networkCore';
 
 describe('keep-alive after an error response', () => {
   let server: http.Server;

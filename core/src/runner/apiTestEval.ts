@@ -3,16 +3,16 @@
  * Same operators and field-access rules as call expect/require.
  */
 
-import type {ApiTestBlock} from '../APIData';
-import {evaluateExpectValue, randomExpectPattern, resolveLiveExpectValue} from '../expectCompare';
-import {parseExpectValue} from '../JSerTestFlow';
-import {isLiteralTokenValue, unwrapLiteralToken} from '../literalToken';
-import {isOmitSentinel} from '../omitKeyword';
-import {DEFAULT_OUTPUT_KEYS} from '../outputExtractor';
-import type {TestStepStatus} from '../runConfig';
-import type {ExpectMap, ExpectValue, ScalarExpectValue} from '../TestData';
-import {splitCheckOperatorPrefix} from '../TestData';
-import {applyValueAccessor} from '../variableReplacer';
+import type {ApiTestBlock} from '../data/APIData';
+import {evaluateExpectValue, randomExpectPattern, resolveLiveExpectValue} from '../api-edit/expectCompare';
+import {parseExpectValue} from '../jser/JSerTestFlow';
+import {isLiteralTokenValue, unwrapLiteralToken} from '../tokens/literalToken';
+import {isOmitSentinel} from '../tokens/omitKeyword';
+import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
+import type {TestStepStatus} from './runConfig';
+import type {ExpectMap, ExpectValue, ScalarExpectValue} from '../data/TestData';
+import {splitCheckOperatorPrefix} from '../data/TestData';
+import {applyValueAccessor} from '../tokens/variableReplacer';
 
 const DEFAULT_OUTPUT_KEY_SET = new Set(DEFAULT_OUTPUT_KEYS);
 

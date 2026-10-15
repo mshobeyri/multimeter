@@ -1,4 +1,4 @@
-import {apiToYaml, applyAuthToRequest, validateAuth, yamlToAPI, yamlToAPIStrict} from '../apiParsePack';
+import {apiToYaml, applyAuthToRequest, validateAuth, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 
 describe('apiParsePack', () => {
   it('parses legacy import blocks on APIs', () => {

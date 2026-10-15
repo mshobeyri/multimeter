@@ -1,6 +1,6 @@
 import YAML from 'yaml';
-import { generateMmtReport } from '../mmtReport';
-import type { CollectedResults, TestRunResult, TestStepResult } from '../reportCollector';
+import { generateMmtReport } from './mmtReport';
+import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 
 function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
   return {

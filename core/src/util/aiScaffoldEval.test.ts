@@ -7,8 +7,8 @@ import {
   scaffoldTestFromApi,
   suggestAliasFromPath,
   suggestTestPath,
-} from '../testScaffold';
-import {testToYaml, validateTestData, yamlToTestStrict} from '../testParsePack';
+} from './testScaffold';
+import {testToYaml, validateTestData, yamlToTestStrict} from '../parse/testParsePack';
 
 /**
  * Deterministic AI-scaffold eval corpus (no LLM).

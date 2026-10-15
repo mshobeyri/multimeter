@@ -1,4 +1,4 @@
-import type { BrunoSourceFile } from "mmt-core/brunoParsePack";
+import type { BrunoSourceFile } from "mmt-core/parse/brunoParsePack";
 
 export type SourceFormat = "mmt" | "http" | "bruno" | "openapi" | "postman" | "wsdl";
 

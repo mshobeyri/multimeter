@@ -8,10 +8,10 @@ import {
   expectValueToUiRow,
   uiRowToExpectValue,
   uiRowsToExpectMap,
-} from '../expectUi';
-import {EXPECT_OPERATOR_SAMPLES} from '../expectOperatorSamples';
-import {OMIT_SENTINEL} from '../omitKeyword';
-import { testToYaml, yamlToTest } from '../testParsePack';
+} from './expectUi';
+import {EXPECT_OPERATOR_SAMPLES} from '../parse/expectOperatorSamples';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
+import { testToYaml, yamlToTest } from '../parse/testParsePack';
 
 describe('expectUi', () => {
   it('preserves plain numeric == vs explicit == operator', () => {

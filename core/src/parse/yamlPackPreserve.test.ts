@@ -1,15 +1,15 @@
 import YAML from 'yaml';
-import {packYaml} from '../markupConvertor';
-import {mergeYamlValue} from '../yamlAstMerge';
-import {apiToYaml, yamlToAPI, yamlToAPIStrict} from '../apiParsePack';
-import {docToYaml, yamlToDoc} from '../docParsePack';
-import {envToYaml, yamlToEnv} from '../envParsePack';
-import {loadtestToYaml, yamlToLoadTest} from '../loadtestParsePack';
-import {mockToYaml, yamlToMock} from '../mockParsePack';
-import {suiteToYaml, yamlToSuite} from '../suiteParsePack';
-import {testToYaml, yamlToTest} from '../testParsePack';
-import {isOmitSentinel} from '../omitKeyword';
-import {formatMmtYaml} from '../mmtFormat';
+import {packYaml} from './markupConvertor';
+import {mergeYamlValue} from './yamlAstMerge';
+import {apiToYaml, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
+import {docToYaml, yamlToDoc} from './docParsePack';
+import {envToYaml, yamlToEnv} from './envParsePack';
+import {loadtestToYaml, yamlToLoadTest} from './loadtestParsePack';
+import {mockToYaml, yamlToMock} from './mockParsePack';
+import {suiteToYaml, yamlToSuite} from './suiteParsePack';
+import {testToYaml, yamlToTest} from './testParsePack';
+import {isOmitSentinel} from '../tokens/omitKeyword';
+import {formatMmtYaml} from './mmtFormat';
 
 function expectMergedEqualsFresh<T>(
     parse: (yaml: string) => T,

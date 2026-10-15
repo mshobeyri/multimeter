@@ -1,13 +1,13 @@
-import {APIData} from '../APIData';
-import {resolveApiHttpMethod} from '../apiMethod';
-import {apiToJSfunc} from '../JSerAPI';
-import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from '../JSerHelper';
-import {Comparison, ComparisonObject, comparisonOperatorPattern, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, isTimeAnyOperator, normalizeReportConfig, ReportConfig, ReportLevel, ScalarExpectValue, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from '../TestData';
-import {getTestFlowStepType} from '../testParsePack';
-import {DEFAULT_OUTPUT_KEYS} from '../outputExtractor';
-import {isLiteralTokenValue, unwrapLiteralToken} from '../literalToken';
-import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from '../omitKeyword';
-import {replaceEnvTokensToJs, replaceOutputTokensToJs, rewriteOutputSetKey, toTemplateValueJs, toTemplateWithEnvVars} from '../variableReplacer';
+import {APIData} from '../data/APIData';
+import {resolveApiHttpMethod} from '../network/apiMethod';
+import {apiToJSfunc} from './JSerAPI';
+import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from './JSerHelper';
+import {Comparison, ComparisonObject, comparisonOperatorPattern, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, isTimeAnyOperator, normalizeReportConfig, ReportConfig, ReportLevel, ScalarExpectValue, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from '../data/TestData';
+import {getTestFlowStepType} from '../parse/testParsePack';
+import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
+import {isLiteralTokenValue, unwrapLiteralToken} from '../tokens/literalToken';
+import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from '../tokens/omitKeyword';
+import {replaceEnvTokensToJs, replaceOutputTokensToJs, rewriteOutputSetKey, toTemplateValueJs, toTemplateWithEnvVars} from '../tokens/variableReplacer';
 import * as YAML from 'yaml';
 
 function randomName(): string {

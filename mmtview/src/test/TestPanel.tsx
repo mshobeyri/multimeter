@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { TestData } from "mmt-core/TestData";
+import { TestData } from "mmt-core/data/TestData";
 import TestOverview from "./TestOverview";
 import TestFlow from "./TestFlow";
-import { yamlToTest, testToYaml } from "mmt-core/testParsePack";
+import { yamlToTest, testToYaml } from "mmt-core/parse/testParsePack";
 import TestCode from "./TestCode";
 import { useImportValidation } from "../text/useImportValidation";
 import TestTest from "./TestTest";

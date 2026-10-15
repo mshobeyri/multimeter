@@ -1,6 +1,6 @@
-import type {JSONRecord, JSONValue} from 'mmt-core/CommonData';
-import type {EnvScalar, EnvVariableValue} from 'mmt-core/EnvData';
-import {inputBoxToYamlValue, yamlValueToInputBox} from 'mmt-core/yamlValueConvert';
+import type {JSONRecord, JSONValue} from 'mmt-core/data/CommonData';
+import type {EnvScalar, EnvVariableValue} from 'mmt-core/data/EnvData';
+import {inputBoxToYamlValue, yamlValueToInputBox} from 'mmt-core/parse/yamlValueConvert';
 
 export type EnvVariableBoard = {
   name: string;

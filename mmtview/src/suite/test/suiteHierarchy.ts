@@ -1,4 +1,4 @@
-import type {SuiteHierarchyNode} from 'mmt-core/SuiteData';
+import type {SuiteHierarchyNode} from 'mmt-core/data/SuiteData';
 
 export type SuiteTreeNode = SuiteHierarchyNode;
 

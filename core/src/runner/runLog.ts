@@ -1,4 +1,4 @@
-import {LogLevel} from '../CommonData';
+import {LogLevel} from '../data/CommonData';
 
 export type RunKind = 'Test'|'API'|'Suite'|'Load Test';
 

@@ -1,10 +1,10 @@
-import type {JSONValue} from 'mmt-core/CommonData';
-import type {EnvVarSource} from 'mmt-core/EnvData';
+import type {JSONValue} from 'mmt-core/data/CommonData';
+import type {EnvVarSource} from 'mmt-core/data/EnvData';
 import {
   inputBoxToYamlValue,
   yamlValueToInputBox,
   yamlValueTypeLabel,
-} from 'mmt-core/yamlValueConvert';
+} from 'mmt-core/parse/yamlValueConvert';
 
 /** Same rule as core `isEnvFilePathValue` / side-panel open-file control. */
 function isLiveEnvFilePath(value: unknown): boolean {

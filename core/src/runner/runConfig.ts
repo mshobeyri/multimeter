@@ -1,16 +1,16 @@
-import {CheckLogMode, LogLevel} from '../CommonData';
-import {RunJSCodeContext} from '../jsRunner';
-import type {LoadReportData} from '../reportCollector';
-import {dirnamePath, joinPath, resolveRequestedAgainst} from '../fileHelper';
-import parseYaml from '../markupConvertor';
-import {processDataImportsInYaml} from '../dataImportProcessor';
-import type {BinaryFileLoader, FileLoader} from '../JSerFileLoader';
-import type {EnvStore} from '../envStore';
-import type {SuiteEnvironment} from '../SuiteData';
+import {CheckLogMode, LogLevel} from '../data/CommonData';
+import {RunJSCodeContext} from './jsRunner';
+import type {LoadReportData} from '../report/reportCollector';
+import {dirnamePath, joinPath, resolveRequestedAgainst} from '../util/fileHelper';
+import parseYaml from '../parse/markupConvertor';
+import {processDataImportsInYaml} from '../convert/dataImportProcessor';
+import type {BinaryFileLoader, FileLoader} from '../jser/JSerFileLoader';
+import type {EnvStore} from '../env/envStore';
+import type {SuiteEnvironment} from '../data/SuiteData';
 
-export type {FileLoader, BinaryFileLoader} from '../JSerFileLoader';
-export type {RunPauseGate} from '../runPause';
-export {createRunPauseGate} from '../runPause';
+export type {FileLoader, BinaryFileLoader} from '../jser/JSerFileLoader';
+export type {RunPauseGate} from './runPause';
+export {createRunPauseGate} from './runPause';
 
 export type TestStepStatus = 'passed'|'failed'|'cancelled';
 export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending'|'invalid'|'skipped';
@@ -117,7 +117,7 @@ export interface RunResult {
   outputs?: Record<string, any>;
   cancelled?: boolean;
   /** Structured API `test.expect` / `test.require` results (API runs only). */
-  apiTest?: import('../apiTestEval').ApiTestEvalResult;
+  apiTest?: import('./apiTestEval').ApiTestEvalResult;
   /** True when the generated JS failed syntax validation (bad .mmt syntax). */
   syntaxError?: boolean;
   /** Set when generated JS threw during execution (e.g. ReferenceError). Assert throws use this too. */
@@ -189,7 +189,7 @@ export interface RunFileOptions {
   abortSignal?: AbortSignal;
 
   /** Optional pause gate; wait at checkAbort_ boundaries until resumed. */
-  pauseGate?: import('../runPause').RunPauseGate;
+  pauseGate?: import('./runPause').RunPauseGate;
 
   /** Optional identifier passed through reporter events and JS globals. */
   id?: string;
@@ -200,7 +200,7 @@ export interface RunFileOptions {
    * Optional suite bundle for bundle-based suite runs.
    * When provided, suite execution uses bundle node ids for targeting/report routing.
    */
-  suiteBundle?: import('../suiteBundle').SuiteBundle;
+  suiteBundle?: import('../suite/suiteBundle').SuiteBundle;
 
   /**
    * Project root directory (where multimeter.mmt lives) for +/ imports.
@@ -232,7 +232,7 @@ export interface RunFileOptions {
    * Tag filter for this invocation. When set on the run root, replaces suite
    * YAML `filter:`. Nested running suites still merge their own `filter:`.
    */
-  tagFilter?: import('../suiteTagFilter').TagFilter;
+  tagFilter?: import('../suite/suiteTagFilter').TagFilter;
   /**
    * True when an ancestor suite was selected by `only` (run whole subtree
    * except skip). Internal to suite bundle execution.

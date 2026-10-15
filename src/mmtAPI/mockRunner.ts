@@ -2,12 +2,12 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as path from 'path';
-import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
+import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/util/fileHelper';
 import * as vscode from 'vscode';
 import * as mmtcore from 'mmt-core';
 import { mockParsePack, mockServer, variableReplacer, MockData as MockDataNS } from 'mmt-core';
-import {dispatchMockHttpRequest} from 'mmt-core/mockDispatch';
-import {buildMockHttpsOptions, getDefaultMockTlsMaterial} from 'mmt-core/mockTlsMaterial';
+import {dispatchMockHttpRequest} from 'mmt-core/mock/mockDispatch';
+import {buildMockHttpsOptions, getDefaultMockTlsMaterial} from 'mmt-core/mock/mockTlsMaterial';
 
 import {onRunFinished, onRunStarted, type RunStatusMenuItem} from '../runStatusBar';
 import {keepMmtEditorSoon} from '../keepEditor';

@@ -1,7 +1,7 @@
 import { KeySuggestionsByParent } from './AutoComplete';
 import { readFile } from '../vsAPI';
 import { outputExtractor, mockServer, mockParsePack } from 'mmt-core';
-import { applyValueAccessor } from 'mmt-core/variableReplacer';
+import { applyValueAccessor } from 'mmt-core/tokens/variableReplacer';
 import { dataImportProcessor } from 'mmt-core';
 import { detectAutocompleteDocType } from './autocompleteDocType';
 import { completionRange, withRange, wordCompletionRange } from './autocompleteRange';

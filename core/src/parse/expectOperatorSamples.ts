@@ -1,4 +1,4 @@
-import {opsList} from '../TestData';
+import {opsList} from '../data/TestData';
 
 /**
  * Representative expect scalar for each comparison operator (plus common

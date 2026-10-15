@@ -1,19 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { ApiTestBlock } from "mmt-core/APIData";
-import type { ApiTestExpectItem } from "mmt-core/apiTestEval";
+import type { ApiTestBlock } from "mmt-core/data/APIData";
+import type { ApiTestExpectItem } from "mmt-core/runner/apiTestEval";
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
   expectMapToUiRows,
   uiRowsToExpectMap,
-} from "mmt-core/expectUi";
+} from "mmt-core/api-edit/expectUi";
 import CheckClauseList, {
   newCheckClauseRowId,
   stripCheckClauseRowIds,
   withCheckClauseRowIds,
   type CheckClauseRow,
 } from "../components/CheckClauseList";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
 
 const DEFAULT_FIELDS = [
   "status",

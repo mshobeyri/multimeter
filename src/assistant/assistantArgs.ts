@@ -1,9 +1,9 @@
-import {RunJSCodeContext} from 'mmt-core/jsRunner';
-import * as runConfig from 'mmt-core/runConfig';
+import {RunJSCodeContext} from 'mmt-core/runner/jsRunner';
+import * as runConfig from 'mmt-core/runner/runConfig';
 const {normalizePresetNames, resolveEnvFromDoc, mergeEnv} = runConfig;
-import {findProjectRootSync, isProjectRootImport, resolveProjectRootImport} from 'mmt-core/fileHelper';
+import {findProjectRootSync, isProjectRootImport, resolveProjectRootImport} from 'mmt-core/util/fileHelper';
 
-import type {FileLoader, RunFileOptions} from 'mmt-core/runConfig';
+import type {FileLoader, RunFileOptions} from 'mmt-core/runner/runConfig';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';

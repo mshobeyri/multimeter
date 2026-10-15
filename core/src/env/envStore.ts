@@ -1,7 +1,7 @@
-import {resolveRequestedAgainst} from '../fileHelper';
-import {parseCacheExpiryAtMs} from '../JSerHelper';
-import {isOmitSentinel} from '../omitKeyword';
-import {applyValueAccessor} from '../variableReplacer';
+import {resolveRequestedAgainst} from '../util/fileHelper';
+import {parseCacheExpiryAtMs} from '../jser/JSerHelper';
+import {isOmitSentinel} from '../tokens/omitKeyword';
+import {applyValueAccessor} from '../tokens/variableReplacer';
 
 /**
  * Per-run process environment store.

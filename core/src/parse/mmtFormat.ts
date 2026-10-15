@@ -1,7 +1,7 @@
-import {fileType} from '../JSer';
-import {formatMmtYamlAst} from '../mmtFormatAst';
-import {generateMmtReport} from '../mmtReport';
-import {parseReportMmt} from '../reportParser';
+import {fileType} from '../jser/JSer';
+import {formatMmtYamlAst} from './mmtFormatAst';
+import {generateMmtReport} from '../report/mmtReport';
+import {parseReportMmt} from '../report/reportParser';
 import YAML from 'yaml';
 
 export type MmtDocType =

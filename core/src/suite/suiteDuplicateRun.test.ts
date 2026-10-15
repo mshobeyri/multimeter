@@ -1,6 +1,6 @@
-import {runFile} from '../runner';
-import {buildSuiteHierarchyFromSuiteFile} from '../suiteHierarchy';
-import {createSuiteBundle} from '../suiteBundle';
+import {runFile} from '../runner/runner';
+import {buildSuiteHierarchyFromSuiteFile} from './suiteHierarchy';
+import {createSuiteBundle} from './suiteBundle';
 
 describe('duplicate nested suite with then', () => {
   it('runs the same nested suite twice across then', async () => {

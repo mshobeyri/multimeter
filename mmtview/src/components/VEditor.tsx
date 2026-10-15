@@ -2,15 +2,15 @@ import React, { useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import FieldWithOptionsPicker from "./FieldWithOptionsPicker";
 import SelectWithRemove from "./SelectWithRemove";
-import { ParamConstraintOption } from "mmt-core/paramConstraints";
-import { safeList } from "mmt-core/safer";
-import { JSONRecord, JSONValue } from "mmt-core/CommonData";
+import { ParamConstraintOption } from "mmt-core/api-edit/paramConstraints";
+import { safeList } from "mmt-core/util/safer";
+import { JSONRecord, JSONValue } from "mmt-core/data/CommonData";
 import {
   yamlValueToInputBoxWithTokens,
   inputBoxToYamlValueWithTokens,
 } from "./convertor";
-import { yamlValueTypeLabel } from "mmt-core/yamlValueConvert";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { yamlValueTypeLabel } from "mmt-core/parse/yamlValueConvert";
+import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
 import { handleKvEditorTab, kvFieldId } from "./kvFieldNav";
 
 interface VEditorProps {

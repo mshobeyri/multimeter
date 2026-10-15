@@ -1,5 +1,5 @@
-import {buildMultipartBodyFromParts, buildMultipartBuffer, normalizeMultipartParts} from '../multipartBody';
-import {OMIT_SENTINEL, stripOmitFromBody} from '../omitKeyword';
+import {buildMultipartBodyFromParts, buildMultipartBuffer, normalizeMultipartParts} from './multipartBody';
+import {OMIT_SENTINEL, stripOmitFromBody} from '../tokens/omitKeyword';
 
 describe('multipartBody', () => {
   it('normalizes text and file parts', () => {

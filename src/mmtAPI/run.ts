@@ -1,14 +1,14 @@
 import {runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
-import {createRunPauseGate, type FileLoader, type RunPauseGate} from 'mmt-core/runConfig';
-import type {SuiteEnvironment} from 'mmt-core/SuiteData';
-import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
-import {LogLevel} from 'mmt-core/CommonData';
-import {findProjectRootSync} from 'mmt-core/fileHelper';
-import {generateJunitXml} from 'mmt-core/junitXml';
-import {generateMmtReport} from 'mmt-core/mmtReport';
-import {generateReportHtml} from 'mmt-core/reportHtml';
-import {generateReportMarkdown} from 'mmt-core/reportMarkdown';
-import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
+import {createRunPauseGate, type FileLoader, type RunPauseGate} from 'mmt-core/runner/runConfig';
+import type {SuiteEnvironment} from 'mmt-core/data/SuiteData';
+import {buildApiTesterResponse} from 'mmt-core/runner/apiRunResult';
+import {LogLevel} from 'mmt-core/data/CommonData';
+import {findProjectRootSync} from 'mmt-core/util/fileHelper';
+import {generateJunitXml} from 'mmt-core/report/junitXml';
+import {generateMmtReport} from 'mmt-core/report/mmtReport';
+import {generateReportHtml} from 'mmt-core/report/reportHtml';
+import {generateReportMarkdown} from 'mmt-core/report/reportMarkdown';
+import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/runner/jsRunner';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -26,9 +26,9 @@ import {
   type WebviewPanelRef,
 } from './webviewReporter';
 import {addHistoryFromApiNetworkReport} from './apiHistory';
-import {expandCurrentTokensInPath} from 'mmt-core/Current';
+import {expandCurrentTokensInPath} from 'mmt-core/tokens/Current';
 import {installGitCurrentSnapshotProvider} from './gitCommitShort';
-import {ensureGitCurrentSnapshot} from 'mmt-core/Current';
+import {ensureGitCurrentSnapshot} from 'mmt-core/tokens/Current';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -510,7 +510,7 @@ export async function handleRunCurrentDocument(
 function postApiRunResult(
     webviewPanel: vscode.WebviewPanel, uri: string,
     response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean,
-    apiTest?: import('mmt-core/apiTestEval').ApiTestEvalResult | null) {
+    apiTest?: import('mmt-core/runner/apiTestEval').ApiTestEvalResult | null) {
   webviewPanel.webview.postMessage({
     command: 'multimeter.api.run.result',
     uri,

@@ -1,7 +1,7 @@
 import * as YAML from 'yaml';
-import {markQuotedTokenLiterals} from '../literalToken';
-import {preserveMultilineDescriptionScalars} from '../multilineDescriptionYaml';
-import {stripOmitFromMultipartParts} from '../multipartBody';
+import {markQuotedTokenLiterals} from './literalToken';
+import {preserveMultilineDescriptionScalars} from '../parse/multilineDescriptionYaml';
+import {stripOmitFromMultipartParts} from '../network/multipartBody';
 
 export const OMIT_KEYWORD = 'omit';
 export const OMIT_SENTINEL = '__MMT_OMIT__';

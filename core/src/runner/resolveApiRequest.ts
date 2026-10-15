@@ -1,11 +1,11 @@
-import {APIData} from '../APIData';
-import {JSONRecord, requestFormat} from '../CommonData';
-import {resolveRequestFormat} from '../formatResolve';
-import {Request} from '../NetworkData';
-import {applyAuthToRequest} from '../apiParsePack';
-import {formatBody} from '../markupConvertor';
-import {stripOmitFromRequest} from '../omitKeyword';
-import {replaceAllRefs} from '../variableReplacer';
+import {APIData} from '../data/APIData';
+import {JSONRecord, requestFormat} from '../data/CommonData';
+import {resolveRequestFormat} from '../tokens/formatResolve';
+import {Request} from '../data/NetworkData';
+import {applyAuthToRequest} from '../parse/apiParsePack';
+import {formatBody} from '../parse/markupConvertor';
+import {stripOmitFromRequest} from '../tokens/omitKeyword';
+import {replaceAllRefs} from '../tokens/variableReplacer';
 
 export interface ResolveApiRequestOptions {
   /** Clear r:/c: caches so each resolve gets fresh runtime values. */

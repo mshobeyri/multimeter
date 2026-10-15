@@ -1,5 +1,5 @@
-import {runFile} from '../runner';
-import {runJSCode} from '../jsRunner';
+import {runFile} from '../runner/runner';
+import {runJSCode} from '../runner/jsRunner';
 
 describe('file-backed env values (./…mmt)', () => {
   const files: Record<string, string> = {

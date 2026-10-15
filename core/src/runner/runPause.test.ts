@@ -1,4 +1,4 @@
-import {createRunPauseGate} from '../runPause';
+import {createRunPauseGate} from './runPause';
 
 describe('createRunPauseGate', () => {
   it('waits while paused and continues after resume', async () => {

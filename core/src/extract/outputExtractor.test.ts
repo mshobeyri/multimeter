@@ -1,5 +1,5 @@
-import { extractOutputs, buildBodyExprFromPath, extractPathAtPosition, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from '../outputExtractor';
-import {OMIT_SENTINEL, isOmitSentinel} from '../omitKeyword';
+import { extractOutputs, buildBodyExprFromPath, extractPathAtPosition, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from './outputExtractor';
+import {OMIT_SENTINEL, isOmitSentinel} from '../tokens/omitKeyword';
 
 describe('outputExtractor', () => {
   it('extracts with explicit regex prefix (legacy)', () => {

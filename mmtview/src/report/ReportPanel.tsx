@@ -1,15 +1,15 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { parseYaml } from 'mmt-core/markupConvertor';
-import { formatDuration } from 'mmt-core/CommonData';
-import { parseReportMmt } from 'mmt-core/reportParser';
-import { formatReportRelativeTime } from 'mmt-core/reportFormat';
-import type { CollectedResults, TestRunResult } from 'mmt-core/reportCollector';
+import { parseYaml } from 'mmt-core/parse/markupConvertor';
+import { formatDuration } from 'mmt-core/data/CommonData';
+import { parseReportMmt } from 'mmt-core/report/reportParser';
+import { formatReportRelativeTime } from 'mmt-core/report/reportFormat';
+import type { CollectedResults, TestRunResult } from 'mmt-core/report/reportCollector';
 import {
   buildReportTree,
   isSuiteOnlyRun,
   visibleReportSteps,
   type ReportTreeNode,
-} from 'mmt-core/reportTree';
+} from 'mmt-core/report/reportTree';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import type { StepStatus } from '../shared/types';
 import OverviewBoxes from '../shared/OverviewBoxes';

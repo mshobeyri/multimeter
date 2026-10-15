@@ -1,6 +1,6 @@
 import React from "react";
-import parseYaml from "mmt-core/markupConvertor";
-import { patchEnvYaml } from "mmt-core/envParsePack";
+import parseYaml from "mmt-core/parse/markupConvertor";
+import { patchEnvYaml } from "mmt-core/parse/envParsePack";
 import EnvironmentVariableEdit from "./EnvironmentVariableEdit";
 import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
 import EnvironmentCertificatesEdit from "./EnvironmentCertificatesEdit";

@@ -2,7 +2,7 @@ import React from "react";
 import type {
   RuntimeTokenValueContext,
   TokenPreviewCacheScope,
-} from "mmt-core/apiBodyEdit";
+} from "mmt-core/api-edit/apiBodyEdit";
 import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
 import { KV_FIELD_ATTR } from "./kvFieldNav";

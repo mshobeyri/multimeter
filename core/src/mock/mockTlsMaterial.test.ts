@@ -2,7 +2,7 @@ import {
   buildMockHttpsOptions,
   getDefaultMockTlsMaterial,
   resetDefaultMockTlsMaterialForTests,
-} from '../mockTlsMaterial';
+} from './mockTlsMaterial';
 
 describe('mockTlsMaterial', () => {
   afterEach(() => {

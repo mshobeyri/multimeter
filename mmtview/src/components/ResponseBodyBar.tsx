@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import { ResponseFormat } from "mmt-core/CommonData";
+import { ResponseFormat } from "mmt-core/data/CommonData";
 import type { ResponseViewMode } from "../api/responseBodyDisplay";
 import {
   BodyFormatSelect,

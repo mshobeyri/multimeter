@@ -1,8 +1,8 @@
-import {APIData} from '../APIData';
-import {Method} from '../CommonData';
-import {applyRunDebugToRequestSteps, safeStepId} from '../identifierUtils';
-import {TestData, TestFlowHttp, TestFlowSetEnv, TestFlowStep} from '../TestData';
-import {validateTestData} from '../testParsePack';
+import {APIData} from '../data/APIData';
+import {Method} from '../data/CommonData';
+import {applyRunDebugToRequestSteps, safeStepId} from '../util/identifierUtils';
+import {TestData, TestFlowHttp, TestFlowSetEnv, TestFlowStep} from '../data/TestData';
+import {validateTestData} from './testParsePack';
 
 const HTTP_METHODS = new Set([
   'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE',

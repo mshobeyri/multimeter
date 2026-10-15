@@ -1,14 +1,14 @@
-import {LogLevel} from '../CommonData';
-import * as JSer from '../JSer';
-import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from '../runCommon';
-import {GenerateJsOptions, mergeInputs, RunFileOptions, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from '../runConfig';
-import * as testParsePack from '../testParsePack';
-import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from '../brunoParsePack';
-import {httpToTest, httpToTestStrict, isHttpFilePath} from '../httpParsePack';
-import parseYaml from '../markupConvertor';
-import {restoreOmitKeyword} from '../omitKeyword';
-import {resolveInputsMap} from '../variableReplacer';
-import {TestData} from '../TestData';
+import {LogLevel} from '../data/CommonData';
+import * as JSer from '../jser/JSer';
+import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
+import {GenerateJsOptions, mergeInputs, RunFileOptions, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
+import * as testParsePack from '../parse/testParsePack';
+import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from '../parse/brunoParsePack';
+import {httpToTest, httpToTestStrict, isHttpFilePath} from '../parse/httpParsePack';
+import parseYaml from '../parse/markupConvertor';
+import {restoreOmitKeyword} from '../tokens/omitKeyword';
+import {resolveInputsMap} from '../tokens/variableReplacer';
+import {TestData} from '../data/TestData';
 
 /**
  * True when the buffer is MMT `type: test` YAML rather than native .bru/.http

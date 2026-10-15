@@ -1,4 +1,4 @@
-import {coerceYamlString, normalizeIncompleteYamlScalar} from '../yamlIncompleteScalar';
+import {coerceYamlString, normalizeIncompleteYamlScalar} from './yamlIncompleteScalar';
 
 describe('yamlIncompleteScalar', () => {
   it('recovers scheme-only nested maps from mid-typing', () => {

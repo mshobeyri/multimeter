@@ -1,4 +1,4 @@
-import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
+import { createSuiteNodeId } from 'mmt-core/suite/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import type { SuiteGroup } from '../types';
 import type { SuiteTreeNode } from './suiteHierarchy';

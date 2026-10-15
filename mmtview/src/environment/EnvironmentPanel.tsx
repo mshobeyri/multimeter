@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import parseYaml from "mmt-core/markupConvertor";
+import parseYaml from "mmt-core/parse/markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
 import {
@@ -10,11 +10,11 @@ import {
   removeEnvironmentVariablesByNames,
 } from "./environmentUtils";
 import { ComboTablePair } from "../components/ComboTable";
-import { isList, safeList } from "mmt-core/safer";
-import { JSONValue } from "mmt-core/CommonData";
+import { isList, safeList } from "mmt-core/util/safer";
+import { JSONValue } from "mmt-core/data/CommonData";
 import { EnvCertificates, EnvVariable } from "./EnvironmentData";
 import { saveEnvPresets } from "../workspaceStorage";
-import { selectFromVariables } from "mmt-core/runConfig";
+import { selectFromVariables } from "mmt-core/runner/runConfig";
 import { envVariableChoices, pickEnvChoice } from "./envVariableUi";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import TabBar from "../components/TabBar";

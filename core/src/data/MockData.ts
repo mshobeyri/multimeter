@@ -1,4 +1,4 @@
-import {Format, JSONValue, Method, MMTFile} from '../CommonData';
+import {Format, JSONValue, Method, MMTFile} from './CommonData';
 
 export type MockConnectionMode = 'plain' | 'tls' | 'mtls';
 

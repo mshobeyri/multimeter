@@ -1,4 +1,4 @@
-import {hasApiRequestBody, httpMethodAllowsRequestBody, resolveApiHttpMethod} from '../apiMethod';
+import {hasApiRequestBody, httpMethodAllowsRequestBody, resolveApiHttpMethod} from './apiMethod';
 
 describe('hasApiRequestBody', () => {
   test('returns false for absent or empty values', () => {

@@ -1,5 +1,5 @@
-import {ExpectMap} from '../TestData';
-import {JSONValue} from '../CommonData';
+import {ExpectMap} from '../data/TestData';
+import {JSONValue} from '../data/CommonData';
 
 export type SuggestAssertionsStyle = 'expect' | 'assert' | 'both';
 

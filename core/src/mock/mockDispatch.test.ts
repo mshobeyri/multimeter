@@ -1,11 +1,11 @@
-import {createMockRouter} from '../mockServer';
+import {createMockRouter} from './mockServer';
 import {
   dispatchMockHttpRequest,
   parseMockUrl,
   resolveMockResponseHeaders,
   serializeMockResponseBody,
-} from '../mockDispatch';
-import {MockData} from '../MockData';
+} from './mockDispatch';
+import {MockData} from '../data/MockData';
 
 describe('mockDispatch', () => {
   test('parseMockUrl extracts path and query', () => {

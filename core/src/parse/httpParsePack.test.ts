@@ -1,7 +1,7 @@
-import {detectDocType} from '../runCommon';
-import {generateTestJs} from '../runTest';
-import {httpRequestToAPI, httpToTest, httpToTestStrict, isHttpFilePath, parseHttpDocument, testToHttp, validateHttpDocument} from '../httpParsePack';
-import {testToYaml} from '../testParsePack';
+import {detectDocType} from '../runner/runCommon';
+import {generateTestJs} from '../runner/runTest';
+import {httpRequestToAPI, httpToTest, httpToTestStrict, isHttpFilePath, parseHttpDocument, testToHttp, validateHttpDocument} from './httpParsePack';
+import {testToYaml} from './testParsePack';
 
 describe('httpParsePack', () => {
   it('detects .http and .https files as test documents', () => {

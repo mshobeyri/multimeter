@@ -1,4 +1,4 @@
-import {validateMmtContent} from '../validateMmt';
+import {validateMmtContent} from './validateMmt';
 
 describe('validateMmtContent', () => {
   it('accepts a minimal API file', () => {

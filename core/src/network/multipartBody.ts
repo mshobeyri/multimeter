@@ -1,5 +1,5 @@
-import {JSONValue} from '../CommonData';
-import {OMIT_SENTINEL, isOmitSentinel} from '../omitKeyword';
+import {JSONValue} from '../data/CommonData';
+import {OMIT_SENTINEL, isOmitSentinel} from '../tokens/omitKeyword';
 
 export interface MultipartPartSpec {
   name: string;

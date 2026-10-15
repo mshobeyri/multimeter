@@ -1,30 +1,30 @@
 import {js2xml, xml2js} from 'xml-js';
 import * as YAML from 'yaml';
-import {Format, JSONValue} from '../CommonData';
-import {formatHtmlBody} from '../htmlFormat';
-import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from '../expectOperatorYaml';
-import {parseYamlWithOmitKeyword} from '../omitKeyword';
-import {restoreOmitKeyword} from '../omitKeyword';
-import {isOmitSentinel} from '../omitKeyword';
+import {Format, JSONValue} from '../data/CommonData';
+import {formatHtmlBody} from '../api-edit/htmlFormat';
+import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
+import {parseYamlWithOmitKeyword} from '../tokens/omitKeyword';
+import {restoreOmitKeyword} from '../tokens/omitKeyword';
+import {isOmitSentinel} from '../tokens/omitKeyword';
 import {
   isLiteralTokenValue,
   isTokenLikeScalar,
   restoreLiteralTokens,
   unwrapLiteralToken,
-} from '../literalToken';
+} from '../tokens/literalToken';
 import {
   inputBoxToYamlValue,
   needsYamlDoubleQuotes,
   yamlValueToInputBox,
-} from '../yamlValueConvert';
-import {applyDescriptionBlockLiteralStyles} from '../multilineDescriptionYaml';
-import {normalizeNewlines} from '../textLines';
-import {mergeYamlValue} from '../yamlAstMerge';
+} from './yamlValueConvert';
+import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
+import {normalizeNewlines} from '../util/textLines';
+import {mergeYamlValue} from './yamlAstMerge';
 import {
   restoreUnchangedScalarSpellings,
   yamlModelsUnchanged,
-} from '../yamlAuthoredScalars';
-import {forceBlockStyleForStepSequences} from '../yamlBlockSteps';
+} from './yamlAuthoredScalars';
+import {forceBlockStyleForStepSequences} from './yamlBlockSteps';
 import {
   mapUnquotedDisplayRuntimeTokens,
   parseJsonWithRuntimeTokens,
@@ -37,7 +37,7 @@ import {
   peerStringToDisplay,
   stringifyJsonWithRuntimeTokens,
   type RuntimeTokenValueContext,
-} from '../bodyRuntimeTokens';
+} from '../tokens/bodyRuntimeTokens';
 
 /** Unquoted `{{i|e|r|c:…}}` at the cursor. Quoted text is handled by the walker. */
 const CURLY_TOKEN_AT_RE =

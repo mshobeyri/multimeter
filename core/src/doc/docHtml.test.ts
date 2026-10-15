@@ -1,5 +1,5 @@
-import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml, parseRefDescription, extractMarkdownSection, resolveRefPath, resolveEnvVars } from '../docHtml';
-import { buildDocMarkdown } from '../docMarkdown';
+import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml, parseRefDescription, extractMarkdownSection, resolveRefPath, resolveEnvVars } from './docHtml';
+import { buildDocMarkdown } from './docMarkdown';
 
 describe('parseParamDescriptions', () => {
   test('extracts <<i:xxx>> annotations', () => {

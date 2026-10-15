@@ -1,10 +1,10 @@
-import {LogLevel} from '../CommonData';
-import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, sanitizeIdentifier} from '../runCommon';
-import {RunFileOptions, RunResult, SuiteStepStatus} from '../runConfig';
-import {logRunFinished} from '../runLog';
-import {classifySuiteItemStatus} from '../suiteItemStatus';
-import {splitSuiteGroups, yamlToSuite} from '../suiteParsePack';
-import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from '../testHelper';
+import {LogLevel} from '../data/CommonData';
+import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, sanitizeIdentifier} from './runCommon';
+import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
+import {logRunFinished} from './runLog';
+import {classifySuiteItemStatus} from '../suite/suiteItemStatus';
+import {splitSuiteGroups, yamlToSuite} from '../parse/suiteParsePack';
+import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from './testHelper';
 
 const stableIdForSuiteItem = (params: {
   suitePath: string;

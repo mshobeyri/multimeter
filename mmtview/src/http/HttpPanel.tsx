@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useMemo } from "react";
-import { httpToTest } from "mmt-core/httpParsePack";
-import { listSpecApis } from "mmt-core/importConvertor";
+import { httpToTest } from "mmt-core/parse/httpParsePack";
+import { listSpecApis } from "mmt-core/convert/importConvertor";
 import { FileContext } from "../fileContext";
 import SourceKindPanel from "../source/SourceKindPanel";
 

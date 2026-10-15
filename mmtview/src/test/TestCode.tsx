@@ -1,8 +1,8 @@
 import React, { useContext } from "react";
 import TextEditor from "../text/TextEditor";
-import { ImportCodeError, rootTestToJsfunc, setFileLoader } from "mmt-core/JSer";
+import { ImportCodeError, rootTestToJsfunc, setFileLoader } from "mmt-core/jser/JSer";
 import { logToOutput, openRelativeFile, readFile, runJSCode, showLogOutputChannel, showVSCodeMessage } from "../vsAPI";
-import { TestData } from "mmt-core/TestData";
+import { TestData } from "mmt-core/data/TestData";
 import { loadEnvVariables } from "../workspaceStorage";
 import { FileContext } from "../fileContext";
 

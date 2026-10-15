@@ -1,20 +1,20 @@
-import {yamlToAPI, yamlToAPIStrict} from '../apiParsePack';
-import {csvToJSObj} from '../csvConvertor';
-import {dataFileToJsObj, isDataImportPath, processDataImportsInYaml} from '../dataImportProcessor';
-import {dirnamePath, fileUriToPath, isAbsPath, joinPath, resolveDotSegments, resolveRequestedAgainst,} from '../fileHelper';
-import {createFileImporter, FileImportError} from '../fileImporter';
-import {ImportTracker} from '../importTracker';
-import {apiToJSfunc} from '../JSerAPI';
-import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from '../brunoParsePack';
-import {readFile} from '../JSerFileLoader';
-import {fileType, indentLines, toLowerUnderscore} from '../JSerHelper';
-import {testToJsfunc} from '../JSerTest';
-import {httpToTest, httpToTestStrict, isHttpFilePath} from '../httpParsePack';
-import {yamlToJudgeStrict} from '../judgeParsePack';
-import {DEFAULT_OUTPUT_KEYS} from '../outputExtractor';
-import {yamlToTest, yamlToTestStrict} from '../testParsePack';
-import {toTemplateValueJs} from '../variableReplacer';
-import {bindCachedImportFn, CACHED_IMPORT_FN, getRunFileCache} from '../runFileCache';
+import {yamlToAPI, yamlToAPIStrict} from '../parse/apiParsePack';
+import {csvToJSObj} from '../convert/csvConvertor';
+import {dataFileToJsObj, isDataImportPath, processDataImportsInYaml} from '../convert/dataImportProcessor';
+import {dirnamePath, fileUriToPath, isAbsPath, joinPath, resolveDotSegments, resolveRequestedAgainst,} from '../util/fileHelper';
+import {createFileImporter, FileImportError} from '../convert/fileImporter';
+import {ImportTracker} from '../util/importTracker';
+import {apiToJSfunc} from './JSerAPI';
+import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from '../parse/brunoParsePack';
+import {readFile} from './JSerFileLoader';
+import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
+import {testToJsfunc} from './JSerTest';
+import {httpToTest, httpToTestStrict, isHttpFilePath} from '../parse/httpParsePack';
+import {yamlToJudgeStrict} from '../parse/judgeParsePack';
+import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
+import {yamlToTest, yamlToTestStrict} from '../parse/testParsePack';
+import {toTemplateValueJs} from '../tokens/variableReplacer';
+import {bindCachedImportFn, CACHED_IMPORT_FN, getRunFileCache} from '../runner/runFileCache';
 
 /** Structured import/codegen error so the UI can open the offending file. */
 export class ImportCodeError extends Error {

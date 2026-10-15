@@ -1,4 +1,4 @@
-jest.mock('../networkCoreNode', () => {
+jest.mock('../network/networkCoreNode', () => {
   const sentRequests: any[] = [];
   return {
     sentRequests,
@@ -20,11 +20,11 @@ jest.mock('../networkCoreNode', () => {
   };
 });
 
-import {runFile} from '../runner';
-import {runJSCode} from '../jsRunner';
+import {runFile} from '../runner/runner';
+import {runJSCode} from '../runner/jsRunner';
 
 const sentRequests =
-    (require('../networkCoreNode') as any).sentRequests as any[];
+    (require('../network/networkCoreNode') as any).sentRequests as any[];
 
 describe('file-backed env values from type: api', () => {
   beforeEach(() => {

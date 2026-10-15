@@ -1,5 +1,5 @@
-import {detectImportSource, isSpecSourceKind} from 'mmt-core/importConvertor';
-import {isBrunoCollectionFilePath, isBrunoFilePath} from 'mmt-core/brunoParsePack';
+import {detectImportSource, isSpecSourceKind} from 'mmt-core/convert/importConvertor';
+import {isBrunoCollectionFilePath, isBrunoFilePath} from 'mmt-core/parse/brunoParsePack';
 
 export type HostSourceFormat =
     'mmt'|'http'|'bruno'|'openapi'|'postman'|'wsdl';

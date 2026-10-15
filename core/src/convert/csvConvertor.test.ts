@@ -1,4 +1,4 @@
-import {csvToJSObj} from '../csvConvertor'
+import {csvToJSObj} from './csvConvertor'
 
 describe('CSV import parsing', () => {
   it('parses simple CSV into array of objects with number coercion',

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { EnvVariable } from "./EnvironmentData";
 import SettingsTable, { SettingsTableColumn, SettingsTableRow } from "../components/SettingsTable";
-import type { JSONValue } from "mmt-core/CommonData";
-import { yamlValueToInputBox } from "mmt-core/yamlValueConvert";
+import type { JSONValue } from "mmt-core/data/CommonData";
+import { yamlValueToInputBox } from "mmt-core/parse/yamlValueConvert";
 import { EnvFilePathValue, isEnvFilePathDisplayValue } from "./envFilePathDisplay";
 
 function formatEnvDisplayValue(value: JSONValue | undefined): React.ReactNode {

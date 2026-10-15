@@ -1,5 +1,5 @@
-import { generateJunitXml, escapeXml } from '../junitXml';
-import type { CollectedResults, TestRunResult, TestStepResult } from '../reportCollector';
+import { generateJunitXml, escapeXml } from './junitXml';
+import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 
 function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
   return {

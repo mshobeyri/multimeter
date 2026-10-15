@@ -9,8 +9,8 @@ import {
   GrpcRequest,
   GrpcResponse,
   NetworkConfig,
-} from '../NetworkData';
-import type {FileLoader} from '../JSerFileLoader';
+} from '../data/NetworkData';
+import type {FileLoader} from '../jser/JSerFileLoader';
 
 // gRPC status code → HTTP status code mapping
 const GRPC_TO_HTTP_STATUS: Record<number, number> = {

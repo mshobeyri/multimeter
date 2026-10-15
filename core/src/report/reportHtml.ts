@@ -1,21 +1,21 @@
-import type { CollectedResults, TestRunResult, TestStepResult } from '../reportCollector';
-import { formatDuration } from '../CommonData';
+import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import { formatDuration } from '../data/CommonData';
 import {
   formatExpectMetaValue,
   shouldShowResolvedExpected,
-} from '../reportExpectMeta';
-import {formatReportDateTime, formatReportNumber, formatReportPercent, formatReportRelativeTime} from '../reportFormat';
-import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from '../reportGitCommit';
-import {applyProjectRootPaths} from '../reportPaths';
-import {reportStepTitle} from '../reportStepTitle';
+} from './reportExpectMeta';
+import {formatReportDateTime, formatReportNumber, formatReportPercent, formatReportRelativeTime} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
+import {applyProjectRootPaths} from './reportPaths';
+import {reportStepTitle} from './reportStepTitle';
 import {
   buildReportTree,
   isSuiteOnlyRun,
   reportableRuns,
   visibleReportSteps,
   type ReportTreeNode,
-} from '../reportTree';
-export { parentSuiteNodeId } from '../reportTree';
+} from './reportTree';
+export { parentSuiteNodeId } from './reportTree';
 
 export interface ReportHtmlOptions {
   suiteName?: string;

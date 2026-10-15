@@ -1,13 +1,13 @@
-import {runFile} from '../runner';
-import {runJSCode} from '../jsRunner';
-import {createReportCollector} from '../reportCollector';
-import {generateReportMarkdown, generateReportMarkdownDetailed} from '../reportMarkdown';
-import {generateJunitXml} from '../junitXml';
-import {generateMmtReport} from '../mmtReport';
-import {generateReportHtml} from '../reportHtml';
-import {OMIT_SENTINEL} from '../omitKeyword';
+import {runFile} from '../runner/runner';
+import {runJSCode} from '../runner/jsRunner';
+import {createReportCollector} from './reportCollector';
+import {generateReportMarkdown, generateReportMarkdownDetailed} from './reportMarkdown';
+import {generateJunitXml} from './junitXml';
+import {generateMmtReport} from './mmtReport';
+import {generateReportHtml} from './reportHtml';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
 
-jest.mock('../networkCoreNode', () => {
+jest.mock('../network/networkCoreNode', () => {
   const sentRequests: any[] = [];
   return {
     sentRequests,
@@ -36,7 +36,7 @@ jest.mock('../networkCoreNode', () => {
 });
 
 const sentRequests =
-    (require('../networkCoreNode') as any).sentRequests as any[];
+    (require('../network/networkCoreNode') as any).sentRequests as any[];
 
 function assertNoOmitSentinel(...texts: string[]) {
   for (const text of texts) {

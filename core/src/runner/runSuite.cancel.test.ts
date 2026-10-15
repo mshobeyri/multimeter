@@ -1,5 +1,5 @@
-import { executeSuite, prepareSuiteRun } from '../runSuite';
-import { detectDocType } from '../runCommon';
+import { executeSuite, prepareSuiteRun } from './runSuite';
+import { detectDocType } from './runCommon';
 
 // Minimal suite YAML
 const suiteYaml = `type: suite\ntitle: Cancel suite\nitems:\n  - test1.mmt\n  - then\n  - test2.mmt\n`;

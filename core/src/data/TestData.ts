@@ -1,12 +1,12 @@
 
 
-import {FormatSpec, Method, MMTFile, Protocol} from '../CommonData';
-import {unsignedDurationMs} from '../durationParse';
-import type {JudgeChecksMap} from '../JudgeData';
+import {FormatSpec, Method, MMTFile, Protocol} from './CommonData';
+import {unsignedDurationMs} from '../util/durationParse';
+import type {JudgeChecksMap} from './JudgeData';
 
 export type Timestr = `${number}s`|`${number}m`|`${number}h`|'inf';
 export type Repeat = `${number}`|'inf';
-export type {JudgeChecksMap} from '../JudgeData';
+export type {JudgeChecksMap} from './JudgeData';
 /** Report level for check/assert: 'all' (report pass+fail), 'fails' (fail only), 'none' (silent) */
 export type ReportLevel = 'all' | 'fails' | 'none';
 

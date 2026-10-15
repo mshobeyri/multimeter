@@ -1,17 +1,17 @@
-import {JSONRecord} from '../CommonData';
-import {resolveRequestedAgainst} from '../fileHelper';
-import {ImportTracker} from '../importTracker';
-import {indentLines, parseCacheExpiryAtMs, toInputsParams, toLowerUnderscore} from '../JSerHelper';
-import {importsToJsfuncDetailed} from '../JSerImports';
-import {flowToJsFunc} from '../JSerTestFlow';
-import {DEFAULT_OUTPUT_KEYS} from '../outputExtractor';
-import {TestData} from '../TestData';
+import {JSONRecord} from '../data/CommonData';
+import {resolveRequestedAgainst} from '../util/fileHelper';
+import {ImportTracker} from '../util/importTracker';
+import {indentLines, parseCacheExpiryAtMs, toInputsParams, toLowerUnderscore} from './JSerHelper';
+import {importsToJsfuncDetailed} from './JSerImports';
+import {flowToJsFunc} from './JSerTestFlow';
+import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
+import {TestData} from '../data/TestData';
 import {
   normalizeEnvTokens,
   replaceAllRefs,
   replaceOutputTokenRefs,
   toTemplateWithEnvVars,
-} from '../variableReplacer';
+} from '../tokens/variableReplacer';
 
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord,

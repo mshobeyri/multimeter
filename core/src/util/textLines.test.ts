@@ -1,4 +1,4 @@
-import { detectNewline, normalizeNewlines, splitNormalizedLines, withNewline } from '../textLines';
+import { detectNewline, normalizeNewlines, splitNormalizedLines, withNewline } from './textLines';
 
 describe('textLines', () => {
   it('splits CRLF and bare CR into clean LF lines', () => {

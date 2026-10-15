@@ -1,8 +1,8 @@
-import {currentValueForToken} from '../Current';
-import {LITERAL_TOKEN_PREFIX} from '../literalToken';
-import {evaluateApiTest, resolveApiOutputField} from '../apiTestEval';
-import {exampleId, exampleTitle} from '../APIData';
-import {apiToYaml, exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from '../apiParsePack';
+import {currentValueForToken} from '../tokens/Current';
+import {LITERAL_TOKEN_PREFIX} from '../tokens/literalToken';
+import {evaluateApiTest, resolveApiOutputField} from './apiTestEval';
+import {exampleId, exampleTitle} from '../data/APIData';
+import {apiToYaml, exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from '../parse/apiParsePack';
 
 describe('apiParsePack example expect', () => {
   it('parses and packs example expect', () => {

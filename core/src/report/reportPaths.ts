@@ -3,8 +3,8 @@ import {
   fileUriToPath,
   isAbsPath,
   isProjectRootImport,
-} from '../fileHelper';
-import type { CollectedResults, TestRunResult } from '../reportCollector';
+} from '../util/fileHelper';
+import type { CollectedResults, TestRunResult } from './reportCollector';
 
 /**
  * Rewrite an absolute path to `+/…` relative to the project root (folder with

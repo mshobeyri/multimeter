@@ -1,10 +1,10 @@
 import * as YAML from 'yaml';
-import {quoteExpectOperators} from '../expectOperatorYaml';
-import {httpToTest} from '../httpParsePack';
-import {rootTestToJsfunc, testToJsfunc} from '../JSer';
-import {checkToJSfunc, parseExpectValue} from '../JSerTestFlow';
-import {OMIT_SENTINEL} from '../omitKeyword';
-import {yamlToTest} from '../testParsePack';
+import {quoteExpectOperators} from '../parse/expectOperatorYaml';
+import {httpToTest} from '../parse/httpParsePack';
+import {rootTestToJsfunc, testToJsfunc} from '../jser/JSer';
+import {checkToJSfunc, parseExpectValue} from '../jser/JSerTestFlow';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
+import {yamlToTest} from '../parse/testParsePack';
 
 // CLI uses js-yaml (no types in core). Exercise the same parser here.
 const jsyaml = require('js-yaml') as {

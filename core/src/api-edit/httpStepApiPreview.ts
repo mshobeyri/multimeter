@@ -1,11 +1,11 @@
-import {APIData, ExampleData} from '../APIData';
-import {resolveApiHttpMethod} from '../apiMethod';
-import {JSONRecord} from '../CommonData';
-import {apiToYaml} from '../apiParsePack';
-import {parseYamlDoc} from '../markupConvertor';
-import {TestFlowHttp} from '../TestData';
-import {collectInputRefsFromObject} from '../variableReplacer';
-import {yamlToTest} from '../testParsePack';
+import {APIData, ExampleData} from '../data/APIData';
+import {resolveApiHttpMethod} from '../network/apiMethod';
+import {JSONRecord} from '../data/CommonData';
+import {apiToYaml} from '../parse/apiParsePack';
+import {parseYamlDoc} from '../parse/markupConvertor';
+import {TestFlowHttp} from '../data/TestData';
+import {collectInputRefsFromObject} from '../tokens/variableReplacer';
+import {yamlToTest} from '../parse/testParsePack';
 
 export type HttpStepApiPreviewOptions = {
   /** Test-level `inputs` defaults; used to copy `i:` refs into the API. */

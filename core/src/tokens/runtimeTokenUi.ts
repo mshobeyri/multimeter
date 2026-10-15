@@ -1,9 +1,9 @@
-import {CURRENT_FUTURE_PAST_ALIASES, CURRENT_TOKEN_MAP} from '../Current';
-import {RANDOM_TOKEN_MAP} from '../Random';
+import {CURRENT_FUTURE_PAST_ALIASES, CURRENT_TOKEN_MAP} from './Current';
+import {RANDOM_TOKEN_MAP} from './Random';
 import {
   ACCESSOR_PATH_RE,
   TOKEN_NAME_RE,
-} from '../variableReplacer';
+} from './variableReplacer';
 
 const KNOWN_RANDOM_TOKENS = new Set(Object.keys(RANDOM_TOKEN_MAP));
 const KNOWN_CURRENT_TOKENS = new Set([

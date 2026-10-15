@@ -1,4 +1,4 @@
-import {connectionTracker} from '../connectionTracker';
+import {connectionTracker} from './connectionTracker';
 
 describe('connectionTracker', () => {
   let unsubscribers: Array<() => void>;

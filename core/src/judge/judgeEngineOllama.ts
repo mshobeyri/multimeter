@@ -1,4 +1,4 @@
-import {JudgeData, JudgeRequest, JudgeResult} from '../JudgeData';
+import {JudgeData, JudgeRequest, JudgeResult} from '../data/JudgeData';
 import {
   JudgeEngine,
   JudgeHttpPost,
@@ -8,7 +8,7 @@ import {
   registerJudgeEngine,
   resolveJudgeHttpPost,
   resolveJudgeTimeoutMs,
-} from '../judgeEngine';
+} from './judgeEngine';
 
 function resolveBaseUrl(judge: JudgeData): string {
   return String(judge.url || '').replace(/\/+$/, '');

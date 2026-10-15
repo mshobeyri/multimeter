@@ -1,7 +1,7 @@
-import {runFile} from '../runner';
-import {runJSCode} from '../jsRunner';
+import {runFile} from './runner';
+import {runJSCode} from './jsRunner';
 
-jest.mock('../networkCoreNode', () => {
+jest.mock('../network/networkCoreNode', () => {
   const sentRequests: any[] = [];
   return {
     sentRequests,
@@ -21,7 +21,7 @@ jest.mock('../networkCoreNode', () => {
 });
 
 const sentRequests =
-    (require('../networkCoreNode') as any).sentRequests as any[];
+    (require('../network/networkCoreNode') as any).sentRequests as any[];
 
 const ECHO_API = `type: api
 title: Echo API

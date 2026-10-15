@@ -1,31 +1,31 @@
-import {LogLevel} from '../CommonData';
-import docHtml from '../docHtml';
-import docMarkdown from '../docMarkdown';
-import {executeApi, prepareApiRun} from '../runApi';
-import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from '../runCommon';
+import {LogLevel} from '../data/CommonData';
+import docHtml from '../doc/docHtml';
+import docMarkdown from '../doc/docMarkdown';
+import {executeApi, prepareApiRun} from './runApi';
+import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
 import {
   createEnvStoreFromRun,
   envFilePathOfGetter,
   type EnvStore,
-} from '../envStore';
-import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from '../runConfig';
-import parseYaml from '../markupConvertor';
-import {prepareSuiteRun} from '../runSuite';
-import {executeSuiteBundle} from '../suiteBundleRunner';
-import {buildSuiteHierarchyFromSuiteFile} from '../suiteHierarchy';
-import {createSuiteBundle} from '../suiteBundle';
-import {executeLoadTest, prepareLoadTestRun} from '../runLoadTest';
-import {executeTest, generateTestJs, isSerializedMmtTest, prepareTestRun} from '../runTest';
-import {decideTagRun} from '../suiteTagFilter';
-import {yamlToTest} from '../testParsePack';
-import {processDataImportsInYaml} from '../dataImportProcessor';
-import {isBrunoFilePath} from '../brunoParsePack';
-import {isHttpFilePath} from '../httpParsePack';
+} from '../env/envStore';
+import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from './runConfig';
+import parseYaml from '../parse/markupConvertor';
+import {prepareSuiteRun} from './runSuite';
+import {executeSuiteBundle} from '../suite/suiteBundleRunner';
+import {buildSuiteHierarchyFromSuiteFile} from '../suite/suiteHierarchy';
+import {createSuiteBundle} from '../suite/suiteBundle';
+import {executeLoadTest, prepareLoadTestRun} from './runLoadTest';
+import {executeTest, generateTestJs, isSerializedMmtTest, prepareTestRun} from './runTest';
+import {decideTagRun} from '../suite/suiteTagFilter';
+import {yamlToTest} from '../parse/testParsePack';
+import {processDataImportsInYaml} from '../convert/dataImportProcessor';
+import {isBrunoFilePath} from '../parse/brunoParsePack';
+import {isHttpFilePath} from '../parse/httpParsePack';
 import {
   resetCurrentTokenCache,
   resetRandomTokenCache,
-} from '../variableReplacer';
-import {getRunFileCache} from '../runFileCache';
+} from '../tokens/variableReplacer';
+import {getRunFileCache} from './runFileCache';
 
 export {generateTestJs, runGeneratedJs};
 

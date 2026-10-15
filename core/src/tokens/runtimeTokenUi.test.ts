@@ -6,7 +6,7 @@ import {
   isKnownRuntimeTokenName,
   runtimeTokenKeys,
   stringContainsRuntimeToken,
-} from '../runtimeTokenUi';
+} from './runtimeTokenUi';
 
 describe('stringContainsRuntimeToken', () => {
   it('detects plain and angle r:/c: tokens', () => {

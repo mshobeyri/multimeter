@@ -1,9 +1,9 @@
-import {Format, JSONRecord, requestFormat} from '../CommonData';
-import {APIData, AuthConfig} from '../APIData';
-import {Request} from '../NetworkData';
-import {applyAuthToRequest} from '../apiParsePack';
-import {resolveRequestFormat} from '../formatResolve';
-import {resolveApiRequest} from '../resolveApiRequest';
+import {Format, JSONRecord, requestFormat} from '../data/CommonData';
+import {APIData, AuthConfig} from '../data/APIData';
+import {Request} from '../data/NetworkData';
+import {applyAuthToRequest} from '../parse/apiParsePack';
+import {resolveRequestFormat} from '../tokens/formatResolve';
+import {resolveApiRequest} from '../runner/resolveApiRequest';
 import {
   projectBodyKeepingRuntimeTokens,
   rewriteAllLeavesToDisplayText,
@@ -17,16 +17,16 @@ import {
   sourceToDisplayTokenTemplate,
   valueForYamlSave,
   type RuntimeTokenValueContext,
-} from '../bodyRuntimeTokens';
+} from '../tokens/bodyRuntimeTokens';
 import {
   formatBody,
   formatUrlEncodedEditorBody,
   formatXmlEditorBody,
   packBodyForYamlCompare,
   withFormatContentType,
-} from '../markupConvertor';
-import {normalizeNewlines} from '../textLines';
-import {isIncompleteJsonLiteral} from '../yamlValueConvert';
+} from '../parse/markupConvertor';
+import {normalizeNewlines} from '../util/textLines';
+import {isIncompleteJsonLiteral} from '../parse/yamlValueConvert';
 export {
   displayRuntimeString,
   displayRuntimeStringRecord,
@@ -49,14 +49,14 @@ export {
   stringContainsFieldToken,
   wrapTypedTokenAtCursor,
   valueForYamlSave,
-} from '../bodyRuntimeTokens';
+} from '../tokens/bodyRuntimeTokens';
 export type {
   RuntimeTokenValueContext,
   TokenFieldSpan,
   TokenFieldSpanKind,
   BodyTokenHoverRange,
   TokenPreviewCacheScope,
-} from '../bodyRuntimeTokens';
+} from '../tokens/bodyRuntimeTokens';
 
 export type DisplayRequestBodyOptions = {
   /**

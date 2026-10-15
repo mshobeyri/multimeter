@@ -1,7 +1,7 @@
-import {APIData, AuthConfig, ExampleData} from '../APIData';
-import {Format, packFormatSpec, requestFormat, toResponseFormat} from '../CommonData';
-import {OMIT_SENTINEL} from '../omitKeyword';
-import {RANDOM_TOKEN_MAP} from '../Random';
+import {APIData, AuthConfig, ExampleData} from '../data/APIData';
+import {Format, packFormatSpec, requestFormat, toResponseFormat} from '../data/CommonData';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
+import {RANDOM_TOKEN_MAP} from '../tokens/Random';
 
 /** Prefer Postman response name; fall back to example_N; uniquify collisions. */
 function allocateExampleId(

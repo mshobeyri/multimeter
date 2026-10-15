@@ -1,11 +1,11 @@
 import React from 'react';
-import { JSONRecord } from 'mmt-core/CommonData';
+import { JSONRecord } from 'mmt-core/data/CommonData';
 import ReportLevelFields from '../components/ReportLevelFields';
 import {
   buildJudgeEvalBlock,
   flattenJudgeChecksForUi,
   splitJudgeEvalBlock,
-} from 'mmt-core/JudgeData';
+} from 'mmt-core/data/JudgeData';
 import KVEditor from '../components/KVEditor';
 import StableTextInput from '../components/StableTextInput';
 import LEditor from '../components/LEditor';

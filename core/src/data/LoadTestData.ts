@@ -1,6 +1,6 @@
-import {MMTFile} from '../CommonData';
-import {Repeat, Timestr} from '../TestData';
-import {SuiteEnvironment} from '../SuiteData';
+import {MMTFile} from './CommonData';
+import {Repeat, Timestr} from './TestData';
+import {SuiteEnvironment} from './SuiteData';
 
 export interface LoadTestData extends MMTFile {
   type: 'loadtest';

@@ -1,4 +1,4 @@
-import {buildSuiteHierarchyFromSuiteFile} from '../suiteHierarchy';
+import {buildSuiteHierarchyFromSuiteFile} from './suiteHierarchy';
 
 describe('suiteHierarchy (core)', () => {
   test('expands imported suite into tests using fileLoader (relative paths)', async () => {

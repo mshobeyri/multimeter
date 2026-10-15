@@ -1,6 +1,6 @@
-import {JSONValue} from '../CommonData';
-import {Type} from '../CommonData';
-import {collectInputRefsFromObject, JsTokenGenOptions, toTemplateValueJs} from '../variableReplacer';
+import {JSONValue} from '../data/CommonData';
+import {Type} from '../data/CommonData';
+import {collectInputRefsFromObject, JsTokenGenOptions, toTemplateValueJs} from '../tokens/variableReplacer';
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '  ' + line).join('\n').slice(2);

@@ -6,7 +6,7 @@ import {
   formatReportTimeRange,
   roundReportNumber,
   roundReportNumbersDeep,
-} from '../reportFormat';
+} from './reportFormat';
 
 describe('reportFormat', () => {
   it('rounds and formats numbers', () => {

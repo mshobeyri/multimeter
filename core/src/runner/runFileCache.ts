@@ -1,4 +1,4 @@
-import type {FileLoader} from '../JSerFileLoader';
+import type {FileLoader} from '../jser/JSerFileLoader';
 
 export type FileStampFn = (path: string) => Promise<string>|string;
 

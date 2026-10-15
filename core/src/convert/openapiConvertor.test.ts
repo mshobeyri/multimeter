@@ -2,8 +2,8 @@ import {
   openApiToAPI,
   buildOpenApiEnvFromSpec,
   buildSwagger2ServerUrl,
-} from '../openapiConvertor';
-import { parseYamlStrict } from '../markupConvertor';
+} from './openapiConvertor';
+import { parseYamlStrict } from '../parse/markupConvertor';
 
 describe('openapiConvertor.openApiToAPI', () => {
   it('returns empty array for invalid input', () => {

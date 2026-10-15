@@ -1,8 +1,8 @@
 import React, { useMemo, useContext, useState, useEffect, useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
-import { safeList } from "mmt-core/safer";
-import { JSONRecord, JSONValue } from "mmt-core/CommonData";
+import { safeList } from "mmt-core/util/safer";
+import { JSONRecord, JSONValue } from "mmt-core/data/CommonData";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from '../fileContext';
 import {
@@ -14,8 +14,8 @@ import {
   leafResolvesToOmit,
   tokenFieldPreviewScope,
   type RuntimeTokenValueContext,
-} from "mmt-core/apiBodyEdit";
-import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
+} from "mmt-core/api-edit/apiBodyEdit";
+import { isIncompleteJsonLiteral } from "mmt-core/parse/yamlValueConvert";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,

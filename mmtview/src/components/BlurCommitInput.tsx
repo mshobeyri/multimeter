@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import TokenFieldInput from "./TokenFieldInput";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
 
 type BlurCommitInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,

@@ -1,4 +1,4 @@
-import {createSuiteBundle} from '../suiteBundle';
+import {createSuiteBundle} from './suiteBundle';
 
 describe('createSuiteBundle (single target)', () => {
   it('builds deterministic ids and preserves children', () => {

@@ -1,20 +1,20 @@
-import {CheckLogMode, LogLevel} from '../CommonData';
-import type {BinaryFileLoader, FileLoader} from '../JSerFileLoader';
-import {GrpcRequest, GrpcResponse} from '../NetworkData';
-import {applyValueAccessor} from '../variableReplacer';
+import {CheckLogMode, LogLevel} from '../data/CommonData';
+import type {BinaryFileLoader, FileLoader} from '../jser/JSerFileLoader';
+import {GrpcRequest, GrpcResponse} from '../data/NetworkData';
+import {applyValueAccessor} from '../tokens/variableReplacer';
 // Import your send function from the network core
-import {send, setRunnerNetworkConfig, getRunnerNetworkConfig} from '../networkCoreNode';
-import {extractOutputs} from '../outputExtractor';
-import * as Random from '../Random';
-import * as Current from '../Current';
-import * as mmtHelper from '../testHelper';
-import type {ServerRunner} from '../testHelper';
-import {isAssertionFailedError, isTestAbortError} from '../testHelper';
-import type {RunPauseGate} from '../runPause';
-import {logRunFinished, RunKind} from '../runLog';
-import {setJudgeHttpPost_} from '../judgeEngine';
-import {formatHttpTraceRequest, formatHttpTraceResponse} from '../httpTraceLog';
-import '../judgeEngineOllama';
+import {send, setRunnerNetworkConfig, getRunnerNetworkConfig} from '../network/networkCoreNode';
+import {extractOutputs} from '../extract/outputExtractor';
+import * as Random from '../tokens/Random';
+import * as Current from '../tokens/Current';
+import * as mmtHelper from './testHelper';
+import type {ServerRunner} from './testHelper';
+import {isAssertionFailedError, isTestAbortError} from './testHelper';
+import type {RunPauseGate} from './runPause';
+import {logRunFinished, RunKind} from './runLog';
+import {setJudgeHttpPost_} from '../judge/judgeEngine';
+import {formatHttpTraceRequest, formatHttpTraceResponse} from '../network/httpTraceLog';
+import '../judge/judgeEngineOllama';
 
 export type {RunKind};
 export {logRunFinished};
@@ -381,7 +381,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     };
     // Create gRPC sender (lazy-loads grpcCore)
     const sendGrpcFn = async (req: GrpcRequest): Promise<GrpcResponse> => {
-      const {sendGrpcRequest} = await import('../grpcCore.js');
+      const {sendGrpcRequest} = await import('../network/grpcCore.js');
       const config = getRunnerNetworkConfig();
       const loader = context.fileLoader || (async () => { throw new Error('File loader not available'); });
       const res = await sendGrpcRequest(req, config, loader, context.basePath);

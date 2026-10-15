@@ -1,7 +1,7 @@
 import React from "react";
 import SearchableTagInput from "../components/SearchableTagInput";
 import KSVEditor from "../components/KSVEditor";
-import { TestData } from "mmt-core/TestData";
+import { TestData } from "mmt-core/data/TestData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import StableTextInput from "../components/StableTextInput";
 import { type MissingImportEntry } from "../text/validator";

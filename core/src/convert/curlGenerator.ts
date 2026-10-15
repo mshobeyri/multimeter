@@ -1,4 +1,4 @@
-import {resolveApiHttpMethod} from '../apiMethod';
+import {resolveApiHttpMethod} from '../network/apiMethod';
 
 export type CurlShellKind = 'posix' | 'powershell' | 'cmd';
 

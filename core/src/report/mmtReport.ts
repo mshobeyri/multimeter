@@ -1,17 +1,17 @@
 import YAML from 'yaml';
-import type { CollectedResults, TestRunResult, TestStepResult } from '../reportCollector';
-import { formatDuration } from '../CommonData';
-import {roundReportNumbersDeep} from '../reportFormat';
-import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from '../reportGitCommit';
-import {applyProjectRootPaths} from '../reportPaths';
-import {reportStepTitle} from '../reportStepTitle';
+import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import { formatDuration } from '../data/CommonData';
+import {roundReportNumbersDeep} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
+import {applyProjectRootPaths} from './reportPaths';
+import {reportStepTitle} from './reportStepTitle';
 import {
   buildReportTree,
   isSuiteOnlyRun,
   reportableRuns,
   visibleReportSteps,
   type ReportTreeNode,
-} from '../reportTree';
+} from './reportTree';
 
 export interface MmtReportOptions {
   suiteName?: string;

@@ -1,12 +1,12 @@
-import {APIData, ApiTestBlock, exampleId, exampleTitle} from '../APIData';
-import {exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from '../apiParsePack';
-import {CREATE_API_LOG_HELPERS_SOURCE} from '../apiLogHelpersFactorySource';
-import {evaluateApiTest} from '../apiTestEval';
-import {LogLevel} from '../CommonData';
-import * as JSer from '../JSer';
-import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from '../runCommon';
-import {FileLoader, mergeInputs, RunFileOptions} from '../runConfig';
-import {replaceAllRefs, resolveInputsMap} from '../variableReplacer';
+import {APIData, ApiTestBlock, exampleId, exampleTitle} from '../data/APIData';
+import {exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from '../parse/apiParsePack';
+import {CREATE_API_LOG_HELPERS_SOURCE} from '../api-edit/apiLogHelpersFactorySource';
+import {evaluateApiTest} from './apiTestEval';
+import {LogLevel} from '../data/CommonData';
+import * as JSer from '../jser/JSer';
+import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
+import {FileLoader, mergeInputs, RunFileOptions} from './runConfig';
+import {replaceAllRefs, resolveInputsMap} from '../tokens/variableReplacer';
 
 export interface ResolveExampleResult {
   exampleInputs: Record<string, any>;

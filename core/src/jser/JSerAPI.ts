@@ -1,18 +1,18 @@
-import {APIData, AuthConfig} from '../APIData';
-import {resolveApiHttpMethod} from '../apiMethod';
-import {JSONRecord, requestFormat} from '../CommonData';
-import {resolveRequestFormat} from '../formatResolve';
-import {indentLines, toInputsParams} from '../JSerHelper';
-import {formatBody, withFormatContentType} from '../markupConvertor';
-import {coerceMultipartPartsInput, MultipartPartSpec, partValueToWire} from '../multipartBody';
-import {isOmitSentinel, stripOmitFromRequest} from '../omitKeyword';
-import {DEFAULT_EXTRACTION_RULES} from '../outputExtractor';
-import {buildSetenvExtractRules} from '../setenvResolve';
+import {APIData, AuthConfig} from '../data/APIData';
+import {resolveApiHttpMethod} from '../network/apiMethod';
+import {JSONRecord, requestFormat} from '../data/CommonData';
+import {resolveRequestFormat} from '../tokens/formatResolve';
+import {indentLines, toInputsParams} from './JSerHelper';
+import {formatBody, withFormatContentType} from '../parse/markupConvertor';
+import {coerceMultipartPartsInput, MultipartPartSpec, partValueToWire} from '../network/multipartBody';
+import {isOmitSentinel, stripOmitFromRequest} from '../tokens/omitKeyword';
+import {DEFAULT_EXTRACTION_RULES} from '../extract/outputExtractor';
+import {buildSetenvExtractRules} from '../tokens/setenvResolve';
 import {
   embedDynamicTokensAsJsInterpolations,
   replaceAllRefs,
   toTemplateValueJs,
-} from '../variableReplacer';
+} from '../tokens/variableReplacer';
 
 export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord,

@@ -1,7 +1,7 @@
-import {matchPath, autoDetectFormat, partialMatch, findEndpoint, buildResponse, buildFallbackResponse, createMockRouter, MockRequest, replaceRequestRefs, buildRequestContext, parseRequestBody, inferRequestBodyFormat, extractPathParamNames} from '../mockServer';
-import {MockEndpoint, MockData} from '../MockData';
-import {yamlToMock} from '../mockParsePack';
-import {resolveEmbeddedTokens} from '../variableReplacer';
+import {matchPath, autoDetectFormat, partialMatch, findEndpoint, buildResponse, buildFallbackResponse, createMockRouter, MockRequest, replaceRequestRefs, buildRequestContext, parseRequestBody, inferRequestBodyFormat, extractPathParamNames} from './mockServer';
+import {MockEndpoint, MockData} from '../data/MockData';
+import {yamlToMock} from '../parse/mockParsePack';
+import {resolveEmbeddedTokens} from '../tokens/variableReplacer';
 
 describe('matchPath', () => {
   it('matches exact paths', () => {

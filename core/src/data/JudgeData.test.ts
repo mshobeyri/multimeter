@@ -4,7 +4,7 @@ import {
   mergeJudgeStepConfig,
   splitJudgeEvalBlock,
   unionJudgeChecksForModel,
-} from '../JudgeData';
+} from './JudgeData';
 
 describe('JudgeData eval helpers', () => {
   test('splitJudgeEvalBlock separates metrics and criteria', () => {

@@ -1,15 +1,15 @@
-import {yamlToAPI} from '../apiParsePack';
-import {validateAuth} from '../apiParsePack';
-import {apiToJSfunc, rootTestToJsfunc, testToJsfunc,} from '../JSer';
-import {APIContext, restoreUrlEncodedJsPlaceholders} from '../JSerAPI';
-import {setFileLoader} from '../JSerFileLoader';
-import {importsToJsfunc} from '../JSerImports';
-import {runJSCode} from '../jsRunner';
-import {TestContext, variableReplacer} from '../JSerTest';
-import {assertToJSfunc, checkToJSfunc, collectCallHttpIds, conditionalStatementToJSfunc, delayToJSfunc, flowStagesToJsfunc, flowToJsFunc, formatLogicalCondition, parseComparisonParts, parseExpectValue, parseLogicalCondition, setenvToJSfunc} from '../JSerTestFlow';
-import {createTestFileLoaderMock} from '../testFileLoaderMock';
-import {normalizeReportConfig} from '../TestData';
-import {OMIT_SENTINEL} from '../omitKeyword';
+import {yamlToAPI} from '../parse/apiParsePack';
+import {validateAuth} from '../parse/apiParsePack';
+import {apiToJSfunc, rootTestToJsfunc, testToJsfunc,} from './JSer';
+import {APIContext, restoreUrlEncodedJsPlaceholders} from './JSerAPI';
+import {setFileLoader} from './JSerFileLoader';
+import {importsToJsfunc} from './JSerImports';
+import {runJSCode} from '../runner/jsRunner';
+import {TestContext, variableReplacer} from './JSerTest';
+import {assertToJSfunc, checkToJSfunc, collectCallHttpIds, conditionalStatementToJSfunc, delayToJSfunc, flowStagesToJsfunc, flowToJsFunc, formatLogicalCondition, parseComparisonParts, parseExpectValue, parseLogicalCondition, setenvToJSfunc} from './JSerTestFlow';
+import {createTestFileLoaderMock} from '../runner/testFileLoaderMock';
+import {normalizeReportConfig} from '../data/TestData';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
 
 describe('normalizeReportConfig', () => {
   it('returns defaults when undefined', () => {
@@ -658,7 +658,7 @@ describe('env token replacements in generated JS', () => {
 
 describe('toInputsParams env token handling', () => {
   it('converts e:VAR input default to sync mmtEnv_ (no await in defaults)', () => {
-    const {toInputsParams} = require('../JSerHelper');
+    const {toInputsParams} = require('./JSerHelper');
     const result = toInputsParams({ host: 'e:HOST' }, '=');
     expect(result).toContain('mmtEnv_("HOST")');
     expect(result).not.toContain('await mmtEnv_');
@@ -666,7 +666,7 @@ describe('toInputsParams env token handling', () => {
   });
 
   it('converts <<e:VAR>> partial input to template with sync mmtEnv_', () => {
-    const {toInputsParams} = require('../JSerHelper');
+    const {toInputsParams} = require('./JSerHelper');
     const result = toInputsParams({ url: 'http://<<e:HOST>>/path' }, '=');
     expect(result).toContain('${mmtEnv_("HOST")}');
     expect(result).not.toContain('await mmtEnv_');
@@ -674,7 +674,7 @@ describe('toInputsParams env token handling', () => {
   });
 
   it('does not double-wrap if value already contains envVariables reference', () => {
-    const {toInputsParams} = require('../JSerHelper');
+    const {toInputsParams} = require('./JSerHelper');
     // Edge case: a value that somehow already has envVariables.HOST
     // (shouldn't normally happen, but must not produce ${${envVariables.HOST}})
     const result = toInputsParams({ url: '${envVariables.HOST}/api' }, '=');

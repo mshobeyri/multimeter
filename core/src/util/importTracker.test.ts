@@ -1,4 +1,4 @@
-import {ImportTracker} from '../importTracker';
+import {ImportTracker} from './importTracker';
 
 describe('ImportTracker', () => {
   it('tracks visited paths', () => {

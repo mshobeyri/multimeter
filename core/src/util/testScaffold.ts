@@ -1,7 +1,7 @@
-import {APIData} from '../APIData';
-import {JSONRecord, JSONValue} from '../CommonData';
-import {safeStepIdFromAlias, slugToCamel, slugValue} from '../identifierUtils';
-import {ExpectMap, TestData, TestFlowStep} from '../TestData';
+import {APIData} from '../data/APIData';
+import {JSONRecord, JSONValue} from '../data/CommonData';
+import {safeStepIdFromAlias, slugToCamel, slugValue} from './identifierUtils';
+import {ExpectMap, TestData, TestFlowStep} from '../data/TestData';
 
 export type ScaffoldStrategy = 'smoke' | 'example';
 
@@ -96,7 +96,7 @@ export function suggestAliasFromPath(apiPath: string): string {
   return slugToCamel(basename(apiPath));
 }
 
-export {safeStepIdFromAlias} from '../identifierUtils';
+export {safeStepIdFromAlias} from './identifierUtils';
 
 export function suggestTestPath(apiPath: string): string {
   const slug = slugValue(basename(apiPath));

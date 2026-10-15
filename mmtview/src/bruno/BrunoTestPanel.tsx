@@ -1,6 +1,6 @@
 import React from "react";
-import { brunoToTest } from "mmt-core/brunoParsePack";
-import { testToYaml } from "mmt-core/testParsePack";
+import { brunoToTest } from "mmt-core/parse/brunoParsePack";
+import { testToYaml } from "mmt-core/parse/testParsePack";
 import TestPanel from "../test/TestPanel";
 
 interface BrunoTestPanelProps {

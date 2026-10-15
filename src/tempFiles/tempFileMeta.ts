@@ -3,7 +3,7 @@ import {
   MmtFileType,
   mmtFileTypeColor,
   mmtFileTypeIcon,
-} from 'mmt-core/mmtFileType';
+} from 'mmt-core/parse/mmtFileType';
 
 export type TempMmtType = MmtFileType|null;
 

@@ -5,7 +5,7 @@ import {
   probeHeadersForEngine,
   probeUrlForEngine,
   shouldAutoProbeJudge,
-} from '../judgeProbe';
+} from './judgeProbe';
 
 describe('judgeProbe helpers', () => {
   test('formatBytes', () => {

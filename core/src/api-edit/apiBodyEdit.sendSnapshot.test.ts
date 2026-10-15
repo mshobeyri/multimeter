@@ -1,7 +1,7 @@
 import {
   buildApiTesterSendRequest,
   mintApiTesterResolvedRequest,
-} from '../apiBodyEdit';
+} from './apiBodyEdit';
 import {
   clearTokenFieldPreviewRandomCache,
   findBodyTokenHoverSpans,
@@ -11,10 +11,10 @@ import {
   tokenFieldPreviewScope,
   rewriteAllLeavesToDisplayText,
   stringifyJsonWithRuntimeTokens,
-} from '../bodyRuntimeTokens';
-import {apiToJSfunc} from '../JSer';
-import {generateApiJs} from '../runApi';
-import {APIData} from '../APIData';
+} from '../tokens/bodyRuntimeTokens';
+import {apiToJSfunc} from '../jser/JSer';
+import {generateApiJs} from '../runner/runApi';
+import {APIData} from '../data/APIData';
 
 const apiWithRuntimeTokens: APIData = {
   type: 'api',

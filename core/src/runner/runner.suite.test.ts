@@ -1,6 +1,6 @@
-import {runFile} from '../runner';
-import {executeSuiteBundle} from '../suiteBundleRunner';
-import {createSuiteBundle} from '../suiteBundle';
+import {runFile} from './runner';
+import {executeSuiteBundle} from '../suite/suiteBundleRunner';
+import {createSuiteBundle} from '../suite/suiteBundle';
 
 describe('runner suite', () => {
   it('runs groups sequentially and items in group in parallel', async () => {
@@ -122,9 +122,9 @@ describe('runner suite', () => {
 
 describe('suite bundle runner nested suite', () => {
   it('runs nested suite as nested bundle without extra suite-run-start', async () => {
-    const runner = await import('../runner.js');
-    const {buildSuiteHierarchyFromSuiteFile} = await import('../suiteHierarchy.js');
-    const {createSuiteBundle} = await import('../suiteBundle.js');
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('../suite/suiteHierarchy.js');
+    const {createSuiteBundle} = await import('../suite/suiteBundle.js');
 
     const files: Record<string, string> = {
       '/root/suite.mmt': ['type: suite', 'items:', '  - ./suite1.mmt'].join('\n'),
@@ -172,9 +172,9 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('starts nested suite servers: at the beginning of that suite', async () => {
-    const runner = await import('../runner.js');
-    const {buildSuiteHierarchyFromSuiteFile} = await import('../suiteHierarchy.js');
-    const {createSuiteBundle} = await import('../suiteBundle.js');
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('../suite/suiteHierarchy.js');
+    const {createSuiteBundle} = await import('../suite/suiteBundle.js');
 
     const files: Record<string, string> = {
       '/root/suite.mmt': ['type: suite', 'items:', '  - ./inner.mmt'].join('\n'),
@@ -229,9 +229,9 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('reuses a parent suite server when a nested suite lists the same file', async () => {
-    const runner = await import('../runner.js');
-    const {buildSuiteHierarchyFromSuiteFile} = await import('../suiteHierarchy.js');
-    const {createSuiteBundle} = await import('../suiteBundle.js');
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('../suite/suiteHierarchy.js');
+    const {createSuiteBundle} = await import('../suite/suiteBundle.js');
 
     const files: Record<string, string> = {
       '/root/suite.mmt': [
@@ -294,9 +294,9 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('keeps a nested suite server running for a later sibling test', async () => {
-    const runner = await import('../runner.js');
-    const {buildSuiteHierarchyFromSuiteFile} = await import('../suiteHierarchy.js');
-    const {createSuiteBundle} = await import('../suiteBundle.js');
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('../suite/suiteHierarchy.js');
+    const {createSuiteBundle} = await import('../suite/suiteBundle.js');
 
     const files: Record<string, string> = {
       '/root/suite3.mmt': [
@@ -336,7 +336,7 @@ describe('suite bundle runner nested suite', () => {
       rootSuitePath: '/root/suite3.mmt',
       hierarchy: tree,
     });
-    const {isServerRunning_} = await import('../testHelper.js');
+    const {isServerRunning_} = await import('./testHelper.js');
     const started: string[] = [];
     const runningDuringLater: boolean[] = [];
     const outcome: any = await runner.runFile({
@@ -369,9 +369,9 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('starts an item server at its stage, not at the beginning of the suite', async () => {
-    const runner = await import('../runner.js');
-    const {buildSuiteHierarchyFromSuiteFile} = await import('../suiteHierarchy.js');
-    const {createSuiteBundle} = await import('../suiteBundle.js');
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('../suite/suiteHierarchy.js');
+    const {createSuiteBundle} = await import('../suite/suiteBundle.js');
 
     const files: Record<string, string> = {
       '/root/suite.mmt': [
@@ -431,10 +431,10 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('skips tests that do not match only-tags', async () => {
-    const runner = await import('../runner.js');
-    const {buildSuiteHierarchyFromSuiteFile} = await import('../suiteHierarchy.js');
-    const {createSuiteBundle} = await import('../suiteBundle.js');
-    const {tagFilterFromLists} = await import('../suiteTagFilter.js');
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('../suite/suiteHierarchy.js');
+    const {createSuiteBundle} = await import('../suite/suiteBundle.js');
+    const {tagFilterFromLists} = await import('../suite/suiteTagFilter.js');
 
     const files: Record<string, string> = {
       '/root/suite.mmt': ['type: suite', 'items:', '  - ./smoke.mmt', '  - ./slow.mmt'].join('\n'),
@@ -483,7 +483,7 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('applies suite YAML skip filter without a CLI tagFilter', async () => {
-    const runner = await import('../runner.js');
+    const runner = await import('./runner.js');
     const files: Record<string, string> = {
       '/root/suite.mmt': [
         'type: suite',
@@ -525,8 +525,8 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('skips a nested suite and its children when the suite is tagged skip', async () => {
-    const runner = await import('../runner.js');
-    const {tagFilterFromLists} = await import('../suiteTagFilter.js');
+    const runner = await import('./runner.js');
+    const {tagFilterFromLists} = await import('../suite/suiteTagFilter.js');
     const files: Record<string, string> = {
       '/root/suite.mmt': ['type: suite', 'items:', '  - ./nested.mmt', '  - ./ok.mmt'].join('\n'),
       '/root/nested.mmt': [
@@ -561,8 +561,8 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('runs untagged children when a nested suite is selected by only-tags', async () => {
-    const runner = await import('../runner.js');
-    const {tagFilterFromLists} = await import('../suiteTagFilter.js');
+    const runner = await import('./runner.js');
+    const {tagFilterFromLists} = await import('../suite/suiteTagFilter.js');
     const files: Record<string, string> = {
       '/root/suite.mmt': ['type: suite', 'items:', '  - ./auth.mmt', '  - ./other.mmt'].join('\n'),
       '/root/auth.mmt': [
@@ -605,7 +605,7 @@ describe('suite bundle runner nested suite', () => {
   });
 
   it('fails the suite when servers are listed but no server runner exists', async () => {
-    const runner = await import('../runner.js');
+    const runner = await import('./runner.js');
     const logs: string[] = [];
     const result = await runner.runFile({
       file: ['type: suite', 'servers:', '  - mock.mmt', 'items:', '  - ok.mmt'].join('\n'),
@@ -628,7 +628,7 @@ describe('suite bundle runner nested suite', () => {
 
 describe('suite bundle grouping', () => {
   it('wraps root nodes into a single group when no groups exist', async () => {
-    const {createSuiteBundle} = await import('../suiteBundle.js');
+    const {createSuiteBundle} = await import('../suite/suiteBundle.js');
 
     const hierarchy = {
       kind: 'suite',

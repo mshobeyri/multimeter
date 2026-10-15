@@ -1,5 +1,5 @@
-import { JSONRecord } from "mmt-core/CommonData";
-import { resolveInputsMap } from "mmt-core/variableReplacer";
+import { JSONRecord } from "mmt-core/data/CommonData";
+import { resolveInputsMap } from "mmt-core/tokens/variableReplacer";
 
 export function stableEqual(a: unknown, b: unknown): boolean {
   if (a === b) {

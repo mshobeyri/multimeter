@@ -7,7 +7,7 @@ import {
   mmtFileTypeIcon,
   mmtFileTypeLabel,
   mmtFileTypeMeta,
-} from '../mmtFileType';
+} from './mmtFileType';
 
 describe('mmtFileType', () => {
   it('covers every known id with label, icon, and color', () => {

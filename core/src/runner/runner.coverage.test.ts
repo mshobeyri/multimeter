@@ -1,7 +1,7 @@
-import {buildDocFromApis, prepareRunFromOptions, runFile} from '../runner';
-import {tagFilterFromLists} from '../suiteTagFilter';
+import {buildDocFromApis, prepareRunFromOptions, runFile} from './runner';
+import {tagFilterFromLists} from '../suite/suiteTagFilter';
 
-jest.mock('../networkCoreNode', () => ({
+jest.mock('../network/networkCoreNode', () => ({
   send: jest.fn(async () => ({
     status: 200,
     statusText: 'OK',
@@ -115,7 +115,7 @@ describe('runner extra paths', () => {
   it('refreshes cached current tokens for every run', async () => {
     jest.useFakeTimers();
     try {
-      const {runJSCode} = require('../jsRunner');
+      const {runJSCode} = require('./jsRunner');
       const runAt = async (isoDate: string): Promise<string> => {
         jest.setSystemTime(new Date(isoDate));
         const logs: string[] = [];

@@ -1,14 +1,14 @@
-import type { CollectedResults, TestRunResult, TestStepResult } from '../reportCollector';
-import { formatDuration } from '../CommonData';
-import { beautifyWithContentType } from '../markupConvertor';
+import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import { formatDuration } from '../data/CommonData';
+import { beautifyWithContentType } from '../parse/markupConvertor';
 import {
   formatExpectMetaValue,
   shouldShowResolvedExpected,
-} from '../reportExpectMeta';
-import {formatReportDateTime, formatReportNumber, formatReportPercent} from '../reportFormat';
-import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from '../reportGitCommit';
-import {applyProjectRootPaths} from '../reportPaths';
-import {reportStepTitle} from '../reportStepTitle';
+} from './reportExpectMeta';
+import {formatReportDateTime, formatReportNumber, formatReportPercent} from './reportFormat';
+import {normalizeReportGitBranch, normalizeReportGitCommit, normalizeReportGitTag} from './reportGitCommit';
+import {applyProjectRootPaths} from './reportPaths';
+import {reportStepTitle} from './reportStepTitle';
 
 export interface ReportMarkdownOptions {
   suiteName?: string;

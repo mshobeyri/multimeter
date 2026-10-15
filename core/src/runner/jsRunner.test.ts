@@ -1,4 +1,4 @@
-import {runJSCode} from '../jsRunner';
+import {runJSCode} from './jsRunner';
 
 describe('jsRunner reporter propagation', () => {
   const logger = jest.fn();

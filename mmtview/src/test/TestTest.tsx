@@ -1,9 +1,9 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { TestData } from 'mmt-core/TestData';
-import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
-import { formatReportRelativeTime } from 'mmt-core/reportFormat';
-import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraints';
+import { TestData } from 'mmt-core/data/TestData';
+import { JSONRecord, formatDuration } from 'mmt-core/data/CommonData';
+import { formatReportRelativeTime } from 'mmt-core/report/reportFormat';
+import { extractInputConstraintsFromDescription } from 'mmt-core/api-edit/paramConstraints';
 import { FileContext } from '../fileContext';
 import { setEnvironmentVariables } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';

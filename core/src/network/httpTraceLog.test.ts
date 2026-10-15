@@ -4,7 +4,7 @@ import {
   formatHttpTraceResponse,
   HTTP_TRACE_REDACTED,
   redactHttpHeaders,
-} from '../httpTraceLog';
+} from './httpTraceLog';
 
 describe('httpTraceLog', () => {
   test('redacts secret headers', () => {

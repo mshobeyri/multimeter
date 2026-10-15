@@ -1,4 +1,4 @@
-import {getEffectiveProtocol, resolveProtocolFromUrl} from '../protocolResolver';
+import {getEffectiveProtocol, resolveProtocolFromUrl} from './protocolResolver';
 
 describe('protocolResolver', () => {
   describe('resolveProtocolFromUrl', () => {

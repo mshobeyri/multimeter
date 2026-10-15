@@ -3,8 +3,8 @@ import {
   formatExpectMetaValue,
   isNonPlainExpectedAuthored,
   shouldShowResolvedExpected,
-} from '../reportExpectMeta';
-import {OMIT_SENTINEL} from '../omitKeyword';
+} from './reportExpectMeta';
+import {OMIT_SENTINEL} from '../tokens/omitKeyword';
 
 describe('authoredExpectedFromComparison', () => {
   it('reads the RHS after the operator', () => {

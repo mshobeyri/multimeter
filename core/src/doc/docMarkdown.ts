@@ -1,6 +1,6 @@
-import {extractEndpoint, resolveEnvVars, resolveEnvInApi, parseParamDescriptions, extractSources} from '../docHtml';
-import { formatBody } from '../markupConvertor';
-import { requestFormat } from '../CommonData';
+import {extractEndpoint, resolveEnvVars, resolveEnvInApi, parseParamDescriptions, extractSources} from './docHtml';
+import { formatBody } from '../parse/markupConvertor';
+import { requestFormat } from '../data/CommonData';
 
 /**
  * Adjust `> ` headings in a description to proper markdown heading depth.

@@ -1,1 +1,1 @@
-export * from '../networkCore';
+export * from './networkCore';

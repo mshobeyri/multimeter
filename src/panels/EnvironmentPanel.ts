@@ -1,15 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import type {JSONValue} from 'mmt-core/CommonData';
-import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
-import type {EnvVariable, EnvVarSource} from 'mmt-core/EnvData';
-import {findProjectRootSync} from 'mmt-core/fileHelper';
+import type {JSONValue} from 'mmt-core/data/CommonData';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/env/envVarLastUpdate';
+import type {EnvVariable, EnvVarSource} from 'mmt-core/data/EnvData';
+import {findProjectRootSync} from 'mmt-core/util/fileHelper';
 
 import {derivePresetSelections} from './envPresetMatch';
 import {envPanelValueView, resolveEnvPanelIncomingValue} from './envPanelValue';
 
-export type {EnvVarSource} from 'mmt-core/EnvData';
+export type {EnvVarSource} from 'mmt-core/data/EnvData';
 
 export default class EnvironmentPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = 'multimeter.environment';

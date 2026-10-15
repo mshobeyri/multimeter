@@ -1,5 +1,5 @@
 import React from "react";
-import { MockData, MockEndpoint } from "mmt-core/MockData";
+import { MockData, MockEndpoint } from "mmt-core/data/MockData";
 import MockEndpointBox, { methodTextColor } from "./MockEndpointBox";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { patchMockYaml } from "./mockYaml";

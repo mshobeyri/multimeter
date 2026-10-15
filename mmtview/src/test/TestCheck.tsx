@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckOps } from "mmt-core/TestData";
+import { CheckOps } from "mmt-core/data/TestData";
 import OperatorSelect from "../components/OperatorSelect";
 import StableTextInput, { StableTextArea } from "../components/StableTextInput";
 import ReportLevelFields, { type ReportValue } from "../components/ReportLevelFields";

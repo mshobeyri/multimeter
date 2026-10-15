@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Format, RequestFormat, ResponseFormat } from "mmt-core/CommonData";
+import { Format, RequestFormat, ResponseFormat } from "mmt-core/data/CommonData";
 
 export type BodyFormatTopLevel = "none" | "multipart" | "raw" | "binary";
 

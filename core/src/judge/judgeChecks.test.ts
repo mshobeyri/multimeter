@@ -7,7 +7,7 @@ import {
   builtinJudgeDefaultsChecksYaml,
   builtinJudgeEvalSuggestions,
   getJudgeBuiltinCheck,
-} from '../judgeChecks';
+} from './judgeChecks';
 
 describe('judgeChecks schema/autocomplete helpers', () => {
   test('getJudgeBuiltinCheck resolves ids and misses', () => {

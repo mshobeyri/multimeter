@@ -1,4 +1,4 @@
-import { yamlToDoc, docToYaml } from '../docParsePack';
+import { yamlToDoc, docToYaml } from './docParsePack';
 
 describe('docParsePack', () => {
   test('yamlToDoc parses sources and services', () => {

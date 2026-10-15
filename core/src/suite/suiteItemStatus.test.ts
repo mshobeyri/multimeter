@@ -2,12 +2,12 @@ import {
   classifySuiteItemStatus,
   isValidationErrorMessage,
   worstSuiteItemStatus,
-} from '../suiteItemStatus';
-import {runFile} from '../runner';
-import {buildSuiteHierarchyFromSuiteFile} from '../suiteHierarchy';
-import {createSuiteBundle} from '../suiteBundle';
-import {runGeneratedJs} from '../runCommon';
-import {AssertionFailedError} from '../testHelper';
+} from './suiteItemStatus';
+import {runFile} from '../runner/runner';
+import {buildSuiteHierarchyFromSuiteFile} from './suiteHierarchy';
+import {createSuiteBundle} from './suiteBundle';
+import {runGeneratedJs} from '../runner/runCommon';
+import {AssertionFailedError} from '../runner/testHelper';
 
 describe('suiteItemStatus', () => {
   it('detects validation messages', () => {

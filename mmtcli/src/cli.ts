@@ -6,7 +6,7 @@ import {Worker, isMainThread, parentPort, workerData} from 'worker_threads';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
 import {apiParsePack, docHtml, docParsePack, runner, testlightHelp} from 'mmt-core';
-import type {LogLevel} from 'mmt-core/CommonData';
+import type {LogLevel} from 'mmt-core/data/CommonData';
 import path from 'path';
 import {createRequire} from 'module';
 
@@ -24,7 +24,7 @@ import {
 import {
   expandCurrentTokensInPath,
   setGitCurrentSnapshotProvider,
-} from 'mmt-core/Current';
+} from 'mmt-core/tokens/Current';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -81,12 +81,12 @@ function collectPreset(value: string, previous: string[]): string[] {
   return previous.concat(names.length ? names : [value]);
 }
 
-type JsRunnerModule = typeof import('mmt-core/jsRunner');
+type JsRunnerModule = typeof import('mmt-core/runner/jsRunner');
 let jsRunnerModulePromise: Promise<JsRunnerModule>|undefined;
 
 async function loadJsRunnerModule(): Promise<JsRunnerModule> {
   if (!jsRunnerModulePromise) {
-    jsRunnerModulePromise = import('mmt-core/jsRunner');
+    jsRunnerModulePromise = import('mmt-core/runner/jsRunner');
   }
   return jsRunnerModulePromise;
 }
@@ -682,7 +682,7 @@ program.command('update')
           opts: {from: string; strategy?: string; alias?: string; out?: string}) => {
         try {
           const {scaffoldTestFromApi, buildApiDetailsSummary, suggestTestPath} =
-              await import('mmt-core/testScaffold');
+              await import('mmt-core/util/testScaffold');
           const apiFull = resolveUserPath(opts.from, process.cwd(), path);
           if (!fs.existsSync(apiFull)) {
             console.error(`API file not found: ${apiFull}`);
@@ -826,9 +826,9 @@ program.command('validate')
         maxFields?: number;
       }) => {
         try {
-          const {suggestAssertions} = await import('mmt-core/suggestAssertions');
+          const {suggestAssertions} = await import('mmt-core/api-edit/suggestAssertions');
           const {safeStepIdFromAlias, suggestAliasFromPath} =
-              await import('mmt-core/testScaffold');
+              await import('mmt-core/util/testScaffold');
           let outputs: Record<string, string>|undefined;
           let stepId = opts.stepId;
           if (opts.from) {

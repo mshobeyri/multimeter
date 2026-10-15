@@ -10,7 +10,7 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { TestData } from 'mmt-core/TestData';
+import { TestData } from 'mmt-core/data/TestData';
 import { buildTestGraph } from './graph/buildTestGraph';
 import { buildSuiteGraph } from './graph/buildSuiteGraph';
 import { applyLayout } from './graph/layout';

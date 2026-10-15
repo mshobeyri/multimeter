@@ -4,7 +4,7 @@ import {
   isNonEmptyObject,
   safeList,
   safeListCopy,
-} from '../safer';
+} from './safer';
 
 describe('safer helpers', () => {
   test('safeList and isList', () => {

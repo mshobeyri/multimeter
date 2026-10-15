@@ -1,4 +1,4 @@
-import {MMTFile} from '../CommonData';
+import {MMTFile} from './CommonData';
 
 export interface DocHtmlOptions {
   triable?: boolean;
