@@ -2,6 +2,22 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.46.1-pre]
+
+Pre-release. VS Code extension `1.46.1`; Testlight CLI and MCP `1.46.1-pre` on `@pre`.
+
+### Suite
+
+- Expand top-level suite items by default on open and request their hierarchy without blocking the panel
+
+### API tester telescope
+
+- Sync telescope UI to wire `r:` / `c:` values after Send
+
+### Website
+
+- Match hero test report to real overview and step boxes
+
 ## [1.46.0-pre]
 
 Pre-release. VS Code extension `1.46.0`; Testlight CLI and MCP `1.46.0-pre` on `@pre`.
