@@ -23,6 +23,7 @@ import {
   formatUrlEncodedEditorBody,
   formatXmlEditorBody,
   packBodyForYamlCompare,
+  withFormatContentType,
 } from './markupConvertor';
 import {normalizeNewlines} from './textLines';
 import {isIncompleteJsonLiteral} from './yamlValueConvert';
@@ -404,6 +405,7 @@ export function requestForSend(request: Request, format: Format): Request {
   const converted = displayTokensToResolvableDeep(request) as Request;
   return {
     ...converted,
+    headers: withFormatContentType(converted.headers, format).headers,
     body: bodyForSend(converted.body, format),
   };
 }

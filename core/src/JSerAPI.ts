@@ -3,7 +3,7 @@ import {resolveApiHttpMethod} from './apiMethod';
 import {JSONRecord, requestFormat} from './CommonData';
 import {resolveRequestFormat} from './formatResolve';
 import {indentLines, toInputsParams} from './JSerHelper';
-import {contentTypeForFormat, formatBody} from './markupConvertor';
+import {formatBody, withFormatContentType} from './markupConvertor';
 import {coerceMultipartPartsInput, MultipartPartSpec, partValueToWire} from './multipartBody';
 import {isOmitSentinel, stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
@@ -200,14 +200,11 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
     }
-  } else if (reqFormat === 'urlencoded' || reqFormat === 'binary' || reqFormat === 'html') {
-    // Form, binary, and HTML are not detectable from shape alone (HTML looks like XML)
-    const hasContentType = Object.keys(replaced.headers || {}).some(
-        k => k.toLowerCase() === 'content-type');
-    if (!hasContentType) {
-      replaced.headers = replaced.headers || {};
-      replaced.headers['Content-Type'] = contentTypeForFormat(reqFormat);
-      headers = Object.entries(replaced.headers)
+  } else {
+    const withType = withFormatContentType(replaced.headers, reqFormat);
+    if (withType.added) {
+      replaced.headers = withType.headers;
+      headers = Object.entries(replaced.headers || {})
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
     }

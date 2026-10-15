@@ -75,7 +75,8 @@ type ActiveRunUi = {
 let activeSuiteRun:
   (ActiveRunUi & {suiteRunId: string;})|null = null;
 
-let activeTestRun: ActiveRunUi|null = null;
+/** Per panel, so a run in one editor never supersedes another editor's run. */
+const activeTestRuns = new Map<string, ActiveRunUi>();
 
 /** Per-suite-run state so concurrent/re-runs stay isolated. */
 const suiteRuns = new Map<string, ActiveRunUi & {
@@ -325,22 +326,22 @@ export async function handleRunCurrentDocument(
   const panelId = getPanelId(webviewPanel);
   // A previous Cancel can still be unwinding when the user starts again. Abort
   // that controller and never let its late completion touch this run's UI.
-  const previous = activeTestRun;
-  if (previous && previous.panelId === panelId) {
+  const previous = activeTestRuns.get(panelId);
+  if (previous) {
     previous.controller.abort();
   }
 
   const controller = new AbortController();
   const pauseGate = createRunPauseGate(controller.signal);
   const panelRef: WebviewPanelRef = {current: webviewPanel};
-  activeTestRun = {
+  activeTestRuns.set(panelId, {
     controller,
     pauseGate,
     panelId,
     fileUri: document.uri.toString(),
     panelRef,
-  };
-  const isCurrentRun = () => activeTestRun?.controller === controller;
+  });
+  const isCurrentRun = () => activeTestRuns.get(panelId)?.controller === controller;
 
   const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({
@@ -498,8 +499,8 @@ export async function handleRunCurrentDocument(
           `Failed to run ${fileName}: ${msg}`);
     }
   } finally {
-    if (activeTestRun && activeTestRun.controller === controller) {
-      activeTestRun = null;
+    if (isCurrentRun()) {
+      activeTestRuns.delete(panelId);
     }
     onRunFinished(statusBarRunId);
   }
@@ -830,11 +831,8 @@ export function handleStopSuiteRun(
 export function handleStopTestRun(
     _message: any, webviewPanel: vscode.WebviewPanel,
     _document: vscode.TextDocument, _mmtProvider: any) {
-  const current = activeTestRun;
+  const current = activeTestRuns.get(getPanelId(webviewPanel));
   if (!current) {
-    return;
-  }
-  if (current.panelId !== getPanelId(webviewPanel)) {
     return;
   }
   current.pauseGate.resume();
@@ -847,7 +845,7 @@ export function handleStopTestRun(
 
 export function panelHasActiveRun(webviewPanel: vscode.WebviewPanel): boolean {
   const panelId = getPanelId(webviewPanel);
-  if (activeTestRun?.panelId === panelId) {
+  if (activeTestRuns.has(panelId)) {
     return true;
   }
   if (activeSuiteRun?.panelId === panelId) {
@@ -875,8 +873,9 @@ export function abortRunsForPanel(webviewPanel: vscode.WebviewPanel): void {
   const panelId = getPanelId(webviewPanel);
   const handles: Array<{controller: AbortController; pauseGate: RunPauseGate}> =
       [];
-  if (activeTestRun && activeTestRun.panelId === panelId) {
-    handles.push(activeTestRun);
+  const testRun = activeTestRuns.get(panelId);
+  if (testRun) {
+    handles.push(testRun);
   }
   if (activeSuiteRun && activeSuiteRun.panelId === panelId) {
     handles.push(activeSuiteRun);
@@ -891,8 +890,9 @@ export function abortRunsForPanel(webviewPanel: vscode.WebviewPanel): void {
 
 function pauseGateForPanel(webviewPanel: vscode.WebviewPanel): RunPauseGate|undefined {
   const panelId = getPanelId(webviewPanel);
-  if (activeTestRun && activeTestRun.panelId === panelId) {
-    return activeTestRun.pauseGate;
+  const testRun = activeTestRuns.get(panelId);
+  if (testRun) {
+    return testRun.pauseGate;
   }
   if (activeSuiteRun && activeSuiteRun.panelId === panelId) {
     return activeSuiteRun.pauseGate;

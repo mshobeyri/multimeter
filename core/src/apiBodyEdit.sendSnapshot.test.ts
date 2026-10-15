@@ -165,10 +165,10 @@ describe('API send_ requestOverride', () => {
 
     expect(js).toContain('__mmt_requestOverride');
     expect(js).toContain('__mmt_originalSend(__req)');
-    // Prefer override over the YAML-resolved req so Send can remint once in UI.
-    expect(js).toMatch(
-        /const __req = \(typeof __mmt_requestOverride !== 'undefined' &&\s*\n\s*__mmt_requestOverride\) \? __mmt_requestOverride : \(req \|\| \{\}\)/,
-    );
+    // The wrapper sends what the API function built from the override
+    // (binary load / multipart / auth); it must not swap the override back in.
+    expect(js).toContain('const __req = req || {};');
+    expect(js).not.toMatch(/__mmt_requestOverride\) \? __mmt_requestOverride/);
     // Skip evaluating remint expressions when override is set.
     expect(js).toMatch(
         /if \(typeof __mmt_requestOverride !== 'undefined' && __mmt_requestOverride\) \{\s*\n\s*req_ = __mmt_requestOverride;/,

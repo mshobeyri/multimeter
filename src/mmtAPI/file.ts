@@ -226,6 +226,20 @@ export async function handleLoadDocumentContent(
   }
 }
 
+/** Live git snapshot so the API Tester can mint `c:git_*` with other r:/c: tokens. */
+export function handleRequestGitSnapshot(
+    message: any, webviewPanel: vscode.WebviewPanel,
+    document: vscode.TextDocument) {
+  const projectRoot = findProjectRoot(document.uri.fsPath);
+  const snapshot =
+      resolveGitCurrentSnapshot(projectRoot || path.dirname(document.uri.fsPath));
+  webviewPanel.webview.postMessage({
+    command: 'gitSnapshotResult',
+    requestId: message?.requestId,
+    snapshot,
+  });
+}
+
 export async function handleGetFileContent(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument, mmtProvider: any) {

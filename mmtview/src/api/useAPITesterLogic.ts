@@ -5,18 +5,15 @@ import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { resolveRequestFormat } from "mmt-core/formatResolve";
 import { safeList } from "mmt-core/safer";
 import {
-  buildApiTesterSendRequest,
   fieldForYamlSave,
   seedTokenFieldPreviewFromRequest,
 } from "mmt-core/apiBodyEdit";
-import { apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
 import { resolveSetenvValues } from "mmt-core/setenvResolve";
 import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { protocolResolver } from "mmt-core";
-import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import { resolveResponseViewType } from "./responseBodyDisplay";
 import {
   cacheBodyAutoFormat,
@@ -30,23 +27,12 @@ import {
   isDocOnlyRefresh,
 } from "./apiUiRefresh";
 import { resolveApiRequest } from "mmt-core/resolveApiRequest";
-
-/**
- * Serialize the live-synced API YAML model for Send / Run in Core.
- * No resolved-token overlay — same outcome as running the file (glyph).
- */
-function buildYamlRawFile(api: APIData): string {
-  let merged = api;
-  const effectiveProtocol = protocolResolver.getEffectiveProtocol(
-    merged.protocol, merged.url);
-  if (effectiveProtocol === "http" && !merged.method) {
-    merged = {
-      ...merged,
-      method: resolveApiHttpMethod(undefined, merged.body),
-    };
-  }
-  return apiToYaml(merged);
-}
+import { requestGitSnapshot } from "../vsAPI";
+import {
+  buildApiTesterRunMessage,
+  prepareApiTesterSend,
+  refreshGitSnapshotFor,
+} from "./apiTesterSend";
 
 type OutputPosition = { text?: string; line: number; column: number };
 
@@ -213,6 +199,9 @@ export function useAPITesterLogic({
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const envParameters = await loadEnvParameters();
     setEnvValues(envParameters);
+    if (options?.refreshRuntimeTokens) {
+      await refreshGitSnapshotFor(api, requestGitSnapshot);
+    }
     return resolveApiRequest(
       api,
       resolvedInputs,
@@ -276,10 +265,11 @@ export function useAPITesterLogic({
   const buildRequestForSend = useCallback(async (): Promise<Request> => {
     const envParameters = await loadEnvParameters();
     setEnvValues(envParameters);
-    const { resolved, sendRequest } = buildApiTesterSendRequest(
+    const { resolved, sendRequest } = await prepareApiTesterSend(
       apiRef.current,
       currentInputsRef.current,
       envParameters,
+      requestGitSnapshot,
     );
     setRequestData(resolved);
     onRuntimePreviewSeededRef.current?.();
@@ -485,20 +475,13 @@ export function useAPITesterLogic({
       setIsSending(true);
       sendPendingRef.current = true;
     }
-    window.vscode?.postMessage({
-      command: "runCurrentDocument",
-      report: { type: "lifecycle" },
-      // History panel only for API Tester Send — not glyph / Run in Core.
-      history: opts.forSend === true,
-      rawFile: buildYamlRawFile(apiRef.current),
-      inputs: {
-        exampleIndex: selectedExampleIdx,
-        manualInputs: currentInputsRef.current,
-      },
-      ...(opts.forSend && opts.resolvedRequest
-        ? { resolvedRequest: opts.resolvedRequest }
-        : {}),
-    });
+    window.vscode?.postMessage(buildApiTesterRunMessage({
+      api: apiRef.current,
+      forSend: opts.forSend,
+      exampleIndex: selectedExampleIdx,
+      manualInputs: currentInputsRef.current,
+      resolvedRequest: opts.resolvedRequest,
+    }));
   }, [selectedExampleIdx]);
 
   const handleRunInCore = useCallback(() => {

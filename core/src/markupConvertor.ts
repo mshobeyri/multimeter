@@ -320,6 +320,27 @@ function isXmlFormat(format: Format): boolean {
   return format === 'xml' || format === 'xmle';
 }
 
+/**
+ * Add Content-Type for formats the HTTP layer cannot detect from the body
+ * shape (form, binary, HTML) unless the caller already set one. Shared by
+ * generated API JS and the API Tester Send snapshot so both send the same header.
+ */
+function withFormatContentType<T extends Record<string, unknown>>(
+    headers: T|undefined, format: Format): {headers: T|undefined; added: boolean} {
+  if (format !== 'urlencoded' && format !== 'binary' && format !== 'html') {
+    return {headers, added: false};
+  }
+  const hasContentType = Object.keys(headers || {}).some(
+      (k) => k.toLowerCase() === 'content-type');
+  if (hasContentType) {
+    return {headers, added: false};
+  }
+  return {
+    headers: {...(headers || {}), 'Content-Type': contentTypeForFormat(format)} as unknown as T,
+    added: true,
+  };
+}
+
 /** Content-Type for a body format (without charset). */
 function contentTypeForFormat(format: Format): string {
   switch (format) {
@@ -1102,6 +1123,7 @@ export {
   stringifyYamlDocument,
   formatBody,
   contentTypeForFormat,
+  withFormatContentType,
   flattenXmlObj,
   formattedBodyToYamlObject,
   packBodyForYamlCompare,

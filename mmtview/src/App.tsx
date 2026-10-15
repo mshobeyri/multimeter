@@ -15,7 +15,7 @@ import JudgePanel from "./judge/JudgePanel";
 import ReportPanel from "./report/ReportPanel";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { isBrunoCollectionFilePath, isBrunoFilePath, parseBrunoDocument, type BrunoSourceFile } from "mmt-core/brunoParsePack";
-import { setGitCurrentSnapshot, type GitCurrentSnapshot } from "mmt-core/Current";
+import { applyViewDocumentGitSnapshot } from "./api/apiTesterSend";
 import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
 import { normalizeNewlines } from "mmt-core/textLines";
 import YamlEditorPanel from "./text/YamlEditorPanel";
@@ -290,11 +290,7 @@ const App: React.FC = () => {
       const message = event.data;
       if (message.command === "viewDocumentContent") {
         // Apply before panels mount so telescope / resolveApiRequest see c:git_*.
-        if (message.gitSnapshot && typeof message.gitSnapshot === "object") {
-          setGitCurrentSnapshot(message.gitSnapshot as GitCurrentSnapshot);
-        } else {
-          setGitCurrentSnapshot(undefined);
-        }
+        applyViewDocumentGitSnapshot(message);
         setDocumentContentLoaded(true);
         pendingOpenLayoutRef.current = true;
         tryApplyOpenLayout();

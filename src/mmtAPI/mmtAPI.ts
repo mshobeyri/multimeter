@@ -407,6 +407,10 @@ export const messageReceived = async (
       await file.handleLoadDocumentContent(webviewPanel, document, mmtProvider);
       break;
 
+    case 'requestGitSnapshot':
+      file.handleRequestGitSnapshot(message, webviewPanel, document);
+      break;
+
     case 'requestThemeTokens':
       webviewPanel.webview.postMessage(
           buildThemeTokenMessage(
