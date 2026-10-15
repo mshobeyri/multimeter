@@ -1440,9 +1440,45 @@ function seedTokenFieldPreviewRecord(
 }
 
 /**
+ * Seed every string leaf in a structured body (or a plain string body) from
+ * the matching resolved value (telescope snapshot / resolveApiRequest).
+ */
+function seedTokenFieldPreviewDeep(
+    source: unknown,
+    resolved: unknown,
+    ): void {
+  if (source == null) {
+    return;
+  }
+  if (typeof source === 'string') {
+    seedTokenFieldPreviewFromResolved(source, resolved);
+    return;
+  }
+  if (Array.isArray(source)) {
+    const resolvedArr = Array.isArray(resolved) ? resolved : [];
+    for (let i = 0; i < source.length; i++) {
+      seedTokenFieldPreviewDeep(source[i], resolvedArr[i]);
+    }
+    return;
+  }
+  if (typeof source === 'object') {
+    const srcObj = source as Record<string, unknown>;
+    const resObj =
+        resolved && typeof resolved === 'object' && !Array.isArray(resolved) ?
+          resolved as Record<string, unknown> :
+          {};
+    for (const key of Object.keys(srcObj)) {
+      if (!Object.prototype.hasOwnProperty.call(resObj, key)) {
+        continue;
+      }
+      seedTokenFieldPreviewDeep(srcObj[key], resObj[key]);
+    }
+  }
+}
+
+/**
  * Clear and re-seed field-preview caches from an API YAML model + resolved
- * request so telescope fields match body/`requestData` (open / telescope-on /
- * Send).
+ * request so telescope fields match body/`requestData` (open / telescope-on).
  */
 export function seedTokenFieldPreviewFromRequest(
     source: {
@@ -1450,6 +1486,7 @@ export function seedTokenFieldPreviewFromRequest(
       headers?: Record<string, unknown>|null;
       query?: Record<string, unknown>|null;
       cookies?: Record<string, unknown>|null;
+      body?: unknown;
       graphql?: {operation?: unknown}|null;
     }|null|undefined,
     resolved: {
@@ -1457,6 +1494,7 @@ export function seedTokenFieldPreviewFromRequest(
       headers?: Record<string, unknown>|null;
       query?: Record<string, unknown>|null;
       cookies?: Record<string, unknown>|null;
+      body?: unknown;
       graphql?: {operation?: unknown}|null;
     }|null|undefined,
     ): void {
@@ -1470,6 +1508,9 @@ export function seedTokenFieldPreviewFromRequest(
   seedTokenFieldPreviewRecord(source.headers, resolved.headers);
   seedTokenFieldPreviewRecord(source.query, resolved.query);
   seedTokenFieldPreviewRecord(source.cookies, resolved.cookies);
+  if (source.body != null) {
+    seedTokenFieldPreviewDeep(source.body, resolved.body);
+  }
   if (source.graphql?.operation != null) {
     seedTokenFieldPreviewFromResolved(
         source.graphql.operation, resolved.graphql?.operation);

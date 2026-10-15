@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 import * as file from './file';
-import {applyGitCurrentSnapshot} from './gitCommitShort';
+import {installGitCurrentSnapshotProvider} from './gitCommitShort';
 import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
@@ -262,7 +262,7 @@ function getCurlRequest(
     const api = apiParsePack.yamlToAPIStrict(rawText);
     const inputs = resolveCurlInputs(api, message?.inputs);
     const envVars = extractEnvVarsForCurl(mmtProvider);
-    applyGitCurrentSnapshot(path.dirname(document.uri.fsPath));
+    installGitCurrentSnapshotProvider(path.dirname(document.uri.fsPath));
     return resolveApiRequest(api, inputs, envVars);
   } catch {
     return undefined;

@@ -11,12 +11,16 @@ import {
   currentReportFolder,
 } from './CurrentGit';
 
-export type {GitCurrentSnapshot} from './CurrentGit';
+export type {GitCurrentSnapshot, GitCurrentSnapshotProvider} from './CurrentGit';
 export {
   clearGitCurrentSnapshot,
+  clearGitCurrentSnapshotProvider,
   currentReportFolder,
+  ensureGitCurrentSnapshot,
   getGitCurrentSnapshot,
   setGitCurrentSnapshot,
+  setGitCurrentSnapshotProvider,
+  textMayNeedGitCurrentSnapshot,
 } from './CurrentGit';
 
 function pad2(n: number): string { return n.toString().padStart(2, '0'); }

@@ -49,6 +49,11 @@ export interface RunJSCodeContext {
    * `envVariables` unless the script already declares that name.
    */
   envValues?: Record<string, any>;
+  /**
+   * API Tester Send snapshot: when set, the API send_ wrapper uses this
+   * request instead of reminting r:/c: from YAML (telescope WYSIWYG).
+   */
+  requestOverride?: Record<string, unknown>|null;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -311,6 +316,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         '__reporter', '__runId', '__id', 'mmtRandom_', 'mmtCurrent_',
         'mmtAccess_', '__abortSignal', '__pauseGate', '__fileLoader',
         '__binaryFileLoader', '__checkLogMode', '__mmtEnvValues',
+        '__mmt_requestOverride',
         functionBody);
       if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
         const firstKey = compiledFunctionCache.keys().next().value;
@@ -387,7 +393,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
         context.abortSignal, context.pauseGate, context.fileLoader,
         context.binaryFileLoader, context.checkLogMode || 'default',
-        context.envValues);
+        context.envValues, context.requestOverride ?? null);
     restoreReporterGlobals();
     if (context.abortSignal?.aborted) {
       throw new mmtHelper.TestAbortError();

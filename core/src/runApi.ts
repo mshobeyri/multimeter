@@ -252,7 +252,8 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  const __mmt_originalSendGrpc = typeof sendGrpc_ === 'function' ? sendGrpc_ : null;\n` +
       `  send_ = async function(req) {\n` +
       `    await checkAbort_();\n` +
-      `    const __req = req || {};\n` +
+      `    const __req = (typeof __mmt_requestOverride !== 'undefined' &&\n` +
+      `        __mmt_requestOverride) ? __mmt_requestOverride : (req || {});\n` +
       `    const __maskedHeaders = {};\n` +
       `    for (const [k, v] of Object.entries(__req.headers || {})) {\n` +
       `      const lk = k.toLowerCase();\n` +
@@ -282,7 +283,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    console.debug(__mmt_formatSection('Request:', __reqLog));\n` +
       `    __mmt_reportNetwork('network-request', __req);\n` +
       `    try {\n` +
-      `      const __res = await __mmt_originalSend(req);\n` +
+      `      const __res = await __mmt_originalSend(__req);\n` +
       `      // Stop before Response logging when the user cancelled mid-request.\n` +
       `      await checkAbort_();\n` +
       `      const __status = __res && typeof __res.status === 'number' ? __res.status : '';\n` +
@@ -362,10 +363,11 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  if (__mmt_originalSendGrpc) {\n` +
       `    sendGrpc_ = async function(req) {\n` +
       `      await checkAbort_();\n` +
-      `      const __req = req || {};\n` +
+      `      const __req = (typeof __mmt_requestOverride !== 'undefined' &&\n` +
+      `          __mmt_requestOverride) ? __mmt_requestOverride : (req || {});\n` +
       `      __mmt_reportNetwork('network-request', __req);\n` +
       `      try {\n` +
-      `        const __res = await __mmt_originalSendGrpc(req);\n` +
+      `        const __res = await __mmt_originalSendGrpc(__req);\n` +
       `        await checkAbort_();\n` +
       `        __mmt_reportNetwork('network-response', __req, __res);\n` +
       `        return __res;\n` +

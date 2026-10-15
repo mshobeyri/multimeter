@@ -1,5 +1,6 @@
 import {
   clearGitCurrentSnapshot,
+  clearGitCurrentSnapshotProvider,
   currentCity,
   currentCountry,
   currentDate,
@@ -26,6 +27,8 @@ import {
   expandCurrentTokensInPath,
   pathSafeCurrentTokenValue,
   setGitCurrentSnapshot,
+  setGitCurrentSnapshotProvider,
+  textMayNeedGitCurrentSnapshot,
 } from './Current';
 
 function within(now: number, target: number, windowMs: number): boolean {
@@ -208,6 +211,45 @@ describe('Current tokens', () => {
 describe('git current tokens', () => {
   afterEach(() => {
     clearGitCurrentSnapshot();
+    clearGitCurrentSnapshotProvider();
+  });
+
+  test('textMayNeedGitCurrentSnapshot detects only git-related c: tokens', () => {
+    expect(textMayNeedGitCurrentSnapshot('')).toBe(false);
+    expect(textMayNeedGitCurrentSnapshot('type: api\nurl: https://x')).toBe(false);
+    expect(textMayNeedGitCurrentSnapshot('headers:\n  x: c:time')).toBe(false);
+    expect(textMayNeedGitCurrentSnapshot('x: c:git_commit')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: <<c:git_branch>>')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: {{c:git_dirty}}')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('export:\n  - +/<<c:report_folder>>/a.html')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: c:branch')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: c:commit_hash')).toBe(true);
+  });
+
+  test('provider runs once on first git c: access', () => {
+    let calls = 0;
+    setGitCurrentSnapshotProvider(() => {
+      calls += 1;
+      return {commit: 'deadbeef', branch: 'main'};
+    });
+    expect(calls).toBe(0);
+    expect(currentValueForToken('git_commit')).toBe('deadbeef');
+    expect(calls).toBe(1);
+    expect(currentValueForToken('git_branch')).toBe('main');
+    expect(calls).toBe(1);
+    expect(currentValueForToken('time')).toBeTruthy();
+    expect(calls).toBe(1);
+  });
+
+  test('provider is not used when snapshot is set explicitly', () => {
+    let calls = 0;
+    setGitCurrentSnapshotProvider(() => {
+      calls += 1;
+      return {commit: 'from-provider'};
+    });
+    setGitCurrentSnapshot({commit: 'explicit'});
+    expect(currentValueForToken('git_commit')).toBe('explicit');
+    expect(calls).toBe(0);
   });
 
   test('return empty / false when no snapshot is injected', () => {

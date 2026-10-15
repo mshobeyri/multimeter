@@ -21,6 +21,7 @@ import {buildThemeTokenMessage} from '../themeTokenColors';
 import {resolveSourceFormat} from '../mmtSourceFormat';
 import {brunoWebviewExtras} from '../brunoCollection';
 import {resolveGitCurrentSnapshot} from './gitCommitShort';
+import {textMayNeedGitCurrentSnapshot} from 'mmt-core/Current';
 
 const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
   outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
@@ -195,16 +196,18 @@ export async function handleLoadDocumentContent(
     mmtProvider: any) {
   // Resolve project root for +/ imports (same logic used by run)
   const projectRoot = findProjectRoot(document.uri.fsPath);
-  const sourceFormat = resolveSourceFormat(document.getText(), document.uri.fsPath);
-  // Injected into the webview so telescope / request preview can resolve c:git_*.
-  const gitSnapshot = resolveGitCurrentSnapshot(
-      projectRoot || path.dirname(document.uri.fsPath));
+  const content = document.getText();
+  const sourceFormat = resolveSourceFormat(content, document.uri.fsPath);
+  // Inject only when the file references git current tokens (skip costly git on open).
+  const gitSnapshot = textMayNeedGitCurrentSnapshot(content) ?
+      resolveGitCurrentSnapshot(projectRoot || path.dirname(document.uri.fsPath)) :
+      undefined;
 
   // Send document data to the current panel
   webviewPanel.webview.postMessage({
     command: 'viewDocumentContent',
     uri: document.uri.toString(),
-    content: document.getText(),
+    content,
     projectRoot,
     gitSnapshot,
     ...brunoWebviewExtras(sourceFormat, document.uri.fsPath),

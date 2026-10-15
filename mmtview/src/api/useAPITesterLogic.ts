@@ -90,24 +90,26 @@ export function useAPITesterLogic({
   const [isSending, setIsSending] = useState(false);
   const sendPendingRef = useRef(false);
   const [responseData, setResponseData] = useState<Response>();
-  const [responseRevision, setResponseRevision] = useState<number>(0);
-  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(
-    () => clampExampleIndex(api.examples, initialExampleIndex)
-  );
-  const prevApiRef = useRef<APIData | undefined>(undefined);
-  const prevExampleIdxRef = useRef<number>(
+  // Bumps when a new response arrives so the Response BodyView remounts even if
+  // consecutive Send results share the same body text.
+  const [responseRevision, setResponseRevision] = useState(0);
+  const [apiTestResults, setApiTestResults] = useState<import("mmt-core/apiTestEval").ApiTestExpectItem[] | null>(null);
+  // Touched request fields: keep the user's live edits when a refresh would
+  // otherwise overwrite them (e.g. env change). Reset on force-reset / open.
+  const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
+  const touchedFieldsRef = useRef(touchedFields);
+  touchedFieldsRef.current = touchedFields;
+  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(() =>
     clampExampleIndex(api.examples, initialExampleIndex)
   );
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
-  const currentInputsRef = useRef<JSONRecord>({});
+  const currentInputsRef = useRef(currentInputs);
   const [envValues, setEnvValues] = useState<JSONRecord>({});
-  const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
-  const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
   const [outputs, setOutputs] = useState<JSONRecord>({});
   const [setenvValues, setSetenvValues] = useState<JSONRecord>({});
-  const [apiTestResults, setApiTestResults] = useState<import("mmt-core/apiTestEval").ApiTestExpectItem[] | null>(null);
-
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
+  const prevApiRef = useRef<APIData | null>(null);
+  const prevExampleIdxRef = useRef(selectedExampleIdx);
 
   useEffect(() => {
     apiRef.current = api;
@@ -265,25 +267,24 @@ export function useAPITesterLogic({
     })();
   }, [resetTouchedFields, resolveFreshRequestData, seedPreviewFromResolved]);
 
+  /**
+   * Telescope snapshot for Send — same r:/c: values the UI shows.
+   * Remint only when no snapshot exists yet (before open/telescope resolve).
+   */
   const buildRequestForSend = useCallback(async (): Promise<Request> => {
-    const fresh = await resolveFreshRequestData(undefined, { refreshRuntimeTokens: true });
-    const merged = applyScopedRequestData(
-      requestDataRef.current,
-      fresh,
-      ["all"],
-      touchedFieldsRef.current,
-      true
-    );
-    setRequestData(merged);
-    // Telescope UI shows the same r:/c: values that leave on this Send.
-    seedPreviewFromResolved(merged);
+    let snapshot = requestDataRef.current;
+    if (!snapshot) {
+      snapshot = await resolveFreshRequestData(undefined, { refreshRuntimeTokens: true });
+      setRequestData(snapshot);
+      seedPreviewFromResolved(snapshot);
+    }
     const reqFormat = resolveRequestFormat(
-      requestFormat(merged.format ?? apiRef.current.format),
-      merged.headers,
-      merged.method ?? apiRef.current.method,
+      requestFormat(snapshot.format ?? apiRef.current.format),
+      snapshot.headers,
+      snapshot.method ?? apiRef.current.method,
     );
     return {
-      ...requestForSend(merged, reqFormat),
+      ...requestForSend(snapshot, reqFormat),
     };
   }, [resolveFreshRequestData, seedPreviewFromResolved]);
 
@@ -470,7 +471,11 @@ export function useAPITesterLogic({
   // HTTP/GraphQL/gRPC: run the live-synced YAML (same as glyph). History comes
   // from core network-* reporter events on the extension. WS still uses the
   // live socket with a resolved request.
-  const runViaCore = useCallback((opts: { forSend: boolean }) => {
+  // API Tester Send also passes resolvedRequest = telescope snapshot (no remint).
+  const runViaCore = useCallback(async (opts: {
+    forSend: boolean;
+    resolvedRequest?: Request;
+  }) => {
     if (opts.forSend) {
       setIsSending(true);
       sendPendingRef.current = true;
@@ -485,11 +490,14 @@ export function useAPITesterLogic({
         exampleIndex: selectedExampleIdx,
         manualInputs: currentInputsRef.current,
       },
+      ...(opts.forSend && opts.resolvedRequest
+        ? { resolvedRequest: opts.resolvedRequest }
+        : {}),
     });
   }, [selectedExampleIdx]);
 
   const handleRunInCore = useCallback(() => {
-    runViaCore({ forSend: false });
+    void runViaCore({ forSend: false });
     window.vscode?.postMessage({ command: "showLogOutputChannel" });
   }, [runViaCore]);
 
@@ -501,15 +509,17 @@ export function useAPITesterLogic({
     const protocol = protocolResolver.getEffectiveProtocol(
       apiRef.current?.protocol as any, apiRef.current?.url);
 
+    // Frozen telescope snapshot — same r:/c: values the UI shows.
+    const req = await buildRequestForSend();
+
     if (protocol === "ws") {
-      const req = await buildRequestForSend();
       const res = await network.send(req);
       setResponseData(res);
       setResponseRevision(prev => prev + 1);
       return;
     }
 
-    runViaCore({ forSend: true });
+    await runViaCore({ forSend: true, resolvedRequest: req });
   }, [network, buildRequestForSend, runViaCore]);
 
   const handleCancel = useCallback(async () => {
@@ -602,7 +612,6 @@ export function useAPITesterLogic({
   }, []);
 
   // Response panel is filled only via multimeter.api.run.result from the extension.
-  // Send also echoes the wire `request` so telescope fields match what went out.
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       const message = event.data;
@@ -620,27 +629,6 @@ export function useAPITesterLogic({
       sendPendingRef.current = false;
       if (message.cancelled) {
         return;
-      }
-      if (message.request && typeof message.request === "object") {
-        const wire = message.request as Request;
-        // Merge wire fields only — keep UI-only keys (format, graphql, …).
-        setRequestData((prev) => {
-          if (!prev) {
-            return wire;
-          }
-          return {
-            ...prev,
-            ...(wire.url != null ? { url: wire.url } : {}),
-            ...(wire.method != null ? { method: wire.method } : {}),
-            ...(wire.protocol != null ? { protocol: wire.protocol } : {}),
-            ...(wire.headers != null ? { headers: wire.headers } : {}),
-            ...(wire.query != null ? { query: wire.query } : {}),
-            ...(wire.cookies != null ? { cookies: wire.cookies } : {}),
-            ...(wire.body !== undefined ? { body: wire.body } : {}),
-            ...(typeof wire.timeout === "number" ? { timeout: wire.timeout } : {}),
-          };
-        });
-        seedPreviewFromResolved(wire);
       }
       if (message.apiTest && Array.isArray(message.apiTest.items)) {
         setApiTestResults(message.apiTest.items);
@@ -661,7 +649,7 @@ export function useAPITesterLogic({
 
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [filePath, seedPreviewFromResolved]);
+  }, [filePath]);
 
   return {
     requestData,
@@ -694,7 +682,6 @@ export function useAPITesterLogic({
     handleConnect,
     network,
     examples,
-    resetTouchedFields
   };
 }
 
@@ -725,4 +712,3 @@ async function applyResolvedSetenvVariables(
     source: 'runtime' as const,
   })));
 }
-

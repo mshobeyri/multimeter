@@ -1,7 +1,8 @@
 /**
  * Injected git metadata for `c:git_*` / short-alias current tokens.
- * Hosts (CLI, extension) resolve via `git` and call {@link setGitCurrentSnapshot}
- * before runs. Core stays free of `child_process` / `fs`.
+ * Hosts register a {@link GitCurrentSnapshotProvider}; core calls it on first
+ * git-token access so resolution stays with other `c:` tokens (on demand).
+ * Core stays free of `child_process` / `fs`.
  */
 export type GitCurrentSnapshot = {
   /** Current branch name (omitted when detached / unavailable). */
@@ -18,45 +19,100 @@ export type GitCurrentSnapshot = {
   dirty?: boolean;
 };
 
-let gitSnapshot: GitCurrentSnapshot | undefined;
+/** Host-supplied resolver; called at most once until cleared. */
+export type GitCurrentSnapshotProvider = () => GitCurrentSnapshot|undefined;
 
-/** Replace the process-wide git snapshot used by current-token generators. */
-export function setGitCurrentSnapshot(snapshot: GitCurrentSnapshot | undefined): void {
-  gitSnapshot = snapshot;
+let gitSnapshot: GitCurrentSnapshot|undefined;
+let gitSnapshotLoaded = false;
+let gitSnapshotProvider: GitCurrentSnapshotProvider|undefined;
+
+/**
+ * True when `text` appears to reference a current-token that needs a host git
+ * snapshot. Used only where a Node provider cannot run (e.g. webview open inject).
+ */
+export function textMayNeedGitCurrentSnapshot(text: string): boolean {
+  if (!text || !text.includes('c:')) {
+    return false;
+  }
+  return /(?:<<|\{\{)?c:(?:git_(?:branch|commit|commit_hash|tag|describe|dirty)|report_folder|branch|commit(?:_short|_hash|_hash_short)?|tag)\b/
+      .test(text);
 }
 
-/** Clear injected git metadata (tests). */
+/**
+ * Register a provider invoked on first git-token read.
+ * Does not spawn git until a generator runs {@link ensureGitCurrentSnapshot}.
+ */
+export function setGitCurrentSnapshotProvider(
+    provider: GitCurrentSnapshotProvider|undefined): void {
+  gitSnapshotProvider = provider;
+}
+
+/** Clear the provider (hosts / tests). */
+export function clearGitCurrentSnapshotProvider(): void {
+  gitSnapshotProvider = undefined;
+}
+
+/**
+ * Explicitly set the snapshot (tests, webview inject, workers with a prebuilt
+ * snapshot). Marks loaded so the provider is not called afterward.
+ */
+export function setGitCurrentSnapshot(snapshot: GitCurrentSnapshot|undefined): void {
+  gitSnapshot = snapshot;
+  gitSnapshotLoaded = true;
+}
+
+/** Clear snapshot and allow the provider to run again on next access. */
 export function clearGitCurrentSnapshot(): void {
   gitSnapshot = undefined;
+  gitSnapshotLoaded = false;
 }
 
-/** Read the current snapshot (tests / hosts). */
-export function getGitCurrentSnapshot(): GitCurrentSnapshot | undefined {
+/** Read the current snapshot without triggering the provider (tests / hosts). */
+export function getGitCurrentSnapshot(): GitCurrentSnapshot|undefined {
+  return gitSnapshot;
+}
+
+/**
+ * Ensure a snapshot is available: use an explicit set value, or call the
+ * provider once. Safe to call from every git `c:` generator.
+ */
+export function ensureGitCurrentSnapshot(): GitCurrentSnapshot|undefined {
+  if (gitSnapshotLoaded) {
+    return gitSnapshot;
+  }
+  gitSnapshotLoaded = true;
+  if (gitSnapshotProvider) {
+    try {
+      gitSnapshot = gitSnapshotProvider() ?? undefined;
+    } catch {
+      gitSnapshot = undefined;
+    }
+  }
   return gitSnapshot;
 }
 
 export function currentGitBranch(): string {
-  return gitSnapshot?.branch ?? '';
+  return ensureGitCurrentSnapshot()?.branch ?? '';
 }
 
 export function currentGitCommit(): string {
-  return gitSnapshot?.commit ?? '';
+  return ensureGitCurrentSnapshot()?.commit ?? '';
 }
 
 export function currentGitCommitHash(): string {
-  return gitSnapshot?.commitHash ?? '';
+  return ensureGitCurrentSnapshot()?.commitHash ?? '';
 }
 
 export function currentGitTag(): string {
-  return gitSnapshot?.tag ?? '';
+  return ensureGitCurrentSnapshot()?.tag ?? '';
 }
 
 export function currentGitDescribe(): string {
-  return gitSnapshot?.describe ?? '';
+  return ensureGitCurrentSnapshot()?.describe ?? '';
 }
 
 export function currentGitDirty(): boolean {
-  return gitSnapshot?.dirty === true;
+  return ensureGitCurrentSnapshot()?.dirty === true;
 }
 
 /** Sanitize one path segment (no empties, `.`, `..`, or control chars). */
@@ -83,7 +139,8 @@ export function sanitizeReportPathSegment(raw: string): string {
  * - no git → `local`
  */
 export function currentReportFolder(): string {
-  const tagRaw = String(gitSnapshot?.tag ?? '').trim();
+  const snap = ensureGitCurrentSnapshot();
+  const tagRaw = String(snap?.tag ?? '').trim();
   if (tagRaw) {
     const firstTag = tagRaw.split(',')[0]?.trim() || '';
     const tagSeg = sanitizeReportPathSegment(firstTag);
@@ -92,8 +149,8 @@ export function currentReportFolder(): string {
     }
   }
 
-  const commit = sanitizeReportPathSegment(String(gitSnapshot?.commit ?? '').trim());
-  const branchRaw = String(gitSnapshot?.branch ?? '').trim();
+  const commit = sanitizeReportPathSegment(String(snap?.commit ?? '').trim());
+  const branchRaw = String(snap?.branch ?? '').trim();
   if (branchRaw && commit) {
     const branchSeg = sanitizeReportPathSegment(branchRaw);
     if (branchSeg) {

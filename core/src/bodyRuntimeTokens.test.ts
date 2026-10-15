@@ -364,6 +364,48 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
         .toBe('sent-header-id');
   });
 
+  it('seeds string and structured body leaves without packing source', () => {
+    clearTokenFieldPreviewRandomCache();
+    const sourceBody = {
+      id: 'r:uuid',
+      stamp: 'c:time',
+      nested: {trace: 'Bearer <<r:uuid>>'},
+    };
+    seedTokenFieldPreviewFromRequest(
+        {body: sourceBody},
+        {
+          body: {
+            id: 'body-id',
+            stamp: '01:02:03',
+            nested: {trace: 'Bearer nested-id'},
+          },
+        },
+    );
+    expect(projectTokenFieldPreview('{{r:uuid}}', {env: {}, inputs: {}}).text)
+        .toBe('body-id');
+    expect(projectTokenFieldPreview('{{c:time}}', {env: {}, inputs: {}}).text)
+        .toBe('01:02:03');
+    expect(projectTokenFieldPreview('Bearer {{r:uuid}}', {env: {}, inputs: {}}).text)
+        .toBe('Bearer nested-id');
+    expect(sourceBody).toEqual({
+      id: 'r:uuid',
+      stamp: 'c:time',
+      nested: {trace: 'Bearer <<r:uuid>>'},
+    });
+
+    clearTokenFieldPreviewRandomCache();
+    const stringBody = 'hello <<r:uuid>> / <<c:day>>';
+    seedTokenFieldPreviewFromRequest(
+        {body: stringBody},
+        {body: 'hello str-id / Monday'},
+    );
+    expect(projectTokenFieldPreview('hello {{r:uuid}} / {{c:day}}', {
+      env: {},
+      inputs: {},
+    }).text).toBe('hello str-id / Monday');
+    expect(stringBody).toBe('hello <<r:uuid>> / <<c:day>>');
+  });
+
   it('resolves c:git_* in idle preview when a git snapshot is injected', () => {
     setGitCurrentSnapshot({
       branch: 'main',

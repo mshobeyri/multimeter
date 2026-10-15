@@ -27,7 +27,8 @@ import {
 } from './webviewReporter';
 import {addHistoryFromApiNetworkReport} from './apiHistory';
 import {expandCurrentTokensInPath} from 'mmt-core/Current';
-import {applyGitCurrentSnapshot, resolveGitCurrentSnapshot} from './gitCommitShort';
+import {installGitCurrentSnapshotProvider} from './gitCommitShort';
+import {ensureGitCurrentSnapshot} from 'mmt-core/Current';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -151,7 +152,7 @@ async function writeRunExports(params: {
     return;
   }
   const suiteDir = path.dirname(runFilePath);
-  applyGitCurrentSnapshot(projectRoot || suiteDir);
+  installGitCurrentSnapshotProvider(projectRoot || suiteDir);
   for (const exportPath of suiteExports.paths) {
     try {
       const expandedPath = expandCurrentTokensInPath(String(exportPath ?? ''));
@@ -193,7 +194,7 @@ async function writeRunExports(params: {
       }
 
       forwardLog('info', `Exporting results to ${resolvedPath}`);
-      const git = resolveGitCurrentSnapshot(projectRoot || path.dirname(runFilePath));
+      const git = ensureGitCurrentSnapshot() || {};
       const content = serializer(suiteExports.collectedResults, {
         projectRoot,
         gitCommit: git.commit,
@@ -368,11 +369,16 @@ export async function handleRunCurrentDocument(
   const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
       ? message.rawFile
       : document.getText();
-  /** Last network-request payload for API Tester Send → telescope UI sync. */
-  let lastSentRequest: Record<string, unknown>|null = null;
+  // API Tester Send may pass the telescope snapshot so wire r:/c: match the UI.
+  const requestOverride =
+      message?.history === true && message?.resolvedRequest &&
+          typeof message.resolvedRequest === 'object' ?
+        message.resolvedRequest as Record<string, unknown> :
+        null;
 
   try {
-    applyGitCurrentSnapshot(projectRoot || path.dirname(document.uri.fsPath));
+    installGitCurrentSnapshotProvider(
+        projectRoot || path.dirname(document.uri.fsPath));
     const fileLoader = createFileLoader(document.uri.fsPath);
     const binaryFileLoader = createBinaryFileLoader(document.uri.fsPath);
     const runOutcome = await runner.runFile({
@@ -392,6 +398,7 @@ export async function handleRunCurrentDocument(
         fileLoader,
         binaryFileLoader,
         serverRunner,
+        requestOverride,
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
@@ -399,10 +406,6 @@ export async function handleRunCurrentDocument(
       reporter: (msg: any) => {
         // API Tester Send only (`history: true`). Glyph / Run in Core skip History.
         if (message?.history === true) {
-          if (msg?.scope === 'network-request' && msg?.request &&
-              typeof msg.request === 'object') {
-            lastSentRequest = msg.request;
-          }
           addHistoryFromApiNetworkReport(mmtProvider?.historyManager, msg);
         }
         uiReporter.report({
@@ -432,14 +435,12 @@ export async function handleRunCurrentDocument(
 
     // API Send contract: one core round-trip. Post the same response the finish
     // log used so the Response panel / toolbar duration stay in sync.
-    // Echo the wire request on Send so telescope UI can show sent r:/c: values.
     if (docType === 'api') {
       postApiRunResult(
           webviewPanel, document.uri.toString(),
           cancelled ? null : buildApiTesterResponse(result.outputs),
           cancelled,
-          cancelled ? null : (result.apiTest ?? null),
-          message?.history === true && !cancelled ? lastSentRequest : null);
+          cancelled ? null : (result.apiTest ?? null));
       if (!cancelled) {
         getOnboarding()?.onApiRun(rawFile);
       }
@@ -508,16 +509,13 @@ export async function handleRunCurrentDocument(
 function postApiRunResult(
     webviewPanel: vscode.WebviewPanel, uri: string,
     response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean,
-    apiTest?: import('mmt-core/apiTestEval').ApiTestEvalResult | null,
-    request?: Record<string, unknown>|null) {
+    apiTest?: import('mmt-core/apiTestEval').ApiTestEvalResult | null) {
   webviewPanel.webview.postMessage({
     command: 'multimeter.api.run.result',
     uri,
     response,
     cancelled,
     apiTest: apiTest ?? null,
-    // Wire request from network-request (Send only) so telescope matches sent values.
-    request: request ?? null,
   });
 }
 
@@ -608,7 +606,8 @@ export async function handleRunSuite(
 
     if (isLoadTest) {
       const projectRootLoadTest = findProjectRoot(runFilePath);
-      applyGitCurrentSnapshot(projectRootLoadTest || path.dirname(runFilePath));
+      installGitCurrentSnapshotProvider(
+          projectRootLoadTest || path.dirname(runFilePath));
       const fileLoader = createFileLoader(runFilePath);
       const binaryFileLoader = createBinaryFileLoader(runFilePath);
       const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
@@ -668,7 +667,8 @@ export async function handleRunSuite(
     const fileLoader = fileCache.wrap(createFileLoader(runFilePath));
     const binaryFileLoader = createBinaryFileLoader(runFilePath);
     const projectRootSuite = findProjectRoot(runFilePath);
-    applyGitCurrentSnapshot(projectRootSuite || path.dirname(runFilePath));
+    installGitCurrentSnapshotProvider(
+        projectRootSuite || path.dirname(runFilePath));
     const {tree: hierarchyTree, fromCache} = await getCachedSuiteHierarchy({
       suiteFilePath: runFilePath,
       projectRoot: projectRootSuite,

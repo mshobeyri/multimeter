@@ -1,6 +1,10 @@
 import {execFileSync} from 'child_process';
 import type {GitCurrentSnapshot} from 'mmt-core/Current';
-import {setGitCurrentSnapshot} from 'mmt-core/Current';
+import {
+  clearGitCurrentSnapshot,
+  setGitCurrentSnapshot,
+  setGitCurrentSnapshotProvider,
+} from 'mmt-core/Current';
 import {
   normalizeReportGitBranch,
   normalizeReportGitCommit,
@@ -84,10 +88,19 @@ export function resolveGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
 }
 
 /**
- * Resolve git metadata and inject it for `c:git_*` / alias current tokens.
+ * Eagerly resolve and inject (report export UI, tests that need a fixed snapshot).
  */
 export function applyGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
   const snapshot = resolveGitCurrentSnapshot(cwd);
   setGitCurrentSnapshot(snapshot);
   return snapshot;
+}
+
+/**
+ * Install an on-demand provider so `c:git_*` resolution runs with other `c:`
+ * tokens — git is spawned only when a git current-token is evaluated.
+ */
+export function installGitCurrentSnapshotProvider(cwd?: string): void {
+  clearGitCurrentSnapshot();
+  setGitCurrentSnapshotProvider(() => resolveGitCurrentSnapshot(cwd));
 }
