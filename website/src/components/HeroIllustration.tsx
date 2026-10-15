@@ -81,6 +81,15 @@ const RESPONSE_BODY_LINES = [
   '}',
 ]
 
+/** Compact response for the test report panel (keeps Request/Response in view). */
+const TEST_RESPONSE_BODY_LINES = [
+  '{',
+  '  "method": "POST",',
+  '  "path": "/echo",',
+  '  "body": { "message": "hello" }',
+  '}',
+]
+
 /** Match mmtview API tester request tabs (settings is icon-only). */
 const REQUEST_TABS = [
   { label: 'Auth' },
@@ -307,21 +316,24 @@ function ApiPanel() {
 
 interface RunnerStep {
   label: string
-  detail: string
   duration: string
 }
 
-const TEST_RUN_STEPS: RunnerStep[] = [
-  { label: 'Send an echo request', detail: 'POST https://test.mmt.dev/echo', duration: '118ms' },
-  { label: 'Expect status', detail: 'status == 200', duration: '1ms' },
-  { label: 'Expect message', detail: 'body.body.message == hello', duration: '1ms' },
+const SUITE_RUN_STEPS: RunnerStep[] = [
+  { label: 'test/login.mmt', duration: '92ms' },
+  { label: 'test/echo_test.mmt', duration: '124ms' },
+  { label: 'test/status_test.mmt', duration: '92ms' },
 ]
 
-const SUITE_RUN_STEPS: RunnerStep[] = [
-  { label: 'test/login.mmt', detail: 'Run login test', duration: '92ms' },
-  { label: 'test/echo_test.mmt', detail: 'Run echo test', duration: '124ms' },
-  { label: 'test/status_test.mmt', detail: 'Run status test', duration: '92ms' },
-]
+/** Passed expects inside the single echo step — matches the test YAML. */
+const TEST_EXPECTS = ['status == 200', 'body.body.message == hello']
+
+const OVERVIEW_TONES = {
+  pass: { fg: '#3fb950', bg: 'rgba(63, 185, 80, 0.15)', icon: 'check' },
+  fail: { fg: '#f85149', bg: 'rgba(248, 81, 73, 0.15)', icon: 'close' },
+  total: { fg: '#58a6ff', bg: 'rgba(88, 166, 255, 0.15)', icon: 'list-flat' },
+  time: { fg: '#8b949e', bg: 'rgba(139, 148, 158, 0.15)', icon: 'clock' },
+} as const
 
 function OverviewBox({
   label,
@@ -332,29 +344,91 @@ function OverviewBox({
   label: string
   value: string
   sub: string
-  tone: 'pass' | 'fail' | 'total' | 'time'
+  tone: keyof typeof OVERVIEW_TONES
 }) {
-  const tones = {
-    pass: 'text-emerald-400 bg-emerald-500/15',
-    fail: 'text-rose-400 bg-rose-500/15',
-    total: 'text-sky-400 bg-sky-500/15',
-    time: 'text-slate-400 bg-slate-500/15',
-  }[tone]
-  const icons = {
-    pass: 'check',
-    fail: 'close',
-    total: 'list-flat',
-    time: 'clock',
-  }[tone]
+  const theme = OVERVIEW_TONES[tone]
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-light/45 px-2 py-2 min-w-0">
-      <span className={`flex h-7 w-7 items-center justify-center rounded-md shrink-0 ${tones}`}>
-        <Codicon name={icons} className="text-sm" />
+    <div className="flex min-w-0 items-center gap-2.5 rounded-[10px] border border-white/10 bg-[#0b1220] px-3 py-2.5">
+      <span
+        className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px]"
+        style={{ backgroundColor: theme.bg, color: theme.fg }}
+      >
+        <Codicon name={theme.icon} className="text-base" />
       </span>
-      <div className="min-w-0">
-        <div className="text-[9px] uppercase tracking-wider text-slate-500">{label}</div>
-        <div className="text-sm text-slate-100 font-semibold leading-tight">{value}</div>
-        <div className="text-[9px] text-slate-500 truncate">{sub}</div>
+      <div className="flex min-w-0 flex-col">
+        <span className="text-[9px] font-medium uppercase tracking-wide text-slate-400 opacity-60">{label}</span>
+        <span className="text-lg font-bold leading-tight" style={{ color: theme.fg }}>{value}</span>
+        <span className="truncate text-[9px]" style={{ color: theme.fg }}>{sub}</span>
+      </div>
+    </div>
+  )
+}
+
+function ReportSectionTitle({ label, first }: { label: string; first?: boolean }) {
+  return (
+    <div className={first ? 'mt-0.5' : 'mt-2'}>
+      <div className="text-[10px] font-semibold uppercase text-slate-300 opacity-70">{label}</div>
+      <hr className="mt-0.5 mb-1 border-0 border-t border-[#444] opacity-50" />
+    </div>
+  )
+}
+
+function ReportBody({ lines }: { lines: string[] }) {
+  return (
+    <div className="rounded bg-[#0b1220] px-2.5 py-1 font-mono text-[10px] leading-4">
+      {lines.map((line, i) => (
+        <div key={i} className="whitespace-pre">
+          {line.includes('"') ? (
+            <>
+              {line.split(/("[^"]*")/).map((part, j) =>
+                part.startsWith('"') ? (
+                  <span key={j} className={j === 1 ? 'text-primary-light' : 'text-accent'}>
+                    {part}
+                  </span>
+                ) : (
+                  <span key={j} className="text-slate-500">{part}</span>
+                )
+              )}
+            </>
+          ) : (
+            <span className="text-slate-500">{line}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** One expanded report step: Expects + Request/Response bodies. */
+function TestReport() {
+  return (
+    <div className="rounded-md border border-[#2a2a2a] p-2.5">
+      <div className="rounded-md border border-[#2a2a2a]">
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+          <span className="inline-flex w-5 shrink-0 items-center justify-center text-slate-400" aria-hidden>
+            <Codicon name="chevron-down" className="text-sm" />
+          </span>
+          <Codicon name="pass" className="shrink-0 text-xs text-[#23d18b]" title="Passed" />
+          <span className="min-w-0 flex-1 truncate text-[11px] text-slate-200">Send an echo request</span>
+          <span className="shrink-0 text-[10px] text-slate-400 opacity-70">7:08:14 AM</span>
+        </div>
+        <div className="mb-1.5 mr-2.5 ml-[36px]">
+          <ReportSectionTitle label="Expects" first />
+          <div className="mt-0.5 flex flex-col gap-1.5">
+            {TEST_EXPECTS.map((comparison) => (
+              <div key={comparison} className="flex items-center gap-1.5 pl-0.5">
+                <Codicon name="pass" className="shrink-0 text-[10px] text-[#23d18b]" title="Passed" />
+                <span className="truncate font-mono text-[10px] text-slate-200">{comparison}</span>
+              </div>
+            ))}
+          </div>
+
+          <ReportSectionTitle label="Request" />
+          <ReportBody lines={REQUEST_BODY_LINES} />
+
+          <ReportSectionTitle label="Response" />
+          <ReportBody lines={TEST_RESPONSE_BODY_LINES} />
+        </div>
       </div>
     </div>
   )
@@ -362,49 +436,51 @@ function OverviewBox({
 
 function RunnerPanel({ mode }: { mode: 'test' | 'suite' }) {
   const isSuite = mode === 'suite'
-  const rows = isSuite ? SUITE_RUN_STEPS : TEST_RUN_STEPS
   const title = isSuite ? 'Simple Suite' : 'Simple HTTP test'
   const runTitle = isSuite ? 'Run suite' : 'Run test'
 
   return (
     <VSCodeSidePanel title={title} icon={isSuite ? 'layers' : 'beaker'}>
-      {/* Matches mmtview `.run-action-bar` — circular Run + more, right-aligned */}
-      <div className="flex items-center justify-end gap-2 px-3 pt-2 pb-2">
-        <ActionControl mode="run" title={runTitle} />
-      </div>
-
-      <div className="px-3 pb-3">
-        <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Overview</div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-          <OverviewBox label="Passed" value="3" sub="100%" tone="pass" />
-          <OverviewBox label="Failed" value="0" sub="0%" tone="fail" />
-          <OverviewBox label="Total" value="3" sub={isSuite ? '3 files' : '3 checks'} tone="total" />
-          <OverviewBox label="Duration" value={isSuite ? '0.216s' : '0.120s'} sub="just now" tone="time" />
+      {/* Whole panel body scrolls so Request/Response are reachable */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* Matches mmtview `.run-action-bar` — circular Run + more, right-aligned */}
+        <div className="flex items-center justify-end gap-2 px-3 pt-2 pb-2">
+          <ActionControl mode="run" title={runTitle} />
         </div>
-      </div>
 
-      <div className="flex-1 px-3 py-3">
-        <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Report</div>
-        <div className="space-y-2">
-          {rows.map((row) => (
-            <div
-              key={row.label}
-              className="rounded-lg border border-border bg-surface-light/45 px-3 py-2"
-            >
-              <div className="flex items-start gap-2">
-                <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                  <Codicon name="check" className="text-[11px]" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm text-slate-200 truncate">{row.label}</span>
-                    <span className="text-[10px] text-slate-500 shrink-0">{row.duration}</span>
+        <div className="px-3 pb-3">
+          <div className="mb-1.5 px-1 pt-1 text-[13px] font-bold text-[#939393]">Overview</div>
+          <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+            <OverviewBox label="Passed" value={isSuite ? '3' : '1'} sub="100.0%" tone="pass" />
+            <OverviewBox label="Failed" value="0" sub="0.0%" tone="fail" />
+            <OverviewBox label="Total" value={isSuite ? '3' : '1'} sub={isSuite ? '3 files' : '1 check'} tone="total" />
+            <OverviewBox label="Duration" value={isSuite ? '308ms' : '118ms'} sub="just now" tone="time" />
+          </div>
+        </div>
+
+        <div className="px-3 pb-3">
+          <div className="mb-1.5 px-1 text-[13px] font-bold text-[#939393]">Report</div>
+          {isSuite ? (
+            <div className="space-y-2">
+              {SUITE_RUN_STEPS.map((row) => (
+                <div
+                  key={row.label}
+                  className="rounded-md border border-[#2a2a2a] px-3 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex w-6 shrink-0 items-center justify-center text-slate-400" aria-hidden>
+                      <Codicon name="chevron-right" className="text-base" />
+                    </span>
+                    <Codicon name="pass" className="shrink-0 text-sm text-[#23d18b]" title="Passed" />
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-slate-200">{row.label}</span>
+                    <span className="shrink-0 text-xs text-slate-400 opacity-70">{row.duration}</span>
                   </div>
-                  <div className="text-[10px] sm:text-xs text-slate-500 truncate">{row.detail}</div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <TestReport />
+          )}
         </div>
       </div>
     </VSCodeSidePanel>
@@ -441,9 +517,9 @@ export default function HeroIllustration() {
   }))
 
   return (
-    <VSCodeDemoFrame>
+    <VSCodeDemoFrame minHeightClass="min-h-[560px] sm:min-h-[680px]">
       <VSCodeEditorTabs tabs={editorTabs} onTabClick={(id) => onTabClick(id as DemoTabId)} />
-      <div className="flex flex-col sm:flex-row flex-1 min-h-0">
+      <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
         <YamlPanel tab={tab} copied={copied} onCopy={onCopy} />
         {activeTab === 'api' ? <ApiPanel /> : <RunnerPanel mode={activeTab} />}
       </div>
