@@ -1345,7 +1345,8 @@ const tokenFieldPreviewRandomCache =
  * Body editors pass a JSON / XML / urlencoded / text buffer as the lookup
  * key, which will not match per-field seeds — this sentinel is format-free.
  */
-const BODY_DOCUMENT_CACHE_KEY = '\0mmt.body';
+export const TOKEN_FIELD_PREVIEW_BODY_SCOPE = '\0mmt.body';
+const BODY_DOCUMENT_CACHE_KEY = TOKEN_FIELD_PREVIEW_BODY_SCOPE;
 
 /** Drop frozen field-preview samples (telescope on / open / before re-seed). */
 export function clearTokenFieldPreviewRandomCache(): void {
@@ -1360,22 +1361,33 @@ function cacheKeyForFieldSource(source: string): string {
   return peerStringToDisplay(raw);
 }
 
+/**
+ * Cache key for a token field. `scope` disambiguates identical templates
+ * (`{{r:uuid}}` on a header vs a query param vs a cookie).
+ * Pass {@link BODY_DOCUMENT_CACHE_KEY} to read the format-free body list.
+ */
+function tokenPreviewCacheKey(source: string, scope?: string): string {
+  if (scope === BODY_DOCUMENT_CACHE_KEY) {
+    return BODY_DOCUMENT_CACHE_KEY;
+  }
+  const field = cacheKeyForFieldSource(source);
+  return scope ? `${scope}\0${field}` : field;
+}
+
+/** Scope for a headers/query/cookies row so identical `{{r:uuid}}` values do not collide. */
+export function tokenFieldPreviewScope(namespace: string, key: string): string {
+  return `${namespace}\0${key}`;
+}
+
 function lookupCachedRandomForFieldPreview(
     sourceKey: string,
     plain: string,
     occurrenceIndex: number,
     ): unknown {
-  const field = tokenFieldPreviewRandomCache.get(sourceKey);
-  if (field && occurrenceIndex < field.r.length) {
-    return field.r[occurrenceIndex];
+  let entry = tokenFieldPreviewRandomCache.get(sourceKey);
+  if (entry && occurrenceIndex < entry.r.length) {
+    return entry.r[occurrenceIndex];
   }
-  if (sourceKey !== BODY_DOCUMENT_CACHE_KEY) {
-    const body = tokenFieldPreviewRandomCache.get(BODY_DOCUMENT_CACHE_KEY);
-    if (body && occurrenceIndex < body.r.length) {
-      return body.r[occurrenceIndex];
-    }
-  }
-  let entry = field;
   if (!entry) {
     entry = {r: []};
     tokenFieldPreviewRandomCache.set(sourceKey, entry);
@@ -1390,15 +1402,9 @@ function lookupCachedCurrentForFieldPreview(
     plain: string,
     occurrenceIndex: number,
     ): unknown {
-  const field = tokenFieldPreviewRandomCache.get(sourceKey);
-  if (field?.c && occurrenceIndex < field.c.length) {
-    return field.c[occurrenceIndex];
-  }
-  if (sourceKey !== BODY_DOCUMENT_CACHE_KEY) {
-    const body = tokenFieldPreviewRandomCache.get(BODY_DOCUMENT_CACHE_KEY);
-    if (body?.c && occurrenceIndex < body.c.length) {
-      return body.c[occurrenceIndex];
-    }
+  const entry = tokenFieldPreviewRandomCache.get(sourceKey);
+  if (entry?.c && occurrenceIndex < entry.c.length) {
+    return entry.c[occurrenceIndex];
   }
   return lookupRuntimeResolvedValue(plain);
 }
@@ -1411,6 +1417,7 @@ function lookupCachedCurrentForFieldPreview(
 export function seedTokenFieldPreviewFromResolved(
     source: unknown,
     resolved: unknown,
+    scope?: string,
     ): void {
   if (source == null || typeof source === 'object') {
     return;
@@ -1419,7 +1426,7 @@ export function seedTokenFieldPreviewFromResolved(
   if (!sourceText || isLiteralTokenValue(sourceText)) {
     return;
   }
-  const cacheKey = cacheKeyForFieldSource(sourceText);
+  const cacheKey = tokenPreviewCacheKey(sourceText, scope);
   const leaves: TokenResolvedLeaf[] = [];
   walkTokenResolvedLeaves(sourceText, resolved, leaves);
   const rList: unknown[] = [];
@@ -1446,6 +1453,7 @@ export function seedTokenFieldPreviewFromResolved(
 function seedTokenFieldPreviewRecord(
     source?: Record<string, unknown>|null,
     resolved?: Record<string, unknown>|null,
+    namespace?: string,
     ): void {
   if (!source || typeof source !== 'object') {
     return;
@@ -1455,7 +1463,8 @@ function seedTokenFieldPreviewRecord(
     if (!Object.prototype.hasOwnProperty.call(res, key)) {
       continue;
     }
-    seedTokenFieldPreviewFromResolved(source[key], res[key]);
+    const scope = namespace ? `${namespace}\0${key}` : undefined;
+    seedTokenFieldPreviewFromResolved(source[key], res[key], scope);
   }
 }
 
@@ -1561,9 +1570,9 @@ export function seedTokenFieldPreviewFromRequest(
   if (source.url != null) {
     seedTokenFieldPreviewFromResolved(source.url, resolved.url);
   }
-  seedTokenFieldPreviewRecord(source.headers, resolved.headers);
-  seedTokenFieldPreviewRecord(source.query, resolved.query);
-  seedTokenFieldPreviewRecord(source.cookies, resolved.cookies);
+  seedTokenFieldPreviewRecord(source.headers, resolved.headers, 'headers');
+  seedTokenFieldPreviewRecord(source.query, resolved.query, 'query');
+  seedTokenFieldPreviewRecord(source.cookies, resolved.cookies, 'cookies');
   if (source.body != null) {
     seedTokenFieldPreviewDeep(source.body, resolved.body);
     seedTokenFieldPreviewBodyDocument(source.body, resolved.body);
@@ -1627,12 +1636,14 @@ export function leafResolvesToOmit(
 export function projectTokenFieldPreview(
     source: string,
     ctx?: RuntimeTokenValueContext,
+    scope?: string,
     ): {text: string; spans: TokenFieldSpan[]} {
   const raw = String(source ?? '');
   if (isLiteralTokenValue(raw)) {
     const inner = `"${unwrapLiteralToken(raw)}"`;
     return {text: inner, spans: []};
   }
+  const cacheKey = tokenPreviewCacheKey(raw, scope);
   const template = rewriteAllTokensToDisplayText(raw);
   let text = '';
   const spans: TokenFieldSpan[] = [];
@@ -1655,11 +1666,11 @@ export function projectTokenFieldPreview(
     let resolved: unknown = undefined;
     if (prefix === 'r') {
       resolved = lookupCachedRandomForFieldPreview(
-          raw, plain, randomOccurrence);
+          cacheKey, plain, randomOccurrence);
       randomOccurrence += 1;
     } else if (prefix === 'c') {
       resolved = lookupCachedCurrentForFieldPreview(
-          raw, plain, currentOccurrence);
+          cacheKey, plain, currentOccurrence);
       currentOccurrence += 1;
     } else {
       resolved = lookupIeResolvedValue(plain, ctx);
@@ -1731,10 +1742,11 @@ function collectDisplayTokenMatches(text: string): DisplayTokenMatch[] {
 export function findDisplayTokenCharRanges(
     text: string,
     ctx?: RuntimeTokenValueContext,
+    scope?: string,
     ): TokenFieldSpan[] {
   const matches = collectDisplayTokenMatches(text);
   const spans: TokenFieldSpan[] = [];
-  const cacheKey = cacheKeyForFieldSource(text);
+  const cacheKey = tokenPreviewCacheKey(text, scope);
   let randomOccurrence = 0;
   let currentOccurrence = 0;
   for (const m of matches) {
@@ -1781,7 +1793,8 @@ export function findBodyTokenHoverSpans(
     },
     ): TokenFieldSpan[] {
   const ctx = options?.valueContext;
-  const fromDisplay = findDisplayTokenCharRanges(displayText, ctx);
+  const fromDisplay = findDisplayTokenCharRanges(
+      displayText, ctx, BODY_DOCUMENT_CACHE_KEY);
   const leaves = collectTokenResolvedLeaves(
       options?.tokenSource, options?.resolvedBody);
   const fromLeaves = leaves.length > 0 ?

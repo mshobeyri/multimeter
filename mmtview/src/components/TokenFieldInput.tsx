@@ -25,6 +25,11 @@ type TokenFieldInputProps = Omit<
   canContainToken?: boolean;
   /** Active inputs/env for resolving `{{i:}}` / `{{e:}}` in preview. */
   valueContext?: RuntimeTokenValueContext;
+  /**
+   * Disambiguates this field in the Send/telescope preview cache
+   * (headers/query/cookies rows that share `{{r:uuid}}`).
+   */
+  tokenCacheScope?: string;
   onCommit: (value: string) => void;
   /** Live keystroke callback (optional; blur/Enter still commit). */
   onDraftChange?: (value: string) => void;
@@ -93,6 +98,7 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   value,
   canContainToken = false,
   valueContext,
+  tokenCacheScope,
   onCommit,
   onDraftChange,
   onFocus,
@@ -125,16 +131,16 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
   }, [value]);
 
   const preview = useMemo(
-    () => (hasTokens ? projectTokenFieldPreview(value, valueContext) : null),
+    () => (hasTokens ? projectTokenFieldPreview(value, valueContext, tokenCacheScope) : null),
     // previewEpoch: rebuild after r:/c: preview re-seed (open / telescope / Send).
-    [hasTokens, value, valueContext, previewEpoch],
+    [hasTokens, value, valueContext, tokenCacheScope, previewEpoch],
   );
 
   const showPreview = hasTokens && !tokenEdit && tokenMode === "resolved";
   const displayValue = showPreview ? (preview?.text ?? "") : draft;
   const highlightSpans = showPreview
     ? (preview?.spans ?? [])
-    : findDisplayTokenCharRanges(draft, valueContext);
+    : findDisplayTokenCharRanges(draft, valueContext, tokenCacheScope);
 
   // Underline layer only when blurred — while focused the native input keeps a
   // visible caret / selection like a normal field.

@@ -1461,6 +1461,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          tokenCacheNamespace="query"
           hideOmittedWhenResolved
         />
         </div>
@@ -1478,6 +1479,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          tokenCacheNamespace="headers"
           hideOmittedWhenResolved
         />
         </div>
@@ -1495,6 +1497,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          tokenCacheNamespace="cookies"
           hideOmittedWhenResolved
         />
         </div>

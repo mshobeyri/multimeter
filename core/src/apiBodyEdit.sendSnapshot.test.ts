@@ -7,6 +7,8 @@ import {
   findBodyTokenHoverSpans,
   findDisplayTokenCharRanges,
   projectTokenFieldPreview,
+  TOKEN_FIELD_PREVIEW_BODY_SCOPE,
+  tokenFieldPreviewScope,
   rewriteAllLeavesToDisplayText,
   stringifyJsonWithRuntimeTokens,
 } from './bodyRuntimeTokens';
@@ -50,9 +52,10 @@ describe('apiBodyEdit Send snapshot', () => {
     const headerTime = String(resolved.headers?.['X-Time'] ?? '');
     const bodyStamp = String((resolved.body as any)?.stamp ?? '');
 
-    // Distinct source strings → distinct cache keys (both hold reminted c:time).
-    expect(projectTokenFieldPreview('{{c:time}}', {env: {}, inputs: {}}).text)
-        .toBe(bodyStamp);
+    expect(projectTokenFieldPreview(
+               '{{c:time}}', {env: {}, inputs: {}},
+               tokenFieldPreviewScope('headers', 'X-Time')).text)
+        .toBe(headerTime);
     expect(headerTime.length).toBeGreaterThan(0);
     expect(bodyStamp.length).toBeGreaterThan(0);
   });
@@ -89,7 +92,8 @@ describe('apiBodyEdit Send snapshot', () => {
 
     const display = stringifyJsonWithRuntimeTokens(
         rewriteAllLeavesToDisplayText(api.body), true);
-    const cacheTips = findDisplayTokenCharRanges(display, {inputs: {}, env: {}})
+    const cacheTips = findDisplayTokenCharRanges(
+        display, {inputs: {}, env: {}}, TOKEN_FIELD_PREVIEW_BODY_SCOPE)
         .filter((s) => display.slice(s.start, s.end) === '{{r:uuid}}')
         .map((s) => s.tooltip);
     expect(cacheTips).toEqual([rw, rws]);
@@ -131,9 +135,13 @@ describe('apiBodyEdit Send snapshot', () => {
              inputs: {},
            }).text)
         .toBe(`https://example.com/${urlId}`);
-    expect(projectTokenFieldPreview('{{r:uuid}}', {env: {}, inputs: {}}).text)
+    expect(projectTokenFieldPreview(
+               '{{r:uuid}}', {env: {}, inputs: {}},
+               tokenFieldPreviewScope('headers', 'X-Id')).text)
         .toBe(headerId);
-    expect(projectTokenFieldPreview('{{c:time}}', {env: {}, inputs: {}}).text)
+    expect(projectTokenFieldPreview(
+               '{{c:time}}', {env: {}, inputs: {}},
+               tokenFieldPreviewScope('headers', 'X-Stamp')).text)
         .toBe(stamp);
   });
 });

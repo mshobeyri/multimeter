@@ -41,6 +41,8 @@ import {
   peerRecordToDisplay,
   peerRecordToYaml,
   projectTokenFieldPreview,
+  TOKEN_FIELD_PREVIEW_BODY_SCOPE,
+  tokenFieldPreviewScope,
   seedTokenFieldPreviewFromResolved,
   seedTokenFieldPreviewFromRequest,
   leafResolvesToOmit,
@@ -361,7 +363,9 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     );
     expect(projectTokenFieldPreview('https://x/{{r:uuid}}', {env: {}, inputs: {}}).text)
         .toBe('https://x/sent-url-id');
-    expect(projectTokenFieldPreview('{{r:uuid}}', {env: {}, inputs: {}}).text)
+    expect(projectTokenFieldPreview(
+               '{{r:uuid}}', {env: {}, inputs: {}},
+               tokenFieldPreviewScope('headers', 'id')).text)
         .toBe('sent-header-id');
   });
 
@@ -462,14 +466,16 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
         {headers: {id: 'r:uuid'}},
         {headers: {id: 'sent-from-wire'}},
     );
+    const headerScope = tokenFieldPreviewScope('headers', 'id');
     const spans = findDisplayTokenCharRanges('{{r:uuid}}', {
       inputs: {},
       env: {},
-    });
+    }, headerScope);
     expect(spans).toHaveLength(1);
     expect(spans[0].tooltip).toBe('sent-from-wire');
     // Stable across hovers — same cache as telescope preview.
-    expect(findDisplayTokenCharRanges('{{r:uuid}}', {inputs: {}, env: {}})[0]
+    expect(findDisplayTokenCharRanges(
+               '{{r:uuid}}', {inputs: {}, env: {}}, headerScope)[0]
                .tooltip)
         .toBe('sent-from-wire');
   });
@@ -536,6 +542,46 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(rwSpan!.start).not.toBe(rwsSpan!.start);
   });
 
+  it('keeps header, query, and cookie Send values distinct from body r:uuid', () => {
+    clearTokenFieldPreviewRandomCache();
+    seedTokenFieldPreviewFromRequest(
+        {
+          headers: {id: 'r:uuid'},
+          query: {q: 'r:uuid'},
+          cookies: {sid: 'r:uuid'},
+          body: {rw: 'r:uuid'},
+        },
+        {
+          headers: {id: 'hdr-id'},
+          query: {q: 'qry-id'},
+          cookies: {sid: 'ck-id'},
+          body: {rw: 'body-id'},
+        },
+    );
+    const ctx = {env: {}, inputs: {}};
+    expect(projectTokenFieldPreview(
+               '{{r:uuid}}', ctx, tokenFieldPreviewScope('headers', 'id')).text)
+        .toBe('hdr-id');
+    expect(projectTokenFieldPreview(
+               '{{r:uuid}}', ctx, tokenFieldPreviewScope('query', 'q')).text)
+        .toBe('qry-id');
+    expect(projectTokenFieldPreview(
+               '{{r:uuid}}', ctx, tokenFieldPreviewScope('cookies', 'sid')).text)
+        .toBe('ck-id');
+    expect(findDisplayTokenCharRanges(
+               '{{r:uuid}}', ctx, tokenFieldPreviewScope('headers', 'id'))[0]
+               .tooltip)
+        .toBe('hdr-id');
+    expect(findDisplayTokenCharRanges(
+               '{{r:uuid}}', ctx, tokenFieldPreviewScope('query', 'q'))[0]
+               .tooltip)
+        .toBe('qry-id');
+    expect(findDisplayTokenCharRanges(
+               '{{r:uuid}}', ctx, tokenFieldPreviewScope('cookies', 'sid'))[0]
+               .tooltip)
+        .toBe('ck-id');
+  });
+
   it('body document cache tips wire r: values without reminting samples', () => {
     clearTokenFieldPreviewRandomCache();
     const rw = 'ee063e87-bde6-4b14-a134-9be627222e82';
@@ -557,7 +603,8 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     );
     const display = stringifyJsonWithRuntimeTokens(
         rewriteAllLeavesToDisplayText(sourceBody), true);
-    const spans = findDisplayTokenCharRanges(display, {inputs: {}, env: {}});
+    const spans = findDisplayTokenCharRanges(
+        display, {inputs: {}, env: {}}, TOKEN_FIELD_PREVIEW_BODY_SCOPE);
     const rTips = spans
         .filter((s) => display.slice(s.start, s.end) === '{{r:uuid}}')
         .map((s) => s.tooltip);
@@ -625,12 +672,14 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
         {body: {stamp, rw, rws}},
     );
     const xmlDisplay = '<rw>{{r:uuid}}</rw><rws>{{r:uuid}}</rws>';
-    expect(findDisplayTokenCharRanges(xmlDisplay, {inputs: {}, env: {}})
+    expect(findDisplayTokenCharRanges(
+               xmlDisplay, {inputs: {}, env: {}}, TOKEN_FIELD_PREVIEW_BODY_SCOPE)
                .filter((s) => xmlDisplay.slice(s.start, s.end) === '{{r:uuid}}')
                .map((s) => s.tooltip))
         .toEqual([rw, rws]);
     const urlDisplay = 'rw={{r:uuid}}&rws={{r:uuid}}';
-    expect(findDisplayTokenCharRanges(urlDisplay, {inputs: {}, env: {}})
+    expect(findDisplayTokenCharRanges(
+               urlDisplay, {inputs: {}, env: {}}, TOKEN_FIELD_PREVIEW_BODY_SCOPE)
                .filter((s) => urlDisplay.slice(s.start, s.end) === '{{r:uuid}}')
                .map((s) => s.tooltip))
         .toEqual([rw, rws]);
