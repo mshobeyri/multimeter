@@ -45,7 +45,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
     const currentInputsRef = useRef<JSONRecord>({});
     const dirtyKeysRef = useRef<Set<string>>(new Set());
-    const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set());
+    const [, setDirtyKeys] = useState<Set<string>>(new Set());
     const yamlInputsRef = useRef<JSONRecord | undefined>(testData.inputs);
     const resolvedBaselineRef = useRef<JSONRecord>({});
     const [outputs, setOutputs] = useState<JSONRecord>({});

@@ -460,7 +460,13 @@ export function useAPITesterLogic({
     }
 
     addOutputEntry(suggestedKey, expr);
-  }, [addOutputEntry, requestData?.format, requestData?.headers, responseData]);
+  }, [
+    addOutputEntry,
+    requestData?.format,
+    requestData?.headers,
+    requestData?.method,
+    responseData,
+  ]);
 
   const handleAddOutputExpression = useCallback((expr: string, suggestedKey: string) => {
     addOutputEntry(suggestedKey, expr);

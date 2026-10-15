@@ -1,5 +1,8 @@
 import React from "react";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import type {
+  RuntimeTokenValueContext,
+  TokenPreviewCacheScope,
+} from "mmt-core/apiBodyEdit";
 import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
 import { KV_FIELD_ATTR } from "./kvFieldNav";
@@ -21,7 +24,7 @@ interface FieldWithRemoveProps {
   /** Opt into resolved/token dual-mode when the value contains tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
-  tokenCacheScope?: string;
+  tokenCacheScope?: TokenPreviewCacheScope;
   /** YAML value type chip drawn inside the input on the right (e.g. number). */
   typeLabel?: string;
   /** Marks this control for KV/KSV Tab navigation (`data-mmt-kv-field`). */

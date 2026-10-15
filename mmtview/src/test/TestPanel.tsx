@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { TestData } from "mmt-core/TestData";
 import TestOverview from "./TestOverview";
 import TestFlow from "./TestFlow";
@@ -105,7 +105,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
     if (isReadOnly && page === 'edit') {
       setPage('test');
     }
-  }, [page, isReadOnly]);
+  }, [page, isReadOnly, setPage]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -120,7 +120,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [isReadOnly]);
+  }, [isReadOnly, setPage]);
 
   return (
     <div className="panel">

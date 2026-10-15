@@ -131,11 +131,13 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
     setTokenEdit(false);
   }, [value]);
 
-  const preview = useMemo(
-    () => (hasTokens ? projectTokenFieldPreview(value, valueContext, tokenCacheScope) : null),
-    // previewEpoch: rebuild after r:/c: preview re-seed (open / telescope / Send).
-    [hasTokens, value, valueContext, tokenCacheScope, previewEpoch],
-  );
+  const preview = useMemo(() => {
+    // Read previewEpoch so Send/telescope cache re-seeds rebuild the projection.
+    void previewEpoch;
+    return hasTokens
+      ? projectTokenFieldPreview(value, valueContext, tokenCacheScope)
+      : null;
+  }, [hasTokens, value, valueContext, tokenCacheScope, previewEpoch]);
 
   const showPreview = hasTokens && !tokenEdit && tokenMode === "resolved";
   const displayValue = showPreview ? (preview?.text ?? "") : draft;

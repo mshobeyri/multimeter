@@ -462,6 +462,8 @@ const App: React.FC = () => {
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
+  // tryApplyOpenLayout only gates on refs; listing it would rebind this listener every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setContent, mmtFilePath, sourceFormat]);
 
   const docType = useMemo(() => {
