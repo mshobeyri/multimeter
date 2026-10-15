@@ -301,4 +301,145 @@ describe('suiteHierarchy (core)', () => {
       }],
     });
   });
+
+  test('maxDepth: 0 returns title only without walking items', async () => {
+    const files: Record<string, string> = {
+      '/root/suite1.mmt': [
+        'type: suite',
+        'title: suite 1',
+        'tags:',
+        '  - smoke',
+        'items:',
+        '  - test.mmt',
+        '  - test1.mmt',
+      ].join('\n'),
+      '/root/test.mmt': ['type: test', 'title: T0'].join('\n'),
+      '/root/test1.mmt': ['type: test', 'title: T1'].join('\n'),
+    };
+    const loaded: string[] = [];
+    const fileLoader = async (p: string) => {
+      loaded.push(p);
+      return files[p] ?? '';
+    };
+
+    const shallow = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/suite1.mmt',
+      suiteRawText: files['/root/suite1.mmt'],
+      fileLoader,
+      maxDepth: 0,
+    });
+
+    expect(shallow).toEqual({
+      kind: 'suite',
+      id: 'suite-node:root',
+      path: '/root/suite1.mmt',
+      title: 'suite 1',
+      tags: ['smoke'],
+      children: [],
+    });
+    expect(loaded).toEqual([]);
+  });
+
+  test('maxDepth: 1 stubs nested suites without walking their items', async () => {
+    const files: Record<string, string> = {
+      '/root/root.mmt': ['type: suite', 'items:', '  - ./suite1.mmt'].join('\n'),
+      '/root/suite1.mmt': [
+        'type: suite',
+        'title: suite 1',
+        'tags:',
+        '  - smoke',
+        'items:',
+        '  - test.mmt',
+        '  - test1.mmt',
+      ].join('\n'),
+      '/root/test.mmt': ['type: test', 'title: T0'].join('\n'),
+      '/root/test1.mmt': ['type: test', 'title: T1'].join('\n'),
+    };
+    const loaded: string[] = [];
+    const fileLoader = async (p: string) => {
+      loaded.push(p);
+      return files[p] ?? '';
+    };
+
+    const shallow = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/root.mmt',
+      suiteRawText: files['/root/root.mmt'],
+      fileLoader,
+      maxDepth: 1,
+    });
+
+    expect(shallow).toEqual({
+      kind: 'suite',
+      id: 'suite-node:root',
+      path: '/root/root.mmt',
+      title: undefined,
+      children: [
+        {
+          kind: 'group',
+          id: 'suite-node:0',
+          label: 'Group 1',
+          children: [
+            {
+              kind: 'suite',
+              id: 'suite-node:0.0',
+              path: '/root/suite1.mmt',
+              title: 'suite 1',
+              tags: ['smoke'],
+              children: [],
+            },
+          ],
+        },
+      ],
+    });
+    expect(loaded).toEqual(['/root/suite1.mmt']);
+    expect(loaded).not.toContain('/root/test.mmt');
+
+    const full = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/root.mmt',
+      suiteRawText: files['/root/root.mmt'],
+      fileLoader: async (p: string) => files[p] ?? '',
+    });
+    const nested = (full.children[0] as any).children[0];
+    expect(nested.kind).toBe('suite');
+    expect(nested.children[0].children).toEqual([
+      {kind: 'test', id: 'suite-node:0.0.0.0', path: '/root/test.mmt', title: 'T0'},
+      {kind: 'test', id: 'suite-node:0.0.0.1', path: '/root/test1.mmt', title: 'T1'},
+    ]);
+  });
+
+  test('maxDepth: 1 on a nested suite root includes its direct leaves', async () => {
+    const files: Record<string, string> = {
+      '/root/suite1.mmt': [
+        'type: suite',
+        'title: suite 1',
+        'items:',
+        '  - test.mmt',
+        '  - ./inner.mmt',
+      ].join('\n'),
+      '/root/test.mmt': ['type: test', 'title: T0'].join('\n'),
+      '/root/inner.mmt': [
+        'type: suite',
+        'title: inner',
+        'items:',
+        '  - deep.mmt',
+      ].join('\n'),
+      '/root/deep.mmt': ['type: test', 'title: Deep'].join('\n'),
+    };
+    const fileLoader = async (p: string) => files[p] ?? '';
+
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/suite1.mmt',
+      suiteRawText: files['/root/suite1.mmt'],
+      fileLoader,
+      maxDepth: 1,
+    });
+
+    expect(tree.children[0]).toMatchObject({
+      kind: 'group',
+      children: [
+        {kind: 'test', path: '/root/test.mmt', title: 'T0'},
+        {kind: 'suite', path: '/root/inner.mmt', title: 'inner', children: []},
+      ],
+    });
+  });
 });

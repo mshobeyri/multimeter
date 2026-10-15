@@ -3,20 +3,41 @@ import {
   buildSuiteTestTreeItems,
   collectSuiteExpandableIds,
   reconcileExpandedSuiteItems,
+  topLevelSuiteEntryIds,
 } from './SuiteTestTree';
 
 describe('buildDefaultExpandedSuiteIds', () => {
-  it('opens root and every top-level item for a single group suite', () => {
+  it('opens root only for a single group suite (entries stay closed until typed)', () => {
     expect(buildDefaultExpandedSuiteIds([
       { label: 'G', entries: [{ id: '1', path: 'a.mmt' }, { id: '2', path: 'b.mmt' }] },
-    ])).toEqual(['suite-root', '1', '2']);
+    ])).toEqual(['suite-root']);
   });
 
-  it('opens root, every group folder, and every top-level item for multi-group suites', () => {
+  it('opens root and every group folder for multi-group suites', () => {
     expect(buildDefaultExpandedSuiteIds([
       { label: 'G1', entries: [{ id: '1', path: 'a.mmt' }] },
       { label: 'G2', entries: [{ id: '2', path: 'b.mmt' }] },
-    ])).toEqual(['suite-root', 'group-1', 'group-2', '1', '2']);
+    ])).toEqual(['suite-root', 'group-1', 'group-2']);
+  });
+});
+
+describe('topLevelSuiteEntryIds', () => {
+  it('returns only entries whose hierarchy kind is suite', () => {
+    const groups = [
+      {
+        label: 'G',
+        entries: [
+          { id: '1', path: 'suite.mmt' },
+          { id: '2', path: 'test.mmt' },
+          { id: '3', path: 'api.mmt' },
+        ],
+      },
+    ];
+    expect(topLevelSuiteEntryIds(groups as any, {
+      '1': { kind: 'suite', id: '1', path: 'suite.mmt', children: [] },
+      '2': { kind: 'test', id: '2', path: 'test.mmt' },
+      '3': { kind: 'api', id: '3', path: 'api.mmt' },
+    } as any)).toEqual(['1']);
   });
 });
 

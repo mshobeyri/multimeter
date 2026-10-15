@@ -128,9 +128,9 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
  * Default expanded ids on suite open:
  * - root
  * - every YAML group folder (when there is more than one)
- * - every top-level suite item (so nested children show once hierarchy arrives)
  *
- * Does not recursively expand nested suite/group nodes deeper than the suite's own items.
+ * Top-level entries are not expanded here: tests/api stay closed; suite entries
+ * are opened once hierarchy resolves (see auto-expand effect).
  */
 export function buildDefaultExpandedSuiteIds(groups: SuiteGroup[]): string[] {
   const ids: string[] = ['suite-root'];
@@ -139,9 +139,22 @@ export function buildDefaultExpandedSuiteIds(groups: SuiteGroup[]): string[] {
       ids.push(`group-${idx + 1}`);
     }
   }
+  return ids;
+}
+
+/** Top-level entry ids whose hierarchy is a nested suite (not test/api/server). */
+export function topLevelSuiteEntryIds(
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): string[] {
+  const ids: string[] = [];
   for (const group of groups) {
     for (const entry of group.entries) {
-      if (entry?.id) {
+      if (!entry?.id) {
+        continue;
+      }
+      const node = hierarchyByEntryId[entry.id];
+      if (node && typeof node === 'object' && node.kind === 'suite') {
         ids.push(entry.id);
       }
     }
@@ -465,7 +478,34 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     });
   }, [treeData.items, defaultExpandedItems, syncExpandedItems]);
 
-  // Default-expanded top-level items never fire onExpand — request their hierarchy here.
+  // Once hierarchy resolves, auto-expand top-level nested suites (not tests/api).
+  useEffect(() => {
+    const suiteIds = topLevelSuiteEntryIds(groups, hierarchyByEntryId).filter(
+      (id) => !!treeData.items[id],
+    );
+    if (suiteIds.length === 0) {
+      return;
+    }
+    setExpandedItems((prev) => {
+      const seen = new Set(prev);
+      const next = [...prev];
+      let changed = false;
+      for (const id of suiteIds) {
+        if (!seen.has(id)) {
+          next.push(id);
+          seen.add(id);
+          changed = true;
+        }
+      }
+      if (!changed) {
+        return prev;
+      }
+      syncExpandedItems(next, treeData.items);
+      return next;
+    });
+  }, [groups, hierarchyByEntryId, syncExpandedItems, treeData.items]);
+
+  // Expanded top-level suites never fire onExpand — request their hierarchy here.
   useEffect(() => {
     if (!onRequestHierarchy) {
       return;

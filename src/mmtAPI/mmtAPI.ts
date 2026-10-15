@@ -461,6 +461,9 @@ export const messageReceived = async (
     case 'getSuiteHierarchy': {
       const filename = typeof message?.filename === 'string' ? message.filename : '';
       const leafPrefix = typeof message?.leafPrefix === 'string' && message.leafPrefix ? message.leafPrefix : undefined;
+      const maxDepth = typeof message?.maxDepth === 'number' && Number.isFinite(message.maxDepth) ?
+          message.maxDepth :
+          undefined;
       if (!filename) {
         webviewPanel.webview.postMessage({
           command: 'suiteHierarchyResult',
@@ -474,7 +477,7 @@ export const messageReceived = async (
         const filePath = path.resolve(path.dirname(document.uri.fsPath), filename);
 
         // Fast path: re-stat nested deps only; skip reads/parsing when unchanged.
-        const cachedTree = await peekFreshCachedHierarchy(filePath, leafPrefix);
+        const cachedTree = await peekFreshCachedHierarchy(filePath, leafPrefix, maxDepth);
         if (cachedTree) {
           webviewPanel.webview.postMessage({
             command: 'suiteHierarchyResult',
@@ -535,6 +538,7 @@ export const messageReceived = async (
         const {tree} = await getCachedSuiteHierarchy({
           suiteFilePath: filePath,
           leafPrefix,
+          maxDepth,
           loadRootText: async () => rawText,
           fileLoader,
         });
