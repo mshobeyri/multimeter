@@ -1,0 +1,599 @@
+
+import {resolveProtocolFromUrl} from '../protocolResolver';
+import {
+  APIData,
+  ApiTestBlock,
+  AuthConfig,
+  ExampleData,
+  GraphQLConfig,
+  GrpcConfig,
+  exampleExpect,
+  exampleId,
+} from '../APIData';
+import {
+  FORMAT_VALUES,
+  Format,
+  FormatSpec,
+  GrpcStream,
+  packFormatSpec,
+  REQUEST_FORMAT_VALUES,
+  RequestFormat,
+  RESPONSE_FORMAT_VALUES,
+  ResponseFormat,
+} from '../CommonData';
+import parseYaml, {packYaml, parseYamlStrict} from '../markupConvertor';
+import {isNonEmptyList, isNonEmptyObject, safeList} from '../safer';
+import type {ExpectMap} from '../TestData';
+import {coerceYamlString} from '../yamlIncompleteScalar';
+
+/** Valid root-level keys for type: api files. */
+const VALID_API_ROOT_KEYS = new Set([
+  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'setenv',
+  // `cache:` is honored by file-backed env getters (and ignored by API send).
+  'cache',
+  'url', 'query', 'protocol', 'format', 'method', 'timeout', 'headers', 'cookies',
+  'body', 'auth', 'graphql', 'grpc', 'examples',
+]);
+
+const VALID_GRPC_STREAM_VALUES = new Set<string>(['server', 'client', 'bidi']);
+
+const VALID_FORMAT_VALUES = new Set<string>(FORMAT_VALUES);
+const VALID_REQUEST_FORMAT_VALUES = new Set<string>(REQUEST_FORMAT_VALUES);
+const VALID_RESPONSE_FORMAT_VALUES = new Set<string>(RESPONSE_FORMAT_VALUES);
+
+function parseFormatSpec(raw: any): FormatSpec | undefined {
+  if (raw == null) {
+    return undefined;
+  }
+  if (typeof raw === 'string') {
+    if (raw === 'auto') {
+      return {request: 'auto', response: 'auto'};
+    }
+    return VALID_FORMAT_VALUES.has(raw) ? raw as Format : 'json';
+  }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const request = VALID_REQUEST_FORMAT_VALUES.has(raw.request) ?
+        raw.request as RequestFormat :
+        undefined;
+    const responseRaw = raw.response ?? raw.respond;
+    const response = VALID_RESPONSE_FORMAT_VALUES.has(responseRaw) ?
+        responseRaw as ResponseFormat :
+        undefined;
+    if (!request && !response) {
+      return undefined;
+    }
+    return packFormatSpec({
+      request: request ?? 'auto',
+      response: response ?? 'auto',
+    });
+  }
+  return undefined;
+}
+
+function parseGraphQLConfig(raw: any): GraphQLConfig | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+  const config: GraphQLConfig = {
+    operation: typeof raw.operation === 'string' ? raw.operation : '',
+  };
+  if (raw.variables && typeof raw.variables === 'object') {
+    config.variables = raw.variables;
+  }
+  if (typeof raw.operationName === 'string') {
+    config.operationName = raw.operationName;
+  }
+  return config;
+}
+
+function parseGrpcConfig(raw: any): GrpcConfig | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+  const config: GrpcConfig = {
+    service: typeof raw.service === 'string' ? raw.service : '',
+    method: typeof raw.method === 'string' ? raw.method : '',
+  };
+  if (typeof raw.proto === 'string') {
+    config.proto = raw.proto;
+  }
+  if (raw.message && typeof raw.message === 'object') {
+    config.message = raw.message;
+  }
+  if (typeof raw.stream === 'string' && VALID_GRPC_STREAM_VALUES.has(raw.stream)) {
+    config.stream = raw.stream as GrpcStream;
+  }
+  return config;
+}
+
+const VALID_AUTH_TYPES = new Set(['bearer', 'basic', 'api-key', 'oauth2']);
+
+function parseExpectMap(raw: any): ExpectMap | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  return raw as ExpectMap;
+}
+
+function parseExample(raw: any): ExampleData | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const example: ExampleData = {};
+  if (typeof raw.id === 'string') {
+    example.id = raw.id;
+  }
+  if (typeof raw.title === 'string') {
+    example.title = raw.title;
+  }
+  if (typeof raw.name === 'string') {
+    example.name = raw.name;
+  }
+  if (typeof raw.description === 'string') {
+    example.description = raw.description;
+  }
+  if (raw.inputs && typeof raw.inputs === 'object') {
+    example.inputs = raw.inputs;
+  }
+  if (raw.outputs && typeof raw.outputs === 'object') {
+    example.outputs = raw.outputs;
+  }
+  const expect = parseExpectMap(raw.expect);
+  if (expect) {
+    example.expect = expect;
+  }
+  return example;
+}
+
+/** Allowed keys on each `examples:` entry (strict parse + pack). */
+const VALID_EXAMPLE_KEYS = new Set([
+  'id', 'title', 'name', 'description', 'inputs', 'outputs', 'expect',
+]);
+
+function assertExampleKeys(examplesRaw: any): void {
+  const list = safeList(examplesRaw);
+  for (let i = 0; i < list.length; i++) {
+    const ex = list[i];
+    if (!ex || typeof ex !== 'object' || Array.isArray(ex)) {
+      continue;
+    }
+    const unknown = Object.keys(ex).filter(k => !VALID_EXAMPLE_KEYS.has(k));
+    if (unknown.length > 0) {
+      throw new Error(
+          `Invalid API file: unknown key(s) in examples #${i + 1}: ${
+              unknown.map(k => `"${k}"`).join(', ')}`);
+    }
+  }
+}
+
+function parseExamples(raw: any): ExampleData[] {
+  return safeList(raw).map(parseExample).filter((ex): ex is ExampleData => !!ex);
+}
+
+function packExample(example: ExampleData): Record<string, any> {
+  const out: Record<string, any> = {};
+  const id = typeof example.id === 'string' && example.id.trim() ? example.id.trim() : undefined;
+  const title = typeof example.title === 'string' && example.title.trim() ? example.title.trim() : undefined;
+  const name = typeof example.name === 'string' && example.name.trim() ? example.name.trim() : undefined;
+  // Prefer id/title. Keep deprecated name only when id is still missing.
+  if (id) {
+    out.id = id;
+  } else if (name) {
+    out.name = name;
+  }
+  if (title) {
+    out.title = title;
+  } else if (id && name && name !== id) {
+    // Unlikely; title already covers display.
+  }
+  if (example.description) {
+    out.description = example.description;
+  }
+  if (isNonEmptyObject(example.inputs)) {
+    out.inputs = example.inputs;
+  }
+  // Prefer expect; fold deprecated outputs into expect and never rewrite outputs.
+  const expect = exampleExpect(example);
+  if (isNonEmptyObject(expect)) {
+    out.expect = expect;
+  }
+  return out;
+}
+
+function assertUniqueExampleIds(examples: ExampleData[]): void {
+  const seen = new Map<string, number>();
+  for (let i = 0; i < examples.length; i++) {
+    const id = exampleId(examples[i]);
+    if (!id) {
+      continue;
+    }
+    const prev = seen.get(id);
+    if (typeof prev === 'number') {
+      throw new Error(
+          `Invalid API file: duplicate example id "${id}" (examples #${prev + 1} and #${i + 1})`);
+    }
+    seen.set(id, i);
+  }
+}
+
+/** Expect map from an example (for eval helpers). Examples are soft-expect only. */
+export function exampleToApiTestBlock(example: ExampleData | undefined | null): ApiTestBlock | undefined {
+  if (!example) {
+    return undefined;
+  }
+  const expect = exampleExpect(example);
+  if (!isNonEmptyObject(expect)) {
+    return undefined;
+  }
+  return { expect };
+}
+
+/** Lightweight title/tags peek for suite hierarchy (no full validation). */
+export function peekApiMetaFromYaml(yamlContent: string): {title?: string; tags?: string[]} {
+  try {
+    const doc = parseYaml(yamlContent) as any;
+    if (!doc || typeof doc !== 'object') {
+      return {};
+    }
+    const title = typeof doc.title === 'string' && doc.title.trim() ? doc.title.trim() : undefined;
+    let tags: string[] | undefined;
+    if (Array.isArray(doc.tags)) {
+      const out = doc.tags.map((t: any) => String(t).trim()).filter(Boolean);
+      tags = out.length ? out : undefined;
+    }
+    return {title, tags};
+  } catch {
+    return {};
+  }
+}
+
+export function validateAuth(raw: any): AuthConfig | undefined {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  if (raw === 'none') {
+    return 'none';
+  }
+  if (typeof raw !== 'object') {
+    throw new Error(`Invalid auth: expected an object or "none", got ${typeof raw}`);
+  }
+  if (!raw.type || !VALID_AUTH_TYPES.has(raw.type)) {
+    throw new Error(`Invalid auth type: "${raw.type || '(none)'}". Must be one of: ${[...VALID_AUTH_TYPES].join(', ')}`);
+  }
+  switch (raw.type) {
+    case 'bearer':
+      if (raw.token == null) {
+        throw new Error('Invalid auth: bearer requires "token" field');
+      }
+      return {type: 'bearer', token: String(raw.token)};
+    case 'basic':
+      if (raw.username == null || raw.password == null) {
+        throw new Error('Invalid auth: basic requires "username" and "password" fields');
+      }
+      return {type: 'basic', username: String(raw.username), password: String(raw.password)};
+    case 'api-key':
+      if (raw.value == null) {
+        throw new Error('Invalid auth: api-key requires "value" field');
+      }
+      if (raw.header == null && raw.query == null) {
+        throw new Error('Invalid auth: api-key requires either "header" or "query" field');
+      }
+      if (raw.header != null && raw.query != null) {
+        throw new Error('Invalid auth: api-key must have exactly one of "header" or "query", not both');
+      }
+      return {
+        type: 'api-key',
+        ...(raw.header != null ? {header: String(raw.header)} : {query: String(raw.query)}),
+        value: String(raw.value),
+      };
+    case 'oauth2':
+      if (raw.grant != null && raw.grant !== 'client_credentials') {
+        throw new Error('Invalid auth: oauth2 requires grant: "client_credentials"');
+      }
+      if (raw.token_url == null) {
+        throw new Error('Invalid auth: oauth2 requires "token_url" field');
+      }
+      if (raw.client_id == null) {
+        throw new Error('Invalid auth: oauth2 requires "client_id" field');
+      }
+      if (raw.client_secret == null) {
+        throw new Error('Invalid auth: oauth2 requires "client_secret" field');
+      }
+      return {
+        type: 'oauth2',
+        grant: 'client_credentials',
+        token_url: String(raw.token_url),
+        client_id: String(raw.client_id),
+        client_secret: String(raw.client_secret),
+        ...(raw.scope ? {scope: String(raw.scope)} : {}),
+      };
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Apply auth configuration to request headers (and optionally query params).
+ * Handles bearer, basic, and api-key. OAuth2 is skipped (requires async
+ * token fetch which the caller must handle separately).
+ * Returns the updated headers and query objects.
+ */
+export function applyAuthToRequest(
+    auth: AuthConfig | undefined,
+    headers: Record<string, string>,
+    query?: Record<string, string>,
+): {headers: Record<string, string>; query?: Record<string, string>} {
+  if (!auth || auth === 'none') {
+    return {headers, query};
+  }
+  const h = {...headers};
+  const q = query ? {...query} : undefined;
+  const hasHeader = (name: string) =>
+      Object.keys(h).some(k => k.toLowerCase() === name.toLowerCase());
+  switch (auth.type) {
+    case 'bearer':
+      if (auth.token && !hasHeader('authorization')) {
+        h['Authorization'] = `Bearer ${auth.token}`;
+      }
+      break;
+    case 'basic':
+      if ((auth.username || auth.password) && !hasHeader('authorization')) {
+        h['Authorization'] = `Basic ${btoa(`${auth.username}:${auth.password}`)}`;
+      }
+      break;
+    case 'api-key':
+      if (auth.value) {
+        if (auth.header && !hasHeader(auth.header)) {
+          h[auth.header] = auth.value;
+        } else if (auth.query && q && !(auth.query in q)) {
+          q[auth.query] = auth.value;
+        }
+      }
+      break;
+    // oauth2 requires async token fetch – handled by the runner's JS generation
+  }
+  return {headers: h, query: q};
+}
+
+export function yamlToAPI(yamlContent: string): APIData {
+  try {
+    const doc = parseYaml(yamlContent) as any;
+    if (!doc || typeof doc !== 'object') {
+      return {} as APIData;
+    }
+    // Directly map YAML fields to APIField
+    let auth: AuthConfig | undefined;
+    try {
+      auth = validateAuth(doc.auth);
+    } catch {
+      // lenient parse – ignore invalid auth
+    }
+    return {
+      type: doc.type || '',
+      title: doc.title || '',
+      description: typeof doc.description === 'string' ? doc.description.trimEnd() : '',
+      tags: doc.tags,
+      import: doc.import,
+      inputs: doc.inputs,
+      outputs: doc.outputs,
+      setenv: doc.setenv,
+      protocol: (coerceYamlString(doc.protocol) || undefined) as APIData['protocol'],
+      format: parseFormatSpec(doc.format),
+      url: coerceYamlString(doc.url),
+      method: coerceYamlString(doc.method) as APIData['method'],
+      timeout: typeof doc.timeout === 'number' ? doc.timeout : undefined,
+      headers: doc.headers || {},
+      body: doc.body ?? undefined,
+      query: doc.query || {},
+      cookies: doc.cookies || {},
+      auth,
+      graphql: parseGraphQLConfig(doc.graphql),
+      grpc: parseGrpcConfig(doc.grpc),
+      examples: parseExamples(doc.examples),
+    };
+  } catch {
+    return {} as APIData;
+  }
+}
+
+/**
+ * Parse an API YAML strictly: throws on YAML parse errors and validates
+ * the resulting structure. Used in execution paths.
+ */
+export function yamlToAPIStrict(yamlContent: string): APIData {
+  const doc = parseYamlStrict(yamlContent) as any;
+  if (!doc || typeof doc !== 'object') {
+    throw new Error('Invalid API file: YAML content is empty or not an object');
+  }
+  if (doc.type !== 'api') {
+    throw new Error(`Invalid API file: expected type "api" but got "${doc.type || '(none)'}"`);
+  }
+  if (!doc.url) {
+    throw new Error('Invalid API file: missing required "url" field');
+  }
+  const unknownKeys = Object.keys(doc).filter(k => !VALID_API_ROOT_KEYS.has(k));
+  if (unknownKeys.length > 0) {
+    throw new Error(`Invalid API file: unknown key(s): ${unknownKeys.map(k => `"${k}"`).join(', ')}`);
+  }
+  if (doc.timeout !== undefined && (typeof doc.timeout !== 'number' || !Number.isFinite(doc.timeout) || doc.timeout < 0)) {
+    throw new Error('Invalid API file: "timeout" must be a non-negative number of milliseconds');
+  }
+  // GraphQL protocol validation
+  const graphql = parseGraphQLConfig(doc.graphql);
+  if (doc.protocol === 'graphql') {
+    if (!graphql || !graphql.operation) {
+      throw new Error('Invalid API file: protocol "graphql" requires "graphql.operation" field');
+    }
+    if (doc.body) {
+      throw new Error('Invalid API file: "body" is not valid for protocol "graphql"; use "graphql.operation" and "graphql.variables" instead');
+    }
+  }
+  if (doc.graphql && doc.protocol && doc.protocol !== 'graphql') {
+    throw new Error(`Invalid API file: "graphql" block is ignored for protocol "${doc.protocol}"`);
+  }
+  // gRPC protocol validation
+  const grpc = parseGrpcConfig(doc.grpc);
+  if (doc.protocol === 'grpc') {
+    if (!grpc || !grpc.service) {
+      throw new Error('Invalid API file: protocol "grpc" requires "grpc.service" field');
+    }
+    if (!grpc.method) {
+      throw new Error('Invalid API file: protocol "grpc" requires "grpc.method" field');
+    }
+    if (doc.body) {
+      throw new Error('Invalid API file: "body" is not valid for protocol "grpc"; use "grpc.message" instead');
+    }
+    if (doc.query && Object.keys(doc.query).length > 0) {
+      throw new Error('Invalid API file: "query" is not valid for protocol "grpc"');
+    }
+    if (doc.cookies && Object.keys(doc.cookies).length > 0) {
+      throw new Error('Invalid API file: "cookies" is not valid for protocol "grpc"');
+    }
+  }
+  if (doc.grpc && doc.protocol && doc.protocol !== 'grpc') {
+    throw new Error(`Invalid API file: "grpc" block is ignored for protocol "${doc.protocol}"`);
+  }
+  const auth = validateAuth(doc.auth);
+  assertExampleKeys(doc.examples);
+  const examples = parseExamples(doc.examples);
+  assertUniqueExampleIds(examples);
+  return {
+    type: doc.type || '',
+    title: doc.title || '',
+    description: typeof doc.description === 'string' ? doc.description.trimEnd() : '',
+    tags: doc.tags,
+    import: doc.import,
+    inputs: doc.inputs,
+    outputs: doc.outputs,
+    setenv: doc.setenv,
+    protocol: doc.protocol || undefined,
+    format: parseFormatSpec(doc.format),
+    url: doc.url || '',
+    method: doc.method || '',
+    timeout: doc.timeout,
+    headers: doc.headers || {},
+    body: doc.body ?? undefined,
+    query: doc.query || {},
+    cookies: doc.cookies || {},
+    auth,
+    graphql,
+    grpc,
+    examples,
+  };
+}
+
+function originalDeclaresKey(key: string, originalYaml?: string): boolean {
+  if (!originalYaml) {
+    return false;
+  }
+  try {
+    const doc = parseYamlStrict(originalYaml) as any;
+    return !!doc && typeof doc === 'object' && Object.prototype.hasOwnProperty.call(doc, key);
+  } catch {
+    return false;
+  }
+}
+
+export function apiToYaml(api: APIData, originalYaml?: string): string {
+  // Directly map APIField fields to YAML
+  const yamlObj: Record<string, any> = {
+    type: api.type,
+  };
+  if (api.title) {
+    yamlObj.title = api.title;
+  };
+  if (api.description) {
+    yamlObj.description = api.description;
+  };
+  if (isNonEmptyList(api.tags)) {
+    yamlObj.tags = api.tags;
+  };
+  if (isNonEmptyObject(api.import)) {
+    yamlObj.import = api.import;
+  };
+  if (isNonEmptyObject(api.inputs)) {
+    yamlObj.inputs = api.inputs;
+  };
+  if (isNonEmptyObject(api.outputs)) {
+    yamlObj.outputs = api.outputs;
+  };
+  if (isNonEmptyObject(api.setenv)) {
+    yamlObj.setenv = api.setenv;
+  };
+  if (api.url) {
+    yamlObj.url = api.url;
+  };
+  if (isNonEmptyObject(api.query)) {
+    yamlObj.query = api.query;
+  };
+  // A protocol equal to the URL-inferred default is only written when the
+  // original file already declared it.
+  if (api.protocol &&
+      (api.protocol !== resolveProtocolFromUrl(api.url) ||
+       originalDeclaresKey('protocol', originalYaml))) {
+    yamlObj.protocol = api.protocol;
+  };
+  if (api.method) {
+    yamlObj.method = api.method;
+  };
+  if (api.timeout !== undefined) {
+    yamlObj.timeout = api.timeout;
+  };
+  if (api.format) {
+    yamlObj.format = packFormatSpec(api.format);
+  };
+  if (api.auth) {
+    yamlObj.auth = api.auth;
+  };
+  if (isNonEmptyObject(api.headers)) {
+    yamlObj.headers = api.headers;
+  };
+  if (isNonEmptyObject(api.cookies)) {
+    yamlObj.cookies = api.cookies;
+  };
+  // An empty body is only written back when the original file declared it.
+  const bodyIsEmpty = api.body === '' || api.body === null;
+  if (api.body !== undefined && (!bodyIsEmpty || originalDeclaresKey('body', originalYaml))) {
+    yamlObj.body = api.body ?? '';
+  };
+  if (api.graphql) {
+    const gqlObj: Record<string, any> = {};
+    if (api.graphql.operation) {
+      gqlObj.operation = api.graphql.operation;
+    }
+    if (api.graphql.variables && Object.keys(api.graphql.variables).length > 0) {
+      gqlObj.variables = api.graphql.variables;
+    }
+    if (api.graphql.operationName) {
+      gqlObj.operationName = api.graphql.operationName;
+    }
+    if (Object.keys(gqlObj).length > 0) {
+      yamlObj.graphql = gqlObj;
+    }
+  };
+  if (api.grpc) {
+    const grpcObj: Record<string, any> = {};
+    if (api.grpc.proto) {
+      grpcObj.proto = api.grpc.proto;
+    }
+    if (api.grpc.service) {
+      grpcObj.service = api.grpc.service;
+    }
+    if (api.grpc.method) {
+      grpcObj.method = api.grpc.method;
+    }
+    if (api.grpc.stream) {
+      grpcObj.stream = api.grpc.stream;
+    }
+    if (api.grpc.message && Object.keys(api.grpc.message).length > 0) {
+      grpcObj.message = api.grpc.message;
+    }
+    if (Object.keys(grpcObj).length > 0) {
+      yamlObj.grpc = grpcObj;
+    }
+  };
+  if (isNonEmptyList(api.examples)) {
+    yamlObj.examples = api.examples.map(packExample).filter(ex => Object.keys(ex).length > 0);
+  };
+  return packYaml(yamlObj, originalYaml);
+}

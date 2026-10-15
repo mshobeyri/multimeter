@@ -11,7 +11,7 @@ function escapeForTemplateLiteral(s) {
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const srcHtml = path.join(repoRoot, 'res', 'doc-template.html');
-const outDir = path.join(repoRoot, 'core', 'src');
+const outDir = path.join(repoRoot, 'core', 'src', 'doc');
 const outFile = path.join(outDir, 'docTemplate.ts');
 
 try {

@@ -1,0 +1,570 @@
+import {EXPECT_OPERATOR_SAMPLES} from '../expectOperatorSamples';
+import {detectMmtDocType, formatMmtYaml} from '../mmtFormat';
+import {formatMmtYamlAst, reorderMapPairs} from '../mmtFormatAst';
+import {opsList} from '../TestData';
+import YAML, {isMap} from 'yaml';
+import fs from 'fs';
+import path from 'path';
+
+const apiYaml = `type: api
+title: Echo
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  message: hello
+`;
+
+function expectAllComments(formatted: string, comments: string[]) {
+  for (const comment of comments) {
+    expect(formatted).toContain(comment);
+  }
+}
+
+describe('mmtFormat', () => {
+  it('detects types from content when no path is given', () => {
+    expect(detectMmtDocType('type: api\nurl: x')).toBe('api');
+    expect(detectMmtDocType('type: test\nsteps: []')).toBe('test');
+    expect(detectMmtDocType('type: env\nvariables: {}')).toBe('env');
+    expect(detectMmtDocType('type: suite\nitems: []')).toBe('suite');
+    expect(detectMmtDocType('type: doc\ntitle: D')).toBe('doc');
+    expect(detectMmtDocType('type: server\nport: 1')).toBe('server');
+    expect(detectMmtDocType('type: loadtest\ntest: a.mmt')).toBe('loadtest');
+    expect(detectMmtDocType('type: judge\nengine: ollama')).toBe('judge');
+    expect(detectMmtDocType('type: report\nname: r')).toBe('report');
+    expect(detectMmtDocType('not a document')).toBeNull();
+  });
+
+  it('formats report yaml and rejects unknown or csv types', () => {
+    const report = [
+      'type: report',
+      'name: smoke',
+      'checks: []',
+      '',
+    ].join('\n');
+    const formatted = formatMmtYaml(report);
+    expect(formatted.docType).toBe('report');
+    expect(formatted.formatted).toContain('type: report');
+    expect(() => formatMmtYaml('hello')).toThrow(/Unknown Multimeter document type/);
+    expect(() => formatMmtYaml('a,b\n1,2', 'data.csv')).toThrow(/Formatting is not supported/);
+    expect(() => formatMmtYaml('note: "type: report"\nname: x')).toThrow(/not a valid report/);
+  });
+
+  it('formats api yaml', () => {
+    const result = formatMmtYaml(apiYaml, 'echo.mmt');
+    expect(result.docType).toBe('api');
+    expect(result.formatted).toContain('type: api');
+    expect(result.formatted).toContain('title: Echo');
+  });
+
+  it('reports unchanged content when already tidy', () => {
+    const first = formatMmtYaml(apiYaml, 'echo.mmt');
+    const second = formatMmtYaml(first.formatted, 'echo.mmt');
+    expect(second.changed).toBe(false);
+  });
+
+  it('preserves # comments when formatting', () => {
+    const withComments = [
+      '# Top-level note',
+      'type: api',
+      'title: Echo  # inline title comment',
+      '# Before url',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'format: json',
+      'body:',
+      '  # body field',
+      '  message: hello',
+      '',
+    ].join('\n');
+
+    const result = formatMmtYaml(withComments, 'echo.mmt');
+    expectAllComments(result.formatted, [
+      '# Top-level note',
+      '# inline title comment',
+      '# Before url',
+      '# body field',
+    ]);
+    expect(result.formatted).toContain('message: hello');
+  });
+
+  it('reorders root keys while keeping comments', () => {
+    const shuffled = [
+      'url: https://example.com',
+      '# keep me',
+      'type: api',
+      'method: get',
+      'title: Shuffled',
+      '',
+    ].join('\n');
+    const result = formatMmtYaml(shuffled, 'a.mmt');
+    const typeIdx = result.formatted.indexOf('type: api');
+    const titleIdx = result.formatted.indexOf('title: Shuffled');
+    const urlIdx = result.formatted.indexOf('url:');
+    expect(typeIdx).toBeGreaterThanOrEqual(0);
+    expect(titleIdx).toBeGreaterThan(typeIdx);
+    expect(urlIdx).toBeGreaterThan(titleIdx);
+    expect(result.formatted).toContain('# keep me');
+  });
+
+  it('keeps unquoted {{i|e|r|c:…}} tokens as scalars', () => {
+    const yaml = [
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'headers:',
+      '  X-User: {{i:name}}',
+      '  X-Note: hello {{e:env}}',
+      '  X-Literal: "{{r:uuid}}"',
+      'body:',
+      '  n: {{r:int(10,20)}}',
+      '  city: {{c:city}}',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'echo.mmt');
+    expect(formatted).toContain('X-User: {{i:name}}');
+    expect(formatted).toContain('X-Note: hello {{e:env}}');
+    expect(formatted).toContain('X-Literal: "{{r:uuid}}"');
+    expect(formatted).toContain('n: {{r:int(10,20)}}');
+    expect(formatted).toContain('city: {{c:city}}');
+    expect(formatted).not.toContain('{ ? {');
+    const again = formatMmtYaml(formatted, 'echo.mmt');
+    expect(again.formatted).toBe(formatted);
+  });
+
+  it('reorders if/else step keys and preserves branch comments', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - else:',
+      '      - print: fail',
+      '    steps:',
+      '      - print: ok',
+      '    # condition comment',
+      '    if: status == 200',
+      '',
+    ].join('\n');
+    const formatted = formatMmtYamlAst(yaml, 'test');
+    expect(formatted).toMatch(/if: status == 200[\s\S]*steps:[\s\S]*print: ok[\s\S]*else:[\s\S]*print: fail/);
+    expect(formatted).toContain('# condition comment');
+  });
+});
+
+describe('mmtFormat comment preservation', () => {
+  it('keeps a file-leading comment block', () => {
+    const yaml = [
+      '# Owner: platform team',
+      '# Last reviewed: 2026-07-23',
+      '# Intent: smoke login API',
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: get',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'echo.mmt');
+    expectAllComments(formatted, [
+      '# Owner: platform team',
+      '# Last reviewed: 2026-07-23',
+      '# Intent: smoke login API',
+    ]);
+    expect(formatted.indexOf('# Owner:')).toBeLessThan(formatted.indexOf('type: api'));
+  });
+
+  it('keeps a trailing end-of-file comment', () => {
+    const yaml = [
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: get',
+      '# end of file note',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'echo.mmt');
+    expect(formatted).toContain('# end of file note');
+    expect(formatted.indexOf('method: get'))
+        .toBeLessThan(formatted.indexOf('# end of file note'));
+  });
+
+  it('keeps inline, before-key, and blank-line-separated comments', () => {
+    const yaml = [
+      'type: api',
+      'title: Echo # product name',
+      '',
+      '# --- request ---',
+      'method: post',
+      'url: https://test.mmt.dev/echo',
+      '',
+      '',
+      '# blank line above is intentional',
+      'format: json',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'echo.mmt');
+    expectAllComments(formatted, [
+      '# product name',
+      '# --- request ---',
+      '# blank line above is intentional',
+    ]);
+  });
+
+  it('preserves nested comments in body, headers, and examples', () => {
+    const yaml = [
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'format: json',
+      'headers:',
+      '  # auth header',
+      '  Authorization: Bearer token',
+      '  # accept json',
+      '  Accept: application/json',
+      'body:',
+      '  # payload root',
+      '  user:',
+      '    # nested field',
+      '    name: ada',
+      'examples:',
+      '  # first example',
+      '  - name: happy',
+      '    # example inputs',
+      '    inputs:',
+      '      name: ada',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'echo.mmt');
+    expectAllComments(formatted, [
+      '# auth header',
+      '# accept json',
+      '# payload root',
+      '# nested field',
+      '# first example',
+      '# example inputs',
+    ]);
+    expect(formatted).toContain('Authorization: Bearer token');
+    expect(formatted).toContain('name: ada');
+  });
+
+  it('reorders API example keys and drops example require', () => {
+    const yaml = [
+      'type: api',
+      'url: https://test.mmt.dev/echo',
+      'examples:',
+      '  - require:',
+      '      status: 200',
+      '    inputs:',
+      '      n: 1',
+      '    title: Happy',
+      '    id: happy',
+      '    expect:',
+      '      status: 200',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'echo.mmt');
+    const ex = formatted.indexOf('examples:');
+    const slice = formatted.slice(ex);
+    const idAt = slice.indexOf('id:');
+    const titleAt = slice.indexOf('title:');
+    const inputsAt = slice.indexOf('inputs:');
+    const expectAt = slice.indexOf('expect:');
+    expect(idAt).toBeGreaterThan(-1);
+    expect(titleAt).toBeGreaterThan(idAt);
+    expect(inputsAt).toBeGreaterThan(titleAt);
+    expect(expectAt).toBeGreaterThan(inputsAt);
+    expect(slice).not.toContain('require:');
+  });
+
+  it('preserves comments at multiple depths in test steps and else', () => {
+    const yaml = [
+      '# test intent: branch coverage',
+      'type: test',
+      'import:',
+      '  # imported api',
+      '  echo: ./echo.mmt',
+      'inputs:',
+      '  # default message',
+      '  message: hello',
+      'steps:',
+      '  # call the echo API',
+      '  - call: echo',
+      '    id: result',
+      '    # pass input through',
+      '    inputs:',
+      '      message: i:message',
+      '  # branch on status',
+      '  - if: ${result.status_code} == 200',
+      '    steps:',
+      '      # success path',
+      '      - print: ok',
+      '    else:',
+      '      # failure path',
+      '      - print: fail',
+      '# footer',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'flow.mmt');
+    expectAllComments(formatted, [
+      '# test intent: branch coverage',
+      '# imported api',
+      '# default message',
+      '# call the echo API',
+      '# pass input through',
+      '# branch on status',
+      '# success path',
+      '# failure path',
+      '# footer',
+    ]);
+  });
+
+  it('preserves comments with different intents (TODO/FIXME/NOTE/disabled)', () => {
+    const yaml = [
+      '# NOTE: staging only',
+      'type: env',
+      'variables:',
+      '  # TODO: rotate this secret',
+      '  api_token:',
+      '    local: secret',
+      '  # FIXME: wrong default host',
+      '  api_url:',
+      '    local: https://example.com',
+      '  # disabled: keep for rollback',
+      '  # old_url:',
+      '  #   local: https://legacy.example.com',
+      'presets:',
+      '  # intent: quick local switch',
+      '  runner:',
+      '    local:',
+      '      api_url: local',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'env.mmt');
+    expectAllComments(formatted, [
+      '# NOTE: staging only',
+      '# TODO: rotate this secret',
+      '# FIXME: wrong default host',
+      '# disabled: keep for rollback',
+      '# old_url:',
+      '#   local: https://legacy.example.com',
+      '# intent: quick local switch',
+    ]);
+  });
+
+  it('preserves suite and server nested comments after reorder', () => {
+    const suiteYaml = [
+      'items:',
+      '  # run last',
+      '  - ./z_test.mmt',
+      '  # run first',
+      '  - ./a_test.mmt',
+      'type: suite',
+      '# suite purpose',
+      'title: Smoke',
+      '',
+    ].join('\n');
+    const suite = formatMmtYaml(suiteYaml, 'suite.mmt');
+    expect(suite.formatted.indexOf('type: suite'))
+        .toBeLessThan(suite.formatted.indexOf('title: Smoke'));
+    expectAllComments(suite.formatted, [
+      '# suite purpose',
+      '# run last',
+      '# run first',
+    ]);
+
+    const serverYaml = [
+      'port: 8080',
+      'type: server',
+      'endpoints:',
+      '  # health',
+      '  - path: /health',
+      '    # always ok',
+      '    status: 200',
+      '    body:',
+      '      # nested body comment',
+      '      ok: true',
+      '',
+    ].join('\n');
+    const server = formatMmtYaml(serverYaml, 'mock.mmt');
+    expect(server.formatted.indexOf('type: server'))
+        .toBeLessThan(server.formatted.indexOf('port:'));
+    expectAllComments(server.formatted, [
+      '# health',
+      '# always ok',
+      '# nested body comment',
+    ]);
+  });
+
+  it('is idempotent when comments are present', () => {
+    const yaml = [
+      '# begin',
+      'type: api',
+      'title: Echo # inline',
+      '# before url',
+      'url: https://test.mmt.dev/echo',
+      'method: get',
+      'body:',
+      '  # nested',
+      '  message: hi',
+      '# end',
+      '',
+    ].join('\n');
+    const first = formatMmtYaml(yaml, 'echo.mmt');
+    const second = formatMmtYaml(first.formatted, 'echo.mmt');
+    expect(second.changed).toBe(false);
+    expectAllComments(second.formatted, [
+      '# begin',
+      '# inline',
+      '# before url',
+      '# nested',
+      '# end',
+    ]);
+  });
+
+  it('keeps comments when reordering shuffled nested maps', () => {
+    const yaml = [
+      'type: api',
+      'grpc:',
+      '  message:',
+      '    # request name',
+      '    name: world',
+      '  method: SayHello',
+      '  # service first ideally',
+      '  service: helloworld.Greeter',
+      'url: localhost:50051',
+      'protocol: grpc',
+      '',
+    ].join('\n');
+    const {formatted} = formatMmtYaml(yaml, 'grpc.mmt');
+    expect(formatted).toMatch(
+        /grpc:[\s\S]*service: helloworld\.Greeter[\s\S]*method: SayHello[\s\S]*message:/);
+    expectAllComments(formatted, [
+      '# request name',
+      '# service first ideally',
+    ]);
+  });
+
+  it('formats judge yaml and preserves comments', () => {
+    const yaml = [
+      '# local ollama judge',
+      'model: qwen2.5:3b',
+      'type: judge',
+      'engine: ollama',
+      'title: Local quality judge',
+      'options:',
+      '  timeout: 30s',
+      '  # keep cool',
+      '  temperature: 0',
+      'url: e:ollama_url',
+      'defaults:',
+      '  criteria:',
+      '    - Be concise',
+      '  checks:',
+      '    semanticSimilarity: 0.8',
+      '',
+    ].join('\n');
+    const {formatted, docType} = formatMmtYaml(yaml, 'local.mmt');
+    expect(docType).toBe('judge');
+    expect(formatted.indexOf('type: judge'))
+        .toBeLessThan(formatted.indexOf('title:'));
+    expect(formatted.indexOf('title:'))
+        .toBeLessThan(formatted.indexOf('engine:'));
+    expect(formatted.indexOf('engine:'))
+        .toBeLessThan(formatted.indexOf('model:'));
+    expect(formatted.indexOf('model:'))
+        .toBeLessThan(formatted.indexOf('url:'));
+    expect(formatted.indexOf('url:'))
+        .toBeLessThan(formatted.indexOf('options:'));
+    expect(formatted.indexOf('temperature:'))
+        .toBeLessThan(formatted.indexOf('timeout:'));
+    expect(formatted.indexOf('checks:'))
+        .toBeLessThan(formatted.indexOf('criteria:'));
+    expectAllComments(formatted, [
+      '# local ollama judge',
+      '# keep cool',
+    ]);
+    const again = formatMmtYaml(formatted, 'local.mmt');
+    expect(again.formatted).toBe(formatted);
+  });
+
+  it('keeps AI golden smoke examples format-idempotent', () => {
+    const root = path.resolve(__dirname, '../../..');
+    for (const rel of [
+      'examples/ai/golden_smoke/apis/echo.mmt',
+      'examples/ai/golden_smoke/tests/echo-smoke.mmt',
+    ]) {
+      const content = fs.readFileSync(path.join(root, rel), 'utf8');
+      const {formatted} = formatMmtYaml(content, rel);
+      expect(formatted).toBe(content);
+    }
+  });
+
+  describe('does not quote each expect operator scalar on format', () => {
+    const opSet = new Set<string>(opsList);
+    it.each(EXPECT_OPERATOR_SAMPLES)(
+        '$op → $value',
+        ({op, value}) => {
+          const yaml = [
+            'type: test',
+            'steps:',
+            '  - call: sample',
+            '    expect:',
+            `      field: ${value}`,
+            ...(opSet.has(op) ? [
+              '  - check:',
+              '      actual: x',
+              `      operator: ${op}`,
+              '      expected: y',
+            ] : []),
+          ].join('\n');
+          const {formatted} = formatMmtYaml(yaml, 'ops.mmt');
+          expect(formatted).toContain(`field: ${value}`);
+          expect(formatted).not.toContain(`field: "${value}"`);
+          if (opSet.has(op)) {
+            expect(formatted).toContain(`operator: ${op}`);
+            expect(formatted).not.toContain(`operator: "${op}"`);
+          }
+        },
+    );
+
+    it('is idempotent for a multi-operator expect block', () => {
+      const yaml = [
+        'type: test',
+        'steps:',
+        '  - call: sample',
+        '    expect:',
+        ...EXPECT_OPERATOR_SAMPLES.map(({value}, i) => `      k${i}: ${value}`),
+        '      scores:',
+        '        - > 0',
+        '        - >= 2026',
+        '        - != null',
+      ].join('\n');
+      const {formatted} = formatMmtYaml(yaml, 'ops.mmt');
+      const again = formatMmtYaml(formatted, 'ops.mmt');
+      expect(again.formatted).toBe(formatted);
+    });
+  });
+
+  it('keeps current_test expect operators unquoted after format', () => {
+    const root = path.resolve(__dirname, '../../..');
+    const rel = 'examples/intermediate/12_dynamic_values/current_test.mmt';
+    const content = fs.readFileSync(path.join(root, rel), 'utf8');
+    expect(content).toContain('year: >= 2026');
+    const {formatted} = formatMmtYaml(content, rel);
+    expect(formatted).toContain('year: >= 2026');
+    expect(formatted).not.toContain('year: ">= 2026"');
+    expect(formatted).toContain('created_local: != null');
+    expect(formatted).not.toContain('created_local: "!= null"');
+    expect(formatted).toContain('=5s~');
+    expect(formatted).toContain('!5s~');
+  });
+});
+
+describe('reorderMapPairs', () => {
+  it('orders known keys first and keeps the rest', () => {
+    const doc = YAML.parseDocument('c: 1\na: 2\nb: 3\nd: 4');
+    expect(isMap(doc.contents)).toBe(true);
+    if (!isMap(doc.contents)) {
+      return;
+    }
+    reorderMapPairs(doc.contents, ['a', 'b', 'c']);
+    const keys = doc.contents.items.map((p: any) => String(p.key.value));
+    expect(keys).toEqual(['a', 'b', 'c', 'd']);
+  });
+});

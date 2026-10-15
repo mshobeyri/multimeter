@@ -1,0 +1,223 @@
+import {envToYaml, patchEnvYaml, yamlToEnv} from '../envParsePack';
+import {formatMmtYaml} from '../mmtFormat';
+
+describe('envParsePack', () => {
+  it('serializes env files in canonical root order', () => {
+    const yaml = envToYaml({
+      type: 'env',
+      certificates: {server_ca: './certs/ca.crt'},
+      presets: {runner: {dev: {api_url: 'local'}}},
+      variables: {api_url: {local: 'https://example.com'}},
+      import: {shared: './shared.json'},
+    });
+    expect(yaml.indexOf('import:')).toBeLessThan(yaml.indexOf('variables:'));
+    expect(yaml.indexOf('variables:')).toBeLessThan(yaml.indexOf('presets:'));
+    expect(yaml.indexOf('presets:')).toBeLessThan(yaml.indexOf('certificates:'));
+  });
+
+  it('reorders shuffled env yaml through formatMmtYaml', () => {
+    const input = `presets:
+  runner:
+    dev:
+      api_url: local
+certificates:
+  server_ca: "./certs/ca.crt"
+type: env
+variables:
+  api_url:
+    local: "https://test.mmt.dev"
+setting:
+  http:
+    timeout: 30000
+    version: auto
+import:
+  shared: ./shared.json
+`;
+    const result = formatMmtYaml(input, 'multimeter.mmt');
+    expect(result.docType).toBe('env');
+    expect(result.changed).toBe(true);
+    expect(result.formatted.indexOf('type: env')).toBe(0);
+    expect(result.formatted.indexOf('import:')).toBeLessThan(result.formatted.indexOf('variables:'));
+    expect(result.formatted.indexOf('variables:')).toBeLessThan(result.formatted.indexOf('presets:'));
+    expect(result.formatted.indexOf('presets:')).toBeLessThan(result.formatted.indexOf('setting:'));
+    expect(result.formatted.indexOf('setting:')).toBeLessThan(result.formatted.indexOf('certificates:'));
+  });
+
+  it('canonicalizes client certificate field order', () => {
+    const env = yamlToEnv(`
+type: env
+variables:
+  api_url:
+    local: https://example.com
+certificates:
+  clients:
+    - passphrase_env: CLIENT_CERT_PASS
+      cert: ./certs/client.crt
+      host: "*.example.com"
+      key: ./certs/client.key
+      name: Example API
+`);
+    const yaml = envToYaml(env);
+    expect(yaml.indexOf('name:')).toBeLessThan(yaml.indexOf('host:'));
+    expect(yaml.indexOf('host:')).toBeLessThan(yaml.indexOf('cert:'));
+    expect(yaml.indexOf('cert:')).toBeLessThan(yaml.indexOf('key:'));
+    expect(yaml.indexOf('key:')).toBeLessThan(yaml.indexOf('passphrase_env:'));
+  });
+
+  it('canonicalizes PKCS#12 client certificate field order', () => {
+    const env = yamlToEnv(`
+type: env
+variables:
+  api_url:
+    local: https://example.com
+certificates:
+  clients:
+    - passphrase_plain: mmt
+      pfx: ./certs/client.p12
+      host: localhost:29444
+      name: mock-client-p12
+`);
+    const yaml = envToYaml(env);
+    expect(yaml.indexOf('name:')).toBeLessThan(yaml.indexOf('host:'));
+    expect(yaml.indexOf('host:')).toBeLessThan(yaml.indexOf('pfx:'));
+    expect(yaml.indexOf('pfx:')).toBeLessThan(yaml.indexOf('passphrase_plain:'));
+    expect(yaml).toContain('pfx: ./certs/client.p12');
+    expect(yaml).not.toContain('cert:');
+    expect(yaml).not.toContain('key:');
+  });
+
+  it('is idempotent after formatting', () => {
+    const input = `type: env
+variables:
+  api_url:
+    local: "https://test.mmt.dev"
+presets:
+  runner:
+    dev:
+      api_url: local
+`;
+    const first = formatMmtYaml(input, 'multimeter.mmt');
+    const second = formatMmtYaml(first.formatted, 'multimeter.mmt');
+    expect(second.changed).toBe(false);
+  });
+
+  it('preserves comments outside a patched env section', () => {
+    const input = `# project env
+type: env
+variables:
+  api_url: "https://test.mmt.dev"  # default url
+certificates:
+  server_ca: "./certs/ca.crt"  # company CA
+`;
+    const patched = patchEnvYaml(input, {
+      certificates: {
+        server_ca: './certs/ca.crt',
+        clients: [{
+          name: 'mock-client-p12',
+          host: 'localhost:29444',
+          pfx: './certs/client.p12',
+          passphrase_plain: 'mmt',
+        }],
+      },
+    });
+    expect(patched).toContain('# project env');
+    expect(patched).toContain('# default url');
+    expect(patched).toContain('pfx: ./certs/client.p12');
+    expect(patched).toContain('api_url: "https://test.mmt.dev"');
+  });
+
+  it('keeps comments stuck to keys inside a patched section', () => {
+    const input = `type: env
+variables:
+  # default url
+  api_url: "https://test.mmt.dev"  # inline url
+certificates:
+  # company CA
+  server_ca: "./certs/ca.crt"  # inline ca
+`;
+    const patched = patchEnvYaml(input, {
+      certificates: {
+        server_ca: './certs/ca-new.crt',
+        clients: [{
+          name: 'mock-client-p12',
+          host: 'localhost:29444',
+          pfx: './certs/client.p12',
+          passphrase_plain: 'mmt',
+        }],
+      },
+    });
+    expect(patched).toContain('# default url');
+    expect(patched).toContain('# inline url');
+    expect(patched).toMatch(/# company CA\n\s*server_ca:/);
+    expect(patched).toMatch(/server_ca:.*# inline ca/);
+    expect(patched).toContain('ca-new.crt');
+    expect(patched).toContain('pfx: ./certs/client.p12');
+  });
+
+  it('rejects non-env documents and keeps unknown extra keys', () => {
+    expect(() => yamlToEnv('type: api\nurl: https://x')).toThrow(/Not an environment document/);
+    const env = yamlToEnv('type: env\nfoo: bar\nvariables:\n  a:\n    default: 1\n');
+    expect(env.extra).toEqual({foo: 'bar'});
+    expect(envToYaml({type: 'env'} as any)).toContain('type: env');
+  });
+
+  it('round-trips numeric and boolean variable fields without quoting', () => {
+    const input = `type: env
+variables:
+  port:
+    local: 8080
+    secure: true
+`;
+    const patched = patchEnvYaml(input, {
+      variables: {
+        port: {local: 8080, secure: true},
+        name: {local: 'api'},
+      },
+    });
+    expect(patched).toMatch(/local: 8080/);
+    expect(patched).toMatch(/secure: true/);
+    expect(patched).not.toMatch(/local: ["']8080["']/);
+    const parsed = yamlToEnv(patched);
+    expect(parsed.variables?.port).toEqual({local: 8080, secure: true});
+  });
+
+  it('does not leave a dangling flow-map brace for empty variable objects', () => {
+    const input = `type: env
+variables:
+  api_url:
+    local: https://example.com
+`;
+    const patched = patchEnvYaml(input, {
+      variables: {
+        api_url: {local: 'https://example.com'},
+        draft: {},
+        tags: [],
+      },
+    });
+    expect(patched).toContain('api_url:');
+    expect(patched).toContain('draft: {}');
+    expect(patched).toMatch(/tags:\s*\[\]/);
+    expect(patched.trim().endsWith('{')).toBe(false);
+    expect(() => yamlToEnv(patched)).not.toThrow();
+  });
+
+  it('drops nested object and list choice values when parsing', () => {
+    const input = `type: env
+variables:
+  config:
+    local:
+      host: localhost
+      port: 8080
+    plain: https://x
+  flags:
+    - true
+    - {debug: true}
+    - 2
+`;
+    const env = yamlToEnv(input);
+    expect(env.variables?.config).toEqual({
+      plain: 'https://x',
+    });
+    expect(env.variables?.flags).toEqual([true, 2]);
+  });
+});

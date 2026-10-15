@@ -1,0 +1,439 @@
+import {CheckLogMode, LogLevel} from '../CommonData';
+import type {BinaryFileLoader, FileLoader} from '../JSerFileLoader';
+import {GrpcRequest, GrpcResponse} from '../NetworkData';
+import {applyValueAccessor} from '../variableReplacer';
+// Import your send function from the network core
+import {send, setRunnerNetworkConfig, getRunnerNetworkConfig} from '../networkCoreNode';
+import {extractOutputs} from '../outputExtractor';
+import * as Random from '../Random';
+import * as Current from '../Current';
+import * as mmtHelper from '../testHelper';
+import type {ServerRunner} from '../testHelper';
+import {isAssertionFailedError, isTestAbortError} from '../testHelper';
+import type {RunPauseGate} from '../runPause';
+import {logRunFinished, RunKind} from '../runLog';
+import {setJudgeHttpPost_} from '../judgeEngine';
+import {formatHttpTraceRequest, formatHttpTraceResponse} from '../httpTraceLog';
+import '../judgeEngineOllama';
+
+export type {RunKind};
+export {logRunFinished};
+
+export interface RunJSCodeContext {
+  runId: string;
+  js: string;
+  title: string;
+  logger: (level: LogLevel, message: string) => void;
+  fileLoader?: FileLoader;
+  /** Load a relative path as raw bytes (for format: binary request bodies). */
+  binaryFileLoader?: BinaryFileLoader;
+  reporter?: (message: any) => void;
+  id?: string;
+  abortSignal?: AbortSignal;
+  /** Cooperative pause; awaited inside checkAbort_ between steps. */
+  pauseGate?: RunPauseGate;
+  /** When true, wrap send_ with trace-level request/response logging (used by test runs). */
+  traceSend?: boolean;
+  /** Optional server runner for starting mock servers in tests. */
+  serverRunner?: ServerRunner;
+  /** Base directory for resolving relative paths (e.g. gRPC proto files). */
+  basePath?: string;
+  /** True when this JS execution can safely be delegated to an external worker. */
+  workerEligible?: boolean;
+  /** Controls check/assert console logging without changing report events. */
+  checkLogMode?: CheckLogMode;
+  /** Prefix for the finished/failed log line (Test / API / Suite). */
+  runKind?: RunKind;
+  /**
+   * Process env object for this run (`EnvStore.values`). Bound as
+   * `envVariables` unless the script already declares that name.
+   */
+  envValues?: Record<string, any>;
+  /**
+   * API Tester Send snapshot: when set, the API send_ wrapper uses this
+   * request instead of reminting r:/c: from YAML (telescope WYSIWYG).
+   */
+  requestOverride?: Record<string, unknown>|null;
+}
+
+const REPORTER_KEY = '__mmtReportStep';
+const RUN_ID_KEY = '__mmtRunId';
+const ID_KEY = '__mmtId';
+const compiledFunctionCache = new Map<string, Function>();
+const MAX_COMPILED_FUNCTION_CACHE_SIZE = 64;
+
+// Runtime helper to get random value by token name
+function mmtRandom(name: string): any {
+  const value = Random.randomValueForToken(name);
+  if (value === undefined) {
+    return `r:${name}`;  // Return original token if not found
+  }
+  return value;
+}
+
+// Runtime helper to get current value by token name
+function mmtCurrent(name: string): any {
+  const value = Current.currentValueForToken(name);
+  if (value === undefined) {
+    return `c:${name}`;  // Return original token if not found
+  }
+  return value;
+}
+
+function mmtAccess(value: any, accessor: string): any {
+  return applyValueAccessor(value, accessor);
+}
+
+const applyReporterGlobals = (
+    reporter: ((message: any) => void)|undefined, runId: string,
+    id?: string): (() => void) => {
+  const scope = globalThis as Record<string, any>;
+  // Set globals for fallback paths that read them when no explicit
+  // closure values are available.  Under parallel execution multiple
+  // tests overwrite these concurrently, so callers should prefer the
+  // closure-captured values (passed via Function parameters).
+  // We no longer attempt save/restore because the interleaved ordering
+  // of parallel tests makes the restore unreliable and can leave stale
+  // values behind.
+  if (reporter) {
+    scope[REPORTER_KEY] = reporter;
+  }
+  scope[RUN_ID_KEY] = runId;
+  if (typeof id === 'string' && id) {
+    scope[ID_KEY] = id;
+  }
+  return () => {
+    // Intentional no-op: under parallel execution, restoring previous
+    // globals is unreliable and causes incorrect routing.  The globals
+    // are overwritten by the next test that starts.
+  };
+};
+
+export async function runJSCode(context: RunJSCodeContext): Promise<any> {
+  const {js: code, title, logger: lg, reporter} = context;
+  const runKind = context.runKind || 'Test';
+  lg('debug', `Running ${runKind.toLowerCase()}: ${title}...`);
+  const startTime = Date.now();
+  const runId = typeof context?.runId === 'string' ? context.runId : '';
+  const reporterFn = typeof reporter === 'function' ? reporter : undefined;
+
+  let hadFailure = false;
+  const markFailure = (event?: Record<string, any>) => {
+    if (!event) {
+      hadFailure = true;
+      return;
+    }
+    if (event.status === 'failed' || event.result === 'failed') {
+      hadFailure = true;
+      return;
+    }
+    if (Array.isArray(event.expects) &&
+        event.expects.some((item: any) => item && item.status === 'failed')) {
+      hadFailure = true;
+    }
+  };
+
+  const trackedReporter = typeof reporterFn === 'function' ?
+      ((message: any) => {
+        markFailure(message);
+        return reporterFn(message);
+      }) :
+      undefined;
+
+  const restoreReporterGlobals = applyReporterGlobals(
+      trackedReporter, runId, context.id);
+
+  let lastNetworkDurationMs: number|undefined;
+
+  const customConsole = {
+    trace: (...args: any[]) => lg(
+        'trace',
+        args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+    debug: (...args: any[]) => lg(
+        'debug',
+        args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+    log: (...args: any[]) => lg(
+        'info',
+        args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+    warn: (...args: any[]) => lg(
+        'warn',
+        args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+    error: (...args: any[]) => {
+      hadFailure = true;
+      lg('error',
+         args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
+    },
+  };
+
+  // Set the file loader BEFORE we build the Function; otherwise hoisted
+  // importJsModule_() calls at module scope will run before loader is ready.
+  if ('setFileLoader_' in mmtHelper && typeof (mmtHelper as any).setFileLoader_ === 'function') {
+    (mmtHelper as any).setFileLoader_(typeof context.fileLoader === 'function' ? context.fileLoader : undefined);
+  }
+
+  // Set the abort signal so checkAbort_() can cooperatively cancel between steps.
+  if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
+    (mmtHelper as any).setAbortSignal_(context.abortSignal);
+  }
+
+  // Set the server runner for starting mock servers in tests.
+  if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
+    (mmtHelper as any).setServerRunner_(context.serverRunner);
+  }
+
+  // Judge engines reuse the same Node HTTP path as send_.
+  setJudgeHttpPost_(async ({url, headers, body, timeoutMs}) => {
+    const reqHeaders = headers ?? {'Content-Type': 'application/json'};
+    lg('trace', formatHttpTraceRequest({
+      method: 'POST',
+      url,
+      headers: reqHeaders,
+      body,
+    }));
+    try {
+      const res = await send({
+        url,
+        method: 'post',
+        protocol: 'http',
+        headers: reqHeaders,
+        body,
+        timeout: timeoutMs,
+      });
+      lg('trace', formatHttpTraceResponse({
+        status: typeof res.status === 'number' ? res.status : '?',
+        durationMs: typeof res.duration === 'number' ? res.duration : undefined,
+        headers: res.headers,
+        body: res.body,
+      }));
+      let parsed: any = res.body;
+      if (typeof res.body === 'string') {
+        try {
+          parsed = JSON.parse(res.body);
+        } catch {
+          parsed = res.body;
+        }
+      }
+      return {
+        status: typeof res.status === 'number' ? res.status : -1,
+        statusText: res.statusText || '',
+        body: parsed,
+      };
+    } catch (err: any) {
+      lg('trace', formatHttpTraceResponse({
+        error: err?.message || String(err),
+      }));
+      throw err;
+    }
+  });
+
+  try {
+    const outermostSession =
+        'beginServerSession_' in mmtHelper &&
+        typeof (mmtHelper as any).beginServerSession_ === 'function' ?
+        (mmtHelper as any).beginServerSession_() === true :
+        true;
+    if (outermostSession && 'clearTestCallCache_' in mmtHelper &&
+        typeof (mmtHelper as any).clearTestCallCache_ === 'function') {
+      (mmtHelper as any).clearTestCallCache_();
+    }
+
+    const helperDecls =
+          Object.keys(mmtHelper)
+              .filter(name => name !== 'report_' && name !== 'setenv_' &&
+                             name !== 'checkAbort_' && name !== 'importJsModule_' &&
+                             name !== 'check_' && name !== 'checkExpects_' &&
+                             name !== 'judge_' &&
+                             name !== 'buildMultipartBodyFromParts_')
+              .map(name => `const ${name} = mmtHelper["${name}"];`)
+              .join('\n');
+    const randomDecls =
+        Object.keys(Random)
+            .filter(name => typeof (Random as any)[name] === 'function')
+            .map(name => `const ${name} = Random["${name}"];`)
+            .join('\n');
+    const functionBody = `${helperDecls}\n${randomDecls}\n` +
+      `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
+      // setenv_ must update the in-scope envVariables object so that
+      // subsequent e: references read the new value within the same run.
+      `const setenv_ = (vars) => { if (typeof envVariables !== 'undefined' && vars && typeof vars === 'object') { for (const [k, v] of Object.entries(vars)) { try { envVariables[k] = v; } catch (_e) {} } } mmtHelper.setenvWithContext_(__reporter, __runId, __id, vars); };\n` +
+      // Missing e: names stay the token text (same as unknown r:/c:/i:).
+      // File-backed getters (functions from process EnvStore copy) are awaited.
+      // mode === 'lookup' → undefined when missing (comparisons stay falsy).
+      `const mmtEnv_ = (name, accessor, mode) => {\n` +
+      `  const lookup = mode === 'lookup';\n` +
+      `  const missing = () => lookup ? undefined : ('e:' + name + (accessor || ''));\n` +
+      `  const finish = (value) => {\n` +
+      `    if (value === undefined) { return missing(); }\n` +
+      `    return accessor ? mmtAccess_(value, accessor) : value;\n` +
+      `  };\n` +
+      `  if (typeof envVariables === 'undefined' || !envVariables ||\n` +
+      `      !Object.prototype.hasOwnProperty.call(envVariables, name)) {\n` +
+      `    return missing();\n` +
+      `  }\n` +
+      `  const raw = envVariables[name];\n` +
+      `  if (typeof raw === 'function') {\n` +
+      `    return Promise.resolve(raw()).then(finish);\n` +
+      `  }\n` +
+      `  return finish(raw);\n` +
+      `};\n` +
+      // Override check_ to pass the closure-based report_ so that under
+      // parallel execution each test uses its own reporter/runId/id instead
+      // of the shared module-level globals.
+      `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console, __checkLogMode);\n` +
+      `const judge_ = (judgeDef, step, reportLevel, title) => mmtHelper.judge_(judgeDef, step, reportLevel, title, report_, console, __checkLogMode);\n` +
+      // Override checkExpects_ with a closure-based version for parallel execution.
+      `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode);\n` +
+      // Override checkAbort_ with a closure-based version so parallel tests
+      // each check their own abort/pause gate instead of the global.
+      `const checkAbort_ = async () => {\n` +
+      `  if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); }\n` +
+      `  if (__pauseGate && typeof __pauseGate.waitIfPaused === 'function') { await __pauseGate.waitIfPaused(); }\n` +
+      `  if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); }\n` +
+      `};\n` +
+      // Override importJsModule_ with a closure-based wrapper that ensures
+      // the file loader is set to this test's loader before each import,
+      // protecting against parallel tests overwriting the global loader.
+      `const importJsModule_ = async (path, opts) => {` +
+      `  if (__fileLoader && mmtHelper.setFileLoader_) { mmtHelper.setFileLoader_(__fileLoader); }` +
+      `  return mmtHelper.importJsModule_(path, opts);` +
+      `};\n` +
+      `const readBinaryFile_ = async (path) => {` +
+      `  if (typeof __binaryFileLoader !== 'function') {` +
+      `    throw new Error('Binary file loader not available');` +
+      `  }` +
+      `  return __binaryFileLoader(path);` +
+      `};\n` +
+      `const buildMultipartBodyFromParts_ = async (parts) => {` +
+      `  return mmtHelper.buildMultipartBodyFromParts_(parts, readBinaryFile_);` +
+      `};\n` +
+      // Bind process env store; generated scripts no longer embed env JSON.
+      `${/(?:^|[^\w$.])(?:const|let|var)\s+envVariables\b/.test(code) ? '' : 'const envVariables = (__mmtEnvValues && typeof __mmtEnvValues === "object") ? __mmtEnvValues : {};\n'}` +
+      `${code}`;
+    let fn = compiledFunctionCache.get(functionBody);
+    if (!fn) {
+      fn = new Function(
+        'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
+        '__reporter', '__runId', '__id', 'mmtRandom_', 'mmtCurrent_',
+        'mmtAccess_', '__abortSignal', '__pauseGate', '__fileLoader',
+        '__binaryFileLoader', '__checkLogMode', '__mmtEnvValues',
+        '__mmt_requestOverride',
+        functionBody);
+      if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
+        const firstKey = compiledFunctionCache.keys().next().value;
+        if (firstKey) {
+          compiledFunctionCache.delete(firstKey);
+        }
+      }
+      compiledFunctionCache.set(functionBody, fn);
+    }
+    // Wrap send_ so we can record the network round-trip duration (same value
+    // the API tester toolbar shows) and optionally emit trace logs.
+    const recordNetworkDuration = (res: any) => {
+      if (res && typeof res.duration === 'number' && Number.isFinite(res.duration) &&
+          res.duration >= 0) {
+        lastNetworkDurationMs = res.duration;
+      }
+    };
+    const sendFn = async (req: any) => {
+      if (context.abortSignal?.aborted) {
+        throw new mmtHelper.TestAbortError();
+      }
+      if (context.traceSend) {
+        lg('trace', formatHttpTraceRequest({
+          method: req?.method,
+          url: req?.url,
+          headers: req?.headers,
+          query: req?.query,
+          body: req?.body,
+        }));
+      }
+      try {
+        const res = await send({
+          ...(req || {}),
+          abortSignal: context.abortSignal,
+        });
+        if (context.abortSignal?.aborted) {
+          throw new mmtHelper.TestAbortError();
+        }
+        recordNetworkDuration(res);
+        if (context.traceSend) {
+          lg('trace', formatHttpTraceResponse({
+            status: res && typeof res.status === 'number' ? res.status : '?',
+            durationMs: res && typeof res.duration === 'number' ?
+                res.duration :
+                undefined,
+            headers: res?.headers,
+            body: res?.body,
+          }));
+        }
+        return res;
+      } catch (err: any) {
+        if (isTestAbortError(err) || context.abortSignal?.aborted) {
+          throw isTestAbortError(err) ? err : new mmtHelper.TestAbortError();
+        }
+        if (context.traceSend) {
+          lg('trace', formatHttpTraceResponse({
+            error: err?.message || String(err),
+          }));
+        }
+        throw err;
+      }
+    };
+    // Create gRPC sender (lazy-loads grpcCore)
+    const sendGrpcFn = async (req: GrpcRequest): Promise<GrpcResponse> => {
+      const {sendGrpcRequest} = await import('../grpcCore.js');
+      const config = getRunnerNetworkConfig();
+      const loader = context.fileLoader || (async () => { throw new Error('File loader not available'); });
+      const res = await sendGrpcRequest(req, config, loader, context.basePath);
+      recordNetworkDuration(res);
+      return res;
+    };
+    const returnValue = await fn(
+        mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
+        trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
+        context.abortSignal, context.pauseGate, context.fileLoader,
+        context.binaryFileLoader, context.checkLogMode || 'default',
+        context.envValues, context.requestOverride ?? null);
+    restoreReporterGlobals();
+    if (context.abortSignal?.aborted) {
+      throw new mmtHelper.TestAbortError();
+    }
+    // For API runs, prefer the network send/receive duration so the finish
+    // log matches the toolbar. Fall back to wall-clock for tests/suites.
+    const wallClockMs = Date.now() - startTime;
+    const elapsed = runKind === 'API' && typeof lastNetworkDurationMs === 'number' ?
+        Math.round(lastNetworkDurationMs) :
+        wallClockMs;
+    logRunFinished(lg, runKind, title, !hadFailure, elapsed);
+    return returnValue;
+  } catch (e: any) {
+    restoreReporterGlobals();
+    const cancelled = isTestAbortError(e) || !!context.abortSignal?.aborted;
+    const isControlFlow = isAssertionFailedError(e) || cancelled;
+    logRunFinished(lg, runKind, title, false, undefined, {
+      hasError: !isControlFlow,
+      cancelled,
+    });
+    throw cancelled && !isTestAbortError(e) ? new mmtHelper.TestAbortError() : e;
+  } finally {
+    const ended =
+        'endServerSession_' in mmtHelper &&
+        typeof (mmtHelper as any).endServerSession_ === 'function' ?
+        (mmtHelper as any).endServerSession_() as {outermost: boolean} :
+        {outermost: true};
+    if (ended.outermost) {
+      if (typeof (mmtHelper as any).clearAbortSignalIf_ === 'function') {
+        (mmtHelper as any).clearAbortSignalIf_(context.abortSignal);
+      }
+      if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
+        (mmtHelper as any).setServerRunner_(undefined);
+      }
+      if ('clearTestCallCache_' in mmtHelper &&
+          typeof (mmtHelper as any).clearTestCallCache_ === 'function') {
+        (mmtHelper as any).clearTestCallCache_();
+      }
+    }
+  }
+}
+
+export {setRunnerNetworkConfig};

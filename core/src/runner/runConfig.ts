@@ -1,0 +1,503 @@
+import {CheckLogMode, LogLevel} from '../CommonData';
+import {RunJSCodeContext} from '../jsRunner';
+import type {LoadReportData} from '../reportCollector';
+import {dirnamePath, joinPath, resolveRequestedAgainst} from '../fileHelper';
+import parseYaml from '../markupConvertor';
+import {processDataImportsInYaml} from '../dataImportProcessor';
+import type {BinaryFileLoader, FileLoader} from '../JSerFileLoader';
+import type {EnvStore} from '../envStore';
+import type {SuiteEnvironment} from '../SuiteData';
+
+export type {FileLoader, BinaryFileLoader} from '../JSerFileLoader';
+export type {RunPauseGate} from '../runPause';
+export {createRunPauseGate} from '../runPause';
+
+export type TestStepStatus = 'passed'|'failed'|'cancelled';
+export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending'|'invalid'|'skipped';
+
+export interface ExpectItemEvent {
+  comparison: string;
+  actual?: any;
+  expected?: any;
+  status: TestStepStatus;
+  similarity?: number;
+  count?: number;
+  /** Soft vs hard section for judge and call/http expect vs require. */
+  level?: 'expect'|'require';
+}
+
+export interface TestStepReporterEvent {
+  scope: 'test-step';
+  runId: string;
+  stepIndex: number;
+  stepType: 'check'|'assert'|'debug';
+  status: TestStepStatus;
+  title?: string;
+  details?: string;
+  timestamp: number;
+  expects: ExpectItemEvent[];
+  id?: string;
+  /** True when the related call returned outputs from the in-run test call cache. */
+  cached?: boolean;
+}
+
+export interface TestRunSummaryEvent {
+  scope: 'test-step-run';
+  runId: string;
+  result: TestStepStatus;
+  id?: string;
+}
+
+export interface SuiteReporterMessage {
+  scope?: 'suite-item';
+  groupIndex?: number;
+  groupItemIndex?: number;
+  status?: SuiteStepStatus;
+  success?: boolean;
+  runId?: string;
+  filePath?: string;
+  entry?: string;
+  title?: string;
+  docType?: string;
+  id?: string;
+}
+
+export interface SuiteRunStartEvent {
+  scope: 'suite-run-start';
+  runId: string;
+  suitePath?: string;
+  suiteTitle?: string;
+  startedAt: number;
+  totalRunnable: number;
+}
+
+export interface SuiteRunFinishedEvent {
+  scope: 'suite-run-finished';
+  runId: string;
+  suitePath?: string;
+  finishedAt: number;
+  success: boolean;
+  durationMs: number;
+  cancelled?: boolean;
+}
+
+export interface SetEnvReporterEvent {
+  scope: 'setenv';
+  variables: Record<string, any>;
+  runId?: string;
+  id?: string;
+  timestamp?: number;
+}
+
+export interface TestOutputsReporterEvent {
+  scope: 'test-outputs';
+  runId: string;
+  outputs: Record<string, any>;
+  id?: string;
+}
+
+export interface LoadTestSummaryEvent {
+  scope: 'loadtest-summary';
+  runId: string;
+  load: LoadReportData;
+  id?: string;
+}
+
+export type RunReporterMessage =
+  SuiteReporterMessage|TestStepReporterEvent|TestRunSummaryEvent|
+  SuiteRunStartEvent|SuiteRunFinishedEvent|SetEnvReporterEvent|
+  TestOutputsReporterEvent|LoadTestSummaryEvent;
+
+export interface RunResult {
+  success: boolean;
+  durationMs: number;
+  errors: string[];
+  logs?: string[];
+  threw?: boolean;
+  outputs?: Record<string, any>;
+  cancelled?: boolean;
+  /** Structured API `test.expect` / `test.require` results (API runs only). */
+  apiTest?: import('../apiTestEval').ApiTestEvalResult;
+  /** True when the generated JS failed syntax validation (bad .mmt syntax). */
+  syntaxError?: boolean;
+  /** Set when generated JS threw during execution (e.g. ReferenceError). Assert throws use this too. */
+  executionError?: string;
+  /**
+   * Preferred suite-item status when the run represents an aggregated outcome
+   * (e.g. nested suite). When set, UI classification uses this directly.
+   */
+  itemStatus?: SuiteStepStatus;
+}
+
+export interface GenerateJsOptions {
+  rawText: string;
+  name: string;
+  inputs: Record<string, any>;
+  envVars: Record<string, any>;
+  fileLoader: FileLoader;  // Responsible for resolving relative imports
+  filePath?: string;  // File path for resolving relative imports
+  projectRoot?: string;  // Project root directory (where multimeter.mmt lives) for +/ imports
+  /** When true, use external report settings for checks/asserts (e.g., suite or import context). */
+  isExternal?: boolean;
+}
+
+export interface RunFileOptions {
+  /**
+   * Primary file input.
+   * - If `fileType === 'raw'`: this is the YAML/JSON text content.
+   * - If `fileType === 'path'`: this is the filesystem path to load.
+   */
+  file: string;
+  /**
+   * Optional absolute path used for display names and relative import
+   * resolution. When `fileType === 'path'`, this can be omitted (it will
+   * default to `file`).
+   */
+  filePath?: string;
+  /**
+   * Process environment for this run (copy of workspace/CLI env at start).
+   * Created by the top-level `runFile` and shared with suite children.
+   * Not embedded into generated JavaScript.
+   */
+  envStore?: EnvStore;
+  /**
+   * Path of the env file that produced `envvar` (for resolving `./…mmt`
+   * file-backed variable values).
+   */
+  envvarFilePath?: string;
+  /**
+   * Internal: this `runFile` is resolving a file-backed env value.
+   */
+  __mmtEnvValueRun?: boolean;
+  /**
+   * Specifies whether `file` contains raw content or a filesystem path.
+   */
+  fileType: 'raw'|'path';
+  exampleIndex?: number;
+  exampleName?: string;
+  manualInputs?: Record<string, any>;
+  envvar?: Record<string, any>;
+  manualEnvvars?: Record<string, any>;
+  fileLoader: FileLoader;
+  /** Load a relative path as raw bytes (format: binary request bodies). */
+  binaryFileLoader?: BinaryFileLoader;
+  jsRunner: (context: RunJSCodeContext) => Promise<any>;
+  logger: (level: LogLevel, msg: string) => void;
+  reporter: (message: RunReporterMessage) => void;
+
+  /** Optional signal for cooperative cancellation (suite/test/api runs). */
+  abortSignal?: AbortSignal;
+
+  /** Optional pause gate; wait at checkAbort_ boundaries until resumed. */
+  pauseGate?: import('../runPause').RunPauseGate;
+
+  /** Optional identifier passed through reporter events and JS globals. */
+  id?: string;
+  /** Optional externally-provided run id used for reporter/routing (overrides generated run id). */
+  runId?: string;
+
+  /**
+   * Optional suite bundle for bundle-based suite runs.
+   * When provided, suite execution uses bundle node ids for targeting/report routing.
+   */
+  suiteBundle?: import('../suiteBundle').SuiteBundle;
+
+  /**
+   * Project root directory (where multimeter.mmt lives) for +/ imports.
+   * If not provided, will be auto-detected by walking up from filePath.
+   */
+  projectRoot?: string;
+
+  /**
+   * Nonce string used by the suite runner to generate unique child run IDs
+   * across repeated runs of the same suite.
+   */
+  suiteRunId?: string;
+
+  /**
+   * Internal flag set by the suite bundle runner on child run options to
+   * suppress duplicate suite-run lifecycle events (start/finished).
+   */
+  __mmtIsSuiteBundleChildRun?: boolean;
+
+  /**
+   * Optional callback for starting mock servers.
+   * Used by the `run` step in tests and for server nodes in suites.
+   * Arguments: (alias: server file path, filePath: resolved absolute path).
+   * Returns: a cleanup function to stop the server.
+   */
+  serverRunner?: (alias: string, filePath: string) => Promise<() => void>;
+
+  /**
+   * Tag filter for this invocation. When set on the run root, replaces suite
+   * YAML `filter:`. Nested running suites still merge their own `filter:`.
+   */
+  tagFilter?: import('../suiteTagFilter').TagFilter;
+  /**
+   * True when an ancestor suite was selected by `only` (run whole subtree
+   * except skip). Internal to suite bundle execution.
+   */
+  tagParentSelected?: boolean;
+
+  /**
+   * How check/assert/debug steps write to the console.
+   * CLI `--quiet` sets `none`.
+   */
+  checkLogMode?: CheckLogMode;
+
+  /**
+   * Optional stamp for the process-level file/JS cache. Compared at the start
+   * of the next top-level run; any change resets the cache.
+   */
+  fileStamp?: (path: string) => Promise<string>|string;
+}
+
+export interface MergeInputsParams {
+  defaultInputs?: Record<string, any>;
+  exampleInputs?: Record<string, any>;
+  manualInputs?: Record<string, any>;
+}
+
+export function mergeInputs(params: MergeInputsParams): Record<string, any> {
+  const {defaultInputs = {}, exampleInputs = {}, manualInputs = {}} = params;
+  return {...defaultInputs, ...exampleInputs, ...manualInputs};
+}
+
+export interface MergeEnvParams {
+  baseEnv?: Record<string, any>;
+  envvar?: Record<string, any>;
+  presetEnv?: Record<string, any>;
+  manualEnvvars?: Record<string, any>;
+}
+
+export function mergeEnv(params: MergeEnvParams): Record<string, any> {
+  const {baseEnv = {}, envvar = {}, presetEnv = {}, manualEnvvars = {}} =
+      params;
+  return {...baseEnv, ...envvar, ...presetEnv, ...manualEnvvars};
+}
+
+export type EnvLike = Record<string, any>;
+
+export interface EnvFileDoc {
+  variables?: EnvLike;
+  presets?: EnvLike;
+}
+
+export interface ResolveEnvFromDocParams {
+  /** Parsed env file document ({ variables, presets }). */
+  doc: EnvFileDoc;
+  /** Preset name(s), e.g. "runner.dev" or ["runner.dev", "custom.prod"]. */
+  presetName?: string|string[];
+  /** Manual env vars from CLI/assistant flags (highest priority). */
+  manualEnvvars?: Record<string, any>;
+}
+
+/**
+ * Resolves env vars from an env-file document + optional preset, then merges
+ * manual env vars on top.
+ */
+export function resolveEnvFromDoc(params: ResolveEnvFromDocParams):
+    Record<string, any> {
+  const {doc, presetName, manualEnvvars} = params;
+  const presetEnv = resolvePresetsEnv(doc, presetName);
+  return mergeEnv({envvar: presetEnv, manualEnvvars});
+}
+
+export function selectFromVariables(
+    variables: EnvLike|undefined, key: string, choiceOrValue: any): any {
+  const def = variables?.[key];
+  if (def && typeof def === 'object' && !Array.isArray(def)) {
+    if (Object.prototype.hasOwnProperty.call(def, choiceOrValue)) {
+      return def[choiceOrValue];
+    }
+    const firstKey = Object.keys(def)[0];
+    if (firstKey) {
+      return def[firstKey];
+    }
+    return choiceOrValue;
+  }
+  if (Array.isArray(def)) {
+    if (def.some(entry => entry === choiceOrValue)) {
+      return choiceOrValue;
+    }
+    return def.length > 0 ? def[0] : choiceOrValue;
+  }
+  return choiceOrValue;
+}
+
+export function resolvePresetEnv(
+    doc: EnvFileDoc, presetName: string|undefined): Record<string, any> {
+  const out: Record<string, any> = {};
+  if (!presetName) {
+    return out;
+  }
+  const presets = doc.presets || {};
+  const variables = doc.variables || {};
+  let mapping: Record<string, any>|undefined;
+  // Support both forms:
+  // - "cd" (implicitly under presets.runner.cd)
+  // - "runner.cd" (explicit group)
+  if (presetName.includes('.')) {
+    const [group, name] = presetName.split('.', 2);
+    if (presets[group] && presets[group][name]) {
+      mapping = presets[group][name];
+    }
+  } else if (presets.runner && presets.runner[presetName]) {
+    mapping = presets.runner[presetName];
+  }
+  if (!mapping) {
+    return out;
+  }
+  for (const [k, choice] of Object.entries(mapping)) {
+    out[k] = selectFromVariables(variables, k, choice);
+  }
+  return out;
+}
+
+/** Normalize CLI/UI preset args: repeatable flags and comma-separated lists. */
+export function normalizePresetNames(
+    presetNames: string|string[]|undefined): string[] {
+  if (presetNames == null) {
+    return [];
+  }
+  const raw = Array.isArray(presetNames) ? presetNames : [presetNames];
+  const names: string[] = [];
+  for (const entry of raw) {
+    const s = String(entry).trim();
+    if (!s) {
+      continue;
+    }
+    for (const part of s.split(',')) {
+      const name = part.trim();
+      if (name) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
+}
+
+/** Apply one or more presets in order (later presets override same keys). */
+export function resolvePresetsEnv(
+    doc: EnvFileDoc, presetNames: string|string[]|undefined): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const name of normalizePresetNames(presetNames)) {
+    Object.assign(out, resolvePresetEnv(doc, name));
+  }
+  return out;
+}
+
+export interface MergeSuiteEnvParams {
+  /** Base env from CLI --env-file/--preset or VS Code local storage. */
+  baseEnv?: Record<string, any>;
+  /** Suite environment config from suite file. */
+  suiteEnv?: SuiteEnvironment;
+  /** Resolved preset env from suite's environment.preset (caller resolves from file/multimeter.mmt). */
+  suitePresetEnv?: Record<string, any>;
+  /** Manual CLI -e overrides (highest priority in CLI). */
+  manualEnvvars?: Record<string, any>;
+  /** Whether CLI -e should override suite env (true for CLI, false for VS Code). */
+  cliOverridesSuiteEnv?: boolean;
+}
+
+/**
+ * Merge environment variables for suite execution.
+ * 
+ * CLI priority: manualEnvvars > suiteEnv.variables > suitePresetEnv > baseEnv
+ * VS Code priority: suiteEnv.variables > suitePresetEnv > baseEnv
+ */
+export function mergeSuiteEnv(params: MergeSuiteEnvParams): Record<string, any> {
+  const {
+    baseEnv = {},
+    suiteEnv,
+    suitePresetEnv = {},
+    manualEnvvars = {},
+    cliOverridesSuiteEnv = false,
+  } = params;
+
+  const suiteVariables = suiteEnv?.variables ? {...suiteEnv.variables} : {};
+
+  if (cliOverridesSuiteEnv) {
+    // CLI: manualEnvvars > suite variables > suite preset > base
+    return {...baseEnv, ...suitePresetEnv, ...suiteVariables, ...manualEnvvars};
+  } else {
+    // VS Code: suite variables > suite preset > base (no CLI manual env)
+    return {...baseEnv, ...suitePresetEnv, ...suiteVariables};
+  }
+}
+
+export interface ResolveDocumentEnvParams {
+  documentEnv?: SuiteEnvironment;
+  filePath: string;
+  projectRoot?: string;
+  baseEnvVars?: Record<string, any>;
+  manualEnvvars?: Record<string, any>;
+  fileLoader: FileLoader;
+  logger?: (level: LogLevel, message: string) => void;
+  cliOverridesSuiteEnv?: boolean;
+}
+
+/**
+ * Resolve suite/loadtest `environment:` settings without depending on Node fs.
+ * Callers provide file loading; core resolves `environment.file`, project-root
+ * `+/` paths, default `multimeter.mmt`, presets, variables, and manual envs.
+ */
+export async function resolveDocumentEnvVars(params: ResolveDocumentEnvParams): Promise<Record<string, any>> {
+  const {
+    documentEnv,
+    filePath,
+    projectRoot,
+    baseEnvVars = {},
+    manualEnvvars = {},
+    fileLoader,
+    logger,
+    cliOverridesSuiteEnv = true,
+  } = params;
+
+  if (!documentEnv) {
+    return mergeEnv({envvar: baseEnvVars, manualEnvvars});
+  }
+
+  let envFilePath: string | undefined;
+  if (documentEnv.file) {
+    try {
+      envFilePath = resolveRequestedAgainst(filePath, documentEnv.file, projectRoot);
+    } catch (e: any) {
+      logger?.('warn', `Failed to resolve environment file '${documentEnv.file}': ${e?.message || String(e)}`);
+    }
+  } else if (documentEnv.preset && projectRoot) {
+    envFilePath = joinPath(projectRoot, 'multimeter.mmt');
+  } else if (documentEnv.preset) {
+    envFilePath = joinPath(dirnamePath(filePath), 'multimeter.mmt');
+  }
+
+  let suitePresetEnv: Record<string, any> = {};
+  if (documentEnv.preset && envFilePath) {
+    try {
+      const raw = await fileLoader(envFilePath);
+      const processed = await processDataImportsInYaml({
+        rawText: raw,
+        filePath: envFilePath,
+        projectRoot,
+        fileLoader,
+      });
+      const doc = parseYaml(processed);
+      if (doc && typeof doc === 'object') {
+        suitePresetEnv = resolvePresetEnv(
+          {variables: (doc as any).variables, presets: (doc as any).presets},
+          documentEnv.preset,
+        );
+      }
+    } catch (e: any) {
+      logger?.('warn', `Failed to resolve preset '${documentEnv.preset}' from '${envFilePath}': ${e?.message || String(e)}`);
+    }
+  }
+
+  return mergeSuiteEnv({
+    baseEnv: baseEnvVars,
+    suiteEnv: documentEnv,
+    suitePresetEnv,
+    manualEnvvars,
+    cliOverridesSuiteEnv,
+  });
+}

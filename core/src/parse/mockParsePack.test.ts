@@ -1,0 +1,275 @@
+import {isMockEnvToken, isMockPortEnvToken, loadMockFromYaml, mockToYaml, parseMockData, resolveMockPort, resolveMockProtocol, yamlToMock} from '../mockParsePack';
+
+describe('mockParsePack', () => {
+  it('mockToYaml does not add title when missing', () => {
+    const yaml = mockToYaml({type: 'server', port: 8080, endpoints: []});
+    expect(yaml).toContain('type: server');
+    expect(yaml).not.toContain('title:');
+  });
+
+  it('canonicalizes mock keys and keeps endpoints before fallback', () => {
+    const yaml = mockToYaml({
+      type: 'server',
+      port: 8080,
+      fallback: {status: 404},
+      endpoints: [{method: 'get', path: '/health', status: 200}],
+    });
+    expect(yaml.indexOf('port: 8080')).toBeGreaterThan(yaml.indexOf('type: server'));
+    expect(yaml.indexOf('endpoints:')).toBeLessThan(yaml.indexOf('fallback:'));
+  });
+
+  it('preserves websocket messages when parsing and formatting', () => {
+    const parsed = yamlToMock(`
+type: server
+port: 8080
+protocol: ws
+endpoints:
+  - path: /socket
+    messages:
+      - match:
+          type: ping
+        body:
+          type: pong
+`);
+    const yaml = mockToYaml(parsed!);
+    expect(yaml).toContain('messages:');
+    expect(yaml).toContain('type: pong');
+  });
+
+  it('preserves unquoted bang operators in match body/headers/query', () => {
+    const parsed = yamlToMock(`
+type: server
+port: 29443
+endpoints:
+  - method: post
+    path: /health
+    match:
+      body:
+        xxx: != salam
+        profile.name: !C bad
+      headers:
+        authorization: !^ Basic
+      query:
+        mode: != sandbox
+    status: 200
+    body:
+      ok: true
+`);
+    expect(parsed).not.toBeNull();
+    expect((parsed!.endpoints[0] as any).match?.body).toEqual({
+      xxx: '!= salam',
+      'profile.name': '!C bad',
+    });
+    expect((parsed!.endpoints[0] as any).match?.headers).toEqual({
+      authorization: '!^ Basic',
+    });
+    expect((parsed!.endpoints[0] as any).match?.query).toEqual({
+      mode: '!= sandbox',
+    });
+  });
+
+  it('loadMockFromYaml keeps != operators (unlike raw YAML.parse)', () => {
+    const raw = `
+type: server
+port: 29443
+endpoints:
+  - method: post
+    path: /health
+    match:
+      body:
+        xxx: != salam
+    status: 200
+    body:
+      ok: true
+`;
+    const viaRaw = require('yaml').parseDocument(raw).toJS();
+    expect(viaRaw.endpoints[0].match.body.xxx).toBe('salam');
+
+    const {data, errors} = loadMockFromYaml(raw);
+    expect(errors.filter(e => e.severity === 'error')).toEqual([]);
+    expect(data).not.toBeNull();
+    expect((data!.endpoints[0] as any).match?.body?.xxx).toBe('!= salam');
+  });
+
+  it('accepts https protocol with tls connection config', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      protocol: 'https',
+      port: 8443,
+      connection: {mode: 'tls', cert: './certs/server.crt', key: './certs/server.key'},
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(errors.filter(error => error.severity === 'error')).toEqual([]);
+    expect(data?.protocol).toBe('https');
+    expect(data?.connection?.mode).toBe('tls');
+  });
+
+  it('allows https tls connection without custom certs', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      protocol: 'https',
+      port: 8443,
+      connection: {mode: 'tls'},
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(errors.filter(error => error.severity === 'error')).toEqual([]);
+    expect(data?.connection?.mode).toBe('tls');
+    expect(data?.connection?.cert).toBeUndefined();
+  });
+
+  it('requires client CA for mtls connection mode', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      protocol: 'https',
+      port: 8444,
+      connection: {mode: 'mtls', cert: './certs/server.crt', key: './certs/server.key'},
+      endpoints: [{method: 'get', path: '/secure'}],
+    });
+
+    expect(data).toBeNull();
+    expect(errors.map(error => error.message)).toContain('connection.client_ca is required when connection.mode is mtls');
+  });
+
+  it('rejects tls as a protocol value', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      protocol: 'tls',
+      port: 8443,
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(data).toBeNull();
+    expect(errors.map(error => error.message)).toContain(
+        'protocol must be one of: http, https, ws, or an env token like e:MOCK_PROTOCOL');
+  });
+
+  it('warns on removed top-level tls field', () => {
+    const {errors} = parseMockData({
+      type: 'server',
+      protocol: 'https',
+      port: 8443,
+      tls: {cert: './certs/server.crt', key: './certs/server.key'},
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(errors.map(error => error.message)).toContain('Unknown field: tls');
+  });
+
+  it('accepts env token ports like e:MOCK_PORT', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      port: 'e:MOCK_PORT',
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(errors.filter(error => error.severity === 'error')).toEqual([]);
+    expect(data?.port).toBe('e:MOCK_PORT');
+  });
+
+  it('accepts angle-bracket env token ports', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      port: '<<e:MOCK_PORT>>',
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(errors.filter(error => error.severity === 'error')).toEqual([]);
+    expect(data?.port).toBe('<<e:MOCK_PORT>>');
+  });
+
+  it('resolves env token ports to numbers', () => {
+    expect(resolveMockPort('e:MOCK_PORT', {MOCK_PORT: 9090})).toBe(9090);
+    expect(resolveMockPort('<<e:MOCK_PORT>>', {MOCK_PORT: '9091'})).toBe(9091);
+    expect(resolveMockPort(8080, {})).toBe(8080);
+  });
+
+  it('accepts env token protocols like e:MOCK_PROTOCOL', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      protocol: 'e:MOCK_PROTOCOL',
+      port: 8080,
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(errors.filter(error => error.severity === 'error')).toEqual([]);
+    expect(data?.protocol).toBe('e:MOCK_PROTOCOL');
+  });
+
+  it('rejects incomplete protocol: e: nested-map values without crashing', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      protocol: {e: null},
+      port: 8080,
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(data).toBeNull();
+    expect(errors.some(error => error.message.includes('protocol must be'))).toBe(true);
+  });
+
+  it('resolves env token protocols', () => {
+    expect(resolveMockProtocol('e:MOCK_PROTOCOL', {MOCK_PROTOCOL: 'https'})).toBe('https');
+    expect(resolveMockProtocol('<<e:MOCK_PROTOCOL>>', {MOCK_PROTOCOL: 'ws'})).toBe('ws');
+    expect(resolveMockProtocol('http', {})).toBe('http');
+  });
+
+  it('rejects unresolved or invalid env token protocols', () => {
+    expect(() => resolveMockProtocol('e:MISSING', {})).toThrow(/not one of/);
+    expect(() => resolveMockProtocol('e:MOCK_PROTOCOL', {MOCK_PROTOCOL: 'ftp'})).toThrow(/not one of/);
+  });
+
+  it('records parse errors for invalid mock files', () => {
+    expect(parseMockData(null).errors[0].message).toMatch(/YAML object/);
+    expect(parseMockData({type: 'api'}).errors[0].message).toMatch(/type must be "server"/);
+    const missing = parseMockData({type: 'server'});
+    expect(missing.errors.map(e => e.message)).toEqual(expect.arrayContaining([
+      'port is required',
+      'endpoints must be an array',
+    ]));
+    const bad = parseMockData({
+      type: 'server',
+      extra: true,
+      port: 0,
+      endpoints: [
+        'nope',
+        {unknown: 1},
+        {path: '/x', method: {e: null}, status: 9, format: 'yaml', delay: -1},
+        {path: '/y', method: 'explode'},
+        {path: '/z', method: 'get', name: 'dup'},
+        {path: '/z2', method: 'get', name: 'dup'},
+        null,
+      ],
+    });
+    expect(bad.errors.some(e => e.message.includes('Unknown field: extra'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('port must be'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('must be an object'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('path is required'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('method must be a string'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('invalid method'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('status must be'))).toBe(true);
+    expect(bad.errors.some(e => e.message.includes('format must be'))).toBe(true);
+    expect(yamlToMock('[]')).toBeNull();
+    expect(yamlToMock('type: api\n')).toBeNull();
+    expect(parseMockData({type: 'server', port: '99999', endpoints: []}).errors.some(e => e.message.includes('1 and 65535'))).toBe(true);
+    expect(parseMockData({type: 'server', port: 'abc', endpoints: []}).errors.some(e => e.message.includes('env token'))).toBe(true);
+    expect(parseMockData({type: 'server', port: {e: null}, endpoints: []}).errors.some(e => e.message.includes('env token'))).toBe(true);
+    expect(parseMockData({
+      type: 'server',
+      port: 8080,
+      delay: 'slow',
+      connection: 'tls',
+      fallback: 'nope',
+      protocol: {e: null},
+      endpoints: [],
+    }).errors.map(e => e.message)).toEqual(expect.arrayContaining([
+      'delay must be a non-negative number',
+      'connection must be an object',
+      'fallback must be an object',
+      'protocol must be http, https, ws, or an env token like e:MOCK_PROTOCOL',
+    ]));
+    expect(isMockPortEnvToken('e:P')).toBe(true);
+    expect(isMockEnvToken('nope')).toBe(false);
+  });
+});

@@ -1,0 +1,441 @@
+import {Format, JSONValue} from '../CommonData';
+import {contentTypeForFormat, formatBody, formattedBodyToYamlObject} from '../markupConvertor';
+import {MockData, MockEndpoint, MockFallback, MockMatch} from '../MockData';
+import {matchExpectMap, matchHeaderExpectMap} from '../expectCompare';
+import {applyValueAccessor} from '../variableReplacer';
+
+/**
+ * Platform-neutral mock request router.
+ * No fs, vscode, or Node server imports — only computes responses from MockData.
+ */
+
+export interface MockRequest {
+  method: string;
+  path: string;
+  headers: Record<string, string>;
+  query: Record<string, string>;
+  body: any;
+}
+
+export interface MockResponse {
+  status: number;
+  headers: Record<string, string>;
+  body: any;
+  delay: number;
+}
+
+export type TokenResolver = (value: any) => any;
+
+/** Try to match a path pattern (with :params) against an actual path. */
+export function matchPath(pattern: string, actualPath: string): Record<string, string> | null {
+  // Strip query string from actual path
+  const pathOnly = actualPath.split('?')[0];
+
+  const patternParts = pattern.split('/');
+  const actualParts = pathOnly.split('/');
+
+  if (patternParts.length !== actualParts.length) {
+    return null;
+  }
+
+  const params: Record<string, string> = {};
+  for (let i = 0; i < patternParts.length; i++) {
+    const pp = patternParts[i];
+    const ap = actualParts[i];
+    if (pp.startsWith(':')) {
+      params[pp.slice(1)] = decodeURIComponent(ap);
+    } else if (pp !== ap) {
+      return null;
+    }
+  }
+  return params;
+}
+
+/** Auto-detect format from a body value. */
+export function autoDetectFormat(body: any): Format {
+  if (body === null || body === undefined) {
+    return 'text';
+  }
+  if (typeof body === 'object') {
+    return 'json';
+  }
+  const s = String(body).trimStart();
+  if (s.startsWith('<')) {
+    return 'xml';
+  }
+  return 'text';
+}
+
+/** Get Content-Type header for a format. */
+export {contentTypeForFormat};
+
+/** Deep partial match: does `actual` contain all key-value pairs from `expected`? */
+export function partialMatch(expected: Record<string, any>, actual: Record<string, any>): boolean {
+  return matchExpectMap(expected, actual);
+}
+
+/** Case-insensitive header match (supports expect operators on values). */
+function matchHeaders(expected: Record<string, string>, actual: Record<string, string>): boolean {
+  return matchHeaderExpectMap(expected, actual);
+}
+
+/** Resolve r:/c:/e: tokens in a string map (headers, query expectations, etc.). */
+function resolveStringMap(
+    map: Record<string, string> | undefined,
+    tokenResolver?: TokenResolver): Record<string, string> | undefined {
+  if (!map || !tokenResolver) {
+    return map;
+  }
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(map)) {
+    out[k] = typeof v === 'string' ? String(tokenResolver(v) ?? v) : v;
+  }
+  return out;
+}
+
+/** Check if a request matches the endpoint's match conditions. */
+function matchCondition(
+    match: MockMatch, req: MockRequest, tokenResolver?: TokenResolver): boolean {
+  const resolved: MockMatch = tokenResolver ? tokenResolver(match) : match;
+  if (resolved.body) {
+    // Keep non-object bodies as-is so path/omit checks can still run.
+    if (!matchExpectMap(resolved.body as Record<string, any>, req.body)) {
+      return false;
+    }
+  }
+  if (resolved.headers) {
+    if (!matchHeaders(resolved.headers, req.headers)) {
+      return false;
+    }
+  }
+  if (resolved.query) {
+    if (!matchExpectMap(resolved.query, req.query)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export interface MockRequestContext {
+  url: Record<string, string>;
+  body: any;
+  header: Record<string, string>;
+  query: Record<string, string>;
+}
+
+const MOCK_REF_RE = /\$\{(url|body|header|query)\.([^}]+)\}/g;
+
+/** Infer request body format from Content-Type and body shape. */
+export function inferRequestBodyFormat(
+    headers: Record<string, string>, rawBody: string): Format {
+  const contentTypeKey = Object.keys(headers).find(k => k.toLowerCase() === 'content-type');
+  const contentType = contentTypeKey ? headers[contentTypeKey].toLowerCase() : '';
+  if (contentType.includes('json')) {
+    return 'json';
+  }
+  if (contentType.includes('xml')) {
+    return 'xml';
+  }
+  if (contentType.includes('urlencoded') || contentType.includes('x-www-form-urlencoded')) {
+    return 'urlencoded';
+  }
+  const trimmed = rawBody.trim();
+  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+      (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+    return 'json';
+  }
+  if (trimmed.startsWith('<')) {
+    return 'xml';
+  }
+  return 'text';
+}
+
+/** Parse a raw HTTP request body into an object (JSON or XML) when possible. */
+export function parseRequestBody(rawBody: string, headers: Record<string, string>): any {
+  if (!rawBody || !rawBody.trim()) {
+    return undefined;
+  }
+  const format = inferRequestBodyFormat(headers, rawBody);
+  if (format === 'json' || format === 'xml' || format === 'urlencoded') {
+    const parsed = formattedBodyToYamlObject(format, rawBody);
+    return parsed ?? rawBody;
+  }
+  return rawBody;
+}
+
+/** Build the substitution context for ${url.*}, ${body.*}, ${header.*}, ${query.*}. */
+export function buildRequestContext(
+    req: MockRequest, pathParams: Record<string, string>): MockRequestContext {
+  const pathOnly = req.path.split('?')[0];
+  return {
+    url: {...pathParams, path: pathOnly},
+    body: req.body,
+    header: req.headers,
+    query: req.query,
+  };
+}
+
+function lookupHeader(headers: Record<string, string>, name: string): string | undefined {
+  const key = Object.keys(headers).find(k => k.toLowerCase() === name.toLowerCase());
+  return key ? headers[key] : undefined;
+}
+
+function resolveMockRef(namespace: string, path: string, ctx: MockRequestContext): any {
+  switch (namespace) {
+    case 'url':
+      return applyValueAccessor(ctx.url, path.startsWith('.') ? path : `.${path}`);
+    case 'body':
+      return applyValueAccessor(ctx.body, path.startsWith('.') ? path : `.${path}`);
+    case 'header':
+      return lookupHeader(ctx.header, path);
+    case 'query':
+      return applyValueAccessor(ctx.query, path.startsWith('.') ? path : `.${path}`);
+    default:
+      return undefined;
+  }
+}
+
+/** Replace ${url.*}, ${body.*}, ${header.*}, ${query.*} references in a value tree. */
+export function replaceRequestRefs(value: any, ctx: MockRequestContext): any {
+  if (typeof value === 'string') {
+    const exactMatch = value.match(/^\$\{(url|body|header|query)\.([^}]+)\}$/);
+    if (exactMatch) {
+      const resolved = resolveMockRef(exactMatch[1], exactMatch[2], ctx);
+      return resolved !== undefined ? resolved : value;
+    }
+    return value.replace(MOCK_REF_RE, (match, ns: string, path: string) => {
+      const resolved = resolveMockRef(ns, path, ctx);
+      return resolved !== undefined ? String(resolved) : match;
+    });
+  }
+  if (Array.isArray(value)) {
+    return value.map(item => replaceRequestRefs(item, ctx));
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = replaceRequestRefs(v, ctx);
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Extract Express-style :param names from endpoint path patterns. */
+export function extractPathParamNames(paths: string[]): string[] {
+  const names = new Set<string>();
+  for (const pattern of paths) {
+    const parts = pattern.split('/');
+    for (const part of parts) {
+      if (part.startsWith(':')) {
+        names.add(part.slice(1));
+      }
+    }
+  }
+  return [...names];
+}
+
+/** Serialize body based on format. */
+export function serializeBody(body: any, format: Format): string {
+  if (body === null || body === undefined) {
+    return '';
+  }
+  if (typeof body === 'object') {
+    return formatBody(format, body, true);
+  }
+  if (format === 'xml' || format === 'xmle') {
+    return formatBody(format, String(body), true);
+  }
+  return String(body);
+}
+
+export interface MatchResult {
+  endpoint: MockEndpoint;
+  pathParams: Record<string, string>;
+}
+
+/** Resolve e:/r:/c: tokens in an endpoint path pattern before matching. */
+function resolveEndpointPath(path: string, tokenResolver?: TokenResolver): string {
+  if (!tokenResolver) {
+    return path;
+  }
+  const resolved = tokenResolver(path);
+  return resolved === undefined || resolved === null ? path : String(resolved);
+}
+
+/**
+ * Find the best matching endpoint for a request.
+ * Named endpoints are checked first if x-mock-example header is present.
+ * Otherwise: method+path candidates with a successful `match` win over
+ * bare path matches (so a catch-all listed first does not shadow filters).
+ * Among equals, file order wins. tokenResolver resolves e:/r:/c: in paths/rules.
+ */
+export function findEndpoint(
+    endpoints: MockEndpoint[], req: MockRequest,
+    tokenResolver?: TokenResolver): MatchResult | null {
+  const method = req.method.toLowerCase();
+
+  // Check x-mock-example header for named endpoint selection
+  const exampleName = req.headers['x-mock-example'] || req.headers['X-Mock-Example'];
+  if (exampleName) {
+    for (const ep of endpoints) {
+      if (ep.name !== exampleName) {
+        continue;
+      }
+      if (ep.method && ep.method !== method) {
+        continue;
+      }
+      const params = matchPath(resolveEndpointPath(ep.path, tokenResolver), req.path);
+      if (params !== null) {
+        return {endpoint: ep, pathParams: params};
+      }
+    }
+  }
+
+  let catchAll: MatchResult | null = null;
+
+  for (const ep of endpoints) {
+    // Method check (skip for reflect-only or ws endpoints without method)
+    if (ep.method && ep.method !== method) {
+      continue;
+    }
+
+    const params = matchPath(resolveEndpointPath(ep.path, tokenResolver), req.path);
+    if (params === null) {
+      continue;
+    }
+
+    if (ep.match) {
+      if (matchCondition(ep.match, req, tokenResolver)) {
+        // Prefer the first successful filtered match
+        return {endpoint: ep, pathParams: params};
+      }
+      continue;
+    }
+
+    // Remember first bare path match; only use if no filtered match succeeds
+    if (!catchAll) {
+      catchAll = {endpoint: ep, pathParams: params};
+    }
+  }
+
+  return catchAll;
+}
+
+/**
+ * Build a MockResponse from a matched endpoint.
+ * tokenResolver is called on the body to resolve r:/c:/e: tokens.
+ */
+export function buildResponse(
+    endpoint: MockEndpoint,
+    pathParams: Record<string, string>,
+    req: MockRequest,
+    globalHeaders: Record<string, string> | undefined,
+    globalDelay: number,
+    tokenResolver?: TokenResolver): MockResponse {
+  // Reflect mode: echo back the request
+  if (endpoint.reflect) {
+    const reflectBody = {
+      method: req.method,
+      path: req.path,
+      headers: req.headers,
+      query: req.query,
+      body: req.body
+    };
+    return {
+      status: endpoint.status ?? 200,
+      headers: {...(globalHeaders || {}), 'content-type': 'application/json'},
+      body: JSON.stringify(reflectBody, null, 2),
+      delay: endpoint.delay ?? globalDelay
+    };
+  }
+
+  const format = endpoint.format || autoDetectFormat(endpoint.body);
+  let body = endpoint.body;
+
+  // Substitute ${url.*}, ${body.*}, ${header.*}, ${query.*} from the request
+  body = replaceRequestRefs(body, buildRequestContext(req, pathParams));
+
+  // Resolve tokens (r:, c:, e:)
+  if (tokenResolver) {
+    body = tokenResolver(body);
+  }
+
+  // Serialize
+  const serialized = serializeBody(body, format);
+
+  // Merge headers: global < endpoint (resolve e:/r:/c: in endpoint headers)
+  const headers: Record<string, string> = {
+    ...(globalHeaders || {}),
+    'content-type': contentTypeForFormat(format),
+    ...(resolveStringMap(endpoint.headers, tokenResolver) || {})
+  };
+
+  return {
+    status: endpoint.status ?? 200,
+    headers,
+    body: serialized,
+    delay: endpoint.delay ?? globalDelay
+  };
+}
+
+/**
+ * Build a fallback response for unmatched routes.
+ */
+export function buildFallbackResponse(
+    fallback: MockFallback | undefined,
+    req: MockRequest,
+    globalHeaders: Record<string, string> | undefined,
+    globalDelay: number,
+    tokenResolver?: TokenResolver): MockResponse {
+  if (!fallback) {
+    return {
+      status: 404,
+      headers: {...(globalHeaders || {}), 'content-type': 'application/json'},
+      body: JSON.stringify({error: 'Not Found'}),
+      delay: globalDelay
+    };
+  }
+
+  const format = fallback.format || autoDetectFormat(fallback.body);
+  let body = fallback.body;
+
+  body = replaceRequestRefs(body, buildRequestContext(req, {}));
+
+  if (tokenResolver) {
+    body = tokenResolver(body);
+  }
+
+  const serialized = serializeBody(body, format);
+  const headers: Record<string, string> = {
+    ...(globalHeaders || {}),
+    'content-type': contentTypeForFormat(format),
+    ...(resolveStringMap(fallback.headers, tokenResolver) || {})
+  };
+
+  return {
+    status: fallback.status ?? 404,
+    headers,
+    body: serialized,
+    delay: globalDelay
+  };
+}
+
+/**
+ * Create a router function from MockData.
+ * Returns a function that takes a MockRequest and returns a MockResponse.
+ */
+export function createMockRouter(
+    data: MockData,
+    tokenResolver?: TokenResolver): (req: MockRequest) => MockResponse {
+  return (req: MockRequest): MockResponse => {
+    const result = findEndpoint(data.endpoints as MockEndpoint[], req, tokenResolver);
+    if (result) {
+      return buildResponse(
+          result.endpoint, result.pathParams, req,
+          data.headers, data.delay || 0, tokenResolver);
+    }
+    return buildFallbackResponse(
+        data.fallback, req, data.headers, data.delay || 0, tokenResolver);
+  };
+}
