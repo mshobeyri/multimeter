@@ -2,6 +2,19 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.46.2-pre]
+
+Pre-release. VS Code extension `1.46.2`; Testlight CLI and MCP `1.46.2-pre` on `@pre`.
+
+### API tester Send
+
+- Remint `r:` / `c:` on each Send and pass the snapshot so core does not remint again
+- Tip token hover from the Send cache for body (JSON/XML/urlencoded), headers, params, cookies, and URL-bar query
+
+### Suite
+
+- Speed up suite open with title-only load then deepen
+
 ## [1.46.1-pre]
 
 Pre-release. VS Code extension `1.46.1`; Testlight CLI and MCP `1.46.1-pre` on `@pre`.
