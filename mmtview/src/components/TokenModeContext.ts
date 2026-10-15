@@ -7,7 +7,7 @@ export type TokenModeState = {
   mode: TokenDisplayMode;
   /**
    * Bumps when frozen r:/c: field-preview samples are re-seeded
-   * (open, telescope on, Send → wire values).
+   * (open, telescope on, or Send — including when telescope is off).
    */
   previewEpoch: number;
 };

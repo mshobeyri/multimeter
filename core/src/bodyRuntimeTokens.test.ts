@@ -29,6 +29,7 @@ import {
   projectBodyKeepingRuntimeTokens,
   restoreAngleRuntimeTokensInUrlEncoded,
   reviveDisplayRuntimeTokensInValue,
+  rewriteAllLeavesToDisplayText,
   rewriteRuntimeLeavesToDisplayText,
   rewriteRuntimeTokensInText,
   runtimeTokenEmitsJsonString,
@@ -455,6 +456,24 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(spans[0].tooltip).toBe('A');
   });
 
+  it('findDisplayTokenCharRanges tooltips use Send-seeded cache (telescope off)', () => {
+    clearTokenFieldPreviewRandomCache();
+    seedTokenFieldPreviewFromRequest(
+        {headers: {id: 'r:uuid'}},
+        {headers: {id: 'sent-from-wire'}},
+    );
+    const spans = findDisplayTokenCharRanges('{{r:uuid}}', {
+      inputs: {},
+      env: {},
+    });
+    expect(spans).toHaveLength(1);
+    expect(spans[0].tooltip).toBe('sent-from-wire');
+    // Stable across hovers — same cache as telescope preview.
+    expect(findDisplayTokenCharRanges('{{r:uuid}}', {inputs: {}, env: {}})[0]
+               .tooltip)
+        .toBe('sent-from-wire');
+  });
+
   it('findBodyTokenHoverSpans marks resolved i:/e: values from template', () => {
     const spans = findBodyTokenHoverSpans(
         '{"user":"alice","n":10}',
@@ -482,6 +501,67 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     const hit = resolved.find(s => s.tooltip === '{{r:uuid}}');
     expect(hit).toBeTruthy();
     expect(`{\n  "asd": "${uuid}"\n}`.slice(hit!.start, hit!.end)).toBe(uuid);
+  });
+
+  it('findBodyTokenHoverSpans tips wire values while display still shows tokens', () => {
+    const rw = 'ee063e87-bde6-4b14-a134-9be627222e82';
+    const rws = '9fb2a5b5-cfe8-484e-84a3-5658c800faf6';
+    const display = [
+      '{',
+      '  "created_utc": "{{c:utc_datetime}}",',
+      '  "rw": "{{r:uuid}}",',
+      '  "rws": "{{r:uuid}}"',
+      '}',
+    ].join('\n');
+    const spans = findBodyTokenHoverSpans(display, {
+      tokenSource: {
+        created_utc: 'c:utc_datetime',
+        rw: 'r:uuid',
+        rws: 'r:uuid',
+      },
+      resolvedBody: {
+        created_utc: '2026-10-15T20:04:17Z',
+        rw,
+        rws,
+      },
+    });
+    const rwSpan = spans.find(
+        (s) => display.slice(s.start, s.end) === '{{r:uuid}}' &&
+            s.tooltip === rw);
+    const rwsSpan = spans.find(
+        (s) => display.slice(s.start, s.end) === '{{r:uuid}}' &&
+            s.tooltip === rws);
+    expect(rwSpan).toBeTruthy();
+    expect(rwsSpan).toBeTruthy();
+    expect(rwSpan!.start).not.toBe(rwsSpan!.start);
+  });
+
+  it('body document cache tips wire r: values without reminting samples', () => {
+    clearTokenFieldPreviewRandomCache();
+    const rw = 'ee063e87-bde6-4b14-a134-9be627222e82';
+    const rws = '9fb2a5b5-cfe8-484e-84a3-5658c800faf6';
+    const sourceBody = {
+      created_utc: 'c:utc_datetime',
+      rw: 'r:uuid',
+      rws: 'r:uuid',
+    };
+    seedTokenFieldPreviewFromRequest(
+        {body: sourceBody},
+        {
+          body: {
+            created_utc: '2026-10-15T20:04:17Z',
+            rw,
+            rws,
+          },
+        },
+    );
+    const display = stringifyJsonWithRuntimeTokens(
+        rewriteAllLeavesToDisplayText(sourceBody), true);
+    const spans = findDisplayTokenCharRanges(display, {inputs: {}, env: {}});
+    const rTips = spans
+        .filter((s) => display.slice(s.start, s.end) === '{{r:uuid}}')
+        .map((s) => s.tooltip);
+    expect(rTips).toEqual([rw, rws]);
   });
 
   it('pins short c: slice highlights to their own JSON field, not a sibling prefix', () => {

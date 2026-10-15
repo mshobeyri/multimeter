@@ -59,7 +59,7 @@ Send sits on the URL row (next to the method+URL control). Duration, status, his
 
 | Control | What it does |
 |---|---|
-| {{btn:telescope}} | Toggle **token mirror**: show resolved input/env/current/random values (random `r:` frozen until Send or toggle again), or editable token text in request fields (including Body) |
+| {{btn:telescope}} | Toggle **token mirror**: show resolved input/env/current/random values (random `r:` frozen until Send or toggle again), or editable token text in request fields (including Body). **Send** always remints and freezes those values into the preview cache (and the wire request) even when the mirror is off. |
 | {{btn:globe}} | Open the [Environment Variables](../env/ui.md) panel |
 
 ### Send

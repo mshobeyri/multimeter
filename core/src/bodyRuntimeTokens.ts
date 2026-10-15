@@ -1477,8 +1477,49 @@ function seedTokenFieldPreviewDeep(
 }
 
 /**
+ * Seed the tokens-mode JSON body editor buffer as one cache entry so
+ * {@link findDisplayTokenCharRanges} / hover tips use wire `r:`/`c:` values
+ * (in document order) instead of reminting samples.
+ */
+function seedTokenFieldPreviewBodyDocument(
+    sourceBody: unknown,
+    resolvedBody: unknown,
+    ): void {
+  if (sourceBody == null || resolvedBody == null) {
+    return;
+  }
+  if (typeof sourceBody === 'string') {
+    return;
+  }
+  const display = stringifyJsonWithRuntimeTokens(
+      rewriteAllLeavesToDisplayText(sourceBody), true);
+  const leaves: TokenResolvedLeaf[] = [];
+  walkTokenResolvedLeaves(sourceBody, resolvedBody, leaves);
+  const rList: unknown[] = [];
+  const cList: unknown[] = [];
+  let sawCurrent = false;
+  for (const leaf of leaves) {
+    const prefix = leaf.plain.charAt(0).toLowerCase();
+    if (prefix === 'r') {
+      rList.push(leaf.piece);
+    } else if (prefix === 'c') {
+      sawCurrent = true;
+      cList.push(leaf.piece);
+    }
+  }
+  if (rList.length === 0 && !sawCurrent) {
+    return;
+  }
+  tokenFieldPreviewRandomCache.set(cacheKeyForFieldSource(display), {
+    r: rList,
+    ...(sawCurrent ? {c: cList} : {}),
+  });
+}
+
+/**
  * Clear and re-seed field-preview caches from an API YAML model + resolved
- * request so telescope fields match body/`requestData` (open / telescope-on).
+ * request so telescope fields / tokens-mode tips match wire values (Send,
+ * open, telescope-on).
  */
 export function seedTokenFieldPreviewFromRequest(
     source: {
@@ -1510,6 +1551,8 @@ export function seedTokenFieldPreviewFromRequest(
   seedTokenFieldPreviewRecord(source.cookies, resolved.cookies);
   if (source.body != null) {
     seedTokenFieldPreviewDeep(source.body, resolved.body);
+    // Whole-document cache for the tokens-mode body editor (ordered r:/c:).
+    seedTokenFieldPreviewBodyDocument(source.body, resolved.body);
   }
   if (source.graphql?.operation != null) {
     seedTokenFieldPreviewFromResolved(
@@ -1634,7 +1677,12 @@ export function projectTokenFieldPreview(
   return {text, spans};
 }
 
-/** Char-offset ranges for `{{i|e|r|c:…}}` (and legacy) in edit-buffer text. */
+/**
+ * Char-offset ranges for `{{i|e|r|c:…}}` (and legacy) in edit-buffer text.
+ * Tooltips for `r:`/`c:` use the same field-preview cache as telescope
+ * ({@link projectTokenFieldPreview}) so Send values stay visible while
+ * telescope is off (tokens mode).
+ */
 export function findDisplayTokenCharRanges(
     text: string,
     ctx?: RuntimeTokenValueContext,
@@ -1642,7 +1690,8 @@ export function findDisplayTokenCharRanges(
   if (!text) {
     return [];
   }
-  const spans: TokenFieldSpan[] = [];
+  type Match = {start: number; end: number; plain: string};
+  const matches: Match[] = [];
   const patterns = [DISPLAY_PREFIXED_GLOBAL_RE, LEGACY_DISPLAY_RUNTIME_GLOBAL_RE];
   for (const base of patterns) {
     const re = new RegExp(base.source, 'gi');
@@ -1652,25 +1701,45 @@ export function findDisplayTokenCharRanges(
       if (!plain) {
         continue;
       }
-      const prefix = plain.charAt(0).toLowerCase();
-      let resolved: unknown = undefined;
-      if (prefix === 'r' || prefix === 'c') {
-        resolved = lookupRuntimeResolvedValue(plain);
-      } else {
-        resolved = lookupIeResolvedValue(plain, ctx);
+      const start = match.index;
+      const end = match.index + match[0].length;
+      // Prefer the first pattern's hit when forms overlap the same span.
+      if (matches.some(m => !(end <= m.start || start >= m.end))) {
+        continue;
       }
-      const tooltip = resolved === undefined ?
-        undefined :
-        ieResolvedToDisplayText(resolved);
-      spans.push({
-        start: match.index,
-        end: match.index + match[0].length,
-        kind: 'token',
-        tooltip: tooltip || undefined,
-      });
+      matches.push({start, end, plain});
     }
   }
-  spans.sort((a, b) => a.start - b.start);
+  matches.sort((a, b) => a.start - b.start);
+
+  const spans: TokenFieldSpan[] = [];
+  const cacheKey = cacheKeyForFieldSource(text);
+  let randomOccurrence = 0;
+  let currentOccurrence = 0;
+  for (const m of matches) {
+    const prefix = m.plain.charAt(0).toLowerCase();
+    let resolved: unknown = undefined;
+    if (prefix === 'r') {
+      resolved = lookupCachedRandomForFieldPreview(
+          cacheKey, m.plain, randomOccurrence);
+      randomOccurrence += 1;
+    } else if (prefix === 'c') {
+      resolved = lookupCachedCurrentForFieldPreview(
+          cacheKey, m.plain, currentOccurrence);
+      currentOccurrence += 1;
+    } else {
+      resolved = lookupIeResolvedValue(m.plain, ctx);
+    }
+    const tooltip = resolved === undefined ?
+      undefined :
+      ieResolvedToDisplayText(resolved);
+    spans.push({
+      start: m.start,
+      end: m.end,
+      kind: 'token',
+      tooltip: tooltip || undefined,
+    });
+  }
   return spans;
 }
 
@@ -1988,6 +2057,53 @@ function indexOfKeyedJsonPiece(
   return null;
 }
 
+/**
+ * Tokens-mode body still shows `{{r:uuid}}` / bare tokens — find that form
+ * under a JSON key so hover can tip the wire value from resolvedBody.
+ */
+function indexOfKeyedJsonTokenForm(
+    displayText: string,
+    key: string,
+    plain: string,
+    ): {start: number; end: number}|null {
+  if (!key || !plain) {
+    return null;
+  }
+  const forms = [
+    toDisplayRuntimeToken(plain),
+    `<<${plain}>>`,
+    plain,
+  ].filter((f, i, arr) => f && arr.indexOf(f) === i);
+  for (const form of forms) {
+    const quoted = JSON.stringify(form);
+    const keyedQuoted = new RegExp(
+        `"${escapeRegExpLocal(key)}"\\s*:\\s*(${escapeRegExpLocal(quoted)})`,
+    );
+    const quotedMatch = keyedQuoted.exec(displayText);
+    if (quotedMatch && quotedMatch.index != null) {
+      const valueStart =
+          quotedMatch.index + quotedMatch[0].length - quotedMatch[1].length;
+      if (quoted.startsWith('"') && quoted.endsWith('"') && quoted.length >= 2) {
+        return {
+          start: valueStart + 1,
+          end: valueStart + 1 + form.length,
+        };
+      }
+      return {start: valueStart, end: valueStart + quotedMatch[1].length};
+    }
+    const keyedBare = new RegExp(
+        `"${escapeRegExpLocal(key)}"\\s*:\\s*(${escapeRegExpLocal(form)})(?=\\s*[,}\\]])`,
+    );
+    const bareMatch = keyedBare.exec(displayText);
+    if (bareMatch && bareMatch.index != null) {
+      const valueStart =
+          bareMatch.index + bareMatch[0].length - bareMatch[1].length;
+      return {start: valueStart, end: valueStart + bareMatch[1].length};
+    }
+  }
+  return null;
+}
+
 function locateLeafSpansInDisplay(
     displayText: string,
     leaves: TokenResolvedLeaf[],
@@ -1997,6 +2113,7 @@ function locateLeafSpansInDisplay(
   let searchFrom = 0;
   for (const leaf of leaves) {
     let located: {start: number; end: number}|null = null;
+    let tokensMode = false;
     if (typeof leaf.key === 'string' && leaf.key.length > 0) {
       located = indexOfKeyedJsonPiece(
           displayText,
@@ -2019,6 +2136,13 @@ function locateLeafSpansInDisplay(
     if (!located) {
       located = indexOfResolvedPiece(displayText, leaf.piece, searchFrom);
     }
+    // Telescope off: display still has {{r:…}} — tip the wire piece instead.
+    if (!located && typeof leaf.key === 'string' && leaf.key.length > 0) {
+      located = indexOfKeyedJsonTokenForm(displayText, leaf.key, leaf.plain);
+      if (located) {
+        tokensMode = true;
+      }
+    }
     if (!located) {
       continue;
     }
@@ -2030,8 +2154,10 @@ function locateLeafSpansInDisplay(
     spans.push({
       start: located.start,
       end: located.end,
-      kind: 'resolved',
-      tooltip: toDisplayRuntimeToken(leaf.plain),
+      kind: tokensMode ? 'token' : 'resolved',
+      tooltip: tokensMode ?
+        leaf.piece :
+        toDisplayRuntimeToken(leaf.plain),
     });
     // Only advance the sequential cursor for unkeyed fallbacks so keyed hits
     // do not skip later fields that appear earlier in the document.

@@ -1546,6 +1546,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     onChange={handleBodyEditChange}
                     initialCursor={bodyEditCursor}
                     valueContext={bodyValueContext}
+                    // Pair YAML tokens with last Send/open snapshot so hover
+                    // tips match the wire even while telescope is off.
+                    tokenSource={api.body}
+                    resolvedBody={requestData?.body}
                     onToolbarChange={setRequestBodyToolbar}
                   />
                 ) : (

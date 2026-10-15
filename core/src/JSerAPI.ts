@@ -264,15 +264,17 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   req_.body = __multipartBuilt_.body;
 `
       : '';
+  // Prefer the request that was actually sent (override or built req_).
+  // Binary/multipart redact the wire body to a short size label.
   const detailsRequestExpr = isBinaryRequest
-      ? `{ ...req_, body: '<binary ' + __binaryBody_.length + ' bytes path=' + __binaryPath_ + '>' }`
+      ? `{ ...req_, body: '<binary ' + (req_.body && req_.body.length || 0) + ' bytes>' }`
       : isMultipartRequest
-        ? `{ ...req_, body: '<multipart ' + req_.body.length + ' bytes>' }`
+        ? `{ ...req_, body: '<multipart ' + (req_.body && req_.body.length || 0) + ' bytes>' }`
         : 'req_';
 
-  return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
-  const __resolvedUrl = ${toTemplateWithEnvs(String(replaced.url || ''))};
-${binaryLoadLines}${multipartPrepLines}  const req_ = {
+  // When UI Send passes __mmt_requestOverride, skip evaluating r:/c:/i:/e:
+  // remint expressions in the object literal (ternary short-circuit).
+  const builtReqLiteral = `{
     url: __resolvedUrl,
     protocol: ${protocolExpr},
     method: '${effectiveMethod}',
@@ -280,13 +282,33 @@ ${binaryLoadLines}${multipartPrepLines}  const req_ = {
     query: ${queryParams ? '{ ' + queryParams + ' }' : '{}'},
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},
     body: ${bodyExpr}
-  };
-${authCode}
-  ${declaredReqFormat === 'auto'
+  }`;
+
+  return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
+  let req_;
+  if (typeof __mmt_requestOverride !== 'undefined' && __mmt_requestOverride) {
+    req_ = __mmt_requestOverride;
+${isBinaryRequest ? `    if (typeof req_.body === 'string' && req_.body) {
+      req_ = { ...req_, body: await readBinaryFile_(String(req_.body).trim()) };
+    }
+` : ''}${isMultipartRequest ? `    if (req_.body != null && typeof req_.body === 'object') {
+      const __multipartBuilt_ = await buildMultipartBodyFromParts_(req_.body);
+      if (!req_.headers) { req_.headers = {}; }
+      if (!req_.headers["Content-Type"] || String(req_.headers["Content-Type"]).toLowerCase().indexOf("boundary=") < 0) {
+        req_.headers["Content-Type"] = __multipartBuilt_.contentType;
+      }
+      req_ = { ...req_, body: __multipartBuilt_.body };
+    }
+` : ''}  } else {
+    const __resolvedUrl = ${toTemplateWithEnvs(String(replaced.url || ''))};
+${binaryLoadLines}${multipartPrepLines}    req_ = ${builtReqLiteral};
+    ${declaredReqFormat === 'auto'
       ? `const __reqFormat_ = resolveRequestFormat_('auto', req_.headers, req_.body);
-  applyOmitToRequest_(req_, __reqFormat_);`
+    applyOmitToRequest_(req_, __reqFormat_);`
       : `applyOmitToRequest_(req_, '${declaredReqFormat}');`}
-${multipartBuildLines}  const res_ = await send_(req_);
+${multipartBuildLines ? multipartBuildLines.split('\n').map((l) => l ? '  ' + l : l).join('\n') : ''}  }
+${authCode}
+  const res_ = await send_(req_);
 
   const __extractSource_ = {
       type: 'auto',
@@ -387,27 +409,35 @@ function generateGrpcFunction(
 
   // For gRPC, headers become metadata
   // Auth also contributes to metadata via the same authCode
+  // When UI Send passes override, skip reminting message/url expressions.
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
-  const __resolvedUrl = ${toTpl(String(replaced.url || ''))};
-  const req_ = {
-    url: __resolvedUrl,
-    protocol: 'grpc',
-    method: 'grpc',
-    query: {},
-    headers: ${headers ? '{ ' + headers + ' }' : '{}'},
-    body: ${messageExpr}
-  };
+  let req_;
+  let __grpcReq;
+  if (typeof __mmt_requestOverride !== 'undefined' && __mmt_requestOverride) {
+    req_ = __mmt_requestOverride;
+    __grpcReq = __mmt_requestOverride;
+  } else {
+    const __resolvedUrl = ${toTpl(String(replaced.url || ''))};
+    req_ = {
+      url: __resolvedUrl,
+      protocol: 'grpc',
+      method: 'grpc',
+      query: {},
+      headers: ${headers ? '{ ' + headers + ' }' : '{}'},
+      body: ${messageExpr}
+    };
 ${authCode}
-  const __grpcReq = {
-    url: __resolvedUrl,
-    proto: ${protoExpr},
-    service: ${serviceExpr},
-    method: ${methodExpr},
-    metadata: req_.headers,
-    message: ${messageExpr},
-    stream: ${streamExpr}
-  };
-  applyOmitToRequest_(__grpcReq);
+    __grpcReq = {
+      url: __resolvedUrl,
+      proto: ${protoExpr},
+      service: ${serviceExpr},
+      method: ${methodExpr},
+      metadata: req_.headers,
+      message: ${messageExpr},
+      stream: ${streamExpr}
+    };
+    applyOmitToRequest_(__grpcReq);
+  }
   const __grpcRes = await sendGrpc_(__grpcReq);
 
   // Parse gRPC response message
@@ -509,8 +539,9 @@ function generateOAuth2JS(
   const scopePart = auth.scope
       ? `\n          scope: ${toTpl(auth.scope)},`
       : '';
+  // Use unwrapped send so __mmt_requestOverride only applies to the primary request.
   return `  if (!req_.headers["Authorization"]) {
-    const _tokenResp = await send_({
+    const _tokenResp = await __mmt_originalSend({
       url: ${toTpl(auth.token_url)},
       method: "post",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },

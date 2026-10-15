@@ -268,9 +268,10 @@ export function useAPITesterLogic({
   }, [resetTouchedFields, resolveFreshRequestData, seedPreviewFromResolved]);
 
   /**
-   * Remint r:/c: into the telescope snapshot, then return the wire request.
-   * Each Send gets fresh samples; UI preview is seeded to those same values
-   * so telescope matches what leaves on the wire (no second core remint).
+   * Remint r:/c:, seed the field-preview cache, then return the wire request.
+   * Runs on every API Tester Send whether telescope is on or off — so tokens
+   * mode still freezes wire values into cache, and core receives the same
+   * snapshot via resolvedRequest (no second remint).
    */
   const buildRequestForSend = useCallback(async (): Promise<Request> => {
     const envParameters = await loadEnvParameters();
@@ -507,7 +508,7 @@ export function useAPITesterLogic({
     const protocol = protocolResolver.getEffectiveProtocol(
       apiRef.current?.protocol as any, apiRef.current?.url);
 
-    // Frozen telescope snapshot — same r:/c: values the UI shows.
+    // Remint + cache + wire snapshot (telescope on or off).
     const req = await buildRequestForSend();
 
     if (protocol === "ws") {
