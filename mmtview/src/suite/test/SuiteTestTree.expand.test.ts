@@ -6,16 +6,17 @@ import {
 } from './SuiteTestTree';
 
 describe('buildDefaultExpandedSuiteIds', () => {
-  it('opens root for a single group suite', () => {
-    expect(buildDefaultExpandedSuiteIds([{ label: 'G', entries: [{ id: '1', path: 'a.mmt' }] }]))
-      .toEqual(['suite-root']);
+  it('opens root and every top-level item for a single group suite', () => {
+    expect(buildDefaultExpandedSuiteIds([
+      { label: 'G', entries: [{ id: '1', path: 'a.mmt' }, { id: '2', path: 'b.mmt' }] },
+    ])).toEqual(['suite-root', '1', '2']);
   });
 
-  it('opens root and every group folder for multi-group suites', () => {
+  it('opens root, every group folder, and every top-level item for multi-group suites', () => {
     expect(buildDefaultExpandedSuiteIds([
       { label: 'G1', entries: [{ id: '1', path: 'a.mmt' }] },
       { label: 'G2', entries: [{ id: '2', path: 'b.mmt' }] },
-    ])).toEqual(['suite-root', 'group-1', 'group-2']);
+    ])).toEqual(['suite-root', 'group-1', 'group-2', '1', '2']);
   });
 });
 

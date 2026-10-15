@@ -124,12 +124,26 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
   return { items, allPaths, groupIds };
 };
 
-/** Default expanded ids: root open, and every YAML group folder open. */
+/**
+ * Default expanded ids on suite open:
+ * - root
+ * - every YAML group folder (when there is more than one)
+ * - every top-level suite item (so nested children show once hierarchy arrives)
+ *
+ * Does not recursively expand nested suite/group nodes deeper than the suite's own items.
+ */
 export function buildDefaultExpandedSuiteIds(groups: SuiteGroup[]): string[] {
   const ids: string[] = ['suite-root'];
   if (groups.length > 1) {
     for (let idx = 0; idx < groups.length; idx++) {
       ids.push(`group-${idx + 1}`);
+    }
+  }
+  for (const group of groups) {
+    for (const entry of group.entries) {
+      if (entry?.id) {
+        ids.push(entry.id);
+      }
     }
   }
   return ids;
@@ -450,6 +464,18 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
       return next;
     });
   }, [treeData.items, defaultExpandedItems, syncExpandedItems]);
+
+  // Default-expanded top-level items never fire onExpand — request their hierarchy here.
+  useEffect(() => {
+    if (!onRequestHierarchy) {
+      return;
+    }
+    for (const id of expandedItems) {
+      if (topLevelEntryIds.has(id) && !hierarchyByEntryId[id]) {
+        onRequestHierarchy(id);
+      }
+    }
+  }, [expandedItems, hierarchyByEntryId, onRequestHierarchy, topLevelEntryIds]);
 
   const reportsByIdRef = useRef(reportsById);
   const runStateByIdRef = useRef(runStateById);
