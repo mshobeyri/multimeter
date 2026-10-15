@@ -1379,6 +1379,54 @@ export function tokenFieldPreviewScope(namespace: string, key: string): string {
   return `${namespace}\0${key}`;
 }
 
+export type TokenPreviewCacheScope =
+    string|((source: string, tokenStart: number) => string);
+
+function resolvePreviewCacheKey(
+    source: string,
+    tokenStart: number,
+    scope?: TokenPreviewCacheScope,
+    ): string {
+  if (typeof scope === 'function') {
+    return scope(source, tokenStart);
+  }
+  return tokenPreviewCacheKey(source, scope);
+}
+
+/**
+ * Cache key for a token inside the URL bar (`path?k=v`). Path tokens use the
+ * seeded URL template; query values use the same `query\0name` scope as Params.
+ */
+export function urlBarTokenPreviewCacheKey(
+    urlWithQuery: string,
+    tokenStart: number,
+    ): string {
+  const text = String(urlWithQuery ?? '');
+  const q = text.indexOf('?');
+  const base = q < 0 ? text : text.slice(0, q);
+  if (q < 0 || tokenStart <= q) {
+    return tokenPreviewCacheKey(base);
+  }
+  let i = q + 1;
+  while (i <= text.length) {
+    const amp = text.indexOf('&', i);
+    const pairEnd = amp < 0 ? text.length : amp;
+    const eq = text.indexOf('=', i);
+    const hasEq = eq >= 0 && eq < pairEnd;
+    const key = hasEq ? text.slice(i, eq) : text.slice(i, pairEnd);
+    const value = hasEq ? text.slice(eq + 1, pairEnd) : '';
+    const valueStart = hasEq ? eq + 1 : pairEnd;
+    if (tokenStart >= valueStart && tokenStart < pairEnd && key) {
+      return tokenPreviewCacheKey(value, tokenFieldPreviewScope('query', key));
+    }
+    if (amp < 0) {
+      break;
+    }
+    i = amp + 1;
+  }
+  return tokenPreviewCacheKey(base);
+}
+
 function lookupCachedRandomForFieldPreview(
     sourceKey: string,
     plain: string,
@@ -1636,22 +1684,21 @@ export function leafResolvesToOmit(
 export function projectTokenFieldPreview(
     source: string,
     ctx?: RuntimeTokenValueContext,
-    scope?: string,
+    scope?: TokenPreviewCacheScope,
     ): {text: string; spans: TokenFieldSpan[]} {
   const raw = String(source ?? '');
   if (isLiteralTokenValue(raw)) {
     const inner = `"${unwrapLiteralToken(raw)}"`;
     return {text: inner, spans: []};
   }
-  const cacheKey = tokenPreviewCacheKey(raw, scope);
   const template = rewriteAllTokensToDisplayText(raw);
   let text = '';
   const spans: TokenFieldSpan[] = [];
   const re = new RegExp(DISPLAY_PREFIXED_GLOBAL_RE.source, 'gi');
   let last = 0;
   let match: RegExpExecArray|null;
-  let randomOccurrence = 0;
-  let currentOccurrence = 0;
+  const randomOccurrence = new Map<string, number>();
+  const currentOccurrence = new Map<string, number>();
   while ((match = re.exec(template)) !== null) {
     if (match.index > last) {
       text += template.slice(last, match.index);
@@ -1662,16 +1709,17 @@ export function projectTokenFieldPreview(
       last = match.index + match[0].length;
       continue;
     }
+    const cacheKey = resolvePreviewCacheKey(template, match.index, scope);
     const prefix = plain.charAt(0).toLowerCase();
     let resolved: unknown = undefined;
     if (prefix === 'r') {
-      resolved = lookupCachedRandomForFieldPreview(
-          cacheKey, plain, randomOccurrence);
-      randomOccurrence += 1;
+      const occ = randomOccurrence.get(cacheKey) ?? 0;
+      randomOccurrence.set(cacheKey, occ + 1);
+      resolved = lookupCachedRandomForFieldPreview(cacheKey, plain, occ);
     } else if (prefix === 'c') {
-      resolved = lookupCachedCurrentForFieldPreview(
-          cacheKey, plain, currentOccurrence);
-      currentOccurrence += 1;
+      const occ = currentOccurrence.get(cacheKey) ?? 0;
+      currentOccurrence.set(cacheKey, occ + 1);
+      resolved = lookupCachedCurrentForFieldPreview(cacheKey, plain, occ);
     } else {
       resolved = lookupIeResolvedValue(plain, ctx);
     }
@@ -1742,24 +1790,24 @@ function collectDisplayTokenMatches(text: string): DisplayTokenMatch[] {
 export function findDisplayTokenCharRanges(
     text: string,
     ctx?: RuntimeTokenValueContext,
-    scope?: string,
+    scope?: TokenPreviewCacheScope,
     ): TokenFieldSpan[] {
   const matches = collectDisplayTokenMatches(text);
   const spans: TokenFieldSpan[] = [];
-  const cacheKey = tokenPreviewCacheKey(text, scope);
-  let randomOccurrence = 0;
-  let currentOccurrence = 0;
+  const randomOccurrence = new Map<string, number>();
+  const currentOccurrence = new Map<string, number>();
   for (const m of matches) {
+    const cacheKey = resolvePreviewCacheKey(text, m.start, scope);
     const prefix = m.plain.charAt(0).toLowerCase();
     let resolved: unknown = undefined;
     if (prefix === 'r') {
-      resolved = lookupCachedRandomForFieldPreview(
-          cacheKey, m.plain, randomOccurrence);
-      randomOccurrence += 1;
+      const occ = randomOccurrence.get(cacheKey) ?? 0;
+      randomOccurrence.set(cacheKey, occ + 1);
+      resolved = lookupCachedRandomForFieldPreview(cacheKey, m.plain, occ);
     } else if (prefix === 'c') {
-      resolved = lookupCachedCurrentForFieldPreview(
-          cacheKey, m.plain, currentOccurrence);
-      currentOccurrence += 1;
+      const occ = currentOccurrence.get(cacheKey) ?? 0;
+      currentOccurrence.set(cacheKey, occ + 1);
+      resolved = lookupCachedCurrentForFieldPreview(cacheKey, m.plain, occ);
     } else {
       resolved = lookupIeResolvedValue(m.plain, ctx);
     }

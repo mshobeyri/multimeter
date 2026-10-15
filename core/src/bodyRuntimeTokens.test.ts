@@ -43,6 +43,7 @@ import {
   projectTokenFieldPreview,
   TOKEN_FIELD_PREVIEW_BODY_SCOPE,
   tokenFieldPreviewScope,
+  urlBarTokenPreviewCacheKey,
   seedTokenFieldPreviewFromResolved,
   seedTokenFieldPreviewFromRequest,
   leafResolvesToOmit,
@@ -580,6 +581,36 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
                '{{r:uuid}}', ctx, tokenFieldPreviewScope('cookies', 'sid'))[0]
                .tooltip)
         .toBe('ck-id');
+  });
+
+  it('URL bar query tokens tip the same cache as the Params tab', () => {
+    clearTokenFieldPreviewRandomCache();
+    seedTokenFieldPreviewFromRequest(
+        {
+          url: 'https://example.com/{{r:uuid}}',
+          query: {q: 'r:uuid', t: 'c:time'},
+        },
+        {
+          url: 'https://example.com/path-id',
+          query: {q: 'query-id', t: '12:00:00'},
+        },
+    );
+    const ctx = {env: {}, inputs: {}};
+    const urlBar =
+        'https://example.com/{{r:uuid}}?q={{r:uuid}}&t={{c:time}}';
+    const preview = projectTokenFieldPreview(
+        urlBar, ctx, urlBarTokenPreviewCacheKey);
+    expect(preview.text).toBe(
+        'https://example.com/path-id?q=query-id&t=12:00:00');
+    const tips = findDisplayTokenCharRanges(
+        urlBar, ctx, urlBarTokenPreviewCacheKey);
+    const qToken = urlBar.indexOf('q={{r:uuid}}') + 2;
+    const qSpan = tips.find((s) => s.start === qToken);
+    expect(qSpan?.tooltip).toBe('query-id');
+    expect(findDisplayTokenCharRanges(
+               '{{r:uuid}}', ctx, tokenFieldPreviewScope('query', 'q'))[0]
+               .tooltip)
+        .toBe('query-id');
   });
 
   it('body document cache tips wire r: values without reminting samples', () => {

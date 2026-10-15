@@ -1,7 +1,10 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Method, Protocol } from "mmt-core/CommonData";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import {
+  urlBarTokenPreviewCacheKey,
+  type RuntimeTokenValueContext,
+} from "mmt-core/apiBodyEdit";
 import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
 
@@ -241,6 +244,7 @@ const MethodUrlBar: React.FC<MethodUrlBarProps> = ({
             value={urlValue}
             canContainToken
             valueContext={valueContext}
+            tokenCacheScope={urlBarTokenPreviewCacheKey}
             spellCheck={false}
             aria-label="Request URL"
             onCommit={value => emitUrl(value, onUrlChange, onQueryChange)}

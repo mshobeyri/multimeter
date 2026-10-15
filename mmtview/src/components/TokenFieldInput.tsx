@@ -9,6 +9,7 @@ import {
   wrapTypedTokenAtCursor,
   type RuntimeTokenValueContext,
   type TokenFieldSpan,
+  type TokenPreviewCacheScope,
 } from "mmt-core/apiBodyEdit";
 import { shouldAdoptFieldValue } from "./fieldValueSync";
 
@@ -27,9 +28,9 @@ type TokenFieldInputProps = Omit<
   valueContext?: RuntimeTokenValueContext;
   /**
    * Disambiguates this field in the Send/telescope preview cache
-   * (headers/query/cookies rows that share `{{r:uuid}}`).
+   * (headers/query/cookies rows, or a URL-bar key function).
    */
-  tokenCacheScope?: string;
+  tokenCacheScope?: TokenPreviewCacheScope;
   onCommit: (value: string) => void;
   /** Live keystroke callback (optional; blur/Enter still commit). */
   onDraftChange?: (value: string) => void;

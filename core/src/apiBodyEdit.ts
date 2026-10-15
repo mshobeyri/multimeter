@@ -41,6 +41,7 @@ export {
   projectTokenFieldPreview,
   TOKEN_FIELD_PREVIEW_BODY_SCOPE,
   tokenFieldPreviewScope,
+  urlBarTokenPreviewCacheKey,
   seedTokenFieldPreviewFromResolved,
   seedTokenFieldPreviewFromRequest,
   sourceToDisplayTokenTemplate,
@@ -53,6 +54,7 @@ export type {
   TokenFieldSpan,
   TokenFieldSpanKind,
   BodyTokenHoverRange,
+  TokenPreviewCacheScope,
 } from './bodyRuntimeTokens';
 
 export type DisplayRequestBodyOptions = {
