@@ -680,6 +680,11 @@
       "require": "./dist/suite/suiteNodeId.js",
       "default": "./dist/suite/suiteNodeId.js"
     },
+    "./suite/suiteParallel": {
+      "types": "./dist/suite/suiteParallel.d.ts",
+      "require": "./dist/suite/suiteParallel.js",
+      "default": "./dist/suite/suiteParallel.js"
+    },
     "./parse/suiteParsePack": {
       "types": "./dist/parse/suiteParsePack.d.ts",
       "require": "./dist/parse/suiteParsePack.js",

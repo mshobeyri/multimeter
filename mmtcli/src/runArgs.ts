@@ -1,11 +1,13 @@
 import {findProjectRootSync, isProjectRootImport, resolveCertFilePath, resolveProjectRootImport} from 'mmt-core/util/fileHelper';
 import type {ReportFormat} from 'mmt-core/data/CommonData';
 import fs from 'fs';
+import os from 'os';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
 import type {BinaryFileLoader, FileLoader, RunFileOptions, RunReporterMessage} from 'mmt-core/runner/runConfig';
 import type {NetworkConfig, EnvCertificateSettings, EnvSetting} from 'mmt-core/data/NetworkData';
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/data/NetworkData';
+import {resolveHostSuiteParallel} from 'mmt-core/suite/suiteParallel';
 import path from 'path';
 
 import {resolveUserPath, resolveUserPathPreferExisting} from './pathNormalize.cjs';
@@ -470,6 +472,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     reporter: (_message: RunReporterMessage) => {},
     projectRoot,
     checkLogMode: opts.quiet ? 'none' : 'default',
+    suiteParallel: resolveHostSuiteParallel(() => os.cpus().length),
   };
 
   const onlyTags = Array.isArray(opts.tag) ? opts.tag as string[] : [];

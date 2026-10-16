@@ -2,10 +2,12 @@ import {RunJSCodeContext} from 'mmt-core/runner/jsRunner';
 import * as runConfig from 'mmt-core/runner/runConfig';
 const {normalizePresetNames, resolveEnvFromDoc, mergeEnv} = runConfig;
 import {findProjectRootSync, isProjectRootImport, resolveProjectRootImport} from 'mmt-core/util/fileHelper';
+import {resolveHostSuiteParallel} from 'mmt-core/suite/suiteParallel';
 
 import type {FileLoader, RunFileOptions} from 'mmt-core/runner/runConfig';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
 import {logToOutput} from '../mmtAPI/run';
@@ -272,6 +274,7 @@ export async function parseAssistantRunArgs(
     jsRunner: async () => {},
     logger: logToOutput,
     reporter: (...args: any[]) => {},
+    suiteParallel: resolveHostSuiteParallel(() => os.cpus().length),
   };
 
   return {

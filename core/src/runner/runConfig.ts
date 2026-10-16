@@ -215,6 +215,19 @@ export interface RunFileOptions {
   suiteRunId?: string;
 
   /**
+   * Max concurrent suite test/api items for this run. Hosts set this from
+   * `resolveHostSuiteParallel(() => os.cpus().length)` (cores × 4). When
+   * omitted or invalid, the suite runner uses FALLBACK_SUITE_PARALLEL (8).
+   */
+  suiteParallel?: number;
+
+  /**
+   * Internal: shared run-wide concurrency gate for nested suite bundles.
+   * Created by the outer `executeSuiteBundle`; do not set from hosts.
+   */
+  __mmtSuiteParallelGate?: import('../suite/suiteParallel').SuiteParallelGate;
+
+  /**
    * Internal flag set by the suite bundle runner on child run options to
    * suppress duplicate suite-run lifecycle events (start/finished).
    */

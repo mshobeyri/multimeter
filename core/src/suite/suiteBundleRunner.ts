@@ -14,6 +14,11 @@ import {
   tagFilterFromYaml,
   type TagFilter,
 } from './suiteTagFilter';
+import {
+  createSuiteParallelGate,
+  FALLBACK_SUITE_PARALLEL,
+  type SuiteParallelGate,
+} from './suiteParallel';
 import {beginServerSession_, clearTestCallCache_, endServerSession_, ensureServerStarted_} from '../runner/testHelper';
 
 function resolveSuitePath(targetPath: string, baseFilePath: string, options: RunFileOptions): string {
@@ -217,6 +222,20 @@ async function runSuiteBundleNode(params: {
     return reportSkippedBundleNode({node, bundle, options, nextIndex});
   }
 
+  // Leaf test/api items take a run-wide slot; nested suites share the gate only.
+  const needsParallelSlot = node.kind === 'test' || node.kind === 'api';
+  const parallelGate: SuiteParallelGate|undefined = options.__mmtSuiteParallelGate;
+  if (needsParallelSlot && parallelGate) {
+    if (options.abortSignal?.aborted) {
+      return {success: false, threw: false, cancelled: true, status: 'failed'};
+    }
+    await parallelGate.acquire();
+    if (options.abortSignal?.aborted) {
+      parallelGate.release();
+      return {success: false, threw: false, cancelled: true, status: 'failed'};
+    }
+  }
+
   const currentIndex = nextIndex();
   const childFilePath = resolveSuitePath(node.path, bundle.rootSuitePath, options);
   const nodeTitle =
@@ -352,6 +371,10 @@ async function runSuiteBundleNode(params: {
     });
 
     return {success: false, threw: true, cancelled: false, status};
+  } finally {
+    if (needsParallelSlot && parallelGate) {
+      parallelGate.release();
+    }
   }
 }
 
@@ -611,6 +634,22 @@ export async function executeSuiteBundle(params: {
   } else {
     effectiveOptions = options;
   }
+
+  // One run-wide gate for this outer suite (nested bundles reuse the same gate).
+  if (!effectiveOptions.__mmtSuiteParallelGate) {
+    const limit = typeof effectiveOptions.suiteParallel === 'number' &&
+            Number.isFinite(effectiveOptions.suiteParallel) &&
+            effectiveOptions.suiteParallel >= 1 ?
+        effectiveOptions.suiteParallel :
+        FALLBACK_SUITE_PARALLEL;
+    const gate = createSuiteParallelGate(limit);
+    effectiveOptions = {
+      ...effectiveOptions,
+      suiteParallel: gate.limit,
+      __mmtSuiteParallelGate: gate,
+    };
+  }
+
   const resolvedFilter = activeTagFilter(effectiveOptions, bundle);
   effectiveOptions = {...effectiveOptions, tagFilter: resolvedFilter};
 

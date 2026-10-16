@@ -9,7 +9,9 @@ import {generateMmtReport} from 'mmt-core/report/mmtReport';
 import {generateReportHtml} from 'mmt-core/report/reportHtml';
 import {generateReportMarkdown} from 'mmt-core/report/reportMarkdown';
 import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/runner/jsRunner';
+import {resolveHostSuiteParallel} from 'mmt-core/suite/suiteParallel';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -32,6 +34,10 @@ import {ensureGitCurrentSnapshot} from 'mmt-core/tokens/Current';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
+
+function hostSuiteParallel(): number {
+  return resolveHostSuiteParallel(() => os.cpus().length);
+}
 
 function findWorkspaceProjectRoot(): string|undefined {
   const folders = vscode.workspace.workspaceFolders;
@@ -422,6 +428,7 @@ export async function handleRunCurrentDocument(
       },
       projectRoot,
       serverRunner,
+      suiteParallel: hostSuiteParallel(),
     });
 
     // Superseded by a newer run on this panel — drop all UI side effects.
@@ -654,6 +661,7 @@ export async function handleRunSuite(
         projectRoot: projectRootLoadTest,
         reporter: uiReporter.report,
         serverRunner: suiteServerRunner,
+        suiteParallel: hostSuiteParallel(),
       });
 
       await writeRunExports({
@@ -768,6 +776,7 @@ export async function handleRunSuite(
       projectRoot: projectRootSuite,
       reporter: uiReporter.report,
       serverRunner: suiteServerRunner,
+      suiteParallel: hostSuiteParallel(),
     });
 
     await writeRunExports({

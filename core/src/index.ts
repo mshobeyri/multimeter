@@ -52,6 +52,7 @@ export * as runConfig from "./runner/runConfig";
 export * as suiteHierarchy from "./suite/suiteHierarchy";
 export * as suiteBundle from "./suite/suiteBundle";
 export * as suiteNodeId from "./suite/suiteNodeId";
+export * as suiteParallel from "./suite/suiteParallel";
 export * as suiteTagFilter from "./suite/suiteTagFilter";
 export * as MockData from "./data/MockData";
 export * as mockParsePack from "./parse/mockParsePack";

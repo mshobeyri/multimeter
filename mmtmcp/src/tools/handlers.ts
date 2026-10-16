@@ -2,9 +2,11 @@ import {JSer, apiParsePack, runner, testParsePack} from 'mmt-core';
 import * as validateMmt from 'mmt-core/util/validateMmt';
 import {formatMmtYaml} from 'mmt-core/parse/mmtFormat';
 import {runJSCode} from 'mmt-core/runner/jsRunner';
+import {resolveHostSuiteParallel} from 'mmt-core/suite/suiteParallel';
 import * as testScaffold from 'mmt-core/util/testScaffold';
 import {suggestAssertions} from 'mmt-core/api-edit/suggestAssertions';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 import {
@@ -392,6 +394,7 @@ export async function handleRun(args: {
       jsRunner: runJSCode,
       logger,
       reporter: () => {},
+      suiteParallel: resolveHostSuiteParallel(() => os.cpus().length),
     });
     const allErrors: string[] = result.result.errors || [];
     const failures = allErrors.filter(entry => /[\u00D7].*failed/.test(entry));
