@@ -33,10 +33,11 @@ describe('themeAccent', () => {
     expect(methodProtocolAccent('unknown')).toBe('#888888');
   });
 
-  it('resolves semantic green/red/blue accents', () => {
+  it('resolves semantic green/red/blue/yellow accents', () => {
     expect(resolveAccent('green')).toBe(SEMANTIC_COLORS.green);
     expect(resolveAccent('red')).toBe(SEMANTIC_COLORS.red);
     expect(resolveAccent('blue')).toBe(SEMANTIC_COLORS.blue);
+    expect(resolveAccent('yellow')).toBe(SEMANTIC_COLORS.yellow);
     expect(resolveAccent('POST')).toBe(SEMANTIC_COLORS.green);
     expect(resolveAccent('#abcdef')).toBe('#abcdef');
   });

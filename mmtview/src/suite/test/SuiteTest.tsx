@@ -1496,10 +1496,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             ? !loadRunSummary && suiteRunState === 'default'
             : !hasSuiteReportData && suiteRunState === 'default');
 
+    const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
+    const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
+
     const runMenuItems = useMemo(
         () => buildReportRunMenuEntries({
             onPause: handlePause,
-            onResume: handleResume,
+            onStop: onStopSuite,
+            stopLabel,
             paused: isPaused,
             canPause: suiteRunState === 'pending' || suiteRunState === 'running',
             onRunInCore: onRunSuiteInCore,
@@ -1513,7 +1517,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }),
         [
             handlePause,
-            handleResume,
+            onStopSuite,
+            stopLabel,
             isPaused,
             suiteRunState,
             onRunSuiteInCore,
@@ -1524,9 +1529,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             suiteExportDisabled,
         ],
     );
-
-    const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
-    const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
 
     const overviewStats = useMemo((): OverviewStats | null => {
         if (mode === 'loadtest') {
@@ -1565,6 +1567,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
     }, [runOverview, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary, groups, hierarchyByEntryId]);
 
+    const statusIconForRun = useCallback(
+        (status: StepStatus | 'running') => {
+            if (isPaused && status === 'running') {
+                return statusIconFor('paused');
+            }
+            return statusIconFor(status);
+        },
+        [isPaused],
+    );
+
     const tree = (
         <SuiteTestTreePanel
             ref={suiteTreeRef}
@@ -1572,7 +1584,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             groups={groups}
             hierarchyByEntryId={hierarchyByEntryId}
             missingFiles={effectiveMissingFiles}
-            statusIconFor={statusIconFor}
+            statusIconFor={statusIconForRun}
             duplicateServerIds={duplicateServerIds}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
@@ -1582,6 +1594,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             suiteStructureKey={suiteStructureKey}
             onExpandedItemsChange={handleExpandedItemsChange}
             onRequestReports={loadReportsForNode}
+            paused={isPaused}
         />
     );
 
@@ -1743,9 +1756,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     onClick={onRunSuite}
                     onCancel={onStopSuite}
                     loading={suiteRunState === 'pending' || suiteRunState === 'running'}
+                    paused={isPaused}
+                    onResume={handleResume}
                     disabled={!canRun}
                     actionTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
                     cancelTitle={stopLabel}
+                    resumeTitle="Resume"
                     contextMenuItems={runMenuItems}
                 />
                 <YamlErrorWarning />

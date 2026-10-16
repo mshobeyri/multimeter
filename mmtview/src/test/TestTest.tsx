@@ -438,7 +438,8 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const runMenuItems = useMemo(
         () => buildReportRunMenuEntries({
             onPause: handlePause,
-            onResume: handleResume,
+            onStop: handleStop,
+            stopLabel: 'Stop test',
             paused: isPaused,
             canPause: isPreparing || isRunning,
             onRunInCore: () => {
@@ -451,7 +452,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
         }),
         [
             handlePause,
-            handleResume,
+            handleStop,
             isPaused,
             isPreparing,
             isRunning,
@@ -491,8 +492,11 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                     onClick={handleRun}
                     onCancel={handleStop}
                     loading={isPreparing || isRunning}
+                    paused={isPaused}
+                    onResume={handleResume}
                     actionTitle="Run test"
                     cancelTitle="Stop test"
+                    resumeTitle="Resume"
                     contextMenuItems={runMenuItems}
                 />
             </div>
@@ -538,6 +542,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                             ? runState
                             : 'default'
                     }
+                    paused={isPaused}
                     onRun={handleRun}
                     runButtonLabel="Run test"
                     showHeader={Boolean(hasInputs || hasOutputs || overviewStats || stepReports.length > 0)}

@@ -30,6 +30,8 @@ interface SuiteSuiteFileItemProps {
     runDisabled?: boolean;
 
     displayPath?: string;
+    /** Included for tree-row memo when pause toggles running → pause icons. */
+    paused?: boolean;
 }
 
 const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
@@ -46,6 +48,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     runButtonTitle = 'Run',
     runDisabled = false,
     displayPath,
+    paused: _paused = false,
 }) => {
     const data = item.data as SuiteSuiteFileItemData;
     const isMissing = missingFiles.has(data.path);

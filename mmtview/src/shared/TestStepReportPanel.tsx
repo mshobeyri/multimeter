@@ -353,6 +353,7 @@ type ReportStepRowProps = {
   showTimestamps: boolean;
   isDetailsExpanded: boolean;
   onToggleDetails: (reportKey: string) => void;
+  paused?: boolean;
 };
 
 const ReportStepRow: React.FC<ReportStepRowProps> = ({
@@ -361,6 +362,7 @@ const ReportStepRow: React.FC<ReportStepRowProps> = ({
   showTimestamps,
   isDetailsExpanded,
   onToggleDetails,
+  paused = false,
 }) => {
   const isDebug = report.stepType === 'debug';
   const hasDetails = reportStepHasDetails(report);
@@ -400,6 +402,7 @@ const ReportStepRow: React.FC<ReportStepRowProps> = ({
         <StatusIconWithCache
           status={isDebug ? 'debug' : report.status}
           cached={report.cached === true}
+          paused={paused}
         />
         <span className="field-grow ellipsis">
           {reportStepTitle(report)}
@@ -422,7 +425,8 @@ const ReportStepRowMemo = React.memo(ReportStepRow, (prev, next) => {
     prev.reportKey === next.reportKey &&
     prev.showTimestamps === next.showTimestamps &&
     prev.isDetailsExpanded === next.isDetailsExpanded &&
-    prev.onToggleDetails === next.onToggleDetails;
+    prev.onToggleDetails === next.onToggleDetails &&
+    prev.paused === next.paused;
 });
 
 interface TestStepReportPanelProps {
@@ -439,6 +443,8 @@ interface TestStepReportPanelProps {
   showStatusFilter?: boolean;
   /** When true, keep the header fixed and scroll report steps only. */
   scrollBody?: boolean;
+  /** When true, running step icons show pause instead of play. */
+  paused?: boolean;
 }
 
 const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
@@ -450,6 +456,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     showTimestamps = true,
     showStatusFilter = showHeader,
     scrollBody = false,
+    paused = false,
   } = props;
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
@@ -528,6 +535,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                   showTimestamps={showTimestamps}
                   isDetailsExpanded={Boolean(expandedDetails[reportKey])}
                   onToggleDetails={toggleDetails}
+                  paused={paused}
                 />
               );
             })}

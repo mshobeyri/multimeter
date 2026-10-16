@@ -36,6 +36,7 @@ interface SuiteTestFileItemProps {
 
     displayPath?: string;
     duplicateServer?: boolean;
+    paused?: boolean;
 }
 
 const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
@@ -57,6 +58,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     runDisabled = false,
     displayPath,
     duplicateServer = false,
+    paused = false,
 }) => {
     const data = item.data as SuiteTestFileItemData;
     const isServer = data.type === 'server';
@@ -172,6 +174,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                                     ? runState
                                     : 'failed'
                             }
+                            paused={paused}
                             showHeader={false}
                         />
                     )}

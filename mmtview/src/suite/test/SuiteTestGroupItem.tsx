@@ -27,6 +27,8 @@ interface SuiteTestGroupItemProps {
   onRunInCore?: () => void;
   runButtonTitle?: string;
   runDisabled?: boolean;
+  /** Included for tree-row memo when pause toggles running → pause icons. */
+  paused?: boolean;
 }
 
 const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
@@ -43,6 +45,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
   onRunInCore,
   runButtonTitle = 'Run',
   runDisabled = false,
+  paused: _paused = false,
 }) => {
   const data = item.data as SuiteTestGroupItemData;
   if (data.type !== 'group' && data.type !== 'root' && data.type !== 'import-group') {

@@ -71,6 +71,8 @@ interface SuiteTestTreeProps {
     expandedItems: string[],
     items: Record<string, TreeItem<SuiteTestTreeItemData>>,
   ) => void;
+  /** When true, running file/group status icons show pause. */
+  paused?: boolean;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -417,6 +419,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   onRequestHierarchy,
   suiteStructureKey,
   onExpandedItemsChange,
+  paused = false,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const defaultExpandedItems = useMemo(() => buildDefaultExpandedSuiteIds(groups), [groups]);
@@ -655,6 +658,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           showRunButton={data.type === 'group'}
           runButtonTitle="Run group"
           runDisabled={!hasTargets}
+          paused={paused}
           onRun={() => hasTargets && onRunTargets(groupTargets[0])}
           onRunInCore={
             hasTargets && onRunTargetsInCore
@@ -688,6 +692,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           missingFiles={missingFiles}
           statusIconFor={statusIconFor as any}
           status={status}
+          paused={paused}
           onRun={effectiveTarget ? () => onRunTargets(effectiveTarget) : undefined}
           onRunInCore={
             effectiveTarget && onRunTargetsInCore
@@ -724,6 +729,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         stepReports={stepReports}
         reportSpilled={reportSpilled}
         reportLoading={reportLoading}
+        paused={paused}
         onRequestReports={
           reportSpilled && testLeafId && onRequestReports
             ? () => onRequestReports(testLeafId)
@@ -749,6 +755,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     onRunTargetsInCore,
     duplicateServerIds,
     statusIconFor,
+    paused,
   ]);
   return (
     <>

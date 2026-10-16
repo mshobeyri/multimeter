@@ -1,11 +1,17 @@
 import * as vscode from 'vscode';
 
-import {decorateRunFinished, decorateRunStarted} from './runFileDecoration';
+import {
+  decorateRunFinished,
+  decorateRunPaused,
+  decorateRunStarted,
+} from './runFileDecoration';
 
 export type RunStatusMenuItem = {label: string; id: string};
 
 interface ActiveRun {
   label: string;
+  /** Codicon name used while the run is active (not paused). */
+  icon: string;
   uri?: vscode.Uri;
   onStop?: () => void;
   /** Run in Core: click shows Stop/Open (no separate stop badge). */
@@ -14,6 +20,8 @@ interface ActiveRun {
   menuItems?: RunStatusMenuItem[];
   onMenuAction?: (id: string) => void|Promise<void>;
   statusBarItem: vscode.StatusBarItem;
+  /** Idle (non-paused) status-bar tooltip. */
+  tooltip: string;
 }
 
 const activeRuns = new Map<string, ActiveRun>();
@@ -142,22 +150,37 @@ export function onRunStarted(
     arguments: [runId],
     title: hasMenu ? 'Run actions' : 'Open File',
   };
-  item.tooltip = hasMenu ? `${label} — click for actions` :
-                           `${label} — click to open`;
+  const tooltip = hasMenu ? `${label} — click for actions` :
+                            `${label} — click to open`;
+  item.tooltip = tooltip;
   item.show();
   extensionContext.subscriptions.push(item);
 
   activeRuns.set(runId, {
     label,
+    icon,
     uri: options?.uri,
     onStop: options?.onStop,
     actionsMenu,
     menuItems: options?.menuItems,
     onMenuAction: options?.onMenuAction,
     statusBarItem: item,
+    tooltip,
   });
   decorateRunStarted(runId, options?.uri, label);
   return runId;
+}
+
+/** Update status-bar icon and tab badge when a test/suite run is paused or resumed. */
+export function setRunPaused(runId: string, paused: boolean): void {
+  const run = activeRuns.get(runId);
+  if (!run) {
+    return;
+  }
+  const icon = paused ? 'debug-pause' : run.icon;
+  run.statusBarItem.text = `$(${icon}) ${run.label}`;
+  run.statusBarItem.tooltip = paused ? `${run.label} — paused` : run.tooltip;
+  decorateRunPaused(runId, paused);
 }
 
 export function onRunFinished(runId: string): void {

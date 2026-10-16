@@ -17,7 +17,7 @@ import {readRelativeFileContent, readRelativeFileBinary} from './file';
 import {getCachedSuiteHierarchy, stampFile} from './suiteHierarchyCache';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
-import {onRunStarted, onRunFinished} from '../runStatusBar';
+import {onRunStarted, onRunFinished, setRunPaused} from '../runStatusBar';
 import {keepMmtEditor} from '../keepEditor';
 import {getOnboarding} from '../onboarding';
 import {
@@ -70,6 +70,8 @@ type ActiveRunUi = {
   panelId: string;
   fileUri: string;
   panelRef: WebviewPanelRef;
+  /** Status-bar / tab-decoration run id from onRunStarted. */
+  statusBarRunId?: string;
 };
 
 let activeSuiteRun:
@@ -360,6 +362,10 @@ export async function handleRunCurrentDocument(
     // Run in Core: Stop/Open via click menu (never a separate stop badge).
     actionsMenu: reportType === 'lifecycle',
   });
+  const trackedTest = activeTestRuns.get(panelId);
+  if (trackedTest?.controller === controller) {
+    trackedTest.statusBarRunId = statusBarRunId;
+  }
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
     // filePath is the resolved absolute path to the mock server file
     forwardLog('info', `Starting mock server from ${alias}`);
@@ -589,6 +595,13 @@ export async function handleRunSuite(
     },
     actionsMenu: reportType === 'lifecycle',
   });
+  if (activeSuiteRun?.controller === controller) {
+    activeSuiteRun.statusBarRunId = statusBarRunId;
+  }
+  const trackedSuite = suiteRuns.get(suiteRunId);
+  if (trackedSuite) {
+    trackedSuite.statusBarRunId = statusBarRunId;
+  }
   const startedAt = Date.now();
 
   uiReporter.onRunStart({
@@ -888,14 +901,15 @@ export function abortRunsForPanel(webviewPanel: vscode.WebviewPanel): void {
   abortRunHandles(handles);
 }
 
-function pauseGateForPanel(webviewPanel: vscode.WebviewPanel): RunPauseGate|undefined {
+function activeRunUiForPanel(
+    webviewPanel: vscode.WebviewPanel): ActiveRunUi|undefined {
   const panelId = getPanelId(webviewPanel);
   const testRun = activeTestRuns.get(panelId);
   if (testRun) {
-    return testRun.pauseGate;
+    return testRun;
   }
   if (activeSuiteRun && activeSuiteRun.panelId === panelId) {
-    return activeSuiteRun.pauseGate;
+    return activeSuiteRun;
   }
   return undefined;
 }
@@ -903,11 +917,15 @@ function pauseGateForPanel(webviewPanel: vscode.WebviewPanel): RunPauseGate|unde
 export function handlePauseTestRun(
     _message: any, webviewPanel: vscode.WebviewPanel,
     _document: vscode.TextDocument, _mmtProvider: any) {
-  const gate = pauseGateForPanel(webviewPanel);
+  const tracked = activeRunUiForPanel(webviewPanel);
+  const gate = tracked?.pauseGate;
   if (!gate || gate.paused) {
     return;
   }
   gate.pause();
+  if (tracked?.statusBarRunId) {
+    setRunPaused(tracked.statusBarRunId, true);
+  }
   webviewPanel.webview.postMessage({
     command: 'testRunPaused',
     filePath: _document.uri.toString(),
@@ -917,11 +935,15 @@ export function handlePauseTestRun(
 export function handleResumeTestRun(
     _message: any, webviewPanel: vscode.WebviewPanel,
     _document: vscode.TextDocument, _mmtProvider: any) {
-  const gate = pauseGateForPanel(webviewPanel);
+  const tracked = activeRunUiForPanel(webviewPanel);
+  const gate = tracked?.pauseGate;
   if (!gate || !gate.paused) {
     return;
   }
   gate.resume();
+  if (tracked?.statusBarRunId) {
+    setRunPaused(tracked.statusBarRunId, false);
+  }
   webviewPanel.webview.postMessage({
     command: 'testRunResumed',
     filePath: _document.uri.toString(),

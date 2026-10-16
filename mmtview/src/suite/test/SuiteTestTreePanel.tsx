@@ -25,6 +25,7 @@ type SuiteTestTreePanelProps = {
     items: Record<string, TreeItem<SuiteTestTreeItemData>>,
   ) => void;
   onRequestReports?: (nodeId: string) => void;
+  paused?: boolean;
 };
 
 const SuiteTestTreePanel = React.forwardRef<SuiteTestTreeHandle, SuiteTestTreePanelProps>(

@@ -57,6 +57,15 @@ const SendButton: React.FC<{
   actionTitle?: string;
   /** Active/cancel tooltip (defaults: Cancel / Stop). */
   cancelTitle?: string;
+  /**
+   * Run-mode only: while paused, main control becomes yellow Resume
+   * (Stop moves to the more menu). Ignored for `mode="send"`.
+   */
+  paused?: boolean;
+  /** Run-mode only: called when the yellow Resume main control is clicked. */
+  onResume?: () => void;
+  /** Tooltip while paused (default: Resume). */
+  resumeTitle?: string;
 }> = ({
   onClick,
   onCancel,
@@ -68,6 +77,9 @@ const SendButton: React.FC<{
   cancelRevealMs,
   actionTitle,
   cancelTitle,
+  paused = false,
+  onResume,
+  resumeTitle,
 }) => {
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
@@ -81,11 +93,25 @@ const SendButton: React.FC<{
   const hasMenu = Boolean(contextMenuItems?.length);
   const openMenu = Boolean(menuPos && hasMenu);
   const revealMs = cancelRevealMs ?? DEFAULT_CANCEL_REVEAL_MS[mode];
+  /** Paused resume chrome only applies to run/play mode, never send. */
+  const isPausedResume = mode === "run" && paused === true;
   const idleIcon = mode === "run" ? "codicon-run" : "codicon-send";
   const cancelIcon = mode === "run" ? "codicon-debug-stop" : "codicon-close";
+  const resumeIcon = "codicon-debug-continue";
   const idleTitle =
     actionTitle ?? (mode === "run" ? "Run" : `Send (${sendShortcutLabel()})`);
   const activeTitle = cancelTitle ?? (mode === "run" ? "Stop" : "Cancel (Esc)");
+  const pausedTitle = resumeTitle ?? "Resume";
+  const faceIconName = isPausedResume
+    ? resumeIcon
+    : showCancel
+      ? cancelIcon
+      : idleIcon;
+  const faceTitle = isPausedResume
+    ? pausedTitle
+    : showCancel
+      ? activeTitle
+      : idleTitle;
 
   useEffect(() => {
     const onTheme = () => setThemeTick((n) => n + 1);
@@ -96,23 +122,38 @@ const SendButton: React.FC<{
   useEffect(() => {
     let timer: NodeJS.Timeout;
 
-    if (loading) {
-      timer = setTimeout(() => {
-        setShowCancel(true);
-      }, revealMs);
-    } else {
+    if (!loading) {
       setShowCancel(false);
+      return () => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+      };
     }
+
+    if (isPausedResume) {
+      // Arm cancel while paused so Resume → Stop without flashing the idle play icon.
+      setShowCancel(true);
+      return () => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+      };
+    }
+
+    timer = setTimeout(() => {
+      setShowCancel(true);
+    }, revealMs);
 
     return () => {
       if (timer) {
         clearTimeout(timer);
       }
     };
-  }, [loading, revealMs]);
+  }, [loading, revealMs, isPausedResume]);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading || isPausedResume) {
       setShowLoadDisc(false);
       return;
     }
@@ -122,7 +163,7 @@ const SendButton: React.FC<{
     return () => {
       clearTimeout(timer);
     };
-  }, [loading]);
+  }, [loading, isPausedResume]);
 
   const sendChrome = useMemo(
     () => harmonizeAccent(resolveAccent(accent), { fillAmount: hover ? 62 : 52 }),
@@ -134,6 +175,11 @@ const SendButton: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [hover, themeTick],
   );
+  const resumeChrome = useMemo(
+    () => accentChromeFor("yellow", { fillAmount: hover ? 62 : 52 }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hover, themeTick],
+  );
   const disabledChrome = useMemo(
     () => harmonizeAccent(DISABLED_ACCENT, { fillAmount: 40 }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -141,12 +187,16 @@ const SendButton: React.FC<{
   );
   const activeChrome = disabled
     ? disabledChrome
-    : showCancel
-      ? cancelChrome
-      : sendChrome;
+    : isPausedResume
+      ? resumeChrome
+      : showCancel
+        ? cancelChrome
+        : sendChrome;
 
   const handleClick = () => {
-    if (showCancel && onCancel) {
+    if (isPausedResume && onResume) {
+      onResume();
+    } else if (showCancel && onCancel) {
       onCancel();
     } else if (!disabled) {
       onClick();
@@ -368,7 +418,7 @@ const SendButton: React.FC<{
         }}
       >
         <span
-          className={`codicon ${showCancel ? cancelIcon : idleIcon}`}
+          className={`codicon ${faceIconName}`}
           style={{
             fontSize: "16px",
             lineHeight: 1,
@@ -430,8 +480,8 @@ const SendButton: React.FC<{
               flex: "0 0 auto",
               outline: "none",
             }}
-            title={showCancel ? activeTitle : idleTitle}
-            aria-label={showCancel ? activeTitle : idleTitle}
+            title={faceTitle}
+            aria-label={faceTitle}
             onClick={handleClick}
             disabled={disabled}
           />

@@ -22,11 +22,13 @@ export const METHOD_PROTOCOL_COLORS: Record<string, string> = {
  * - green: success / connected / receive-ok
  * - red: error / disconnected / receive-error / cancel
  * - blue: outbound send / info
+ * - yellow: paused / resume
  */
-export const SEMANTIC_COLORS: Record<'green' | 'red' | 'blue', string> = {
+export const SEMANTIC_COLORS: Record<'green' | 'red' | 'blue' | 'yellow', string> = {
   green: '#49cc90',
   red: '#f93e3e',
   blue: '#61affe',
+  yellow: '#d29922',
 };
 
 export type ThemeSurfaces = {
@@ -413,7 +415,7 @@ export function methodProtocolAccent(key: string): string {
 }
 
 /**
- * Resolve a method/protocol key or semantic name (`green` | `red` | `blue`)
+ * Resolve a method/protocol key or semantic name (`green` | `red` | `blue` | `yellow`)
  * to a brand accent hex. Raw `#RRGGBB` values pass through.
  */
 export function resolveAccent(key: string): string {
@@ -425,7 +427,7 @@ export function resolveAccent(key: string): string {
     return toMonacoHex(k, '#888888');
   }
   const lower = k.toLowerCase();
-  if (lower === 'green' || lower === 'red' || lower === 'blue') {
+  if (lower === 'green' || lower === 'red' || lower === 'blue' || lower === 'yellow') {
     return SEMANTIC_COLORS[lower];
   }
   return methodProtocolAccent(lower);
