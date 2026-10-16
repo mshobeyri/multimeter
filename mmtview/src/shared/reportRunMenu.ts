@@ -60,6 +60,13 @@ export function buildReportRunMenuEntries(opts: {
       },
     },
     {
+      label: 'Run in testlight',
+      icon: 'codicon-terminal',
+      onClick: () => {
+        window.vscode?.postMessage({ command: 'runTestlightCommand' });
+      },
+    },
+    {
       label: 'Clear',
       icon: 'codicon-clear-all',
       disabled: opts.clearDisabled,

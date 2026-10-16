@@ -1,4 +1,4 @@
-import type {EnvPresets, EnvVariable} from 'mmt-core/data/EnvData';
+import type {EnvPresets, EnvVariable} from '../data/EnvData';
 
 /**
  * Derive which preset option is "selected" from current environment variable

@@ -360,6 +360,16 @@
       "require": "./dist/env/envVarLastUpdate.js",
       "default": "./dist/env/envVarLastUpdate.js"
     },
+    "./env/envPresetMatch": {
+      "types": "./dist/env/envPresetMatch.d.ts",
+      "require": "./dist/env/envPresetMatch.js",
+      "default": "./dist/env/envPresetMatch.js"
+    },
+    "./env/envCliFlags": {
+      "types": "./dist/env/envCliFlags.d.ts",
+      "require": "./dist/env/envCliFlags.js",
+      "default": "./dist/env/envCliFlags.js"
+    },
     "./util/agentDocs": {
       "types": "./dist/util/agentDocs.d.ts",
       "require": "./dist/util/agentDocs.js",

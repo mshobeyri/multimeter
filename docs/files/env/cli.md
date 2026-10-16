@@ -27,4 +27,6 @@ testlight run tests/login.mmt -e api_url=http://localhost:8080 -e user=alice -e 
 
 **Typing rules:** unquoted numbers and booleans are coerced (`true`, `42`); quoted values stay strings (`'00123'`).
 
+From a test or suite editor, **More → Run in testlight** builds `testlight run <file> …` with the current workspace environment (matching presets as `-F` + `-P group.option`, extras as `-e`), copies it, and runs it in a terminal.
+
 See [Testlight — Options](../../features/testlight/options.md) · [Testlight — Environment priority](../../features/testlight/environment-priority.md) · [Testlight](../../features/testlight/index.md)

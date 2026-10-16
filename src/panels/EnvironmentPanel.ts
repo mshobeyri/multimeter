@@ -6,7 +6,7 @@ import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/env/envVarLastUpdat
 import type {EnvVariable, EnvVarSource} from 'mmt-core/data/EnvData';
 import {findProjectRootSync} from 'mmt-core/util/fileHelper';
 
-import {derivePresetSelections} from './envPresetMatch';
+import {derivePresetSelections} from 'mmt-core/env/envPresetMatch';
 import {envPanelValueView, resolveEnvPanelIncomingValue} from './envPanelValue';
 
 export type {EnvVarSource} from 'mmt-core/data/EnvData';
