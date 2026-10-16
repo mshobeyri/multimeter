@@ -550,6 +550,11 @@
       "require": "./dist/parse/multilineDescriptionYaml.js",
       "default": "./dist/parse/multilineDescriptionYaml.js"
     },
+    "./network/localTestServer": {
+      "types": "./dist/network/localTestServer.d.ts",
+      "require": "./dist/network/localTestServer.js",
+      "default": "./dist/network/localTestServer.js"
+    },
     "./network/networkCore": {
       "types": "./dist/network/networkCore.d.ts",
       "require": "./dist/network/networkCore.js",

@@ -13,8 +13,15 @@ import {BinaryBodyPayload, normalizeHttpResponseBody} from './binaryBody';
 import {connectionTracker} from './connectionTracker';
 import {resolveApiHttpMethod} from './apiMethod';
 import {DEFAULT_NETWORK_CONFIG, findMatchingClientCertificate, HttpRequest, HttpResponse, NetworkConfig, Request, Response,} from '../data/NetworkData';
+import {
+  echoWebSocketMessage,
+  handleLocalTestServerHttp,
+  isLocalMmtDevHostname,
+  LocalTestServerResponse,
+} from './localTestServer';
 import {isOmitSentinel} from '../tokens/omitKeyword';
 import {isTestAbortError, TestAbortError} from '../runner/testHelper';
+import {EventEmitter} from 'events';
 
 // Re-export connectionTracker for use by extension
 export {connectionTracker} from './connectionTracker';
@@ -638,6 +645,145 @@ export function closeAllHttpConnections(): void {
   httpAgentPool.clear();
 }
 
+function localResponseToHttp(
+    local: LocalTestServerResponse, duration: number,
+    autoformat: boolean): HttpResponse {
+  const headers: Record<string, any> = {};
+  for (const [k, v] of Object.entries(local.headers || {})) {
+    // Match axios: lowercase header names. Keep Set-Cookie arrays intact.
+    const key = k.toLowerCase();
+    headers[key] = v;
+  }
+  if (typeof local.body === 'string') {
+    return {
+      body: local.body,
+      headers,
+      status: local.status,
+      statusText: local.statusText,
+      duration,
+      autoformat,
+    };
+  }
+  const buf = Buffer.from(local.body);
+  return {
+    body: normalizeHttpResponseBody(buf, headers),
+    headers,
+    status: local.status,
+    statusText: local.statusText,
+    duration,
+    autoformat,
+  };
+}
+
+/**
+ * Serve https?://local.mmt.dev/... in-process (same endpoints as test.mmt.dev).
+ * Follows local redirects so /redirect/n behaves like axios' default follow.
+ */
+async function sendLocalMmtDevHttp(
+    req: HttpRequest, preparedHeaders: Record<string, string>,
+    initialUrl: URL, requestTimeout: number,
+    config: NetworkConfig): Promise<HttpResponse> {
+  const start = Date.now();
+  let url = new URL(initialUrl.toString());
+  if (req.query) {
+    for (const [k, v] of Object.entries(req.query)) {
+      if (v === undefined || v === null) {
+        continue;
+      }
+      url.searchParams.set(k, String(v));
+    }
+  }
+  const bodyText = typeof req.body === 'string' ?
+      req.body :
+      (typeof Buffer !== 'undefined' && Buffer.isBuffer(req.body) ?
+           (req.body as Buffer).toString('utf8') :
+           undefined);
+  const method = resolveApiHttpMethod(req.method, req.body);
+  let hops = 0;
+  while (hops < 21) {
+    throwIfAborted(req.abortSignal);
+    const elapsed = Date.now() - start;
+    if (requestTimeout > 0 && elapsed >= requestTimeout) {
+      return {
+        body: '',
+        headers: {},
+        status: -1,
+        statusText: 'Timeout',
+        duration: elapsed,
+        autoformat: config.autoFormat,
+      };
+    }
+    let local: LocalTestServerResponse;
+    try {
+      local = await handleLocalTestServerHttp(
+          {
+            method,
+            url: url.toString(),
+            headers: preparedHeaders,
+            bodyText,
+          },
+          {abortSignal: req.abortSignal});
+    } catch (err: any) {
+      if (isAbortError(err, req.abortSignal)) {
+        throw new TestAbortError();
+      }
+      throw err;
+    }
+    const isRedirect = local.status >= 300 && local.status < 400;
+    const location = Array.isArray(local.headers.Location) ?
+        local.headers.Location[0] :
+        (local.headers.Location || local.headers.location);
+    if (isRedirect && location && hops < 20) {
+      const next = new URL(String(location), url);
+      if (!isLocalMmtDevHostname(next.hostname)) {
+        break;
+      }
+      url = next;
+      hops += 1;
+      continue;
+    }
+    return localResponseToHttp(local, Date.now() - start, config.autoFormat);
+  }
+  return {
+    body: '',
+    headers: {},
+    status: -1,
+    statusText: 'Too many redirects',
+    duration: Date.now() - start,
+    autoformat: config.autoFormat,
+  };
+}
+
+/** In-memory WebSocket that echoes like test.mmt.dev /ws. */
+class LocalMmtDevWebSocket extends EventEmitter {
+  readyState = 0;  // CONNECTING
+  send(data: WebSocket.RawData|string): void {
+    const raw = typeof data === 'string' ? data : data.toString();
+    const echoed = echoWebSocketMessage(raw);
+    queueMicrotask(() => {
+      if (this.readyState === 1) {
+        this.emit('message', Buffer.from(echoed));
+      }
+    });
+  }
+  close(): void {
+    if (this.readyState === 3) {
+      return;
+    }
+    this.readyState = 3;
+    queueMicrotask(() => this.emit('close'));
+  }
+}
+
+function createLocalMmtDevWebSocket(): LocalMmtDevWebSocket {
+  const ws = new LocalMmtDevWebSocket();
+  queueMicrotask(() => {
+    ws.readyState = 1;
+    ws.emit('open');
+  });
+  return ws;
+}
+
 export async function sendHttpRequest(
     req: HttpRequest, config: NetworkConfig): Promise<HttpResponse> {
   throwIfAborted(req.abortSignal);
@@ -724,6 +870,11 @@ export async function sendHttpRequest(
           Number.isFinite(req.timeout) && req.timeout >= 0 ?
       req.timeout :
       config.timeout;
+  // In-process test.mmt.dev twin — answered locally, never hits the network.
+  if (isLocalMmtDevHostname(hostname)) {
+    return sendLocalMmtDevHttp(
+        req, reqHeaders, parsedUrl, requestTimeout, config);
+  }
   const shouldUseHttp2 = config.httpVersion === '2';
   if (shouldUseHttp2) {
     const start = Date.now();
@@ -1177,12 +1328,17 @@ export async function sendWsRequest(
     const url = req.url!;
     const parsedUrl = new URL(url);
     const hostname = parsedUrl.hostname;
-    let wsOptions = {};
-    if (parsedUrl.protocol === 'wss:') {
-      wsOptions = createWebSocketOptionsWithCertificates(
-          hostname, parsedUrl.port, parsedUrl.protocol, config);
+    let ws: WebSocket|LocalMmtDevWebSocket;
+    if (isLocalMmtDevHostname(hostname)) {
+      ws = createLocalMmtDevWebSocket();
+    } else {
+      let wsOptions = {};
+      if (parsedUrl.protocol === 'wss:') {
+        wsOptions = createWebSocketOptionsWithCertificates(
+            hostname, parsedUrl.port, parsedUrl.protocol, config);
+      }
+      ws = new WebSocket(url, wsOptions);
     }
-    const ws = new WebSocket(url, wsOptions);
     const start = Date.now();
     let duration = 0;
     let resolved = false;
@@ -1288,6 +1444,9 @@ export function createWebSocket(
     url: string, wsId: string, config: NetworkConfig): WsConnection {
   const parsedUrl = new URL(url);
   const hostname = parsedUrl.hostname;
+  if (isLocalMmtDevHostname(hostname)) {
+    return {ws: createLocalMmtDevWebSocket() as unknown as WebSocket, wsId};
+  }
   let wsOptions = {};
   if (parsedUrl.protocol === 'wss:') {
     wsOptions = createWebSocketOptionsWithCertificates(

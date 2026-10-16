@@ -1,7 +1,7 @@
 # Copilot Instructions for `multimeter` (mmt)
 
 ## Project structure & architecture
-- **Website**: https://mmt.dev (NOT multimeter.dev). Test server: https://test.mmt.dev
+- **Website**: https://mmt.dev (NOT multimeter.dev). Public test server: https://test.mmt.dev. In-process twin: `https://local.mmt.dev` (and `ws://` / `wss://` / `*.local.mmt.dev`) — answered inside `networkCore` via `core/src/network/localTestServer.ts` (shared with the Cloudflare worker); no DNS/sockets/internet.
 - **Monorepo layout**:
   - `core/`: pure TypeScript library with all parsing, execution and network logic (no VS Code, no `fs` – use dependency injection).
   - `mmtview/`: React + VS Code webview UI for editing/running `.mmt` files.

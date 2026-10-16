@@ -6,10 +6,11 @@
  * - Glyph run: host runs the file; core mints r:/c: with its lazy git provider.
  *
  * Real pieces: extension handlers (`run.ts`, `file.ts`), core runner and HTTP
- * stack, a temp git repo, a local echo server. Mocked: VS Code UI and the
- * History panel. The webview side is loaded in an isolated module registry so
- * its `mmt-core` globals (git snapshot, token caches) are separate from the
- * host's, as they are in separate JS contexts at runtime.
+ * stack, a temp git repo, and in-process `https://local.mmt.dev` (no sockets).
+ * Mocked: VS Code UI and the History panel. The webview side is loaded in an
+ * isolated module registry so its `mmt-core` globals (git snapshot, token
+ * caches) are separate from the host's, as they are in separate JS contexts
+ * at runtime.
  */
 jest.mock('vscode', () => {
   const channel = {
@@ -68,16 +69,22 @@ import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
 
+import {
+  onLocalTestServerRequest,
+} from '../../core/src/network/localTestServer';
 import {closeAllHttpConnections} from '../../core/src/network/networkCore';
 import type {HistoryItem} from '../historyManager';
 import {handleLoadDocumentContent, handleRequestGitSnapshot} from './file';
 import {handleRunCurrentDocument} from './run';
 
+/** In-process test host — see core/src/network/localTestServer.ts. */
+const BASE_URL = 'https://local.mmt.dev';
+
 type EchoRecord = {
   method: string;
   path: string;
   query: Record<string, string>;
-  headers: http.IncomingHttpHeaders;
+  headers: Record<string, string|string[]|undefined>;
   body: string;
 };
 
@@ -89,8 +96,10 @@ type WebviewModules = {
 };
 
 const BRANCH = 'feature/flow-test';
-/** `token_url` is filled once the echo server port is known. */
-const ENV: Record<string, string> = {host_tag: 'from-env'};
+const ENV: Record<string, string> = {
+  host_tag: 'from-env',
+  token_url: `${BASE_URL}/token`,
+};
 const INPUTS = {user: 'alice'};
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -122,13 +131,13 @@ function loadWebview(): WebviewModules {
   return mods;
 }
 
-describe('API run flows (webview → host → core → echo server)', () => {
-  let server: http.Server;
-  let baseUrl = '';
+describe('API run flows (webview → host → core → local.mmt.dev)', () => {
+  let baseUrl = BASE_URL;
   let echoed: EchoRecord[] = [];
   let tokenHits: EchoRecord[] = [];
   let repoDir = '';
   let commit = '';
+  let stopObserving: (() => void)|undefined;
 
   /** VS Code fakes for one open editor. */
   function openEditor(yaml: string, fileName = 'api.mmt', dir = repoDir) {
@@ -243,62 +252,41 @@ describe('API run flows (webview → host → core → echo server)', () => {
     await editor.runCurrentDocument({command: 'runCurrentDocument', inputs: {exampleIndex: -1}});
   }
 
-  beforeAll(async () => {
+  beforeAll(() => {
     repoDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'mmt-flow-')));
     git(repoDir, ['init', '-q']);
     git(repoDir, ['checkout', '-q', '-b', BRANCH]);
     git(repoDir, ['commit', '-q', '--allow-empty', '-m', 'init']);
-
-    server = http.createServer((req, res) => {
-      const chunks: Buffer[] = [];
-      req.on('data', (c) => chunks.push(c));
-      req.on('end', () => {
-        const url = new URL(req.url || '/', 'http://localhost');
-        const record: EchoRecord = {
-          method: String(req.method),
-          path: url.pathname,
-          query: Object.fromEntries(url.searchParams.entries()),
-          headers: req.headers,
-          body: Buffer.concat(chunks).toString('utf8'),
-        };
-        if (record.path === '/token') {
-          tokenHits.push(record);
-          res.writeHead(200, {'Content-Type': 'application/json'});
-          res.end(JSON.stringify({access_token: 'tok-flow', token_type: 'Bearer'}));
-          return;
-        }
-        echoed.push(record);
-        const headers: Record<string, string|string[]> = {
-          'Content-Type': 'application/json',
-          'X-Echo-Method': record.method,
-        };
-        if (record.path === '/with-cookie') {
-          headers['Set-Cookie'] = ['session=flow-sid; Path=/', 'theme=dark'];
-        }
-        res.writeHead(200, headers);
-        res.end(JSON.stringify(record));
-      });
-    });
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-    const address = server.address();
-    baseUrl = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}`;
-    ENV.token_url = `${baseUrl}/token`;
   });
 
   beforeEach(() => {
     echoed = [];
     tokenHits = [];
+    stopObserving = onLocalTestServerRequest((info) => {
+      const record: EchoRecord = {
+        method: info.method,
+        path: info.path,
+        query: info.query,
+        headers: info.headers,
+        body: info.body,
+      };
+      const bare = info.path.replace(/\/+$/, '') || '/';
+      if (bare === '/token') {
+        tokenHits.push(record);
+        return;
+      }
+      echoed.push(record);
+    });
   });
 
   afterEach(() => {
+    stopObserving?.();
+    stopObserving = undefined;
     closeAllHttpConnections();
   });
 
-  afterAll(async () => {
+  afterAll(() => {
     closeAllHttpConnections();
-    if (server) {
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-    }
     if (repoDir) {
       fs.rmSync(repoDir, {recursive: true, force: true});
     }
@@ -404,7 +392,7 @@ describe('API run flows (webview → host → core → echo server)', () => {
       expect(JSON.parse(String(sent.content))).toEqual(JSON.parse(echoed[0].body));
       expect(sent.headers?.['X-Branch']).toBe(BRANCH);
       expect(recv.status).toBe(200);
-      expect(JSON.parse(String(recv.content)).body).toBe(echoed[0].body);
+      expect(JSON.parse(String(recv.content)).body).toEqual(JSON.parse(echoed[0].body));
     });
 
     it('posts the echo response to the Response panel', async () => {
@@ -419,7 +407,7 @@ describe('API run flows (webview → host → core → echo server)', () => {
       const echoedBack = typeof result.response.body === 'string' ?
           JSON.parse(result.response.body) :
           result.response.body;
-      expect(echoedBack.body).toBe(echoed[0].body);
+      expect(echoedBack.body).toEqual(JSON.parse(echoed[0].body));
     });
 
     it('remints r: on every Send', async () => {
@@ -516,8 +504,8 @@ describe('API run flows (webview → host → core → echo server)', () => {
         branch: BRANCH,
       });
       expect(recv.status).toBe(200);
-      expect(recv.headers?.['content-type']).toMatch(/application\/json/i);
-      expect(recv.headers?.['x-echo-method']).toBe('POST');
+      expect(recv.headers?.['content-type'] || recv.headers?.['Content-Type'])
+          .toMatch(/application\/json/i);
     });
 
     it('keeps GET History content empty while query still appears', async () => {
@@ -623,12 +611,12 @@ describe('API run flows (webview → host → core → echo server)', () => {
 
       expect(tokenHits).toHaveLength(1);
       expect(echoed).toHaveLength(1);
-      expect(echoed[0].headers.authorization).toBe('Bearer tok-flow');
+      expect(echoed[0].headers.authorization).toBe('Bearer tok-local');
       expect(editor.history.map((h) => h.type)).toEqual(['send', 'recv']);
       expect(editor.history[0].title).toBe(`${baseUrl}/echo`);
       expect(editor.history[0].headers?.Authorization ||
              editor.history[0].headers?.authorization)
-          .toBe('Bearer tok-flow');
+          .toBe('Bearer tok-local');
     });
 
     it('surfaces response headers and Set-Cookie cookies in the Response panel', async () => {
@@ -680,7 +668,7 @@ describe('API run flows (webview → host → core → echo server)', () => {
       const echoedBack = typeof result.response.body === 'string' ?
           JSON.parse(result.response.body) :
           result.response.body;
-      expect(JSON.parse(echoedBack.body).branch).toBe(BRANCH);
+      expect(echoedBack.body.branch).toBe(BRANCH);
     });
   });
 
@@ -1041,7 +1029,7 @@ describe('API run flows (webview → host → core → echo server)', () => {
           '  X-Branch: c:git_branch',
         ],
         check: (wire) => {
-          expect(wire.headers.authorization).toBe('Bearer tok-flow');
+          expect(wire.headers.authorization).toBe('Bearer tok-local');
           expect(tokenHits).toHaveLength(2);
         },
       },
