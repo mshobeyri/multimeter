@@ -9,7 +9,7 @@ steps:
     inputs:
       latitude: ${cities.paris.latitude}
       longitude: ${cities.paris.longitude}
-      forecast_days: e:forecast_days_short
+      forecast_days: "1"
     expect:
       hourly_time_0: =1d~ <<c:datetime>>
       daily_time_0: =2d~ <<c:date>>

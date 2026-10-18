@@ -201,16 +201,16 @@ Example comparisons:
 
 You can use the same token syntaxes as for APIs:
 
-- Imported data: `${alias.path}` from JSON/CSV/YAML (`import: data: +/data.json`)
-- Environment: `e:api_url`, `e:auth_token`, `<<e:api_url>>` — for **shared run config** (hosts, tunable date windows), not for the entity a named test is about
+- Imported data: `${alias.path}` from JSON/CSV/YAML — **fixed catalogs** only (`cities.json`, sample users)
+- Environment: `e:api_url`, `<<e:api_url>>` — **user run config** only (hosts, etc.), not the entity/case under test
+- Literals in the test — **scenario** values (date windows, horizons)
 - Test `inputs:` `i:user_id` or `<<i:user_id>>`
-- Random values: `r:name` or `<<r:name>>`
-- Current/time values: `c:name` or `<<c:name>>`
+- Random / current: `r:` / `c:`
 
 Guidelines:
 - Use bare tokens when they are the **entire value**.
 - Use `<< >>` when embedding in text.
-- **Entity-specific cases** (Berlin, user-42, order-7): put values in a shared fixture or local literals in call `inputs:`. Do **not** use `e:city…` / `e:default_id` so the Environment panel cannot change what the test asserts. API files may still default to `e:` for interactive Send — tests override with fixture/local inputs.
+- Decide env vs JSON vs direct with [Where values live](../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct): Berlin lat/lon → JSON; June date window → literals in the test; panel city for API Send → env on the API only.
 
 Example:
 
@@ -234,28 +234,28 @@ steps:
 
 ## Common patterns the AI should generate
 
-### 0. Entity case from a shared fixture (not env)
+### 0. Catalog from JSON + scenario literals (not env)
 
-When the test is about a **specific** entity (a city, user, order), import shared data and pass `${alias…}` in call inputs. Do not read that entity from env even if the API defaults to `e:`.
+Fixed shared entities → JSON. Scenario fields (dates, horizons) → literals in this test. See [Where values live](../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct).
 
 ```yaml
 type: test
-title: Forecast current — Berlin
+title: Archive — June 2024 Berlin
 import:
   cities: +/cities.json
-  api: +/api/forecast_current.mmt
+  api: +/api/archive.mmt
 steps:
   - call: api
-    id: weather
+    id: result
     inputs:
       latitude: ${cities.berlin.latitude}
       longitude: ${cities.berlin.longitude}
+      start_date: "2024-06-01"
+      end_date: "2024-06-03"
     expect:
-      status: 200
+      daily_time_0: "2024-06-01"
     report: all
 ```
-
-One-off values used only here stay as literals in `inputs:` instead of a fixture file.
 
 ### 1. Simple smoke test for a single API
 

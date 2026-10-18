@@ -146,10 +146,14 @@ inputs:
   longitude: e:city.longitude
 ```
 
-**Tests must not use `e:city…` for a named place.** Put shared places in a fixture and pass them in call inputs:
+**Where values live** (mother doc: [Start a Multimeter project — Where values live](../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct)):
+
+- **Env** — user knobs + API Send defaults (`e:city.latitude` on APIs).
+- **JSON** — fixed shared catalogs (Berlin lat/lon reused everywhere) → tests use `${cities.berlin.latitude}`, not `e:city…`.
+- **Direct in the test** — scenario values that can be anything for that case (date windows, horizons) → literals in the test, not env and not a dates JSON file.
 
 ```yaml
-# type: test — Berlin case stays Berlin even if the panel city is Tokyo
+# type: test — catalog from JSON; scenario dates direct
 import:
   cities: +/cities.json
   api: +/api/forecast_current.mmt
@@ -158,9 +162,8 @@ steps:
     inputs:
       latitude: ${cities.berlin.latitude}
       longitude: ${cities.berlin.longitude}
+      start_date: "2024-06-01"
 ```
-
-One-off values used by a single test stay **local** in that test’s `inputs:` (no env, no shared file).
 
 **Do not generate** separate choice maps that can be selected independently (or a preset that only exists to keep them paired):
 
@@ -180,16 +183,17 @@ presets:
       longitude: berlin
 ```
 
-Same nesting rule for any inseparable **API-default** bundle (e.g. `account: { alice: { id, token } }` → API `e:account.id`). Shared entities for tests still belong in **JSON/CSV** — see [Start a Multimeter project](../tasks/start-a-project.md).
+Same nesting rule for any inseparable **API-default** bundle (e.g. `account: { alice: { id, token } }` → API `e:account.id`). Decide env vs JSON vs direct using [Where values live](../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct).
 
 ---
 
 ## How the AI should answer env-related questions
 
+- Before adding an env variable, check [Where values live](../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct): user knob / API Send default → env; fixed shared catalog → JSON; scenario-only → not env.
 - If the user wants to **switch between environments** (local/staging/prod), generate:
   - Variables with **key-value choice mappings**, e.g. `api_url: { local: ..., prod: ... }`.
   - A `runner` preset group with `local`, `staging`, `prod` entries that bind those **independent** variables.
-- If several fields must stay together for **API defaults**, generate **one nested choice map** and accessors on the API (`e:name.field`). Skip a preset for that variable unless other independent keys need to switch with it. Remind yourself: **tests** for a specific entity use fixtures/locals, not that env choice.
+- If several fields must stay together for **API defaults**, generate **one nested choice map** and accessors on the API (`e:name.field`). Skip a preset for that variable unless other independent keys need to switch with it.
 - If the user wants **valid options** for a flag or numeric setting, use **arrays** of scalars.
 - If a variable has only a single known value, wrap it in a single-element array (e.g. `token: ["your-token"]`) or a one-key map.
 - Prefer real YAML types (numbers, booleans, nested objects) when the value should keep that type via bare `e:name` / `e:name.field`.

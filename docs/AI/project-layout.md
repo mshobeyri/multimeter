@@ -1,18 +1,18 @@
 # Project layout (start a Multimeter project)
 
-**Mother doc (users + AI):** [Start a Multimeter project](../tasks/start-a-project.md).
+**Mother doc (users + AI):** [Start a Multimeter project](../tasks/start-a-project.md) — especially [Where values live (env vs JSON vs direct)](../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct).
 
 When the user wants to **start or scaffold a Multimeter project** with several APIs and tests, and does **not** ask for a different layout, follow that guide. This page is the short checklist for AI; do not invent a different structure.
 
 Skip for a single smoke API or one test file unless the user asks for the full layout.
 
-YAML names and trees in either doc are **examples of the general rules**. `examples/real-projects/open-meteo-mmt/` is an optional concrete sample of the same rules — not the target shape to copy blindly, and not limited to community sample repos. Scaffold the user’s product the same way.
+YAML names and trees in either doc are **examples of the general rules**. `examples/real-projects/open-meteo-mmt/` is an optional concrete sample — not required labels.
 
 ## Structure
 
 ```
 multimeter.mmt          # type: env at project root (not env.mmt)
-*.json / data/…         # optional shared test fixtures
+*.json / data/…         # optional fixed catalogs (not scenario dates)
 suite.mmt               # root → test/<area>/suite.mmt
 api/*.mmt
 test/<area>/
@@ -22,13 +22,18 @@ test/<area>/
 
 No top-level `suites/` folder.
 
-## Env vs shared data (general)
+## Where values live (summary)
 
-- **Env (`multimeter.mmt`)** — values the **user changes** (hosts, secrets, flags, interactive API defaults). Nested choice objects when fields must stay together (`e:city.latitude` on **APIs**). Presets only to bind **independent** variables.
-- **JSON/CSV/YAML** — **common test data**. Import with `+/…` and `${alias.path}` in test call `inputs:`.
-- **Local in the test** — one-off inputs for a single test.
+Decide once per value — full rules in the mother doc:
 
-**Do not** pass entity-specific test inputs from env. A “Berlin” / “user-42” test must use fixture or local values so changing the Environment panel does not change what the test asserts. Env on APIs is for Send defaults; env in tests is only for shared run config (hosts, tunable date windows), not the named case under test.
+| Place | Put here when… | Examples |
+|---|---|---|
+| **Env** | User changes it at run time; or API **Send** default | Hosts, secrets, `city` choice for interactive Send |
+| **JSON/CSV/YAML** | Fixed shared catalog, same meaning in every test | City lat/lon, sample user ids |
+| **Direct in the test** | Scenario-specific; any valid value works for that case | Date windows, `forecast_days`, one-off payloads |
+
+- APIs may use `e:` / `e:name.field` for Send defaults.
+- Tests: catalog → `${alias…}`; scenario → literals; **not** `e:city…` / `e:history_…` for the named case under test.
 
 ## Paths
 
@@ -39,17 +44,17 @@ No top-level `suites/` folder.
 ## API
 
 - Order: `url` → `query` → `method` → rest.
-- User-tunable defaults from env (`e:` / nested `e:name.field`).
+- User-tunable Send defaults from env; scenario defaults may be literals on the API.
 
 ## Tests
 
-- Call `inputs:` from fixtures (`${alias…}`) or locals — not from env for the entity the test is about.
+- Apply the where-values table for every input.
 - Several input variants per API — not one smoke call.
 - Single-output validations → call `expect` / `require` (list form OK). `report: all`.
 - `check` / `assert` only for **two different** values. Object form: `actual` → `operator` → `expected`.
 - **Never quote** operator expects: `>=# 24`, `!= null`, `=1d~ <<c:datetime>>` — not `'>=# 24'`.
 - Live times: `=Ns~ <<c:datetime>>` / `<<c:date>>` (not `c:time`, not datetime regex).
-- Fixed windows: exact / `=^` vs `e:` dates when those dates live in env as **tunable run config**.
+- Scenario windows: exact / `=^` against the **same literals** as that test’s inputs.
 
 ## Suites
 

@@ -9,11 +9,11 @@ steps:
     inputs:
       latitude: ${cities.berlin.latitude}
       longitude: ${cities.berlin.longitude}
-      start_date: e:history_start
-      end_date: e:history_end
+      start_date: "2024-06-01"
+      end_date: "2024-06-03"
     expect:
       hourly_temp_0:
         - >= -80
         - <= 60
-      hourly_time_0: =^ e:history_start
+      hourly_time_0: =^ 2024-06-01
     report: all

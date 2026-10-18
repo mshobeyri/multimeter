@@ -54,7 +54,7 @@ setting:
 
 Notes
 - `variables` values must be one of:
-  - **key-value map** (named choices) — each choice may be a **scalar** or a **nested object/array**. Prefer one concept when fields must stay together for **API defaults** (e.g. `city.berlin: {latitude, longitude}`), then APIs read `e:city.latitude`. A preset (or the Environment panel) selects a choice by key; without a preset the first choice is the default. Entity-specific **tests** should pass fixture/local inputs instead of relying on that env choice.
+  - **key-value map** (named choices) — each choice may be a **scalar** or a **nested object/array**. Prefer one concept when fields must stay together for **API defaults** (e.g. `city.berlin: {latitude, longitude}`), then APIs read `e:city.latitude`. A preset (or the Environment panel) selects a choice by key; without a preset the first choice is the default. For env vs JSON catalogs vs values written in a test, see [Where values live](../../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct).
   - **array list** (allowed values) — scalars only; a preset or user picks from the list
   - **live variable** — a `./….mmt` path that runs another file on each `e:name` read (see [Live variables](./live-variables.md))
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern. Skip presets when a single choice map already is the concept (as with `city` above).

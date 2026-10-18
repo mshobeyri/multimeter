@@ -9,12 +9,12 @@ steps:
     inputs:
       latitude: ${cities.berlin.latitude}
       longitude: ${cities.berlin.longitude}
-      start_date: e:archive_start
-      end_date: e:archive_end
+      start_date: "2024-06-01"
+      end_date: "2024-06-03"
     expect:
-      daily_time_0: e:archive_start
-      daily_time_last: e:archive_end
-      hourly_time_0: =^ e:archive_start
+      daily_time_0: "2024-06-01"
+      daily_time_last: "2024-06-03"
+      hourly_time_0: =^ 2024-06-01
       daily_max_0:
         - >= -80
         - <= 60

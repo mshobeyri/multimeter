@@ -47,26 +47,30 @@ Edit `multimeter.mmt` (or pass `-e` / `--env-file` overrides):
 |---|---|
 | `*_base_url` | Host per product (defaults are the public Open-Meteo hosts) |
 | `city` | Choice map for **API Send defaults** (berlin, paris, tokyo, …). Each choice is `{latitude, longitude}` — pick one city in the Environment panel. APIs default to `e:city.latitude` / `e:city.longitude`. Tests do **not** use `e:city`; they import `cities.json`. |
-| `archive_start` / `archive_end` | Past window for ERA5 archive (keep the end date older than Open-Meteo’s ~5-day delay) |
-| `history_start` / `history_end` | Past window for historical forecast, previous runs, satellite |
-| `climate_start` / `climate_end` | Future climate projection window |
 | `timezone` | `UTC` so time assertions stay stable |
-| `forecast_days` / `forecast_days_short` | Forecast horizon |
 
-All city-specific tests import `cities.json` (`cities: +/cities.json`) and pass `${cities.berlin.latitude}` / `${cities.tokyo.latitude}` etc. Keep coords in sync with the `city` map in `multimeter.mmt` when you change a sample point (env = interactive default; JSON = test data).
+**Where values live** (env vs JSON vs direct — same decision rule as Multimeter’s start-a-project guide):
+
+| Place | In this project |
+|---|---|
+| **Env** | Hosts, `timezone`, `city` for API **Send** defaults |
+| **JSON** | `cities.json` — fixed place catalog (`${cities.berlin.latitude}`) |
+| **Direct in the test** | Date windows, `forecast_days` — any valid scenario values, written as literals |
+
+Keep `cities.json` in sync with the env `city` map when you change a sample point.
 
 Self-hosted Open-Meteo: change the relevant `*_base_url` values.
 
 ## Layout
 
 ```
-multimeter.mmt          # project root marker + env (city choice map)
-cities.json             # city lat/lon for tests (not e:city)
+multimeter.mmt          # project root marker + env (hosts, city, timezone)
+cities.json             # city lat/lon for tests
 suite.mmt               # root — calls each test/<area>/suite.mmt
-api/                    # API definitions (defaults: e:city.latitude / e:city.longitude)
+api/                    # API definitions (defaults: e:city…; dates local on API)
 test/<area>/
   suite.mmt             # first — runs all tests in that folder
-  test_*.mmt            # +/api/… and optional +/cities.json
+  test_*.mmt            # +/api/… + cities.json; dates inlined
 ```
 
 ## Upstream

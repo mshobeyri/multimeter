@@ -23,10 +23,9 @@ presets:
 ## Essentials
 
 - First line: `type: env`
-- `variables` required; each var is a **choice map** (scalar or nested object/array values) or a **list of scalars**
-- Nested choices = one concept for **API defaults** (`city.berlin: {latitude, longitude}`) → API `e:city.latitude` — do **not** split into paired maps + a syncing preset
-- **Tests** for a named entity use JSON/local inputs (`${cities.berlin.latitude}`), not `e:city…`
-- `presets` optional; bind **independent** variables; choice keys must match the map (or list values)
-- APIs consume defaults via `e:api_url` / `e:city.latitude`; tests use fixtures for case data
+- Only **user knobs** and **API Send defaults** — see [Where values live](../../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct)
+- Nested choices = one API-default concept (`city` → `e:city.latitude`); do not split paired fields + syncing preset
+- Fixed catalogs (Berlin coords) → JSON for tests; scenario dates → literals in tests — not env
+- `presets` optional; bind **independent** variables
 
 Request `pack: full` for multi-group presets, nested-choice patterns, and UI details.
