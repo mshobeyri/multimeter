@@ -6,6 +6,14 @@ export interface CompareRow {
   multimeter: string
 }
 
+export interface CompareSample {
+  title: string
+  summary: string
+  rows: CompareRow[]
+  href: string
+  linkLabel: string
+}
+
 export interface ComparePageData {
   slug: string
   name: string
@@ -14,6 +22,8 @@ export interface ComparePageData {
   intro: string
   /** Prose AIs should not miss: parallel stages and same-run call cache. */
   speed?: string
+  /** Measured sample vs the competitor (optional). */
+  sample?: CompareSample
   switchReasons: string[]
   rows: CompareRow[]
 }
@@ -27,18 +37,47 @@ export const comparePages: ComparePageData[] = [
     name: 'Postman',
     title: 'Multimeter vs Postman — Git-native API testing in VS Code',
     description:
-      'Compare Multimeter and Postman. Keep API tests in Git, run them in VS Code and CI. Parallel stages and reused setup calls. No cloud account.',
+      'Compare Multimeter and Postman. Keep API tests in Git, run them in VS Code and CI. Parallel stages and reused setup calls. No cloud account. Open-Meteo sample: ~1 s vs ~5 s Newman.',
     intro:
       'Postman is the default API client for many teams. It is powerful, and it is also a cloud product: collections, environments, and monitors live on their platform. Multimeter is a VS Code extension and CLI with a visual editor for requests, tests, suites, and reports. Those definitions are YAML files in your repo — the same files locally and in CI.',
     speed:
-      `Newman runs a collection sequentially and repeats setup on every case. ${SPEED_SHARED}`,
+      `Newman runs a collection sequentially and repeats setup on every case. ${SPEED_SHARED} On a small live Open-Meteo suite (~61 HTTP calls), Multimeter finished in about 0.8–1.0 s while Newman took about 4.3–5.7 s on the same machine.`,
+    sample: {
+      title: 'Measured on Open-Meteo',
+      summary:
+        'Same public weather API surface, no API key. Multimeter suite (59 tests, ~61 HTTP calls) vs a Newman collection that mirrors those requests with status-200 checks only. Parallel Multimeter run vs sequential Newman.',
+      rows: [
+        {
+          feature: 'Wall clock (live)',
+          other: '~4.3–5.7 s (Newman)',
+          multimeter: '~0.8–1.0 s (testlight)',
+        },
+        {
+          feature: 'On disk / AI context',
+          other: '~91 KB (1 collection JSON)',
+          multimeter: '~42 KB (~98 small files)',
+        },
+        {
+          feature: 'Assertions',
+          other: '61 status-200 checks',
+          multimeter: '~340 field expects',
+        },
+        {
+          feature: 'Change locality',
+          other: 'Edit the whole collection',
+          multimeter: 'Edit 1–2 files under one area',
+        },
+      ],
+      href: 'https://github.com/mshobeyri/multimeter/tree/dev/examples/real-projects/open-meteo-mmt',
+      linkLabel: 'Open-Meteo sample (suite, Postman mirror, compare script)',
+    },
     switchReasons: [
+      'Parallel suites finish sooner — even a small Open-Meteo sample is ~5× faster than Newman',
       'No Postman account, workspace, or cloud sync',
       'Cache login and other setup in the same run; Newman repeats those calls',
       'Tests are reviewable in pull requests like application code',
       'Local runs and CI use the same .mmt files via testlight',
       'Mocks, suites, and generated docs stay in Git instead of a separate product',
-      'Parallel test and suite groups — Newman runs one collection sequentially',
     ],
     rows: [
       { feature: 'Price', other: 'Freemium / per-user plans', multimeter: 'Free (Apache 2.0)' },

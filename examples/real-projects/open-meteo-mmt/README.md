@@ -2,7 +2,7 @@
 
 [Multimeter](https://mmt.dev) / `testlight` suites for the public [Open-Meteo](https://open-meteo.com/) weather APIs live in [`multimeter/`](./multimeter/) (see that folder’s [README](./multimeter/README.md) for run, coverage, env, and layout).
 
-This root README is the **comparison story**: why switch from Postman. The Multimeter project itself needs **no API key**.
+This root README is the **comparison story**: why switch from Postman (also summarized on [mmt.dev/compare/postman](https://mmt.dev/compare/postman)). The Multimeter project itself needs **no API key**.
 
 ## Why Multimeter (vs Postman)
 
