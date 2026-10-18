@@ -173,6 +173,7 @@ Prefer targets that score well on:
 Pilot content expectations:
 
 - Cover the public Open-Meteo product surface (not a single smoke endpoint)
+- Follow the shared multi-project layout: [Start a Multimeter project](../../docs/tasks/start-a-project.md) · [AI project-layout](../../docs/AI/project-layout.md)
 - Per-area `test/<area>/suite.mmt` beside the tests; root `suite.mmt` calls those area suites
 - Multiple input variants per API (locations, horizons, date windows) with accurate expects (times/dates, numeric bands, string shape, lengths — not only `!= null`)
 - README in product-owner voice (see §5)

@@ -4,6 +4,8 @@ This folder teaches an AI how to **answer questions** about Multimeter and decid
 
 For actual YAML generation or modification, always go through `AI/generate.md`.
 
+For **large / real projects** (several APIs + tests) when the user does not ask for a different layout, follow **`AI/project-layout.md`** (and the full task guide `docs/tasks/start-a-project.md`).
+
 The AI should:
 - Understand what each `type` (`api`, `test`, `env`, `doc`, `suite`) is for.
 - Decide whether the user needs **an explanation** or **new/edited YAML**.
