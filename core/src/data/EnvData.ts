@@ -31,9 +31,16 @@ export interface EnvSetting {
 
 export type EnvScalar = string | number | boolean | null;
 
-/** Choice map or allowed-value list — values are scalars only (no nested object/list). */
+/**
+ * One named choice in a key-value map. Scalars are common; nested objects/arrays
+ * are allowed so a single concept can carry related fields (e.g. city → lat/lon)
+ * and be read with `e:city.latitude`.
+ */
+export type EnvChoiceValue = JSONValue;
+
+/** Choice map (named choices) or allowed-value list (scalars only). */
 export type EnvVariableValue =
-  | {[label: string]: EnvScalar | undefined}
+  | {[label: string]: EnvChoiceValue | undefined}
   | EnvScalar[];
 
 /** Preset entries are choice keys or scalar literals. */

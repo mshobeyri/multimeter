@@ -14,29 +14,39 @@ variables:
   seasonal_base_url: https://seasonal-api.open-meteo.com
   geocode_base_url: https://geocoding-api.open-meteo.com
 
-  # Default location — presets pick a city; APIs use e:latitude / e:longitude
-  latitude:
-    berlin: "52.52"
-    paris: "48.85"
-    tokyo: "35.68"
-    sydney: "-33.87"
-    montreal: "45.5"
-    oslo: "59.91"
-    beijing: "39.9"
-    marine: "54.5"
-    north_sea: "56.0"
-    everest: "27.99"
-  longitude:
-    berlin: "13.41"
-    paris: "2.35"
-    tokyo: "139.69"
-    sydney: "151.21"
-    montreal: "-73.57"
-    oslo: "10.75"
-    beijing: "116.4"
-    marine: "10.0"
-    north_sea: "3.0"
-    everest: "86.92"
+  # Interactive API Send default — one concept (pick a city in the Environment panel).
+  # APIs use e:city.latitude / e:city.longitude. Tests use cities.json, not e:city.
+  city:
+    berlin:
+      latitude: 52.52
+      longitude: 13.41
+    paris:
+      latitude: 48.85
+      longitude: 2.35
+    tokyo:
+      latitude: 35.68
+      longitude: 139.69
+    sydney:
+      latitude: -33.87
+      longitude: 151.21
+    montreal:
+      latitude: 45.5
+      longitude: -73.57
+    oslo:
+      latitude: 59.91
+      longitude: 10.75
+    beijing:
+      latitude: 39.9
+      longitude: 116.4
+    marine:
+      latitude: 54.5
+      longitude: 10.0
+    north_sea:
+      latitude: 56.0
+      longitude: 3.0
+    everest:
+      latitude: 27.99
+      longitude: 86.92
 
   timezone: UTC
   archive_start: "2024-06-01"
@@ -47,36 +57,3 @@ variables:
   climate_end: "2050-01-07"
   forecast_days: "3"
   forecast_days_short: "1"
-
-presets:
-  location:
-    berlin:
-      latitude: berlin
-      longitude: berlin
-    paris:
-      latitude: paris
-      longitude: paris
-    tokyo:
-      latitude: tokyo
-      longitude: tokyo
-    sydney:
-      latitude: sydney
-      longitude: sydney
-    montreal:
-      latitude: montreal
-      longitude: montreal
-    oslo:
-      latitude: oslo
-      longitude: oslo
-    beijing:
-      latitude: beijing
-      longitude: beijing
-    marine:
-      latitude: marine
-      longitude: marine
-    north_sea:
-      latitude: north_sea
-      longitude: north_sea
-    everest:
-      latitude: everest
-      longitude: everest

@@ -2,8 +2,8 @@ type: api
 title: CMA model forecast
 description: Model-specific forecast endpoint /v1/cma
 inputs:
-  latitude: e:latitude
-  longitude: e:longitude
+  latitude: e:city.latitude
+  longitude: e:city.longitude
   forecast_days: "1"
 outputs:
   observed_at: body[hourly][time][0]

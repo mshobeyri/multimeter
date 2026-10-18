@@ -28,8 +28,9 @@ steps:
 - Every `call` needs unique `id`
 - Import aliases before calling them
 - Prefer `expect` / `require` **on the call** when validating that step only; use `assert` / `check` steps for cross-step conditions
+- Entity-specific inputs from fixtures (`${cities.berlin.latitude}`) or locals — not from env (`e:city…`); env is for run config / API defaults
 - No YAML comments (`#`)
-- Tokens: `e:`, `i:`, `r:`, `c:` (snake_case)
+- Tokens: `e:`, `i:`, `r:`, `c:`, `${alias.path}` (snake_case)
 
 ## Common steps
 

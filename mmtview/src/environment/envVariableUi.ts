@@ -1,6 +1,10 @@
 import type {JSONRecord, JSONValue} from 'mmt-core/data/CommonData';
-import type {EnvScalar, EnvVariableValue} from 'mmt-core/data/EnvData';
-import {inputBoxToYamlValue, yamlValueToInputBox} from 'mmt-core/parse/yamlValueConvert';
+import type {EnvChoiceValue, EnvScalar, EnvVariableValue} from 'mmt-core/data/EnvData';
+import {
+  inputBoxToYamlValue,
+  isIncompleteJsonLiteral,
+  yamlValueToInputBox,
+} from 'mmt-core/parse/yamlValueConvert';
 
 export type EnvVariableBoard = {
   name: string;
@@ -24,7 +28,7 @@ export function isEnvScalar(value: unknown): value is EnvScalar {
 
 /**
  * Coerce UI text / values to an env scalar. Object and list results are ignored
- * (return undefined) — env values stay string | number | boolean | null only.
+ * (return undefined) — list variables stay string | number | boolean | null only.
  */
 export function coerceEnvScalar(entry: JSONValue): EnvScalar | undefined {
   const typed = typeof entry === 'string' ? inputBoxToYamlValue(entry) : entry;
@@ -34,18 +38,35 @@ export function coerceEnvScalar(entry: JSONValue): EnvScalar | undefined {
   return typed;
 }
 
-function scalarRecordFromUnknown(
+/**
+ * Coerce a choice-map field value. Scalars and nested JSON objects/arrays are
+ * kept (so `city.berlin: {latitude, longitude}` round-trips through Edit).
+ */
+export function coerceEnvChoiceValue(entry: JSONValue): EnvChoiceValue | undefined {
+  if (typeof entry === 'string' && isIncompleteJsonLiteral(entry)) {
+    return undefined;
+  }
+  const typed = typeof entry === 'string' ? inputBoxToYamlValue(entry) : entry;
+  if (isEnvScalar(typed)) {
+    return typed;
+  }
+  if (typed !== null && typeof typed === 'object') {
+    return typed as EnvChoiceValue;
+  }
+  return undefined;
+}
+
+function choiceRecordFromUnknown(
     raw: Record<string, unknown>,
-): Record<string, EnvScalar | undefined> {
-  const out: Record<string, EnvScalar | undefined> = {};
+): Record<string, EnvChoiceValue | undefined> {
+  const out: Record<string, EnvChoiceValue | undefined> = {};
   for (const [key, val] of Object.entries(raw)) {
     if (!key.trim()) {
       continue;
     }
-    if (isEnvScalar(val)) {
-      out[key] = val;
+    if (isEnvScalar(val) || (val !== null && typeof val === 'object')) {
+      out[key] = val as EnvChoiceValue;
     }
-    // object / list choice values are dropped
   }
   return out;
 }
@@ -69,7 +90,7 @@ export function variablesToBoards(
     return {
       name,
       type: 'object' as const,
-      value: scalarRecordFromUnknown(obj as Record<string, unknown>) as JSONRecord,
+      value: choiceRecordFromUnknown(obj as Record<string, unknown>) as JSONRecord,
     };
   });
 }
@@ -78,7 +99,7 @@ export function variablesToBoards(
  * Boards → YAML `variables` map.
  * - Drops unnamed boards (UI draft rows before a name is typed).
  * - Keeps named empty objects (`foo: {}`) and lists (`bar: []`).
- * - Coerces display text to scalars; object/list values are ignored.
+ * - List values stay scalars; object (choice-map) values may be nested JSON.
  */
 export function boardsToVariables(
     boards: EnvVariableBoard[],
@@ -106,7 +127,7 @@ export function boardsToVariables(
             !Array.isArray(board.value)) ?
       board.value as JSONRecord :
       {};
-    const obj: Record<string, EnvScalar | undefined> = {};
+    const obj: Record<string, EnvChoiceValue | undefined> = {};
     for (const [key, val] of Object.entries(raw)) {
       if (!key.trim()) {
         continue;
@@ -114,11 +135,11 @@ export function boardsToVariables(
       if (val === undefined) {
         continue;
       }
-      const scalar = coerceEnvScalar(val as JSONValue);
-      if (scalar === undefined) {
+      const choice = coerceEnvChoiceValue(val as JSONValue);
+      if (choice === undefined) {
         continue;
       }
-      obj[key] = scalar;
+      obj[key] = choice;
     }
     out[name] = obj;
   }

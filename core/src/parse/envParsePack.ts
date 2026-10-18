@@ -1,9 +1,11 @@
 import parseYaml, {packYaml, parseYamlDoc, stringifyYamlDocument} from './markupConvertor';
 import {setYamlRoot} from './yamlAstMerge';
+import type {JSONValue} from '../data/CommonData';
 import {
   EnvCaCertificate,
   EnvCertificates,
   EnvClientCertificate,
+  EnvChoiceValue,
   EnvData,
   EnvScalar,
   EnvSetting,
@@ -43,15 +45,29 @@ function isEnvScalarValue(value: unknown): value is EnvScalar {
       typeof value === 'boolean';
 }
 
+function isEnvChoiceValue(value: unknown): value is EnvChoiceValue {
+  if (isEnvScalarValue(value)) {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.every(isEnvChoiceValue);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).every(isEnvChoiceValue);
+  }
+  return false;
+}
+
 function parseVariableValue(raw: unknown): EnvVariableValue | undefined {
   if (Array.isArray(raw)) {
+    // Allowed-value lists stay scalars only.
     return raw.filter(isEnvScalarValue);
   }
   if (raw && typeof raw === 'object') {
-    const out: Record<string, EnvScalar | undefined> = {};
+    const out: Record<string, EnvChoiceValue | undefined> = {};
     for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
-      if (isEnvScalarValue(val)) {
-        out[key] = val;
+      if (isEnvChoiceValue(val)) {
+        out[key] = val as JSONValue;
       }
     }
     return out;

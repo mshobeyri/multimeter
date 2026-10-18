@@ -108,7 +108,7 @@ Optional later (not required for v1):
 
 ### 4. Env and secrets
 
-- Always ship a `multimeter.mmt` with **working defaults** (base URLs, sample lat/lon, city names, etc.).
+- Always ship a `multimeter.mmt` with **working defaults** (base URLs, sample city as one nested choice map, etc.).
 - Prefer APIs that need **no key** for the happy path.
 - When a key or token is useful later:
   - Put the variable in `multimeter.mmt` (empty or placeholder).

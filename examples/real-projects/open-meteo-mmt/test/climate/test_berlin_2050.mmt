@@ -1,13 +1,14 @@
 type: test
 title: Climate — Berlin 2050 week
 import:
+  cities: +/cities.json
   api: +/api/climate.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:latitude
-      longitude: e:longitude
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
       start_date: e:climate_start
       end_date: e:climate_end
     expect:

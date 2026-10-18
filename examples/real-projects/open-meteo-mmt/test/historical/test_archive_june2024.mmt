@@ -1,13 +1,14 @@
 type: test
 title: Archive — June 2024 Berlin
 import:
+  cities: +/cities.json
   api: +/api/archive.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:latitude
-      longitude: e:longitude
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
       start_date: e:archive_start
       end_date: e:archive_end
     expect:

@@ -201,9 +201,16 @@ variables:
     expect(() => yamlToEnv(patched)).not.toThrow();
   });
 
-  it('drops nested object and list choice values when parsing', () => {
+  it('keeps nested object choice values and drops nested objects from lists', () => {
     const input = `type: env
 variables:
+  city:
+    berlin:
+      latitude: 52.52
+      longitude: 13.41
+    tokyo:
+      latitude: 35.68
+      longitude: 139.69
   config:
     local:
       host: localhost
@@ -215,9 +222,15 @@ variables:
     - 2
 `;
     const env = yamlToEnv(input);
+    expect(env.variables?.city).toEqual({
+      berlin: {latitude: 52.52, longitude: 13.41},
+      tokyo: {latitude: 35.68, longitude: 139.69},
+    });
     expect(env.variables?.config).toEqual({
+      local: {host: 'localhost', port: 8080},
       plain: 'https://x',
     });
+    // Allowed-value lists stay scalars only.
     expect(env.variables?.flags).toEqual([true, 2]);
   });
 });

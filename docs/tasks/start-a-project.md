@@ -1,50 +1,62 @@
 # Start a Multimeter project
 
-Use this layout when you have **several APIs and tests** (a real product surface, a `{product}-mmt` repo, or a multi-area regression suite). For a single smoke API or one test file, a flatter folder is fine — only adopt this when the project is big enough to need areas.
+This is the **default guide** for starting a Multimeter project with **several APIs and tests** — whether you are setting one up yourself or an AI is scaffolding it for you. Use it as the mother doc for layout, env vs fixtures, imports, expects, and suites.
 
-Reference example: [open-meteo-mmt](../../examples/real-projects/open-meteo-mmt/).
+For a single smoke API or one test file, a flatter folder is fine. Adopt this layout once the project is big enough to need areas.
+
+The rules below are **general**. YAML snippets, folder names, and field names in this page are **illustrative examples** of those rules — not required labels for every project. An optional worked sample ([open-meteo-mmt](../../examples/real-projects/open-meteo-mmt/)) shows one concrete mapping; see [Optional worked sample](#optional-worked-sample).
 
 ## Default folder structure
 
 ```
 my-project/
-  multimeter.mmt          # type: env — project root marker + defaults
+  multimeter.mmt          # type: env — project root marker + user-tunable values
+  data.json               # optional — shared test fixtures (any name)
   suite.mmt               # root suite — calls each area suite
-  README.md               # run-first (product owner voice for shared repos)
+  README.md               # optional — run-first notes for the team
   api/                    # type: api definitions
-    forecast_current.mmt
-    …
   test/
-    forecast/
+    <area>/               # one folder per product area / concern
       suite.mmt           # first in the folder — runs sibling tests
-      test_current_berlin.mmt
-      test_hourly_3day.mmt
-      …
-    geocoding/
-      suite.mmt
-      test_….mmt
+      test_*.mmt
 ```
 
 | Piece | Rule |
 |---|---|
 | Env file | Name it **`multimeter.mmt`** at the project root (`type: env`). Prefer this over a bare `env.mmt` so `+/` imports and workspace env loading work. |
+| Shared test data | Keep **common fixtures** as JSON/CSV/YAML at the project root (or under a data folder); tests `import:` them with `+/…`. |
 | APIs | One file per endpoint (or coherent endpoint group) under `api/`. |
 | Tests | `test/<area>/test_*.mmt` — prefix `test_`, not `*_test`, so `suite.mmt` sorts first in the folder. |
 | Area suite | `test/<area>/suite.mmt` beside those tests (no separate top-level `suites/` folder). |
 | Root suite | Project-root `suite.mmt` lists each `test/<area>/suite.mmt`. |
 
+### Env vs shared data files
+
+General split:
+
+| Put in… | Kind of value | Why |
+|---|---|---|
+| **`multimeter.mmt` (env)** | Things the **user changes** while running (base URLs, timeouts, secrets, feature flags, interactive API defaults) | Apply once in the Environment panel or CLI; wire them as **API `inputs:` / URL defaults** via `e:` / `<<e:…>>`. Nested choice objects when fields must stay together (e.g. `city` → `e:city.latitude`). Presets only to bind **independent** variables. |
+| **JSON / CSV / YAML** | **Common test data** many tests reuse (sample entities, cities, ids, payload rows) | Import in tests (`+/data.json`) and pass `${alias.path}` in call `inputs:`. |
+| **Local in the test** | One-off values used by a single test | Put them directly in that test’s `inputs:` — no env, no shared file. |
+
+**Critical:** do **not** drive a city-/entity-specific test from env (`e:city…`) just because the API defaults come from env. A “Berlin” test must pass Berlin from JSON or local literals so the suite stays correct no matter which city the user picked in the Environment panel. Env is for API Send defaults and shared run config (hosts, date windows the user tunes); fixture/local data is for assertions about a known case.
+
+Do **not** stuff every fixture into env just because it is a string.
+
 ## How to address files
 
 | Context | Prefer |
 |---|---|
-| Test → API (or shared fixture) | `+/api/….mmt` (project root via `multimeter.mmt`) — not `../../api/….mmt` |
+| Test → API (or shared fixture) | `+/api/….mmt` or `+/data.json` (project root via `multimeter.mmt`) — not long `../../…` chains |
 | Suite items in the **same** folder | Relative names (`test_foo.mmt`) — no `+/` needed |
-| Root suite → area suites | Relative from root (`test/forecast/suite.mmt`) is fine |
+| Root suite → area suites | Relative from root (`test/<area>/suite.mmt`) is fine |
 
 ```yaml
-# test/forecast/test_current_berlin.mmt
+# Example only — paths and aliases are illustrative
 import:
-  api: +/api/forecast_current.mmt
+  api: +/api/some_endpoint.mmt
+  data: +/data.json
 ```
 
 See [Project root marker](../files/env/project-root.md) and [import](../files/test/import.md).
@@ -52,40 +64,51 @@ See [Project root marker](../files/env/project-root.md) and [import](../files/te
 ## API conventions
 
 - Field order: **`url` → `query` → `method`**, then `format` / headers / body.
-- Defaults and hosts live in `multimeter.mmt`; APIs read them with `e:` / `<<e:…>>`.
+- Prefer **user-tunable** values from env as **API defaults** (hosts, default location/id for Send in the API tester, timeouts). Nested choice maps when fields must stay together (`latitude: e:city.latitude`).
 
 ## Test conventions
 
+### Where test inputs come from
+
+| Source | When |
+|---|---|
+| `${alias.path}` from imported JSON/CSV/YAML | Shared entities used by several tests (e.g. `${cities.berlin.latitude}`) |
+| Literal / local in the test | One-off values for that test only |
+| `e:` / `<<e:…>>` | Shared **run config** the user tunes (base URLs, archive date windows) — **not** the entity that names the test |
+
+A test titled for Berlin/Tokyo/… must not read that place from env. Env city is only the interactive API default.
+
 ### Varied inputs
 
-Do not smoke-call each API once. Cover **several inputs** (cities, horizons, date windows) — either multiple `test_*.mmt` files or several calls with different `inputs:`.
+Do not smoke-call each API once. Cover **several inputs** (different entities, modes, time windows, edge cases) — multiple `test_*.mmt` files and/or several calls with different `inputs:`.
 
 ### `expect` vs `check` / `assert`
 
 - Put every check that depends on **one** call’s outputs on that call’s **`expect`** / **`require`** (list form for several ops on one field).
-- Use standalone **`check`** / **`assert`** only when comparing **two different** values (e.g. `${a.max} >= ${a.min}`).
+- Use standalone **`check`** / **`assert`** only when comparing **two different** values.
 - Set **`report: all`** on the call (and on any remaining cross-output `check`) so Report shows every row, not only failures.
 
 ```yaml
+# Example only — field names are illustrative
+import:
+  api: +/api/some_endpoint.mmt
+  data: +/data.json
 steps:
   - call: api
-    id: weather
+    id: result
     inputs:
-      latitude: e:latitude
-      longitude: e:longitude
+      id: ${data.sample_user.id}   # fixture — not e:default_id
     expect:
-      observed_at: =1d~ <<c:datetime>>
-      temperature:
-        - >= -80
-        - <= 60
-      weather_code:
+      status: 200
+      created_at: =1d~ <<c:datetime>>
+      score:
         - >= 0
-        - <= 99
+        - <= 100
     report: all
   - check:
-      actual: ${result.daily_max_0}
+      actual: ${result.max}
       operator: ">="
-      expected: ${result.daily_min_0}
+      expected: ${result.min}
       report: all
 ```
 
@@ -99,10 +122,10 @@ Write **all** operator expects unquoted. Never `'>=# 24'`, `"!= null"`, or `'=* 
 
 | Situation | Prefer |
 |---|---|
-| Live / near-now timestamps | `=1d~ <<c:datetime>>` or `=2d~ <<c:date>>` |
-| Fixed archive / history / climate windows | Exact or `=^` against `e:` dates (`hourly_time_0: =^ e:history_start`) |
+| Live / near-now timestamps | `=Ns~` with `<<c:datetime>>` or `<<c:date>>` (e.g. `=1d~ <<c:datetime>>`) |
+| Fixed past/future windows from env | Exact or `=^` against `e:` date variables |
 
-Do **not** use `<<c:time>>` against ISO datetimes — `c:time` is clock-only (`HH:MM:SS`). Prefer this over `=* ^[0-9]{4}-…` datetime regexes.
+Do **not** use `<<c:time>>` against ISO datetimes — `c:time` is clock-only (`HH:MM:SS`). Prefer time operators over datetime regexes when the value should be near now.
 
 See [Prefer accurate expects](../files/test/operators.md#prefer-accurate-expects-not-only--null).
 
@@ -119,15 +142,29 @@ npx testlight run suite.mmt --env-file multimeter.mmt
 
 Or open `multimeter.mmt` in the Extension (Environment panel), then run `suite.mmt`.
 
-One area:
+One area (path is an example):
 
 ```sh
-npx testlight run test/forecast/suite.mmt --env-file multimeter.mmt
+npx testlight run test/<area>/suite.mmt --env-file multimeter.mmt
 ```
+
+## Optional worked sample
+
+You do **not** need a sample repo to start. The rules above are enough.
+
+[open-meteo-mmt](../../examples/real-projects/open-meteo-mmt/) is one public application of those rules (useful if you want to see a full tree). Mapping — **examples only**:
+
+| General concept | In that sample |
+|---|---|
+| `test/<area>/` | `test/forecast/`, `test/geocoding/`, … |
+| Env as API default (one concept) | `city:` choice map → API `e:city.latitude` / `e:city.longitude` (interactive Send) |
+| Test entity data | `cities.json` → `${cities.berlin.latitude}` in every city-named test (never `e:city` for that) |
+| Root + area suites | `suite.mmt` → each area’s `suite.mmt` |
+
+For your own product, use the same split and layout with your areas, env keys, and fixture files.
 
 ## Learn more
 
 - [Project root marker](../files/env/project-root.md)
-- [import](../files/test/import.md) · [Operators](../files/test/operators.md) · [Inline expect](../files/test/inline-expect.md)
+- [import](../files/test/import.md) · [Data-driven tests](../features/data-driven-tests.md) · [Operators](../files/test/operators.md) · [Inline expect](../files/test/inline-expect.md)
 - [Suite execution](../files/suite/execution.md)
-- Example: [open-meteo-mmt](../../examples/real-projects/open-meteo-mmt/)

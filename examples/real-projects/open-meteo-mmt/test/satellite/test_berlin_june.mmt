@@ -1,13 +1,14 @@
 type: test
 title: Satellite radiation — Berlin June 2024
 import:
+  cities: +/cities.json
   api: +/api/satellite_radiation.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:latitude
-      longitude: e:longitude
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
       start_date: e:history_start
       end_date: e:history_end
     expect:

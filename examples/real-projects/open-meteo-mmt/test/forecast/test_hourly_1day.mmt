@@ -1,13 +1,14 @@
 type: test
 title: Forecast hourly/daily — 1 day
 import:
+  cities: +/cities.json
   api: +/api/forecast_hourly_daily.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:latitude
-      longitude: e:longitude
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
       forecast_days: "1"
     expect:
       hourly_time_0: =1d~ <<c:datetime>>

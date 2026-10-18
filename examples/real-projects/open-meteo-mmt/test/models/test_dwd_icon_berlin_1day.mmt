@@ -1,13 +1,14 @@
 type: test
 title: DWD ICON — Berlin 1 day
 import:
+  cities: +/cities.json
   api: +/api/model_dwd_icon.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:latitude
-      longitude: e:longitude
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
       forecast_days: "1"
     expect:
       observed_at: =1d~ <<c:datetime>>

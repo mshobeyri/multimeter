@@ -27,7 +27,9 @@ Select the environment / preset in the Environment panel (or pass `--preset` / `
 ## Tips
 
 - Place `multimeter.mmt` at the project root so `+/` imports resolve correctly.
-- Use presets to switch local / staging / production in one click.
+- Use presets to switch local / staging / production in one click when several **independent** variables must move together.
+- Fields that must stay together for **API defaults** (e.g. latitude + longitude) belong in **one** nested choice (`city.berlin: {latitude, longitude}`), then API `e:city.latitude` — not two maps a preset tries to keep in sync.
+- City-/entity-specific **tests** still pass fixture or local inputs (`${cities.berlin.latitude}`), not `e:city…`.
 - Never commit real secrets — use empty defaults and override in CI.
 
 ## Learn more

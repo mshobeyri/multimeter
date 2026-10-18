@@ -1,5 +1,6 @@
 import {
   boardsToVariables,
+  coerceEnvChoiceValue,
   coerceEnvScalar,
   envListValueToInputBox,
   envScalarChoices,
@@ -26,30 +27,33 @@ describe('envVariableUi', () => {
     });
   });
 
-  it('ignores nested object and list field values', () => {
+  it('preserves nested object choice values and JSON object literals', () => {
     expect(boardsToVariables([
       {
-        name: 'config',
+        name: 'city',
         type: 'object',
         value: {
-          local: {host: 'localhost', port: 8080},
-          tags: ['a', 'b'],
-          raw: '{"x":1}',
-          listLit: '[1,2]',
+          berlin: {latitude: 52.52, longitude: 13.41},
+          tokyo: '{"latitude":35.68,"longitude":139.69}',
           url: 'https://x',
           port: '8080',
         },
       },
     ])).toEqual({
-      config: {
+      city: {
+        berlin: {latitude: 52.52, longitude: 13.41},
+        tokyo: {latitude: 35.68, longitude: 139.69},
         url: 'https://x',
         port: 8080,
       },
     });
+    expect(coerceEnvChoiceValue({a: 1} as any)).toEqual({a: 1});
+    expect(coerceEnvChoiceValue([1, 2] as any)).toEqual([1, 2]);
+    expect(coerceEnvChoiceValue('{"a":1}')).toEqual({a: 1});
+    expect(coerceEnvChoiceValue('[1,2]')).toEqual([1, 2]);
+    // Lists still reject nested values.
     expect(coerceEnvScalar({a: 1} as any)).toBeUndefined();
     expect(coerceEnvScalar([1, 2] as any)).toBeUndefined();
-    expect(coerceEnvScalar('{"a":1}')).toBeUndefined();
-    expect(coerceEnvScalar('[1,2]')).toBeUndefined();
   });
 
   it('keeps number 10 and string "10" as different list values', () => {
@@ -73,6 +77,12 @@ describe('envVariableUi', () => {
     expect(envVariableChoices({local: 10, quoted: '10'}, 'base_url')).toEqual([
       {label: 'local', value: 10},
       {label: 'quoted', value: '10'},
+    ]);
+    const nested = envVariableChoices({
+      berlin: {latitude: 52.52, longitude: 13.41},
+    });
+    expect(nested).toEqual([
+      {label: 'berlin', value: {latitude: 52.52, longitude: 13.41}},
     ]);
     const choices = envVariableChoices([10, '10']);
     expect(pickEnvChoice(choices, {label: '10', value: '10'})).toEqual({
@@ -115,16 +125,16 @@ describe('envVariableUi', () => {
     });
   });
 
-  it('strips nested values when loading boards from YAML', () => {
+  it('keeps nested values when loading boards from YAML', () => {
     const boards = variablesToBoards({
       api_url: {local: 'https://x', prod: 'https://y'},
       timeouts: [1000, 2000],
-      nested: {dev: {port: 8080} as any, plain: 'ok'},
-    } as any);
+      city: {berlin: {latitude: 52.52, longitude: 13.41}, plain: 'ok'},
+    });
     expect(boardsToVariables(boards)).toEqual({
       api_url: {local: 'https://x', prod: 'https://y'},
       timeouts: [1000, 2000],
-      nested: {plain: 'ok'},
+      city: {berlin: {latitude: 52.52, longitude: 13.41}, plain: 'ok'},
     });
   });
 

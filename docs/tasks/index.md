@@ -6,7 +6,7 @@ Pick what you want to do. Each guide is short, includes a minimal YAML snippet, 
 
 | Task | Description |
 |---|---|
-| [Start a Multimeter project](./start-a-project.md) | Default layout for multi-API / real projects (`multimeter.mmt`, `api/`, area suites) |
+| [Start a Multimeter project](./start-a-project.md) | Mother doc for layout, env vs fixtures, imports, expects, and suites |
 | [Send an API request](./send-api-request.md) | Define and send a single HTTP request |
 | [Write a test flow](./write-test-flow.md) | Call an endpoint and assert the response |
 | [Use environments](./use-environments.md) | Parameterize URLs and secrets with `e:` tokens |
