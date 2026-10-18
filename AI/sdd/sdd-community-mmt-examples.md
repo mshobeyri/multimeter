@@ -82,27 +82,31 @@ examples/
 
 ```
 {product}-mmt/
-  README.md         # run-first + light Multimeter feature map
-  LICENSE           # MIT
-  multimeter.mmt    # type: env — project root marker + working defaults
-  suite.mmt         # root suite — calls each test/<area>/suite.mmt
-  api/              # type: api definitions
-  test/
-    <area>/
-      suite.mmt     # first in the folder — runs all tests beside it (not a separate suites/)
-      test_*.mmt    # type: test — import APIs via +/api/… ; varied inputs + accurate expects
+  README.md              # comparison / why Multimeter (optional); links into multimeter/
+  LICENSE                # MIT
+  multimeter/            # the Multimeter project (day-to-day work)
+    README.md            # run, coverage, env, layout, upstream
+    multimeter.mmt       # type: env — project root marker + working defaults
+    suite.mmt            # root suite — calls each test/<area>/suite.mmt
+    api/                 # type: api definitions
+    test/
+      <area>/
+        suite.mmt        # first in the folder — runs all tests beside it
+        test_*.mmt       # type: test — import APIs via +/api/… ; varied inputs + accurate expects
+  postman/               # optional — mirror collection for timing/context compare only
 ```
 
-- **No top-level `suites/` folder.** Area suites live **beside** the tests they run (`test/<area>/suite.mmt`).
+- **Project docs** live in `multimeter/README.md`. Root `README.md` may tell a Multimeter-vs-X story; it must not be the only place with run/env/layout.
+- **No top-level `suites/` folder.** Area suites live **beside** the tests they run (`multimeter/test/<area>/suite.mmt`).
 - Name tests `test_*.mmt` (not `*_test.mmt`) so `suite.mmt` sorts as the **first** file in each area folder.
-- Ship **`multimeter.mmt`** (not a bare `env.mmt`) so `+/` project-root imports resolve and the Extension can load workspace env.
+- Ship **`multimeter/multimeter.mmt`** (not a bare `env.mmt`) so `+/` project-root imports resolve and the Extension can load workspace env.
 - In tests, **prefer `+/api/….mmt`** over `../../api/….mmt` (see [Project root](../../docs/files/env/project-root.md) · [import](../../docs/files/test/import.md)).
 - Root `suite.mmt` only references those area suites (items run in parallel by default — no `then` required between them).
 - Prefer **several tests per API** (different cities, horizons, date windows) over a single smoke call.
 
 Optional later (not required for v1):
 
-- `ci/` or GitHub Actions calling `npx testlight run suite.mmt --env-file multimeter.mmt`
+- `ci/` or GitHub Actions calling `npx testlight run multimeter/suite.mmt --env-file multimeter/multimeter.mmt`
 - `openapi/` / imported sources if the suite was converted
 - `.gitignore` only if local overlays are introduced; prefer documenting env edits over ignored secret files for public no-key APIs
 
@@ -183,8 +187,8 @@ Pilot content expectations:
 From Multimeter root (after submodules initialized):
 
 ```sh
-npx testlight run examples/real-projects/open-meteo-mmt/suite.mmt \
-  --env-file examples/real-projects/open-meteo-mmt/multimeter.mmt
+npx testlight run examples/real-projects/open-meteo-mmt/multimeter/suite.mmt \
+  --env-file examples/real-projects/open-meteo-mmt/multimeter/multimeter.mmt
 ```
 
 Later: a small script or npm script that runs every `examples/real-projects/*/suite.mmt` (network-dependent; may be manual or optional CI with network egress).
@@ -215,7 +219,7 @@ Done when accepted.
 ### Phase 1 — Pilot content (Open-Meteo)
 
 1. Create `examples/real-projects/README.md` (index + submodule notes).
-2. Add `examples/real-projects/open-meteo-mmt/` with `README.md`, `multimeter.mmt`, root `suite.mmt`, `api/`, and `test/<area>/{tests,suite.mmt}` using `+/api/…` imports.
+2. Add `examples/real-projects/open-meteo-mmt/` with root comparison README + `multimeter/` (project README, `multimeter.mmt`, `suite.mmt`, `api/`, `test/<area>/…`) and optional `postman/` compare.
 3. Verify with `npx testlight run …` against the live Open-Meteo API.
 4. Create GitHub repo `mshobeyri/open-meteo-mmt`, push, convert folder to submodule.
 

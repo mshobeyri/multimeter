@@ -182,14 +182,14 @@ npx testlight run test/<area>/suite.mmt --env-file multimeter.mmt
 
 You do **not** need a sample repo to start. The rules above are enough.
 
-[open-meteo-mmt](../../examples/real-projects/open-meteo-mmt/) is one public application of those rules (useful if you want to see a full tree). Mapping — **examples only**:
+[open-meteo-mmt](../../examples/real-projects/open-meteo-mmt/) is one public application of those rules (Multimeter tree under [`multimeter/`](../../examples/real-projects/open-meteo-mmt/multimeter/)). Mapping — **examples only**:
 
 | Where-values rule | In that sample |
 |---|---|
 | Env (user / API Send) | Hosts, `timezone`, `city:` choice map → API `e:city.latitude` |
 | JSON (fixed catalog) | `cities.json` → `${cities.berlin.latitude}` in city-named tests |
 | Direct in the test (scenario) | `start_date` / `end_date` / `forecast_days` literals |
-| Layout | `test/<area>/suite.mmt`, root `suite.mmt` |
+| Layout | `multimeter/test/<area>/suite.mmt`, `multimeter/suite.mmt` |
 
 For your own product, use the same decision rule with your areas, env keys, and catalogs.
 

@@ -1,82 +1,78 @@
-# Open-Meteo Multimeter suites
+# Open-Meteo — Multimeter vs Postman
 
-Executable [Multimeter](https://mmt.dev) / `testlight` suites for the public [Open-Meteo](https://open-meteo.com/) weather APIs.
+[Multimeter](https://mmt.dev) / `testlight` suites for the public [Open-Meteo](https://open-meteo.com/) weather APIs live in [`multimeter/`](./multimeter/) (see that folder’s [README](./multimeter/README.md) for run, coverage, env, and layout).
 
-Free non-commercial endpoints need **no API key** and **no account**.
+This root README is the **comparison story**: why switch from Postman. The Multimeter project itself needs **no API key**.
 
-## Run
+## Why Multimeter (vs Postman)
+
+Multimeter runs suite items **in parallel** by default — area suites and tests overlap instead of waiting in a single queue. That is a practical reason to switch: results arrive sooner as coverage grows, without a separate parallel runner or collection gymnastics.
+
+This sample is only a **small** Open-Meteo suite (**59** tests, **~61** HTTP calls). Even at this size, Multimeter already wins on run time, how much an AI must load, how much you assert, and how you change or ship the suite.
+
+### 1. Faster results
+
+| | Multimeter (`testlight`) | Postman (Newman) |
+|---|---:|---:|
+| Wall clock (live Open-Meteo, same machine) | **~0.8–1.0 s** | **~4.3–5.7 s** |
+| Suite execution | Parallel | One request after another |
+
+On a real product suite — hundreds of APIs and cases — that wall-clock gap compounds.
+
+### 2. Less context for AI (and for reviews)
+
+Same HTTP coverage, measured on this sample (`multimeter/` vs the comparison collection):
+
+| | Multimeter project | Postman collection |
+|---|---:|---:|
+| Shape | **98** small `.mmt` / JSON files | **1** JSON blob |
+| Size on disk | **~42 KB** (~11k tokens @ ~4 chars) | **~91 KB** pretty (~23k tokens) |
+| vs Multimeter | — | **~2.2×** more text to ingest |
+
+Agents and reviewers can open **one area** (e.g. `multimeter/test/forecast/` ≈ 3 KB) instead of always loading the whole collection (~91 KB).
+
+### 3. Deeper assertions (same calls)
+
+| | Multimeter | Postman mirror |
+|---|---:|---:|
+| Checks on this suite | **~340** expect / list-op / check units | **61** (`pm.test` status 200 only) |
+| What fails look like | Field-level expects, time ops, ranges, `report: all` | Request passed/failed |
+
+You get the same HTTP surface with far more signal when something breaks — without writing dozens of collection scripts.
+
+### 4. Cheaper to change (locality)
+
+| Task | Multimeter | Postman |
+|---|---|---|
+| Add one city/horizon case | Add/edit **1–2** small files under `multimeter/test/<area>/` | Edit a **~91 KB** collection JSON |
+| Review in git | Focused YAML diff | Noisy JSON diff, easy merge conflicts |
+| Scope an AI edit | Point at one folder or file | Dump the whole collection into context |
+
+### 5. Clearer failures + simpler CI
+
+**Failure diagnosis:** Multimeter reports which field/operator failed (with `report: all` you still see the passing rows). The Postman mirror only tells you the request’s status check failed.
+
+**CI surface:**
 
 ```sh
-npx testlight run suite.mmt --env-file multimeter.mmt
+# Multimeter — one command, project env, exit code from the suite
+npx testlight run multimeter/suite.mmt --env-file multimeter/multimeter.mmt
+
+# Postman — collection path + Newman; assertions are whatever you scripted
+npx newman run postman/open-meteo.root-suite.postman_collection.json
 ```
 
-Or open `multimeter.mmt` in the Multimeter extension (project root marker — loads into the Environment panel), then open `suite.mmt` and Run.
+Switching means YAML-in-git tests, accurate expects, parallel suites, modular files for humans and AI, and a one-line `testlight` CI entry — even before this sample grows.
 
-One area only (suite lives next to its tests):
+## Comparison only
+
+[`postman/`](./postman/) and [`compare-timing.sh`](./compare-timing.sh) exist only to reproduce the numbers above — not a day-to-day workflow.
 
 ```sh
-npx testlight run test/forecast/suite.mmt --env-file multimeter.mmt
+./compare-timing.sh
 ```
 
-## What’s covered
-
-Each area folder under `test/` has its own `suite.mmt` (first in the folder) that runs every `test_*.mmt` beside it. Root `suite.mmt` calls those area suites.
-
-| Area suite | APIs |
-|---|---|
-| `test/forecast/suite.mmt` | Current + hourly/daily forecast (several locations / horizons) |
-| `test/historical/suite.mmt` | Archive, historical forecast, previous runs |
-| `test/air_quality/suite.mmt` | Air quality |
-| `test/marine/suite.mmt` | Marine / waves |
-| `test/flood/suite.mmt` | River discharge |
-| `test/climate/suite.mmt` | Climate projections |
-| `test/ensemble/suite.mmt` | Ensemble forecast |
-| `test/elevation/suite.mmt` | Elevation |
-| `test/satellite/suite.mmt` | Satellite shortwave radiation |
-| `test/seasonal/suite.mmt` | Seasonal monthly means |
-| `test/geocoding/suite.mmt` | Geocode search / get + city→forecast |
-| `test/models/suite.mmt` | GFS, ICON, ECMWF, Météo-France, JMA, MET Norway, GEM, BOM, CMA |
-
-Tests call each API with **varied inputs** (cities, date windows, `forecast_days`) and assert accurate expects (near-now times via `=Ns~`, coordinate bands, series lengths) — not only `!= null`.
-
-## Environment
-
-Edit `multimeter.mmt` (or pass `-e` / `--env-file` overrides):
-
-| Variables | Use |
-|---|---|
-| `*_base_url` | Host per product (defaults are the public Open-Meteo hosts) |
-| `city` | Choice map for **API Send defaults** (berlin, paris, tokyo, …). Each choice is `{latitude, longitude}` — pick one city in the Environment panel. APIs default to `e:city.latitude` / `e:city.longitude`. Tests do **not** use `e:city`; they import `cities.json`. |
-| `timezone` | `UTC` so time assertions stay stable |
-
-**Where values live** (env vs JSON vs direct — same decision rule as Multimeter’s start-a-project guide):
-
-| Place | In this project |
-|---|---|
-| **Env** | Hosts, `timezone`, `city` for API **Send** defaults |
-| **JSON** | `cities.json` — fixed place catalog (`${cities.berlin.latitude}`) |
-| **Direct in the test** | Date windows, `forecast_days` — any valid scenario values, written as literals |
-
-Keep `cities.json` in sync with the env `city` map when you change a sample point.
-
-Self-hosted Open-Meteo: change the relevant `*_base_url` values.
-
-## Layout
-
-```
-multimeter.mmt          # project root marker + env (hosts, city, timezone)
-cities.json             # city lat/lon for tests
-suite.mmt               # root — calls each test/<area>/suite.mmt
-api/                    # API definitions (defaults: e:city…; dates local on API)
-test/<area>/
-  suite.mmt             # first — runs all tests in that folder
-  test_*.mmt            # +/api/… + cities.json; dates inlined
-```
-
-## Upstream
-
-- https://open-meteo.com/en/docs  
-- Respect Open-Meteo fair-use and CC BY attribution for non-commercial use.
+Day-to-day Open-Meteo work: [`multimeter/README.md`](./multimeter/README.md).
 
 ## License
 

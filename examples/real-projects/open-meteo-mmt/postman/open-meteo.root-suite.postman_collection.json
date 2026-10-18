@@ -1,0 +1,3256 @@
+{
+  "info": {
+    "name": "Open-Meteo (mirror of Multimeter root suite)",
+    "description": "Generated Postman collection mirroring examples/real-projects/open-meteo-mmt/suite.mmt HTTP calls. Status-200 checks only (not full Multimeter expects).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "chain_lat",
+      "value": ""
+    },
+    {
+      "key": "chain_lon",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "geocoding",
+      "item": [
+        {
+          "name": "geocoding/test_city_forecast_berlin · geocode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://geocoding-api.open-meteo.com/v1/search?name=Berlin&count=1",
+              "protocol": "https",
+              "host": [
+                "geocoding-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Berlin"
+                },
+                {
+                  "key": "count",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "const r = (j.results && j.results[0]) || {};",
+                  "pm.collectionVariables.set(\"chain_lat\", String(r.latitude ?? \"\"));",
+                  "pm.collectionVariables.set(\"chain_lon\", String(r.longitude ?? \"\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "geocoding/test_city_forecast_berlin · forecast",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/forecast?latitude={{chain_lat}}&longitude={{chain_lon}}&current=temperature_2m%2Cweather_code%2Cwind_speed_10m&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "{{chain_lat}}"
+                },
+                {
+                  "key": "longitude",
+                  "value": "{{chain_lon}}"
+                },
+                {
+                  "key": "current",
+                  "value": "temperature_2m,weather_code,wind_speed_10m"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "geocoding/test_city_forecast_paris · geocode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://geocoding-api.open-meteo.com/v1/search?name=Paris&count=1",
+              "protocol": "https",
+              "host": [
+                "geocoding-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Paris"
+                },
+                {
+                  "key": "count",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "const r = (j.results && j.results[0]) || {};",
+                  "pm.collectionVariables.set(\"chain_lat\", String(r.latitude ?? \"\"));",
+                  "pm.collectionVariables.set(\"chain_lon\", String(r.longitude ?? \"\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "geocoding/test_city_forecast_paris · forecast",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/forecast?latitude={{chain_lat}}&longitude={{chain_lon}}&current=temperature_2m%2Cweather_code%2Cwind_speed_10m&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "{{chain_lat}}"
+                },
+                {
+                  "key": "longitude",
+                  "value": "{{chain_lon}}"
+                },
+                {
+                  "key": "current",
+                  "value": "temperature_2m,weather_code,wind_speed_10m"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "geocoding/test_get_berlin · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://geocoding-api.open-meteo.com/v1/get?id=2950159",
+              "protocol": "https",
+              "host": [
+                "geocoding-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "get"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "2950159"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "const r = (j.results && j.results[0]) || {};",
+                  "pm.collectionVariables.set(\"chain_lat\", String(r.latitude ?? \"\"));",
+                  "pm.collectionVariables.set(\"chain_lon\", String(r.longitude ?? \"\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "geocoding/test_search_berlin · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://geocoding-api.open-meteo.com/v1/search?name=Berlin&count=1",
+              "protocol": "https",
+              "host": [
+                "geocoding-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Berlin"
+                },
+                {
+                  "key": "count",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "const r = (j.results && j.results[0]) || {};",
+                  "pm.collectionVariables.set(\"chain_lat\", String(r.latitude ?? \"\"));",
+                  "pm.collectionVariables.set(\"chain_lon\", String(r.longitude ?? \"\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "geocoding/test_search_paris · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://geocoding-api.open-meteo.com/v1/search?name=Paris&count=1",
+              "protocol": "https",
+              "host": [
+                "geocoding-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Paris"
+                },
+                {
+                  "key": "count",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "const r = (j.results && j.results[0]) || {};",
+                  "pm.collectionVariables.set(\"chain_lat\", String(r.latitude ?? \"\"));",
+                  "pm.collectionVariables.set(\"chain_lon\", String(r.longitude ?? \"\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "geocoding/test_search_tokyo_count3 · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://geocoding-api.open-meteo.com/v1/search?name=Tokyo&count=3",
+              "protocol": "https",
+              "host": [
+                "geocoding-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Tokyo"
+                },
+                {
+                  "key": "count",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "const r = (j.results && j.results[0]) || {};",
+                  "pm.collectionVariables.set(\"chain_lat\", String(r.latitude ?? \"\"));",
+                  "pm.collectionVariables.set(\"chain_lon\", String(r.longitude ?? \"\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "forecast",
+      "item": [
+        {
+          "name": "forecast/test_current_berlin · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m%2Cweather_code%2Cwind_speed_10m&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "current",
+                  "value": "temperature_2m,weather_code,wind_speed_10m"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "forecast/test_current_sydney · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/forecast?latitude=-33.87&longitude=151.21&current=temperature_2m%2Cweather_code%2Cwind_speed_10m&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "-33.87"
+                },
+                {
+                  "key": "longitude",
+                  "value": "151.21"
+                },
+                {
+                  "key": "current",
+                  "value": "temperature_2m,weather_code,wind_speed_10m"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "forecast/test_current_tokyo · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/forecast?latitude=35.68&longitude=139.69&current=temperature_2m%2Cweather_code%2Cwind_speed_10m&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                },
+                {
+                  "key": "current",
+                  "value": "temperature_2m,weather_code,wind_speed_10m"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "forecast/test_hourly_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&hourly=temperature_2m%2Cprecipitation&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m,precipitation"
+                },
+                {
+                  "key": "daily",
+                  "value": "weather_code,temperature_2m_max,temperature_2m_min"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "forecast/test_hourly_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&hourly=temperature_2m%2Cprecipitation&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m,precipitation"
+                },
+                {
+                  "key": "daily",
+                  "value": "weather_code,temperature_2m_max,temperature_2m_min"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "forecast/test_hourly_paris · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/forecast?latitude=48.85&longitude=2.35&hourly=temperature_2m%2Cprecipitation&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "48.85"
+                },
+                {
+                  "key": "longitude",
+                  "value": "2.35"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m,precipitation"
+                },
+                {
+                  "key": "daily",
+                  "value": "weather_code,temperature_2m_max,temperature_2m_min"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "historical",
+      "item": [
+        {
+          "name": "historical/test_archive_jan2024_tokyo · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://archive-api.open-meteo.com/v1/archive?latitude=35.68&longitude=139.69&start_date=2024-01-10&end_date=2024-01-12&hourly=temperature_2m&daily=temperature_2m_max&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "archive-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "archive"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-01-10"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-01-12"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "daily",
+                  "value": "temperature_2m_max"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "historical/test_archive_june2024 · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://archive-api.open-meteo.com/v1/archive?latitude=52.52&longitude=13.41&start_date=2024-06-01&end_date=2024-06-03&hourly=temperature_2m&daily=temperature_2m_max&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "archive-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "archive"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-06-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-06-03"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "daily",
+                  "value": "temperature_2m_max"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "historical/test_historical_forecast_june · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&start_date=2024-06-01&end_date=2024-06-03&hourly=temperature_2m&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "historical-forecast-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-06-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-06-03"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "historical/test_historical_forecast_paris · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=48.85&longitude=2.35&start_date=2024-06-01&end_date=2024-06-03&hourly=temperature_2m&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "historical-forecast-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "48.85"
+                },
+                {
+                  "key": "longitude",
+                  "value": "2.35"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-06-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-06-03"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "historical/test_previous_runs_june · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://previous-runs-api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&start_date=2024-06-01&end_date=2024-06-03&hourly=temperature_2m_previous_day1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "previous-runs-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-06-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-06-03"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m_previous_day1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "historical/test_previous_runs_sydney · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://previous-runs-api.open-meteo.com/v1/forecast?latitude=-33.87&longitude=151.21&start_date=2024-06-01&end_date=2024-06-03&hourly=temperature_2m_previous_day1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "previous-runs-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "-33.87"
+                },
+                {
+                  "key": "longitude",
+                  "value": "151.21"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-06-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-06-03"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m_previous_day1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "air_quality",
+      "item": [
+        {
+          "name": "air_quality/test_berlin · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=52.52&longitude=13.41&current=european_aqi%2Cpm10%2Cpm2_5&hourly=pm10%2Cpm2_5&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "air-quality-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "air-quality"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "current",
+                  "value": "european_aqi,pm10,pm2_5"
+                },
+                {
+                  "key": "hourly",
+                  "value": "pm10,pm2_5"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "air_quality/test_paris_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=48.85&longitude=2.35&current=european_aqi%2Cpm10%2Cpm2_5&hourly=pm10%2Cpm2_5&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "air-quality-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "air-quality"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "48.85"
+                },
+                {
+                  "key": "longitude",
+                  "value": "2.35"
+                },
+                {
+                  "key": "current",
+                  "value": "european_aqi,pm10,pm2_5"
+                },
+                {
+                  "key": "hourly",
+                  "value": "pm10,pm2_5"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "air_quality/test_tokyo · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=35.68&longitude=139.69&current=european_aqi%2Cpm10%2Cpm2_5&hourly=pm10%2Cpm2_5&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "air-quality-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "air-quality"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                },
+                {
+                  "key": "current",
+                  "value": "european_aqi,pm10,pm2_5"
+                },
+                {
+                  "key": "hourly",
+                  "value": "pm10,pm2_5"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "marine",
+      "item": [
+        {
+          "name": "marine/test_baltic_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://marine-api.open-meteo.com/v1/marine?latitude=54.5&longitude=10&hourly=wave_height%2Cwave_direction&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "marine-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "marine"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "54.5"
+                },
+                {
+                  "key": "longitude",
+                  "value": "10"
+                },
+                {
+                  "key": "hourly",
+                  "value": "wave_height,wave_direction"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "marine/test_baltic_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://marine-api.open-meteo.com/v1/marine?latitude=54.5&longitude=10&hourly=wave_height%2Cwave_direction&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "marine-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "marine"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "54.5"
+                },
+                {
+                  "key": "longitude",
+                  "value": "10"
+                },
+                {
+                  "key": "hourly",
+                  "value": "wave_height,wave_direction"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "marine/test_north_sea · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://marine-api.open-meteo.com/v1/marine?latitude=56&longitude=3&hourly=wave_height%2Cwave_direction&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "marine-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "marine"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "56"
+                },
+                {
+                  "key": "longitude",
+                  "value": "3"
+                },
+                {
+                  "key": "hourly",
+                  "value": "wave_height,wave_direction"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "flood",
+      "item": [
+        {
+          "name": "flood/test_berlin_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://flood-api.open-meteo.com/v1/flood?latitude=52.52&longitude=13.41&daily=river_discharge&forecast_days=1",
+              "protocol": "https",
+              "host": [
+                "flood-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "flood"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "daily",
+                  "value": "river_discharge"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "flood/test_berlin_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://flood-api.open-meteo.com/v1/flood?latitude=52.52&longitude=13.41&daily=river_discharge&forecast_days=3",
+              "protocol": "https",
+              "host": [
+                "flood-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "flood"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "daily",
+                  "value": "river_discharge"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "flood/test_paris · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://flood-api.open-meteo.com/v1/flood?latitude=48.85&longitude=2.35&daily=river_discharge&forecast_days=3",
+              "protocol": "https",
+              "host": [
+                "flood-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "flood"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "48.85"
+                },
+                {
+                  "key": "longitude",
+                  "value": "2.35"
+                },
+                {
+                  "key": "daily",
+                  "value": "river_discharge"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "climate",
+      "item": [
+        {
+          "name": "climate/test_berlin_2050 · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://climate-api.open-meteo.com/v1/climate?latitude=52.52&longitude=13.41&start_date=2050-01-01&end_date=2050-01-07&models=MRI_AGCM3_2_S&daily=temperature_2m_mean",
+              "protocol": "https",
+              "host": [
+                "climate-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "climate"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2050-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2050-01-07"
+                },
+                {
+                  "key": "models",
+                  "value": "MRI_AGCM3_2_S"
+                },
+                {
+                  "key": "daily",
+                  "value": "temperature_2m_mean"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "climate/test_sydney_2050_short · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://climate-api.open-meteo.com/v1/climate?latitude=-33.87&longitude=151.21&start_date=2050-01-01&end_date=2050-01-03&models=MRI_AGCM3_2_S&daily=temperature_2m_mean",
+              "protocol": "https",
+              "host": [
+                "climate-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "climate"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "-33.87"
+                },
+                {
+                  "key": "longitude",
+                  "value": "151.21"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2050-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2050-01-03"
+                },
+                {
+                  "key": "models",
+                  "value": "MRI_AGCM3_2_S"
+                },
+                {
+                  "key": "daily",
+                  "value": "temperature_2m_mean"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "climate/test_tokyo_2050 · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://climate-api.open-meteo.com/v1/climate?latitude=35.68&longitude=139.69&start_date=2050-01-01&end_date=2050-01-07&models=MRI_AGCM3_2_S&daily=temperature_2m_mean",
+              "protocol": "https",
+              "host": [
+                "climate-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "climate"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2050-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2050-01-07"
+                },
+                {
+                  "key": "models",
+                  "value": "MRI_AGCM3_2_S"
+                },
+                {
+                  "key": "daily",
+                  "value": "temperature_2m_mean"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ensemble",
+      "item": [
+        {
+          "name": "ensemble/test_berlin_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://ensemble-api.open-meteo.com/v1/ensemble?latitude=52.52&longitude=13.41&hourly=temperature_2m&forecast_days=1&models=icon_seamless&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "ensemble-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "ensemble"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "models",
+                  "value": "icon_seamless"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ensemble/test_berlin_2day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://ensemble-api.open-meteo.com/v1/ensemble?latitude=52.52&longitude=13.41&hourly=temperature_2m&forecast_days=2&models=icon_seamless&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "ensemble-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "ensemble"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "2"
+                },
+                {
+                  "key": "models",
+                  "value": "icon_seamless"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ensemble/test_paris_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://ensemble-api.open-meteo.com/v1/ensemble?latitude=48.85&longitude=2.35&hourly=temperature_2m&forecast_days=1&models=icon_seamless&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "ensemble-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "ensemble"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "48.85"
+                },
+                {
+                  "key": "longitude",
+                  "value": "2.35"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "models",
+                  "value": "icon_seamless"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "elevation",
+      "item": [
+        {
+          "name": "elevation/test_berlin · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/elevation?latitude=52.52&longitude=13.41",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "elevation"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "elevation/test_everest_approx · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/elevation?latitude=27.99&longitude=86.92",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "elevation"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "27.99"
+                },
+                {
+                  "key": "longitude",
+                  "value": "86.92"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "elevation/test_tokyo · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/elevation?latitude=35.68&longitude=139.69",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "elevation"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "satellite",
+      "item": [
+        {
+          "name": "satellite/test_berlin_june · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://satellite-api.open-meteo.com/v1/archive?latitude=52.52&longitude=13.41&start_date=2024-06-01&end_date=2024-06-03&hourly=shortwave_radiation&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "satellite-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "archive"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-06-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-06-03"
+                },
+                {
+                  "key": "hourly",
+                  "value": "shortwave_radiation"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "satellite/test_paris_june · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://satellite-api.open-meteo.com/v1/archive?latitude=48.85&longitude=2.35&start_date=2024-06-01&end_date=2024-06-03&hourly=shortwave_radiation&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "satellite-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "archive"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "48.85"
+                },
+                {
+                  "key": "longitude",
+                  "value": "2.35"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-06-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-06-03"
+                },
+                {
+                  "key": "hourly",
+                  "value": "shortwave_radiation"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "seasonal",
+      "item": [
+        {
+          "name": "seasonal/test_berlin · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://seasonal-api.open-meteo.com/v1/seasonal?latitude=52.52&longitude=13.41&monthly=temperature_2m_mean",
+              "protocol": "https",
+              "host": [
+                "seasonal-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "seasonal"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "monthly",
+                  "value": "temperature_2m_mean"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "seasonal/test_sydney · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://seasonal-api.open-meteo.com/v1/seasonal?latitude=-33.87&longitude=151.21&monthly=temperature_2m_mean",
+              "protocol": "https",
+              "host": [
+                "seasonal-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "seasonal"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "-33.87"
+                },
+                {
+                  "key": "longitude",
+                  "value": "151.21"
+                },
+                {
+                  "key": "monthly",
+                  "value": "temperature_2m_mean"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "seasonal/test_tokyo · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://seasonal-api.open-meteo.com/v1/seasonal?latitude=35.68&longitude=139.69&monthly=temperature_2m_mean",
+              "protocol": "https",
+              "host": [
+                "seasonal-api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "seasonal"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                },
+                {
+                  "key": "monthly",
+                  "value": "temperature_2m_mean"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "models",
+      "item": [
+        {
+          "name": "models/test_bom_sydney_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/bom?latitude=-33.87&longitude=151.21&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "bom"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "-33.87"
+                },
+                {
+                  "key": "longitude",
+                  "value": "151.21"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_bom_sydney_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/bom?latitude=-33.87&longitude=151.21&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "bom"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "-33.87"
+                },
+                {
+                  "key": "longitude",
+                  "value": "151.21"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_cma_beijing_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/cma?latitude=39.9&longitude=116.4&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "cma"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "39.9"
+                },
+                {
+                  "key": "longitude",
+                  "value": "116.4"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_cma_beijing_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/cma?latitude=39.9&longitude=116.4&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "cma"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "39.9"
+                },
+                {
+                  "key": "longitude",
+                  "value": "116.4"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_dwd_icon_berlin_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/dwd-icon?latitude=52.52&longitude=13.41&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "dwd-icon"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_dwd_icon_paris_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/dwd-icon?latitude=48.85&longitude=2.35&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "dwd-icon"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "48.85"
+                },
+                {
+                  "key": "longitude",
+                  "value": "2.35"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_ecmwf_berlin_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/ecmwf?latitude=52.52&longitude=13.41&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "ecmwf"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_ecmwf_sydney_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/ecmwf?latitude=-33.87&longitude=151.21&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "ecmwf"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "-33.87"
+                },
+                {
+                  "key": "longitude",
+                  "value": "151.21"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_gem_montreal_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/gem?latitude=45.5&longitude=-73.57&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "gem"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "45.5"
+                },
+                {
+                  "key": "longitude",
+                  "value": "-73.57"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_gem_montreal_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/gem?latitude=45.5&longitude=-73.57&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "gem"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "45.5"
+                },
+                {
+                  "key": "longitude",
+                  "value": "-73.57"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_gfs_berlin_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/gfs?latitude=52.52&longitude=13.41&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "gfs"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_gfs_tokyo_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/gfs?latitude=35.68&longitude=139.69&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "gfs"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_jma_tokyo_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/jma?latitude=35.68&longitude=139.69&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "jma"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_jma_tokyo_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/jma?latitude=35.68&longitude=139.69&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "jma"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "35.68"
+                },
+                {
+                  "key": "longitude",
+                  "value": "139.69"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_meteofrance_berlin_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/meteofrance?latitude=52.52&longitude=13.41&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "meteofrance"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "52.52"
+                },
+                {
+                  "key": "longitude",
+                  "value": "13.41"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_meteofrance_paris_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/meteofrance?latitude=48.85&longitude=2.35&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "meteofrance"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "48.85"
+                },
+                {
+                  "key": "longitude",
+                  "value": "2.35"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_metno_oslo_1day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/metno?latitude=59.91&longitude=10.75&hourly=temperature_2m&forecast_days=1&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "metno"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "59.91"
+                },
+                {
+                  "key": "longitude",
+                  "value": "10.75"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "1"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "models/test_metno_oslo_3day · api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.open-meteo.com/v1/metno?latitude=59.91&longitude=10.75&hourly=temperature_2m&forecast_days=3&timezone=UTC",
+              "protocol": "https",
+              "host": [
+                "api",
+                "open-meteo",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "metno"
+              ],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "59.91"
+                },
+                {
+                  "key": "longitude",
+                  "value": "10.75"
+                },
+                {
+                  "key": "hourly",
+                  "value": "temperature_2m"
+                },
+                {
+                  "key": "forecast_days",
+                  "value": "3"
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

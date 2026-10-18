@@ -11,8 +11,8 @@ Pedagogical Multimeter tutorials stay under `basic/`, `intermediate/`, and `prof
 ## Run
 
 ```sh
-npx testlight run examples/real-projects/open-meteo-mmt/suite.mmt \
-  --env-file examples/real-projects/open-meteo-mmt/multimeter.mmt
+npx testlight run examples/real-projects/open-meteo-mmt/multimeter/suite.mmt \
+  --env-file examples/real-projects/open-meteo-mmt/multimeter/multimeter.mmt
 ```
 
 Or open that project’s `suite.mmt` in the Multimeter extension after applying its `multimeter.mmt`.

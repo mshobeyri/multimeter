@@ -6,7 +6,7 @@ When the user wants to **start or scaffold a Multimeter project** with several A
 
 Skip for a single smoke API or one test file unless the user asks for the full layout.
 
-YAML names and trees in either doc are **examples of the general rules**. `examples/real-projects/open-meteo-mmt/` is an optional concrete sample — not required labels.
+YAML names and trees in either doc are **examples of the general rules**. `examples/real-projects/open-meteo-mmt/multimeter/` is an optional concrete sample — not required labels.
 
 ## Structure
 
