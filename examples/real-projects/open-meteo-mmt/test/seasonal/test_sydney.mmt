@@ -1,13 +1,14 @@
 type: test
 title: Seasonal — Sydney
 import:
+  cities: +/cities.json
   api: +/api/seasonal.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:sydney_latitude
-      longitude: e:sydney_longitude
+      latitude: ${cities.sydney.latitude}
+      longitude: ${cities.sydney.longitude}
     expect:
       monthly_time_0: =40d~ <<c:date>>
       monthly_temp_0:

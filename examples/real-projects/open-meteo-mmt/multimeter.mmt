@@ -14,39 +14,69 @@ variables:
   seasonal_base_url: https://seasonal-api.open-meteo.com
   geocode_base_url: https://geocoding-api.open-meteo.com
 
-  # Default location: Berlin
-  latitude: "52.52"
-  longitude: "13.41"
-  city: Berlin
-  berlin_geoname_id: "2950159"
+  # Default location — presets pick a city; APIs use e:latitude / e:longitude
+  latitude:
+    berlin: "52.52"
+    paris: "48.85"
+    tokyo: "35.68"
+    sydney: "-33.87"
+    montreal: "45.5"
+    oslo: "59.91"
+    beijing: "39.9"
+    marine: "54.5"
+    north_sea: "56.0"
+    everest: "27.99"
+  longitude:
+    berlin: "13.41"
+    paris: "2.35"
+    tokyo: "139.69"
+    sydney: "151.21"
+    montreal: "-73.57"
+    oslo: "10.75"
+    beijing: "116.4"
+    marine: "10.0"
+    north_sea: "3.0"
+    everest: "86.92"
+
   timezone: UTC
-
-  # Marine sample (Baltic Sea near Kiel)
-  marine_latitude: "54.5"
-  marine_longitude: "10.0"
-
-  # Model-specific sample cities
-  tokyo_latitude: "35.68"
-  tokyo_longitude: "139.69"
-  sydney_latitude: "-33.87"
-  sydney_longitude: "151.21"
-  montreal_latitude: "45.5"
-  montreal_longitude: "-73.57"
-  oslo_latitude: "59.91"
-  oslo_longitude: "10.75"
-  beijing_latitude: "39.9"
-  beijing_longitude: "116.4"
-
-  # Time windows — fixed past/future ranges that stay valid (ERA5 has ~5 day delay)
-  # Archive / historical reanalysis
   archive_start: "2024-06-01"
   archive_end: "2024-06-03"
-  # Previous runs + historical forecast + satellite (available from ~2021/2024)
   history_start: "2024-06-01"
   history_end: "2024-06-03"
-  # Climate projections
   climate_start: "2050-01-01"
   climate_end: "2050-01-07"
-
   forecast_days: "3"
   forecast_days_short: "1"
+
+presets:
+  location:
+    berlin:
+      latitude: berlin
+      longitude: berlin
+    paris:
+      latitude: paris
+      longitude: paris
+    tokyo:
+      latitude: tokyo
+      longitude: tokyo
+    sydney:
+      latitude: sydney
+      longitude: sydney
+    montreal:
+      latitude: montreal
+      longitude: montreal
+    oslo:
+      latitude: oslo
+      longitude: oslo
+    beijing:
+      latitude: beijing
+      longitude: beijing
+    marine:
+      latitude: marine
+      longitude: marine
+    north_sea:
+      latitude: north_sea
+      longitude: north_sea
+    everest:
+      latitude: everest
+      longitude: everest

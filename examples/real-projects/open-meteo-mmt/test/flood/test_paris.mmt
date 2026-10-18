@@ -1,13 +1,14 @@
 type: test
 title: Flood — Paris
 import:
+  cities: +/cities.json
   api: +/api/flood.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: "48.85"
-      longitude: "2.35"
+      latitude: ${cities.paris.latitude}
+      longitude: ${cities.paris.longitude}
       forecast_days: "3"
     expect:
       daily_time_0: =2d~ <<c:date>>

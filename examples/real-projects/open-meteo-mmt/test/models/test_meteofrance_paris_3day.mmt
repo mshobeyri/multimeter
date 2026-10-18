@@ -1,13 +1,14 @@
 type: test
 title: Météo-France — Paris 3 days
 import:
+  cities: +/cities.json
   api: +/api/model_meteofrance.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: "48.85"
-      longitude: "2.35"
+      latitude: ${cities.paris.latitude}
+      longitude: ${cities.paris.longitude}
       forecast_days: "3"
     expect:
       observed_at: =1d~ <<c:datetime>>

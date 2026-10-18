@@ -1,13 +1,14 @@
 type: test
 title: MET Norway — Oslo 3 days
 import:
+  cities: +/cities.json
   api: +/api/model_metno.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:oslo_latitude
-      longitude: e:oslo_longitude
+      latitude: ${cities.oslo.latitude}
+      longitude: ${cities.oslo.longitude}
       forecast_days: "3"
     expect:
       observed_at: =1d~ <<c:datetime>>

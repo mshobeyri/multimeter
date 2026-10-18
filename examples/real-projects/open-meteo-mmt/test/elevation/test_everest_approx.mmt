@@ -1,13 +1,14 @@
 type: test
 title: Elevation — near Everest
 import:
+  cities: +/cities.json
   api: +/api/elevation.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: "27.99"
-      longitude: "86.92"
+      latitude: ${cities.everest.latitude}
+      longitude: ${cities.everest.longitude}
     expect:
       elevation_0:
         - >= 5000

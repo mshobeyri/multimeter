@@ -46,19 +46,19 @@ Edit `multimeter.mmt` (or pass `-e` / `--env-file` overrides):
 | Variables | Use |
 |---|---|
 | `*_base_url` | Host per product (defaults are the public Open-Meteo hosts) |
-| `latitude` / `longitude` / `city` | Default sample location (Berlin) |
-| `marine_*` | Marine sample point (Baltic) |
-| `tokyo_*`, `sydney_*`, … | Model-specific sample cities |
+| `latitude` / `longitude` | Choice maps of sample cities — APIs default to these; pick a **location** preset (berlin, paris, tokyo, …) |
 | `archive_start` / `archive_end` | Past window for ERA5 archive (keep the end date older than Open-Meteo’s ~5-day delay) |
 | `history_start` / `history_end` | Past window for historical forecast, previous runs, satellite |
 | `climate_start` / `climate_end` | Future climate projection window |
 | `timezone` | `UTC` so time assertions stay stable |
 | `forecast_days` / `forecast_days_short` | Forecast horizon |
 
-Example:
+Named city coordinates for tests also live in `cities.json`. Multicity tests import that file (`cities: +/cities.json`) and pass `${cities.tokyo.latitude}` etc. Edit coords in **both** `cities.json` and the `latitude`/`longitude` maps in `multimeter.mmt` when you change a sample point (or keep them in sync).
+
+Apply a location preset (Extension Environment panel), or:
 
 ```sh
-npx testlight run suite.mmt --env-file multimeter.mmt -e city=Paris
+npx testlight run suite.mmt --env-file multimeter.mmt --preset location.paris
 ```
 
 Self-hosted Open-Meteo: change the relevant `*_base_url` values.
@@ -66,12 +66,13 @@ Self-hosted Open-Meteo: change the relevant `*_base_url` values.
 ## Layout
 
 ```
-multimeter.mmt          # project root marker + defaults (type: env)
+multimeter.mmt          # project root marker + env (lat/lon presets)
+cities.json             # sample city lat/lon for tests
 suite.mmt               # root — calls each test/<area>/suite.mmt
-api/                    # API definitions
+api/                    # API definitions (defaults: e:latitude / e:longitude)
 test/<area>/
   suite.mmt             # first — runs all tests in that folder
-  test_*.mmt            # imports APIs via +/api/… (project root)
+  test_*.mmt            # +/api/… and optional +/cities.json
 ```
 
 ## Upstream

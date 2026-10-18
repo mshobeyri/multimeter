@@ -1,13 +1,14 @@
 type: test
 title: GFS — Tokyo 3 days
 import:
+  cities: +/cities.json
   api: +/api/model_gfs.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:tokyo_latitude
-      longitude: e:tokyo_longitude
+      latitude: ${cities.tokyo.latitude}
+      longitude: ${cities.tokyo.longitude}
       forecast_days: "3"
     expect:
       observed_at: =1d~ <<c:datetime>>

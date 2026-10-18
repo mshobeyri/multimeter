@@ -1,13 +1,14 @@
 type: test
 title: BOM — Sydney 1 day
 import:
+  cities: +/cities.json
   api: +/api/model_bom.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:sydney_latitude
-      longitude: e:sydney_longitude
+      latitude: ${cities.sydney.latitude}
+      longitude: ${cities.sydney.longitude}
       forecast_days: "1"
     expect:
       observed_at: =1d~ <<c:datetime>>

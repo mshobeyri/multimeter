@@ -1,13 +1,14 @@
 type: test
 title: Forecast current — Tokyo
 import:
+  cities: +/cities.json
   api: +/api/forecast_current.mmt
 steps:
   - call: api
     id: weather
     inputs:
-      latitude: e:tokyo_latitude
-      longitude: e:tokyo_longitude
+      latitude: ${cities.tokyo.latitude}
+      longitude: ${cities.tokyo.longitude}
     expect:
       observed_at: =1d~ <<c:datetime>>
       weather_code: >= 0

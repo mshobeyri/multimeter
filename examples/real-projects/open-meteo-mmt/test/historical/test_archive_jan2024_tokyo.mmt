@@ -1,13 +1,14 @@
 type: test
 title: Archive — Jan 2024 Tokyo
 import:
+  cities: +/cities.json
   api: +/api/archive.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:tokyo_latitude
-      longitude: e:tokyo_longitude
+      latitude: ${cities.tokyo.latitude}
+      longitude: ${cities.tokyo.longitude}
       start_date: "2024-01-10"
       end_date: "2024-01-12"
     expect:

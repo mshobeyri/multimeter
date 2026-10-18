@@ -1,13 +1,14 @@
 type: test
 title: Ensemble — Paris 1 day
 import:
+  cities: +/cities.json
   api: +/api/ensemble.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: "48.85"
-      longitude: "2.35"
+      latitude: ${cities.paris.latitude}
+      longitude: ${cities.paris.longitude}
       forecast_days: "1"
     expect:
       hourly_time_0: =1d~ <<c:datetime>>

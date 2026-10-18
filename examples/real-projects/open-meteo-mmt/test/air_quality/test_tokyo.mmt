@@ -1,13 +1,14 @@
 type: test
 title: Air quality — Tokyo
 import:
+  cities: +/cities.json
   api: +/api/air_quality.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:tokyo_latitude
-      longitude: e:tokyo_longitude
+      latitude: ${cities.tokyo.latitude}
+      longitude: ${cities.tokyo.longitude}
       forecast_days: "1"
     expect:
       hourly_time_0: =1d~ <<c:datetime>>

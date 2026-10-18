@@ -1,13 +1,14 @@
 type: test
 title: Satellite radiation — Paris June 2024
 import:
+  cities: +/cities.json
   api: +/api/satellite_radiation.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: "48.85"
-      longitude: "2.35"
+      latitude: ${cities.paris.latitude}
+      longitude: ${cities.paris.longitude}
       start_date: e:history_start
       end_date: e:history_end
     expect:

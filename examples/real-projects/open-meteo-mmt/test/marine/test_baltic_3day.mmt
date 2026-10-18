@@ -1,13 +1,14 @@
 type: test
 title: Marine — Baltic 3 day
 import:
+  cities: +/cities.json
   api: +/api/marine.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:marine_latitude
-      longitude: e:marine_longitude
+      latitude: ${cities.marine.latitude}
+      longitude: ${cities.marine.longitude}
       forecast_days: "3"
     expect:
       hourly_time_0: =1d~ <<c:datetime>>

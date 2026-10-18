@@ -2,8 +2,8 @@ type: api
 title: METNO model forecast
 description: Model-specific forecast endpoint /v1/metno
 inputs:
-  latitude: "52.52"
-  longitude: "13.41"
+  latitude: e:latitude
+  longitude: e:longitude
   forecast_days: "1"
 outputs:
   observed_at: body[hourly][time][0]

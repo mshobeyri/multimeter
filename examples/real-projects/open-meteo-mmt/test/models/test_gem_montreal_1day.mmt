@@ -1,13 +1,14 @@
 type: test
 title: GEM — Montreal 1 day
 import:
+  cities: +/cities.json
   api: +/api/model_gem.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: e:montreal_latitude
-      longitude: e:montreal_longitude
+      latitude: ${cities.montreal.latitude}
+      longitude: ${cities.montreal.longitude}
       forecast_days: "1"
     expect:
       observed_at: =1d~ <<c:datetime>>

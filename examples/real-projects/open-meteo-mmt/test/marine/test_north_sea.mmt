@@ -1,13 +1,14 @@
 type: test
 title: Marine — North Sea
 import:
+  cities: +/cities.json
   api: +/api/marine.mmt
 steps:
   - call: api
     id: result
     inputs:
-      latitude: "56.0"
-      longitude: "3.0"
+      latitude: ${cities.north_sea.latitude}
+      longitude: ${cities.north_sea.longitude}
       forecast_days: "1"
     expect:
       hourly_time_0: =1d~ <<c:datetime>>
