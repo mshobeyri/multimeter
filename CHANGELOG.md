@@ -2,6 +2,36 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.46.3-pre]
+
+Pre-release. VS Code extension `1.46.3`; Testlight CLI and MCP `1.46.3-pre` on `@pre`.
+
+### Environment
+
+- Support nested env choice objects and separate API defaults from test fixtures
+
+### Suite
+
+- Cap suite parallel runs at CPU cores × 4
+
+### Editor
+
+- Add Run in testlight from the test and suite More menu
+- Show yellow Resume on paused test/suite runs
+- Fix Send/glyph drift on API run flows
+
+### Core / network
+
+- Organize `core/src` into domain folders; remove flat re-export stubs
+- Split `networkCore` into focused HTTP, WS, and local transport modules
+- Add in-process `local.mmt.dev` test server shared with the Cloudflare worker
+- Add end-to-end API run and request-to-response unit tests via `local.mmt.dev`
+
+### Docs / samples
+
+- Document default multi-API project layout and where env vs JSON vs direct values live
+- Add open-meteo real-project sample suites and Postman timing compare on the website
+
 ## [1.46.2-pre]
 
 Pre-release. VS Code extension `1.46.2`; Testlight CLI and MCP `1.46.2-pre` on `@pre`.
