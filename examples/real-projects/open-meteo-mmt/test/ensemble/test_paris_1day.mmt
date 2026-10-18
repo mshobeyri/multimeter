@@ -1,0 +1,17 @@
+type: test
+title: Ensemble — Paris 1 day
+import:
+  api: +/api/ensemble.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: "48.85"
+      longitude: "2.35"
+      forecast_days: "1"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      temp_0:
+        - >= -80
+        - <= 60
+    report: all

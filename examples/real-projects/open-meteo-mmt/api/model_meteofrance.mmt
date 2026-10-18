@@ -1,0 +1,21 @@
+type: api
+title: METEOFRANCE model forecast
+description: Model-specific forecast endpoint /v1/meteofrance
+inputs:
+  latitude: "52.52"
+  longitude: "13.41"
+  forecast_days: "1"
+outputs:
+  observed_at: body[hourly][time][0]
+  resp_latitude: body[latitude]
+  resp_longitude: body[longitude]
+  hourly_count: body[hourly][time]
+url: <<e:forecast_base_url>>/v1/meteofrance
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  hourly: temperature_2m
+  forecast_days: i:forecast_days
+  timezone: e:timezone
+method: get
+format: json

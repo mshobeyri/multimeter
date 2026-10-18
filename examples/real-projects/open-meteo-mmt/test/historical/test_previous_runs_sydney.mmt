@@ -1,0 +1,16 @@
+type: test
+title: Previous runs — Sydney June 2024
+import:
+  api: +/api/previous_runs.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:sydney_latitude
+      longitude: e:sydney_longitude
+      start_date: e:history_start
+      end_date: e:history_end
+    expect:
+      previous_day1_0: != null
+      hourly_time_0: =^ e:history_start
+    report: all

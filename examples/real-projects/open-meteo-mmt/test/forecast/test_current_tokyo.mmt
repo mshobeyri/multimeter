@@ -1,0 +1,18 @@
+type: test
+title: Forecast current — Tokyo
+import:
+  api: +/api/forecast_current.mmt
+steps:
+  - call: api
+    id: weather
+    inputs:
+      latitude: e:tokyo_latitude
+      longitude: e:tokyo_longitude
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      weather_code: >= 0
+      wind_speed: >= 0
+      temperature:
+        - >= -80
+        - <= 60
+    report: all

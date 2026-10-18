@@ -1,0 +1,19 @@
+type: api
+title: Forecast current
+description: Current weather conditions
+inputs:
+  latitude: "52.52"
+  longitude: "13.41"
+outputs:
+  temperature: body[current][temperature_2m]
+  weather_code: body[current][weather_code]
+  wind_speed: body[current][wind_speed_10m]
+  observed_at: body[current][time]
+url: <<e:forecast_base_url>>/v1/forecast
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  current: temperature_2m,weather_code,wind_speed_10m
+  timezone: e:timezone
+method: get
+format: json

@@ -1,0 +1,18 @@
+type: test
+title: Marine — Baltic 3 day
+import:
+  api: +/api/marine.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:marine_latitude
+      longitude: e:marine_longitude
+      forecast_days: "3"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      wave_height_0: >= 0
+      wave_direction_0:
+        - >= 0
+        - <= 360
+    report: all

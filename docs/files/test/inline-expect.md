@@ -30,21 +30,27 @@ Full `call` field reference: [call](./steps/call.md).
     token: != null
 ```
 
-Expected sides follow the same YAML typing as `if` / `check`: unquoted `200` / `true` / `null` are number / bool / null; quote to force a string (`== "200"`).
+Expected sides follow the same YAML typing as `if` / `check`: unquoted `200` / `true` / `null` are number / bool / null; quote to force a string (`== "200"`). Write **all** operator expects **unquoted** — `!= null`, `>=# 24`, `=* …`, `=1d~ <<c:datetime>>`, etc. Do not hand-quote them (`'>=# 24'` is wrong); Multimeter handles YAML-unsafe ops.
+
+Prefer **accurate** expects over bare `!= null`: live timestamps with `=Ns~ <<c:datetime>>` / `<<c:date>>` (not `c:time`), fixed windows with `=^` / exact `e:` dates, numeric ranges, string contains/prefix, length (`=#` / `>=#`), fuzzy text (`>N%`), or exact equality when the value is known. See [Operators — Prefer accurate expects](./operators.md#prefer-accurate-expects-not-only--null).
+
+**Prefer `expect` / `require` over a separate `check` / `assert` whenever the comparison only uses that call’s outputs** (plus literals / `e:` env). Keep standalone [check](./steps/check.md) / [assert](./steps/assert.md) for cross-step or two-output comparisons. Set `report: all` on the call when you want every expect row shown in the Report list (default external reporting is often fails-only).
 
 ```yaml
-# Multiple checks on the same field
+# Multiple expects on the same field (not follow-up - check:)
 - call: login
   expect:
     status_code:
       - == 200
       - != 500
+  report: all
 
 # Nested field access
 - call: getUser
   expect:
     body.user.name: == John
     body.user.active: true
+  report: all
 
 # With title and report
 - call: login
@@ -52,9 +58,7 @@ Expected sides follow the same YAML typing as `if` / `check`: unquoted `200` / `
   expect:
     status_code: 200
     token: != null
-  report:
-    internal: all
-    external: fails
+  report: all
 ```
 
 All comparison operators from [Operators](./operators.md) are available in `expect` / `require` values. Missing fields use [omit](./omit.md). Report levels (`all` / `fails` / `none`): [Reports — Report levels](./reports.md#report-levels-all-fails-none).

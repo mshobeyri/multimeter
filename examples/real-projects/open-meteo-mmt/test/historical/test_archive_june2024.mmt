@@ -1,0 +1,26 @@
+type: test
+title: Archive — June 2024 Berlin
+import:
+  api: +/api/archive.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:latitude
+      longitude: e:longitude
+      start_date: e:archive_start
+      end_date: e:archive_end
+    expect:
+      daily_time_0: e:archive_start
+      daily_time_last: e:archive_end
+      hourly_time_0: =^ e:archive_start
+      daily_max_0:
+        - >= -80
+        - <= 60
+      hourly_temp_0: != null
+    report: all
+  - check:
+      actual: ${result.hourly_time_0}
+      operator: =^
+      expected: ${result.daily_time_0}
+      report: all

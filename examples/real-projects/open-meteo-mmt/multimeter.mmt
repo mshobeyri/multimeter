@@ -1,0 +1,52 @@
+type: env
+variables:
+  # Hosts (public free APIs — no API key)
+  forecast_base_url: https://api.open-meteo.com
+  archive_base_url: https://archive-api.open-meteo.com
+  historical_forecast_base_url: https://historical-forecast-api.open-meteo.com
+  previous_runs_base_url: https://previous-runs-api.open-meteo.com
+  air_quality_base_url: https://air-quality-api.open-meteo.com
+  marine_base_url: https://marine-api.open-meteo.com
+  flood_base_url: https://flood-api.open-meteo.com
+  climate_base_url: https://climate-api.open-meteo.com
+  ensemble_base_url: https://ensemble-api.open-meteo.com
+  satellite_base_url: https://satellite-api.open-meteo.com
+  seasonal_base_url: https://seasonal-api.open-meteo.com
+  geocode_base_url: https://geocoding-api.open-meteo.com
+
+  # Default location: Berlin
+  latitude: "52.52"
+  longitude: "13.41"
+  city: Berlin
+  berlin_geoname_id: "2950159"
+  timezone: UTC
+
+  # Marine sample (Baltic Sea near Kiel)
+  marine_latitude: "54.5"
+  marine_longitude: "10.0"
+
+  # Model-specific sample cities
+  tokyo_latitude: "35.68"
+  tokyo_longitude: "139.69"
+  sydney_latitude: "-33.87"
+  sydney_longitude: "151.21"
+  montreal_latitude: "45.5"
+  montreal_longitude: "-73.57"
+  oslo_latitude: "59.91"
+  oslo_longitude: "10.75"
+  beijing_latitude: "39.9"
+  beijing_longitude: "116.4"
+
+  # Time windows — fixed past/future ranges that stay valid (ERA5 has ~5 day delay)
+  # Archive / historical reanalysis
+  archive_start: "2024-06-01"
+  archive_end: "2024-06-03"
+  # Previous runs + historical forecast + satellite (available from ~2021/2024)
+  history_start: "2024-06-01"
+  history_end: "2024-06-03"
+  # Climate projections
+  climate_start: "2050-01-01"
+  climate_end: "2050-01-07"
+
+  forecast_days: "3"
+  forecast_days_short: "1"

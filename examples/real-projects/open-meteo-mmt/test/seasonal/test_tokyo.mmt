@@ -1,0 +1,16 @@
+type: test
+title: Seasonal — Tokyo
+import:
+  api: +/api/seasonal.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:tokyo_latitude
+      longitude: e:tokyo_longitude
+    expect:
+      monthly_time_0: =40d~ <<c:date>>
+      monthly_temp_0:
+        - >= -80
+        - <= 60
+    report: all

@@ -1,0 +1,20 @@
+type: test
+title: Archive — Jan 2024 Tokyo
+import:
+  api: +/api/archive.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:tokyo_latitude
+      longitude: e:tokyo_longitude
+      start_date: "2024-01-10"
+      end_date: "2024-01-12"
+    expect:
+      daily_time_0: "2024-01-10"
+      daily_time_last: "2024-01-12"
+      hourly_time_0: =^ 2024-01-10
+      daily_max_0:
+        - >= -80
+        - <= 60
+    report: all

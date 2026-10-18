@@ -1,0 +1,17 @@
+type: test
+title: Air quality — Paris 3 day
+import:
+  api: +/api/air_quality.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: "48.85"
+      longitude: "2.35"
+      forecast_days: "3"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      aqi: >= 0
+      pm10: >= 0
+      pm25: >= 0
+    report: all

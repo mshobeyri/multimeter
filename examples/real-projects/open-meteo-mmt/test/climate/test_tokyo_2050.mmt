@@ -1,0 +1,19 @@
+type: test
+title: Climate — Tokyo 2050 week
+import:
+  api: +/api/climate.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:tokyo_latitude
+      longitude: e:tokyo_longitude
+      start_date: e:climate_start
+      end_date: e:climate_end
+    expect:
+      daily_time_0: e:climate_start
+      daily_time_last: e:climate_end
+      temp_mean_0:
+        - >= -80
+        - <= 60
+    report: all

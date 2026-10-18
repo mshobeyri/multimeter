@@ -1,0 +1,25 @@
+type: api
+title: Historical weather archive
+description: ERA5 reanalysis archive for a fixed past window
+inputs:
+  latitude: "52.52"
+  longitude: "13.41"
+  start_date: "2024-06-01"
+  end_date: "2024-06-03"
+outputs:
+  daily_time_0: body[daily][time][0]
+  daily_time_last: body[daily][time][2]
+  daily_max_0: body[daily][temperature_2m_max][0]
+  hourly_time_0: body[hourly][time][0]
+  hourly_temp_0: body[hourly][temperature_2m][0]
+url: <<e:archive_base_url>>/v1/archive
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  start_date: i:start_date
+  end_date: i:end_date
+  hourly: temperature_2m
+  daily: temperature_2m_max
+  timezone: e:timezone
+method: get
+format: json

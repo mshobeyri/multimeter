@@ -1,0 +1,20 @@
+type: api
+title: Marine weather
+description: Hourly marine / wave forecast
+inputs:
+  latitude: "54.5"
+  longitude: "10.0"
+  forecast_days: "1"
+outputs:
+  hourly_time_0: body[hourly][time][0]
+  wave_height_0: body[hourly][wave_height][0]
+  wave_direction_0: body[hourly][wave_direction][0]
+url: <<e:marine_base_url>>/v1/marine
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  hourly: wave_height,wave_direction
+  forecast_days: i:forecast_days
+  timezone: e:timezone
+method: get
+format: json

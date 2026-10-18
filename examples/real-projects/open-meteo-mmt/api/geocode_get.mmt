@@ -1,0 +1,16 @@
+type: api
+title: Geocode get by id
+description: Lookup a location by GeoNames id
+inputs:
+  id: "2950159"
+outputs:
+  name: body[name]
+  latitude: body[latitude]
+  longitude: body[longitude]
+  country: body[country]
+  elevation: body[elevation]
+url: <<e:geocode_base_url>>/v1/get
+query:
+  id: i:id
+method: get
+format: json

@@ -1,0 +1,15 @@
+type: test
+title: Elevation — near Everest
+import:
+  api: +/api/elevation.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: "27.99"
+      longitude: "86.92"
+    expect:
+      elevation_0:
+        - >= 5000
+        - <= 9000
+    report: all

@@ -1,0 +1,21 @@
+type: test
+title: JMA — Tokyo 3 days
+import:
+  api: +/api/model_jma.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:tokyo_latitude
+      longitude: e:tokyo_longitude
+      forecast_days: "3"
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      resp_latitude:
+        - >= 30
+        - <= 40
+      resp_longitude:
+        - >= 135
+        - <= 145
+      hourly_count: >=# 72
+    report: all

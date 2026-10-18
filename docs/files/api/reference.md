@@ -8,11 +8,13 @@
 - `setenv:` record<string, string>  # env name → extraction expression (same DSL as outputs; legacy: outputs key name)
 - `url:` string (can contain query string)
 - `protocol:` `http` | `ws` | `graphql`
+- `query:` record<string, string>
 - `method:` HTTP verbs (HTTP only)
 - `format:` `none` | `json` | `xml` | `xmle` | `text` | `html` | `urlencoded` | `binary` | `multipart` | `{ request, response }` — scalar `none` means no request body (response defaults to `auto`); `response` accepts `auto` and the same values except `none`
 - `headers:` record<string, string>
-- `query:` record<string, string>
 - `cookies:` record<string, string>
+
+Preferred YAML order for HTTP addressing: `url`, `query`, `method`, then `format` / `headers` / `cookies` / `body`.
 - `body:` string, object, or array (json/xml/text/urlencoded based on format; relative path string when format is binary; multipart parts list when format is multipart; not used with graphql)
 - `graphql:` { `operation:` string (required), variables?: object, operationName?: string }
 - `auth:` `none` | { `type:` `bearer`, token } | { `type:` `basic`, username, password } | { `type:` `api-key`, header|query, value } | { `type:` `oauth2`, grant, token_url, client_id, client_secret, scope? }

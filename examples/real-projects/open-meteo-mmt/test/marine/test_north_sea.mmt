@@ -1,0 +1,18 @@
+type: test
+title: Marine — North Sea
+import:
+  api: +/api/marine.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: "56.0"
+      longitude: "3.0"
+      forecast_days: "1"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      wave_height_0: >= 0
+      wave_direction_0:
+        - >= 0
+        - <= 360
+    report: all

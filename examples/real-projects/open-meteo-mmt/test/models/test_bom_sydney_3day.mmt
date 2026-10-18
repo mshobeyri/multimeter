@@ -1,0 +1,21 @@
+type: test
+title: BOM — Sydney 3 days
+import:
+  api: +/api/model_bom.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:sydney_latitude
+      longitude: e:sydney_longitude
+      forecast_days: "3"
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      resp_latitude:
+        - >= -40
+        - <= -30
+      resp_longitude:
+        - >= 145
+        - <= 155
+      hourly_count: >=# 72
+    report: all

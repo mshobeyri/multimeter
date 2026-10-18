@@ -1,0 +1,27 @@
+type: test
+title: Geocode then forecast — Paris
+import:
+  geocode: +/api/geocode_search.mmt
+  forecast: +/api/forecast_current.mmt
+steps:
+  - call: geocode
+    id: place
+    inputs:
+      name: Paris
+      count: "1"
+    expect:
+      place_name: =C Paris
+      latitude: != null
+      longitude: != null
+    report: all
+  - call: forecast
+    id: weather
+    inputs:
+      latitude: ${place.latitude}
+      longitude: ${place.longitude}
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      temperature:
+        - >= -80
+        - <= 60
+    report: all

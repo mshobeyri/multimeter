@@ -2,6 +2,8 @@
 
 Use `check` to validate a value during a test run. A failed check is logged and reported, but **execution continues**. To stop the flow on failure, use [assert](./assert.md).
 
+**When to use `check` vs call `expect`:** if the comparison only depends on **one** call’s outputs, put it on that call’s [`expect`](./call.md#expect) / [`require`](./call.md#require) (list form for several ops on one field) and set `report: all` when you want every row visible. Reserve `check` / `assert` for comparing **two different** values (e.g. `${a.max} >= ${a.min}`, or one step vs another). See [Prefer accurate expects](../operators.md#prefer-accurate-expects-not-only--null).
+
 For AI / non-deterministic evaluation (semantic quality, rubrics), use [judge](./judge.md) with nested `expect` / `require` blocks instead of fuzzy operators alone.
 
 Checks also power inline `expect` on [call](./call.md) and [http](./http.md) steps (non-throwing) and `condition` on [stages](../stages/stage-condition.md) and [if](./if.md) steps.
@@ -53,18 +55,20 @@ Use an object when you need explicit fields, a custom title, details, or per-che
 ```yaml
 - check:
     actual: ${profile.name}
-    expected: "John"
     operator: "=="
+    expected: "John"
     title: "Profile name check"
     details: "Profile name must be John"
     report: all
 ```
 
+Canonical field order matches the inline reading order `actual operator expected`:
+
 | Field | Required | Description |
 |-------|----------|-------------|
 | `actual` | yes | Left-hand value — usually a `${...}` reference or literal. |
-| `expected` | yes | Right-hand value to compare against. |
 | `operator` | no | Comparison operator (default `==`). See [Operators](../operators.md). |
+| `expected` | yes | Right-hand value to compare against. |
 | `title` | no | Label shown in reports instead of the raw comparison. |
 | `details` | no | Extra context shown when the check fails. |
 | `report` | no | When to emit this result: `all`, `fails`, `none`, or `{ internal, external }`. See [Reports — Report levels](../reports.md#report-levels-all-fails-none). |

@@ -1,0 +1,23 @@
+type: api
+title: Air quality
+description: Current and hourly air quality
+inputs:
+  latitude: "52.52"
+  longitude: "13.41"
+  forecast_days: "1"
+outputs:
+  aqi: body[current][european_aqi]
+  pm10: body[current][pm10]
+  pm25: body[current][pm2_5]
+  hourly_time_0: body[hourly][time][0]
+  hourly_pm10_0: body[hourly][pm10][0]
+url: <<e:air_quality_base_url>>/v1/air-quality
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  current: european_aqi,pm10,pm2_5
+  hourly: pm10,pm2_5
+  forecast_days: i:forecast_days
+  timezone: e:timezone
+method: get
+format: json

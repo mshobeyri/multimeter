@@ -7,12 +7,12 @@ Default protocol for most APIs. Inferred from the URL unless you set `protocol: 
 ```yaml
 type: api
 url: https://test.mmt.dev/json   # protocol inferred as http from URL
-method: get
-timeout: 5000  # optional per-request timeout in milliseconds
-format: json
 query:
   limit: "10"
   sort: desc
+method: get
+timeout: 5000  # optional per-request timeout in milliseconds
+format: json
 ```
 
 Notes:

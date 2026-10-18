@@ -1,7 +1,9 @@
 # import
 
 ### `import`
-The `import` section brings external files into a test. Each entry is an **alias** (key) and a **path** (value). Paths are relative to the current `.mmt` file, or start with `+/` to resolve from the project root (the folder containing `multimeter.mmt`).
+The `import` section brings external files into a test. Each entry is an **alias** (key) and a **path** (value).
+
+**Prefer `+/…` project-root paths** for APIs and shared fixtures whenever the project has a [`multimeter.mmt`](../env/project-root.md) at its root — imports stay stable if you move the test file. Use paths relative to the current `.mmt` file only for siblings in the same folder (or when there is no project root marker).
 
 ## Importable file types
 
@@ -18,13 +20,14 @@ The `import` section brings external files into a test. Each entry is an **alias
 
 ```yaml
 import:
-  login: login.mmt           # relative to current file
-  requests: requests.http    # HTTP Client file, converted to a test flow
-  profile: profile.bru       # Bruno request file, converted to a test flow
-  users: ../data/users.csv   # relative path
-  fixture: ../data/user.json # data source used as ${fixture.path}
-  api: +/apis/userApi.mmt    # project root path
-  helpers: ./helpers/xxx.js  # see JS helper modules in js step docs
+  api: +/api/forecast_current.mmt   # preferred — project root (multimeter.mmt)
+  login: +/tests/login.mmt
+  helpers: +/helpers/xxx.js
+  # Same-folder / local-only (OK when no project root, or for true siblings):
+  sibling: ./nearby_test.mmt
+  requests: requests.http           # HTTP Client file, converted to a test flow
+  profile: profile.bru              # Bruno request file, converted to a test flow
+  users: ../data/users.csv          # relative — prefer +/data/users.csv when possible
 ```
 
 HTTP and Bruno files imported this way are converted internally to test flows and can be called like normal test imports:

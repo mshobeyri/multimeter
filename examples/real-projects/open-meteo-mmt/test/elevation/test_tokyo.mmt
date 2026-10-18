@@ -1,0 +1,15 @@
+type: test
+title: Elevation — Tokyo
+import:
+  api: +/api/elevation.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:tokyo_latitude
+      longitude: e:tokyo_longitude
+    expect:
+      elevation_0:
+        - >= -500
+        - <= 9000
+    report: all

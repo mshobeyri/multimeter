@@ -1,0 +1,23 @@
+type: test
+title: Forecast hourly/daily — 3 days
+import:
+  api: +/api/forecast_hourly_daily.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:latitude
+      longitude: e:longitude
+      forecast_days: "3"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      daily_time_0: =2d~ <<c:date>>
+      hourly_temp_0: >= -80
+      daily_max_0: != null
+      daily_min_0: != null
+    report: all
+  - check:
+      actual: ${result.daily_max_0}
+      operator: >=
+      expected: ${result.daily_min_0}
+      report: all

@@ -1,0 +1,15 @@
+type: test
+title: Flood — Berlin 1 day
+import:
+  api: +/api/flood.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:latitude
+      longitude: e:longitude
+      forecast_days: "1"
+    expect:
+      daily_time_0: =2d~ <<c:date>>
+      discharge_0: >= 0
+    report: all

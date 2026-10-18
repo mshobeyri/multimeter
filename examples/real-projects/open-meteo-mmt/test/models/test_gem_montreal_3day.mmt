@@ -1,0 +1,21 @@
+type: test
+title: GEM — Montreal 3 days
+import:
+  api: +/api/model_gem.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:montreal_latitude
+      longitude: e:montreal_longitude
+      forecast_days: "3"
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      resp_latitude:
+        - >= 40
+        - <= 50
+      resp_longitude:
+        - >= -80
+        - <= -70
+      hourly_count: >=# 72
+    report: all

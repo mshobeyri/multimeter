@@ -1,0 +1,18 @@
+type: test
+title: Forecast hourly/daily — Paris coords
+import:
+  api: +/api/forecast_hourly_daily.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: "48.85"
+      longitude: "2.35"
+      forecast_days: e:forecast_days_short
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      daily_time_0: =2d~ <<c:date>>
+      hourly_temp_0:
+        - >= -80
+        - <= 60
+    report: all

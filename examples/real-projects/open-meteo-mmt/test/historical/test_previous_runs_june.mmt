@@ -1,0 +1,18 @@
+type: test
+title: Previous runs — June 2024
+import:
+  api: +/api/previous_runs.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:latitude
+      longitude: e:longitude
+      start_date: e:history_start
+      end_date: e:history_end
+    expect:
+      previous_day1_0:
+        - >= -80
+        - <= 60
+      hourly_time_0: =^ e:history_start
+    report: all

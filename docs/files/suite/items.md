@@ -16,16 +16,15 @@ The `items` property is an array of strings, where each string is a path to a `.
 
 Paths can be:
 
-- **Relative** to the suite file's location (e.g., `../tests/login.mmt`)
-- **Project root** paths using `+/` prefix (e.g., `+/tests/login.mmt`) — resolves relative to the directory containing `multimeter.mmt`
+- **Project root** paths using `+/` prefix (e.g., `+/test/login.mmt`) — resolves relative to the directory containing `multimeter.mmt`. **Prefer this** when the suite is part of a project with a root marker.
+- **Relative** to the suite file's location (e.g., `test_login.mmt` beside the suite, or `../test/login.mmt`) — fine for same-folder items
 
 ```yaml
 items:
-  - ../apis/login.mmt
-  - ../tests/login_and_get_user_info.mmt
-  - ../requests/profile.http
-  - +/tests/shared/setup.mmt           # project root import
-  - ../suites/smoke_tests.mmt
+  - +/test/login.mmt                   # preferred — project root
+  - +/test/login_and_get_user_info.mmt
+  - +/requests/profile.http
+  - test_smoke.mmt                     # same folder as this suite.mmt
 ```
 
 See [Project Root Marker](../env/project-root.md) for details on setting up `multimeter.mmt`.

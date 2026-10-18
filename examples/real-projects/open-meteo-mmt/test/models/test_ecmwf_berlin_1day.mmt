@@ -1,0 +1,21 @@
+type: test
+title: ECMWF — Berlin 1 day
+import:
+  api: +/api/model_ecmwf.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:latitude
+      longitude: e:longitude
+      forecast_days: "1"
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      resp_latitude:
+        - >= 45
+        - <= 60
+      resp_longitude:
+        - >= 5
+        - <= 20
+      hourly_count: >=# 24
+    report: all

@@ -1,0 +1,18 @@
+type: test
+title: Climate — Sydney 2050 short window
+import:
+  api: +/api/climate.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:sydney_latitude
+      longitude: e:sydney_longitude
+      start_date: "2050-01-01"
+      end_date: "2050-01-03"
+    expect:
+      daily_time_0: "2050-01-01"
+      temp_mean_0:
+        - >= -80
+        - <= 60
+    report: all

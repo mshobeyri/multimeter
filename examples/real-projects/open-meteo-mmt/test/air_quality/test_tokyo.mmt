@@ -1,0 +1,16 @@
+type: test
+title: Air quality — Tokyo
+import:
+  api: +/api/air_quality.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: e:tokyo_latitude
+      longitude: e:tokyo_longitude
+      forecast_days: "1"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      aqi: >= 0
+      pm10: >= 0
+    report: all

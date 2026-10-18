@@ -1,0 +1,17 @@
+type: test
+title: Geocode get — Berlin id
+import:
+  api: +/api/geocode_get.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      id: e:berlin_geoname_id
+    expect:
+      name: =C Berlin
+      latitude:
+        - >= 50
+        - <= 55
+      longitude: != null
+      elevation: >= 0
+    report: all

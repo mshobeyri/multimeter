@@ -2,6 +2,12 @@
 
 The examples are grouped by complexity so new users can start simple and add power only when they need it.
 
+## Real projects
+
+Suites against well-known **public** APIs (no Multimeter echo server). See [`real-projects/`](./real-projects/).
+
+- `real-projects/open-meteo-mmt` — Open-Meteo public APIs (forecast, historical, air quality, marine, flood, climate, ensemble, elevation, satellite, seasonal, geocoding, models)
+
 ## Basic
 
 - `basic/01_simple_api` - run one simple GET API and simple POST APIs.

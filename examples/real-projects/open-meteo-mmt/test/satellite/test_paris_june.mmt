@@ -1,0 +1,16 @@
+type: test
+title: Satellite radiation — Paris June 2024
+import:
+  api: +/api/satellite_radiation.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: "48.85"
+      longitude: "2.35"
+      start_date: e:history_start
+      end_date: e:history_end
+    expect:
+      shortwave_0: >= 0
+      hourly_time_0: =^ e:history_start
+    report: all

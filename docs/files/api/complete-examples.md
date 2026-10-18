@@ -13,10 +13,10 @@ outputs:
   slideshow: body.slideshow
 protocol: http
 url: https://test.mmt.dev/json
-method: get
-format: json
 query:
   limit: "10"
+method: get
+format: json
 ```
 
 ## WS
