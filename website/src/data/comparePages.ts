@@ -41,11 +41,11 @@ export const comparePages: ComparePageData[] = [
     intro:
       'Postman is the default API client for many teams. It is powerful, and it is also a cloud product: collections, environments, and monitors live on their platform. Multimeter is a VS Code extension and CLI with a visual editor for requests, tests, suites, and reports. Those definitions are YAML files in your repo — the same files locally and in CI.',
     speed:
-      `Newman runs a collection sequentially and repeats setup on every case. ${SPEED_SHARED} On a small live Open-Meteo suite (~61 HTTP calls), Multimeter finished in about 0.8–1.0 s while Newman took about 4.3–5.7 s on the same machine.`,
+      `Newman runs a collection sequentially and repeats setup on every case. ${SPEED_SHARED} We measured that on a small real-project sample against the public Open-Meteo APIs (~61 HTTP calls): Multimeter finished in about 0.8–1.0 s while Newman took about 4.3–5.7 s on the same machine.`,
     sample: {
-      title: 'Measured on Open-Meteo',
+      title: 'Small real-project sample: Open-Meteo',
       summary:
-        'Same public weather API surface, no API key. Multimeter suite (59 tests, ~61 HTTP calls) vs a Newman collection that mirrors those requests with status-200 checks only. Parallel Multimeter run vs sequential Newman.',
+        'This is a small Multimeter project against the public Open-Meteo weather APIs (no API key) — not a huge enterprise suite. We use it as a like-for-like compare: the same ~61 live HTTP calls as Multimeter’s 59 tests, mirrored in a Newman collection with status-200 checks only. Even at this modest size, parallel Multimeter already beats sequential Newman on wall clock, context size, and assertion depth; a larger product suite would widen the gap.',
       rows: [
         {
           feature: 'Wall clock (live)',
@@ -69,10 +69,10 @@ export const comparePages: ComparePageData[] = [
         },
       ],
       href: 'https://github.com/mshobeyri/multimeter/tree/dev/examples/real-projects/open-meteo-mmt',
-      linkLabel: 'Open-Meteo sample (suite, Postman mirror, compare script)',
+      linkLabel: 'Browse the Open-Meteo sample project (suite, Postman mirror, compare script)',
     },
     switchReasons: [
-      'Parallel suites finish sooner — even a small Open-Meteo sample is ~5× faster than Newman',
+      'Parallel suites finish sooner — a small real Open-Meteo sample is already ~5× faster than Newman',
       'No Postman account, workspace, or cloud sync',
       'Cache login and other setup in the same run; Newman repeats those calls',
       'Tests are reviewable in pull requests like application code',
