@@ -5,6 +5,7 @@ Sample Multimeter suites that hit **real public APIs** (not the Multimeter echo 
 | Project | API | Notes |
 |---|---|---|
 | [open-meteo-mmt](./open-meteo-mmt/) | [Open-Meteo](https://open-meteo.com/) | Weather, air quality, marine, climate, models, … — no API key |
+| [countryinfo-soap-mmt](./countryinfo-soap-mmt/) | [CountryInfo SOAP](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso) | Classic SoapUI WSDL demo — XML SOAP envelopes, no API key |
 
 Pedagogical Multimeter tutorials stay under `basic/`, `intermediate/`, and `professional/`.
 
@@ -13,6 +14,9 @@ Pedagogical Multimeter tutorials stay under `basic/`, `intermediate/`, and `prof
 ```sh
 npx testlight run examples/real-projects/open-meteo-mmt/multimeter/suite.mmt \
   --env-file examples/real-projects/open-meteo-mmt/multimeter/multimeter.mmt
+
+npx testlight run examples/real-projects/countryinfo-soap-mmt/multimeter/suite.mmt \
+  --env-file examples/real-projects/countryinfo-soap-mmt/multimeter/multimeter.mmt
 ```
 
 Or open that project’s `suite.mmt` in the Multimeter extension after applying its `multimeter.mmt`.

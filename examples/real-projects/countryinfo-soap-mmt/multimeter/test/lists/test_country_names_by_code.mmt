@@ -1,0 +1,12 @@
+type: test
+title: ListOfCountryNamesByCode
+import:
+  api: +/api/list_country_names_by_code.mmt
+steps:
+  - call: api
+    expect:
+      status: 200
+      countries: >=# 200
+      first_iso: AD
+      first_name: Andorra
+    report: all

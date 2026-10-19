@@ -1,0 +1,14 @@
+type: test
+title: CountriesUsingCurrency — EUR
+import:
+  api: +/api/countries_using_currency.mmt
+steps:
+  - call: api
+    inputs:
+      currency_iso: EUR
+    expect:
+      status: 200
+      countries: >=# 15
+      first_iso: =# 2
+      first_name: != null
+    report: all

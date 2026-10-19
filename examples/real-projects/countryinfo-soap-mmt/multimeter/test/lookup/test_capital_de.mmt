@@ -1,0 +1,13 @@
+type: test
+title: CapitalCity — Germany
+import:
+  countries: +/countries.json
+  api: +/api/capital_city.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.de.iso}
+    expect:
+      status: 200
+      capital: ${countries.de.capital}
+    report: all

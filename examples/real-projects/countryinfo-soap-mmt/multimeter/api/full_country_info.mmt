@@ -1,0 +1,30 @@
+type: api
+title: FullCountryInfo
+description: Full country record (name, capital, phone, continent, currency, flag, languages)
+inputs:
+  iso_code: e:country.iso
+outputs:
+  status: status
+  iso: "body.soap:Envelope.soap:Body.m:FullCountryInfoResponse.m:FullCountryInfoResult.m:sISOCode"
+  name: "body.soap:Envelope.soap:Body.m:FullCountryInfoResponse.m:FullCountryInfoResult.m:sName"
+  capital: "body.soap:Envelope.soap:Body.m:FullCountryInfoResponse.m:FullCountryInfoResult.m:sCapitalCity"
+  phone: "body.soap:Envelope.soap:Body.m:FullCountryInfoResponse.m:FullCountryInfoResult.m:sPhoneCode"
+  continent: "body.soap:Envelope.soap:Body.m:FullCountryInfoResponse.m:FullCountryInfoResult.m:sContinentCode"
+  currency: "body.soap:Envelope.soap:Body.m:FullCountryInfoResponse.m:FullCountryInfoResult.m:sCurrencyISOCode"
+  flag: "body.soap:Envelope.soap:Body.m:FullCountryInfoResponse.m:FullCountryInfoResult.m:sCountryFlag"
+  language: "body.soap:Envelope.soap:Body.m:FullCountryInfoResponse.m:FullCountryInfoResult.m:Languages.m:tLanguage.m:sName"
+url: e:soap_url
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: '""'
+body: |-
+  <?xml version="1.0" encoding="utf-8"?>
+  <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+      <FullCountryInfo xmlns="http://www.oorsprong.org/websamples.countryinfo">
+        <sCountryISOCode><<i:iso_code>></sCountryISOCode>
+      </FullCountryInfo>
+    </soap:Body>
+  </soap:Envelope>

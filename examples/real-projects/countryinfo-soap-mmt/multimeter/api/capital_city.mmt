@@ -1,0 +1,27 @@
+type: api
+title: CapitalCity
+description: Capital city for a 2-letter ISO country code
+inputs:
+  iso_code: e:country.iso
+outputs:
+  status: status
+  capital: "body.soap:Envelope.soap:Body.m:CapitalCityResponse.m:CapitalCityResult"
+url: e:soap_url
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: '""'
+body:
+  _declaration:
+    _attributes:
+      version: "1.0"
+      encoding: utf-8
+  soap:Envelope:
+    _attributes:
+      xmlns:soap: http://schemas.xmlsoap.org/soap/envelope/
+    soap:Body:
+      CapitalCity:
+        _attributes:
+          xmlns: http://www.oorsprong.org/websamples.countryinfo
+        sCountryISOCode: i:iso_code

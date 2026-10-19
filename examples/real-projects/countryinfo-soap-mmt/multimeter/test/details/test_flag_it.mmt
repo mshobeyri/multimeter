@@ -1,0 +1,13 @@
+type: test
+title: CountryFlag — Italy
+import:
+  countries: +/countries.json
+  api: +/api/country_flag.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.it.iso}
+    expect:
+      status: 200
+      flag: ${countries.it.flag}
+    report: all

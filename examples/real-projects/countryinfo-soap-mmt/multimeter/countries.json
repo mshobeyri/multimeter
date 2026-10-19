@@ -1,0 +1,90 @@
+{
+  "us": {
+    "iso": "US",
+    "name": "United States",
+    "capital": "Washington",
+    "phone": "1",
+    "continent": "AM",
+    "currency": "USD",
+    "currency_name": "Dollars",
+    "language": "English",
+    "flag": "http://www.oorsprong.org/WebSamples.CountryInfo/Flags/USA.jpg"
+  },
+  "de": {
+    "iso": "DE",
+    "name": "Germany",
+    "capital": "Berlin",
+    "phone": "49",
+    "continent": "EU",
+    "currency": "EUR",
+    "currency_name": "Euro",
+    "language": "German",
+    "flag": "http://www.oorsprong.org/WebSamples.CountryInfo/Flags/Germany.jpg"
+  },
+  "fr": {
+    "iso": "FR",
+    "name": "France",
+    "capital": "Paris",
+    "phone": "33",
+    "continent": "EU",
+    "currency": "EUR",
+    "currency_name": "Euro",
+    "language": "French",
+    "flag": "http://www.oorsprong.org/WebSamples.CountryInfo/Flags/France.jpg"
+  },
+  "jp": {
+    "iso": "JP",
+    "name": "Japan",
+    "capital": "Tokyo",
+    "phone": "81",
+    "continent": "AS",
+    "currency": "JPY",
+    "currency_name": "Yen",
+    "language": "Japanese",
+    "flag": "http://www.oorsprong.org/WebSamples.CountryInfo/Flags/Japan.jpg"
+  },
+  "gb": {
+    "iso": "GB",
+    "name": "United Kingdom",
+    "capital": "London",
+    "phone": "44",
+    "continent": "EU",
+    "currency": "GBP",
+    "currency_name": "Great Brittain Pounds",
+    "language": "English",
+    "flag": "http://www.oorsprong.org/WebSamples.CountryInfo/Flags/United_Kingdom.jpg"
+  },
+  "it": {
+    "iso": "IT",
+    "name": "Italy",
+    "capital": "Rome",
+    "phone": "39",
+    "continent": "EU",
+    "currency": "EUR",
+    "currency_name": "Euro",
+    "language": "Italian",
+    "flag": "http://www.oorsprong.org/WebSamples.CountryInfo/Flags/Italy.jpg"
+  },
+  "br": {
+    "iso": "BR",
+    "name": "Brazil",
+    "capital": "Brasilia",
+    "phone": "55",
+    "continent": "AM",
+    "currency": "BRL",
+    "currency_name": "Brazil Real",
+    "language": "Portuguese",
+    "flag": "http://www.oorsprong.org/WebSamples.CountryInfo/Flags/Brazil.jpg"
+  },
+  "au": {
+    "iso": "AU",
+    "name": "Australia",
+    "capital": "Canberra",
+    "phone": "61",
+    "continent": "OC",
+    "currency": "AUD",
+    "currency_name": "Australian Dollars",
+    "language": "English",
+    "flag": "http://www.oorsprong.org/WebSamples.CountryInfo/Flags/Australia.jpg"
+  }
+}

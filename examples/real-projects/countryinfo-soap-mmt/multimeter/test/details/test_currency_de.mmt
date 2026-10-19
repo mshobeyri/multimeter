@@ -1,0 +1,14 @@
+type: test
+title: CountryCurrency — Germany
+import:
+  countries: +/countries.json
+  api: +/api/country_currency.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.de.iso}
+    expect:
+      status: 200
+      currency_iso: ${countries.de.currency}
+      currency_name: ${countries.de.currency_name}
+    report: all

@@ -1,0 +1,23 @@
+type: api
+title: CurrencyName
+description: Currency display name for a currency ISO code
+inputs:
+  currency_iso: e:currency.iso
+outputs:
+  status: status
+  name: "body.soap:Envelope.soap:Body.m:CurrencyNameResponse.m:CurrencyNameResult"
+url: e:soap_url
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: '""'
+body: |-
+  <?xml version="1.0" encoding="utf-8"?>
+  <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+      <CurrencyName xmlns="http://www.oorsprong.org/websamples.countryinfo">
+        <sCurrencyISOCode><<i:currency_iso>></sCurrencyISOCode>
+      </CurrencyName>
+    </soap:Body>
+  </soap:Envelope>

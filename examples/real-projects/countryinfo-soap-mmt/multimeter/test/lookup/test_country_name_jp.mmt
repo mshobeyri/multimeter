@@ -1,0 +1,13 @@
+type: test
+title: CountryName — Japan
+import:
+  countries: +/countries.json
+  api: +/api/country_name.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.jp.iso}
+    expect:
+      status: 200
+      name: ${countries.jp.name}
+    report: all

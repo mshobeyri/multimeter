@@ -1,0 +1,13 @@
+type: test
+title: CapitalCity — Australia
+import:
+  countries: +/countries.json
+  api: +/api/capital_city.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.au.iso}
+    expect:
+      status: 200
+      capital: ${countries.au.capital}
+    report: all

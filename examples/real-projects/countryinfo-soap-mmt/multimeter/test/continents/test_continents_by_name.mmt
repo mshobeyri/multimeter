@@ -1,0 +1,14 @@
+type: test
+title: ListOfContinentsByName
+import:
+  api: +/api/list_continents_by_name.mmt
+steps:
+  - call: api
+    expect:
+      status: 200
+      continents: =# 6
+      first_code: AF
+      first_name: Africa
+      europe_code: EU
+      europe_name: Europe
+    report: all
