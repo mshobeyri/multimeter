@@ -17,6 +17,7 @@ export function areSuiteTreeRowPropsEqual<T extends {
   duplicateServer?: boolean;
   reportSpilled?: boolean;
   reportLoading?: boolean;
+  hierarchyLoading?: boolean;
   paused?: boolean;
 }>(prev: T, next: T): boolean {
   if (prev.item?.index !== next.item?.index) {
@@ -61,6 +62,9 @@ export function areSuiteTreeRowPropsEqual<T extends {
     return false;
   }
   if (prev.reportLoading !== next.reportLoading) {
+    return false;
+  }
+  if (prev.hierarchyLoading !== next.hierarchyLoading) {
     return false;
   }
   if (prev.paused !== next.paused) {

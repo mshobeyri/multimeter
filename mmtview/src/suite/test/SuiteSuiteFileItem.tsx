@@ -9,7 +9,7 @@ import {
     suiteFileLabelTitle,
 } from './suiteTreeLabelClick';
 import { areSuiteTreeRowPropsEqual } from './suiteTreeRowMemo';
-import { StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
+import { HIERARCHY_LOADING_META, StatusGlyph, SuiteKindIcon } from '../../components/StatusGlyph';
 import { TreeDepthContainer } from '../../components/TreeChevron';
 
 export type SuiteSuiteFileItemData = { type: 'suite'; path: string; id: string };
@@ -23,6 +23,8 @@ interface SuiteSuiteFileItemProps {
     missingFiles: Set<string>;
     statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     status: StepStatus;
+    /** Replace the default circle with the spinning loading glyph. */
+    hierarchyLoading?: boolean;
 
     onRun?: () => void;
     onRunInCore?: () => void;
@@ -43,6 +45,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     missingFiles,
     statusIconFor,
     status,
+    hierarchyLoading = false,
     onRun,
     onRunInCore,
     runButtonTitle = 'Run',
@@ -59,19 +62,21 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
             color: 'var(--vscode-editorWarning-foreground, #f8b449)',
             title: 'File not found',
         }
-        : status === 'cancelled'
-            ? {
-                icon: 'codicon-stop-circle',
-                color: ' #f88349',
-                title: 'Cancelled',
-            }
-            : status === 'default'
+        : hierarchyLoading
+            ? HIERARCHY_LOADING_META
+            : status === 'cancelled'
                 ? {
-                    icon: 'codicon-circle-large',
-                    color: 'var(--vscode-editor-foreground, #c5c5c5)',
-                    title: 'Suite',
+                    icon: 'codicon-stop-circle',
+                    color: ' #f88349',
+                    title: 'Cancelled',
                 }
-                : statusIconFor(status as any);
+                : status === 'default'
+                    ? {
+                        icon: 'codicon-circle-large',
+                        color: 'var(--vscode-editor-foreground, #c5c5c5)',
+                        title: 'Suite',
+                    }
+                    : statusIconFor(status as any);
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
 
@@ -107,6 +112,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             icon={statusIcon.icon}
                             color={statusIcon.color}
                             title={statusIcon.title}
+                            spin={hierarchyLoading && !isMissing}
                         />
                         <SuiteKindIcon kind="suite" />
                         {labelPath}

@@ -799,6 +799,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [mmtFilePath]);
 
     const [hierarchyByEntryId, setHierarchyByEntryId] = useState<Record<string, SuiteTreeNode>>({});
+    /** Top-level entries waiting for first hierarchy section (maxDepth 1). */
+    const [loadingHierarchyIds, setLoadingHierarchyIds] = useState<Set<string>>(() => new Set());
+    /** Top-level entries whose nested suite stubs are still deepening. */
+    const [deepeningHierarchyIds, setDeepeningHierarchyIds] = useState<Set<string>>(() => new Set());
     const duplicateServerPathKeys = useMemo(() => {
         const itemServerPaths: string[] = [];
         for (const group of groups) {
@@ -916,31 +920,54 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         return next;
     }, [allEntriesHaveHierarchy, fetchHierarchyByEntryId]);
 
+    /** UI spinner sets (mirrored in state for re-renders). */
     const loadingHierarchyRef = useRef<Set<string>>(new Set());
     const deepeningHierarchyRef = useRef<Set<string>>(new Set());
+    /** In-flight first-section fetches (duplicate-call guard; distinct from UI set). */
+    const hierarchyFetchInFlightRef = useRef<Set<string>>(new Set());
+    /** Entry ids that already have first section (maxDepth 1) or resolved as a leaf. */
+    const firstSectionReadyRef = useRef<Set<string>>(new Set());
     const prefetchGenerationRef = useRef(0);
 
-    /** Fill missing entries only (used for shallow first paint). */
-    const mergeHierarchyByEntryId = useCallback((incoming: Record<string, SuiteTreeNode>) => {
-        setHierarchyByEntryId((prev) => {
-            let changed = false;
-            const next = { ...prev };
-            for (const [entryId, tree] of Object.entries(incoming)) {
-                if (!tree || typeof tree !== 'object' || next[entryId]) {
-                    continue;
-                }
-                next[entryId] = tree;
-                changed = true;
-            }
-            if (!changed) {
-                return prev;
-            }
-            hierarchyByEntryIdRef.current = next;
-            return next;
-        });
+    const syncLoadingHierarchyIds = useCallback((next: Set<string>) => {
+        loadingHierarchyRef.current = next;
+        setLoadingHierarchyIds(next);
     }, []);
 
-    /** Replace entries with deeper trees after background deepen. */
+    const syncDeepeningHierarchyIds = useCallback((next: Set<string>) => {
+        deepeningHierarchyRef.current = next;
+        setDeepeningHierarchyIds(next);
+    }, []);
+
+    const setEntryHierarchyLoading = useCallback((entryId: string, loading: boolean) => {
+        const prev = loadingHierarchyRef.current;
+        if (loading === prev.has(entryId)) {
+            return;
+        }
+        const next = new Set(prev);
+        if (loading) {
+            next.add(entryId);
+        } else {
+            next.delete(entryId);
+        }
+        syncLoadingHierarchyIds(next);
+    }, [syncLoadingHierarchyIds]);
+
+    const setEntryHierarchyDeepening = useCallback((entryId: string, deepening: boolean) => {
+        const prev = deepeningHierarchyRef.current;
+        if (deepening === prev.has(entryId)) {
+            return;
+        }
+        const next = new Set(prev);
+        if (deepening) {
+            next.add(entryId);
+        } else {
+            next.delete(entryId);
+        }
+        syncDeepeningHierarchyIds(next);
+    }, [syncDeepeningHierarchyIds]);
+
+    /** Replace entries with deeper trees after first-section / full deepen. */
     const replaceHierarchyByEntryId = useCallback((incoming: Record<string, SuiteTreeNode>) => {
         setHierarchyByEntryId((prev) => {
             let changed = false;
@@ -960,6 +987,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         });
     }, []);
 
+    /**
+     * Full recursive deepen after the first section is visible.
+     * Nested suite stubs spin while the owner entry is in this set.
+     */
     const deepenHierarchyForEntry = useCallback(async (entryId: string, generation: number) => {
         if (deepeningHierarchyRef.current.has(entryId)) {
             return;
@@ -968,7 +999,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (!entry) {
             return;
         }
-        deepeningHierarchyRef.current.add(entryId);
+        setEntryHierarchyDeepening(entryId, true);
         try {
             const res = await getSuiteHierarchy(entry.path, entry.id);
             if (generation !== prefetchGenerationRef.current) {
@@ -980,14 +1011,20 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             }
             replaceHierarchyByEntryId({ [entryId]: tree });
         } catch {
-            // Ignore; shallow tree remains.
+            // Ignore; first-section tree remains.
         } finally {
-            deepeningHierarchyRef.current.delete(entryId);
+            if (generation === prefetchGenerationRef.current) {
+                setEntryHierarchyDeepening(entryId, false);
+            }
         }
-    }, [groups, replaceHierarchyByEntryId]);
+    }, [groups, replaceHierarchyByEntryId, setEntryHierarchyDeepening]);
 
+    /**
+     * Load one top-level entry: title → first section (maxDepth 1) → full deepen.
+     * Status circle spins until the first section arrives.
+     */
     const loadHierarchyForEntry = useCallback(async (entryId: string) => {
-        if (hierarchyByEntryIdRef.current[entryId] || loadingHierarchyRef.current.has(entryId)) {
+        if (firstSectionReadyRef.current.has(entryId) || hierarchyFetchInFlightRef.current.has(entryId)) {
             return;
         }
         const entry = findSuiteEntryById(groups, entryId);
@@ -995,78 +1032,97 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return;
         }
         const generation = prefetchGenerationRef.current;
-        loadingHierarchyRef.current.add(entryId);
+        hierarchyFetchInFlightRef.current.add(entryId);
+        setEntryHierarchyLoading(entryId, true);
+        let shouldDeepen = false;
         try {
-            // Titles only first (no nested children) so the panel opens quickly.
-            const res = await getSuiteHierarchy(entry.path, entry.id, 0);
+            // Titles only first so the row label can resolve quickly.
+            const titleRes = await getSuiteHierarchy(entry.path, entry.id, 0);
             if (generation !== prefetchGenerationRef.current) {
                 return;
             }
-            const tree = res?.tree;
-            if (!tree || typeof tree !== 'object') {
+            const titleTree = titleRes?.tree;
+            if (titleTree && typeof titleTree === 'object') {
+                setHierarchyByEntryId((prev) => {
+                    if (prev[entryId]) {
+                        return prev;
+                    }
+                    const next = { ...prev, [entryId]: titleTree };
+                    hierarchyByEntryIdRef.current = next;
+                    return next;
+                });
+                // Non-suite leaves: first section is just the title/kind.
+                if (titleTree.kind !== 'suite') {
+                    firstSectionReadyRef.current.add(entryId);
+                    return;
+                }
+            }
+
+            // First section: direct children; nested suites stay as title stubs.
+            const sectionRes = await getSuiteHierarchy(entry.path, entry.id, 1);
+            if (generation !== prefetchGenerationRef.current) {
                 return;
             }
-            setHierarchyByEntryId((prev) => {
-                if (prev[entryId]) {
-                    return prev;
-                }
-                const next = { ...prev, [entryId]: tree };
-                hierarchyByEntryIdRef.current = next;
-                return next;
-            });
+            const sectionTree = sectionRes?.tree;
+            if (sectionTree && typeof sectionTree === 'object') {
+                replaceHierarchyByEntryId({ [entryId]: sectionTree });
+            }
+            firstSectionReadyRef.current.add(entryId);
+            shouldDeepen = true;
         } catch {
             // Ignore; tree keeps the placeholder folder.
         } finally {
-            loadingHierarchyRef.current.delete(entryId);
+            hierarchyFetchInFlightRef.current.delete(entryId);
+            if (generation === prefetchGenerationRef.current) {
+                setEntryHierarchyLoading(entryId, false);
+            }
         }
-        // Deepen in parallel after shallow is visible.
-        void deepenHierarchyForEntry(entryId, generation);
-    }, [deepenHierarchyForEntry, groups]);
+        // Deepen in parallel after first section is visible.
+        if (shouldDeepen && generation === prefetchGenerationRef.current) {
+            void deepenHierarchyForEntry(entryId, generation);
+        }
+    }, [deepenHierarchyForEntry, groups, replaceHierarchyByEntryId, setEntryHierarchyLoading]);
 
     useEffect(() => {
         setHierarchyByEntryId({});
         hierarchyByEntryIdRef.current = {};
-        loadingHierarchyRef.current.clear();
-        deepeningHierarchyRef.current.clear();
+        hierarchyFetchInFlightRef.current.clear();
+        firstSectionReadyRef.current.clear();
+        const pending = new Set<string>();
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                if (entry?.id) {
+                    pending.add(entry.id);
+                }
+            }
+        }
+        // Show spinners immediately on open / structure change (before prefetch starts).
+        syncLoadingHierarchyIds(pending);
+        syncDeepeningHierarchyIds(new Set());
         prefetchGenerationRef.current += 1;
-    }, [suiteStructureKey]);
+    }, [groups, suiteStructureKey, syncDeepeningHierarchyIds, syncLoadingHierarchyIds]);
 
     /**
-     * After first paint: title-only shallow (maxDepth 0) for root items, then
-     * full deepen in parallel. Neither phase blocks opening the suite panel.
+     * After first paint: per-entry title → first section → full deepen.
+     * Spinners clear as each entry's first section arrives.
      */
     useEffect(() => {
         if (noItems) {
             return;
         }
-        const generation = prefetchGenerationRef.current;
-        let cancelled = false;
         const timer = window.setTimeout(() => {
-            void (async () => {
-                const shallow = await fetchHierarchyByEntryId(0);
-                if (cancelled || generation !== prefetchGenerationRef.current) {
-                    return;
+            for (const group of groups) {
+                for (const entry of group.entries) {
+                    if (entry?.id) {
+                        void loadHierarchyForEntry(entry.id);
+                    }
                 }
-                mergeHierarchyByEntryId(shallow);
-
-                const full = await fetchHierarchyByEntryId();
-                if (cancelled || generation !== prefetchGenerationRef.current) {
-                    return;
-                }
-                replaceHierarchyByEntryId(full);
-            })();
+            }
         }, 0);
         return () => {
-            cancelled = true;
             window.clearTimeout(timer);
         };
-    }, [
-        fetchHierarchyByEntryId,
-        mergeHierarchyByEntryId,
-        noItems,
-        replaceHierarchyByEntryId,
-        suiteStructureKey,
-    ]);
+    }, [groups, loadHierarchyForEntry, noItems, suiteStructureKey]);
 
     useEffect(() => {
         setSuiteRunId(null);
@@ -1586,6 +1642,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             missingFiles={effectiveMissingFiles}
             statusIconFor={statusIconForRun}
             duplicateServerIds={duplicateServerIds}
+            loadingHierarchyIds={loadingHierarchyIds}
+            deepeningHierarchyIds={deepeningHierarchyIds}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
             onRunTargets={onRunTargets}

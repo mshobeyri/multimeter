@@ -19,6 +19,8 @@ type SuiteTestTreePanelProps = {
   onRunTargets: (target: string) => void | Promise<void>;
   onRunTargetsInCore?: (target: string) => void | Promise<void>;
   onRequestHierarchy?: (entryId: string) => void;
+  loadingHierarchyIds?: Set<string>;
+  deepeningHierarchyIds?: Set<string>;
   suiteStructureKey?: string;
   onExpandedItemsChange?: (
     expandedItems: string[],

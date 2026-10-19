@@ -15,8 +15,18 @@ export type StatusGlyphMeta = {
   title?: string;
 };
 
+/** Same glyph + spin as Send / VS Code `$(loading~spin)`. */
+export const HIERARCHY_LOADING_ICON = "codicon-loading";
+export const HIERARCHY_LOADING_META: StatusGlyphMeta = {
+  icon: HIERARCHY_LOADING_ICON,
+  color: "var(--vscode-editor-foreground, #c5c5c5)",
+  title: "Loading",
+};
+
 type StatusGlyphProps = StatusGlyphMeta & {
   className?: string;
+  /** Adds `codicon-modifier-spin` (for `loading` / `sync` / `gear`). */
+  spin?: boolean;
 };
 
 export const StatusGlyph: React.FC<StatusGlyphProps> = ({
@@ -24,12 +34,14 @@ export const StatusGlyph: React.FC<StatusGlyphProps> = ({
   color,
   title,
   className,
+  spin = false,
 }) => {
+  const spinClass = spin ? "codicon-modifier-spin" : undefined;
   if (icon === PAUSE_CIRCLE_ICON) {
     // Match `.codicon[class*='codicon-']` fixed 16px so the circle matches pass/play/stop.
     return (
       <span
-        className={["codicon", className].filter(Boolean).join(" ")}
+        className={["codicon", spinClass, className].filter(Boolean).join(" ")}
         aria-hidden
         title={title}
         style={{
@@ -49,7 +61,7 @@ export const StatusGlyph: React.FC<StatusGlyphProps> = ({
   }
   return (
     <span
-      className={["codicon", icon, className].filter(Boolean).join(" ")}
+      className={["codicon", icon, spinClass, className].filter(Boolean).join(" ")}
       aria-hidden
       title={title}
       style={{ color }}

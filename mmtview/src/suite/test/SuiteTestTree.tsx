@@ -54,6 +54,10 @@ interface SuiteTestTreeProps {
   loadingReportIds?: Set<string>;
   onRequestReports?: (nodeId: string) => void;
   runStateById: Record<string, StepStatus>;
+  /** Top-level entry ids still waiting for their first hierarchy section. */
+  loadingHierarchyIds?: Set<string>;
+  /** Top-level entry ids whose nested suite stubs are still deepening. */
+  deepeningHierarchyIds?: Set<string>;
   /** View-only status filter; does not change run data or exports. */
   statusFilter?: ReportStatusFilter;
   /** Bundle ids of mock servers listed twice in the same suite file. */
@@ -411,6 +415,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   loadingReportIds,
   onRequestReports,
   runStateById,
+  loadingHierarchyIds,
+  deepeningHierarchyIds,
   statusFilter = 'all',
   duplicateServerIds,
   onStatusFilterChange,
@@ -524,11 +530,15 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   const runStateByIdRef = useRef(runStateById);
   const spilledReportIdsRef = useRef(spilledReportIds);
   const loadingReportIdsRef = useRef(loadingReportIds);
+  const loadingHierarchyIdsRef = useRef(loadingHierarchyIds);
+  const deepeningHierarchyIdsRef = useRef(deepeningHierarchyIds);
   const onRequestReportsRef = useRef(onRequestReports);
   reportsByIdRef.current = reportsById;
   runStateByIdRef.current = runStateById;
   spilledReportIdsRef.current = spilledReportIds;
   loadingReportIdsRef.current = loadingReportIds;
+  loadingHierarchyIdsRef.current = loadingHierarchyIds;
+  deepeningHierarchyIdsRef.current = deepeningHierarchyIds;
   onRequestReportsRef.current = onRequestReports;
 
   const visibleItems = useMemo(() => {
@@ -632,6 +642,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     const runStateById = runStateByIdRef.current;
     const spilledReportIds = spilledReportIdsRef.current;
     const loadingReportIds = loadingReportIdsRef.current;
+    const loadingHierarchyIds = loadingHierarchyIdsRef.current;
+    const deepeningHierarchyIds = deepeningHierarchyIdsRef.current;
     const onRequestReports = onRequestReportsRef.current;
     const data = item.data as SuiteTestTreeItemData;
 
@@ -682,6 +694,14 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
 
     if (data.type === 'suite') {
       const effectiveTarget = itemBundleId || entryId;
+      const isTopLevelEntry = topLevelEntryIds.has(entryId);
+      const childCount = Array.isArray(item.children) ? item.children.length : 0;
+      // Top-level: spin until first section. Nested stubs: spin while owner deepens.
+      const hierarchyLoading = isTopLevelEntry
+        ? Boolean(loadingHierarchyIds?.has(entryId))
+        : Boolean(
+          deepeningHierarchyIds?.has(ownerEntryId) && childCount === 0,
+        );
       return (
         <SuiteSuiteFileItem
           item={item as any}
@@ -692,6 +712,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           missingFiles={missingFiles}
           statusIconFor={statusIconFor as any}
           status={status}
+          hierarchyLoading={hierarchyLoading}
           paused={paused}
           onRun={effectiveTarget ? () => onRunTargets(effectiveTarget) : undefined}
           onRunInCore={
@@ -756,6 +777,10 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     duplicateServerIds,
     statusIconFor,
     paused,
+    topLevelEntryIds,
+    // Force row re-render when hierarchy load spinners change (values read via refs).
+    loadingHierarchyIds,
+    deepeningHierarchyIds,
   ]);
   return (
     <>
