@@ -2,6 +2,27 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.46.4-pre]
+
+Pre-release. VS Code extension `1.46.4`; Testlight CLI and MCP `1.46.4-pre` on `@pre`.
+
+### Suite
+
+- Show spinning status icon while suite hierarchy boxes load their first section
+
+### API tester
+
+- Fetch git current snapshot only when the API uses git `c:` tokens
+- Prefer short git current-token names; `c:commit` resolves to the full SHA
+
+### Editor
+
+- Use circled pause status icon matching play/stop glyphs
+
+### Docs / samples
+
+- Add CountryInfo SOAP real-project sample for SoapUI migration
+
 ## [1.46.3-pre]
 
 Pre-release. VS Code extension `1.46.3`; Testlight CLI and MCP `1.46.3-pre` on `@pre`.
