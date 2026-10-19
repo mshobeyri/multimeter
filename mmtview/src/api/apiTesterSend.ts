@@ -5,10 +5,12 @@ import { buildApiTesterSendRequest } from "mmt-core/api-edit/apiBodyEdit";
 import { apiToYaml } from "mmt-core/parse/apiParsePack";
 import { resolveApiHttpMethod } from "mmt-core/network/apiMethod";
 import {
+  getGitCurrentSnapshot,
   setGitCurrentSnapshot,
   textMayNeedGitCurrentSnapshot,
   type GitCurrentSnapshot,
 } from "mmt-core/tokens/Current";
+import { resetCurrentTokenCache } from "mmt-core/tokens/variableReplacer";
 import { protocolResolver } from "mmt-core";
 
 /** Resolves `null` on timeout / no reply (keep the previous snapshot). */
@@ -32,12 +34,43 @@ export function buildYamlRawFile(api: APIData): string {
   return apiToYaml(merged);
 }
 
+/** True when `api` references a git current token (`c:commit`, `c:branch`, …). */
+export function apiNeedsGitCurrentSnapshot(api: APIData): boolean {
+  try {
+    return textMayNeedGitCurrentSnapshot(JSON.stringify(api));
+  } catch {
+    return false;
+  }
+}
+
+/** True when the webview already has a non-empty host git snapshot. */
+export function hasLoadedGitCurrentSnapshot(): boolean {
+  const snap = getGitCurrentSnapshot();
+  if (!snap || typeof snap !== "object") {
+    return false;
+  }
+  return !!(
+    snap.commit ||
+    snap.commitHash ||
+    snap.branch ||
+    snap.tag ||
+    snap.describe ||
+    snap.dirty !== undefined
+  );
+}
+
+function applyGitSnapshot(snapshot: GitCurrentSnapshot | undefined): void {
+  setGitCurrentSnapshot(snapshot);
+  // Drop any empty c: values cached before the host snapshot arrived.
+  resetCurrentTokenCache();
+}
+
 /** Apply the snapshot carried by `viewDocumentContent` (missing → empty). */
 export function applyViewDocumentGitSnapshot(message: { gitSnapshot?: unknown }): void {
   if (message.gitSnapshot && typeof message.gitSnapshot === "object") {
-    setGitCurrentSnapshot(message.gitSnapshot as GitCurrentSnapshot);
+    applyGitSnapshot(message.gitSnapshot as GitCurrentSnapshot);
   } else {
-    setGitCurrentSnapshot(undefined);
+    applyGitSnapshot(undefined);
   }
 }
 
@@ -45,24 +78,29 @@ export function applyViewDocumentGitSnapshot(message: { gitSnapshot?: unknown })
  * Fetch live git metadata from the extension before minting r:/c: so
  * git `c:` tokens resolve with the other tokens (the snapshot from document open
  * may be missing or stale). Keeps the previous snapshot on timeout.
+ * No-ops when the API has no git `c:` tokens.
  */
 export async function refreshGitSnapshotFor(
   api: APIData,
   requestGitSnapshot: GitSnapshotRequester,
-): Promise<void> {
-  let text: string;
-  try {
-    text = JSON.stringify(api);
-  } catch {
-    return;
-  }
-  if (!textMayNeedGitCurrentSnapshot(text)) {
-    return;
+): Promise<boolean> {
+  if (!apiNeedsGitCurrentSnapshot(api)) {
+    return false;
   }
   const snapshot = await requestGitSnapshot();
   if (snapshot !== null) {
-    setGitCurrentSnapshot(snapshot);
+    applyGitSnapshot(snapshot);
+    return true;
   }
+  return false;
+}
+
+/**
+ * True when the UI should fetch git before resolving: the API needs git `c:`
+ * tokens and no usable snapshot is loaded yet (e.g. token typed after open).
+ */
+export function shouldFetchGitSnapshotForUi(api: APIData): boolean {
+  return apiNeedsGitCurrentSnapshot(api) && !hasLoadedGitCurrentSnapshot();
 }
 
 /** Refresh git, then mint the Send snapshot (wire request + telescope seed). */

@@ -32,6 +32,7 @@ import {
   buildApiTesterRunMessage,
   prepareApiTesterSend,
   refreshGitSnapshotFor,
+  shouldFetchGitSnapshotForUi,
 } from "./apiTesterSend";
 
 type OutputPosition = { text?: string; line: number; column: number };
@@ -195,22 +196,31 @@ export function useAPITesterLogic({
   const resolveFreshRequestData = useCallback(async (
     inputs?: JSONRecord,
     options?: { refreshRuntimeTokens?: boolean }
-  ): Promise<Request> => {
+  ): Promise<{ request: Request; refreshRuntimeTokens: boolean }> => {
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const envParameters = await loadEnvParameters();
     setEnvValues(envParameters);
-    if (options?.refreshRuntimeTokens) {
+    // Fetch git only when the API has git `c:` tokens and we have no snapshot
+    // yet (typed after open). Files without git tokens never hit the host.
+    // First time a git `c:` appears (e.g. typed after open): fetch + remint.
+    const refreshRuntimeTokens =
+      options?.refreshRuntimeTokens === true ||
+      shouldFetchGitSnapshotForUi(api);
+    if (refreshRuntimeTokens) {
       await refreshGitSnapshotFor(api, requestGitSnapshot);
     }
-    return resolveApiRequest(
-      api,
-      resolvedInputs,
-      envParameters,
-      {
-        refreshRuntimeTokens: options?.refreshRuntimeTokens,
-        preserveStructuredBody: true,
-      }
-    );
+    return {
+      request: resolveApiRequest(
+        api,
+        resolvedInputs,
+        envParameters,
+        {
+          refreshRuntimeTokens,
+          preserveStructuredBody: true,
+        }
+      ),
+      refreshRuntimeTokens,
+    };
   }, [api, loadEnvParameters]);
 
   const seedPreviewFromResolved = useCallback((resolved: Request) => {
@@ -242,14 +252,16 @@ export function useAPITesterLogic({
     const respectTouched = options?.respectTouched ?? true;
 
     return (async () => {
-      const rface = await resolveFreshRequestData(resolvedInputs, {
-        refreshRuntimeTokens: options?.refreshRuntimeTokens,
-      });
+      const { request: rface, refreshRuntimeTokens } =
+        await resolveFreshRequestData(resolvedInputs, {
+          refreshRuntimeTokens: options?.refreshRuntimeTokens,
+        });
       setRequestData((prev) =>
         applyScopedRequestData(prev, rface, scopes, touchedFieldsRef.current, respectTouched)
       );
       // Coherent telescope snapshot: field preview matches body/requestData.
-      if (options?.refreshRuntimeTokens) {
+      // Also seed when a first-time git snapshot arrives after typing c:commit.
+      if (refreshRuntimeTokens) {
         seedPreviewFromResolved(rface);
       }
       return rface;

@@ -2,8 +2,10 @@ import {
   applyViewDocumentGitSnapshot,
   buildApiTesterRunMessage,
   buildYamlRawFile,
+  hasLoadedGitCurrentSnapshot,
   prepareApiTesterSend,
   refreshGitSnapshotFor,
+  shouldFetchGitSnapshotForUi,
 } from './apiTesterSend';
 import {
   getGitCurrentSnapshot,
@@ -99,7 +101,7 @@ describe('refreshGitSnapshotFor / applyViewDocumentGitSnapshot', () => {
 
   it('skips the host when YAML has no git c: tokens', async () => {
     const requester = jest.fn(async () => ({branch: 'x'}));
-    await refreshGitSnapshotFor(
+    const applied = await refreshGitSnapshotFor(
         {
           type: 'api',
           url: 'https://local.mmt.dev/echo',
@@ -108,6 +110,7 @@ describe('refreshGitSnapshotFor / applyViewDocumentGitSnapshot', () => {
         } as APIData,
         requester);
     expect(requester).not.toHaveBeenCalled();
+    expect(applied).toBe(false);
   });
 
   it('asks the host when c:branch is present and applies the snapshot',
@@ -116,7 +119,7 @@ describe('refreshGitSnapshotFor / applyViewDocumentGitSnapshot', () => {
          branch: 'feature/gate',
          commit: 'deadbeef',
        }));
-       await refreshGitSnapshotFor(
+       const applied = await refreshGitSnapshotFor(
            {
              type: 'api',
              url: 'https://local.mmt.dev/echo',
@@ -125,20 +128,44 @@ describe('refreshGitSnapshotFor / applyViewDocumentGitSnapshot', () => {
            } as APIData,
            requester);
        expect(requester).toHaveBeenCalledTimes(1);
+       expect(applied).toBe(true);
        expect(getGitCurrentSnapshot()?.branch).toBe('feature/gate');
      });
 
   it('keeps the previous snapshot when the host times out (null)', async () => {
     setGitCurrentSnapshot({branch: 'cached', commit: '11111111'});
     const requester = jest.fn(async () => null);
-    await refreshGitSnapshotFor(
+    const applied = await refreshGitSnapshotFor(
         {
           type: 'api',
           url: 'https://local.mmt.dev/echo',
           headers: {'X-Branch': 'c:branch'},
         } as APIData,
         requester);
+    expect(applied).toBe(false);
     expect(getGitCurrentSnapshot()?.branch).toBe('cached');
+  });
+
+  it('shouldFetchGitSnapshotForUi is true only until a snapshot is loaded', () => {
+    const withGit = {
+      type: 'api',
+      url: 'https://local.mmt.dev/echo',
+      headers: {'X-Commit': 'c:commit'},
+    } as APIData;
+    const withoutGit = {
+      type: 'api',
+      url: 'https://local.mmt.dev/echo',
+      body: {id: 'r:uuid'},
+    } as APIData;
+
+    expect(shouldFetchGitSnapshotForUi(withoutGit)).toBe(false);
+    expect(shouldFetchGitSnapshotForUi(withGit)).toBe(true);
+    expect(hasLoadedGitCurrentSnapshot()).toBe(false);
+
+    setGitCurrentSnapshot({commit: 'abcdef01'});
+    expect(hasLoadedGitCurrentSnapshot()).toBe(true);
+    expect(shouldFetchGitSnapshotForUi(withGit)).toBe(false);
+    expect(shouldFetchGitSnapshotForUi(withoutGit)).toBe(false);
   });
 });
 
