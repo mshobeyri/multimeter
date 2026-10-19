@@ -1,10 +1,11 @@
 import React from 'react';
 import { statusIcons } from 'mmt-core';
+import { PAUSE_CIRCLE_ICON, StatusGlyph } from '../components/StatusGlyph';
 import { StepStatus } from './types';
 
 export const statusIconFor = (status: StepStatus | 'paused') => {
     if (status === 'paused') {
-        return { icon: 'codicon-debug-pause', color: '#d29922', title: 'Paused' };
+        return { icon: PAUSE_CIRCLE_ICON, color: '#d29922', title: 'Paused' };
     }
     if (status === 'running') {
         return { icon: 'codicon-play-circle', color: '#0ABAB5', title: 'Running' };
@@ -73,7 +74,7 @@ export const StatusIconWithCache: React.FC<{
           }}
         />
       ) : (
-        <span className={`codicon ${meta.icon}`} style={{ color: meta.color, fontSize: size }} />
+        <StatusGlyph icon={meta.icon} color={meta.color} />
       )}
     </span>
   );
