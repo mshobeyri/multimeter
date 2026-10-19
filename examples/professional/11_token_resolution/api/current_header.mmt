@@ -7,10 +7,9 @@ outputs:
   city: body[headers][x-city]
   git_branch: body[headers][x-git-branch]
   git_commit: body[headers][x-git-commit]
-  git_commit_hash: body[headers][x-git-commit-hash]
+  git_commit_short: body[headers][x-git-commit-short]
   git_describe: body[headers][x-git-describe]
   git_dirty: body[headers][x-git-dirty]
-  commit_alias: body[headers][x-commit-alias]
   missing_token: body[headers][x-missing-token]
   literal_token: body[headers][x-literal-token]
   literal_omit: body[headers][x-literal-omit]
@@ -30,12 +29,11 @@ headers:
   X-Day-Name: c:day
   X-Epoch-Seconds: c:epoch
   X-City: c:city
-  X-Git-Branch: c:git_branch
-  X-Git-Commit: c:git_commit
-  X-Git-Commit-Hash: c:git_commit_hash
+  X-Git-Branch: c:branch
+  X-Git-Commit: c:commit
+  X-Git-Commit-Short: c:commit_short
   X-Git-Describe: c:git_describe
   X-Git-Dirty: c:git_dirty
-  X-Commit-Alias: c:commit
   X-Missing-Token: c:not_a_token
   X-Literal-Token: "c:day"
   X-Literal-Omit: "omit"
@@ -56,12 +54,11 @@ examples:
       day_name: c:day
       epoch_seconds: != null
       city: c:city
-      git_branch: c:git_branch
-      git_commit: c:git_commit
-      git_commit_hash: c:git_commit_hash
+      git_branch: c:branch
+      git_commit: c:commit
+      git_commit_short: c:commit_short
       git_describe: c:git_describe
       git_dirty: c:git_dirty
-      commit_alias: c:commit
       missing_token: "c:not_a_token"
       literal_token: "c:day"
       literal_omit: "omit"

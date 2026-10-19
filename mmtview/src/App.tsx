@@ -289,7 +289,7 @@ const App: React.FC = () => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
       if (message.command === "viewDocumentContent") {
-        // Apply before panels mount so telescope / resolveApiRequest see c:git_*.
+        // Apply before panels mount so telescope / resolveApiRequest see git `c:` tokens.
         applyViewDocumentGitSnapshot(message);
         setDocumentContentLoaded(true);
         pendingOpenLayoutRef.current = true;

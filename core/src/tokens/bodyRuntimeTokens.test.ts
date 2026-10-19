@@ -412,29 +412,34 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
     expect(stringBody).toBe('hello <<r:uuid>> / <<c:day>>');
   });
 
-  it('resolves c:git_* in idle preview when a git snapshot is injected', () => {
+  it('resolves git c: tokens in idle preview when a git snapshot is injected', () => {
     setGitCurrentSnapshot({
       branch: 'main',
       commit: 'a4f5e463',
-      commitHash: 'a4f5e4630123456789',
+      commitHash: 'a4f5e4630123456789abcdef0123456789abcdef',
       tag: 'v1.0.0',
       describe: 'v1.0.0',
       dirty: false,
     });
     try {
       const {text, spans} = projectTokenFieldPreview(
-          '{{c:git_commit}} / {{c:git_branch}}',
+          '{{c:commit}} / {{c:commit_short}} / {{c:branch}}',
           {env: {}, inputs: {}},
       );
-      expect(text).toBe('a4f5e463 / main');
-      expect(spans).toHaveLength(2);
+      expect(text).toBe(
+          'a4f5e4630123456789abcdef0123456789abcdef / a4f5e463 / main');
+      expect(spans).toHaveLength(3);
       expect(spans[0]).toMatchObject({
         kind: 'resolved',
-        tooltip: '{{c:git_commit}}',
+        tooltip: '{{c:commit}}',
       });
       expect(spans[1]).toMatchObject({
         kind: 'resolved',
-        tooltip: '{{c:git_branch}}',
+        tooltip: '{{c:commit_short}}',
+      });
+      expect(spans[2]).toMatchObject({
+        kind: 'resolved',
+        tooltip: '{{c:branch}}',
       });
     } finally {
       clearGitCurrentSnapshot();

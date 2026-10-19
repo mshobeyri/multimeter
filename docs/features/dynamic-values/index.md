@@ -84,8 +84,8 @@ url: <<e:api_url>>/users
 headers:
   X-Request-Id: req-<<r:uuid>>
   X-Sent-At: <<c:date>>T<<c:time>>
-  X-Git-Commit: <<c:git_commit>>
-  X-Git-Branch: <<c:git_branch>>
+  X-Git-Commit: <<c:commit_short>>
+  X-Git-Branch: <<c:branch>>
 body:
   username: i:username
   email: i:email

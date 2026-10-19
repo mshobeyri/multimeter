@@ -159,20 +159,13 @@ export const CURRENT_TOKEN_MAP: Record<string, CurrentTokenGenerator> = {
   city: currentCity,
   country: currentCountry,
   // Git (host-injected snapshot; empty / false when unavailable)
-  git_branch: currentGitBranch,
-  git_commit: currentGitCommit,
-  git_commit_hash: currentGitCommitHash,
-  git_tag: currentGitTag,
+  branch: currentGitBranch,
+  commit: currentGitCommitHash,
+  commit_short: currentGitCommit,
+  tag: currentGitTag,
   git_describe: currentGitDescribe,
   git_dirty: currentGitDirty,
   report_folder: currentReportFolder,
-  // Short aliases
-  branch: currentGitBranch,
-  commit: currentGitCommit,
-  commit_short: currentGitCommit,
-  commit_hash_short: currentGitCommit,
-  commit_hash: currentGitCommitHash,
-  tag: currentGitTag,
 };
 
 export const CURRENT_TOKEN_OFFSET_NAMES = [

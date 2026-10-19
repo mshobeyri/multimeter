@@ -226,7 +226,7 @@ export async function handleLoadDocumentContent(
   }
 }
 
-/** Live git snapshot so the API Tester can mint `c:git_*` with other r:/c: tokens. */
+/** Live git snapshot so the API Tester can mint git `c:` tokens with other r:/c: tokens. */
 export function handleRequestGitSnapshot(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument) {

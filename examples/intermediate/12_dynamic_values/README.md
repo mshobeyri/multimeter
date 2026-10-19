@@ -31,7 +31,7 @@ Random tokens are split by kind. Current tokens live in their own test. Nearby r
 | `api/random_network.mmt` | `r:domain`, `r:url`, `r:mac`, `r:ip`, `r:hostname`, `r:user_agent` |
 | `api/random_identity.mmt` | `r:email`, names, address, company, and text tokens |
 | `api/random_time.mmt` | Ranged and near-now datetimes/epochs, plus `c:` times for proximity |
-| `api/current.mmt` | `c:utc_datetime`, offsets, date/time/epoch/timezone, plus `c:git_*` (branch, commit, tag, describe, dirty) |
+| `api/current.mmt` | `c:utc_datetime`, offsets, date/time/epoch/timezone, plus git currents (`c:branch`, `c:commit`, `c:tag`, `c:git_describe`, `c:git_dirty`) |
 | `*_test.mmt` | Calls the matching API and validates the echoed values |
 | `suite.mmt` | Runs every dynamic-values test together |
 
@@ -46,8 +46,9 @@ body:
   datetime_near_now: r:utc_datetime_now(2s)
   created_utc: c:utc_datetime
   created_utc_plus_2s: c:utc_datetime(+2s)
-  git_commit: c:git_commit
-  git_branch: c:git_branch
+  git_commit: c:commit
+  git_commit_short: c:commit_short
+  git_branch: c:branch
   git_dirty: c:git_dirty
 ```
 
@@ -64,7 +65,7 @@ body:
 - **Local vs UTC** — `r:datetime` / `c:datetime` use local time; `r:utc_datetime` / `c:utc_datetime` use UTC and end in `Z`.
 - **Ranges around now** accept combined durations such as `2s` or `1h1m`.
 - **Current offsets** use a signed duration: `c:utc_datetime(+2s)`, `c:date(+7d)`.
-- **Git currents** — `c:git_branch`, `c:git_commit` (short), `c:git_commit_hash`, `c:git_tag`, `c:git_describe`, `c:git_dirty`. Short aliases: `c:branch`, `c:commit`, `c:tag`. Empty / `false` when git is unavailable.
+- **Git currents** — `c:branch`, `c:commit` (full SHA), `c:commit_short`, `c:tag`, `c:git_describe`, `c:git_dirty`. Empty / `false` when git is unavailable.
 - **Time comparison** — `=5s~` / `!5s~` check that two times differ by at most (or more than) the velocity. A duration is required; bare `=~` is the deprecated as-string operator.
 - **No JS required** — tokens can be used directly in API `body`, `headers`, `query`, `cookies`, `url`, and input defaults.
 

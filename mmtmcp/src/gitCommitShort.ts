@@ -52,7 +52,7 @@ export function tryGitTag(cwd?: string): string | undefined {
 }
 
 /**
- * Resolve git metadata for reports and `c:git_*` current tokens.
+ * Resolve git metadata for reports and git `c:` current tokens.
  * Missing fields are omitted; never throws.
  */
 export function resolveGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
@@ -97,7 +97,7 @@ export function applyGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
 }
 
 /**
- * Install an on-demand provider so `c:git_*` resolution runs with other `c:`
+ * Install an on-demand provider so git `c:` resolution runs with other `c:`
  * tokens — git is spawned only when a git current-token is evaluated.
  */
 export function installGitCurrentSnapshotProvider(cwd?: string): void {

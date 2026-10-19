@@ -57,7 +57,7 @@ JSON is the only format here that still shows `plan_code` as the number `10` and
 | `api/random_urlencoded_body.mmt` | `r:` as form text |
 | `api/random_header.mmt` | `r:` as header text (`r:color` stays a name) |
 | `api/random_query.mmt` | `r:` as query text |
-| `api/current_json_body.mmt` | `c:day` / `c:city` text, `c:epoch` number, `c:git_*` (dirty boolean) |
+| `api/current_json_body.mmt` | `c:day` / `c:city` text, `c:epoch` number, `c:branch` / `c:commit` / `c:git_dirty` (boolean) |
 | `api/current_xml_body.mmt` | `c:` (incl. git) as XML text |
 | `api/current_urlencoded_body.mmt` | `c:` (incl. git) as form text |
 | `api/current_header.mmt` | `c:` (incl. git) as header text |

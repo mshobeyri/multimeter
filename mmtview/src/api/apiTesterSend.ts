@@ -43,7 +43,7 @@ export function applyViewDocumentGitSnapshot(message: { gitSnapshot?: unknown })
 
 /**
  * Fetch live git metadata from the extension before minting r:/c: so
- * `c:git_*` resolves with the other tokens (the snapshot from document open
+ * git `c:` tokens resolve with the other tokens (the snapshot from document open
  * may be missing or stale). Keeps the previous snapshot on timeout.
  */
 export async function refreshGitSnapshotFor(

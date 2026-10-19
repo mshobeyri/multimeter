@@ -14,11 +14,10 @@ outputs:
   year: body.body.year
   git_branch: body.body.git_branch
   git_commit: body.body.git_commit
-  git_commit_hash: body.body.git_commit_hash
+  git_commit_short: body.body.git_commit_short
   git_tag: body.body.git_tag
   git_describe: body.body.git_describe
   git_dirty: body.body.git_dirty
-  commit_alias: body.body.commit_alias
   request_method: body.method
 url: https://test.mmt.dev/echo
 method: post
@@ -33,10 +32,9 @@ body:
   timezone: c:timezone
   utc_offset: c:utc_offset
   year: c:year
-  git_branch: c:git_branch
-  git_commit: c:git_commit
-  git_commit_hash: c:git_commit_hash
-  git_tag: c:git_tag
+  git_branch: c:branch
+  git_commit: c:commit
+  git_commit_short: c:commit_short
+  git_tag: c:tag
   git_describe: c:git_describe
   git_dirty: c:git_dirty
-  commit_alias: c:commit

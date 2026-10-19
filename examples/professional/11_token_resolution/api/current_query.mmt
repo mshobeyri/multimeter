@@ -7,10 +7,9 @@ outputs:
   city: body.query.city
   git_branch: body.query.git_branch
   git_commit: body.query.git_commit
-  git_commit_hash: body.query.git_commit_hash
+  git_commit_short: body.query.git_commit_short
   git_describe: body.query.git_describe
   git_dirty: body.query.git_dirty
-  commit_alias: body.query.commit_alias
   missing_token: body.query.missing_token
   literal_token: body.query.literal_token
   literal_omit: body.query.literal_omit
@@ -29,12 +28,11 @@ query:
   day_name: c:day
   epoch_seconds: c:epoch
   city: c:city
-  git_branch: c:git_branch
-  git_commit: c:git_commit
-  git_commit_hash: c:git_commit_hash
+  git_branch: c:branch
+  git_commit: c:commit
+  git_commit_short: c:commit_short
   git_describe: c:git_describe
   git_dirty: c:git_dirty
-  commit_alias: c:commit
   missing_token: c:not_a_token
   literal_token: "c:day"
   literal_omit: "omit"
@@ -56,12 +54,11 @@ examples:
       day_name: c:day
       epoch_seconds: != null
       city: c:city
-      git_branch: c:git_branch
-      git_commit: c:git_commit
-      git_commit_hash: c:git_commit_hash
+      git_branch: c:branch
+      git_commit: c:commit
+      git_commit_short: c:commit_short
       git_describe: c:git_describe
       git_dirty: c:git_dirty
-      commit_alias: c:commit
       missing_token: "c:not_a_token"
       literal_token: "c:day"
       literal_omit: "omit"

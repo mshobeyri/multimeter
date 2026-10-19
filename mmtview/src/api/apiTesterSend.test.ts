@@ -97,7 +97,7 @@ describe('refreshGitSnapshotFor / applyViewDocumentGitSnapshot', () => {
     expect(getGitCurrentSnapshot()).toBeUndefined();
   });
 
-  it('skips the host when YAML has no c:git_* tokens', async () => {
+  it('skips the host when YAML has no git c: tokens', async () => {
     const requester = jest.fn(async () => ({branch: 'x'}));
     await refreshGitSnapshotFor(
         {
@@ -110,7 +110,7 @@ describe('refreshGitSnapshotFor / applyViewDocumentGitSnapshot', () => {
     expect(requester).not.toHaveBeenCalled();
   });
 
-  it('asks the host when c:git_branch is present and applies the snapshot',
+  it('asks the host when c:branch is present and applies the snapshot',
      async () => {
        const requester = jest.fn(async () => ({
          branch: 'feature/gate',
@@ -121,7 +121,7 @@ describe('refreshGitSnapshotFor / applyViewDocumentGitSnapshot', () => {
              type: 'api',
              url: 'https://local.mmt.dev/echo',
              method: 'get',
-             headers: {'X-Branch': 'c:git_branch'},
+             headers: {'X-Branch': 'c:branch'},
            } as APIData,
            requester);
        expect(requester).toHaveBeenCalledTimes(1);
@@ -135,7 +135,7 @@ describe('refreshGitSnapshotFor / applyViewDocumentGitSnapshot', () => {
         {
           type: 'api',
           url: 'https://local.mmt.dev/echo',
-          headers: {'X-Branch': 'c:git_branch'},
+          headers: {'X-Branch': 'c:branch'},
         } as APIData,
         requester);
     expect(getGitCurrentSnapshot()?.branch).toBe('cached');
@@ -155,8 +155,8 @@ describe('prepareApiTesterSend', () => {
           url: 'https://local.mmt.dev/echo',
           method: 'post',
           format: 'json',
-          headers: {'X-Branch': 'c:git_branch'},
-          body: {branch: 'c:git_branch'},
+          headers: {'X-Branch': 'c:branch'},
+          body: {branch: 'c:branch'},
         } as APIData,
         {},
         {},

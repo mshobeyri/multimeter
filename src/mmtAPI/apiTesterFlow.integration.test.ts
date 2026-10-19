@@ -302,15 +302,15 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
       'inputs:',
       '  user: bob',
       'query:',
-      '  branch: c:git_branch',
+      '  branch: c:branch',
       'headers:',
       '  X-Id: r:uuid',
-      '  X-Branch: c:git_branch',
+      '  X-Branch: c:branch',
       '  X-Env: e:host_tag',
       'body:',
       '  id: r:uuid',
-      '  branch: c:git_branch',
-      '  commit: c:git_commit',
+      '  branch: c:branch',
+      '  commit: c:commit',
       '  dirty: c:git_dirty',
       '  user: i:user',
       '  env: e:host_tag',
@@ -319,19 +319,19 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
   }
 
   describe('API Tester Send', () => {
-    it('resolves c:git_* added after open (file had no git tokens at open)', async () => {
+    it('resolves git c: tokens added after open (file had no git tokens at open)', async () => {
       const editor = openEditor(
           ['type: api', 'title: Flow', `url: ${baseUrl}/echo`, 'method: get', ''].join('\n'));
       const {webview} = await openInWebview(editor);
       // Open did not inject git (no git tokens yet) → webview snapshot is empty.
-      expect(webview.current.currentValueForToken('git_branch')).toBe('');
+      expect(webview.current.currentValueForToken('branch')).toBe('');
 
       await apiTesterSend(editor, webview, tokenApiYaml());
 
       expect(echoed).toHaveLength(1);
       const body = JSON.parse(echoed[0].body);
       expect(body.branch).toBe(BRANCH);
-      expect(body.commit).toBe(commit.slice(0, 8));
+      expect(body.commit).toBe(commit);
       expect(echoed[0].headers['x-branch']).toBe(BRANCH);
       expect(echoed[0].query.branch).toBe(BRANCH);
     });
@@ -352,7 +352,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
       expect(wireBody).toEqual({
         id: expect.stringMatching(UUID_RE),
         branch: BRANCH,
-        commit: commit.slice(0, 8),
+        commit: commit,
         dirty: false,
         user: 'alice',
         env: 'from-env',
@@ -376,7 +376,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
                  '{{r:uuid}}', ctx, tokenFieldPreviewScope('headers', 'X-Id')).text)
           .toBe(echoed[0].headers['x-id']);
       expect(projectTokenFieldPreview(
-                 '{{c:git_branch}}', ctx, tokenFieldPreviewScope('headers', 'X-Branch')).text)
+                 '{{c:branch}}', ctx, tokenFieldPreviewScope('headers', 'X-Branch')).text)
           .toBe(BRANCH);
     });
 
@@ -473,15 +473,15 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         '  user: alice',
         'query:',
         '  q: i:user',
-        '  branch: c:git_branch',
+        '  branch: c:branch',
         'cookies:',
         '  session: i:user',
         'headers:',
         '  X-User: i:user',
-        '  X-Branch: c:git_branch',
+        '  X-Branch: c:branch',
         'body:',
         '  user: i:user',
-        '  branch: c:git_branch',
+        '  branch: c:branch',
         '',
       ].join('\n');
       const editor = openEditor(yaml);
@@ -514,9 +514,9 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         `url: ${baseUrl}/echo`,
         'method: get',
         'query:',
-        '  branch: c:git_branch',
+        '  branch: c:branch',
         'headers:',
-        '  X-Branch: c:git_branch',
+        '  X-Branch: c:branch',
         '',
       ].join('\n');
       const editor = openEditor(yaml);
@@ -539,7 +539,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         'method: post',
         'format: urlencoded',
         'body:',
-        '  branch: c:git_branch',
+        '  branch: c:branch',
         '  user: i:user',
         '',
       ].join('\n');
@@ -548,7 +548,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         `url: ${baseUrl}/echo`,
         'method: post',
         'format: xml',
-        'body: "<req><branch><<c:git_branch>></branch><user><<i:user>></user></req>"',
+        'body: "<req><branch><<c:branch>></branch><user><<i:user>></user></req>"',
         '',
       ].join('\n');
 
@@ -573,7 +573,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         'method: post',
         'auth:',
         '  type: bearer',
-        '  token: <<e:host_tag>>-<<c:git_branch>>',
+        '  token: <<e:host_tag>>-<<c:branch>>',
         'format: json',
         'body:',
         '  user: i:user',
@@ -602,7 +602,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         '  client_id: cid',
         '  client_secret: secret',
         'headers:',
-        '  X-Branch: c:git_branch',
+        '  X-Branch: c:branch',
         '',
       ].join('\n');
       const editor = openEditor(yaml);
@@ -625,7 +625,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         `url: ${baseUrl}/with-cookie`,
         'method: get',
         'headers:',
-        '  X-Branch: c:git_branch',
+        '  X-Branch: c:branch',
         '',
       ].join('\n');
       const editor = openEditor(yaml);
@@ -656,7 +656,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         'method: post',
         'format: json',
         'body:',
-        '  branch: c:git_branch',
+        '  branch: c:branch',
         '',
       ].join('\n');
       const editor = openEditor(yaml);
@@ -687,7 +687,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         'inputs:',
         '  user: guest',
         '  req_id: r:uuid',
-        '  branch: c:git_branch',
+        '  branch: c:branch',
         '  host: e:host_tag',
         '  label: "<<i:host>>/<<i:user>>"',
         'query:',
@@ -700,7 +700,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         '  X-Host: i:host',
         '  X-Label: i:label',
         '  X-Direct-R: r:uuid',
-        '  X-Direct-C: c:git_branch',
+        '  X-Direct-C: c:branch',
         '  X-Direct-E: e:host_tag',
         'body:',
         '  req_id: i:req_id',
@@ -709,9 +709,9 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         '  label: i:label',
         '  user: i:user',
         '  direct_r: r:uuid',
-        '  direct_c: c:git_commit',
+        '  direct_c: c:commit',
         '  direct_e: e:host_tag',
-        '  nested: "id=<<i:req_id>> env=<<e:host_tag>> branch=<<c:git_branch>>"',
+        '  nested: "id=<<i:req_id>> env=<<e:host_tag>> branch=<<c:branch>>"',
         '',
       ].join('\n');
     }
@@ -747,7 +747,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
       expect(wire.headers['x-direct-e']).toBe('from-env');
       expect(wire.headers['x-direct-c']).toBe(BRANCH);
       expect(body.direct_e).toBe('from-env');
-      expect(body.direct_c).toBe(commit.slice(0, 8));
+      expect(body.direct_c).toBe(commit);
 
       // i: → r: is reminted per reference on Send (r: is not cached). Each
       // occurrence is a UUID, but header/query/body need not match each other.
@@ -773,7 +773,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
       const {projectTokenFieldPreview, tokenFieldPreviewScope} = webview.bodyEdit;
       const ctx = {env: ENV, inputs: {user: 'alice', host: 'from-env', branch: BRANCH}};
       expect(projectTokenFieldPreview(
-                 '{{c:git_branch}}', ctx,
+                 '{{c:branch}}', ctx,
                  tokenFieldPreviewScope('headers', 'X-Direct-C')).text)
           .toBe(BRANCH);
       expect(projectTokenFieldPreview(
@@ -843,7 +843,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
 
 
   describe('glyph run', () => {
-    it('resolves c:git_* through the host provider and skips History', async () => {
+    it('resolves git c: tokens through the host provider and skips History', async () => {
       const editor = openEditor(tokenApiYaml());
       await glyphRun(editor);
 
@@ -852,7 +852,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
       expect(body).toEqual({
         id: expect.stringMatching(UUID_RE),
         branch: BRANCH,
-        commit: commit.slice(0, 8),
+        commit: commit,
         dirty: false,
         user: 'bob',
         env: 'from-env',
@@ -923,7 +923,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         lines: [
           'format: json',
           'body:',
-          '  branch: c:git_branch',
+          '  branch: c:branch',
           '  user: i:user',
           '  env: e:host_tag',
           '  n: 3',
@@ -937,7 +937,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         lines: [
           'format: urlencoded',
           'body:',
-          '  branch: c:git_branch',
+          '  branch: c:branch',
           '  user: i:user',
           '  env: e:host_tag',
         ],
@@ -946,7 +946,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         name: 'text body with embedded tokens',
         lines: [
           'format: text',
-          'body: "branch=<<c:git_branch>> user=<<i:user>> env=<<e:host_tag>>"',
+          'body: "branch=<<c:branch>> user=<<i:user>> env=<<e:host_tag>>"',
         ],
       },
       {
@@ -954,10 +954,10 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         lines: [
           'method: get',
           'query:',
-          '  branch: c:git_branch',
+          '  branch: c:branch',
           '  user: i:user',
           'headers:',
-          '  X-Branch: c:git_branch',
+          '  X-Branch: c:branch',
           '  X-Env: e:host_tag',
         ],
       },
@@ -965,14 +965,14 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         name: 'xml body',
         lines: [
           'format: xml',
-          'body: "<req><branch><<c:git_branch>></branch><user><<i:user>></user></req>"',
+          'body: "<req><branch><<c:branch>></branch><user><<i:user>></user></req>"',
         ],
       },
       {
         name: 'html body',
         lines: [
           'format: html',
-          'body: "<p><<c:git_branch>></p>"',
+          'body: "<p><<c:branch>></p>"',
         ],
       },
       {
@@ -982,7 +982,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
           'headers:',
           '  Content-Type: application/vnd.custom+form',
           'body:',
-          '  branch: c:git_branch',
+          '  branch: c:branch',
         ],
       },
       {
@@ -991,7 +991,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         lines: [
           'format: binary',
           'headers:',
-          '  X-Branch: c:git_branch',
+          '  X-Branch: c:branch',
           'body: payload.bin',
         ],
         check: (wire) => {
@@ -1005,7 +1005,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
           'format: multipart',
           'body:',
           '  - name: branch',
-          '    value: c:git_branch',
+          '    value: c:branch',
           '  - name: file',
           '    file: ./upload.txt',
         ],
@@ -1026,7 +1026,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
           '  client_id: cid',
           '  client_secret: secret',
           'headers:',
-          '  X-Branch: c:git_branch',
+          '  X-Branch: c:branch',
         ],
         check: (wire) => {
           expect(wire.headers.authorization).toBe('Bearer tok-local');
@@ -1038,7 +1038,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
         lines: [
           'auth:',
           '  type: bearer',
-          '  token: <<e:host_tag>>-<<c:git_branch>>',
+          '  token: <<e:host_tag>>-<<c:branch>>',
           'format: json',
           'body:',
           '  user: i:user',
@@ -1053,7 +1053,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
           '  password: e:host_tag',
           'format: json',
           'body:',
-          '  branch: c:git_branch',
+          '  branch: c:branch',
         ],
       },
       {
@@ -1063,7 +1063,7 @@ describe('API run flows (webview → host → core → local.mmt.dev)', () => {
           'auth:',
           '  type: api-key',
           '  query: key',
-          '  value: c:git_branch',
+          '  value: c:branch',
         ],
       },
     ];

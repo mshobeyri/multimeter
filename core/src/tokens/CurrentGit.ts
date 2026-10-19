@@ -1,5 +1,6 @@
 /**
- * Injected git metadata for `c:git_*` / short-alias current tokens.
+ * Injected git metadata for git current tokens (`c:branch`, `c:commit`, …,
+ * plus `c:git_describe` / `c:git_dirty`).
  * Hosts register a {@link GitCurrentSnapshotProvider}; core calls it on first
  * git-token access so resolution stays with other `c:` tokens (on demand).
  * Core stays free of `child_process` / `fs`.
@@ -34,7 +35,7 @@ export function textMayNeedGitCurrentSnapshot(text: string): boolean {
   if (!text || !text.includes('c:')) {
     return false;
   }
-  return /(?:<<|\{\{)?c:(?:git_(?:branch|commit|commit_hash|tag|describe|dirty)|report_folder|branch|commit(?:_short|_hash|_hash_short)?|tag)\b/
+  return /(?:<<|\{\{)?c:(?:git_(?:describe|dirty)|report_folder|branch|commit(?:_short)?|tag)\b/
       .test(text);
 }
 

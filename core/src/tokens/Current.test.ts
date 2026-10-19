@@ -218,24 +218,33 @@ describe('git current tokens', () => {
     expect(textMayNeedGitCurrentSnapshot('')).toBe(false);
     expect(textMayNeedGitCurrentSnapshot('type: api\nurl: https://x')).toBe(false);
     expect(textMayNeedGitCurrentSnapshot('headers:\n  x: c:time')).toBe(false);
-    expect(textMayNeedGitCurrentSnapshot('x: c:git_commit')).toBe(true);
-    expect(textMayNeedGitCurrentSnapshot('x: <<c:git_branch>>')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: c:commit')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: c:commit_short')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: <<c:branch>>')).toBe(true);
     expect(textMayNeedGitCurrentSnapshot('x: {{c:git_dirty}}')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: c:git_describe')).toBe(true);
     expect(textMayNeedGitCurrentSnapshot('export:\n  - +/<<c:report_folder>>/a.html')).toBe(true);
     expect(textMayNeedGitCurrentSnapshot('x: c:branch')).toBe(true);
-    expect(textMayNeedGitCurrentSnapshot('x: c:commit_hash')).toBe(true);
+    expect(textMayNeedGitCurrentSnapshot('x: c:commit_hash')).toBe(false);
+    expect(textMayNeedGitCurrentSnapshot('x: c:git_commit')).toBe(false);
   });
 
   test('provider runs once on first git c: access', () => {
     let calls = 0;
     setGitCurrentSnapshotProvider(() => {
       calls += 1;
-      return {commit: 'deadbeef', branch: 'main'};
+      return {
+        commit: 'deadbeef',
+        commitHash: 'deadbeef0123456789abcdef0123456789abcdef',
+        branch: 'main',
+      };
     });
     expect(calls).toBe(0);
-    expect(currentValueForToken('git_commit')).toBe('deadbeef');
+    expect(currentValueForToken('commit')).toBe(
+        'deadbeef0123456789abcdef0123456789abcdef');
     expect(calls).toBe(1);
-    expect(currentValueForToken('git_branch')).toBe('main');
+    expect(currentValueForToken('commit_short')).toBe('deadbeef');
+    expect(currentValueForToken('branch')).toBe('main');
     expect(calls).toBe(1);
     expect(currentValueForToken('time')).toBeTruthy();
     expect(calls).toBe(1);
@@ -245,23 +254,23 @@ describe('git current tokens', () => {
     let calls = 0;
     setGitCurrentSnapshotProvider(() => {
       calls += 1;
-      return {commit: 'from-provider'};
+      return {commitHash: 'from-provider'};
     });
-    setGitCurrentSnapshot({commit: 'explicit'});
-    expect(currentValueForToken('git_commit')).toBe('explicit');
+    setGitCurrentSnapshot({commitHash: 'explicit'});
+    expect(currentValueForToken('commit')).toBe('explicit');
     expect(calls).toBe(0);
   });
 
   test('return empty / false when no snapshot is injected', () => {
-    expect(currentValueForToken('git_branch')).toBe('');
-    expect(currentValueForToken('git_commit')).toBe('');
-    expect(currentValueForToken('git_commit_hash')).toBe('');
-    expect(currentValueForToken('git_tag')).toBe('');
+    expect(currentValueForToken('branch')).toBe('');
+    expect(currentValueForToken('commit')).toBe('');
+    expect(currentValueForToken('commit_short')).toBe('');
+    expect(currentValueForToken('tag')).toBe('');
     expect(currentValueForToken('git_describe')).toBe('');
     expect(currentValueForToken('git_dirty')).toBe(false);
   });
 
-  test('reads injected snapshot and short aliases', () => {
+  test('reads injected snapshot: commit is full, commit_short is short', () => {
     setGitCurrentSnapshot({
       branch: 'dev',
       commit: 'a4f5e463',
@@ -270,24 +279,21 @@ describe('git current tokens', () => {
       describe: 'v1.0.0-1-ga4f5e463',
       dirty: true,
     });
-    expect(currentValueForToken('git_branch')).toBe('dev');
     expect(currentValueForToken('branch')).toBe('dev');
-    expect(currentValueForToken('git_commit')).toBe('a4f5e463');
-    expect(currentValueForToken('commit')).toBe('a4f5e463');
+    expect(currentValueForToken('commit')).toBe(
+        'a4f5e4630123456789abcdef0123456789abcdef');
     expect(currentValueForToken('commit_short')).toBe('a4f5e463');
-    expect(currentValueForToken('commit_hash_short')).toBe('a4f5e463');
-    expect(currentValueForToken('git_commit_hash')).toBe(
-        'a4f5e4630123456789abcdef0123456789abcdef');
-    expect(currentValueForToken('commit_hash')).toBe(
-        'a4f5e4630123456789abcdef0123456789abcdef');
-    expect(currentValueForToken('git_tag')).toBe('v1.0.0');
     expect(currentValueForToken('tag')).toBe('v1.0.0');
     expect(currentValueForToken('git_describe')).toBe('v1.0.0-1-ga4f5e463');
     expect(currentValueForToken('git_dirty')).toBe(true);
+    expect(currentValueForToken('commit_hash')).toBeUndefined();
+    expect(currentValueForToken('commit_hash_short')).toBeUndefined();
+    expect(currentValueForToken('git_commit')).toBeUndefined();
+    expect(currentValueForToken('git_branch')).toBeUndefined();
   });
 
   test('rejects offsets on git tokens', () => {
-    expect(currentValueForToken('git_commit(+1h)')).toBeUndefined();
+    expect(currentValueForToken('commit(+1h)')).toBeUndefined();
     expect(currentValueForToken('branch(-1d)')).toBeUndefined();
   });
 
@@ -315,8 +321,15 @@ describe('git current tokens', () => {
         .toBe('+/reports/branch/dev/a4f5e463/out.html');
     expect(expandCurrentTokensInPath('+/reports/c:report_folder/out.html'))
         .toBe('+/reports/branch/dev/a4f5e463/out.html');
-    expect(expandCurrentTokensInPath('out-<<c:git_commit>>.html'))
+    expect(expandCurrentTokensInPath('out-<<c:commit_short>>.html'))
         .toBe('out-a4f5e463.html');
+    setGitCurrentSnapshot({
+      branch: 'dev',
+      commit: 'a4f5e463',
+      commitHash: 'a4f5e4630123456789abcdef0123456789abcdef',
+    });
+    expect(expandCurrentTokensInPath('out-<<c:commit>>.html'))
+        .toBe('out-a4f5e4630123456789abcdef0123456789abcdef.html');
 
     jest.useFakeTimers();
     try {
