@@ -2,6 +2,19 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.46.5]
+
+Stable release of the 1.46.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.46.5` on `@latest`.
+
+- Reports: suite-like tree with portable `+/` paths; skipped results; omit passed expects; optional git commit/branch/tag; `c:report_folder` in export paths
+- Git current tokens (`c:commit`, `c:branch`, …); short names with full SHA for commit; fetch snapshot for API UI only when needed
+- API tester: remint `r:` / `c:` on Send; telescope tips from Send cache; sync telescope to wire values; circled pause glyph
+- Suite: faster open (title → first section → deepen); spinning status while hierarchy loads; expand top-level suites by default; cap parallel runs at CPU × 4
+- Editor: Run in testlight from More menu; yellow Resume when paused; fix Send/glyph drift
+- Environment: nested env choice objects; separate API defaults from test fixtures
+- Core / network: domain folders under `core/src`; split `networkCore`; in-process `local.mmt.dev` test server and e2e API tests
+- Docs / samples: default multi-API project layout; open-meteo and CountryInfo SOAP real-project samples
+
 ## [1.46.4-pre]
 
 Pre-release. VS Code extension `1.46.4`; Testlight CLI and MCP `1.46.4-pre` on `@pre`.
