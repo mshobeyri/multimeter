@@ -25,7 +25,7 @@ export function registerRunFileDecoration(
           const latest = runs[runs.length - 1];
           const paused = latest.paused === true;
           return {
-            badge: paused ? '⏸' : '▶',
+            badge: paused ? '⏸' : '▷',
             tooltip: paused ? `Paused — ${latest.label}` : latest.label,
             color: new vscode.ThemeColor(
                 paused ? 'charts.yellow' : 'debugIcon.startForeground'),
@@ -48,7 +48,7 @@ export function decorateRunStarted(
   onDidChange.fire(uri);
 }
 
-/** Switch the tab/explorer run badge between play (▶) and pause (⏸). */
+/** Switch the tab/explorer run badge between play (▷) and pause (⏸). */
 export function decorateRunPaused(runId: string, paused: boolean): void {
   const uri = uriByRunId.get(runId);
   if (!uri) {
