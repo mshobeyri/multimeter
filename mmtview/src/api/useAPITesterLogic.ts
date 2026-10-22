@@ -1,18 +1,19 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { APIData } from "mmt-core/APIData";
-import { Request, Response } from "mmt-core/NetworkData";
-import { JSONRecord, requestFormat, responseFormat } from "mmt-core/CommonData";
-import { resolveRequestFormat } from "mmt-core/formatResolve";
-import { safeList } from "mmt-core/safer";
-import { fieldForYamlSave, requestForSend } from "mmt-core/apiBodyEdit";
-import { apiToYaml } from "mmt-core/apiParsePack";
+import { APIData } from "mmt-core/data/APIData";
+import { Request, Response } from "mmt-core/data/NetworkData";
+import { JSONRecord, requestFormat, responseFormat } from "mmt-core/data/CommonData";
+import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
+import { safeList } from "mmt-core/util/safer";
+import {
+  fieldForYamlSave,
+  seedTokenFieldPreviewFromRequest,
+} from "mmt-core/api-edit/apiBodyEdit";
 import { loadEnvVariables } from "../workspaceStorage";
-import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
-import { resolveSetenvValues } from "mmt-core/setenvResolve";
+import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/extract/outputExtractor";
+import { resolveSetenvValues } from "mmt-core/tokens/setenvResolve";
 import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { protocolResolver } from "mmt-core";
-import { resolveApiHttpMethod } from "mmt-core/apiMethod";
 import { resolveResponseViewType } from "./responseBodyDisplay";
 import {
   cacheBodyAutoFormat,
@@ -25,24 +26,14 @@ import {
   diffApiRefreshScopes,
   isDocOnlyRefresh,
 } from "./apiUiRefresh";
-import { resolveApiRequest } from "mmt-core/resolveApiRequest";
-
-/**
- * Serialize the live-synced API YAML model for Send / Run in Core.
- * No resolved-token overlay — same outcome as running the file (glyph).
- */
-function buildYamlRawFile(api: APIData): string {
-  let merged = api;
-  const effectiveProtocol = protocolResolver.getEffectiveProtocol(
-    merged.protocol, merged.url);
-  if (effectiveProtocol === "http" && !merged.method) {
-    merged = {
-      ...merged,
-      method: resolveApiHttpMethod(undefined, merged.body),
-    };
-  }
-  return apiToYaml(merged);
-}
+import { resolveApiRequest } from "mmt-core/runner/resolveApiRequest";
+import { requestGitSnapshot } from "../vsAPI";
+import {
+  buildApiTesterRunMessage,
+  prepareApiTesterSend,
+  refreshGitSnapshotFor,
+  shouldFetchGitSnapshotForUi,
+} from "./apiTesterSend";
 
 type OutputPosition = { text?: string; line: number; column: number };
 
@@ -51,6 +42,8 @@ interface UseAPITesterLogicParams {
   onUpdateApi?: (patch: Partial<APIData>) => void;
   filePath?: string;
   initialExampleIndex?: number;
+  /** Bump TokenFieldInput preview after r:/c: cache seed (open / telescope / Send). */
+  onRuntimePreviewSeeded?: () => void;
 }
 
 function clampExampleIndex(examples: unknown[] | undefined, index: number | undefined): number {
@@ -64,10 +57,18 @@ function clampExampleIndex(examples: unknown[] | undefined, index: number | unde
   return index;
 }
 
-export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIndex }: UseAPITesterLogicParams) {
+export function useAPITesterLogic({
+  api,
+  onUpdateApi,
+  filePath,
+  initialExampleIndex,
+  onRuntimePreviewSeeded,
+}: UseAPITesterLogicParams) {
   const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(() => readCachedBodyAutoFormat());
   const autoFormatBodyRef = useRef(autoFormatBody);
   autoFormatBodyRef.current = autoFormatBody;
+  const onRuntimePreviewSeededRef = useRef(onRuntimePreviewSeeded);
+  onRuntimePreviewSeededRef.current = onRuntimePreviewSeeded;
   const network = useNetwork(autoFormatBody);
   const apiRef = useRef<APIData>(api);
   const [requestData, setRequestData] = useState<Request>();
@@ -76,24 +77,26 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   const [isSending, setIsSending] = useState(false);
   const sendPendingRef = useRef(false);
   const [responseData, setResponseData] = useState<Response>();
-  const [responseRevision, setResponseRevision] = useState<number>(0);
-  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(
-    () => clampExampleIndex(api.examples, initialExampleIndex)
-  );
-  const prevApiRef = useRef<APIData | undefined>(undefined);
-  const prevExampleIdxRef = useRef<number>(
+  // Bumps when a new response arrives so the Response BodyView remounts even if
+  // consecutive Send results share the same body text.
+  const [responseRevision, setResponseRevision] = useState(0);
+  const [apiTestResults, setApiTestResults] = useState<import("mmt-core/runner/apiTestEval").ApiTestExpectItem[] | null>(null);
+  // Touched request fields: keep the user's live edits when a refresh would
+  // otherwise overwrite them (e.g. env change). Reset on force-reset / open.
+  const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
+  const touchedFieldsRef = useRef(touchedFields);
+  touchedFieldsRef.current = touchedFields;
+  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(() =>
     clampExampleIndex(api.examples, initialExampleIndex)
   );
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
-  const currentInputsRef = useRef<JSONRecord>({});
+  const currentInputsRef = useRef(currentInputs);
   const [envValues, setEnvValues] = useState<JSONRecord>({});
-  const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
-  const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
   const [outputs, setOutputs] = useState<JSONRecord>({});
   const [setenvValues, setSetenvValues] = useState<JSONRecord>({});
-  const [apiTestResults, setApiTestResults] = useState<import("mmt-core/apiTestEval").ApiTestExpectItem[] | null>(null);
-
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
+  const prevApiRef = useRef<APIData | null>(null);
+  const prevExampleIdxRef = useRef(selectedExampleIdx);
 
   useEffect(() => {
     apiRef.current = api;
@@ -193,20 +196,37 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   const resolveFreshRequestData = useCallback(async (
     inputs?: JSONRecord,
     options?: { refreshRuntimeTokens?: boolean }
-  ): Promise<Request> => {
+  ): Promise<{ request: Request; refreshRuntimeTokens: boolean }> => {
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const envParameters = await loadEnvParameters();
     setEnvValues(envParameters);
-    return resolveApiRequest(
-      api,
-      resolvedInputs,
-      envParameters,
-      {
-        refreshRuntimeTokens: options?.refreshRuntimeTokens,
-        preserveStructuredBody: true,
-      }
-    );
+    // Fetch git only when the API has git `c:` tokens and we have no snapshot
+    // yet (typed after open). Files without git tokens never hit the host.
+    // First time a git `c:` appears (e.g. typed after open): fetch + remint.
+    const refreshRuntimeTokens =
+      options?.refreshRuntimeTokens === true ||
+      shouldFetchGitSnapshotForUi(api);
+    if (refreshRuntimeTokens) {
+      await refreshGitSnapshotFor(api, requestGitSnapshot);
+    }
+    return {
+      request: resolveApiRequest(
+        api,
+        resolvedInputs,
+        envParameters,
+        {
+          refreshRuntimeTokens,
+          preserveStructuredBody: true,
+        }
+      ),
+      refreshRuntimeTokens,
+    };
   }, [api, loadEnvParameters]);
+
+  const seedPreviewFromResolved = useCallback((resolved: Request) => {
+    seedTokenFieldPreviewFromRequest(apiRef.current, resolved);
+    onRuntimePreviewSeededRef.current?.();
+  }, []);
 
   const prepareRequestData = useCallback((
     inputs?: JSONRecord,
@@ -215,13 +235,13 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
       respectTouched?: boolean;
       /** Which UI parts to rewrite. Default `['all']`. Prefer narrower scopes (`env` / `url` / `body`) for partial updates. */
       scopes?: ApiUiRefreshScope[];
-      /** Fresh r:/c: samples (telescope on / explicit refresh). */
+      /** Fresh r:/c: samples (telescope on / open / explicit refresh). */
       refreshRuntimeTokens?: boolean;
     }
-  ) => {
+  ): Promise<Request | undefined> => {
     const scopes: ApiUiRefreshScope[] = options?.scopes ?? ["all"];
     if (isDocOnlyRefresh(scopes)) {
-      return;
+      return Promise.resolve(undefined);
     }
 
     if (options?.forceReset) {
@@ -231,35 +251,42 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const respectTouched = options?.respectTouched ?? true;
 
-    void (async () => {
-      const rface = await resolveFreshRequestData(resolvedInputs, {
-        refreshRuntimeTokens: options?.refreshRuntimeTokens,
-      });
+    return (async () => {
+      const { request: rface, refreshRuntimeTokens } =
+        await resolveFreshRequestData(resolvedInputs, {
+          refreshRuntimeTokens: options?.refreshRuntimeTokens,
+        });
       setRequestData((prev) =>
         applyScopedRequestData(prev, rface, scopes, touchedFieldsRef.current, respectTouched)
       );
+      // Coherent telescope snapshot: field preview matches body/requestData.
+      // Also seed when a first-time git snapshot arrives after typing c:commit.
+      if (refreshRuntimeTokens) {
+        seedPreviewFromResolved(rface);
+      }
+      return rface;
     })();
-  }, [resetTouchedFields, resolveFreshRequestData]);
+  }, [resetTouchedFields, resolveFreshRequestData, seedPreviewFromResolved]);
 
+  /**
+   * Remint r:/c:, seed the field-preview cache, then return the wire request.
+   * Runs on every API Tester Send whether telescope is on or off — so tokens
+   * mode still freezes wire values into cache, and core receives the same
+   * snapshot via resolvedRequest (no second remint).
+   */
   const buildRequestForSend = useCallback(async (): Promise<Request> => {
-    const fresh = await resolveFreshRequestData(undefined, { refreshRuntimeTokens: true });
-    const merged = applyScopedRequestData(
-      requestDataRef.current,
-      fresh,
-      ["all"],
-      touchedFieldsRef.current,
-      true
+    const envParameters = await loadEnvParameters();
+    setEnvValues(envParameters);
+    const { resolved, sendRequest } = await prepareApiTesterSend(
+      apiRef.current,
+      currentInputsRef.current,
+      envParameters,
+      requestGitSnapshot,
     );
-    setRequestData(merged);
-    const reqFormat = resolveRequestFormat(
-      requestFormat(merged.format ?? apiRef.current.format),
-      merged.headers,
-      merged.method ?? apiRef.current.method,
-    );
-    return {
-      ...requestForSend(merged, reqFormat),
-    };
-  }, [resolveFreshRequestData]);
+    setRequestData(resolved);
+    onRuntimePreviewSeededRef.current?.();
+    return sendRequest;
+  }, [loadEnvParameters]);
 
   // Rebuild request UI when YAML/`api` changes. Example dropdown applies inputs
   // itself; input edits only sync the selected index (no reload).
@@ -334,7 +361,12 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
 
     const clonedInputs = cloneInputs(baseInputs);
     setCurrentInputs(clonedInputs);
-    prepareRequestData(clonedInputs, { forceReset, scopes });
+    // Full resets (open / major YAML change) mint a fresh coherent r:/c: snapshot.
+    prepareRequestData(clonedInputs, {
+      forceReset,
+      scopes,
+      refreshRuntimeTokens: forceReset,
+    });
   }, [api, examples, selectedExampleIdx, prepareRequestData]);
 
   useEffect(() => {
@@ -430,7 +462,13 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     }
 
     addOutputEntry(suggestedKey, expr);
-  }, [addOutputEntry, requestData?.format, requestData?.headers, responseData]);
+  }, [
+    addOutputEntry,
+    requestData?.format,
+    requestData?.headers,
+    requestData?.method,
+    responseData,
+  ]);
 
   const handleAddOutputExpression = useCallback((expr: string, suggestedKey: string) => {
     addOutputEntry(suggestedKey, expr);
@@ -439,26 +477,27 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
   // HTTP/GraphQL/gRPC: run the live-synced YAML (same as glyph). History comes
   // from core network-* reporter events on the extension. WS still uses the
   // live socket with a resolved request.
-  const runViaCore = useCallback((opts: { forSend: boolean }) => {
+  // API Tester Send passes resolvedRequest (reminted snapshot) so core does
+  // not mint a second set of r:/c: values.
+  const runViaCore = useCallback(async (opts: {
+    forSend: boolean;
+    resolvedRequest?: Request;
+  }) => {
     if (opts.forSend) {
       setIsSending(true);
       sendPendingRef.current = true;
     }
-    window.vscode?.postMessage({
-      command: "runCurrentDocument",
-      report: { type: "lifecycle" },
-      // History panel only for API Tester Send — not glyph / Run in Core.
-      history: opts.forSend === true,
-      rawFile: buildYamlRawFile(apiRef.current),
-      inputs: {
-        exampleIndex: selectedExampleIdx,
-        manualInputs: currentInputsRef.current,
-      },
-    });
+    window.vscode?.postMessage(buildApiTesterRunMessage({
+      api: apiRef.current,
+      forSend: opts.forSend,
+      exampleIndex: selectedExampleIdx,
+      manualInputs: currentInputsRef.current,
+      resolvedRequest: opts.resolvedRequest,
+    }));
   }, [selectedExampleIdx]);
 
   const handleRunInCore = useCallback(() => {
-    runViaCore({ forSend: false });
+    void runViaCore({ forSend: false });
     window.vscode?.postMessage({ command: "showLogOutputChannel" });
   }, [runViaCore]);
 
@@ -470,15 +509,17 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     const protocol = protocolResolver.getEffectiveProtocol(
       apiRef.current?.protocol as any, apiRef.current?.url);
 
+    // Remint + cache + wire snapshot (telescope on or off).
+    const req = await buildRequestForSend();
+
     if (protocol === "ws") {
-      const req = await buildRequestForSend();
       const res = await network.send(req);
       setResponseData(res);
       setResponseRevision(prev => prev + 1);
       return;
     }
 
-    runViaCore({ forSend: true });
+    await runViaCore({ forSend: true, resolvedRequest: req });
   }, [network, buildRequestForSend, runViaCore]);
 
   const handleCancel = useCallback(async () => {
@@ -641,7 +682,6 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath, initialExampleIn
     handleConnect,
     network,
     examples,
-    resetTouchedFields
   };
 }
 
@@ -672,4 +712,3 @@ async function applyResolvedSetenvVariables(
     source: 'runtime' as const,
   })));
 }
-

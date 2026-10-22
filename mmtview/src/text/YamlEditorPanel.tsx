@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
-import { apiToYaml } from "mmt-core/apiParsePack";
-import { formatMmtYaml } from "mmt-core/mmtFormat";
-import { curlToAPI, isCurlCommand } from "mmt-core/curlConvertor";
+import parseYaml, { parseYamlDoc } from "mmt-core/parse/markupConvertor";
+import { apiToYaml } from "mmt-core/parse/apiParsePack";
+import { formatMmtYaml } from "mmt-core/parse/mmtFormat";
+import { curlToAPI, isCurlCommand } from "mmt-core/convert/curlConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { validateYamlContent, validationMarkersToProblems } from "./Validate";
-import { safeList } from "mmt-core/safer";
-import { opsList } from "mmt-core/TestData";
+import { safeList } from "mmt-core/util/safer";
+import { opsList } from "mmt-core/data/TestData";
 import { openRelativeFile, openUntitledMmt } from "../vsAPI";
 import { loadEnvVariables } from "../workspaceStorage";
 import { useImportValidation } from "./useImportValidation";
@@ -23,7 +23,7 @@ import {
   findHttpStepAtPosition,
   httpStepApiPreviewYamlAtPosition,
   suggestHttpStepApiFilename,
-} from "mmt-core/httpStepApiPreview";
+} from "mmt-core/api-edit/httpStepApiPreview";
 import {
   computeMissingImportMarkers,
   computeMissingDocFileMarkers, // Updated from computeMissingLogoFileMarkers

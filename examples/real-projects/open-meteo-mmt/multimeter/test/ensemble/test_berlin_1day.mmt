@@ -1,0 +1,18 @@
+type: test
+title: Ensemble — Berlin 1 day
+import:
+  cities: +/cities.json
+  api: +/api/ensemble.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
+      forecast_days: "1"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      temp_0:
+        - >= -80
+        - <= 60
+    report: all

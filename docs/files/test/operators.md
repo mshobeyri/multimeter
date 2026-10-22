@@ -45,6 +45,52 @@ Legacy `=~` / `!~` still run as as-string compares (`=S` / `!S`) so old files ke
 
 Expected sides follow the same YAML typing as `if` / `check`: unquoted `200` / `true` / `null` are number / bool / null; quote to force a string (`== "200"`).
 
+Write **all** operator expects **unquoted** in authored `.mmt` files — `!= null`, `>= 0`, `>=# 24`, `=# 1`, `=* …`, `=1d~ <<c:datetime>>`, `>60% …`, and the rest. Never write `'>=# 24'` or `"!= null"`. Multimeter quotes YAML-unsafe operators for the parser automatically. Quote only the **plain expected value** when you must force a string (e.g. `== "200"`, or a clock that would otherwise parse oddly):
+
+```yaml
+expect:
+  token: != null
+  hourly_count: >=# 24
+  created_at: =* ^[0-9]{4}-[0-9]{2}-[0-9]{2}T
+  observed_at: =1d~ <<c:datetime>>
+  clock: "=14:30:00"   # quoted value only — not the operator
+```
+
+### Prefer accurate expects (not only `!= null`)
+
+`!= null` only proves a field exists. When you know what “good” looks like, assert that instead — shape, range, prefix, closeness, or exact value. Put **all** validations that depend on a **single** call output on that call’s `expect` / `require` (use list form for several ops on one field). Do **not** follow up with `- check:` / `- assert:` for the same output — those steps are for comparing **two different** values (e.g. one output vs another step’s output). Use `report: all` on the call so every expect row stays visible in the Report list.
+
+| Kind of output | Prefer | Examples |
+|----------------|--------|----------|
+| Exact known value | `==` / bare value | `status_code: 200`, `country: Germany` |
+| Live / near-now timestamps | `=Ns~` + `<<c:datetime>>` / `<<c:date>>` | `observed_at: =1d~ <<c:datetime>>`, `daily_time_0: =2d~ <<c:date>>` — prefer this over a datetime regex. Do **not** use `c:time` (clock-only `HH:MM:SS`) against ISO datetimes. |
+| Fixed past/future windows | `==` / `=^` vs `e:` dates | `daily_time_0: e:archive_start`, `hourly_time_0: =^ e:history_start` |
+| String shape / format | `=*`, `=^`, `=$`, `=C` | id `=^ usr_`, email `=* @` (use `=Ns~` for datetimes when near now) |
+| Numbers in a band | `>=` / `<=` / `<` / `>` (list form) | temperature `>= -80` and `<= 60`, `aqi: >= 0`, `score: >= 0.8` |
+| Fuzzy text | `>N%` | `message: >80% Hello world` |
+| Length / count | `=#`, `>=#`, … | `items: >=# 1`, `hourly.time: =# 24` |
+| Presence only (last resort) | `!= null` | Unknown opaque tokens, optional upstream fields |
+
+```yaml
+- call: forecast
+  id: weather
+  expect:
+    # near now — better than a datetime regex
+    observed_at: =1d~ <<c:datetime>>
+    weather_code:
+      - >= 0
+      - <= 99
+    wind_speed: >= 0
+    temperature:
+      - >= -80
+      - <= 60
+  report: all
+# check/assert only when comparing two different outputs:
+- check: ${weather.daily_max} >= ${weather.daily_min}
+```
+
+Pick the tightest expect that stays stable for the API (fixed env dates, public fair-use ranges, documented enums). Loosen only where the upstream value is legitimately free to move.
+
 ## Output-path behavior
 
 Runtime references like `${stepId.body.body.username}` and `${stepId.status}` use the same output fallback behavior as `expect`. Checks can read default output roots (`body`, `status`, `headers`, `cookies`, `duration`, `details`) from call results consistently. See [Outputs](../api/outputs.md).

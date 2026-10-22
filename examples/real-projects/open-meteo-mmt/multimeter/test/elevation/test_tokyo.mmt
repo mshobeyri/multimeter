@@ -1,0 +1,16 @@
+type: test
+title: Elevation — Tokyo
+import:
+  cities: +/cities.json
+  api: +/api/elevation.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.tokyo.latitude}
+      longitude: ${cities.tokyo.longitude}
+    expect:
+      elevation_0:
+        - >= -500
+        - <= 9000
+    report: all

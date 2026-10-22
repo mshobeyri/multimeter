@@ -1,12 +1,12 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { parseYaml } from 'mmt-core/markupConvertor';
-import { formatDuration } from 'mmt-core/CommonData';
-import type { SuiteEnvironment } from 'mmt-core/SuiteData';
-import { formatReportRelativeTime } from 'mmt-core/reportFormat';
-import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
-import { parseSuiteYamlFilter } from 'mmt-core/suiteTagFilter';
-import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
+import { parseYaml } from 'mmt-core/parse/markupConvertor';
+import { formatDuration } from 'mmt-core/data/CommonData';
+import type { SuiteEnvironment } from 'mmt-core/data/SuiteData';
+import { formatReportRelativeTime } from 'mmt-core/report/reportFormat';
+import { splitSuiteGroups } from 'mmt-core/parse/suiteParsePack';
+import { parseSuiteYamlFilter } from 'mmt-core/suite/suiteTagFilter';
+import { createSuiteNodeId } from 'mmt-core/suite/suiteNodeId';
 import { StepStatus } from '../../shared/types';
 import { SuiteEntry, SuiteGroup } from '../types';
 import type { SuiteTestTreeHandle } from './SuiteTestTree';
@@ -799,6 +799,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [mmtFilePath]);
 
     const [hierarchyByEntryId, setHierarchyByEntryId] = useState<Record<string, SuiteTreeNode>>({});
+    /** Top-level entries waiting for first hierarchy section (maxDepth 1). */
+    const [loadingHierarchyIds, setLoadingHierarchyIds] = useState<Set<string>>(() => new Set());
+    /** Top-level entries whose nested suite stubs are still deepening. */
+    const [deepeningHierarchyIds, setDeepeningHierarchyIds] = useState<Set<string>>(() => new Set());
     const duplicateServerPathKeys = useMemo(() => {
         const itemServerPaths: string[] = [];
         for (const group of groups) {
@@ -862,14 +866,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         onFlowchartStateChange?.({ groups, hierarchyByEntryId, missingFiles: effectiveMissingFiles, noItems });
     }, [flowchartActive, groups, hierarchyByEntryId, effectiveMissingFiles, noItems, onFlowchartStateChange]);
 
-    const fetchHierarchyByEntryId = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
+    const fetchHierarchyByEntryId = useCallback(async (
+        maxDepth?: number,
+    ): Promise<Record<string, SuiteTreeNode>> => {
         const result: Record<string, SuiteTreeNode> = {};
         const tasks: Array<Promise<void>> = [];
         for (const group of groups) {
             for (const entry of group.entries) {
                 tasks.push((async () => {
                     try {
-                        const res = await getSuiteHierarchy(entry.path, entry.id);
+                        const res = await getSuiteHierarchy(entry.path, entry.id, maxDepth);
                         const tree = res?.tree;
                         if (tree && typeof tree === 'object') {
                             // Key by entry id (position), not path — duplicate
@@ -905,6 +911,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (allEntriesHaveHierarchy(previous)) {
             return previous;
         }
+        // Full depth for run/flowchart readiness (run path also builds its own tree).
         const next = await fetchHierarchyByEntryId();
         if (fingerprintHierarchyByEntryId(next) !== fingerprintHierarchyByEntryId(previous)) {
             hierarchyByEntryIdRef.current = next;
@@ -913,15 +920,60 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         return next;
     }, [allEntriesHaveHierarchy, fetchHierarchyByEntryId]);
 
+    /** UI spinner sets (mirrored in state for re-renders). */
     const loadingHierarchyRef = useRef<Set<string>>(new Set());
+    const deepeningHierarchyRef = useRef<Set<string>>(new Set());
+    /** In-flight first-section fetches (duplicate-call guard; distinct from UI set). */
+    const hierarchyFetchInFlightRef = useRef<Set<string>>(new Set());
+    /** Entry ids that already have first section (maxDepth 1) or resolved as a leaf. */
+    const firstSectionReadyRef = useRef<Set<string>>(new Set());
     const prefetchGenerationRef = useRef(0);
 
-    const mergeHierarchyByEntryId = useCallback((incoming: Record<string, SuiteTreeNode>) => {
+    const syncLoadingHierarchyIds = useCallback((next: Set<string>) => {
+        loadingHierarchyRef.current = next;
+        setLoadingHierarchyIds(next);
+    }, []);
+
+    const syncDeepeningHierarchyIds = useCallback((next: Set<string>) => {
+        deepeningHierarchyRef.current = next;
+        setDeepeningHierarchyIds(next);
+    }, []);
+
+    const setEntryHierarchyLoading = useCallback((entryId: string, loading: boolean) => {
+        const prev = loadingHierarchyRef.current;
+        if (loading === prev.has(entryId)) {
+            return;
+        }
+        const next = new Set(prev);
+        if (loading) {
+            next.add(entryId);
+        } else {
+            next.delete(entryId);
+        }
+        syncLoadingHierarchyIds(next);
+    }, [syncLoadingHierarchyIds]);
+
+    const setEntryHierarchyDeepening = useCallback((entryId: string, deepening: boolean) => {
+        const prev = deepeningHierarchyRef.current;
+        if (deepening === prev.has(entryId)) {
+            return;
+        }
+        const next = new Set(prev);
+        if (deepening) {
+            next.add(entryId);
+        } else {
+            next.delete(entryId);
+        }
+        syncDeepeningHierarchyIds(next);
+    }, [syncDeepeningHierarchyIds]);
+
+    /** Replace entries with deeper trees after first-section / full deepen. */
+    const replaceHierarchyByEntryId = useCallback((incoming: Record<string, SuiteTreeNode>) => {
         setHierarchyByEntryId((prev) => {
             let changed = false;
             const next = { ...prev };
             for (const [entryId, tree] of Object.entries(incoming)) {
-                if (!tree || typeof tree !== 'object' || next[entryId]) {
+                if (!tree || typeof tree !== 'object') {
                     continue;
                 }
                 next[entryId] = tree;
@@ -935,64 +987,142 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         });
     }, []);
 
-    const loadHierarchyForEntry = useCallback(async (entryId: string) => {
-        if (hierarchyByEntryIdRef.current[entryId] || loadingHierarchyRef.current.has(entryId)) {
+    /**
+     * Full recursive deepen after the first section is visible.
+     * Nested suite stubs spin while the owner entry is in this set.
+     */
+    const deepenHierarchyForEntry = useCallback(async (entryId: string, generation: number) => {
+        if (deepeningHierarchyRef.current.has(entryId)) {
             return;
         }
         const entry = findSuiteEntryById(groups, entryId);
         if (!entry) {
             return;
         }
-        loadingHierarchyRef.current.add(entryId);
+        setEntryHierarchyDeepening(entryId, true);
         try {
             const res = await getSuiteHierarchy(entry.path, entry.id);
+            if (generation !== prefetchGenerationRef.current) {
+                return;
+            }
             const tree = res?.tree;
             if (!tree || typeof tree !== 'object') {
                 return;
             }
-            setHierarchyByEntryId((prev) => {
-                if (prev[entryId]) {
-                    return prev;
+            replaceHierarchyByEntryId({ [entryId]: tree });
+        } catch {
+            // Ignore; first-section tree remains.
+        } finally {
+            if (generation === prefetchGenerationRef.current) {
+                setEntryHierarchyDeepening(entryId, false);
+            }
+        }
+    }, [groups, replaceHierarchyByEntryId, setEntryHierarchyDeepening]);
+
+    /**
+     * Load one top-level entry: title → first section (maxDepth 1) → full deepen.
+     * Status circle spins until the first section arrives.
+     */
+    const loadHierarchyForEntry = useCallback(async (entryId: string) => {
+        if (firstSectionReadyRef.current.has(entryId) || hierarchyFetchInFlightRef.current.has(entryId)) {
+            return;
+        }
+        const entry = findSuiteEntryById(groups, entryId);
+        if (!entry) {
+            return;
+        }
+        const generation = prefetchGenerationRef.current;
+        hierarchyFetchInFlightRef.current.add(entryId);
+        setEntryHierarchyLoading(entryId, true);
+        let shouldDeepen = false;
+        try {
+            // Titles only first so the row label can resolve quickly.
+            const titleRes = await getSuiteHierarchy(entry.path, entry.id, 0);
+            if (generation !== prefetchGenerationRef.current) {
+                return;
+            }
+            const titleTree = titleRes?.tree;
+            if (titleTree && typeof titleTree === 'object') {
+                setHierarchyByEntryId((prev) => {
+                    if (prev[entryId]) {
+                        return prev;
+                    }
+                    const next = { ...prev, [entryId]: titleTree };
+                    hierarchyByEntryIdRef.current = next;
+                    return next;
+                });
+                // Non-suite leaves: first section is just the title/kind.
+                if (titleTree.kind !== 'suite') {
+                    firstSectionReadyRef.current.add(entryId);
+                    return;
                 }
-                const next = { ...prev, [entryId]: tree };
-                hierarchyByEntryIdRef.current = next;
-                return next;
-            });
+            }
+
+            // First section: direct children; nested suites stay as title stubs.
+            const sectionRes = await getSuiteHierarchy(entry.path, entry.id, 1);
+            if (generation !== prefetchGenerationRef.current) {
+                return;
+            }
+            const sectionTree = sectionRes?.tree;
+            if (sectionTree && typeof sectionTree === 'object') {
+                replaceHierarchyByEntryId({ [entryId]: sectionTree });
+            }
+            firstSectionReadyRef.current.add(entryId);
+            shouldDeepen = true;
         } catch {
             // Ignore; tree keeps the placeholder folder.
         } finally {
-            loadingHierarchyRef.current.delete(entryId);
+            hierarchyFetchInFlightRef.current.delete(entryId);
+            if (generation === prefetchGenerationRef.current) {
+                setEntryHierarchyLoading(entryId, false);
+            }
         }
-    }, [groups]);
+        // Deepen in parallel after first section is visible.
+        if (shouldDeepen && generation === prefetchGenerationRef.current) {
+            void deepenHierarchyForEntry(entryId, generation);
+        }
+    }, [deepenHierarchyForEntry, groups, replaceHierarchyByEntryId, setEntryHierarchyLoading]);
 
     useEffect(() => {
         setHierarchyByEntryId({});
         hierarchyByEntryIdRef.current = {};
-        loadingHierarchyRef.current.clear();
+        hierarchyFetchInFlightRef.current.clear();
+        firstSectionReadyRef.current.clear();
+        const pending = new Set<string>();
+        for (const group of groups) {
+            for (const entry of group.entries) {
+                if (entry?.id) {
+                    pending.add(entry.id);
+                }
+            }
+        }
+        // Show spinners immediately on open / structure change (before prefetch starts).
+        syncLoadingHierarchyIds(pending);
+        syncDeepeningHierarchyIds(new Set());
         prefetchGenerationRef.current += 1;
-    }, [suiteStructureKey]);
+    }, [groups, suiteStructureKey, syncDeepeningHierarchyIds, syncLoadingHierarchyIds]);
 
-    /** After first paint, prefetch all entry hierarchies in parallel (non-blocking). */
+    /**
+     * After first paint: per-entry title → first section → full deepen.
+     * Spinners clear as each entry's first section arrives.
+     */
     useEffect(() => {
         if (noItems) {
             return;
         }
-        const generation = prefetchGenerationRef.current;
-        let cancelled = false;
         const timer = window.setTimeout(() => {
-            void (async () => {
-                const result = await fetchHierarchyByEntryId();
-                if (cancelled || generation !== prefetchGenerationRef.current) {
-                    return;
+            for (const group of groups) {
+                for (const entry of group.entries) {
+                    if (entry?.id) {
+                        void loadHierarchyForEntry(entry.id);
+                    }
                 }
-                mergeHierarchyByEntryId(result);
-            })();
+            }
         }, 0);
         return () => {
-            cancelled = true;
             window.clearTimeout(timer);
         };
-    }, [fetchHierarchyByEntryId, mergeHierarchyByEntryId, noItems, suiteStructureKey]);
+    }, [groups, loadHierarchyForEntry, noItems, suiteStructureKey]);
 
     useEffect(() => {
         setSuiteRunId(null);
@@ -1422,10 +1552,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             ? !loadRunSummary && suiteRunState === 'default'
             : !hasSuiteReportData && suiteRunState === 'default');
 
+    const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
+    const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
+
     const runMenuItems = useMemo(
         () => buildReportRunMenuEntries({
             onPause: handlePause,
-            onResume: handleResume,
+            onStop: onStopSuite,
+            stopLabel,
             paused: isPaused,
             canPause: suiteRunState === 'pending' || suiteRunState === 'running',
             onRunInCore: onRunSuiteInCore,
@@ -1439,7 +1573,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }),
         [
             handlePause,
-            handleResume,
+            onStopSuite,
+            stopLabel,
             isPaused,
             suiteRunState,
             onRunSuiteInCore,
@@ -1450,9 +1585,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             suiteExportDisabled,
         ],
     );
-
-    const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
-    const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
 
     const overviewStats = useMemo((): OverviewStats | null => {
         if (mode === 'loadtest') {
@@ -1491,6 +1623,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
     }, [runOverview, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary, groups, hierarchyByEntryId]);
 
+    const statusIconForRun = useCallback(
+        (status: StepStatus | 'running') => {
+            if (isPaused && status === 'running') {
+                return statusIconFor('paused');
+            }
+            return statusIconFor(status);
+        },
+        [isPaused],
+    );
+
     const tree = (
         <SuiteTestTreePanel
             ref={suiteTreeRef}
@@ -1498,8 +1640,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             groups={groups}
             hierarchyByEntryId={hierarchyByEntryId}
             missingFiles={effectiveMissingFiles}
-            statusIconFor={statusIconFor}
+            statusIconFor={statusIconForRun}
             duplicateServerIds={duplicateServerIds}
+            loadingHierarchyIds={loadingHierarchyIds}
+            deepeningHierarchyIds={deepeningHierarchyIds}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
             onRunTargets={onRunTargets}
@@ -1508,6 +1652,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             suiteStructureKey={suiteStructureKey}
             onExpandedItemsChange={handleExpandedItemsChange}
             onRequestReports={loadReportsForNode}
+            paused={isPaused}
         />
     );
 
@@ -1669,9 +1814,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     onClick={onRunSuite}
                     onCancel={onStopSuite}
                     loading={suiteRunState === 'pending' || suiteRunState === 'running'}
+                    paused={isPaused}
+                    onResume={handleResume}
                     disabled={!canRun}
                     actionTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
                     cancelTitle={stopLabel}
+                    resumeTitle="Resume"
                     contextMenuItems={runMenuItems}
                 />
                 <YamlErrorWarning />

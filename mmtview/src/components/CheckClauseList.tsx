@@ -1,16 +1,16 @@
 import React from "react";
-import type { ExpectUiRow } from "mmt-core/expectUi";
+import type { ExpectUiRow } from "mmt-core/api-edit/expectUi";
 import {
   expectDisplayToStored,
   expectStoredToDisplay,
   expectTextUnchanged,
-} from "mmt-core/expectUi";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+} from "mmt-core/api-edit/expectUi";
+import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
 import OperatorSelect from "./OperatorSelect";
 import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
 import { fieldTrailingLayout } from "./FieldWithRemove";
-import { shortValueTypeLabel } from "mmt-core/yamlValueConvert";
+import { shortValueTypeLabel } from "mmt-core/parse/yamlValueConvert";
 
 export type CheckClauseKind = "expect" | "require";
 

@@ -1,7 +1,7 @@
-import {AuthConfig} from 'mmt-core/APIData';
-import {appendQuery, buildJudgeAuth} from 'mmt-core/judgeAuth';
-import {formatHttpTraceRequest, formatHttpTraceResponse} from 'mmt-core/httpTraceLog';
-import {resolveEnvTokenValues} from 'mmt-core/variableReplacer';
+import {AuthConfig} from 'mmt-core/data/APIData';
+import {appendQuery, buildJudgeAuth} from 'mmt-core/judge/judgeAuth';
+import {formatHttpTraceRequest, formatHttpTraceResponse} from 'mmt-core/network/httpTraceLog';
+import {resolveEnvTokenValues} from 'mmt-core/tokens/variableReplacer';
 import {NetworkNodeApi} from '../components/network/NetworkNodeApi';
 import {logToOutput} from '../vsAPI';
 import {

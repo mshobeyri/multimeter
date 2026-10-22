@@ -4,6 +4,8 @@ This folder teaches an AI how to **answer questions** about Multimeter and decid
 
 For actual YAML generation or modification, always go through `AI/generate.md`.
 
+When the user wants to **start a Multimeter project** (several APIs + tests) and does not ask for a different layout, follow **`AI/project-layout.md`** and the mother guide `docs/tasks/start-a-project.md`.
+
 The AI should:
 - Understand what each `type` (`api`, `test`, `env`, `doc`, `suite`) is for.
 - Decide whether the user needs **an explanation** or **new/edited YAML**.
@@ -36,7 +38,7 @@ When you are the AI, follow these rules:
 	- Inputs: `i:user_id`, `<<i:user_id>>`.
 	- Random values: `r:uuid`, `r:first_name`, `r:last_name`, `r:epoch_ms`.
 	- Current/time values: `c:date`, `c:epoch`, `c:epoch_ms`.
-	- Git currents: `c:git_commit`, `c:git_commit_hash`, `c:git_branch`, `c:git_tag`, `c:git_describe`, `c:git_dirty` (aliases: `c:commit`, `c:branch`, `c:tag`).
+	- Git currents: `c:branch`, `c:commit` (full SHA), `c:commit_short`, `c:tag`, `c:git_describe`, `c:git_dirty`.
 	- Use bare tokens as standalone YAML values; use `<< >>` only when embedding inside larger strings.
 
 3. **Answering common question types**

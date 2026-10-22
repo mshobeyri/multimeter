@@ -96,7 +96,7 @@ Guidelines:
 	- `x-request-id: req-<<r:uuid>>`
 
 Common random tokens: `r:uuid`, `r:int`, `r:bool`, `r:email`, `r:phone`, `r:first_name`, `r:last_name`, `r:full_name`, `r:epoch`, `r:epoch_ms`.
-Common current tokens: `c:date`, `c:time`, `c:epoch`, `c:epoch_ms`, `c:git_commit`, `c:git_branch`.
+Common current tokens: `c:date`, `c:time`, `c:epoch`, `c:epoch_ms`, `c:commit`, `c:branch`.
 
 Do **not** invent new token syntaxes.
 

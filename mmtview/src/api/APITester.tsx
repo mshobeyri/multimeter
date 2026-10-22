@@ -2,10 +2,10 @@ import { TokenModeContext } from "../components/TokenModeContext";
 import React, { useState, useContext, useEffect, useMemo, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { SplitPane } from "@rexxars/react-split-pane";
-import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
-import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/APIData";
-import { JSONRecord, JSONValue, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/CommonData";
-import { resolveRequestFormat } from "mmt-core/formatResolve";
+import { extractInputConstraintsFromDescription } from "mmt-core/api-edit/paramConstraints";
+import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/data/APIData";
+import { JSONRecord, JSONValue, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/data/CommonData";
+import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
 import BodyView, { type BodyViewCursor } from "../components/BodyView";
@@ -14,16 +14,15 @@ import { BodyViewValidationIndicator } from "../components/BodyViewToolbarContro
 import FilePickerInput from "../components/FilePickerInput";
 import MultipartPartsEditor from "../components/MultipartPartsEditor";
 import {
-  clearTokenFieldPreviewRandomCache,
   displayRequestBody,
   leafResolvesToOmit,
   packBodyAsYamlEncoded,
   tokensTextToYamlBody,
   valueForYamlSave,
   yamlBodyToTokensText,
-} from "mmt-core/apiBodyEdit";
-import { normalizeNewlines } from "mmt-core/textLines";
-import { applyFormatSideEdit } from "mmt-core/apiFormatEdit";
+} from "mmt-core/api-edit/apiBodyEdit";
+import { normalizeNewlines } from "mmt-core/util/textLines";
+import { applyFormatSideEdit } from "mmt-core/api-edit/apiFormatEdit";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import { HideWhenYamlError } from "./YamlErrorWarning";
@@ -48,18 +47,18 @@ import {
   type ResponseViewMode,
 } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
-import { resolveApiHttpMethod } from "mmt-core/apiMethod";
+import { resolveApiHttpMethod } from "mmt-core/network/apiMethod";
 import MdViewer from "../components/MdViewer";
 import DescriptionEditor from "../components/DescriptionEditor";
 import SearchableTagInput from "../components/SearchableTagInput";
 import SectionEditLabel, { SectionEditDone } from "../components/SectionEditLabel";
 import FadePane from "../components/FadePane";
 import KVEditor from "../components/KVEditor";
-import { safeList } from "mmt-core/safer";
+import { safeList } from "mmt-core/util/safer";
 import ApiTestsEditor from "./ApiTestsEditor";
 import ApiSettingsEditor from "./ApiSettingsEditor";
 import ApiAuthEditor from "./ApiAuthEditor";
-import { formatBody } from "mmt-core/markupConvertor";
+import { formatBody } from "mmt-core/parse/markupConvertor";
 import OverflowTabBar, { type OverflowTabItem } from "../components/OverflowTabBar";
 import {
   accentChromeCssVars,
@@ -267,6 +266,18 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
   const { mmtFilePath, yamlErrors } = useContext(FileContext);
+  const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
+    const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
+    if (saved === "resolved" || saved === "tokens") {
+      return saved;
+    }
+    return "tokens";
+  });
+  /** Bumps TokenFieldInput after r:/c: preview cache seed (open / telescope / Send). */
+  const [tokenPreviewEpoch, setTokenPreviewEpoch] = useState(0);
+  const onRuntimePreviewSeeded = useCallback(() => {
+    setTokenPreviewEpoch((n) => n + 1);
+  }, []);
   const {
     requestData,
     responseData,
@@ -291,7 +302,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     network,
     examples,
     isSending,
-  } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath, initialExampleIndex });
+  } = useAPITesterLogic({
+    api,
+    onUpdateApi,
+    filePath: mmtFilePath,
+    initialExampleIndex,
+    onRuntimePreviewSeeded,
+  });
 
   const bodyValueContext = useMemo(
     () => ({ inputs: currentInputs, env: envValues }),
@@ -299,19 +316,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   );
   const [requestBodyToolbar, setRequestBodyToolbar] = useState<BodyViewToolbarState | null>(null);
   const [responseBodyToolbar, setResponseBodyToolbar] = useState<BodyViewToolbarState | null>(null);
-  const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
-    const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
-    if (saved === "resolved" || saved === "tokens") {
-      return saved;
-    }
-    return "tokens";
-  });
-  /** Bumps TokenFieldInput r: preview after cache clear (telescope on / Send). */
-  const [tokenPreviewEpoch, setTokenPreviewEpoch] = useState(0);
-  const refreshResolvedTokenPreview = useCallback(() => {
-    clearTokenFieldPreviewRandomCache();
-    setTokenPreviewEpoch((n) => n + 1);
-  }, []);
   const tokenModeState = useMemo(
     () => ({ mode: bodyTokenMode, previewEpoch: tokenPreviewEpoch }),
     [bodyTokenMode, tokenPreviewEpoch],
@@ -338,8 +342,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     bodyPackReadyRef.current = false;
     setBodyYamlEncodedManual(isStructuredYamlBody(api.body));
     setBodyYamlEncodeError(false);
-    // Fresh r: field-preview samples for this document (telescope may already be on).
-    refreshResolvedTokenPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on file switch
   }, [mmtFilePath]);
 
@@ -465,6 +467,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   // Resolved preview shows substituted i:/e:/r:/c: values. Token mode uses a
   // separate BodyView with {{…}} markers (own Ctrl+Z stack).
   // Omit leaves are already dropped by resolveApiRequest → requestData.body.
+  // After Send, requestData holds the reminted snapshot that was sent.
   const requestBodyDisplay = useMemo(() => {
     return displayRequestBody(
       requestData?.body ?? api.body ?? "",
@@ -952,8 +955,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     // Flush draft so resolved view / Send see the latest tokens.
     writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
-    // New r: samples for fields + body requestData (frozen until Send / toggle).
-    refreshResolvedTokenPreview();
+    // Fresh coherent r:/c: for body + field preview (frozen until next refresh/Send).
     prepareRequestData(undefined, {
       respectTouched: false,
       scopes: ["all"],
@@ -966,7 +968,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     writeBodyStorage,
     bodyEditDraft,
     bodyYamlEncodedManual,
-    refreshResolvedTokenPreview,
     prepareRequestData,
   ]);
 
@@ -977,18 +978,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
       });
     }
+    // Send remints r:/c: into the snapshot, then sends those values.
     await handleSend();
-    // Match Send: mint fresh r: field-preview samples for the next request.
-    if (bodyTokenMode === "resolved") {
-      refreshResolvedTokenPreview();
-    }
   }, [
     bodyTokenMode,
     bodyEditDraft,
     bodyYamlEncodedManual,
     writeBodyStorage,
     handleSend,
-    refreshResolvedTokenPreview,
   ]);
 
   const sendShortcutEnabled =
@@ -1464,6 +1461,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          tokenCacheNamespace="query"
           hideOmittedWhenResolved
         />
         </div>
@@ -1481,6 +1479,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          tokenCacheNamespace="headers"
           hideOmittedWhenResolved
         />
         </div>
@@ -1498,6 +1497,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           typedValues
           liveAngleTokens
           valueContext={bodyValueContext}
+          tokenCacheNamespace="cookies"
           hideOmittedWhenResolved
         />
         </div>
@@ -1549,6 +1549,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     onChange={handleBodyEditChange}
                     initialCursor={bodyEditCursor}
                     valueContext={bodyValueContext}
+                    // Pair YAML tokens with last Send/open snapshot so hover
+                    // tips match the wire even while telescope is off.
+                    tokenSource={api.body}
+                    resolvedBody={requestData?.body}
                     onToolbarChange={setRequestBodyToolbar}
                   />
                 ) : (

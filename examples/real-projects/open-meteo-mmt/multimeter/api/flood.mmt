@@ -1,0 +1,18 @@
+type: api
+title: Flood / river discharge
+description: Daily river discharge forecast
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+  forecast_days: "3"
+outputs:
+  daily_time_0: body[daily][time][0]
+  discharge_0: body[daily][river_discharge][0]
+url: <<e:flood_base_url>>/v1/flood
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  daily: river_discharge
+  forecast_days: i:forecast_days
+method: get
+format: json

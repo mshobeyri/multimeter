@@ -10,8 +10,8 @@ import {
   withOptionalPeer,
   peerFieldToValue,
 } from './convertor';
-import {OMIT_SENTINEL} from 'mmt-core/omitKeyword';
-import {LITERAL_TOKEN_PREFIX} from 'mmt-core/literalToken';
+import {OMIT_SENTINEL} from 'mmt-core/tokens/omitKeyword';
+import {LITERAL_TOKEN_PREFIX} from 'mmt-core/tokens/literalToken';
 
 describe('convertor null and omit handling', () => {
   it('displays null and omit keywords instead of sentinel', () => {

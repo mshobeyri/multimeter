@@ -36,6 +36,6 @@ const out = `// Auto-maintained companion to createApiLogHelpers in runApi.ts.
 export const CREATE_API_LOG_HELPERS_SOURCE = \`${escaped}\`;
 `;
 
-const outPath = path.join(repoRoot, 'core/src/apiLogHelpersFactorySource.ts');
+const outPath = path.join(repoRoot, 'core/src/api-edit/apiLogHelpersFactorySource.ts');
 fs.writeFileSync(outPath, out);
 console.log(`Wrote ${outPath} (${src.length} chars of factory source)`);

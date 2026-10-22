@@ -1,15 +1,17 @@
 import {runner, suiteBundle, runConfig, runFileCache} from 'mmt-core';
-import {createRunPauseGate, type FileLoader, type RunPauseGate} from 'mmt-core/runConfig';
-import type {SuiteEnvironment} from 'mmt-core/SuiteData';
-import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
-import {LogLevel} from 'mmt-core/CommonData';
-import {findProjectRootSync} from 'mmt-core/fileHelper';
-import {generateJunitXml} from 'mmt-core/junitXml';
-import {generateMmtReport} from 'mmt-core/mmtReport';
-import {generateReportHtml} from 'mmt-core/reportHtml';
-import {generateReportMarkdown} from 'mmt-core/reportMarkdown';
-import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
+import {createRunPauseGate, type FileLoader, type RunPauseGate} from 'mmt-core/runner/runConfig';
+import type {SuiteEnvironment} from 'mmt-core/data/SuiteData';
+import {buildApiTesterResponse} from 'mmt-core/runner/apiRunResult';
+import {LogLevel} from 'mmt-core/data/CommonData';
+import {findProjectRootSync} from 'mmt-core/util/fileHelper';
+import {generateJunitXml} from 'mmt-core/report/junitXml';
+import {generateMmtReport} from 'mmt-core/report/mmtReport';
+import {generateReportHtml} from 'mmt-core/report/reportHtml';
+import {generateReportMarkdown} from 'mmt-core/report/reportMarkdown';
+import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/runner/jsRunner';
+import {resolveHostSuiteParallel} from 'mmt-core/suite/suiteParallel';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -17,7 +19,7 @@ import {readRelativeFileContent, readRelativeFileBinary} from './file';
 import {getCachedSuiteHierarchy, stampFile} from './suiteHierarchyCache';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
-import {onRunStarted, onRunFinished} from '../runStatusBar';
+import {onRunStarted, onRunFinished, setRunPaused} from '../runStatusBar';
 import {keepMmtEditor} from '../keepEditor';
 import {getOnboarding} from '../onboarding';
 import {
@@ -26,11 +28,17 @@ import {
   type WebviewPanelRef,
 } from './webviewReporter';
 import {addHistoryFromApiNetworkReport} from './apiHistory';
-import {expandCurrentTokensInPath} from 'mmt-core/Current';
-import {applyGitCurrentSnapshot, resolveGitCurrentSnapshot} from './gitCommitShort';
+import {expandCurrentTokensInPath} from 'mmt-core/tokens/Current';
+import {installGitCurrentSnapshotProvider} from './gitCommitShort';
+import {ensureGitCurrentSnapshot} from 'mmt-core/tokens/Current';
+import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
+
+function hostSuiteParallel(): number {
+  return resolveHostSuiteParallel(() => os.cpus().length);
+}
 
 function findWorkspaceProjectRoot(): string|undefined {
   const folders = vscode.workspace.workspaceFolders;
@@ -69,12 +77,15 @@ type ActiveRunUi = {
   panelId: string;
   fileUri: string;
   panelRef: WebviewPanelRef;
+  /** Status-bar / tab-decoration run id from onRunStarted. */
+  statusBarRunId?: string;
 };
 
 let activeSuiteRun:
   (ActiveRunUi & {suiteRunId: string;})|null = null;
 
-let activeTestRun: ActiveRunUi|null = null;
+/** Per panel, so a run in one editor never supersedes another editor's run. */
+const activeTestRuns = new Map<string, ActiveRunUi>();
 
 /** Per-suite-run state so concurrent/re-runs stay isolated. */
 const suiteRuns = new Map<string, ActiveRunUi & {
@@ -151,7 +162,7 @@ async function writeRunExports(params: {
     return;
   }
   const suiteDir = path.dirname(runFilePath);
-  applyGitCurrentSnapshot(projectRoot || suiteDir);
+  installGitCurrentSnapshotProvider(projectRoot || suiteDir);
   for (const exportPath of suiteExports.paths) {
     try {
       const expandedPath = expandCurrentTokensInPath(String(exportPath ?? ''));
@@ -193,7 +204,7 @@ async function writeRunExports(params: {
       }
 
       forwardLog('info', `Exporting results to ${resolvedPath}`);
-      const git = resolveGitCurrentSnapshot(projectRoot || path.dirname(runFilePath));
+      const git = ensureGitCurrentSnapshot() || {};
       const content = serializer(suiteExports.collectedResults, {
         projectRoot,
         gitCommit: git.commit,
@@ -242,23 +253,11 @@ async function resolveSuiteEnvVars(params: {
   });
 }
 
-/** Extract envVars dict from workspace state storage. */
+/** Extract envVars dict from workspace state storage (runtime overlays win). */
 function extractEnvVars(mmtProvider: any): Record<string, any> {
   const envStorage = mmtProvider.context.workspaceState.get(
       'multimeter.environment.storage', []);
-  const envVars: Record<string, any> = {};
-  if (Array.isArray(envStorage)) {
-    for (const item of envStorage) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        envVars[name] = (item as any).value;
-      }
-    }
-  }
-  return envVars;
+  return resolveWorkspaceEnvMap(Array.isArray(envStorage) ? envStorage : []);
 }
 
 /** Apply network/certificate config for a file. Returns true if applied. */
@@ -324,22 +323,22 @@ export async function handleRunCurrentDocument(
   const panelId = getPanelId(webviewPanel);
   // A previous Cancel can still be unwinding when the user starts again. Abort
   // that controller and never let its late completion touch this run's UI.
-  const previous = activeTestRun;
-  if (previous && previous.panelId === panelId) {
+  const previous = activeTestRuns.get(panelId);
+  if (previous) {
     previous.controller.abort();
   }
 
   const controller = new AbortController();
   const pauseGate = createRunPauseGate(controller.signal);
   const panelRef: WebviewPanelRef = {current: webviewPanel};
-  activeTestRun = {
+  activeTestRuns.set(panelId, {
     controller,
     pauseGate,
     panelId,
     fileUri: document.uri.toString(),
     panelRef,
-  };
-  const isCurrentRun = () => activeTestRun?.controller === controller;
+  });
+  const isCurrentRun = () => activeTestRuns.get(panelId)?.controller === controller;
 
   const reportType = resolveWebviewReportType(message);
   const uiReporter = createWebviewRunReporter({
@@ -358,6 +357,10 @@ export async function handleRunCurrentDocument(
     // Run in Core: Stop/Open via click menu (never a separate stop badge).
     actionsMenu: reportType === 'lifecycle',
   });
+  const trackedTest = activeTestRuns.get(panelId);
+  if (trackedTest?.controller === controller) {
+    trackedTest.statusBarRunId = statusBarRunId;
+  }
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
     // filePath is the resolved absolute path to the mock server file
     forwardLog('info', `Starting mock server from ${alias}`);
@@ -368,9 +371,16 @@ export async function handleRunCurrentDocument(
   const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
       ? message.rawFile
       : document.getText();
+  // API Tester Send may pass the telescope snapshot so wire r:/c: match the UI.
+  const requestOverride =
+      message?.history === true && message?.resolvedRequest &&
+          typeof message.resolvedRequest === 'object' ?
+        message.resolvedRequest as Record<string, unknown> :
+        null;
 
   try {
-    applyGitCurrentSnapshot(projectRoot || path.dirname(document.uri.fsPath));
+    installGitCurrentSnapshotProvider(
+        projectRoot || path.dirname(document.uri.fsPath));
     const fileLoader = createFileLoader(document.uri.fsPath);
     const binaryFileLoader = createBinaryFileLoader(document.uri.fsPath);
     const runOutcome = await runner.runFile({
@@ -390,6 +400,7 @@ export async function handleRunCurrentDocument(
         fileLoader,
         binaryFileLoader,
         serverRunner,
+        requestOverride,
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
@@ -406,6 +417,7 @@ export async function handleRunCurrentDocument(
       },
       projectRoot,
       serverRunner,
+      suiteParallel: hostSuiteParallel(),
     });
 
     // Superseded by a newer run on this panel — drop all UI side effects.
@@ -489,8 +501,8 @@ export async function handleRunCurrentDocument(
           `Failed to run ${fileName}: ${msg}`);
     }
   } finally {
-    if (activeTestRun && activeTestRun.controller === controller) {
-      activeTestRun = null;
+    if (isCurrentRun()) {
+      activeTestRuns.delete(panelId);
     }
     onRunFinished(statusBarRunId);
   }
@@ -500,7 +512,7 @@ export async function handleRunCurrentDocument(
 function postApiRunResult(
     webviewPanel: vscode.WebviewPanel, uri: string,
     response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean,
-    apiTest?: import('mmt-core/apiTestEval').ApiTestEvalResult | null) {
+    apiTest?: import('mmt-core/runner/apiTestEval').ApiTestEvalResult | null) {
   webviewPanel.webview.postMessage({
     command: 'multimeter.api.run.result',
     uri,
@@ -579,6 +591,13 @@ export async function handleRunSuite(
     },
     actionsMenu: reportType === 'lifecycle',
   });
+  if (activeSuiteRun?.controller === controller) {
+    activeSuiteRun.statusBarRunId = statusBarRunId;
+  }
+  const trackedSuite = suiteRuns.get(suiteRunId);
+  if (trackedSuite) {
+    trackedSuite.statusBarRunId = statusBarRunId;
+  }
   const startedAt = Date.now();
 
   uiReporter.onRunStart({
@@ -597,7 +616,8 @@ export async function handleRunSuite(
 
     if (isLoadTest) {
       const projectRootLoadTest = findProjectRoot(runFilePath);
-      applyGitCurrentSnapshot(projectRootLoadTest || path.dirname(runFilePath));
+      installGitCurrentSnapshotProvider(
+          projectRootLoadTest || path.dirname(runFilePath));
       const fileLoader = createFileLoader(runFilePath);
       const binaryFileLoader = createBinaryFileLoader(runFilePath);
       const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
@@ -630,6 +650,7 @@ export async function handleRunSuite(
         projectRoot: projectRootLoadTest,
         reporter: uiReporter.report,
         serverRunner: suiteServerRunner,
+        suiteParallel: hostSuiteParallel(),
       });
 
       await writeRunExports({
@@ -657,7 +678,8 @@ export async function handleRunSuite(
     const fileLoader = fileCache.wrap(createFileLoader(runFilePath));
     const binaryFileLoader = createBinaryFileLoader(runFilePath);
     const projectRootSuite = findProjectRoot(runFilePath);
-    applyGitCurrentSnapshot(projectRootSuite || path.dirname(runFilePath));
+    installGitCurrentSnapshotProvider(
+        projectRootSuite || path.dirname(runFilePath));
     const {tree: hierarchyTree, fromCache} = await getCachedSuiteHierarchy({
       suiteFilePath: runFilePath,
       projectRoot: projectRootSuite,
@@ -743,6 +765,7 @@ export async function handleRunSuite(
       projectRoot: projectRootSuite,
       reporter: uiReporter.report,
       serverRunner: suiteServerRunner,
+      suiteParallel: hostSuiteParallel(),
     });
 
     await writeRunExports({
@@ -819,11 +842,8 @@ export function handleStopSuiteRun(
 export function handleStopTestRun(
     _message: any, webviewPanel: vscode.WebviewPanel,
     _document: vscode.TextDocument, _mmtProvider: any) {
-  const current = activeTestRun;
+  const current = activeTestRuns.get(getPanelId(webviewPanel));
   if (!current) {
-    return;
-  }
-  if (current.panelId !== getPanelId(webviewPanel)) {
     return;
   }
   current.pauseGate.resume();
@@ -836,7 +856,7 @@ export function handleStopTestRun(
 
 export function panelHasActiveRun(webviewPanel: vscode.WebviewPanel): boolean {
   const panelId = getPanelId(webviewPanel);
-  if (activeTestRun?.panelId === panelId) {
+  if (activeTestRuns.has(panelId)) {
     return true;
   }
   if (activeSuiteRun?.panelId === panelId) {
@@ -864,8 +884,9 @@ export function abortRunsForPanel(webviewPanel: vscode.WebviewPanel): void {
   const panelId = getPanelId(webviewPanel);
   const handles: Array<{controller: AbortController; pauseGate: RunPauseGate}> =
       [];
-  if (activeTestRun && activeTestRun.panelId === panelId) {
-    handles.push(activeTestRun);
+  const testRun = activeTestRuns.get(panelId);
+  if (testRun) {
+    handles.push(testRun);
   }
   if (activeSuiteRun && activeSuiteRun.panelId === panelId) {
     handles.push(activeSuiteRun);
@@ -878,13 +899,15 @@ export function abortRunsForPanel(webviewPanel: vscode.WebviewPanel): void {
   abortRunHandles(handles);
 }
 
-function pauseGateForPanel(webviewPanel: vscode.WebviewPanel): RunPauseGate|undefined {
+function activeRunUiForPanel(
+    webviewPanel: vscode.WebviewPanel): ActiveRunUi|undefined {
   const panelId = getPanelId(webviewPanel);
-  if (activeTestRun && activeTestRun.panelId === panelId) {
-    return activeTestRun.pauseGate;
+  const testRun = activeTestRuns.get(panelId);
+  if (testRun) {
+    return testRun;
   }
   if (activeSuiteRun && activeSuiteRun.panelId === panelId) {
-    return activeSuiteRun.pauseGate;
+    return activeSuiteRun;
   }
   return undefined;
 }
@@ -892,11 +915,15 @@ function pauseGateForPanel(webviewPanel: vscode.WebviewPanel): RunPauseGate|unde
 export function handlePauseTestRun(
     _message: any, webviewPanel: vscode.WebviewPanel,
     _document: vscode.TextDocument, _mmtProvider: any) {
-  const gate = pauseGateForPanel(webviewPanel);
+  const tracked = activeRunUiForPanel(webviewPanel);
+  const gate = tracked?.pauseGate;
   if (!gate || gate.paused) {
     return;
   }
   gate.pause();
+  if (tracked?.statusBarRunId) {
+    setRunPaused(tracked.statusBarRunId, true);
+  }
   webviewPanel.webview.postMessage({
     command: 'testRunPaused',
     filePath: _document.uri.toString(),
@@ -906,11 +933,15 @@ export function handlePauseTestRun(
 export function handleResumeTestRun(
     _message: any, webviewPanel: vscode.WebviewPanel,
     _document: vscode.TextDocument, _mmtProvider: any) {
-  const gate = pauseGateForPanel(webviewPanel);
+  const tracked = activeRunUiForPanel(webviewPanel);
+  const gate = tracked?.pauseGate;
   if (!gate || !gate.paused) {
     return;
   }
   gate.resume();
+  if (tracked?.statusBarRunId) {
+    setRunPaused(tracked.statusBarRunId, false);
+  }
   webviewPanel.webview.postMessage({
     command: 'testRunResumed',
     filePath: _document.uri.toString(),

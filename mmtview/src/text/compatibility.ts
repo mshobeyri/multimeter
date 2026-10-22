@@ -1,5 +1,5 @@
-import {exampleIdFromLegacyName} from 'mmt-core/APIData';
-import {findLegacySetenvOutputRefs} from 'mmt-core/setenvResolve';
+import {exampleIdFromLegacyName} from 'mmt-core/data/APIData';
+import {findLegacySetenvOutputRefs} from 'mmt-core/tokens/setenvResolve';
 import {offsetToLineNumber} from './validator';
 
 export type CompatibilityFix =

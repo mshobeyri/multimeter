@@ -1,0 +1,283 @@
+import * as YAML from 'yaml';
+import {markQuotedTokenLiterals} from './literalToken';
+import {preserveMultilineDescriptionScalars} from '../parse/multilineDescriptionYaml';
+import {stripOmitFromMultipartParts} from '../network/multipartBody';
+
+export const OMIT_KEYWORD = 'omit';
+export const OMIT_SENTINEL = '__MMT_OMIT__';
+
+export function isOmitSentinel(value: unknown): boolean {
+  return value === OMIT_SENTINEL;
+}
+
+function walkYamlNode(node: any): void {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+
+  if (node.type === 'PLAIN' && node.value === OMIT_KEYWORD) {
+    node.value = OMIT_SENTINEL;
+    return;
+  }
+
+  if (Array.isArray(node.items)) {
+    for (const item of node.items) {
+      if (item && typeof item === 'object' &&
+          Object.prototype.hasOwnProperty.call(item, 'key') &&
+          Object.prototype.hasOwnProperty.call(item, 'value')) {
+        walkYamlNode(item.key);
+        walkYamlNode(item.value);
+      } else {
+        walkYamlNode(item);
+      }
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(node, 'key')) {
+    walkYamlNode(node.key);
+  }
+  if (Object.prototype.hasOwnProperty.call(node, 'value')) {
+    walkYamlNode(node.value);
+  }
+}
+
+export function parseYamlWithOmitKeyword(
+    yamlString: string,
+    strict: boolean,
+): any {
+  const doc = YAML.parseDocument(yamlString);
+  if (strict && doc.errors.length > 0) {
+    throw doc.errors[0];
+  }
+  preserveMultilineDescriptionScalars(doc.contents, yamlString);
+  walkYamlNode(doc.contents);
+  markQuotedTokenLiterals(doc.contents);
+  return doc.toJS();
+}
+
+export function normalizeOmitToNull(value: any): any {
+  if (isOmitSentinel(value)) {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value.map(v => normalizeOmitToNull(v));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, normalizeOmitToNull(v)]));
+  }
+  return value;
+}
+
+export function restoreOmitKeyword(value: any): any {
+  if (isOmitSentinel(value)) {
+    return OMIT_KEYWORD;
+  }
+  if (Array.isArray(value)) {
+    return value.map(v => restoreOmitKeyword(v));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, restoreOmitKeyword(v)]));
+  }
+  return value;
+}
+
+/** Replace sentinels inside an already-serialized string (log/report text). */
+export function restoreOmitKeywordInText(text: string): string {
+  return String(text ?? '').split(OMIT_SENTINEL).join(OMIT_KEYWORD);
+}
+
+/**
+ * Drop omit-marked fields from a request tree.
+ * Whole-value omit in `headers` is kept as the sentinel so the HTTP client
+ * can block Multimeter/axios defaults (same as deprecated `_`).
+ * Embedded omit inside a header string still removes that header.
+ */
+export function stripOmitFromRequest(value: any): any {
+  if (isOmitSentinel(value)) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value.map(v => {
+      const next = stripOmitFromRequest(v);
+      return next === undefined ? null : next;
+    });
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (k === 'headers' && v && typeof v === 'object' && !Array.isArray(v)) {
+        out[k] = keepHeaderOmitBlocks(v as Record<string, any>);
+        continue;
+      }
+      const next = stripOmitFromRequest(v);
+      if (next !== undefined) {
+        out[k] = next;
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Keep whole-value header omit; drop headers that embed the sentinel. */
+function keepHeaderOmitBlocks(headers: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    if (isOmitSentinel(v)) {
+      out[k] = v;
+      continue;
+    }
+    if (typeof v === 'string' && v.includes(OMIT_SENTINEL)) {
+      continue;
+    }
+    const next = stripOmitFromRequest(v);
+    if (next !== undefined) {
+      out[k] = next;
+    }
+  }
+  return out;
+}
+
+function dropOmittedEntries(
+    record: any,
+    keepWholeValueOmit = false,
+): any {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) {
+    return record;
+  }
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(record)) {
+    if (isOmitSentinel(v)) {
+      if (keepWholeValueOmit) {
+        out[k] = v;
+      }
+      continue;
+    }
+    if (typeof v === 'string' && v.includes(OMIT_SENTINEL)) {
+      continue;
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
+function dropOmittedPairs(queryString: string): string {
+  return queryString.split('&')
+      .filter(pair => pair && !pair.includes(OMIT_SENTINEL))
+      .join('&');
+}
+
+function stripOmitFromUrl(url: string): string {
+  if (!url.includes(OMIT_SENTINEL)) {
+    return url;
+  }
+  const queryStart = url.indexOf('?');
+  if (queryStart < 0) {
+    return url.split(OMIT_SENTINEL).join('');
+  }
+  const base = url.slice(0, queryStart).split(OMIT_SENTINEL).join('');
+  const query = dropOmittedPairs(url.slice(queryStart + 1));
+  return query ? `${base}?${query}` : base;
+}
+
+function stripOmitFromXmlBody(body: string): string {
+  const element =
+      new RegExp(`[^\\S\\r\\n]*<([\\w:.\\-]+)([^>]*)>\\s*${OMIT_SENTINEL}\\s*<\\/\\1>\\s*\\n?`, 'g');
+  const attribute = new RegExp(`\\s[\\w:.\\-]+="${OMIT_SENTINEL}"`, 'g');
+  return body.replace(element, '')
+      .replace(attribute, '')
+      .split(OMIT_SENTINEL)
+      .join('');
+}
+
+function isBinaryBody(body: any): boolean {
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) {
+    return true;
+  }
+  return body instanceof Uint8Array || body instanceof ArrayBuffer;
+}
+
+function stripOmitFromJsonBody(body: string): string|null {
+  try {
+    const stripped = stripOmitFromRequest(JSON.parse(body));
+    return JSON.stringify(stripped === undefined ? null : stripped, null, 2);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remove omit-marked values from a serialized request body.
+ * `format` is the request format (`json`, `xml`, `urlencoded`, …); JSON is
+ * assumed when it is missing, matching the `.mmt` default.
+ */
+export function stripOmitFromBody(body: any, format?: string): any {
+  if (body === null || body === undefined || isBinaryBody(body)) {
+    return body;
+  }
+  const kind = String(format || 'json').toLowerCase();
+  if (kind === 'multipart' && Array.isArray(body)) {
+    return stripOmitFromMultipartParts(body);
+  }
+  if (typeof body !== 'string') {
+    return stripOmitFromRequest(body);
+  }
+  if (!body.includes(OMIT_SENTINEL)) {
+    return body;
+  }
+  if (kind === 'urlencoded') {
+    return dropOmittedPairs(body);
+  }
+  if (kind === 'xml' || kind === 'xmle') {
+    return stripOmitFromXmlBody(body);
+  }
+  if (kind === 'json' || kind === 'graphql') {
+    const json = stripOmitFromJsonBody(body);
+    if (json !== null) {
+      return json;
+    }
+  }
+  // Text and unparsable bodies have no field to remove, so the marker itself
+  // is all that can be dropped.
+  return body.trim() === OMIT_SENTINEL ? '' : body.split(OMIT_SENTINEL).join('');
+}
+
+/**
+ * Runtime counterpart of `stripOmitFromRequest` for a built request.
+ *
+ * Call-time inputs (test `call` steps, CLI `-e`, examples) only reach the
+ * request when the generated code runs, so the sentinel has to be dropped here
+ * instead of during code generation. Mutates and returns `req`.
+ */
+export function applyOmitToOutgoingRequest(req: any, format?: string): any {
+  if (!req || typeof req !== 'object') {
+    return req;
+  }
+  if (typeof req.url === 'string') {
+    req.url = stripOmitFromUrl(req.url);
+  }
+  // Headers: keep whole-value omit so the network layer can block defaults.
+  if (req.headers) {
+    req.headers = dropOmittedEntries(req.headers, true);
+  }
+  for (const key of ['query', 'cookies', 'metadata']) {
+    if (req[key]) {
+      req[key] = dropOmittedEntries(req[key]);
+    }
+  }
+  if ('body' in req) {
+    const next = stripOmitFromBody(req.body, format);
+    if (next === undefined) {
+      delete req.body;
+    } else {
+      req.body = next;
+    }
+  }
+  if ('message' in req) {
+    const next = stripOmitFromRequest(req.message);
+    req.message = next === undefined ? {} : next;
+  }
+  return req;
+}

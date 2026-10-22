@@ -1,0 +1,14 @@
+type: test
+title: CountryCurrency — Japan
+import:
+  countries: +/countries.json
+  api: +/api/country_currency.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.jp.iso}
+    expect:
+      status: 200
+      currency_iso: ${countries.jp.currency}
+      currency_name: ${countries.jp.currency_name}
+    report: all

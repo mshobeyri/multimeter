@@ -21,8 +21,8 @@ setting:
 
 ## Reference (types)
 - `type:` `env`
-- `variables:` record<string, object (key-value choices) | array (allowed values)>
-- `presets:` record<string, record<string, record<string, string|number|boolean|null>>>
+- `variables:` record<string, object (key-value choices; values may be scalars or nested objects/arrays) | array (allowed scalar values)>
+- `presets:` record<string, record<string, record<string, string|number|boolean|null>>> — bind independent variables; not required for a single nested choice map
 - `setting:` { http?: { version?: "auto"|"1"|"1.1"|"2", timeout?: number } }
 - `certificates:` { server_ca?, clients? }
 

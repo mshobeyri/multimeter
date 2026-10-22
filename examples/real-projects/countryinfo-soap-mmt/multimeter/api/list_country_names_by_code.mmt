@@ -1,0 +1,21 @@
+type: api
+title: ListOfCountryNamesByCode
+description: All country ISO codes and names ordered by code
+outputs:
+  status: status
+  countries: "body.soap:Envelope.soap:Body.m:ListOfCountryNamesByCodeResponse.m:ListOfCountryNamesByCodeResult.m:tCountryCodeAndName"
+  first_iso: "body.soap:Envelope.soap:Body.m:ListOfCountryNamesByCodeResponse.m:ListOfCountryNamesByCodeResult.m:tCountryCodeAndName.0.m:sISOCode"
+  first_name: "body.soap:Envelope.soap:Body.m:ListOfCountryNamesByCodeResponse.m:ListOfCountryNamesByCodeResult.m:tCountryCodeAndName.0.m:sName"
+url: e:soap_url
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: '""'
+body: |-
+  <?xml version="1.0" encoding="utf-8"?>
+  <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+      <ListOfCountryNamesByCode xmlns="http://www.oorsprong.org/websamples.countryinfo"/>
+    </soap:Body>
+  </soap:Envelope>

@@ -201,14 +201,16 @@ Example comparisons:
 
 You can use the same token syntaxes as for APIs:
 
-- Environment `variables:` `e:api_url`, `e:auth_token`, etc., or `<<e:api_url>>`
+- Imported data: `${alias.path}` from JSON/CSV/YAML — **fixed catalogs** only (`cities.json`, sample users)
+- Environment: `e:api_url`, `<<e:api_url>>` — **user run config** only (hosts, etc.), not the entity/case under test
+- Literals in the test — **scenario** values (date windows, horizons)
 - Test `inputs:` `i:user_id` or `<<i:user_id>>`
-- Random values: `r:name` or `<<r:name>>`
-- Current/time values: `c:name` or `<<c:name>>`
+- Random / current: `r:` / `c:`
 
 Guidelines:
 - Use bare tokens when they are the **entire value**.
 - Use `<< >>` when embedding in text.
+- Decide env vs JSON vs direct with [Where values live](../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct): Berlin lat/lon → JSON; June date window → literals in the test; panel city for API Send → env on the API only.
 
 Example:
 
@@ -231,6 +233,29 @@ steps:
 ---
 
 ## Common patterns the AI should generate
+
+### 0. Catalog from JSON + scenario literals (not env)
+
+Fixed shared entities → JSON. Scenario fields (dates, horizons) → literals in this test. See [Where values live](../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct).
+
+```yaml
+type: test
+title: Archive — June 2024 Berlin
+import:
+  cities: +/cities.json
+  api: +/api/archive.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
+      start_date: "2024-06-01"
+      end_date: "2024-06-03"
+    expect:
+      daily_time_0: "2024-06-01"
+    report: all
+```
 
 ### 1. Simple smoke test for a single API
 

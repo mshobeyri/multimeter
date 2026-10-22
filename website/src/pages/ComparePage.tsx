@@ -119,6 +119,46 @@ export default function ComparePage() {
             </>
           ) : null}
 
+          {page.sample ? (
+            <>
+              <h2 className="text-2xl font-bold text-white mb-4">{page.sample.title}</h2>
+              <p className="text-lg text-slate-400 leading-relaxed mb-6">{page.sample.summary}</p>
+              <div className="overflow-x-auto rounded-xl border border-border mb-6">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-surface border-b border-border">
+                      <th className="text-left px-4 py-3 text-slate-400 font-medium">Metric</th>
+                      <th className="text-left px-4 py-3 text-slate-400 font-medium">{page.name}</th>
+                      <th className="text-left px-4 py-3 text-primary-light font-medium">Multimeter</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {page.sample.rows.map((row, index) => (
+                      <tr
+                        key={row.feature}
+                        className={index % 2 === 0 ? 'bg-surface-light/30' : 'bg-surface/50'}
+                      >
+                        <td className="px-4 py-3 text-slate-300">{row.feature}</td>
+                        <td className="px-4 py-3 text-slate-400">{row.other}</td>
+                        <td className="px-4 py-3 text-white">{row.multimeter}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mb-12">
+                <a
+                  href={page.sample.href}
+                  className="text-primary-light hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {page.sample.linkLabel}
+                </a>
+              </p>
+            </>
+          ) : null}
+
           <div className="flex flex-col sm:flex-row gap-4 mb-12">
             <a
               href={marketplace}

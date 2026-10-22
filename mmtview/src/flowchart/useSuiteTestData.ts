@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { TestData } from 'mmt-core/TestData';
-import { yamlToTest } from 'mmt-core/testParsePack';
+import { TestData } from 'mmt-core/data/TestData';
+import { yamlToTest } from 'mmt-core/parse/testParsePack';
 import { SuiteTreeNode, suiteTreeChildren } from '../suite/test/suiteHierarchy';
 import { SuiteGroup } from '../suite/types';
 import { readFile } from '../vsAPI';

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import {isBrunoCollectionFilePath, isBrunoRequestFilePath} from 'mmt-core/brunoParsePack';
+import {isBrunoCollectionFilePath, isBrunoRequestFilePath} from 'mmt-core/parse/brunoParsePack';
 
 const DEFAULT_IGNORE = ['node_modules', '.git', '.svn', '.hg'];
 

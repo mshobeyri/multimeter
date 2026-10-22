@@ -21,7 +21,7 @@ See also: [Flow chart](../../features/flow-chart.md)
 | Control | What it does |
 |---|---|
 | {{btn:play:Run suite}} | Runs all suite items. While running, turns into **Stop suite**. Shortcut: **⌘Enter** (macOS) / **Ctrl+Enter** |
-| **More** (chevron next to Run) | While idle: **Run in Core**. While running: **Pause** / **Resume** (first), then the other More actions |
+| **More** (chevron next to Run) | While idle: **Run in Core**, **Run in testlight** (opens a terminal with `testlight run <file> …` plus workspace env flags), **Clear**. While running: **Pause** / **Resume** (first), then the other More actions |
 | {{btn:export:Export}} | Export the run report (HTML, MMT, Markdown, or JUnit XML). Disabled until a run completes |
 | **YAML ERROR** | Shown when the suite YAML has parse, schema, or formatting (key-order) problems — click to jump to the issue |
 

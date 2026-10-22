@@ -1,0 +1,27 @@
+type: api
+title: CountryIntPhoneCode
+description: International phone dialing code for a country
+inputs:
+  iso_code: e:country.iso
+outputs:
+  status: status
+  phone: "body.soap:Envelope.soap:Body.m:CountryIntPhoneCodeResponse.m:CountryIntPhoneCodeResult"
+url: e:soap_url
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: '""'
+body:
+  _declaration:
+    _attributes:
+      version: "1.0"
+      encoding: utf-8
+  soap:Envelope:
+    _attributes:
+      xmlns:soap: http://schemas.xmlsoap.org/soap/envelope/
+    soap:Body:
+      CountryIntPhoneCode:
+        _attributes:
+          xmlns: http://www.oorsprong.org/websamples.countryinfo
+        sCountryISOCode: i:iso_code

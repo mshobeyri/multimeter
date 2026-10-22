@@ -1,4 +1,4 @@
-import { normalizeNewlines } from 'mmt-core/textLines';
+import { normalizeNewlines } from 'mmt-core/util/textLines';
 import {
   computeMinimalEditSpan,
   documentTextMatchesWebview,

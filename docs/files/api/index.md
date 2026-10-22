@@ -59,7 +59,7 @@ Send sits on the URL row (next to the method+URL control). Duration, status, his
 
 | Control | What it does |
 |---|---|
-| {{btn:telescope}} | Toggle **token mirror**: show resolved input/env/current/random values (random `r:` frozen until Send or toggle again), or editable token text in request fields (including Body) |
+| {{btn:telescope}} | Toggle **token mirror**: show resolved input/env/current/random values (random `r:` frozen until Send or toggle again), or editable token text in request fields (including Body). **Send** always remints and freezes those values into the preview cache (and the wire request) even when the mirror is off. |
 | {{btn:globe}} | Open the [Environment Variables](../env/ui.md) panel |
 
 ### Send
@@ -82,14 +82,16 @@ See also: [History](../../panels/history.md) · [Connections](../../panels/conne
 
 ## Request
 
+Preferred field order in YAML: `url`, then `query`, then `method`, then `format` / `headers` / `cookies` / `body` (protocol-specific fields follow the same idea — put addressing before the verb).
+
 - `protocol:` `http` or `ws` (optional — inferred from URL if not specified)
   - URLs starting with `ws://` or `wss://` default to `ws`
   - All other URLs default to `http`
 - `url:` server URL
+- `query:` query parameters for HTTP requests
 - `method:` HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace` (optional — defaults to `post` when `body` is set, otherwise `get`)
 - `timeout:` per-request timeout in milliseconds (optional; overrides the default network timeout)
 - `headers:` HTTP headers
-- `query:` query parameters for HTTP requests
 - `cookies:` HTTP cookies
 
 `body` and `format`: [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP body examples](./protocols/http-bodies.md).
@@ -99,15 +101,15 @@ Sample:
 ```yaml
 protocol: http
 url: x.com/blog
+query:
+  limit: "20"
+  page: "1"
+  # will be converted to x.com/blog?limit=20&page=1
 method: get
 timeout: 5000
 headers:
   Authorization: Bearer <<e:token>>
   Accept: application/json
-query:
-  limit: "20"
-  page: "1"
-  # will be converted to x.com/blog?limit=20&page=1
 cookies:
   session: e:session_id
 ```

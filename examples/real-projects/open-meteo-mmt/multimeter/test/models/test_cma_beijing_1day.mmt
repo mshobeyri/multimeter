@@ -1,0 +1,22 @@
+type: test
+title: CMA — Beijing 1 day
+import:
+  cities: +/cities.json
+  api: +/api/model_cma.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.beijing.latitude}
+      longitude: ${cities.beijing.longitude}
+      forecast_days: "1"
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      resp_latitude:
+        - >= 35
+        - <= 45
+      resp_longitude:
+        - >= 110
+        - <= 120
+      hourly_count: >=# 24
+    report: all

@@ -1,0 +1,28 @@
+type: api
+title: CountryCurrency
+description: Currency ISO code and name for a country
+inputs:
+  iso_code: e:country.iso
+outputs:
+  status: status
+  currency_iso: "body.soap:Envelope.soap:Body.m:CountryCurrencyResponse.m:CountryCurrencyResult.m:sISOCode"
+  currency_name: "body.soap:Envelope.soap:Body.m:CountryCurrencyResponse.m:CountryCurrencyResult.m:sName"
+url: e:soap_url
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: '""'
+body:
+  _declaration:
+    _attributes:
+      version: "1.0"
+      encoding: utf-8
+  soap:Envelope:
+    _attributes:
+      xmlns:soap: http://schemas.xmlsoap.org/soap/envelope/
+    soap:Body:
+      CountryCurrency:
+        _attributes:
+          xmlns: http://www.oorsprong.org/websamples.countryinfo
+        sCountryISOCode: i:iso_code

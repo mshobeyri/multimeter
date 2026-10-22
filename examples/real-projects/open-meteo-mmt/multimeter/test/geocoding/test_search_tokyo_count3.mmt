@@ -1,0 +1,19 @@
+type: test
+title: Geocode search — Tokyo count 3
+import:
+  api: +/api/geocode_search.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      name: Tokyo
+      count: "3"
+    expect:
+      place_name: =C Tokyo
+      latitude:
+        - >= 34
+        - <= 37
+      longitude:
+        - >= 138
+        - <= 141
+    report: all

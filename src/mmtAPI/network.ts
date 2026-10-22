@@ -1,10 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
-import {handleNetworkMessage as coreHandleNetworkMessage, NetworkMessage, PostMessage} from 'mmt-core/network';
-import {CertificateSettings, DEFAULT_CERT_SETTINGS, DEFAULT_NETWORK_CONFIG, EnvSetting, NetworkConfig, resolvePassphrase} from 'mmt-core/NetworkData';
-import type {EnvCaCertificate, EnvCertificates, EnvClientCertificate} from 'mmt-core/EnvData';
+import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/util/fileHelper';
+import {handleNetworkMessage as coreHandleNetworkMessage, NetworkMessage, PostMessage} from 'mmt-core/network/network';
+import {CertificateSettings, DEFAULT_CERT_SETTINGS, DEFAULT_NETWORK_CONFIG, EnvSetting, NetworkConfig, resolvePassphrase} from 'mmt-core/data/NetworkData';
+import type {EnvCaCertificate, EnvCertificates, EnvClientCertificate} from 'mmt-core/data/EnvData';
 import * as vscode from 'vscode';
 import * as YAML from 'yaml';
 import * as mmtcore from 'mmt-core';

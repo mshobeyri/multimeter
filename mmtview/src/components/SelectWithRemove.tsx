@@ -1,5 +1,5 @@
 import React from "react";
-import { safeList } from "mmt-core/safer";
+import { safeList } from "mmt-core/util/safer";
 import { fieldTrailingLayout } from "./FieldWithRemove";
 import { KV_FIELD_ATTR } from "./kvFieldNav";
 

@@ -1,0 +1,19 @@
+type: test
+title: Forecast hourly/daily — Paris coords
+import:
+  cities: +/cities.json
+  api: +/api/forecast_hourly_daily.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.paris.latitude}
+      longitude: ${cities.paris.longitude}
+      forecast_days: "1"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      daily_time_0: =2d~ <<c:date>>
+      hourly_temp_0:
+        - >= -80
+        - <= 60
+    report: all

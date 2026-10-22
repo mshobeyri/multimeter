@@ -1,8 +1,8 @@
 import React, { useMemo, useContext, useState, useEffect, useRef } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
-import { safeList } from "mmt-core/safer";
-import { JSONRecord, JSONValue } from "mmt-core/CommonData";
+import { safeList } from "mmt-core/util/safer";
+import { JSONRecord, JSONValue } from "mmt-core/data/CommonData";
 import FilePickerInput from "./FilePickerInput";
 import { FileContext } from '../fileContext';
 import {
@@ -10,8 +10,12 @@ import {
   inputBoxToYamlValueWithTokens,
   yamlValueToInputBoxWithTokens,
 } from "./convertor";
-import { leafResolvesToOmit, type RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
-import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
+import {
+  leafResolvesToOmit,
+  tokenFieldPreviewScope,
+  type RuntimeTokenValueContext,
+} from "mmt-core/api-edit/apiBodyEdit";
+import { isIncompleteJsonLiteral } from "mmt-core/parse/yamlValueConvert";
 import {
   entriesToUniqueRecord,
   findDuplicateKeyIndexes,
@@ -49,6 +53,8 @@ type KSVEditorBaseProps = {
   /** Value fields: resolved/token dual-mode when a value contains tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
+  /** Prefix for Send/telescope cache (`headers` / `query` / `cookies`). */
+  tokenCacheNamespace?: string;
   /**
    * When token mode is resolved, hide rows whose value is / resolves to omit
    * (API tester headers/query/cookies — matches Send / body omit behavior).
@@ -117,6 +123,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   filePickerFilters,
   canContainToken = false,
   valueContext,
+  tokenCacheNamespace,
   hideOmittedWhenResolved = false,
   typedValues = false,
   liveAngleTokens = false,
@@ -324,6 +331,11 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         }
                         canContainToken={canContainToken}
                         valueContext={valueContext}
+                        tokenCacheScope={
+                          tokenCacheNamespace && k
+                            ? tokenFieldPreviewScope(tokenCacheNamespace, k)
+                            : undefined
+                        }
                         kvField={kvFieldId(i, "value")}
                       />
                     )

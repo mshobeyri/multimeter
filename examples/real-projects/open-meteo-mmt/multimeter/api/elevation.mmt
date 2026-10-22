@@ -1,0 +1,14 @@
+type: api
+title: Elevation
+description: DEM elevation for coordinates
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+outputs:
+  elevation_0: body[elevation][0]
+url: <<e:forecast_base_url>>/v1/elevation
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+method: get
+format: json

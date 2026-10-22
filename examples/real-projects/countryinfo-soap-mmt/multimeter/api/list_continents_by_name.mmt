@@ -1,0 +1,23 @@
+type: api
+title: ListOfContinentsByName
+description: All continents ordered by name
+outputs:
+  status: status
+  continents: "body.soap:Envelope.soap:Body.m:ListOfContinentsByNameResponse.m:ListOfContinentsByNameResult.m:tContinent"
+  first_code: "body.soap:Envelope.soap:Body.m:ListOfContinentsByNameResponse.m:ListOfContinentsByNameResult.m:tContinent.0.m:sCode"
+  first_name: "body.soap:Envelope.soap:Body.m:ListOfContinentsByNameResponse.m:ListOfContinentsByNameResult.m:tContinent.0.m:sName"
+  europe_code: "body.soap:Envelope.soap:Body.m:ListOfContinentsByNameResponse.m:ListOfContinentsByNameResult.m:tContinent.3.m:sCode"
+  europe_name: "body.soap:Envelope.soap:Body.m:ListOfContinentsByNameResponse.m:ListOfContinentsByNameResult.m:tContinent.3.m:sName"
+url: e:soap_url
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: '""'
+body: |-
+  <?xml version="1.0" encoding="utf-8"?>
+  <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+      <ListOfContinentsByName xmlns="http://www.oorsprong.org/websamples.countryinfo"/>
+    </soap:Body>
+  </soap:Envelope>

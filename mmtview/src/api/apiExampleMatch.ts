@@ -1,5 +1,5 @@
-import { JSONRecord } from "mmt-core/CommonData";
-import { ExampleData } from "mmt-core/APIData";
+import { JSONRecord } from "mmt-core/data/CommonData";
+import { ExampleData } from "mmt-core/data/APIData";
 
 /** Stable JSON equality for input maps (key order independent). */
 export function inputsEqual(a?: JSONRecord | null, b?: JSONRecord | null): boolean {

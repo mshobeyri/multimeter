@@ -1,8 +1,8 @@
 import React from "react";
-import { CheckOps } from "mmt-core/TestData";
+import { CheckOps } from "mmt-core/data/TestData";
 import OperatorSelect from "../components/OperatorSelect";
 import StableTextInput from "../components/StableTextInput";
-import type { LogicalJoin } from "mmt-core/JSerTestFlow";
+import type { LogicalJoin } from "mmt-core/jser/JSerTestFlow";
 
 export interface IfClause {
   actual: string;

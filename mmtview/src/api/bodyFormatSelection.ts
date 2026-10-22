@@ -1,10 +1,10 @@
-import { Format } from "mmt-core/CommonData";
+import { Format } from "mmt-core/data/CommonData";
 import {
   packBodyAsYamlEncoded,
   tokensTextToYamlBody,
   yamlBodyToTokensText,
   type RuntimeTokenValueContext,
-} from "mmt-core/apiBodyEdit";
+} from "mmt-core/api-edit/apiBodyEdit";
 
 function isStructuredBody(body: unknown): body is object {
   return body !== null && typeof body === "object";

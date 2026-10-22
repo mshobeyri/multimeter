@@ -1,12 +1,12 @@
 import React from "react";
-import { APIData } from "mmt-core/APIData";
+import { APIData } from "mmt-core/data/APIData";
 import {
   stringFieldToYamlWithLiveTokens,
   yamlValueToInputBoxWithTokens,
 } from "../components/convertor";
 import StableTextInput from "../components/StableTextInput";
 import TokenFieldInput from "../components/TokenFieldInput";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
 
 interface ApiAuthEditorProps {
   api: APIData;

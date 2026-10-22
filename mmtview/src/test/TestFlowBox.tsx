@@ -1,7 +1,7 @@
 import React from "react";
-import { FlowType, CheckOps } from "mmt-core/TestData";
+import { FlowType, CheckOps } from "mmt-core/data/TestData";
 import { KebabMenu } from "../components/PopupMenu";
-import { formatLogicalCondition, parseComparisonParts, parseLogicalCondition, type LogicalJoin } from "mmt-core/JSerTestFlow";
+import { formatLogicalCondition, parseComparisonParts, parseLogicalCondition, type LogicalJoin } from "mmt-core/jser/JSerTestFlow";
 import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
 import TestJudge from "./TestJudge";

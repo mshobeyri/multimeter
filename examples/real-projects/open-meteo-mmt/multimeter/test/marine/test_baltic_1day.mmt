@@ -1,0 +1,19 @@
+type: test
+title: Marine — Baltic 1 day
+import:
+  cities: +/cities.json
+  api: +/api/marine.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.marine.latitude}
+      longitude: ${cities.marine.longitude}
+      forecast_days: "1"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      wave_height_0: >= 0
+      wave_direction_0:
+        - >= 0
+        - <= 360
+    report: all

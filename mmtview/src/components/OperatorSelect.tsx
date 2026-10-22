@@ -13,8 +13,8 @@ import {
   makeTimeOperator,
   normalizeTimeVelocity,
   selectableOpsList,
-} from "mmt-core/TestData";
-import { safeList } from "mmt-core/safer";
+} from "mmt-core/data/TestData";
+import { safeList } from "mmt-core/util/safer";
 import StableTextInput from "./StableTextInput";
 
 type OperatorSelectProps = {

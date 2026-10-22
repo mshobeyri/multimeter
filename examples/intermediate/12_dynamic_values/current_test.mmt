@@ -19,12 +19,10 @@ steps:
       utc_offset: != null
       year: >= 2026
       git_branch: != null
-      git_commit: =* ^([0-9a-f]{8})?$
-      git_commit_hash: =* ^([0-9a-f]{7,40})?$
+      git_commit: =* ^([0-9a-f]{40})?$
+      git_commit_short: =* ^([0-9a-f]{8})?$
       git_tag: != null
       git_describe: != null
       git_dirty: != null
-      commit_alias: c:git_commit
   - check: ${result.created_utc} =5s~ ${result.created_utc_plus_2s}
   - check: ${result.created_utc} !5s~ ${result.created_utc_plus_1h}
-  - check: ${result.commit_alias} == ${result.git_commit}

@@ -1,0 +1,20 @@
+type: test
+title: Climate — Tokyo 2050 week
+import:
+  cities: +/cities.json
+  api: +/api/climate.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.tokyo.latitude}
+      longitude: ${cities.tokyo.longitude}
+      start_date: "2050-01-01"
+      end_date: "2050-01-07"
+    expect:
+      daily_time_0: "2050-01-01"
+      daily_time_last: "2050-01-07"
+      temp_mean_0:
+        - >= -80
+        - <= 60
+    report: all

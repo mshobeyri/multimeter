@@ -1,4 +1,4 @@
-import { TestData } from 'mmt-core/TestData';
+import { TestData } from 'mmt-core/data/TestData';
 import { SuiteGroup } from '../../suite/types';
 import { SuiteTreeNode, suiteTreeChildren } from '../../suite/test/suiteHierarchy';
 import { appendGraph, inlineTestGraph } from './inlineTestGraph';

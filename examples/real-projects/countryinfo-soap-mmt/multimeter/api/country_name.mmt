@@ -1,0 +1,27 @@
+type: api
+title: CountryName
+description: Country name for a 2-letter ISO code
+inputs:
+  iso_code: e:country.iso
+outputs:
+  status: status
+  name: "body.soap:Envelope.soap:Body.m:CountryNameResponse.m:CountryNameResult"
+url: e:soap_url
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: '""'
+body:
+  _declaration:
+    _attributes:
+      version: "1.0"
+      encoding: utf-8
+  soap:Envelope:
+    _attributes:
+      xmlns:soap: http://schemas.xmlsoap.org/soap/envelope/
+    soap:Body:
+      CountryName:
+        _attributes:
+          xmlns: http://www.oorsprong.org/websamples.countryinfo
+        sCountryISOCode: i:iso_code

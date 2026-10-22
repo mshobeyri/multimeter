@@ -1,0 +1,23 @@
+type: api
+title: Forecast hourly and daily
+description: Short-range hourly and daily forecast
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+  forecast_days: "3"
+outputs:
+  hourly_time_0: body[hourly][time][0]
+  hourly_temp_0: body[hourly][temperature_2m][0]
+  daily_time_0: body[daily][time][0]
+  daily_max_0: body[daily][temperature_2m_max][0]
+  daily_min_0: body[daily][temperature_2m_min][0]
+url: <<e:forecast_base_url>>/v1/forecast
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  hourly: temperature_2m,precipitation
+  daily: weather_code,temperature_2m_max,temperature_2m_min
+  forecast_days: i:forecast_days
+  timezone: e:timezone
+method: get
+format: json

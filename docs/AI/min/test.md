@@ -28,8 +28,9 @@ steps:
 - Every `call` needs unique `id`
 - Import aliases before calling them
 - Prefer `expect` / `require` **on the call** when validating that step only; use `assert` / `check` steps for cross-step conditions
+- Where values live: env = run config; JSON = fixed catalogs (`${cities.berlin.latitude}`); direct = scenario (dates) — [guide](../../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct)
 - No YAML comments (`#`)
-- Tokens: `e:`, `i:`, `r:`, `c:` (snake_case)
+- Tokens: `e:`, `i:`, `r:`, `c:`, `${alias.path}` (snake_case)
 
 ## Common steps
 

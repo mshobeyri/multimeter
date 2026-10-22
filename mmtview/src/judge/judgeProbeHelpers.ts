@@ -1,5 +1,5 @@
 /** Re-export core probe helpers (SSOT). */
-export type {JudgeModelInfo} from 'mmt-core/judgeProbe';
+export type {JudgeModelInfo} from 'mmt-core/judge/judgeProbe';
 export {
   formatBytes,
   modelMatchesConfigured,
@@ -8,4 +8,4 @@ export {
   probeHeadersForEngine,
   probeUrlForEngine,
   shouldAutoProbeJudge,
-} from 'mmt-core/judgeProbe';
+} from 'mmt-core/judge/judgeProbe';

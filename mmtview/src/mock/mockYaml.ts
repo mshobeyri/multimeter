@@ -1,5 +1,5 @@
-import { yamlToMock, mockToYaml } from 'mmt-core/mockParsePack';
-import { MockData } from 'mmt-core/MockData';
+import { yamlToMock, mockToYaml } from 'mmt-core/parse/mockParsePack';
+import { MockData } from 'mmt-core/data/MockData';
 
 export function canonicalizeMockYaml(content: string): string {
   const mock = yamlToMock(content);

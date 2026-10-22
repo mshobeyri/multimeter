@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 
+import * as fs from 'fs';
 import * as path from 'path';
 
 import * as file from './file';
-import {applyGitCurrentSnapshot} from './gitCommitShort';
+import {installGitCurrentSnapshotProvider} from './gitCommitShort';
 import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
@@ -30,11 +31,16 @@ import {
   formatCurlCommandSet,
   type CurlCertificateOptions,
   type CurlShellKind,
-} from 'mmt-core/curlGenerator';
-import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/NetworkData';
-import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
+} from 'mmt-core/convert/curlGenerator';
+import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/data/NetworkData';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/env/envVarLastUpdate';
+import {buildSmartEnvCliFlags, shellQuoteIfNeeded} from 'mmt-core/env/envCliFlags';
+import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
+import type {EnvPresets, EnvVariable} from 'mmt-core/data/EnvData';
+import {findProjectRootSync} from 'mmt-core/util/fileHelper';
 
 let curlTerminal: vscode.Terminal|null = null;
+let testlightTerminal: vscode.Terminal|null = null;
 
 async function handleRunCurlCommand(
     message: any, document: vscode.TextDocument, mmtProvider: any) {
@@ -132,6 +138,121 @@ function handleLoadWorkspaceState(
     name: message.name,
     value,
   });
+}
+
+function resolveCliProjectRoot(documentPath?: string): string|undefined {
+  if (documentPath) {
+    const fromFile = findProjectRootSync(
+        documentPath, fs.existsSync, path.dirname, path.join);
+    if (fromFile) {
+      return fromFile;
+    }
+  }
+  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
+function resolveEnvFileFlagForCli(projectRoot?: string): string|undefined {
+  if (!projectRoot) {
+    return undefined;
+  }
+  const envRel = vscode.workspace.getConfiguration('multimeter')
+                     .get<string>('workspaceEnvFile', 'multimeter.mmt') ||
+      'multimeter.mmt';
+  const full = path.isAbsolute(envRel) ? envRel : path.join(projectRoot, envRel);
+  if (!fs.existsSync(full)) {
+    return undefined;
+  }
+  if (path.isAbsolute(envRel)) {
+    const rel = path.relative(projectRoot, envRel);
+    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) {
+      return rel.replace(/\\/g, '/');
+    }
+    return envRel;
+  }
+  return envRel.replace(/\\/g, '/');
+}
+
+function workspaceEnvVarsForCli(mmtProvider: any): EnvVariable[] {
+  const stored = mmtProvider.context.workspaceState.get(
+      'multimeter.environment.storage', []);
+  return asEnvVarList(stored).map((raw: any) => {
+    const source =
+        raw?.source === 'file' || raw?.source === 'manual' ||
+            raw?.source === 'runtime' ?
+        raw.source :
+        undefined;
+    return {
+      name: typeof raw?.name === 'string' ? raw.name : String(raw?.name ?? ''),
+      label:
+          typeof raw?.label === 'string' ? raw.label : String(raw?.label ?? ''),
+      value: raw?.value,
+      options: Array.isArray(raw?.options) ? raw.options : [],
+      ...(source ? {source} : {}),
+    };
+  });
+}
+
+function toCliRelativePath(absolutePath: string, root: string): string {
+  const rel = path.relative(root, absolutePath);
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+    return absolutePath.replace(/\\/g, '/');
+  }
+  return rel.replace(/\\/g, '/');
+}
+
+function buildTestlightRunCommand(
+    document: vscode.TextDocument, mmtProvider: any):
+    {command: string; cwd: string}|undefined {
+  const cwd = resolveCliProjectRoot(document.uri.fsPath) ||
+      path.dirname(document.uri.fsPath);
+  const fileArg = shellQuoteIfNeeded(
+      toCliRelativePath(document.uri.fsPath, cwd));
+  const variables = workspaceEnvVarsForCli(mmtProvider);
+  const presets = (mmtProvider.context.workspaceState.get(
+                      'multimeter.environment.presets', {}) ||
+                  {}) as EnvPresets;
+  const envFile = resolveEnvFileFlagForCli(cwd);
+  const flags = buildSmartEnvCliFlags({envFile, variables, presets});
+  const command = flags ? `testlight run ${fileArg} ${flags}` :
+                          `testlight run ${fileArg}`;
+  return {command, cwd};
+}
+
+async function handleRunTestlightCommand(
+    document: vscode.TextDocument, mmtProvider: any) {
+  try {
+    const built = buildTestlightRunCommand(document, mmtProvider);
+    if (!built) {
+      vscode.window.showWarningMessage('No testlight command to run.');
+      return;
+    }
+    const {command: cmd, cwd} = built;
+    await vscode.env.clipboard.writeText(cmd);
+    const exists = !!testlightTerminal &&
+        vscode.window.terminals.some(t => t === testlightTerminal);
+    if (!exists) {
+      testlightTerminal = vscode.window.createTerminal({
+        name: 'Multimeter Testlight',
+        cwd,
+      });
+      const term = testlightTerminal;
+      term.show(true);
+      const delay = (ms: number) =>
+          new Promise<void>(resolve => setTimeout(resolve, ms));
+      await delay(1500);
+      term.sendText(cmd, true);
+      term.show(true);
+    } else {
+      const term = testlightTerminal!;
+      term.show(true);
+      term.sendText(cmd, true);
+      term.show(true);
+    }
+    vscode.window.showInformationMessage(
+        'Testlight command copied. Running in terminal.');
+  } catch (err) {
+    vscode.window.showErrorMessage(`Failed to run testlight: ${err}`);
+  }
 }
 
 
@@ -262,7 +383,7 @@ function getCurlRequest(
     const api = apiParsePack.yamlToAPIStrict(rawText);
     const inputs = resolveCurlInputs(api, message?.inputs);
     const envVars = extractEnvVarsForCurl(mmtProvider);
-    applyGitCurrentSnapshot(path.dirname(document.uri.fsPath));
+    installGitCurrentSnapshotProvider(path.dirname(document.uri.fsPath));
     return resolveApiRequest(api, inputs, envVars);
   } catch {
     return undefined;
@@ -299,19 +420,7 @@ function resolveCurlInputs(api: any, inputsMessage: any): Record<string, any> {
 function extractEnvVarsForCurl(mmtProvider: any): Record<string, any> {
   const envStorage = mmtProvider.context.workspaceState.get(
       'multimeter.environment.storage', []);
-  const envVars: Record<string, any> = {};
-  if (Array.isArray(envStorage)) {
-    for (const item of envStorage) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        envVars[name] = (item as any).value;
-      }
-    }
-  }
-  return envVars;
+  return resolveWorkspaceEnvMap(Array.isArray(envStorage) ? envStorage : []);
 }
 
 function buildCurlCertificateOptions(
@@ -407,6 +516,10 @@ export const messageReceived = async (
       await file.handleLoadDocumentContent(webviewPanel, document, mmtProvider);
       break;
 
+    case 'requestGitSnapshot':
+      file.handleRequestGitSnapshot(message, webviewPanel, document);
+      break;
+
     case 'requestThemeTokens':
       webviewPanel.webview.postMessage(
           buildThemeTokenMessage(
@@ -461,6 +574,9 @@ export const messageReceived = async (
     case 'getSuiteHierarchy': {
       const filename = typeof message?.filename === 'string' ? message.filename : '';
       const leafPrefix = typeof message?.leafPrefix === 'string' && message.leafPrefix ? message.leafPrefix : undefined;
+      const maxDepth = typeof message?.maxDepth === 'number' && Number.isFinite(message.maxDepth) ?
+          message.maxDepth :
+          undefined;
       if (!filename) {
         webviewPanel.webview.postMessage({
           command: 'suiteHierarchyResult',
@@ -474,7 +590,7 @@ export const messageReceived = async (
         const filePath = path.resolve(path.dirname(document.uri.fsPath), filename);
 
         // Fast path: re-stat nested deps only; skip reads/parsing when unchanged.
-        const cachedTree = await peekFreshCachedHierarchy(filePath, leafPrefix);
+        const cachedTree = await peekFreshCachedHierarchy(filePath, leafPrefix, maxDepth);
         if (cachedTree) {
           webviewPanel.webview.postMessage({
             command: 'suiteHierarchyResult',
@@ -535,6 +651,7 @@ export const messageReceived = async (
         const {tree} = await getCachedSuiteHierarchy({
           suiteFilePath: filePath,
           leafPrefix,
+          maxDepth,
           loadRootText: async () => rawText,
           fileLoader,
         });
@@ -673,6 +790,10 @@ export const messageReceived = async (
 
     case 'runCurlCommand':
       await handleRunCurlCommand(message, document, mmtProvider);
+      break;
+
+    case 'runTestlightCommand':
+      await handleRunTestlightCommand(document, mmtProvider);
       break;
 
     case 'startMock':

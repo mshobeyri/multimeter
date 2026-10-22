@@ -2,6 +2,12 @@
 
 The examples are grouped by complexity so new users can start simple and add power only when they need it.
 
+## Real projects
+
+Suites against well-known **public** APIs (no Multimeter echo server). See [`real-projects/`](./real-projects/).
+
+- `real-projects/open-meteo-mmt` — Open-Meteo public APIs ([`multimeter/`](./real-projects/open-meteo-mmt/multimeter/); optional Postman compare beside it)
+
 ## Basic
 
 - `basic/01_simple_api` - run one simple GET API and simple POST APIs.

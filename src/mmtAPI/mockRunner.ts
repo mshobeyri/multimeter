@@ -2,16 +2,17 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as path from 'path';
-import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
+import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/util/fileHelper';
 import * as vscode from 'vscode';
 import * as mmtcore from 'mmt-core';
 import { mockParsePack, mockServer, variableReplacer, MockData as MockDataNS } from 'mmt-core';
-import {dispatchMockHttpRequest} from 'mmt-core/mockDispatch';
-import {buildMockHttpsOptions, getDefaultMockTlsMaterial} from 'mmt-core/mockTlsMaterial';
+import {dispatchMockHttpRequest} from 'mmt-core/mock/mockDispatch';
+import {buildMockHttpsOptions, getDefaultMockTlsMaterial} from 'mmt-core/mock/mockTlsMaterial';
 
 import {onRunFinished, onRunStarted, type RunStatusMenuItem} from '../runStatusBar';
 import {keepMmtEditorSoon} from '../keepEditor';
-import {applyGitCurrentSnapshot} from './gitCommitShort';
+import {installGitCurrentSnapshotProvider} from './gitCommitShort';
+import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
 
 type MockData = MockDataNS.MockData;
 
@@ -153,23 +154,11 @@ function findServerByPort(port: number): string | undefined {
   return undefined;
 }
 
-/** Extract env var dict from workspace environment storage. */
+/** Extract env var dict from workspace environment storage (runtime overlays win). */
 function extractEnvVars(mmtProvider: any): Record<string, any> {
   const envStorage = mmtProvider?.context?.workspaceState?.get(
     'multimeter.environment.storage', []) ?? [];
-  const envVars: Record<string, any> = {};
-  if (Array.isArray(envStorage)) {
-    for (const item of envStorage) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        envVars[name] = (item as any).value;
-      }
-    }
-  }
-  return envVars;
+  return resolveWorkspaceEnvMap(Array.isArray(envStorage) ? envStorage : []);
 }
 
 export async function startMockServer(
@@ -405,11 +394,10 @@ export async function startMockServerFromPath(
     return () => {};
   }
 
-  applyGitCurrentSnapshot(
+  const rawContent = fs.readFileSync(filePath, 'utf-8');
+  installGitCurrentSnapshotProvider(
       findProjectRootSync(filePath, fs.existsSync, path.dirname, path.join)
       || path.dirname(filePath));
-
-  const rawContent = fs.readFileSync(filePath, 'utf-8');
   let processedContent = rawContent;
   try {
     processedContent = await (mmtcore as any).dataImportProcessor.processDataImportsInYaml({

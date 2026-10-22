@@ -2,17 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { xml2js } from "xml-js";
 import { useAccentChrome } from "../shared/useAccentChrome";
-import { beautify } from "mmt-core/markupConvertor";
+import { beautify } from "mmt-core/parse/markupConvertor";
 import {
   findBodyTokenHoverRanges,
   isJsonWithRuntimeTokensValid,
   isXmlWithRuntimeTokensValid,
   type BodyTokenHoverRange,
   type RuntimeTokenValueContext,
-} from "mmt-core/bodyRuntimeTokens";
-import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
-import { wrapTypedTokenAtCursor } from "mmt-core/apiBodyEdit";
-import { normalizeNewlines } from "mmt-core/textLines";
+} from "mmt-core/tokens/bodyRuntimeTokens";
+import { extractPathAtPosition, PathSegment } from "mmt-core/extract/outputExtractor";
+import { wrapTypedTokenAtCursor } from "mmt-core/api-edit/apiBodyEdit";
+import { normalizeNewlines } from "mmt-core/util/textLines";
 import { shouldReplaceLocalEditorValue } from "../text/editorContentSync";
 import TextEditor, { MMT_JSON_LANGUAGE_ID } from "../text/TextEditor";
 import {

@@ -4,7 +4,7 @@ Independent work in a test or suite can run at the same time instead of one requ
 
 **Tests.** `stages:` start together. Use `after` when one stage must wait. A flat `steps:` list still runs in order. See [Test stages](../files/test/stages/index.md).
 
-**Suites.** Files listed together run at the same time. Put `then` between sections when the next group must wait. See [Suite execution](../files/suite/execution.md).
+**Suites.** Files listed together run at the same time. Put `then` between sections when the next group must wait. See [Suite execution](../files/suite/execution.md). Concurrent suite test/api items are capped at **CPU cores × 4** (fallback **8** if the CPU count is unavailable) so a very large parallel group cannot overwhelm the process or target.
 
 ```yaml
 type: suite

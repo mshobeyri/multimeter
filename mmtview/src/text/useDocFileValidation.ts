@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { parseYamlDoc } from "mmt-core/markupConvertor";
+import { parseYamlDoc } from "mmt-core/parse/markupConvertor";
 import { offsetToLineNumber } from "./validator"; // Assuming offsetToLineNumber is available or can be imported
 
 export type MissingDocFileEntry = { path: string; line: number; column: number; message: string };

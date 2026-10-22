@@ -1,0 +1,20 @@
+type: api
+title: Ensemble forecast
+description: Ensemble member temperatures for one day
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+  forecast_days: "1"
+outputs:
+  hourly_time_0: body[hourly][time][0]
+  temp_0: body[hourly][temperature_2m][0]
+url: <<e:ensemble_base_url>>/v1/ensemble
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  hourly: temperature_2m
+  forecast_days: i:forecast_days
+  models: icon_seamless
+  timezone: e:timezone
+method: get
+format: json

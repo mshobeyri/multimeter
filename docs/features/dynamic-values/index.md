@@ -2,7 +2,7 @@
 
 Use built-in **dynamic tokens** anywhere in `url`, `headers`, `body`, `query`, `cookies`, `inputs` defaults, mock-server responses, and test steps. Tokens resolve at runtime from environment variables, declared inputs, random generators, or the current clock/locale.
 
-The single source of truth for token syntax and replacement is `core/src/variableReplacer.ts`. Random generators live in `core/src/Random.ts`; current/time generators in `core/src/Current.ts`.
+The single source of truth for token syntax and replacement is `core/src/tokens/variableReplacer.ts`. Random generators live in `core/src/tokens/Random.ts`; current/time generators in `core/src/tokens/Current.ts`.
 
 ## In this section
 
@@ -84,8 +84,8 @@ url: <<e:api_url>>/users
 headers:
   X-Request-Id: req-<<r:uuid>>
   X-Sent-At: <<c:date>>T<<c:time>>
-  X-Git-Commit: <<c:git_commit>>
-  X-Git-Branch: <<c:git_branch>>
+  X-Git-Commit: <<c:commit_short>>
+  X-Git-Branch: <<c:branch>>
 body:
   username: i:username
   email: i:email

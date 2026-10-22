@@ -1,4 +1,4 @@
-import type { ReportFormat } from 'mmt-core/CommonData';
+import type { ReportFormat } from 'mmt-core/data/CommonData';
 import type { SendButtonMenuEntry } from '../components/SendButton';
 
 export const REPORT_EXPORT_FORMATS: readonly { value: ReportFormat; label: string }[] = [
@@ -10,16 +10,19 @@ export const REPORT_EXPORT_FORMATS: readonly { value: ReportFormat; label: strin
 ];
 
 /**
- * Run ▾ menu for test/suite: Pause/Resume first, then primary actions, then
- * Export formats (same heading pattern as body format RAW / YAML-encoded).
+ * Run ▾ menu for test/suite: Pause (or Stop when paused) first, then primary
+ * actions, then Export formats (same heading pattern as body format RAW /
+ * YAML-encoded). Resume lives on the main SendButton when paused.
  */
 export function buildReportRunMenuEntries(opts: {
   onRunInCore: () => void | Promise<void>;
   runInCoreDisabled?: boolean;
-  /** When set, Pause/Resume is the first menu item. */
+  /** When set with onStop, Pause/Stop is the first menu item. */
   onPause?: () => void;
-  onResume?: () => void;
-  /** True while the active run is paused (menu shows Resume). */
+  onStop?: () => void;
+  /** Label for Stop in the menu while paused. */
+  stopLabel?: string;
+  /** True while the active run is paused (menu shows Stop; Resume is on the main button). */
   paused?: boolean;
   /** True while a run is in progress (enables Pause). */
   canPause?: boolean;
@@ -29,14 +32,22 @@ export function buildReportRunMenuEntries(opts: {
   exportDisabled?: boolean;
 }): SendButtonMenuEntry[] {
   const entries: SendButtonMenuEntry[] = [];
-  if (opts.onPause && opts.onResume) {
+  if (opts.onPause) {
     const paused = opts.paused === true;
-    entries.push({
-      label: paused ? 'Resume' : 'Pause',
-      icon: paused ? 'codicon-debug-continue' : 'codicon-debug-pause',
-      disabled: paused ? false : opts.canPause !== true,
-      onClick: paused ? opts.onResume : opts.onPause,
-    });
+    if (paused && opts.onStop) {
+      entries.push({
+        label: opts.stopLabel || 'Stop',
+        icon: 'codicon-debug-stop',
+        onClick: opts.onStop,
+      });
+    } else if (!paused) {
+      entries.push({
+        label: 'Pause',
+        icon: 'codicon-debug-pause',
+        disabled: opts.canPause !== true,
+        onClick: opts.onPause,
+      });
+    }
   }
   entries.push(
     {
@@ -46,6 +57,13 @@ export function buildReportRunMenuEntries(opts: {
       onClick: () => {
         window.vscode?.postMessage({ command: 'showLogOutputChannel' });
         void opts.onRunInCore();
+      },
+    },
+    {
+      label: 'Run in testlight',
+      icon: 'codicon-terminal',
+      onClick: () => {
+        window.vscode?.postMessage({ command: 'runTestlightCommand' });
       },
     },
     {

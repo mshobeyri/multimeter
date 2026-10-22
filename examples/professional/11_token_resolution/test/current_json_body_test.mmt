@@ -12,12 +12,11 @@ steps:
       epoch_seconds: > 1700000000
       city: != null
       git_branch: != null
-      git_commit: =* ^([0-9a-f]{8})?$
-      git_commit_hash: =* ^([0-9a-f]{7,40})?$
+      git_commit: =* ^([0-9a-f]{40})?$
+      git_commit_short: =* ^([0-9a-f]{8})?$
       git_tag: != null
       git_describe: != null
       git_dirty: != null
-      commit_alias: c:git_commit
       missing_token: "c:not_a_token"
       literal_token: "c:day"
       literal_omit: "omit"
@@ -31,4 +30,3 @@ steps:
       curly_whole: "!= null"
       text_slice: "=# 1"
       missing_embed: "xc:not_a_tokeny"
-  - check: ${call.commit_alias} == ${call.git_commit}

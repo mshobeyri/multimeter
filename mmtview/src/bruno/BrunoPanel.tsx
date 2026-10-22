@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useMemo } from "react";
-import type { BrunoSourceFile } from "mmt-core/brunoParsePack";
-import { brunoCollectionToTest, brunoToTest, isBrunoCollectionFilePath } from "mmt-core/brunoParsePack";
-import { listSpecApisFromFiles } from "mmt-core/importConvertor";
+import type { BrunoSourceFile } from "mmt-core/parse/brunoParsePack";
+import { brunoCollectionToTest, brunoToTest, isBrunoCollectionFilePath } from "mmt-core/parse/brunoParsePack";
+import { listSpecApisFromFiles } from "mmt-core/convert/importConvertor";
 import { FileContext } from "../fileContext";
 import SourceKindPanel from "../source/SourceKindPanel";
 

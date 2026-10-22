@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { DocData } from "mmt-core/DocData";
+import { DocData } from "mmt-core/data/DocData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import KSVEditor from "../components/KSVEditor";

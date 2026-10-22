@@ -1,0 +1,20 @@
+type: test
+title: FullCountryInfo — France
+import:
+  countries: +/countries.json
+  api: +/api/full_country_info.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.fr.iso}
+    expect:
+      status: 200
+      iso: ${countries.fr.iso}
+      name: ${countries.fr.name}
+      capital: ${countries.fr.capital}
+      phone: ${countries.fr.phone}
+      continent: ${countries.fr.continent}
+      currency: ${countries.fr.currency}
+      flag: ${countries.fr.flag}
+      language: ${countries.fr.language}
+    report: all

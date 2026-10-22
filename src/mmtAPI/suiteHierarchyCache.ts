@@ -2,9 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import {suiteHierarchy} from 'mmt-core';
-import {findProjectRootSync} from 'mmt-core/fileHelper';
-import type {FileLoader} from 'mmt-core/runConfig';
-import type {SuiteHierarchyTree} from 'mmt-core/SuiteData';
+import {findProjectRootSync} from 'mmt-core/util/fileHelper';
+import type {FileLoader} from 'mmt-core/runner/runConfig';
+import type {SuiteHierarchyTree} from 'mmt-core/data/SuiteData';
 
 export type {SuiteHierarchyTree};
 
@@ -18,8 +18,11 @@ type CacheEntry = {
 
 const hierarchyCache = new Map<string, CacheEntry>();
 
-function cacheKey(suiteFilePath: string, leafPrefix?: string): string {
-  return `${suiteFilePath}\0${leafPrefix || ''}`;
+function cacheKey(suiteFilePath: string, leafPrefix?: string, maxDepth?: number): string {
+  const depthKey = typeof maxDepth === 'number' && Number.isFinite(maxDepth) ?
+      String(maxDepth) :
+      'full';
+  return `${suiteFilePath}\0${leafPrefix || ''}\0${depthKey}`;
 }
 
 /**
@@ -81,10 +84,11 @@ async function readCacheIfFresh(key: string): Promise<SuiteHierarchyTree|undefin
   return hit.tree;
 }
 
-/** Return a fresh cached tree for path+prefix, or undefined if missing/stale. */
+/** Return a fresh cached tree for path+prefix(+depth), or undefined if missing/stale. */
 export async function peekFreshCachedHierarchy(
-    suiteFilePath: string, leafPrefix?: string): Promise<SuiteHierarchyTree|undefined> {
-  return readCacheIfFresh(cacheKey(suiteFilePath, leafPrefix));
+    suiteFilePath: string, leafPrefix?: string,
+    maxDepth?: number): Promise<SuiteHierarchyTree|undefined> {
+  return readCacheIfFresh(cacheKey(suiteFilePath, leafPrefix, maxDepth));
 }
 
 function storeCache(
@@ -126,6 +130,7 @@ export async function getCachedTestHierarchyNode(params: {
 /**
  * Build (or reuse) a suite hierarchy. Nested imports are tracked via the
  * fileLoader; any mtime/open-doc stamp change among those paths forces rebuild.
+ * `maxDepth` is part of the cache key so shallow UI loads never poison full trees.
  */
 export async function getCachedSuiteHierarchy(params: {
   suiteFilePath: string;
@@ -133,8 +138,9 @@ export async function getCachedSuiteHierarchy(params: {
   loadRootText: () => Promise<string>;
   fileLoader: FileLoader;
   projectRoot?: string;
+  maxDepth?: number;
 }): Promise<{tree: SuiteHierarchyTree; fromCache: boolean}> {
-  const key = cacheKey(params.suiteFilePath, params.leafPrefix);
+  const key = cacheKey(params.suiteFilePath, params.leafPrefix, params.maxDepth);
   const cached = await readCacheIfFresh(key);
   if (cached) {
     return {tree: cached, fromCache: true};
@@ -158,6 +164,7 @@ export async function getCachedSuiteHierarchy(params: {
     leafPrefix: params.leafPrefix,
     fileLoader: trackingLoader,
     projectRoot,
+    maxDepth: params.maxDepth,
   });
 
   const paths = Array.from(depPaths);

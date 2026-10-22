@@ -5,10 +5,10 @@ import {
   expectMapToUiRows,
   type ExpectUiRow,
   uiRowsToExpectMap,
-} from "mmt-core/expectUi";
-import { REQUEST_FORMAT_VALUES, RequestFormat, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
-import { resolveRequestFormat } from "mmt-core/formatResolve";
-import { bodyEditTokenTemplate, saveEditorBody } from "mmt-core/apiBodyEdit";
+} from "mmt-core/api-edit/expectUi";
+import { REQUEST_FORMAT_VALUES, RequestFormat, RESPONSE_FORMAT_VALUES, ResponseFormat, requestFormat, responseFormat, packFormatSpec } from "mmt-core/data/CommonData";
+import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
+import { bodyEditTokenTemplate, saveEditorBody } from "mmt-core/api-edit/apiBodyEdit";
 import KSVEditor from "../components/KSVEditor";
 import FilePickerInput from "../components/FilePickerInput";
 import StableTextInput, { StableTextArea } from "../components/StableTextInput";

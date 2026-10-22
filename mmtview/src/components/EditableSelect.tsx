@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { safeList } from "mmt-core/safer";
+import { safeList } from "mmt-core/util/safer";
 
 interface EditableSelectProps {
   value: string;

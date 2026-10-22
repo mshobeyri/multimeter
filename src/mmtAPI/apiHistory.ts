@@ -1,7 +1,7 @@
 import type {HistoryItem, HistoryManager} from '../historyManager';
 
 function bodyToHistoryContent(body: unknown): string {
-  if (body == null || body === '') {
+  if (body === null || body === undefined || body === '') {
     return '';
   }
   if (typeof body === 'string') {

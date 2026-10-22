@@ -6,8 +6,8 @@ export type TokenDisplayMode = "tokens" | "resolved";
 export type TokenModeState = {
   mode: TokenDisplayMode;
   /**
-   * Bumps when frozen `r:` field-preview samples should regenerate
-   * (telescope on, Send).
+   * Bumps when frozen r:/c: field-preview samples are re-seeded
+   * (open, telescope on, or Send — including when telescope is off).
    */
   previewEpoch: number;
 };

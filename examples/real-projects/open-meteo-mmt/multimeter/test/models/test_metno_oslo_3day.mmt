@@ -1,0 +1,22 @@
+type: test
+title: MET Norway — Oslo 3 days
+import:
+  cities: +/cities.json
+  api: +/api/model_metno.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.oslo.latitude}
+      longitude: ${cities.oslo.longitude}
+      forecast_days: "3"
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      resp_latitude:
+        - >= 55
+        - <= 65
+      resp_longitude:
+        - >= 5
+        - <= 15
+      hourly_count: >=# 72
+    report: all

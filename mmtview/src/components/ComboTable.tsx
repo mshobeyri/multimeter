@@ -1,6 +1,6 @@
 import React from "react";
-import { safeList } from "mmt-core/safer";
-import { JSONValue } from "mmt-core/CommonData";
+import { safeList } from "mmt-core/util/safer";
+import { JSONValue } from "mmt-core/data/CommonData";
 
 interface ComboTableOption {
   label: string;

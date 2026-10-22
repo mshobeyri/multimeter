@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import type { BrunoSourceFile } from "mmt-core/brunoParsePack";
-import { listSpecApis, listSpecApisFromFiles } from "mmt-core/importConvertor";
+import type { BrunoSourceFile } from "mmt-core/parse/brunoParsePack";
+import { listSpecApis, listSpecApisFromFiles } from "mmt-core/convert/importConvertor";
 import { FileContext } from "../fileContext";
 import SourceKindPanel from "../source/SourceKindPanel";
 

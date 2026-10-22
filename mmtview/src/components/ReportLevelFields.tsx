@@ -1,5 +1,5 @@
 import React from "react";
-import { ReportConfig, ReportLevel } from "mmt-core/TestData";
+import { ReportConfig, ReportLevel } from "mmt-core/data/TestData";
 
 export type ReportValue = ReportLevel | ReportConfig | undefined;
 

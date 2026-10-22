@@ -2,6 +2,8 @@
 
 Use `assert` when a failed comparison must **stop the test flow**. Syntax, [operators](../operators.md), and [report](../reports.md#report-levels-all-fails-none) options are identical to [check](./check.md) — only the failure behavior differs.
 
+Prefer call [`require`](./call.md#require) (or soft [`expect`](./call.md#expect)) when the comparison only uses **that call’s** outputs. Keep standalone `assert` / `check` for **two different** values. See [Prefer accurate expects](../operators.md#prefer-accurate-expects-not-only--null).
+
 | Step | On failure |
 |------|------------|
 | [check](./check.md) | Log and report; continue |
@@ -21,8 +23,8 @@ Object form (same fields as check):
 ```yaml
 - assert:
     actual: ${doLogin.status}
-    expected: 200
     operator: "=="
+    expected: 200
     title: Login status
     report: fails
 ```

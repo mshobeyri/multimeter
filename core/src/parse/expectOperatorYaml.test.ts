@@ -1,0 +1,261 @@
+import * as YAML from 'yaml';
+import {EXPECT_OPERATOR_SAMPLES} from './expectOperatorSamples';
+import { emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators } from './expectOperatorYaml';
+import {opsList} from '../data/TestData';
+
+describe('expectOperatorYaml', () => {
+  it('quotes !^ operator in expect block', () => {
+    const yaml = 'expect:\n  path: !^ /start';
+    expect(quoteExpectOperators(yaml)).toContain('path: "!^ /start"');
+  });
+
+  it('quotes !^ operator in require block', () => {
+    const yaml = 'require:\n  path: !^ /start';
+    expect(quoteExpectOperators(yaml)).toContain('path: "!^ /start"');
+  });
+
+  it('quotes >% and fuzzy-percent operators in expect block', () => {
+    expect(quoteExpectOperators('expect:\n  name: >% Jon')).toContain('name: ">% Jon"');
+    expect(quoteExpectOperators('expect:\n  name: >75% Jon')).toContain('name: ">75% Jon"');
+  });
+
+  it('quotes != on Windows CRLF line endings (`.` does not match \\r)', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - http: https://test.mmt.dev/echo',
+      '    expect:',
+      '      status: != 200',
+      '      body.body.message: hello',
+    ].join('\r\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('status: "!= 200"');
+    expect(quoted.includes('\r\n')).toBe(true);
+    const doc = YAML.parse(quoted);
+    expect(doc.steps[0].expect.status).toBe('!= 200');
+    expect(doc.steps[0].expect['body.body.message']).toBe('hello');
+  });
+
+  it('preserves CRLF when no expect operators need quoting', () => {
+    const yaml = [
+      'type: api',
+      'method: post',
+      'examples:',
+      '  - name: example1',
+    ].join('\r\n');
+    expect(quoteExpectOperators(yaml)).toBe(yaml);
+  });
+
+  it('quotes != on legacy CR-only line endings', () => {
+    const yaml = 'expect:\r  status: != 200\r';
+    expect(quoteExpectOperators(yaml)).toContain('status: "!= 200"');
+  });
+
+  it('quotes operator fields and emits bang ops with CRLF input', () => {
+    const yaml = [
+      'steps:',
+      '  - check:',
+      '      actual: 1',
+      '      operator: !=',
+      '      expected: 2',
+      '  - call: api',
+      '    expect:',
+      '      status: "!= 201"',
+    ].join('\r\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('operator: "!="');
+    const emitted = emitUnquotedOperators(quoted);
+    expect(emitted).toContain('operator: !=');
+    expect(emitted).toContain('status: != 201');
+  });
+
+  it('filters operator tag errors when the source uses CRLF', () => {
+    const yaml = [
+      'type: test',
+      'expect:',
+      '  path: !^ /start',
+    ].join('\r\n');
+    const doc = YAML.parseDocument(yaml);
+    expect(doc.errors.length).toBeGreaterThan(0);
+    expect(filterOperatorYamlErrors(yaml, doc.errors)).toEqual([]);
+  });
+
+  it('quotes != and !* for dotted, hyphenated, and bracket keys', () => {
+    const yaml = [
+      'expect:',
+      '  _.status: != 100',
+      '  Content-Type: != text/plain',
+      '  body.items[0]: !* /fail/',
+    ].join('\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('_.status: "!= 100"');
+    expect(quoted).toContain('Content-Type: "!= text/plain"');
+    expect(quoted).toContain('body.items[0]: "!* /fail/"');
+  });
+
+  it('emits unquoted bang-operators from form serialization', () => {
+    const yaml = [
+      'steps:',
+      '  - call: api',
+      '    expect:',
+      '      status:',
+      '        - "!= 201"',
+      '        - "!* 1.*"',
+      '  - check:',
+      '      actual: 1',
+      '      operator: "!="',
+      '      expected: 2',
+    ].join('\n');
+    const emitted = emitUnquotedOperators(yaml);
+    expect(emitted).toContain('- != 201');
+    expect(emitted).toContain('- !* 1.*');
+    expect(emitted).toContain('operator: !=');
+    expect(emitted).not.toContain('operator: "!="');
+  });
+
+  it('emits unquoted block-scalar operators (pre-quoted again on parse)', () => {
+    const yaml = 'expect:\n  count: "> 0"\n  year: ">= 2026"\nsteps:\n  - check:\n      operator: ">"\n      actual: x\n      expected: 1';
+    const emitted = emitUnquotedOperators(yaml);
+    expect(emitted).toContain('count: > 0');
+    expect(emitted).toContain('year: >= 2026');
+    expect(emitted).toContain('operator: >');
+    expect(emitted).not.toContain('count: "> 0"');
+    expect(emitted).not.toContain('year: ">= 2026"');
+    expect(emitted).not.toContain('operator: ">"');
+  });
+
+  describe('emits each operator unquoted from a double-quoted scalar', () => {
+    it.each(EXPECT_OPERATOR_SAMPLES)(
+        'expect value $op → $value',
+        ({value}) => {
+          const yaml = `expect:\n  field: "${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+          const emitted = emitUnquotedOperators(yaml);
+          expect(emitted).toContain(`field: ${value}`);
+          expect(emitted).not.toContain(`field: "${value}"`);
+        },
+    );
+
+    it.each(opsList)('operator field %s', (op) => {
+      const yaml = [
+        'steps:',
+        '  - check:',
+        `      operator: "${op}"`,
+        '      actual: x',
+        '      expected: 1',
+      ].join('\n');
+      const emitted = emitUnquotedOperators(yaml);
+      expect(emitted).toContain(`operator: ${op}`);
+      expect(emitted).not.toContain(`operator: "${op}"`);
+    });
+  });
+
+  it('quotes operator field on check/assert object forms', () => {
+    const yaml = [
+      'steps:',
+      '  - check:',
+      '      actual: 1',
+      '      operator: !=',
+      '      expected: 2',
+      '  - assert:',
+      '      actual: x',
+      '      operator: !*',
+      '      expected: /fail/',
+    ].join('\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('operator: "!="');
+    expect(quoted).toContain('operator: "!*"');
+  });
+
+  it('filters YAML tag errors caused by operator fields on quoted lines', () => {
+    const yaml = 'type: test\nsteps:\n  - check:\n      actual: 1\n      operator: !=\n      expected: 2';
+    const doc = YAML.parseDocument(yaml);
+    expect((doc.warnings || []).length + doc.errors.length).toBeGreaterThan(0);
+    expect(filterOperatorYamlErrors(yaml, [...doc.errors, ...(doc.warnings || [])])).toEqual([]);
+  });
+
+  it('filters YAML tag errors caused by operators on quoted lines', () => {
+    const yaml = 'type: test\nexpect:\n  path: !^ /start';
+    const doc = YAML.parseDocument(yaml);
+    expect(doc.errors.length).toBeGreaterThan(0);
+    expect(filterOperatorYamlErrors(yaml, doc.errors)).toEqual([]);
+  });
+
+  it('keeps unrelated YAML errors', () => {
+    const yaml = 'type: test\nexpect:\n  path: !^ /start\nbad: [';
+    const doc = YAML.parseDocument(yaml);
+    const filtered = filterOperatorYamlErrors(yaml, doc.errors);
+    expect(filtered.length).toBeGreaterThan(0);
+    expect(filtered.some(error => String(error.message).includes('path: !^'))).toBe(false);
+  });
+
+  it('quotes a comparison that follows a quoted scalar on condition/check', () => {
+    const yaml = [
+      'stages:',
+      '  - id: settings',
+      "    condition: 'id:profile' == 200",
+      '    after: auth',
+      'steps:',
+      '  - check: "id:profile" == 200',
+    ].join('\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('condition: "\'id:profile\' == 200"');
+    const doc = YAML.parse(quoted) as any;
+    expect(doc.stages[0].condition).toBe("'id:profile' == 200");
+    expect(doc.steps[0].check).toBe('"id:profile" == 200');
+    expect(YAML.parseDocument(yaml).errors.length).toBeGreaterThan(0);
+    expect(YAML.parseDocument(quoted).errors).toEqual([]);
+  });
+
+  it('quotes bang operators inside mock match blocks', () => {
+    const yaml = [
+      'type: server',
+      'endpoints:',
+      '  - method: post',
+      '    path: /health',
+      '    match:',
+      '      body:',
+      '        xxx: != salam',
+      '        nested.path: !C error',
+      '      headers:',
+      '        authorization: !^ Basic',
+      '      query:',
+      '        mode: != sandbox',
+    ].join('\n');
+    const quoted = quoteExpectOperators(yaml);
+    expect(quoted).toContain('xxx: "!= salam"');
+    expect(quoted).toContain('nested.path: "!C error"');
+    expect(quoted).toContain('authorization: "!^ Basic"');
+    expect(quoted).toContain('mode: "!= sandbox"');
+    const doc = YAML.parse(quoted) as any;
+    expect(doc.endpoints[0].match.body.xxx).toBe('!= salam');
+    expect(doc.endpoints[0].match.headers.authorization).toBe('!^ Basic');
+  });
+
+  it('emits unquoted bang operators from mock match blocks', () => {
+    const yaml = [
+      'type: server',
+      'endpoints:',
+      '  - match:',
+      '      body:',
+      '        xxx: "!= salam"',
+    ].join('\n');
+    const emitted = emitUnquotedOperators(yaml);
+    expect(emitted).toContain('xxx: != salam');
+    expect(emitted).not.toContain('"!= salam"');
+  });
+
+  it('unquotes expect lines and filters empty operator diagnostics', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - http: https://x',
+      '    expect:',
+      '      status: "== 200"',
+      '    require:',
+      '      body: "!= null"',
+    ].join('\n');
+    const emitted = emitUnquotedOperators(yaml);
+    expect(emitted).toContain('body: != null');
+    expect(filterOperatorYamlErrors('status: == 200', [])).toEqual([]);
+  });
+});

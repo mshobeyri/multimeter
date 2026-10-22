@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { DocData } from 'mmt-core/DocData';
-import { docToYaml, yamlToDoc } from 'mmt-core/docParsePack';
+import { DocData } from 'mmt-core/data/DocData';
+import { docToYaml, yamlToDoc } from 'mmt-core/parse/docParsePack';
 import DocOverview from './DocOverview';
 import DocSource from './DocSource';
 import DocViewHTML from './DocViewHTML';

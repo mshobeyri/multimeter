@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useCallback, useState } from "react";
-import { MockData, MockEndpoint } from "mmt-core/MockData";
-import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
-import { parseYaml } from "mmt-core/markupConvertor";
+import { MockData, MockEndpoint } from "mmt-core/data/MockData";
+import { resolveEnvTokenValues } from "mmt-core/tokens/variableReplacer";
+import { parseYaml } from "mmt-core/parse/markupConvertor";
 import { loadEnvVariables } from "../workspaceStorage";
 import MockOverview from "./MockOverview";
 import MockEndpoints from "./MockEndpoints";

@@ -1,0 +1,20 @@
+type: test
+title: Geocode search — Berlin
+import:
+  api: +/api/geocode_search.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      name: Berlin
+      count: "1"
+    expect:
+      place_name: =C Berlin
+      latitude:
+        - >= 50
+        - <= 55
+      longitude:
+        - >= 10
+        - <= 15
+      id: != null
+    report: all

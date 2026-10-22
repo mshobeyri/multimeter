@@ -1,5 +1,5 @@
 import React from "react";
-import { MockEndpoint } from "mmt-core/MockData";
+import { MockEndpoint } from "mmt-core/data/MockData";
 import { KebabMenu } from "../components/PopupMenu";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput, { StableTextArea } from "../components/StableTextInput";

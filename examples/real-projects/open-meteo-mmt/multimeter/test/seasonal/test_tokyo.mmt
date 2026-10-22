@@ -1,0 +1,17 @@
+type: test
+title: Seasonal — Tokyo
+import:
+  cities: +/cities.json
+  api: +/api/seasonal.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.tokyo.latitude}
+      longitude: ${cities.tokyo.longitude}
+    expect:
+      monthly_time_0: =40d~ <<c:date>>
+      monthly_temp_0:
+        - >= -80
+        - <= 60
+    report: all

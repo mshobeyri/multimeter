@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-type ActiveDecoration = {runId: string; label: string};
+type ActiveDecoration = {runId: string; label: string; paused?: boolean};
 
 const byUri = new Map<string, ActiveDecoration[]>();
 const uriByRunId = new Map<string, vscode.Uri>();
@@ -23,10 +23,12 @@ export function registerRunFileDecoration(
             return undefined;
           }
           const latest = runs[runs.length - 1];
+          const paused = latest.paused === true;
           return {
-            badge: '▶',
-            tooltip: latest.label,
-            color: new vscode.ThemeColor('debugIcon.startForeground'),
+            badge: paused ? '⏸' : '▷',
+            tooltip: paused ? `Paused — ${latest.label}` : latest.label,
+            color: new vscode.ThemeColor(
+                paused ? 'charts.yellow' : 'debugIcon.startForeground'),
           };
         },
       }),
@@ -41,8 +43,26 @@ export function decorateRunStarted(
   const key = uri.toString();
   uriByRunId.set(runId, uri);
   const list = byUri.get(key) ?? [];
-  list.push({runId, label});
+  list.push({runId, label, paused: false});
   byUri.set(key, list);
+  onDidChange.fire(uri);
+}
+
+/** Switch the tab/explorer run badge between play (▷) and pause (⏸). */
+export function decorateRunPaused(runId: string, paused: boolean): void {
+  const uri = uriByRunId.get(runId);
+  if (!uri) {
+    return;
+  }
+  const list = byUri.get(uri.toString());
+  if (!list) {
+    return;
+  }
+  const entry = list.find(r => r.runId === runId);
+  if (!entry || entry.paused === paused) {
+    return;
+  }
+  entry.paused = paused;
   onDidChange.fire(uri);
 }
 

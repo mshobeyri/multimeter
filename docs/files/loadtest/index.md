@@ -25,7 +25,7 @@ See also: [Flow chart](../../features/flow-chart.md)
 | Control | What it does |
 |---|---|
 | {{btn:play:Run load test}} / **Stop load test** | Start or stop the load run |
-| **More** (chevron next to Run) | **Run in Core** |
+| **More** (chevron next to Run) | **Run in Core**, **Run in testlight** (opens a terminal with `testlight run <file> …` plus workspace env flags), **Clear** |
 | {{btn:export:Export}} | Export the load report (HTML, Markdown, MMT, or JUnit XML). Disabled until a run completes |
 
 ### Before and after a run

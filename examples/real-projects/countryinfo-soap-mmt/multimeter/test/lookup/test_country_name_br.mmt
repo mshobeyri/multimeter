@@ -1,0 +1,13 @@
+type: test
+title: CountryName — Brazil
+import:
+  countries: +/countries.json
+  api: +/api/country_name.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.br.iso}
+    expect:
+      status: 200
+      name: ${countries.br.name}
+    report: all

@@ -1,5 +1,5 @@
 import {parseDocument} from 'yaml';
-import {parseYamlDoc} from 'mmt-core/markupConvertor';
+import {parseYamlDoc} from 'mmt-core/parse/markupConvertor';
 import {
   extractEnvRefSites,
   extractExampleLineInfo,

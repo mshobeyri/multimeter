@@ -1,6 +1,6 @@
 import * as mmtcore from 'mmt-core';
 import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
-import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
+import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/runner/jsRunner';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import YAML from 'yaml';

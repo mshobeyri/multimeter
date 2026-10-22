@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.45/dist/codicon.css">
+</head>
+
+<body>
+    <div id="cache-panel">
+        <div id="cache-list"></div>
+    </div>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+            font-size: 12px;
+            color: var(--vscode-foreground, #ccc);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #cache-panel {
+            padding: 8px;
+        }
+
+        #cache-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--vscode-descriptionForeground, #888);
+        }
+
+        .empty-state .codicon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .cache-row {
+            padding: 7px 8px;
+            border-radius: 4px;
+        }
+
+        .cache-row:hover {
+            background: var(--vscode-list-hoverBackground, #2a2d2e);
+        }
+
+        .cache-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .cache-title {
+            flex: 1;
+            min-width: 0;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--vscode-foreground, #ccc);
+            cursor: default;
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+            text-align: left;
+        }
+
+        .cache-title.is-openable {
+            color: var(--vscode-textLink-foreground, #3794ff);
+            cursor: pointer;
+        }
+
+        .cache-title.is-openable:hover {
+            text-decoration: underline;
+            color: var(--vscode-textLink-activeForeground, #3794ff);
+        }
+
+        .cache-title.is-openable:focus-visible {
+            outline: 1px solid var(--vscode-focusBorder, #007acc);
+            outline-offset: 1px;
+        }
+
+        .cache-header-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        .kind-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 4px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .kind-badge.test-call {
+            background: rgba(51, 153, 255, 0.2);
+            color: #3399ff;
+        }
+
+        .kind-badge.live-env {
+            background: rgba(102, 187, 106, 0.2);
+            color: #66bb6a;
+        }
+
+        .cache-remaining {
+            font-variant-numeric: tabular-nums;
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground, #888);
+            min-width: 3.5em;
+            text-align: right;
+        }
+
+        .cache-payload {
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .payload-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            width: 100%;
+            padding: 3px 4px;
+            margin: 0;
+            border: none;
+            border-radius: 3px;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .payload-row:hover {
+            background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.06));
+        }
+
+        .payload-row:focus-visible {
+            outline: 1px solid var(--vscode-focusBorder, #007acc);
+        }
+
+        .payload-chevron {
+            flex-shrink: 0;
+            width: 14px;
+            opacity: 0.7;
+            line-height: 16px;
+        }
+
+        .payload-label {
+            flex-shrink: 0;
+            width: 28px;
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground, #888);
+            line-height: 16px;
+        }
+
+        .payload-preview {
+            flex: 1;
+            min-width: 0;
+            font-family: var(--vscode-editor-font-family, monospace);
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground, #888);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 16px;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .payload-block {
+            display: none;
+            margin: 0 0 4px 20px;
+            padding: 6px 8px;
+            border-radius: 3px;
+            background: var(--vscode-textCodeBlock-background, rgba(0, 0, 0, 0.25));
+            font-family: var(--vscode-editor-font-family, monospace);
+            font-size: 11px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--vscode-foreground, #ccc);
+            user-select: text;
+            -webkit-user-select: text;
+            max-height: 220px;
+            overflow: auto;
+        }
+
+        .payload-row.is-open + .payload-block {
+            display: block;
+        }
+
+        .payload-row.is-open .payload-preview {
+            display: none;
+        }
+
+        @media (max-width: 300px) {
+            body {
+                overflow-x: auto;
+                min-width: 300px;
+            }
+        }
+    </style>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        let entries = [];
+        let serverNow = Date.now();
+        let receivedAt = Date.now();
+        /** Persist expand state across refreshes: stableKey → {in, out}. */
+        const expanded = new Map();
+        let lastStructureKey = '';
+
+        const listEl = document.getElementById('cache-list');
+
+        window.addEventListener('message', (event) => {
+            const message = event.data;
+            if (message.command === 'multimeter.cache.refresh') {
+                entries = Array.isArray(message.entries) ? message.entries : [];
+                serverNow = typeof message.now === 'number' ? message.now : Date.now();
+                receivedAt = Date.now();
+                const structureKey = entriesStructureKey(entries);
+                if (structureKey !== lastStructureKey) {
+                    lastStructureKey = structureKey;
+                    render();
+                } else {
+                    updateRemainingOnly();
+                }
+            }
+        });
+
+        // Stable delegation — survives 1s polls that only touch remaining times.
+        listEl.addEventListener('click', (event) => {
+            const title = event.target.closest('.cache-title.is-openable');
+            if (title && listEl.contains(title)) {
+                event.preventDefault();
+                const index = Number(title.getAttribute('data-index'));
+                openEntryFile(index);
+                return;
+            }
+            const payload = event.target.closest('.payload-row');
+            if (payload && listEl.contains(payload)) {
+                event.preventDefault();
+                const index = Number(payload.getAttribute('data-index'));
+                const field = payload.getAttribute('data-field');
+                if ((field === 'in' || field === 'out') && Number.isFinite(index)) {
+                    togglePayload(index, field);
+                }
+            }
+        });
+
+        listEl.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            const title = event.target.closest('.cache-title.is-openable');
+            if (title && listEl.contains(title)) {
+                event.preventDefault();
+                openEntryFile(Number(title.getAttribute('data-index')));
+            }
+        });
+
+        function formatRemaining(ms) {
+            if (typeof ms !== 'number' || !Number.isFinite(ms) || ms <= 0) {
+                return '0s';
+            }
+            const totalSec = Math.ceil(ms / 1000);
+            if (totalSec < 60) {
+                return totalSec + 's';
+            }
+            const minutes = Math.floor(totalSec / 60);
+            const seconds = totalSec % 60;
+            if (minutes < 60) {
+                return minutes + 'm ' + seconds + 's';
+            }
+            const hours = Math.floor(minutes / 60);
+            return hours + 'h ' + (minutes % 60) + 'm';
+        }
+
+        function prettyJson(value) {
+            if (value === undefined) {
+                return 'undefined';
+            }
+            try {
+                return JSON.stringify(value, null, 2);
+            } catch {
+                return String(value);
+            }
+        }
+
+        function oneLineJson(value) {
+            if (value === undefined) {
+                return '';
+            }
+            try {
+                const text = JSON.stringify(value);
+                if (text.length <= 100) {
+                    return text;
+                }
+                return text.slice(0, 97) + '...';
+            } catch {
+                return String(value);
+            }
+        }
+
+        function escapeHtml(text) {
+            return String(text ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function remainingFor(entry) {
+            const skew = Date.now() - receivedAt;
+            const base = typeof entry.remainingMs === 'number'
+                ? entry.remainingMs
+                : (entry.expiresAt - serverNow);
+            return base - skew;
+        }
+
+        function stableKey(entry) {
+            return [
+                entry.kind || '',
+                entry.title || entry.name || '',
+                entry.filePath || '',
+                oneLineJson(entry.inputs || {}),
+                oneLineJson(entry.kind === 'live-env' ? entry.value : entry.outputs),
+            ].join('|');
+        }
+
+        function entriesStructureKey(list) {
+            return list.map(stableKey).join('\n');
+        }
+
+        function openEntryFile(index) {
+            const entry = entries[index];
+            const filePath = entry && typeof entry.filePath === 'string' ? entry.filePath.trim() : '';
+            if (!filePath) {
+                return;
+            }
+            vscode.postMessage({ type: 'openFile', command: 'openFile', filePath: filePath });
+        }
+
+        function togglePayload(index, field) {
+            const entry = entries[index];
+            if (!entry) {
+                return;
+            }
+            const key = stableKey(entry);
+            const state = expanded.get(key) || { in: false, out: false };
+            state[field] = !state[field];
+            expanded.set(key, state);
+            lastStructureKey = '';
+            render();
+        }
+
+        function payloadRow(index, field, label, value, isOpen) {
+            const chevron = isOpen ? 'codicon-chevron-down' : 'codicon-chevron-right';
+            const openClass = isOpen ? ' is-open' : '';
+            return `
+                <button type="button" class="payload-row${openClass}" data-index="${index}" data-field="${field}" title="Click to ${isOpen ? 'collapse' : 'expand'}">
+                    <span class="payload-chevron codicon ${chevron}" aria-hidden="true"></span>
+                    <span class="payload-label">${label}</span>
+                    <span class="payload-preview">${escapeHtml(oneLineJson(value))}</span>
+                </button>
+                <pre class="payload-block">${escapeHtml(prettyJson(value))}</pre>
+            `;
+        }
+
+        function updateRemainingOnly() {
+            listEl.querySelectorAll('.cache-remaining').forEach((el) => {
+                const index = Number(el.getAttribute('data-index'));
+                const entry = entries[index];
+                if (!entry) {
+                    return;
+                }
+                el.textContent = formatRemaining(remainingFor(entry));
+            });
+        }
+
+        function render() {
+            if (!entries.length) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="codicon codicon-database"></div>
+                        <div>No cached values</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = entries.map((entry, index) => {
+                const kind = entry.kind === 'live-env' ? 'live-env' : 'test-call';
+                const kindLabel = kind === 'live-env' ? 'live' : 'test';
+                const title = kind === 'live-env'
+                    ? (entry.name || entry.filePath || 'live')
+                    : (entry.title || 'untitled');
+                const filePath = typeof entry.filePath === 'string' ? entry.filePath.trim() : '';
+                const canOpen = !!filePath;
+                const remaining = formatRemaining(remainingFor(entry));
+                const key = stableKey(entry);
+                const state = expanded.get(key) || { in: false, out: false };
+                const inputs = entry.inputs || {};
+                const outputs = kind === 'live-env' ? entry.value : entry.outputs;
+                const titleTag = canOpen ? 'button' : 'span';
+                const titleAttrs = canOpen
+                    ? `type="button" class="cache-title is-openable" data-index="${index}" title="Open ${escapeHtml(filePath)}"`
+                    : `class="cache-title" title="${escapeHtml(title)}"`;
+
+                return `
+                    <div class="cache-row" data-index="${index}">
+                        <div class="cache-header">
+                            <${titleTag} ${titleAttrs}>${escapeHtml(title)}</${titleTag}>
+                            <div class="cache-header-meta">
+                                <span class="kind-badge ${kind}">${kindLabel}</span>
+                                <span class="cache-remaining" data-index="${index}" title="Time remaining">${escapeHtml(remaining)}</span>
+                            </div>
+                        </div>
+                        <div class="cache-payload">
+                            ${payloadRow(index, 'in', 'in', inputs, state.in)}
+                            ${payloadRow(index, 'out', 'out', outputs, state.out)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        vscode.postMessage({ type: 'refresh', command: 'refresh' });
+        render();
+    </script>
+</body>
+
+</html>

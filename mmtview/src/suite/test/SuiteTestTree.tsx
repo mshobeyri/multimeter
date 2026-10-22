@@ -1,6 +1,6 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
-import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
+import { createSuiteNodeId } from 'mmt-core/suite/suiteNodeId';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
 import SuiteTestFileItem from './SuiteTestFileItem';
 import SuiteSuiteFileItem from './SuiteSuiteFileItem';
@@ -54,6 +54,10 @@ interface SuiteTestTreeProps {
   loadingReportIds?: Set<string>;
   onRequestReports?: (nodeId: string) => void;
   runStateById: Record<string, StepStatus>;
+  /** Top-level entry ids still waiting for their first hierarchy section. */
+  loadingHierarchyIds?: Set<string>;
+  /** Top-level entry ids whose nested suite stubs are still deepening. */
+  deepeningHierarchyIds?: Set<string>;
   /** View-only status filter; does not change run data or exports. */
   statusFilter?: ReportStatusFilter;
   /** Bundle ids of mock servers listed twice in the same suite file. */
@@ -71,6 +75,8 @@ interface SuiteTestTreeProps {
     expandedItems: string[],
     items: Record<string, TreeItem<SuiteTestTreeItemData>>,
   ) => void;
+  /** When true, running file/group status icons show pause. */
+  paused?: boolean;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -124,12 +130,39 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
   return { items, allPaths, groupIds };
 };
 
-/** Default expanded ids: root open, and every YAML group folder open. */
+/**
+ * Default expanded ids on suite open:
+ * - root
+ * - every YAML group folder (when there is more than one)
+ *
+ * Top-level entries are not expanded here: tests/api stay closed; suite entries
+ * are opened once hierarchy resolves (see auto-expand effect).
+ */
 export function buildDefaultExpandedSuiteIds(groups: SuiteGroup[]): string[] {
   const ids: string[] = ['suite-root'];
   if (groups.length > 1) {
     for (let idx = 0; idx < groups.length; idx++) {
       ids.push(`group-${idx + 1}`);
+    }
+  }
+  return ids;
+}
+
+/** Top-level entry ids whose hierarchy is a nested suite (not test/api/server). */
+export function topLevelSuiteEntryIds(
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): string[] {
+  const ids: string[] = [];
+  for (const group of groups) {
+    for (const entry of group.entries) {
+      if (!entry?.id) {
+        continue;
+      }
+      const node = hierarchyByEntryId[entry.id];
+      if (node && typeof node === 'object' && node.kind === 'suite') {
+        ids.push(entry.id);
+      }
     }
   }
   return ids;
@@ -382,6 +415,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   loadingReportIds,
   onRequestReports,
   runStateById,
+  loadingHierarchyIds,
+  deepeningHierarchyIds,
   statusFilter = 'all',
   duplicateServerIds,
   onStatusFilterChange,
@@ -390,6 +425,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   onRequestHierarchy,
   suiteStructureKey,
   onExpandedItemsChange,
+  paused = false,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const defaultExpandedItems = useMemo(() => buildDefaultExpandedSuiteIds(groups), [groups]);
@@ -451,15 +487,58 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     });
   }, [treeData.items, defaultExpandedItems, syncExpandedItems]);
 
+  // Once hierarchy resolves, auto-expand top-level nested suites (not tests/api).
+  useEffect(() => {
+    const suiteIds = topLevelSuiteEntryIds(groups, hierarchyByEntryId).filter(
+      (id) => !!treeData.items[id],
+    );
+    if (suiteIds.length === 0) {
+      return;
+    }
+    setExpandedItems((prev) => {
+      const seen = new Set(prev);
+      const next = [...prev];
+      let changed = false;
+      for (const id of suiteIds) {
+        if (!seen.has(id)) {
+          next.push(id);
+          seen.add(id);
+          changed = true;
+        }
+      }
+      if (!changed) {
+        return prev;
+      }
+      syncExpandedItems(next, treeData.items);
+      return next;
+    });
+  }, [groups, hierarchyByEntryId, syncExpandedItems, treeData.items]);
+
+  // Expanded top-level suites never fire onExpand — request their hierarchy here.
+  useEffect(() => {
+    if (!onRequestHierarchy) {
+      return;
+    }
+    for (const id of expandedItems) {
+      if (topLevelEntryIds.has(id) && !hierarchyByEntryId[id]) {
+        onRequestHierarchy(id);
+      }
+    }
+  }, [expandedItems, hierarchyByEntryId, onRequestHierarchy, topLevelEntryIds]);
+
   const reportsByIdRef = useRef(reportsById);
   const runStateByIdRef = useRef(runStateById);
   const spilledReportIdsRef = useRef(spilledReportIds);
   const loadingReportIdsRef = useRef(loadingReportIds);
+  const loadingHierarchyIdsRef = useRef(loadingHierarchyIds);
+  const deepeningHierarchyIdsRef = useRef(deepeningHierarchyIds);
   const onRequestReportsRef = useRef(onRequestReports);
   reportsByIdRef.current = reportsById;
   runStateByIdRef.current = runStateById;
   spilledReportIdsRef.current = spilledReportIds;
   loadingReportIdsRef.current = loadingReportIds;
+  loadingHierarchyIdsRef.current = loadingHierarchyIds;
+  deepeningHierarchyIdsRef.current = deepeningHierarchyIds;
   onRequestReportsRef.current = onRequestReports;
 
   const visibleItems = useMemo(() => {
@@ -563,6 +642,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     const runStateById = runStateByIdRef.current;
     const spilledReportIds = spilledReportIdsRef.current;
     const loadingReportIds = loadingReportIdsRef.current;
+    const loadingHierarchyIds = loadingHierarchyIdsRef.current;
+    const deepeningHierarchyIds = deepeningHierarchyIdsRef.current;
     const onRequestReports = onRequestReportsRef.current;
     const data = item.data as SuiteTestTreeItemData;
 
@@ -589,6 +670,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           showRunButton={data.type === 'group'}
           runButtonTitle="Run group"
           runDisabled={!hasTargets}
+          paused={paused}
           onRun={() => hasTargets && onRunTargets(groupTargets[0])}
           onRunInCore={
             hasTargets && onRunTargetsInCore
@@ -612,6 +694,14 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
 
     if (data.type === 'suite') {
       const effectiveTarget = itemBundleId || entryId;
+      const isTopLevelEntry = topLevelEntryIds.has(entryId);
+      const childCount = Array.isArray(item.children) ? item.children.length : 0;
+      // Top-level: spin until first section. Nested stubs: spin while owner deepens.
+      const hierarchyLoading = isTopLevelEntry
+        ? Boolean(loadingHierarchyIds?.has(entryId))
+        : Boolean(
+          deepeningHierarchyIds?.has(ownerEntryId) && childCount === 0,
+        );
       return (
         <SuiteSuiteFileItem
           item={item as any}
@@ -622,6 +712,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           missingFiles={missingFiles}
           statusIconFor={statusIconFor as any}
           status={status}
+          hierarchyLoading={hierarchyLoading}
+          paused={paused}
           onRun={effectiveTarget ? () => onRunTargets(effectiveTarget) : undefined}
           onRunInCore={
             effectiveTarget && onRunTargetsInCore
@@ -658,6 +750,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         stepReports={stepReports}
         reportSpilled={reportSpilled}
         reportLoading={reportLoading}
+        paused={paused}
         onRequestReports={
           reportSpilled && testLeafId && onRequestReports
             ? () => onRequestReports(testLeafId)
@@ -683,6 +776,11 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     onRunTargetsInCore,
     duplicateServerIds,
     statusIconFor,
+    paused,
+    topLevelEntryIds,
+    // Force row re-render when hierarchy load spinners change (values read via refs).
+    loadingHierarchyIds,
+    deepeningHierarchyIds,
   ]);
   return (
     <>

@@ -17,6 +17,7 @@ const DOCK_ENTRIES: DockEntry[] = [
   {label: 'Get Started', viewId: 'multimeter.start', icon: 'rocket'},
   {label: 'Mock Server', viewId: 'multimeter.mock.server', icon: 'server'},
   {label: 'Connections', viewId: 'multimeter.connections', icon: 'plug'},
+  {label: 'Cache', viewId: 'multimeter.cache', icon: 'database'},
   {label: 'Environment Variables', viewId: 'multimeter.environment', icon: 'symbol-variable'},
   {label: 'History', viewId: 'multimeter.history', icon: 'history'},
 ];

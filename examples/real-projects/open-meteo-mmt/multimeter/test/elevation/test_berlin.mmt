@@ -1,0 +1,17 @@
+type: test
+title: Elevation — Berlin
+import:
+  cities: +/cities.json
+  api: +/api/elevation.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
+    expect:
+      elevation_0:
+        - >= -500
+        - <= 9000
+        - >= 0
+    report: all

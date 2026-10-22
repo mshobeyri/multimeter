@@ -1,7 +1,7 @@
 # Copilot Instructions for `multimeter` (mmt)
 
 ## Project structure & architecture
-- **Website**: https://mmt.dev (NOT multimeter.dev). Test server: https://test.mmt.dev
+- **Website**: https://mmt.dev (NOT multimeter.dev). Public test server: https://test.mmt.dev. In-process twin: `https://local.mmt.dev` (and `ws://` / `wss://` / `*.local.mmt.dev`) — answered inside `networkCore` via `core/src/network/localTestServer.ts` (shared with the Cloudflare worker); no DNS/sockets/internet.
 - **Monorepo layout**:
   - `core/`: pure TypeScript library with all parsing, execution and network logic (no VS Code, no `fs` – use dependency injection).
   - `mmtview/`: React + VS Code webview UI for editing/running `.mmt` files.
@@ -16,7 +16,7 @@
     - `marketing/`: LinkedIn, YouTube, Hacker News / Show HN skills, drafts, and meeting memos (`meetings/`). Not part of the published Cursor plugin.
     - `skills/`: local/dev agent skills (e.g. release & deploy). Not part of the published Cursor plugin.
     - `doc/`: handover and context documents for AI agent sessions.
-- **Single source of truth** for running `.mmt` files is `core/src/runner.ts`:
+- **Single source of truth** for running `.mmt` files is `core/src/runner/runner.ts`:
   - Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, jsRunner, logger })`.
   - Do **not** reimplement parsing or execution pipelines in the extension or CLI – always go through `runner`.
 
@@ -29,7 +29,7 @@
   - `JSer.ts`, `testParsePack.ts`, `apiParsePack.ts`: turn YAML `.mmt` into executable JS flows.
   - `networkCore.ts`, `network.ts`, `NetworkData.ts`: HTTP/WebSocket client, message routing, and shared network config types.
   - `outputExtractor.ts` + `pathAtPosition.test.ts`: JSON/XML/xpath/jsonpath/regex extraction and “path at cursor” helpers.
-  - `variableReplacer.ts`: **single source of truth** for all token-matching regex and replacement logic. All regex patterns and token accessor handling for `e:`, `i:`, `r:`, `c:` tokens (including forms like `[0]`, `[0:3]`, and `.field`) live here. Other modules (`JSerHelper`, `JSerTestFlow`, `JSerAPI`, etc.) import helpers from `variableReplacer` — they must NOT define their own token-matching regexes.
+  - `tokens/variableReplacer.ts`: **single source of truth** for all token-matching regex and replacement logic. All regex patterns and token accessor handling for `e:`, `i:`, `r:`, `c:` tokens (including forms like `[0]`, `[0:3]`, and `.field`) live here. Other modules (`JSerHelper`, `JSerTestFlow`, `JSerAPI`, etc.) import helpers from `variableReplacer` — they must NOT define their own token-matching regexes.
   - YAML on disk: bare whole-value tokens (`r:int`) and embedded `<<prefix:name>>`. API tester UI uses `{{prefix:name}}`; that curly form is also accepted in YAML and normalized to bare / `<<>>` on parse (`markupConvertor` + `reviveDisplayRuntimeTokensInValue`). See `AI/sdd/sdd-token-form-consistency.md`.
   - Return types for JSON UI quoting: `randomTokenValueType` / `currentTokenValueType` in `Random.ts` / `Current.ts` (not hardcoded allowlists in the UI layer).
 - When extending behavior:
@@ -61,11 +61,11 @@
   - `type: test` → executable test flows (`call`, `assert`, `check`, etc.; see `docs/files/test/index.md`).
   - `type: env` → environment and variable files (see `docs/files/env/index.md`).
 - Converters and docs:
-  - `core/src/openapiConvertor.ts`, `postmanConvertor.ts`: turn OpenAPI/Postman into `.mmt` API/test files.
-  - `core/src/docHtml.ts`, `docMarkdown.ts`, `docParsePack.ts` and `res/doc-template.html`: generate HTML/Markdown API docs from `.mmt`.
+  - `core/src/convert/openapiConvertor.ts`, `postmanConvertor.ts`: turn OpenAPI/Postman into `.mmt` API/test files.
+  - `core/src/doc/docHtml.ts`, `docMarkdown.ts`, `core/src/parse/docParsePack.ts` and `res/doc-template.html`: generate HTML/Markdown API docs from `.mmt`.
 
 ## Network, logging, and errors
-- All HTTP/WS traffic flows through `core/src/networkCore.ts` + `core/src/network.ts` using `NetworkConfig` from `NetworkData.ts`.
+- All HTTP/WS traffic flows through `core/src/network/networkCore.ts` + `core/src/network/network.ts` using `NetworkConfig` from `NetworkData.ts`.
 - HTTP helpers always return a structured `HttpResponse`; network-level failures are normalized (e.g. `status = -1`, descriptive `statusText`) so callers can distinguish unreachable hosts from HTTP errors.
 - **Two layers:** (1) **Execution** — request/response via `runner.runFile` / `send_` (HTTP, GraphQL, gRPC, one-shot WS). (2) **Live sessions** — API tester Connect + Connections panel via the network bridge. Do not dual-fire HTTP Send (webview send + core run).
 - API runs use `buildApiRunnerWrapper` in `runApi.ts`:
@@ -75,6 +75,7 @@
 
 ## Workflow / agent rules
 
+- **Start a Multimeter project.** When the user (or you) is starting/scaffolding a project with several APIs + tests and no other layout is requested, follow `docs/AI/project-layout.md` and the mother guide `docs/tasks/start-a-project.md` (especially **Where values live**: env = user knobs / API Send defaults; JSON = fixed shared catalogs; direct in the test = scenario values like date windows). Defaults: root `multimeter.mmt`, `api/`, `test/<area>/{suite.mmt,test_*.mmt}`, `+/…` imports, unquoted operator expects, `expect`+`report: all` over single-output `check`. Sample repos under `examples/real-projects/` illustrate the same rules; they are not the only use of this layout.
 - **Compile on every finished coding task.** Whenever you finish a coding task with the user (task complete, “done”, wrapping up a multi-step change, or handing work back), run `npm run compile` at the repo root, fix any compile errors, and only then treat the work as finished. Do this even if tests already passed. Skip only when no source files were changed (docs-only / SDD-only / config-only with no code).
 - Do **NOT** create, stage, or push git commits unless the user explicitly asks you to do so. Always ask for confirmation before running any `git add`, `git commit`, or `git push` operations. You may edit files in the workspace to make suggested changes, but do not record those changes in version control until the user gives explicit permission. When edits are made without committing, clearly list the modified files and the intended commit message so the user can approve.
 - Do **NOT** add a VS Code `preLaunchTask` (or similar) that rebuilds webview/extension on every Extension Development Host F5/restart — compile explicitly via `npm run compile` / watch instead. Reloading the target while a heavy preLaunch rebuild runs is a common cause of the debug host stopping.
@@ -115,7 +116,7 @@ Secrets: `NPM_TOKEN`, `DOCKERHUB_*`, `TESTLIGHT_ACTION_TOKEN`, `HOMEBREW_TAP_TOK
 - Change flow:
   - Prefer implementing behavior in `core` first, then wiring it to the extension (`src/`), webview (`mmtview/`), CLI (`mmtcli/`), and finally updating docs under `docs/`.
   - Before refactoring shared APIs like `runner.runFile` or network helpers, search call sites in:
-    - `core/src/runner.ts`, `src/mmtEditorProvider.ts`, `src/assistant.ts`, `src/vscodeNetwork.ts`, `mmtcli/src/cli.ts`, `mmtview/src/**`.
+    - `core/src/runner/runner.ts`, `src/mmtEditorProvider.ts`, `src/assistant.ts`, `src/vscodeNetwork.ts`, `mmtcli/src/cli.ts`, `mmtview/src/**`.
   - For new user-facing features (commands, panels, assistant behaviors), keep CLI and VS Code behavior aligned when reasonable and document any intentional differences.
 
 ## Real execution flows (current code)
@@ -142,7 +143,7 @@ flowchart TD
 
 Notes:
 - **Send** (HTTP/GraphQL/gRPC) and Run in Core share this path — one network round-trip. Do **not** also call webview `network.send` for those protocols.
-- After the run, `buildApiTesterResponse` (`core/src/apiRunResult.ts`) shapes `outputs._` into the Response panel payload.
+- After the run, `buildApiTesterResponse` (`core/src/runner/apiRunResult.ts`) shapes `outputs._` into the Response panel payload.
 - For API finish logs, `jsRunner` prefers last `send_`/`sendGrpc_` `res.duration` over wall-clock.
 - Interactive WebSocket **Connect**/live **Send** stays on the live network bridge (`network.ts` + Connections panel), not `runCurrentDocument`.
 - One-shot WS in tests/CLI uses `sendWsRequest` (connect → send → one reply → close).

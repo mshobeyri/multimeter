@@ -2,6 +2,116 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.47.0-pre]
+
+Pre-release. VS Code extension `1.47.0`; Testlight CLI and MCP `1.47.0-pre` on `@pre`.
+
+### Panels
+
+- Add Cache panel for in-run test-call and live-env `cache:` entries (view-only, hover-free rows like Temp Files; click title to open source; expand in/out JSON)
+- Connections: close button on row hover; fix WebSocket close; record HTTP keep-alive activity; document when HTTPS rows stay visible
+
+### Environment
+
+- Keep file/manual env rows when `setenv` writes runtime values (runtime coexists; resolve runtime-first)
+
+### Editor
+
+- Use hollow play (▷) for running-file explorer badges
+
+## [1.46.5]
+
+Stable release of the 1.46.x pre-release line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.46.5` on `@latest`.
+
+- Reports: suite-like tree with portable `+/` paths; skipped results; omit passed expects; optional git commit/branch/tag; `c:report_folder` in export paths
+- Git current tokens (`c:commit`, `c:branch`, …); short names with full SHA for commit; fetch snapshot for API UI only when needed
+- API tester: remint `r:` / `c:` on Send; telescope tips from Send cache; sync telescope to wire values; circled pause glyph
+- Suite: faster open (title → first section → deepen); spinning status while hierarchy loads; expand top-level suites by default; cap parallel runs at CPU × 4
+- Editor: Run in testlight from More menu; yellow Resume when paused; fix Send/glyph drift
+- Environment: nested env choice objects; separate API defaults from test fixtures
+- Core / network: domain folders under `core/src`; split `networkCore`; in-process `local.mmt.dev` test server and e2e API tests
+- Docs / samples: default multi-API project layout; open-meteo and CountryInfo SOAP real-project samples
+
+## [1.46.4-pre]
+
+Pre-release. VS Code extension `1.46.4`; Testlight CLI and MCP `1.46.4-pre` on `@pre`.
+
+### Suite
+
+- Show spinning status icon while suite hierarchy boxes load their first section
+
+### API tester
+
+- Fetch git current snapshot only when the API uses git `c:` tokens
+- Prefer short git current-token names; `c:commit` resolves to the full SHA
+
+### Editor
+
+- Use circled pause status icon matching play/stop glyphs
+
+### Docs / samples
+
+- Add CountryInfo SOAP real-project sample for SoapUI migration
+
+## [1.46.3-pre]
+
+Pre-release. VS Code extension `1.46.3`; Testlight CLI and MCP `1.46.3-pre` on `@pre`.
+
+### Environment
+
+- Support nested env choice objects and separate API defaults from test fixtures
+
+### Suite
+
+- Cap suite parallel runs at CPU cores × 4
+
+### Editor
+
+- Add Run in testlight from the test and suite More menu
+- Show yellow Resume on paused test/suite runs
+- Fix Send/glyph drift on API run flows
+
+### Core / network
+
+- Organize `core/src` into domain folders; remove flat re-export stubs
+- Split `networkCore` into focused HTTP, WS, and local transport modules
+- Add in-process `local.mmt.dev` test server shared with the Cloudflare worker
+- Add end-to-end API run and request-to-response unit tests via `local.mmt.dev`
+
+### Docs / samples
+
+- Document default multi-API project layout and where env vs JSON vs direct values live
+- Add open-meteo real-project sample suites and Postman timing compare on the website
+
+## [1.46.2-pre]
+
+Pre-release. VS Code extension `1.46.2`; Testlight CLI and MCP `1.46.2-pre` on `@pre`.
+
+### API tester Send
+
+- Remint `r:` / `c:` on each Send and pass the snapshot so core does not remint again
+- Tip token hover from the Send cache for body (JSON/XML/urlencoded), headers, params, cookies, and URL-bar query
+
+### Suite
+
+- Speed up suite open with title-only load then deepen
+
+## [1.46.1-pre]
+
+Pre-release. VS Code extension `1.46.1`; Testlight CLI and MCP `1.46.1-pre` on `@pre`.
+
+### Suite
+
+- Expand top-level suite items by default on open and request their hierarchy without blocking the panel
+
+### API tester telescope
+
+- Sync telescope UI to wire `r:` / `c:` values after Send
+
+### Website
+
+- Match hero test report to real overview and step boxes
+
 ## [1.46.0-pre]
 
 Pre-release. VS Code extension `1.46.0`; Testlight CLI and MCP `1.46.0-pre` on `@pre`.

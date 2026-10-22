@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 import FLEditor from "../components/FLEditor";
-import { DocData } from "mmt-core/DocData";
+import { DocData } from "mmt-core/data/DocData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import FieldWithRemove from "../components/FieldWithRemove";
 import StableTextInput from "../components/StableTextInput";

@@ -1,0 +1,19 @@
+type: test
+title: Geocode search — Paris
+import:
+  api: +/api/geocode_search.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      name: Paris
+      count: "1"
+    expect:
+      place_name: =C Paris
+      latitude:
+        - >= 48
+        - <= 49.5
+      longitude:
+        - >= 1.5
+        - <= 3.5
+    report: all

@@ -4,9 +4,9 @@ import ValidatableSelect from "../components/ValidatableSelect";
 import KSVEditor from "../components/KSVEditor";
 import LEditor from "../components/LEditor";
 import { EnvironmentData } from "./EnvironmentData";
-import { safeList } from "mmt-core/safer";
+import { safeList } from "mmt-core/util/safer";
 import PrimaryButton from "../components/PrimaryButton";
-import type { JSONRecord, JSONValue } from "mmt-core/CommonData";
+import type { JSONRecord, JSONValue } from "mmt-core/data/CommonData";
 import {
   boardsToVariables,
   envListValueToInputBox,
@@ -14,7 +14,7 @@ import {
   variablesToBoards,
   type EnvVariableBoard,
 } from "./envVariableUi";
-import { isIncompleteJsonLiteral } from "mmt-core/yamlValueConvert";
+import { isIncompleteJsonLiteral } from "mmt-core/parse/yamlValueConvert";
 
 const typeOptions = [
   { label: "List", value: "list" },

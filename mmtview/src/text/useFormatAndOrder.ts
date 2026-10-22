@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { formatMmtYaml } from 'mmt-core/mmtFormat';
+import { formatMmtYaml } from 'mmt-core/parse/mmtFormat';
 import { showVSCodeMessage } from '../vsAPI';
 
 export function useFormatAndOrder({

@@ -288,6 +288,74 @@ describe('suiteHierarchyCache', () => {
     }
   });
 
+  it('keeps separate cache entries for shallow vs full maxDepth', async () => {
+    write('nested.mmt', [
+      'type: suite',
+      'title: Nested',
+      'items:',
+      '  - leaf.mmt',
+      '',
+    ].join('\n'));
+    write('leaf.mmt', [
+      'type: test',
+      'title: Leaf',
+      'steps:',
+      '  - print: hi',
+      '',
+    ].join('\n'));
+    const root = write('root.mmt', [
+      'type: suite',
+      'title: Root',
+      'items:',
+      '  - nested.mmt',
+      '',
+    ].join('\n'));
+
+    const fileLoader = diskLoader();
+    const loadRootText = async () => fs.readFileSync(root, 'utf8');
+
+    const shallow = await getCachedSuiteHierarchy({
+      suiteFilePath: root,
+      maxDepth: 1,
+      loadRootText,
+      fileLoader,
+    });
+    expect(shallow.fromCache).toBe(false);
+    if (shallow.tree.kind === 'suite') {
+      const child = (shallow.tree.children?.[0] as any)?.children?.[0];
+      expect(child?.kind).toBe('suite');
+      expect(child?.title).toBe('Nested');
+      expect(child?.children).toEqual([]);
+    }
+
+    const full = await getCachedSuiteHierarchy({
+      suiteFilePath: root,
+      loadRootText,
+      fileLoader,
+    });
+    expect(full.fromCache).toBe(false);
+    if (full.tree.kind === 'suite') {
+      const child = (full.tree.children?.[0] as any)?.children?.[0];
+      expect(child?.kind).toBe('suite');
+      expect(child?.children?.[0]?.children?.[0]?.title).toBe('Leaf');
+    }
+
+    const shallowHit = await getCachedSuiteHierarchy({
+      suiteFilePath: root,
+      maxDepth: 1,
+      loadRootText: async () => {
+        throw new Error('shallow should hit cache');
+      },
+      fileLoader: async () => {
+        throw new Error('shallow should hit cache');
+      },
+    });
+    expect(shallowHit.fromCache).toBe(true);
+    expect(shallowHit.tree).toBe(shallow.tree);
+    expect(await peekFreshCachedHierarchy(root, undefined, 1)).toBe(shallow.tree);
+    expect(await peekFreshCachedHierarchy(root)).toBe(full.tree);
+  });
+
   it('keeps separate cache entries per leafPrefix', async () => {
     write('child.mmt', [
       'type: test',

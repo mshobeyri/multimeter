@@ -1,5 +1,5 @@
 import React from "react";
-import { MockData } from "mmt-core/MockData";
+import { MockData } from "mmt-core/data/MockData";
 import FileOverview from "../shared/FileOverview";
 import KSVEditor from "../components/KSVEditor";
 

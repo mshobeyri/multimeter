@@ -1,0 +1,13 @@
+type: test
+title: CountryISOCode — Germany
+import:
+  countries: +/countries.json
+  api: +/api/country_iso_code.mmt
+steps:
+  - call: api
+    inputs:
+      country_name: ${countries.de.name}
+    expect:
+      status: 200
+      iso: ${countries.de.iso}
+    report: all

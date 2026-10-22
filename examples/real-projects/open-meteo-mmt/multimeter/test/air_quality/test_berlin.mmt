@@ -1,0 +1,19 @@
+type: test
+title: Air quality — Berlin
+import:
+  cities: +/cities.json
+  api: +/api/air_quality.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
+      forecast_days: "1"
+    expect:
+      hourly_time_0: =1d~ <<c:datetime>>
+      aqi: >= 0
+      pm10: >= 0
+      pm25: >= 0
+      hourly_pm10_0: >= 0
+    report: all

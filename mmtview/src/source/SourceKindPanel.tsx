@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { apiToYaml } from "mmt-core/apiParsePack";
-import { findSpecApiSelection, SpecApiItem } from "mmt-core/importConvertor";
-import { TestData } from "mmt-core/TestData";
-import { testToYaml } from "mmt-core/testParsePack";
+import { apiToYaml } from "mmt-core/parse/apiParsePack";
+import { findSpecApiSelection, SpecApiItem } from "mmt-core/convert/importConvertor";
+import { TestData } from "mmt-core/data/TestData";
+import { testToYaml } from "mmt-core/parse/testParsePack";
 import APIPanel from "../api/APIPanel";
 import ApiSelector, { ApiSelectorItem } from "../spec/ApiSelector";
 import TestPanel from "../test/TestPanel";

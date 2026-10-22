@@ -33,50 +33,10 @@
             padding: 8px;
         }
 
-        .panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 4px 0 12px 0;
-            border-bottom: 1px solid var(--vscode-panel-border, #444);
-            margin-bottom: 8px;
-        }
-
-        .panel-title {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 600;
-            font-size: 11px;
-            text-transform: uppercase;
-            color: var(--vscode-foreground, #ccc);
-        }
-
-        .panel-actions {
-            display: flex;
-            gap: 4px;
-        }
-
-        .icon-button {
-            background: none;
-            border: none;
-            color: var(--vscode-foreground, #ccc);
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .icon-button:hover {
-            background: var(--vscode-toolbar-hoverBackground, #333);
-        }
-
         #connections-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 2px;
         }
 
         .empty-state {
@@ -94,14 +54,13 @@
         .connection-row {
             display: flex;
             align-items: center;
-            padding: 8px 10px;
-            background: var(--vscode-editor-background, #1e1e1e);
-            border: 1px solid var(--vscode-panel-border, #333);
+            padding: 7px 8px;
             border-radius: 4px;
             gap: 8px;
         }
 
-        .connection-row:hover {
+        .connection-row:hover,
+        .connection-row:focus-within {
             background: var(--vscode-list-hoverBackground, #2a2d2e);
         }
 
@@ -159,6 +118,7 @@
             display: flex;
             gap: 8px;
             margin-top: 2px;
+            flex-wrap: wrap;
         }
 
         .connection-detail {
@@ -167,20 +127,35 @@
             gap: 3px;
         }
 
-        .connection-close {
-            background: none;
-            border: none;
-            color: var(--vscode-foreground, #ccc);
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
-            opacity: 0.6;
+        .connection-actions {
+            display: none;
+            align-items: center;
+            gap: 2px;
             flex-shrink: 0;
+            margin-left: 4px;
         }
 
-        .connection-close:hover {
+        .connection-row:hover .connection-actions,
+        .connection-row:focus-within .connection-actions {
+            display: flex;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            padding: 0;
+            border: none;
+            border-radius: 4px;
+            background: transparent;
+            color: var(--vscode-icon-foreground, #c5c5c5);
+            cursor: pointer;
+        }
+
+        .action-btn:hover {
             background: var(--vscode-toolbar-hoverBackground, #333);
-            opacity: 1;
             color: #ff5555;
         }
 
@@ -212,7 +187,6 @@
             color: #ba68c8;
         }
 
-        /* Enable horizontal scrolling when panel is narrow */
         @media (max-width: 300px) {
             body {
                 overflow-x: auto;
@@ -224,6 +198,8 @@
     <script>
         const vscode = acquireVsCodeApi();
         let connections = {};
+        let lastStructureKey = '';
+        const listEl = document.getElementById('connections-list');
 
         function formatDuration(ms) {
             const seconds = Math.floor(ms / 1000);
@@ -256,12 +232,75 @@
             return '<img src="__HTTP_ICON__" class="connection-icon" />';
         }
 
+        function escapeHtml(text) {
+            return String(text ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function sortedConnections() {
+            return Object.values(connections).sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+        }
+
+        function structureKey(list) {
+            return list.map(c => [
+                c.id,
+                c.host,
+                c.protocol,
+                c.state,
+                c.requestCount || 0,
+            ].join('|')).join('\n');
+        }
+
+        function closeConnection(id) {
+            if (!id) {
+                return;
+            }
+            vscode.postMessage({ command: 'closeConnection', id: String(id) });
+        }
+
+        listEl.addEventListener('click', (event) => {
+            const btn = event.target.closest('[data-action="close"]');
+            if (!btn || !listEl.contains(btn)) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            closeConnection(btn.getAttribute('data-id'));
+        });
+
+        function updateTimesOnly() {
+            listEl.querySelectorAll('.connection-row').forEach((row) => {
+                const id = row.getAttribute('data-id');
+                const conn = id ? connections[id] : undefined;
+                if (!conn) {
+                    return;
+                }
+                const durationEl = row.querySelector('[data-field="duration"]');
+                if (durationEl) {
+                    durationEl.textContent = formatDuration(Date.now() - conn.connectedAt);
+                }
+                const lastEl = row.querySelector('[data-field="last"]');
+                if (lastEl) {
+                    if (conn.state === 'idle') {
+                        lastEl.style.display = '';
+                        lastEl.textContent = 'last: ' + formatTimeAgo(conn.lastActivityAt);
+                    } else {
+                        lastEl.style.display = 'none';
+                    }
+                }
+            });
+        }
+
         function renderConnections() {
-            const list = document.getElementById('connections-list');
-            const connArray = Object.values(connections);
+            const connArray = sortedConnections();
 
             if (connArray.length === 0) {
-                list.innerHTML = `
+                lastStructureKey = '';
+                listEl.innerHTML = `
                     <div class="empty-state">
                         <div class="codicon codicon-plug"></div>
                         <div>No active connections</div>
@@ -270,50 +309,37 @@
                 return;
             }
 
-            // Sort by most recent activity
-            connArray.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
-
-            list.innerHTML = connArray.map(conn => {
+            lastStructureKey = structureKey(connArray);
+            listEl.innerHTML = connArray.map(conn => {
                 const duration = formatDuration(Date.now() - conn.connectedAt);
-                const lastActivity = conn.state === 'idle' 
-                    ? 'last: ' + formatTimeAgo(conn.lastActivityAt)
-                    : '';
-                const requestInfo = conn.requestCount > 0 
+                const showLast = conn.state === 'idle';
+                const lastActivity = showLast ? 'last: ' + formatTimeAgo(conn.lastActivityAt) : '';
+                const requestInfo = conn.requestCount > 0
                     ? conn.requestCount + ' req' + (conn.requestCount > 1 ? 's' : '')
                     : '';
 
                 return `
-                    <div class="connection-row" data-id="${conn.id}">
-                        <div class="connection-state ${conn.state}" title="${getStateLabel(conn.state)}"></div>
+                    <div class="connection-row" data-id="${escapeHtml(conn.id)}">
+                        <div class="connection-state ${escapeHtml(conn.state)}" title="${escapeHtml(getStateLabel(conn.state))}"></div>
                         ${getProtocolIcon(conn.protocol)}
                         <div class="connection-info">
-                            <div class="connection-host" title="${conn.host}">${conn.host}</div>
+                            <div class="connection-host" title="${escapeHtml(conn.host)}">${escapeHtml(conn.host)}</div>
                             <div class="connection-details">
-                                <span class="protocol-badge ${conn.protocol}">${conn.protocol}</span>
-                                <span class="connection-detail">${getStateLabel(conn.state)}</span>
-                                ${requestInfo ? `<span class="connection-detail">${requestInfo}</span>` : ''}
-                                <span class="connection-detail">${duration}</span>
-                                ${lastActivity ? `<span class="connection-detail">${lastActivity}</span>` : ''}
+                                <span class="protocol-badge ${escapeHtml(conn.protocol)}">${escapeHtml(conn.protocol)}</span>
+                                <span class="connection-detail">${escapeHtml(getStateLabel(conn.state))}</span>
+                                ${requestInfo ? `<span class="connection-detail">${escapeHtml(requestInfo)}</span>` : ''}
+                                <span class="connection-detail" data-field="duration">${escapeHtml(duration)}</span>
+                                <span class="connection-detail" data-field="last" style="${showLast ? '' : 'display:none'}">${escapeHtml(lastActivity)}</span>
                             </div>
                         </div>
-                        <button class="connection-close" onclick="closeConnection('${conn.id}')" title="Close connection">
-                            <span class="codicon codicon-close"></span>
-                        </button>
+                        <div class="connection-actions">
+                            <button type="button" class="action-btn" data-action="close" data-id="${escapeHtml(conn.id)}" title="Close connection" aria-label="Close connection">
+                                <span class="codicon codicon-close" aria-hidden="true"></span>
+                            </button>
+                        </div>
                     </div>
                 `;
             }).join('');
-        }
-
-        function closeConnection(id) {
-            vscode.postMessage({ command: 'closeConnection', id });
-        }
-
-        function closeAll() {
-            vscode.postMessage({ command: 'closeAllConnections' });
-        }
-
-        function refresh() {
-            vscode.postMessage({ command: 'refresh' });
         }
 
         window.addEventListener('message', (event) => {
@@ -321,7 +347,7 @@
             switch (msg.command) {
                 case 'setConnections':
                     connections = {};
-                    msg.connections.forEach(conn => {
+                    (msg.connections || []).forEach(conn => {
                         connections[conn.id] = conn;
                     });
                     renderConnections();
@@ -334,14 +360,18 @@
                     delete connections[msg.id];
                     renderConnections();
                     break;
-                case 'tick':
-                    // Just re-render to update times
-                    renderConnections();
+                case 'tick': {
+                    const nextKey = structureKey(sortedConnections());
+                    if (nextKey !== lastStructureKey) {
+                        renderConnections();
+                    } else {
+                        updateTimesOnly();
+                    }
                     break;
+                }
             }
         });
 
-        // Initial render
         renderConnections();
     </script>
 </body>

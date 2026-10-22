@@ -1,4 +1,4 @@
-import {parseYamlDoc} from 'mmt-core/markupConvertor';
+import {parseYamlDoc} from 'mmt-core/parse/markupConvertor';
 import {validateYamlContent} from './Validate';
 import {findAuthProblems, findStageAfterProblems} from './validator';
 

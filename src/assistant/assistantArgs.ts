@@ -1,15 +1,18 @@
-import {RunJSCodeContext} from 'mmt-core/jsRunner';
-import * as runConfig from 'mmt-core/runConfig';
+import {RunJSCodeContext} from 'mmt-core/runner/jsRunner';
+import * as runConfig from 'mmt-core/runner/runConfig';
 const {normalizePresetNames, resolveEnvFromDoc, mergeEnv} = runConfig;
-import {findProjectRootSync, isProjectRootImport, resolveProjectRootImport} from 'mmt-core/fileHelper';
+import {findProjectRootSync, isProjectRootImport, resolveProjectRootImport} from 'mmt-core/util/fileHelper';
+import {resolveHostSuiteParallel} from 'mmt-core/suite/suiteParallel';
 
-import type {FileLoader, RunFileOptions} from 'mmt-core/runConfig';
+import type {FileLoader, RunFileOptions} from 'mmt-core/runner/runConfig';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
 import {logToOutput} from '../mmtAPI/run';
 import {stampFile} from '../mmtAPI/suiteHierarchyCache';
+import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
 
 type AnyOpts = Record<string, any>;
 
@@ -211,18 +214,8 @@ export async function parseAssistantRunArgs(
 
   const vscodeEnvState =
       context.workspaceState.get<any>('multimeter.environment.storage', []);
-  const vscodeEnv: Record<string, any> = {};
-  if (Array.isArray(vscodeEnvState)) {
-    for (const item of vscodeEnvState) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        vscodeEnv[name] = (item as any).value;
-      }
-    }
-  }
+  const vscodeEnv = resolveWorkspaceEnvMap(
+      Array.isArray(vscodeEnvState) ? vscodeEnvState : []);
 
   const mergedBaseEnv = mergeEnv({baseEnv: vscodeEnv, envvar});
 
@@ -272,6 +265,7 @@ export async function parseAssistantRunArgs(
     jsRunner: async () => {},
     logger: logToOutput,
     reporter: (...args: any[]) => {},
+    suiteParallel: resolveHostSuiteParallel(() => os.cpus().length),
   };
 
   return {

@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
-import { NetworkAPI, Request, Response } from "mmt-core/NetworkData";
+import { NetworkAPI, Request, Response } from "mmt-core/data/NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
-import { getEffectiveProtocol } from "mmt-core/protocolResolver";
+import { getEffectiveProtocol } from "mmt-core/network/protocolResolver";
 import { responseBodyToRawString } from "../../api/responseBodyDisplay";
 
 export function useNetwork(_autoFormatBody = false): NetworkAPI {

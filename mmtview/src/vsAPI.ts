@@ -1,4 +1,5 @@
-import {LogLevel} from 'mmt-core/CommonData';
+import {LogLevel} from 'mmt-core/data/CommonData';
+import type {GitCurrentSnapshot} from 'mmt-core/tokens/Current';
 import {SuiteTreeNode} from './suite/test/suiteHierarchy';
 
 let lastFileContentResolver: ((content: string) => void)|null = null;
@@ -13,6 +14,8 @@ const osFilePickerRejecters: Map<string, (err: any) => void> = new Map();
 const suiteHierarchyResolvers: Map<string, (value: any) => void> = new Map();
 const suiteHierarchyRejecters: Map<string, (err: any) => void> = new Map();
 const modalDialogResolvers: Map<string, (choice: string|undefined) => void> = new Map();
+const gitSnapshotResolvers: Map<string, (snapshot: GitCurrentSnapshot|undefined) => void> =
+    new Map();
 
 // Add the event listener only once
 if (typeof window !== 'undefined' &&
@@ -93,6 +96,15 @@ if (typeof window !== 'undefined' &&
         modalDialogResolvers.delete(id);
         resolve(typeof message.choice === 'string' ? message.choice : undefined);
       }
+    } else if (message.command === 'gitSnapshotResult') {
+      const id = message?.requestId;
+      if (id && gitSnapshotResolvers.has(id)) {
+        const resolve = gitSnapshotResolvers.get(id)!;
+        gitSnapshotResolvers.delete(id);
+        resolve(message.snapshot && typeof message.snapshot === 'object' ?
+            message.snapshot as GitCurrentSnapshot :
+            undefined);
+      }
     }
   });
   (window as any).__fileContentListenerAdded = true;
@@ -111,6 +123,25 @@ export function readFile(filename: string, options?: { silent?: boolean }): Prom
         reject(new Error(`Timed out reading file: ${filename}`));
       }
     }, 2 * 60 * 1000);
+  });
+}
+
+/**
+ * Ask the extension for live git metadata of the open document's repo.
+ * Resolves `null` on timeout so callers can keep their previous snapshot.
+ */
+export function requestGitSnapshot(
+    timeoutMs = 3000): Promise<GitCurrentSnapshot|undefined|null> {
+  const requestId = `git-snapshot-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  return new Promise((resolve) => {
+    gitSnapshotResolvers.set(requestId, resolve);
+    window.vscode?.postMessage({command: 'requestGitSnapshot', requestId});
+    setTimeout(() => {
+      if (gitSnapshotResolvers.has(requestId)) {
+        gitSnapshotResolvers.delete(requestId);
+        resolve(null);
+      }
+    }, timeoutMs);
   });
 }
 
@@ -243,12 +274,20 @@ export type SuiteHierarchyResult = {
   error?: string;
 };
 
-export function getSuiteHierarchy(filename: string, leafPrefix?: string): Promise<SuiteHierarchyResult> {
+export function getSuiteHierarchy(
+    filename: string, leafPrefix?: string,
+    maxDepth?: number): Promise<SuiteHierarchyResult> {
   const requestId = `suite-hierarchy-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   return new Promise((resolve, reject) => {
     suiteHierarchyResolvers.set(requestId, resolve);
     suiteHierarchyRejecters.set(requestId, reject);
-    window.vscode?.postMessage({command: 'getSuiteHierarchy', requestId, filename, leafPrefix});
+    window.vscode?.postMessage({
+      command: 'getSuiteHierarchy',
+      requestId,
+      filename,
+      leafPrefix,
+      maxDepth,
+    });
     setTimeout(() => {
       if (suiteHierarchyResolvers.has(requestId)) {
         suiteHierarchyResolvers.delete(requestId);

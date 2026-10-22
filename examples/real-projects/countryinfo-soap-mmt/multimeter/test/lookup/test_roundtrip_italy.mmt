@@ -1,0 +1,23 @@
+type: test
+title: Round-trip — Italy name ↔ ISO
+import:
+  countries: +/countries.json
+  by_name: +/api/country_iso_code.mmt
+  by_iso: +/api/country_name.mmt
+steps:
+  - call: by_name
+    id: to_iso
+    inputs:
+      country_name: ${countries.it.name}
+    expect:
+      status: 200
+      iso: ${countries.it.iso}
+    report: all
+  - call: by_iso
+    id: to_name
+    inputs:
+      iso_code: ${to_iso.iso}
+    expect:
+      status: 200
+      name: ${countries.it.name}
+    report: all

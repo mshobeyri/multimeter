@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { JSONRecord } from "mmt-core/CommonData";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import type { JSONRecord } from "mmt-core/data/CommonData";
+import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
 import { readEnvironmentVariables } from "../environment/environmentUtils";
 
 /** Loads workspace env vars for token-field preview (Overview / edit pages). */

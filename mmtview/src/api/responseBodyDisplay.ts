@@ -15,4 +15,4 @@ export {
   type ResponsePreviewKind,
   type ResponseTypeChoice,
   type ResponseViewMode,
-} from 'mmt-core/responseBodyDisplay';
+} from 'mmt-core/api-edit/responseBodyDisplay';

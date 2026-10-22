@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { parseYaml } from 'mmt-core/markupConvertor';
-import { loadtestToYaml, yamlToLoadTest } from 'mmt-core/loadtestParsePack';
-import { LoadTestData } from 'mmt-core/LoadTestData';
+import { parseYaml } from 'mmt-core/parse/markupConvertor';
+import { loadtestToYaml, yamlToLoadTest } from 'mmt-core/parse/loadtestParsePack';
+import { LoadTestData } from 'mmt-core/data/LoadTestData';
 import FileOverview from '../shared/FileOverview';
 import FilePickerInput from '../components/FilePickerInput';
 import StableTextInput from '../components/StableTextInput';

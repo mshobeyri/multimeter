@@ -1,0 +1,20 @@
+type: test
+title: FullCountryInfo — Japan
+import:
+  countries: +/countries.json
+  api: +/api/full_country_info.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.jp.iso}
+    expect:
+      status: 200
+      iso: ${countries.jp.iso}
+      name: ${countries.jp.name}
+      capital: ${countries.jp.capital}
+      phone: ${countries.jp.phone}
+      continent: ${countries.jp.continent}
+      currency: ${countries.jp.currency}
+      flag: ${countries.jp.flag}
+      language: ${countries.jp.language}
+    report: all

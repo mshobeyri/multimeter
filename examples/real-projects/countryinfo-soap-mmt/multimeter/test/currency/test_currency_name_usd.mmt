@@ -1,0 +1,13 @@
+type: test
+title: CurrencyName — USD
+import:
+  countries: +/countries.json
+  api: +/api/currency_name.mmt
+steps:
+  - call: api
+    inputs:
+      currency_iso: ${countries.us.currency}
+    expect:
+      status: 200
+      name: ${countries.us.currency_name}
+    report: all

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { safeList } from "mmt-core/safer";
-import type { MultipartPartSpec } from "mmt-core/multipartBody";
-import type { RuntimeTokenValueContext } from "mmt-core/apiBodyEdit";
+import { safeList } from "mmt-core/util/safer";
+import type { MultipartPartSpec } from "mmt-core/network/multipartBody";
+import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
 import FieldWithRemove from "./FieldWithRemove";
 import StableTextInput from "./StableTextInput";
 import FilePickerInput from "./FilePickerInput";

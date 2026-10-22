@@ -1,0 +1,22 @@
+type: api
+title: Climate projection
+description: Climate model daily means for a future window
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+  start_date: "2050-01-01"
+  end_date: "2050-01-07"
+outputs:
+  daily_time_0: body[daily][time][0]
+  daily_time_last: body[daily][time][6]
+  temp_mean_0: body[daily][temperature_2m_mean][0]
+url: <<e:climate_base_url>>/v1/climate
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  start_date: i:start_date
+  end_date: i:end_date
+  models: MRI_AGCM3_2_S
+  daily: temperature_2m_mean
+method: get
+format: json

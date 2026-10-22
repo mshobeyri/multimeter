@@ -1,0 +1,423 @@
+import {detectDocType} from '../runner/runCommon';
+import {generateTestJs, isSerializedMmtTest} from '../runner/runTest';
+import {testToYaml} from './testParsePack';
+import {
+  brunoCollectionToTest,
+  brunoRequestSeq,
+  brunoToAPI,
+  brunoToTest,
+  brunoToTestStrict,
+  isBrunoCollectionFilePath,
+  isBrunoFilePath,
+  isBrunoRequestFilePath,
+  parseBrunoDocument,
+  sortBrunoSourceFiles,
+  validateBrunoDocument,
+} from './brunoParsePack';
+
+const SOURCE_BRU = `meta {
+  name: Create user
+}
+post {
+  url: https://test.mmt.dev/echo
+}
+headers {
+  Content-Type: application/json
+}
+body:json {
+  {"name":"Ada"}
+}
+`;
+
+describe('brunoParsePack', () => {
+  it('detects .bru and .bruno files as test documents', () => {
+    expect(isBrunoFilePath('/tmp/get_user.bru')).toBe(true);
+    expect(isBrunoFilePath('/tmp/get_user.bruno')).toBe(true);
+    expect(detectDocType('/tmp/get_user.bru', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
+    expect(detectDocType('/tmp/get_user.bruno', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
+  });
+
+  it('detects bruno.json collection manifests', () => {
+    expect(isBrunoCollectionFilePath('/lib/bruno.json')).toBe(true);
+    expect(isBrunoCollectionFilePath('file:///lib/bruno.json')).toBe(true);
+    expect(isBrunoCollectionFilePath('/lib/bruno.json.bak')).toBe(false);
+    expect(isBrunoCollectionFilePath('/lib/get_health.bru')).toBe(false);
+    expect(isBrunoFilePath('/lib/bruno.json')).toBe(false);
+  });
+
+  it('prefers serialized MMT YAML type over .bru path when the API panel sends rawFile', () => {
+    expect(detectDocType('/tmp/get_user.bru', 'type: api\ntitle: Get user\nurl: https://example.com\n')).toBe('api');
+    expect(detectDocType('/tmp/get_user.bru', 'type: test\ntitle: Flow\nsteps:\n  - http: https://example.com\n')).toBe('test');
+  });
+
+  it('parses the convert-to-mmt example source.bru', () => {
+    const parsed = parseBrunoDocument(SOURCE_BRU);
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.blocks.map(block => block.name)).toEqual(['meta', 'post', 'headers', 'body']);
+    expect(parsed.blocks.find(block => block.name === 'body')?.qualifier).toBe('json');
+    const test = brunoToTestStrict(SOURCE_BRU, 'source.bru');
+    expect(test.steps?.[0]).toMatchObject({
+      http: 'https://test.mmt.dev/echo',
+      method: 'post',
+      format: 'json',
+      body: {name: 'Ada'},
+    });
+  });
+
+  it('parses blocks after comments, BOM, and CRLF', () => {
+    const parsed = parseBrunoDocument(
+        '\uFEFF# collection note\r\n// docs\r\nmeta {\r\n  name: Ping\r\n}\r\nget {\r\n  url: https://example.com\r\n}\r\n');
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.blocks.map(block => block.name)).toEqual(['meta', 'get']);
+  });
+
+  it('parses Bru-lang http: { method, url } and headers: { }', () => {
+    const parsed = parseBrunoDocument(`http: {
+  method: POST
+  url: https://test.mmt.dev/echo
+}
+
+headers: {
+  Content-Type: application/json
+}
+
+body:json {
+  {"ok": true}
+}
+`);
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.blocks.map(block => ({name: block.name, qualifier: block.qualifier}))).toEqual([
+      {name: 'http', qualifier: undefined},
+      {name: 'headers', qualifier: undefined},
+      {name: 'body', qualifier: 'json'},
+    ]);
+    const test = brunoToTestStrict(`http: {
+  method: POST
+  url: https://test.mmt.dev/echo
+}
+`, 'source.bru');
+    expect(test.steps?.[0]).toMatchObject({
+      http: 'https://test.mmt.dev/echo',
+      method: 'post',
+    });
+  });
+
+  it('parses custom http { method } blocks', () => {
+    const test = brunoToTest(`http {
+  method: PATCH
+  url: https://test.mmt.dev/echo
+}
+`, 'patch.bru');
+    expect(test.steps?.[0]).toMatchObject({
+      method: 'patch',
+      http: 'https://test.mmt.dev/echo',
+    });
+  });
+
+  it('adds debug to request steps used for Bruno runtime conversion', () => {
+    const test = brunoToTest(`meta {
+  name: Ping
+}
+
+get {
+  url: https://test.mmt.dev/json
+}
+`, 'ping.bru');
+    expect(test.steps?.[0]).toMatchObject({
+      method: 'get',
+      debug: true,
+    });
+  });
+
+  it('converts a Bruno request into an API definition', () => {
+    const api = brunoToAPI(`meta {
+  name: Create user
+}
+
+post {
+  url: {{baseUrl}}/echo
+  body: json
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Ada"
+  }
+}
+`, 'create-user.bru');
+
+    expect(api).toMatchObject({
+      type: 'api',
+      title: 'Create user',
+      tags: ['bruno'],
+      url: 'https://test.mmt.dev/echo',
+      method: 'post',
+      format: 'json',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      auth: {
+        type: 'bearer',
+        token: '<<e:token>>',
+      },
+      body: {name: 'Ada'},
+    });
+  });
+
+  it('converts a Bruno request into a test flow', () => {
+    const test = brunoToTest(`meta {
+  name: Create user
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/echo
+  body: json
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  trace: {{$uuid}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Ada"
+  }
+}
+
+tests {
+  expect(res.status).to.equal(201);
+  expect(res.body.name).to.equal("Ada");
+}
+`);
+
+    expect(test).toMatchObject({
+      type: 'test',
+      title: 'Create user',
+      tags: ['bruno'],
+    });
+    expect(test.steps?.[0]).toMatchObject({
+      http: 'https://test.mmt.dev/echo',
+      id: 'Create_user',
+      method: 'post',
+      format: 'json',
+      query: {trace: 'r:uuid'},
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer <<e:token>>',
+      },
+      body: {name: 'Ada'},
+      expect: {
+        status: '== 201',
+        'body.name': '== "Ada"',
+      },
+    });
+  });
+
+  it('prefixes conflicting Bruno step ids', () => {
+    const test = brunoToTest(`meta {
+  name: call
+}
+
+get {
+  url: https://test.mmt.dev/json
+}
+`);
+
+    expect(test.steps?.[0]).toMatchObject({
+      id: 'iCall',
+      method: 'get',
+    });
+  });
+
+  it('converts Bruno form-urlencoded bodies', () => {
+    const api = brunoToAPI(`meta {
+  name: Update Profile Form
+}
+
+put {
+  url: {{baseUrl}}/echo
+  body: form-urlencoded
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+body:form-urlencoded {
+  displayName: Grace Hopper
+  timezone: UTC
+  newsletter: true
+}
+`, 'update_profile_form.bru');
+
+    expect(api).toMatchObject({
+      type: 'api',
+      method: 'put',
+      format: 'urlencoded',
+      body: {
+        displayName: 'Grace Hopper',
+        timezone: 'UTC',
+        newsletter: 'true',
+      },
+    });
+  });
+
+  it('reports missing method and url validation errors', () => {
+    const errors = validateBrunoDocument('meta {\n  name: Broken\n}\n');
+    expect(errors.some(error => error.message.includes('No Bruno HTTP method block'))).toBe(true);
+  });
+
+  it('does not treat serialized MMT YAML as native Bruno source', () => {
+    const yaml = testToYaml(brunoToTest(SOURCE_BRU, 'source.bru'));
+    expect(isSerializedMmtTest(yaml)).toBe(true);
+    expect(isSerializedMmtTest(SOURCE_BRU)).toBe(false);
+    expect(validateBrunoDocument(yaml).some(error => error.message.includes('No Bruno blocks found'))).toBe(true);
+  });
+
+  it('generates test JS from a .bru path', async () => {
+    const js = await generateTestJs({
+      rawText: `meta {
+  name: Ping
+}
+
+get {
+  url: https://test.mmt.dev/json
+  body: none
+  auth: none
+}
+`,
+      name: 'ping_bru',
+      inputs: {},
+      envVars: {},
+      filePath: '/project/ping.bru',
+      projectRoot: '/project',
+      isExternal: false,
+      fileLoader: async () => '',
+    });
+
+    expect(js).toContain('__http_0');
+    expect(js).toContain('https://test.mmt.dev/json');
+  });
+
+  it('generates test JS when the panel sends YAML for a .bru path', async () => {
+    const yaml = testToYaml(brunoToTest(SOURCE_BRU, 'source.bru'));
+    const js = await generateTestJs({
+      rawText: yaml,
+      name: 'source_bru',
+      inputs: {},
+      envVars: {},
+      filePath: '/project/source.bru',
+      projectRoot: '/project',
+      isExternal: false,
+      fileLoader: async () => '',
+    });
+
+    expect(js).toContain('__http_0');
+    expect(js).toContain('https://test.mmt.dev/echo');
+    expect(js).toContain('Ada');
+  });
+
+  it('skips collection, folder, and environment Bruno files', () => {
+    expect(isBrunoRequestFilePath('/lib/get_health.bru')).toBe(true);
+    expect(isBrunoRequestFilePath('/lib/collection.bru')).toBe(false);
+    expect(isBrunoRequestFilePath('/lib/folder.bru')).toBe(false);
+    expect(isBrunoRequestFilePath('/lib/environments/local.bru')).toBe(false);
+  });
+
+  it('sorts collection files by meta.seq then path', () => {
+    const files = sortBrunoSourceFiles([
+      {path: '/lib/z.bru', content: 'meta {\n  name: Z\n  seq: 2\n}\nget {\n  url: https://example.com/z\n}\n'},
+      {path: '/lib/a.bru', content: 'meta {\n  name: A\n  seq: 2\n}\nget {\n  url: https://example.com/a\n}\n'},
+      {path: '/lib/b.bru', content: 'meta {\n  name: B\n  seq: 1\n}\nget {\n  url: https://example.com/b\n}\n'},
+    ]);
+    expect(files.map(file => file.path)).toEqual(['/lib/b.bru', '/lib/a.bru', '/lib/z.bru']);
+  });
+
+  it('builds a sequential test from a Bruno collection', () => {
+    const test = brunoCollectionToTest([
+      {
+        path: '/lib/collection.bru',
+        content: 'meta {\n  name: Library\n}\n',
+      },
+      {
+        path: '/lib/health.bru',
+        content: 'meta {\n  name: Health\n  seq: 1\n}\nget {\n  url: https://test.mmt.dev/status/200\n}\n',
+      },
+      {
+        path: '/lib/create.bru',
+        content: 'meta {\n  name: Health\n  seq: 2\n}\npost {\n  url: https://test.mmt.dev/echo\n}\n',
+      },
+    ], 'Library');
+    expect(test.title).toBe('Library');
+    expect(test.steps).toHaveLength(2);
+    const steps = test.steps || [];
+    expect(steps.map(step => (step as {http?: string}).http)).toEqual([
+      'https://test.mmt.dev/status/200',
+      'https://test.mmt.dev/echo',
+    ]);
+    expect(steps.map(step => (step as {id?: string}).id)).toEqual(['Health', 'Health2']);
+  });
+
+  it('translates Bruno {{$…}} dynamics to MMT tokens (Postman-parity map)', () => {
+    const bru = `meta {
+  name: Dyn
+}
+get {
+  url: https://test.mmt.dev/echo?id={{$guid}}&t={{$timestamp}}
+}
+headers {
+  X-Email: {{$randomEmail}}
+  X-Uuid: {{$randomUUID}}
+}
+body:json {
+  {"name":"{{$randomFullName}}","ip":"{{$randomIP}}"}
+}
+`;
+    const api = brunoToAPI(bru, 'dyn.bru');
+    expect(api?.url).toContain('id=r:uuid');
+    expect(api?.url).toContain('t=c:epoch');
+    expect(api?.headers?.['X-Email']).toBe('r:email');
+    expect(api?.headers?.['X-Uuid']).toBe('r:uuid');
+    expect(api?.body).toEqual({name: 'r:full_name', ip: 'r:ip'});
+  });
+
+  it('reports unclosed blocks, duplicate methods, and empty URLs', () => {
+    const unclosed = parseBrunoDocument('get {\n  url: https://example.com\n');
+    expect(unclosed.warnings.some(w => w.message.includes('Unclosed Bruno block'))).toBe(true);
+    expect(validateBrunoDocument('get {\n  url: https://a\n}\npost {\n  url: https://b\n}\n')
+        .some(e => e.message.includes('Only one Bruno HTTP method block'))).toBe(true);
+    expect(validateBrunoDocument('get {\n  url:\n}\n').some(e => e.message.includes('Request URL is required'))).toBe(true);
+    expect(() => brunoToTestStrict('meta {\n  name: x\n}\n')).toThrow(/Invalid Bruno test file/);
+    expect(brunoToAPI('meta {\n  name: x\n}\n')).toBeUndefined();
+    expect(brunoRequestSeq('meta {\n  seq: 9\n}\nget {\n  url: https://x\n}\n')).toBe(9);
+    expect(brunoRequestSeq('get {\n  url: https://x\n}\n')).toBe(Number.MAX_SAFE_INTEGER);
+  });
+});

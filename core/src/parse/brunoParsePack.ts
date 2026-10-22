@@ -1,0 +1,575 @@
+import {APIData, AuthConfig} from '../data/APIData';
+import {Method} from '../data/CommonData';
+import {applyRunDebugToRequestSteps, safeStepId} from '../util/identifierUtils';
+import {lookupPostmanDynamicName} from '../convert/postmanConvertor';
+import {TestData, TestFlowHttp, TestFlowStep} from '../data/TestData';
+import {validateTestData} from './testParsePack';
+
+const HTTP_METHODS = new Set([
+  'get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect',
+]);
+
+const isMethodBlockName = (name: string): boolean => {
+  return HTTP_METHODS.has(name) || name === 'http';
+};
+
+export interface BrunoParseWarning {
+  line: number;
+  message: string;
+}
+
+export interface BrunoBlock {
+  name: string;
+  qualifier?: string;
+  content: string;
+  startLine: number;
+}
+
+export interface BrunoDocument {
+  blocks: BrunoBlock[];
+  warnings: BrunoParseWarning[];
+}
+
+export function isBrunoFilePath(filePath: string): boolean {
+  const lower = String(filePath || '').toLowerCase();
+  return lower.endsWith('.bru') || lower.endsWith('.bruno');
+}
+
+/** True for Bruno collection manifests (`bruno.json`), not request files. */
+export function isBrunoCollectionFilePath(filePath: string): boolean {
+  const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  const base = normalized.split('/').pop() || '';
+  return base === 'bruno.json';
+}
+
+export function isBrunoRequestFilePath(filePath: string): boolean {
+  if (!isBrunoFilePath(filePath)) {
+    return false;
+  }
+  const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  const base = normalized.split('/').pop() || '';
+  if (base === 'collection.bru' || base === 'folder.bru') {
+    return false;
+  }
+  if (normalized.includes('/environments/')) {
+    return false;
+  }
+  return true;
+}
+
+export interface BrunoSourceFile {
+  path: string;
+  content: string;
+  uri?: string;
+}
+
+export function brunoRequestSeq(content: string): number {
+  const document = parseBrunoDocument(content);
+  const meta = parseKeyValueBlock(firstBlock(document, 'meta')?.content || '');
+  const seq = Number(meta.seq);
+  return Number.isFinite(seq) ? seq : Number.MAX_SAFE_INTEGER;
+}
+
+export function sortBrunoSourceFiles(files: BrunoSourceFile[]): BrunoSourceFile[] {
+  return [...files].sort((left, right) => {
+    const seqDelta = brunoRequestSeq(left.content) - brunoRequestSeq(right.content);
+    if (seqDelta !== 0) {
+      return seqDelta;
+    }
+    return left.path.localeCompare(right.path);
+  });
+}
+
+export function brunoCollectionToTest(
+    files: BrunoSourceFile[], title = 'Bruno collection'): TestData {
+  const requestFiles = sortBrunoSourceFiles(
+      files.filter(file => isBrunoRequestFilePath(file.path)));
+  const steps: TestFlowStep[] = [];
+  const usedIds = new Set<string>();
+  for (const file of requestFiles) {
+    const test = brunoToTest(file.content, file.path);
+    for (const step of test.steps || []) {
+      const next = {...step} as TestFlowStep;
+      if ('id' in next && next.id) {
+        let id = String(next.id);
+        let suffix = 2;
+        while (usedIds.has(id)) {
+          id = `${next.id}${suffix}`;
+          suffix++;
+        }
+        usedIds.add(id);
+        (next as {id?: string}).id = id;
+      }
+      steps.push(next);
+    }
+  }
+  return {
+    type: 'test',
+    title,
+    description: '',
+    tags: ['bruno'],
+    inputs: {},
+    outputs: {},
+    steps: applyRunDebugToRequestSteps(steps),
+  };
+}
+
+const lineForOffset = (content: string, offset: number): number => {
+  return content.slice(0, offset).split('\n').length;
+};
+
+const findBlockCloseIndex = (source: string, openIndex: number): number => {
+  let depth = 0;
+  let quote: string | undefined;
+  let escaped = false;
+  for (let i = openIndex; i < source.length; i++) {
+    const char = source[i];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === quote) {
+        quote = undefined;
+      }
+      continue;
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
+    if (char === '{') {
+      depth++;
+    } else if (char === '}') {
+      depth--;
+      if (depth === 0) {
+        return i;
+      }
+    }
+  }
+  return -1;
+};
+
+export function parseBrunoDocument(content: string): BrunoDocument {
+  const source = String(content || '')
+      .replace(/^\uFEFF/, '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
+  const blocks: BrunoBlock[] = [];
+  const warnings: BrunoParseWarning[] = [];
+  // Classic `body:json {` and Bru-lang `http: {` / `headers: {`.
+  const blockLine = /^(\s*)([A-Za-z][A-Za-z0-9_-]*)(?::([A-Za-z0-9_-]*))?\s*\{/;
+
+  let offset = 0;
+  while (offset < source.length) {
+    const newline = source.indexOf('\n', offset);
+    const lineEnd = newline < 0 ? source.length : newline;
+    const line = source.slice(offset, lineEnd);
+    const match = blockLine.exec(line);
+    if (!match) {
+      if (newline < 0) {
+        break;
+      }
+      offset = newline + 1;
+      continue;
+    }
+
+    const openIndex = offset + match[0].lastIndexOf('{');
+    const closeIndex = findBlockCloseIndex(source, openIndex);
+    const startLine = lineForOffset(source, offset);
+    const blockName = (match[2] || '').toLowerCase();
+    if (closeIndex < 0) {
+      warnings.push({line: startLine, message: `Unclosed Bruno block "${blockName}"`});
+      break;
+    }
+
+    const qualifier = (match[3] || '').toLowerCase();
+    blocks.push({
+      name: blockName,
+      qualifier: qualifier || undefined,
+      content: source.slice(openIndex + 1, closeIndex).trim(),
+      startLine,
+    });
+    offset = closeIndex + 1;
+  }
+
+  if (blocks.length === 0 && source.trim()) {
+    warnings.push({line: 1, message: 'No Bruno blocks found'});
+  }
+
+  return {blocks, warnings};
+}
+
+const parseKeyValueBlock = (content: string): Record<string, string> => {
+  const result: Record<string, string> = {};
+  for (const line of String(content || '').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith(';')) {
+      continue;
+    }
+    if (trimmed.startsWith('~')) {
+      continue;
+    }
+    const match = /^([^:\s][^:]*?)\s*:\s*([\s\S]*)$/.exec(trimmed);
+    if (!match || !match[1]) {
+      continue;
+    }
+    result[match[1].trim()] = (match[2] || '').trim();
+  }
+  return result;
+};
+
+const firstBlock = (document: BrunoDocument, name: string, qualifier?: string): BrunoBlock | undefined => {
+  return document.blocks.find(block => block.name === name && (qualifier === undefined || block.qualifier === qualifier));
+};
+
+const blocksByName = (document: BrunoDocument, name: string): BrunoBlock[] => {
+  return document.blocks.filter(block => block.name === name);
+};
+
+const sanitizeId = (value: string): string => safeStepId(value);
+
+const convertVariableReference = (expr: string, variables: Record<string, string>): string => {
+  const trimmed = expr.trim();
+  if (Object.prototype.hasOwnProperty.call(variables, trimmed)) {
+    return variables[trimmed];
+  }
+  const lower = trimmed.toLowerCase();
+  // Clock-style timestamp (Bruno + Postman $timestamp).
+  if (lower === '$timestamp' || lower === 'timestamp') {
+    return 'c:epoch';
+  }
+  const mapped = lookupPostmanDynamicName(trimmed);
+  if (mapped) {
+    if (mapped === 'epoch') {
+      return 'c:epoch';
+    }
+    return `r:${mapped}`;
+  }
+  if (lower === '$guid' || lower === '$uuid' || lower === '$randomuuid') {
+    return 'r:uuid';
+  }
+  return `<<e:${trimmed.replace(/[^A-Za-z0-9_-]/g, '_')}>>`;
+};
+
+const convertVariables = (value: string, variables: Record<string, string>): string => {
+  return String(value ?? '').replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (_match, expr: string) =>
+    convertVariableReference(expr, variables));
+};
+
+const collectVariables = (document: BrunoDocument): Record<string, string> => {
+  const variables: Record<string, string> = {};
+  for (const block of document.blocks) {
+    if (block.name !== 'vars') {
+      continue;
+    }
+    if (block.qualifier === 'post-response') {
+      continue;
+    }
+    for (const [key, value] of Object.entries(parseKeyValueBlock(block.content))) {
+      variables[key] = convertVariables(value, variables);
+    }
+  }
+  return variables;
+};
+
+const inferFormat = (formatHint: string | undefined, headers: Record<string, string>, body?: string): TestFlowHttp['format'] => {
+  const hint = String(formatHint || '').toLowerCase();
+  if (hint === 'json' || hint === 'xml' || hint === 'xmle' || hint === 'text' || hint === 'html' || hint === 'urlencoded') {
+    return hint;
+  }
+  if (hint === 'form-urlencoded' || hint === 'form_urlencoded' || hint === 'form') {
+    return 'urlencoded';
+  }
+  const contentTypeKey = Object.keys(headers).find(key => key.toLowerCase() === 'content-type');
+  const contentType = contentTypeKey ? headers[contentTypeKey].toLowerCase() : '';
+  if (contentType.includes('json')) {
+    return 'json';
+  }
+  if (contentType.includes('html')) {
+    return 'html';
+  }
+  if (contentType.includes('xml')) {
+    return 'xml';
+  }
+  if (contentType.includes('urlencoded') || contentType.includes('x-www-form-urlencoded')) {
+    return 'urlencoded';
+  }
+  const trimmed = String(body || '').trim();
+  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+    return 'json';
+  }
+  if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+    return 'xml';
+  }
+  return 'text';
+};
+
+const parseBody = (format: TestFlowHttp['format'], body?: string): string | object | null | undefined => {
+  if (body === undefined) {
+    return undefined;
+  }
+  const trimmed = body.trim();
+  if (!trimmed || trimmed === 'none') {
+    return undefined;
+  }
+  if (format === 'json') {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return body;
+    }
+  }
+  if (format === 'urlencoded') {
+    const result: Record<string, string> = {};
+    for (const line of trimmed.split('\n')) {
+      const pair = line.trim();
+      if (!pair || pair.startsWith('#')) {
+        continue;
+      }
+      const colon = pair.indexOf(':');
+      if (colon >= 0) {
+        // Bruno key: value style inside body:form-urlencoded
+        const key = pair.slice(0, colon).trim();
+        const value = pair.slice(colon + 1).trim();
+        if (key) {
+          result[key] = value;
+        }
+      } else {
+        const eq = pair.indexOf('=');
+        if (eq >= 0) {
+          const key = pair.slice(0, eq).trim();
+          const value = pair.slice(eq + 1).trim();
+          if (key) {
+            result[key] = value;
+          }
+        }
+      }
+    }
+    return Object.keys(result).length > 0 ? result : body;
+  }
+  return body;
+};
+
+const responsePathToExpectKey = (path: string): string | undefined => {
+  const normalized = path.replace(/^res(?:ponse)?\./, '');
+  if (normalized === 'status' || normalized === 'statusCode') {
+    return 'status';
+  }
+  const match = /^(body|headers|cookies)(.*)$/.exec(normalized);
+  if (!match || !match[1]) {
+    return undefined;
+  }
+  const suffix = (match[2] || '').replace(/^\./, '');
+  return suffix ? `${match[1]}.${suffix.replace(/\[(\d+)\]/g, '.$1')}` : match[1];
+};
+
+const normalizeExpected = (raw: string): string => {
+  const trimmed = raw.trim().replace(/;\s*$/, '');
+  const quoted = /^(['"])([\s\S]*)\1$/.exec(trimmed);
+  // Keep quotes so expect YAML typing treats `"1"` as a string, not number 1.
+  return quoted ? JSON.stringify(quoted[2]) : trimmed;
+};
+
+const extractTestExpects = (script: string): TestFlowHttp['expect'] | undefined => {
+  const expect: NonNullable<TestFlowHttp['expect']> = {};
+  const patterns = [
+    /expect\(\s*((?:res|response)\.[A-Za-z_$][A-Za-z0-9_$.\[\]]*)\s*\)\.to\.(?:equal|eql)\(\s*([^)]*?)\s*\)/g,
+    /expect\(\s*((?:res|response)\.[A-Za-z_$][A-Za-z0-9_$.\[\]]*)\s*\)\.to\.not\.(?:equal|eql)\(\s*([^)]*?)\s*\)/g,
+  ];
+  patterns.forEach((pattern, patternIndex) => {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(script)) !== null) {
+      if (!match[1] || !match[2]) {
+        continue;
+      }
+      const key = responsePathToExpectKey(match[1]);
+      if (!key) {
+        continue;
+      }
+      expect[key] = `${patternIndex === 0 ? '==' : '!='} ${normalizeExpected(match[2])}`;
+    }
+  });
+  return Object.keys(expect).length > 0 ? expect : undefined;
+};
+
+interface BrunoRequestData {
+  title: string;
+  id: string;
+  method: Method;
+  url: string;
+  format: TestFlowHttp['format'];
+  query?: Record<string, string>;
+  headers?: Record<string, string>;
+  body?: string | object;
+  auth?: AuthConfig;
+  expect?: TestFlowHttp['expect'];
+  hasMethodBlock: boolean;
+}
+
+const buildBrunoAuth = (document: BrunoDocument, authType: string | undefined, variables: Record<string, string>): AuthConfig | undefined => {
+  const type = String(authType || '').toLowerCase();
+  if (!type || type === 'none') {
+    return undefined;
+  }
+  if (type === 'bearer') {
+    const values = parseKeyValueBlock(firstBlock(document, 'auth', 'bearer')?.content || '');
+    const token = values.token || values.bearer || '';
+    if (token) {
+      return {type: 'bearer', token: convertVariables(token, variables)};
+    }
+  }
+  return undefined;
+};
+
+const applyAuthHeaders = (headers: Record<string, string>, document: BrunoDocument, authType: string | undefined, variables: Record<string, string>) => {
+  const type = String(authType || '').toLowerCase();
+  if (!type || type === 'none' || headers.Authorization || headers.authorization) {
+    return;
+  }
+  if (type === 'bearer') {
+    const values = parseKeyValueBlock(firstBlock(document, 'auth', 'bearer')?.content || '');
+    const token = values.token || values.bearer || '';
+    if (token) {
+      headers.Authorization = `Bearer ${convertVariables(token, variables)}`;
+    }
+  }
+};
+
+const parseBrunoRequest = (content: string, filePath = ''): BrunoRequestData => {
+  const document = parseBrunoDocument(content);
+  const variables = collectVariables(document);
+  const meta = parseKeyValueBlock(firstBlock(document, 'meta')?.content || '');
+  const methodBlock = document.blocks.find(block => isMethodBlockName(block.name));
+  const methodInfo = parseKeyValueBlock(methodBlock?.content || '');
+  const title = meta.name || (filePath ? filePath.split(/[/\\]/).pop() || 'Bruno request' : 'Bruno request');
+  const methodFromHttpBlock = String(methodInfo.method || 'get').toLowerCase();
+  const method = (methodBlock?.name === 'http' ? methodFromHttpBlock : (methodBlock?.name || 'get')) as Method;
+  const headers = Object.fromEntries(
+      Object.entries(parseKeyValueBlock(firstBlock(document, 'headers')?.content || ''))
+          .map(([key, value]) => [key, convertVariables(value, variables)]));
+
+  applyAuthHeaders(headers, document, methodInfo.auth, variables);
+
+  const bodyBlock = blocksByName(document, 'body').find(block => block.qualifier && block.qualifier !== 'none');
+  const rawBody = bodyBlock ? convertVariables(bodyBlock.content, variables) : undefined;
+  const format = inferFormat(bodyBlock?.qualifier || methodInfo.body, headers, rawBody);
+  const query = Object.fromEntries(
+      Object.entries(parseKeyValueBlock(firstBlock(document, 'params', 'query')?.content || ''))
+          .map(([key, value]) => [key, convertVariables(value, variables)]));
+  const parsedBody = parseBody(format, rawBody);
+  const testsBlock = firstBlock(document, 'tests');
+  const expect = testsBlock ? extractTestExpects(testsBlock.content) : undefined;
+  const auth = buildBrunoAuth(document, methodInfo.auth, variables);
+
+  return {
+    title,
+    id: sanitizeId(meta.name || 'request'),
+    method,
+    url: convertVariables(methodInfo.url || '', variables),
+    format,
+    query: Object.keys(query).length > 0 ? query : undefined,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
+    body: parsedBody === null ? undefined : parsedBody,
+    auth,
+    expect,
+    hasMethodBlock: !!methodBlock,
+  };
+};
+
+export function brunoToAPI(content: string, filePath = ''): APIData | undefined {
+  const request = parseBrunoRequest(content, filePath);
+  if (!request.hasMethodBlock || !request.url) {
+    return undefined;
+  }
+
+  const api: APIData = {
+    type: 'api',
+    title: request.title,
+    tags: ['bruno'],
+    url: request.url,
+    method: request.method,
+    format: request.format,
+  };
+  if (request.query) {
+    api.query = request.query;
+  }
+  if (request.headers) {
+    const headers = {...request.headers};
+    if (request.auth) {
+      delete headers.Authorization;
+      delete headers.authorization;
+    }
+    if (Object.keys(headers).length > 0) {
+      api.headers = headers;
+    }
+  }
+  if (request.body !== undefined && request.body !== null) {
+    api.body = request.body;
+  }
+  if (request.auth) {
+    api.auth = request.auth;
+  }
+  return api;
+}
+
+export function brunoToTest(content: string, filePath = ''): TestData {
+  const request = parseBrunoRequest(content, filePath);
+  const step: TestFlowHttp = {
+    http: request.url,
+    id: request.id,
+    title: request.title,
+    method: request.method,
+    format: request.format,
+    report: 'all',
+  };
+  if (request.query) {
+    step.query = request.query;
+  }
+  if (request.headers) {
+    step.headers = request.headers;
+  }
+  if (request.body !== undefined) {
+    step.body = request.body;
+  }
+  if (request.expect) {
+    step.expect = request.expect;
+  }
+
+  return {
+    type: 'test',
+    title: request.title,
+    description: '',
+    tags: ['bruno'],
+    inputs: {},
+    outputs: {},
+    steps: applyRunDebugToRequestSteps(request.hasMethodBlock ? [step] as TestFlowStep[] : []),
+  };
+}
+
+export function validateBrunoDocument(content: string): BrunoParseWarning[] {
+  const document = parseBrunoDocument(content);
+  const errors: BrunoParseWarning[] = [...document.warnings];
+  const methodBlocks = document.blocks.filter(block => isMethodBlockName(block.name));
+  if (methodBlocks.length === 0) {
+    errors.push({line: 1, message: 'No Bruno HTTP method block found'});
+  }
+  if (methodBlocks.length > 1) {
+    errors.push({line: methodBlocks[1].startLine, message: 'Only one Bruno HTTP method block is supported per .bru file'});
+  }
+  const methodInfo = parseKeyValueBlock(methodBlocks[0]?.content || '');
+  if (methodBlocks.length > 0 && !methodInfo.url) {
+    errors.push({line: methodBlocks[0].startLine, message: 'Request URL is required'});
+  }
+  return errors;
+}
+
+export function brunoToTestStrict(content: string, filePath = ''): TestData {
+  const test = brunoToTest(content, filePath);
+  const errors = validateBrunoDocument(content).map(warning => `line ${warning.line}: ${warning.message}`);
+  const structuralErrors = validateTestData(test);
+  if (errors.length > 0 || structuralErrors.length > 0) {
+    throw new Error('Invalid Bruno test file:\n' + [...errors, ...structuralErrors].map(e => `  - ${e}`).join('\n'));
+  }
+  return test;
+}

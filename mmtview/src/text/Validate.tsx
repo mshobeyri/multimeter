@@ -1,5 +1,5 @@
 import { APISchema, EnvSchema, TestSchema, SuiteSchema, LoadTestSchema, DocSchema, MockSchema, JudgeSchema, ReportSchema, GeneralSchema } from './Schema';
-import { parseYamlDoc } from 'mmt-core/markupConvertor';
+import { parseYamlDoc } from 'mmt-core/parse/markupConvertor';
 import Ajv from 'ajv';
 import { clientCertFieldIssues } from './clientCertificateFields';
 

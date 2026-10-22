@@ -1,0 +1,21 @@
+type: api
+title: Satellite radiation
+description: Observed shortwave radiation from satellite archive
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+  start_date: "2024-06-01"
+  end_date: "2024-06-03"
+outputs:
+  hourly_time_0: body[hourly][time][0]
+  shortwave_0: body[hourly][shortwave_radiation][0]
+url: <<e:satellite_base_url>>/v1/archive
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  start_date: i:start_date
+  end_date: i:end_date
+  hourly: shortwave_radiation
+  timezone: e:timezone
+method: get
+format: json

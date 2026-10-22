@@ -1,0 +1,16 @@
+type: api
+title: Seasonal forecast
+description: Monthly seasonal temperature means
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+outputs:
+  monthly_time_0: body[monthly][time][0]
+  monthly_temp_0: body[monthly][temperature_2m_mean][0]
+url: <<e:seasonal_base_url>>/v1/seasonal
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  monthly: temperature_2m_mean
+method: get
+format: json

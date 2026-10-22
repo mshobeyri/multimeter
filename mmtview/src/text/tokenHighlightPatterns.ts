@@ -1,7 +1,7 @@
 import {
   TOKEN_NAME_RE,
   ACCESSOR_PATH_RE,
-} from 'mmt-core/variableReplacer';
+} from 'mmt-core/tokens/variableReplacer';
 
 /**
  * Highlight form of r:/c: — any keyword-shaped name + optional `(...)` args.

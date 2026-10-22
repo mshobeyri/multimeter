@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { openOsFilePicker } from '../vsAPI';
-import fileHelper from 'mmt-core/fileHelper';
-import type { RuntimeTokenValueContext } from 'mmt-core/apiBodyEdit';
+import fileHelper from 'mmt-core/util/fileHelper';
+import type { RuntimeTokenValueContext } from 'mmt-core/api-edit/apiBodyEdit';
 import StableTextInput from './StableTextInput';
 import TokenFieldInput from './TokenFieldInput';
 import { KV_FIELD_ATTR } from './kvFieldNav';

@@ -1,9 +1,9 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { TestData } from 'mmt-core/TestData';
-import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
-import { formatReportRelativeTime } from 'mmt-core/reportFormat';
-import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraints';
+import { TestData } from 'mmt-core/data/TestData';
+import { JSONRecord, formatDuration } from 'mmt-core/data/CommonData';
+import { formatReportRelativeTime } from 'mmt-core/report/reportFormat';
+import { extractInputConstraintsFromDescription } from 'mmt-core/api-edit/paramConstraints';
 import { FileContext } from '../fileContext';
 import { setEnvironmentVariables } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
@@ -45,7 +45,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
     const currentInputsRef = useRef<JSONRecord>({});
     const dirtyKeysRef = useRef<Set<string>>(new Set());
-    const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set());
+    const [, setDirtyKeys] = useState<Set<string>>(new Set());
     const yamlInputsRef = useRef<JSONRecord | undefined>(testData.inputs);
     const resolvedBaselineRef = useRef<JSONRecord>({});
     const [outputs, setOutputs] = useState<JSONRecord>({});
@@ -438,7 +438,8 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const runMenuItems = useMemo(
         () => buildReportRunMenuEntries({
             onPause: handlePause,
-            onResume: handleResume,
+            onStop: handleStop,
+            stopLabel: 'Stop test',
             paused: isPaused,
             canPause: isPreparing || isRunning,
             onRunInCore: () => {
@@ -451,7 +452,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
         }),
         [
             handlePause,
-            handleResume,
+            handleStop,
             isPaused,
             isPreparing,
             isRunning,
@@ -491,8 +492,11 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                     onClick={handleRun}
                     onCancel={handleStop}
                     loading={isPreparing || isRunning}
+                    paused={isPaused}
+                    onResume={handleResume}
                     actionTitle="Run test"
                     cancelTitle="Stop test"
+                    resumeTitle="Resume"
                     contextMenuItems={runMenuItems}
                 />
             </div>
@@ -538,6 +542,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                             ? runState
                             : 'default'
                     }
+                    paused={isPaused}
                     onRun={handleRun}
                     runButtonLabel="Run test"
                     showHeader={Boolean(hasInputs || hasOutputs || overviewStats || stepReports.length > 0)}

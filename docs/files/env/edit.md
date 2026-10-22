@@ -20,8 +20,8 @@ For workspace runtime variables and presets in the Multimeter bottom panel, see 
 
 Each variable is either:
 
-- A **key-value map** (named choices) — presets select a key
-- An **array list** (allowed values) — presets or the runner pick from the list
+- A **key-value map** (named choices) — each choice may be a scalar or a nested object/array; presets (or the panel dropdown) select a key. Nested values are edited as JSON in the value field (e.g. `{"latitude":52.52,"longitude":13.41}`).
+- An **array list** (allowed values, scalars only) — presets or the runner pick from the list
 
 ### Presets
 

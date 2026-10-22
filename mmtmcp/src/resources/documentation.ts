@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import * as agentDocs from 'mmt-core/agentDocs';
+import * as agentDocs from 'mmt-core/util/agentDocs';
 
 import {GUIDE_RESOURCES, readGuideContent} from '../resources/guides';
 

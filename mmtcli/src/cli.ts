@@ -6,7 +6,7 @@ import {Worker, isMainThread, parentPort, workerData} from 'worker_threads';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
 import {apiParsePack, docHtml, docParsePack, runner, testlightHelp} from 'mmt-core';
-import type {LogLevel} from 'mmt-core/CommonData';
+import type {LogLevel} from 'mmt-core/data/CommonData';
 import path from 'path';
 import {createRequire} from 'module';
 
@@ -17,8 +17,14 @@ import {buildCliRunArgs} from './runArgs.js';
 import {formatCliDocs, listCliDocTopics, resolveCliGuidesDir} from './aiDocs.js';
 import {resolveValidatePath, validateMmtFile} from './validateMmt.js';
 import {detectInstallChannel, runUpdate} from './selfUpdate.js';
-import {applyGitCurrentSnapshot, resolveGitCurrentSnapshot} from './gitCommitShort.js';
-import {expandCurrentTokensInPath, setGitCurrentSnapshot} from 'mmt-core/Current';
+import {
+  installGitCurrentSnapshotProvider,
+  resolveGitCurrentSnapshot,
+} from './gitCommitShort.js';
+import {
+  expandCurrentTokensInPath,
+  setGitCurrentSnapshotProvider,
+} from 'mmt-core/tokens/Current';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -75,12 +81,12 @@ function collectPreset(value: string, previous: string[]): string[] {
   return previous.concat(names.length ? names : [value]);
 }
 
-type JsRunnerModule = typeof import('mmt-core/jsRunner');
+type JsRunnerModule = typeof import('mmt-core/runner/jsRunner');
 let jsRunnerModulePromise: Promise<JsRunnerModule>|undefined;
 
 async function loadJsRunnerModule(): Promise<JsRunnerModule> {
   if (!jsRunnerModulePromise) {
-    jsRunnerModulePromise = import('mmt-core/jsRunner');
+    jsRunnerModulePromise = import('mmt-core/runner/jsRunner');
   }
   return jsRunnerModulePromise;
 }
@@ -118,8 +124,9 @@ async function startJsRunnerWorkerThread(): Promise<void> {
   if (typeof setRunnerNetworkConfig === 'function' && workerData?.networkConfig) {
     setRunnerNetworkConfig(workerData.networkConfig);
   }
-  if (workerData?.gitSnapshot) {
-    setGitCurrentSnapshot(workerData.gitSnapshot);
+  if (typeof workerData?.gitCwd === 'string' && workerData.gitCwd) {
+    const gitCwd = workerData.gitCwd as string;
+    setGitCurrentSnapshotProvider(() => resolveGitCurrentSnapshot(gitCwd));
   }
   parentPort.on('message', async (request: WorkerJsRunnerRequest) => {
     const {id, context} = request;
@@ -154,7 +161,7 @@ async function startJsRunnerWorkerThread(): Promise<void> {
   });
 }
 
-function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any, gitSnapshot?: any) {
+function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any, gitCwd?: string) {
   let nextId = 1;
   const idle: Worker[] = [];
   const allWorkers = new Set<Worker>();
@@ -164,7 +171,7 @@ function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any, git
 
   const createWorker = () => {
     const worker = new Worker(jsRunnerWorkerScript(), {
-      workerData: {mmtWorker: 'jsRunner', networkConfig, gitSnapshot},
+      workerData: {mmtWorker: 'jsRunner', networkConfig, gitCwd},
     });
     allWorkers.add(worker);
     worker.on('message', (message: any) => {
@@ -365,11 +372,11 @@ program.command('run')
         runOpts.serverRunner = cliServerRunner;
         const gitCwd = (runOpts as any).projectRoot
           || path.dirname(path.resolve(process.cwd(), file));
-        const gitSnapshot = applyGitCurrentSnapshot(gitCwd);
+        installGitCurrentSnapshotProvider(gitCwd);
         const localJsRunner = (ctx: any) => runJSCode({...ctx, serverRunner: cliServerRunner});
         const workerJsRunner = (opts as any).realThreads === false
           ? undefined
-          : createWorkerBackedJsRunner(localJsRunner, networkConfig, gitSnapshot);
+          : createWorkerBackedJsRunner(localJsRunner, networkConfig, gitCwd);
         runOpts.jsRunner = (ctx: any) => workerJsRunner ? workerJsRunner.run(ctx) : localJsRunner(ctx);
         let runOutcome: any;
         try {
@@ -435,7 +442,7 @@ program.command('run')
             });
           }
           if (reportContent) {
-            applyGitCurrentSnapshot(reportGitCwd);
+            installGitCurrentSnapshotProvider(reportGitCwd);
             const expandedReportFile = expandCurrentTokensInPath(String(reportFile));
             const reportPath = writeTextFile(expandedReportFile, reportContent);
             if (!opts.quiet) {
@@ -451,7 +458,7 @@ program.command('run')
         if (suiteExports && Array.isArray(suiteExports.paths) && suiteExports.collectedResults) {
           const suiteDir = path.dirname(path.resolve(process.cwd(), file));
           const projectRoot = (runFileOptions as any).projectRoot;
-          applyGitCurrentSnapshot(projectRoot || suiteDir);
+          installGitCurrentSnapshotProvider(projectRoot || suiteDir);
 
           for (const exportPath of suiteExports.paths) {
             try {
@@ -675,7 +682,7 @@ program.command('update')
           opts: {from: string; strategy?: string; alias?: string; out?: string}) => {
         try {
           const {scaffoldTestFromApi, buildApiDetailsSummary, suggestTestPath} =
-              await import('mmt-core/testScaffold');
+              await import('mmt-core/util/testScaffold');
           const apiFull = resolveUserPath(opts.from, process.cwd(), path);
           if (!fs.existsSync(apiFull)) {
             console.error(`API file not found: ${apiFull}`);
@@ -819,9 +826,9 @@ program.command('validate')
         maxFields?: number;
       }) => {
         try {
-          const {suggestAssertions} = await import('mmt-core/suggestAssertions');
+          const {suggestAssertions} = await import('mmt-core/api-edit/suggestAssertions');
           const {safeStepIdFromAlias, suggestAliasFromPath} =
-              await import('mmt-core/testScaffold');
+              await import('mmt-core/util/testScaffold');
           let outputs: Record<string, string>|undefined;
           let stepId = opts.stepId;
           if (opts.from) {

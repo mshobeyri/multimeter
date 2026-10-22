@@ -8,7 +8,7 @@ Toolbar actions on the environment panel:
 
 | Control | What it does |
 |---|---|
-| {{btn:check:Apply}} | Push variables from this env file into the workspace Environment panel (uses current preset selections). Existing manual and runtime values are kept; matching keys are updated. |
+| {{btn:check:Apply}} | Push variables from this env file into the workspace Environment panel (uses current preset selections). Matching environment-layer keys are updated; runtime rows with the same name are kept (and still win when resolving `e:`). |
 | {{btn:clear-all:Clear}} | Remove only the keys defined in this env file from the workspace panel. Other manual/runtime values stay. |
 
 The same runtime values are also available in the [Environment variables panel](./ui.md) in the Multimeter bottom panel.
@@ -26,6 +26,14 @@ variables:
   mode:
     dev: "debug"
     prod: "release"
+  # Nested choice value — one concept; use e:city.latitude / e:city.longitude
+  city:
+    berlin:
+      latitude: 52.52
+      longitude: 13.41
+    tokyo:
+      latitude: 35.68
+      longitude: 139.69
   timeouts:
     - 1000                               # array list (allowed values)
     - 2000
@@ -46,10 +54,10 @@ setting:
 
 Notes
 - `variables` values must be one of:
-  - **key-value map** (named choices) — a preset selects a choice by key
-  - **array list** (allowed values) — a preset or user picks from the list
+  - **key-value map** (named choices) — each choice may be a **scalar** or a **nested object/array**. Prefer one concept when fields must stay together for **API defaults** (e.g. `city.berlin: {latitude, longitude}`), then APIs read `e:city.latitude`. A preset (or the Environment panel) selects a choice by key; without a preset the first choice is the default. For env vs JSON catalogs vs values written in a test, see [Where values live](../../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct).
+  - **array list** (allowed values) — scalars only; a preset or user picks from the list
   - **live variable** — a `./….mmt` path that runs another file on each `e:name` read (see [Live variables](./live-variables.md))
-- `presets` groups can be hierarchical; `runner.dev` is a common pattern
+- `presets` groups can be hierarchical; `runner.dev` is a common pattern. Skip presets when a single choice map already is the concept (as with `city` above).
 
 ## Usage
 Supported token forms in tests and APIs:

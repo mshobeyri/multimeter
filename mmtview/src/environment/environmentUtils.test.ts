@@ -13,7 +13,7 @@ function env(
 }
 
 describe('mergeEnvVariableLists', () => {
-  it('upserts by name and keeps other existing vars', () => {
+  it('upserts environment-layer by name and keeps other existing vars', () => {
     const existing = [
       env('api_url', 'http://old', 'file'),
       env('token', 'abc', 'manual'),
@@ -28,6 +28,16 @@ describe('mergeEnvVariableLists', () => {
       env('mode', 'dev', 'file'),
       env('token', 'abc', 'manual'),
       env('session', 'xyz', 'runtime'),
+    ]);
+  });
+
+  it('keeps runtime when incoming redefines the same name', () => {
+    expect(mergeEnvVariableLists(
+        [env('token', 'file', 'file'), env('token', 'rt', 'runtime')],
+        [env('token', 'new', 'file')],
+        )).toEqual([
+      env('token', 'new', 'file'),
+      env('token', 'rt', 'runtime'),
     ]);
   });
 
@@ -48,6 +58,13 @@ describe('removeEnvVariablesByNames', () => {
     expect(removeEnvVariablesByNames(existing, ['api_url', 'mode'])).toEqual([
       env('token', 'abc', 'manual'),
     ]);
+  });
+
+  it('keeps runtime rows for cleared environment names', () => {
+    expect(removeEnvVariablesByNames(
+        [env('token', 'file', 'file'), env('token', 'rt', 'runtime')],
+        ['token'],
+        )).toEqual([env('token', 'rt', 'runtime')]);
   });
 
   it('no-ops when names are empty', () => {

@@ -7,10 +7,10 @@ import http from 'http';
 import https from 'https';
 import path from 'path';
 import * as mmtcore from 'mmt-core';
-import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
-import {dispatchMockHttpRequest} from 'mmt-core/mockDispatch';
-import {buildMockHttpsOptions} from 'mmt-core/mockTlsMaterial';
-import {applyGitCurrentSnapshot} from './gitCommitShort.js';
+import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/util/fileHelper';
+import {dispatchMockHttpRequest} from 'mmt-core/mock/mockDispatch';
+import {buildMockHttpsOptions} from 'mmt-core/mock/mockTlsMaterial';
+import {installGitCurrentSnapshotProvider} from './gitCommitShort.js';
 
 const {mockParsePack, mockServer, variableReplacer} = mmtcore;
 
@@ -51,11 +51,10 @@ export async function startMockServerFromPath(
     return () => {};
   }
 
-  applyGitCurrentSnapshot(
+  const rawContent = fs.readFileSync(filePath, 'utf-8');
+  installGitCurrentSnapshotProvider(
       findProjectRootSync(filePath, fs.existsSync, path.dirname, path.join)
       || path.dirname(filePath));
-
-  const rawContent = fs.readFileSync(filePath, 'utf-8');
   let processedContent = rawContent;
   try {
     const processor = (mmtcore as any).dataImportProcessor;

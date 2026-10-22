@@ -1,8 +1,8 @@
-import { JSONValue } from "mmt-core/CommonData";
+import { JSONValue } from "mmt-core/data/CommonData";
 import {
   coerceMultipartPartsInput,
   type MultipartPartSpec,
-} from "mmt-core/multipartBody";
+} from "mmt-core/network/multipartBody";
 import {
   inputBoxToYamlValueWithTokens,
   stringFieldToYamlWithLiveTokens,

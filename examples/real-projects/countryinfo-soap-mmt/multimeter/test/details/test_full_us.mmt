@@ -1,0 +1,20 @@
+type: test
+title: FullCountryInfo — United States
+import:
+  countries: +/countries.json
+  api: +/api/full_country_info.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.us.iso}
+    expect:
+      status: 200
+      iso: ${countries.us.iso}
+      name: ${countries.us.name}
+      capital: ${countries.us.capital}
+      phone: ${countries.us.phone}
+      continent: ${countries.us.continent}
+      currency: ${countries.us.currency}
+      flag: ${countries.us.flag}
+      language: ${countries.us.language}
+    report: all

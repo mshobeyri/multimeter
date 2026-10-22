@@ -175,11 +175,11 @@ export function VSCodeSidePanel({
 }) {
   return (
     <div
-      className={`flex-1 flex flex-col min-w-0 text-left bg-surface ${
+      className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden text-left bg-surface ${
         fullWidth ? 'border-t border-border sm:border-t-0' : 'border-t sm:border-t-0 sm:border-l border-border'
       }`}
     >
-      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-border">
+      <div className="flex shrink-0 items-center justify-between gap-3 px-3 py-2 border-b border-border">
         <div className="flex items-center gap-2 min-w-0">
           <Codicon name={icon} className="text-slate-300" />
           <span className="text-xs sm:text-sm text-slate-200 truncate">{title}</span>

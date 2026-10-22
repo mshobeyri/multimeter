@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { simpleMarkdownToHtml, parseParamDescriptions, parseRefDescription, extractMarkdownSection, resolveRefPath } from "mmt-core/docHtml";
-import { JSONRecord } from "mmt-core/CommonData";
+import { simpleMarkdownToHtml, parseParamDescriptions, parseRefDescription, extractMarkdownSection, resolveRefPath } from "mmt-core/doc/docHtml";
+import { JSONRecord } from "mmt-core/data/CommonData";
 import { readFile, openRelativeFile } from "../vsAPI";
 
 interface MdViewerProps {

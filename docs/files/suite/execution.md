@@ -3,6 +3,10 @@
 ## Sequential and Parallel Execution
 By default, all items listed in the `items` array will run in parallel. To control the flow and run items in sequential stages, use `then` to separate groups. All items between `then` separators form a group that runs in parallel. The groups themselves run sequentially, one after the other.
 
+Tip: against **public or rate-limited APIs**, prefer `then` between items (or keep parallel groups small). Parallel fan-out can trigger upstream overload or empty/error responses that look like flaky tests.
+
+Multimeter caps how many suite **test/api** items run at once across the whole suite (including nested suites) at **CPU cores × 4** (or **8** if the CPU count cannot be read). Extra items in a parallel group wait for a free slot. Use `then` when later items must wait for earlier ones to finish entirely.
+
 ```yaml
 type: suite
 title: Sequential and Parallel Execution Example

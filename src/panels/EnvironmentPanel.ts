@@ -1,15 +1,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import type {JSONValue} from 'mmt-core/CommonData';
-import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/envVarLastUpdate';
-import type {EnvVariable, EnvVarSource} from 'mmt-core/EnvData';
-import {findProjectRootSync} from 'mmt-core/fileHelper';
+import type {JSONValue} from 'mmt-core/data/CommonData';
+import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/env/envVarLastUpdate';
+import type {EnvVariable, EnvVarSource} from 'mmt-core/data/EnvData';
+import {findProjectRootSync} from 'mmt-core/util/fileHelper';
 
-import {derivePresetSelections} from './envPresetMatch';
+import {derivePresetSelections} from 'mmt-core/env/envPresetMatch';
+import {isRuntimeEnvSource} from 'mmt-core/env/workspaceEnvVars';
 import {envPanelValueView, resolveEnvPanelIncomingValue} from './envPanelValue';
 
-export type {EnvVarSource} from 'mmt-core/EnvData';
+export type {EnvVarSource} from 'mmt-core/data/EnvData';
 
 export default class EnvironmentPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = 'multimeter.environment';
@@ -50,9 +51,24 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
         }
         case 'multimeter.environment.set': {
           const environmentVars = this.getWorkspaceEnvironmentVars();
-          const idx = environmentVars.findIndex(v => v.name === message.name);
+          const requestedSource = parseEnvVarSource(message.source);
+          // Runtime edits target the runtime row; env-table edits (including
+          // file→manual) target the environment-layer row of the same name.
+          let idx = -1;
+          if (requestedSource === 'runtime') {
+            idx = environmentVars.findIndex(
+                v => v.name === message.name &&
+                    isRuntimeEnvSource(resolveEnvVarSource(v)));
+          } else {
+            idx = environmentVars.findIndex(
+                v => v.name === message.name &&
+                    !isRuntimeEnvSource(resolveEnvVarSource(v)));
+            if (idx === -1) {
+              idx = environmentVars.findIndex(v => v.name === message.name);
+            }
+          }
           if (idx !== -1) {
-            const source = parseEnvVarSource(message.source) ??
+            const source = requestedSource ??
                 environmentVars[idx].source ?? 'file';
             environmentVars[idx].value =
                 resolveEnvPanelIncomingValue(message.value, source);
@@ -87,7 +103,9 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
             break;
           }
           const environmentVars = this.getWorkspaceEnvironmentVars();
-          const existing = environmentVars.find(v => v.name === name);
+          const existing = environmentVars.find(
+              v => v.name === name &&
+                  !isRuntimeEnvSource(resolveEnvVarSource(v)));
           if (existing) {
             vscode.window.showWarningMessage(
                 `Environment variable "${name}" already exists.`);
@@ -112,7 +130,14 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
             break;
           }
           const environmentVars = this.getWorkspaceEnvironmentVars();
-          const idx = environmentVars.findIndex(v => v.name === name);
+          const requestedSource = parseEnvVarSource(message.source);
+          const idx = requestedSource === 'runtime' ?
+              environmentVars.findIndex(
+                  v => v.name === name &&
+                      isRuntimeEnvSource(resolveEnvVarSource(v))) :
+              environmentVars.findIndex(
+                  v => v.name === name &&
+                      !isRuntimeEnvSource(resolveEnvVarSource(v)));
           if (idx !== -1) {
             environmentVars.splice(idx, 1);
             await this.persistWorkspaceEnvironmentVars(environmentVars);
@@ -208,7 +233,9 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
   refreshEnvironmentVars() {
     const environmentVars = this.getWorkspaceEnvironmentVars();
     const presets = this.getWorkspaceEnvironmentPresets();
-    const presetSelections = derivePresetSelections(environmentVars, presets);
+    const presetSelections = derivePresetSelections(
+        environmentVars.filter(v => !isRuntimeEnvSource(resolveEnvVarSource(v))),
+        presets);
     this.view?.webview.postMessage({
       command: 'multimeter.environment.panel.refresh',
       data: environmentVars.map(envVar => {
@@ -282,6 +309,9 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     let updated = false;
     const normalizedMapping = mapping as Record<string, any>;
     for (const variable of environmentVars) {
+      if (isRuntimeEnvSource(resolveEnvVarSource(variable))) {
+        continue;
+      }
       if (!Object.prototype.hasOwnProperty.call(normalizedMapping, variable.name)) {
         continue;
       }

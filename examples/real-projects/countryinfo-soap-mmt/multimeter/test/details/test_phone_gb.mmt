@@ -1,0 +1,13 @@
+type: test
+title: CountryIntPhoneCode — United Kingdom
+import:
+  countries: +/countries.json
+  api: +/api/country_phone_code.mmt
+steps:
+  - call: api
+    inputs:
+      iso_code: ${countries.gb.iso}
+    expect:
+      status: 200
+      phone: ${countries.gb.phone}
+    report: all

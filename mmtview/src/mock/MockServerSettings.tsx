@@ -1,5 +1,5 @@
 import React from "react";
-import { MockConnectionConfig, MockConnectionMode, MockData } from "mmt-core/MockData";
+import { MockConnectionConfig, MockConnectionMode, MockData } from "mmt-core/data/MockData";
 import FilePickerInput from "../components/FilePickerInput";
 import StableTextInput from "../components/StableTextInput";
 import KSVEditor from "../components/KSVEditor";

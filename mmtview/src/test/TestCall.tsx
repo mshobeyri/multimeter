@@ -1,5 +1,5 @@
 import React from "react";
-import { parseYamlDoc } from "mmt-core/markupConvertor";
+import { parseYamlDoc } from "mmt-core/parse/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
 import {
   applyExpectUiRowChange,
@@ -7,7 +7,7 @@ import {
   expectMapToUiRows,
   type ExpectUiRow,
   uiRowsToExpectMap,
-} from "mmt-core/expectUi";
+} from "mmt-core/api-edit/expectUi";
 import FieldWithRemove from "../components/FieldWithRemove";
 import {
   inputBoxToYamlValueWithTokens,

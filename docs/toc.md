@@ -10,6 +10,7 @@
 - [Get Started](./panels/get-started.md)
 - [Mock Server](./files/server/panel.md)
 - [Connections](./panels/connections.md)
+- [Cache](./panels/cache.md)
 - [Environment Variables](./files/env/ui.md)
 - [History](./panels/history.md)
 

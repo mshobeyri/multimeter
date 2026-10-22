@@ -1,0 +1,22 @@
+type: test
+title: DWD ICON — Paris 3 days
+import:
+  cities: +/cities.json
+  api: +/api/model_dwd_icon.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.paris.latitude}
+      longitude: ${cities.paris.longitude}
+      forecast_days: "3"
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      resp_latitude:
+        - >= 45
+        - <= 52
+      resp_longitude:
+        - >= 0
+        - <= 5
+      hourly_count: >=# 72
+    report: all

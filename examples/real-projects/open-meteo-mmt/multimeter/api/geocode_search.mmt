@@ -1,0 +1,18 @@
+type: api
+title: Geocode search
+description: Resolve a place name to coordinates
+inputs:
+  name: Berlin
+  count: "1"
+outputs:
+  place_name: body[results][0][name]
+  latitude: body[results][0][latitude]
+  longitude: body[results][0][longitude]
+  country: body[results][0][country]
+  id: body[results][0][id]
+url: <<e:geocode_base_url>>/v1/search
+query:
+  name: i:name
+  count: i:count
+method: get
+format: json

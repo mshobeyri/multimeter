@@ -10,370 +10,740 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./docHtml": {
-      "types": "./dist/docHtml.d.ts",
-      "require": "./dist/docHtml.js",
-      "default": "./dist/docHtml.js"
-    },
-    "./paramConstraints": {
-      "types": "./dist/paramConstraints.d.ts",
-      "require": "./dist/paramConstraints.js",
-      "default": "./dist/paramConstraints.js"
-    },
-    "./DocData": {
-      "types": "./dist/DocData.d.ts",
-      "require": "./dist/DocData.js",
-      "default": "./dist/DocData.js"
-    },
-    "./docParsePack": {
-      "types": "./dist/docParsePack.d.ts",
-      "require": "./dist/docParsePack.js",
-      "default": "./dist/docParsePack.js"
-    },
-    "./jsRunner": {
-      "types": "./dist/jsRunner.d.ts",
-      "require": "./dist/jsRunner.js",
-      "default": "./dist/jsRunner.js"
-    },
-    "./apiRunResult": {
-      "types": "./dist/apiRunResult.d.ts",
-      "require": "./dist/apiRunResult.js",
-      "default": "./dist/apiRunResult.js"
-    },
-    "./apiTestEval": {
-      "types": "./dist/apiTestEval.d.ts",
-      "require": "./dist/apiTestEval.js",
-      "default": "./dist/apiTestEval.js"
-    },
-    "./CommonData": {
-      "types": "./dist/CommonData.d.ts",
-      "require": "./dist/CommonData.js",
-      "default": "./dist/CommonData.js"
-    },
-    "./binaryBody": {
-      "types": "./dist/binaryBody.d.ts",
-      "require": "./dist/binaryBody.js",
-      "default": "./dist/binaryBody.js"
-    },
-    "./htmlFormat": {
-      "types": "./dist/htmlFormat.d.ts",
-      "require": "./dist/htmlFormat.js",
-      "default": "./dist/htmlFormat.js"
-    },
-    "./responseBodyDisplay": {
-      "types": "./dist/responseBodyDisplay.d.ts",
-      "require": "./dist/responseBodyDisplay.js",
-      "default": "./dist/responseBodyDisplay.js"
-    },
-    "./formatResolve": {
-      "types": "./dist/formatResolve.d.ts",
-      "require": "./dist/formatResolve.js",
-      "default": "./dist/formatResolve.js"
-    },
-    "./apiBodyEdit": {
-      "types": "./dist/apiBodyEdit.d.ts",
-      "require": "./dist/apiBodyEdit.js",
-      "default": "./dist/apiBodyEdit.js"
-    },
-    "./apiFormatEdit": {
-      "types": "./dist/apiFormatEdit.d.ts",
-      "require": "./dist/apiFormatEdit.js",
-      "default": "./dist/apiFormatEdit.js"
-    },
-    "./runtimeTokenUi": {
-      "types": "./dist/runtimeTokenUi.d.ts",
-      "require": "./dist/runtimeTokenUi.js",
-      "default": "./dist/runtimeTokenUi.js"
-    },
-    "./bodyRuntimeTokens": {
-      "types": "./dist/bodyRuntimeTokens.d.ts",
-      "require": "./dist/bodyRuntimeTokens.js",
-      "default": "./dist/bodyRuntimeTokens.js"
-    },
-    "./NetworkData": {
-      "types": "./dist/NetworkData.d.ts",
-      "require": "./dist/NetworkData.js",
-      "default": "./dist/NetworkData.js"
-    },
-    "./APIData": {
-      "types": "./dist/APIData.d.ts",
-      "require": "./dist/APIData.js",
-      "default": "./dist/APIData.js"
-    },
-    "./network": {
-      "types": "./dist/network.d.ts",
-      "require": "./dist/network.js",
-      "default": "./dist/network.js"
-    },
-    "./JSer": {
-      "types": "./dist/JSer.d.ts",
-      "require": "./dist/JSer.js",
-      "default": "./dist/JSer.js"
-    },
-    "./JSerTestFlow": {
-      "types": "./dist/JSerTestFlow.d.ts",
-      "require": "./dist/JSerTestFlow.js",
-      "default": "./dist/JSerTestFlow.js"
-    },
-    "./testParsePack": {
-      "types": "./dist/testParsePack.d.ts",
-      "require": "./dist/testParsePack.js",
-      "default": "./dist/testParsePack.js"
-    },
-    "./httpParsePack": {
-      "types": "./dist/httpParsePack.d.ts",
-      "require": "./dist/httpParsePack.js",
-      "default": "./dist/httpParsePack.js"
-    },
-    "./brunoParsePack": {
-      "types": "./dist/brunoParsePack.d.ts",
-      "require": "./dist/brunoParsePack.js",
-      "default": "./dist/brunoParsePack.js"
-    },
-    "./curlConvertor": {
-      "types": "./dist/curlConvertor.d.ts",
-      "require": "./dist/curlConvertor.js",
-      "default": "./dist/curlConvertor.js"
-    },
-    "./curlGenerator": {
-      "types": "./dist/curlGenerator.d.ts",
-      "require": "./dist/curlGenerator.js",
-      "default": "./dist/curlGenerator.js"
-    },
-    "./postmanConvertor": {
-      "types": "./dist/postmanConvertor.d.ts",
-      "require": "./dist/postmanConvertor.js",
-      "default": "./dist/postmanConvertor.js"
-    },
-    "./openapiConvertor": {
-      "types": "./dist/openapiConvertor.d.ts",
-      "require": "./dist/openapiConvertor.js",
-      "default": "./dist/openapiConvertor.js"
-    },
-    "./wsdlConvertor": {
-      "types": "./dist/wsdlConvertor.d.ts",
-      "require": "./dist/wsdlConvertor.js",
-      "default": "./dist/wsdlConvertor.js"
-    },
-    "./importConvertor": {
-      "types": "./dist/importConvertor.d.ts",
-      "require": "./dist/importConvertor.js",
-      "default": "./dist/importConvertor.js"
-    },
-    "./runConfig": {
-      "types": "./dist/runConfig.d.ts",
-      "require": "./dist/runConfig.js",
-      "default": "./dist/runConfig.js"
-    },
-    "./networkCoreNode": {
-      "types": "./dist/networkCoreNode.d.ts",
-      "require": "./dist/networkCoreNode.js",
-      "default": "./dist/networkCoreNode.js"
-    },
-    "./grpcCore": {
-      "types": "./dist/grpcCore.d.ts",
-      "require": "./dist/grpcCore.js",
-      "default": "./dist/grpcCore.js"
-    },
-    "./fileHelper": {
-      "types": "./dist/fileHelper.d.ts",
-      "require": "./dist/fileHelper.js",
-      "default": "./dist/fileHelper.js"
-    },
-    "./MockData": {
-      "types": "./dist/MockData.d.ts",
-      "require": "./dist/MockData.js",
-      "default": "./dist/MockData.js"
-    },
-    "./mockParsePack": {
-      "types": "./dist/mockParsePack.d.ts",
-      "require": "./dist/mockParsePack.js",
-      "default": "./dist/mockParsePack.js"
-    },
-    "./mockServer": {
-      "types": "./dist/mockServer.d.ts",
-      "require": "./dist/mockServer.js",
-      "default": "./dist/mockServer.js"
-    },
-    "./mockDispatch": {
-      "types": "./dist/mockDispatch.d.ts",
-      "require": "./dist/mockDispatch.js",
-      "default": "./dist/mockDispatch.js"
-    },
-    "./mockTlsMaterial": {
-      "types": "./dist/mockTlsMaterial.d.ts",
-      "require": "./dist/mockTlsMaterial.js",
-      "default": "./dist/mockTlsMaterial.js"
-    },
-    "./httpTraceLog": {
-      "types": "./dist/httpTraceLog.d.ts",
-      "require": "./dist/httpTraceLog.js",
-      "default": "./dist/httpTraceLog.js"
-    },
-    "./judgeProbe": {
-      "types": "./dist/judgeProbe.d.ts",
-      "require": "./dist/judgeProbe.js",
-      "default": "./dist/judgeProbe.js"
-    },
-    "./judgeAuth": {
-      "types": "./dist/judgeAuth.d.ts",
-      "require": "./dist/judgeAuth.js",
-      "default": "./dist/judgeAuth.js"
-    },
-    "./JudgeData": {
-      "types": "./dist/JudgeData.d.ts",
-      "require": "./dist/JudgeData.js",
-      "default": "./dist/JudgeData.js"
-    },
-    "./reportCollector": {
-      "types": "./dist/reportCollector.d.ts",
-      "require": "./dist/reportCollector.js",
-      "default": "./dist/reportCollector.js"
-    },
-    "./junitXml": {
-      "types": "./dist/junitXml.d.ts",
-      "require": "./dist/junitXml.js",
-      "default": "./dist/junitXml.js"
-    },
-    "./mmtReport": {
-      "types": "./dist/mmtReport.d.ts",
-      "require": "./dist/mmtReport.js",
-      "default": "./dist/mmtReport.js"
-    },
-    "./reportHtml": {
-      "types": "./dist/reportHtml.d.ts",
-      "require": "./dist/reportHtml.js",
-      "default": "./dist/reportHtml.js"
-    },
-    "./reportMarkdown": {
-      "types": "./dist/reportMarkdown.d.ts",
-      "require": "./dist/reportMarkdown.js",
-      "default": "./dist/reportMarkdown.js"
-    },
-    "./reportParser": {
-      "types": "./dist/reportParser.d.ts",
-      "require": "./dist/reportParser.js",
-      "default": "./dist/reportParser.js"
-    },
-    "./reportTree": {
-      "types": "./dist/reportTree.d.ts",
-      "require": "./dist/reportTree.js",
-      "default": "./dist/reportTree.js"
-    },
-    "./reportStepTitle": {
-      "types": "./dist/reportStepTitle.d.ts",
-      "require": "./dist/reportStepTitle.js",
-      "default": "./dist/reportStepTitle.js"
-    },
-    "./reportGitCommit": {
-      "types": "./dist/reportGitCommit.d.ts",
-      "require": "./dist/reportGitCommit.js",
-      "default": "./dist/reportGitCommit.js"
-    },
-    "./Current": {
-      "types": "./dist/Current.d.ts",
-      "require": "./dist/Current.js",
-      "default": "./dist/Current.js"
-    },
-    "./CurrentGit": {
-      "types": "./dist/CurrentGit.d.ts",
-      "require": "./dist/CurrentGit.js",
-      "default": "./dist/CurrentGit.js"
-    },
-    "./omitKeyword": {
-      "types": "./dist/omitKeyword.d.ts",
-      "require": "./dist/omitKeyword.js",
-      "default": "./dist/omitKeyword.js"
-    },
-    "./literalToken": {
-      "types": "./dist/literalToken.d.ts",
-      "require": "./dist/literalToken.js",
-      "default": "./dist/literalToken.js"
-    },
-    "./yamlValueConvert": {
-      "types": "./dist/yamlValueConvert.d.ts",
-      "require": "./dist/yamlValueConvert.js",
-      "default": "./dist/yamlValueConvert.js"
-    },
-    "./multipartBody": {
-      "types": "./dist/multipartBody.d.ts",
-      "require": "./dist/multipartBody.js",
-      "default": "./dist/multipartBody.js"
-    },
-    "./textLines": {
-      "types": "./dist/textLines.d.ts",
-      "require": "./dist/textLines.js",
-      "default": "./dist/textLines.js"
-    },
-    "./setenvResolve": {
-      "types": "./dist/setenvResolve.d.ts",
-      "require": "./dist/setenvResolve.js",
-      "default": "./dist/setenvResolve.js"
-    },
-    "./testScaffold": {
-      "types": "./dist/testScaffold.d.ts",
-      "require": "./dist/testScaffold.js",
-      "default": "./dist/testScaffold.js"
-    },
-    "./suggestAssertions": {
-      "types": "./dist/suggestAssertions.d.ts",
-      "require": "./dist/suggestAssertions.js",
-      "default": "./dist/suggestAssertions.js"
-    },
-    "./mmtFormat": {
-      "types": "./dist/mmtFormat.d.ts",
-      "require": "./dist/mmtFormat.js",
-      "default": "./dist/mmtFormat.js"
-    },
-    "./httpStepApiPreview": {
-      "types": "./dist/httpStepApiPreview.d.ts",
-      "require": "./dist/httpStepApiPreview.js",
-      "default": "./dist/httpStepApiPreview.js"
-    },
-    "./judgeChecks": {
-      "types": "./dist/judgeChecks.d.ts",
-      "require": "./dist/judgeChecks.js",
-      "default": "./dist/judgeChecks.js"
-    },
-    "./mmtFileType": {
-      "types": "./dist/mmtFileType.d.ts",
-      "require": "./dist/mmtFileType.js",
-      "default": "./dist/mmtFileType.js"
-    },
-    "./EnvData": {
-      "types": "./dist/EnvData.d.ts",
-      "require": "./dist/EnvData.js",
-      "default": "./dist/EnvData.js"
-    },
-    "./SuiteData": {
-      "types": "./dist/SuiteData.d.ts",
-      "require": "./dist/SuiteData.js",
-      "default": "./dist/SuiteData.js"
-    },
-    "./envParsePack": {
-      "types": "./dist/envParsePack.d.ts",
-      "require": "./dist/envParsePack.js",
-      "default": "./dist/envParsePack.js"
-    },
-    "./envVarLastUpdate": {
-      "types": "./dist/envVarLastUpdate.d.ts",
-      "require": "./dist/envVarLastUpdate.js",
-      "default": "./dist/envVarLastUpdate.js"
-    },
-    "./agentDocs": {
-      "types": "./dist/agentDocs.d.ts",
-      "require": "./dist/agentDocs.js",
-      "default": "./dist/agentDocs.js"
-    },
-    "./validateMmt": {
-      "types": "./dist/validateMmt.d.ts",
-      "require": "./dist/validateMmt.js",
-      "default": "./dist/validateMmt.js"
-    },
-    "./testlightHelp": {
-      "types": "./dist/testlightHelp.d.ts",
-      "require": "./dist/testlightHelp.js",
-      "default": "./dist/testlightHelp.js"
+    "./doc/docHtml": {
+      "types": "./dist/doc/docHtml.d.ts",
+      "require": "./dist/doc/docHtml.js",
+      "default": "./dist/doc/docHtml.js"
+    },
+    "./api-edit/paramConstraints": {
+      "types": "./dist/api-edit/paramConstraints.d.ts",
+      "require": "./dist/api-edit/paramConstraints.js",
+      "default": "./dist/api-edit/paramConstraints.js"
+    },
+    "./data/DocData": {
+      "types": "./dist/data/DocData.d.ts",
+      "require": "./dist/data/DocData.js",
+      "default": "./dist/data/DocData.js"
+    },
+    "./parse/docParsePack": {
+      "types": "./dist/parse/docParsePack.d.ts",
+      "require": "./dist/parse/docParsePack.js",
+      "default": "./dist/parse/docParsePack.js"
+    },
+    "./runner/jsRunner": {
+      "types": "./dist/runner/jsRunner.d.ts",
+      "require": "./dist/runner/jsRunner.js",
+      "default": "./dist/runner/jsRunner.js"
+    },
+    "./runner/apiRunResult": {
+      "types": "./dist/runner/apiRunResult.d.ts",
+      "require": "./dist/runner/apiRunResult.js",
+      "default": "./dist/runner/apiRunResult.js"
+    },
+    "./runner/apiTestEval": {
+      "types": "./dist/runner/apiTestEval.d.ts",
+      "require": "./dist/runner/apiTestEval.js",
+      "default": "./dist/runner/apiTestEval.js"
+    },
+    "./data/CommonData": {
+      "types": "./dist/data/CommonData.d.ts",
+      "require": "./dist/data/CommonData.js",
+      "default": "./dist/data/CommonData.js"
+    },
+    "./network/binaryBody": {
+      "types": "./dist/network/binaryBody.d.ts",
+      "require": "./dist/network/binaryBody.js",
+      "default": "./dist/network/binaryBody.js"
+    },
+    "./api-edit/htmlFormat": {
+      "types": "./dist/api-edit/htmlFormat.d.ts",
+      "require": "./dist/api-edit/htmlFormat.js",
+      "default": "./dist/api-edit/htmlFormat.js"
+    },
+    "./api-edit/responseBodyDisplay": {
+      "types": "./dist/api-edit/responseBodyDisplay.d.ts",
+      "require": "./dist/api-edit/responseBodyDisplay.js",
+      "default": "./dist/api-edit/responseBodyDisplay.js"
+    },
+    "./tokens/formatResolve": {
+      "types": "./dist/tokens/formatResolve.d.ts",
+      "require": "./dist/tokens/formatResolve.js",
+      "default": "./dist/tokens/formatResolve.js"
+    },
+    "./api-edit/apiBodyEdit": {
+      "types": "./dist/api-edit/apiBodyEdit.d.ts",
+      "require": "./dist/api-edit/apiBodyEdit.js",
+      "default": "./dist/api-edit/apiBodyEdit.js"
+    },
+    "./api-edit/apiFormatEdit": {
+      "types": "./dist/api-edit/apiFormatEdit.d.ts",
+      "require": "./dist/api-edit/apiFormatEdit.js",
+      "default": "./dist/api-edit/apiFormatEdit.js"
+    },
+    "./tokens/runtimeTokenUi": {
+      "types": "./dist/tokens/runtimeTokenUi.d.ts",
+      "require": "./dist/tokens/runtimeTokenUi.js",
+      "default": "./dist/tokens/runtimeTokenUi.js"
+    },
+    "./tokens/bodyRuntimeTokens": {
+      "types": "./dist/tokens/bodyRuntimeTokens.d.ts",
+      "require": "./dist/tokens/bodyRuntimeTokens.js",
+      "default": "./dist/tokens/bodyRuntimeTokens.js"
+    },
+    "./data/NetworkData": {
+      "types": "./dist/data/NetworkData.d.ts",
+      "require": "./dist/data/NetworkData.js",
+      "default": "./dist/data/NetworkData.js"
+    },
+    "./data/APIData": {
+      "types": "./dist/data/APIData.d.ts",
+      "require": "./dist/data/APIData.js",
+      "default": "./dist/data/APIData.js"
+    },
+    "./network/network": {
+      "types": "./dist/network/network.d.ts",
+      "require": "./dist/network/network.js",
+      "default": "./dist/network/network.js"
+    },
+    "./jser/JSer": {
+      "types": "./dist/jser/JSer.d.ts",
+      "require": "./dist/jser/JSer.js",
+      "default": "./dist/jser/JSer.js"
+    },
+    "./jser/JSerTestFlow": {
+      "types": "./dist/jser/JSerTestFlow.d.ts",
+      "require": "./dist/jser/JSerTestFlow.js",
+      "default": "./dist/jser/JSerTestFlow.js"
+    },
+    "./parse/testParsePack": {
+      "types": "./dist/parse/testParsePack.d.ts",
+      "require": "./dist/parse/testParsePack.js",
+      "default": "./dist/parse/testParsePack.js"
+    },
+    "./parse/httpParsePack": {
+      "types": "./dist/parse/httpParsePack.d.ts",
+      "require": "./dist/parse/httpParsePack.js",
+      "default": "./dist/parse/httpParsePack.js"
+    },
+    "./parse/brunoParsePack": {
+      "types": "./dist/parse/brunoParsePack.d.ts",
+      "require": "./dist/parse/brunoParsePack.js",
+      "default": "./dist/parse/brunoParsePack.js"
+    },
+    "./convert/curlConvertor": {
+      "types": "./dist/convert/curlConvertor.d.ts",
+      "require": "./dist/convert/curlConvertor.js",
+      "default": "./dist/convert/curlConvertor.js"
+    },
+    "./convert/curlGenerator": {
+      "types": "./dist/convert/curlGenerator.d.ts",
+      "require": "./dist/convert/curlGenerator.js",
+      "default": "./dist/convert/curlGenerator.js"
+    },
+    "./convert/postmanConvertor": {
+      "types": "./dist/convert/postmanConvertor.d.ts",
+      "require": "./dist/convert/postmanConvertor.js",
+      "default": "./dist/convert/postmanConvertor.js"
+    },
+    "./convert/openapiConvertor": {
+      "types": "./dist/convert/openapiConvertor.d.ts",
+      "require": "./dist/convert/openapiConvertor.js",
+      "default": "./dist/convert/openapiConvertor.js"
+    },
+    "./convert/wsdlConvertor": {
+      "types": "./dist/convert/wsdlConvertor.d.ts",
+      "require": "./dist/convert/wsdlConvertor.js",
+      "default": "./dist/convert/wsdlConvertor.js"
+    },
+    "./convert/importConvertor": {
+      "types": "./dist/convert/importConvertor.d.ts",
+      "require": "./dist/convert/importConvertor.js",
+      "default": "./dist/convert/importConvertor.js"
+    },
+    "./runner/runConfig": {
+      "types": "./dist/runner/runConfig.d.ts",
+      "require": "./dist/runner/runConfig.js",
+      "default": "./dist/runner/runConfig.js"
+    },
+    "./network/networkCoreNode": {
+      "types": "./dist/network/networkCoreNode.d.ts",
+      "require": "./dist/network/networkCoreNode.js",
+      "default": "./dist/network/networkCoreNode.js"
+    },
+    "./network/grpcCore": {
+      "types": "./dist/network/grpcCore.d.ts",
+      "require": "./dist/network/grpcCore.js",
+      "default": "./dist/network/grpcCore.js"
+    },
+    "./util/fileHelper": {
+      "types": "./dist/util/fileHelper.d.ts",
+      "require": "./dist/util/fileHelper.js",
+      "default": "./dist/util/fileHelper.js"
+    },
+    "./data/MockData": {
+      "types": "./dist/data/MockData.d.ts",
+      "require": "./dist/data/MockData.js",
+      "default": "./dist/data/MockData.js"
+    },
+    "./parse/mockParsePack": {
+      "types": "./dist/parse/mockParsePack.d.ts",
+      "require": "./dist/parse/mockParsePack.js",
+      "default": "./dist/parse/mockParsePack.js"
+    },
+    "./mock/mockServer": {
+      "types": "./dist/mock/mockServer.d.ts",
+      "require": "./dist/mock/mockServer.js",
+      "default": "./dist/mock/mockServer.js"
+    },
+    "./mock/mockDispatch": {
+      "types": "./dist/mock/mockDispatch.d.ts",
+      "require": "./dist/mock/mockDispatch.js",
+      "default": "./dist/mock/mockDispatch.js"
+    },
+    "./mock/mockTlsMaterial": {
+      "types": "./dist/mock/mockTlsMaterial.d.ts",
+      "require": "./dist/mock/mockTlsMaterial.js",
+      "default": "./dist/mock/mockTlsMaterial.js"
+    },
+    "./network/httpTraceLog": {
+      "types": "./dist/network/httpTraceLog.d.ts",
+      "require": "./dist/network/httpTraceLog.js",
+      "default": "./dist/network/httpTraceLog.js"
+    },
+    "./judge/judgeProbe": {
+      "types": "./dist/judge/judgeProbe.d.ts",
+      "require": "./dist/judge/judgeProbe.js",
+      "default": "./dist/judge/judgeProbe.js"
+    },
+    "./judge/judgeAuth": {
+      "types": "./dist/judge/judgeAuth.d.ts",
+      "require": "./dist/judge/judgeAuth.js",
+      "default": "./dist/judge/judgeAuth.js"
+    },
+    "./data/JudgeData": {
+      "types": "./dist/data/JudgeData.d.ts",
+      "require": "./dist/data/JudgeData.js",
+      "default": "./dist/data/JudgeData.js"
+    },
+    "./report/reportCollector": {
+      "types": "./dist/report/reportCollector.d.ts",
+      "require": "./dist/report/reportCollector.js",
+      "default": "./dist/report/reportCollector.js"
+    },
+    "./report/junitXml": {
+      "types": "./dist/report/junitXml.d.ts",
+      "require": "./dist/report/junitXml.js",
+      "default": "./dist/report/junitXml.js"
+    },
+    "./report/mmtReport": {
+      "types": "./dist/report/mmtReport.d.ts",
+      "require": "./dist/report/mmtReport.js",
+      "default": "./dist/report/mmtReport.js"
+    },
+    "./report/reportHtml": {
+      "types": "./dist/report/reportHtml.d.ts",
+      "require": "./dist/report/reportHtml.js",
+      "default": "./dist/report/reportHtml.js"
+    },
+    "./report/reportMarkdown": {
+      "types": "./dist/report/reportMarkdown.d.ts",
+      "require": "./dist/report/reportMarkdown.js",
+      "default": "./dist/report/reportMarkdown.js"
+    },
+    "./report/reportParser": {
+      "types": "./dist/report/reportParser.d.ts",
+      "require": "./dist/report/reportParser.js",
+      "default": "./dist/report/reportParser.js"
+    },
+    "./report/reportTree": {
+      "types": "./dist/report/reportTree.d.ts",
+      "require": "./dist/report/reportTree.js",
+      "default": "./dist/report/reportTree.js"
+    },
+    "./report/reportStepTitle": {
+      "types": "./dist/report/reportStepTitle.d.ts",
+      "require": "./dist/report/reportStepTitle.js",
+      "default": "./dist/report/reportStepTitle.js"
+    },
+    "./report/reportGitCommit": {
+      "types": "./dist/report/reportGitCommit.d.ts",
+      "require": "./dist/report/reportGitCommit.js",
+      "default": "./dist/report/reportGitCommit.js"
+    },
+    "./tokens/Current": {
+      "types": "./dist/tokens/Current.d.ts",
+      "require": "./dist/tokens/Current.js",
+      "default": "./dist/tokens/Current.js"
+    },
+    "./tokens/CurrentGit": {
+      "types": "./dist/tokens/CurrentGit.d.ts",
+      "require": "./dist/tokens/CurrentGit.js",
+      "default": "./dist/tokens/CurrentGit.js"
+    },
+    "./tokens/omitKeyword": {
+      "types": "./dist/tokens/omitKeyword.d.ts",
+      "require": "./dist/tokens/omitKeyword.js",
+      "default": "./dist/tokens/omitKeyword.js"
+    },
+    "./tokens/literalToken": {
+      "types": "./dist/tokens/literalToken.d.ts",
+      "require": "./dist/tokens/literalToken.js",
+      "default": "./dist/tokens/literalToken.js"
+    },
+    "./parse/yamlValueConvert": {
+      "types": "./dist/parse/yamlValueConvert.d.ts",
+      "require": "./dist/parse/yamlValueConvert.js",
+      "default": "./dist/parse/yamlValueConvert.js"
+    },
+    "./network/multipartBody": {
+      "types": "./dist/network/multipartBody.d.ts",
+      "require": "./dist/network/multipartBody.js",
+      "default": "./dist/network/multipartBody.js"
+    },
+    "./util/textLines": {
+      "types": "./dist/util/textLines.d.ts",
+      "require": "./dist/util/textLines.js",
+      "default": "./dist/util/textLines.js"
+    },
+    "./tokens/setenvResolve": {
+      "types": "./dist/tokens/setenvResolve.d.ts",
+      "require": "./dist/tokens/setenvResolve.js",
+      "default": "./dist/tokens/setenvResolve.js"
+    },
+    "./util/testScaffold": {
+      "types": "./dist/util/testScaffold.d.ts",
+      "require": "./dist/util/testScaffold.js",
+      "default": "./dist/util/testScaffold.js"
+    },
+    "./api-edit/suggestAssertions": {
+      "types": "./dist/api-edit/suggestAssertions.d.ts",
+      "require": "./dist/api-edit/suggestAssertions.js",
+      "default": "./dist/api-edit/suggestAssertions.js"
+    },
+    "./parse/mmtFormat": {
+      "types": "./dist/parse/mmtFormat.d.ts",
+      "require": "./dist/parse/mmtFormat.js",
+      "default": "./dist/parse/mmtFormat.js"
+    },
+    "./api-edit/httpStepApiPreview": {
+      "types": "./dist/api-edit/httpStepApiPreview.d.ts",
+      "require": "./dist/api-edit/httpStepApiPreview.js",
+      "default": "./dist/api-edit/httpStepApiPreview.js"
+    },
+    "./judge/judgeChecks": {
+      "types": "./dist/judge/judgeChecks.d.ts",
+      "require": "./dist/judge/judgeChecks.js",
+      "default": "./dist/judge/judgeChecks.js"
+    },
+    "./parse/mmtFileType": {
+      "types": "./dist/parse/mmtFileType.d.ts",
+      "require": "./dist/parse/mmtFileType.js",
+      "default": "./dist/parse/mmtFileType.js"
+    },
+    "./data/EnvData": {
+      "types": "./dist/data/EnvData.d.ts",
+      "require": "./dist/data/EnvData.js",
+      "default": "./dist/data/EnvData.js"
+    },
+    "./data/SuiteData": {
+      "types": "./dist/data/SuiteData.d.ts",
+      "require": "./dist/data/SuiteData.js",
+      "default": "./dist/data/SuiteData.js"
+    },
+    "./parse/envParsePack": {
+      "types": "./dist/parse/envParsePack.d.ts",
+      "require": "./dist/parse/envParsePack.js",
+      "default": "./dist/parse/envParsePack.js"
+    },
+    "./env/envVarLastUpdate": {
+      "types": "./dist/env/envVarLastUpdate.d.ts",
+      "require": "./dist/env/envVarLastUpdate.js",
+      "default": "./dist/env/envVarLastUpdate.js"
+    },
+    "./env/workspaceEnvVars": {
+      "types": "./dist/env/workspaceEnvVars.d.ts",
+      "require": "./dist/env/workspaceEnvVars.js",
+      "default": "./dist/env/workspaceEnvVars.js"
+    },
+    "./env/envPresetMatch": {
+      "types": "./dist/env/envPresetMatch.d.ts",
+      "require": "./dist/env/envPresetMatch.js",
+      "default": "./dist/env/envPresetMatch.js"
+    },
+    "./env/envCliFlags": {
+      "types": "./dist/env/envCliFlags.d.ts",
+      "require": "./dist/env/envCliFlags.js",
+      "default": "./dist/env/envCliFlags.js"
+    },
+    "./util/agentDocs": {
+      "types": "./dist/util/agentDocs.d.ts",
+      "require": "./dist/util/agentDocs.js",
+      "default": "./dist/util/agentDocs.js"
+    },
+    "./util/validateMmt": {
+      "types": "./dist/util/validateMmt.d.ts",
+      "require": "./dist/util/validateMmt.js",
+      "default": "./dist/util/validateMmt.js"
+    },
+    "./util/testlightHelp": {
+      "types": "./dist/util/testlightHelp.d.ts",
+      "require": "./dist/util/testlightHelp.js",
+      "default": "./dist/util/testlightHelp.js"
+    },
+    "./jser/JSerAPI": {
+      "types": "./dist/jser/JSerAPI.d.ts",
+      "require": "./dist/jser/JSerAPI.js",
+      "default": "./dist/jser/JSerAPI.js"
+    },
+    "./jser/JSerFileLoader": {
+      "types": "./dist/jser/JSerFileLoader.d.ts",
+      "require": "./dist/jser/JSerFileLoader.js",
+      "default": "./dist/jser/JSerFileLoader.js"
+    },
+    "./jser/JSerHelper": {
+      "types": "./dist/jser/JSerHelper.d.ts",
+      "require": "./dist/jser/JSerHelper.js",
+      "default": "./dist/jser/JSerHelper.js"
+    },
+    "./jser/JSerImports": {
+      "types": "./dist/jser/JSerImports.d.ts",
+      "require": "./dist/jser/JSerImports.js",
+      "default": "./dist/jser/JSerImports.js"
+    },
+    "./jser/JSerTest": {
+      "types": "./dist/jser/JSerTest.d.ts",
+      "require": "./dist/jser/JSerTest.js",
+      "default": "./dist/jser/JSerTest.js"
+    },
+    "./data/LoadTestData": {
+      "types": "./dist/data/LoadTestData.d.ts",
+      "require": "./dist/data/LoadTestData.js",
+      "default": "./dist/data/LoadTestData.js"
+    },
+    "./tokens/Random": {
+      "types": "./dist/tokens/Random.d.ts",
+      "require": "./dist/tokens/Random.js",
+      "default": "./dist/tokens/Random.js"
+    },
+    "./tokens/RandomResources": {
+      "types": "./dist/tokens/RandomResources.d.ts",
+      "require": "./dist/tokens/RandomResources.js",
+      "default": "./dist/tokens/RandomResources.js"
+    },
+    "./data/TestData": {
+      "types": "./dist/data/TestData.d.ts",
+      "require": "./dist/data/TestData.js",
+      "default": "./dist/data/TestData.js"
+    },
+    "./api-edit/apiLogHelpersFactorySource": {
+      "types": "./dist/api-edit/apiLogHelpersFactorySource.d.ts",
+      "require": "./dist/api-edit/apiLogHelpersFactorySource.js",
+      "default": "./dist/api-edit/apiLogHelpersFactorySource.js"
+    },
+    "./network/apiMethod": {
+      "types": "./dist/network/apiMethod.d.ts",
+      "require": "./dist/network/apiMethod.js",
+      "default": "./dist/network/apiMethod.js"
+    },
+    "./parse/apiParsePack": {
+      "types": "./dist/parse/apiParsePack.d.ts",
+      "require": "./dist/parse/apiParsePack.js",
+      "default": "./dist/parse/apiParsePack.js"
+    },
+    "./network/connectionTracker": {
+      "types": "./dist/network/connectionTracker.d.ts",
+      "require": "./dist/network/connectionTracker.js",
+      "default": "./dist/network/connectionTracker.js"
+    },
+    "./convert/csvConvertor": {
+      "types": "./dist/convert/csvConvertor.d.ts",
+      "require": "./dist/convert/csvConvertor.js",
+      "default": "./dist/convert/csvConvertor.js"
+    },
+    "./convert/dataImportProcessor": {
+      "types": "./dist/convert/dataImportProcessor.d.ts",
+      "require": "./dist/convert/dataImportProcessor.js",
+      "default": "./dist/convert/dataImportProcessor.js"
+    },
+    "./doc/docMarkdown": {
+      "types": "./dist/doc/docMarkdown.d.ts",
+      "require": "./dist/doc/docMarkdown.js",
+      "default": "./dist/doc/docMarkdown.js"
+    },
+    "./doc/docTemplate": {
+      "types": "./dist/doc/docTemplate.d.ts",
+      "require": "./dist/doc/docTemplate.js",
+      "default": "./dist/doc/docTemplate.js"
+    },
+    "./util/durationParse": {
+      "types": "./dist/util/durationParse.d.ts",
+      "require": "./dist/util/durationParse.js",
+      "default": "./dist/util/durationParse.js"
+    },
+    "./env/envStore": {
+      "types": "./dist/env/envStore.d.ts",
+      "require": "./dist/env/envStore.js",
+      "default": "./dist/env/envStore.js"
+    },
+    "./api-edit/expectCompare": {
+      "types": "./dist/api-edit/expectCompare.d.ts",
+      "require": "./dist/api-edit/expectCompare.js",
+      "default": "./dist/api-edit/expectCompare.js"
+    },
+    "./parse/expectOperatorSamples": {
+      "types": "./dist/parse/expectOperatorSamples.d.ts",
+      "require": "./dist/parse/expectOperatorSamples.js",
+      "default": "./dist/parse/expectOperatorSamples.js"
+    },
+    "./parse/expectOperatorYaml": {
+      "types": "./dist/parse/expectOperatorYaml.d.ts",
+      "require": "./dist/parse/expectOperatorYaml.js",
+      "default": "./dist/parse/expectOperatorYaml.js"
+    },
+    "./api-edit/expectUi": {
+      "types": "./dist/api-edit/expectUi.d.ts",
+      "require": "./dist/api-edit/expectUi.js",
+      "default": "./dist/api-edit/expectUi.js"
+    },
+    "./convert/fileImporter": {
+      "types": "./dist/convert/fileImporter.d.ts",
+      "require": "./dist/convert/fileImporter.js",
+      "default": "./dist/convert/fileImporter.js"
+    },
+    "./util/identifierUtils": {
+      "types": "./dist/util/identifierUtils.d.ts",
+      "require": "./dist/util/identifierUtils.js",
+      "default": "./dist/util/identifierUtils.js"
+    },
+    "./util/importTracker": {
+      "types": "./dist/util/importTracker.d.ts",
+      "require": "./dist/util/importTracker.js",
+      "default": "./dist/util/importTracker.js"
+    },
+    "./runner/jsModuleExport": {
+      "types": "./dist/runner/jsModuleExport.d.ts",
+      "require": "./dist/runner/jsModuleExport.js",
+      "default": "./dist/runner/jsModuleExport.js"
+    },
+    "./judge/judgeEngine": {
+      "types": "./dist/judge/judgeEngine.d.ts",
+      "require": "./dist/judge/judgeEngine.js",
+      "default": "./dist/judge/judgeEngine.js"
+    },
+    "./judge/judgeEngineOllama": {
+      "types": "./dist/judge/judgeEngineOllama.d.ts",
+      "require": "./dist/judge/judgeEngineOllama.js",
+      "default": "./dist/judge/judgeEngineOllama.js"
+    },
+    "./judge/judgeEngineProviders": {
+      "types": "./dist/judge/judgeEngineProviders.d.ts",
+      "require": "./dist/judge/judgeEngineProviders.js",
+      "default": "./dist/judge/judgeEngineProviders.js"
+    },
+    "./parse/judgeParsePack": {
+      "types": "./dist/parse/judgeParsePack.d.ts",
+      "require": "./dist/parse/judgeParsePack.js",
+      "default": "./dist/parse/judgeParsePack.js"
+    },
+    "./parse/loadtestParsePack": {
+      "types": "./dist/parse/loadtestParsePack.d.ts",
+      "require": "./dist/parse/loadtestParsePack.js",
+      "default": "./dist/parse/loadtestParsePack.js"
+    },
+    "./parse/markupConvertor": {
+      "types": "./dist/parse/markupConvertor.d.ts",
+      "require": "./dist/parse/markupConvertor.js",
+      "default": "./dist/parse/markupConvertor.js"
+    },
+    "./parse/mmtFormatAst": {
+      "types": "./dist/parse/mmtFormatAst.d.ts",
+      "require": "./dist/parse/mmtFormatAst.js",
+      "default": "./dist/parse/mmtFormatAst.js"
+    },
+    "./parse/multilineDescriptionYaml": {
+      "types": "./dist/parse/multilineDescriptionYaml.d.ts",
+      "require": "./dist/parse/multilineDescriptionYaml.js",
+      "default": "./dist/parse/multilineDescriptionYaml.js"
+    },
+    "./network/localTestServer": {
+      "types": "./dist/network/localTestServer.d.ts",
+      "require": "./dist/network/localTestServer.js",
+      "default": "./dist/network/localTestServer.js"
+    },
+    "./network/networkCore": {
+      "types": "./dist/network/networkCore.d.ts",
+      "require": "./dist/network/networkCore.js",
+      "default": "./dist/network/networkCore.js"
+    },
+    "./extract/outputExtractor": {
+      "types": "./dist/extract/outputExtractor.d.ts",
+      "require": "./dist/extract/outputExtractor.js",
+      "default": "./dist/extract/outputExtractor.js"
+    },
+    "./network/protocolResolver": {
+      "types": "./dist/network/protocolResolver.d.ts",
+      "require": "./dist/network/protocolResolver.js",
+      "default": "./dist/network/protocolResolver.js"
+    },
+    "./report/reportExpectMeta": {
+      "types": "./dist/report/reportExpectMeta.d.ts",
+      "require": "./dist/report/reportExpectMeta.js",
+      "default": "./dist/report/reportExpectMeta.js"
+    },
+    "./report/reportFormat": {
+      "types": "./dist/report/reportFormat.d.ts",
+      "require": "./dist/report/reportFormat.js",
+      "default": "./dist/report/reportFormat.js"
+    },
+    "./report/reportPaths": {
+      "types": "./dist/report/reportPaths.d.ts",
+      "require": "./dist/report/reportPaths.js",
+      "default": "./dist/report/reportPaths.js"
+    },
+    "./runner/resolveApiRequest": {
+      "types": "./dist/runner/resolveApiRequest.d.ts",
+      "require": "./dist/runner/resolveApiRequest.js",
+      "default": "./dist/runner/resolveApiRequest.js"
+    },
+    "./runner/runApi": {
+      "types": "./dist/runner/runApi.d.ts",
+      "require": "./dist/runner/runApi.js",
+      "default": "./dist/runner/runApi.js"
+    },
+    "./runner/runCommon": {
+      "types": "./dist/runner/runCommon.d.ts",
+      "require": "./dist/runner/runCommon.js",
+      "default": "./dist/runner/runCommon.js"
+    },
+    "./runner/runFileCache": {
+      "types": "./dist/runner/runFileCache.d.ts",
+      "require": "./dist/runner/runFileCache.js",
+      "default": "./dist/runner/runFileCache.js"
+    },
+    "./runner/runLoadTest": {
+      "types": "./dist/runner/runLoadTest.d.ts",
+      "require": "./dist/runner/runLoadTest.js",
+      "default": "./dist/runner/runLoadTest.js"
+    },
+    "./runner/runLog": {
+      "types": "./dist/runner/runLog.d.ts",
+      "require": "./dist/runner/runLog.js",
+      "default": "./dist/runner/runLog.js"
+    },
+    "./runner/runPause": {
+      "types": "./dist/runner/runPause.d.ts",
+      "require": "./dist/runner/runPause.js",
+      "default": "./dist/runner/runPause.js"
+    },
+    "./runner/runSuite": {
+      "types": "./dist/runner/runSuite.d.ts",
+      "require": "./dist/runner/runSuite.js",
+      "default": "./dist/runner/runSuite.js"
+    },
+    "./runner/runTest": {
+      "types": "./dist/runner/runTest.d.ts",
+      "require": "./dist/runner/runTest.js",
+      "default": "./dist/runner/runTest.js"
+    },
+    "./runner/runner": {
+      "types": "./dist/runner/runner.d.ts",
+      "require": "./dist/runner/runner.js",
+      "default": "./dist/runner/runner.js"
+    },
+    "./util/safer": {
+      "types": "./dist/util/safer.d.ts",
+      "require": "./dist/util/safer.js",
+      "default": "./dist/util/safer.js"
+    },
+    "./report/statusIcons": {
+      "types": "./dist/report/statusIcons.d.ts",
+      "require": "./dist/report/statusIcons.js",
+      "default": "./dist/report/statusIcons.js"
+    },
+    "./suite/suiteBundle": {
+      "types": "./dist/suite/suiteBundle.d.ts",
+      "require": "./dist/suite/suiteBundle.js",
+      "default": "./dist/suite/suiteBundle.js"
+    },
+    "./suite/suiteBundleRunner": {
+      "types": "./dist/suite/suiteBundleRunner.d.ts",
+      "require": "./dist/suite/suiteBundleRunner.js",
+      "default": "./dist/suite/suiteBundleRunner.js"
+    },
+    "./suite/suiteHierarchy": {
+      "types": "./dist/suite/suiteHierarchy.d.ts",
+      "require": "./dist/suite/suiteHierarchy.js",
+      "default": "./dist/suite/suiteHierarchy.js"
+    },
+    "./suite/suiteItemStatus": {
+      "types": "./dist/suite/suiteItemStatus.d.ts",
+      "require": "./dist/suite/suiteItemStatus.js",
+      "default": "./dist/suite/suiteItemStatus.js"
+    },
+    "./suite/suiteNodeId": {
+      "types": "./dist/suite/suiteNodeId.d.ts",
+      "require": "./dist/suite/suiteNodeId.js",
+      "default": "./dist/suite/suiteNodeId.js"
+    },
+    "./suite/suiteParallel": {
+      "types": "./dist/suite/suiteParallel.d.ts",
+      "require": "./dist/suite/suiteParallel.js",
+      "default": "./dist/suite/suiteParallel.js"
+    },
+    "./parse/suiteParsePack": {
+      "types": "./dist/parse/suiteParsePack.d.ts",
+      "require": "./dist/parse/suiteParsePack.js",
+      "default": "./dist/parse/suiteParsePack.js"
+    },
+    "./suite/suiteTagFilter": {
+      "types": "./dist/suite/suiteTagFilter.d.ts",
+      "require": "./dist/suite/suiteTagFilter.js",
+      "default": "./dist/suite/suiteTagFilter.js"
+    },
+    "./runner/testFileLoaderMock": {
+      "types": "./dist/runner/testFileLoaderMock.d.ts",
+      "require": "./dist/runner/testFileLoaderMock.js",
+      "default": "./dist/runner/testFileLoaderMock.js"
+    },
+    "./runner/testHelper": {
+      "types": "./dist/runner/testHelper.d.ts",
+      "require": "./dist/runner/testHelper.js",
+      "default": "./dist/runner/testHelper.js"
+    },
+    "./runner/runCacheSnapshot": {
+      "types": "./dist/runner/runCacheSnapshot.d.ts",
+      "require": "./dist/runner/runCacheSnapshot.js",
+      "default": "./dist/runner/runCacheSnapshot.js"
+    },
+    "./tokens/variableReplacer": {
+      "types": "./dist/tokens/variableReplacer.d.ts",
+      "require": "./dist/tokens/variableReplacer.js",
+      "default": "./dist/tokens/variableReplacer.js"
+    },
+    "./extract/xmlPath": {
+      "types": "./dist/extract/xmlPath.d.ts",
+      "require": "./dist/extract/xmlPath.js",
+      "default": "./dist/extract/xmlPath.js"
+    },
+    "./parse/yamlAstMerge": {
+      "types": "./dist/parse/yamlAstMerge.d.ts",
+      "require": "./dist/parse/yamlAstMerge.js",
+      "default": "./dist/parse/yamlAstMerge.js"
+    },
+    "./parse/yamlAuthoredScalars": {
+      "types": "./dist/parse/yamlAuthoredScalars.d.ts",
+      "require": "./dist/parse/yamlAuthoredScalars.js",
+      "default": "./dist/parse/yamlAuthoredScalars.js"
+    },
+    "./parse/yamlBlockSteps": {
+      "types": "./dist/parse/yamlBlockSteps.d.ts",
+      "require": "./dist/parse/yamlBlockSteps.js",
+      "default": "./dist/parse/yamlBlockSteps.js"
+    },
+    "./parse/yamlIncompleteScalar": {
+      "types": "./dist/parse/yamlIncompleteScalar.d.ts",
+      "require": "./dist/parse/yamlIncompleteScalar.js",
+      "default": "./dist/parse/yamlIncompleteScalar.js"
     }
   },
   "scripts": {

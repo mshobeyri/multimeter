@@ -6,7 +6,7 @@ import {
   ActiveConnection,
   connectionTracker,
   ConnectionEvent,
-} from 'mmt-core/networkCoreNode';
+} from 'mmt-core/network/networkCoreNode';
 
 class ConnectionsPanel implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;

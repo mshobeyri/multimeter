@@ -13,11 +13,11 @@ import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
 import JudgePanel from "./judge/JudgePanel";
 import ReportPanel from "./report/ReportPanel";
-import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
-import { isBrunoCollectionFilePath, isBrunoFilePath, parseBrunoDocument, type BrunoSourceFile } from "mmt-core/brunoParsePack";
-import { setGitCurrentSnapshot, type GitCurrentSnapshot } from "mmt-core/Current";
-import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
-import { normalizeNewlines } from "mmt-core/textLines";
+import parseYaml, { parseYamlDoc } from "mmt-core/parse/markupConvertor";
+import { isBrunoCollectionFilePath, isBrunoFilePath, parseBrunoDocument, type BrunoSourceFile } from "mmt-core/parse/brunoParsePack";
+import { applyViewDocumentGitSnapshot } from "./api/apiTesterSend";
+import { isHttpFilePath, parseHttpDocument } from "mmt-core/parse/httpParsePack";
+import { normalizeNewlines } from "mmt-core/util/textLines";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
 import PanelErrorBoundary from "./shared/PanelErrorBoundary";
@@ -289,12 +289,8 @@ const App: React.FC = () => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
       if (message.command === "viewDocumentContent") {
-        // Apply before panels mount so telescope / resolveApiRequest see c:git_*.
-        if (message.gitSnapshot && typeof message.gitSnapshot === "object") {
-          setGitCurrentSnapshot(message.gitSnapshot as GitCurrentSnapshot);
-        } else {
-          setGitCurrentSnapshot(undefined);
-        }
+        // Apply before panels mount so telescope / resolveApiRequest see git `c:` tokens.
+        applyViewDocumentGitSnapshot(message);
         setDocumentContentLoaded(true);
         pendingOpenLayoutRef.current = true;
         tryApplyOpenLayout();
@@ -462,6 +458,8 @@ const App: React.FC = () => {
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
+  // tryApplyOpenLayout only gates on refs; listing it would rebind this listener every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setContent, mmtFilePath, sourceFormat]);
 
   const docType = useMemo(() => {

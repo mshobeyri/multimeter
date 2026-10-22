@@ -1,6 +1,6 @@
 import React from "react";
-import { httpToTest } from "mmt-core/httpParsePack";
-import { testToYaml } from "mmt-core/testParsePack";
+import { httpToTest } from "mmt-core/parse/httpParsePack";
+import { testToYaml } from "mmt-core/parse/testParsePack";
 import TestPanel from "../test/TestPanel";
 
 interface HttpTestPanelProps {

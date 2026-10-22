@@ -1,0 +1,21 @@
+type: api
+title: Previous model runs
+description: Forecast values at fixed lead-time offsets
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+  start_date: "2024-06-01"
+  end_date: "2024-06-03"
+outputs:
+  hourly_time_0: body[hourly][time][0]
+  previous_day1_0: body[hourly][temperature_2m_previous_day1][0]
+url: <<e:previous_runs_base_url>>/v1/forecast
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  start_date: i:start_date
+  end_date: i:end_date
+  hourly: temperature_2m_previous_day1
+  timezone: e:timezone
+method: get
+format: json

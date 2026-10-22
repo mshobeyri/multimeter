@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlowType, addableFlowTypes } from 'mmt-core/TestData';
+import { FlowType, addableFlowTypes } from 'mmt-core/data/TestData';
 import { codiconForStepType } from './stepPresentation';
 import PopupMenu, { usePopupMenu } from '../components/PopupMenu';
 

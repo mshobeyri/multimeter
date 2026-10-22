@@ -1,0 +1,47 @@
+type: env
+variables:
+  # Public CountryInfo SOAP endpoint (HTTP only — TLS is not offered by the host)
+  soap_url: http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso
+
+  # Interactive API Send default — pick a country in the Environment panel.
+  # APIs use e:country.iso / e:country.name. Tests use countries.json, not e:country.
+  country:
+    us:
+      iso: US
+      name: United States
+    de:
+      iso: DE
+      name: Germany
+    fr:
+      iso: FR
+      name: France
+    jp:
+      iso: JP
+      name: Japan
+    gb:
+      iso: GB
+      name: United Kingdom
+    it:
+      iso: IT
+      name: Italy
+    br:
+      iso: BR
+      name: Brazil
+    au:
+      iso: AU
+      name: Australia
+
+  # Currency Send default for currency-name / countries-using-currency APIs
+  currency:
+    eur:
+      iso: EUR
+      name: Euro
+    usd:
+      iso: USD
+      name: Dollars
+    jpy:
+      iso: JPY
+      name: Yen
+    gbp:
+      iso: GBP
+      name: Great Brittain Pounds

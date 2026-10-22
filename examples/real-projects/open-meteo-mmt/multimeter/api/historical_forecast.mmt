@@ -1,0 +1,21 @@
+type: api
+title: Historical forecast
+description: Archived weather-model forecasts matching live forecast format
+inputs:
+  latitude: e:city.latitude
+  longitude: e:city.longitude
+  start_date: "2024-06-01"
+  end_date: "2024-06-03"
+outputs:
+  hourly_time_0: body[hourly][time][0]
+  hourly_temp_0: body[hourly][temperature_2m][0]
+url: <<e:historical_forecast_base_url>>/v1/forecast
+query:
+  latitude: i:latitude
+  longitude: i:longitude
+  start_date: i:start_date
+  end_date: i:end_date
+  hourly: temperature_2m
+  timezone: e:timezone
+method: get
+format: json

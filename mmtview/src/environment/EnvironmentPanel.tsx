@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import parseYaml from "mmt-core/markupConvertor";
+import parseYaml from "mmt-core/parse/markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
 import {
@@ -10,11 +10,11 @@ import {
   removeEnvironmentVariablesByNames,
 } from "./environmentUtils";
 import { ComboTablePair } from "../components/ComboTable";
-import { isList, safeList } from "mmt-core/safer";
-import { JSONValue } from "mmt-core/CommonData";
+import { isList, safeList } from "mmt-core/util/safer";
+import { JSONValue } from "mmt-core/data/CommonData";
 import { EnvCertificates, EnvVariable } from "./EnvironmentData";
 import { saveEnvPresets } from "../workspaceStorage";
-import { selectFromVariables } from "mmt-core/runConfig";
+import { selectFromVariables } from "mmt-core/runner/runConfig";
 import { envVariableChoices, pickEnvChoice } from "./envVariableUi";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import TabBar from "../components/TabBar";
@@ -52,7 +52,12 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [variableDefinitions, setVariableDefinitions] = useState<Record<string, any>>({});
   const [workspaceVars, setWorkspaceVars] = useState<EnvVariable[]>([]);
   const [certificates, setCertificates] = useState<EnvCertificates | undefined>(undefined);
-  const loadedVarsRef = React.useRef<{ name: string; value: JSONValue, options: Array<{label: string; value: JSONValue}> }[]>([]);
+  const loadedVarsRef = React.useRef<{
+    name: string;
+    value: JSONValue;
+    options: Array<{label: string; value: JSONValue}>;
+    source?: EnvVariable['source'];
+  }[]>([]);
 
   const refreshWorkspaceVars = useCallback(() => {
     if (window.vscode) {
@@ -99,7 +104,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         return;
       }
       const found = Array.isArray(loadedVarsRef.current)
-        ? loadedVarsRef.current.find((v: any) => v.name === name)
+        ? loadedVarsRef.current.find((v: any) =>
+            v.name === name && v.source !== 'runtime')
+          ?? loadedVarsRef.current.find((v: any) => v.name === name)
         : undefined;
       const selected = pickEnvChoice(options, found) ?? options[0];
       variablePairs.push({
@@ -218,18 +225,22 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       loadedVarsRef.current = safeLoaded.map(v => ({
         name: v.name,
         value: v.value,
-        options: Array.isArray(v.options) ? v.options : []
+        options: Array.isArray(v.options) ? v.options : [],
+        source: v.source,
       }));
       setWorkspaceVars(safeLoaded.map(v => ({
         name: v.name,
         label: v.label || v.name,
         value: v.value,
-        options: v.options || []
+        options: v.options || [],
+        source: v.source,
       })));
       setVariables(vars =>
         safeList(vars).map(pair => {
           const found = isList(loadedVarsRef.current)
-            ? loadedVarsRef.current.find((v: any) => v.name === pair.name)
+            ? loadedVarsRef.current.find((v: any) =>
+                v.name === pair.name && v.source !== 'runtime')
+              ?? loadedVarsRef.current.find((v: any) => v.name === pair.name)
             : undefined;
           if (found) {
             const selectedOption = pickEnvChoice(pair.options, found) ?? pair.value;
@@ -258,6 +269,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         name: v.name,
         value: v.value,
         options: Array.isArray(v.options) ? v.options : [],
+        source: v.source,
       }));
       return remaining;
     });
@@ -281,7 +293,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         return;
       }
       const found = Array.isArray(loadedVarsRef.current)
-        ? loadedVarsRef.current.find((v: any) => v.name === name)
+        ? loadedVarsRef.current.find((v: any) =>
+            v.name === name && v.source !== 'runtime')
+          ?? loadedVarsRef.current.find((v: any) => v.name === name)
         : undefined;
       rebuiltPairs.push({
         name,

@@ -1,5 +1,5 @@
-import type {CertificateSettings as NetworkCertificateSettings} from 'mmt-core/NetworkData';
-import type {EnvData} from 'mmt-core/EnvData';
+import type {CertificateSettings as NetworkCertificateSettings} from 'mmt-core/data/NetworkData';
+import type {EnvData} from 'mmt-core/data/EnvData';
 
 export type {
   EnvCaCertificate,
@@ -14,7 +14,7 @@ export type {
   EnvSetting,
   EnvVariable,
   EnvVarSource,
-} from 'mmt-core/EnvData';
+} from 'mmt-core/data/EnvData';
 
 /** UI document shape for the env editor. */
 export type EnvironmentData = Omit<EnvData, 'type'> & {

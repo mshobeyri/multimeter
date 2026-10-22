@@ -1,4 +1,4 @@
-import { normalizeNewlines, withNewline } from 'mmt-core/textLines';
+import { normalizeNewlines, withNewline } from 'mmt-core/util/textLines';
 
 /**
  * True when two editor buffers are the same ignoring CRLF vs LF.

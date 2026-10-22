@@ -48,6 +48,6 @@ steps:
 
 This does not apply to `type: api` files. The cache is in memory for one top-level run (shared across suite siblings until the TTL expires). Direct Run of the cached file always executes the body.
 
-Full rules: [cache on tests](../files/test/cache.md). A working copy is in [examples/intermediate/24_test_call_cache](../../examples/intermediate/24_test_call_cache).
+Full rules: [cache on tests](../files/test/cache.md). A working copy is in [examples/intermediate/24_test_call_cache](../../examples/intermediate/24_test_call_cache). In VS Code, the [Cache panel](../panels/cache.md) shows active call-cache entries for the current run.
 
-See also: [call](../files/test/steps/call.md) · [Parallel runs](./parallel-runs.md) · [import](../files/test/import.md)
+See also: [call](../files/test/steps/call.md) · [Parallel runs](./parallel-runs.md) · [import](../files/test/import.md) · [Cache panel](../panels/cache.md)

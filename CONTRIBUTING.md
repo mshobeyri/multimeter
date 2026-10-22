@@ -32,7 +32,7 @@ Thank you for your interest in contributing to Multimeter!
 - Implement new behavior in `core/` first, then wire it to the extension (`src/`), webview (`mmtview/`), and CLI (`mmtcli/`).
 - Use 2-space indentation; always use curly braces for all control structures, even single-line bodies.
 - Add or update unit tests in `core/src/*.test.ts` for any logic changes.
-- Do not duplicate token-matching regex or variable replacement logic — use `core/src/variableReplacer.ts`.
+- Do not duplicate token-matching regex or variable replacement logic — use `core/src/tokens/variableReplacer.ts`.
 
 ## Submitting Changes
 

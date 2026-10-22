@@ -1,0 +1,22 @@
+type: test
+title: DWD ICON — Berlin 1 day
+import:
+  cities: +/cities.json
+  api: +/api/model_dwd_icon.mmt
+steps:
+  - call: api
+    id: result
+    inputs:
+      latitude: ${cities.berlin.latitude}
+      longitude: ${cities.berlin.longitude}
+      forecast_days: "1"
+    expect:
+      observed_at: =1d~ <<c:datetime>>
+      resp_latitude:
+        - >= 45
+        - <= 60
+      resp_longitude:
+        - >= 5
+        - <= 20
+      hourly_count: >=# 24
+    report: all

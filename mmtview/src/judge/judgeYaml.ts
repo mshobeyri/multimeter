@@ -1,5 +1,5 @@
-import { yamlToJudge, judgeToYaml } from 'mmt-core/judgeParsePack';
-import { JudgeData } from 'mmt-core/JudgeData';
+import { yamlToJudge, judgeToYaml } from 'mmt-core/parse/judgeParsePack';
+import { JudgeData } from 'mmt-core/data/JudgeData';
 
 export function patchJudgeYaml(
     content: string,

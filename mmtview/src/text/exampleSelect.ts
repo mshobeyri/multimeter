@@ -1,4 +1,4 @@
-import {parseYamlDoc} from 'mmt-core/markupConvertor';
+import {parseYamlDoc} from 'mmt-core/parse/markupConvertor';
 
 export const SELECT_EXAMPLE_EVENT = 'mmt-select-example';
 

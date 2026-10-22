@@ -1,6 +1,6 @@
 import {createRequire} from 'module';
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
-import * as testlightHelp from 'mmt-core/testlightHelp';
+import * as testlightHelp from 'mmt-core/util/testlightHelp';
 
 import {createMmtMcpServer} from './server';
 

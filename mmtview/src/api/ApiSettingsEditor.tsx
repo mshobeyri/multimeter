@@ -1,7 +1,7 @@
 import React from "react";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
-import { APIData } from "mmt-core/APIData";
+import { APIData } from "mmt-core/data/APIData";
 
 interface ApiSettingsEditorProps {
   api: APIData;

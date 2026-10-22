@@ -1,13 +1,17 @@
 import {execFileSync} from 'child_process';
-import type {GitCurrentSnapshot} from 'mmt-core/Current';
-import {setGitCurrentSnapshot} from 'mmt-core/Current';
+import type {GitCurrentSnapshot} from 'mmt-core/tokens/Current';
+import {
+  clearGitCurrentSnapshot,
+  setGitCurrentSnapshot,
+  setGitCurrentSnapshotProvider,
+} from 'mmt-core/tokens/Current';
 import {
   normalizeReportGitBranch,
   normalizeReportGitCommit,
   normalizeReportGitCommitHash,
   normalizeReportGitDescribe,
   normalizeReportGitTag,
-} from 'mmt-core/reportGitCommit';
+} from 'mmt-core/report/reportGitCommit';
 
 function gitExec(cwd: string | undefined, args: string[]): string | undefined {
   try {
@@ -48,7 +52,7 @@ export function tryGitTag(cwd?: string): string | undefined {
 }
 
 /**
- * Resolve git metadata for reports and `c:git_*` current tokens.
+ * Resolve git metadata for reports and git `c:` current tokens.
  * Missing fields are omitted; never throws.
  */
 export function resolveGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
@@ -84,10 +88,19 @@ export function resolveGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
 }
 
 /**
- * Resolve git metadata and inject it for `c:git_*` / alias current tokens.
+ * Eagerly resolve and inject (report export UI, tests that need a fixed snapshot).
  */
 export function applyGitCurrentSnapshot(cwd?: string): GitCurrentSnapshot {
   const snapshot = resolveGitCurrentSnapshot(cwd);
   setGitCurrentSnapshot(snapshot);
   return snapshot;
+}
+
+/**
+ * Install an on-demand provider so git `c:` resolution runs with other `c:`
+ * tokens — git is spawned only when a git current-token is evaluated.
+ */
+export function installGitCurrentSnapshotProvider(cwd?: string): void {
+  clearGitCurrentSnapshot();
+  setGitCurrentSnapshotProvider(() => resolveGitCurrentSnapshot(cwd));
 }
