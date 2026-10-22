@@ -83,5 +83,6 @@ When no connections are active, the panel shows an empty state with a plug icon 
 - [WebSocket](../files/api/protocols/websocket.md) — Connect and live Send in the API tester
 - [API](../files/api/index.md) — API tester and Connect button
 - [HTTP](../files/api/protocols/http.md) — HTTP sends and keep-alive reuse
+- [Cache](./cache.md) — in-run test-call and live-env `cache:` entries
 - [Getting Started](../quick-start.md) — install and a first API file
 - [Panels](./index.md) — all sidebar and bottom panels

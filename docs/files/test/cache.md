@@ -14,6 +14,7 @@ Notes:
 - Applies only to **`type: test`** callees (not `type: api`).
 - Cache lives for one top-level run: shared across suite siblings and nested suites until TTL expires or that run finishes. No disk; not kept across separate editor/CLI Runs.
 - Direct Run of the cached file always executes the body (so you can debug it), and still seeds the in-run cache for later callers in the same hierarchy.
+- While a run is active in VS Code, open the [Cache panel](../../panels/cache.md) to inspect live test-call entries (title, inputs, outputs, TTL).
 - See `examples/intermediate/24_test_call_cache` and design notes in `AI/sdd/sdd-test-call-cache.md`.
 
 ## Examples
@@ -65,4 +66,4 @@ steps:
       token: == ${a.token}
 ```
 
-See also: [import](./import.md) · [call](./steps/call.md) · [Inline expect](./inline-expect.md)
+See also: [import](./import.md) · [call](./steps/call.md) · [Inline expect](./inline-expect.md) · [Cache panel](../../panels/cache.md)

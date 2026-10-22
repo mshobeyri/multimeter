@@ -50,4 +50,5 @@ While a UI run or UI-started mock is active, Multimeter marks the tab dirty so c
 
 - [Getting Started](../quick-start.md) — install and a first API file
 - [MMT Files](../files.md) — file types the editor and panels work with
+- [Cache](./cache.md) · [Connections](./connections.md)
 - [Test](../files/test/index.md) · [Suite](../files/suite/index.md) · [Mock Server](../files/server/index.md)

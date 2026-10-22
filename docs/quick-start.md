@@ -14,7 +14,7 @@ After install, click the Multimeter activity icon in the VS Code sidebar. You ge
 
 [![VS Code extension intro](https://img.youtube.com/vi/qlJTTd8YX6w/hqdefault.jpg)](https://youtu.be/qlJTTd8YX6w)
 
-See **[Panels](./panels/index.md)** for Temp Files, Get Started, Mock Server, Connections, Environment Variables, and History.
+See **[Panels](./panels/index.md)** for Temp Files, Get Started, Mock Server, Connections, Cache, Environment Variables, and History.
 
 ### Empty page (new `.mmt`)
 

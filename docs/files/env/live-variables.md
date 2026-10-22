@@ -101,4 +101,5 @@ npx testlight run examples/intermediate/32_environment_live_variables/suite.mmt 
 - [Environment variables panel](./ui.md)
 - [setenv (API)](../api/setenv.md) · [setenv (test)](../test/steps/setenv.md)
 - [Test cache](../test/cache.md)
+- [Cache panel](../../panels/cache.md) — live-env TTL slots while a run is active
 - [Use environments](../../tasks/use-environments.md)
