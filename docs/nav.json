@@ -36,6 +36,10 @@
         "path": "panels/connections.md"
       },
       {
+        "title": "Cache",
+        "path": "panels/cache.md"
+      },
+      {
         "title": "Environment Variables",
         "path": "files/env/ui.md"
       },
