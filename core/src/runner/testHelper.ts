@@ -537,9 +537,26 @@ export const importJsModule_ = async(
 // In-run test call cache (see AI/sdd/sdd-test-call-cache.md)
 // ---------------------------------------------------------------------------
 
-type TestCallCacheEntry = {outputs: any; expiresAt: number};
+type TestCallCacheEntry = {
+  title: string;
+  inputs: Record<string, any>;
+  outputs: any;
+  expiresAt: number;
+  filePath?: string;
+};
 
 const __mmtTestCallCache = new Map<string, TestCallCacheEntry>();
+
+/** Read-only snapshot for the Cache panel (expired entries omitted). */
+export type TestCallCacheSnapshot = {
+  kind: 'test-call';
+  title: string;
+  filePath?: string;
+  inputs: Record<string, any>;
+  outputs: any;
+  expiresAt: number;
+  remainingMs: number;
+};
 
 function stableJsonForCache_(value: any): string {
   if (value === null || typeof value !== 'object') {
@@ -605,7 +622,7 @@ export const getTestCallCache_ =
 /** Store outputs for a title+inputs key until absolute expiry (ms epoch). */
 export const setTestCallCache_ = (
     title: string, inputs: Record<string, any>, outputs: any,
-    expiresAt: number): void => {
+    expiresAt: number, filePath?: string): void => {
   if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt)) {
     return;
   }
@@ -617,10 +634,39 @@ export const setTestCallCache_ = (
     delete rest.cached;
     clone._ = rest;
   }
+  const path = typeof filePath === 'string' && filePath.trim() ?
+      filePath.trim() :
+      undefined;
   __mmtTestCallCache.set(testCallCacheKey_(title, inputs), {
+    title: String(title ?? ''),
+    inputs: deepCloneCacheValue_(inputs ?? {}) || {},
     outputs: clone,
     expiresAt,
+    ...(path ? {filePath: path} : {}),
   });
+};
+
+/** List live test-call cache entries (view-only; does not change policy). */
+export const listTestCallCacheEntries_ = (): TestCallCacheSnapshot[] => {
+  const now = Date.now();
+  const out: TestCallCacheSnapshot[] = [];
+  for (const [key, entry] of __mmtTestCallCache.entries()) {
+    if (now >= entry.expiresAt) {
+      __mmtTestCallCache.delete(key);
+      continue;
+    }
+    out.push({
+      kind: 'test-call',
+      title: entry.title,
+      ...(entry.filePath ? {filePath: entry.filePath} : {}),
+      inputs: deepCloneCacheValue_(entry.inputs) || {},
+      outputs: deepCloneCacheValue_(entry.outputs),
+      expiresAt: entry.expiresAt,
+      remainingMs: entry.expiresAt - now,
+    });
+  }
+  out.sort((a, b) => a.remainingMs - b.remainingMs);
+  return out;
 };
 
 declare const __mmtReportStep:|((event: Record<string, any>) => void)|undefined;

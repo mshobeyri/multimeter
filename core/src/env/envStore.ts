@@ -20,8 +20,19 @@ export type EnvFileRunner = (resolvedPath: string) => Promise<{
   cache?: unknown;
 }>;
 
+export type LiveEnvCacheSlot = {
+  filePath: string;
+  value: any;
+  expiresAt: number;
+};
+
 export interface EnvStore {
   values: Record<string, any>;
+  /**
+   * TTL slots for file-backed getters (same data the getters honor).
+   * Keyed by env var name for Cache-panel observability.
+   */
+  liveCache: Map<string, LiveEnvCacheSlot>;
   /**
    * Injected after create. File-backed getters call this to run the `.mmt`.
    * Shared across suite children; not copied from source env.
@@ -29,6 +40,60 @@ export interface EnvStore {
   runEnvFile?: EnvFileRunner;
   /** Resolve `./x.mmt` for file-backed getters (usually vs env file path). */
   resolveFilePath?: (rawPath: string) => string;
+}
+
+/** Read-only live-env cache row for the Cache panel. */
+export type LiveEnvCacheSnapshot = {
+  kind: 'live-env';
+  name: string;
+  filePath: string;
+  /** Default inputs (live env always runs with defaults). */
+  inputs: Record<string, any>;
+  value: any;
+  expiresAt: number;
+  remainingMs: number;
+};
+
+const activeEnvStores = new Set<EnvStore>();
+
+export function registerActiveEnvStore(store: EnvStore|undefined): void {
+  if (store) {
+    activeEnvStores.add(store);
+  }
+}
+
+export function unregisterActiveEnvStore(store: EnvStore|undefined): void {
+  if (store) {
+    activeEnvStores.delete(store);
+  }
+}
+
+/** List TTL-valid live-env cache slots across active run stores. */
+export function listLiveEnvCacheEntries(): LiveEnvCacheSnapshot[] {
+  const now = Date.now();
+  const out: LiveEnvCacheSnapshot[] = [];
+  for (const store of activeEnvStores) {
+    if (!store.liveCache) {
+      continue;
+    }
+    for (const [name, slot] of store.liveCache.entries()) {
+      if (now >= slot.expiresAt) {
+        store.liveCache.delete(name);
+        continue;
+      }
+      out.push({
+        kind: 'live-env',
+        name,
+        filePath: slot.filePath,
+        inputs: {},
+        value: slot.value,
+        expiresAt: slot.expiresAt,
+        remainingMs: slot.expiresAt - now,
+      });
+    }
+  }
+  out.sort((a, b) => a.remainingMs - b.remainingMs);
+  return out;
 }
 
 export interface CreateEnvStoreOptions {
@@ -83,8 +148,8 @@ export function firstEnvFileOutput(
   return null;
 }
 
-function makeEnvFileGetter(store: EnvStore, rawPath: string): () => Promise<any> {
-  let cached: {value: any; expiresAt: number}|undefined;
+function makeEnvFileGetter(
+    store: EnvStore, envName: string, rawPath: string): () => Promise<any> {
   /**
    * Parallel suite items / simultaneous `e:` reads share one run. A boolean
    * `resolving` flag used to return `null` for the second caller — wrong.
@@ -94,8 +159,12 @@ function makeEnvFileGetter(store: EnvStore, rawPath: string): () => Promise<any>
   const path = rawPath.trim();
   const getter = async () => {
     const now = Date.now();
-    if (cached && now < cached.expiresAt) {
-      return cached.value;
+    const hit = store.liveCache.get(envName);
+    if (hit && now < hit.expiresAt) {
+      return hit.value;
+    }
+    if (hit) {
+      store.liveCache.delete(envName);
     }
     if (inFlight) {
       return inFlight;
@@ -113,9 +182,9 @@ function makeEnvFileGetter(store: EnvStore, rawPath: string): () => Promise<any>
         const expiresAt = parseCacheExpiryAtMs(result?.cache as any, Date.now());
         if (typeof expiresAt === 'number' && Number.isFinite(expiresAt) &&
             expiresAt > Date.now()) {
-          cached = {value, expiresAt};
+          store.liveCache.set(envName, {filePath: path, value, expiresAt});
         } else {
-          cached = undefined;
+          store.liveCache.delete(envName);
         }
         return value;
       } catch {
@@ -151,11 +220,12 @@ export function createEnvStore(
     options?: CreateEnvStoreOptions): EnvStore {
   const store: EnvStore = {
     values: {},
+    liveCache: new Map(),
     resolveFilePath: options?.resolveFilePath,
   };
   for (const [name, value] of Object.entries(initial || {})) {
     if (isEnvFilePathValue(value)) {
-      store.values[name] = makeEnvFileGetter(store, value);
+      store.values[name] = makeEnvFileGetter(store, name, value);
     } else {
       store.values[name] = value;
     }

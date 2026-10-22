@@ -1,6 +1,7 @@
 import {
   clearTestCallCache_,
   getTestCallCache_,
+  listTestCallCacheEntries_,
   setTestCallCache_,
 } from './testHelper';
 import {runFile} from './runner';
@@ -133,6 +134,22 @@ describe('test call cache helpers', () => {
     setTestCallCache_(
         'Create session', {user: 'alice'}, {token: 't1'}, Date.now() - 1);
     expect(getTestCallCache_('Create session', {user: 'alice'})).toBeUndefined();
+  });
+
+  it('lists live entries for the Cache panel', () => {
+    const expiresAt = Date.now() + 30_000;
+    setTestCallCache_(
+        'Create session', {user: 'alice'}, {token: 't1'}, expiresAt);
+    const listed = listTestCallCacheEntries_();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]).toMatchObject({
+      kind: 'test-call',
+      title: 'Create session',
+      inputs: {user: 'alice'},
+      outputs: {token: 't1'},
+      expiresAt,
+    });
+    expect(listed[0].remainingMs).toBeGreaterThan(0);
   });
 });
 

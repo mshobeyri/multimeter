@@ -11,7 +11,7 @@ The top of the Multimeter sidebar is a collapsed **Views** tree. Use it to reloc
 1. Drag a view’s title onto the **Views** header (or use the view’s context menu → **Move View**).
 2. Click a row in **Views** to focus that panel again.
 
-Listed views: Temp Files, Get Started, Mock Server, Connections, Environment Variables, and History. Welcome text on an empty dock also links to Environment and History.
+Listed views: Temp Files, Get Started, Mock Server, Connections, Cache, Environment Variables, and History. Welcome text on an empty dock also links to Environment and History.
 
 ## Activity bar
 
@@ -21,6 +21,7 @@ Listed views: Temp Files, Get Started, Mock Server, Connections, Environment Var
 | {{btn:rocket:Get Started}} | First-request walkthrough (create a POST, send, change the body) — see [Get Started](./get-started.md) |
 | {{btn:server:Mock Server}} | Start HTTP/HTTPS/WebSocket mocks, or load a `type: server` file — see [Mock server panel](../files/server/panel.md) |
 | {{btn:plug:Connections}} | Watch active HTTP keep-alive and WebSocket sessions; close them when needed — see [Connections](./connections.md) |
+| {{btn:database:Cache}} | Watch in-run `cache:` entries (test call + live env); empties when the run ends — see [Cache](./cache.md) |
 
 ## Bottom panel
 

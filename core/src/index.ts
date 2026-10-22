@@ -47,6 +47,7 @@ export * as Random from "./tokens/Random";
 export * as Current from "./tokens/Current";
 export * as runner from "./runner/runner";
 export * as runFileCache from "./runner/runFileCache";
+export * as runCacheSnapshot from "./runner/runCacheSnapshot";
 export * as apiRunResult from "./runner/apiRunResult";
 export * as apiTestEval from "./runner/apiTestEval";
 export * as runConfig from "./runner/runConfig";

@@ -236,6 +236,7 @@ export const testToJsfunc = async(
   const useCallCache = typeof cacheProbe === 'number' && Number.isFinite(cacheProbe);
   const cacheTitle = JSON.stringify(ctx.test.title || ctx.name || fnName);
   const cacheSpecLiteral = JSON.stringify(cacheSpec);
+  const cacheFilePathLiteral = JSON.stringify(ctx.filePath || '');
   const inputKeys = Object.keys(replaced.inputs || {});
   const resolvedInputsLiteral = inputKeys.length ?
       '{ ' + inputKeys.map(k => `${k}`).join(', ') + ' }' :
@@ -255,7 +256,7 @@ export const testToJsfunc = async(
   ${indentLines(importsAssignments)}\n
   let outputs = {${outputParams}};
   ${indentLines(flow)}
-  setTestCallCache_(${cacheTitle}, __mmtResolvedInputs, outputs, parseCacheExpiryAtMs_(${cacheSpecLiteral}));
+  setTestCallCache_(${cacheTitle}, __mmtResolvedInputs, outputs, parseCacheExpiryAtMs_(${cacheSpecLiteral}), ${cacheFilePathLiteral});
   return outputs;
 };\n`;
   }
@@ -269,7 +270,7 @@ export const testToJsfunc = async(
   ${indentLines(importsAssignments)}\n
   let outputs = {${outputParams}};
   ${indentLines(flow)}
-  setTestCallCache_(${cacheTitle}, __mmtResolvedInputs, outputs, parseCacheExpiryAtMs_(${cacheSpecLiteral}));
+  setTestCallCache_(${cacheTitle}, __mmtResolvedInputs, outputs, parseCacheExpiryAtMs_(${cacheSpecLiteral}), ${cacheFilePathLiteral});
   return outputs;
 };\n`;
   }

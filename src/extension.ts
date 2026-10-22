@@ -8,6 +8,7 @@ import {HistoryManager} from './historyManager';
 import {convertUriToMmt} from './mmtAPI/convertToMmt';
 import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
 import {MmtEditorProvider} from './mmtEditorProvider';
+import CachePanel from './panels/CachePanel';
 import ConnectionsPanel from './panels/ConnectionsPanel';
 import {registerMultimeterDockTrees} from './panels/DockTreeProvider';
 import EnvironmentPanel from './panels/EnvironmentPanel';
@@ -33,10 +34,16 @@ export function activate(context: vscode.ExtensionContext) {
   registerEditorProvider(context, mmtviewPanel);
   registerDocumentLinks(context);
 
-  const {historyPanel, environmentPanel, connectionsPanel, mockServerPanel} =
-      registerSidePanels(context, historyManager, onboarding, tempFiles);
+  const {
+    historyPanel,
+    environmentPanel,
+    connectionsPanel,
+    cachePanel,
+    mockServerPanel,
+  } = registerSidePanels(context, historyManager, onboarding, tempFiles);
 
   registerConnectionsCommands(context, connectionsPanel);
+  registerCacheCommands(context, cachePanel);
   registerHistoryCommands(context, historyPanel, historyManager);
   registerEnvironmentCommands(context, environmentPanel, mmtviewPanel);
   registerMockServerCommands(context, mockServerPanel);
@@ -116,7 +123,8 @@ function registerSidePanels(
     onboarding: OnboardingController,
     tempFiles: TempFilesController): {
   historyPanel: HistoryPanel; environmentPanel: EnvironmentPanel;
-  connectionsPanel: ConnectionsPanel; mockServerPanel: MockServerPanel;
+  connectionsPanel: ConnectionsPanel; cachePanel: CachePanel;
+  mockServerPanel: MockServerPanel;
 } {
   registerMultimeterDockTrees(context);
 
@@ -148,7 +156,18 @@ function registerSidePanels(
       'multimeter.connections', connectionsPanel,
       {webviewOptions: {retainContextWhenHidden: true}}));
 
-  return {historyPanel, environmentPanel, connectionsPanel, mockServerPanel};
+  const cachePanel = new CachePanel(context);
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider(
+      CachePanel.viewType, cachePanel,
+      {webviewOptions: {retainContextWhenHidden: true}}));
+
+  return {
+    historyPanel,
+    environmentPanel,
+    connectionsPanel,
+    cachePanel,
+    mockServerPanel,
+  };
 }
 
 function registerConnectionsCommands(
@@ -162,6 +181,14 @@ function registerConnectionsCommands(
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.connections.closeAll', () => {
         connectionTracker.closeAll();
+      }));
+}
+
+function registerCacheCommands(
+    context: vscode.ExtensionContext, cachePanel: CachePanel): void {
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.cache.refresh', () => {
+        cachePanel.refresh();
       }));
 }
 

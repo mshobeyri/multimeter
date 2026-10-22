@@ -710,6 +710,11 @@
       "require": "./dist/runner/testHelper.js",
       "default": "./dist/runner/testHelper.js"
     },
+    "./runner/runCacheSnapshot": {
+      "types": "./dist/runner/runCacheSnapshot.d.ts",
+      "require": "./dist/runner/runCacheSnapshot.js",
+      "default": "./dist/runner/runCacheSnapshot.js"
+    },
     "./tokens/variableReplacer": {
       "types": "./dist/tokens/variableReplacer.d.ts",
       "require": "./dist/tokens/variableReplacer.js",

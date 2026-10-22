@@ -482,6 +482,11 @@
         "icon": "$(trash)"
       },
       {
+        "command": "multimeter.cache.refresh",
+        "title": "Refresh Cache",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "multimeter.mock.server.copyAddress",
         "title": "Copy Server Address",
         "icon": "$(copy)"
@@ -543,6 +548,14 @@
           "type": "webview",
           "visibility": "collapsed",
           "order": 4
+        },
+        {
+          "id": "multimeter.cache",
+          "name": "Cache",
+          "icon": "res/activity.png",
+          "type": "webview",
+          "visibility": "collapsed",
+          "order": 5
         }
       ],
       "multimeter-panel": [
@@ -601,6 +614,11 @@
         {
           "command": "multimeter.connections.closeAll",
           "when": "view == multimeter.connections",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.cache.refresh",
+          "when": "view == multimeter.cache",
           "group": "navigation"
         },
         {

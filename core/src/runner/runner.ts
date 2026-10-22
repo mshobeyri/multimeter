@@ -6,6 +6,8 @@ import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} fro
 import {
   createEnvStoreFromRun,
   envFilePathOfGetter,
+  registerActiveEnvStore,
+  unregisterActiveEnvStore,
   type EnvStore,
 } from '../env/envStore';
 import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from './runConfig';
@@ -158,85 +160,97 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   }
   attachEnvFileRunner(options.envStore, options);
 
-  if (docType === 'api') {
-    return executeApi(prepared, options, preLogs);
+  // Cache panel mirrors live-env TTL slots on the active top-level store.
+  const trackStore =
+      !options.__mmtIsSuiteBundleChildRun && !options.__mmtEnvValueRun;
+  if (trackStore) {
+    registerActiveEnvStore(options.envStore);
   }
+  try {
+    if (docType === 'api') {
+      return await executeApi(prepared, options, preLogs);
+    }
 
-  if (docType === 'test') {
-    if (options.tagFilter) {
-      try {
-        const testDoc = yamlToTest(prepared.rawText);
-        if (decideTagRun('test', testDoc.tags, options.tagFilter, options.tagParentSelected === true) === 'skip') {
-          options.reporter && options.reporter({
-            scope: 'suite-item',
-            status: 'skipped',
-            runId: options.runId,
-            filePath: prepared.filePath,
-            title: testDoc.title,
-            docType: 'test',
-            id: options.id,
-          });
-          return {
-            js: '',
-            result: {success: true, durationMs: 0, errors: [], itemStatus: 'skipped'},
-            identifier: prepared.baseName,
-            displayName: testDoc.title || prepared.baseName,
-            docType: 'test',
-            inputsUsed: prepared.inputsUsed,
-            envVarsUsed: prepared.envVarsUsed,
-          } as any;
+    if (docType === 'test') {
+      if (options.tagFilter) {
+        try {
+          const testDoc = yamlToTest(prepared.rawText);
+          if (decideTagRun('test', testDoc.tags, options.tagFilter, options.tagParentSelected === true) === 'skip') {
+            options.reporter && options.reporter({
+              scope: 'suite-item',
+              status: 'skipped',
+              runId: options.runId,
+              filePath: prepared.filePath,
+              title: testDoc.title,
+              docType: 'test',
+              id: options.id,
+            });
+            return {
+              js: '',
+              result: {success: true, durationMs: 0, errors: [], itemStatus: 'skipped'},
+              identifier: prepared.baseName,
+              displayName: testDoc.title || prepared.baseName,
+              docType: 'test',
+              inputsUsed: prepared.inputsUsed,
+              envVarsUsed: prepared.envVarsUsed,
+            } as any;
+          }
+        } catch {
+          // Invalid test still goes through executeTest.
         }
-      } catch {
-        // Invalid test still goes through executeTest.
       }
+      return await executeTest(prepared, options, preLogs);
     }
-    return executeTest(prepared, options, preLogs);
-  }
 
-  if (docType === 'suite') {
-    let bundle = options.suiteBundle;
-    if (!bundle) {
-      const tree = await buildSuiteHierarchyFromSuiteFile({
-        suiteFilePath: prepared.filePath,
-        suiteRawText: prepared.rawText,
-        fileLoader: options.fileLoader,
-        projectRoot: options.projectRoot,
-      });
-      bundle = createSuiteBundle({
-        rootSuitePath: prepared.filePath,
-        hierarchy: tree,
-        servers: tree.servers,
-        environment: tree.environment,
-        export: tree.export,
+    if (docType === 'suite') {
+      let bundle = options.suiteBundle;
+      if (!bundle) {
+        const tree = await buildSuiteHierarchyFromSuiteFile({
+          suiteFilePath: prepared.filePath,
+          suiteRawText: prepared.rawText,
+          fileLoader: options.fileLoader,
+          projectRoot: options.projectRoot,
+        });
+        bundle = createSuiteBundle({
+          rootSuitePath: prepared.filePath,
+          hierarchy: tree,
+          servers: tree.servers,
+          environment: tree.environment,
+          export: tree.export,
+        });
+      }
+      return await executeSuiteBundle({
+        bundle,
+        options: {...options, suiteBundle: bundle},
+        preLogs,
+        runFile,
       });
     }
-    return executeSuiteBundle({
-      bundle,
-      options: {...options, suiteBundle: bundle},
-      preLogs,
-      runFile,
-    });
-  }
 
-  if (docType === 'loadtest') {
-    return executeLoadTest(prepared, options, preLogs, runFile);
-  }
+    if (docType === 'loadtest') {
+      return await executeLoadTest(prepared, options, preLogs, runFile);
+    }
 
-  // File-backed env values may point at a missing or non-runnable path; soft
-  // empty result so the parent e: read becomes null instead of failing the run.
-  if (options.__mmtEnvValueRun) {
-    return {
-      js: '',
-      result: {success: true, durationMs: 0, errors: [], outputs: {}},
-      identifier: prepared.baseName,
-      displayName: prepared.baseName,
-      docType: docType,
-      inputsUsed: prepared.inputsUsed,
-      envVarsUsed: prepared.envVarsUsed,
-    } as RunFileResult;
-  }
+    // File-backed env values may point at a missing or non-runnable path; soft
+    // empty result so the parent e: read becomes null instead of failing the run.
+    if (options.__mmtEnvValueRun) {
+      return {
+        js: '',
+        result: {success: true, durationMs: 0, errors: [], outputs: {}},
+        identifier: prepared.baseName,
+        displayName: prepared.baseName,
+        docType: docType,
+        inputsUsed: prepared.inputsUsed,
+        envVarsUsed: prepared.envVarsUsed,
+      } as RunFileResult;
+    }
 
-  throw new Error('Run is currently supported for test or api documents only.');
+    throw new Error('Run is currently supported for test or api documents only.');
+  } finally {
+    if (trackStore) {
+      unregisterActiveEnvStore(options.envStore);
+    }
+  }
 }
 
 function outputKeysFromYaml(rawText: string): string[] {
