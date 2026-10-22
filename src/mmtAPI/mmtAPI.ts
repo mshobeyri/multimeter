@@ -35,6 +35,7 @@ import {
 import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/data/NetworkData';
 import {applyEnvVarLastUpdates, asEnvVarList} from 'mmt-core/env/envVarLastUpdate';
 import {buildSmartEnvCliFlags, shellQuoteIfNeeded} from 'mmt-core/env/envCliFlags';
+import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
 import type {EnvPresets, EnvVariable} from 'mmt-core/data/EnvData';
 import {findProjectRootSync} from 'mmt-core/util/fileHelper';
 
@@ -174,12 +175,21 @@ function resolveEnvFileFlagForCli(projectRoot?: string): string|undefined {
 function workspaceEnvVarsForCli(mmtProvider: any): EnvVariable[] {
   const stored = mmtProvider.context.workspaceState.get(
       'multimeter.environment.storage', []);
-  return asEnvVarList(stored).map((raw: any) => ({
-    name: typeof raw?.name === 'string' ? raw.name : String(raw?.name ?? ''),
-    label: typeof raw?.label === 'string' ? raw.label : String(raw?.label ?? ''),
-    value: raw?.value,
-    options: Array.isArray(raw?.options) ? raw.options : [],
-  }));
+  return asEnvVarList(stored).map((raw: any) => {
+    const source =
+        raw?.source === 'file' || raw?.source === 'manual' ||
+            raw?.source === 'runtime' ?
+        raw.source :
+        undefined;
+    return {
+      name: typeof raw?.name === 'string' ? raw.name : String(raw?.name ?? ''),
+      label:
+          typeof raw?.label === 'string' ? raw.label : String(raw?.label ?? ''),
+      value: raw?.value,
+      options: Array.isArray(raw?.options) ? raw.options : [],
+      ...(source ? {source} : {}),
+    };
+  });
 }
 
 function toCliRelativePath(absolutePath: string, root: string): string {
@@ -410,19 +420,7 @@ function resolveCurlInputs(api: any, inputsMessage: any): Record<string, any> {
 function extractEnvVarsForCurl(mmtProvider: any): Record<string, any> {
   const envStorage = mmtProvider.context.workspaceState.get(
       'multimeter.environment.storage', []);
-  const envVars: Record<string, any> = {};
-  if (Array.isArray(envStorage)) {
-    for (const item of envStorage) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        envVars[name] = (item as any).value;
-      }
-    }
-  }
-  return envVars;
+  return resolveWorkspaceEnvMap(Array.isArray(envStorage) ? envStorage : []);
 }
 
 function buildCurlCertificateOptions(

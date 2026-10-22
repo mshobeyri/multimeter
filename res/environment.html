@@ -532,7 +532,6 @@
                     <div id="env-menu-dropdown" class="env-menu-dropdown" role="menu">
                         <button type="button" class="env-menu-item" data-clear="file" role="menuitem">Clear file variables</button>
                         <button type="button" class="env-menu-item" data-clear="manual" role="menuitem">Clear manual variables</button>
-                        <button type="button" class="env-menu-item" data-clear="runtime" role="menuitem">Clear runtime variables</button>
                         <button type="button" class="env-menu-item danger" data-clear="all" role="menuitem">Clear all</button>
                     </div>
                 </div>
@@ -564,6 +563,36 @@
         <div id="empty-state" class="empty-state">No environment variables saved in workspace.</div>
     </div>
 
+    <div id="runtime-card" class="section-card" style="display: none;">
+        <div class="section-header">
+            <div>
+                <div class="section-title">Runtime Variables</div>
+            </div>
+            <div class="button-group">
+                <button id="clear-runtime-btn" class="icon-button" title="Clear runtime variables">
+                    <span class="codicon codicon-clear-all" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+        <div id="runtime-table-container" class="table-wrapper" style="display: block;">
+            <table class="env-table">
+                <colgroup>
+                    <col class="env-col-name" />
+                    <col class="env-col-label" />
+                    <col class="env-col-value" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th class="env-col-name">Name</th>
+                        <th class="env-col-label">Label</th>
+                        <th class="env-col-value">Value</th>
+                    </tr>
+                </thead>
+                <tbody id="runtime-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
     <script>
         const vscode = acquireVsCodeApi();
         let environmentVars = [];
@@ -592,88 +621,149 @@
             const emptyState = document.getElementById('empty-state');
             const envHeader = document.getElementById('env-header');
             const tableBody = document.getElementById('env-table-body');
+            const runtimeCard = document.getElementById('runtime-card');
+            const runtimeTableBody = document.getElementById('runtime-table-body');
 
             if (envHeader) {
                 envHeader.style.display = 'flex';
             }
 
-            if (!environmentVars || environmentVars.length === 0) {
-                tableContainer.style.display = 'none';
-                emptyState.style.display = 'block';
-                return;
-            }
-            tableContainer.style.display = 'block';
-            emptyState.style.display = 'none';
-            tableBody.innerHTML = '';
-
-            environmentVars.forEach((envVar, index) => {
-                const row = document.createElement('tr');
-                row.className = 'env-row';
-
-                const source = resolveEnvSource(envVar);
-                const displayValue = typeof envVar.displayValue === 'string'
-                    ? envVar.displayValue
-                    : formatEnvValueForInput(envVar.value);
-                const typeLabel = typeof envVar.typeLabel === 'string'
-                    ? envVar.typeLabel
-                    : '';
-                const hasType = typeLabel.length > 0;
-                const isLive = typeLabel === 'live';
-                const livePath = isEnvFilePathValue(envVar.value)
-                    ? String(envVar.value).trim()
-                    : '';
-                let optionsHtml = '';
-                if (source === 'manual') {
-                    optionsHtml = `<option value="__manual__" selected disabled>Manual</option>`;
-                    if (Array.isArray(envVar.options) && envVar.options.length > 0) {
-                        optionsHtml += envVar.options.map(opt =>
-                            `<option value="${escapeHtml(String(opt.label))}">${escapeHtml(String(opt.label))}</option>`
-                        ).join('');
-                    }
-                } else if (Array.isArray(envVar.options) && envVar.options.length > 0) {
-                    optionsHtml = envVar.options.map(opt =>
-                        `<option value="${escapeHtml(String(opt.label))}"${envVar.label === opt.label ? ' selected' : ''}>${escapeHtml(String(opt.label))}</option>`
-                    ).join('');
+            const envLayer = [];
+            const runtimeLayer = [];
+            (environmentVars || []).forEach((envVar, index) => {
+                if (resolveEnvSource(envVar) === 'runtime') {
+                    runtimeLayer.push({ envVar, index });
                 } else {
-                    optionsHtml = `<option value="${escapeHtml(String(envVar.label || envVar.name))}" selected>${escapeHtml(String(envVar.label || envVar.name))}</option>`;
+                    envLayer.push({ envVar, index });
                 }
-
-                const wrapClass = [
-                    'env-value-wrap',
-                    'has-remove',
-                    hasType ? 'has-type' : '',
-                ].filter(Boolean).join(' ');
-
-                const typeAffixHtml = !hasType ? '' : isLive
-                    ? `<button type="button" class="field-type-affix is-live" data-path="${escapeHtml(livePath)}" title="Open live variable file" aria-label="Open live variable file">(live)</button>`
-                    : `<span class="field-type-affix" title="Value type">(${escapeHtml(typeLabel)})</span>`;
-
-                row.innerHTML = `
-                    <td class="env-name env-col-name">
-                        <div class="env-name-inner">
-                            ${sourceIconHtml(source)}
-                            <span class="env-name-text">${escapeHtml(envVar.name)}</span>
-                        </div>
-                    </td>
-                    <td class="env-col-label">
-                        <select class="flat-select env-select" data-index="${index}">
-                            ${optionsHtml}
-                        </select>
-                    </td>
-                    <td class="env-value env-col-value">
-                        <div class="${wrapClass}">
-                            <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(displayValue)}" />
-                            ${typeAffixHtml}
-                            <button type="button" class="field-button is-remove" data-index="${index}" title="Remove field" aria-label="Remove field">
-                                <span class="action-button codicon codicon-close" aria-hidden="true"></span>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tableBody.appendChild(row);
             });
 
+            tableBody.innerHTML = '';
+            if (envLayer.length === 0) {
+                tableContainer.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                tableContainer.style.display = 'block';
+                emptyState.style.display = 'none';
+                envLayer.forEach(({ envVar, index }) => {
+                    const row = document.createElement('tr');
+                    row.className = 'env-row';
+
+                    const source = resolveEnvSource(envVar);
+                    const displayValue = typeof envVar.displayValue === 'string'
+                        ? envVar.displayValue
+                        : formatEnvValueForInput(envVar.value);
+                    const typeLabel = typeof envVar.typeLabel === 'string'
+                        ? envVar.typeLabel
+                        : '';
+                    const hasType = typeLabel.length > 0;
+                    const isLive = typeLabel === 'live';
+                    const livePath = isEnvFilePathValue(envVar.value)
+                        ? String(envVar.value).trim()
+                        : '';
+                    let optionsHtml = '';
+                    if (source === 'manual') {
+                        optionsHtml = `<option value="__manual__" selected disabled>Manual</option>`;
+                        if (Array.isArray(envVar.options) && envVar.options.length > 0) {
+                            optionsHtml += envVar.options.map(opt =>
+                                `<option value="${escapeHtml(String(opt.label))}">${escapeHtml(String(opt.label))}</option>`
+                            ).join('');
+                        }
+                    } else if (Array.isArray(envVar.options) && envVar.options.length > 0) {
+                        optionsHtml = envVar.options.map(opt =>
+                            `<option value="${escapeHtml(String(opt.label))}"${envVar.label === opt.label ? ' selected' : ''}>${escapeHtml(String(opt.label))}</option>`
+                        ).join('');
+                    } else {
+                        optionsHtml = `<option value="${escapeHtml(String(envVar.label || envVar.name))}" selected>${escapeHtml(String(envVar.label || envVar.name))}</option>`;
+                    }
+
+                    const wrapClass = [
+                        'env-value-wrap',
+                        'has-remove',
+                        hasType ? 'has-type' : '',
+                    ].filter(Boolean).join(' ');
+
+                    const typeAffixHtml = !hasType ? '' : isLive
+                        ? `<button type="button" class="field-type-affix is-live" data-path="${escapeHtml(livePath)}" title="Open live variable file" aria-label="Open live variable file">(live)</button>`
+                        : `<span class="field-type-affix" title="Value type">(${escapeHtml(typeLabel)})</span>`;
+
+                    // Env-table markup + classes unchanged so value edit still
+                    // flips file → manual via the existing .value-input handler.
+                    row.innerHTML = `
+                        <td class="env-name env-col-name">
+                            <div class="env-name-inner">
+                                ${sourceIconHtml(source)}
+                                <span class="env-name-text">${escapeHtml(envVar.name)}</span>
+                            </div>
+                        </td>
+                        <td class="env-col-label">
+                            <select class="flat-select env-select" data-index="${index}">
+                                ${optionsHtml}
+                            </select>
+                        </td>
+                        <td class="env-value env-col-value">
+                            <div class="${wrapClass}">
+                                <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(displayValue)}" />
+                                ${typeAffixHtml}
+                                <button type="button" class="field-button is-remove" data-index="${index}" title="Remove field" aria-label="Remove field">
+                                    <span class="action-button codicon codicon-close" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            runtimeTableBody.innerHTML = '';
+            if (runtimeLayer.length === 0) {
+                runtimeCard.style.display = 'none';
+            } else {
+                runtimeCard.style.display = 'block';
+                runtimeLayer.forEach(({ envVar, index }) => {
+                    const row = document.createElement('tr');
+                    row.className = 'env-row';
+                    const displayValue = typeof envVar.displayValue === 'string'
+                        ? envVar.displayValue
+                        : formatEnvValueForInput(envVar.value);
+                    const typeLabel = typeof envVar.typeLabel === 'string'
+                        ? envVar.typeLabel
+                        : '';
+                    const hasType = typeLabel.length > 0;
+                    const wrapClass = [
+                        'env-value-wrap',
+                        'has-remove',
+                        hasType ? 'has-type' : '',
+                    ].filter(Boolean).join(' ');
+                    const typeAffixHtml = !hasType ? '' :
+                        `<span class="field-type-affix" title="Value type">(${escapeHtml(typeLabel)})</span>`;
+                    // Separate classes so env-table handlers never bind these rows.
+                    row.innerHTML = `
+                        <td class="env-name env-col-name">
+                            <div class="env-name-inner">
+                                ${sourceIconHtml('runtime')}
+                                <span class="env-name-text">${escapeHtml(envVar.name)}</span>
+                            </div>
+                        </td>
+                        <td class="env-col-label">
+                            <span class="env-name-text">${escapeHtml(String(envVar.label || envVar.name))}</span>
+                        </td>
+                        <td class="env-value env-col-value">
+                            <div class="${wrapClass}">
+                                <input type="text" class="runtime-value-input" data-index="${index}" value="${escapeHtml(displayValue)}" />
+                                ${typeAffixHtml}
+                                <button type="button" class="field-button is-remove runtime-remove" data-index="${index}" title="Remove field" aria-label="Remove field">
+                                    <span class="action-button codicon codicon-close" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    runtimeTableBody.appendChild(row);
+                });
+            }
+
             registerEnvSelectHandlers();
+            registerRuntimeHandlers();
         }
 
         function isEnvFilePathValue(value) {
@@ -800,7 +890,7 @@
                 });
             });
 
-            document.querySelectorAll('.value-input').forEach(input => {
+            document.querySelectorAll('#env-table-body .value-input').forEach(input => {
                 input.addEventListener('change', function () {
                     const idx = this.getAttribute('data-index');
                     const newValue = this.value;
@@ -819,7 +909,7 @@
                 });
             });
 
-            document.querySelectorAll('.env-value-wrap .field-button.is-remove').forEach(btn => {
+            document.querySelectorAll('#env-table-body .field-button.is-remove').forEach(btn => {
                 btn.addEventListener('click', function (event) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -828,6 +918,35 @@
                     vscode.postMessage({
                         type: 'multimeter.environment.delete',
                         name: envVar.name
+                    });
+                });
+            });
+        }
+
+        function registerRuntimeHandlers() {
+            document.querySelectorAll('.runtime-value-input').forEach(input => {
+                input.addEventListener('change', function () {
+                    const idx = this.getAttribute('data-index');
+                    const envVar = environmentVars[idx];
+                    vscode.postMessage({
+                        type: 'multimeter.environment.set',
+                        name: envVar.name,
+                        value: this.value,
+                        label: envVar.label || envVar.name,
+                        source: 'runtime'
+                    });
+                });
+            });
+            document.querySelectorAll('.runtime-remove').forEach(btn => {
+                btn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const idx = this.getAttribute('data-index');
+                    const envVar = environmentVars[idx];
+                    vscode.postMessage({
+                        type: 'multimeter.environment.delete',
+                        name: envVar.name,
+                        source: 'runtime'
                     });
                 });
             });
@@ -969,12 +1088,15 @@
                 return;
             }
             const scope = item.getAttribute('data-clear');
-            if (scope !== 'file' && scope !== 'runtime' && scope !== 'manual' &&
-                scope !== 'all') {
+            if (scope !== 'file' && scope !== 'manual' && scope !== 'all') {
                 return;
             }
             closeEnvMenu();
             vscode.postMessage({ type: 'multimeter.environment.clear', scope });
+        });
+
+        document.getElementById('clear-runtime-btn')?.addEventListener('click', () => {
+            vscode.postMessage({ type: 'multimeter.environment.clear', scope: 'runtime' });
         });
 
         document.addEventListener('click', () => {

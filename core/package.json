@@ -360,6 +360,11 @@
       "require": "./dist/env/envVarLastUpdate.js",
       "default": "./dist/env/envVarLastUpdate.js"
     },
+    "./env/workspaceEnvVars": {
+      "types": "./dist/env/workspaceEnvVars.d.ts",
+      "require": "./dist/env/workspaceEnvVars.js",
+      "default": "./dist/env/workspaceEnvVars.js"
+    },
     "./env/envPresetMatch": {
       "types": "./dist/env/envPresetMatch.d.ts",
       "require": "./dist/env/envPresetMatch.js",

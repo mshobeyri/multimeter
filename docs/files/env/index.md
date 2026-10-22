@@ -8,7 +8,7 @@ Toolbar actions on the environment panel:
 
 | Control | What it does |
 |---|---|
-| {{btn:check:Apply}} | Push variables from this env file into the workspace Environment panel (uses current preset selections). Existing manual and runtime values are kept; matching keys are updated. |
+| {{btn:check:Apply}} | Push variables from this env file into the workspace Environment panel (uses current preset selections). Matching environment-layer keys are updated; runtime rows with the same name are kept (and still win when resolving `e:`). |
 | {{btn:clear-all:Clear}} | Remove only the keys defined in this env file from the workspace panel. Other manual/runtime values stay. |
 
 The same runtime values are also available in the [Environment variables panel](./ui.md) in the Multimeter bottom panel.

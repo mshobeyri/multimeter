@@ -103,4 +103,22 @@ describe('envCliFlags', () => {
       presets,
     })).toBe('');
   });
+
+  it('emits -e for runtime overlays even when the key is covered by a preset', () => {
+    const withRuntime = [
+      ...vars,
+      {
+        name: 'token',
+        label: 'api',
+        value: 'setenv-token',
+        options: [],
+        source: 'runtime' as const,
+      },
+    ];
+    expect(buildSmartEnvCliFlags({
+      envFile: 'multimeter.mmt',
+      variables: withRuntime,
+      presets,
+    })).toBe('-F multimeter.mmt -P runner.dev -e token=setenv-token');
+  });
 });

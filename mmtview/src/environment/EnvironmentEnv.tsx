@@ -26,10 +26,15 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
 }) => {
     const currentMap = useMemo(() => {
         const map = new Map<string, EnvVariable>();
+        // Prefer environment-layer values; runtime may share names.
         safeList(currentVariables).forEach(variable => {
-            if (variable && typeof variable.name === "string") {
-                map.set(variable.name, variable);
+            if (!variable || typeof variable.name !== "string") {
+                return;
             }
+            if (variable.source === "runtime") {
+                return;
+            }
+            map.set(variable.name, variable);
         });
         return map;
     }, [currentVariables]);

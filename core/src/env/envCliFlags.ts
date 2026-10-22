@@ -1,9 +1,13 @@
 import type {JSONValue} from '../data/CommonData';
-import type {EnvPresets} from '../data/EnvData';
+import type {EnvPresets, EnvVarSource} from '../data/EnvData';
 import {
   derivePresetSelections,
   type EnvVarSnapshot,
 } from './envPresetMatch';
+import {
+  isRuntimeEnvSource,
+  resolveWorkspaceEnvMap,
+} from './workspaceEnvVars';
 
 /** Always single-quote for POSIX shells (escape embedded `'`). */
 export function shellSingleQuote(value: string): string {
@@ -49,7 +53,7 @@ export function formatCliEnvValue(value: JSONValue | undefined): string {
 export type BuildSmartEnvCliFlagsParams = {
   /** Relative (preferred) or absolute path for `-F`. Omit when unavailable. */
   envFile?: string | null;
-  variables: EnvVarSnapshot[];
+  variables: Array<EnvVarSnapshot & {source?: EnvVarSource}>;
   presets?: EnvPresets | null;
 };
 
@@ -58,22 +62,27 @@ export type BuildSmartEnvCliFlagsParams = {
  * `-F file -P group.option … -e key=val …`
  *
  * `-F` / `-P` only when an env file is provided and at least one preset fully
- * matches current variables. Covered preset keys are omitted from `-e`;
- * remaining / manual / runtime values are emitted as `-e`.
+ * matches current environment-layer variables. Covered preset keys are omitted
+ * from `-e` unless a runtime overlay supplies that key; remaining / manual /
+ * runtime values are emitted as `-e`.
  */
 export function buildSmartEnvCliFlags(params: BuildSmartEnvCliFlagsParams): string {
   const vars = Array.isArray(params.variables) ?
       params.variables.filter(
-          (v): v is EnvVarSnapshot =>
+          (v): v is EnvVarSnapshot & {source?: EnvVarSource} =>
               !!v && typeof v.name === 'string' && v.name.trim().length > 0) :
       [];
+  const envLayer = vars.filter(v => !isRuntimeEnvSource(v.source));
+  const runtimeNames = new Set(
+      vars.filter(v => isRuntimeEnvSource(v.source)).map(v => v.name));
+  const resolved = resolveWorkspaceEnvMap(vars);
   const envFile =
       typeof params.envFile === 'string' ? params.envFile.trim() : '';
   const parts: string[] = [];
   const covered = new Set<string>();
 
   if (envFile) {
-    const selections = derivePresetSelections(vars, params.presets);
+    const selections = derivePresetSelections(envLayer, params.presets);
     const presetNames = Object.keys(selections).sort((a, b) => a.localeCompare(b));
     if (presetNames.length > 0) {
       parts.push(`-F ${shellQuoteIfNeeded(envFile)}`);
@@ -90,15 +99,17 @@ export function buildSmartEnvCliFlags(params: BuildSmartEnvCliFlagsParams): stri
     }
   }
 
-  for (const variable of vars) {
-    if (covered.has(variable.name)) {
+  const names = Object.keys(resolved).sort((a, b) => a.localeCompare(b));
+  for (const name of names) {
+    if (covered.has(name) && !runtimeNames.has(name)) {
       continue;
     }
-    if (typeof variable.value === 'undefined') {
+    const value = resolved[name];
+    if (typeof value === 'undefined') {
       continue;
     }
     parts.push(
-        `-e ${shellQuoteIfNeeded(variable.name)}=${formatCliEnvValue(variable.value as JSONValue)}`);
+        `-e ${shellQuoteIfNeeded(name)}=${formatCliEnvValue(value as JSONValue)}`);
   }
 
   return parts.join(' ');

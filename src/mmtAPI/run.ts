@@ -31,6 +31,7 @@ import {addHistoryFromApiNetworkReport} from './apiHistory';
 import {expandCurrentTokensInPath} from 'mmt-core/tokens/Current';
 import {installGitCurrentSnapshotProvider} from './gitCommitShort';
 import {ensureGitCurrentSnapshot} from 'mmt-core/tokens/Current';
+import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -252,23 +253,11 @@ async function resolveSuiteEnvVars(params: {
   });
 }
 
-/** Extract envVars dict from workspace state storage. */
+/** Extract envVars dict from workspace state storage (runtime overlays win). */
 function extractEnvVars(mmtProvider: any): Record<string, any> {
   const envStorage = mmtProvider.context.workspaceState.get(
       'multimeter.environment.storage', []);
-  const envVars: Record<string, any> = {};
-  if (Array.isArray(envStorage)) {
-    for (const item of envStorage) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        envVars[name] = (item as any).value;
-      }
-    }
-  }
-  return envVars;
+  return resolveWorkspaceEnvMap(Array.isArray(envStorage) ? envStorage : []);
 }
 
 /** Apply network/certificate config for a file. Returns true if applied. */

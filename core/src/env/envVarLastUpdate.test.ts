@@ -93,6 +93,23 @@ describe('applyEnvVarLastUpdates', () => {
     )).toEqual([{name: 'TOKEN', value: 'abc', lastUpdate: 111}]);
   });
 
+  it('stamps file and runtime rows with the same name independently', () => {
+    expect(applyEnvVarLastUpdates(
+        [
+          {name: 'TOKEN', value: 'file', source: 'file'},
+          {name: 'TOKEN', value: 'rt', source: 'runtime'},
+        ],
+        [
+          {name: 'TOKEN', value: 'file', source: 'file', lastUpdate: 111},
+          {name: 'TOKEN', value: 'rt', source: 'runtime', lastUpdate: 222},
+        ],
+        now,
+    )).toEqual([
+      {name: 'TOKEN', value: 'file', source: 'file', lastUpdate: 111},
+      {name: 'TOKEN', value: 'rt', source: 'runtime', lastUpdate: 222},
+    ]);
+  });
+
   it('returns an empty list for non-array next', () => {
     expect(applyEnvVarLastUpdates(undefined as any, [], now)).toEqual([]);
   });

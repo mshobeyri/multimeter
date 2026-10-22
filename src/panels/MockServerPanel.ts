@@ -14,6 +14,7 @@ import {
   stopMockServer,
 } from '../mmtAPI/mockRunner';
 import {onRunFinished, onRunStarted} from '../runStatusBar';
+import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
 
 type ServerType = 'http' | 'https' | 'ws' | 'mmt';
 
@@ -204,16 +205,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
   private getEnvVars(): Record<string, any> {
     const envStorage = this.context.workspaceState.get<any[]>(
         'multimeter.environment.storage', []);
-    const envVars: Record<string, any> = {};
-    if (Array.isArray(envStorage)) {
-      for (const item of envStorage) {
-        if (item && typeof item === 'object' && typeof item.name === 'string' &&
-            item.name) {
-          envVars[item.name] = item.value;
-        }
-      }
-    }
-    return envVars;
+    return resolveWorkspaceEnvMap(Array.isArray(envStorage) ? envStorage : []);
   }
 
   private formatServerAddress(protocol: string, port: number): string {

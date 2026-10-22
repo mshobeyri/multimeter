@@ -1,8 +1,18 @@
 export type EnvVarStampEntry = {
   name?: unknown;
   value?: unknown;
+  source?: unknown;
   lastUpdate?: unknown;
 };
+
+function stampKey(entry: EnvVarStampEntry|undefined): string|undefined {
+  const name = typeof entry?.name === 'string' ? entry.name : '';
+  if (!name) {
+    return undefined;
+  }
+  const layer = entry?.source === 'runtime' ? 'runtime' : 'environment';
+  return `${name}\0${layer}`;
+}
 
 export function asEnvVarList(raw: unknown): EnvVarStampEntry[] {
   if (Array.isArray(raw)) {
@@ -46,15 +56,16 @@ export function applyEnvVarLastUpdates<T extends EnvVarStampEntry>(
   if (!Array.isArray(next)) {
     return [];
   }
-  const prevByName = new Map<string, EnvVarStampEntry>();
+  const prevByKey = new Map<string, EnvVarStampEntry>();
   for (const item of asEnvVarList(previous)) {
-    if (typeof item?.name === 'string' && item.name) {
-      prevByName.set(item.name, item);
+    const key = stampKey(item);
+    if (key) {
+      prevByKey.set(key, item);
     }
   }
   return next.map(item => {
-    const name = typeof item?.name === 'string' ? item.name : '';
-    const prev = name ? prevByName.get(name) : undefined;
+    const key = stampKey(item);
+    const prev = key ? prevByKey.get(key) : undefined;
     const prevStamp = isFiniteNumber(prev?.lastUpdate) ? prev.lastUpdate : undefined;
     const unchanged = !!prev && envValuesEqual(prev.value, item.value);
     return {

@@ -12,6 +12,7 @@ import * as vscode from 'vscode';
 import YAML from 'yaml';
 import {logToOutput} from '../mmtAPI/run';
 import {stampFile} from '../mmtAPI/suiteHierarchyCache';
+import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
 
 type AnyOpts = Record<string, any>;
 
@@ -213,18 +214,8 @@ export async function parseAssistantRunArgs(
 
   const vscodeEnvState =
       context.workspaceState.get<any>('multimeter.environment.storage', []);
-  const vscodeEnv: Record<string, any> = {};
-  if (Array.isArray(vscodeEnvState)) {
-    for (const item of vscodeEnvState) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        vscodeEnv[name] = (item as any).value;
-      }
-    }
-  }
+  const vscodeEnv = resolveWorkspaceEnvMap(
+      Array.isArray(vscodeEnvState) ? vscodeEnvState : []);
 
   const mergedBaseEnv = mergeEnv({baseEnv: vscodeEnv, envvar});
 

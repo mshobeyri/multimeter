@@ -10,6 +10,7 @@ export * as suiteParsePack from "./parse/suiteParsePack";
 export * as loadtestParsePack from "./parse/loadtestParsePack";
 export * as envParsePack from "./parse/envParsePack";
 export * as envVarLastUpdate from "./env/envVarLastUpdate";
+export * as workspaceEnvVars from "./env/workspaceEnvVars";
 export * as envPresetMatch from "./env/envPresetMatch";
 export * as envCliFlags from "./env/envCliFlags";
 export * as apiParsePack from "./parse/apiParsePack";
