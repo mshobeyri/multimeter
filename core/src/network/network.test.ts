@@ -359,16 +359,24 @@ describe('handleNetworkMessage', () => {
   it('close handler closes the socket and swallows errors', () => {
     const ok = createFakeWs();
     mockedCreateWebSocket.mockReturnValue({ws: ok.ws, wsId: 'ws-ok'});
+    const postMessage = jest.fn();
     handleNetworkMessage({
       command: 'network',
       action: 'ws-connect',
       url: 'ws://example.com',
       wsId: 'ws-ok',
-    }, baseConfig(), jest.fn());
+    }, baseConfig(), postMessage);
     const okId = connectionTracker.getAll()[0].id;
     connectionTracker.requestClose(okId);
     expect(ok.ws.close).toHaveBeenCalled();
     expect(deleteWsConnection).toHaveBeenCalledWith('ws-ok');
+    expect(connectionTracker.get(okId)).toBeUndefined();
+    expect(postMessage).toHaveBeenCalledWith({
+      command: 'network',
+      action: 'ws-close',
+      wsId: 'ws-ok',
+      closedBy: 'client',
+    });
 
     const {ws} = createFakeWs();
     ws.close.mockImplementation(() => {
@@ -381,11 +389,12 @@ describe('handleNetworkMessage', () => {
       url: 'ws://example.com',
       wsId: 'ws1',
     }, baseConfig(), jest.fn());
-    const throwingId = connectionTracker.getAll().find((c) => c.id !== okId)!.id;
+    const throwingId = connectionTracker.getAll()[0].id;
     expect(() => {
       connectionTracker.requestClose(throwingId);
     }).not.toThrow();
     expect(ws.close).toHaveBeenCalled();
+    expect(connectionTracker.get(throwingId)).toBeUndefined();
   });
 
   it('posts ws-error on socket error', () => {

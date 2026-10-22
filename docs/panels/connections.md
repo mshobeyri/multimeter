@@ -18,7 +18,8 @@ Use the **Connections** panel ({{btn:plug:Connections}}) to see what Multimeter 
 - Connections appear when Multimeter opens a live socket through the extension network bridge
 - **WebSocket** — click **Connect** on a `protocol: ws` API in the [API tester](../files/api/index.md); the session stays open until you disconnect, close it here, or the server ends it
 - **HTTP / HTTPS** — keep-alive sockets are tracked when the HTTP client reuses a connection across sends
-- One-shot HTTP sends that do not keep a socket open may not appear (or only briefly)
+- One-shot HTTP sends that do not keep a socket open may not appear (or only briefly). Many public hosts (including Cloudflare in front of `test.mmt.dev`) close the TCP connection after each response, so an HTTPS row may never stay visible even though Multimeter asks for `Connection: keep-alive`
+- `https://local.mmt.dev` is answered in-process (no real socket), so it does not appear here
 - CLI and core-only runs do not populate this panel — it tracks live sessions in the VS Code extension
 
 ## Connection details
@@ -60,7 +61,7 @@ Per connection:
 
 | Control | What it does |
 |---|---|
-| {{btn:close:Close}} | Close that connection — WebSocket disconnect or destroy the keep-alive socket |
+| {{btn:close:Close}} | Appears on row hover (same pattern as Temp Files). Closes that connection — WebSocket disconnect or destroy the keep-alive socket |
 
 When no connections are active, the panel shows an empty state with a plug icon and **No active connections**.
 

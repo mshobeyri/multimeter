@@ -22,6 +22,8 @@ import {
   createHttpsAgentWithCertificates,
   dropKeepAliveSocket,
   isDeadKeepAliveError,
+  markConnectionIdle,
+  recordConnectionActivity,
 } from './httpAgents';
 import {
   formatNetworkErrorStatusText,
@@ -480,7 +482,16 @@ export async function sendHttpRequest(
         return axios.request({...baseRequestConfig, httpsAgent, httpAgent});
       };
   const start = Date.now();
+  const noteKeepAliveActivity = (source: any) => {
+    const socket = source?.request?.socket || source?.socket;
+    if (!socket) {
+      return;
+    }
+    recordConnectionActivity(socket);
+    markConnectionIdle(socket);
+  };
   const toSuccess = (response: any, warning?: string): HttpResponse => {
+    noteKeepAliveActivity(response);
     const duration = Date.now() - start;
     const headers = normalizeAxiosHeaders(response.headers);
     return {
@@ -500,6 +511,8 @@ export async function sendHttpRequest(
       // Destroy it before the next sequential call, or that call is written
       // onto the closed connection and waits until timeout.
       dropKeepAliveSocket(err);
+    } else if (err?.response) {
+      noteKeepAliveActivity(err.response);
     }
     if (err?.response) {
       const headers = normalizeAxiosHeaders(err.response.headers);

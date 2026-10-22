@@ -153,14 +153,27 @@ export function handleNetworkMessage(
       const {ws} = createWebSocket(url, wsId, config);
       addWsConnection(wsId, ws);
 
-      // Register close handler so user can close this WebSocket from the panel
+      // Register close handler so user can close this WebSocket from the panel.
+      // Remove from tracker immediately so the Connections UI updates even if
+      // the socket 'close' event is delayed.
       connectionTracker.setCloseHandler(connId, () => {
+        connectionTracker.closing(connId);
         try {
           ws.close();
-          deleteWsConnection(wsId);
         } catch {
           // Ignore errors when closing WebSocket
         }
+        if (wsConnectionTrackerIds.get(wsId) === connId) {
+          wsConnectionTrackerIds.delete(wsId);
+        }
+        deleteWsConnection(wsId);
+        connectionTracker.close(connId, 'client');
+        postMessage({
+          command: 'network',
+          action: 'ws-close',
+          wsId,
+          closedBy: 'client',
+        });
       });
 
       ws.on('open', () => {
@@ -171,21 +184,30 @@ export function handleNetworkMessage(
         // Determine if server or client closed
         // code 1000 = normal closure (usually client), 1001+ = server/abnormal
         const closedBy = code === 1000 ? 'client' : 'server';
+        const stillTracked = wsConnectionTrackerIds.get(wsId) === connId;
+        if (stillTracked) {
+          wsConnectionTrackerIds.delete(wsId);
+        }
         connectionTracker.close(connId, closedBy);
-        wsConnectionTrackerIds.delete(wsId);
-        postMessage({
-          command: 'network',
-          action: 'ws-close',
-          wsId,
-          code,
-          reason: reason?.toString(),
-          closedBy,
-        });
         deleteWsConnection(wsId);
+        // Panel-initiated close already posted ws-close; avoid a duplicate.
+        if (stillTracked) {
+          postMessage({
+            command: 'network',
+            action: 'ws-close',
+            wsId,
+            code,
+            reason: reason?.toString(),
+            closedBy,
+          });
+        }
       });
       ws.on('error', (error: Error) => {
+        if (wsConnectionTrackerIds.get(wsId) === connId) {
+          wsConnectionTrackerIds.delete(wsId);
+        }
         connectionTracker.close(connId, 'server');
-        wsConnectionTrackerIds.delete(wsId);
+        deleteWsConnection(wsId);
         postMessage({
           command: 'network',
           action: 'ws-error',
