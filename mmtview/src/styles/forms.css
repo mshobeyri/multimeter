@@ -231,27 +231,58 @@
   color: inherit;
 }
 
-/* Trailing icons stack from the right: remove → extract → copy/picker/open. */
-.field-with-remove.has-remove .field-button.is-extract {
+/* Trailing icons stack from the right: remove → reset → extract → copy/picker/open. */
+.field-with-remove.has-reset:not(.has-remove) .field-button.is-reset {
+  right: 4px;
+}
+
+.field-with-remove.has-remove .field-button.is-reset {
   right: 32px;
 }
 
-.field-with-remove.has-remove .field-button.is-picker,
-.field-with-remove.has-remove .field-button.is-open,
-.field-with-remove.has-remove .field-button.is-copy {
+.field-with-remove.has-remove:not(.has-reset) .field-button.is-extract {
   right: 32px;
 }
 
-.field-with-remove.has-extract:not(.has-remove) .field-button.is-copy,
-.field-with-remove.has-extract:not(.has-remove) .field-button.is-picker,
-.field-with-remove.has-extract:not(.has-remove) .field-button.is-open {
+.field-with-remove.has-reset:not(.has-remove) .field-button.is-extract {
   right: 32px;
 }
 
-.field-with-remove.has-remove.has-extract .field-button.is-copy,
-.field-with-remove.has-remove.has-extract .field-button.is-picker,
-.field-with-remove.has-remove.has-extract .field-button.is-open {
+.field-with-remove.has-remove.has-reset .field-button.is-extract {
   right: 64px;
+}
+
+.field-with-remove.has-remove:not(.has-reset):not(.has-extract) .field-button.is-picker,
+.field-with-remove.has-remove:not(.has-reset):not(.has-extract) .field-button.is-open,
+.field-with-remove.has-remove:not(.has-reset):not(.has-extract) .field-button.is-copy {
+  right: 32px;
+}
+
+.field-with-remove.has-reset:not(.has-remove):not(.has-extract) .field-button.is-picker,
+.field-with-remove.has-reset:not(.has-remove):not(.has-extract) .field-button.is-open,
+.field-with-remove.has-reset:not(.has-remove):not(.has-extract) .field-button.is-copy,
+.field-with-remove.has-extract:not(.has-remove):not(.has-reset) .field-button.is-copy,
+.field-with-remove.has-extract:not(.has-remove):not(.has-reset) .field-button.is-picker,
+.field-with-remove.has-extract:not(.has-remove):not(.has-reset) .field-button.is-open {
+  right: 32px;
+}
+
+.field-with-remove.has-remove.has-reset:not(.has-extract) .field-button.is-copy,
+.field-with-remove.has-remove.has-reset:not(.has-extract) .field-button.is-picker,
+.field-with-remove.has-remove.has-reset:not(.has-extract) .field-button.is-open,
+.field-with-remove.has-remove.has-extract:not(.has-reset) .field-button.is-copy,
+.field-with-remove.has-remove.has-extract:not(.has-reset) .field-button.is-picker,
+.field-with-remove.has-remove.has-extract:not(.has-reset) .field-button.is-open,
+.field-with-remove.has-reset.has-extract:not(.has-remove) .field-button.is-copy,
+.field-with-remove.has-reset.has-extract:not(.has-remove) .field-button.is-picker,
+.field-with-remove.has-reset.has-extract:not(.has-remove) .field-button.is-open {
+  right: 64px;
+}
+
+.field-with-remove.has-remove.has-reset.has-extract .field-button.is-copy,
+.field-with-remove.has-remove.has-reset.has-extract .field-button.is-picker,
+.field-with-remove.has-remove.has-reset.has-extract .field-button.is-open {
+  right: 96px;
 }
 
 /* Keep top/bottom padding so text stays vertically centered (do not set

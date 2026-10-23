@@ -114,3 +114,22 @@ export function computeDirtyInputKeys(
   });
   return dirty;
 }
+
+/** Restore one key from the resolved baseline (deep-cloned). */
+export function restoreInputKeyFromBaseline(
+  current: JSONRecord,
+  resolvedBaseline: JSONRecord,
+  key: string,
+): JSONRecord {
+  const next: JSONRecord = { ...current };
+  if (!Object.prototype.hasOwnProperty.call(resolvedBaseline, key)) {
+    delete next[key];
+    return next;
+  }
+  try {
+    next[key] = JSON.parse(JSON.stringify(resolvedBaseline[key]));
+  } catch {
+    next[key] = resolvedBaseline[key];
+  }
+  return next;
+}

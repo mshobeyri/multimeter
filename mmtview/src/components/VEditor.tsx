@@ -33,6 +33,12 @@ interface VEditorProps {
   /** Whole `<<c:city>>` shows as `{{c:city}}` and saves as `c:city`. */
   liveAngleTokens?: boolean;
   valueContext?: RuntimeTokenValueContext;
+  /**
+   * When set with `onResetKey`, each row shows a reset control enabled for
+   * keys present in this set (differs from resolved YAML/example baseline).
+   */
+  dirtyKeys?: ReadonlySet<string>;
+  onResetKey?: (key: string) => void;
 }
 
 const VEditor: React.FC<VEditorProps> = ({
@@ -50,6 +56,8 @@ const VEditor: React.FC<VEditorProps> = ({
   canContainToken = false,
   liveAngleTokens = false,
   valueContext,
+  dirtyKeys,
+  onResetKey,
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   const keys = typeof keyOptions === "string" ? [keyOptions]: keyOptions;
@@ -113,6 +121,11 @@ const VEditor: React.FC<VEditorProps> = ({
           const pickerOptions = inputConstraints?.[key];
           const fieldMatch = matchStatus?.get(key);
           const valueField = kvFieldId(index, "value");
+          const resettable = typeof onResetKey === "function";
+          const resetEnabled = resettable && !!dirtyKeys?.has(key);
+          const onResetPressed = resettable
+            ? () => onResetKey(key)
+            : undefined;
 
           const fieldControl = valueOptions && valueOptions.length > 0 ? (
             <SelectWithRemove
@@ -123,6 +136,8 @@ const VEditor: React.FC<VEditorProps> = ({
               placeholder="Value"
               disabled={disabled || readOnly}
               removable={deletable && !readOnly}
+              onResetPressed={onResetPressed}
+              resetEnabled={resetEnabled}
               typeLabel={hasValue ? typeLabel : undefined}
               kvField={valueField}
             />
@@ -137,6 +152,8 @@ const VEditor: React.FC<VEditorProps> = ({
               disabled={disabled || readOnly}
               removable={deletable && hasValue && !readOnly}
               copyable={copyable}
+              onResetPressed={onResetPressed}
+              resetEnabled={resetEnabled}
               typeLabel={hasValue ? typeLabel : undefined}
               kvField={valueField}
             />
@@ -150,6 +167,8 @@ const VEditor: React.FC<VEditorProps> = ({
               readOnly={readOnly}
               removable={deletable && hasValue && !readOnly}
               copyable={copyable}
+              onResetPressed={onResetPressed}
+              resetEnabled={resetEnabled}
               canContainToken={canContainToken && !readOnly}
               valueContext={valueContext}
               typeLabel={hasValue ? typeLabel : undefined}

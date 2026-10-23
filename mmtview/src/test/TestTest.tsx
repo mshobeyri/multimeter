@@ -22,6 +22,7 @@ import {
     computeDirtyInputKeys,
     envVarsToParameters,
     resolveInputDefaults,
+    restoreInputKeyFromBaseline,
     stableEqual,
 } from './testUiRefresh';
 
@@ -45,7 +46,7 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
     const currentInputsRef = useRef<JSONRecord>({});
     const dirtyKeysRef = useRef<Set<string>>(new Set());
-    const [, setDirtyKeys] = useState<Set<string>>(new Set());
+    const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set());
     const yamlInputsRef = useRef<JSONRecord | undefined>(testData.inputs);
     const resolvedBaselineRef = useRef<JSONRecord>({});
     const [outputs, setOutputs] = useState<JSONRecord>({});
@@ -514,6 +515,18 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
                                 keyOptions={inputKeys}
                                 inputConstraints={inputConstraints}
                                 deletable={false}
+                                dirtyKeys={dirtyKeys}
+                                onResetKey={(key) => {
+                                    const next = restoreInputKeyFromBaseline(
+                                        currentInputsRef.current,
+                                        resolvedBaselineRef.current,
+                                        key,
+                                    );
+                                    setDirtyKeysState(
+                                        computeDirtyInputKeys(next, resolvedBaselineRef.current),
+                                    );
+                                    applyInputs(next);
+                                }}
                             />
                         </div>
                     )}

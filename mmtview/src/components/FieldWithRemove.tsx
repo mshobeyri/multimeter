@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import type {
   RuntimeTokenValueContext,
   TokenPreviewCacheScope,
@@ -6,6 +6,14 @@ import type {
 import StableTextInput from "./StableTextInput";
 import TokenFieldInput from "./TokenFieldInput";
 import { KV_FIELD_ATTR } from "./kvFieldNav";
+
+/** Blur a focused field inside the wrap so a parent value replace is adopted. */
+function blurFocusedField(wrap: HTMLElement | null) {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && wrap?.contains(active)) {
+    active.blur();
+  }
+}
 
 interface FieldWithRemoveProps {
   value: string;
@@ -21,6 +29,13 @@ interface FieldWithRemoveProps {
   copyable?: boolean;
   /** Extract-as-output control inside the value field (response headers/cookies). */
   onExtractPressed?: () => void;
+  /**
+   * When set, always show a reset control (enabled via `resetEnabled`).
+   * Used for API/Test Inputs to restore the resolved YAML/example baseline.
+   */
+  onResetPressed?: () => void;
+  /** When `onResetPressed` is set: enable the reset control. */
+  resetEnabled?: boolean;
   /** Opt into resolved/token dual-mode when the value contains tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
@@ -64,15 +79,22 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   removable = true,
   copyable = false,
   onExtractPressed,
+  onResetPressed,
+  resetEnabled = false,
   canContainToken = false,
   valueContext,
   tokenCacheScope,
   typeLabel,
   kvField,
 }) => {
+  const wrapRef = useRef<HTMLDivElement>(null);
   const extractable = typeof onExtractPressed === "function";
+  const resettable = typeof onResetPressed === "function";
   const buttonCount =
-    (removable ? 1 : 0) + (extractable ? 1 : 0) + (copyable && value ? 1 : 0);
+    (removable ? 1 : 0)
+    + (resettable ? 1 : 0)
+    + (extractable ? 1 : 0)
+    + (copyable && value ? 1 : 0);
   const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
     typeLabel,
     buttonCount,
@@ -84,11 +106,12 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
     "field-with-remove",
     disabled ? "is-disabled" : "",
     removable ? "has-remove" : "",
+    resettable ? "has-reset" : "",
     extractable ? "has-extract" : "",
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={wrapClass}>
+    <div className={wrapClass} ref={wrapRef}>
       {canContainToken && !disabled && !readOnly ? (
         <TokenFieldInput
           value={value}
@@ -156,6 +179,25 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
           className="field-button is-extract"
         >
           <span className="codicon codicon-sign-out" aria-hidden />
+        </button>
+      )}
+      {resettable && (
+        <button
+          type="button"
+          tabIndex={-1}
+          onMouseDown={event => event.preventDefault()}
+          onClick={() => {
+            // Drop focus first: stable/token drafts ignore parent updates while
+            // focused, so reset would otherwise need a second click to show.
+            blurFocusedField(wrapRef.current);
+            onResetPressed?.();
+          }}
+          title="Reset to default"
+          aria-label="Reset to default"
+          disabled={disabled || readOnly || !resetEnabled}
+          className="field-button is-reset"
+        >
+          <span className="action-button codicon codicon-discard" aria-hidden />
         </button>
       )}
       {removable && <button
