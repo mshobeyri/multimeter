@@ -18,6 +18,7 @@ const footerLinks: Record<string, FooterLink[]> = {
     { name: 'AI Write & Check', href: '/#ai-test-generation' },
     { name: 'Why better with AI', href: '/#why-ai-integrity' },
     { name: 'CI/CD', href: '/#ci-cd' },
+    { name: 'Speed vs Postman', href: '/#speed' },
     { name: 'Website Documentation', href: '/#documentation' },
     { name: 'FAQ', href: '/#faq' },
     { name: 'Documentation', href: '/docs' },

@@ -2,12 +2,11 @@ import { useEffect } from 'react'
 import Seo from '../components/Seo'
 import Hero from '../sections/Hero'
 import Features from '../sections/Features'
-import BuiltForVSCode from '../sections/BuiltForVSCode'
 import GitNative from '../sections/GitNative'
 import AITestGen from '../sections/AITestGen'
 import WhyAiIntegrity from '../sections/WhyAiIntegrity'
-import CICDReady from '../sections/CICDReady'
 import MockAndDocs from '../sections/MockAndDocs'
+import FasterThanPostman from '../sections/FasterThanPostman'
 import Comparison from '../sections/Comparison'
 import FAQ from '../components/FAQ'
 import CTA from '../sections/CTA'
@@ -32,9 +31,8 @@ export default function Home() {
         <AITestGen />
         <WhyAiIntegrity />
         <GitNative />
-        <BuiltForVSCode />
         <MockAndDocs />
-        <CICDReady />
+        <FasterThanPostman />
         <Comparison />
         <FAQ />
         <CTA />

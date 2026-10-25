@@ -81,7 +81,7 @@ const BULLETS = [
 
 export default function GitNative() {
   return (
-    <section id="git-native" className="scroll-mt-20 px-4 sm:px-6 lg:px-8">
+    <section id="git-native" className="scroll-mt-20 px-4 sm:px-6 lg:px-8 bg-surface-light/10">
       <div className="max-w-7xl mx-auto">
         <FadeIn direction="up">
           <div className="text-center mb-10 max-w-3xl mx-auto">
