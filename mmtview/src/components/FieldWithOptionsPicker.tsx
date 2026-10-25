@@ -15,6 +15,8 @@ interface FieldWithOptionsPickerProps {
   disabled?: boolean;
   removable?: boolean;
   copyable?: boolean;
+  onResetPressed?: () => void;
+  resetEnabled?: boolean;
   typeLabel?: string;
   kvField?: string;
 }
@@ -29,6 +31,8 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
   disabled = false,
   removable = true,
   copyable = false,
+  onResetPressed,
+  resetEnabled = false,
   typeLabel,
   kvField,
 }) => {
@@ -49,20 +53,33 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
   }, [menuOpen]);
 
   const showPicker = options.length > 0;
+  const resettable = typeof onResetPressed === "function";
   const buttonCount =
-    (showPicker ? 1 : 0) + (removable ? 1 : 0) + (copyable && value ? 1 : 0);
+    (showPicker ? 1 : 0)
+    + (removable ? 1 : 0)
+    + (resettable ? 1 : 0)
+    + (copyable && value ? 1 : 0);
   const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
     typeLabel,
     buttonCount,
   });
 
-  const pickerRight = 4 + (removable ? 32 : 0);
-  const copyRight = 4 + 32 * ((removable ? 1 : 0) + (showPicker ? 1 : 0));
+  // Stack from the right: remove → reset → picker → copy.
+  const resetRight = 4 + (removable ? 32 : 0);
+  const pickerRight = 4 + 32 * ((removable ? 1 : 0) + (resettable ? 1 : 0));
+  const copyRight = 4 + 32 * (
+    (removable ? 1 : 0) + (resettable ? 1 : 0) + (showPicker ? 1 : 0)
+  );
 
   return (
     <div
       ref={rootRef}
-      className={`field-with-remove${disabled ? " is-disabled" : ""}${removable ? " has-remove" : ""}`}
+      className={[
+        "field-with-remove",
+        disabled ? "is-disabled" : "",
+        removable ? "has-remove" : "",
+        resettable ? "has-reset" : "",
+      ].filter(Boolean).join(" ")}
     >
       <StableTextInput
         type="text"
@@ -101,7 +118,7 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
             title="Choose from listed options"
             disabled={disabled}
             style={{ right: pickerRight }}
-            className="field-button"
+            className="field-button is-picker"
           >
             <span className="action-button codicon codicon-ellipsis" />
           </button>
@@ -131,6 +148,27 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
           )}
         </>
       )}
+      {resettable && (
+        <button
+          type="button"
+          tabIndex={-1}
+          onMouseDown={event => event.preventDefault()}
+          onClick={() => {
+            const active = document.activeElement;
+            if (active instanceof HTMLElement && rootRef.current?.contains(active)) {
+              active.blur();
+            }
+            onResetPressed?.();
+          }}
+          title="Reset to default"
+          aria-label="Reset to default"
+          disabled={disabled || !resetEnabled}
+          style={{ right: resetRight }}
+          className="field-button is-reset"
+        >
+          <span className="action-button codicon codicon-discard" aria-hidden />
+        </button>
+      )}
       {removable && (
         <button
           type="button"
@@ -138,7 +176,7 @@ const FieldWithOptionsPicker: React.FC<FieldWithOptionsPickerProps> = ({
           onClick={onRemovePressed}
           title="Remove field"
           disabled={disabled}
-          className="field-button"
+          className="field-button is-remove"
         >
           <span className="action-button codicon codicon-close" />
         </button>

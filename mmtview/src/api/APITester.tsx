@@ -68,6 +68,11 @@ import { findMatchingExampleIndex } from "./apiExampleMatch";
 import { SELECT_EXAMPLE_EVENT } from "../text/exampleSelect";
 import { selectBodyFormatStorage } from "./bodyFormatSelection";
 import { useKeptTabs } from "../useKeptTabs";
+import {
+  computeDirtyInputKeys,
+  restoreInputKeyFromBaseline,
+  stableEqual,
+} from "../test/testUiRefresh";
 
 /** Body pane: resolved values vs editable {{…}} tokens. */
 type BodyTokenMode = "resolved" | "tokens";
@@ -320,6 +325,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     () => ({ mode: bodyTokenMode, previewEpoch: tokenPreviewEpoch }),
     [bodyTokenMode, tokenPreviewEpoch],
   );
+  /** Snapshot of Inputs as loaded from YAML / selected example (before manual edits). */
+  const inputsBaselineRef = useRef<JSONRecord>({});
+  const baselineExampleIdxRef = useRef<number | null>(null);
+  const [dirtyInputKeys, setDirtyInputKeys] = useState<Set<string>>(new Set());
+
+  const adoptInputsBaseline = useCallback((source: JSONRecord, exampleIdx: number) => {
+    const cloned = cloneInputs(source);
+    inputsBaselineRef.current = cloned;
+    baselineExampleIdxRef.current = exampleIdx;
+    setDirtyInputKeys(new Set());
+    return cloned;
+  }, []);
 
   useEffect(() => {
     onRequestReset?.(() => {
@@ -328,11 +345,50 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       const baseInputs = selectedExampleIdx === -1
         ? (api.inputs || {})
         : (examples[selectedExampleIdx]?.inputs || {});
-      const nextInputs = cloneInputs(baseInputs);
+      const nextInputs = adoptInputsBaseline(baseInputs, selectedExampleIdx);
       setCurrentInputs(nextInputs);
       prepareRequestData(nextInputs, { forceReset: true, scopes: ["all"] });
     });
-  }, [onRequestReset, prepareRequestData, api, examples, selectedExampleIdx, setCurrentInputs]);
+  }, [
+    onRequestReset,
+    prepareRequestData,
+    api,
+    examples,
+    selectedExampleIdx,
+    setCurrentInputs,
+    adoptInputsBaseline,
+  ]);
+
+  // Keep reset baseline in sync with YAML defaults / example selection.
+  // When an example is selected, freeze that snapshot so later writes into
+  // `examples[i].inputs` do not move the reset target.
+  useEffect(() => {
+    if (selectedExampleIdx === -1) {
+      const source = cloneInputs(api.inputs || {});
+      if (
+        baselineExampleIdxRef.current === -1
+        && stableEqual(inputsBaselineRef.current, source)
+      ) {
+        return;
+      }
+      inputsBaselineRef.current = source;
+      baselineExampleIdxRef.current = -1;
+      setDirtyInputKeys(computeDirtyInputKeys(currentInputs, source));
+      return;
+    }
+    if (baselineExampleIdxRef.current === selectedExampleIdx) {
+      return;
+    }
+    const source = cloneInputs(examples[selectedExampleIdx]?.inputs || {});
+    inputsBaselineRef.current = source;
+    baselineExampleIdxRef.current = selectedExampleIdx;
+    // Hook may still be populating currentInputs on first paint; treat empty as clean.
+    setDirtyInputKeys(
+      Object.keys(currentInputs).length === 0
+        ? new Set()
+        : computeDirtyInputKeys(currentInputs, source),
+    );
+  }, [api.inputs, selectedExampleIdx, examples, currentInputs]);
 
   const bodyPackReadyRef = useRef(false);
   useEffect(() => {
@@ -1067,10 +1123,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     const baseInputs = newIdx === -1
       ? (api.inputs || {})
       : (examples[newIdx]?.inputs || {});
-    const nextInputs = cloneInputs(baseInputs);
+    const nextInputs = adoptInputsBaseline(baseInputs, newIdx);
     setCurrentInputs(nextInputs);
     prepareRequestData(nextInputs, { respectTouched: false, forceReset: true });
-  }, [api.inputs, examples, prepareRequestData, setCurrentInputs, setSelectedExampleIdx]);
+  }, [
+    api.inputs,
+    examples,
+    prepareRequestData,
+    setCurrentInputs,
+    setSelectedExampleIdx,
+    adoptInputsBaseline,
+  ]);
 
   useEffect(() => {
     const onSelectExample = (event: Event) => {
@@ -1089,6 +1152,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
   const handleInputsChange = (data: JSONRecord) => {
     setCurrentInputs(data);
+    setDirtyInputKeys(computeDirtyInputKeys(data, inputsBaselineRef.current));
     prepareRequestData(data, { respectTouched: false });
     if (selectedExampleIdx >= 0 && examples[selectedExampleIdx]) {
       const nextExamples = examples.map((ex, i) => {
@@ -1110,6 +1174,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     if (match !== selectedExampleIdx) {
       setSelectedExampleIdx(match);
     }
+  };
+
+  const handleResetInputKey = (key: string) => {
+    const next = restoreInputKeyFromBaseline(
+      currentInputs,
+      inputsBaselineRef.current,
+      key,
+    );
+    handleInputsChange(next);
   };
 
   const handleAddAsTest = () => {
@@ -1760,6 +1833,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 canContainToken
                 liveAngleTokens
                 valueContext={bodyValueContext}
+                dirtyKeys={selectedExampleIdx === -1 ? dirtyInputKeys : undefined}
+                onResetKey={selectedExampleIdx === -1 ? handleResetInputKey : undefined}
               />
             )}
             {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (

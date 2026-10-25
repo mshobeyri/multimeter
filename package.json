@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – REST Client & API Testing",
   "description": "AI-powered REST Client and API testing in VS Code. Git-native alternative to Postman.",
-	"version": "1.47.0",
+	"version": "1.47.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -451,6 +451,16 @@
         "icon": "$(export)"
       },
       {
+        "command": "multimeter.views.groupInSidebar",
+        "title": "Group Environment & History in Sidebar",
+        "category": "Multimeter"
+      },
+      {
+        "command": "multimeter.views.groupInPanel",
+        "title": "Group Environment & History in Panel",
+        "category": "Multimeter"
+      },
+      {
         "command": "multimeter.environment.focus",
         "title": "Focus Environment Variables",
         "category": "Multimeter"
@@ -556,29 +566,42 @@
           "type": "webview",
           "visibility": "collapsed",
           "order": 5
-        }
-      ],
-      "multimeter-panel": [
+        },
         {
           "id": "multimeter.environment",
           "name": "Environment Variables",
           "icon": "res/activity.png",
           "type": "webview",
-          "order": 1
+          "visibility": "collapsed",
+          "order": 6
         },
         {
           "id": "multimeter.history",
           "name": "History",
           "icon": "res/activity.png",
           "type": "webview",
-          "order": 2
+          "visibility": "collapsed",
+          "order": 7
+        }
+      ],
+      "multimeter-panel": [
+        {
+          "id": "multimeter.panelDock",
+          "name": "Views",
+          "icon": "res/activity.png",
+          "visibility": "visible",
+          "order": 0
         }
       ]
     },
     "viewsWelcome": [
       {
         "view": "multimeter.activityDock",
-        "contents": "Drag Multimeter views onto this **Views** header to dock them in the Multimeter sidebar.\n\n[Open Environment Variables](command:multimeter.environment.focus)\n[Open History](command:multimeter.history.focus)"
+        "contents": "Drag Multimeter views onto this **Views** header to dock or tab-merge them in the Multimeter sidebar.\n\nWebview-only panel tabs cannot accept drops (VS Code limitation) — use **Group Environment & History here** instead.\n\n[Group Environment & History here](command:multimeter.views.groupInSidebar)\n[Open Environment Variables](command:multimeter.environment.focus)\n[Open History](command:multimeter.history.focus)"
+      },
+      {
+        "view": "multimeter.panelDock",
+        "contents": "Drag Multimeter views onto this **Views** header to dock them in the bottom Multimeter panel.\n\nIf Environment or History is stuck as its own panel tab with no drop target, regroup them:\n\n[Group Environment & History in panel](command:multimeter.views.groupInPanel)\n[Group Environment & History in sidebar](command:multimeter.views.groupInSidebar)"
       }
     ],
     "keybindings": [

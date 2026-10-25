@@ -11,7 +11,7 @@ export default function FAQ() {
             Frequently Asked Questions
           </h2>
           <p className="text-center text-slate-400 mb-10">
-            Git-native REST client and API tests in VS Code. Same YAML files in CI.
+            Practical answers for installing, migrating, CI, AI agents, and day-to-day use.
           </p>
         </FadeIn>
 

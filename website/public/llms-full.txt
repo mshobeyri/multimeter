@@ -71,7 +71,8 @@ testlight run path/to/test.mmt
 
 ## Compare
 
-- vs Postman: Git YAML, no cloud account, same files in CI; parallel runs and same-run call cache; Open-Meteo sample ~1 s testlight vs ~5 s Newman — https://mmt.dev/compare/postman · https://github.com/mshobeyri/multimeter/tree/dev/examples/real-projects/open-meteo-mmt
+- Why Multimeter is better with AI (low context, API proxies, suites, validate): https://mmt.dev/why-ai
+- vs Postman: Git YAML, no cloud account, same files in CI; parallel runs and same-run call cache — https://mmt.dev/compare/postman
 - vs Bruno: stays in VS Code; adds suites, mocks, docs, reports, parallel runs, call cache — https://mmt.dev/compare/bruno
 - vs Promptfoo: AI judges live in the API test, not a separate eval stack — https://mmt.dev/compare/promptfoo
 - vs Thunder Client: Git-friendly YAML instead of a VS Code-only collection — https://mmt.dev/compare/thunder-client

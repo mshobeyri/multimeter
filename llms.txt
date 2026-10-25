@@ -17,6 +17,7 @@ This file: https://mmt.dev/llms.txt · https://mmt.dev/.well-known/llms.txt
 
 - Cursor / Claude / Copilot: MCP `npx -y mmt-mcp` or the bundled VS Code MCP server
 - First tools: `scaffold_test`, `validate`, `format`, `run` — do not invent `.mmt` syntax
+- Why Multimeter is better with AI: https://mmt.dev/why-ai
 - Workflow: https://mmt.dev/raw/docs/AI/agent-workflow.md
 - MCP overview: https://mmt.dev/docs/features/mcp
 - Judge (AI checks): https://mmt.dev/docs/files/judge
@@ -28,6 +29,7 @@ This file: https://mmt.dev/llms.txt · https://mmt.dev/.well-known/llms.txt
 - `.mmt` API: https://mmt.dev/docs/files/api
 - `.mmt` test: https://mmt.dev/docs/files/test
 - Testlight CLI: https://mmt.dev/docs/features/testlight/install
+- Why Multimeter is better with AI: https://mmt.dev/why-ai
 - Compare Postman: https://mmt.dev/compare/postman
 - Compare Bruno: https://mmt.dev/compare/bruno
 - Compare Promptfoo: https://mmt.dev/compare/promptfoo

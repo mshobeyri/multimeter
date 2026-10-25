@@ -3,70 +3,73 @@ export type FaqItem = {
   answer: string
 }
 
+/**
+ * Home / Downloads FAQ — practical questions people ask when evaluating or adopting Multimeter.
+ */
 export const faqItems: FaqItem[] = [
   {
     question: 'What is Multimeter?',
     answer:
-      'Multimeter is a Git-native REST client and API testing tool for VS Code. Requests, tests, mocks, and docs are YAML .mmt files in Git — the same files in the visual editor and in CI via testlight. Apache 2.0. No account. Optional MCP (mmt-mcp) and an optional judge step live in those same files.',
+      'A Git-native REST client and API test runner for VS Code (and Cursor). Requests, multi-step tests, suites, mocks, and docs are YAML .mmt files in your repo. Edit them in the visual editor; run the same files in CI with the testlight CLI. Apache 2.0, no account.',
   },
   {
-    question: 'How do I use Multimeter with Cursor, Copilot, or Claude?',
+    question: 'How do I get started?',
     answer:
-      'Install from the Downloads page: npx -y mmt-mcp for Cursor, Claude, and other MCP clients, or the VS Code / Cursor extension from the Marketplace or Open VSX (Copilot uses the bundled server). Agents should call Multimeter MCP tools first (scaffold_test, validate, format, run) instead of guessing .mmt syntax. See https://mmt.dev/downloads and https://mmt.dev/docs/features/mcp.',
+      'Install the Multimeter extension from the VS Code Marketplace or Open VSX (or from https://mmt.dev/downloads). Open or create a .mmt file — the editor walks you through api and test types. To try CI locally: npm i -g mmt-testlight, then npx testlight run path/to/suite.mmt. Docs: https://mmt.dev/docs/install',
   },
   {
-    question: 'Can Multimeter judge AI responses like Promptfoo?',
+    question: 'How is this different from Postman or Bruno?',
     answer:
-      'Yes. Define a type: judge file and call it from a test step to score relevance, similarity, faithfulness, and factuality with a model you choose (Ollama or cloud). Unlike Promptfoo, judging sits next to ordinary API asserts in Git — the same .mmt files in VS Code and in CI via testlight.',
+      'Everything lives as reviewable YAML in Git — no cloud collection sync. Tests are declarative flows (call, expect, assert), not long Postman scripts. Suites support parallel groups and same-run call cache for login/setup, so larger suites finish faster than sequential Newman or Bruno runs. Mocks, docs, and reports stay in the same repo.',
+  },
+  {
+    question: 'Is Multimeter free? Do I need an account?',
+    answer:
+      'Yes, free under Apache 2.0. No signup, no cloud workspace, no telemetry of your APIs. Install the extension and use your Git repo for sharing and access control.',
   },
   {
     question: 'What is a .mmt file?',
     answer:
-      'A .mmt file is YAML with a type field: api (one HTTP/gRPC/GraphQL/WebSocket request), test (flows with call/http/assert), env (variables), suite (groups of tests), server (mocks), or loadtest. Files live in Git and run the same way in the editor and in CI via testlight.',
+      'YAML with a type field. Common types: api (one HTTP, GraphQL, gRPC, or WebSocket request), test (ordered steps: call, expect, assert, check, …), suite (run many tests/groups), env (variables and presets), server (mocks), loadtest, and judge. One format for editor and CI.',
   },
   {
-    question: 'Is Multimeter free?',
+    question: 'Can I bring Postman, OpenAPI, Bruno, or .http files?',
     answer:
-      'Yes. Multimeter is free and open source under the Apache License 2.0. You can use it for personal projects, commercial work, and enterprise deployments.',
+      'Yes. Import or convert Postman collections, OpenAPI/Swagger, WSDL, Bruno (.bru), .http/.https, and curl. You can also open .http and Bruno files directly, or convert them into editable .mmt APIs and tests.',
   },
   {
-    question: 'Do I need to create an account?',
+    question: 'How do I run Multimeter in CI/CD?',
     answer:
-      'No. Multimeter requires zero setup — no login, no account, no cloud registration. Install the VS Code extension and start testing immediately. Access control is handled naturally through your Git repository permissions.',
+      'Use the testlight CLI (npm package mmt-testlight): npx testlight run path/to/suite.mmt. Pass env with --env-file, --preset, or -e KEY=VALUE. On GitHub Actions: uses: mshobeyri/testlight-action@v1. Same approach works in GitLab CI, Jenkins, Azure Pipelines, and similar runners. Export JUnit/HTML/Markdown reports for gates and PRs.',
   },
   {
-    question: 'How does collaboration work?',
+    question: 'Why are runs faster than Postman/Newman?',
     answer:
-      'Your tests are plain YAML files (.mmt), and you can also reuse existing .http and Bruno request files, stored in your Git repository alongside your code. Collaboration works exactly like code collaboration — through pull requests, code reviews, branches, and merges. No proprietary sync needed.',
+      'Suite groups and test stages can run in parallel, and login/setup steps can be cached for the rest of the same run so those HTTP calls are not repeated. On a small real Open-Meteo sample (~61 live calls) Multimeter finished in about a second while Newman took about five; larger suites with more shared setup tend to widen that gap. Details: https://mmt.dev/compare/postman',
   },
   {
-    question: 'How do I use Multimeter in CI/CD?',
+    question: 'How do I use Multimeter with Cursor, Copilot, or Claude?',
     answer:
-      'Use the testlight CLI (npm package mmt-testlight) or the GitHub Action. Install with npm install -g mmt-testlight, then run npx mmt-testlight run path/to/test.mmt. In GitHub Actions: uses: mshobeyri/testlight-action@v1. It also runs .http and .bru files. Works with GitHub Actions, Jenkins, GitLab CI, Azure DevOps, and more.',
+      'Prefer Multimeter MCP tools (scaffold_test, validate, format, run) so agents do not invent .mmt syntax. Cursor/Claude: npx -y mmt-mcp (see Downloads). Copilot can use the server bundled with the extension. Guide: https://mmt.dev/docs/features/mcp and https://mmt.dev/why-ai',
   },
   {
-    question: 'What formats can I import from?',
+    question: 'Where do environments and secrets live?',
     answer:
-      'Multimeter can import or convert Postman collections, OpenAPI / Swagger specifications, WSDL / SOAP definitions, .http / .https request files, Bruno .bru / .bruno files, and curl commands. Use external request files directly from Open With, or convert them into editable MMT tests and APIs.',
+      'In env .mmt files and presets in the repo, or overrides from the Environment panel and CLI flags. Keep secrets out of Git the same way you would for app config (local env files, CI secrets, ignored presets). Nothing is uploaded to a Multimeter cloud.',
   },
   {
-    question: 'Does Multimeter upload any data externally?',
+    question: 'Does Multimeter send my API data anywhere?',
     answer:
-      'No. Multimeter is fully local. Your API tests, environment variables, credentials, and all data stay on your machine and in your repository. Nothing is ever sent to external servers. Optional AI judge steps call a provider you configure (OpenAI, Azure, Gemini, Ollama) only when you add a judge file.',
+      'No by default — runs are local or in your CI. Optional AI judge steps call only the model provider you configure (e.g. Ollama or a cloud LLM) when you add a type: judge file. MCP and the extension do not ship your collections to mmt.dev.',
   },
   {
-    question: 'What protocols are supported?',
+    question: 'What about mocks, API docs, and reports?',
     answer:
-      'Multimeter supports HTTP/REST, WebSocket, SOAP/XML, GraphQL, and gRPC protocols. You can test any API endpoint with full control over headers, body, authentication, response validation, and existing .http or Bruno file workflows.',
+      'Mocks are type: server .mmt files (HTTP/WebSocket, templates, reflect). Docs generate from the same api .mmt files (HTML or Markdown). Reports: JUnit XML, HTML, Markdown, or MMT report YAML — from the CLI (--report), the Export button, or suite export: fields.',
   },
   {
-    question: 'What report formats are available?',
+    question: 'Can Multimeter judge LLM answers like Promptfoo?',
     answer:
-      'Multimeter generates reports in four formats: JUnit XML (for CI/CD tools like Jenkins, GitHub Actions, GitLab CI), HTML (self-contained visual reports), Markdown (for PRs and documentation), and MMT Report (YAML format that opens in the built-in viewer). Generate them from the CLI with --report, from the VS Code Export button, or automatically via the suite export: field.',
-  },
-  {
-    question: 'How does the mock server work?',
-    answer:
-      'Define mock servers as simple YAML files (type: server) with routes, status codes, and response bodies. They support dynamic responses via template variables (params, body, random, date), reflect mode (echo back requests), and both HTTP and WebSocket protocols. Start them from suites with the servers: field, from tests with the run step, or manually from the VS Code panel.',
+      'Yes. A type: judge file scores relevance, similarity, faithfulness, and factuality with a model you choose. You call it from a normal test step next to HTTP asserts — same Git files in VS Code and in CI, not a separate evaluation product.',
   },
 ]

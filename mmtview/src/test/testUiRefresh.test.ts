@@ -3,6 +3,7 @@ import {
   applyYamlInputsRefresh,
   computeDirtyInputKeys,
   resolveInputDefaults,
+  restoreInputKeyFromBaseline,
 } from "./testUiRefresh";
 
 describe("testUiRefresh", () => {
@@ -84,5 +85,17 @@ describe("testUiRefresh", () => {
       { host: "localhost", user: "bob" },
       baseline,
     ))).toEqual(["user"]);
+  });
+
+  test("restoreInputKeyFromBaseline restores one key without sharing refs", () => {
+    const baseline = { user: { id: 1 }, host: "localhost" };
+    const current = { user: { id: 2 }, host: "edited" };
+    const next = restoreInputKeyFromBaseline(current, baseline, "user");
+    expect(next).toEqual({ user: { id: 1 }, host: "edited" });
+    expect(next.user).not.toBe(baseline.user);
+    expect(restoreInputKeyFromBaseline(current, baseline, "gone")).toEqual({
+      user: { id: 2 },
+      host: "edited",
+    });
   });
 });

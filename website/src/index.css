@@ -390,6 +390,33 @@ body {
   animation: scroll-left 30s linear infinite;
 }
 
+/* Magic UI Orbiting Circles — https://magicui.design/docs/components/orbiting-circles (MIT)
+   Counter-rotate keeps each icon upright (bottom side stays down). */
+@keyframes orbit {
+  0% {
+    transform: rotate(calc((var(--angle) + var(--scroll-angle, 0)) * 1deg))
+      translateY(calc(var(--radius) * 1px))
+      rotate(calc((var(--angle) + var(--scroll-angle, 0)) * -1deg));
+  }
+  100% {
+    transform: rotate(calc((var(--angle) + var(--scroll-angle, 0)) * 1deg + 360deg))
+      translateY(calc(var(--radius) * 1px))
+      rotate(calc((var(--angle) + var(--scroll-angle, 0)) * -1deg - 360deg));
+  }
+}
+.animate-orbit {
+  /* Resting / paused: still upright using the same formula */
+  transform: rotate(calc((var(--angle) + var(--scroll-angle, 0)) * 1deg))
+    translateY(calc(var(--radius) * 1px))
+    rotate(calc((var(--angle) + var(--scroll-angle, 0)) * -1deg));
+  animation: orbit calc(var(--duration) * 1s) linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-orbit {
+    animation: none;
+  }
+}
+
 .glow {
   box-shadow: 0 0 60px rgba(99, 102, 241, 0.15), 0 0 120px rgba(6, 182, 212, 0.08);
 }

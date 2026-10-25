@@ -2,6 +2,16 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.47.1]
+
+Stable release of the 1.47.x line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.47.1` on `@latest`.
+
+- Cache panel for in-run test-call and live-env `cache:` entries; docs nav and Cache panel docs
+- Connections: close on row hover; WebSocket close fix; HTTP keep-alive tracking
+- Environment: keep file/manual rows when `setenv` writes runtime; fix runtime value padding over type chip / remove
+- API and Test Inputs: reset control to restore YAML defaults (hidden when an example is selected)
+- Editor: hollow play (▷) for running-file explorer badges
+
 ## [1.47.0-pre]
 
 Pre-release. VS Code extension `1.47.0`; Testlight CLI and MCP `1.47.0-pre` on `@pre`.

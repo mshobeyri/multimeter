@@ -25,7 +25,7 @@ const capabilities = [
 
 export default function AITestGen() {
   return (
-    <section id="ai-test-generation" className="scroll-mt-20 px-4 sm:px-6 lg:px-8">
+    <section id="ai-test-generation" className="scroll-mt-20 px-4 sm:px-6 lg:px-8 bg-surface-light/10">
       <div className="max-w-7xl mx-auto">
         <FadeIn direction="up">
           <div className="text-center mb-12">
