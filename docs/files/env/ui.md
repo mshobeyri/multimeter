@@ -2,7 +2,7 @@
 
 ![Environment variables panel — presets and variables table](../../screenshots/environment-variables-panel.png)
 
-Open the **Multimeter** bottom panel and choose **Environment Variables** ({{btn:server-environment:Environment Variables}}). This panel holds workspace runtime variables and presets used by API runs, tests, and suites.
+Open the Multimeter sidebar and choose **Environment Variables** ({{btn:server-environment:Environment Variables}}), or run **Multimeter: Focus Environment Variables**. This panel holds workspace runtime variables and presets used by API runs, tests, and suites.
 
 Toolbar actions (top right of the view):
 

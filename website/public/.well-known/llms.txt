@@ -1,0 +1,45 @@
+# Multimeter
+
+> Multimeter is an AI-powered REST Client and API testing tool for VS Code and CI. It is not an electrical multimeter. Tests are YAML .mmt files in Git, with a visual editor in VS Code. The CLI is testlight (npm mmt-testlight). The MCP server is mmt-mcp for Cursor, GitHub Copilot, and Claude. Git-native alternative to Postman. Judge API answers with AI (semantic similarity or open-ended checks) in the same test flow — also an alternative to Promptfoo. Apache License 2.0. No account required.
+
+Website: https://mmt.dev
+Docs: https://mmt.dev/docs/quick-start
+Repo: https://github.com/mshobeyri/multimeter
+Marketplace: https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter
+npm CLI: https://www.npmjs.com/package/mmt-testlight
+MCP: https://www.npmjs.com/package/mmt-mcp
+GitHub Action: https://github.com/mshobeyri/testlight-action
+Agent briefing (no JS): https://mmt.dev/for-agents.html
+Full map: https://mmt.dev/llms-full.txt
+This file: https://mmt.dev/llms.txt · https://mmt.dev/.well-known/llms.txt
+
+## Use with AI agents
+
+- Cursor / Claude / Copilot: MCP `npx -y mmt-mcp` or the bundled VS Code MCP server
+- First tools: `scaffold_test`, `validate`, `format`, `run` — do not invent `.mmt` syntax
+- Why Multimeter is better with AI: https://mmt.dev/why-ai
+- Workflow: https://mmt.dev/raw/docs/AI/agent-workflow.md
+- MCP overview: https://mmt.dev/docs/features/mcp
+- Judge (AI checks): https://mmt.dev/docs/files/judge
+- Cursor/Claude clients: https://mmt.dev/docs/features/mcp/other-mcp-clients
+
+## Humans
+
+- Install: https://mmt.dev/docs/install
+- `.mmt` API: https://mmt.dev/docs/files/api
+- `.mmt` test: https://mmt.dev/docs/files/test
+- Testlight CLI: https://mmt.dev/docs/features/testlight/install
+- Why Multimeter is better with AI: https://mmt.dev/why-ai
+- Compare Postman: https://mmt.dev/compare/postman
+- Compare Bruno: https://mmt.dev/compare/bruno
+- Compare Promptfoo: https://mmt.dev/compare/promptfoo
+- Min docs pack: https://mmt.dev/raw/docs/AI/min/overview.md
+
+## Raw markdown (crawler-friendly)
+
+Prefix https://mmt.dev/raw/docs/ plus the path under `docs/` in the repo, for example:
+
+- https://mmt.dev/raw/docs/quick-start.md
+- https://mmt.dev/raw/docs/files/test/index.md
+- https://mmt.dev/raw/docs/files/judge/index.md
+- https://mmt.dev/raw/docs/features/mcp/mcp-tools.md

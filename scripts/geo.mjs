@@ -75,6 +75,13 @@ export const MARKETING = [
     body: 'REST Client popularized .http files in VS Code. Multimeter can open those files and add YAML tests, suites, mocks, docs, and testlight.',
   },
   {path: '/test-server', title: 'Test server — Multimeter', description: 'Public echo test server at test.mmt.dev.'},
+  {
+    path: '/why-ai',
+    title: 'Why Multimeter is better with AI — low-context API testing',
+    description:
+      'How Multimeter keeps AI agents accurate: separated files, API proxies, declarative suites, parallel runs, and validate loops — vs Postman and Bruno.',
+    body: 'AI integrity for Multimeter means agents create and change API tests without drowning in context. Separated .mmt files let agents read one area. API files proxy requests so many tests share one inputs/outputs contract. Suites make run order editable YAML with parallel stages. Flows are declarative instead of JS scripts; JSON and XML live as YAML. MCP scaffold_test and validate close the loop. Measured Open-Meteo sample: ~42 KB / 98 files vs ~91 KB Postman JSON, and ~1 s testlight vs ~5 s Newman.',
+  },
 ];
 
 export function escapeHtml(value) {
@@ -252,6 +259,7 @@ This file: https://mmt.dev/llms.txt · https://mmt.dev/.well-known/llms.txt
 
 - Cursor / Claude / Copilot: MCP \`npx -y mmt-mcp\` or the bundled VS Code MCP server
 - First tools: \`scaffold_test\`, \`validate\`, \`format\`, \`run\` — do not invent \`.mmt\` syntax
+- Why Multimeter is better with AI: https://mmt.dev/why-ai
 - Workflow: https://mmt.dev/raw/docs/AI/agent-workflow.md
 - MCP overview: https://mmt.dev/docs/features/mcp
 - Judge (AI checks): https://mmt.dev/docs/files/judge
@@ -263,6 +271,7 @@ This file: https://mmt.dev/llms.txt · https://mmt.dev/.well-known/llms.txt
 - \`.mmt\` API: https://mmt.dev/docs/files/api
 - \`.mmt\` test: https://mmt.dev/docs/files/test
 - Testlight CLI: https://mmt.dev/docs/features/testlight/install
+- Why Multimeter is better with AI: https://mmt.dev/why-ai
 - Compare Postman: https://mmt.dev/compare/postman
 - Compare Bruno: https://mmt.dev/compare/bruno
 - Compare Promptfoo: https://mmt.dev/compare/promptfoo
@@ -346,6 +355,7 @@ steps:
         <li><a href="https://mmt.dev/raw/docs/files/test/index.md">Test files</a></li>
         <li><a href="https://mmt.dev/raw/docs/files/judge/index.md">AI judge</a></li>
         <li><a href="https://mmt.dev/raw/docs/features/mcp/mcp-tools.md">MCP tools</a></li>
+        <li><a href="https://mmt.dev/why-ai">Why Multimeter is better with AI</a></li>
         <li><a href="https://mmt.dev/compare/postman">vs Postman</a> · <a href="https://mmt.dev/compare/bruno">vs Bruno</a> · <a href="https://mmt.dev/compare/promptfoo">vs Promptfoo</a></li>
         <li><a href="https://github.com/mshobeyri/multimeter">GitHub</a></li>
       </ul>

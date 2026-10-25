@@ -5,6 +5,7 @@ import Features from '../sections/Features'
 import BuiltForVSCode from '../sections/BuiltForVSCode'
 import GitNative from '../sections/GitNative'
 import AITestGen from '../sections/AITestGen'
+import WhyAiIntegrity from '../sections/WhyAiIntegrity'
 import CICDReady from '../sections/CICDReady'
 import MockAndDocs from '../sections/MockAndDocs'
 import Comparison from '../sections/Comparison'
@@ -29,8 +30,9 @@ export default function Home() {
       <div className="relative bg-surface [&>section]:py-24 lg:[&>section]:py-28">
         <Features />
         <AITestGen />
-        <BuiltForVSCode />
+        <WhyAiIntegrity />
         <GitNative />
+        <BuiltForVSCode />
         <MockAndDocs />
         <CICDReady />
         <Comparison />

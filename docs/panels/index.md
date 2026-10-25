@@ -1,17 +1,19 @@
 # Panels
 
-Multimeter’s VS Code panels sit in the activity bar (left) and in the bottom Multimeter panel.
+Multimeter’s VS Code panels sit in the activity bar (left). The bottom Multimeter panel is a **Views** drop target for relocating those same panels.
 
-Click the Multimeter activity icon in the sidebar to open the activity-bar views. Environment and History live in the bottom panel area (`View → Open View…` or the Multimeter panel tab).
+Click the Multimeter activity icon in the sidebar to open the views.
 
 ## Views dock
 
-The top of the Multimeter sidebar is a collapsed **Views** tree. Use it to relocate Multimeter panels between the activity bar and the bottom panel (or another sidebar):
+Both the Multimeter sidebar and the bottom Multimeter panel have a **Views** tree. It keeps a real drop target so you can relocate or tab-merge Multimeter panels. Webview-only containers (especially a lone Environment or History tab in the bottom panel) hide the drop overlay — a [VS Code limitation](https://github.com/microsoft/vscode/issues/144122).
 
 1. Drag a view’s title onto the **Views** header (or use the view’s context menu → **Move View**).
-2. Click a row in **Views** to focus that panel again.
+2. To tab-merge two views, drag one title onto the other view’s title (works in the Multimeter sidebar).
+3. If Environment or History is stuck as its own panel tab with no drop area, run **Multimeter: Group Environment & History in Sidebar** (or **… in Panel**), or use the links on the **Views** welcome screen.
+4. Click a row in **Views** to focus that panel again.
 
-Listed views: Temp Files, Get Started, Mock Server, Connections, Cache, Environment Variables, and History. Welcome text on an empty dock also links to Environment and History.
+Listed views: Temp Files, Get Started, Mock Server, Connections, Cache, Environment Variables, and History.
 
 ## Activity bar
 
@@ -22,13 +24,12 @@ Listed views: Temp Files, Get Started, Mock Server, Connections, Cache, Environm
 | {{btn:server:Mock Server}} | Start HTTP/HTTPS/WebSocket mocks, or load a `type: server` file — see [Mock server panel](../files/server/panel.md) |
 | {{btn:plug:Connections}} | Watch active HTTP keep-alive and WebSocket sessions; close them when needed — see [Connections](./connections.md) |
 | {{btn:database:Cache}} | Watch in-run `cache:` entries (test call + live env); empties when the run ends — see [Cache](./cache.md) |
+| {{btn:server-environment:Environment Variables}} | Switch presets, edit variables, and load a workspace env file (`multimeter.mmt`) — see [Environment variables panel](../files/env/ui.md) |
+| {{btn:history:History}} | Inspect recent requests and responses (method, URL, status, timing, bodies) — see [History](./history.md) |
 
 ## Bottom panel
 
-| Control | What it does |
-|---|---|
-| {{btn:server-environment:Environment Variables}} | Switch presets, edit variables, and load a workspace env file (`multimeter.mmt`) — see [Environment variables panel](../files/env/ui.md) |
-| {{btn:history:History}} | Inspect recent requests and responses (method, URL, status, timing, bodies) — see [History](./history.md) |
+The Multimeter bottom panel starts with a **Views** dock only. Drag Environment, History, or other Multimeter views onto that header to park them in the bottom panel. Use **Multimeter: Group Environment & History in Panel** to move both there at once.
 
 ## Status bar
 
