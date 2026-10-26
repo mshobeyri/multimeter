@@ -10,6 +10,7 @@ import { safeList } from "mmt-core/util/safer";
 import { opsList } from "mmt-core/data/TestData";
 import { openRelativeFile, openUntitledMmt, showEnvironmentPanel } from "../vsAPI";
 import { loadEnvVariables } from "../workspaceStorage";
+import { setTokenHoverEnvVariables } from "./tokenValueHover";
 import { useImportValidation } from "./useImportValidation";
 import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
@@ -250,6 +251,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const refreshEnv = () => {
       const cleanup = loadEnvVariables((variables) => {
         setKnownEnvNames(new Set(variables.map((v) => v.name)));
+        setTokenHoverEnvVariables(variables);
       });
       return cleanup;
     };
