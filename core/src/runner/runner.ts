@@ -130,6 +130,17 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   resetCurrentTokenCache();
   resetRandomTokenCache();
 
+  // Live-env nested runs: mark JS context so Send's requestOverride cannot
+  // leak into type:api targets (e.g. create_session_api.mmt under e:session_api).
+  if (options.__mmtEnvValueRun) {
+    const innerRunner = options.jsRunner;
+    options = {
+      ...options,
+      jsRunner: async (ctx) =>
+          innerRunner({...ctx, envValueRun: true, requestOverride: null}),
+    };
+  }
+
   if (!options.__mmtIsSuiteBundleChildRun) {
     const cache = getRunFileCache();
     await cache.beginRun(options.fileStamp);

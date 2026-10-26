@@ -13,6 +13,7 @@ import {
   unionJudgeChecksForModel,
 } from '../data/JudgeData';
 import {evaluateJudge} from '../judge/judgeEngine';
+import {resolveDeferredEnvTokens} from '../env/resolveDeferredEnvTokens';
 import {resolveInputsMap, resolveInputsMapAsync} from '../tokens/variableReplacer';
 import '../judge/judgeEngineOllama';
 import '../judge/judgeEngineProviders';
@@ -21,6 +22,12 @@ import '../judge/judgeEngineProviders';
 export const resolveInputsMap_ = resolveInputsMap;
 /** Await file-backed env getters, then resolve inputs. */
 export const resolveInputsMapAsync_ = resolveInputsMapAsync;
+/**
+ * Unbound live-e: walker for UI Send overrides. jsRunner binds it as
+ * `resolveDeferredEnvTokens_(value)` with the in-scope `mmtEnv_` reader —
+ * do not export a `_` alias here or the Function body double-declares it.
+ */
+export {resolveDeferredEnvTokens};
 
 /**
  * Abort signal for cooperative test cancellation.

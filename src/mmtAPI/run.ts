@@ -400,7 +400,9 @@ export async function handleRunCurrentDocument(
         fileLoader,
         binaryFileLoader,
         serverRunner,
-        requestOverride,
+        // Nested live-env API runs set envValueRun / clear override on ctx;
+        // do not re-apply the parent Send snapshot over that.
+        requestOverride: ctx.envValueRun ? null : requestOverride,
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
