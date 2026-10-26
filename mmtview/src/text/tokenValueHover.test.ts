@@ -1,4 +1,9 @@
 import {clearGitCurrentSnapshot, setGitCurrentSnapshot} from 'mmt-core/tokens/Current';
+import {
+  clearTokenFieldPreviewRandomCache,
+  projectTokenFieldPreview,
+  seedTokenFieldPreviewFromRequest,
+} from 'mmt-core/tokens/bodyRuntimeTokens';
 
 import {
   formatTokenHoverValue,
@@ -32,6 +37,7 @@ describe('tokenValueHover', () => {
   afterEach(() => {
     setTokenHoverEnvVariables([]);
     clearGitCurrentSnapshot();
+    clearTokenFieldPreviewRandomCache();
   });
 
   it('resolves e: from the hover env map', () => {
@@ -55,6 +61,45 @@ describe('tokenValueHover', () => {
     expect(typeof value).toBe('string');
     expect(String(value)).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  });
+
+  it('reuses the field-preview cache for r: and seeded c:', () => {
+    seedTokenFieldPreviewFromRequest(
+        {
+          url: 'https://x/{{r:uuid}}',
+          headers: {stamp: 'c:time'},
+          body: {id: 'r:uuid'},
+        },
+        {
+          url: 'https://x/url-id',
+          headers: {stamp: '01:02:03'},
+          body: {id: 'body-id'},
+        },
+    );
+    const content =
+        'url: https://x/<<r:uuid>>\nheaders:\n  stamp: c:time\nbody:\n  id: r:uuid\n';
+    const urlOffset = content.indexOf('<<r:uuid>>');
+    const bodyOffset = content.lastIndexOf('r:uuid');
+    const stampOffset = content.indexOf('c:time');
+    expect(resolveDynamicTokenHoverValue('r:uuid', {content, offset: urlOffset}))
+        .toBe('url-id');
+    expect(resolveDynamicTokenHoverValue(
+               'r:uuid', {content, offset: bodyOffset}))
+        .toBe('body-id');
+    expect(resolveDynamicTokenHoverValue(
+               'c:time', {content, offset: stampOffset}))
+        .toBe('01:02:03');
+  });
+
+  it('shares the first mint between hover and telescope preview', () => {
+    const fromHover = resolveDynamicTokenHoverValue('r:uuid');
+    expect(projectTokenFieldPreview('{{r:uuid}}', {env: {}, inputs: {}}).text)
+        .toBe(String(fromHover));
+
+    clearTokenFieldPreviewRandomCache();
+    const fromUi =
+        projectTokenFieldPreview('{{r:uuid}}', {env: {}, inputs: {}}).text;
+    expect(resolveDynamicTokenHoverValue('r:uuid')).toBe(fromUi);
   });
 
   it('finds e:/r:/c: targets on a line', () => {

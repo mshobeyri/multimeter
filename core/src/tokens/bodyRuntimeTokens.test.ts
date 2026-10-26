@@ -40,12 +40,16 @@ import {
   peerStringToYaml,
   peerRecordToDisplay,
   peerRecordToYaml,
+  ensureTokenFieldPreviewByPlain,
+  peekTokenFieldPreviewByPlain,
   projectTokenFieldPreview,
+  reconcileResolvedRequestWithFieldPreview,
   TOKEN_FIELD_PREVIEW_BODY_SCOPE,
   tokenFieldPreviewScope,
   urlBarTokenPreviewCacheKey,
   seedTokenFieldPreviewFromResolved,
   seedTokenFieldPreviewFromRequest,
+  countPlainTokenOccurrencesBefore,
   leafResolvesToOmit,
   stringContainsFieldToken,
   wrapTypedTokenAtCursor,
@@ -368,6 +372,37 @@ describe('stringContainsFieldToken / projectTokenFieldPreview', () => {
                '{{r:uuid}}', {env: {}, inputs: {}},
                tokenFieldPreviewScope('headers', 'id')).text)
         .toBe('sent-header-id');
+    expect(peekTokenFieldPreviewByPlain('r:uuid', 0)).toBe('sent-url-id');
+    expect(peekTokenFieldPreviewByPlain('r:uuid', 1)).toBe('sent-header-id');
+    const yaml =
+        'url: https://x/<<r:uuid>>\nheaders:\n  id: r:uuid\n';
+    expect(countPlainTokenOccurrencesBefore(
+               yaml, yaml.indexOf('<<r:uuid>>'), 'r:uuid'))
+        .toBe(0);
+    expect(countPlainTokenOccurrencesBefore(
+               yaml, yaml.lastIndexOf('r:uuid'), 'r:uuid'))
+        .toBe(1);
+  });
+
+  it('reconcile keeps hover/telescope samples when resolve remints', () => {
+    clearTokenFieldPreviewRandomCache();
+    const fromHover = ensureTokenFieldPreviewByPlain('r:uuid', 0);
+    const reminted = {body: {id: 'totally-different-uuid'}};
+    const bound = reconcileResolvedRequestWithFieldPreview(
+        {body: {id: 'r:uuid'}}, reminted);
+    expect(bound.body).toEqual({id: fromHover});
+    expect(projectTokenFieldPreview('{{r:uuid}}', {env: {}, inputs: {}}).text)
+        .toBe(String(fromHover));
+    expect(ensureTokenFieldPreviewByPlain('r:uuid', 0)).toBe(fromHover);
+  });
+
+  it('reconcile adopts remint into empty cache so hover matches body', () => {
+    clearTokenFieldPreviewRandomCache();
+    const reminted = {body: {id: 'first-resolve-id'}};
+    const bound = reconcileResolvedRequestWithFieldPreview(
+        {body: {id: 'r:uuid'}}, reminted);
+    expect(bound.body).toEqual({id: 'first-resolve-id'});
+    expect(ensureTokenFieldPreviewByPlain('r:uuid', 0)).toBe('first-resolve-id');
   });
 
   it('seeds string and structured body leaves without packing source', () => {

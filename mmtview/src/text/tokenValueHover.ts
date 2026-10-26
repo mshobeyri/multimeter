@@ -1,5 +1,9 @@
 import {currentValueForToken} from 'mmt-core/tokens/Current';
-import {randomValueForToken} from 'mmt-core/tokens/Random';
+import {
+  countPlainTokenOccurrencesBefore,
+  ensureTokenFieldPreviewByPlain,
+  peekTokenFieldPreviewByPlain,
+} from 'mmt-core/tokens/bodyRuntimeTokens';
 import {applyValueAccessor, ACCESSOR_PATH_RE, TOKEN_NAME_RE} from
     'mmt-core/tokens/variableReplacer';
 import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
@@ -121,8 +125,22 @@ export function formatTokenHoverValue(value: unknown): string {
   }
 }
 
-/** Resolve the live/preview value for a plain `e:` / `r:` / `c:` token. */
-export function resolveDynamicTokenHoverValue(plain: string): unknown {
+export type ResolveDynamicTokenHoverOptions = {
+  /** Full editor buffer; used with `offset` for multi-occurrence r:/c:. */
+  content?: string;
+  /** Cursor offset into `content` (start of the hovered token is fine). */
+  offset?: number;
+};
+
+/**
+ * Resolve the live/preview value for a plain `e:` / `r:` / `c:` token.
+ * `r:` / seeded `c:` prefer the field-preview cache (same samples as
+ * telescope / Send) instead of reminting.
+ */
+export function resolveDynamicTokenHoverValue(
+    plain: string,
+    options?: ResolveDynamicTokenHoverOptions,
+    ): unknown {
   const trimmed = String(plain || '').trim();
   const envMatch = new RegExp(
       `^e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})$`, 'i').exec(trimmed);
@@ -140,10 +158,19 @@ export function resolveDynamicTokenHoverValue(plain: string): unknown {
   }
   const prefix = runtimeMatch[1].toLowerCase();
   const spec = runtimeMatch[2];
+  const occurrence = options?.content != null && options.offset != null ?
+    countPlainTokenOccurrencesBefore(
+        options.content, options.offset, trimmed) :
+    0;
   if (prefix === 'c') {
+    const cached = peekTokenFieldPreviewByPlain(trimmed, occurrence);
+    if (cached !== undefined) {
+      return cached;
+    }
     return currentValueForToken(spec);
   }
-  return randomValueForToken(spec);
+  // Same store telescope uses — mint once, reuse forever until re-seed.
+  return ensureTokenFieldPreviewByPlain(trimmed, occurrence);
 }
 
 /** Register once per monaco instance: hover shows resolved e:/r:/c: values. */
@@ -167,7 +194,15 @@ export function registerTokenValueHover(monaco: any): void {
       if (!target) {
         return null;
       }
-      const resolved = resolveDynamicTokenHoverValue(target.plain);
+      // Use token start so the current match is not counted as a prior hit.
+      const offset = positionToOffset(
+          content,
+          target.range.startLineNumber,
+          target.range.startColumn);
+      const resolved = resolveDynamicTokenHoverValue(target.plain, {
+        content,
+        offset,
+      });
       if (resolved === undefined) {
         return null;
       }
