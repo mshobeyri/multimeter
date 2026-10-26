@@ -8,13 +8,14 @@ import { handleBeforeMount } from "./BeforeMount";
 import { validateYamlContent, validationMarkersToProblems } from "./Validate";
 import { safeList } from "mmt-core/util/safer";
 import { opsList } from "mmt-core/data/TestData";
-import { openRelativeFile, openUntitledMmt } from "../vsAPI";
+import { openRelativeFile, openUntitledMmt, showEnvironmentPanel } from "../vsAPI";
 import { loadEnvVariables } from "../workspaceStorage";
 import { useImportValidation } from "./useImportValidation";
 import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
 import { isSpecSourceFormat, type SourceFormat } from "../sourceFormat";
 import { getFileLinkTargetAtPosition } from "./yamlLinks";
+import { getEnvTokenTargetAtPosition } from "./envTokenLink";
 import {
   dispatchSelectExample,
   getExampleNameTargetAtPosition,
@@ -1105,23 +1106,29 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
     const resolveClickTarget = (pos: any, withModifier: boolean) => {
       if (!withModifier) {
-        return { example: null, file: null };
+        return { example: null, env: null, file: null };
       }
       const example = docType === 'api'
         ? getExampleNameTargetAtPosition(monaco, model, getLinkContent(), pos)
         : null;
       if (example) {
-        return { example, file: null };
+        return { example, env: null, file: null };
+      }
+      const env = getEnvTokenTargetAtPosition(
+          monaco, model, getLinkContent(), pos);
+      if (env) {
+        return { example: null, env, file: null };
       }
       return {
         example: null,
+        env: null,
         file: getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos),
       };
     };
 
     const updateUnderline = (pos: any, withModifier: boolean) => {
-      const { example, file } = resolveClickTarget(pos, withModifier);
-      const range = example?.range || file?.range;
+      const { example, env, file } = resolveClickTarget(pos, withModifier);
+      const range = example?.range || env?.range || file?.range;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
       if (!range) {
         return;
@@ -1141,8 +1148,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
       updateUnderline(pos, withMod);
-      const { example, file } = resolveClickTarget(pos, withMod);
-      editor.updateOptions({ mouseStyle: (example || file) ? 'pointer' : 'text' });
+      const { example, env, file } = resolveClickTarget(pos, withMod);
+      editor.updateOptions({
+        mouseStyle: (example || env || file) ? 'pointer' : 'text',
+      });
     });
 
     const onKeyDown = editor.onKeyDown((e: any) => {
@@ -1162,11 +1171,17 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
       if (withMod) {
-        const { example, file: target } = resolveClickTarget(pos, true);
+        const { example, env, file: target } = resolveClickTarget(pos, true);
         if (example) {
           evt.preventDefault?.();
           evt.stopPropagation?.();
           dispatchSelectExample(example.exampleIndex);
+          return;
+        }
+        if (env?.name) {
+          evt.preventDefault?.();
+          evt.stopPropagation?.();
+          showEnvironmentPanel({ variable: env.name });
           return;
         }
         if (target?.httpStepPreview) {

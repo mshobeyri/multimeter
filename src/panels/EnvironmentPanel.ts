@@ -230,6 +230,23 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     setTimeout(send, 500);
   }
 
+  /** Focus/scroll the named variable row after the Environment view is shown. */
+  focusVariable(name: string): void {
+    const variable = String(name || '').trim();
+    if (!variable) {
+      return;
+    }
+    const send = () => {
+      this.view?.webview.postMessage({
+        command: 'multimeter.environment.focusVariable',
+        name: variable,
+      });
+    };
+    send();
+    setTimeout(send, 200);
+    setTimeout(send, 500);
+  }
+
   refreshEnvironmentVars() {
     const environmentVars = this.getWorkspaceEnvironmentVars();
     const presets = this.getWorkspaceEnvironmentPresets();

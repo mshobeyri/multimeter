@@ -348,6 +348,19 @@
             margin-top: 12px;
         }
 
+        @keyframes env-row-flush {
+            0%, 40% {
+                opacity: 0.25;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .env-row.env-row-focus {
+            animation: env-row-flush 0.9s ease-out;
+        }
+
         .value-input {
             border: 1px solid transparent;
             background: transparent;
@@ -614,7 +627,50 @@
             if (message.command === 'multimeter.environment.startAdd') {
                 openAddRow();
             }
+            if (message.command === 'multimeter.environment.focusVariable') {
+                focusVariableRow(typeof message.name === 'string' ? message.name : '');
+            }
         });
+
+        let focusRowTimer = null;
+        function focusVariableRow(name) {
+            const target = String(name || '').trim();
+            if (!target) {
+                return;
+            }
+            const rows = document.querySelectorAll('tr.env-row');
+            let match = null;
+            rows.forEach((row) => {
+                row.classList.remove('env-row-focus');
+                const dataName = row.dataset ? row.dataset.envName : '';
+                const text = row.querySelector('.env-name-text');
+                if (dataName === target || (text && text.textContent === target)) {
+                    match = row;
+                }
+            });
+            if (!match) {
+                return;
+            }
+            // Retrigger flush if the same row is focused again.
+            match.classList.remove('env-row-focus');
+            void match.offsetWidth;
+            match.classList.add('env-row-focus');
+            match.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            const input = match.querySelector('input.value-input, select.flat-select');
+            if (input && typeof input.focus === 'function') {
+                input.focus();
+                if (typeof input.select === 'function') {
+                    try { input.select(); } catch (_e) {}
+                }
+            }
+            if (focusRowTimer) {
+                clearTimeout(focusRowTimer);
+            }
+            focusRowTimer = setTimeout(() => {
+                match.classList.remove('env-row-focus');
+                focusRowTimer = null;
+            }, 950);
+        }
 
         function updateUI() {
             const tableContainer = document.getElementById('env-table-container');
@@ -648,6 +704,7 @@
                 envLayer.forEach(({ envVar, index }) => {
                     const row = document.createElement('tr');
                     row.className = 'env-row';
+                    row.dataset.envName = envVar.name || '';
 
                     const source = resolveEnvSource(envVar);
                     const displayValue = typeof envVar.displayValue === 'string'
@@ -723,6 +780,7 @@
                 runtimeLayer.forEach(({ envVar, index }) => {
                     const row = document.createElement('tr');
                     row.className = 'env-row';
+                    row.dataset.envName = envVar.name || '';
                     const displayValue = typeof envVar.displayValue === 'string'
                         ? envVar.displayValue
                         : formatEnvValueForInput(envVar.value);
