@@ -8,6 +8,7 @@ import {
 import {
   formatTokenHoverValue,
   getDynamicTokenTargetAtPosition,
+  getTokenValueHoverTipAtPosition,
   resolveDynamicTokenHoverValue,
   setTokenHoverEnvVariables,
 } from './tokenValueHover';
@@ -114,6 +115,17 @@ describe('tokenValueHover', () => {
     expect(getDynamicTokenTargetAtPosition(
                monaco, model, content, {lineNumber: 3, column: 8})?.prefix)
         .toBe('r');
+  });
+
+  it('builds an instant tip for e: like BodyView', () => {
+    setTokenHoverEnvVariables([
+      {name: 'host', value: 'https://local.mmt.dev'},
+    ]);
+    const content = 'url: e:host\n';
+    const model = fakeModel(content.split('\n'));
+    const tip = getTokenValueHoverTipAtPosition(
+        monaco, model, content, {lineNumber: 1, column: 8});
+    expect(tip?.text).toBe('https://local.mmt.dev');
   });
 
   it('formats hover values', () => {

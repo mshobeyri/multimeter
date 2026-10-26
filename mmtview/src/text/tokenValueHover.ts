@@ -173,49 +173,36 @@ export function resolveDynamicTokenHoverValue(
   return ensureTokenFieldPreviewByPlain(trimmed, occurrence);
 }
 
-/** Register once per monaco instance: hover shows resolved e:/r:/c: values. */
-export function registerTokenValueHover(monaco: any): void {
-  if (!monaco?.languages?.registerHoverProvider) {
-    return;
+/**
+ * Instant tip for YAML e:/r:/c: (same shape BodyView uses with
+ * `.token-hover-tip` — not Monaco's delayed hover widget).
+ */
+export function getTokenValueHoverTipAtPosition(
+    monaco: any,
+    model: any,
+    content: string,
+    pos: {lineNumber: number; column: number}|null|undefined,
+    ): {text: string; range: any}|null {
+  const target =
+      getDynamicTokenTargetAtPosition(monaco, model, content, pos);
+  if (!target) {
+    return null;
   }
-  if (monaco.__mmtTokenValueHoverInstalled) {
-    return;
-  }
-  monaco.__mmtTokenValueHoverInstalled = true;
-
-  monaco.languages.registerHoverProvider('yaml', {
-    provideHover: (model: any, position: any) => {
-      if (!model || model.getLanguageId?.() !== 'yaml') {
-        return null;
-      }
-      const content = model.getValue?.() || '';
-      const target =
-          getDynamicTokenTargetAtPosition(monaco, model, content, position);
-      if (!target) {
-        return null;
-      }
-      // Use token start so the current match is not counted as a prior hit.
-      const offset = positionToOffset(
-          content,
-          target.range.startLineNumber,
-          target.range.startColumn);
-      const resolved = resolveDynamicTokenHoverValue(target.plain, {
-        content,
-        offset,
-      });
-      if (resolved === undefined) {
-        return null;
-      }
-      const text = formatTokenHoverValue(resolved);
-      if (!text) {
-        return null;
-      }
-      // Fence so Monaco does not treat the value as markdown.
-      const safe = text.replace(/```/g, '\\`\\`\\`');
-      return {
-        range: target.range,
-        contents: [{value: '```\n' + safe + '\n```'}],
-      };
-    },
+  // Use token start so the current match is not counted as a prior hit.
+  const offset = positionToOffset(
+      content,
+      target.range.startLineNumber,
+      target.range.startColumn);
+  const resolved = resolveDynamicTokenHoverValue(target.plain, {
+    content,
+    offset,
   });
+  if (resolved === undefined) {
+    return null;
+  }
+  const text = formatTokenHoverValue(resolved);
+  if (!text) {
+    return null;
+  }
+  return {text, range: target.range};
 }

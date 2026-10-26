@@ -1,7 +1,6 @@
 import { validateYamlContent } from './Validate';
 import { registerMmtYamlTokenizer } from './yamlTokenizer';
 import { registerYamlAutocomplete } from './registerYamlAutocomplete';
-import { registerTokenValueHover } from './tokenValueHover';
 
 const VALIDATION_DEBOUNCE_MS = 500;
 
@@ -19,7 +18,6 @@ function shouldValidateYamlModel(model: any): boolean {
 export const handleBeforeMount = (monaco: any) => {
     registerMmtYamlTokenizer(monaco);
     registerYamlAutocomplete(monaco);
-    registerTokenValueHover(monaco);
 
     if (!monaco.languages.getLanguages().some((language: any) => language.id === 'http')) {
         monaco.languages.register({ id: 'http' });

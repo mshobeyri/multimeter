@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import parseYaml, { parseYamlDoc } from "mmt-core/parse/markupConvertor";
 import { apiToYaml } from "mmt-core/parse/apiParsePack";
 import { formatMmtYaml } from "mmt-core/parse/mmtFormat";
@@ -10,7 +11,10 @@ import { safeList } from "mmt-core/util/safer";
 import { opsList } from "mmt-core/data/TestData";
 import { openRelativeFile, openUntitledMmt, showEnvironmentPanel } from "../vsAPI";
 import { loadEnvVariables } from "../workspaceStorage";
-import { setTokenHoverEnvVariables } from "./tokenValueHover";
+import {
+  getTokenValueHoverTipAtPosition,
+  setTokenHoverEnvVariables,
+} from "./tokenValueHover";
 import { useImportValidation } from "./useImportValidation";
 import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
@@ -216,6 +220,11 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const compatibilityDecorationsRef = useRef<string[]>([]);
   const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
+  const [tokenHoverTip, setTokenHoverTip] = useState<{
+    text: string;
+    left: number;
+    top: number;
+  } | null>(null);
   const importsMapRef = useRef<Record<string, string>>({});
   const ctrlDownRef = useRef<boolean>(false);
   const [docType, setDocType] = useState<string | null>(null);
@@ -1144,17 +1153,58 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       }]);
     };
 
+    const updateTokenHoverTip = (pos: { lineNumber: number; column: number } | null | undefined) => {
+      if (!pos || typeof editor.getScrolledVisiblePosition !== "function") {
+        setTokenHoverTip(null);
+        return;
+      }
+      const tip = getTokenValueHoverTipAtPosition(
+        monaco, model, getLinkContent(), pos);
+      if (!tip) {
+        setTokenHoverTip(null);
+        return;
+      }
+      const coords = editor.getScrolledVisiblePosition({
+        lineNumber: tip.range.startLineNumber,
+        column: tip.range.startColumn,
+      });
+      if (!coords) {
+        setTokenHoverTip(null);
+        return;
+      }
+      const editorDom = typeof editor.getDomNode === "function"
+        ? editor.getDomNode()
+        : null;
+      const editorRect = editorDom?.getBoundingClientRect();
+      if (!editorRect) {
+        setTokenHoverTip(null);
+        return;
+      }
+      setTokenHoverTip({
+        text: tip.text,
+        left: editorRect.left + coords.left,
+        top: editorRect.top + coords.top + coords.height + 4,
+      });
+    };
+
     const onMouseMove = editor.onMouseMove((e: any) => {
       const evt = e.event?.browserEvent as MouseEvent | undefined;
       const pos = e.target?.position;
-      if (!evt || !pos) return;
+      if (!evt || !pos) {
+        setTokenHoverTip(null);
+        return;
+      }
       const withMod = hasGoToDefinitionModifier(evt as any);
       updateUnderline(pos, withMod);
       const { example, env, file } = resolveClickTarget(pos, withMod);
       editor.updateOptions({
         mouseStyle: (example || env || file) ? 'pointer' : 'text',
       });
+      updateTokenHoverTip(pos);
     });
+    const onMouseLeave = typeof editor.onMouseLeave === "function"
+      ? editor.onMouseLeave(() => setTokenHoverTip(null))
+      : null;
 
     const onKeyDown = editor.onKeyDown((e: any) => {
       if (hasGoToDefinitionModifier(e)) ctrlDownRef.current = true;
@@ -1235,11 +1285,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
     return () => {
       onMouseMove.dispose();
+      onMouseLeave?.dispose?.();
       onMouseDown.dispose();
       onKeyDown.dispose();
       onKeyUp.dispose();
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
       editor.updateOptions({ mouseStyle: 'text' });
+      setTokenHoverTip(null);
     };
   }, [content, docType, editorReady, setContent]);
 
@@ -1502,6 +1554,16 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         showGlyphMargin={true}
         fontSize={fontSize}
       />
+      {tokenHoverTip ? createPortal(
+        <div
+          className="token-hover-tip"
+          style={{ left: tokenHoverTip.left, top: tokenHoverTip.top }}
+          role="tooltip"
+        >
+          {tokenHoverTip.text}
+        </div>,
+        document.body,
+      ) : null}
       {needsYamlBeautify && (
         <div className="bodyview-toolbar">
           <button
