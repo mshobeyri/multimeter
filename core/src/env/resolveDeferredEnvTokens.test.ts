@@ -29,6 +29,28 @@ describe('resolveDeferredEnvTokens', () => {
         '{"session_api":"uuid-1","host":"https://api.local"}');
   });
 
+  it('resolves bare and entity-escaped e: tokens in an XML body string', async () => {
+    // Same shape requestForSend(format: xml) emits for deferred live e:.
+    const body =
+        '<body><session_api>e:session</session_api>' +
+        '<note>asda&lt;&lt;e:session&gt;&gt;</note></body>';
+    expect(await resolveDeferredEnvTokens(body, reader)).toBe(
+        '<body><session_api>uuid-1</session_api><note>asdauuid-1</note></body>');
+  });
+
+  it('resolves percent-encoded e: tokens in a urlencoded body string', async () => {
+    const body =
+        'session_api=e%3Asession&note=asda%3C%3Ce%3Asession%3E%3E';
+    expect(await resolveDeferredEnvTokens(body, reader)).toBe(
+        'session_api=uuid-1&note=asdauuid-1');
+  });
+
+  it('resolves bare e: inside a text body string', async () => {
+    expect(await resolveDeferredEnvTokens(
+               'token=e:session and <<e:host>>', reader))
+        .toBe('token=uuid-1 and https://api.local');
+  });
+
   it('walks objects and arrays', async () => {
     const req = {
       url: 'https://x/<<e:session>>',
@@ -47,5 +69,16 @@ describe('resolveDeferredEnvTokens', () => {
         .toBeUndefined();
     expect(await resolveDeferredEnvTokens('keep {{e:missing}} here', reader))
         .toBe('keep {{e:missing}} here');
+    expect(await resolveDeferredEnvTokens(
+               '<x>e:missing</x>', reader))
+        .toBe('<x>e:missing</x>');
   });
+
+  it('whole-field missing curly e: is undefined; embedded keeps the token',
+     async () => {
+       expect(await resolveDeferredEnvTokens('{{e:missing}}', reader))
+           .toBeUndefined();
+       expect(await resolveDeferredEnvTokens('x{{e:missing}}y', reader))
+           .toBe('x{{e:missing}}y');
+     });
 });
