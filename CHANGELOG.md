@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.48.1-pre]
+
+Pre-release. VS Code extension `1.48.1`; Testlight CLI and MCP `1.48.1-pre` on `@pre`.
+
+- Fix live `e:` under API Tester Send for XML, urlencoded, and text bodies (bare, entity-escaped, and percent-encoded forms)
+
 ## [1.48.0-pre]
 
 Pre-release. VS Code extension `1.48.0`; Testlight CLI and MCP `1.48.0-pre` on `@pre`.
