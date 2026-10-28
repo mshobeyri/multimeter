@@ -19,6 +19,7 @@ import { isIncompleteJsonLiteral } from "mmt-core/parse/yamlValueConvert";
 const typeOptions = [
   { label: "List", value: "list" },
   { label: "Object", value: "object" },
+  { label: "OS", value: "os" },
 ];
 
 function boardHasIncompleteJson(boards: EnvVariableBoard[]): boolean {
@@ -43,6 +44,16 @@ function boardHasIncompleteJson(boards: EnvVariableBoard[]): boolean {
     }
   }
   return false;
+}
+
+function emptyValueForType(type: EnvVariableBoard["type"]): EnvVariableBoard["value"] {
+  if (type === "list") {
+    return [];
+  }
+  if (type === "os") {
+    return "";
+  }
+  return {};
 }
 
 interface EnvironmentVariableEditProps {
@@ -111,8 +122,8 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({
               options={safeList(typeOptions).map(opt => opt.value)}
               onChange={val =>
                 handleBoardChange(idx, {
-                  type: val as "list" | "object",
-                  value: val === "list" ? [] : {},
+                  type: val as "list" | "object" | "os",
+                  value: emptyValueForType(val as EnvVariableBoard["type"]),
                 })
               }
               showPlaceholder={true}
@@ -128,6 +139,23 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({
               onChange={v => handleBoardChange(idx, { value: v })}
               placeholder="Value"
             />
+          ) : board.type === "os" ? (
+            <>
+              <div className="label">OS variable</div>
+              <div className="field-pad">
+                <input
+                  type="text"
+                  className="mmt-fill"
+                  value={typeof board.value === "string" ? board.value : ""}
+                  onChange={e =>
+                    handleBoardChange(idx, { value: e.target.value })
+                  }
+                  placeholder="API_TOKEN"
+                  spellCheck={false}
+                  title="Process environment variable name (written as $NAME in YAML)"
+                />
+              </div>
+            </>
           ) : (
             <KSVEditor
               label="Fields"

@@ -1,3 +1,4 @@
+import {yamlValueToInputBox} from 'mmt-core/parse/yamlValueConvert';
 import {envPanelValueView, resolveEnvPanelIncomingValue} from './envPanelValue';
 
 describe('envPanelValue', () => {
@@ -41,6 +42,17 @@ describe('envPanelValue', () => {
     expect(envPanelValueView('./nested/x.mmt')).toEqual({
       displayValue: './nested/x.mmt',
       typeLabel: 'live',
+    });
+  });
+
+  it('labels $VAR values as os', () => {
+    expect(envPanelValueView('$API_TOKEN')).toEqual({
+      displayValue: '$API_TOKEN',
+      typeLabel: 'os',
+    });
+    expect(envPanelValueView('https://$HOST')).toEqual({
+      displayValue: yamlValueToInputBox('https://$HOST'),
+      typeLabel: 'str',
     });
   });
 });

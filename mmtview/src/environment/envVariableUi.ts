@@ -1,6 +1,11 @@
 import type {JSONRecord, JSONValue} from 'mmt-core/data/CommonData';
 import type {EnvChoiceValue, EnvScalar, EnvVariableValue} from 'mmt-core/data/EnvData';
 import {
+  formatOsEnvRef,
+  isOsEnvRefValue,
+  osEnvNameOfRef,
+} from 'mmt-core/env/envStore';
+import {
   inputBoxToYamlValue,
   isIncompleteJsonLiteral,
   yamlValueToInputBox,
@@ -8,8 +13,9 @@ import {
 
 export type EnvVariableBoard = {
   name: string;
-  type: 'list' | 'object';
-  value: JSONValue[] | JSONRecord;
+  type: 'list' | 'object' | 'os';
+  /** List values, choice-map object, or OS env name / `$NAME` for type os. */
+  value: JSONValue[] | JSONRecord | string;
 };
 
 /** Stable signature so the editor can resync when YAML changes externally. */
@@ -86,6 +92,21 @@ export function variablesToBoards(
         value: value.filter(isEnvScalar) as JSONValue[],
       };
     }
+    if (isOsEnvRefValue(value)) {
+      return {
+        name,
+        type: 'os' as const,
+        value: osEnvNameOfRef(value) || String(value).replace(/^\$/, ''),
+      };
+    }
+    if (isEnvScalar(value)) {
+      // Bare non-OS scalar (incl. live `./….mmt`): single-choice object.
+      return {
+        name,
+        type: 'object' as const,
+        value: {[name]: value} as JSONRecord,
+      };
+    }
     const obj = (value && typeof value === 'object') ? value : {};
     return {
       name,
@@ -108,6 +129,14 @@ export function boardsToVariables(
   for (const board of boards) {
     const name = (board.name ?? '').trim();
     if (!name) {
+      continue;
+    }
+    if (board.type === 'os') {
+      const raw = typeof board.value === 'string' ? board.value : '';
+      const ref = formatOsEnvRef(raw);
+      if (isOsEnvRefValue(ref)) {
+        out[name] = ref;
+      }
       continue;
     }
     if (board.type === 'list') {

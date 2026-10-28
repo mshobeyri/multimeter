@@ -4,6 +4,7 @@ import SettingsTable, { SettingsTableColumn, SettingsTableRow } from "../compone
 import type { JSONValue } from "mmt-core/data/CommonData";
 import { yamlValueToInputBox } from "mmt-core/parse/yamlValueConvert";
 import { EnvFilePathValue, isEnvFilePathDisplayValue } from "./envFilePathDisplay";
+import { EnvOsRefValue, isOsEnvRefDisplayValue } from "./envOsRefDisplay";
 
 function formatEnvDisplayValue(value: JSONValue | undefined): React.ReactNode {
   if (value === undefined) {
@@ -11,6 +12,9 @@ function formatEnvDisplayValue(value: JSONValue | undefined): React.ReactNode {
   }
   if (isEnvFilePathDisplayValue(value)) {
     return <EnvFilePathValue value={value} />;
+  }
+  if (isOsEnvRefDisplayValue(value)) {
+    return <EnvOsRefValue value={value} />;
   }
   if (value !== null && typeof value === "object") {
     try {

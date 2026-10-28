@@ -52,7 +52,7 @@ Env variables are **read in APIs/tests**, not stored as tokens here. In `type: a
 | `<<e:api_url>>` | Inside strings / URLs |
 | `e:city.latitude` / `<<e:city.latitude>>` | Property access on a nested choice value |
 
-The AI should not put `e:` tokens into env files; here we only define raw values or options.
+The AI should not put `e:` tokens into env files; here we only define raw values or options. Whole-value `$VAR` (OS process env) and `./….mmt` (live) are allowed as bare scalars or choice values — see [OS variables](../files/env/os-variables.md) and [Live variables](../files/env/live-variables.md).
 
 ---
 

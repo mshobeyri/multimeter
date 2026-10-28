@@ -6,11 +6,11 @@
   ```
 - Run with env file preset and explicit overrides
   ```sh
-  testlight run examples/intermediate/10_environment_presets/test/preset_test.mmt --env-file ./examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev -e mode=release
+  testlight run examples/intermediate/10_environment_variables/presets/test/preset_test.mmt --env-file ./examples/intermediate/10_environment_variables/multimeter.mmt --preset runner.dev -e mode=release
   ```
 - Print generated JS for inspection
   ```sh
-  testlight print-js examples/intermediate/10_environment_presets/test/preset_test.mmt --env-file ./examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev
+  testlight print-js examples/intermediate/10_environment_variables/presets/test/preset_test.mmt --env-file ./examples/intermediate/10_environment_variables/multimeter.mmt --preset runner.dev
   ```
 
 - Generate documentation HTML from a Doc file

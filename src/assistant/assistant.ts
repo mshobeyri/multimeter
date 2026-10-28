@@ -433,7 +433,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
     const args = await vscode.window.showInputBox({
       title: 'Extra args (optional)',
       prompt:
-          'e.g., -i user=alice -F examples/intermediate/10_environment_presets/multimeter.mmt -P runner.dev --print-js'
+          'e.g., -i user=alice -F examples/intermediate/10_environment_variables/multimeter.mmt -P runner.dev --print-js'
     });
     const fakeReq = {
       command: 'run',
@@ -462,7 +462,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
         const args = await vscode.window.showInputBox({
           title: 'Extra args (optional)',
           prompt:
-              'e.g., -i user=alice -F examples/intermediate/10_environment_presets/multimeter.mmt -P runner.dev'
+              'e.g., -i user=alice -F examples/intermediate/10_environment_variables/multimeter.mmt -P runner.dev'
         });
         const fakeReq = {
           command: 'print-js',

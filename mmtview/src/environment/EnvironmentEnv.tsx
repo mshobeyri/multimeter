@@ -6,6 +6,7 @@ import { JSONValue } from "mmt-core/data/CommonData";
 import { yamlValueToInputBox } from "mmt-core/parse/yamlValueConvert";
 import { loadCertificateSettings, saveCertificateSettings } from "../workspaceStorage";
 import { EnvFilePathValue, isEnvFilePathDisplayValue } from "./envFilePathDisplay";
+import { EnvOsRefValue, isOsEnvRefDisplayValue } from "./envOsRefDisplay";
 
 interface EnvironmentEnvProps {
     variables: ComboTablePair[];
@@ -99,6 +100,9 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
     const renderValue = (value: JSONValue | undefined): React.ReactNode => {
         if (isEnvFilePathDisplayValue(value)) {
             return <EnvFilePathValue value={value} />;
+        }
+        if (isOsEnvRefDisplayValue(value)) {
+            return <EnvOsRefValue value={value} />;
         }
         const text = formatValue(value);
         return (

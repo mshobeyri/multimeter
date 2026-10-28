@@ -201,6 +201,28 @@ variables:
     expect(() => yamlToEnv(patched)).not.toThrow();
   });
 
+  it('preserves bare scalar variables (live path and OS $VAR)', () => {
+    const input = `type: env
+variables:
+  session: ./create.mmt
+  api_token: $API_TOKEN
+  api_url:
+    prod: $PROD_URL
+    local: http://localhost
+`;
+    const env = yamlToEnv(input);
+    expect(env.variables?.session).toBe('./create.mmt');
+    expect(env.variables?.api_token).toBe('$API_TOKEN');
+    expect(env.variables?.api_url).toEqual({
+      prod: '$PROD_URL',
+      local: 'http://localhost',
+    });
+    const yaml = envToYaml(env);
+    expect(yaml).toContain('session: ./create.mmt');
+    expect(yaml).toContain('api_token: $API_TOKEN');
+    expect(yaml).toContain('prod: $PROD_URL');
+  });
+
   it('keeps nested object choice values and drops nested objects from lists', () => {
     const input = `type: env
 variables:

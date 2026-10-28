@@ -1,7 +1,7 @@
 type: env
 variables:
   api_url:
-    local: "https://test.mmt.dev"
+    local: "https://local.mmt.dev"
     staging: "https://test.mmt.dev"
   mode:
     dev: debug
@@ -10,6 +10,11 @@ variables:
     - 5000
     - 10000
     - 30000
+  # OS process env — PATH exists on macOS, Linux, and Windows
+  path_from_os: $PATH
+  # Live file-backed values (run on each e: read)
+  session_api: ./live_variables/create_session_api.mmt
+  session_test: ./live_variables/create_session_test.mmt
 presets:
   runner:
     dev:

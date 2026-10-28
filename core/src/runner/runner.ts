@@ -156,8 +156,9 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   
   const prepared = await prepareRunFromOptions(options, note);
   const {docType} = prepared;
-  // Process store: copy of resolved env for this run only. `./…mmt` strings
-  // become getters at copy time. Suite children inherit the same store.
+  // Process store: copy of resolved env for this run only. `./…mmt` and
+  // `$VAR` strings become getters at copy time. Suite children inherit the
+  // same store.
   if (!options.envStore) {
     options = {
       ...options,
@@ -166,6 +167,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
         envvarFilePath: options.envvarFilePath,
         filePath: options.filePath || prepared.filePath,
         projectRoot: options.projectRoot,
+        processEnv: options.processEnv,
       }),
     };
   }

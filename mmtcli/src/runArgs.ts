@@ -440,6 +440,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     manualInputs,
     envvar,
     envvarFilePath,
+    processEnv: process.env,
     manualEnvvars,
     fileLoader: async (p: string) => {
       const rel = resolveCliFilePath(p);

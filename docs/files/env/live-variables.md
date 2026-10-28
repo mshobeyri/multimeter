@@ -88,11 +88,11 @@ Only the original env copy converts `./….mmt` paths into getters. A later `set
 
 Full working sample (API + test targets, consumer test, suite):
 
-[Environment live variables](../../../examples/intermediate/32_environment_live_variables/README.md)
+[Environment Variables (intermediate)](../../../examples/intermediate/10_environment_variables/README.md) (live `session_*` targets + suite)
 
 ```sh
-npx testlight run examples/intermediate/32_environment_live_variables/suite.mmt \
-  --env-file examples/intermediate/32_environment_live_variables/multimeter.mmt
+npx testlight run examples/intermediate/10_environment_variables/live_variables/consume_session_test.mmt \
+  --env-file examples/intermediate/10_environment_variables/multimeter.mmt
 ```
 
 ## See also

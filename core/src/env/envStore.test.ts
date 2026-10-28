@@ -4,7 +4,11 @@ import {
   envFilePathOfGetter,
   firstEnvFileOutput,
   isEnvFilePathValue,
+  isOsEnvRefValue,
+  osEnvNameOfRef,
+  osEnvRefOfGetter,
   plainEnvValuesForClone,
+  readEnvStoreValue,
 } from './envStore';
 
 describe('envStore', () => {
@@ -33,6 +37,51 @@ describe('envStore', () => {
     expect(isEnvFilePathValue('/abs/x.mmt')).toBe(false);
     expect(isEnvFilePathValue('+/x.mmt')).toBe(false);
     expect(isEnvFilePathValue('./note.txt')).toBe(false);
+  });
+
+  it('isOsEnvRefValue requires whole-string $NAME', () => {
+    expect(isOsEnvRefValue('$API_TOKEN')).toBe(true);
+    expect(isOsEnvRefValue(' $HOST ')).toBe(true);
+    expect(osEnvNameOfRef('$API_TOKEN')).toBe('API_TOKEN');
+    expect(isOsEnvRefValue('API_TOKEN')).toBe(false);
+    expect(isOsEnvRefValue('https://$HOST')).toBe(false);
+    expect(isOsEnvRefValue('$1BAD')).toBe(false);
+    expect(isOsEnvRefValue('${API_TOKEN}')).toBe(false);
+  });
+
+  it('converts $VAR to getters that read injected processEnv', async () => {
+    const store = createEnvStore(
+        {token: '$API_TOKEN', host: 'https://x'},
+        {processEnv: {API_TOKEN: 'secret', EMPTY: ''}},
+    );
+    expect(typeof store.values.token).toBe('function');
+    expect(osEnvRefOfGetter(store.values.token)).toBe('$API_TOKEN');
+    expect(store.values.host).toBe('https://x');
+    expect(await readEnvStoreValue(store, 'token')).toBe('secret');
+
+    const missing = createEnvStore(
+        {token: '$MISSING'}, {processEnv: {}});
+    expect(await readEnvStoreValue(missing, 'token')).toBeUndefined();
+
+    const empty = createEnvStore(
+        {token: '$EMPTY'}, {processEnv: {EMPTY: ''}});
+    expect(await readEnvStoreValue(empty, 'token')).toBeUndefined();
+
+    // setenv-style overwrite stays a plain string.
+    store.values.token = '$OTHER';
+    expect(typeof store.values.token).toBe('string');
+  });
+
+  it('plainEnvValuesForClone restores $VAR from getters', () => {
+    const store = createEnvStore(
+        {token: '$API_TOKEN', n: 1}, {processEnv: {API_TOKEN: 'x'}});
+    expect(plainEnvValuesForClone(store.values)).toEqual({
+      token: '$API_TOKEN',
+      n: 1,
+    });
+    const cloned = cloneEnvStore(store);
+    expect(osEnvRefOfGetter(cloned.values.token)).toBe('$API_TOKEN');
+    expect(cloned.processEnv).toEqual({API_TOKEN: 'x'});
   });
 
   it('converts ./…mmt to getters only at copy time', async () => {

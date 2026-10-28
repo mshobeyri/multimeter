@@ -389,6 +389,7 @@ export async function handleRun(args: {
       filePath: fullPath,
       fileType: 'path',
       envvar: args.env || {},
+      processEnv: process.env,
       manualInputs: args.inputs || {},
       fileLoader: createNodeFileLoader(path.dirname(fullPath)),
       jsRunner: runJSCode,

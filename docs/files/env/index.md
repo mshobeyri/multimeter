@@ -56,7 +56,7 @@ Notes
 - `variables` values must be one of:
   - **key-value map** (named choices) — each choice may be a **scalar** or a **nested object/array**. Prefer one concept when fields must stay together for **API defaults** (e.g. `city.berlin: {latitude, longitude}`), then APIs read `e:city.latitude`. A preset (or the Environment panel) selects a choice by key; without a preset the first choice is the default. For env vs JSON catalogs vs values written in a test, see [Where values live](../../tasks/start-a-project.md#where-values-live-env-vs-json-vs-direct).
   - **array list** (allowed values) — scalars only; a preset or user picks from the list
-  - **live variable** — a `./….mmt` path that runs another file on each `e:name` read (see [Live variables](./live-variables.md))
+  - **bare scalar** — a single fixed value, a [live variable](./live-variables.md) `./….mmt` path, or an [OS env ref](./os-variables.md) `$VAR` (also allowed as a choice value inside a map/list)
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern. Skip presets when a single choice map already is the concept (as with `city` above).
 
 ## Usage
@@ -99,5 +99,5 @@ body:
 
 ## Environment elements
 
-- [Quick start](./quick-start.md) · [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [Live variables](./live-variables.md)
+- [Quick start](./quick-start.md) · [Environment variables panel](./ui.md) · [Edit Environment](./edit.md) · [Live variables](./live-variables.md) · [OS variables](./os-variables.md)
 - [CLI](./cli.md) · [Settings](./settings.md) · [Project root](./project-root.md) · [Reference](./reference.md) · [Use environments](../../tasks/use-environments.md)
