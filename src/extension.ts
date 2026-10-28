@@ -254,6 +254,14 @@ function registerEnvironmentCommands(
       }));
 
   context.subscriptions.push(vscode.commands.registerCommand(
+      'multimeter.environment.focusVariable', async (name?: string) => {
+        await vscode.commands.executeCommand('multimeter.environment.focus');
+        if (typeof name === 'string' && name.trim()) {
+          environmentPanel.focusVariable(name.trim());
+        }
+      }));
+
+  context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.environment.loadFromFile', async () => {
         // Force reload when manually triggered (overwrites existing values)
         await loadWorkspaceEnvFile(context, true);

@@ -510,6 +510,20 @@ export function createApiLogHelpers(): ApiLogHelpers {
     if (value === omitSentinel) {
       return 'omit';
     }
+    if (typeof value === 'function') {
+      // Process-store getters (envStore) — show YAML source form, not JS.
+      // Keys match ENV_FILE_PATH_KEY / OS_ENV_REF_KEY (keep in sync for the
+      // baked CREATE_API_LOG_HELPERS_SOURCE; no import into that string).
+      const filePath = (value as any).__mmtEnvFilePath;
+      if (typeof filePath === 'string' && filePath) {
+        return '"' + escapeString(filePath) + '"';
+      }
+      const osRef = (value as any).__mmtOsEnvRef;
+      if (typeof osRef === 'string' && osRef) {
+        return '"' + escapeString(osRef) + '"';
+      }
+      return '"[getter]"';
+    }
     if (typeof value === 'string') {
       return '"' + escapeString(value) + '"';
     }

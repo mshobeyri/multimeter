@@ -1,0 +1,14 @@
+type: api
+title: Echo OS PATH
+description: Posts the host PATH (via e:path_from_os / $PATH) in the JSON body — not in the URL
+inputs:
+  note: from OS PATH
+outputs:
+  echoed_path: body.body.path
+  echoed_note: body.body.note
+url: <<e:api_url>>/echo
+method: post
+format: json
+body:
+  note: i:note
+  path: e:path_from_os

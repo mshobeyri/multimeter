@@ -146,4 +146,21 @@ describe('envVariableUi', () => {
         envVariablesSignature({port: {local: '8080'}}),
     );
   });
+
+  it('round-trips Type os as bare $VAR', () => {
+    expect(variablesToBoards({api_token: '$API_TOKEN'})).toEqual([
+      {name: 'api_token', type: 'os', value: 'API_TOKEN'},
+    ]);
+    expect(boardsToVariables([
+      {name: 'api_token', type: 'os', value: 'API_TOKEN'},
+      {name: 'host', type: 'os', value: '$HOST'},
+    ])).toEqual({
+      api_token: '$API_TOKEN',
+      host: '$HOST',
+    });
+    // Bare live path becomes a single-choice object in the editor.
+    expect(variablesToBoards({session: './create.mmt'})).toEqual([
+      {name: 'session', type: 'object', value: {session: './create.mmt'}},
+    ]);
+  });
 });

@@ -54,6 +54,11 @@ export interface RunJSCodeContext {
    * request instead of reminting r:/c: from YAML (telescope WYSIWYG).
    */
   requestOverride?: Record<string, unknown>|null;
+  /**
+   * File-backed env getter run (`./….mmt`). Must not inherit the parent Send
+   * `requestOverride` — nested type:api targets mint their own request.
+   */
+  envValueRun?: boolean;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -276,6 +281,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `  }\n` +
       `  return finish(raw);\n` +
       `};\n` +
+      // UI Send freezes r:/c: into __mmt_requestOverride but leaves live e:
+      // tokens deferred — await those getters before the wire send.
+      `const resolveDeferredEnvTokens_ = (value) => mmtHelper.resolveDeferredEnvTokens(value, mmtEnv_);\n` +
       // Override check_ to pass the closure-based report_ so that under
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.
@@ -388,12 +396,15 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       recordNetworkDuration(res);
       return res;
     };
+    // Nested live-env API targets must not reuse the parent Send snapshot.
+    const requestOverride =
+        context.envValueRun ? null : (context.requestOverride ?? null);
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
         context.abortSignal, context.pauseGate, context.fileLoader,
         context.binaryFileLoader, context.checkLogMode || 'default',
-        context.envValues, context.requestOverride ?? null);
+        context.envValues, requestOverride);
     restoreReporterGlobals();
     if (context.abortSignal?.aborted) {
       throw new mmtHelper.TestAbortError();

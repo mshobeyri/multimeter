@@ -284,7 +284,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   let req_;
   if (typeof __mmt_requestOverride !== 'undefined' && __mmt_requestOverride) {
-    req_ = __mmt_requestOverride;
+    req_ = await resolveDeferredEnvTokens_(__mmt_requestOverride);
 ${isBinaryRequest ? `    if (typeof req_.body === 'string' && req_.body) {
       req_ = { ...req_, body: await readBinaryFile_(String(req_.body).trim()) };
     }
@@ -411,8 +411,8 @@ function generateGrpcFunction(
   let req_;
   let __grpcReq;
   if (typeof __mmt_requestOverride !== 'undefined' && __mmt_requestOverride) {
-    req_ = __mmt_requestOverride;
-    __grpcReq = __mmt_requestOverride;
+    req_ = await resolveDeferredEnvTokens_(__mmt_requestOverride);
+    __grpcReq = req_;
   } else {
     const __resolvedUrl = ${toTpl(String(replaced.url || ''))};
     req_ = {

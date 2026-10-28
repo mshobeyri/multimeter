@@ -379,8 +379,13 @@ function normalizeOpenFilePath(filename: string): string {
     });
   }
 
-  export function showEnvironmentPanel() {
-    window.vscode?.postMessage({command: 'openEnvironmentPanel'});
+  export function showEnvironmentPanel(options?: {variable?: string}) {
+    const variable =
+        typeof options?.variable === 'string' ? options.variable.trim() : '';
+    window.vscode?.postMessage({
+      command: 'openEnvironmentPanel',
+      ...(variable ? {variable} : {}),
+    });
   }
 
   /** Pin the current preview tab so the next single-click open won't replace it. */

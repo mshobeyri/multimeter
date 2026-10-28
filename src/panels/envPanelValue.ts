@@ -1,19 +1,14 @@
 import type {JSONValue} from 'mmt-core/data/CommonData';
 import type {EnvVarSource} from 'mmt-core/data/EnvData';
 import {
+  isEnvFilePathValue,
+  isOsEnvRefValue,
+} from 'mmt-core/env/envStore';
+import {
   inputBoxToYamlValue,
   yamlValueToInputBox,
   yamlValueTypeLabel,
 } from 'mmt-core/parse/yamlValueConvert';
-
-/** Same rule as core `isEnvFilePathValue` / side-panel open-file control. */
-function isLiveEnvFilePath(value: unknown): boolean {
-  if (typeof value !== 'string') {
-    return false;
-  }
-  const trimmed = value.trim();
-  return trimmed.startsWith('./') && /\.mmt$/i.test(trimmed);
-}
 
 /**
  * Manual text edits arrive as strings and must be coerced like other typed
@@ -35,12 +30,20 @@ export function envPanelValueView(value: JSONValue|undefined): {
   displayValue: string;
   typeLabel: string;
 } {
-  if (typeof value === 'string' && isLiveEnvFilePath(value)) {
-    return {
-      // Keep the path as typed (no YAML quote wrapping for ./….mmt).
-      displayValue: value.trim(),
-      typeLabel: 'live',
-    };
+  if (typeof value === 'string') {
+    if (isEnvFilePathValue(value)) {
+      return {
+        // Keep the path as typed (no YAML quote wrapping for ./….mmt).
+        displayValue: value.trim(),
+        typeLabel: 'live',
+      };
+    }
+    if (isOsEnvRefValue(value)) {
+      return {
+        displayValue: value.trim(),
+        typeLabel: 'os',
+      };
+    }
   }
   return {
     displayValue: yamlValueToInputBox(value),

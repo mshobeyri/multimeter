@@ -6,6 +6,7 @@ import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
 import { safeList } from "mmt-core/util/safer";
 import {
   fieldForYamlSave,
+  reconcileResolvedRequestWithFieldPreview,
   seedTokenFieldPreviewFromRequest,
 } from "mmt-core/api-edit/apiBodyEdit";
 import { loadEnvVariables } from "../workspaceStorage";
@@ -256,15 +257,21 @@ export function useAPITesterLogic({
         await resolveFreshRequestData(resolvedInputs, {
           refreshRuntimeTokens: options?.refreshRuntimeTokens,
         });
-      setRequestData((prev) =>
-        applyScopedRequestData(prev, rface, scopes, touchedFieldsRef.current, respectTouched)
-      );
-      // Coherent telescope snapshot: field preview matches body/requestData.
-      // Also seed when a first-time git snapshot arrives after typing c:commit.
+      // Open / telescope / git-first-fetch: remint then seed.
+      // Live YAML edits: bind reminted resolve to the same preview store
+      // hover + TokenFieldInput use (otherwise body telescope remints alone).
+      let request = rface;
       if (refreshRuntimeTokens) {
         seedPreviewFromResolved(rface);
+      } else {
+        request = reconcileResolvedRequestWithFieldPreview(
+            apiRef.current, rface) as Request;
       }
-      return rface;
+      setRequestData((prev) =>
+        applyScopedRequestData(
+            prev, request, scopes, touchedFieldsRef.current, respectTouched)
+      );
+      return request;
     })();
   }, [resetTouchedFields, resolveFreshRequestData, seedPreviewFromResolved]);
 

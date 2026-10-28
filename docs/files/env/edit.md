@@ -11,17 +11,18 @@ For workspace runtime variables and presets in the Multimeter sidebar, see [Envi
 | Tab | What you edit |
 |---|---|
 | {{btn:note:Overview}} | Top-level `import` map (JSON/YAML/CSV data files) |
-| {{btn:symbol-variable:Variables}} | Variable definitions — choice maps or allowed-value lists |
+| {{btn:symbol-variable:Variables}} | Variable definitions — choice maps, allowed-value lists, or OS (`$VAR`) |
 | {{btn:tasklist:Presets}} | Preset groups that bind variables to choices |
 | {{btn:settings-gear:Settings}} | HTTP defaults (`setting.http.version`, `setting.http.timeout`, …) |
 | {{btn:shield:Certificates}} | Client certificate configuration for mTLS |
 
 ### Variables
 
-Each variable is either:
+Each variable is one of:
 
-- A **key-value map** (named choices) — each choice may be a scalar or a nested object/array; presets (or the panel dropdown) select a key. Nested values are edited as JSON in the value field (e.g. `{"latitude":52.52,"longitude":13.41}`).
+- A **key-value map** (named choices) — each choice may be a scalar or a nested object/array; presets (or the panel dropdown) select a key. Nested values are edited as JSON in the value field (e.g. `{"latitude":52.52,"longitude":13.41}`). Choice values may be `$VAR` [OS refs](./os-variables.md) or `./….mmt` [live](./live-variables.md) paths.
 - An **array list** (allowed values, scalars only) — presets or the runner pick from the list
+- **OS** — a single process env name, stored as `$NAME` in YAML (see [OS variables](./os-variables.md))
 
 ### Presets
 

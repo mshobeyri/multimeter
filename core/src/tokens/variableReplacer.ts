@@ -627,11 +627,16 @@ function resolveNestedInputTokens(
 }
 
 /**
- * File-backed env values (`./…mmt`) and process-store getters must stay as
- * `e:` tokens through UI/`resolveApiRequest` so runtime `mmtEnv_` can await
- * them. Sync substitution would bake the path string into the request body.
+ * File-backed env values (`./…mmt`), OS refs (`$VAR`), and process-store
+ * getters must stay as `e:` tokens through UI/`resolveApiRequest` so runtime
+ * `mmtEnv_` can await them. Sync substitution would bake `$PATH` or the path
+ * string into the API request body (Send / preview).
+ *
+ * Keep OS / `./…mmt` rules aligned with `envStore.isOsEnvRefValue` /
+ * `isEnvFilePathValue` (inline here to avoid an import cycle). Tests assert
+ * the three stay in lockstep.
  */
-function isDeferredEnvValue(value: unknown): boolean {
+export function isDeferredEnvValue(value: unknown): boolean {
   if (typeof value === 'function') {
     return true;
   }
@@ -639,7 +644,11 @@ function isDeferredEnvValue(value: unknown): boolean {
     return false;
   }
   const trimmed = value.trim();
-  return trimmed.startsWith('./') && /\.mmt$/i.test(trimmed);
+  if (trimmed.startsWith('./') && /\.mmt$/i.test(trimmed)) {
+    return true;
+  }
+  // Same rule as envStore.isOsEnvRefValue.
+  return /^\$[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed);
 }
 
 function resolveDynamicTokenValue(

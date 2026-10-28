@@ -72,6 +72,10 @@ function parseVariableValue(raw: unknown): EnvVariableValue | undefined {
     }
     return out;
   }
+  // Bare scalar: live `./….mmt`, OS `$VAR`, or a single fixed value.
+  if (isEnvScalarValue(raw)) {
+    return raw;
+  }
   return undefined;
 }
 

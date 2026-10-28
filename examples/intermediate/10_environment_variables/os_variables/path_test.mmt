@@ -1,0 +1,13 @@
+type: test
+title: OS PATH env ref
+description: Reads $PATH through e:path_from_os and echoes it in the request body
+import:
+  echoOs: ./echo_path.mmt
+steps:
+  # Must be the real process PATH, not the literal `$PATH` string.
+  - check: <<e:path_from_os>> != $PATH
+  - check: <<e:path_from_os>> =* .
+  - call: echoOs
+    id: result
+    expect:
+      echoed_path: e:path_from_os

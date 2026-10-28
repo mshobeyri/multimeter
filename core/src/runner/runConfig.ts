@@ -5,7 +5,7 @@ import {dirnamePath, joinPath, resolveRequestedAgainst} from '../util/fileHelper
 import parseYaml from '../parse/markupConvertor';
 import {processDataImportsInYaml} from '../convert/dataImportProcessor';
 import type {BinaryFileLoader, FileLoader} from '../jser/JSerFileLoader';
-import type {EnvStore} from '../env/envStore';
+import type {EnvStore, ProcessEnvMap} from '../env/envStore';
 import type {SuiteEnvironment} from '../data/SuiteData';
 
 export type {FileLoader, BinaryFileLoader} from '../jser/JSerFileLoader';
@@ -165,6 +165,11 @@ export interface RunFileOptions {
    * file-backed variable values).
    */
   envvarFilePath?: string;
+  /**
+   * Host OS / process environment for `$VAR` env-file refs. Injected by CLI
+   * and the extension; core never reads `process.env` itself.
+   */
+  processEnv?: ProcessEnvMap;
   /**
    * Internal: this `runFile` is resolving a file-backed env value.
    */

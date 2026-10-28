@@ -169,9 +169,9 @@ describe('API send_ requestOverride', () => {
     // (binary load / multipart / auth); it must not swap the override back in.
     expect(js).toContain('const __req = req || {};');
     expect(js).not.toMatch(/__mmt_requestOverride\) \? __mmt_requestOverride/);
-    // Skip evaluating remint expressions when override is set.
+    // Override freezes r:/c: but still awaits deferred live e: tokens.
     expect(js).toMatch(
-        /if \(typeof __mmt_requestOverride !== 'undefined' && __mmt_requestOverride\) \{\s*\n\s*req_ = __mmt_requestOverride;/,
+        /if \(typeof __mmt_requestOverride !== 'undefined' && __mmt_requestOverride\) \{\s*\n\s*req_ = await resolveDeferredEnvTokens_\(__mmt_requestOverride\);/,
     );
   });
 
@@ -235,7 +235,8 @@ describe('API send_ requestOverride', () => {
       envVars: {},
     });
     expect(funcSrc).toContain("mmtRandom_('uuid')");
-    expect(funcSrc).toContain('req_ = __mmt_requestOverride');
+    expect(funcSrc).toContain(
+        'req_ = await resolveDeferredEnvTokens_(__mmt_requestOverride)');
 
     const override = {
       url: 'https://example.com/already-minted',
@@ -258,6 +259,7 @@ describe('API send_ requestOverride', () => {
         'applyOmitToRequest_',
         'resolveRequestFormat_',
         'protocolFromUrl_',
+        'resolveDeferredEnvTokens_',
         '__mmt_requestOverride',
         '__mmt_originalSend',
         `${funcSrc}\nreturn json_send();`,
@@ -281,6 +283,7 @@ describe('API send_ requestOverride', () => {
         () => {},
         () => 'json',
         () => 'http',
+        async (v: any) => v,
         override,
         boom('__mmt_originalSend'),
     );
@@ -392,6 +395,7 @@ describe('API send_ requestOverride', () => {
            'applyOmitToRequest_',
            'resolveRequestFormat_',
            'protocolFromUrl_',
+           'resolveDeferredEnvTokens_',
            '__mmt_requestOverride',
            '__mmt_originalSend',
            `${funcSrc}\nreturn oauth_override();`,
@@ -419,6 +423,7 @@ describe('API send_ requestOverride', () => {
            () => {},
            () => 'json',
            () => 'http',
+           async (v: any) => v,
            override,
            async (req: any) => {
              originalCalls.push(req);
@@ -455,11 +460,13 @@ describe('API send_ requestOverride', () => {
       inputs: {},
       envVars: {},
     });
-    expect(js).toContain('req_ = __mmt_requestOverride');
-    expect(js).toContain('__grpcReq = __mmt_requestOverride');
+    expect(js).toContain(
+        'req_ = await resolveDeferredEnvTokens_(__mmt_requestOverride)');
+    expect(js).toContain('__grpcReq = req_');
     expect(js).toContain("mmtRandom_('uuid')");
     // Remint only in the else branch — override short-circuits first.
-    const overrideIdx = js.indexOf('req_ = __mmt_requestOverride');
+    const overrideIdx =
+        js.indexOf('req_ = await resolveDeferredEnvTokens_(__mmt_requestOverride)');
     const randomIdx = js.indexOf("mmtRandom_('uuid')");
     expect(overrideIdx).toBeGreaterThanOrEqual(0);
     expect(randomIdx).toBeGreaterThan(overrideIdx);

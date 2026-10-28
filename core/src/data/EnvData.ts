@@ -38,8 +38,12 @@ export type EnvScalar = string | number | boolean | null;
  */
 export type EnvChoiceValue = JSONValue;
 
-/** Choice map (named choices) or allowed-value list (scalars only). */
+/**
+ * Choice map (named choices), allowed-value list (scalars only), or a bare
+ * scalar (live `./….mmt`, OS `$VAR`, or a single fixed value).
+ */
 export type EnvVariableValue =
+  | EnvScalar
   | {[label: string]: EnvChoiceValue | undefined}
   | EnvScalar[];
 

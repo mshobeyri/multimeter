@@ -36,4 +36,5 @@ Select the environment / preset in the Environment panel (or pass `--preset` / `
 
 - [Environment files](../files/env/index.md)
 - [Live variables](../files/env/live-variables.md) — `./….mmt` values that run another file on each read
-- Example: [Environment Variables](/docs/examples/basic/03_environment_variables)
+- [OS variables](../files/env/os-variables.md) — whole-value `$VAR` refs from the host process env
+- Examples: [Basic](/docs/examples/basic/03_environment_variables) · [Intermediate (presets, OS `$VAR`, live)](/docs/examples/intermediate/10_environment_variables)

@@ -59,6 +59,35 @@ describe('createApiLogHelpers', () => {
     })).toBe('Outputs:\n  found:    "yes"\n  missing:  omit\n  literal:  "omit"');
   });
 
+  it('formats process-store getters as YAML source forms in Environment logs', () => {
+    const helpers = createApiLogHelpers();
+    const osGetter =
+        Object.assign(async () => '/bin', {__mmtOsEnvRef: '$PATH'});
+    const fileGetter = Object.assign(
+        async () => 'tok', {__mmtEnvFilePath: './create_session.mmt'});
+    const plainFn = async () => 'x';
+
+    expect(helpers.formatScalar(osGetter)).toBe('"$PATH"');
+    expect(helpers.formatScalar(fileGetter)).toBe('"./create_session.mmt"');
+    expect(helpers.formatScalar(plainFn)).toBe('"[getter]"');
+    expect(helpers.formatSection('Environment:', {
+      path_from_os: osGetter,
+      session_api: fileGetter,
+      host: 'https://example.com',
+    })).toBe(
+        'Environment:\n' +
+            '  path_from_os:  "$PATH"\n' +
+            '  session_api:   "./create_session.mmt"\n' +
+            '  host:          "https://example.com"');
+
+    // Baked source (what API runners embed) must behave the same.
+    const baked = (new Function(
+        `return (${CREATE_API_LOG_HELPERS_SOURCE})()`)()) as
+        ReturnType<typeof createApiLogHelpers>;
+    expect(baked.formatScalar(osGetter)).toBe('"$PATH"');
+    expect(baked.formatScalar(fileGetter)).toBe('"./create_session.mmt"');
+  });
+
   it('wraps raw values and detects them correctly', () => {
     const helpers = createApiLogHelpers();
     const rawValue = helpers.raw(123);

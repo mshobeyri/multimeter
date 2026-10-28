@@ -324,6 +324,10 @@
             "path": "files/env/live-variables.md"
           },
           {
+            "title": "OS variables",
+            "path": "files/env/os-variables.md"
+          },
+          {
             "title": "CLI",
             "path": "files/env/cli.md"
           },

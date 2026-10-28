@@ -2,6 +2,28 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.48.1-pre]
+
+Pre-release. VS Code extension `1.48.1`; Testlight CLI and MCP `1.48.1-pre` on `@pre`.
+
+- Fix live `e:` under API Tester Send for XML, urlencoded, and text bodies (bare, entity-escaped, and percent-encoded forms)
+
+## [1.48.0-pre]
+
+Pre-release. VS Code extension `1.48.0`; Testlight CLI and MCP `1.48.0-pre` on `@pre`.
+
+### Editor / tokens
+
+- YAML hover for `e:` / `r:` / `c:` shows resolved values with BodyView-style instant tips
+- Reuse the field-preview cache for hover so samples match telescope / Send (including first type)
+- Ctrl+click `e:` tokens opens the Environment panel focused on that variable
+- Fix live `e:` under API Tester Send for file-backed env targets
+
+### Website
+
+- Home layout: speed section, 2×2 capabilities, clearer FAQ, compact CTA panel
+- Why AI page with orbit graphic; Environment / History dock grouping
+
 ## [1.47.1]
 
 Stable release of the 1.47.x line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.47.1` on `@latest`.

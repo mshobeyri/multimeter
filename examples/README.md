@@ -18,7 +18,7 @@ Suites against well-known **public** APIs (no Multimeter echo server). See [`rea
 
 ## Intermediate
 
-Use these when you are ready for reusable APIs, authentication, mock servers, richer environment variables, inputs and outputs, suites, tag filters (`filter.only` / `filter.skip`), imports, data-driven tests, environment presets, documentation options/ranges, control flow, comparison operators (`expect` / `check` / `assert`), helper JavaScript, additional protocol or file formats, converting a small OpenAPI / Postman / WSDL / HTTP / Bruno file to `.mmt`, and the `omit` keyword.
+Use these when you are ready for reusable APIs, authentication, mock servers, richer environment variables (presets, OS `$VAR`, live `./….mmt` — see `intermediate/10_environment_variables`), inputs and outputs, suites, tag filters (`filter.only` / `filter.skip`), imports, data-driven tests, documentation options/ranges, control flow, comparison operators (`expect` / `check` / `assert`), helper JavaScript, additional protocol or file formats, converting a small OpenAPI / Postman / WSDL / HTTP / Bruno file to `.mmt`, and the `omit` keyword.
 
 ## Professional
 

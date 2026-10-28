@@ -1,0 +1,9 @@
+type: suite
+title: Environment variables
+description: >
+  Preset consumer, OS $PATH body echo, and live ./….mmt session consumers.
+  runner.dev uses https://local.mmt.dev (in-process); live session_api hits test.mmt.dev.
+items:
+  - ./presets/test/preset_test.mmt
+  - ./os_variables/path_test.mmt
+  - ./live_variables/consume_session_test.mmt

@@ -89,6 +89,41 @@ describe('resolveApiRequest', () => {
     });
   });
 
+  it('keeps e: tokens when env value is an OS $VAR ref (runtime getter)', () => {
+    const osApi = {
+      type: 'api',
+      url: 'https://example.com/echo',
+      method: 'post',
+      format: 'json',
+      body: {
+        path: 'e:path_from_os',
+        host: 'e:host',
+      },
+    } as APIData;
+    const request = resolveApiRequest(osApi, {}, {
+      path_from_os: '$PATH',
+      host: 'https://example.com',
+    }, {preserveStructuredBody: true});
+    expect(request.body).toEqual({
+      path: 'e:path_from_os',
+      host: 'https://example.com',
+    });
+  });
+
+  it('keeps e: tokens when env value is already an OS process-store getter', () => {
+    const getter = Object.assign(async () => '/usr/bin', {__mmtOsEnvRef: '$PATH'});
+    const osApi = {
+      type: 'api',
+      url: 'https://example.com/echo',
+      method: 'post',
+      format: 'json',
+      body: {path: 'e:path_from_os'},
+    } as APIData;
+    const request = resolveApiRequest(
+        osApi, {}, {path_from_os: getter}, {preserveStructuredBody: true});
+    expect(request.body).toEqual({path: 'e:path_from_os'});
+  });
+
   it('preserves structured bodies while resolving all tokens for UI preview', () => {
     const request = resolveApiRequest(api, {}, {}, {preserveStructuredBody: true});
     expect(typeof request.body).toBe('object');

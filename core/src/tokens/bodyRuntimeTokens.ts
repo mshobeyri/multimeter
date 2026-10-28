@@ -1341,6 +1341,19 @@ const tokenFieldPreviewRandomCache =
     new Map<string, TokenFieldPreviewCacheEntry>();
 
 /**
+ * Same frozen r:/c: samples as {@link tokenFieldPreviewRandomCache}, indexed
+ * by plain token (`r:uuid`) in seed / first-mint order. Telescope and YAML
+ * hover both read/write this store so the first painter wins.
+ */
+const tokenFieldPreviewByPlain = new Map<string, unknown[]>();
+
+/**
+ * How many by-plain slots for each `r:` plain have been claimed into a field
+ * cache entry. Lets hover mint first and telescope reuse that sample.
+ */
+const tokenFieldPreviewPlainClaimed = new Map<string, number>();
+
+/**
  * Ordered r:/c: values for the whole request body (any format).
  * Body editors pass a JSON / XML / urlencoded / text buffer as the lookup
  * key, which will not match per-field seeds — this sentinel is format-free.
@@ -1348,9 +1361,107 @@ const tokenFieldPreviewRandomCache =
 export const TOKEN_FIELD_PREVIEW_BODY_SCOPE = '\0mmt.body';
 const BODY_DOCUMENT_CACHE_KEY = TOKEN_FIELD_PREVIEW_BODY_SCOPE;
 
+function normalizePreviewPlainKey(plain: string): string {
+  return String(plain || '').trim().toLowerCase();
+}
+
+function rememberTokenFieldPreviewPlain(plain: string, value: unknown): void {
+  const key = normalizePreviewPlainKey(plain);
+  if (!key || value === undefined) {
+    return;
+  }
+  let list = tokenFieldPreviewByPlain.get(key);
+  if (!list) {
+    list = [];
+    tokenFieldPreviewByPlain.set(key, list);
+  }
+  list.push(value);
+}
+
+/** After a seed, mark all by-plain r: slots claimed so new fields mint fresh. */
+function syncTokenFieldPreviewPlainClaimed(): void {
+  for (const [key, list] of tokenFieldPreviewByPlain) {
+    if (key.startsWith('r:')) {
+      tokenFieldPreviewPlainClaimed.set(key, list.length);
+    }
+  }
+}
+
+/**
+ * Peek a frozen r:/c: preview by plain token without reminting.
+ * `occurrenceIndex` is among prior seeds/mints of the same plain (0-based).
+ */
+export function peekTokenFieldPreviewByPlain(
+    plain: string,
+    occurrenceIndex = 0,
+    ): unknown {
+  const list = tokenFieldPreviewByPlain.get(normalizePreviewPlainKey(plain));
+  if (!list || occurrenceIndex < 0 || occurrenceIndex >= list.length) {
+    return undefined;
+  }
+  return list[occurrenceIndex];
+}
+
+/**
+ * Single source for idle r: samples (telescope + YAML hover).
+ * Returns the frozen value at `occurrenceIndex`, minting only missing slots.
+ */
+export function ensureTokenFieldPreviewByPlain(
+    plain: string,
+    occurrenceIndex = 0,
+    ): unknown {
+  const key = normalizePreviewPlainKey(plain);
+  if (!key || occurrenceIndex < 0) {
+    return undefined;
+  }
+  let list = tokenFieldPreviewByPlain.get(key);
+  if (!list) {
+    list = [];
+    tokenFieldPreviewByPlain.set(key, list);
+  }
+  while (list.length <= occurrenceIndex) {
+    list.push(lookupRuntimeResolvedValue(plain));
+  }
+  return list[occurrenceIndex];
+}
+
+/**
+ * How many times `plain` appears as an e:/r:/c: token in `content` before
+ * `offset` (bare, `<< >>`, or `{{ }}`). Used so YAML hover picks the matching
+ * seeded sample when the same token appears more than once.
+ */
+export function countPlainTokenOccurrencesBefore(
+    content: string,
+    offset: number,
+    plain: string,
+    ): number {
+  const target = normalizePreviewPlainKey(plain);
+  if (!target || !content || offset <= 0) {
+    return 0;
+  }
+  const head = content.slice(0, Math.min(offset, content.length));
+  const re = new RegExp(
+      `(?:<<\\s*|\\{\\{\\s*)?([erc]):((?:${TOKEN_NAME_RE}(?:\\([^)]*\\))?)|(?:${TOKEN_NAME_RE}))(${ACCESSOR_PATH_RE})\\s*(?:>>|\\}\\})?`,
+      'gi');
+  let count = 0;
+  let match: RegExpExecArray|null;
+  while ((match = re.exec(head)) !== null) {
+    const prefix = (match[1] || '').toLowerCase();
+    const spec = match[2] || '';
+    const accessor = match[3] || '';
+    const found = prefix === 'e' ? `e:${spec}${accessor}` : `${prefix}:${spec}`;
+    if (normalizePreviewPlainKey(found) === target) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 /** Drop frozen field-preview samples (telescope on / open / before re-seed). */
 export function clearTokenFieldPreviewRandomCache(): void {
   tokenFieldPreviewRandomCache.clear();
+  tokenFieldPreviewByPlain.clear();
+  tokenFieldPreviewPlainClaimed.clear();
 }
 
 function cacheKeyForFieldSource(source: string): string {
@@ -1440,7 +1551,14 @@ function lookupCachedRandomForFieldPreview(
     entry = {r: []};
     tokenFieldPreviewRandomCache.set(sourceKey, entry);
   }
-  const resolved = lookupRuntimeResolvedValue(plain);
+  // Same store as YAML hover: reuse hover-minted slots, else mint once here.
+  const plainKey = normalizePreviewPlainKey(plain);
+  const claimed = tokenFieldPreviewPlainClaimed.get(plainKey) ?? 0;
+  const existingLen =
+      tokenFieldPreviewByPlain.get(plainKey)?.length ?? 0;
+  const plainOcc = claimed < existingLen ? claimed : existingLen;
+  const resolved = ensureTokenFieldPreviewByPlain(plain, plainOcc);
+  tokenFieldPreviewPlainClaimed.set(plainKey, claimed + 1);
   entry.r.push(resolved);
   return resolved;
 }
@@ -1466,6 +1584,7 @@ export function seedTokenFieldPreviewFromResolved(
     source: unknown,
     resolved: unknown,
     scope?: string,
+    options?: {rememberPlain?: boolean},
     ): void {
   if (source == null || typeof source === 'object') {
     return;
@@ -1474,6 +1593,7 @@ export function seedTokenFieldPreviewFromResolved(
   if (!sourceText || isLiteralTokenValue(sourceText)) {
     return;
   }
+  const rememberPlain = options?.rememberPlain !== false;
   const cacheKey = tokenPreviewCacheKey(sourceText, scope);
   const leaves: TokenResolvedLeaf[] = [];
   walkTokenResolvedLeaves(sourceText, resolved, leaves);
@@ -1484,9 +1604,15 @@ export function seedTokenFieldPreviewFromResolved(
     const prefix = leaf.plain.charAt(0).toLowerCase();
     if (prefix === 'r') {
       rList.push(leaf.piece);
+      if (rememberPlain) {
+        rememberTokenFieldPreviewPlain(leaf.plain, leaf.piece);
+      }
     } else if (prefix === 'c') {
       sawCurrent = true;
       cList.push(leaf.piece);
+      if (rememberPlain) {
+        rememberTokenFieldPreviewPlain(leaf.plain, leaf.piece);
+      }
     }
   }
   if (rList.length === 0 && !sawCurrent) {
@@ -1496,6 +1622,303 @@ export function seedTokenFieldPreviewFromResolved(
     r: rList,
     ...(sawCurrent ? {c: cList} : {}),
   });
+  if (rememberPlain) {
+    syncTokenFieldPreviewPlainClaimed();
+  }
+}
+
+/**
+ * Adopt `candidate` into the by-plain store at `occurrenceIndex`, or reuse an
+ * existing frozen sample (hover / earlier reconcile wins over remints).
+ */
+function adoptTokenFieldPreviewByPlain(
+    plain: string,
+    occurrenceIndex: number,
+    candidate: unknown,
+    ): unknown {
+  const existing = peekTokenFieldPreviewByPlain(plain, occurrenceIndex);
+  if (existing !== undefined) {
+    return existing;
+  }
+  const key = normalizePreviewPlainKey(plain);
+  if (!key || occurrenceIndex < 0 || candidate === undefined) {
+    return candidate;
+  }
+  let list = tokenFieldPreviewByPlain.get(key);
+  if (!list) {
+    list = [];
+    tokenFieldPreviewByPlain.set(key, list);
+  }
+  while (list.length < occurrenceIndex) {
+    list.push(lookupRuntimeResolvedValue(plain));
+  }
+  if (list.length === occurrenceIndex) {
+    list.push(candidate);
+  }
+  return list[occurrenceIndex];
+}
+
+function nextPlainOccurrence(
+    plainOcc: Map<string, number>,
+    plain: string,
+    ): number {
+  const key = normalizePreviewPlainKey(plain);
+  const occ = plainOcc.get(key) ?? 0;
+  plainOcc.set(key, occ + 1);
+  return occ;
+}
+
+function reconcileStringField(
+    source: string,
+    resolved: unknown,
+    plainOcc: Map<string, number>,
+    ): unknown {
+  if (isLiteralTokenValue(source)) {
+    return resolved;
+  }
+  const whole = plainTokenFromLeaf(source);
+  if (whole) {
+    const prefix = whole.charAt(0).toLowerCase();
+    if (prefix === 'r') {
+      return adoptTokenFieldPreviewByPlain(
+          whole, nextPlainOccurrence(plainOcc, whole), resolved);
+    }
+    if (prefix === 'c') {
+      const occ = nextPlainOccurrence(plainOcc, whole);
+      const peeked = peekTokenFieldPreviewByPlain(whole, occ);
+      return peeked !== undefined ? peeked : resolved;
+    }
+    return resolved;
+  }
+  const parts = splitEmbeddedTokenParts(source);
+  if (!parts) {
+    return resolved;
+  }
+  const leaves: TokenResolvedLeaf[] = [];
+  collectEmbeddedResolvedLeaves(source, resolved, leaves);
+  let leafIdx = 0;
+  let out = '';
+  for (const part of parts) {
+    if (part.kind === 'text') {
+      out += part.value;
+      continue;
+    }
+    const leaf = leaves[leafIdx++];
+    const candidate = leaf?.piece ?? '';
+    const prefix = part.plain.charAt(0).toLowerCase();
+    if (prefix === 'r') {
+      const adopted = adoptTokenFieldPreviewByPlain(
+          part.plain, nextPlainOccurrence(plainOcc, part.plain), candidate);
+      out += ieResolvedToDisplayText(adopted);
+    } else if (prefix === 'c') {
+      const occ = nextPlainOccurrence(plainOcc, part.plain);
+      const peeked = peekTokenFieldPreviewByPlain(part.plain, occ);
+      out += ieResolvedToDisplayText(
+          peeked !== undefined ? peeked : candidate);
+    } else {
+      out += candidate;
+    }
+  }
+  return out;
+}
+
+function reconcileRuntimeNode(
+    source: unknown,
+    resolved: unknown,
+    plainOcc: Map<string, number>,
+    ): unknown {
+  if (typeof source === 'string') {
+    return reconcileStringField(source, resolved, plainOcc);
+  }
+  if (Array.isArray(source)) {
+    const resolvedArr = Array.isArray(resolved) ? resolved : [];
+    return source.map(
+        (item, i) => reconcileRuntimeNode(item, resolvedArr[i], plainOcc));
+  }
+  if (source && typeof source === 'object') {
+    const srcObj = source as Record<string, unknown>;
+    const resObj =
+        resolved && typeof resolved === 'object' && !Array.isArray(resolved) ?
+          resolved as Record<string, unknown> :
+          {};
+    const out: Record<string, unknown> = {...resObj};
+    for (const key of Object.keys(srcObj)) {
+      out[key] = reconcileRuntimeNode(srcObj[key], resObj[key], plainOcc);
+    }
+    return out;
+  }
+  return resolved;
+}
+
+function rebindFieldPreviewCachesFromRequest(
+    source: {
+      url?: unknown;
+      headers?: Record<string, unknown>|null;
+      query?: Record<string, unknown>|null;
+      cookies?: Record<string, unknown>|null;
+      body?: unknown;
+      graphql?: {operation?: unknown}|null;
+    },
+    resolved: {
+      url?: unknown;
+      headers?: Record<string, unknown>|null;
+      query?: Record<string, unknown>|null;
+      cookies?: Record<string, unknown>|null;
+      body?: unknown;
+      graphql?: {operation?: unknown}|null;
+    },
+    ): void {
+  const noRemember = {rememberPlain: false};
+  if (source.url != null) {
+    seedTokenFieldPreviewFromResolved(
+        source.url, resolved.url, undefined, noRemember);
+  }
+  if (source.headers && typeof source.headers === 'object') {
+    const res = resolved.headers && typeof resolved.headers === 'object' ?
+      resolved.headers :
+      {};
+    for (const key of Object.keys(source.headers)) {
+      if (!Object.prototype.hasOwnProperty.call(res, key)) {
+        continue;
+      }
+      seedTokenFieldPreviewFromResolved(
+          source.headers[key], res[key],
+          tokenFieldPreviewScope('headers', key), noRemember);
+    }
+  }
+  if (source.query && typeof source.query === 'object') {
+    const res = resolved.query && typeof resolved.query === 'object' ?
+      resolved.query :
+      {};
+    for (const key of Object.keys(source.query)) {
+      if (!Object.prototype.hasOwnProperty.call(res, key)) {
+        continue;
+      }
+      seedTokenFieldPreviewFromResolved(
+          source.query[key], res[key],
+          tokenFieldPreviewScope('query', key), noRemember);
+    }
+  }
+  if (source.cookies && typeof source.cookies === 'object') {
+    const res = resolved.cookies && typeof resolved.cookies === 'object' ?
+      resolved.cookies :
+      {};
+    for (const key of Object.keys(source.cookies)) {
+      if (!Object.prototype.hasOwnProperty.call(res, key)) {
+        continue;
+      }
+      seedTokenFieldPreviewFromResolved(
+          source.cookies[key], res[key],
+          tokenFieldPreviewScope('cookies', key), noRemember);
+    }
+  }
+  if (source.body != null) {
+    seedTokenFieldPreviewDeepNoRemember(source.body, resolved.body);
+    seedTokenFieldPreviewBodyDocument(source.body, resolved.body);
+  }
+  if (source.graphql?.operation != null) {
+    seedTokenFieldPreviewFromResolved(
+        source.graphql.operation, resolved.graphql?.operation, undefined,
+        noRemember);
+  }
+  syncTokenFieldPreviewPlainClaimed();
+}
+
+function seedTokenFieldPreviewDeepNoRemember(
+    source: unknown,
+    resolved: unknown,
+    ): void {
+  if (source == null) {
+    return;
+  }
+  if (typeof source === 'string') {
+    seedTokenFieldPreviewFromResolved(
+        source, resolved, undefined, {rememberPlain: false});
+    return;
+  }
+  if (Array.isArray(source)) {
+    const resolvedArr = Array.isArray(resolved) ? resolved : [];
+    for (let i = 0; i < source.length; i++) {
+      seedTokenFieldPreviewDeepNoRemember(source[i], resolvedArr[i]);
+    }
+    return;
+  }
+  if (typeof source === 'object') {
+    const srcObj = source as Record<string, unknown>;
+    const resObj =
+        resolved && typeof resolved === 'object' && !Array.isArray(resolved) ?
+          resolved as Record<string, unknown> :
+          {};
+    for (const key of Object.keys(srcObj)) {
+      if (!Object.prototype.hasOwnProperty.call(resObj, key)) {
+        continue;
+      }
+      seedTokenFieldPreviewDeepNoRemember(srcObj[key], resObj[key]);
+    }
+  }
+}
+
+/**
+ * Bind a freshly reminted resolveApiRequest result to the field-preview store
+ * (same samples telescope + YAML hover use). Existing cache wins; new tokens
+ * adopt the reminted value into the cache.
+ */
+export function reconcileResolvedRequestWithFieldPreview<T extends {
+  url?: unknown;
+  headers?: Record<string, unknown>|null;
+  query?: Record<string, unknown>|null;
+  cookies?: Record<string, unknown>|null;
+  body?: unknown;
+  graphql?: {operation?: unknown}|null;
+}>(
+    source: {
+      url?: unknown;
+      headers?: Record<string, unknown>|null;
+      query?: Record<string, unknown>|null;
+      cookies?: Record<string, unknown>|null;
+      body?: unknown;
+      graphql?: {operation?: unknown}|null;
+    }|null|undefined,
+    resolved: T,
+    ): T {
+  if (!source || !resolved) {
+    return resolved;
+  }
+  const plainOcc = new Map<string, number>();
+  const out = {...resolved} as T;
+  if (source.url != null) {
+    (out as {url?: unknown}).url =
+        reconcileRuntimeNode(source.url, resolved.url, plainOcc);
+  }
+  if (source.headers && typeof source.headers === 'object') {
+    (out as {headers?: unknown}).headers =
+        reconcileRuntimeNode(source.headers, resolved.headers, plainOcc) as
+            Record<string, unknown>;
+  }
+  if (source.query && typeof source.query === 'object') {
+    (out as {query?: unknown}).query =
+        reconcileRuntimeNode(source.query, resolved.query, plainOcc) as
+            Record<string, unknown>;
+  }
+  if (source.cookies && typeof source.cookies === 'object') {
+    (out as {cookies?: unknown}).cookies =
+        reconcileRuntimeNode(source.cookies, resolved.cookies, plainOcc) as
+            Record<string, unknown>;
+  }
+  if (source.body != null) {
+    (out as {body?: unknown}).body =
+        reconcileRuntimeNode(source.body, resolved.body, plainOcc);
+  }
+  if (source.graphql?.operation != null) {
+    const op = reconcileRuntimeNode(
+        source.graphql.operation, resolved.graphql?.operation, plainOcc);
+    (out as {graphql?: {operation?: unknown}}).graphql = {
+      ...(resolved.graphql || {}),
+      operation: op,
+    };
+  }
+  rebindFieldPreviewCachesFromRequest(source, out);
+  return out;
 }
 
 function seedTokenFieldPreviewRecord(
@@ -1803,7 +2226,8 @@ export function findDisplayTokenCharRanges(
     if (prefix === 'r') {
       const occ = randomOccurrence.get(cacheKey) ?? 0;
       randomOccurrence.set(cacheKey, occ + 1);
-      resolved = lookupCachedRandomForFieldPreview(cacheKey, m.plain, occ);
+      resolved =
+          lookupCachedRandomForFieldPreview(cacheKey, m.plain, occ);
     } else if (prefix === 'c') {
       const occ = currentOccurrence.get(cacheKey) ?? 0;
       currentOccurrence.set(cacheKey, occ + 1);

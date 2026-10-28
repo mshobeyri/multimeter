@@ -227,6 +227,7 @@ export async function parseAssistantRunArgs(
     exampleName: exampleNameOpt,
     manualInputs,
     envvar: mergedBaseEnv,
+    processEnv: process.env,
     manualEnvvars,
     fileLoader: async (p: string) => {
       let abs: string;

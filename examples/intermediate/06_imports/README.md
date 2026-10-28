@@ -89,4 +89,4 @@ npx testlight run examples/intermediate/06_imports/tests/test_api.mmt --env-file
 
 - See [Simple Test](../../basic/02_simple_test/) for a direct basic test example.
 - See [CSV Data Driven Test](../09_csv_data_driven_test/) for CSV data imports.
-- See [Environment Presets](../10_environment_presets/) for environment presets in `multimeter.mmt`.
+- See [Environment Variables](../10_environment_variables/) for presets, OS `$VAR`, and live values in `multimeter.mmt`.
