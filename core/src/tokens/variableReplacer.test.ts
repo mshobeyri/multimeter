@@ -1,4 +1,27 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, resolveInputsMap, resolveInputsMapAsync, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, collectEnvRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations, replaceOutputTokenRefs, replaceOutputTokensPlain, rewriteOutputSetKey } from './variableReplacer';
+import {
+  isEnvFilePathValue,
+  isOsEnvRefValue,
+} from '../env/envStore';
+import {
+  collectEnvRefsFromObject,
+  collectInputRefsFromObject,
+  embedDynamicTokensAsJsInterpolations,
+  isDeferredEnvValue,
+  normalizeEnvTokens,
+  replaceAllRefs,
+  replaceDynamicTokensToJsInterpolations,
+  replaceEnvTokensPlain,
+  replaceInputRefsWithBrace,
+  replaceInputRefsWithNone,
+  replaceOutputTokenRefs,
+  replaceOutputTokensPlain,
+  resolveEnvTokenValues,
+  resolveInputsMap,
+  resolveInputsMapAsync,
+  rewriteOutputSetKey,
+  toTemplateValueJs,
+  toTemplateWithEnvVars,
+} from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
   it('normalizes <<e:VAR>> to await mmtEnv_ lookup', () => {
@@ -276,6 +299,70 @@ describe('resolveEnvTokenValues', () => {
     expect(replaceAllRefs(
         {body: {session: 'e:session', host: 'e:host'}}, {}, {}, env).body)
         .toEqual({session: 'e:session', host: 'https://x'});
+  });
+
+  it('does not substitute OS $VAR env values (runtime mmtEnv_)', () => {
+    const env = {path_from_os: '$PATH', host: 'https://x'};
+    expect(resolveEnvTokenValues('e:path_from_os', env)).toBe('e:path_from_os');
+    expect(resolveEnvTokenValues('<<e:path_from_os>>', env))
+        .toBe('<<e:path_from_os>>');
+    expect(resolveEnvTokenValues('e:host', env)).toBe('https://x');
+    // Embedded OS refs in strings are not deferred (scope B).
+    expect(resolveEnvTokenValues('e:embedded', {embedded: 'https://$HOST'}))
+        .toBe('https://$HOST');
+    expect(replaceAllRefs(
+               {body: {path: 'e:path_from_os', host: 'e:host'}}, {}, {}, env)
+               .body)
+        .toEqual({path: 'e:path_from_os', host: 'https://x'});
+  });
+
+  it('does not substitute process-store getter functions', () => {
+    const getter = Object.assign(async () => '/bin', {__mmtOsEnvRef: '$PATH'});
+    const env = {path_from_os: getter};
+    expect(resolveEnvTokenValues('e:path_from_os', env)).toBe('e:path_from_os');
+    expect(replaceAllRefs({path: 'e:path_from_os'}, {}, {}, env).path)
+        .toBe('e:path_from_os');
+  });
+});
+
+describe('isDeferredEnvValue', () => {
+  it('defers OS refs, ./…mmt paths, and getters', () => {
+    expect(isDeferredEnvValue('$PATH')).toBe(true);
+    expect(isDeferredEnvValue(' $API_TOKEN ')).toBe(true);
+    expect(isDeferredEnvValue('./create.mmt')).toBe(true);
+    expect(isDeferredEnvValue('./nested/x.mmt')).toBe(true);
+    expect(isDeferredEnvValue(async () => 'x')).toBe(true);
+  });
+
+  it('does not defer plain values or embedded $ refs', () => {
+    expect(isDeferredEnvValue('https://x')).toBe(false);
+    expect(isDeferredEnvValue('https://$HOST')).toBe(false);
+    expect(isDeferredEnvValue('$1BAD')).toBe(false);
+    expect(isDeferredEnvValue('${PATH}')).toBe(false);
+    expect(isDeferredEnvValue('session.mmt')).toBe(false);
+    expect(isDeferredEnvValue('/abs/x.mmt')).toBe(false);
+    expect(isDeferredEnvValue(null)).toBe(false);
+    expect(isDeferredEnvValue(1)).toBe(false);
+  });
+
+  it('stays aligned with envStore OS / live path detectors', () => {
+    const samples = [
+      '$PATH',
+      ' $HOST ',
+      'https://$HOST',
+      '$1BAD',
+      '${PATH}',
+      './create.mmt',
+      './a/b.mmt',
+      'session.mmt',
+      '/abs/x.mmt',
+      'plain',
+      '',
+    ];
+    for (const sample of samples) {
+      const expected = isOsEnvRefValue(sample) || isEnvFilePathValue(sample);
+      expect(isDeferredEnvValue(sample)).toBe(expected);
+    }
   });
 });
 
