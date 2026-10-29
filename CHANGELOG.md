@@ -2,6 +2,33 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.48.2]
+
+Stable release of the 1.48.x line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.48.2` on `@latest`.
+
+### Panels
+
+- Default Environment Variables and History to the bottom Multimeter panel with a single collapsed **Views** dock
+- **Reset panels state** (Views list + command) restores sidebar vs bottom layout
+- Remove the duplicate sidebar Views dock
+
+### Editor / tokens
+
+- YAML hover for `e:` / `r:` / `c:` shows resolved values with BodyView-style instant tips
+- Reuse the field-preview cache for hover so samples match telescope / Send
+- Ctrl+click `e:` tokens opens the Environment panel focused on that variable
+- Fix live `e:` under API Tester Send for file-backed env targets and for XML, urlencoded, and text bodies
+
+### Environment
+
+- OS `$VAR` env refs; defer OS refs through API resolve like live `./` paths; docs and examples
+
+### Website
+
+- Home layout: speed section, 2×2 capabilities, clearer FAQ, compact CTA panel
+- Why AI page with orbit graphic; Environment / History dock grouping
+- Remove unused images; add demo screenshots
+
 ## [1.48.1-pre]
 
 Pre-release. VS Code extension `1.48.1`; Testlight CLI and MCP `1.48.1-pre` on `@pre`.
