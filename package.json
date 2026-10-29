@@ -461,6 +461,11 @@
         "category": "Multimeter"
       },
       {
+        "command": "multimeter.views.resetPanels",
+        "title": "Reset Panels State",
+        "category": "Multimeter"
+      },
+      {
         "command": "multimeter.environment.focus",
         "title": "Focus Environment Variables",
         "category": "Multimeter"
@@ -521,23 +526,16 @@
     "views": {
       "multimeter-activitybar": [
         {
-          "id": "multimeter.activityDock",
-          "name": "Views",
-          "icon": "res/activity.png",
-          "visibility": "collapsed",
-          "order": 0
-        },
-        {
-          "id": "multimeter.tempFiles",
-          "name": "Temp Files",
+          "id": "multimeter.start",
+          "name": "Get Started",
           "icon": "res/activity.png",
           "type": "webview",
           "visibility": "visible",
           "order": 1
         },
         {
-          "id": "multimeter.start",
-          "name": "Get Started",
+          "id": "multimeter.tempFiles",
+          "name": "Temp Files",
           "icon": "res/activity.png",
           "type": "webview",
           "visibility": "visible",
@@ -566,42 +564,38 @@
           "type": "webview",
           "visibility": "collapsed",
           "order": 5
-        },
+        }
+      ],
+      "multimeter-panel": [
         {
           "id": "multimeter.environment",
           "name": "Environment Variables",
           "icon": "res/activity.png",
           "type": "webview",
-          "visibility": "collapsed",
-          "order": 6
+          "visibility": "visible",
+          "order": 0
         },
         {
           "id": "multimeter.history",
           "name": "History",
           "icon": "res/activity.png",
           "type": "webview",
-          "visibility": "collapsed",
-          "order": 7
-        }
-      ],
-      "multimeter-panel": [
+          "visibility": "visible",
+          "order": 1
+        },
         {
           "id": "multimeter.panelDock",
           "name": "Views",
           "icon": "res/activity.png",
-          "visibility": "visible",
-          "order": 0
+          "visibility": "collapsed",
+          "order": 2
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "multimeter.activityDock",
-        "contents": "Drag Multimeter views onto this **Views** header to dock or tab-merge them in the Multimeter sidebar.\n\nWebview-only panel tabs cannot accept drops (VS Code limitation) — use **Group Environment & History here** instead.\n\n[Group Environment & History here](command:multimeter.views.groupInSidebar)\n[Open Environment Variables](command:multimeter.environment.focus)\n[Open History](command:multimeter.history.focus)"
-      },
-      {
         "view": "multimeter.panelDock",
-        "contents": "Drag Multimeter views onto this **Views** header to dock them in the bottom Multimeter panel.\n\nIf Environment or History is stuck as its own panel tab with no drop target, regroup them:\n\n[Group Environment & History in panel](command:multimeter.views.groupInPanel)\n[Group Environment & History in sidebar](command:multimeter.views.groupInSidebar)"
+        "contents": "Drag Multimeter views onto this **Views** header to dock them in the bottom Multimeter panel (with Environment and History).\n\nIf layout gets messy:\n\n[Reset panels state](command:multimeter.views.resetPanels)\n[Group Environment & History in panel](command:multimeter.views.groupInPanel)\n[Group Environment & History in sidebar](command:multimeter.views.groupInSidebar)"
       }
     ],
     "keybindings": [
