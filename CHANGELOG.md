@@ -2,11 +2,19 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.48.4]
+
+Stable release. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.48.4` on `@latest`.
+
+- Release CI: build macOS arm64 on `macos-15` ( `macos-14` jobs were cancelling with no runner, blocking GitHub Release / npm)
+
 ## [1.48.3]
 
 Stable release. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.48.3` on `@latest`.
 
 - Fix incomplete `package-lock.json` so `npm ci` works with workspaces (unblocks Release testlight / npm publish after 1.48.2)
+
+*(1.48.3 tag builds passed `npm ci`, but the workflow was cancelled when the macOS arm64 job never got a runner; use 1.48.4.)*
 
 ## [1.48.2]
 

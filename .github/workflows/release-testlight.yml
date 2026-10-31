@@ -41,7 +41,7 @@ jobs:
             pkg-target: node22-macos-x64
             ext: ''
           - platform: macos-arm64
-            os: macos-14       # Apple Silicon runner
+            os: macos-15       # Apple Silicon (macos-14 was cancelling with no runner)
             pkg-target: node22-macos-arm64
             ext: ''
           - platform: linux-x64
