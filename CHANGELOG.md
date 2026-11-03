@@ -2,6 +2,25 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.49.0-pre]
+
+Pre-release. VS Code extension `1.49.0`; Testlight CLI and MCP `1.49.0-pre` on `@pre`.
+
+### Checks / expect
+
+- Preserve types for whole-value `${…}` refs in expect, check, var/set, and templates (no longer string-wrapped)
+- Mixed text like `${x}other` stays a string template; YAML numbers and bare text keep prior behavior
+
+### Tokens / timing
+
+- Fix `e:` / `i:` resolution on delay and repeat
+- Fix list-item token highlight
+- Fix `c:` future/past args leaking as a literal postfix
+
+### Website
+
+- Refresh comparison table with help tips and clearer rows
+
 ## [1.48.4]
 
 Stable release. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.48.4` on `@latest`.
