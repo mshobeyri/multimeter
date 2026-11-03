@@ -759,6 +759,16 @@ describe('multiple template vars in one string', () => {
         .toBe("mmtCurrent_('utc_datetime(+1h1m)')");
     expect(toTemplateValueJs('at-<<c:datetime(-1d2m1s)>>'))
         .toContain("mmtCurrent_('datetime(-1d2m1s)')");
+    // Future/past aliases use unsigned args — must keep `(1h)` inside the
+    // mmtCurrent_ call (not leave it as a literal postfix in the template).
+    expect(toTemplateValueJs('c:utc_datetime_future(1h)'))
+        .toBe("mmtCurrent_('utc_datetime_future(1h)')");
+    expect(toTemplateValueJs('c:datetime_future(65)'))
+        .toBe("mmtCurrent_('datetime_future(65)')");
+    expect(toTemplateValueJs('at-<<c:utc_datetime_future(65s)>>'))
+        .toBe("`at-${mmtCurrent_('utc_datetime_future(65s)')}`");
+    expect(toTemplateWithEnvVars('ts=<<c:utc_datetime_future(1h)>>'))
+        .toBe('`ts=${mmtCurrent_(\'utc_datetime_future(1h)\')}`');
   });
 });
 

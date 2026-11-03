@@ -1,5 +1,8 @@
 import { MONTHS, WEEKDAYS } from './RandomResources';
-import {signedDurationMs, unsignedDurationMs} from '../util/durationParse';
+import {
+  parseRelativeAmountMs,
+  signedDurationMs,
+} from '../util/durationParse';
 import type {TokenValueType} from './Random';
 import {
   currentGitBranch,
@@ -267,7 +270,13 @@ export function currentValueForToken(spec: string): any|undefined {
   }
 
   if (alias) {
-    const duration = unsignedDurationMs(match[2]);
+    // Unsigned durations (`1h`, `2d4h`) or bare day counts (`7`), same as
+    // random relative windows. Reject signed forms (`+1h`) here.
+    const raw = String(match[2] || '').trim();
+    if (/^[+-]/.test(raw)) {
+      return undefined;
+    }
+    const duration = parseRelativeAmountMs(raw);
     if (duration === undefined) {
       return undefined;
     }

@@ -19,8 +19,8 @@ const RANDOM_TOKEN_ARGUMENTS_RE =
     '\\(\\s*[^(),\\s]+(?:\\s*,\\s*[^(),\\s]+)?\\s*\\)';
 const RANDOM_TOKEN_SPEC_RE =
     `${TOKEN_NAME_RE}(?:${RANDOM_TOKEN_ARGUMENTS_RE})?`;
-const CURRENT_TOKEN_ARGUMENTS_RE =
-    '\\([+-](?:\\d+(?:\\.\\d+)?(?:ms|s|m|h|d|w))+\\)';
+// Keep in sync with variableReplacer.CURRENT_TOKEN_ARGUMENTS_RE.
+const CURRENT_TOKEN_ARGUMENTS_RE = '\\([^()]*\\)';
 const CURRENT_TOKEN_SPEC_RE =
     `${TOKEN_NAME_RE}(?:${CURRENT_TOKEN_ARGUMENTS_RE})?`;
 /** Loose `(...)` so quoted `r:int(a,b)` / `c:date(x)` still count as token-like. */

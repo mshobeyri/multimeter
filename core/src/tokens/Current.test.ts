@@ -21,6 +21,7 @@ import {
   currentValueForToken,
   currentWeekdayNumber,
   currentYear,
+  CURRENT_FUTURE_PAST_ALIASES,
   CURRENT_TOKEN_MAP,
   currentTokenValueType,
   CURRENT_TOKEN_VALUE_TYPES,
@@ -122,6 +123,24 @@ describe('Current tokens', () => {
           .toBe(Math.floor(Date.parse('2026-09-17T12:30:00Z') / 1000));
       expect(currentValueForToken('time_past(15m)')).toBe(
           currentTime(new Date('2026-09-17T11:45:00.000Z')));
+      // Bare day count (same as random relative windows).
+      expect(currentValueForToken('utc_datetime_future(65)')).toBe(
+          '2026-11-21T12:00:00Z');
+      expect(currentValueForToken('utc_date_future(65)')).toBe('2026-11-21');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('every future/past alias resolves with a duration arg', () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2026-09-17T12:00:00.000Z'));
+      for (const alias of Object.keys(CURRENT_FUTURE_PAST_ALIASES)) {
+        const value = currentValueForToken(`${alias}(1h)`);
+        expect(value).not.toBeUndefined();
+        expect(String(value)).not.toMatch(/\(1h\)/);
+      }
     } finally {
       jest.useRealTimers();
     }

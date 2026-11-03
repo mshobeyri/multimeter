@@ -27,8 +27,10 @@ export const RANDOM_TOKEN_ARGUMENTS_RE =
     '\\(\\s*[^(),\\s]+(?:\\s*,\\s*[^(),\\s]+)?\\s*\\)';
 export const RANDOM_TOKEN_SPEC_RE =
     `${TOKEN_NAME_RE}(?:${RANDOM_TOKEN_ARGUMENTS_RE})?`;
-export const CURRENT_TOKEN_ARGUMENTS_RE =
-    '\\([+-](?:\\d+(?:\\.\\d+)?(?:ms|s|m|h|d|w))+\\)';
+// Signed offsets (`(+1h)`, `(-1d2m)`) and unsigned future/past args (`(1h)`,
+// `(2d4h)`). Any `(…)` is consumed so invalid args never leak as a literal
+// postfix after a resolved clock value (e.g. `2026-01-01(1h)`).
+export const CURRENT_TOKEN_ARGUMENTS_RE = '\\([^()]*\\)';
 export const CURRENT_TOKEN_SPEC_RE =
     `${TOKEN_NAME_RE}(?:${CURRENT_TOKEN_ARGUMENTS_RE})?`;
 export const ACCESSOR_SEGMENT_RE =
