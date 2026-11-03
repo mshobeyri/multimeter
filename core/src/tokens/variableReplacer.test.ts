@@ -181,6 +181,29 @@ describe('toTemplateValueJs', () => {
     expect(toTemplateValueJs('i:message')).toBe('message');
   });
 
+  it('whole-value ${…} returns a typed JS ref (not a string template)', () => {
+    expect(toTemplateValueJs('${x}')).toBe('x');
+    expect(toTemplateValueJs('${x.y}')).toBe('x.y');
+    expect(toTemplateValueJs('${i1.body.body.xxx}')).toBe('i1.body.body.xxx');
+    expect(toTemplateValueJs('  ${count}  ')).toBe('count');
+    expect(toTemplateValueJs('${  spaced  }')).toBe('spaced');
+    expect(toTemplateValueJs('${}')).toBe('undefined');
+    // Same type-preserving behavior as whole-value i: tokens.
+    expect(toTemplateValueJs('${message}')).toBe(toTemplateValueJs('<<i:message>>'));
+  });
+
+  it('mixed ${…} text stays a string template', () => {
+    expect(toTemplateValueJs('${x}other')).toBe('`${x}other`');
+    expect(toTemplateValueJs('pre${x}')).toBe('`pre${x}`');
+    expect(toTemplateValueJs('a${x}b')).toBe('`a${x}b`');
+    expect(toTemplateValueJs('id-${user.id}')).toBe('`id-${user.id}`');
+  });
+
+  it('plain YAML text stays a string template', () => {
+    expect(toTemplateValueJs('hello')).toBe('`hello`');
+    expect(toTemplateValueJs('hello suite')).toBe('`hello suite`');
+  });
+
   it('embeds sibling i: refs in default templates', () => {
     expect(toTemplateValueJs('asd_<<i:message>>')).toBe('`asd_${message}`');
     expect(toTemplateValueJs('<<i:name>>_<<e:base_url>>'))

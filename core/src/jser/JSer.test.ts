@@ -899,7 +899,9 @@ describe('step id locals across stages', () => {
     });
     expect(js).toContain('let doLogin;');
     expect(js).toContain('doLogin = await login(');
-    expect(js).toContain('${doLogin.token}');
+    // Whole-value ${doLogin.token} stays typed (not string-wrapped).
+    expect(js).toContain('console.log(doLogin.token)');
+    expect(js).not.toContain('console.log(`${doLogin.token}`)');
   });
 
   it('hoists step ids across stages for ${id} after after:', async () => {
@@ -931,7 +933,8 @@ describe('step id locals across stages', () => {
     expect(js).not.toContain('const doLogin =');
     expect(js).toContain('await Promise.all([loginPromise]);');
     expect(js).toContain('const profilePromise = (async () => {');
-    expect(js).toContain('${doLogin.token}');
+    expect(js).toContain('console.log(doLogin.token)');
+    expect(js).not.toContain('console.log(`${doLogin.token}`)');
     expect(js).not.toContain('ids_');
   });
 });
@@ -1712,8 +1715,11 @@ describe('conditionalStatementToJSfunc', () => {
   });
 
   it('treats bare words as YAML strings and ${…} as JS', () => {
+    // Default output keys (status/body/…) use the same _-fallback access as actual.
     expect(conditionalStatementToJSfunc('${result.status} == 200'))
-        .toBe('equals_(result.status, 200)');
+        .toBe('equals_((Object.prototype.hasOwnProperty.call(result, "status") ? result["status"] : (result._ ? result._["status"] : undefined)), 200)');
+    expect(conditionalStatementToJSfunc('${result.custom} == 200'))
+        .toBe('equals_(result.custom, 200)');
     expect(conditionalStatementToJSfunc('12s == 100'))
         .toBe('equals_("12s", 100)');
     expect(conditionalStatementToJSfunc('akjsdhk == true'))
@@ -2000,7 +2006,115 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(result.echoed_message, `${message}`)');
+    // Whole-value input token stays typed (not string-wrapped).
+    expect(js).toContain('equals_(result.echoed_message, message)');
+    expect(js).not.toContain('equals_(result.echoed_message, `${message}`)');
+  });
+
+  it('preserves types for whole-value ${…} refs in expect maps', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectCrossStep',
+      test: {
+        steps: [
+          {
+            call: 'echo',
+            id: 'i1',
+            expect: { 'body.body.xxx': 10 },
+          } as any,
+          {
+            call: 'echo',
+            id: 'i2',
+            expect: { 'body.body.xxx': '${i1.body.body.xxx}' },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    // Expected must be a typed JS ref (with output access), not a string template.
+    expect(js).toContain(
+        'equals_(mmtAccess_((Object.prototype.hasOwnProperty.call(i2, "body") ? i2["body"] : (i2._ ? i2._["body"] : undefined)), ".body.xxx"), mmtAccess_((Object.prototype.hasOwnProperty.call(i1, "body") ? i1["body"] : (i1._ ? i1._["body"] : undefined)), ".body.xxx"))');
+    expect(js).not.toContain('`${i1.body.body.xxx}`');
+  });
+
+  it('preserves types for whole-value ${…} expected in object checks', () => {
+    const checkJs = checkToJSfunc({
+      actual: 10,
+      operator: '==',
+      expected: '${i1.body.body.xxx}',
+    } as any, false);
+    expect(checkJs).toContain(
+        'equals_(10, mmtAccess_((Object.prototype.hasOwnProperty.call(i1, "body") ? i1["body"] : (i1._ ? i1._["body"] : undefined)), ".body.xxx"))');
+    expect(checkJs).not.toContain('equals_(10, `${i1.body.body.xxx}`)');
+  });
+
+  it('keeps whole-value ${x} typed in var/set while plain and mixed text stay strings', async () => {
+    const ctx: TestContext = {
+      name: 'varSetTypedRef',
+      test: {
+        steps: [
+          {var: {x: 10, label: 'hello', mixed: '${x}-suffix', copy: '${x}'}} as any,
+          {set: {y: '${x}', title: 'plain', joined: 'id-${x}'}} as any,
+          {check: {actual: 10, operator: '==', expected: '${x}'}} as any,
+          {check: {actual: 10, operator: '==', expected: '${y}'}} as any,
+          {check: {actual: 'hello', operator: '==', expected: '${label}'}} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('var x = 10;');
+    expect(js).toContain('var label = `hello`;');
+    expect(js).toContain('var mixed = `${x}-suffix`;');
+    expect(js).toContain('var copy = x;');
+    expect(js).not.toContain('var copy = `${x}`;');
+    expect(js).toContain('y = x;');
+    expect(js).not.toContain('y = `${x}`;');
+    expect(js).toContain('title = `plain`;');
+    expect(js).toContain('joined = `id-${x}`;');
+    expect(js).toContain('equals_(10, x)');
+    expect(js).toContain('equals_(10, y)');
+    expect(js).not.toContain('equals_(10, `${x}`)');
+    expect(js).not.toContain('equals_(10, `${y}`)');
+  });
+
+  it('passes runtime int equality against whole-value ${x} from var', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'runtimeTypedVarRef',
+      test: {
+        type: 'test',
+        steps: [
+          {var: {x: 10}} as any,
+          {check: {actual: 10, operator: '==', expected: '${x}'}} as any,
+          {check: {actual: '${x}', operator: '==', expected: 10}} as any,
+          // Mixed text forces a string ("100"), so int equality fails.
+          {check: {actual: 10, operator: '==', expected: '${x}0'}} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `${js}`,
+      title: 'runtime-typed-var-ref',
+      logger: jest.fn(),
+      runId: 'run-typed-var-ref',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const checks = events.filter(
+        (e) => e.scope === 'test-step' && e.stepType === 'check');
+    expect(checks).toHaveLength(3);
+    expect(checks[0]?.status).toBe('passed');
+    expect(checks[1]?.status).toBe('passed');
+    expect(checks[2]?.status).toBe('failed');
   });
 
   it('resolves current and random tokens in expected values at runtime', async () => {
@@ -3067,7 +3181,9 @@ describe('API query handling', () => {
         any;
     const js = await apiToJSfunc(ctx);
     expect(js).toContain('query: {');
-    expect(js).toContain('"page": `${page}`');
+    // Whole-value i:page / ${page} keeps the input's YAML type (number default).
+    expect(js).toContain('"page": page');
+    expect(js).not.toContain('"page": `${page}`');
     expect(js).toContain('"locale": (await mmtEnv_("LOCALE"))');
   });
 

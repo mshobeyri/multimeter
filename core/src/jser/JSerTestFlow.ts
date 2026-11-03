@@ -57,7 +57,8 @@ const toConditionJsExpr = (
     return 'undefined';
   }
   if (/^\$\{[\s\S]+\}$/.test(trimmed)) {
-    return trimmed.slice(2, -1).trim() || 'undefined';
+    return normalizeRuntimeActualExpression(trimmed.slice(2, -1).trim()) ||
+        'undefined';
   }
   try {
     const parsed = YAML.parse(trimmed);
@@ -551,8 +552,10 @@ export const assertToJSfunc = (
 const judgeValueToJs = (
     value: unknown, knownInputNames?: ReadonlySet<string>): string => {
   if (typeof value === 'string') {
-    if (/^\$\{[\s\S]+\}$/.test(value.trim())) {
-      return value.trim().slice(2, -1).trim() || 'undefined';
+    const trimmed = value.trim();
+    if (/^\$\{[\s\S]+\}$/.test(trimmed)) {
+      return normalizeRuntimeActualExpression(trimmed.slice(2, -1).trim()) ||
+          'undefined';
     }
     return toTemplateValueJs(value, jsTokenOptions(knownInputNames));
   }
@@ -656,9 +659,17 @@ const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[]
 const expectValueToJs = (
     value: ExpectValue, knownInputNames?: ReadonlySet<string>): string => {
   const normalized = normalizeOmitToNull(value);
-  return typeof normalized === 'string'
-    ? toTemplateValueJs(normalized, jsTokenOptions(knownInputNames))
-    : JSON.stringify(normalized);
+  if (typeof normalized === 'string') {
+    const trimmed = normalized.trim();
+    // Whole-value `${…}` is a typed JS reference (same as actual / judge),
+    // not a string template — preserves numbers/bools/objects from prior steps.
+    if (/^\$\{[\s\S]+\}$/.test(trimmed)) {
+      return normalizeRuntimeActualExpression(trimmed.slice(2, -1).trim()) ||
+          'undefined';
+    }
+    return toTemplateValueJs(normalized, jsTokenOptions(knownInputNames));
+  }
+  return JSON.stringify(normalized);
 };
 
 const comparisonFromPartsToJSfunc = (

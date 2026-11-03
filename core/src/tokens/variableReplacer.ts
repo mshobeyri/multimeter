@@ -485,14 +485,23 @@ export function embedDynamicTokensAsJsInterpolations(
  * Convert a string value to a JS expression, resolving e:, r:, c:, i:, and o: tokens.
  *
  * If the **entire** string is a single token (e.g. `<<e:HOST>>`, `r:email`,
- * `<<i:message>>`, `<<o:token>>`), returns a bare JS expression. Otherwise
- * returns a backtick template literal with `${…}` interpolations.
+ * `<<i:message>>`, `<<o:token>>`) or a whole-value `${…}` JS ref, returns a
+ * bare JS expression (preserves number/bool/object types). Otherwise returns a
+ * backtick template literal with `${…}` interpolations (plain YAML text and
+ * mixed values like `${x}other`).
  */
 export function toTemplateValueJs(
     value: string, options?: JsTokenGenOptions): string {
   const s = String(value ?? '');
   if (isLiteralTokenValue(s)) {
     return JSON.stringify(unwrapLiteralToken(s));
+  }
+
+  // Whole-value `${expr}` is a typed JS reference (parity with <<i:x>> / i:x),
+  // not a string template. Mixed text (`${x}other`) falls through below.
+  const trimmed = s.trim();
+  if (/^\$\{[\s\S]*\}$/.test(trimmed)) {
+    return trimmed.slice(2, -1).trim() || 'undefined';
   }
 
   const fullEnvAngle = new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);
