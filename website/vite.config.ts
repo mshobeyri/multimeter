@@ -352,6 +352,9 @@ export default defineConfig({
     devCacheBustHtmlPlugin(),
   ],
   server: {
+    // Keep a single fixed port so bookmarks / open tabs don’t land on stale Vite instances.
+    port: 5300,
+    strictPort: true,
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate',
       Pragma: 'no-cache',
@@ -362,6 +365,8 @@ export default defineConfig({
     watch: {
       // Docs markdown lives outside website/; ensure HMR picks up edits.
       ignored: ['**/node_modules/**', '**/dist/**'],
+      usePolling: true,
+      interval: 300,
     },
   },
   preview: {

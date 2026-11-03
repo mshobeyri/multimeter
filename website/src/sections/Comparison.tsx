@@ -1,4 +1,6 @@
-import { Check, FileCode, X } from 'lucide-react'
+import { Check, CircleHelp, FileCode, X } from 'lucide-react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import FadeIn from '../components/FadeIn'
 import type { CompareCell } from '../data/comparePages'
@@ -7,6 +9,8 @@ type ToolKey = 'multimeter' | 'postman' | 'bruno' | 'restClient'
 
 interface FeatureRow {
   feature: string
+  /** Hover explanation for features that need more than a label. */
+  help?: string
   values: Record<ToolKey, CompareCell>
 }
 
@@ -19,60 +23,76 @@ const tools: Array<{ key: ToolKey; name: string; logo?: string; highlight?: bool
 
 const features: FeatureRow[] = [
   {
-    feature: 'Where files live',
+    feature: 'Version control',
+    help: 'Multimeter, Bruno, and REST Client keep definitions as files in Git. Postman is cloud-collection first — you export/import JSON or use Git Sync, so the workspace collection is still the primary unit of work.',
     values: {
-      multimeter: 'Git YAML (.mmt)',
-      postman: 'Cloud collections',
-      bruno: 'Git (.bru)',
-      restClient: '.http files',
+      multimeter: 'Git',
+      postman: 'Cloud / export JSON',
+      bruno: 'Git',
+      restClient: 'Git',
     },
   },
+
   {
     feature: 'Editor UI',
+    help: 'Multimeter: send requests and run tests without leaving VS Code — visual editor and YAML stay side by side. Postman and Bruno are separate apps. REST Client is plain .http text.',
     values: {
-      multimeter: 'VS Code visual editor',
+      multimeter: 'Stay in VS Code',
       postman: 'Desktop / web app',
-      bruno: 'Desktop app',
+      bruno: 'Detached desktop app',
       restClient: '.http text',
     },
   },
   {
-    feature: 'VS Code native',
-    values: { multimeter: true, postman: false, bruno: false, restClient: false },
-  },
-  {
     feature: 'Same files in CI',
+    help: 'Multimeter runs the same .mmt files locally and in CI via Testlight / the GitHub Action. Postman uses Newman; Bruno has bru CLI. REST Client has no first-class runner.',
     values: {
-      multimeter: 'testlight / Action',
+      multimeter: 'Testlight / Action',
       postman: 'Newman',
       bruno: 'bru CLI',
       restClient: false,
     },
   },
   {
-    feature: 'Open specs without converting',
+    feature: 'File layout',
+    help: 'Multimeter uses small YAML files — each API, test, or suite has one duty — so humans and AI open only the topic they need. Postman is usually one large collection JSON. Bruno is one .bru per request. REST Client keeps requests in .http files.',
     values: {
-      multimeter: 'Open as MMT',
-      postman: 'N/A',
-      bruno: 'Import',
+      multimeter: 'Use distributed YAML files',
+      postman: 'Large collection JSON',
+      bruno: 'One .bru per request',
+      restClient: '.http files',
+    },
+  },
+
+  {
+    feature: 'Orchestration',
+    help: 'Multimeter uses suites to control which items run and in what order (including parallel groups). That gives AI a clear run graph. Postman organizes work as collections; Bruno’s runner is mostly sequential folders.',
+    values: {
+      multimeter: 'Suites',
+      postman: 'Collections',
+      bruno: 'Folders',
       restClient: false,
     },
   },
+
   {
-    feature: 'Tests and suites',
+    feature: 'Declarative test flow',
+    help: 'Multimeter tests are declarative steps (call, expect, assert, check) in YAML. Postman leans on scripts (pm.test). Bruno uses JS for anything non-trivial. REST Client has minimal asserts.',
     values: {
       multimeter: true,
       postman: 'Scripts',
-      bruno: 'Limited',
+      bruno: 'JS for logic',
       restClient: false,
     },
   },
   {
     feature: 'Parallel runs / call cache',
+    help: 'Multimeter parallelizes suite groups and test stages by default, and can reuse login/setup calls in the same run. Postman (Newman) and Bruno runners stay largely sequential.',
     values: { multimeter: true, postman: false, bruno: false, restClient: false },
   },
   {
-    feature: 'AI judges fuzzy replies',
+    feature: 'AI judge',
+    help: 'Multimeter can score non-deterministic replies (similarity, relevance, open-ended checks) with a model you choose, in the same test flow. Not a separate eval product.',
     values: {
       multimeter: true,
       postman: false,
@@ -82,7 +102,18 @@ const features: FeatureRow[] = [
   },
   {
     feature: 'Local mock server',
+    help: 'Multimeter ships a local mock server from YAML (including WebSocket). Postman mocks are cloud/paid. Bruno and REST Client do not include one.',
     values: { multimeter: true, postman: 'Cloud (paid)', bruno: false, restClient: false },
+  },
+  {
+    feature: 'Open specs without converting',
+    help: 'Multimeter can open OpenAPI, Postman, Bruno, .http, and WSDL as MMT in a split editor and run them without a full convert. Others typically import or stay in their native format only.',
+    values: {
+      multimeter: 'Open as MMT',
+      postman: 'N/A',
+      bruno: 'Import',
+      restClient: false,
+    },
   },
   {
     feature: 'Account required',
@@ -90,6 +121,7 @@ const features: FeatureRow[] = [
   },
   {
     feature: 'License',
+    help: 'Multimeter is Apache 2.0 end-to-end. Postman is proprietary. Bruno is open core (paid extras). REST Client is MIT.',
     values: {
       multimeter: 'Apache 2.0',
       postman: 'Proprietary',
@@ -118,6 +150,79 @@ function ToolMark({ tool }: { tool: (typeof tools)[number] }) {
     return <img src={tool.logo} alt="" className="w-6 h-6 object-contain" />
   }
   return <FileCode size={20} className="text-slate-400" />
+}
+
+function FeatureHelpTip({
+  tipId,
+  help,
+  anchor,
+}: {
+  tipId: string
+  help: string
+  anchor: DOMRect
+}) {
+  const ref = useRef<HTMLSpanElement>(null)
+
+  useLayoutEffect(() => {
+    const node = ref.current
+    if (!node) {
+      return
+    }
+    const height = node.offsetHeight
+    const width = node.offsetWidth
+    // Sit to the right of the help icon, vertically centered on it.
+    const top = Math.max(8, Math.min(anchor.top + anchor.height / 2 - height / 2, window.innerHeight - height - 8))
+    const left = Math.min(anchor.right + 10, window.innerWidth - width - 8)
+    node.style.top = `${top}px`
+    node.style.left = `${Math.max(8, left)}px`
+  }, [anchor, help])
+
+  return createPortal(
+    <span id={tipId} ref={ref} role="tooltip" className="mmt-compare-tip">
+      {help}
+    </span>,
+    document.body,
+  )
+}
+
+function FeatureLabel({ feature, help }: { feature: string; help?: string }) {
+  const tipId = useId()
+  const [anchor, setAnchor] = useState<DOMRect | null>(null)
+
+  if (!help) {
+    return <>{feature}</>
+  }
+
+  const showTip = (el: HTMLElement) => {
+    setAnchor(el.getBoundingClientRect())
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>{feature}</span>
+      <button
+        type="button"
+        className="inline-flex shrink-0 rounded-full text-slate-400 hover:text-white focus:outline-none focus-visible:text-white"
+        aria-label={`About ${feature}`}
+        aria-describedby={anchor ? tipId : undefined}
+        onMouseEnter={(e) => {
+          showTip(e.currentTarget)
+        }}
+        onMouseLeave={() => {
+          setAnchor(null)
+        }}
+        onFocus={(e) => {
+          showTip(e.currentTarget)
+        }}
+        onBlur={() => {
+          setAnchor(null)
+        }}
+      >
+        <CircleHelp size={15} strokeWidth={2.25} className="opacity-90" />
+      </button>
+      {anchor ? <FeatureHelpTip tipId={tipId} help={help} anchor={anchor} /> : null}
+    </span>
+  )
 }
 
 export default function Comparison() {
@@ -173,7 +278,7 @@ export default function Comparison() {
                   return (
                     <tr key={row.feature} className={`border-b border-white/5 last:border-0 ${zebra}`}>
                       <td className={`sticky left-0 z-10 px-5 py-3.5 text-sm text-slate-200 ${zebra}`}>
-                        {row.feature}
+                        <FeatureLabel feature={row.feature} help={row.help} />
                       </td>
                       {tools.map((tool) => (
                         <td
