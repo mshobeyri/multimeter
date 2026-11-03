@@ -89,6 +89,34 @@ describe('tokenHighlightPatterns', () => {
     expect(collectTokenHighlightMatches(text)).toContain('r:int(1,5)');
   });
 
+  it('highlights bare tokens on list-item steps (- delay: e:…)', () => {
+    const text = [
+      'steps:',
+      '  - delay: e:pause',
+      '  - delay: i:wait',
+      '  - repeat: e:times',
+      '  - repeat: i:window',
+      '  - print: e:hello',
+      '  - e:whole_item',
+      '  - const:',
+      '      greeting: e:hello',
+      '  - setenv:',
+      '      from_input: i:who',
+    ].join('\n');
+    const matches = collectTokenHighlightMatches(text);
+    expect(matches).toEqual(expect.arrayContaining([
+      'e:pause',
+      'i:wait',
+      'e:times',
+      'i:window',
+      'e:hello',
+      'e:whole_item',
+      'i:who',
+    ]));
+    // Nested under const: is a normal key: value line (also highlighted).
+    expect(matches.filter((t) => t === 'e:hello').length).toBeGreaterThanOrEqual(2);
+  });
+
   it('matches the full inline token span for parameterized random tokens', () => {
     const text = '<<r:int(10,20)>>';
     INLINE_ANGLE_TOKEN_HIGHLIGHT_RE.lastIndex = 0;

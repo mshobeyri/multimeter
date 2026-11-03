@@ -7,6 +7,8 @@ Pause the flow for a duration.
 - delay: 2s     # units: ns|ms|s|m|h
 - delay: 1h5m   # combined duration
 - delay: 5m3s   # combined duration
+- delay: e:pause   # env / input tokens resolve at runtime
+- delay: i:wait
 ```
 
 Often used inside [repeat](./repeat.md) or between [call](./call.md) / [http](./http.md) steps.

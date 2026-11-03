@@ -245,9 +245,11 @@ export const PARSE_DURATION_JS_FN = `(function __parseDurationMs(v) {
 
 /**
  * Return a JavaScript expression that evaluates to milliseconds for a delay value.
- * Static values are inlined; dynamic/template values use runtime parsing.
+ * Static values are inlined; dynamic values (`e:delay`, `i:wait`, templates)
+ * resolve tokens first, then parse at runtime.
  */
-export function durationToJsMsExpr(value: string | number): string {
+export function durationToJsMsExpr(
+    value: string | number, tokenOptions?: JsTokenGenOptions): string {
   if (typeof value === 'number') {
     return String(Math.round(value));
   }
@@ -259,7 +261,9 @@ export function durationToJsMsExpr(value: string | number): string {
   if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
     return String(Math.round(Number(trimmed)));
   }
-  return `${PARSE_DURATION_JS_FN}(${JSON.stringify(value)})`;
+  // e:/i:/o:/r:/c: (and ${…} templates) → runtime value, then parse.
+  const resolved = toTemplateValueJs(trimmed, tokenOptions);
+  return `${PARSE_DURATION_JS_FN}(${resolved})`;
 }
 
 /**

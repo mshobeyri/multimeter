@@ -3122,6 +3122,31 @@ describe('delay step generation', () => {
     expect(js3).toContain('Math.min(__delayLeft, 2000)');
     expect(js3).not.toContain('setTimeout(r, 3900000)');
   });
+
+  it('resolves e: and i: delay values at runtime', async () => {
+    const envJs = await testToJsfunc({
+      name: 'delayEnv',
+      test: {steps: [{delay: 'e:delay'} as any]} as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(envJs).toContain('mmtEnv_("delay")');
+    expect(envJs).toContain('__parseDurationMs');
+    expect(envJs).not.toContain('"e:delay"');
+
+    const inputJs = await testToJsfunc({
+      name: 'delayInput',
+      test: {
+        inputs: {wait: '50ms'},
+        steps: [{delay: 'i:wait'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(inputJs).toContain('__parseDurationMs');
+    expect(inputJs).not.toContain('"i:wait"');
+    expect(inputJs).toMatch(/wait/);
+  });
 });
 
 describe('repeat step generation', () => {
@@ -3145,6 +3170,42 @@ describe('repeat step generation', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('for (let i = 0; i < 3; i++)');
+  });
+
+  it('resolves e: and i: repeat values at runtime', async () => {
+    const envJs = await testToJsfunc({
+      name: 'repeatEnv',
+      test: {
+        steps: [{repeat: 'e:times', steps: [{print: 'tick'} as any]} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(envJs).toContain('mmtEnv_("times")');
+    expect(envJs).toContain('__repeatRaw');
+    expect(envJs).not.toContain('i < e:times');
+
+    const inputJs = await testToJsfunc({
+      name: 'repeatInput',
+      test: {
+        inputs: {times: 2},
+        steps: [{repeat: 'i:times', steps: [{print: 'tick'} as any]} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(inputJs).toContain('__repeatRaw');
+    expect(inputJs).not.toContain('i < i:times');
+  });
+
+  it('emits infinite loop for static inf', async () => {
+    const js = await testToJsfunc({
+      name: 'repeatInf',
+      test: {steps: [{repeat: 'inf', steps: [{print: 'tick'} as any]} as any]} as any,
+      inputs: {},
+      envVars: {},
+    }, true);
+    expect(js).toContain('for (;;)');
   });
 });
 

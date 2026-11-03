@@ -32,6 +32,14 @@
   steps:
     - call: monitor
     - delay: 1s
+
+# count or duration from env / inputs
+- repeat: e:times
+  steps:
+    - call: poll
+- repeat: i:window
+  steps:
+    - call: poll
 ```
 
 ---

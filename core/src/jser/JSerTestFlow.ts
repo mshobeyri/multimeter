@@ -1,7 +1,13 @@
 import {APIData} from '../data/APIData';
 import {resolveApiHttpMethod} from '../network/apiMethod';
 import {apiToJSfunc} from './JSerAPI';
-import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from './JSerHelper';
+import {
+  durationToJsMsExpr,
+  indentLines,
+  PARSE_DURATION_JS_FN,
+  parseDurationString,
+  toInputsParams,
+} from './JSerHelper';
 import {Comparison, ComparisonObject, comparisonOperatorPattern, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, isTimeAnyOperator, normalizeReportConfig, ReportConfig, ReportLevel, ScalarExpectValue, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from '../data/TestData';
 import {getTestFlowStepType} from '../parse/testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
@@ -393,9 +399,42 @@ export const repeatToJSfunc = async (
 }`;
   }
 
-  // Default: count-based repeat
-  return `for (let i = 0; i < ${loopCondition}; i++) {
+  if (loopCondition.toLowerCase() === 'inf') {
+    return `for (;;) {
   ${indentLines(loopBody)}
+}`;
+  }
+
+  // Static count (number or bare digits).
+  if (typeof loop.repeat === 'number' || /^\d+$/.test(loopCondition)) {
+    return `for (let i = 0; i < ${loopCondition}; i++) {
+  ${indentLines(loopBody)}
+}`;
+  }
+
+  // Dynamic e:/i:/… — decide count vs duration vs inf at runtime.
+  const rawExpr = toTemplateValueJs(
+      loopCondition, jsTokenOptions(knownInputNames));
+  const indentedBody = indentLines(loopBody);
+  return `{
+  const __repeatRaw = ${rawExpr};
+  const __repeatStr = String(__repeatRaw ?? '').trim();
+  const __repeatLower = __repeatStr.toLowerCase();
+  if (__repeatLower === 'inf') {
+    for (;;) {
+      ${indentedBody}
+    }
+  } else if (/^((?:\\d+(?:\\.\\d+)?)(?:ns|ms|s|m|h))+$/i.test(__repeatLower)) {
+    const __repeatMs = ${PARSE_DURATION_JS_FN}(__repeatStr);
+    for (const __repeatStart = Date.now(); Date.now() < __repeatStart + __repeatMs; ) {
+      ${indentedBody}
+    }
+  } else {
+    const __repeatN = Number(__repeatRaw);
+    for (let i = 0; i < __repeatN; i++) {
+      ${indentedBody}
+    }
+  }
 }`;
 };
 
@@ -405,12 +444,14 @@ export const DELAY_ABORT_CHECK_MS = 2000;
 /**
  * Generate an awaitable delay that cooperatively checks abort about every 2s.
  * Short delays still wait once; longer ones are split into ≤2s chunks.
+ * Resolves `e:` / `i:` (and other) tokens before parsing the duration.
  */
-export function delayToJSfunc(d: string|number): string {
+export function delayToJSfunc(
+    d: string|number, knownInputNames?: ReadonlySet<string>): string {
   // Use a block so locals don't leak; checkAbort_ is the run-scoped helper
   // injected by jsRunner (correct under parallel suite execution).
   return `{
-  let __delayLeft = ${durationToJsMsExpr(d)};
+  let __delayLeft = ${durationToJsMsExpr(d, jsTokenOptions(knownInputNames))};
   while (__delayLeft > 0) {
     await checkAbort_();
     const __wait = Math.min(__delayLeft, ${DELAY_ABORT_CHECK_MS});
@@ -986,12 +1027,15 @@ try {
   return result;
 };
 
-const varToJSfunc = (decl: string, step: any, rewriteOutputKeys = false): string => {
+const varToJSfunc = (
+    decl: string, step: any, rewriteOutputKeys = false,
+    knownInputNames?: ReadonlySet<string>): string => {
   return Object.entries(step)
       .map(([varName, value]) => {
         const lhs = rewriteOutputKeys ? (rewriteOutputSetKey(varName) ?? varName) : varName;
         if (typeof value === 'string') {
-          return `${decl}${lhs} = \`${value}\`;`;
+          return `${decl}${lhs} = ${
+            toTemplateValueJs(value, jsTokenOptions(knownInputNames))};`;
         } else {
           return `${decl}${lhs} = ${value};`;
         }
@@ -999,7 +1043,9 @@ const varToJSfunc = (decl: string, step: any, rewriteOutputKeys = false): string
       .join('\n');
 };
 
-export const setenvToJSfunc = (setenv: Record<string, any>, enabled: boolean): string => {
+export const setenvToJSfunc = (
+    setenv: Record<string, any>, enabled: boolean,
+    knownInputNames?: ReadonlySet<string>): string => {
   if (!enabled) {
     return '';
   }
@@ -1009,7 +1055,8 @@ export const setenvToJSfunc = (setenv: Record<string, any>, enabled: boolean): s
   }
   const objEntries = entries.map(([envKey, outputKeyOrValue]) => {
     const valueExpr = typeof outputKeyOrValue === 'string' ?
-        toTemplateWithVars(outputKeyOrValue) :
+        toTemplateValueJs(
+            outputKeyOrValue, jsTokenOptions(knownInputNames)) :
         JSON.stringify(outputKeyOrValue);
     return `${JSON.stringify(envKey)}: ${valueExpr}`;
   });
@@ -1075,7 +1122,7 @@ export const flowStepsToJsfunc = async (
                     hoistedIds, knownInputNames);
                 break;
               case 'delay':
-                stepJs = delayToJSfunc((step as any).delay);
+                stepJs = delayToJSfunc((step as any).delay, knownInputNames);
                 break;
               case 'for':
                 stepJs = await forToJSfunc(
@@ -1093,19 +1140,24 @@ export const flowStepsToJsfunc = async (
                 }
                 break;
               case 'set':
-                stepJs = varToJSfunc('', (step as any).set, true);
+                stepJs = varToJSfunc(
+                    '', (step as any).set, true, knownInputNames);
                 break;
               case 'var':
-                stepJs = varToJSfunc('var ', (step as any).var);
+                stepJs = varToJSfunc(
+                    'var ', (step as any).var, false, knownInputNames);
                 break;
               case 'const':
-                stepJs = varToJSfunc('const ', (step as any).const);
+                stepJs = varToJSfunc(
+                    'const ', (step as any).const, false, knownInputNames);
                 break;
               case 'let':
-                stepJs = varToJSfunc('let ', (step as any).let);
+                stepJs = varToJSfunc(
+                    'let ', (step as any).let, false, knownInputNames);
                 break;
               case 'setenv':
-                stepJs = setenvToJSfunc((step as any).setenv, emitSetenv);
+                stepJs = setenvToJSfunc(
+                    (step as any).setenv, emitSetenv, knownInputNames);
                 break;
               default:
                 stepJs = '';

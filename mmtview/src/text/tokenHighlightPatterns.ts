@@ -53,11 +53,13 @@ export const CURLY_TOKEN_HIGHLIGHT_RE = new RegExp(
 );
 
 /**
- * Bare tokens highlight only as a whole YAML value:
- * `key: i:name` or `- r:uuid`, through the end of the line.
+ * Bare tokens highlight only as a whole YAML value, through end of line:
+ * - `key: i:name`
+ * - `- r:uuid` (list item whose value is the token)
+ * - `- delay: e:pause` / `- repeat: i:times` (list item + field)
  */
 const WHOLE_VALUE_PREFIX =
-  `(?:^|\\n)[ \\t]*(?:-[ \\t]+|[A-Za-z_][\\w.-]*[ \\t]*:[ \\t]+)`;
+  `(?:^|\\n)[ \\t]*(?:-[ \\t]+(?:[A-Za-z_][\\w.-]*[ \\t]*:[ \\t]+)?|[A-Za-z_][\\w.-]*[ \\t]*:[ \\t]+)`;
 const WHOLE_VALUE_SUFFIX = `(?=[ \\t]*(?:#.*)?(?:\\n|$))`;
 
 /** Plain tokens that are the entire YAML value. */

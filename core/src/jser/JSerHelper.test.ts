@@ -150,6 +150,19 @@ describe('durationToJsMsExpr', () => {
   test('uses runtime parser for dynamic values', () => {
     expect(durationToJsMsExpr('${delay}')).toContain('__parseDurationMs');
   });
+
+  test('resolves e: / i: tokens before runtime duration parse', () => {
+    const envExpr = durationToJsMsExpr('e:delay');
+    expect(envExpr).toContain('__parseDurationMs');
+    expect(envExpr).toContain('mmtEnv_("delay")');
+    expect(envExpr).not.toContain('"e:delay"');
+
+    const inputExpr = durationToJsMsExpr(
+        'i:wait', {knownInputNames: new Set(['wait'])});
+    expect(inputExpr).toContain('__parseDurationMs');
+    expect(inputExpr).toMatch(/wait|mmtAccess_/);
+    expect(inputExpr).not.toContain('"i:wait"');
+  });
 });
 
 describe('toInputsParams – env token handling', () => {
