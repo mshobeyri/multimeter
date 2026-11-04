@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.49.1-pre]
+
+Pre-release. VS Code extension `1.49.1`; Testlight CLI and MCP `1.49.1-pre` on `@pre`.
+
+- Only unwrap a single whole-value `${…}` as a typed ref; any second `${` (e.g. `${a}_${b}`, `${a}${b}`, `<<i:a>>_<<i:b>>`) stays a string template
+
 ## [1.49.0-pre]
 
 Pre-release. VS Code extension `1.49.0`; Testlight CLI and MCP `1.49.0-pre` on `@pre`.
